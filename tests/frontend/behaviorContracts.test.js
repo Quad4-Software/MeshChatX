@@ -299,6 +299,8 @@ describe("behavior contracts: phased startup and early UI mount", () => {
         const banners = readSource("meshchatx/src/frontend/components/layout/AppShellBanners.vue");
         expect(banners).toContain("showNetworkStarting");
         expect(banners).toContain("networkStartingLabel");
+        expect(banners).toContain("open-settings");
+        expect(banners).toContain("open-interfaces");
     });
 
     it("backend publishes ui_ready early and defers secondary identity services", () => {

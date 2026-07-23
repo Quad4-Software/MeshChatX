@@ -72,6 +72,13 @@
                 <button
                     type="button"
                     class="rounded-md bg-white/10 px-3 py-1 text-xs font-semibold hover:bg-white/20"
+                    @click="$emit('open-settings')"
+                >
+                    {{ openSettingsLabel }}
+                </button>
+                <button
+                    type="button"
+                    class="rounded-md bg-white/10 px-3 py-1 text-xs font-semibold hover:bg-white/20"
                     @click="$emit('open-interfaces')"
                 >
                     {{ openInterfacesLabel }}
@@ -152,11 +159,15 @@ export default {
             type: String,
             default: "",
         },
+        openSettingsLabel: {
+            type: String,
+            default: "",
+        },
         openInterfacesLabel: {
             type: String,
             default: "",
         },
     },
-    emits: ["restart-backend", "view-backend-logs", "recover-network", "open-interfaces"],
+    emits: ["restart-backend", "view-backend-logs", "recover-network", "open-settings", "open-interfaces"],
 };
 </script>

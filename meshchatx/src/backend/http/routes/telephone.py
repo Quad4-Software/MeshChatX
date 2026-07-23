@@ -249,12 +249,12 @@ def register_telephone_routes(routes, app):
                 "path_hops": None,
                 "path_interface": None,
             }
-            from LXST.Primitives.Telephony import Profiles
+            from meshchatx.src.backend import lxst_profiles_compat as lxst_modes
 
             mode_id = active_call["call_mode_id"]
             with contextlib.suppress(Exception):
-                active_call["call_mode_name"] = Profiles.mode_name(mode_id)
-                active_call["call_mode_abbrev"] = Profiles.mode_abbrevation(mode_id)
+                active_call["call_mode_name"] = lxst_modes.mode_name(mode_id)
+                active_call["call_mode_abbrev"] = lxst_modes.mode_abbreviation(mode_id)
             link = getattr(app.telephone_manager, "call_stats", {}).get("link")
             if link:
                 active_call["tx_bytes"] = getattr(link, "txbytes", 0)
@@ -497,20 +497,21 @@ def register_telephone_routes(routes, app):
 
     @routes.get("/api/v1/telephone/call-modes")
     async def telephone_call_modes(request):
-        from LXST.Primitives.Telephony import Profiles
+        from meshchatx.src.backend import lxst_profiles_compat as lxst_modes
 
+        half = lxst_modes.mode_half_duplex()
         modes = [
             {
                 "id": mode_id,
-                "name": Profiles.mode_name(mode_id),
-                "abbrev": Profiles.mode_abbrevation(mode_id),
-                "is_half_duplex": mode_id == Profiles.MODE_HALF_DUPLEX,
+                "name": lxst_modes.mode_name(mode_id),
+                "abbrev": lxst_modes.mode_abbreviation(mode_id),
+                "is_half_duplex": mode_id == half,
             }
-            for mode_id in Profiles.available_modes()
+            for mode_id in lxst_modes.available_modes()
         ]
         return web.json_response(
             {
-                "default_call_mode_id": Profiles.DEFAULT_MODE,
+                "default_call_mode_id": lxst_modes.default_mode(),
                 "call_modes": modes,
             },
         )
@@ -529,14 +530,14 @@ def register_telephone_routes(routes, app):
                 int(mode_id),
             )
             app.config.telephone_call_mode_id.set(resolved)
-            from LXST.Primitives.Telephony import Profiles
+            from meshchatx.src.backend import lxst_profiles_compat as lxst_modes
 
             return web.json_response(
                 {
                     "message": f"Switched to mode {resolved}",
                     "mode_id": resolved,
-                    "mode_name": Profiles.mode_name(resolved),
-                    "is_half_duplex": resolved == Profiles.MODE_HALF_DUPLEX,
+                    "mode_name": lxst_modes.mode_name(resolved),
+                    "is_half_duplex": resolved == lxst_modes.mode_half_duplex(),
                     "is_ptt_active": bool(app.telephone_manager.ptt_active),
                 },
             )

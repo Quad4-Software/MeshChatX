@@ -363,9 +363,15 @@ class IdentityContext:
         )
 
         if not getattr(self.app, "emergency", False):
-            self.telephone_manager.init_telephone()
-            with contextlib.suppress(Exception):
-                self.app.sync_telephone_call_policy(context=self)
+            # Telephony must not take down mesh startup. Android may ship an
+            # older LXST without duplex helpers, and audio backends can fail
+            # while LXMF/RNS remain usable.
+            try:
+                self.telephone_manager.init_telephone()
+                with contextlib.suppress(Exception):
+                    self.app.sync_telephone_call_policy(context=self)
+            except Exception as exc:
+                print(f"Telephone init failed (mesh continues): {exc}", flush=True)
 
         self.voicemail_manager = VoicemailManager(
             db=self.database,

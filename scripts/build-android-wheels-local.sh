@@ -28,7 +28,7 @@ Options:
   --api-level N              Android API level for wheel tag (default: 24)
   --pycodec2-version V       pycodec2 version to build (default: 4.1.1)
   --numpy-version V          NumPy version used during pycodec2 build (default: 1.26.2)
-  --lxst-version V           LXST wheel version for metadata patch (default: 0.4.8)
+  --lxst-version V           LXST wheel version for metadata patch (default: 0.5.0)
   --bleak-version V          bleak pure-python wheel version to vendor (default: 3.0.2)
   --rns-version V            rns wheel version to patch (default: 1.4.0)
   --no-lxst-patch            Skip LXST metadata patch
@@ -58,7 +58,7 @@ API_LEVEL="24"
 PYCODEC2_VERSION="4.1.1"
 LIBCODEC2_VERSION="1.2.0"
 NUMPY_VERSION="1.26.2"
-LXST_VERSION="0.4.8"
+LXST_VERSION="0.5.0"
 BLEAK_VERSION="3.0.2"
 RNS_VERSION="1.4.0"
 PATCH_LXST="1"
@@ -784,6 +784,9 @@ with zipfile.ZipFile(src, "r") as zin, zipfile.ZipFile(dst, "w", compression=zip
             text = data.decode("utf-8")
             text = text.replace("Requires-Dist: numpy>=2.3.4", "Requires-Dist: numpy==${NUMPY_VERSION}")
             text = text.replace("Requires-Dist: cffi==1.15.1", "Requires-Dist: cffi>=1.15.1")
+            # LXST 0.5.0 pins cffi>=2.0.0. Chaquopy Android may resolve older
+            # cffi wheels, so keep the lower bound flexible like prior releases.
+            text = text.replace("Requires-Dist: cffi>=2.0.0", "Requires-Dist: cffi>=1.15.1")
             data = text.encode("utf-8")
         zout.writestr(item, data)
 PY

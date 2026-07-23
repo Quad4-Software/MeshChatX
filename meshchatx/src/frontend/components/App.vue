@@ -23,10 +23,12 @@
             :network-degraded-label="networkDegradedBannerLabel"
             :network-recovering="networkRecovering"
             :recover-network-label="$t('app.recover_network')"
+            :open-settings-label="$t('app.open_settings')"
             :open-interfaces-label="$t('app.open_interfaces')"
             @restart-backend="onRestartBackend"
             @view-backend-logs="onViewBackendCrashReport"
             @recover-network="onRecoverNetwork"
+            @open-settings="onOpenSettingsForRecovery"
             @open-interfaces="onOpenInterfacesForRecovery"
         />
 
@@ -1204,6 +1206,9 @@ export default {
         },
         onOpenInterfacesForRecovery() {
             this.$router.push({ name: "interfaces" });
+        },
+        onOpenSettingsForRecovery() {
+            this.$router.push({ name: "settings" });
         },
         async onRecoverNetwork() {
             if (this.networkRecovering) {

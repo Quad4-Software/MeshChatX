@@ -2,8 +2,8 @@
 
 export const STARTUP_STAGE_LABELS = {
     http: "Getting things ready…",
-    starting: "Getting the mesh ready…",
-    rns: "Connecting to the mesh…",
+    starting: "Getting RNS ready…",
+    rns: "Starting RNS…",
     identity: "Almost there…",
     ready: "Ready",
     failed: "Startup failed",
@@ -29,7 +29,7 @@ export function interpretStartupStatus(data) {
 
     if (status === "failed") {
         // HTTP is up and the backend marked UI as usable: mount the app in
-        // degraded mode so interfaces/settings remain reachable for recovery.
+        // degraded mode so settings/interfaces remain reachable for recovery.
         if (uiReady || networkDegraded) {
             return {
                 kind: "degraded",
@@ -48,7 +48,7 @@ export function interpretStartupStatus(data) {
     }
     if (status === "starting" || status === undefined) {
         const resolvedStage = stage || "starting";
-        const label = STARTUP_STAGE_LABELS[resolvedStage] || "Starting network…";
+        const label = STARTUP_STAGE_LABELS[resolvedStage] || "Starting RNS…";
         // HTTP is bound and the shell may mount while RNS/identity finish.
         if (uiReady) {
             return {
@@ -101,7 +101,7 @@ export async function waitForNetworkReady(options = {}) {
                 const data = await response.json();
                 const interpreted = interpretStartupStatus(data);
                 if (interpreted.kind === "degraded") {
-                    onLine(interpreted.error || "Mesh network unavailable. Opening recovery UI…");
+                    onLine(interpreted.error || "RNS unavailable. Opening recovery UI…");
                     onDegraded(interpreted.error);
                     return "degraded";
                 }

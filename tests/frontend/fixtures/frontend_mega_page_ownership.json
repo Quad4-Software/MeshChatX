@@ -47,10 +47,7 @@
         {
             "id": "map",
             "shell": "meshchatx/src/frontend/components/map/MapPage.vue",
-            "allowed_child_dirs": [
-                "meshchatx/src/frontend/components/map/internal",
-                "meshchatx/src/frontend/js"
-            ],
+            "allowed_child_dirs": ["meshchatx/src/frontend/components/map/internal", "meshchatx/src/frontend/js"],
             "required_children": [
                 "meshchatx/src/frontend/components/map/internal/MapClusterPanel.vue",
                 "meshchatx/src/frontend/components/map/internal/MapMarkerPanel.vue",
@@ -161,12 +158,7 @@
                 "meshchatx/src/frontend/components/layout/AppIdentitySwitchOverlay.vue",
                 "meshchatx/src/frontend/components/call/CallOverlay.vue"
             ],
-            "required_shell_imports": [
-                "AppShellBanners",
-                "AppIdentitySwitchOverlay",
-                "CallOverlay",
-                "listNavItems"
-            ]
+            "required_shell_imports": ["AppShellBanners", "AppIdentitySwitchOverlay", "CallOverlay", "listNavItems"]
         }
     ]
 }
