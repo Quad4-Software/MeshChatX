@@ -1519,139 +1519,7 @@
                                 </ExpandingSection>
 
                                 <!-- Interface Discovery Settings -->
-                                <ExpandingSection class="glass-card p-0! overflow-hidden">
-                                    <template #title
-                                        ><span class="text-sm font-bold">Interface Discovery</span></template
-                                    >
-                                    <template #content>
-                                        <div class="p-6 space-y-6">
-                                            <div class="flex items-center justify-between">
-                                                <div class="max-w-md">
-                                                    <FormLabel class="glass-label mb-0!"
-                                                        >Publish Discovery Announce</FormLabel
-                                                    >
-                                                    <p class="text-xs text-gray-400">
-                                                        Makes your node visible to others on the network.
-                                                    </p>
-                                                </div>
-                                                <Toggle v-model="discovery.discoverable" />
-                                            </div>
-                                            <div
-                                                v-if="discovery.discoverable"
-                                                class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2"
-                                            >
-                                                <div>
-                                                    <FormLabel class="glass-label">Discovery Name</FormLabel>
-                                                    <input
-                                                        v-model="discovery.discovery_name"
-                                                        type="text"
-                                                        placeholder="Human-friendly name"
-                                                        class="input-field"
-                                                    />
-                                                </div>
-                                                <div class="grid grid-cols-2 gap-4">
-                                                    <div>
-                                                        <FormLabel class="glass-label">Announce Interval (m)</FormLabel>
-                                                        <input
-                                                            v-model.number="discovery.announce_interval"
-                                                            type="number"
-                                                            class="input-field"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <FormLabel class="glass-label">Reachable On</FormLabel>
-                                                        <input
-                                                            v-model="discovery.reachable_on"
-                                                            type="text"
-                                                            placeholder="IP or Hostname"
-                                                            class="input-field"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                    <div>
-                                                        <FormLabel class="glass-label">Latitude (optional)</FormLabel>
-                                                        <input
-                                                            v-model="discovery.latitude"
-                                                            type="text"
-                                                            inputmode="decimal"
-                                                            autocomplete="off"
-                                                            aria-required="false"
-                                                            placeholder="Leave blank if unknown"
-                                                            class="input-field"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <FormLabel class="glass-label">Longitude (optional)</FormLabel>
-                                                        <input
-                                                            v-model="discovery.longitude"
-                                                            type="text"
-                                                            inputmode="decimal"
-                                                            autocomplete="off"
-                                                            aria-required="false"
-                                                            placeholder="Leave blank if unknown"
-                                                            class="input-field"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <FormLabel class="glass-label"
-                                                            >Height in metres (optional)</FormLabel
-                                                        >
-                                                        <input
-                                                            v-model="discovery.height"
-                                                            type="text"
-                                                            inputmode="decimal"
-                                                            autocomplete="off"
-                                                            aria-required="false"
-                                                            placeholder="Leave blank if unknown"
-                                                            class="input-field"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <FormLabel class="glass-label">{{
-                                                        $t("interfaces.location_cmd_label")
-                                                    }}</FormLabel>
-                                                    <input
-                                                        v-model="discovery.location_cmd"
-                                                        type="text"
-                                                        :placeholder="$t('interfaces.location_cmd_placeholder')"
-                                                        class="input-field font-mono text-xs"
-                                                        autocomplete="off"
-                                                    />
-                                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                        {{ $t("interfaces.location_cmd_hint") }}
-                                                    </p>
-                                                </div>
-                                                <div class="grid grid-cols-2 gap-4">
-                                                    <div>
-                                                        <FormLabel class="glass-label">Discovery stamp value</FormLabel>
-                                                        <input
-                                                            v-model.number="discovery.discovery_stamp_value"
-                                                            type="number"
-                                                            min="1"
-                                                            class="input-field"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div class="flex flex-wrap items-center justify-between gap-4">
-                                                    <div class="flex items-center justify-between gap-4 max-w-md">
-                                                        <FormLabel class="glass-label mb-0!"
-                                                            >Encrypt discovery</FormLabel
-                                                        >
-                                                        <Toggle v-model="discovery.discovery_encrypt" />
-                                                    </div>
-                                                    <div class="flex items-center justify-between gap-4 max-w-md">
-                                                        <FormLabel class="glass-label mb-0!"
-                                                            >Publish IFAC in announce</FormLabel
-                                                        >
-                                                        <Toggle v-model="discovery.publish_ifac" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </template>
-                                </ExpandingSection>
+                                <AddInterfaceDiscoveryPanel :discovery="discovery" @patch="applyDiscoveryPatch" />
 
                                 <!-- Global Discovery Settings -->
                                 <ExpandingSection class="glass-card p-0! overflow-hidden">
@@ -2043,6 +1911,7 @@ import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 import { numOrNull, parseRNodeFrequencyHz } from "../../js/interfaceDiscoveryUtils";
 import ExpandingSection from "./ExpandingSection.vue";
+import AddInterfaceDiscoveryPanel from "./internal/AddInterfaceDiscoveryPanel.vue";
 import FormLabel from "../forms/FormLabel.vue";
 import Toggle from "../forms/Toggle.vue";
 import GlobalState from "../../js/GlobalState";
@@ -2056,6 +1925,7 @@ export default {
         MaterialDesignIcon,
         FormLabel,
         ExpandingSection,
+        AddInterfaceDiscoveryPanel,
         Toggle,
         BundledDocsHint,
     },
@@ -2355,6 +2225,12 @@ export default {
         }
     },
     methods: {
+        applyDiscoveryPatch(patch) {
+            this.discovery = {
+                ...this.discovery,
+                ...patch,
+            };
+        },
         async loadInstalledInterfaceModules() {
             try {
                 const response = await window.api.get("/api/v1/reticulum/interface-modules");

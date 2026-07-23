@@ -1,0 +1,15 @@
+{
+    "id": "call",
+    "scan_dirs": ["meshchatx/src/frontend/components/call"],
+    "required_strings": [
+        "CallOverlay",
+        "RingtoneEditor",
+        "CallPhonebookTab",
+        "CallContactsTab",
+        "CallVoicemailTab",
+        "CallTabBar",
+        "/api/v1/telephone",
+        "call.load_more",
+        "call.ringtone"
+    ]
+}

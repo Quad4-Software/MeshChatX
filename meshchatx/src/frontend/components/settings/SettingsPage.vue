@@ -725,135 +725,37 @@
                             @close-behavior-change="onDesktopCloseBehaviorChange"
                         />
 
-                        <section
+                        <AndroidSettingsSection
                             v-if="isMeshChatXAndroid"
-                            v-show="showSection('android')"
-                            class="settings-section break-inside-avoid"
-                        >
-                            <header class="settings-section__header">
-                                <div>
-                                    <div class="settings-section__eyebrow">Android</div>
-                                    <h2>{{ $t("settings.android_privacy_heading") }}</h2>
-                                    <p>{{ $t("settings.android_privacy_desc") }}</p>
-                                </div>
-                            </header>
-                            <div class="settings-section__body space-y-4">
-                                <label class="setting-toggle">
-                                    <input
-                                        v-model="androidShellPrivacy.blockScreenshots"
-                                        type="checkbox"
-                                        class="rounded-sm"
-                                        @change="saveAndroidBlockScreenshots"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{
-                                            $t("settings.android_block_screenshots")
-                                        }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("settings.android_block_screenshots_desc")
-                                        }}</span>
-                                    </span>
-                                </label>
-                                <label class="setting-toggle">
-                                    <input
-                                        v-model="androidShellPrivacy.clearClipboardOnBackground"
-                                        type="checkbox"
-                                        class="rounded-sm"
-                                        @change="saveAndroidClearClipboardOnBackground"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{
-                                            $t("settings.android_clear_clipboard_on_background")
-                                        }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("settings.android_clear_clipboard_on_background_desc")
-                                        }}</span>
-                                    </span>
-                                </label>
-                                <button
-                                    type="button"
-                                    class="btn-maintenance border-blue-200 dark:border-blue-900/30 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20"
-                                    @click="shareAndroidApk"
-                                >
-                                    <div class="flex flex-col items-start text-left">
-                                        <div class="font-bold flex items-center gap-2">
-                                            <MaterialDesignIcon icon-name="share-variant" class="size-4" />
-                                            {{ $t("settings.share_apk") }}
-                                        </div>
-                                        <div class="text-xs opacity-80">
-                                            {{ $t("settings.share_apk_short_hint") }}
-                                        </div>
-                                    </div>
-                                </button>
-                            </div>
-                        </section>
+                            :visible="showSection('android')"
+                            :android-shell-privacy="androidShellPrivacy"
+                            @update:block-screenshots="
+                                (v) => {
+                                    androidShellPrivacy.blockScreenshots = v;
+                                    saveAndroidBlockScreenshots();
+                                }
+                            "
+                            @update:clear-clipboard-on-background="
+                                (v) => {
+                                    androidShellPrivacy.clearClipboardOnBackground = v;
+                                    saveAndroidClearClipboardOnBackground();
+                                }
+                            "
+                            @share-apk="shareAndroidApk"
+                        />
 
-                        <!-- Page Archiver -->
-                        <section v-show="showSection('archiver')" class="settings-section break-inside-avoid">
-                            <header class="settings-section__header">
-                                <div>
-                                    <div class="settings-section__eyebrow">Browsing</div>
-                                    <h2>Page Archiver</h2>
-                                    <p>Automatically save copies of visited NomadNetwork pages.</p>
-                                </div>
-                            </header>
-                            <div class="settings-section__body space-y-3">
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="page-archiver-enabled"
-                                        v-model="config.page_archiver_enabled"
-                                        @update:model-value="onPageArchiverEnabledChangeWrapper"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">Enable Archiver</span>
-                                        <span class="setting-toggle__description"
-                                            >Automatically archive pages for offline viewing and fallback.</span
-                                        >
-                                    </span>
-                                </label>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            Max Versions per Page
-                                        </div>
-                                        <input
-                                            v-model.number="config.page_archiver_max_versions"
-                                            type="number"
-                                            min="1"
-                                            max="50"
-                                            class="input-field"
-                                            @input="onPageArchiverConfigChange"
-                                        />
-                                        <div class="text-xs text-gray-600 dark:text-gray-400">
-                                            How many versions of each page to keep.
-                                        </div>
-                                    </div>
-                                    <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            Max Total Storage (GB)
-                                        </div>
-                                        <input
-                                            v-model.number="config.archives_max_storage_gb"
-                                            type="number"
-                                            min="1"
-                                            class="input-field"
-                                            @input="onPageArchiverConfigChange"
-                                        />
-                                        <div class="text-xs text-gray-600 dark:text-gray-400">
-                                            Total storage for all archived pages.
-                                        </div>
-                                    </div>
-                                </div>
-                                <button
-                                    type="button"
-                                    class="w-full flex items-center justify-center gap-2 rounded-xl border border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-900/20 px-4 py-2 text-sm font-semibold text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 transition"
-                                    @click="flushArchivedPages"
-                                >
-                                    <MaterialDesignIcon icon-name="delete-sweep" class="w-4 h-4" />
-                                    Flush All Archived Pages
-                                </button>
-                            </div>
-                        </section>
+                        <ArchiverSettingsSection
+                            :visible="showSection('archiver')"
+                            :config="config"
+                            @enabled-change="onPageArchiverEnabledChangeWrapper"
+                            @config-change="
+                                (patch) => {
+                                    Object.assign(config, patch);
+                                    onPageArchiverConfigChange();
+                                }
+                            "
+                            @flush="flushArchivedPages"
+                        />
 
                         <!-- NomadNet browser renderer -->
                         <section v-show="showSection('nomadRenderer')" class="settings-section break-inside-avoid">
@@ -1064,728 +966,61 @@
                         </section>
 
                         <!-- Appearance -->
-                        <section v-show="showSection('appearance')" class="settings-section break-inside-avoid">
-                            <header class="settings-section__header">
-                                <div>
-                                    <div class="settings-section__eyebrow">Personalise</div>
-                                    <h2>{{ $t("app.appearance") }}</h2>
-                                    <p>{{ $t("app.appearance_description") }}</p>
-                                </div>
-                            </header>
-                            <div class="settings-section__body space-y-4">
-                                <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        {{ $t("app.theme") }}
-                                    </div>
-                                    <select v-model="config.theme" class="input-field" @change="onThemeChange">
-                                        <option value="light">{{ $t("app.light_theme") }}</option>
-                                        <option value="dark">{{ $t("app.dark_theme") }}</option>
-                                    </select>
-                                </div>
-
-                                <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        {{ $t("app.messages_sidebar_position") }}
-                                    </div>
-                                    <select
-                                        v-model="config.messages_sidebar_position"
-                                        class="input-field"
-                                        @change="onMessagesSidebarPositionChange"
-                                    >
-                                        <option value="left">{{ $t("app.messages_sidebar_position_left") }}</option>
-                                        <option value="right">{{ $t("app.messages_sidebar_position_right") }}</option>
-                                    </select>
-                                </div>
-
-                                <div class="space-y-2">
-                                    <div class="flex items-center justify-between">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            Message Font Size
-                                        </div>
-                                        <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
-                                            {{ config.message_font_size || 14 }}px
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-3">
-                                        <span class="text-xs text-gray-400">A</span>
-                                        <input
-                                            v-model.number="config.message_font_size"
-                                            type="range"
-                                            min="10"
-                                            max="32"
-                                            step="1"
-                                            class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                                            @input="onMessageFontSizeChange"
-                                        />
-                                        <span class="text-lg text-gray-400">A</span>
-                                    </div>
-                                </div>
-
-                                <div class="space-y-2">
-                                    <div class="flex items-center justify-between">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            Icon Size
-                                        </div>
-                                        <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
-                                            {{ config.message_icon_size || 28 }}px
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-3">
-                                        <MaterialDesignIcon
-                                            icon-name="account-outline"
-                                            class="shrink-0 text-gray-400"
-                                            :style="{ width: '16px', height: '16px' }"
-                                        />
-                                        <input
-                                            v-model.number="config.message_icon_size"
-                                            type="range"
-                                            min="16"
-                                            max="64"
-                                            step="1"
-                                            class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                                            @input="onMessageIconSizeChange"
-                                        />
-                                        <MaterialDesignIcon
-                                            icon-name="account"
-                                            class="shrink-0 text-gray-500 dark:text-gray-300"
-                                            :style="messageIconPreviewStyle"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div class="space-y-2">
-                                    <div class="flex items-center justify-between">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            {{ $t("app.ui_transparency") }}
-                                        </div>
-                                        <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
-                                            {{ Math.max(0, Math.min(100, Number(config.ui_transparency) || 0)) }}%
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-3">
-                                        <span class="text-xs text-gray-400">0</span>
-                                        <input
-                                            v-model.number="config.ui_transparency"
-                                            type="range"
-                                            min="0"
-                                            max="100"
-                                            step="1"
-                                            class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                                            @input="onUiTransparencyChange"
-                                        />
-                                        <span class="text-xs text-gray-400">100</span>
-                                    </div>
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
-                                        {{ $t("app.ui_transparency_description") }}
-                                    </div>
-                                </div>
-
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="ui-glass-enabled"
-                                        v-model="config.ui_glass_enabled"
-                                        @update:model-value="onUiGlassEnabledChange"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{ $t("app.ui_glass_enabled") }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("app.ui_glass_enabled_description")
-                                        }}</span>
-                                    </span>
-                                </label>
-
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="messages-multi-pane-enabled"
-                                        v-model="config.messages_multi_pane_enabled"
-                                        @update:model-value="onMessagesMultiPaneEnabledChange"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{
-                                            $t("app.messages_multi_pane_enabled")
-                                        }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("app.messages_multi_pane_enabled_description")
-                                        }}</span>
-                                    </span>
-                                </label>
-
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="nomad-tabs-enabled"
-                                        v-model="config.nomad_tabs_enabled"
-                                        @update:model-value="onNomadTabsEnabledChange"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{ $t("app.nomad_tabs_enabled") }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("app.nomad_tabs_enabled_description")
-                                        }}</span>
-                                    </span>
-                                </label>
-
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="rrc-enabled"
-                                        v-model="config.rrc_enabled"
-                                        @update:model-value="onRrcEnabledChange"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{ $t("app.rrc_enabled") }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("app.rrc_enabled_description")
-                                        }}</span>
-                                    </span>
-                                </label>
-
-                                <label v-if="config.rrc_enabled" class="setting-toggle">
-                                    <Toggle
-                                        id="rrc-unread-badges"
-                                        v-model="config.rrc_unread_badges_enabled"
-                                        @update:model-value="onRrcUnreadBadgesEnabledChange"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{
-                                            $t("app.rrc_unread_badges_enabled")
-                                        }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("app.rrc_unread_badges_enabled_description")
-                                        }}</span>
-                                    </span>
-                                </label>
-
-                                <div class="pt-1">
-                                    <button
-                                        type="button"
-                                        class="p-0 border-0 bg-transparent text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                                        @click="resetAppearanceDefaults"
-                                    >
-                                        {{ $t("app.reset_appearance_defaults") }}
-                                    </button>
-                                </div>
-
-                                <div class="space-y-4 pt-2">
-                                    <div
-                                        class="text-sm font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider"
-                                    >
-                                        Message Bubbles
-                                    </div>
-
-                                    <div
-                                        class="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 px-3 py-2.5"
-                                    >
-                                        <input
-                                            id="detailed-outbound-send-status"
-                                            type="checkbox"
-                                            class="mt-1 rounded-sm border-gray-300 dark:border-zinc-600"
-                                            :checked="GlobalState.detailedOutboundSendStatus"
-                                            @change="onDetailedOutboundSendStatusChange"
-                                        />
-                                        <label for="detailed-outbound-send-status" class="min-w-0 cursor-pointer">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                                {{ $t("app.detailed_outbound_send_status") }}
-                                            </div>
-                                            <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-                                                {{ $t("app.detailed_outbound_send_status_description") }}
-                                            </div>
-                                        </label>
-                                    </div>
-
-                                    <div
-                                        class="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 px-3 py-2.5"
-                                    >
-                                        <input
-                                            id="outbound-transfer-progress-enabled"
-                                            type="checkbox"
-                                            class="mt-1 rounded-sm border-gray-300 dark:border-zinc-600"
-                                            :checked="GlobalState.outboundTransferProgressEnabled"
-                                            @change="onOutboundTransferProgressEnabledChange"
-                                        />
-                                        <label for="outbound-transfer-progress-enabled" class="min-w-0 cursor-pointer">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                                {{ $t("app.outbound_transfer_progress_enabled") }}
-                                            </div>
-                                            <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-                                                {{ $t("app.outbound_transfer_progress_enabled_description") }}
-                                            </div>
-                                        </label>
-                                    </div>
-
-                                    <div
-                                        class="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 px-3 py-2.5"
-                                    >
-                                        <input
-                                            id="message-timestamp-grouping"
-                                            type="checkbox"
-                                            class="mt-1 rounded-sm border-gray-300 dark:border-zinc-600"
-                                            :checked="GlobalState.messageTimestampGroupingEnabled"
-                                            @change="onMessageTimestampGroupingChange"
-                                        />
-                                        <label for="message-timestamp-grouping" class="min-w-0 cursor-pointer">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                                {{ $t("app.message_timestamp_grouping") }}
-                                            </div>
-                                            <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-                                                {{ $t("app.message_timestamp_grouping_description") }}
-                                            </div>
-                                        </label>
-                                    </div>
-
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div class="space-y-2">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                                Outbound Color
-                                            </div>
-                                            <div class="flex gap-2">
-                                                <input
-                                                    v-model="config.message_outbound_bubble_color"
-                                                    type="color"
-                                                    class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
-                                                    @input="onMessageBubbleColorChange('outbound')"
-                                                />
-                                                <input
-                                                    v-model="config.message_outbound_bubble_color"
-                                                    type="text"
-                                                    class="input-field monospace-field flex-1"
-                                                    @input="onMessageBubbleColorChange('outbound')"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div class="space-y-2">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                                Failed Color
-                                            </div>
-                                            <div class="flex gap-2">
-                                                <input
-                                                    v-model="config.message_failed_bubble_color"
-                                                    type="color"
-                                                    class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
-                                                    @input="onMessageBubbleColorChange('failed')"
-                                                />
-                                                <input
-                                                    v-model="config.message_failed_bubble_color"
-                                                    type="text"
-                                                    class="input-field monospace-field flex-1"
-                                                    @input="onMessageBubbleColorChange('failed')"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div class="space-y-2">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                                Waiting Color
-                                            </div>
-                                            <div class="flex gap-2">
-                                                <input
-                                                    v-model="config.message_waiting_bubble_color"
-                                                    type="color"
-                                                    class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
-                                                    @input="onMessageBubbleColorChange('waiting')"
-                                                />
-                                                <input
-                                                    v-model="config.message_waiting_bubble_color"
-                                                    type="text"
-                                                    class="input-field monospace-field flex-1"
-                                                    @input="onMessageBubbleColorChange('waiting')"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="space-y-2">
-                                        <div class="flex items-center justify-between">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                                Inbound Color (Optional)
-                                            </div>
-                                            <button
-                                                v-if="config.message_inbound_bubble_color"
-                                                type="button"
-                                                class="text-[10px] text-red-500 font-bold uppercase hover:underline"
-                                                @click="
-                                                    config.message_inbound_bubble_color = null;
-                                                    onMessageBubbleColorChange('inbound');
-                                                "
-                                            >
-                                                Reset to default
-                                            </button>
-                                        </div>
-                                        <div class="flex gap-2">
-                                            <input
-                                                v-if="config.message_inbound_bubble_color"
-                                                v-model="config.message_inbound_bubble_color"
-                                                type="color"
-                                                class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
-                                                @input="onMessageBubbleColorChange('inbound')"
-                                            />
-                                            <div
-                                                v-if="!config.message_inbound_bubble_color"
-                                                class="flex-1 flex items-center px-3 text-xs text-gray-400 bg-gray-50 dark:bg-zinc-900 rounded-xl border border-dashed border-gray-200 dark:border-zinc-800 italic"
-                                            >
-                                                Using theme default. Click to customize ->
-                                                <button
-                                                    class="ml-2 px-2 py-1 bg-blue-500 text-white rounded-lg not-italic font-bold"
-                                                    @click="
-                                                        config.message_inbound_bubble_color = '#ffffff';
-                                                        onMessageBubbleColorChange('inbound');
-                                                    "
-                                                >
-                                                    Customize
-                                                </button>
-                                            </div>
-                                            <input
-                                                v-else
-                                                v-model="config.message_inbound_bubble_color"
-                                                type="text"
-                                                class="input-field monospace-field flex-1"
-                                                @input="onMessageBubbleColorChange('inbound')"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
+                        <AppearanceSettingsSection
+                            :visible="showSection('appearance')"
+                            :config="config"
+                            :detailed-outbound-send-status="GlobalState.detailedOutboundSendStatus"
+                            :outbound-transfer-progress-enabled="GlobalState.outboundTransferProgressEnabled"
+                            :message-timestamp-grouping-enabled="GlobalState.messageTimestampGroupingEnabled"
+                            :message-icon-preview-style="messageIconPreviewStyle"
+                            @update-field="
+                                (p) => {
+                                    config[p.key] = p.value;
+                                }
+                            "
+                            @theme-change="onThemeChange"
+                            @messages-sidebar-position-change="onMessagesSidebarPositionChange"
+                            @message-font-size-change="onMessageFontSizeChange"
+                            @message-icon-size-change="onMessageIconSizeChange"
+                            @ui-transparency-change="onUiTransparencyChange"
+                            @ui-glass-enabled-change="onUiGlassEnabledChange"
+                            @messages-multi-pane-enabled-change="onMessagesMultiPaneEnabledChange"
+                            @nomad-tabs-enabled-change="onNomadTabsEnabledChange"
+                            @rrc-enabled-change="onRrcEnabledChange"
+                            @rrc-unread-badges-enabled-change="onRrcUnreadBadgesEnabledChange"
+                            @reset-appearance-defaults="resetAppearanceDefaults"
+                            @detailed-outbound-send-status-change="onDetailedOutboundSendStatusChange"
+                            @outbound-transfer-progress-enabled-change="onOutboundTransferProgressEnabledChange"
+                            @message-timestamp-grouping-change="onMessageTimestampGroupingChange"
+                            @bubble-color-change="onMessageBubbleColorChange"
+                        />
 
                         <!-- Battery saver -->
-                        <section v-show="showSection('battery')" class="settings-section break-inside-avoid">
-                            <header class="settings-section__header">
-                                <div>
-                                    <div class="settings-section__eyebrow">{{ $t("settings.battery.eyebrow") }}</div>
-                                    <h2>{{ $t("settings.battery.title") }}</h2>
-                                    <p>{{ $t("settings.battery.description") }}</p>
-                                </div>
-                            </header>
-                            <div class="settings-section__body space-y-4">
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="settings-battery-saver-enabled"
-                                        v-model="batterySaver.enabled"
-                                        @update:model-value="onBatterySaverEnabledChange"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{ $t("settings.battery.enabled") }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("settings.battery.enabled_desc")
-                                        }}</span>
-                                    </span>
-                                </label>
+                        <BatterySettingsSection
+                            :visible="showSection('battery')"
+                            :battery-saver="batterySaver"
+                            :battery-interface-rows="batteryInterfaceRows"
+                            :battery-bitrate-busy="batteryBitrateBusy"
+                            @enabled-change="onBatterySaverEnabledChange"
+                            @patch="patchBatterySaver"
+                            @apply-bitrates="applyBatteryBitrateLimitsNow"
+                            @restore-bitrates="restoreBatteryBitrateLimitsNow"
+                        />
 
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100 pt-2">
-                                    {{ $t("settings.battery.options_heading") }}
-                                </div>
-
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="settings-battery-viz-discovery"
-                                        v-model="batterySaver.disableVisualiserDiscovery"
-                                        @update:model-value="
-                                            (v) => patchBatterySaver({ disableVisualiserDiscovery: v })
-                                        "
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{
-                                            $t("settings.battery.disable_visualiser_discovery")
-                                        }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("settings.battery.disable_visualiser_discovery_desc")
-                                        }}</span>
-                                    </span>
-                                </label>
-
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="settings-battery-hide-offline"
-                                        v-model="batterySaver.hideOfflineInterfaces"
-                                        @update:model-value="(v) => patchBatterySaver({ hideOfflineInterfaces: v })"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{
-                                            $t("settings.battery.hide_offline_interfaces")
-                                        }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("settings.battery.hide_offline_interfaces_desc")
-                                        }}</span>
-                                    </span>
-                                </label>
-
-                                <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        {{ $t("settings.battery.max_visualiser_interfaces") }}
-                                    </div>
-                                    <p class="text-xs text-gray-500 dark:text-zinc-400">
-                                        {{ $t("settings.battery.max_visualiser_interfaces_desc") }}
-                                    </p>
-                                    <input
-                                        v-model.number="batterySaver.maxVisualiserInterfaces"
-                                        type="number"
-                                        min="0"
-                                        max="128"
-                                        class="input-field"
-                                        @change="
-                                            patchBatterySaver({
-                                                maxVisualiserInterfaces: batterySaver.maxVisualiserInterfaces,
-                                            })
-                                        "
-                                    />
-                                </div>
-
-                                <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        {{ $t("settings.battery.visualiser_reload_seconds") }}
-                                    </div>
-                                    <p class="text-xs text-gray-500 dark:text-zinc-400">
-                                        {{ $t("settings.battery.visualiser_reload_seconds_desc") }}
-                                    </p>
-                                    <input
-                                        v-model.number="batterySaver.visualiserReloadSeconds"
-                                        type="number"
-                                        min="0"
-                                        max="600"
-                                        class="input-field"
-                                        @change="
-                                            patchBatterySaver({
-                                                visualiserReloadSeconds: batterySaver.visualiserReloadSeconds,
-                                            })
-                                        "
-                                    />
-                                </div>
-
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="settings-battery-live-layout"
-                                        v-model="batterySaver.disableVisualiserLiveLayout"
-                                        @update:model-value="
-                                            (v) => patchBatterySaver({ disableVisualiserLiveLayout: v })
-                                        "
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{
-                                            $t("settings.battery.disable_visualiser_live_layout")
-                                        }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("settings.battery.disable_visualiser_live_layout_desc")
-                                        }}</span>
-                                    </span>
-                                </label>
-
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="settings-battery-bg-poll"
-                                        v-model="batterySaver.reduceBackgroundPolling"
-                                        @update:model-value="(v) => patchBatterySaver({ reduceBackgroundPolling: v })"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{
-                                            $t("settings.battery.reduce_background_polling")
-                                        }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("settings.battery.reduce_background_polling_desc")
-                                        }}</span>
-                                    </span>
-                                </label>
-
-                                <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        {{ $t("settings.battery.background_poll_multiplier") }}
-                                    </div>
-                                    <p class="text-xs text-gray-500 dark:text-zinc-400">
-                                        {{ $t("settings.battery.background_poll_multiplier_desc") }}
-                                    </p>
-                                    <input
-                                        v-model.number="batterySaver.backgroundPollMultiplier"
-                                        type="number"
-                                        min="2"
-                                        max="10"
-                                        class="input-field"
-                                        @change="
-                                            patchBatterySaver({
-                                                backgroundPollMultiplier: batterySaver.backgroundPollMultiplier,
-                                            })
-                                        "
-                                    />
-                                </div>
-
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="settings-battery-ifaces-discovery"
-                                        v-model="batterySaver.reduceInterfacesDiscovery"
-                                        @update:model-value="(v) => patchBatterySaver({ reduceInterfacesDiscovery: v })"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{
-                                            $t("settings.battery.reduce_interfaces_discovery")
-                                        }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("settings.battery.reduce_interfaces_discovery_desc")
-                                        }}</span>
-                                    </span>
-                                </label>
-
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            {{ $t("settings.battery.interfaces_stats_poll_seconds") }}
-                                        </div>
-                                        <input
-                                            v-model.number="batterySaver.interfacesStatsPollSeconds"
-                                            type="number"
-                                            min="1"
-                                            max="120"
-                                            class="input-field"
-                                            @change="
-                                                patchBatterySaver({
-                                                    interfacesStatsPollSeconds: batterySaver.interfacesStatsPollSeconds,
-                                                })
-                                            "
-                                        />
-                                    </div>
-                                    <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            {{ $t("settings.battery.interfaces_discovery_poll_seconds") }}
-                                        </div>
-                                        <input
-                                            v-model.number="batterySaver.interfacesDiscoveryPollSeconds"
-                                            type="number"
-                                            min="5"
-                                            max="300"
-                                            class="input-field"
-                                            @change="
-                                                patchBatterySaver({
-                                                    interfacesDiscoveryPollSeconds:
-                                                        batterySaver.interfacesDiscoveryPollSeconds,
-                                                })
-                                            "
-                                        />
-                                    </div>
-                                </div>
-
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="settings-battery-bitrate-limits"
-                                        v-model="batterySaver.applyInterfaceBitrateLimits"
-                                        @update:model-value="
-                                            (v) => patchBatterySaver({ applyInterfaceBitrateLimits: v === true })
-                                        "
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{
-                                            $t("settings.battery.apply_interface_bitrate_limits")
-                                        }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("settings.battery.apply_interface_bitrate_limits_desc")
-                                        }}</span>
-                                    </span>
-                                </label>
-
-                                <div v-if="batterySaver.applyInterfaceBitrateLimits" class="space-y-3">
-                                    <p class="text-xs text-gray-500 dark:text-zinc-400">
-                                        {{ $t("settings.battery.interface_bitrate_limits_help") }}
-                                    </p>
-                                    <div
-                                        v-if="batteryInterfaceRows.length === 0"
-                                        class="text-xs text-gray-500 dark:text-zinc-400"
-                                    >
-                                        {{ $t("settings.battery.interface_bitrate_limits_empty") }}
-                                    </div>
-                                    <div
-                                        v-for="row in batteryInterfaceRows"
-                                        :key="row.name"
-                                        class="grid grid-cols-1 sm:grid-cols-[1fr_10rem] gap-2 items-center"
-                                    >
-                                        <div
-                                            class="text-sm text-gray-900 dark:text-gray-100 truncate"
-                                            :title="row.name"
-                                        >
-                                            {{ row.name }}
-                                            <span class="text-xs text-gray-500 dark:text-zinc-400">
-                                                ({{ row.type || "?" }})
-                                            </span>
-                                        </div>
-                                        <input
-                                            v-model.number="batterySaver.interfaceBitrateLimits[row.name]"
-                                            type="number"
-                                            min="0"
-                                            class="input-field"
-                                            :placeholder="$t('settings.battery.interface_bitrate_placeholder')"
-                                            @change="onBatteryBitrateLimitChange(row.name)"
-                                        />
-                                    </div>
-                                    <div class="flex flex-wrap gap-2">
-                                        <button
-                                            type="button"
-                                            class="secondary-button text-sm"
-                                            :disabled="batteryBitrateBusy"
-                                            @click="applyBatteryBitrateLimitsNow"
-                                        >
-                                            {{ $t("settings.battery.apply_bitrates_reload") }}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="secondary-button text-sm"
-                                            :disabled="batteryBitrateBusy"
-                                            @click="restoreBatteryBitrateLimitsNow"
-                                        >
-                                            {{ $t("settings.battery.restore_bitrates_reload") }}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-
-                        <!-- Network Visualiser -->
-                        <section v-show="showSection('visualiser')" class="settings-section break-inside-avoid">
-                            <header class="settings-section__header">
-                                <div>
-                                    <div class="settings-section__eyebrow">Visualiser</div>
-                                    <h2>{{ $t("visualiser.title") }}</h2>
-                                    <p>{{ $t("visualiser.description") }}</p>
-                                </div>
-                            </header>
-                            <div class="settings-section__body space-y-4">
-                                <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        {{ $t("visualiser.renderer_title") }}
-                                    </div>
-                                    <p class="text-xs text-gray-600 dark:text-gray-400">
-                                        {{ $t("visualiser.renderer_desc") }}
-                                    </p>
-                                    <select
-                                        id="settings-visualiser-renderer"
-                                        v-model="visualiserRenderer"
-                                        class="input-field"
-                                        @change="onVisualiserRendererChange"
-                                    >
-                                        <option value="auto">{{ $t("visualiser.renderer_option_auto") }}</option>
-                                        <option value="webgl">{{ $t("visualiser.renderer_option_webgl") }}</option>
-                                        <option value="vis">{{ $t("visualiser.renderer_option_vis") }}</option>
-                                    </select>
-                                </div>
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="settings-visualiser-offline"
-                                        v-model="visualiserShowDisabledInterfaces"
-                                        @update:model-value="onVisualiserShowDisabledChange"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{
-                                            $t("visualiser.show_disabled_interfaces")
-                                        }}</span>
-                                    </span>
-                                </label>
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="settings-visualiser-discovered"
-                                        v-model="visualiserShowDiscoveredInterfaces"
-                                        @update:model-value="onVisualiserShowDiscoveredChange"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{
-                                            $t("visualiser.show_discovered_interfaces")
-                                        }}</span>
-                                    </span>
-                                </label>
-                            </div>
-                        </section>
+                        <VisualiserSettingsSection
+                            :visible="showSection('visualiser')"
+                            :renderer="visualiserRenderer"
+                            :show-disabled-interfaces="visualiserShowDisabledInterfaces"
+                            :show-discovered-interfaces="visualiserShowDiscoveredInterfaces"
+                            @renderer-change="
+                                (v) => {
+                                    visualiserRenderer = v;
+                                    onVisualiserRendererChange();
+                                }
+                            "
+                            @show-disabled-change="onVisualiserShowDisabledChange"
+                            @show-discovered-change="onVisualiserShowDiscoveredChange"
+                        />
 
                         <!-- Location (map & coordinates) -->
                         <section v-show="showSection('location')" class="settings-section break-inside-avoid">
@@ -2522,25 +1757,7 @@
                             </div>
                         </section>
 
-                        <!-- Blocked -->
-                        <section v-show="showSection('blocked')" class="settings-section break-inside-avoid">
-                            <header class="settings-section__header">
-                                <div>
-                                    <div class="settings-section__eyebrow">Privacy</div>
-                                    <h2>Banished</h2>
-                                    <p>Manage Banished users and nodes</p>
-                                </div>
-                                <RouterLink :to="{ name: 'blocked' }" class="primary-chip">
-                                    Manage Banished
-                                </RouterLink>
-                            </header>
-                            <div class="settings-section__body">
-                                <p class="text-sm text-gray-600 dark:text-gray-400">
-                                    Banished users and nodes will not be able to send you messages, and their announces
-                                    will be ignored.
-                                </p>
-                            </div>
-                        </section>
+                        <BlockedSettingsSection :visible="showSection('blocked')" />
 
                         <SettingsSectionBlock
                             v-show="showSection('privacyData')"
@@ -3569,6 +2786,12 @@ import BanishmentSettingsSection from "./sections/BanishmentSettingsSection.vue"
 import StickersSettingsSection from "./sections/StickersSettingsSection.vue";
 import GifsSettingsSection from "./sections/GifsSettingsSection.vue";
 import TelephonySettingsSection from "./sections/TelephonySettingsSection.vue";
+import AppearanceSettingsSection from "./sections/AppearanceSettingsSection.vue";
+import BatterySettingsSection from "./sections/BatterySettingsSection.vue";
+import VisualiserSettingsSection from "./sections/VisualiserSettingsSection.vue";
+import BlockedSettingsSection from "./sections/BlockedSettingsSection.vue";
+import AndroidSettingsSection from "./sections/AndroidSettingsSection.vue";
+import ArchiverSettingsSection from "./sections/ArchiverSettingsSection.vue";
 import SettingsNav from "./SettingsNav.vue";
 import KeyboardShortcuts from "../../js/KeyboardShortcuts";
 import ElectronUtils from "../../js/ElectronUtils";
@@ -3633,6 +2856,12 @@ export default {
         StickersSettingsSection,
         GifsSettingsSection,
         TelephonySettingsSection,
+        AppearanceSettingsSection,
+        BatterySettingsSection,
+        VisualiserSettingsSection,
+        BlockedSettingsSection,
+        AndroidSettingsSection,
+        ArchiverSettingsSection,
         MicronWasmUpdateModal,
         NotificationSoundSettings,
     },

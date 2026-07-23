@@ -302,7 +302,7 @@ tasks:
             - uv run pytest tests/backend/eect/live/test_lv_ladder.py -m live_validation -k "l0" -q --tb=short
 
     test:quick:fe:
-        desc: Frontend regression subset (links, micron preview, stranger banner, interface stats)
+        desc: Frontend regression subset (links, micron preview, stranger banner, interface stats, ownership contracts)
         cmds:
             - >-
                 {{.NPM}} exec vitest run
@@ -316,6 +316,9 @@ tasks:
                 {{.NPM}} exec vitest run
                 tests/frontend/ConversationViewer.test.js
                 -t "addStrangerAsContact"
+            - >-
+                {{.NPM}} exec vitest run
+                tests/frontend/frontendOwnershipContract.test.js
 
     test:backend:
         aliases: [test:be, test:be:full]

@@ -67,7 +67,7 @@
 </template>
 
 <script>
-import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 export default {
     name: "AddAudioButton",
     components: {

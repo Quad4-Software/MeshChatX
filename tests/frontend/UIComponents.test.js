@@ -1,7 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import IconButton from "../../meshchatx/src/frontend/components/IconButton.vue";
-import SendMessageButton from "../../meshchatx/src/frontend/components/messages/SendMessageButton.vue";
+import SendMessageButton from "../../meshchatx/src/frontend/components/messages/composer/SendMessageButton.vue";
 import Toggle from "../../meshchatx/src/frontend/components/forms/Toggle.vue";
 import FormLabel from "../../meshchatx/src/frontend/components/forms/FormLabel.vue";
 import FormSubLabel from "../../meshchatx/src/frontend/components/forms/FormSubLabel.vue";

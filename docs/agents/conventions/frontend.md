@@ -12,3 +12,14 @@ Applies when editing `meshchatx/src/frontend/**/*.{vue,js}`.
 - File inputs: prefer broad `accept` for identity keys (`.bin,.key,.identity,application/octet-stream,*/*`). Database restore stays `.zip`.
 - Prefer existing MaterialDesignIcon / layout patterns over new design systems.
 - No backticks in code comments. Prefer plain words or quoted identifiers.
+
+## Mega-page extracts
+
+When splitting large page shells, follow `docs/agents/skills/vue-mega-page-split/SKILL.md`
+and the Frontend mega-pages table in `docs/agents/module-ownership.md`.
+
+- Mechanical extract only. Move or behaviour change, never both in the same change.
+- Prefer `internal/` or `settings/sections/` for page-private UI. Prefer colocated or `js/<feature>/` for pure helpers.
+- Aim shells toward under about 2000 lines across multiple PRs. Prefer slices of about 150 to 300 lines.
+- Verify with ownership contracts in `tests/frontend/frontendOwnershipContract.test.js` plus focused page tests.
+- Do not treat `task test:quick` alone as enough coverage for map, settings, call, or conversation extracts.

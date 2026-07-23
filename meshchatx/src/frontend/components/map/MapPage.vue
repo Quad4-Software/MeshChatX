@@ -924,178 +924,34 @@
         </div>
 
         <!-- save drawing modal -->
-        <div
-            v-if="showSaveDrawingModal"
-            class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
-        >
-            <div
-                class="bg-white dark:bg-zinc-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200"
-            >
-                <div class="p-6">
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <MaterialDesignIcon icon-name="content-save-outline" class="size-6 text-blue-500" />
-                        {{ $t("map.save_drawing_title") }}
-                    </h2>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ $t("map.save_drawing_desc") }}</p>
-
-                    <div class="mt-6">
-                        <label
-                            class="block text-xs font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-widest mb-2"
-                        >
-                            {{ $t("map.drawing_name") }}
-                        </label>
-                        <input
-                            ref="newDrawingNameInput"
-                            v-model="newDrawingName"
-                            type="text"
-                            class="w-full px-4 py-3 bg-gray-50 dark:bg-zinc-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500 transition-all dark:text-white"
-                            :placeholder="$t('map.drawing_name_placeholder')"
-                            @keyup.enter="saveDrawing"
-                        />
-                    </div>
-
-                    <div class="mt-8 flex gap-3">
-                        <button
-                            type="button"
-                            class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800 transition"
-                            @click="showSaveDrawingModal = false"
-                        >
-                            {{ $t("common.close") }}
-                        </button>
-                        <button
-                            type="button"
-                            class="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold shadow-lg shadow-blue-500/25 hover:bg-blue-500 transition active:scale-95 disabled:opacity-50"
-                            :disabled="!newDrawingName.trim()"
-                            @click="saveDrawing"
-                        >
-                            {{ $t("common.save") }}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <MapSaveDrawingModal
+            ref="saveDrawingModal"
+            :show="showSaveDrawingModal"
+            :name="newDrawingName"
+            @update:name="newDrawingName = $event"
+            @close="showSaveDrawingModal = false"
+            @save="saveDrawing"
+        />
 
         <!-- load drawing modal -->
-        <div
-            v-if="showLoadDrawingModal"
-            class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
-        >
-            <div
-                class="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200"
-            >
-                <div class="p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <MaterialDesignIcon icon-name="folder-open-outline" class="size-6 text-blue-500" />
-                            {{ $t("map.load_drawing_title") }}
-                        </h2>
-                        <button class="text-gray-400 hover:text-gray-600" @click="showLoadDrawingModal = false">
-                            <MaterialDesignIcon icon-name="close" class="size-6" />
-                        </button>
-                    </div>
-
-                    <div v-if="isLoadingDrawings" class="py-12 flex flex-col items-center justify-center">
-                        <MaterialDesignIcon icon-name="loading" class="size-10 animate-spin text-blue-500 mb-4" />
-                        <span class="text-sm font-medium text-gray-500">{{ $t("map.loading_drawings") }}</span>
-                    </div>
-
-                    <div
-                        v-else-if="savedDrawings.length === 0"
-                        class="py-12 flex flex-col items-center justify-center text-center"
-                    >
-                        <div
-                            class="size-16 bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4"
-                        >
-                            <MaterialDesignIcon icon-name="folder-outline" class="size-8 text-gray-400" />
-                        </div>
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ $t("map.no_drawings") }}</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ $t("map.no_drawings_desc") }}</p>
-                    </div>
-
-                    <div v-else class="max-h-[400px] overflow-y-auto space-y-2 pr-2">
-                        <div
-                            v-for="drawing in savedDrawings"
-                            :key="drawing.id"
-                            class="group p-4 bg-gray-50 dark:bg-zinc-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-2xl border border-transparent hover:border-blue-200 dark:hover:border-blue-800 transition-all cursor-pointer flex items-center justify-between"
-                            @click="loadDrawing(drawing)"
-                        >
-                            <div class="flex-1 min-w-0 mr-4">
-                                <div class="font-bold text-gray-900 dark:text-white truncate">{{ drawing.name }}</div>
-                                <div class="text-xs text-gray-500 dark:text-zinc-500 mt-0.5">
-                                    {{ $t("map.saved_on") }} {{ new Date(drawing.updated_at).toLocaleString() }}
-                                </div>
-                            </div>
-                            <button
-                                class="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                                :title="$t('common.delete')"
-                                @click.stop="deleteDrawing(drawing)"
-                            >
-                                <MaterialDesignIcon icon-name="trash-can-outline" class="size-5" />
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="mt-8 flex justify-end">
-                        <button
-                            type="button"
-                            class="px-6 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800 transition"
-                            @click="showLoadDrawingModal = false"
-                        >
-                            {{ $t("common.close") }}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <MapLoadDrawingModal
+            :show="showLoadDrawingModal"
+            :loading="isLoadingDrawings"
+            :drawings="savedDrawings"
+            @close="showLoadDrawingModal = false"
+            @load="loadDrawing"
+            @delete="deleteDrawing"
+        />
 
         <!-- mobile note modal -->
-        <transition name="fade">
-            <div
-                v-if="showNoteModal"
-                class="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
-                @click.self="closeNoteEditor"
-            >
-                <div
-                    class="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-slide-up sm:animate-fade-in"
-                >
-                    <div class="p-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <MaterialDesignIcon icon-name="note-edit" class="size-5 text-amber-500" />
-                            Edit Note
-                        </h3>
-                        <button
-                            class="p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
-                            @click="closeNoteEditor"
-                        >
-                            <MaterialDesignIcon icon-name="close" class="size-5" />
-                        </button>
-                    </div>
-                    <div class="p-4">
-                        <textarea
-                            v-model="noteText"
-                            class="w-full h-40 p-4 text-base bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-hidden resize-none text-gray-900 dark:text-zinc-100"
-                            placeholder="Type your note here..."
-                            autofocus
-                        ></textarea>
-                    </div>
-                    <div class="p-4 bg-gray-50 dark:bg-zinc-800/50 flex justify-between gap-3">
-                        <button
-                            class="flex-1 px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-xl transition-colors flex items-center justify-center gap-2"
-                            @click="deleteNote"
-                        >
-                            <MaterialDesignIcon icon-name="trash-can-outline" class="size-5" />
-                            Delete
-                        </button>
-                        <button
-                            class="flex-2 px-4 py-3 text-sm font-bold bg-amber-500 text-white hover:bg-amber-600 rounded-xl shadow-lg shadow-amber-500/30 transition-colors"
-                            @click="saveNote"
-                        >
-                            Save Note
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </transition>
+        <MapMobileNoteModal
+            :show="showNoteModal"
+            :text="noteText"
+            @update:text="noteText = $event"
+            @close="closeNoteEditor"
+            @save="saveNote"
+            @delete="deleteNote"
+        />
     </div>
 </template>
 
@@ -1190,6 +1046,9 @@ import MapExportProgressPanel from "./internal/MapExportProgressPanel.vue";
 import MapLoadingOverlay from "./internal/MapLoadingOverlay.vue";
 import MapVectorExchangePanel from "./internal/MapVectorExchangePanel.vue";
 import MapRemoteOverlayPanel from "./internal/MapRemoteOverlayPanel.vue";
+import MapSaveDrawingModal from "./internal/MapSaveDrawingModal.vue";
+import MapLoadDrawingModal from "./internal/MapLoadDrawingModal.vue";
+import MapMobileNoteModal from "./internal/MapMobileNoteModal.vue";
 import { buildMeshchatMapUri, buildWebHashMapUrl } from "../../js/mapLinkUtils.js";
 import { readGeoJsonToFeatures, writeFeaturesToGeoJson } from "../../js/mapExchange/geoJsonCodec.js";
 import { readKmlToFeatures, writeFeaturesToKml } from "../../js/mapExchange/kmlCodec.js";
@@ -1228,6 +1087,9 @@ export default {
         MapLoadingOverlay,
         MapVectorExchangePanel,
         MapRemoteOverlayPanel,
+        MapSaveDrawingModal,
+        MapLoadDrawingModal,
+        MapMobileNoteModal,
     },
     props: {
         embedded: {
@@ -1502,7 +1364,7 @@ export default {
         showSaveDrawingModal(val) {
             if (val) {
                 this.$nextTick(() => {
-                    this.$refs.newDrawingNameInput?.focus();
+                    this.$refs.saveDrawingModal?.focusNameInput?.();
                 });
             }
         },

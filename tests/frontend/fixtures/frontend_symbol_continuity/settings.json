@@ -1,0 +1,29 @@
+{
+    "id": "settings",
+    "scan_dirs": ["meshchatx/src/frontend/components/settings", "meshchatx/src/frontend/js/settings"],
+    "required_strings": [
+        "LanguageSettingsSection",
+        "DesktopSettingsSection",
+        "StrangerProtectionSettingsSection",
+        "BanishmentSettingsSection",
+        "StickersSettingsSection",
+        "GifsSettingsSection",
+        "TelephonySettingsSection",
+        "AppearanceSettingsSection",
+        "BatterySettingsSection",
+        "VisualiserSettingsSection",
+        "BlockedSettingsSection",
+        "AndroidSettingsSection",
+        "ArchiverSettingsSection",
+        "PluginsSettingsSection",
+        "SettingsSectionBlock",
+        "SettingToggleRow",
+        "settingsConfigService",
+        "/api/v1/config",
+        "app.appearance",
+        "settings.battery.enabled",
+        "visualiser.title",
+        "settings.android_privacy_heading",
+        "Page Archiver"
+    ]
+}

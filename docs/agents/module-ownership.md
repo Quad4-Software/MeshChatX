@@ -47,14 +47,33 @@ WS inbound handlers live in `ws/handlers_*.py` and are composed by `ws/dispatch.
 
 ## Frontend mega-pages
 
-| Page shell                        | Child dirs                                                               | Shared JS                       | Primary tests                                                                    |
-| --------------------------------- | ------------------------------------------------------------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| `settings/SettingsPage.vue`       | `settings/sections/`, `SettingToggleRow.vue`, `SettingsSectionBlock.vue` | `js/settings/`                  | `SettingsPage*.test.js`, `settingsSections.test.js`, `behaviorContracts.test.js` |
-| `messages/ConversationViewer.vue` | `messages/composer/`, `modals/`, `outbound/`, `lxmf/`                    | `conversationMessageHelpers.js` | ConversationViewer tests                                                         |
-| `call/CallPage.vue`               | `call/tabs/`, `call/audio/`                                              | call helpers                    | `CallPage*.test.js`                                                              |
-| `map/MapPage.vue`                 | `map/internal/`                                                          | `js/map*`                       | map component tests                                                              |
-| `relay/RelayChatPage.vue`         | relay view components                                                    | `js/relay*`                     | relay tests                                                                      |
-| `App.vue`                         | `layout/`                                                                | registries, WS shell            | `AppIdentitySwitch.test.js`                                                      |
+Placement for extracts. Follow `docs/agents/skills/vue-mega-page-split/SKILL.md`.
+Do not invent folders outside this table.
+
+| Kind                        | Put it here                                         | Example                             |
+| --------------------------- | --------------------------------------------------- | ----------------------------------- |
+| Page-private panel or UI    | `components/<feature>/internal/*.vue`               | MapSearchBar                        |
+| Settings chunk              | `components/settings/sections/*SettingsSection.vue` | TelephonySettingsSection            |
+| Pure logic                  | colocated `*.js` or `js/<feature>/`                 | clusterUtils, settingsConfigService |
+| Cross-feature primitive     | root `components/` or `components/forms/`           | ConfirmDialog, Toggle               |
+| Nav, tools, commands wiring | `js/registries/` only                               | never grow App.vue for discovery    |
+
+| Page shell                                 | On-disk child dirs                                                  | Planned child dirs                           | Shared JS                       | Primary tests                                                                    |
+| ------------------------------------------ | ------------------------------------------------------------------- | -------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------- |
+| `settings/SettingsPage.vue`                | `settings/sections/` (incl. Battery), toggle/block helpers          | more sections from remaining inline template | `js/settings/`                  | `SettingsPage*.test.js`, `settingsSections.test.js`, `behaviorContracts.test.js` |
+| `messages/ConversationViewer.vue`          | `composer/`, `modals/`, `outbound/`, `lxmf/`, telemetry, helpers    | further script slices                        | `conversationMessageHelpers.js` | ConversationViewer tests                                                         |
+| `call/CallPage.vue`                        | `call/tabs/`, `call/audio/`, `CallOverlay.vue`                      | more tabs and audio panels                   | call helpers                    | `CallPage*.test.js`                                                              |
+| `map/MapPage.vue`                          | `map/internal/` (panels + helpers, incl. MapSaveDrawingModal)       | more overlays and modals into `internal/`    | `js/map*`                       | map component tests                                                              |
+| `relay/RelayChatPage.vue`                  | relay view components                                               | further relay panels as needed               | `js/relay*`                     | relay tests                                                                      |
+| `App.vue`                                  | `layout/AppShellBanners.vue`, `layout/AppIdentitySwitchOverlay.vue` | more shell chrome under `layout/`            | registries, WS shell            | `AppIdentitySwitch.test.js`                                                      |
+| `network-visualiser/NetworkVisualiser.vue` | `network-visualiser/internal/`                                      | more chrome into `internal/`                 | `js/networkVisualiser*`         | network visualiser tests                                                         |
+| `interfaces/AddInterfacePage.vue`          | `interfaces/internal/AddInterfaceDiscoveryPanel.vue`                | further interface form panels                | `js/interfaceDiscoveryUtils.js` | AddInterface tests                                                               |
+
+Frontend ownership contracts:
+
+- `tests/frontend/fixtures/frontend_mega_page_ownership.json`
+- `tests/frontend/fixtures/frontend_symbol_continuity/`
+- `tests/frontend/frontendOwnershipContract.test.js`
 
 ## Contract ownership
 

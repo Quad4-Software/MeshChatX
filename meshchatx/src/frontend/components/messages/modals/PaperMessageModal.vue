@@ -173,8 +173,8 @@
 
 <script>
 import QRCode from "qrcode";
-import MaterialDesignIcon from "../MaterialDesignIcon.vue";
-import ToastUtils from "../../js/ToastUtils";
+import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
+import ToastUtils from "../../../js/ToastUtils";
 
 export default {
     name: "PaperMessageModal",

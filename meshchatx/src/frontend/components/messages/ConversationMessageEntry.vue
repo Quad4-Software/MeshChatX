@@ -1390,7 +1390,7 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import AudioWaveformPlayer from "./AudioWaveformPlayer.vue";
-import OutboundTransferProgressFooter from "./OutboundTransferProgressFooter.vue";
+import OutboundTransferProgressFooter from "./outbound/OutboundTransferProgressFooter.vue";
 import MessageReactionsOverlay from "./MessageReactionsOverlay.vue";
 import StickerView from "../stickers/StickerView.vue";
 import InViewAnimatedImg from "./InViewAnimatedImg.vue";
