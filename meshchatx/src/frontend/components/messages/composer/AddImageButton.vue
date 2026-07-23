@@ -66,8 +66,8 @@
 
 <script>
 import Compressor from "compressorjs";
-import DialogUtils from "../../js/DialogUtils";
-import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import DialogUtils from "../../../js/DialogUtils";
+import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 export default {
     name: "AddImageButton",
     components: {

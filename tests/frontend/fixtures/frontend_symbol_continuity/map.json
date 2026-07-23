@@ -1,0 +1,25 @@
+{
+    "id": "map",
+    "scan_dirs": ["meshchatx/src/frontend/components/map"],
+    "required_strings": [
+        "MapClusterPanel",
+        "MapMarkerPanel",
+        "MapDrawingToolbar",
+        "MapSearchBar",
+        "MapLoadingOverlay",
+        "MapRemoteOverlayPanel",
+        "MapSaveDrawingModal",
+        "MapLoadDrawingModal",
+        "MapMobileNoteModal",
+        "extentDiagonal",
+        "buildClusterItems",
+        "getDiscoveredIconName",
+        "dedupeDiscoveredMapNodes",
+        "dedupeTelemetryMarkersForMap",
+        "peerBadgeStyle",
+        "clusterBadgeStyle",
+        "map.title",
+        "map.save_drawing_title",
+        "map.load_drawing_title"
+    ]
+}

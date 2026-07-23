@@ -31,6 +31,15 @@ Full skill: `docs/agents/skills/test-oracles/SKILL.md`.
 Path jail filesystem features: `docs/agents/skills/path-jail-local-fs/SKILL.md` and `docs/agents/conventions/path-jail.md`.
 Exploratory bug hunting: `docs/agents/skills/exploratory-testing/SKILL.md`.
 
+## Frontend mega-page ownership contracts
+
+- Ownership inventory: `tests/frontend/fixtures/frontend_mega_page_ownership.json`
+- Symbol continuity: `tests/frontend/fixtures/frontend_symbol_continuity/`
+- Scanner tests: `tests/frontend/frontendOwnershipContract.test.js`
+- Extract workflow: `docs/agents/skills/vue-mega-page-split/SKILL.md`
+- Refresh ownership fixture only when inventory intentionally changes:
+  `UPDATE_FRONTEND_OWNERSHIP=1 pnpm exec vitest run tests/frontend/frontendOwnershipContract.test.js -t ownership_fixture`
+
 ## HTTP and WS path-scanning contracts
 
 Route and WS manifests are discovered from source text:

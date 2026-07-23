@@ -39,6 +39,7 @@ Optional editor rules (if present under `.cursor/rules/` or similar):
 | ---------------------------------------------------------------------------- | ------------------------------------------------------ |
 | [page-toast-tests](skills/page-toast-tests/SKILL.md)                         | New pages, toasts, i18n, tests                         |
 | [contribution-registries](skills/contribution-registries/SKILL.md)           | Nav, tools, commands, settings search, WS event wiring |
+| [vue-mega-page-split](skills/vue-mega-page-split/SKILL.md)                   | Extract Vue mega-pages into internal/sections/helpers  |
 | [meshchat-orchestration-split](skills/meshchat-orchestration-split/SKILL.md) | Extract HTTP/WS from meshchat.py, multi-file scanners  |
 
 ### Mesh protocols (RNS / LXMF / LXST / RRC)

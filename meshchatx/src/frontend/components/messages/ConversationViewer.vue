@@ -59,82 +59,16 @@
         />
 
         <!-- Share Contact Modal -->
-        <div
-            v-if="isShareContactModalOpen"
-            class="fixed inset-0 z-100 flex items-center justify-center p-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-black/50 backdrop-blur-xs"
-            @click.self="isShareContactModalOpen = false"
-        >
-            <div
-                class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden max-h-[min(90dvh,40rem)] flex flex-col"
-            >
-                <div class="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">
-                        {{ $t("messages.share_contact_modal_title") }}
-                    </h3>
-                    <button
-                        type="button"
-                        class="text-gray-400 hover:text-gray-500 dark:hover:text-zinc-300 transition-colors"
-                        @click="isShareContactModalOpen = false"
-                    >
-                        <MaterialDesignIcon icon-name="close" class="size-6" />
-                    </button>
-                </div>
-                <div class="p-6">
-                    <div class="mb-4">
-                        <div class="relative">
-                            <input
-                                v-model="contactsSearch"
-                                type="text"
-                                :placeholder="$t('messages.share_contact_search_placeholder')"
-                                class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
-                            />
-                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
-                            </div>
-                        </div>
-                    </div>
-                    <div class="max-h-64 overflow-y-auto space-y-2">
-                        <button
-                            v-for="contact in filteredContacts"
-                            :key="contact.id"
-                            type="button"
-                            class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors text-left"
-                            @click="shareContact(contact)"
-                        >
-                            <div class="shrink-0">
-                                <LxmfUserIcon
-                                    :custom-image="contact.custom_image"
-                                    :icon-name="lxmfContactResolvedIcon(contact).iconName"
-                                    :icon-foreground-colour="lxmfContactResolvedIcon(contact).foreground"
-                                    :icon-background-colour="lxmfContactResolvedIcon(contact).background"
-                                    icon-class="size-10"
-                                />
-                            </div>
-                            <div class="min-w-0">
-                                <div class="font-bold text-gray-900 dark:text-white truncate">
-                                    {{ contact.name }}
-                                </div>
-                                <div class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono truncate">
-                                    {{ lxmfDeliveryDestinationHexFromContact(contact) || contact.remote_identity_hash }}
-                                </div>
-                                <div
-                                    v-if="contact.lxmf_address"
-                                    class="text-[9px] text-gray-400 dark:text-zinc-500 font-mono truncate"
-                                >
-                                    LXMF: {{ contact.lxmf_address }}
-                                </div>
-                                <div
-                                    v-if="contact.lxst_address"
-                                    class="text-[9px] text-gray-400 dark:text-zinc-500 font-mono truncate"
-                                >
-                                    LXST: {{ contact.lxst_address }}
-                                </div>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <ShareContactModal
+            :show="isShareContactModalOpen"
+            :search="contactsSearch"
+            :contacts="filteredContacts"
+            :resolve-icon="lxmfContactResolvedIcon"
+            :destination-hex="lxmfDeliveryDestinationHexFromContact"
+            @update:search="contactsSearch = $event"
+            @close="isShareContactModalOpen = false"
+            @share="shareContact"
+        />
 
         <div
             class="flex flex-col flex-1 min-h-0 min-w-0 relative"
@@ -1304,73 +1238,16 @@
     </div>
 
     <!-- image modal -->
-    <Transition
-        enter-active-class="transition ease-out duration-200"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition ease-in duration-150"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-    >
-        <div
-            v-if="imageModalUrl"
-            ref="imageModalOverlay"
-            tabindex="0"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 dark:bg-black/90 backdrop-blur-xs p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] outline-hidden"
-            @click="closeImageModal"
-            @keydown.left.prevent="imageModalNavigate(-1)"
-            @keydown.right.prevent="imageModalNavigate(1)"
-            @keydown.escape.prevent="closeImageModal"
-        >
-            <div class="relative max-w-7xl max-h-full group/image-modal" @click.stop>
-                <button
-                    type="button"
-                    class="absolute -top-12 left-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 dark:bg-zinc-900/10 hover:bg-white/20 dark:hover:bg-zinc-900/20 text-white transition-colors opacity-0 group-hover/image-modal:opacity-100 focus:opacity-100"
-                    :title="$t('messages.save_image_to_device')"
-                    @click="downloadImageModalCurrent"
-                >
-                    <MaterialDesignIcon icon-name="download" class="size-5" />
-                </button>
-                <button
-                    type="button"
-                    class="absolute -top-12 right-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 dark:bg-zinc-900/10 hover:bg-white/20 dark:hover:bg-zinc-900/20 text-white transition-colors"
-                    @click="closeImageModal"
-                >
-                    <MaterialDesignIcon icon-name="close" class="size-5" />
-                </button>
-                <button
-                    v-if="imageModalGallery && imageModalGallery.length > 1"
-                    type="button"
-                    class="absolute left-0 top-1/2 z-10 -translate-y-1/2 inline-flex items-center justify-center w-11 h-11 rounded-full bg-black/40 hover:bg-black/55 text-white transition-colors"
-                    aria-label="Previous image"
-                    @click.stop="imageModalNavigate(-1)"
-                >
-                    <MaterialDesignIcon icon-name="chevron-left" class="size-7" />
-                </button>
-                <button
-                    v-if="imageModalGallery && imageModalGallery.length > 1"
-                    type="button"
-                    class="absolute right-0 top-1/2 z-10 -translate-y-1/2 inline-flex items-center justify-center w-11 h-11 rounded-full bg-black/40 hover:bg-black/55 text-white transition-colors"
-                    aria-label="Next image"
-                    @click.stop="imageModalNavigate(1)"
-                >
-                    <MaterialDesignIcon icon-name="chevron-right" class="size-7" />
-                </button>
-                <div
-                    v-if="imageModalGallery && imageModalGallery.length > 1"
-                    class="pointer-events-none absolute bottom-2 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white"
-                >
-                    {{ imageModalIndex + 1 }} / {{ imageModalGallery.length }}
-                </div>
-                <img
-                    :src="imageModalUrl"
-                    class="max-w-full max-h-[90vh] rounded-xl shadow-2xl"
-                    alt="Image preview"
-                    @contextmenu.prevent.stop="onImageModalContextMenu"
-                />
-            </div>
-        </div>
-    </Transition>
+    <ConversationImageModal
+        ref="imageModal"
+        :url="imageModalUrl || ''"
+        :gallery="imageModalGallery"
+        :index="imageModalIndex"
+        @close="closeImageModal"
+        @navigate="imageModalNavigate"
+        @download="downloadImageModalCurrent"
+        @contextmenu="onImageModalContextMenu"
+    />
 
     <Teleport to="body">
         <ContextMenuPanel
@@ -1812,24 +1689,34 @@ import {
 } from "../../js/reticulumPathfinding.js";
 import MicrophoneRecorder from "../../js/MicrophoneRecorder";
 import WebSocketConnection from "../../js/WebSocketConnection";
-import AddAudioButton from "./AddAudioButton.vue";
+import AddAudioButton from "./composer/AddAudioButton.vue";
 import { fromNow } from "../../libs/datetime.js";
 
 const SCROLL_SETTLE_MAX_PASSES = 24;
 const OPEN_CONVERSATION_SCROLL_PIN_MS = 900;
 
-import SendMessageButton from "./SendMessageButton.vue";
+import SendMessageButton from "./composer/SendMessageButton.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
 import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
 import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
-import AddImageButton from "./AddImageButton.vue";
+import AddImageButton from "./composer/AddImageButton.vue";
 import AudioWaveformPlayer from "./AudioWaveformPlayer.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
 import NotificationUtils from "../../js/NotificationUtils";
-import PaperMessageModal from "./PaperMessageModal.vue";
+import PaperMessageModal from "./modals/PaperMessageModal.vue";
+import ShareContactModal from "./modals/ShareContactModal.vue";
+import ConversationImageModal from "./modals/ConversationImageModal.vue";
+import {
+    lxmfContactResolvedIcon as lxmfContactResolvedIconHelper,
+    lxmfDeliveryDestinationHexFromContact as lxmfDeliveryDestinationHexFromContactHelper,
+} from "./lxmf/contactDisplay.js";
+import {
+    normalizeLxmfMessage as normalizeLxmfMessageHelper,
+    normalizeSidebandCommandKey as normalizeSidebandCommandKeyHelper,
+} from "./lxmf/normalize.js";
 import GlobalState from "../../js/GlobalState";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
@@ -1862,6 +1749,8 @@ export default {
         AddAudioButton,
         AudioWaveformPlayer,
         PaperMessageModal,
+        ShareContactModal,
+        ConversationImageModal,
         LxmfUserIcon,
         ConversationMessageEntry,
         ConversationMessageListVirtual,
@@ -3675,14 +3564,7 @@ export default {
             GlobalEmitter.emit("compose-new-message", destinationHash);
         },
         normalizeLxmfMessage(msg, isOutbound) {
-            const normalized = { ...msg };
-            if (!normalized.created_at && normalized.timestamp) {
-                normalized.created_at = new Date(normalized.timestamp * 1000).toISOString();
-            }
-            if (isOutbound && normalized.state === "unknown") {
-                normalized.state = "outbound";
-            }
-            return normalized;
+            return normalizeLxmfMessageHelper(msg, isOutbound);
         },
         _hexEqual(a, b) {
             return (a || "").toLowerCase() === (b || "").toLowerCase();
@@ -4610,7 +4492,7 @@ export default {
                     Array.isArray(galleryChatItems) && galleryChatItems.length > 0 ? galleryChatItems[0] : null;
             }
             this.$nextTick(() => {
-                this.$refs.imageModalOverlay?.focus?.();
+                this.$refs.imageModal?.focusOverlay?.();
             });
         },
         closeImageModal() {
@@ -5554,45 +5436,10 @@ export default {
             this.sendMessage();
         },
         lxmfDeliveryDestinationHexFromContact(contact) {
-            if (!contact) return "";
-            const order = [contact.remote_destination_hash, contact.lxmf_address, contact.remote_identity_hash];
-            for (const c of order) {
-                const h = Utils.normalizeMeshchatHashHex(c);
-                if (h) {
-                    return h;
-                }
-            }
-            return "";
+            return lxmfDeliveryDestinationHexFromContactHelper(contact);
         },
         lxmfContactResolvedIcon(contact) {
-            const empty = { iconName: "", foreground: "", background: "" };
-            if (!contact) {
-                return empty;
-            }
-            const ri = contact.remote_icon;
-            if (ri?.icon_name) {
-                return {
-                    iconName: ri.icon_name,
-                    foreground: ri.foreground_colour || "",
-                    background: ri.background_colour || "",
-                };
-            }
-            const dest = this.lxmfDeliveryDestinationHexFromContact(contact);
-            if (!dest) {
-                return empty;
-            }
-            const conv =
-                this.conversations.find((c) => Utils.normalizeMeshchatHashHex(c.destination_hash || "") === dest) ||
-                null;
-            const lu = conv?.lxmf_user_icon;
-            if (lu?.icon_name) {
-                return {
-                    iconName: lu.icon_name,
-                    foreground: lu.foreground_colour || "",
-                    background: lu.background_colour || "",
-                };
-            }
-            return empty;
+            return lxmfContactResolvedIconHelper(contact, this.conversations);
         },
         shareAsPaperMessage(chatItem) {
             this.paperMessageHash = chatItem.lxmf_message.hash;
@@ -6081,32 +5928,7 @@ export default {
             }
         },
         normalizeSidebandCommandKey(key) {
-            const raw = String(key ?? "").trim();
-            if (!raw) {
-                return null;
-            }
-            const known = {
-                plugin: "0x00",
-                telemetry_request: "0x01",
-                request: "0x01",
-                location_request: "0x01",
-                ping: "0x02",
-                echo: "0x03",
-                signal_report: "0x04",
-            };
-            if (Object.prototype.hasOwnProperty.call(known, raw.toLowerCase())) {
-                return known[raw.toLowerCase()];
-            }
-            if (/^\d+$/.test(raw)) {
-                const n = Number.parseInt(raw, 10);
-                if (Number.isInteger(n) && n >= 0 && n <= 255) {
-                    return `0x${n.toString(16).padStart(2, "0")}`;
-                }
-            }
-            if (/^0x[0-9a-f]{1,2}$/i.test(raw)) {
-                return `0x${raw.slice(2).toLowerCase().padStart(2, "0")}`;
-            }
-            return null;
+            return normalizeSidebandCommandKeyHelper(key);
         },
         parseCommandOrRequestText(text) {
             const trimmed = String(text || "").trim();

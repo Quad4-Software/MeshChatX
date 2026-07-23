@@ -1,0 +1,16 @@
+{
+    "id": "app",
+    "scan_dirs": [
+        "meshchatx/src/frontend/components/App.vue",
+        "meshchatx/src/frontend/components/layout",
+        "meshchatx/src/frontend/main.js",
+        "meshchatx/src/frontend/js/registries"
+    ],
+    "required_strings": [
+        "AppShellBanners",
+        "AppIdentitySwitchOverlay",
+        "registerCoreContributions",
+        "listNavItems",
+        "CallOverlay"
+    ]
+}

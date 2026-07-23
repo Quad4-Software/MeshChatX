@@ -1,0 +1,25 @@
+{
+    "id": "messages",
+    "scan_dirs": ["meshchatx/src/frontend/components/messages"],
+    "required_strings": [
+        "canCancelOutboundSend",
+        "cancelSendingMessage",
+        "messages.cancel_send",
+        "/cancel",
+        "cancelKey:",
+        "DownloadUtils",
+        "NomadRichHtmlLinks",
+        "handleRichHtmlLinkClick",
+        "ConversationPeerHeader",
+        "ConversationMessageEntry",
+        "OutboundTransferProgressFooter",
+        "conversationMessageHelpers",
+        "ShareContactModal",
+        "ConversationImageModal",
+        "lxmfContactResolvedIcon",
+        "contactDisplay",
+        "normalizeLxmfMessage",
+        "normalizeSidebandCommandKey",
+        "normalize"
+    ]
+}
