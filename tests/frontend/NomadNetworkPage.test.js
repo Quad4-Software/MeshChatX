@@ -904,4 +904,91 @@ describe("NomadNetworkPage.vue", () => {
             wrapper.unmount();
         });
     });
+
+    describe("archive load ownership", () => {
+        it("loadArchivedPage sets currentPageDownloadId so path-mismatched replies still apply", async () => {
+            const WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
+            WebSocketConnection.send.mockReturnValue(true);
+
+            const wrapper = mountNomadNetworkPage({
+                destinationHash: "",
+                embedded: true,
+                isActive: true,
+            });
+            await wrapper.vm.$nextTick();
+
+            const oldHash = "a".repeat(32);
+            const archiveHash = "b".repeat(32);
+            wrapper.vm.selectedNode = { destination_hash: oldHash, display_name: "A" };
+            wrapper.vm.nodePagePath = `${oldHash}:/page/index.mu`;
+            wrapper.vm.pageArchives = [];
+
+            wrapper.vm.loadArchivedPage(99);
+
+            expect(wrapper.vm.isLoadingNodePage).toBe(true);
+            expect(wrapper.vm.currentPageDownloadId).toEqual(expect.any(Number));
+            const downloadId = wrapper.vm.currentPageDownloadId;
+
+            expect(
+                wrapper.vm.ownsNomadPageDownloadEvent(
+                    {
+                        destination_hash: archiveHash,
+                        page_path: "/page/old.mu",
+                    },
+                    downloadId
+                )
+            ).toBe(true);
+
+            await wrapper.vm.onWebsocketMessage({
+                data: JSON.stringify({
+                    type: "nomadnet.page.download",
+                    download_id: downloadId,
+                    nomadnet_page_download: {
+                        status: "success",
+                        destination_hash: archiveHash,
+                        page_path: "/page/old.mu",
+                        page_content: "<p>from archive</p>",
+                        is_archived_version: true,
+                        archived_at: "2026-01-01T00:00:00",
+                    },
+                }),
+            });
+
+            expect(wrapper.vm.isLoadingNodePage).toBe(false);
+            expect(wrapper.vm.nodePageContent).toBe("<p>from archive</p>");
+            expect(wrapper.vm.currentPageDownloadId).toBeNull();
+            wrapper.unmount();
+        });
+
+        it("archive load failure clears the stuck spinner without a download callback", async () => {
+            const wrapper = mountNomadNetworkPage({
+                destinationHash: "",
+                embedded: true,
+                isActive: true,
+            });
+            await wrapper.vm.$nextTick();
+            wrapper.vm.isLoadingNodePage = true;
+            wrapper.vm.currentPageDownloadId = 4242;
+            wrapper.vm.nodePagePath = `${"c".repeat(32)}:/page/index.mu`;
+
+            await wrapper.vm.onWebsocketMessage({
+                data: JSON.stringify({
+                    type: "nomadnet.page.download",
+                    download_id: 4242,
+                    nomadnet_page_download: {
+                        status: "failure",
+                        destination_hash: "",
+                        page_path: "",
+                        failure_reason: "archive not found",
+                    },
+                }),
+            });
+
+            expect(wrapper.vm.isLoadingNodePage).toBe(false);
+            expect(wrapper.vm.currentPageDownloadId).toBeNull();
+            expect(wrapper.vm.nodePageContent).toContain("archive not found");
+            expect(ToastUtils.error).toHaveBeenCalled();
+            wrapper.unmount();
+        });
+    });
 });

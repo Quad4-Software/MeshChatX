@@ -78,6 +78,11 @@ All notable changes to this project will be documented in this file.
 - Map my-location prefers LXMF address hash telemetry (not only identity hash)
 - RNode flasher SRI lookup matches flat and nested integrity.json keys so zip.min.js loads
 - RRC kick/ban and failed auto-rejoin clear unread_counts so room pills do not stick
+- Nomad archive load owns its download_id so path-mismatched replies cannot leave the spinner stuck forever
+- RRC invite-only (+i) rooms grant a reconnect invite on unexpected link drop so auto-rejoin still works after the one-shot invite was consumed
+- Map remote overlay loads undo layers from a stale generation, and TileCache map view keys are identity-scoped
+- Nomad micron LXMF links route to Messages via onLxmfAddress instead of being ignored
+- RNSH session config_path and identity_path are jailed under storage or the shared Reticulum config dir, and free-form extra_args are rejected
 - Desktop AppImage: main-process logs always append to the storage logs folder (meshchatx.log). Stdout is only used when a terminal is attached, with broken-pipe guards as a fallback, so background launches no longer raise write EPIPE dialogs
 - Android: lxmfy packaging, flock soft-lock, splash/logo clipping, Landlock skipped on Android
 - Android RNode BLE/USB via Chaquopy

@@ -26,7 +26,7 @@ from meshchatx.src.backend.rrc.room_key_crypto import (
     room_keys_equal,
 )
 from meshchatx.src.backend.rrc.room_registry import RoomRegistry
-from meshchatx.src.backend.rrc.rooms_toml import RoomsTomlStore
+from meshchatx.src.backend.rrc.rooms_toml import RoomsTomlStore, INVITE_DEFAULT_TTL_S
 
 SERVER_DIR_NAME = "rrc_server"
 MESSAGE_LOG_CAP = 5000
@@ -311,21 +311,34 @@ class RRCHubServer:
 
     def _on_close(self, link):
         parted = []
+        reconnect_invites = []
         with self._lock:
             sess = self._sessions.pop(link, None)
             if sess is None:
                 return
+            peer = sess.peer
             for room in list(sess.rooms):
                 members = self._room_members.get(room)
-                if members is None:
-                    continue
-                members.discard(link)
-                remaining = list(members)
-                reg = self.rooms.get_state(room)
-                if not members and (reg is None or not reg.get("registered")):
-                    self._room_members.pop(room, None)
-                if remaining and sess.peer is not None:
-                    parted.append((room, sess.peer, sess.nick, remaining))
+                remaining = []
+                if members is not None:
+                    members.discard(link)
+                    remaining = list(members)
+                    reg = self.rooms.get_state(room)
+                    if not members and (reg is None or not reg.get("registered")):
+                        self._room_members.pop(room, None)
+                else:
+                    reg = self.rooms.get_state(room)
+                if remaining and peer is not None:
+                    parted.append((room, peer, sess.nick, remaining))
+                # Unexpected drop (not PART/kick): grant a one-shot reconnect
+                # invite so auto-rejoin works after +i invite was consumed.
+                if (
+                    peer is not None
+                    and isinstance(reg, dict)
+                    and reg.get("invite_only")
+                    and not self.rooms.is_room_banned(room, peer)
+                ):
+                    reconnect_invites.append((room, peer))
         for room, peer, nick, remaining in parted:
             env = proto.make_envelope(
                 proto.T_PARTED,
@@ -337,6 +350,10 @@ class RRCHubServer:
             payload = proto.encode(env)
             for member in remaining:
                 self._send_payload(member, payload)
+        for room, peer in reconnect_invites:
+            with contextlib.suppress(Exception):
+                self.rooms.add_invite(room, peer, ttl_s=INVITE_DEFAULT_TTL_S)
+                self.rooms.persist(room)
         self.manager._notify_change(self)
 
     def _refill_and_take(self, sess, cost=1.0):

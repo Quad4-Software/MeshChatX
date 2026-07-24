@@ -23,6 +23,8 @@ import time
 import uuid
 from collections import deque
 
+from meshchatx.src.path_utils import is_path_within_dir
+
 try:
     import fcntl
     import pty
@@ -157,7 +159,10 @@ class RNSHSession:
         """
         configured = (self.config.get("config_path") or "").strip()
         if configured:
-            return configured
+            resolved = self.manager.resolve_allowed_path(configured)
+            if resolved is None:
+                raise ValueError("config_path is outside the allowed directories")
+            return resolved
         manager_config_dir = getattr(self.manager, "reticulum_config_dir", "")
         if isinstance(manager_config_dir, str):
             return manager_config_dir.strip()
@@ -301,7 +306,10 @@ class RNSHSession:
 
         identity_path = (self.config.get("identity_path") or "").strip()
         if identity_path:
-            command.extend(["-i", identity_path])
+            resolved_identity = self.manager.resolve_allowed_path(identity_path)
+            if resolved_identity is None:
+                raise ValueError("identity_path is outside the allowed directories")
+            command.extend(["-i", resolved_identity])
 
         verbose = int(self.config.get("verbose") or 0)
         quiet = int(self.config.get("quiet") or 0)
@@ -323,7 +331,7 @@ class RNSHSession:
 
         extra_args = (self.config.get("extra_args") or "").strip()
         if extra_args:
-            command.extend(shlex.split(extra_args))
+            raise ValueError("extra_args is not allowed")
 
         mode = self.mode
         if mode == "listen":
@@ -699,6 +707,54 @@ class RNSHManager:
         self._output_callback = None
         self._lock = threading.RLock()
 
+    def resolve_allowed_path(self, user_path):
+        """Resolve a user path under storage or the shared Reticulum config dir.
+
+        Returns the realpath on success, or None when the path escapes the jail.
+        """
+        if not isinstance(user_path, str) or not user_path.strip() or "\x00" in user_path:
+            return None
+        expanded = os.path.expanduser(user_path.strip())
+        if not os.path.isabs(expanded):
+            if not self.storage_dir:
+                return None
+            expanded = os.path.join(self.storage_dir, expanded)
+        real = os.path.realpath(expanded)
+        parts = {part for part in real.split(os.sep) if part}
+        if parts & {".ssh", ".gnupg"}:
+            return None
+        allowed_roots = []
+        if self.storage_dir:
+            allowed_roots.append(self.storage_dir)
+        if self.reticulum_config_dir:
+            allowed_roots.append(self.reticulum_config_dir)
+        for root in allowed_roots:
+            if is_path_within_dir(real, root):
+                return real
+        return None
+
+    def sanitize_session_config(self, config):
+        """Fail closed on path overrides and reject free-form extra_args."""
+        if not isinstance(config, dict):
+            return {}
+        out = dict(config)
+        for key in ("config_path", "identity_path"):
+            raw = out.get(key)
+            if raw in (None, ""):
+                out.pop(key, None)
+                continue
+            if not isinstance(raw, str):
+                raise ValueError(f"Invalid {key}")
+            resolved = self.resolve_allowed_path(raw)
+            if resolved is None:
+                raise ValueError(f"{key} is outside the allowed directories")
+            out[key] = resolved
+        extra = out.get("extra_args")
+        if isinstance(extra, str) and extra.strip():
+            raise ValueError("extra_args is not allowed")
+        out.pop("extra_args", None)
+        return out
+
     def set_change_callback(self, callback):
         self._change_callback = callback
 
@@ -725,7 +781,11 @@ class RNSHManager:
                 session_id = item.get("id")
                 if not isinstance(session_id, str) or not session_id.strip():
                     continue
-                session = RNSHSession(self, session_id, item.get("config") or item)
+                try:
+                    cfg = self.sanitize_session_config(item.get("config") or item)
+                except ValueError:
+                    continue
+                session = RNSHSession(self, session_id, cfg)
                 session.created_at = float(item.get("created_at") or session.created_at)
                 session.updated_at = float(item.get("updated_at") or session.updated_at)
                 session.status = RNSHSession.STATUS_STOPPED
@@ -794,7 +854,11 @@ class RNSHManager:
 
     def create_session(self, config):
         session_id = uuid.uuid4().hex
-        session = RNSHSession(self, session_id, config or {})
+        session = RNSHSession(
+            self,
+            session_id,
+            self.sanitize_session_config(config or {}),
+        )
         with self._lock:
             self._sessions[session_id] = session
         self._on_session_change(session)
