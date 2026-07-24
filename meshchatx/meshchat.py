@@ -10174,6 +10174,18 @@ def main():
     # AppContainer when requested. Electron already enters via the launcher
     # module. Skip when already inside the container or when this process is
     # the launcher supervisor (MESHCHAT_APPCONTAINER_LAUNCHER=1).
+    # One-shot CLI diagnostics and backup tools run in-process so CI and
+    # operators are not blocked on CreateProcess into an AppContainer.
+    _oneshot_cli_flags = (
+        "--self-check",
+        "--reset-password",
+        "--backup-db",
+        "--restore-db",
+        "--restore-from-snapshot",
+        "--help",
+        "-h",
+        "--version",
+    )
     if (
         sys.platform == "win32"
         and appcontainer_requested()
@@ -10185,6 +10197,7 @@ def main():
             "yes",
             "on",
         )
+        and not any(flag in sys.argv for flag in _oneshot_cli_flags)
     ):
         from meshchatx.src.backend.appcontainer_launcher import run_launcher
 

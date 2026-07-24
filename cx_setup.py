@@ -70,6 +70,15 @@ packages = [
     "bleak",
 ]
 
+# Keep FS sandbox helpers even when import tracing is incomplete (Windows
+# launcher is entered via --meshchatx-run-module and must stay in the freeze).
+includes = [
+    "meshchatx.src.backend.landlock_sandbox",
+    "meshchatx.src.backend.appcontainer_sandbox",
+    "meshchatx.src.backend.appcontainer_launcher",
+    "meshchatx.src.backend.seccomp_sandbox",
+]
+
 if sys.version_info >= (3, 13):
     packages.append("audioop")
 
@@ -90,6 +99,7 @@ setup(
     options={
         "build_exe": {
             "packages": packages,
+            "includes": includes,
             "include_files": include_files,
             "excludes": [
                 "PIL",

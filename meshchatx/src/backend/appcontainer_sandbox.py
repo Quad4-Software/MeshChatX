@@ -68,9 +68,9 @@ _WinCapabilityPrivateNetworkClientServerSid = 84
 _INFINITE = 0xFFFFFFFF
 _WAIT_OBJECT_0 = 0
 
-_PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY = 6
-_PROCESS_MITIGATION_IMAGE_LOAD_POLICY = 10
-_PROCESS_MITIGATION_STRICT_HANDLE_CHECK_POLICY = 3
+_MITIGATION_POLICY_EXTENSION_POINT_DISABLE = 6
+_MITIGATION_POLICY_IMAGE_LOAD = 10
+_MITIGATION_POLICY_STRICT_HANDLE_CHECK = 3
 
 
 @dataclass(frozen=True)
@@ -441,11 +441,17 @@ def collect_ro_roots(*, exe_dir: str | None = None) -> list[str]:
     return paths
 
 
+def _as_void_p(ptr: ctypes.c_void_p | int | None) -> ctypes.c_void_p:
+    if isinstance(ptr, ctypes.c_void_p):
+        return ptr
+    return ctypes.c_void_p(ptr)
+
+
 def _local_free(ptr: ctypes.c_void_p | int | None) -> None:
     if not ptr:
         return
     try:
-        ctypes.windll.kernel32.LocalFree(ctypes.c_void_p(ptr))
+        ctypes.windll.kernel32.LocalFree(_as_void_p(ptr))
     except Exception:
         pass
 
@@ -801,9 +807,7 @@ def close_handle(handle: ctypes.c_void_p | int | None) -> None:
     if not handle:
         return
     try:
-        ctypes.WinDLL("kernel32", use_last_error=True).CloseHandle(
-            ctypes.c_void_p(handle)
-        )
+        ctypes.WinDLL("kernel32", use_last_error=True).CloseHandle(_as_void_p(handle))
     except Exception:
         pass
 
@@ -922,7 +926,7 @@ def apply_windows_process_mitigations() -> bool:
     ext = _PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY()
     ext.Flags = 0x1
     if kernel32.SetProcessMitigationPolicy(
-        _PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY,
+        _MITIGATION_POLICY_EXTENSION_POINT_DISABLE,
         ctypes.byref(ext),
         ctypes.sizeof(ext),
     ):
@@ -937,7 +941,7 @@ def apply_windows_process_mitigations() -> bool:
     img = _PROCESS_MITIGATION_IMAGE_LOAD_POLICY()
     img.Flags = 0x1 | 0x4
     if kernel32.SetProcessMitigationPolicy(
-        _PROCESS_MITIGATION_IMAGE_LOAD_POLICY,
+        _MITIGATION_POLICY_IMAGE_LOAD,
         ctypes.byref(img),
         ctypes.sizeof(img),
     ):
@@ -952,7 +956,7 @@ def apply_windows_process_mitigations() -> bool:
     strict = _PROCESS_MITIGATION_STRICT_HANDLE_CHECK_POLICY()
     strict.Flags = 0x1 | 0x2
     if kernel32.SetProcessMitigationPolicy(
-        _PROCESS_MITIGATION_STRICT_HANDLE_CHECK_POLICY,
+        _MITIGATION_POLICY_STRICT_HANDLE_CHECK,
         ctypes.byref(strict),
         ctypes.sizeof(strict),
     ):

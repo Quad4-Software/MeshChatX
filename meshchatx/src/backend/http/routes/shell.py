@@ -162,15 +162,18 @@ def register_shell_routes(routes, app):
         )
 
     # allow serving manifest.json and service-worker.js directly at root
-
-    # allow serving manifest.json and service-worker.js directly at root
     @routes.get("/manifest.json")
     async def manifest(request):
         return web.FileResponse(app.get_public_path("manifest.json"))
 
     @routes.get("/service-worker.js")
     async def service_worker(request):
-        return web.FileResponse(app.get_public_path("service-worker.js"))
+        return web.FileResponse(
+            path=app.get_public_path("service-worker.js"),
+            headers={
+                "Cache-Control": "no-cache, max-age=0, must-revalidate",
+            },
+        )
 
     @routes.get("/call.html")
     async def call_html_redirect(request):

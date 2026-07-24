@@ -542,7 +542,9 @@ class AutoPropagationManager:
 
         ordered = self._ordered_candidates(best_by_hex, announced, previous_hex)
 
-        if self._should_keep_previous_without_probe(previous_hex, best_by_hex, ordered):
+        if previous_hex is not None and self._should_keep_previous_without_probe(
+            previous_hex, best_by_hex, ordered
+        ):
             # Keep the verified preferred peer without a disruptive sync probe.
             outbound = None
             with contextlib.suppress(Exception):

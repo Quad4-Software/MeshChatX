@@ -1,138 +1,9 @@
 // SPDX-License-Identifier: 0BSD
 
-/* eslint-disable no-restricted-globals */
+import { NAV_NETWORK_TIMEOUT_MS, SHELL_CACHE_PREFIX, classifyShellRequest } from "./swCachePolicy.js";
 
-/* Generated MeshChatX service worker. Do not edit by hand. */
-
-/** Prefix for versioned Cache Storage buckets. */
-const SHELL_CACHE_PREFIX = "meshchatx-shell-";
-
-/** Default navigation network-first timeout in milliseconds. */
-const NAV_NETWORK_TIMEOUT_MS = 2000;
-
-/**
- * @param {string} buildId
- * @returns {string}
- */
-function cacheNameForBuild(buildId) {
-    const id = String(buildId || "dev").replace(/[^a-zA-Z0-9._-]/g, "_");
-    return `${SHELL_CACHE_PREFIX}v${id}`;
-}
-
-/**
- * @param {string} pathname
- * @returns {boolean}
- */
-function isApiPath(pathname) {
-    const path = String(pathname || "");
-    return path === "/api" || path.startsWith("/api/");
-}
-
-/**
- * Vite content-hashed build assets under /assets/.
- * @param {string} pathname
- * @returns {boolean}
- */
-function isHashedAssetPath(pathname) {
-    const path = String(pathname || "");
-    return path === "/assets" || path.startsWith("/assets/");
-}
-
-/**
- * Static shell helpers that may use stale-while-revalidate.
- * @param {string} pathname
- * @returns {boolean}
- */
-function isShellHelperPath(pathname) {
-    const path = String(pathname || "");
-    if (path === "/boot-theme.js" || path === "/manifest.json") {
-        return true;
-    }
-    if (path === "/favicons" || path.startsWith("/favicons/")) {
-        return true;
-    }
-    if (/favicon/i.test(path)) {
-        return true;
-    }
-    return false;
-}
-
-/**
- * @param {Request} request
- * @returns {boolean}
- */
-function isNavigationRequest(request) {
-    if (!request || typeof request !== "object") {
-        return false;
-    }
-    if (request.mode === "navigate") {
-        return true;
-    }
-    const dest = request.destination;
-    if (dest === "document") {
-        return true;
-    }
-    const accept = request.headers?.get?.("accept") || "";
-    return typeof accept === "string" && accept.includes("text/html");
-}
-
-/**
- * True when the service worker must not use Cache Storage for this request.
- * @param {Request} request
- * @param {URL} [url]
- * @returns {boolean}
- */
-function shouldBypassCache(request, url) {
-    if (!request || (request.method !== "GET" && request.method !== "HEAD")) {
-        return true;
-    }
-    let pathname = "/";
-    if (url && typeof url.pathname === "string") {
-        pathname = url.pathname;
-    } else if (typeof request.url === "string") {
-        try {
-            pathname = new URL(request.url).pathname;
-        } catch {
-            return true;
-        }
-    }
-    if (isApiPath(pathname)) {
-        return true;
-    }
-    if (pathname === "/ws" || pathname.startsWith("/ws/")) {
-        return true;
-    }
-    if (pathname === "/service-worker.js") {
-        return true;
-    }
-    return false;
-}
-
-/**
- * Classify a same-origin GET for shell caching strategy selection.
- * @param {Request} request
- * @param {URL} url
- * @returns {"bypass"|"asset"|"navigation"|"shell-helper"|"network-only"}
- */
-function classifyShellRequest(request, url) {
-    if (shouldBypassCache(request, url)) {
-        return "bypass";
-    }
-    const pathname = url.pathname;
-    if (isHashedAssetPath(pathname)) {
-        return "asset";
-    }
-    if (isNavigationRequest(request) || pathname === "/" || pathname === "/index.html") {
-        return "navigation";
-    }
-    if (isShellHelperPath(pathname)) {
-        return "shell-helper";
-    }
-    return "network-only";
-}
-
-const SHELL_FALLBACK_URL = "/";
-const UPDATE_MESSAGE_TYPE = "meshchatx-sw-updated";
+export const SHELL_FALLBACK_URL = "/";
+export const UPDATE_MESSAGE_TYPE = "meshchatx-sw-updated";
 
 /**
  * Independent accept/reject oracle for shell caching.
@@ -140,7 +11,7 @@ const UPDATE_MESSAGE_TYPE = "meshchatx-sw-updated";
  * @param {{ method?: string, pathname?: string, mode?: string, destination?: string, accept?: string }} input
  * @returns {"bypass"|"asset"|"navigation"|"shell-helper"|"network-only"}
  */
-function oracleExpectedStrategy(input) {
+export function oracleExpectedStrategy(input) {
     const method = input.method || "GET";
     const pathname = String(input.pathname || "/");
     if (method !== "GET" && method !== "HEAD") {
@@ -185,7 +56,7 @@ function oracleExpectedStrategy(input) {
  * @param {string} currentName
  * @returns {string[]}
  */
-function selectCachesToDelete(cacheKeys, prefix, currentName) {
+export function selectCachesToDelete(cacheKeys, prefix, currentName) {
     const keys = Array.isArray(cacheKeys) ? cacheKeys : [];
     return keys.filter((key) => typeof key === "string" && key.startsWith(prefix) && key !== currentName);
 }
@@ -194,7 +65,7 @@ function selectCachesToDelete(cacheKeys, prefix, currentName) {
  * @param {Iterable<string>} urls
  * @returns {string[]}
  */
-function findForbiddenCachedUrls(urls) {
+export function findForbiddenCachedUrls(urls) {
     const leaked = [];
     for (const raw of urls || []) {
         let pathname = String(raw || "");
@@ -225,7 +96,7 @@ function findForbiddenCachedUrls(urls) {
  *   clearTimeout?: typeof clearTimeout,
  * }} options
  */
-function createShellRuntime(options) {
+export function createShellRuntime(options) {
     const cachesApi = options.caches;
     const fetchFn = options.fetch;
     const cacheName = options.cacheName;
@@ -369,79 +240,3 @@ function createShellRuntime(options) {
         shellFallbackUrl,
     };
 }
-
-// SPDX-License-Identifier: 0BSD
-/**
- * MeshChatX app-shell service worker bootstrap.
- * Preceded at build time by inlined swCachePolicy.js + swShellRuntime.js.
- * Placeholders dev and ["/","/boot-theme.js","/manifest.json","/favicons/favicon-512x512.png"] are replaced.
- */
-
-const BUILD_ID = "dev";
-const PRECACHE_URLS = ["/","/boot-theme.js","/manifest.json","/favicons/favicon-512x512.png"];
-const CACHE_NAME = cacheNameForBuild(BUILD_ID);
-
-const runtime = createShellRuntime({
-    caches: self.caches,
-    fetch: (...args) => self.fetch(...args),
-    cacheName: CACHE_NAME,
-    origin: self.location.origin,
-    shellFallbackUrl: SHELL_FALLBACK_URL,
-    navTimeoutMs: NAV_NETWORK_TIMEOUT_MS,
-});
-
-self.addEventListener("install", (event) => {
-    event.waitUntil(
-        (async () => {
-            const cache = await self.caches.open(CACHE_NAME);
-            const urls = Array.isArray(PRECACHE_URLS) ? PRECACHE_URLS : [];
-            for (const url of urls) {
-                try {
-                    await cache.add(url);
-                } catch {
-                    // Skip missing optional assets during install
-                }
-            }
-            await self.skipWaiting();
-        })()
-    );
-});
-
-self.addEventListener("activate", (event) => {
-    event.waitUntil(
-        (async () => {
-            if (self.registration && self.registration.navigationPreload) {
-                try {
-                    await self.registration.navigationPreload.enable();
-                } catch {
-                    // navigation preload unsupported or denied
-                }
-            }
-            await runtime.pruneOldShellCaches();
-            await self.clients.claim();
-            const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-            for (const client of clients) {
-                client.postMessage({ type: UPDATE_MESSAGE_TYPE, buildId: BUILD_ID });
-            }
-        })()
-    );
-});
-
-self.addEventListener("message", (event) => {
-    const data = event.data;
-    if (!data || typeof data !== "object") {
-        return;
-    }
-    if (data.type === "meshchatx-sw-skip-waiting") {
-        void self.skipWaiting();
-    }
-});
-
-self.addEventListener("fetch", (event) => {
-    const handled = runtime.resolveFetch(event.request, {
-        preloadResponse: event.preloadResponse,
-    });
-    if (handled) {
-        event.respondWith(handled);
-    }
-});

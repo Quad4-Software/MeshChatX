@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Browser PWA app-shell caching for hashed UI assets and network-first shell fallback during short backend restarts (not used in Electron)
 - Plugin system: ZIP/WASM install, signed packages (RSG), Python and Sideband backends, install consent, and Settings management
 - Bundled Bug Reports plugin and plugin i18n / UI slots / contribution registries
 - Map overlays from NomadNet and RNGit (KMZ/KML/GeoJSON) with cache and refresh

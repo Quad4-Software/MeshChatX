@@ -44,6 +44,8 @@ meshchatx/meshchat.py (aiohttp server)
 
 The same backend code powers Docker images, Python wheels, Linux packages, Electron desktop builds, and the Android APK. Packaging differs. Behaviour is intended to stay consistent.
 
+In a regular browser (including headless or LAN installs), MeshChatX may register a service worker that caches hashed UI assets and the app shell so repeat loads are faster and a hard refresh can still show the boot splash while the local backend restarts. Mesh messaging, identity, and API data still require the Python backend. Electron does not use this service worker path.
+
 ## Main areas of the UI
 
 | Area               | Route                 | Purpose                                               |
@@ -92,6 +94,6 @@ Legacy upstream data may still exist under `~/.reticulum-meshchat/`. Migration t
 - **Architecture and design** explains backend managers, identity scoping, and the API model.
 - **LXMF messaging** and **Audio calls** describe day-to-day communication features.
 - **Reticulum interfaces** explains how your node joins the mesh.
-- Platform guides under **Platform guides** cover Raspberry Pi, Android Termux, Meta Quest, and Linux sandboxing.
+- Platform guides under **Platform guides** cover Raspberry Pi, Android Termux, Meta Quest, Linux sandboxing, and Windows AppContainer sandboxing.
 
 For protocol-level detail, open the **Reticulum** tab in Documentation or visit the [Reticulum manual](https://reticulum.network/manual/) online.

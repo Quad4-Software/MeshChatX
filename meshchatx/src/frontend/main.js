@@ -19,6 +19,12 @@ import { installWsEventBridge } from "./js/registries/wsEventBridge.js";
 import { pluginHost } from "./js/plugins/PluginHost.js";
 import GlobalState from "./js/GlobalState.js";
 import { recoveryRouteForNetworkError } from "./js/networkRecovery.js";
+import ElectronUtils from "./js/ElectronUtils.js";
+import {
+    decideControllerChangeReload,
+    isIgnorableServiceWorkerRegistrationError,
+    serviceWorkerRegisterOptions,
+} from "./js/pwa/swClientRegister.js";
 import "./js/HeapMonitor.js";
 
 registerCoreContributions();
@@ -427,18 +433,41 @@ if (networkReady) {
         if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
             return;
         }
-        navigator.serviceWorker.register("/service-worker.js").catch((error) => {
-            const errorMessage = error.message || "";
-            const errorName = error.name || "";
-            if (
-                errorName === "SecurityError" ||
-                errorMessage.includes("SSL certificate") ||
-                errorMessage.includes("certificate")
-            ) {
-                return;
+        if (ElectronUtils.isElectron()) {
+            return;
+        }
+        let refreshing = false;
+        const hadController = Boolean(navigator.serviceWorker.controller);
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+            const decision = decideControllerChangeReload({ hadController, refreshing });
+            refreshing = decision.nextRefreshing;
+            if (decision.shouldReload) {
+                window.location.reload();
             }
-            console.debug("Service worker registration failed:", error);
         });
+        navigator.serviceWorker
+            .register("/service-worker.js", serviceWorkerRegisterOptions())
+            .then((registration) => {
+                const requestUpdate = () => {
+                    try {
+                        void registration.update();
+                    } catch {
+                        // ignore update failures
+                    }
+                };
+                document.addEventListener("visibilitychange", () => {
+                    if (document.visibilityState === "visible") {
+                        requestUpdate();
+                    }
+                });
+                requestUpdate();
+            })
+            .catch((error) => {
+                if (isIgnorableServiceWorkerRegistrationError(error)) {
+                    return;
+                }
+                console.debug("Service worker registration failed:", error);
+            });
     }
 
     function removeBootSplash(splash) {
