@@ -635,6 +635,7 @@ import AppIdentitySwitchOverlay from "./layout/AppIdentitySwitchOverlay.vue";
 import KeyboardShortcuts from "../js/KeyboardShortcuts";
 import ElectronUtils from "../js/ElectronUtils";
 import { postRequestPath } from "../js/reticulumPathfinding.js";
+import { fetchCsrfToken } from "../js/csrfToken.js";
 import ToneGenerator from "../js/ToneGenerator";
 import { listNavItems } from "../js/registries/navRegistry.js";
 import { onWsEvent, offWsEvent } from "../js/registries/wsEventRegistry.js";
@@ -1323,6 +1324,11 @@ export default {
         },
         async resyncShellAfterWebsocketReconnect() {
             try {
+                await fetchCsrfToken(window.api);
+            } catch {
+                // ignore
+            }
+            try {
                 await this.getAppInfo();
             } catch {
                 // ignore
@@ -1931,12 +1937,20 @@ export default {
             try {
                 const preferredHash = this.config?.lxmf_preferred_propagation_node_destination_hash;
                 if (preferredHash) {
-                    await postRequestPath(window.api, preferredHash);
+                    // Best-effort path priming. /sync also requests a path.
+                    // Do not abort sync if this POST fails (stale CSRF / brief offline
+                    // after a backgrounded web tab).
+                    try {
+                        await postRequestPath(window.api, preferredHash);
+                    } catch {
+                        // continue to sync
+                    }
                 }
                 await window.api.get("/api/v1/lxmf/propagation-node/sync");
             } catch (e) {
                 this.userInitiatedPropagationSync = false;
-                const errorMessage = e.response?.data?.message ?? this.$t("app.sync_error_generic");
+                const errorMessage =
+                    e.response?.data?.message ?? e.response?.data?.error ?? this.$t("app.sync_error_generic");
                 ToastUtils.error(errorMessage);
                 return;
             }

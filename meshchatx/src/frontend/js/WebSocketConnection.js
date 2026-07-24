@@ -247,6 +247,11 @@ class WebSocketConnection {
             return;
         }
         if (this.ws) {
+            // Suppress the disconnect banner, but still tell the shell this is a
+            // reconnect so CSRF/config/status resync after background-tab stalls.
+            if (this._hadSuccessfulOpen) {
+                this._pendingReconnectUi = true;
+            }
             this._isForcedReconnect = true;
             try {
                 this.ws.close();

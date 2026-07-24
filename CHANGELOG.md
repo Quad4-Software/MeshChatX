@@ -68,6 +68,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Web Sync Messages after a backgrounded browser tab: recover stale WebSocket as a shell reconnect, refresh CSRF, and do not abort sync when request-path priming fails
 - Desktop AppImage: main-process logs always append to the storage logs folder (meshchatx.log). Stdout is only used when a terminal is attached, with broken-pipe guards as a fallback, so background launches no longer raise write EPIPE dialogs
 - Android: lxmfy packaging, flock soft-lock, splash/logo clipping, Landlock skipped on Android
 - Android RNode BLE/USB via Chaquopy

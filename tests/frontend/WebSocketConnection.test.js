@@ -308,7 +308,36 @@ describe("WebSocketConnection module", () => {
 
         expect(disconnected).not.toHaveBeenCalled();
         expect(connected).toHaveBeenCalledTimes(2);
-        expect(connected.mock.calls[1][0]).toEqual({ isReconnect: false });
+        // Background-tab stale recovery must still tell the shell this is a
+        // reconnect so CSRF/config/status can resync (without flashing disconnect).
+        expect(connected.mock.calls[1][0]).toEqual({ isReconnect: true });
+
+        WebSocketConnection.destroy();
+    });
+
+    it("marks forced reconnect as isReconnect after a prior successful open (background-tab stall)", async () => {
+        const MockWS = makeWsImpl();
+        global.WebSocket = MockWS;
+
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+
+        const connected = vi.fn();
+        WebSocketConnection.on("connected", connected);
+
+        await WebSocketConnection.connect();
+        await vi.waitUntil(() => WebSocketConnection.ws?.readyState === MockWS.OPEN);
+        expect(connected.mock.calls[0][0]).toEqual({ isReconnect: false });
+
+        const firstWs = WebSocketConnection.ws;
+        // Simulate a zombie OPEN socket after the tab slept: readyState still
+        // OPEN, but no frames for longer than the ping interval.
+        WebSocketConnection._lastReceivedTime = Date.now() - 60000;
+        WebSocketConnection.forceReconnect();
+
+        await vi.waitUntil(() => WebSocketConnection.ws && WebSocketConnection.ws !== firstWs);
+        await vi.waitUntil(() => WebSocketConnection.ws.readyState === MockWS.OPEN);
+
+        expect(connected.mock.calls[1][0]).toEqual({ isReconnect: true });
 
         WebSocketConnection.destroy();
     });
