@@ -1,10 +1,7 @@
 # syntax=docker/dockerfile:1
-# Multi-stage image on Wolfi (Chainguard): Node dev for frontend, Python dev for
-# Poetry/cffi builds, Python dev for runtime so native libs can be installed with
-# apk (the minimal chainguard/python image has no shell or package manager).
-# Wolfi provides the opus package (libopus); Alpine's opusfile split is not present.
-# Glibc runtime uses LXST wheels as published; the musl filterlib bake is not used.
-# Voicemail greeting synthesis is optional without espeak-ng (see voicemail_manager).
+# Chainguard/Wolfi MeshChatX image (hardened tags).
+# Glibc LXST wheels as published. Musl filterlib bake is skipped.
+# Runtime uses opus (not Alpine opusfile). Voicemail without espeak-ng is optional.
 
 ARG NODE_IMAGE=cgr.dev/chainguard/node:latest-dev
 ARG PYTHON_BUILD_IMAGE=cgr.dev/chainguard/python:latest-dev
@@ -13,7 +10,6 @@ ARG PYTHON_RUNTIME_IMAGE=cgr.dev/chainguard/python:latest-dev
 FROM --platform=linux/amd64 ${NODE_IMAGE} AS build-frontend
 USER root
 WORKDIR /src
-# go is required to compile visualiser-wasm (gitignored binary; not in image context)
 RUN apk add --no-cache git python3 go
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml vite.config.js ./
 COPY patches ./patches
@@ -24,94 +20,52 @@ COPY scripts/build-visualiser-wasm.mjs scripts/build-visualiser-wasm.mjs
 COPY scripts/sync-meshchatx-docs.js scripts/sync-meshchatx-docs.js
 COPY scripts/pip_rns_remotes.py scripts/pip_rns_remotes.py
 COPY scripts/build/fetch_reticulum_manual.py scripts/build/fetch_reticulum_manual.py
+COPY scripts/docker/build-frontend.sh scripts/docker/build-frontend.sh
 COPY docs ./docs
 COPY visualiser-wasm ./visualiser-wasm
 COPY meshchatx/src/frontend ./meshchatx/src/frontend
 ENV GOCACHE=/tmp/go-cache
 ENV GOTMPDIR=/tmp/go-tmp
-RUN mkdir -p /tmp/go-cache /tmp/go-tmp && \
-    npm install -g pnpm@11.1.2 && \
-    pnpm config set verify-store-integrity true && \
-    pnpm install --frozen-lockfile && \
-    MESHCHATX_REQUIRE_VISUALISER_WASM=1 pnpm run build-frontend && \
-    test -s meshchatx/src/frontend/public/vendor/visualiser-wasm/visualiser.wasm && \
-    test -s meshchatx/src/frontend/public/vendor/visualiser-wasm/wasm_exec.js && \
-    test -s meshchatx/src/frontend/public/vendor/micron-parser-go/micron-parser-go.wasm && \
-    test -s meshchatx/src/frontend/public/vendor/micron-parser-go/wasm_exec.js && \
-    pnpm run build-docs
+RUN sh scripts/docker/build-frontend.sh
 
 FROM ${PYTHON_BUILD_IMAGE} AS builder
 USER root
 WORKDIR /build
-RUN apk add --no-cache build-base git pkgconf openssl-dev libffi-dev linux-headers
-
+COPY scripts/docker/builder-apk-chainguard.sh scripts/docker/builder-apk-chainguard.sh
+RUN sh scripts/docker/builder-apk-chainguard.sh
 RUN pip install --no-cache-dir --upgrade "pip>=26.0" uv setuptools wheel "jaraco.context>=6.1.0"
-
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
-
 RUN pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools" "jaraco.context>=6.1.0"
-
 COPY pyproject.toml uv.lock README.md CHANGELOG.md ./
 COPY logo ./logo
 COPY vendor ./vendor
 COPY scripts/patch_lxst_pyogg_ogg_ctypes.py ./scripts/patch_lxst_pyogg_ogg_ctypes.py
 COPY scripts/patch_lxst_codec2_optional.py ./scripts/patch_lxst_codec2_optional.py
 COPY meshchatx/src/backend/lxst_pyogg_ctypes_compat.py ./meshchatx/src/backend/lxst_pyogg_ctypes_compat.py
-# Third-party deps layer: stable across app-only updates when uv.lock is unchanged.
-# --inexact keeps setuptools/jaraco.context already in the venv (cffi needs them).
-RUN uv sync --no-group dev --no-install-project --inexact && \
-    rm -rf /root/.cache/pip /root/.cache/uv && \
-    pip install --no-cache-dir --upgrade "setuptools" "jaraco.context>=6.1.0" && \
-    python scripts/patch_lxst_pyogg_ogg_ctypes.py && \
-    python scripts/patch_lxst_codec2_optional.py && \
-    rm -rf /opt/venv/lib/python*/site-packages/LXST/Platforms/android && \
-    find /opt/venv -type d \( -name tests -o -name test -o -name __pycache__ \) -prune -exec rm -rf {} + && \
-    python -m compileall -q /opt/venv && \
-    cp -a /opt/venv /opt/venv-deps
-
+COPY scripts/docker/prepare-venv.sh scripts/docker/prepare-venv.sh
+COPY scripts/docker/build-app-overlay.sh scripts/docker/build-app-overlay.sh
+ENV MESHCHATX_DOCKER_SKIP_MUSL_FILTERLIB=1
+RUN sh scripts/docker/prepare-venv.sh
 COPY meshchatx ./meshchatx
 COPY --from=build-frontend /src/meshchatx/public ./meshchatx/public
-
-# App overlay: meshchatx + vendored packages + console scripts (changes often).
-RUN pip install --no-cache-dir . && \
-    PYVER="$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" && \
-    SP="/opt/venv/lib/python${PYVER}/site-packages" && \
-    OUT="/opt/app-overlay" && \
-    mkdir -p "${OUT}/lib/python${PYVER}/site-packages" "${OUT}/bin" && \
-    for pkg in meshchatx lxmfy rns_filesync; do \
-      cp -a "${SP}/${pkg}" "${OUT}/lib/python${PYVER}/site-packages/"; \
-    done && \
-    cp -a "${SP}"/reticulum_meshchatx*.dist-info "${OUT}/lib/python${PYVER}/site-packages/" && \
-    for cmd in meshchat meshchatx meshchatx-repository-http lxmfy rns-filesync; do \
-      cp -a "/opt/venv/bin/${cmd}" "${OUT}/bin/"; \
-    done && \
-    find "${OUT}" -type d -name __pycache__ -prune -exec rm -rf {} + && \
-    python -m compileall -q "${OUT}/lib/python${PYVER}/site-packages"
+RUN sh scripts/docker/build-app-overlay.sh
 
 FROM ${PYTHON_RUNTIME_IMAGE}
-
 USER root
-RUN apk add --no-cache opus libffi shadow && \
-    pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools" "jaraco.context>=6.1.0" && \
-    rm -rf /root/.cache/pip && \
-    groupadd -g 1000 meshchat && \
-    useradd --uid 1000 --gid 1000 --create-home --home-dir /home/meshchat \
-        --shell /sbin/nologin meshchat && \
-    mkdir -p /config && chown meshchat:meshchat /config
-
+COPY scripts/docker/runtime-setup-chainguard.sh /tmp/runtime-setup-chainguard.sh
+RUN sh /tmp/runtime-setup-chainguard.sh && rm /tmp/runtime-setup-chainguard.sh
 COPY --from=builder --chown=meshchat:meshchat /opt/venv-deps /opt/venv
 COPY --from=builder --chown=meshchat:meshchat /opt/app-overlay/ /opt/venv/
 COPY scripts/docker_entrypoint_chainguard.py /docker-entrypoint.py
 
-# Declare after COPY so per-build OCI values do not invalidate runtime or venv layers.
 ARG OCI_REVISION=""
 ARG OCI_VERSION=""
 ARG OCI_CREATED=""
 
 LABEL org.opencontainers.image.source="https://github.com/Quad4-Software/MeshChatX"
-LABEL org.opencontainers.image.description="MeshChatX is a all in one Reticulum client."
+LABEL org.opencontainers.image.description="MeshChatX is an all-in-one Reticulum client."
 LABEL org.opencontainers.image.licenses="MIT AND 0BSD"
 LABEL org.opencontainers.image.authors="Quad4"
 LABEL org.opencontainers.image.revision="${OCI_REVISION}"

@@ -60,9 +60,21 @@ jobs:
                     - variant: standard
                       dockerfile: ./Dockerfile
                       tag_suffix: ""
+                      build_variant: standard
+                      oci_description: "MeshChatX is an all-in-one Reticulum client."
+                      oci_licenses: "MIT AND 0BSD"
                     - variant: hardened
                       dockerfile: ./Dockerfile.hardened
                       tag_suffix: "-hardened"
+                      build_variant: standard
+                      oci_description: "MeshChatX is an all-in-one Reticulum client."
+                      oci_licenses: "MIT AND 0BSD"
+                    - variant: extra
+                      dockerfile: ./Dockerfile
+                      tag_suffix: "-extra"
+                      build_variant: extra
+                      oci_description: "MeshChatX all-in-one Reticulum client with i2pd and yggdrasil."
+                      oci_licenses: "MIT AND 0BSD AND BSD-3-Clause AND LGPL-3.0-only"
         steps:
             - name: Verify action pins (GitHub API)
               env:
@@ -218,6 +230,9 @@ jobs:
                       OCI_REVISION=${{ github.sha }}
                       OCI_VERSION=${{ steps.oci.outputs.version }}
                       OCI_CREATED=${{ steps.oci.outputs.created }}
+                      VARIANT=${{ matrix.build_variant }}
+                      OCI_DESCRIPTION=${{ matrix.oci_description }}
+                      OCI_LICENSES=${{ matrix.oci_licenses }}
 
             - name: Verify image has no package bloat
               run: |
