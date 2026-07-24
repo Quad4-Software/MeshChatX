@@ -207,6 +207,9 @@ def test_oracle_client_kick_error_leaves_joined_room(tmp_path):
     hub = manager.add_hub(HUB_HASH, name="Client")
     hub.rooms.add("lobby")
     hub.members["lobby"] = {b"\x11" * 16, b"\xaa" * 16}
+    hub.unread_counts["lobby"] = 4
+    hub.unread_rooms.add("lobby")
+    hub.mention_rooms.add("lobby")
     hub._handle_error(
         proto.make_envelope(
             proto.T_ERROR,
@@ -217,6 +220,33 @@ def test_oracle_client_kick_error_leaves_joined_room(tmp_path):
     )
     assert "lobby" not in hub.rooms
     assert "lobby" not in hub.members
+    assert "lobby" not in hub.unread_counts
+    assert "lobby" not in hub.unread_rooms
+    assert "lobby" not in hub.mention_rooms
+
+
+def test_oracle_invite_only_rollback_clears_unread(tmp_path):
+    """Failed auto-rejoin (+i) must not leave unread badges for a dropped room."""
+    manager = RRCManager(
+        identity=FakeIdentity(b"\x11" * 16),
+        storage_dir=str(tmp_path),
+    )
+    hub = manager.add_hub(HUB_HASH, name="Client")
+    hub.rooms.add("private")
+    hub.unread_counts["private"] = 2
+    hub.unread_rooms.add("private")
+    hub._pending_joins.add("private")
+    hub._handle_error(
+        proto.make_envelope(
+            proto.T_ERROR,
+            src=HUB_HASH,
+            room="private",
+            body="invite-only (+i)",
+        ),
+    )
+    assert "private" not in hub.rooms
+    assert "private" not in hub.unread_counts
+    assert "private" not in hub.unread_rooms
 
 
 def test_oracle_register_room_key_strips_like_join_paths():
@@ -517,3 +547,74 @@ def test_property_keyed_join_rejects_non_matching_keys(wrong):
     )
     assert "vault" not in sess.rooms
     assert server.rooms.ensure_state("vault").get("founder") is None
+
+
+def _oracle_available_rooms_diff(previous, next_rooms):
+    """Independent oracle for /list snapshot replace semantics."""
+    prev = previous if isinstance(previous, dict) else {}
+    nxt = next_rooms if isinstance(next_rooms, dict) else {}
+    added = sorted(k for k in nxt if k not in prev)
+    removed = sorted(k for k in prev if k not in nxt)
+    updated = sorted(
+        k for k in nxt if k in prev and (prev.get(k) or None) != (nxt.get(k) or None)
+    )
+    return added, removed, updated
+
+
+@given(
+    previous=st.dictionaries(
+        st.from_regex(r"[a-z0-9_-]{1,12}", fullmatch=True),
+        st.one_of(st.none(), st.from_regex(r"[A-Za-z0-9 _-]{0,24}", fullmatch=True)),
+        max_size=8,
+    ),
+    next_rooms=st.dictionaries(
+        st.from_regex(r"[a-z0-9_-]{1,12}", fullmatch=True),
+        st.one_of(st.none(), st.from_regex(r"[A-Za-z0-9 _-]{0,24}", fullmatch=True)),
+        max_size=8,
+    ),
+)
+@settings(max_examples=60, deadline=None)
+def test_oracle_list_notice_replaces_available_rooms(
+    tmp_path_factory, previous, next_rooms
+):
+    """Hub /list notices replace available_rooms. Adds and removals both apply."""
+    manager = RRCManager(
+        identity=FakeIdentity(b"\x11" * 16),
+        storage_dir=str(tmp_path_factory.mktemp("rrc-list")),
+        get_nickname=(lambda: None),
+    )
+    hub = manager.add_hub(HUB_HASH)
+    hub.available_rooms = dict(previous)
+    hub._silent_list_pending = 1
+
+    if not next_rooms:
+        body = "No public rooms registered"
+    else:
+        lines = ["Registered public rooms"]
+        for name, topic in sorted(next_rooms.items()):
+            if topic:
+                lines.append(f"{name} - {topic}")
+            else:
+                lines.append(name)
+        body = "\n".join(lines)
+
+    env = proto.make_envelope(proto.T_NOTICE, src=None, body=body)
+    hub._on_packet(proto.encode(env))
+
+    expected = {}
+    for name, topic in next_rooms.items():
+        if isinstance(topic, str):
+            stripped = topic.strip()
+            expected[name] = stripped or None
+        else:
+            expected[name] = None
+    assert hub.available_rooms == expected
+    added, removed, updated = _oracle_available_rooms_diff(previous, expected)
+    for name in added:
+        assert name in hub.available_rooms
+        assert name not in previous
+    for name in removed:
+        assert name not in hub.available_rooms
+        assert name in previous
+    for name in updated:
+        assert hub.available_rooms[name] != (previous.get(name) or None)

@@ -252,22 +252,41 @@
                                     </li>
                                 </ul>
 
-                                <div v-if="availableRoomsFor(hub).length > 0" class="space-y-0.5">
-                                    <button
-                                        type="button"
-                                        class="flex w-full items-center gap-1 px-2.5 pt-1 text-left text-[10px] font-semibold uppercase tracking-wide text-sem-fg-muted transition-colors hover:text-sem-fg"
-                                        @click="toggleAvailableRooms(hub.hub_hash)"
+                                <div v-if="hub.connected || availableRoomsFor(hub).length > 0" class="space-y-0.5">
+                                    <div
+                                        class="flex w-full items-center gap-1 px-2.5 pt-1 text-[10px] font-semibold uppercase tracking-wide text-sem-fg-muted"
                                     >
-                                        <MaterialDesignIcon
-                                            :icon-name="
-                                                isAvailableRoomsExpanded(hub.hub_hash)
-                                                    ? 'chevron-down'
-                                                    : 'chevron-right'
-                                            "
-                                            class="size-3.5 shrink-0"
-                                        />
-                                        <span class="truncate">{{ $t("relay_chat.available_rooms") }}</span>
-                                    </button>
+                                        <button
+                                            type="button"
+                                            class="flex min-w-0 flex-1 items-center gap-1 text-left transition-colors hover:text-sem-fg"
+                                            @click="toggleAvailableRooms(hub.hub_hash)"
+                                        >
+                                            <MaterialDesignIcon
+                                                :icon-name="
+                                                    isAvailableRoomsExpanded(hub.hub_hash)
+                                                        ? 'chevron-down'
+                                                        : 'chevron-right'
+                                                "
+                                                class="size-3.5 shrink-0"
+                                            />
+                                            <span class="truncate">{{ $t("relay_chat.available_rooms") }}</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="inline-flex size-5 shrink-0 items-center justify-center rounded-md text-sem-fg-muted transition-colors hover:bg-sem-surface/60 hover:text-sem-accent disabled:cursor-not-allowed disabled:opacity-40"
+                                            :disabled="!hub.connected || isRefreshingAvailableRooms(hub.hub_hash)"
+                                            :title="$t('relay_chat.refresh_available_rooms')"
+                                            @click.stop="refreshAvailableRooms(hub)"
+                                        >
+                                            <MaterialDesignIcon
+                                                icon-name="refresh"
+                                                class="size-3.5"
+                                                :class="{
+                                                    'animate-spin': isRefreshingAvailableRooms(hub.hub_hash),
+                                                }"
+                                            />
+                                        </button>
+                                    </div>
                                     <ul v-show="isAvailableRoomsExpanded(hub.hub_hash)" class="space-y-0.5">
                                         <li
                                             v-for="availableRoom in availableRoomsFor(hub)"
@@ -1317,11 +1336,13 @@
 import { nextTick } from "vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import GlobalState from "../../js/GlobalState";
+import GlobalEmitter from "../../js/GlobalEmitter";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 import Utils from "../../js/Utils";
 import { DEFAULT_RRC_HUB_ICON, normalizeMdiIconName } from "../../js/mdiIconNames.js";
 import { countRelayMentions } from "../../js/relayMentionCount.js";
+import { unjoinedAvailableRooms } from "../../js/rrcAvailableRooms.js";
 import { filterRelayMembers, filterRelayMessages } from "../../js/relayMessageSearch.js";
 import {
     buildRelayMessageTimeline,
@@ -1453,6 +1474,7 @@ export default {
             selectedRoom: null,
             expandedHubs: {},
             availableRoomsExpanded: {},
+            availableRoomsRefreshing: {},
             hostUptimeTick: 0,
             hostUptimeAnchorMs: 0,
             hostUptimeTimer: null,
@@ -1642,6 +1664,7 @@ export default {
     },
     mounted() {
         WebSocketConnection.on("message", this.onWebsocketMessage);
+        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
         this.smMq = window.matchMedia("(min-width: 640px)");
         this.smUp = this.smMq.matches;
         this.smMq.addEventListener("change", this.onSmMqChange);
@@ -1663,6 +1686,7 @@ export default {
     },
     beforeUnmount() {
         WebSocketConnection.off("message", this.onWebsocketMessage);
+        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
         if (this.discoverySearchTimer) {
             clearTimeout(this.discoverySearchTimer);
         }
@@ -1678,6 +1702,24 @@ export default {
         window.api.post("/api/v1/rrc/active/clear").catch(() => {});
     },
     methods: {
+        onIdentitySwitched() {
+            this.hubs = [];
+            this.serverHubs = [];
+            this.discovered = [];
+            this.messages = [];
+            this.members = [];
+            this.selectedHubHash = null;
+            this.selectedRoom = null;
+            this.expandedHubs = {};
+            this.availableRoomsExpanded = {};
+            this.availableRoomsRefreshing = {};
+            GlobalState.relayChatUnreadCount = 0;
+            this.fetchHubs();
+            this.fetchServers();
+            if (!this.isPopoutMode) {
+                this.fetchDiscovered();
+            }
+        },
         selectView(view) {
             if (view !== "host") {
                 this.closeHostModeration();
@@ -1742,14 +1784,7 @@ export default {
             return hub.known_rooms;
         },
         availableRoomsFor(hub) {
-            if (!hub || !hub.available_rooms || typeof hub.available_rooms !== "object") {
-                return [];
-            }
-            const known = new Set(this.orderedRoomsFor(hub));
-            return Object.entries(hub.available_rooms)
-                .filter(([name]) => !known.has(name))
-                .map(([name, topic]) => ({ name, topic }))
-                .sort((a, b) => a.name.localeCompare(b.name));
+            return unjoinedAvailableRooms(hub?.available_rooms, this.orderedRoomsFor(hub));
         },
         onCollapsedHubClick(hub) {
             const rooms = this.orderedRoomsFor(hub);
@@ -1773,6 +1808,28 @@ export default {
         toggleAvailableRooms(hubHash) {
             this.availableRoomsExpanded[hubHash] = !this.isAvailableRoomsExpanded(hubHash);
             this.persistRelayLayout();
+        },
+        isRefreshingAvailableRooms(hubHash) {
+            return !!this.availableRoomsRefreshing[hubHash];
+        },
+        async refreshAvailableRooms(hub) {
+            if (!hub?.hub_hash || !hub.connected || this.isRefreshingAvailableRooms(hub.hub_hash)) {
+                return;
+            }
+            this.availableRoomsRefreshing = {
+                ...this.availableRoomsRefreshing,
+                [hub.hub_hash]: true,
+            };
+            try {
+                await window.api.post(`/api/v1/rrc/hubs/${hub.hub_hash}/rooms/list`);
+                ToastUtils.info(this.$t("relay_chat.rooms_list_requested"));
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
+            } finally {
+                const next = { ...this.availableRoomsRefreshing };
+                delete next[hub.hub_hash];
+                this.availableRoomsRefreshing = next;
+            }
         },
         hostedHubUptimeSeconds(hub) {
             void this.hostUptimeTick;

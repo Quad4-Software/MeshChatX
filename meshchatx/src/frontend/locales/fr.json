@@ -3602,6 +3602,8 @@
         "no_hubs": "Aucun hub configure. Ajoutez-en un pour commencer.",
         "no_rooms": "Aucun salon rejoint. Rejoignez un salon pour discuter.",
         "available_rooms": "Salons disponibles",
+        "refresh_available_rooms": "Actualiser les salons disponibles",
+        "rooms_list_requested": "Actualisation des salons disponibles",
         "join": "Rejoindre",
         "no_room_selected": "Selectionnez un salon pour voir les messages.",
         "load_previous": "Charger les messages precedents",

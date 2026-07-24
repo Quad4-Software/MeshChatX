@@ -181,6 +181,79 @@ describe("RelayChatPage.vue", () => {
         });
     });
 
+    it("refreshes available rooms via the rooms list API", async () => {
+        const ToastUtils = (await import("@/js/ToastUtils")).default;
+        vi.spyOn(ToastUtils, "info").mockImplementation(() => {});
+        vi.spyOn(ToastUtils, "error").mockImplementation(() => {});
+
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({
+                    data: {
+                        hubs: [
+                            makeHub({
+                                connected: true,
+                                available_rooms: { lobby: "Main", random: null },
+                            }),
+                        ],
+                    },
+                });
+            }
+            if (url === "/api/v1/rrc/servers") {
+                return Promise.resolve({ data: { hubs: [] } });
+            }
+            if (url === "/api/v1/announces") {
+                return Promise.resolve({ data: { announces: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        axiosMock.post.mockResolvedValueOnce({
+            data: { message: "Room list requested", hub: makeHub() },
+        });
+
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+
+        await wrapper.vm.refreshAvailableRooms(wrapper.vm.hubs[0]);
+
+        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms/list`);
+        expect(ToastUtils.info).toHaveBeenCalled();
+        expect(wrapper.vm.isRefreshingAvailableRooms(HUB_HASH)).toBe(false);
+    });
+
+    it("does not request a room list refresh when the hub is disconnected", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({
+                    data: {
+                        hubs: [
+                            makeHub({
+                                connected: false,
+                                status: 0,
+                                available_rooms: { random: null },
+                            }),
+                        ],
+                    },
+                });
+            }
+            if (url === "/api/v1/rrc/servers") {
+                return Promise.resolve({ data: { hubs: [] } });
+            }
+            if (url === "/api/v1/announces") {
+                return Promise.resolve({ data: { announces: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        axiosMock.post.mockClear();
+
+        await wrapper.vm.refreshAvailableRooms(wrapper.vm.hubs[0]);
+
+        expect(axiosMock.post).not.toHaveBeenCalled();
+    });
+
     it("includes an optional room key when joining a room", async () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));

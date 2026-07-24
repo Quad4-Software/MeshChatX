@@ -2904,6 +2904,8 @@
         "no_hubs": "No hubs configured yet. Add one to get started.",
         "no_rooms": "No rooms joined. Join a room to start chatting.",
         "available_rooms": "Available Rooms",
+        "refresh_available_rooms": "Refresh available rooms",
+        "rooms_list_requested": "Refreshing available rooms",
         "join": "Join",
         "no_room_selected": "Select a room to view messages.",
         "load_previous": "Load earlier messages",

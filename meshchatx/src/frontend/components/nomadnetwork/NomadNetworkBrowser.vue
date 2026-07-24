@@ -217,6 +217,7 @@ export default {
         }
 
         GlobalEmitter.on("nomad-open-node", this.handleNomadOpenNode);
+        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
         this.mountTab(this.activeTabId);
     },
     activated() {
@@ -226,10 +227,19 @@ export default {
     },
     beforeUnmount() {
         GlobalEmitter.off("nomad-open-node", this.handleNomadOpenNode);
+        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
         this.teardownViewportWatcher();
         window.removeEventListener("keydown", this.handleKeydown, true);
     },
     methods: {
+        onIdentitySwitched() {
+            this.tabs = [];
+            this.activeTabId = null;
+            this.pageRefs = {};
+            this.mountedTabIds = {};
+            this.addTab();
+            saveNomadTabs({ tabs: [], activeIndex: 0 });
+        },
         setupViewportWatcher() {
             if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
                 this.isWideViewport = false;

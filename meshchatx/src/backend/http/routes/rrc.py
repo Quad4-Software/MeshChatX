@@ -271,6 +271,19 @@ def register_rrc_routes(routes, app):
             )
         return web.json_response({"hub": hub.to_dict()})
 
+    @routes.post("/api/v1/rrc/hubs/{hub_hash}/rooms/list")
+    async def rrc_hub_rooms_list(request):
+        _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+        if error is not None:
+            return error
+        try:
+            hub.request_room_list()
+        except (ValueError, RuntimeError) as e:
+            return web.json_response({"message": str(e)}, status=400)
+        return web.json_response(
+            {"message": "Room list requested", "hub": hub.to_dict()}
+        )
+
     @routes.post("/api/v1/rrc/hubs/{hub_hash}/connect")
     async def rrc_hub_connect(request):
         _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))

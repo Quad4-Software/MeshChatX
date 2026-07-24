@@ -3602,6 +3602,8 @@
         "no_hubs": "Nog geen hubs geconfigureerd. Voeg er een toe om te beginnen.",
         "no_rooms": "Geen kamers. Word lid van een kamer om te chatten.",
         "available_rooms": "Beschikbare kamers",
+        "refresh_available_rooms": "Beschikbare kamers vernieuwen",
+        "rooms_list_requested": "Beschikbare kamers worden vernieuwd",
         "join": "Deelnemen",
         "no_room_selected": "Selecteer een kamer om berichten te bekijken.",
         "load_previous": "Eerdere berichten laden",

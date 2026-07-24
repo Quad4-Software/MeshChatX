@@ -3602,6 +3602,8 @@
         "no_hubs": "Aun no hay hubs configurados. Anade uno para empezar.",
         "no_rooms": "No te has unido a ninguna sala. Unete a una para chatear.",
         "available_rooms": "Salas disponibles",
+        "refresh_available_rooms": "Actualizar salas disponibles",
+        "rooms_list_requested": "Actualizando salas disponibles",
         "join": "Unirse",
         "no_room_selected": "Selecciona una sala para ver los mensajes.",
         "load_previous": "Cargar mensajes anteriores",

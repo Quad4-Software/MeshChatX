@@ -599,6 +599,18 @@ export default {
     },
     methods: {
         syncUnreadCount() {
+            // Nav badge must track the server total from /api/v1/notifications.
+            // Overwriting it with this page's loaded rows undercounts when there are
+            // more conversations, an unread filter, a folder, or an active search.
+            const listIsPartial =
+                this.hasMoreConversations ||
+                this.filterUnreadOnly ||
+                this.selectedFolderId != null ||
+                Boolean(this.conversationSearchTerm && this.conversationSearchTerm.trim());
+            if (listIsPartial) {
+                GlobalEmitter.emit("notifications-changed");
+                return;
+            }
             GlobalState.unreadConversationsCount = countUnreadConversations(this.conversations);
         },
         onIdentitySwitched() {
@@ -616,6 +628,7 @@ export default {
                     pane.peer = null;
                 }
             }
+            this.getConfig();
             this.getConversations();
             this.getFolders();
             this.loadConversationPins();
@@ -648,6 +661,7 @@ export default {
             const existingPeer = this.peers[destinationHash];
             if (existingPeer) {
                 this.onPeerClick(existingPeer);
+                this.dismissUnreadForOpenDestination(destinationHash);
                 return;
             }
 
@@ -656,12 +670,16 @@ export default {
                 return;
             }
 
-            const existingConversation = this.conversations.find((c) => c.destination_hash === destinationHash);
+            const existingConversation = this.conversations.find(
+                (c) => Utils.normalizeMeshchatHashHex(c.destination_hash) === destinationHash
+            );
             this.onPeerClick({
                 display_name: existingConversation?.display_name ?? "Anonymous Peer",
                 custom_display_name: existingConversation?.custom_display_name ?? null,
                 destination_hash: destinationHash,
+                is_unread: existingConversation?.is_unread === true,
             });
+            this.dismissUnreadForOpenDestination(destinationHash);
         },
         async getConfig() {
             try {
@@ -1284,18 +1302,23 @@ export default {
                 return;
             }
             // Viewer not mounted yet (restored panes). Optimistically clear local unread.
-            if (conversation.is_unread) {
+            const wasUnread = conversation.is_unread === true;
+            if (wasUnread) {
                 conversation.is_unread = false;
             }
             Promise.resolve(window.api.post(`/api/v1/lxmf/conversations/${normalized}/mark-as-read`))
                 .then(() => {
                     GlobalEmitter.emit("notifications-changed");
                     NotificationUtils.clearMessageNotifications(normalized);
-                    if (GlobalState.unreadConversationsCount > 0) {
+                    if (wasUnread && GlobalState.unreadConversationsCount > 0) {
                         GlobalState.unreadConversationsCount -= 1;
                     }
                 })
-                .catch(() => {});
+                .catch(() => {
+                    if (wasUnread) {
+                        conversation.is_unread = true;
+                    }
+                });
         },
         onCloseConversationViewer: function () {
             // clear selected peer

@@ -2904,6 +2904,8 @@
         "no_hubs": "Ei vielä määritettyjä keskuksia. Lisää yksi aloittaaksesi.",
         "no_rooms": "Et ole liittynyt yhteenkään huoneeseen. Liity huoneeseen aloittaaksesi keskustelun.",
         "available_rooms": "Käytettävissä olevat huoneet",
+        "refresh_available_rooms": "Päivitä käytettävissä olevat huoneet",
+        "rooms_list_requested": "Päivitetään käytettävissä olevia huoneita",
         "join": "Liity",
         "no_room_selected": "Valitse huone nähdäksesi viestit.",
         "load_previous": "Lataa aikaisempia viestejä",

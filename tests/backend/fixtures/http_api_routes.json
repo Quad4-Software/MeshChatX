@@ -1245,6 +1245,10 @@
             "path": "/api/v1/rrc/hubs/{hub_hash}/rooms"
         },
         {
+            "method": "POST",
+            "path": "/api/v1/rrc/hubs/{hub_hash}/rooms/list"
+        },
+        {
             "method": "PUT",
             "path": "/api/v1/rrc/hubs/{hub_hash}/rooms/order"
         },

@@ -280,6 +280,7 @@ import ToolsPageHeader from "./ToolsPageHeader.vue";
 import RNSHSessionTerminal from "./RNSHSessionTerminal.vue";
 import ToastUtils from "../../js/ToastUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
+import GlobalEmitter from "../../js/GlobalEmitter";
 import { loadRnshLayout, saveRnshLayout } from "../../js/browserLayoutStore";
 import { renderTerminalOutput } from "../../js/terminalRender";
 
@@ -404,6 +405,7 @@ export default {
         this.restoreLayout();
         await this.loadSessions();
         WebSocketConnection.on("message", this.onWebsocketMessage);
+        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
     },
     beforeUnmount() {
         if (this.onWindowResize) {
@@ -414,8 +416,16 @@ export default {
         }
         document.body.style.overflow = "";
         WebSocketConnection.off("message", this.onWebsocketMessage);
+        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
     },
     methods: {
+        onIdentitySwitched() {
+            this.sessions = [];
+            this.outputsBySession = {};
+            this.selectedSessionId = null;
+            this.sessionFullscreen = false;
+            void this.loadSessions();
+        },
         updateViewport() {
             const narrow = typeof window !== "undefined" && window.innerWidth < NARROW_BREAKPOINT_PX;
             this.isNarrowScreen = narrow;

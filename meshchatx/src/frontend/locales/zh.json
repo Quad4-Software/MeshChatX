@@ -3602,6 +3602,8 @@
         "no_hubs": "尚未配置中心。添加一个以开始。",
         "no_rooms": "未加入任何房间。加入房间开始聊天。",
         "available_rooms": "可用房间",
+        "refresh_available_rooms": "刷新可用房间",
+        "rooms_list_requested": "正在刷新可用房间",
         "join": "加入",
         "no_room_selected": "选择一个房间以查看消息。",
         "load_previous": "加载更早的消息",
