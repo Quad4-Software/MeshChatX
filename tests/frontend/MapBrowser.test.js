@@ -25,6 +25,8 @@ vi.mock("@/components/map/MapPage.vue", () => ({
 
 import TileCache from "@/js/TileCache";
 import MapBrowser from "@/components/map/MapBrowser.vue";
+import GlobalState from "@/js/GlobalState";
+import { mapViewStateKey } from "@/js/mapStateKeys.js";
 
 const MaterialDesignIconStub = {
     name: "MaterialDesignIcon",
@@ -187,7 +189,7 @@ describe("MapBrowser.vue", () => {
         await mountBrowser();
         await vi.waitFor(() => {
             expect(TileCache.setMapState).toHaveBeenCalledWith(
-                "map_tab_legacy-tab",
+                mapViewStateKey(GlobalState.config?.identity_hash, "legacy-tab"),
                 expect.objectContaining({ center: [1, 2], zoom: 8 })
             );
         });

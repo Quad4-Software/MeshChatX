@@ -254,7 +254,7 @@ class RRCHub:
         self.manager._notify_change(self)
 
     def _bump_unread(self, room):
-        if not room or room not in self.rooms:
+        if not room:
             return
         self.unread_rooms.add(room)
         self.unread_counts[room] = min(9999, self.unread_counts.get(room, 0) + 1)
@@ -946,7 +946,10 @@ class RRCHub:
                 if cap is not None and len(buf) > cap:
                     del buf[: len(buf) - cap]
                 if target_room != self.manager.active_room_for(self):
-                    self._bump_unread(target_room)
+                    # After kick/rollback the room is already removed from
+                    # self.rooms. Do not re-bump unread from the ERROR notice.
+                    if target_room in self.rooms:
+                        self._bump_unread(target_room)
             self.manager._notify_messages(self, msg)
         if target_room:
             self._append_history(target_room, msg)

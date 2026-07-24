@@ -29,15 +29,17 @@ async def test_oracle_block_all_restore_preserves_zero_stamp_cost():
     block = {"v": False}
 
     app.config.lxmf_inbound_stamp_cost.get.side_effect = lambda: stamp_cost["v"]
-    app.config.lxmf_inbound_stamp_cost.set.side_effect = lambda v: stamp_cost.__setitem__(
-        "v",
-        v,
+    app.config.lxmf_inbound_stamp_cost.set.side_effect = lambda v: (
+        stamp_cost.__setitem__(
+            "v",
+            v,
+        )
     )
-    app.config.lxmf_inbound_stamp_cost_before_block.get.side_effect = (
-        lambda: before["v"]
-    )
-    app.config.lxmf_inbound_stamp_cost_before_block.set.side_effect = (
-        lambda v: before.__setitem__("v", v)
+    app.config.lxmf_inbound_stamp_cost_before_block.get.side_effect = lambda: before[
+        "v"
+    ]
+    app.config.lxmf_inbound_stamp_cost_before_block.set.side_effect = lambda v: (
+        before.__setitem__("v", v)
     )
     app.config.block_all_from_strangers.get.side_effect = lambda: block["v"]
     app.config.block_all_from_strangers.set.side_effect = lambda v: block.__setitem__(

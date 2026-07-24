@@ -83,11 +83,7 @@ import TileCache from "../../js/TileCache";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import GlobalState from "../../js/GlobalState";
 import { loadMapTabs, saveMapTabs } from "../../js/browserLayoutStore";
-import {
-    LEGACY_MAP_STATE_KEY,
-    legacyMapTabStateKey,
-    mapViewStateKey,
-} from "../../js/mapStateKeys.js";
+import { LEGACY_MAP_STATE_KEY, legacyMapTabStateKey, mapViewStateKey } from "../../js/mapStateKeys.js";
 
 const DOUBLE_TAP_MS = 400;
 
