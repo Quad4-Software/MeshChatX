@@ -61,12 +61,13 @@ def test_on_memory_low_relaxes_sqlite():
     app = MagicMock()
     app.database = MagicMock()
     app.landlock_active = False
+    app.appcontainer_active = False
     manager = MemoryPressureManager(app=app)
     with patch.object(manager, "run_periodic_cleanup", return_value={"ok": True}):
         stats = manager.on_memory_low(50.0)
     app.database.apply_memory_pressure_pragmas.assert_called_once_with(
         True,
-        landlock_active=False,
+        fs_sandbox_active=False,
     )
     assert stats["sqlite_relaxed"] is True
     assert stats["sqlite_file_temp"] is True
@@ -78,12 +79,28 @@ def test_on_memory_low_keeps_memory_temp_when_landlock_active():
     app = MagicMock()
     app.database = MagicMock()
     app.landlock_active = True
+    app.appcontainer_active = False
     manager = MemoryPressureManager(app=app)
     with patch.object(manager, "run_periodic_cleanup", return_value={"ok": True}):
         stats = manager.on_memory_low(50.0)
     app.database.apply_memory_pressure_pragmas.assert_called_once_with(
         True,
-        landlock_active=True,
+        fs_sandbox_active=True,
     )
     assert stats["sqlite_relaxed"] is True
+    assert stats["sqlite_file_temp"] is False
+
+
+def test_on_memory_low_keeps_memory_temp_when_appcontainer_active():
+    app = MagicMock()
+    app.database = MagicMock()
+    app.landlock_active = False
+    app.appcontainer_active = True
+    manager = MemoryPressureManager(app=app)
+    with patch.object(manager, "run_periodic_cleanup", return_value={"ok": True}):
+        stats = manager.on_memory_low(50.0)
+    app.database.apply_memory_pressure_pragmas.assert_called_once_with(
+        True,
+        fs_sandbox_active=True,
+    )
     assert stats["sqlite_file_temp"] is False

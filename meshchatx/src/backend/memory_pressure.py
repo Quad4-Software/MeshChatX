@@ -20,6 +20,16 @@ HELD_ANNOUNCES_DROP_THRESHOLD = 512
 ANNOUNCE_CACHE_CLEAN_INTERVAL_S = 30 * 60
 
 
+def _app_flag(app: Any, name: str) -> bool:
+    """Read a boolean flag without treating MagicMock defaults as True."""
+    if app is None:
+        return False
+    try:
+        return bool(object.__getattribute__(app, name))
+    except AttributeError:
+        return False
+
+
 class MemoryPressureManager:
     """Coordinates link sweeps, path pruning, and SQLite disk offload."""
 
@@ -92,16 +102,21 @@ class MemoryPressureManager:
         db = getattr(self.app, "database", None) if self.app else None
         if db is not None and hasattr(db, "apply_memory_pressure_pragmas"):
             try:
-                landlock_active = bool(
-                    getattr(self.app, "landlock_active", False),
+                fs_sandbox_active = (
+                    _app_flag(self.app, "fs_sandbox_active")
+                    or _app_flag(
+                        self.app,
+                        "landlock_active",
+                    )
+                    or _app_flag(self.app, "appcontainer_active")
                 )
                 db.apply_memory_pressure_pragmas(
                     True,
-                    landlock_active=landlock_active,
+                    fs_sandbox_active=fs_sandbox_active,
                 )
                 self._sqlite_relaxed = True
                 stats["sqlite_relaxed"] = True
-                stats["sqlite_file_temp"] = not landlock_active
+                stats["sqlite_file_temp"] = not fs_sandbox_active
             except Exception as exc:
                 _log.debug("SQLite pressure pragmas failed: %s", exc)
         _log.warning(

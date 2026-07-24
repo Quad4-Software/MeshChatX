@@ -71,8 +71,19 @@ function isAllowedShellPath(targetPath, ctx) {
     add(ctx.getDefaultReticulumConfigDir());
     add(ctx.app.getPath("userData"));
     add(ctx.app.getPath("temp"));
-    add(ctx.app.getPath("downloads"));
-    add(ctx.app.getPath("documents"));
+    // Prefer app-owned exchange folders. Keep parent Downloads/Documents so
+    // reveal-in-folder still works for browser saves that landed outside them.
+    const downloads = ctx.app.getPath("downloads");
+    const documents = ctx.app.getPath("documents");
+    add(path.join(downloads, "MeshChatX"));
+    add(path.join(documents, "MeshChatX"));
+    try {
+        add(path.join(ctx.app.getPath("pictures"), "MeshChatX"));
+    } catch {
+        // pictures may be unavailable in some Electron test fakes
+    }
+    add(downloads);
+    add(documents);
 
     const portable = process.env.PORTABLE_EXECUTABLE_DIR;
     if (portable) {

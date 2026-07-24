@@ -92,6 +92,6 @@ Legacy upstream data may still exist under `~/.reticulum-meshchat/`. Migration t
 - **Architecture and design** explains backend managers, identity scoping, and the API model.
 - **LXMF messaging** and **Audio calls** describe day-to-day communication features.
 - **Reticulum interfaces** explains how your node joins the mesh.
-- Platform guides under **Platform guides** cover Raspberry Pi, Android Termux, Meta Quest, and Linux sandboxing.
+- Platform guides under **Platform guides** cover Raspberry Pi, Android Termux, Meta Quest, Linux sandboxing, and Windows AppContainer sandboxing.
 
 For protocol-level detail, open the **Reticulum** tab in Documentation or visit the [Reticulum manual](https://reticulum.network/manual/) online.

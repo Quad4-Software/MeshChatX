@@ -1,44 +1,54 @@
 # Skill: landlock-sqlite
 
-Landlock + SQLite conversation-load failures (temp_store, slim queries, memory pressure).
+Landlock / Windows AppContainer + SQLite conversation-load failures (temp_store, slim queries, memory pressure).
 
-# MeshChatX Landlock + SQLite
+# MeshChatX FS sandbox + SQLite
 
 ## Symptoms
 
 - `/api/v1/lxmf/conversations` or `/api/v1/notifications` return 500/503
 - Logs show `sqlite3.OperationalError: unable to open database file`
-- Happens after Landlock enables, often with large message `fields` / base64 blobs
+- Happens after Landlock or Windows AppContainer enables, often with large message `fields` / base64 blobs
 
 ## Root causes (priority order)
 
 1. Worker-thread connections missing `PRAGMA temp_store=MEMORY` (`DatabaseProvider._configure_connection`)
 2. Conversation SELECT pulling full `content` / `fields`
-3. Memory-pressure switching to `temp_store=FILE` under Landlock
+3. Memory-pressure switching to `temp_store=FILE` under a filesystem sandbox
 4. Identity context not ready (should be 503, not 500)
 
 ## Required behavior
 
 - Default: `temp_store=MEMORY` on every new connection
-- Landlock active + memory pressure: shrink cache/mmap, **keep MEMORY temp**
-- Non-Landlock memory pressure may use FILE temp + storage-local `sqlite-tmp` TMPDIR
+- FS sandbox active (`landlock_active` or `appcontainer_active` / `fs_sandbox_active`) + memory pressure: shrink cache/mmap, **keep MEMORY temp**
+- Non-sandbox memory pressure may use FILE temp + storage-local `sqlite-tmp` TMPDIR
 - List queries: `substr(content, 1, 240)` and SQL `instr` flags for attachments
 - API: map OperationalError / unable-to-open / locked to **503** with retryable message
+
+## Windows counterpart
+
+- Module: `meshchatx/src/backend/appcontainer_sandbox.py`
+- Launcher: `meshchatx/src/backend/appcontainer_launcher.py` via `--meshchatx-run-module`
+- Electron win32 spawn uses the launcher unless `MESHCHAT_APPCONTAINER=0`
+- Docs: `meshchatx-docs/en/platform-guides/windows-sandbox.md`
 
 ## Verification
 
 ```bash
-uv run pytest tests/backend/test_sqlite_landlock_temp_store.py tests/backend/test_sqlite_memory_pressure.py tests/backend/test_landlock_sandbox.py -q
+uv run pytest tests/backend/test_sqlite_landlock_temp_store.py tests/backend/test_sqlite_memory_pressure.py tests/backend/test_landlock_sandbox.py tests/backend/test_appcontainer_sandbox.py tests/backend/test_self_check.py -q
+pnpm exec vitest run tests/frontend/i18n.test.js
+bash scripts/ci/github-verify-frozen-sandbox.sh build/exe
 ```
 
-For live stress, run Landlock in a **subprocess** (sandbox applies once per process). Expect FILE temp complex queries to fail under Landlock. MEMORY must pass.
+For live stress, run Landlock in a **subprocess** (sandbox applies once per process). Expect FILE temp complex queries to fail under Landlock. MEMORY must pass. On Windows, confirm `appcontainer_active` via `/api/v1/server/security`. Headless self-check includes `FS Sandbox Modules` and requires AppContainer status fields on `/api/v1/server/security`.
 
 ## Key files
 
 - `meshchatx/src/backend/database/provider.py`
 - `meshchatx/src/backend/database/__init__.py`
 - `meshchatx/src/backend/memory_pressure.py`
-- `meshchatx/src/backend/message_handler.py`
 - `meshchatx/src/backend/landlock_sandbox.py`
+- `meshchatx/src/backend/appcontainer_sandbox.py`
+- `meshchatx/src/backend/appcontainer_launcher.py`
 - `meshchatx/src/backend/seccomp_sandbox.py` (syscall denylist after Landlock)
 - `meshchatx/meshchat.py` (conversations/notifications error mapping)

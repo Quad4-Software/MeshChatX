@@ -65,6 +65,11 @@ def test_check_temp_filesystem_ok():
     assert self_check.check_temp_filesystem()["status"] == "ok"
 
 
+def test_check_fs_sandbox_ok():
+    result = self_check.check_fs_sandbox()
+    assert result["status"] == "ok", result.get("reason")
+
+
 def test_check_public_assets_ok(tmp_path):
     (tmp_path / "index.html").write_text("<html></html>", encoding="utf-8")
 

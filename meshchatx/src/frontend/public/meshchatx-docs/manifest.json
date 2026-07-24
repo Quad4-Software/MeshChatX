@@ -108,6 +108,11 @@
                     "path": "en/platform-guides/linux-sandbox.md",
                     "lang": "en",
                     "title": { "en": "Linux sandboxing" }
+                },
+                {
+                    "path": "en/platform-guides/windows-sandbox.md",
+                    "lang": "en",
+                    "title": { "en": "Windows AppContainer sandbox" }
                 }
             ]
         }
