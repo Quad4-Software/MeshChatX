@@ -107,7 +107,7 @@ One source tree produces:
 
 - Development runs via `uv run python -m meshchatx.meshchat`
 - Python wheels with bundled `public/` assets
-- Container images (Dockerfile and hardened variants)
+- Container images (Alpine Dockerfile with standard/extra VARIANT, plus hardened Chainguard)
 - Electron builds for Windows, macOS, and Linux
 - Android APK via Chaquopy
 

@@ -76,6 +76,7 @@ Notes:
 
 - **Docker Hub:** `quad4io/meshchatx`
 - **GHCR:** `ghcr.io/quad4-software/meshchatx`
+- **Variants:** default tags (for example `:latest`) are the standard Alpine image. Use `-hardened` for the Chainguard/Wolfi image, or `-extra` for Alpine plus **i2pd** and **yggdrasil** (for example `:latest-extra`, built from the same `Dockerfile` with `VARIANT=extra`).
 
 ```bash
 docker compose up -d

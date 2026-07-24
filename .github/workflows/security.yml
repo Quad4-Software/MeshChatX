@@ -72,7 +72,11 @@ jobs:
               run: sh scripts/ci/trivy-fs-scan.sh
 
             - name: Trivy Dockerfile misconfiguration
-              run: trivy config --exit-code 1 Dockerfile
+              run: |
+                  set -euo pipefail
+                  for f in Dockerfile Dockerfile.hardened; do
+                    trivy config --exit-code 1 "$f"
+                  done
 
     frontend:
         name: Build frontend artifact (CodeQL)

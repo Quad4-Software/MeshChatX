@@ -26,7 +26,7 @@ MeshChatX can be installed in several ways. All release artifacts that ship the 
 | Android APK      | Yes               | Phones, tablets, Meta Quest sideload     |
 | From source      | Built locally     | Development and custom builds            |
 
-Release images are published to Docker Hub (`quad4io/meshchatx`) and GHCR (`ghcr.io/quad4-software/meshchatx`).
+Release images are published to Docker Hub (`quad4io/meshchatx`) and GHCR (`ghcr.io/quad4-software/meshchatx`). Tag suffixes: none for the standard Alpine image, `-hardened` for Chainguard/Wolfi, `-extra` for Alpine plus i2pd and yggdrasil (`VARIANT=extra` on the same Dockerfile).
 
 ## Docker
 

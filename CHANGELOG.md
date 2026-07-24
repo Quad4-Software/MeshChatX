@@ -36,6 +36,8 @@ All notable changes to this project will be documented in this file.
 - LXST telephony half-duplex mode, live duplex switching, push-to-talk (packetizer squelch), and richer in-call stats (rates plus mute state on the active call)
 - Optional Linux seccomp-BPF syscall denylist (libseccomp) alongside Landlock, with auto-detect and MESHCHAT_SECCOMP fallback
 - Bundled [RNS-over-HTTP](https://github.com/Quad4-Software/RNS-over-HTTP) HTTPInterface with Interfaces page client/server setup, auto-install into the Reticulum interface path, and httpx support (Android includes httpx with HTTP/2 as pure-Python wheels)
+- Docker **extra** image variant (`-extra` suffix): same Alpine Dockerfile with `VARIANT=extra` (adds **i2pd** and **yggdrasil**), built and published beside standard and hardened
+- Docker Alpine/hardened recipes moved into `scripts/docker/*.sh` so Dockerfiles stay thin (shared frontend, venv, overlay, and runtime setup)
 
 ### Changed
 

@@ -247,6 +247,7 @@ export default {
 </script>
 
 <style scoped>
+@reference "../style.css";
 .tutorial-privacy {
     @apply space-y-4;
 }

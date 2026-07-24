@@ -57,6 +57,7 @@ export default {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .setting-toggle {
     @apply relative flex flex-row-reverse items-start gap-3 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 px-3 py-3;
 }
