@@ -61,9 +61,7 @@ describe("Capabilities.detectCapabilities", () => {
         });
         const caps = detectCapabilities({ env });
         expect(caps.transports[TRANSPORT_BLUETOOTH].available).toBe(false);
-        expect(caps.transports[TRANSPORT_BLUETOOTH].reason).toBe(
-            "android_bluetooth_permission_required"
-        );
+        expect(caps.transports[TRANSPORT_BLUETOOTH].reason).toBe("android_bluetooth_permission_required");
     });
 
     it("reports bluetooth available when navigator.bluetooth is present", () => {

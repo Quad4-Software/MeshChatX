@@ -45,7 +45,9 @@ def test_ensure_codec2_prefers_java_load_library():
     android_codec2.reset_codec2_preload_state_for_tests()
     with (
         patch.object(android_codec2, "_is_chaquopy_android", return_value=True),
-        patch.object(android_codec2, "_java_system_load_library", return_value=True) as java_load,
+        patch.object(
+            android_codec2, "_java_system_load_library", return_value=True
+        ) as java_load,
         patch.object(android_codec2, "_cdll_load") as cdll,
     ):
         assert android_codec2.ensure_codec2_native_library() is True
