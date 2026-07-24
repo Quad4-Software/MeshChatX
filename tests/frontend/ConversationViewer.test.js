@@ -1114,6 +1114,44 @@ describe("ConversationViewer.vue", () => {
         expect(addedItem.is_outbound).toBe(true);
     });
 
+    it("absorb response then created event do not double-insert the same outbound hash", async () => {
+        const wrapper = mountConversationViewer();
+        await flushPromises();
+        const lxmfMessage = {
+            hash: "same-outbound-hash",
+            source_hash: "my-hash",
+            destination_hash: "test-hash",
+            content: "once",
+            state: "sent",
+            method: "opportunistic",
+            timestamp: 1700000000,
+            fields: {},
+        };
+        wrapper.vm._absorbOutboundSendResponse({ pendingHash: "pending-x", destinationHash: "test-hash" }, lxmfMessage);
+        wrapper.vm.onLxmfMessageCreated(lxmfMessage);
+        const matches = wrapper.vm.chatItems.filter((i) => i.lxmf_message?.hash === "same-outbound-hash");
+        expect(matches).toHaveLength(1);
+    });
+
+    it("created event then absorb response still keep a single outbound bubble", async () => {
+        const wrapper = mountConversationViewer();
+        await flushPromises();
+        const lxmfMessage = {
+            hash: "same-outbound-hash-2",
+            source_hash: "my-hash",
+            destination_hash: "test-hash",
+            content: "once",
+            state: "sent",
+            method: "opportunistic",
+            timestamp: 1700000000,
+            fields: {},
+        };
+        wrapper.vm.onLxmfMessageCreated(lxmfMessage);
+        wrapper.vm._absorbOutboundSendResponse({ pendingHash: "pending-y", destinationHash: "test-hash" }, lxmfMessage);
+        const matches = wrapper.vm.chatItems.filter((i) => i.lxmf_message?.hash === "same-outbound-hash-2");
+        expect(matches).toHaveLength(1);
+    });
+
     it("preserves unknown state for incoming messages", async () => {
         const wrapper = mountConversationViewer();
 

@@ -806,6 +806,39 @@ def convert_lxmf_message_to_dict(
     return out
 
 
+def is_lxmf_outbound_progress_terminal(lxmf_message: LXMF.LXMessage) -> bool:
+    """True when MeshChat should stop polling outbound progress.
+
+    Opportunistic or direct SENT is not terminal. Without an RNS delivery proof
+    the message stays SENT while LXMF retries, and only later becomes
+    DELIVERED, FAILED, or CANCELLED. Propagated SENT means parked on a node.
+    FAILED with try_propagation_on_fail still pending is also non-terminal.
+    REJECTED is terminal (peer refused the message).
+    """
+    if lxmf_message.state == LXMF.LXMessage.DELIVERED:
+        return True
+    if lxmf_message.state == LXMF.LXMessage.REJECTED:
+        return True
+    if (
+        lxmf_message.state == LXMF.LXMessage.SENT
+        and lxmf_message.method == LXMF.LXMessage.PROPAGATED
+    ):
+        return True
+    if lxmf_message.state == LXMF.LXMessage.CANCELLED:
+        return True
+    if (
+        lxmf_message.state == LXMF.LXMessage.FAILED
+        and getattr(
+            lxmf_message,
+            "try_propagation_on_fail",
+            False,
+        )
+        is not True
+    ):
+        return True
+    return False
+
+
 def convert_lxmf_state_to_string(lxmf_message: LXMF.LXMessage):
     # convert state to string
     lxmf_message_state = "unknown"

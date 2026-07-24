@@ -64,9 +64,8 @@ describe("follow-up oracles from exploratory hunt", () => {
     });
 
     it("mapViewStateKey scopes TileCache map state by identity", async () => {
-        const { mapViewStateKey, LEGACY_MAP_STATE_KEY } = await import(
-            "../../meshchatx/src/frontend/js/mapStateKeys.js"
-        );
+        const { mapViewStateKey, LEGACY_MAP_STATE_KEY } =
+            await import("../../meshchatx/src/frontend/js/mapStateKeys.js");
         const a = "aa".repeat(16);
         const b = "bb".repeat(16);
         expect(mapViewStateKey(a)).not.toBe(mapViewStateKey(b));
