@@ -1833,6 +1833,8 @@
         "forward_open_party_is_self": "Dat is uw eigen adres.",
         "message_actions": "Berichtacties",
         "save_image_to_device": "Afbeelding opslaan op apparaat",
+        "copy_image_to_clipboard": "Afbeelding naar klembord kopiëren",
+        "image_copied_to_clipboard": "Afbeelding naar klembord gekopieerd",
         "cancel_send": "Verzending annuleren",
         "react": "Reageren",
         "reaction_you": "Jij",

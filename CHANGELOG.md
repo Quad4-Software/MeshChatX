@@ -28,6 +28,7 @@ All notable changes to this project will be documented in this file.
 - Relay Chat room keys so hosts can require a key to join a room
 - Desktop privacy: Windows screen security to omit MeshChatX from screenshots, recording, and Recall
 - Android privacy options to block screenshots and clear the clipboard when backgrounded
+- Messages: **Copy image to clipboard** on the message and full-screen image context menus
 - Remote management allow-list for identities that may query this instance with rnstatus/rnpath
 - Post-install prompts for existing users after upgrades
 - Coolify-oriented Docker Compose with resource limits for deployments
@@ -56,6 +57,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Desktop AppImage: closed stdout no longer raises a main-process **write EPIPE** dialog when MeshChatX is backgrounded. Logging uses broken-pipe guards
 - Android: lxmfy packaging, flock soft-lock, splash/logo clipping, Landlock skipped on Android
 - Android RNode BLE/USB via Chaquopy
 - Startup check and disable unsupported interfaces

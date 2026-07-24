@@ -1885,6 +1885,8 @@
         "forward_open_party_is_self": "Das ist Ihre eigene Adresse.",
         "message_actions": "Nachrichtenaktionen",
         "save_image_to_device": "Bild auf Gerät speichern",
+        "copy_image_to_clipboard": "Bild in die Zwischenablage kopieren",
+        "image_copied_to_clipboard": "Bild in die Zwischenablage kopiert",
         "cancel_send": "Senden abbrechen",
         "react": "Reagieren",
         "reaction_you": "Du",

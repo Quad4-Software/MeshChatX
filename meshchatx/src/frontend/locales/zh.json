@@ -1833,6 +1833,8 @@
         "forward_open_party_is_self": "那是您自己的地址。",
         "message_actions": "消息操作",
         "save_image_to_device": "保存图片到设备",
+        "copy_image_to_clipboard": "复制图片到剪贴板",
+        "image_copied_to_clipboard": "图片已复制到剪贴板",
         "cancel_send": "取消发送",
         "react": "反应",
         "reaction_you": "您",
