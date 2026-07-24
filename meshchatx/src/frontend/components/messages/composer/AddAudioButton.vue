@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div class="inline-flex">
+    <div class="relative inline-flex shrink-0">
         <button
             v-if="isRecordingAudioAttachment"
             type="button"
@@ -17,52 +17,50 @@
         <button
             v-else
             type="button"
-            class="my-auto inline-flex items-center justify-center rounded-lg min-h-[44px] min-w-[44px] p-1.5 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-800 dark:hover:text-zinc-100 transition-colors"
+            class="my-auto inline-flex items-center justify-center rounded-lg size-8 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-800 dark:hover:text-zinc-100 transition-colors"
             @click="showMenu"
         >
             <MaterialDesignIcon icon-name="microphone-plus" class="w-5 h-5" />
         </button>
 
-        <div class="relative block">
-            <Transition
-                enter-active-class="transition ease-out duration-100"
-                enter-from-class="transform opacity-0 scale-95"
-                enter-to-class="transform opacity-100 scale-100"
-                leave-active-class="transition ease-in duration-75"
-                leave-from-class="transform opacity-100 scale-100"
-                leave-to-class="transform opacity-0 scale-95"
+        <Transition
+            enter-active-class="transition ease-out duration-100"
+            enter-from-class="transform opacity-0 scale-95"
+            enter-to-class="transform opacity-100 scale-100"
+            leave-active-class="transition ease-in duration-75"
+            leave-from-class="transform opacity-100 scale-100"
+            leave-to-class="transform opacity-0 scale-95"
+        >
+            <div
+                v-if="isShowingMenu"
+                v-click-outside="hideMenu"
+                class="absolute bottom-full right-0 z-10 mb-2 max-w-[min(20rem,calc(100vw-1.5rem))] rounded-xl bg-white dark:bg-zinc-900 shadow-lg ring-1 ring-gray-200 dark:ring-zinc-800 focus:outline-hidden"
             >
-                <div
-                    v-if="isShowingMenu"
-                    v-click-outside="hideMenu"
-                    class="absolute bottom-full right-0 z-10 mb-2 max-w-[min(20rem,calc(100vw-1.5rem))] rounded-xl bg-white dark:bg-zinc-900 shadow-lg ring-1 ring-gray-200 dark:ring-zinc-800 focus:outline-hidden"
-                >
-                    <div class="py-1">
-                        <button
-                            type="button"
-                            class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
-                            @click="startRecordingCodec2('1200')"
-                        >
-                            Low Quality - Codec2 (1200)
-                        </button>
-                        <button
-                            type="button"
-                            class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
-                            @click="startRecordingCodec2('3200')"
-                        >
-                            Medium Quality - Codec2 (3200)
-                        </button>
-                        <button
-                            type="button"
-                            class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
-                            @click="startRecordingOpus()"
-                        >
-                            High Quality - OPUS
-                        </button>
-                    </div>
+                <div class="py-1">
+                    <button
+                        type="button"
+                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
+                        @click="startRecordingCodec2('1200')"
+                    >
+                        Low Quality - Codec2 (1200)
+                    </button>
+                    <button
+                        type="button"
+                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
+                        @click="startRecordingCodec2('3200')"
+                    >
+                        Medium Quality - Codec2 (3200)
+                    </button>
+                    <button
+                        type="button"
+                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
+                        @click="startRecordingOpus()"
+                    >
+                        High Quality - OPUS
+                    </button>
                 </div>
-            </Transition>
-        </div>
+            </div>
+        </Transition>
     </div>
 </template>
 

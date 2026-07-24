@@ -469,7 +469,7 @@
                                     ref="message-input"
                                     v-model="newMessageText"
                                     :readonly="isTranslatingMessage"
-                                    class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full min-w-0 pl-3 sm:pl-4 pr-[76px] py-2.5 resize-none shadow-xs transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
+                                    class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full min-w-0 pl-3 sm:pl-4 pr-16 py-2.5 resize-none shadow-xs transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
                                     rows="1"
                                     spellcheck="true"
                                     :placeholder="composeInputPlaceholder"
@@ -477,7 +477,7 @@
                                     @keydown.enter.shift.exact.prevent="onShiftEnterPressed"
                                     @paste="onMessagePaste"
                                 ></textarea>
-                                <div class="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                                <div class="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0">
                                     <AddAudioButton
                                         :is-recording-audio-attachment="isRecordingAudioAttachment"
                                         @start-recording="startRecordingAudioAttachment($event)"
@@ -493,7 +493,7 @@
                                     </AddAudioButton>
                                     <button
                                         type="button"
-                                        class="inline-flex items-center justify-center rounded-lg min-h-[44px] min-w-[44px] p-1.5 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-800 dark:hover:text-zinc-100 transition-colors"
+                                        class="inline-flex shrink-0 items-center justify-center rounded-lg size-8 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-800 dark:hover:text-zinc-100 transition-colors"
                                         :title="$t('stickers.picker_tooltip')"
                                         @click.stop="toggleStickerPicker"
                                     >
