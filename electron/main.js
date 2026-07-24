@@ -42,6 +42,9 @@ const {
     applyContentProtection,
     applyContentProtectionToWindows,
 } = require("./desktopPrivacySettings");
+const { installBrokenPipeGuards, safeConsoleLog } = require("./safeConsole");
+
+installBrokenPipeGuards(process);
 
 // remember main window
 var mainWindow = null;
@@ -84,7 +87,7 @@ try {
     const disableGpuFile = path.join(storageDir, "disable-gpu");
     if (fs.existsSync(disableGpuFile)) {
         app.disableHardwareAcceleration();
-        console.log("Hardware acceleration disabled via storage flag.");
+        safeConsoleLog("Hardware acceleration disabled via storage flag.");
     }
 } catch {
     // ignore errors reading storage dir this early
@@ -102,7 +105,7 @@ if (process.platform === "linux") {
 // Detect if running in Flatpak sandbox
 const isRunningInFlatpak = !!process.env.FLATPAK_ID;
 if (isRunningInFlatpak) {
-    console.log(`Running in Flatpak sandbox: ${process.env.FLATPAK_ID}`);
+    safeConsoleLog(`Running in Flatpak sandbox: ${process.env.FLATPAK_ID}`);
 }
 
 // Protocol registration
@@ -629,6 +632,26 @@ function attachDefaultContextMenu(browserWindow) {
             });
         }
 
+        if (params.mediaType === "image" || params.hasImageContents) {
+            if (template.length > 0) {
+                template.push({ type: "separator" });
+            }
+            template.push({
+                label: "Copy image",
+                click: () => {
+                    webContents.copyImageAt(params.x, params.y);
+                },
+            });
+            if (params.srcURL) {
+                template.push({
+                    label: "Copy image address",
+                    click: () => {
+                        clipboard.writeText(params.srcURL);
+                    },
+                });
+            }
+        }
+
         if (template.length === 0) {
             return;
         }
@@ -639,8 +662,8 @@ function attachDefaultContextMenu(browserWindow) {
 }
 
 function log(message) {
-    // log to stdout of this process
-    console.log(message);
+    // log to stdout of this process (AppImage may close the pipe later)
+    safeConsoleLog(message);
 
     // make sure main window exists
     if (!mainWindow) {

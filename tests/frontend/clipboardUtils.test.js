@@ -1,6 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import {
     copyTextToClipboard,
+    copyImageBlobToClipboard,
+    canUseAsyncClipboardImageWrite,
     readTextFromClipboard,
     isWindowSecureContext,
 } from "../../meshchatx/src/frontend/js/clipboardUtils.js";
@@ -77,5 +79,56 @@ describe("clipboardUtils", () => {
         Object.defineProperty(window, "isSecureContext", { configurable: true, value: false });
         expect(isWindowSecureContext()).toBe(false);
         Object.defineProperty(window, "isSecureContext", { configurable: true, value: prev });
+    });
+
+    it("copyImageBlobToClipboard writes ClipboardItem when API is available", async () => {
+        const write = vi.fn(() => Promise.resolve());
+        vi.stubGlobal("navigator", {
+            ...navigator,
+            clipboard: { write },
+        });
+        vi.stubGlobal(
+            "ClipboardItem",
+            class ClipboardItem {
+                constructor(items) {
+                    this.items = items;
+                }
+            },
+        );
+        const prev = window.isSecureContext;
+        Object.defineProperty(window, "isSecureContext", { configurable: true, value: true });
+        try {
+            expect(canUseAsyncClipboardImageWrite()).toBe(true);
+            const blob = new Blob([new Uint8Array([1, 2, 3])], { type: "image/png" });
+            const ok = await copyImageBlobToClipboard(blob);
+            expect(ok).toBe(true);
+            expect(write).toHaveBeenCalledTimes(1);
+            const arg = write.mock.calls[0][0];
+            expect(Array.isArray(arg)).toBe(true);
+            expect(arg[0]).toBeInstanceOf(ClipboardItem);
+        } finally {
+            Object.defineProperty(window, "isSecureContext", {
+                configurable: true,
+                value: prev,
+            });
+        }
+    });
+
+    it("copyImageBlobToClipboard returns false without clipboard write API", async () => {
+        vi.stubGlobal("navigator", {
+            ...navigator,
+            clipboard: { writeText: vi.fn() },
+        });
+        const prev = window.isSecureContext;
+        Object.defineProperty(window, "isSecureContext", { configurable: true, value: true });
+        try {
+            const blob = new Blob([new Uint8Array([1])], { type: "image/png" });
+            expect(await copyImageBlobToClipboard(blob)).toBe(false);
+        } finally {
+            Object.defineProperty(window, "isSecureContext", {
+                configurable: true,
+                value: prev,
+            });
+        }
     });
 });

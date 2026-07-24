@@ -28,6 +28,20 @@ export function canUseAsyncClipboardRead() {
 }
 
 /**
+ * Whether async clipboard image write is expected to work.
+ * @returns {boolean}
+ */
+export function canUseAsyncClipboardImageWrite() {
+    return (
+        typeof navigator !== "undefined" &&
+        !!navigator.clipboard &&
+        typeof navigator.clipboard.write === "function" &&
+        typeof ClipboardItem !== "undefined" &&
+        isWindowSecureContext()
+    );
+}
+
+/**
  * @param {string} text
  * @returns {Promise<boolean>}
  */
@@ -60,6 +74,94 @@ export async function copyTextToClipboard(text) {
         return ok;
     } catch {
         return false;
+    }
+}
+
+/**
+ * Copy an image Blob to the system clipboard (PNG preferred when conversion works).
+ * @param {Blob} blob
+ * @returns {Promise<boolean>}
+ */
+export async function copyImageBlobToClipboard(blob) {
+    if (!(blob instanceof Blob) || blob.size <= 0) {
+        return false;
+    }
+    if (!canUseAsyncClipboardImageWrite()) {
+        return false;
+    }
+    const type = blob.type && blob.type.startsWith("image/") ? blob.type : "image/png";
+    try {
+        await navigator.clipboard.write([new ClipboardItem({ [type]: blob })]);
+        return true;
+    } catch {
+        // Many hosts only accept image/png on the clipboard.
+    }
+    if (type === "image/png") {
+        return false;
+    }
+    try {
+        const pngBlob = await convertImageBlobToPng(blob);
+        if (!pngBlob) {
+            return false;
+        }
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": pngBlob })]);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * @param {Blob} blob
+ * @returns {Promise<Blob | null>}
+ */
+async function convertImageBlobToPng(blob) {
+    if (typeof createImageBitmap === "function") {
+        try {
+            const bitmap = await createImageBitmap(blob);
+            const canvas = document.createElement("canvas");
+            canvas.width = bitmap.width;
+            canvas.height = bitmap.height;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) {
+                bitmap.close?.();
+                return null;
+            }
+            ctx.drawImage(bitmap, 0, 0);
+            bitmap.close?.();
+            return await new Promise((resolve) => {
+                canvas.toBlob((out) => resolve(out), "image/png");
+            });
+        } catch {
+            // fall through to HTMLImageElement path
+        }
+    }
+    if (typeof Image === "undefined" || typeof URL === "undefined") {
+        return null;
+    }
+    const objectUrl = URL.createObjectURL(blob);
+    try {
+        const img = await new Promise((resolve, reject) => {
+            const el = new Image();
+            el.onload = () => resolve(el);
+            el.onerror = () => reject(new Error("image_load_failed"));
+            el.src = objectUrl;
+        });
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+            return null;
+        }
+        ctx.drawImage(img, 0, 0);
+        return await new Promise((resolve) => {
+            canvas.toBlob((out) => resolve(out), "image/png");
+        });
+    } catch {
+        return null;
+    } finally {
+        URL.revokeObjectURL(objectUrl);
     }
 }
 

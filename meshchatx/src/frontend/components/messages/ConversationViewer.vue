@@ -970,6 +970,13 @@
                 </ContextMenuItem>
                 <ContextMenuItem
                     v-if="messageContextMenu.chatItem?.lxmf_message?.fields?.image"
+                    @click="copyMessageImageToClipboard(messageContextMenu.chatItem)"
+                >
+                    <MaterialDesignIcon icon-name="content-copy" class="size-4 text-blue-500" />
+                    {{ $t("messages.copy_image_to_clipboard") }}
+                </ContextMenuItem>
+                <ContextMenuItem
+                    v-if="messageContextMenu.chatItem?.lxmf_message?.fields?.image"
                     @click="saveMessageImageToStickers(messageContextMenu.chatItem)"
                 >
                     <MaterialDesignIcon icon-name="bookmark-plus-outline" class="size-4 text-teal-500" />
@@ -1265,6 +1272,10 @@
             <ContextMenuItem @click="downloadImageModalCurrent">
                 <MaterialDesignIcon icon-name="download" class="size-4 text-blue-500" />
                 {{ $t("messages.save_image_to_device") }}
+            </ContextMenuItem>
+            <ContextMenuItem @click="copyImageModalCurrentToClipboard">
+                <MaterialDesignIcon icon-name="content-copy" class="size-4 text-blue-500" />
+                {{ $t("messages.copy_image_to_clipboard") }}
             </ContextMenuItem>
         </ContextMenuPanel>
     </Teleport>
@@ -1646,7 +1657,7 @@
 
 <script>
 import Utils from "../../js/Utils";
-import { copyTextToClipboard, readTextFromClipboard } from "../../js/clipboardUtils.js";
+import { copyTextToClipboard, copyImageBlobToClipboard, readTextFromClipboard } from "../../js/clipboardUtils.js";
 import { MESSAGE_BODY_MAX_DISPLAY_CHARS, isStringTooLargeForInlineDisplay } from "../../js/messageDisplayLimits.js";
 import {
     MAX_CODEC2_DECODED_RAW_BYTES,
@@ -4514,8 +4525,8 @@ export default {
                 return;
             }
             this.imageModalContextMenu.show = true;
-            const menuWidth = 220;
-            const menuHeight = 48;
+            const menuWidth = 240;
+            const menuHeight = 88;
             let x = event.clientX;
             let y = event.clientY;
             if (x + menuWidth > window.innerWidth) {
@@ -4532,6 +4543,13 @@ export default {
             this.imageModalContextMenu.show = false;
             if (chatItem) {
                 this.downloadMessageImage(chatItem);
+            }
+        },
+        copyImageModalCurrentToClipboard() {
+            const chatItem = this.imageModalActiveChatItem();
+            this.imageModalContextMenu.show = false;
+            if (chatItem) {
+                void this.copyMessageImageToClipboard(chatItem);
             }
         },
         imageModalNavigate(delta) {
@@ -5278,6 +5296,47 @@ export default {
                     responseType: "arraybuffer",
                 });
                 await DownloadUtils.downloadFromApiResponse(response, fileName);
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        async resolveMessageImageBlob(chatItem) {
+            const msg = chatItem?.lxmf_message;
+            const img = msg?.fields?.image;
+            if (!msg?.hash || !img) {
+                return null;
+            }
+            const rawType = String(img.image_type || "png")
+                .replace(/^image\//, "")
+                .toLowerCase();
+            const mimeExt = rawType === "jpg" ? "jpeg" : rawType || "png";
+            const mime = `image/${mimeExt}`;
+            if (img.image_bytes) {
+                const bytes = this.base64ToArrayBuffer(img.image_bytes);
+                return new Blob([bytes], { type: mime });
+            }
+            const response = await window.api.get(`/api/v1/lxmf-messages/attachment/${msg.hash}/image`, {
+                responseType: "arraybuffer",
+            });
+            const headerType = response?.headers?.["content-type"] || response?.headers?.["Content-Type"];
+            const type =
+                typeof headerType === "string" && headerType.startsWith("image/") ? headerType.split(";")[0] : mime;
+            return new Blob([response.data], { type });
+        },
+        async copyMessageImageToClipboard(chatItem) {
+            this.messageContextMenu.show = false;
+            try {
+                const blob = await this.resolveMessageImageBlob(chatItem);
+                if (!blob) {
+                    return;
+                }
+                const ok = await copyImageBlobToClipboard(blob);
+                if (!ok) {
+                    ToastUtils.error(this.$t("messages.clipboard_write_unavailable"));
+                    return;
+                }
+                ToastUtils.success(this.$t("messages.image_copied_to_clipboard"));
             } catch (e) {
                 console.error(e);
                 ToastUtils.error(this.$t("common.error"));

@@ -1833,6 +1833,8 @@
         "forward_open_party_is_self": "Esa es tu propia dirección.",
         "message_actions": "Acciones de mensajes",
         "save_image_to_device": "Guardar imagen en el dispositivo",
+        "copy_image_to_clipboard": "Copiar imagen al portapapeles",
+        "image_copied_to_clipboard": "Imagen copiada al portapapeles",
         "cancel_send": "Cancelar envío",
         "react": "Reacción",
         "reaction_you": "Tú.",

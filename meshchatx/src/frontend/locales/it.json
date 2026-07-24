@@ -1885,6 +1885,8 @@
         "forward_open_party_is_self": "Questo è il tuo stesso indirizzo.",
         "message_actions": "Azioni messaggio",
         "save_image_to_device": "Salva immagine sul dispositivo",
+        "copy_image_to_clipboard": "Copia immagine negli appunti",
+        "image_copied_to_clipboard": "Immagine copiata negli appunti",
         "cancel_send": "Annulla invio",
         "react": "Reagisci",
         "reaction_you": "Tu",
