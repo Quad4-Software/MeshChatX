@@ -66,3 +66,28 @@ def test_install_list_delete_interface_module(tmp_path):
     assert not os.path.exists(
         os.path.join(str(config_dir), "interfaces", "ExampleInterface.py")
     )
+
+
+def test_ensure_bundled_interface_modules_installs_http_interface(tmp_path):
+    from meshchatx.src.backend.interface_module_store import (
+        ensure_bundled_interface_modules,
+        resolve_bundled_interface_module_path,
+    )
+
+    source = resolve_bundled_interface_module_path("HTTPInterface.py")
+    assert source is not None
+    assert os.path.isfile(source)
+
+    config_dir = tmp_path / "reticulum"
+    config_dir.mkdir()
+    written = ensure_bundled_interface_modules(str(config_dir))
+    assert written
+    assert written[0]["type"] == "HTTPInterface"
+    target = config_dir / "interfaces" / "HTTPInterface.py"
+    assert target.is_file()
+    with open(source, "rb") as handle:
+        expected = handle.read()
+    assert target.read_bytes() == expected
+
+    again = ensure_bundled_interface_modules(str(config_dir))
+    assert again == []

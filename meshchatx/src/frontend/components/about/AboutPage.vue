@@ -25,7 +25,18 @@
                                     class="flex flex-col gap-0.5 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-3 sm:gap-y-0"
                                 >
                                     <div class="text-sm font-black uppercase tracking-[0.2em] text-blue-500 opacity-80">
-                                        {{ $t("about.version", { version: appInfo.version }) }}
+                                        {{ $t("about.version", { version: aboutDisplayVersion }) }}
+                                    </div>
+                                    <div
+                                        v-if="appInfo.git_commit_short || appInfo.git_commit"
+                                        class="text-xs font-medium normal-case tracking-normal font-mono text-gray-500 dark:text-zinc-500"
+                                        :title="appInfo.git_commit || appInfo.git_commit_short"
+                                    >
+                                        {{
+                                            $t("about.git_commit", {
+                                                commit: appInfo.git_commit_short || appInfo.git_commit,
+                                            })
+                                        }}
                                     </div>
                                     <div
                                         v-if="formattedUiBuildDate"
@@ -663,7 +674,7 @@
                                             {{ $t("about.app_name") }}
                                         </div>
                                         <div class="text-xs font-mono font-bold text-gray-400">
-                                            v{{ appInfo.version }}
+                                            v{{ aboutDisplayVersion }}
                                         </div>
                                     </div>
                                 </div>
@@ -1273,6 +1284,17 @@ export default {
     computed: {
         isElectron() {
             return ElectronUtils.isElectron();
+        },
+        aboutDisplayVersion() {
+            const info = this.appInfo || {};
+            if (info.display_version) {
+                return info.display_version;
+            }
+            const base = info.version || "unknown";
+            if (info.is_dev_build && !String(base).endsWith("-dev")) {
+                return `${base}-dev`;
+            }
+            return base;
         },
         formattedUiBuildDate() {
             try {

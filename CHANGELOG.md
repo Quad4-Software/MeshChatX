@@ -28,17 +28,21 @@ All notable changes to this project will be documented in this file.
 - Relay Chat room keys so hosts can require a key to join a room
 - Desktop privacy: Windows screen security to omit MeshChatX from screenshots, recording, and Recall
 - Android privacy options to block screenshots and clear the clipboard when backgrounded
-- Tutorial connect: **Internet + local (recommended)** adds AutoInterface and pre-selects 3 random community TCP bootstraps
+- Builds bake git commit and channel into runtime metadata for About (commit) and sidebar (dev label plus short SHA on nightly, preview, and local builds)
+- Tutorial connect: Internet + local (recommended) adds AutoInterface and pre-selects 3 random community TCP bootstraps
 - Remote management allow-list for identities that may query this instance with rnstatus/rnpath
 - Post-install prompts for existing users after upgrades
 - Coolify-oriented Docker Compose with resource limits for deployments
 - LXST telephony half-duplex mode, live duplex switching, push-to-talk (packetizer squelch), and richer in-call stats (rates plus mute state on the active call)
-- Optional Linux seccomp-BPF syscall denylist (libseccomp) alongside Landlock, with auto-detect and `MESHCHAT_SECCOMP` fallback
+- Optional Linux seccomp-BPF syscall denylist (libseccomp) alongside Landlock, with auto-detect and MESHCHAT_SECCOMP fallback
+- Bundled [RNS-over-HTTP](https://github.com/Quad4-Software/RNS-over-HTTP) HTTPInterface with Interfaces page client/server setup, auto-install into the Reticulum interface path, and httpx support (Android includes httpx with HTTP/2 as pure-Python wheels)
 
 ### Changed
 
+- Tutorial: language/theme controls no longer overlay bootstrap titles. Connection and bootstrap actions stay locked while discovery or random pick is running
+- Tutorial connect/bootstrap: recommended mode stays on the bootstrap step for next/back, Finish is only on the last step, and random-pick races no longer stick busy or mark auto-pick done without a selection
 - Tutorial privacy/security step: shorter mobile copy and toggle layout so labels and switches fit
-- Tutorial nav copy uses ASCII `->` instead of Unicode arrows
+- Auto propagation finder: require usable RNS paths and a scarce LXMF sync probe (treat **PR_COMPLETE** as success), remember verified destination hashes per identity, prefer live announces over memory ghosts, cool down failures, and avoid disruptive re-probes of a working preferred peer
 - Community interface presets refreshed from directory.rns.recipes (69 online listings)
 - Bundled Reticulum manual refetch (reticulum_docs_bundle.json timestamp)
 - Discovery map markers use dual-halo badge icons (peers, LXMF, discovered, tracking, stale) with banded cluster badges, zoom-gated labels, and cached styles for denser maps
@@ -61,7 +65,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- Desktop AppImage: main-process logs always append to storage `logs/meshchatx.log`. Stdout is only used when a TTY is attached, with broken-pipe guards as a fallback, so background launches no longer raise **write EPIPE** dialogs
+- Desktop AppImage: main-process logs always append to the storage logs folder (meshchatx.log). Stdout is only used when a terminal is attached, with broken-pipe guards as a fallback, so background launches no longer raise write EPIPE dialogs
 - Android: lxmfy packaging, flock soft-lock, splash/logo clipping, Landlock skipped on Android
 - Android RNode BLE/USB via Chaquopy
 - Startup check and disable unsupported interfaces
@@ -83,7 +87,7 @@ All notable changes to this project will be documented in this file.
 - Unread badges dismiss when navigating back to an already-open Messages or Relay Chat room
 - Startup stage logs no longer print the same stage twice
 - Ctrl+C shutdown no longer floods reentrant logging errors from RNS.exit containment
-- RN Status interface mode labels match Reticulum modes again, including Internal
+- RNStatus interface mode labels match Reticulum modes again, including Internal
 
 ## [4.7.2] - 2026-07-06
 

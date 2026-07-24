@@ -129,7 +129,24 @@ tasks.register("verifyVendorWheels") {
             "cbor2": "5.6.5",
             "cryptography": "49.0.0",
         ]
+        def purePythonVendorPrefixes = [
+            "httpx-0.28.1-",
+            "httpcore-",
+            "h2-",
+            "h11-",
+            "anyio-",
+            "hpack-",
+            "hyperframe-",
+        ]
         def wheels = vendorWheelDir.list()?.toList() ?: []
+        purePythonVendorPrefixes.each { prefix ->
+            if (!wheels.any { it.startsWith(prefix) && it.endsWith(".whl") }) {
+                throw new org.gradle.api.GradleException(
+                    "Missing ${prefix}*.whl in ${vendorWheelDir} (httpx/RNS-over-HTTP). " +
+                        "Run: bash scripts/build-android-wheels-local.sh"
+                )
+            }
+        }
         selectedAndroidAbis.each { abi ->
             def abiTag = abi.replace("-", "_")
             vendorPackages.each { pkg, ver ->
@@ -364,6 +381,9 @@ chaquopy {
             install "usbserial4a==0.4.0"
             install "ply>=3.11,<4.0"
             install "cbor2==5.6.5"
+            // Pure-python; wheels are vendored by scripts/build-android-wheels-local.sh
+            // for offline/find-links installs (HTTPInterface / RNS-over-HTTP).
+            install "httpx[http2]==0.28.1"
         }
     }
 }

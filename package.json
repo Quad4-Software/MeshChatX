@@ -19,6 +19,7 @@
         "build-docs:rns": "python3 scripts/build/fetch_reticulum_manual.py --force --via-rns",
         "build-repository-wheels": "python3 scripts/build/fetch_repository_wheels.py",
         "version:sync": "node scripts/sync_version.js",
+        "build-meta:bake": "node scripts/bake_build_meta.js",
         "build": "pnpm run version:sync && pnpm run build-frontend && pnpm run build-docs && pnpm run build-repository-wheels && pnpm run build-backend",
         "build:offline": "cross-env MESHCHATX_OFFLINE_BUILD=1 pnpm run build",
         "bundle:offline": "bash scripts/create-offline-bundle.sh",

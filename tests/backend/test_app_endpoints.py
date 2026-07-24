@@ -86,6 +86,11 @@ async def test_app_info_extended(mock_rns_minimal, temp_dir):
 
         assert "lxst_version" in data["app_info"]
         assert data["app_info"]["lxst_version"] == "1.2.3"
+        assert "display_version" in data["app_info"]
+        assert "git_commit" in data["app_info"]
+        assert "git_commit_short" in data["app_info"]
+        assert "is_dev_build" in data["app_info"]
+        assert "build_channel" in data["app_info"]
 
 
 @pytest.mark.asyncio

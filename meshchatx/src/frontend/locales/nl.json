@@ -1236,7 +1236,8 @@
         "top_cpu_consumer": "Top CPU",
         "memory_pressure_normal": "Normal",
         "path_table": "Path table",
-        "path_table_count": "{count} paths"
+        "path_table_count": "{count} paths",
+        "git_commit": "commit {commit}"
     },
     "interfaces": {
         "title": "Interfaces",
@@ -1365,7 +1366,27 @@
         "block_fast_flapping_hint": "Negeert clients die te snel verbinden en verbreken (RNS 1.4.0 BackboneInterface-standaarden).",
         "fast_flapping_block_time_label": "Blokkeertijd (minuten)",
         "fast_flapping_threshold_label": "Drempel (seconden)",
-        "fast_flapping_grace_label": "Grace-flaps"
+        "fast_flapping_grace_label": "Grace-flaps",
+        "http_tunnel_intro": "Tunnel Reticulum over HTTP POST (RNS-over-HTTP). Handig wanneer alleen webverkeer is toegestaan. De meegeleverde HTTPInterface-module wordt automatisch in uw Reticulum-interfacepath geïnstalleerd.",
+        "http_tunnel_mode_client": "Client",
+        "http_tunnel_mode_server": "Server",
+        "http_tunnel_mode_note": "Voor HTTP-tunnels betekent mode client of server (niet Reticulum full/gateway/roaming).",
+        "http_tunnel_server_url": "Server-URL",
+        "http_tunnel_server_url_required": "Server-URL is vereist voor HTTP-tunnel clientmodus.",
+        "http_tunnel_poll_interval": "Poll-interval (seconden)",
+        "http_tunnel_listen_host": "Luisterhost",
+        "http_tunnel_listen_port": "Luisterpoort",
+        "http_tunnel_listen_port_required": "Luisterpoort is vereist voor HTTP-tunnel servermodus.",
+        "http_tunnel_check_user_agent": "Bijpassende User-Agent vereisen",
+        "http_tunnel_check_user_agent_hint": "Wijs POSTs af die niet de geconfigureerde User-Agent gebruiken.",
+        "http_tunnel_http_version": "HTTP-versie",
+        "http_tunnel_http_version_hint": "HTTP/1.1 is de standaard. HTTP/2 en HTTP/3 vereisen TLS en extra Python-pakketten (hypercorn/aioquic) op de server.",
+        "http_tunnel_mtu": "MTU",
+        "http_tunnel_user_agent": "User-Agent",
+        "http_tunnel_tls_hint": "HTTP/2 en HTTP/3 vereisen https:// op de client en TLS-certificaatpaden op de server.",
+        "http_tunnel_tls_verify": "TLS-certificaten verifiëren",
+        "http_tunnel_docs_hint": "Zie het Interfaces-hoofdstuk voor algemene Reticulum-interfaceopties.",
+        "http_tunnel_docs_link": "Open de meegeleverde Reticulum-handleiding"
     },
     "map": {
         "title": "Kaart",

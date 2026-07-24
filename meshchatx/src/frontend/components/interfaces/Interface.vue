@@ -241,6 +241,8 @@ export default {
                     return "eye";
                 case "PipeInterface":
                     return "pipe";
+                case "HTTPInterface":
+                    return "web";
                 default:
                     return "server-network";
             }
@@ -248,6 +250,13 @@ export default {
         description() {
             if (this.iface.type === "TCPClientInterface") {
                 return `${this.iface.target_host}:${this.iface.target_port}`;
+            }
+            if (this.iface.type === "HTTPInterface") {
+                const tunnelMode = String(this.iface.mode || "").toLowerCase();
+                if (tunnelMode === "server") {
+                    return `HTTP ${this.iface.listen_host || "0.0.0.0"}:${this.iface.listen_port}`;
+                }
+                return this.iface.server_url || "HTTP tunnel client";
             }
             if (this.iface.type === "TCPServerInterface" || this.iface.type === "UDPInterface") {
                 return `${this.iface.listen_ip}:${this.iface.listen_port}`;

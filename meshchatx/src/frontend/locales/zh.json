@@ -1236,7 +1236,8 @@
         "top_cpu_consumer": "Top CPU",
         "memory_pressure_normal": "Normal",
         "path_table": "Path table",
-        "path_table_count": "{count} paths"
+        "path_table_count": "{count} paths",
+        "git_commit": "提交 {commit}"
     },
     "interfaces": {
         "title": "接口",
@@ -1365,7 +1366,27 @@
         "block_fast_flapping_hint": "忽略连接与断开过快的客户端（RNS 1.4.0 BackboneInterface 默认值）。",
         "fast_flapping_block_time_label": "封锁时间（分钟）",
         "fast_flapping_threshold_label": "阈值（秒）",
-        "fast_flapping_grace_label": "宽限抖动次数"
+        "fast_flapping_grace_label": "宽限抖动次数",
+        "http_tunnel_intro": "通过 HTTP POST 隧道传输 Reticulum（RNS-over-HTTP）。在仅允许 Web 流量时很有用。捆绑的 HTTPInterface 模块会自动安装到 Reticulum 的 interfacepath。",
+        "http_tunnel_mode_client": "客户端",
+        "http_tunnel_mode_server": "服务器",
+        "http_tunnel_mode_note": "对于 HTTP 隧道，mode 表示客户端或服务器（不是 Reticulum 的 full/gateway/roaming）。",
+        "http_tunnel_server_url": "服务器 URL",
+        "http_tunnel_server_url_required": "HTTP 隧道客户端模式需要服务器 URL。",
+        "http_tunnel_poll_interval": "轮询间隔（秒）",
+        "http_tunnel_listen_host": "监听主机",
+        "http_tunnel_listen_port": "监听端口",
+        "http_tunnel_listen_port_required": "HTTP 隧道服务器模式需要监听端口。",
+        "http_tunnel_check_user_agent": "要求匹配的 User-Agent",
+        "http_tunnel_check_user_agent_hint": "拒绝未使用已配置 User-Agent 字符串的 POST。",
+        "http_tunnel_http_version": "HTTP 版本",
+        "http_tunnel_http_version_hint": "默认 HTTP/1.1。HTTP/2 和 HTTP/3 需要 TLS，并在服务器上安装额外 Python 包（hypercorn/aioquic）。",
+        "http_tunnel_mtu": "MTU",
+        "http_tunnel_user_agent": "User-Agent",
+        "http_tunnel_tls_hint": "HTTP/2 和 HTTP/3 要求客户端使用 https://，服务器提供 TLS 证书路径。",
+        "http_tunnel_tls_verify": "验证 TLS 证书",
+        "http_tunnel_docs_hint": "有关常规 Reticulum 接口选项，请参阅 Interfaces 章节。",
+        "http_tunnel_docs_link": "打开捆绑的 Reticulum 手册"
     },
     "map": {
         "title": "地图",

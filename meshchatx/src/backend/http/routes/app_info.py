@@ -391,6 +391,7 @@ def register_app_info_routes(routes, app):
             {
                 "app_info": {
                     "version": app.get_app_version(),
+                    **(app.get_build_meta() if hasattr(app, "get_build_meta") else {}),
                     "lxmf_version": LXMF.__version__,
                     "rns_version": RNS.__version__,
                     "lxst_version": app.get_lxst_version(),

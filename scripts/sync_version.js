@@ -8,7 +8,8 @@
  * meshchatx/src/frontend/public/meshchatx-docs/meshchatx_on_raspberry_pi.md,
  * meshchatx/src/backend/data/licenses_backend.json (reticulum-meshchatx entry),
  * android/app/build.gradle,
- * pipx example, packaging/arch/PKGBUILD pkgver / printf fallback.
+ * pipx example, packaging/arch/PKGBUILD pkgver / printf fallback,
+ * then runs scripts/bake_build_meta.js (git commit / channel overlay).
  *
  * __version__ lives in meshchatx/__init__.py so Chaquopy/Android (which may not ship loose .py
  * data files next to bytecode) always has a resolvable version. src/version.py stays for packaging and tools.
@@ -135,3 +136,9 @@ patchFile("packaging/arch/.SRCINFO", (c) =>
 );
 
 console.log(`Synced version ${version} from package.json`);
+
+try {
+    require("./bake_build_meta.js");
+} catch (err) {
+    console.warn(`bake_build_meta skipped: ${err && err.message ? err.message : err}`);
+}

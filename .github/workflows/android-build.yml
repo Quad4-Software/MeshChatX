@@ -211,6 +211,13 @@ jobs:
                       "chaquopy_libcodec2-*-android_24_armeabi_v7a.whl"
                       "lxst-*-py3-none-any.whl"
                       "bleak-*-py3-none-any.whl"
+                      "httpx-0.28.1-py3-none-any.whl"
+                      "httpcore-*-py3-none-any.whl"
+                      "h2-*-py3-none-any.whl"
+                      "h11-*-py3-none-any.whl"
+                      "anyio-*-py3-none-any.whl"
+                      "hpack-*-py3-none-any.whl"
+                      "hyperframe-*-py3-none-any.whl"
                   )
                   missing=0
                   for pattern in "${required[@]}"; do

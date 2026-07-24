@@ -33,6 +33,8 @@ export function getDiscoveredIconName(node) {
             return "eye";
         case "PipeInterface":
             return "pipe";
+        case "HTTPInterface":
+            return "web";
         default:
             return "server-network";
     }

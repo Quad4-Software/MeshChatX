@@ -1288,7 +1288,8 @@
         "top_cpu_consumer": "Top CPU",
         "memory_pressure_normal": "Normal",
         "path_table": "Path table",
-        "path_table_count": "{count} paths"
+        "path_table_count": "{count} paths",
+        "git_commit": "Commit {commit}"
     },
     "interfaces": {
         "title": "Schnittstellen",
@@ -1417,7 +1418,27 @@
         "block_fast_flapping_hint": "Ignoriert Clients, die sich zu schnell verbinden und trennen (RNS 1.4.0 BackboneInterface-Standard).",
         "fast_flapping_block_time_label": "Sperrzeit (Minuten)",
         "fast_flapping_threshold_label": "Schwelle (Sekunden)",
-        "fast_flapping_grace_label": "Kulanz-Flaps"
+        "fast_flapping_grace_label": "Kulanz-Flaps",
+        "http_tunnel_intro": "Tunneln Sie Reticulum über HTTP-POST (RNS-over-HTTP). Nützlich, wenn nur Webverkehr erlaubt ist. Das gebündelte HTTPInterface-Modul wird automatisch in Ihren Reticulum-interfacepath installiert.",
+        "http_tunnel_mode_client": "Client",
+        "http_tunnel_mode_server": "Server",
+        "http_tunnel_mode_note": "Bei HTTP-Tunneln bedeutet Modus Client oder Server (nicht Reticulum full/gateway/roaming).",
+        "http_tunnel_server_url": "Server-URL",
+        "http_tunnel_server_url_required": "Server-URL ist für den HTTP-Tunnel-Clientmodus erforderlich.",
+        "http_tunnel_poll_interval": "Abfrageintervall (Sekunden)",
+        "http_tunnel_listen_host": "Listen-Host",
+        "http_tunnel_listen_port": "Listen-Port",
+        "http_tunnel_listen_port_required": "Listen-Port ist für den HTTP-Tunnel-Servermodus erforderlich.",
+        "http_tunnel_check_user_agent": "Passenden User-Agent verlangen",
+        "http_tunnel_check_user_agent_hint": "POST-Anfragen ohne den konfigurierten User-Agent ablehnen.",
+        "http_tunnel_http_version": "HTTP-Version",
+        "http_tunnel_http_version_hint": "HTTP/1.1 ist Standard. HTTP/2 und HTTP/3 benötigen TLS und zusätzliche Python-Pakete (hypercorn/aioquic) auf dem Server.",
+        "http_tunnel_mtu": "MTU",
+        "http_tunnel_user_agent": "User-Agent",
+        "http_tunnel_tls_hint": "HTTP/2 und HTTP/3 erfordern https:// auf dem Client und TLS-Zertifikatpfade auf dem Server.",
+        "http_tunnel_tls_verify": "TLS-Zertifikate prüfen",
+        "http_tunnel_docs_hint": "Siehe das Kapitel Interfaces für allgemeine Reticulum-Interface-Optionen.",
+        "http_tunnel_docs_link": "Gebündeltes Reticulum-Handbuch öffnen"
     },
     "map": {
         "title": "Karte",

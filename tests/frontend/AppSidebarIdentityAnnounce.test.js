@@ -179,6 +179,33 @@ describe("App.vue sidebar identity label and announce control", () => {
         expect(versionLink.attributes("title")).toBe(`v${appPackageVersion}`);
     });
 
+    it("shows -dev and short commit for nightly-style app info", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/app/info") {
+                return Promise.resolve({
+                    data: {
+                        app_info: {
+                            version: appPackageVersion,
+                            display_version: `${appPackageVersion}-dev`,
+                            is_dev_build: true,
+                            git_commit: "abcdef0123456789",
+                            git_commit_short: "abcdef0",
+                            build_channel: "nightly",
+                            tutorial_seen: true,
+                            changelog_seen_version: appPackageVersion,
+                        },
+                    },
+                });
+            }
+            return defaultAxiosImplementation(url);
+        });
+        wrapper = makeMountedApp();
+        await readyShell(wrapper.vm.$router);
+        const versionLink = wrapper.find('[data-testid="sidebar-app-version"]');
+        expect(versionLink.text()).toContain(`v${appPackageVersion}-dev`);
+        expect(versionLink.text()).toContain("abcdef0");
+    });
+
     it("falls back to My Identity when display name is empty", async () => {
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/config") {

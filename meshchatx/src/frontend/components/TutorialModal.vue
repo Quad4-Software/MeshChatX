@@ -15,22 +15,6 @@
         <v-card
             class="flex min-h-0 flex-1 flex-col bg-white dark:bg-zinc-950 border-0 overflow-hidden relative h-full max-h-dvh"
         >
-            <!-- Settings Controls -->
-            <div class="absolute top-4 left-4 z-50 flex items-center gap-1">
-                <LanguageSelector @language-change="onLanguageChange" />
-                <button
-                    type="button"
-                    class="rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-                    :title="config?.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
-                    @click="toggleTheme"
-                >
-                    <MaterialDesignIcon
-                        :icon-name="config?.theme === 'dark' ? 'brightness-6' : 'brightness-4'"
-                        class="w-5 h-5 sm:w-6 sm:h-6"
-                    />
-                </button>
-            </div>
-
             <!-- Progress Bar -->
             <div class="w-full h-1.5 bg-gray-100 dark:bg-zinc-900 overflow-hidden flex">
                 <div
@@ -45,9 +29,25 @@
                 ></div>
             </div>
 
+            <!-- Language / theme (in-flow so titles are not covered) -->
+            <div class="shrink-0 flex items-center justify-end gap-1 px-3 py-1.5 sm:px-4">
+                <LanguageSelector @language-change="onLanguageChange" />
+                <button
+                    type="button"
+                    class="rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                    :title="config?.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+                    @click="toggleTheme"
+                >
+                    <MaterialDesignIcon
+                        :icon-name="config?.theme === 'dark' ? 'brightness-6' : 'brightness-4'"
+                        class="w-5 h-5 sm:w-6 sm:h-6"
+                    />
+                </button>
+            </div>
+
             <!-- Content Area -->
             <v-card-text
-                class="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 sm:px-6 md:px-12 md:py-10"
+                class="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-6 md:px-12 md:py-10"
             >
                 <transition name="fade-slide" mode="out-in">
                     <!-- Step 1: Welcome -->
@@ -388,16 +388,19 @@
                             </p>
                         </div>
 
-                        <div class="grid grid-cols-1 gap-4">
+                        <div
+                            class="grid grid-cols-1 gap-4"
+                            :class="{ 'pointer-events-none opacity-70': connectionSetupBusy }"
+                        >
                             <button
                                 type="button"
-                                class="text-left flex items-start gap-4 p-5 rounded-2xl bg-indigo-500/5 dark:bg-indigo-500/10 border-2 transition-all"
+                                class="text-left flex items-start gap-4 p-5 rounded-2xl bg-indigo-500/5 dark:bg-indigo-500/10 border-2 transition-all disabled:cursor-not-allowed"
                                 :class="[
                                     connectionMode === 'recommended'
                                         ? 'border-indigo-500 ring-2 ring-indigo-500/30'
                                         : 'border-indigo-500/20 hover:border-indigo-500',
                                 ]"
-                                :disabled="addingRecommended || savingDiscovery || addingLocal || reloadingReticulum"
+                                :disabled="connectionSetupBusy"
                                 @click="useRecommendedMode"
                             >
                                 <v-icon icon="mdi-access-point-network" color="indigo" size="40"></v-icon>
@@ -419,13 +422,13 @@
 
                             <button
                                 type="button"
-                                class="text-left flex items-start gap-4 p-5 rounded-2xl bg-blue-500/5 dark:bg-blue-500/10 border-2 transition-all"
+                                class="text-left flex items-start gap-4 p-5 rounded-2xl bg-blue-500/5 dark:bg-blue-500/10 border-2 transition-all disabled:cursor-not-allowed"
                                 :class="[
                                     connectionMode === 'discovery'
                                         ? 'border-blue-500 ring-2 ring-blue-500/30'
                                         : 'border-blue-500/20 hover:border-blue-500',
                                 ]"
-                                :disabled="savingDiscovery || addingRecommended"
+                                :disabled="connectionSetupBusy"
                                 @click="useDiscoveryMode"
                             >
                                 <v-icon icon="mdi-radar" color="blue" size="40"></v-icon>
@@ -447,13 +450,13 @@
 
                             <button
                                 type="button"
-                                class="text-left flex items-start gap-4 p-5 rounded-2xl bg-emerald-500/5 dark:bg-emerald-500/10 border-2 transition-all"
+                                class="text-left flex items-start gap-4 p-5 rounded-2xl bg-emerald-500/5 dark:bg-emerald-500/10 border-2 transition-all disabled:cursor-not-allowed"
                                 :class="[
                                     connectionMode === 'local'
                                         ? 'border-emerald-500 ring-2 ring-emerald-500/30'
                                         : 'border-emerald-500/20 hover:border-emerald-500',
                                 ]"
-                                :disabled="addingLocal || addingRecommended || reloadingReticulum"
+                                :disabled="connectionSetupBusy"
                                 @click="useLocalMode"
                             >
                                 <v-icon icon="mdi-lan" color="emerald" size="40"></v-icon>
@@ -475,12 +478,13 @@
 
                             <button
                                 type="button"
-                                class="text-left flex items-start gap-4 p-5 rounded-2xl bg-gray-100/50 dark:bg-zinc-800/40 border-2 transition-all"
+                                class="text-left flex items-start gap-4 p-5 rounded-2xl bg-gray-100/50 dark:bg-zinc-800/40 border-2 transition-all disabled:cursor-not-allowed"
                                 :class="[
                                     connectionMode === 'manual'
                                         ? 'border-gray-500 ring-2 ring-gray-500/30'
                                         : 'border-gray-300 dark:border-zinc-700 hover:border-gray-500',
                                 ]"
+                                :disabled="connectionSetupBusy"
                                 @click="useManualMode"
                             >
                                 <v-icon icon="mdi-cog-outline" color="gray" size="40"></v-icon>
@@ -513,7 +517,7 @@
                                 <button
                                     type="button"
                                     class="inline-flex items-center gap-2 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-500/15 dark:text-blue-300 dark:hover:bg-blue-500/20 disabled:opacity-60"
-                                    :disabled="loadingInterfaces || loadingDiscovered || pickingRandomBootstraps"
+                                    :disabled="bootstrapPickBusy"
                                     @click="pickRandomTcpBootstraps"
                                 >
                                     <v-progress-circular
@@ -774,6 +778,7 @@
                                     <button
                                         type="button"
                                         class="tutorial-action-btn tutorial-action-btn-secondary"
+                                        :disabled="bootstrapActionBusy"
                                         @click="skipBootstraps"
                                     >
                                         {{ $t("tutorial.bootstrap_skip") }}
@@ -781,13 +786,11 @@
                                     <button
                                         type="button"
                                         class="tutorial-action-btn tutorial-action-btn-success"
-                                        :disabled="
-                                            addingBootstraps || reloadingReticulum || selectedBootstrapCount === 0
-                                        "
+                                        :disabled="bootstrapActionBusy || selectedBootstrapCount === 0"
                                         @click="confirmBootstraps"
                                     >
                                         <v-progress-circular
-                                            v-if="addingBootstraps || reloadingReticulum"
+                                            v-if="bootstrapActionBusy"
                                             indeterminate
                                             size="14"
                                             width="2"
@@ -1111,6 +1114,7 @@
                     v-if="currentStep > 1 && currentStep < totalSteps"
                     type="button"
                     class="tutorial-action-btn tutorial-action-btn-secondary"
+                    :disabled="tutorialNavBusy"
                     @click="previousStep"
                 >
                     {{ $t("tutorial.back") }}
@@ -1122,6 +1126,7 @@
                         v-if="currentStep < totalSteps"
                         type="button"
                         class="tutorial-action-btn tutorial-action-btn-secondary"
+                        :disabled="tutorialNavBusy"
                         @click="skipTutorial"
                     >
                         {{ $t("tutorial.skip") }}
@@ -1132,7 +1137,7 @@
                         type="button"
                         class="tutorial-action-btn tutorial-action-btn-primary"
                         :disabled="
-                            (currentStep === 2 && identityImportInProgress) ||
+                            tutorialNavBusy ||
                             (currentStep === 2 && identityMode === 'import' && !hasIdentityImportInput)
                         "
                         @click="handlePrimaryAction"
@@ -1141,10 +1146,10 @@
                     </button>
 
                     <button
-                        v-else
+                        v-else-if="currentStep === totalSteps"
                         type="button"
                         class="tutorial-action-btn tutorial-action-btn-success"
-                        :disabled="finishingTutorial"
+                        :disabled="finishingTutorial || tutorialNavBusy"
                         @click="finishTutorial"
                     >
                         {{ $t("tutorial.finish_setup") }}
@@ -1155,22 +1160,6 @@
     </v-dialog>
 
     <div v-else class="flex flex-col h-full bg-white dark:bg-zinc-950 overflow-hidden relative">
-        <!-- Settings Controls -->
-        <div class="absolute top-4 left-4 z-50 flex items-center gap-1">
-            <LanguageSelector @language-change="onLanguageChange" />
-            <button
-                type="button"
-                class="rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-                :title="config?.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
-                @click="toggleTheme"
-            >
-                <MaterialDesignIcon
-                    :icon-name="config?.theme === 'dark' ? 'brightness-6' : 'brightness-4'"
-                    class="w-5 h-5 sm:w-6 sm:h-6"
-                />
-            </button>
-        </div>
-
         <!-- Progress Bar -->
         <div class="w-full h-1.5 bg-gray-100 dark:bg-zinc-900 overflow-hidden flex">
             <div
@@ -1185,7 +1174,23 @@
             ></div>
         </div>
 
-        <div class="flex-1 overflow-y-auto px-6 md:px-12 py-10">
+        <!-- Language / theme (in-flow so titles are not covered) -->
+        <div class="shrink-0 flex items-center justify-end gap-1 px-3 py-1.5 sm:px-4">
+            <LanguageSelector @language-change="onLanguageChange" />
+            <button
+                type="button"
+                class="rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                :title="config?.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+                @click="toggleTheme"
+            >
+                <MaterialDesignIcon
+                    :icon-name="config?.theme === 'dark' ? 'brightness-6' : 'brightness-4'"
+                    class="w-5 h-5 sm:w-6 sm:h-6"
+                />
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto px-6 md:px-12 py-6 md:py-10">
             <div class="w-full h-full flex flex-col justify-between">
                 <transition name="fade-slide" mode="out-in">
                     <!-- Step 1: Welcome -->
@@ -1536,16 +1541,19 @@
                             </p>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+                        <div
+                            class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto"
+                            :class="{ 'pointer-events-none opacity-70': connectionSetupBusy }"
+                        >
                             <button
                                 type="button"
-                                class="text-left flex flex-col gap-4 p-8 rounded-3xl bg-indigo-500/5 dark:bg-indigo-500/10 border-2 transition-all hover:scale-[1.02]"
+                                class="text-left flex flex-col gap-4 p-8 rounded-3xl bg-indigo-500/5 dark:bg-indigo-500/10 border-2 transition-all hover:scale-[1.02] disabled:cursor-not-allowed disabled:hover:scale-100"
                                 :class="[
                                     connectionMode === 'recommended'
                                         ? 'border-indigo-500 ring-2 ring-indigo-500/30'
                                         : 'border-indigo-500/20 hover:border-indigo-500',
                                 ]"
-                                :disabled="addingRecommended || savingDiscovery || addingLocal || reloadingReticulum"
+                                :disabled="connectionSetupBusy"
                                 @click="useRecommendedMode"
                             >
                                 <v-icon icon="mdi-access-point-network" color="indigo" size="56"></v-icon>
@@ -1565,13 +1573,13 @@
 
                             <button
                                 type="button"
-                                class="text-left flex flex-col gap-4 p-8 rounded-3xl bg-blue-500/5 dark:bg-blue-500/10 border-2 transition-all hover:scale-[1.02]"
+                                class="text-left flex flex-col gap-4 p-8 rounded-3xl bg-blue-500/5 dark:bg-blue-500/10 border-2 transition-all hover:scale-[1.02] disabled:cursor-not-allowed disabled:hover:scale-100"
                                 :class="[
                                     connectionMode === 'discovery'
                                         ? 'border-blue-500 ring-2 ring-blue-500/30'
                                         : 'border-blue-500/20 hover:border-blue-500',
                                 ]"
-                                :disabled="savingDiscovery || addingRecommended"
+                                :disabled="connectionSetupBusy"
                                 @click="useDiscoveryMode"
                             >
                                 <v-icon icon="mdi-radar" color="blue" size="56"></v-icon>
@@ -1591,13 +1599,13 @@
 
                             <button
                                 type="button"
-                                class="text-left flex flex-col gap-4 p-8 rounded-3xl bg-emerald-500/5 dark:bg-emerald-500/10 border-2 transition-all hover:scale-[1.02]"
+                                class="text-left flex flex-col gap-4 p-8 rounded-3xl bg-emerald-500/5 dark:bg-emerald-500/10 border-2 transition-all hover:scale-[1.02] disabled:cursor-not-allowed disabled:hover:scale-100"
                                 :class="[
                                     connectionMode === 'local'
                                         ? 'border-emerald-500 ring-2 ring-emerald-500/30'
                                         : 'border-emerald-500/20 hover:border-emerald-500',
                                 ]"
-                                :disabled="addingLocal || addingRecommended || reloadingReticulum"
+                                :disabled="connectionSetupBusy"
                                 @click="useLocalMode"
                             >
                                 <v-icon icon="mdi-lan" color="emerald" size="56"></v-icon>
@@ -1617,12 +1625,13 @@
 
                             <button
                                 type="button"
-                                class="text-left flex flex-col gap-4 p-8 rounded-3xl bg-gray-100/50 dark:bg-zinc-800/40 border-2 transition-all hover:scale-[1.02]"
+                                class="text-left flex flex-col gap-4 p-8 rounded-3xl bg-gray-100/50 dark:bg-zinc-800/40 border-2 transition-all hover:scale-[1.02] disabled:cursor-not-allowed disabled:hover:scale-100"
                                 :class="[
                                     connectionMode === 'manual'
                                         ? 'border-gray-500 ring-2 ring-gray-500/30'
                                         : 'border-gray-300 dark:border-zinc-700 hover:border-gray-500',
                                 ]"
+                                :disabled="connectionSetupBusy"
                                 @click="useManualMode"
                             >
                                 <v-icon icon="mdi-cog-outline" color="gray" size="56"></v-icon>
@@ -1653,7 +1662,7 @@
                                 <button
                                     type="button"
                                     class="inline-flex items-center gap-2 rounded-xl border-2 border-blue-500/30 bg-blue-500/10 px-5 py-2.5 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-500/15 dark:text-blue-300 dark:hover:bg-blue-500/20 disabled:opacity-60"
-                                    :disabled="loadingInterfaces || loadingDiscovered || pickingRandomBootstraps"
+                                    :disabled="bootstrapPickBusy"
                                     @click="pickRandomTcpBootstraps"
                                 >
                                     <v-progress-circular
@@ -1922,6 +1931,7 @@
                                 <button
                                     type="button"
                                     class="tutorial-action-btn tutorial-action-btn-secondary"
+                                    :disabled="bootstrapActionBusy"
                                     @click="skipBootstraps"
                                 >
                                     {{ $t("tutorial.bootstrap_skip") }}
@@ -1929,11 +1939,11 @@
                                 <button
                                     type="button"
                                     class="tutorial-action-btn tutorial-action-btn-success"
-                                    :disabled="addingBootstraps || reloadingReticulum || selectedBootstrapCount === 0"
+                                    :disabled="bootstrapActionBusy || selectedBootstrapCount === 0"
                                     @click="confirmBootstraps"
                                 >
                                     <v-progress-circular
-                                        v-if="addingBootstraps || reloadingReticulum"
+                                        v-if="bootstrapActionBusy"
                                         indeterminate
                                         size="16"
                                         width="2"
@@ -2300,6 +2310,7 @@
                         v-if="currentStep > 1 && currentStep < totalSteps"
                         type="button"
                         class="tutorial-action-btn tutorial-action-btn-secondary"
+                        :disabled="tutorialNavBusy"
                         @click="previousStep"
                     >
                         {{ $t("tutorial.back") }}
@@ -2311,6 +2322,7 @@
                             v-if="currentStep < totalSteps"
                             type="button"
                             class="tutorial-action-btn tutorial-action-btn-secondary"
+                            :disabled="tutorialNavBusy"
                             @click="skipTutorial"
                         >
                             {{ $t("tutorial.skip_setup") }}
@@ -2321,7 +2333,7 @@
                             type="button"
                             class="tutorial-action-btn tutorial-action-btn-primary"
                             :disabled="
-                                (currentStep === 2 && identityImportInProgress) ||
+                                tutorialNavBusy ||
                                 (currentStep === 2 && identityMode === 'import' && !hasIdentityImportInput)
                             "
                             @click="handlePrimaryAction"
@@ -2330,10 +2342,10 @@
                         </button>
 
                         <button
-                            v-else
+                            v-else-if="currentStep === totalSteps"
                             type="button"
                             class="tutorial-action-btn tutorial-action-btn-success"
-                            :disabled="finishingTutorial"
+                            :disabled="finishingTutorial || tutorialNavBusy"
                             @click="finishTutorial"
                         >
                             {{ $t("tutorial.finish_setup") }}
@@ -2489,6 +2501,24 @@ export default {
                 return false;
             }
             return this.currentStep < this.totalSteps;
+        },
+        connectionSetupBusy() {
+            return this.addingRecommended || this.savingDiscovery || this.addingLocal || this.reloadingReticulum;
+        },
+        bootstrapPickBusy() {
+            return this.pickingRandomBootstraps || this.loadingInterfaces || this.loadingDiscovered;
+        },
+        bootstrapActionBusy() {
+            return this.pickingRandomBootstraps || this.addingBootstraps || this.reloadingReticulum;
+        },
+        tutorialNavBusy() {
+            return (
+                this.connectionSetupBusy ||
+                this.bootstrapActionBusy ||
+                this.savingPropagation ||
+                this.finishingTutorial ||
+                this.identityImportInProgress
+            );
         },
     },
     watch: {
@@ -2841,7 +2871,7 @@ export default {
             }
         },
         async useRecommendedMode() {
-            if (this.addingRecommended) {
+            if (this.connectionSetupBusy) {
                 return;
             }
             this.addingRecommended = true;
@@ -2851,7 +2881,6 @@ export default {
                     type: "AutoInterface",
                     enabled: true,
                 });
-                this.interfaceAddedViaTutorial = true;
                 GlobalState.hasPendingInterfaceChanges = true;
                 GlobalState.modifiedInterfaceNames.add("Local Network");
 
@@ -2874,6 +2903,7 @@ export default {
                 await this.loadDiscoveredInterfaces();
                 await this.pickRandomTcpBootstraps({ silent: true, auto: true, count: 3 });
                 this.bootstrapAutoPickDone = true;
+                this.interfaceAddedViaTutorial = true;
             } catch (e) {
                 console.error("Failed to apply recommended connection mode:", e);
                 ToastUtils.error(
@@ -2886,6 +2916,9 @@ export default {
             }
         },
         async useDiscoveryMode() {
+            if (this.connectionSetupBusy) {
+                return;
+            }
             this.savingDiscovery = true;
             try {
                 const payload = {
@@ -2901,6 +2934,7 @@ export default {
                 this.bootstrapListSearch = "";
                 this.bootstrapDiscoveredSectionOpen = true;
                 this.bootstrapCommunitySectionOpen = true;
+                this.bootstrapAutoPickDone = false;
                 await this.loadCommunityInterfaces();
                 await this.loadDiscoveredInterfaces();
                 await this.maybeAutoPickBootstrapTcp();
@@ -2912,7 +2946,9 @@ export default {
             }
         },
         async useLocalMode() {
-            if (this.addingLocal) return;
+            if (this.connectionSetupBusy) {
+                return;
+            }
             this.addingLocal = true;
             try {
                 await window.api.post("/api/v1/reticulum/interfaces/add", {
@@ -2938,6 +2974,9 @@ export default {
             }
         },
         useManualMode() {
+            if (this.connectionSetupBusy) {
+                return;
+            }
             this.connectionMode = "manual";
             this.currentStep = 5;
         },
@@ -2945,6 +2984,9 @@ export default {
             return this.selectedBootstrapKeys.includes(key);
         },
         toggleBootstrap(key) {
+            if (this.bootstrapActionBusy) {
+                return;
+            }
             const idx = this.selectedBootstrapKeys.indexOf(key);
             if (idx >= 0) {
                 this.selectedBootstrapKeys.splice(idx, 1);
@@ -3067,17 +3109,12 @@ export default {
         async pickRandomTcpBootstraps(options = {}) {
             const silent = options.silent === true;
             const auto = options.auto === true;
-            if (!silent && !auto) {
-                this.pickingRandomBootstraps = true;
+            if (this.pickingRandomBootstraps) {
+                return;
             }
+            this.pickingRandomBootstraps = true;
+            // Yield once so the busy spinner can paint before selection work.
             await Promise.resolve();
-            await new Promise((resolve) => {
-                if (typeof requestAnimationFrame !== "undefined") {
-                    requestAnimationFrame(() => resolve());
-                } else {
-                    setTimeout(resolve, 0);
-                }
-            });
             try {
                 let entries = this.pickEligibleCommunityTcpBootstrapForRandom();
                 entries = this.dedupeBootstrapEntries(entries);
@@ -3101,9 +3138,7 @@ export default {
                     );
                 }
             } finally {
-                if (!silent && !auto) {
-                    this.pickingRandomBootstraps = false;
-                }
+                this.pickingRandomBootstraps = false;
             }
         },
         async maybeAutoPickBootstrapTcp() {
@@ -3116,12 +3151,17 @@ export default {
             if (this.selectedBootstrapKeys.length > 0) {
                 return;
             }
+            if (this.pickingRandomBootstraps) {
+                return;
+            }
             const entries = this.dedupeBootstrapEntries(this.pickEligibleCommunityTcpBootstrapForRandom());
             if (entries.length === 0) {
                 return;
             }
             await this.pickRandomTcpBootstraps({ silent: true, auto: true });
-            this.bootstrapAutoPickDone = true;
+            if (this.selectedBootstrapKeys.length > 0) {
+                this.bootstrapAutoPickDone = true;
+            }
         },
         buildBootstrapPayload(item) {
             if (item.kind === "discovered") {
@@ -3182,7 +3222,9 @@ export default {
             }
         },
         async confirmBootstraps() {
-            if (this.addingBootstraps) return;
+            if (this.bootstrapActionBusy) {
+                return;
+            }
             if (this.selectedBootstrapKeys.length === 0) {
                 ToastUtils.warning(this.$t("tutorial.bootstrap_pick_at_least_one"));
                 return;
@@ -3228,6 +3270,9 @@ export default {
             }
         },
         skipBootstraps() {
+            if (this.bootstrapActionBusy) {
+                return;
+            }
             this.currentStep = 5;
         },
         async enableAutoPropagation() {
@@ -3348,7 +3393,7 @@ export default {
                     ToastUtils.warning(this.$t("tutorial.connect_mode_required"));
                     return;
                 }
-                if (this.connectionMode !== "discovery") {
+                if (this.connectionMode !== "discovery" && this.connectionMode !== "recommended") {
                     this.currentStep = 5;
                     return;
                 }
@@ -3365,14 +3410,24 @@ export default {
             }
         },
         previousStep() {
+            if (this.tutorialNavBusy) {
+                return;
+            }
             if (this.currentStep <= 1) return;
-            if (this.currentStep === 5 && this.connectionMode !== "discovery") {
+            if (
+                this.currentStep === 5 &&
+                this.connectionMode !== "discovery" &&
+                this.connectionMode !== "recommended"
+            ) {
                 this.currentStep = 3;
                 return;
             }
             this.currentStep--;
         },
         async skipTutorial() {
+            if (this.tutorialNavBusy) {
+                return;
+            }
             if (!(await DialogUtils.confirm(this.$t("tutorial.skip_confirm")))) {
                 return;
             }
@@ -3434,7 +3489,7 @@ export default {
             }
         },
         async finishTutorial() {
-            if (this.finishingTutorial) {
+            if (this.finishingTutorial || this.tutorialNavBusy) {
                 return;
             }
             this.finishingTutorial = true;

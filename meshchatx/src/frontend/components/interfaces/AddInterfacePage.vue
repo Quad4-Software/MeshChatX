@@ -120,6 +120,12 @@
                                                         icon: 'auto-fix',
                                                         color: 'text-pink-500',
                                                     },
+                                                    {
+                                                        id: 'HTTPInterface',
+                                                        name: 'HTTP Tunnel',
+                                                        icon: 'web',
+                                                        color: 'text-teal-500',
+                                                    },
                                                 ]"
                                                 :key="type.id"
                                                 type="button"
@@ -1333,6 +1339,192 @@
                                             </div>
                                         </div>
 
+                                        <!-- HTTP tunnel (bundled RNS-over-HTTP) -->
+                                        <div v-if="newInterfaceType === 'HTTPInterface'" class="space-y-4">
+                                            <p class="text-xs text-gray-600 dark:text-zinc-400 leading-relaxed">
+                                                {{ $t("interfaces.http_tunnel_intro") }}
+                                            </p>
+                                            <div class="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    class="flex-1 py-2 rounded-2xl border text-xs font-bold uppercase tracking-tight transition"
+                                                    :class="
+                                                        newInterfaceHttpTunnelMode === 'client'
+                                                            ? 'bg-teal-500/10 border-teal-500 text-teal-700 dark:text-teal-300'
+                                                            : 'bg-gray-50/50 dark:bg-zinc-800/30 border-gray-100 dark:border-zinc-800 text-gray-600 dark:text-zinc-400'
+                                                    "
+                                                    @click="newInterfaceHttpTunnelMode = 'client'"
+                                                >
+                                                    {{ $t("interfaces.http_tunnel_mode_client") }}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    class="flex-1 py-2 rounded-2xl border text-xs font-bold uppercase tracking-tight transition"
+                                                    :class="
+                                                        newInterfaceHttpTunnelMode === 'server'
+                                                            ? 'bg-teal-500/10 border-teal-500 text-teal-700 dark:text-teal-300'
+                                                            : 'bg-gray-50/50 dark:bg-zinc-800/30 border-gray-100 dark:border-zinc-800 text-gray-600 dark:text-zinc-400'
+                                                    "
+                                                    @click="newInterfaceHttpTunnelMode = 'server'"
+                                                >
+                                                    {{ $t("interfaces.http_tunnel_mode_server") }}
+                                                </button>
+                                            </div>
+                                            <div v-if="newInterfaceHttpTunnelMode === 'client'" class="space-y-4">
+                                                <div>
+                                                    <FormLabel class="glass-label">{{
+                                                        $t("interfaces.http_tunnel_server_url")
+                                                    }}</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceHttpServerUrl"
+                                                        type="url"
+                                                        placeholder="https://example.com:8080/"
+                                                        class="input-field"
+                                                        autocomplete="off"
+                                                        spellcheck="false"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">{{
+                                                        $t("interfaces.http_tunnel_poll_interval")
+                                                    }}</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceHttpPollInterval"
+                                                        type="number"
+                                                        min="0.01"
+                                                        step="0.01"
+                                                        placeholder="0.1"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div v-else class="space-y-4">
+                                                <div class="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <FormLabel class="glass-label">{{
+                                                            $t("interfaces.http_tunnel_listen_host")
+                                                        }}</FormLabel>
+                                                        <input
+                                                            v-model="newInterfaceHttpListenHost"
+                                                            type="text"
+                                                            placeholder="0.0.0.0"
+                                                            class="input-field"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <FormLabel class="glass-label">{{
+                                                            $t("interfaces.http_tunnel_listen_port")
+                                                        }}</FormLabel>
+                                                        <input
+                                                            v-model="newInterfaceHttpListenPort"
+                                                            type="number"
+                                                            min="1"
+                                                            max="65535"
+                                                            placeholder="8080"
+                                                            class="input-field"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center justify-between gap-4">
+                                                    <div class="min-w-0">
+                                                        <FormLabel class="glass-label mb-0!">{{
+                                                            $t("interfaces.http_tunnel_check_user_agent")
+                                                        }}</FormLabel>
+                                                        <p class="text-xs text-gray-400 mt-1">
+                                                            {{ $t("interfaces.http_tunnel_check_user_agent_hint") }}
+                                                        </p>
+                                                    </div>
+                                                    <Toggle v-model="newInterfaceHttpCheckUserAgent" />
+                                                </div>
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <FormLabel class="glass-label">{{
+                                                        $t("interfaces.http_tunnel_http_version")
+                                                    }}</FormLabel>
+                                                    <select v-model="newInterfaceHttpVersion" class="input-field">
+                                                        <option :value="1">HTTP/1.1</option>
+                                                        <option :value="2">HTTP/2</option>
+                                                        <option :value="3">HTTP/3</option>
+                                                    </select>
+                                                    <p class="mt-1 text-xs text-gray-500 dark:text-zinc-400">
+                                                        {{ $t("interfaces.http_tunnel_http_version_hint") }}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">{{
+                                                        $t("interfaces.http_tunnel_mtu")
+                                                    }}</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceHttpMtu"
+                                                        type="number"
+                                                        min="128"
+                                                        placeholder="4096"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <FormLabel class="glass-label">{{
+                                                    $t("interfaces.http_tunnel_user_agent")
+                                                }}</FormLabel>
+                                                <input
+                                                    v-model="newInterfaceHttpUserAgent"
+                                                    type="text"
+                                                    placeholder="RNS-HTTP-Tunnel/1.0"
+                                                    class="input-field"
+                                                    autocomplete="off"
+                                                    spellcheck="false"
+                                                />
+                                            </div>
+                                            <div
+                                                v-if="newInterfaceHttpVersion >= 2"
+                                                class="space-y-4 rounded-2xl border border-gray-100 dark:border-zinc-800 p-3"
+                                            >
+                                                <p class="text-xs text-gray-500 dark:text-zinc-400">
+                                                    {{ $t("interfaces.http_tunnel_tls_hint") }}
+                                                </p>
+                                                <div
+                                                    v-if="newInterfaceHttpTunnelMode === 'server'"
+                                                    class="grid grid-cols-1 gap-3"
+                                                >
+                                                    <div>
+                                                        <FormLabel class="glass-label">tls_certfile</FormLabel>
+                                                        <input
+                                                            v-model="newInterfaceHttpTlsCertfile"
+                                                            type="text"
+                                                            class="input-field font-mono text-xs"
+                                                            autocomplete="off"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <FormLabel class="glass-label">tls_keyfile</FormLabel>
+                                                        <input
+                                                            v-model="newInterfaceHttpTlsKeyfile"
+                                                            type="text"
+                                                            class="input-field font-mono text-xs"
+                                                            autocomplete="off"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    v-if="newInterfaceHttpTunnelMode === 'client'"
+                                                    class="flex items-center justify-between gap-4"
+                                                >
+                                                    <FormLabel class="glass-label mb-0!">{{
+                                                        $t("interfaces.http_tunnel_tls_verify")
+                                                    }}</FormLabel>
+                                                    <Toggle v-model="newInterfaceHttpTlsVerify" />
+                                                </div>
+                                            </div>
+                                            <BundledDocsHint
+                                                hint-i18n-key="interfaces.http_tunnel_docs_hint"
+                                                link-i18n-key="interfaces.http_tunnel_docs_link"
+                                                :docs-rel-path="docsReticulumInterfacesOverview"
+                                                paragraph-class="text-xs text-gray-500 dark:text-gray-400"
+                                            />
+                                        </div>
+
                                         <!-- LocalInterface: IPC path used internally by RNS. Optional external module -->
                                         <div v-if="newInterfaceType === 'LocalInterface'" class="space-y-4">
                                             <div class="text-sm text-gray-800 dark:text-zinc-200 leading-snug">
@@ -1594,7 +1786,7 @@
                                     <template #content>
                                         <div class="p-6 space-y-6">
                                             <div class="grid grid-cols-2 gap-4">
-                                                <div>
+                                                <div v-if="newInterfaceType !== 'HTTPInterface'">
                                                     <FormLabel class="glass-label">Interface Mode</FormLabel>
                                                     <select v-model="sharedInterfaceSettings.mode" class="input-field">
                                                         <option :value="undefined">
@@ -1617,6 +1809,11 @@
                                                             {{ $t("interfaces.mode_internal") }}
                                                         </option>
                                                     </select>
+                                                </div>
+                                                <div v-else class="col-span-2">
+                                                    <p class="text-xs text-gray-500 dark:text-zinc-400">
+                                                        {{ $t("interfaces.http_tunnel_mode_note") }}
+                                                    </p>
                                                 </div>
                                                 <div>
                                                     <FormLabel class="glass-label">Forced Bitrate</FormLabel>
@@ -1990,6 +2187,18 @@ export default {
             newInterfaceFastFlappingBlockTime: 720,
             newInterfaceFastFlappingThreshold: 20,
             newInterfaceFastFlappingGrace: 5,
+            newInterfaceHttpTunnelMode: "client",
+            newInterfaceHttpServerUrl: null,
+            newInterfaceHttpPollInterval: 0.1,
+            newInterfaceHttpListenHost: "0.0.0.0",
+            newInterfaceHttpListenPort: 8080,
+            newInterfaceHttpMtu: 4096,
+            newInterfaceHttpVersion: 1,
+            newInterfaceHttpUserAgent: "RNS-HTTP-Tunnel/1.0",
+            newInterfaceHttpCheckUserAgent: true,
+            newInterfaceHttpTlsVerify: true,
+            newInterfaceHttpTlsCertfile: null,
+            newInterfaceHttpTlsKeyfile: null,
             reticulumInstance: {
                 share_instance: true,
                 local_hops_delta: false,
@@ -2615,6 +2824,30 @@ export default {
                 this.newInterfaceDataPort = iface.data_port ?? null;
                 this.newInterfaceConfiguredBitrate = iface.configured_bitrate ?? null;
 
+                if (iface.type === "HTTPInterface") {
+                    const tunnelMode = String(iface.mode || "client").toLowerCase();
+                    this.newInterfaceHttpTunnelMode = tunnelMode === "server" ? "server" : "client";
+                    this.newInterfaceHttpServerUrl = iface.server_url ?? null;
+                    this.newInterfaceHttpPollInterval =
+                        iface.poll_interval != null && iface.poll_interval !== "" ? Number(iface.poll_interval) : 0.1;
+                    this.newInterfaceHttpListenHost = iface.listen_host ?? "0.0.0.0";
+                    this.newInterfaceHttpListenPort = iface.listen_port ?? 8080;
+                    this.newInterfaceHttpMtu = iface.mtu != null && iface.mtu !== "" ? Number(iface.mtu) : 4096;
+                    this.newInterfaceHttpVersion =
+                        iface.http_version != null && iface.http_version !== "" ? Number(iface.http_version) : 1;
+                    this.newInterfaceHttpUserAgent = iface.user_agent ?? "RNS-HTTP-Tunnel/1.0";
+                    this.newInterfaceHttpCheckUserAgent =
+                        iface.check_user_agent === undefined || iface.check_user_agent === null
+                            ? true
+                            : this.parseBool(iface.check_user_agent);
+                    this.newInterfaceHttpTlsVerify =
+                        iface.tls_verify === undefined || iface.tls_verify === null
+                            ? true
+                            : this.parseBool(iface.tls_verify);
+                    this.newInterfaceHttpTlsCertfile = iface.tls_certfile ?? null;
+                    this.newInterfaceHttpTlsKeyfile = iface.tls_keyfile ?? null;
+                }
+
                 this.newInterfaceFlowControl = this.parseBool(iface.flow_control);
                 this.newInterfaceCallsign = iface.callsign ?? null;
                 this.newInterfaceIDCallsign = iface.id_callsign ?? null;
@@ -2649,7 +2882,7 @@ export default {
                 this.newInterfaceCodingRate = iface.codingrate;
                 this.newInterfaceCommand = iface.command;
                 this.newInterfaceRespawnDelay = iface.respawn_delay;
-                this.sharedInterfaceSettings.mode = iface.mode;
+                this.sharedInterfaceSettings.mode = iface.type === "HTTPInterface" ? null : iface.mode;
                 this.sharedInterfaceSettings.bitrate = iface.bitrate;
                 this.sharedInterfaceSettings.network_name = iface.network_name;
                 this.sharedInterfaceSettings.passphrase = iface.passphrase;
@@ -3180,6 +3413,18 @@ export default {
                     }
                 }
 
+                if (this.newInterfaceType === "HTTPInterface") {
+                    if (this.newInterfaceHttpTunnelMode === "client") {
+                        if (!(this.newInterfaceHttpServerUrl || "").trim()) {
+                            ToastUtils.error(this.$t("interfaces.http_tunnel_server_url_required"));
+                            return;
+                        }
+                    } else if (this.newInterfaceHttpListenPort == null || this.newInterfaceHttpListenPort === "") {
+                        ToastUtils.error(this.$t("interfaces.http_tunnel_listen_port_required"));
+                        return;
+                    }
+                }
+
                 if (this.newInterfaceType === "__external__") {
                     const typeStr = (this.customExternalTypeName || "").trim();
                     if (!typeStr) {
@@ -3264,7 +3509,9 @@ export default {
                           : this.newInterfaceListenIp,
                     listen_port: isBackboneListener
                         ? this.newInterfaceBackboneListenPort || null
-                        : this.newInterfaceListenPort,
+                        : this.newInterfaceType === "HTTPInterface" && this.newInterfaceHttpTunnelMode === "server"
+                          ? this.newInterfaceHttpListenPort
+                          : this.newInterfaceListenPort,
                     forward_ip: this.newInterfaceForwardIp,
                     forward_port: this.newInterfaceForwardPort,
                     device: isBackboneListener
@@ -3327,6 +3574,39 @@ export default {
                     configured_bitrate: this.numOrNull(this.newInterfaceConfiguredBitrate),
                     command: this.newInterfaceCommand,
                     respawn_delay: this.newInterfaceRespawnDelay,
+                    server_url:
+                        this.newInterfaceType === "HTTPInterface" && this.newInterfaceHttpTunnelMode === "client"
+                            ? (this.newInterfaceHttpServerUrl || "").trim() || null
+                            : null,
+                    poll_interval:
+                        this.newInterfaceType === "HTTPInterface" && this.newInterfaceHttpTunnelMode === "client"
+                            ? this.numOrNull(this.newInterfaceHttpPollInterval)
+                            : null,
+                    listen_host:
+                        this.newInterfaceType === "HTTPInterface" && this.newInterfaceHttpTunnelMode === "server"
+                            ? (this.newInterfaceHttpListenHost || "").trim() || "0.0.0.0"
+                            : null,
+                    mtu: this.newInterfaceType === "HTTPInterface" ? this.numOrNull(this.newInterfaceHttpMtu) : null,
+                    http_version:
+                        this.newInterfaceType === "HTTPInterface" ? this.numOrNull(this.newInterfaceHttpVersion) : null,
+                    user_agent:
+                        this.newInterfaceType === "HTTPInterface"
+                            ? (this.newInterfaceHttpUserAgent || "").trim() || null
+                            : null,
+                    check_user_agent:
+                        this.newInterfaceType === "HTTPInterface" && this.newInterfaceHttpTunnelMode === "server"
+                            ? this.newInterfaceHttpCheckUserAgent === true
+                            : null,
+                    tls_verify:
+                        this.newInterfaceType === "HTTPInterface" ? this.newInterfaceHttpTlsVerify === true : null,
+                    tls_certfile:
+                        this.newInterfaceType === "HTTPInterface"
+                            ? (this.newInterfaceHttpTlsCertfile || "").trim() || null
+                            : null,
+                    tls_keyfile:
+                        this.newInterfaceType === "HTTPInterface"
+                            ? (this.newInterfaceHttpTlsKeyfile || "").trim() || null
+                            : null,
                     discoverable: discoveryEnabled ? "yes" : null,
                     discovery_name: discoveryEnabled ? this.discovery.discovery_name : null,
                     announce_interval: discoveryEnabled
@@ -3345,7 +3625,10 @@ export default {
                     discovery_frequency: discoveryEnabled ? this.numOrNull(this.discovery.discovery_frequency) : null,
                     discovery_bandwidth: discoveryEnabled ? this.numOrNull(this.discovery.discovery_bandwidth) : null,
                     discovery_modulation: discoveryEnabled ? this.numOrNull(this.discovery.discovery_modulation) : null,
-                    mode: this.sharedInterfaceSettings.mode || null,
+                    mode:
+                        this.newInterfaceType === "HTTPInterface"
+                            ? this.newInterfaceHttpTunnelMode || "client"
+                            : this.sharedInterfaceSettings.mode || null,
                     recursive_prs: this.sharedInterfaceSettings.recursive_prs === true,
                     announces_from_internal: this.sharedInterfaceSettings.announces_from_internal !== false,
                     bitrate: this.sharedInterfaceSettings.bitrate,
@@ -3437,6 +3720,7 @@ export default {
                 "PipeInterface",
                 "AutoInterface",
                 "LocalInterface",
+                "HTTPInterface",
             ]);
             return builtin.has(t);
         },
