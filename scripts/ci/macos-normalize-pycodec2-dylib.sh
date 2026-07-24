@@ -2,7 +2,7 @@
 # Normalize the installed pycodec2 package's bundled libcodec2 into a fixed,
 # arch-independent relative layout:
 #
-#   pycodec2/pycodec2*.so       (extension module; @loader_path/libcodec2.dylib)
+#   pycodec2/pycodec2*.so       (extension module, @loader_path/libcodec2.dylib)
 #   pycodec2/libcodec2.dylib    (single canonical name, no .dylibs/ subfolder)
 #
 # Published macOS wheels bundle libcodec2 under pycodec2/.dylibs/libcodec2.<ver>.dylib

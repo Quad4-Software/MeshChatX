@@ -2,7 +2,7 @@
 # Smoke tests for verify-package-contents.sh (no full freeze required).
 set -euo pipefail
 
-ROOT="$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)"
+ROOT="$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)"
 SCRIPT="$ROOT/scripts/ci/verify-package-contents.sh"
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/pkg-bloat-test.XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT INT

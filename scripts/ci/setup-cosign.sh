@@ -3,6 +3,7 @@
 # Usage: setup-cosign.sh [version]
 set -eu
 
+# shellcheck source=priv.sh disable=SC1091
 . "$(dirname "$0")/priv.sh"
 
 COSIGN_VERSION="${1:-3.0.6}"

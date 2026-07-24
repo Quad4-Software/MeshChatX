@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Install locked Python deps for the darwin-x64 cx_Freeze slice on Apple Silicon CI.
-# The arm64 slice uses uv sync into .venv; this script mirrors that with .venv-x64 so
+# The arm64 slice uses uv sync into .venv. This script mirrors that with .venv-x64 so
 # NumPy/LXST native wheels match the lockfile instead of unpinned pip -e . resolution.
 set -euo pipefail
 
@@ -66,7 +66,7 @@ if [[ -z "$_NUMPY_VERSION" || -z "$_PYCODEC2_VERSION" ]]; then
     exit 1
 fi
 
-# Host is arm64; without --python-platform uv still resolves macOS wheels for aarch64.
+# Host is arm64. Without --python-platform uv still resolves macOS wheels for aarch64.
 # pycodec2 has no cp314 macOS x86_64 wheel, so uv would build it from sdist and pull
 # numpy into an isolated cross build (meson: "Can not run test applications").
 uv sync --frozen --group dev \
@@ -90,7 +90,7 @@ uv pip install --python "$_PY" \
 # native extension is installed as x86_64-only, so the arm64-loaded interpreter
 # fails to dlopen it ("incompatible architecture"). Building the wheel ourselves
 # lets us force x86_64 on the one interpreter invocation that runs native code
-# (via `arch -x86_64`), then hand uv a finished wheel to install, which is a
+# (via arch -x86_64), then hand uv a finished wheel to install, which is a
 # plain file copy where uv's own architecture no longer matters.
 _lock_sdist_url() {
     awk -v pkg="$1" '
@@ -128,8 +128,8 @@ uv pip install --python "$_PY" \
     --python-platform x86_64-apple-darwin \
     "$_pycodec2_wheel"
 
-# Cython/wheel are build-time-only tools for the pycodec2 sdist compile above;
-# the finished wheel's .so no longer needs them at runtime. uv.lock does not
+# Cython/wheel are build-time-only tools for the pycodec2 sdist compile above.
+# The finished wheel's .so no longer needs them at runtime. uv.lock does not
 # pin either, so leaving them installed would make this venv's site-packages
 # diverge from .venv's (arm64, which never builds pycodec2 from source and
 # never needs them) -- cx_Freeze's module finder bundles whatever is actually

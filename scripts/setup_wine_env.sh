@@ -29,7 +29,7 @@ echo "Downloading Windows Python and Git..."
 wget -q "$PYTHON_URL"
 wget -q "$GIT_URL"
 
-chmod +x *.exe
+chmod +x ./*.exe
 
 echo "Initializing Wine prefix in $WINEPREFIX..."
 wine_wrap wine wineboot --init

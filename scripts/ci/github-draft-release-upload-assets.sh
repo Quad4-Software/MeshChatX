@@ -48,7 +48,6 @@ skip_noise() {
         library.zip | library.zip.cosign.bundle) return 0 ;;
         *__library.zip | *__library.zip.cosign.bundle) return 0 ;;
         *.so.yml | *.so.yml.cosign.bundle) return 0 ;;
-        *__*.so.yml | *__*.so.yml.cosign.bundle) return 0 ;;
     esac
     return 1
 }
@@ -118,7 +117,7 @@ mapfile -t files < <(find "$STAGE" -type f)
     for f in "${files[@]}"; do
         b=$(basename "$f")
         hash=$(sha256sum "$f" | awk '{print $1}')
-        printf '| %s | `%s` |\n' "$b" "$hash"
+        printf "| %s | \`%s\` |\n" "$b" "$hash"
     done
     echo
     echo "## Verification"

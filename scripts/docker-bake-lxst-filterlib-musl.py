@@ -3,13 +3,13 @@
 
 """Alpine/musl Docker: copy cffi-built filter shared library to LXST.filterlib name.
 
-LXST ships glibc-tagged filterlib*.so wheels; musl ignores them and cffi
+LXST ships glibc-tagged filterlib*.so wheels. On musl, those are ignored and cffi
 verify() drops the musl artifact under LXST/__pycache__/_cffi__*.so.
 Without this step, a fresh process cannot resolve LXST.filterlib for
 ffi.dlopen() and would try to compile again at runtime (no gcc).
 
 The cffi artifact is a plain shared library (loaded via dlopen), not a Python
-extension module (no PyInit_filterlib); do not import LXST.filterlib.
+extension module (no PyInit_filterlib). Do not import LXST.filterlib.
 """
 
 from __future__ import annotations

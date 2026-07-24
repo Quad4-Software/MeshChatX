@@ -5,8 +5,8 @@
 #   1. Every file must exist in BOTH trees (no unique-to-one-arch files).
 #   2. Every non-Mach-O file must be byte-identical across trees.
 #
-# Python bytecode (.pyc inside library.zip) is architecture-independent;
-# only timestamps and zip metadata cause SHA differences.
+# Python bytecode (.pyc inside library.zip) is architecture-independent.
+# Only timestamps and zip metadata cause SHA differences.
 
 set -euo pipefail
 
@@ -82,14 +82,14 @@ while IFS= read -r -d '' rel; do
             unified=$((unified + 1))
             continue
         fi
-        # cx_Freeze bundles pure-Python modules into lib/library.zip; native
+        # cx_Freeze bundles pure-Python modules into lib/library.zip. Native
         # extensions are always written to the filesystem separately (they
         # can't be dlopen'd from inside a zip), so this archive's *contents*
         # are pure CPython bytecode just like loose .pyc files. Its raw bytes
         # almost always differ across two independent builds (each entry's
         # own PEP 552 header + the zip's own per-entry timestamps), so only
         # trust a blind copy once we've confirmed both slices bundled the
-        # same set of modules; a differing member list would mean the two
+        # same set of modules. A differing member list would mean the two
         # Python environments actually resolved different dependencies.
         if [[ "$(basename "$rel")" == "library.zip" ]]; then
             # Exclude *.dist-info provenance files that record *how* a package

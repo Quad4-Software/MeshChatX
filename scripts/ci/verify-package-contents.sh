@@ -15,7 +15,7 @@
 #   PACKAGE_BLOAT_MAX_HITS   stop after N hits (default 40)
 set -euo pipefail
 
-ROOT="$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)"
+ROOT="$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)"
 MODE="${1:-}"
 TARGET="${2:-}"
 MAX_HITS="${PACKAGE_BLOAT_MAX_HITS:-40}"
@@ -113,7 +113,7 @@ scan_directory_tree() {
 	deny_re="$2"
 	# Process substitution keeps scan_path_list in this shell (hits accumulate).
 	scan_path_list "$deny_re" < <(
-		CDPATH= cd -- "$root" || exit 1
+		CDPATH='' cd -- "$root" || exit 1
 		find . -print 2>/dev/null | sed 's|^\./||'
 	)
 }
@@ -149,7 +149,7 @@ scan_dir() {
 scan_wheel() {
 	whl="${TARGET:-}"
 	if [ -z "$whl" ]; then
-		whl="$(ls -1 "$ROOT"/python-dist/*.whl 2>/dev/null | head -n 1 || true)"
+		whl="$(find "$ROOT/python-dist" -maxdepth 1 -type f -name '*.whl' -print 2>/dev/null | head -n 1 || true)"
 	fi
 	[ -n "$whl" ] && [ -f "$whl" ] || {
 		echo "verify-package-contents.sh: wheel not found" >&2
@@ -193,7 +193,7 @@ scan_appimage() {
 	echo "verify-package-contents.sh: extracting AppImage $ai"
 	chmod +x "$ai" || true
 	(
-		CDPATH= cd -- "$tmp"
+		CDPATH='' cd -- "$tmp"
 		"$ai" --appimage-extract >/dev/null
 	)
 	scan_directory_tree "$tmp/squashfs-root" "$FROZEN_DENY_RE"

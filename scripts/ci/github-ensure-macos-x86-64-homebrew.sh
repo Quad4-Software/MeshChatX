@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Ensure an x86_64 (Rosetta) Homebrew exists at /usr/local/bin/brew.
-# GitHub-hosted Apple Silicon runners ship /opt/homebrew only; cx_Freeze universal
+# GitHub-hosted Apple Silicon runners ship /opt/homebrew only. cx_Freeze universal
 # x64 slices need x86_64 libraries from /usr/local (see codec2, libyaml steps).
 set -euo pipefail
 

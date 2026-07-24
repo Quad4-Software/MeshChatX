@@ -13,7 +13,7 @@
 #   RNS_TREE_VERIFY_STRICT  if 1, fail the process on verify errors
 set -eu
 
-ROOT="$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)"
+ROOT="$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
 STRICT="${RNS_TREE_VERIFY_STRICT:-0}"

@@ -3,5 +3,6 @@
 # Usage: sh scripts/ci/exec-priv.sh apt-get update
 set -eu
 
+# shellcheck source=priv.sh disable=SC1091
 . "$(dirname "$0")/priv.sh"
 run_priv "$@"
