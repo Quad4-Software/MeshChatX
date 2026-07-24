@@ -712,7 +712,11 @@ class RNSHManager:
 
         Returns the realpath on success, or None when the path escapes the jail.
         """
-        if not isinstance(user_path, str) or not user_path.strip() or "\x00" in user_path:
+        if (
+            not isinstance(user_path, str)
+            or not user_path.strip()
+            or "\x00" in user_path
+        ):
             return None
         expanded = os.path.expanduser(user_path.strip())
         if not os.path.isabs(expanded):

@@ -2456,10 +2456,7 @@ export default {
             const urlTrimmed = typeof url === "string" ? url.trim() : "";
             const normalizedLxmf = Utils.normalizeMeshchatHashHex(urlTrimmed);
             const lxmfLower = urlTrimmed.toLowerCase();
-            if (
-                normalizedLxmf.length === 32 &&
-                (lxmfLower.startsWith("lxmf@") || lxmfLower.startsWith("lxmf://"))
-            ) {
+            if (normalizedLxmf.length === 32 && (lxmfLower.startsWith("lxmf@") || lxmfLower.startsWith("lxmf://"))) {
                 const destinationHash = normalizedLxmf;
                 const routeName = this.isPopoutMode ? "messages-popout" : "messages";
                 await this.$router.push({
