@@ -828,3 +828,78 @@ async def test_backbone_listener_fast_flapping_options(temp_dir):
         assert saved["fast_flapping_block_time"] == 60
         assert saved["fast_flapping_threshold"] == 15
         assert saved["fast_flapping_grace"] == 3
+
+
+@pytest.mark.asyncio
+async def test_http_interface_client_persists_tunnel_options(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "HttpClient",
+            "type": "HTTPInterface",
+            "mode": "client",
+            "server_url": "https://example.com:8080/",
+            "poll_interval": 0.2,
+            "mtu": 2048,
+            "http_version": 1,
+            "user_agent": "RNS-HTTP-Tunnel/1.0",
+            "tls_verify": True,
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 200, body
+        saved = config["interfaces"]["HttpClient"]
+        assert saved["type"] == "HTTPInterface"
+        assert saved["mode"] == "client"
+        assert saved["server_url"] == "https://example.com:8080/"
+        assert saved["poll_interval"] == 0.2
+        assert saved["mtu"] == 2048
+        assert saved["http_version"] == 1
+        assert saved["user_agent"] == "RNS-HTTP-Tunnel/1.0"
+        assert "listen_port" not in saved
+
+
+@pytest.mark.asyncio
+async def test_http_interface_server_persists_listen_options(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+    free_port = _free_port("tcp")
+
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "HttpServer",
+            "type": "HTTPInterface",
+            "mode": "server",
+            "listen_host": "127.0.0.1",
+            "listen_port": free_port,
+            "check_user_agent": True,
+            "mtu": 4096,
+            "http_version": 1,
+            "user_agent": "RNS-HTTP-Tunnel/1.0",
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 200, body
+        saved = config["interfaces"]["HttpServer"]
+        assert saved["mode"] == "server"
+        assert saved["listen_host"] == "127.0.0.1"
+        assert saved["listen_port"] == free_port
+        assert saved["check_user_agent"] is True
+        assert "server_url" not in saved
+
+
+@pytest.mark.asyncio
+async def test_http_interface_rejects_reticulum_mode_values(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "HttpBad",
+            "type": "HTTPInterface",
+            "mode": "gateway",
+            "server_url": "https://example.com/",
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 422, body
+        assert "client or server" in body["message"]

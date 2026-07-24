@@ -15,3 +15,13 @@ rns_filesync/
   Declared version (pyproject): see vendor/rns_filesync/pyproject.toml
   Update: clone default branch, replace vendor/rns_filesync (omit .git), align vendor/README
   commit above, regenerate THIRD_PARTY_NOTICES if needed.
+
+rns_over_http/
+  Upstream: https://github.com/Quad4-Software/RNS-over-HTTP
+  Bundled revision: 530aca499fb7442910f691629670f6f9f4b67221
+  Declared version (pyproject): see vendor/rns_over_http/pyproject.toml
+  Update: clone default branch, replace vendor/rns_over_http (omit .git), copy
+  HTTPInterface.py and LICENSE into meshchatx/src/backend/data/interfaces/
+  (as HTTPInterface.py and HTTPInterface.LICENSE), align vendor/README commit above,
+  regenerate THIRD_PARTY_NOTICES if needed.
+  Runtime: MeshChatX installs HTTPInterface.py into Reticulum interfacepath on startup.

@@ -180,10 +180,19 @@ describe("behavior contracts: Android Chaquopy Python sync", () => {
         expect(gradle).toMatch(/syncMeshchatPython/);
         expect(gradle).toMatch(/syncLxmfyPython/);
         expect(gradle).toMatch(/syncRnsFilesyncPython/);
+        expect(gradle).toContain("httpx[http2]==0.28.1");
+        expect(gradle).toContain("httpx-0.28.1-");
+        const wheelScript = readSource("scripts/build-android-wheels-local.sh");
+        expect(wheelScript).toContain("httpx[http2]");
+        expect(wheelScript).toContain("HTTPX_VERSION");
         const lxmfyInit = readSource("vendor/lxmfy/lxmfy/__init__.py");
         expect(lxmfyInit.length).toBeGreaterThan(0);
         const filesyncInit = readSource("vendor/rns_filesync/rns_filesync/__init__.py");
         expect(filesyncInit.length).toBeGreaterThan(0);
+        const httpIface = readSource("vendor/rns_over_http/HTTPInterface.py");
+        expect(httpIface).toContain("interface_class");
+        const packagedHttp = readSource("meshchatx/src/backend/data/interfaces/HTTPInterface.py");
+        expect(packagedHttp).toContain("interface_class");
     });
 
     it("Android wrapper clears stale storage lock before main()", () => {

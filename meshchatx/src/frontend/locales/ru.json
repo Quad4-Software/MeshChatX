@@ -1288,7 +1288,8 @@
         "top_cpu_consumer": "Top CPU",
         "memory_pressure_normal": "Normal",
         "path_table": "Path table",
-        "path_table_count": "{count} paths"
+        "path_table_count": "{count} paths",
+        "git_commit": "коммит {commit}"
     },
     "interfaces": {
         "title": "Интерфейсы",
@@ -1417,7 +1418,27 @@
         "block_fast_flapping_hint": "Игнорирует клиентов, которые слишком быстро подключаются и отключаются (стандарты BackboneInterface RNS 1.4.0).",
         "fast_flapping_block_time_label": "Время блокировки (минуты)",
         "fast_flapping_threshold_label": "Порог (секунды)",
-        "fast_flapping_grace_label": "Льготные flaps"
+        "fast_flapping_grace_label": "Льготные flaps",
+        "http_tunnel_intro": "Туннелируйте Reticulum через HTTP POST (RNS-over-HTTP). Полезно, когда разрешён только веб-трафик. Встроенный модуль HTTPInterface автоматически устанавливается в interfacepath Reticulum.",
+        "http_tunnel_mode_client": "Клиент",
+        "http_tunnel_mode_server": "Сервер",
+        "http_tunnel_mode_note": "Для HTTP-туннелей mode означает client или server (не full/gateway/roaming Reticulum).",
+        "http_tunnel_server_url": "URL сервера",
+        "http_tunnel_server_url_required": "URL сервера обязателен для клиентского режима HTTP-туннеля.",
+        "http_tunnel_poll_interval": "Интервал опроса (секунды)",
+        "http_tunnel_listen_host": "Адрес прослушивания",
+        "http_tunnel_listen_port": "Порт прослушивания",
+        "http_tunnel_listen_port_required": "Порт прослушивания обязателен для серверного режима HTTP-туннеля.",
+        "http_tunnel_check_user_agent": "Требовать совпадающий User-Agent",
+        "http_tunnel_check_user_agent_hint": "Отклонять POST без настроенной строки User-Agent.",
+        "http_tunnel_http_version": "Версия HTTP",
+        "http_tunnel_http_version_hint": "HTTP/1.1 по умолчанию. HTTP/2 и HTTP/3 требуют TLS и доп. пакеты Python (hypercorn/aioquic) на сервере.",
+        "http_tunnel_mtu": "MTU",
+        "http_tunnel_user_agent": "User-Agent",
+        "http_tunnel_tls_hint": "HTTP/2 и HTTP/3 требуют https:// на клиенте и пути TLS-сертификатов на сервере.",
+        "http_tunnel_tls_verify": "Проверять TLS-сертификаты",
+        "http_tunnel_docs_hint": "См. главу Interfaces для общих параметров интерфейсов Reticulum.",
+        "http_tunnel_docs_link": "Открыть встроенное руководство Reticulum"
     },
     "map": {
         "title": "Карта",

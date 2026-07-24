@@ -24,6 +24,7 @@ The **Add interface** flow includes:
 | KISSInterface         | KISS TNC devices                              |
 | I2PInterface          | I2P-based Reticulum transport                 |
 | AutoInterface         | Automatic discovery on local networks         |
+| HTTPInterface         | HTTP/S tunnel (bundled RNS-over-HTTP)         |
 | Custom external types | Advanced setups                               |
 
 Community-curated suggestions come from `community_interfaces.json`, sourced from [directory.rns.recipes](https://directory.rns.recipes).
@@ -43,6 +44,10 @@ LoRa setups often need firmware management. **Tools → RNode Flasher** opens th
 ## Websocket server interface
 
 MeshChatX includes a custom `WebsocketServerInterface` for WebSocket-based Reticulum transport. Use it when bridging to web-friendly gateways.
+
+## HTTP tunnel interface
+
+MeshChatX vendors [RNS-over-HTTP](https://github.com/Quad4-Software/RNS-over-HTTP) and installs `HTTPInterface.py` into your Reticulum `interfacepath` on startup. Use **Add interface → HTTP Tunnel** for client or server mode when only HTTP/S egress is available. Default transport is HTTP/1.1. HTTP/2 and HTTP/3 need TLS and optional extra packages on the server side.
 
 ## Getting onto the mesh
 

@@ -466,14 +466,14 @@
                                         class="flex items-center py-2 text-[10px] font-mono text-gray-500 transition-colors hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
                                         :class="isSidebarCollapsed ? 'justify-center px-0' : 'justify-start px-3'"
                                         data-testid="sidebar-app-version"
-                                        :title="$t('about.version', { version: appInfo.version })"
+                                        :title="sidebarVersionTitle"
                                     >
                                         <MaterialDesignIcon
                                             v-if="isSidebarCollapsed"
                                             icon-name="information-outline"
                                             class="size-4"
                                         />
-                                        <span v-else>{{ $t("about.version", { version: appInfo.version }) }}</span>
+                                        <span v-else>{{ sidebarVersionLabel }}</span>
                                     </RouterLink>
                                 </div>
                             </div>
@@ -746,6 +746,34 @@ export default {
         },
         isPopoutMode() {
             return this.currentPopoutType != null;
+        },
+        sidebarDisplayVersion() {
+            const info = this.appInfo || {};
+            if (info.display_version) {
+                return info.display_version;
+            }
+            const base = info.version || "";
+            if (info.is_dev_build && base && !String(base).endsWith("-dev")) {
+                return `${base}-dev`;
+            }
+            return base;
+        },
+        sidebarVersionLabel() {
+            const version = this.sidebarDisplayVersion;
+            if (!version) {
+                return "";
+            }
+            const label = this.$t("about.version", { version });
+            const short =
+                this.appInfo?.git_commit_short ||
+                (this.appInfo?.git_commit ? String(this.appInfo.git_commit).slice(0, 7) : "");
+            if (this.appInfo?.is_dev_build && short) {
+                return `${label} ${short}`;
+            }
+            return label;
+        },
+        sidebarVersionTitle() {
+            return this.sidebarVersionLabel;
         },
         unreadConversationsCount() {
             return GlobalState.unreadConversationsCount;

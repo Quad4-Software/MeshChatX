@@ -38,7 +38,7 @@ MeshChatX can:
 
 - Run a **local propagation node** on your identity
 - **Sync** with remote propagation nodes you trust
-- **Auto-select** a preferred node via `AutoPropagationManager`
+- **Auto-select** a preferred propagation peer via `AutoPropagationManager` from local `lxmf.propagation` announces and RNS paths (small sync probe, remembered destination hashes, no central directory)
 - **Retry** failed direct deliveries through propagation when configured
 
 Manage nodes from **Tools → Propagation nodes** or related settings entries.

@@ -177,3 +177,6 @@ scripts/private/
 *.rsm
 *.rfe
 !/meshchatx.rsm
+
+# Generated at build time (scripts/bake_build_meta.js)
+meshchatx/src/_build_meta_baked.py

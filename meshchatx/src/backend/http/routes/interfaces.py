@@ -1517,6 +1517,90 @@ def register_interfaces_routes(routes, app):
             interface_details["command"] = interface_command
             interface_details["respawn_delay"] = interface_respawn_delay
 
+        # HTTP tunnel (vendored RNS-over-HTTP). Config mode is client|server,
+        # which is distinct from Reticulum interface modes (full/gateway/...).
+        if interface_type == "HTTPInterface":
+            tunnel_mode = str(data.get("mode") or "").strip().lower()
+            if tunnel_mode not in {"client", "server"}:
+                return web.json_response(
+                    {
+                        "message": "HTTPInterface mode must be client or server",
+                    },
+                    status=422,
+                )
+            interface_details["mode"] = tunnel_mode
+
+            http_version_raw = data.get("http_version")
+            if http_version_raw not in (None, ""):
+                try:
+                    http_version = int(http_version_raw)
+                except (TypeError, ValueError):
+                    return web.json_response(
+                        {"message": "http_version must be 1, 2, or 3"},
+                        status=422,
+                    )
+                if http_version not in (1, 2, 3):
+                    return web.json_response(
+                        {"message": "http_version must be 1, 2, or 3"},
+                        status=422,
+                    )
+                interface_details["http_version"] = http_version
+            else:
+                interface_details.pop("http_version", None)
+
+            if tunnel_mode == "client":
+                server_url = data.get("server_url")
+                if server_url is None or str(server_url).strip() == "":
+                    return web.json_response(
+                        {
+                            "message": "server_url is required for HTTPInterface client mode"
+                        },
+                        status=422,
+                    )
+                interface_details["server_url"] = str(server_url).strip()
+                InterfaceEditor.update_value(interface_details, data, "poll_interval")
+                for key in (
+                    "listen_host",
+                    "listen_port",
+                    "check_user_agent",
+                    "serve_html_page",
+                    "html_file_path",
+                    "tls_certfile",
+                    "tls_keyfile",
+                ):
+                    interface_details.pop(key, None)
+            else:
+                listen_host = data.get("listen_host")
+                if listen_host is None or str(listen_host).strip() == "":
+                    listen_host = "0.0.0.0"
+                listen_port = data.get("listen_port")
+                if listen_port is None or listen_port == "":
+                    return web.json_response(
+                        {
+                            "message": "listen_port is required for HTTPInterface server mode"
+                        },
+                        status=422,
+                    )
+                interface_details["listen_host"] = str(listen_host).strip()
+                interface_details["listen_port"] = listen_port
+                InterfaceEditor.update_value(
+                    interface_details, data, "check_user_agent"
+                )
+                InterfaceEditor.update_value(interface_details, data, "serve_html_page")
+                InterfaceEditor.update_value(interface_details, data, "html_file_path")
+                InterfaceEditor.update_value(interface_details, data, "tls_certfile")
+                InterfaceEditor.update_value(interface_details, data, "tls_keyfile")
+                for key in ("server_url", "poll_interval"):
+                    interface_details.pop(key, None)
+
+            InterfaceEditor.update_value(interface_details, data, "mtu")
+            InterfaceEditor.update_value(interface_details, data, "user_agent")
+            InterfaceEditor.update_value(interface_details, data, "pool_connections")
+            InterfaceEditor.update_value(interface_details, data, "pool_maxsize")
+            InterfaceEditor.update_value(interface_details, data, "keepalive_timeout")
+            InterfaceEditor.update_value(interface_details, data, "tls_verify")
+            InterfaceEditor.update_value(interface_details, data, "tls_ca_certs")
+
         _builtin_interface_types = frozenset(
             {
                 "AutoInterface",
@@ -1532,6 +1616,7 @@ def register_interfaces_routes(routes, app):
                 "KISSInterface",
                 "AX25KISSInterface",
                 "PipeInterface",
+                "HTTPInterface",
             },
         )
         if interface_type not in _builtin_interface_types:
@@ -1601,14 +1686,15 @@ def register_interfaces_routes(routes, app):
 
         # set common interface options
         InterfaceEditor.update_value(interface_details, data, "bitrate")
-        mode_error = InterfaceEditor.apply_interface_mode(interface_details, data)
-        if mode_error is not None:
-            return web.json_response(
-                {
-                    "message": mode_error,
-                },
-                status=422,
-            )
+        if interface_type != "HTTPInterface":
+            mode_error = InterfaceEditor.apply_interface_mode(interface_details, data)
+            if mode_error is not None:
+                return web.json_response(
+                    {
+                        "message": mode_error,
+                    },
+                    status=422,
+                )
         recursive_prs_error = InterfaceEditor.apply_yes_no_option(
             interface_details,
             data,

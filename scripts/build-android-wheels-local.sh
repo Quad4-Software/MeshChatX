@@ -11,11 +11,13 @@ This script:
 3) Builds pycodec2 Android wheels with Chaquopy's build-wheel tool
 4) Optionally patches LXST wheel metadata for local Android constraints
 5) Vendors the bleak pure-python wheel from PyPI
-6) Patches the rns wheel so its Android RNodeInterface never calls
+6) Vendors httpx[http2] and its pure-python dependency wheels from PyPI
+   (RNS-over-HTTP / HTTPInterface client support)
+7) Patches the rns wheel so its Android RNodeInterface never calls
    RNS.panic() (os._exit) when usbserial4a/jnius are missing
-7) Builds every recipe under android/chaquopy-recipes/ for each requested
-   ABI (currently: cryptography, miniaudio)
-8) Copies outputs to android/vendor
+8) Builds every recipe under android/chaquopy-recipes/ for each requested
+   ABI (currently: cryptography, miniaudio, aiohttp, cbor2, ...)
+9) Copies outputs to android/vendor
 
 Usage:
   scripts/build-android-wheels-local.sh [options]
@@ -30,6 +32,7 @@ Options:
   --numpy-version V          NumPy version used during pycodec2 build (default: 1.26.2)
   --lxst-version V           LXST wheel version for metadata patch (default: 0.5.0)
   --bleak-version V          bleak pure-python wheel version to vendor (default: 3.0.2)
+  --httpx-version V          httpx pure-python wheel version to vendor (default: 0.28.1)
   --rns-version V            rns wheel version to patch (default: 1.4.0)
   --no-lxst-patch            Skip LXST metadata patch
   --no-rns-patch             Skip RNS Android RNodeInterface patch
@@ -60,6 +63,7 @@ LIBCODEC2_VERSION="1.2.0"
 NUMPY_VERSION="1.26.2"
 LXST_VERSION="0.5.0"
 BLEAK_VERSION="3.0.2"
+HTTPX_VERSION="0.28.1"
 RNS_VERSION="1.4.0"
 PATCH_LXST="1"
 PATCH_RNS="1"
@@ -103,6 +107,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --bleak-version)
             BLEAK_VERSION="${2:?missing value for --bleak-version}"
+            shift 2
+            ;;
+        --httpx-version)
+            HTTPX_VERSION="${2:?missing value for --httpx-version}"
             shift 2
             ;;
         --rns-version)
@@ -838,6 +846,37 @@ PY
         echo "Expected bleak-${BLEAK_VERSION}-py3-none-any.whl in ${OUT_DIR}" >&2
         exit 1
     fi
+
+    echo "Fetching httpx[http2] ${HTTPX_VERSION} pure-python wheels (and deps)"
+    HTTPX_TMP_DIR="$(mktemp -d)"
+    "${VENV_DIR}/bin/pip" download \
+        --only-binary=:all: \
+        "httpx[http2]==${HTTPX_VERSION}" \
+        --dest "${HTTPX_TMP_DIR}" \
+        --index-url https://pypi.org/simple
+
+    HTTPX_WHEEL="$(ls "${HTTPX_TMP_DIR}"/httpx-"${HTTPX_VERSION}"-py3-none-any.whl)"
+    cp -f "${HTTPX_WHEEL}" "${OUT_DIR}/"
+    # Vendor transitive pure-python deps so offline/find-links builds resolve.
+    for dep_wheel in "${HTTPX_TMP_DIR}"/*.whl; do
+        base="$(basename "${dep_wheel}")"
+        if [[ "${base}" == httpx-* ]]; then
+            continue
+        fi
+        cp -f "${dep_wheel}" "${OUT_DIR}/"
+    done
+    rm -rf "${HTTPX_TMP_DIR}"
+
+    if ! ls "${OUT_DIR}/httpx-${HTTPX_VERSION}-py3-none-any.whl" >/dev/null 2>&1; then
+        echo "Expected httpx-${HTTPX_VERSION}-py3-none-any.whl in ${OUT_DIR}" >&2
+        exit 1
+    fi
+    for required_prefix in httpcore- h2- h11- anyio- hpack- hyperframe-; do
+        if ! ls "${OUT_DIR}/${required_prefix}"*.whl >/dev/null 2>&1; then
+            echo "Expected ${required_prefix}*.whl in ${OUT_DIR} (httpx[http2] dependency)" >&2
+            exit 1
+        fi
+    done
 fi
 
 if [[ "${PATCH_RNS}" == "1" && -z "${ONLY_RECIPES}" ]]; then

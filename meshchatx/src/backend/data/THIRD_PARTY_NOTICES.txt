@@ -52,6 +52,10 @@ lxmf 1.1.0
 lxmfy 2.0.1
   License: BSD-0-Clause
   Author: Quad4 <team@quad4.io>
+RNS-over-HTTP (vendored HTTPInterface)
+  License: MIT
+  Upstream: https://github.com/Quad4-Software/RNS-over-HTTP
+  Bundled revision: 530aca499fb7442910f691629670f6f9f4b67221
 lxst 0.5.0
   License: Other/Proprietary License
   Author: Mark Qvist

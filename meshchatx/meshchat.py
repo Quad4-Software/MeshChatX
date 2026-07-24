@@ -1590,6 +1590,18 @@ class ReticulumMeshChat:
         guard_invalid_rnode_txpower_in_config(config_path)
         i2p_support.guard_i2p_interfaces_in_config(config_path)
         ensure_safe_reticulum_runtime_flags(config_path)
+        try:
+            from meshchatx.src.backend.interface_module_store import (
+                ensure_bundled_interface_modules,
+            )
+
+            ensure_bundled_interface_modules(config_dir)
+        except Exception as exc:
+            logger.warning(
+                "Failed to sync bundled interface modules into %s: %s",
+                config_dir,
+                exc,
+            )
 
     def _set_startup_stage(self, stage: str, error: str | None = None) -> None:
         previous = getattr(self, "_startup_stage", None)
@@ -3002,6 +3014,22 @@ class ReticulumMeshChat:
     @staticmethod
     def get_app_version() -> str:
         return app_version
+
+    @staticmethod
+    def get_build_meta() -> dict:
+        """Baked git commit / channel from meshchatx.src.build_meta."""
+        try:
+            from meshchatx.src import build_meta as _build_meta
+
+            return dict(_build_meta.as_dict(app_version))
+        except Exception:
+            return {
+                "git_commit": "",
+                "git_commit_short": "",
+                "build_channel": "local",
+                "is_dev_build": False,
+                "display_version": app_version,
+            }
 
     def _api_reticulum_config_path(self) -> str | None:
         r = getattr(self, "reticulum", None)

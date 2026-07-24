@@ -11,6 +11,7 @@ import tempfile
 
 _MODULE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _MAX_MODULE_BYTES = 512 * 1024
+_BUNDLED_INTERFACE_MODULES = ("HTTPInterface.py",)
 
 
 def interface_modules_dir(reticulum_config_dir: str | None) -> str:
@@ -19,6 +20,82 @@ def interface_modules_dir(reticulum_config_dir: str | None) -> str:
         raise ValueError("Reticulum config directory is not configured")
     root = os.path.abspath(os.path.expanduser(str(reticulum_config_dir)))
     return os.path.join(root, "interfaces")
+
+
+def bundled_interface_modules_dir() -> str:
+    """Return the package-data directory of MeshChatX-shipped interface modules."""
+    return os.path.join(os.path.dirname(__file__), "data", "interfaces")
+
+
+def resolve_bundled_interface_module_path(filename: str) -> str | None:
+    """Return an absolute path to a bundled TypeName.py, or None when missing."""
+    stem_name = os.path.basename(str(filename or ""))
+    if not stem_name.endswith(".py"):
+        return None
+    packaged = os.path.join(bundled_interface_modules_dir(), stem_name)
+    if os.path.isfile(packaged):
+        return packaged
+    # Dev checkout: vendor/rns_over_http next to the repo root.
+    repo_vendor = os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "..",
+            "vendor",
+            "rns_over_http",
+            stem_name,
+        ),
+    )
+    if os.path.isfile(repo_vendor):
+        return repo_vendor
+    return None
+
+
+def ensure_bundled_interface_modules(reticulum_config_dir: str | None) -> list[dict]:
+    """Install or refresh MeshChatX-bundled interface modules into interfacepath.
+
+    Returns a list of install result dicts for modules that were written.
+    Missing bundled sources are skipped. Identical files are left untouched.
+    """
+    written: list[dict] = []
+    if not reticulum_config_dir:
+        return written
+    for filename in _BUNDLED_INTERFACE_MODULES:
+        source_path = resolve_bundled_interface_module_path(filename)
+        if source_path is None:
+            continue
+        try:
+            with open(source_path, "rb") as handle:
+                data = handle.read()
+        except OSError:
+            continue
+        stem = sanitize_interface_module_stem(filename)
+        if stem is None:
+            continue
+        target_dir = interface_modules_dir(reticulum_config_dir)
+        target_path = os.path.join(target_dir, f"{stem}.py")
+        if os.path.isfile(target_path):
+            try:
+                with open(target_path, "rb") as handle:
+                    existing = handle.read()
+            except OSError:
+                existing = None
+            if existing == data:
+                continue
+        try:
+            written.append(
+                install_interface_module(
+                    reticulum_config_dir,
+                    filename=filename,
+                    data=data,
+                    overwrite=True,
+                ),
+            )
+        except ValueError:
+            continue
+    return written
 
 
 def sanitize_interface_module_stem(name: str | None) -> str | None:

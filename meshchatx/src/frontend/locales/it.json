@@ -1288,7 +1288,8 @@
         "top_cpu_consumer": "Top CPU",
         "memory_pressure_normal": "Normal",
         "path_table": "Path table",
-        "path_table_count": "{count} paths"
+        "path_table_count": "{count} paths",
+        "git_commit": "commit {commit}"
     },
     "interfaces": {
         "title": "Interfacce",
@@ -1417,7 +1418,27 @@
         "block_fast_flapping_hint": "Ignora client che si connettono e disconnettono troppo in fretta (default BackboneInterface RNS 1.4.0).",
         "fast_flapping_block_time_label": "Tempo di blocco (minuti)",
         "fast_flapping_threshold_label": "Soglia (secondi)",
-        "fast_flapping_grace_label": "Flap di grazia"
+        "fast_flapping_grace_label": "Flap di grazia",
+        "http_tunnel_intro": "Tunnelizza Reticulum su HTTP POST (RNS-over-HTTP). Utile quando è consentito solo il traffico web. Il modulo HTTPInterface incluso viene installato automaticamente nell'interfacepath di Reticulum.",
+        "http_tunnel_mode_client": "Client",
+        "http_tunnel_mode_server": "Server",
+        "http_tunnel_mode_note": "Per i tunnel HTTP, mode significa client o server (non full/gateway/roaming di Reticulum).",
+        "http_tunnel_server_url": "URL del server",
+        "http_tunnel_server_url_required": "L'URL del server è obbligatorio in modalità client del tunnel HTTP.",
+        "http_tunnel_poll_interval": "Intervallo di polling (secondi)",
+        "http_tunnel_listen_host": "Host in ascolto",
+        "http_tunnel_listen_port": "Porta in ascolto",
+        "http_tunnel_listen_port_required": "La porta in ascolto è obbligatoria in modalità server del tunnel HTTP.",
+        "http_tunnel_check_user_agent": "Richiedi User-Agent corrispondente",
+        "http_tunnel_check_user_agent_hint": "Rifiuta i POST che non usano lo User-Agent configurato.",
+        "http_tunnel_http_version": "Versione HTTP",
+        "http_tunnel_http_version_hint": "HTTP/1.1 è l'impostazione predefinita. HTTP/2 e HTTP/3 richiedono TLS e pacchetti Python aggiuntivi (hypercorn/aioquic) sul server.",
+        "http_tunnel_mtu": "MTU",
+        "http_tunnel_user_agent": "User-Agent",
+        "http_tunnel_tls_hint": "HTTP/2 e HTTP/3 richiedono https:// sul client e percorsi dei certificati TLS sul server.",
+        "http_tunnel_tls_verify": "Verifica certificati TLS",
+        "http_tunnel_docs_hint": "Vedi il capitolo Interfaces per le opzioni generali delle interfacce Reticulum.",
+        "http_tunnel_docs_link": "Apri il manuale Reticulum incluso"
     },
     "map": {
         "title": "Mappa",

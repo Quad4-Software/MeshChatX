@@ -1236,7 +1236,8 @@
         "top_cpu_consumer": "Top CPU",
         "memory_pressure_normal": "Normal",
         "path_table": "Path table",
-        "path_table_count": "{count} paths"
+        "path_table_count": "{count} paths",
+        "git_commit": "commit {commit}"
     },
     "interfaces": {
         "title": "Sovittimet",
@@ -1365,7 +1366,27 @@
         "block_fast_flapping_hint": "Ohittaa asiakkaat, jotka yhdistavat ja katkaisevat liian nopeasti (RNS 1.4.0 BackboneInterface-oletukset).",
         "fast_flapping_block_time_label": "Estoaika (minuuttia)",
         "fast_flapping_threshold_label": "Kynnys (sekuntia)",
-        "fast_flapping_grace_label": "Armo-flapit"
+        "fast_flapping_grace_label": "Armo-flapit",
+        "http_tunnel_intro": "Tunneloi Reticulum HTTP POST -yhteyden yli (RNS-over-HTTP). Hyödyllinen kun vain web-liikenne on sallittu. Mukana tuleva HTTPInterface-moduuli asennetaan automaattisesti Reticulum-interfacepathiin.",
+        "http_tunnel_mode_client": "Asiakas",
+        "http_tunnel_mode_server": "Palvelin",
+        "http_tunnel_mode_note": "HTTP-tunneleissa tila tarkoittaa asiakasta tai palvelinta (ei Reticulum full/gateway/roaming).",
+        "http_tunnel_server_url": "Palvelimen URL",
+        "http_tunnel_server_url_required": "Palvelimen URL vaaditaan HTTP-tunnelin asiakastilassa.",
+        "http_tunnel_poll_interval": "Kyselyväli (sekuntia)",
+        "http_tunnel_listen_host": "Kuunteluosoite",
+        "http_tunnel_listen_port": "Kuunteluportti",
+        "http_tunnel_listen_port_required": "Kuunteluportti vaaditaan HTTP-tunnelin palvelintilassa.",
+        "http_tunnel_check_user_agent": "Vaadi vastaava User-Agent",
+        "http_tunnel_check_user_agent_hint": "Hylkää POSTit jotka eivät käytä määritettyä User-Agent-merkkijonoa.",
+        "http_tunnel_http_version": "HTTP-versio",
+        "http_tunnel_http_version_hint": "HTTP/1.1 on oletus. HTTP/2 ja HTTP/3 tarvitsevat TLS:n ja lisäpaketit (hypercorn/aioquic) palvelimella.",
+        "http_tunnel_mtu": "MTU",
+        "http_tunnel_user_agent": "User-Agent",
+        "http_tunnel_tls_hint": "HTTP/2 ja HTTP/3 edellyttävät https:// asiakkaalla ja TLS-varmenteiden polkuja palvelimella.",
+        "http_tunnel_tls_verify": "Tarkista TLS-varmenteet",
+        "http_tunnel_docs_hint": "Katso Interfaces-luku yleisistä Reticulum-rajapinta-asetuksista.",
+        "http_tunnel_docs_link": "Avaa mukana tuleva Reticulum-ohje"
     },
     "map": {
         "title": "Kartta",

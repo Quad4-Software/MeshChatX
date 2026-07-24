@@ -6,7 +6,7 @@ Native APK with embedded Python (`meshchatx/`) and a WebView UI.
 
 - Android SDK (`ANDROID_HOME` / `ANDROID_SDK_ROOT`) with `cmdline-tools` and a matching **NDK** (see `android/app/build.gradle` for the pinned NDK version used in CI).
 - **JDK 17** (Temurin or compatible).
-- Chaquopy vendor wheels under `android/vendor/` (build locally with `bash scripts/build-android-wheels-local.sh` from repo root, or use CI artifacts).
+- Chaquopy vendor wheels under `android/vendor/` (build locally with `bash scripts/build-android-wheels-local.sh` from repo root, or use CI artifacts). That script builds native recipes under `android/chaquopy-recipes/` and also vendors pure-Python wheels such as bleak and `httpx[http2]` (for bundled RNS-over-HTTP / `HTTPInterface`).
 
 ## Lint and static analysis
 

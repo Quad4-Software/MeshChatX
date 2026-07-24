@@ -398,4 +398,45 @@ describe("AddInterfacePage.vue interface options", () => {
             })
         );
     });
+
+    it("sends HTTPInterface client tunnel payload", async () => {
+        const wrapper = mountPage();
+
+        wrapper.vm.newInterfaceName = "HttpClient";
+        wrapper.vm.newInterfaceType = "HTTPInterface";
+        wrapper.vm.newInterfaceHttpTunnelMode = "client";
+        wrapper.vm.newInterfaceHttpServerUrl = "https://example.com:8080/";
+        wrapper.vm.newInterfaceHttpPollInterval = 0.2;
+        wrapper.vm.newInterfaceHttpMtu = 2048;
+        wrapper.vm.newInterfaceHttpVersion = 1;
+        wrapper.vm.newInterfaceHttpUserAgent = "RNS-HTTP-Tunnel/1.0";
+
+        await wrapper.vm.saveInterface();
+
+        expect(mockAxios.post).toHaveBeenCalledWith(
+            "/api/v1/reticulum/interfaces/add",
+            expect.objectContaining({
+                type: "HTTPInterface",
+                mode: "client",
+                server_url: "https://example.com:8080/",
+                poll_interval: 0.2,
+                mtu: 2048,
+                http_version: 1,
+                user_agent: "RNS-HTTP-Tunnel/1.0",
+            })
+        );
+    });
+
+    it("blocks HTTPInterface client save without server_url", async () => {
+        const wrapper = mountPage();
+
+        wrapper.vm.newInterfaceName = "HttpClient";
+        wrapper.vm.newInterfaceType = "HTTPInterface";
+        wrapper.vm.newInterfaceHttpTunnelMode = "client";
+        wrapper.vm.newInterfaceHttpServerUrl = "  ";
+
+        await wrapper.vm.saveInterface();
+
+        expect(mockAxios.post).not.toHaveBeenCalled();
+    });
 });
