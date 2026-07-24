@@ -23,6 +23,7 @@ COPY scripts/build-visualiser-wasm.mjs scripts/build-visualiser-wasm.mjs
 COPY scripts/sync-meshchatx-docs.js scripts/sync-meshchatx-docs.js
 COPY scripts/pip_rns_remotes.py scripts/pip_rns_remotes.py
 COPY scripts/build/fetch_reticulum_manual.py scripts/build/fetch_reticulum_manual.py
+COPY scripts/build/generate_service_worker.mjs scripts/build/generate_service_worker.mjs
 COPY scripts/docker/build-frontend.sh scripts/docker/build-frontend.sh
 COPY docs ./docs
 COPY visualiser-wasm ./visualiser-wasm
