@@ -26,9 +26,35 @@ public class MeshChatApplication extends PyApplication {
 
     @Override
     public void onCreate() {
+        // Preload libcodec2.so into the process before Chaquopy imports pycodec2.
+        // pycodec2.so NEEDED libcodec2.so has no RPATH so dlopen must already
+        // resolve it (jniLibs or System.loadLibrary).
+        preloadCodec2NativeLibrary();
         super.onCreate();
         appContext = getApplicationContext();
         createNotificationChannels();
+    }
+
+    private void preloadCodec2NativeLibrary() {
+        try {
+            System.loadLibrary("codec2");
+        } catch (UnsatisfiedLinkError e) {
+            android.util.Log.w(
+                "MeshChatX",
+                "System.loadLibrary(codec2) failed before Python start: " + e.getMessage()
+            );
+        }
+        try {
+            String nativeDir = getApplicationInfo().nativeLibraryDir;
+            if (nativeDir != null && !nativeDir.isEmpty()) {
+                android.system.Os.setenv("MESHCHAT_NATIVE_LIB_DIR", nativeDir, true);
+            }
+        } catch (Exception e) {
+            android.util.Log.w(
+                "MeshChatX",
+                "Could not set MESHCHAT_NATIVE_LIB_DIR: " + e.getMessage()
+            );
+        }
     }
 
     private void createNotificationChannels() {

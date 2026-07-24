@@ -44,6 +44,28 @@ describe("Capabilities.detectCapabilities", () => {
         expect(caps.platform.isAndroid).toBe(true);
     });
 
+    it("reports android-native serial when MeshChatXAndroid has native flasher", () => {
+        const env = mkEnv({
+            navigator: { userAgent: "Linux; Android 14" },
+            MeshChatXAndroid: { hasNativeRNodeFlasher: () => true },
+        });
+        const caps = detectCapabilities({ env });
+        expect(caps.transports[TRANSPORT_SERIAL].available).toBe(true);
+        expect(caps.transports[TRANSPORT_SERIAL].kind).toBe("android-native-activity");
+    });
+
+    it("reports bluetooth permission required on MeshChatXAndroid without grant", () => {
+        const env = mkEnv({
+            navigator: { userAgent: "Android" },
+            MeshChatXAndroid: { hasBluetoothPermissions: () => false },
+        });
+        const caps = detectCapabilities({ env });
+        expect(caps.transports[TRANSPORT_BLUETOOTH].available).toBe(false);
+        expect(caps.transports[TRANSPORT_BLUETOOTH].reason).toBe(
+            "android_bluetooth_permission_required"
+        );
+    });
+
     it("reports bluetooth available when navigator.bluetooth is present", () => {
         const env = mkEnv({ navigator: { userAgent: "x", bluetooth: {} } });
         const caps = detectCapabilities({ env });

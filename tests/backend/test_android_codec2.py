@@ -23,6 +23,7 @@ def test_ensure_codec2_loads_bundled_library(tmp_path):
 
     with (
         patch.object(android_codec2, "_is_chaquopy_android", return_value=True),
+        patch.object(android_codec2, "_java_system_load_library", return_value=False),
         patch.object(
             android_codec2,
             "_cdll_load",
@@ -38,6 +39,19 @@ def test_ensure_codec2_loads_bundled_library(tmp_path):
         assert cdll.call_count == 2
         assert cdll.call_args_list[0].args[0] == "libcodec2.so"
         assert cdll.call_args_list[1].args[0] == str(lib)
+
+
+def test_ensure_codec2_prefers_java_load_library():
+    android_codec2.reset_codec2_preload_state_for_tests()
+    with (
+        patch.object(android_codec2, "_is_chaquopy_android", return_value=True),
+        patch.object(android_codec2, "_java_system_load_library", return_value=True) as java_load,
+        patch.object(android_codec2, "_cdll_load") as cdll,
+    ):
+        assert android_codec2.ensure_codec2_native_library() is True
+        java_load.assert_called_once_with("codec2")
+        cdll.assert_not_called()
+        assert android_codec2.codec2_preload_error() is None
 
 
 def test_libcodec2_candidates_find_without_importing_pycodec2(tmp_path, monkeypatch):

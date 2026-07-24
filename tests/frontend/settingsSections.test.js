@@ -223,7 +223,7 @@ describe("BlockedSettingsSection", () => {
 });
 
 describe("AndroidSettingsSection", () => {
-    it("emits privacy updates and share-apk", async () => {
+    it("emits privacy updates, remote backend actions, and share-apk", async () => {
         const wrapper = mount(AndroidSettingsSection, {
             props: {
                 visible: true,
@@ -231,19 +231,29 @@ describe("AndroidSettingsSection", () => {
                     blockScreenshots: false,
                     clearClipboardOnBackground: false,
                 },
+                remoteBackendUrl: "",
+                effectiveBackendUrl: "https://127.0.0.1:8000",
+                remoteBackendActive: false,
             },
             global: {
                 mocks: { $t: (key) => key },
             },
         });
         expect(wrapper.text()).toContain("settings.android_privacy_heading");
+        expect(wrapper.text()).toContain("settings.android_remote_backend_heading");
         const checkboxes = wrapper.findAll('input[type="checkbox"]');
         expect(checkboxes).toHaveLength(2);
         await checkboxes[0].setValue(true);
         await checkboxes[1].setValue(true);
         expect(wrapper.emitted("update:blockScreenshots")).toEqual([[true]]);
         expect(wrapper.emitted("update:clearClipboardOnBackground")).toEqual([[true]]);
-        await wrapper.find("button").trigger("click");
+        const urlInput = wrapper.find('input[type="url"]');
+        await urlInput.setValue("http://192.168.1.10:9337");
+        expect(wrapper.emitted("update:remoteBackendUrl")?.at(-1)).toEqual(["http://192.168.1.10:9337"]);
+        const buttons = wrapper.findAll("button");
+        await buttons[0].trigger("click");
+        expect(wrapper.emitted("apply-remote-backend")).toHaveLength(1);
+        await buttons[2].trigger("click");
         expect(wrapper.emitted("share-apk")).toHaveLength(1);
     });
 });

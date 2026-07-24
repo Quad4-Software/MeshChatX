@@ -38,6 +38,42 @@
                     }}</span>
                 </span>
             </label>
+
+            <div class="space-y-2">
+                <div class="setting-toggle__title">{{ $t("settings.android_remote_backend_heading") }}</div>
+                <p class="text-xs opacity-80">{{ $t("settings.android_remote_backend_desc") }}</p>
+                <input
+                    :value="remoteBackendUrl"
+                    type="url"
+                    inputmode="url"
+                    autocomplete="off"
+                    spellcheck="false"
+                    class="w-full rounded-sm border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+                    :placeholder="$t('settings.android_remote_backend_placeholder')"
+                    @input="$emit('update:remoteBackendUrl', $event.target.value)"
+                />
+                <p v-if="remoteBackendActive" class="text-xs text-emerald-700 dark:text-emerald-300">
+                    {{ $t("settings.android_remote_backend_active", { url: effectiveBackendUrl }) }}
+                </p>
+                <div class="flex flex-wrap gap-2">
+                    <button
+                        type="button"
+                        class="btn-maintenance border-blue-200 dark:border-blue-900/30 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20"
+                        @click="$emit('apply-remote-backend')"
+                    >
+                        {{ $t("settings.android_remote_backend_apply") }}
+                    </button>
+                    <button
+                        type="button"
+                        class="btn-maintenance border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900/40 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        :disabled="!remoteBackendActive && !(remoteBackendUrl || '').trim()"
+                        @click="$emit('clear-remote-backend')"
+                    >
+                        {{ $t("settings.android_remote_backend_use_local") }}
+                    </button>
+                </div>
+            </div>
+
             <button
                 type="button"
                 class="btn-maintenance border-blue-200 dark:border-blue-900/30 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20"
@@ -74,7 +110,26 @@ export default {
             type: Object,
             required: true,
         },
+        remoteBackendUrl: {
+            type: String,
+            default: "",
+        },
+        effectiveBackendUrl: {
+            type: String,
+            default: "",
+        },
+        remoteBackendActive: {
+            type: Boolean,
+            default: false,
+        },
     },
-    emits: ["update:blockScreenshots", "update:clearClipboardOnBackground", "share-apk"],
+    emits: [
+        "update:blockScreenshots",
+        "update:clearClipboardOnBackground",
+        "update:remoteBackendUrl",
+        "apply-remote-backend",
+        "clear-remote-backend",
+        "share-apk",
+    ],
 };
 </script>

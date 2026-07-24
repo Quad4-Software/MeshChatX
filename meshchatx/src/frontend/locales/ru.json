@@ -2551,7 +2551,8 @@
                     "android_webview_no_serial": "Android не поддерживает Web Serial в этом режиме. Используйте браузер на ПК или встроенный прошивальщик.",
                     "browser_unsupported": "Этот браузер не поддерживает Web Serial. Попробуйте Chrome, Edge или другой браузер на основе Chromium.",
                     "android_use_chrome": "На Android откройте эту страницу в Chrome, чтобы использовать Web Serial через WebUSB.",
-                    "unknown": "USB-последовательный порт не может быть инициализирован в этом окружении."
+                    "unknown": "USB-последовательный порт не может быть инициализирован в этом окружении.",
+                    "android_request_usb": "Откройте встроенный прошивальщик, чтобы разрешить USB и прошить через последовательный порт."
                 },
                 "bluetooth": {
                     "title": "Bluetooth недоступен",
@@ -2559,14 +2560,25 @@
                     "browser_unsupported": "Этот браузер не поддерживает Web Bluetooth. Попробуйте Chrome или Edge.",
                     "insecure_context": "Web Bluetooth требует безопасного контекста (HTTPS или localhost).",
                     "requires_https": "Откройте прошивальщик через HTTPS или localhost, чтобы включить Bluetooth.",
-                    "unknown": "Bluetooth не может быть инициализирован в этом окружении."
+                    "unknown": "Bluetooth не может быть инициализирован в этом окружении.",
+                    "android_bridge_no_web_bluetooth": "Разрешение Bluetooth выдано. Прошивайте по USB во встроенном прошивальщике (Web Bluetooth недоступен в WebView).",
+                    "android_bluetooth_permission_required": "Для mesh RNode BLE требуется разрешение Bluetooth. Нажмите «Разрешить Bluetooth»."
                 },
                 "actions": {
                     "load_polyfill": "Загрузить полифилл",
                     "request_bluetooth": "Разрешить Bluetooth",
                     "open_settings": "Открыть настройки",
                     "polyfill_loading": "Загрузка полифилла USB-последовательного порта...",
-                    "bluetooth_requested": "Запрошено разрешение Bluetooth."
+                    "bluetooth_requested": "Запрошено разрешение Bluetooth.",
+                    "request_usb": "Разрешить USB",
+                    "open_native": "Открыть встроенный прошивальщик",
+                    "opened_native": "Встроенный прошивальщик RNode открыт.",
+                    "bluetooth_already_granted": "Разрешение Bluetooth уже выдано.",
+                    "bluetooth_open_settings": "Откройте настройки приложения и включите разрешения Bluetooth.",
+                    "bluetooth_unsupported": "Запрос разрешения Bluetooth недоступен.",
+                    "bluetooth_granted": "Разрешение Bluetooth выдано.",
+                    "bluetooth_denied": "В разрешении Bluetooth отказано.",
+                    "usb_requested": "Запрошено разрешение USB."
                 }
             },
             "diagnostics": {
@@ -3366,6 +3378,16 @@
         "android_clear_clipboard_on_background_on": "Буфер обмена будет очищаться при уходе в фон",
         "android_clear_clipboard_on_background_off": "Буфер обмена больше не будет очищаться при уходе в фон",
         "android_privacy_save_failed": "Не удалось обновить настройку конфиденциальности Android.",
+        "android_remote_backend_heading": "URL удалённого сервера",
+        "android_remote_backend_desc": "Направьте это телефонное приложение на MeshChatX на вашем компьютере или сервере в той же сети. Оставьте пустым, чтобы использовать сервер на устройстве. Изменение перезапускает приложение.",
+        "android_remote_backend_placeholder": "https://192.168.1.10:9337",
+        "android_remote_backend_apply": "Применить и перезапустить",
+        "android_remote_backend_use_local": "Использовать сервер на устройстве",
+        "android_remote_backend_active": "Используется удалённый сервер: {url}",
+        "android_remote_backend_invalid": "Введите действительный URL http(s) или оставьте поле пустым для сервера на устройстве.",
+        "android_remote_backend_unchanged": "URL сервера уже установлен на это значение.",
+        "android_remote_backend_already_local": "Уже используется сервер на устройстве.",
+        "android_remote_backend_restarting": "Перезапуск для применения URL сервера…",
         "nomad_micron_wasm_title": "Micron (WASM)",
         "nomad_micron_wasm_desc_before_link": "Optional WASM renderer (",
         "nomad_micron_wasm_link_label": "micron-parser-go",

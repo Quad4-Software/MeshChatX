@@ -257,10 +257,34 @@ export default {
         },
     },
     mounted() {
+        this._onAndroidPermission = (event) => {
+            const detail = event?.detail;
+            if (!detail) {
+                return;
+            }
+            this.refreshCapabilities();
+            if (detail.group === "bluetooth") {
+                if (detail.granted) {
+                    ToastUtils.success(this.$t("tools.rnode_flasher.support.actions.bluetooth_granted"));
+                } else {
+                    ToastUtils.warning(this.$t("tools.rnode_flasher.support.actions.bluetooth_denied"));
+                }
+            }
+        };
+        window.addEventListener("meshchatx-android-permission", this._onAndroidPermission);
+        if (this.androidBridge.hasNativeRNodeFlasher()) {
+            this.androidBridge.openRNodeFlasher();
+            ToastUtils.info(this.$t("tools.rnode_flasher.support.actions.opened_native"));
+        }
         this.refreshCapabilities();
         this.connectionMethod = pickDefaultTransport(this.capabilities);
         this.loadVendorLibraries();
         this.fetchLatestRelease();
+    },
+    beforeUnmount() {
+        if (this._onAndroidPermission) {
+            window.removeEventListener("meshchatx-android-permission", this._onAndroidPermission);
+        }
     },
     methods: {
         refreshCapabilities() {
@@ -270,15 +294,30 @@ export default {
             this.selectedProduct = product;
             this.selectedModel = null;
         },
-        onCapabilitiesAction(action) {
+        async onCapabilitiesAction(action) {
             if (action === "load-polyfill") {
                 this.loadVendorLibraries(true);
                 ToastUtils.info(this.$t("tools.rnode_flasher.support.actions.polyfill_loading"));
                 return;
             }
+            if (action === "open-native-flasher" || action === "request-usb") {
+                if (this.androidBridge.openRNodeFlasher()) {
+                    ToastUtils.info(this.$t("tools.rnode_flasher.support.actions.opened_native"));
+                }
+                return;
+            }
             if (action === "request-bluetooth") {
-                this.androidBridge.requestPermission(AndroidBridge.PERM_BLUETOOTH);
-                ToastUtils.info(this.$t("tools.rnode_flasher.support.actions.bluetooth_requested"));
+                const status = await this.androidBridge.requestPermission(AndroidBridge.PERM_BLUETOOTH);
+                if (status === "granted") {
+                    ToastUtils.success(this.$t("tools.rnode_flasher.support.actions.bluetooth_already_granted"));
+                } else if (status === "settings") {
+                    ToastUtils.info(this.$t("tools.rnode_flasher.support.actions.bluetooth_open_settings"));
+                } else if (status === "requested") {
+                    ToastUtils.info(this.$t("tools.rnode_flasher.support.actions.bluetooth_requested"));
+                } else {
+                    ToastUtils.warning(this.$t("tools.rnode_flasher.support.actions.bluetooth_unsupported"));
+                }
+                this.refreshCapabilities();
                 return;
             }
             if (action === "open-bluetooth-settings") {

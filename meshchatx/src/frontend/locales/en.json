@@ -1933,6 +1933,16 @@
         "android_clear_clipboard_on_background_on": "Clipboard will clear when the app backgrounds",
         "android_clear_clipboard_on_background_off": "Clipboard will no longer clear on background",
         "android_privacy_save_failed": "Could not update Android privacy setting.",
+        "android_remote_backend_heading": "Remote backend URL",
+        "android_remote_backend_desc": "Point this phone app at MeshChatX running on your desktop or a server on the same network. Leave empty to use the on-device backend. Changing this restarts the app.",
+        "android_remote_backend_placeholder": "https://192.168.1.10:9337",
+        "android_remote_backend_apply": "Apply and restart",
+        "android_remote_backend_use_local": "Use on-device backend",
+        "android_remote_backend_active": "Using remote backend: {url}",
+        "android_remote_backend_invalid": "Enter a valid http(s) URL, or leave blank for the on-device backend.",
+        "android_remote_backend_unchanged": "Backend URL is already set to that value.",
+        "android_remote_backend_already_local": "Already using the on-device backend.",
+        "android_remote_backend_restarting": "Restarting to apply backend URL…",
         "battery": {
             "eyebrow": "Power",
             "title": "Battery saver",
@@ -2748,14 +2758,17 @@
                 "serial": {
                     "title": "USB serial is unavailable",
                     "polyfill_not_loaded": "USB serial polyfill has not been loaded yet.",
-                    "android_webview_no_serial": "Android does not support Web Serial in this view. Use a desktop browser or the built-in flasher.",
+                    "android_webview_no_serial": "Use the native RNode Flasher on Android for USB flashing.",
+                    "android_request_usb": "Open the native flasher to allow USB and flash over serial.",
                     "browser_unsupported": "This browser does not support Web Serial. Try Chrome, Edge, or another Chromium-based browser.",
-                    "android_use_chrome": "On Android, opening this page in Chrome lets you use Web Serial via WebUSB.",
+                    "android_use_chrome": "Desktop browsers can use Web Serial. On Android, use the native flasher.",
                     "unknown": "USB serial cannot be initialised in this environment."
                 },
                 "bluetooth": {
                     "title": "Bluetooth is unavailable",
-                    "android_bridge_not_implemented": "Web Bluetooth is not available here. Use the OS Bluetooth settings or a different browser.",
+                    "android_bridge_not_implemented": "Web Bluetooth is not available in WebView. Use the native flasher for USB, and Allow Bluetooth for mesh RNode BLE.",
+                    "android_bridge_no_web_bluetooth": "Bluetooth permission is granted. Flash over USB in the native flasher (Web Bluetooth is not available in WebView).",
+                    "android_bluetooth_permission_required": "Bluetooth permission is required for mesh RNode BLE. Tap Allow Bluetooth.",
                     "browser_unsupported": "This browser does not support Web Bluetooth. Try Chrome or Edge.",
                     "insecure_context": "Web Bluetooth requires a secure context (HTTPS or localhost).",
                     "requires_https": "Open the flasher over HTTPS or via localhost to enable Bluetooth.",
@@ -2764,9 +2777,18 @@
                 "actions": {
                     "load_polyfill": "Load polyfill",
                     "request_bluetooth": "Allow Bluetooth",
+                    "request_usb": "Allow USB",
+                    "open_native": "Open native flasher",
                     "open_settings": "Open settings",
                     "polyfill_loading": "Loading USB serial polyfill...",
-                    "bluetooth_requested": "Bluetooth permission requested."
+                    "opened_native": "Opened the native RNode flasher.",
+                    "bluetooth_requested": "Bluetooth permission requested.",
+                    "bluetooth_already_granted": "Bluetooth permission is already granted.",
+                    "bluetooth_open_settings": "Open app settings and enable Bluetooth permissions.",
+                    "bluetooth_unsupported": "Bluetooth permission request is unavailable.",
+                    "bluetooth_granted": "Bluetooth permission granted.",
+                    "bluetooth_denied": "Bluetooth permission denied.",
+                    "usb_requested": "USB permission requested."
                 }
             },
             "diagnostics": {

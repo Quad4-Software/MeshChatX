@@ -94,6 +94,17 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
             expect(src).toMatch(/getBoolean\(\s*PREF_CLEAR_CLIPBOARD_ON_BACKGROUND\s*,\s*false\s*\)/);
         });
 
+        it("Android MainActivity supports configurable remote backend URL", () => {
+            const src = readSource("android/app/src/main/java/com/meshchatx/MainActivity.java");
+            expect(src).toContain("PREF_REMOTE_BACKEND_URL");
+            expect(src).toContain("setRemoteBackendUrlAndRestart");
+            expect(src).toContain("isRemoteBackendMode");
+            expect(src).toContain("offerSwitchToLocalBackend");
+            const util = readSource("android/app/src/main/java/com/meshchatx/RemoteBackendUrl.java");
+            expect(util).toContain("normalize");
+            expect(util).toContain("LOCAL_BACKEND_URL");
+        });
+
         it("Android backup of app data is disabled", () => {
             const src = readSource("android/app/src/main/AndroidManifest.xml");
             expect(src).toMatch(/android:allowBackup\s*=\s*"false"/);

@@ -1914,6 +1914,16 @@
         "android_clear_clipboard_on_background_on": "El portapapeles se vaciará al pasar a segundo plano",
         "android_clear_clipboard_on_background_off": "El portapapeles ya no se vaciará en segundo plano",
         "android_privacy_save_failed": "No se pudo actualizar el ajuste de privacidad de Android.",
+        "android_remote_backend_heading": "URL del backend remoto",
+        "android_remote_backend_desc": "Apunta esta app del teléfono a MeshChatX en tu escritorio o en un servidor de la misma red. Déjalo vacío para usar el backend del dispositivo. Cambiarlo reinicia la app.",
+        "android_remote_backend_placeholder": "https://192.168.1.10:9337",
+        "android_remote_backend_apply": "Aplicar y reiniciar",
+        "android_remote_backend_use_local": "Usar backend del dispositivo",
+        "android_remote_backend_active": "Usando backend remoto: {url}",
+        "android_remote_backend_invalid": "Introduce una URL http(s) válida, o déjala en blanco para el backend del dispositivo.",
+        "android_remote_backend_unchanged": "La URL del backend ya está configurada con ese valor.",
+        "android_remote_backend_already_local": "Ya se está usando el backend del dispositivo.",
+        "android_remote_backend_restarting": "Reiniciando para aplicar la URL del backend…",
         "nomad_micron_wasm_title": "Micron (WASM)",
         "nomad_micron_wasm_desc_before_link": "Optional WASM renderer (",
         "nomad_micron_wasm_link_label": "micron-parser-go",
@@ -2747,7 +2757,8 @@
                     "android_webview_no_serial": "Android no admite Web Serial en esta vista. Use un navegador de escritorio o el flasher integrado.",
                     "browser_unsupported": "Este navegador no soporta Web Serial. Prueba con Chrome, Edge u otro navegador basado en Chromium.",
                     "android_use_chrome": "En Android, abrir esta página en Chrome permite usar Web Serial a través de WebUSB.",
-                    "unknown": "USB serial no se puede inicializar en este entorno."
+                    "unknown": "USB serial no se puede inicializar en este entorno.",
+                    "android_request_usb": "Abre el flasher nativo para permitir USB y flashear por serie."
                 },
                 "bluetooth": {
                     "title": "Bluetooth no disponible",
@@ -2755,14 +2766,25 @@
                     "browser_unsupported": "Este navegador no soporta Web Bluetooth. Pruebe con Chrome o Edge.",
                     "insecure_context": "Web Bluetooth requiere un contexto seguro (HTTPS o localhost).",
                     "requires_https": "Abra el flasher a través de HTTPS o localhost para habilitar Bluetooth.",
-                    "unknown": "Bluetooth no se puede inicializar en este entorno."
+                    "unknown": "Bluetooth no se puede inicializar en este entorno.",
+                    "android_bridge_no_web_bluetooth": "Permiso de Bluetooth concedido. Flashea por USB en el flasher nativo (Web Bluetooth no está disponible en WebView).",
+                    "android_bluetooth_permission_required": "Se requiere permiso de Bluetooth para RNode BLE de malla. Toca Permitir Bluetooth."
                 },
                 "actions": {
                     "load_polyfill": "Cargar polyfill",
                     "request_bluetooth": "Permitir Bluetooth",
                     "open_settings": "Abrir configuración",
                     "polyfill_loading": "Cargando polyfill de USB serial...",
-                    "bluetooth_requested": "Permiso de Bluetooth solicitado."
+                    "bluetooth_requested": "Permiso de Bluetooth solicitado.",
+                    "request_usb": "Permitir USB",
+                    "open_native": "Abrir flasher nativo",
+                    "opened_native": "Se abrió el flasher nativo de RNode.",
+                    "bluetooth_already_granted": "El permiso de Bluetooth ya está concedido.",
+                    "bluetooth_open_settings": "Abre la configuración de la app y activa los permisos de Bluetooth.",
+                    "bluetooth_unsupported": "La solicitud de permiso de Bluetooth no está disponible.",
+                    "bluetooth_granted": "Permiso de Bluetooth concedido.",
+                    "bluetooth_denied": "Permiso de Bluetooth denegado.",
+                    "usb_requested": "Permiso USB solicitado."
                 }
             },
             "diagnostics": {

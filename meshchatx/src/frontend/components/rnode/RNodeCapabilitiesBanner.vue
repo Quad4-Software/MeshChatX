@@ -92,6 +92,13 @@ export default {
                     labelKey: "tools.rnode_flasher.support.actions.load_polyfill",
                 });
             }
+            if (this.androidAvailable) {
+                actions.push({
+                    id: "open-native-flasher",
+                    icon: "usb",
+                    labelKey: "tools.rnode_flasher.support.actions.open_native",
+                });
+            }
             return actions;
         },
         _bluetoothActions() {
