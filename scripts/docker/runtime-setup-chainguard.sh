@@ -3,7 +3,7 @@
 # Chainguard/Wolfi final-stage packages, pip bootstrap, and meshchat user.
 set -eu
 
-apk add --no-cache opus libffi shadow
+apk add --no-cache opus libffi shadow libseccomp
 pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools" "jaraco.context>=6.1.0"
 rm -rf /root/.cache/pip
 

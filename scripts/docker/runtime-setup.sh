@@ -7,7 +7,7 @@ set -eu
 VARIANT="${1:-${VARIANT:-standard}}"
 
 apk upgrade --no-cache
-apk add --no-cache opusfile libffi espeak-ng su-exec
+apk add --no-cache opusfile libffi espeak-ng su-exec libseccomp
 
 case "${VARIANT}" in
 standard) ;;

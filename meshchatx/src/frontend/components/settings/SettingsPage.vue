@@ -5265,70 +5265,74 @@ export default {
 
 <style scoped>
 @reference "../../style.css";
-.settings-section {
+/*
+ * Shared settings chrome is used by extracted section components.
+ * :deep is required so scoped styles still reach their markup.
+ */
+:deep(.settings-section) {
     @apply w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-6 sm:py-8 flex flex-col break-inside-avoid;
 }
-.settings-section--hero {
+:deep(.settings-section--hero) {
     @apply border-b border-gray-200/60 dark:border-zinc-800/60 py-6 sm:py-8;
 }
-.settings-section__header {
+:deep(.settings-section__header) {
     @apply flex items-center justify-between gap-3 pb-4 border-b border-gray-100/60 dark:border-zinc-800/60;
 }
-.settings-section__header h2 {
+:deep(.settings-section__header h2) {
     @apply text-lg font-semibold text-gray-900 dark:text-white;
 }
-.settings-section__header p {
+:deep(.settings-section__header p) {
     @apply text-sm text-gray-600 dark:text-gray-400;
 }
-.settings-section__eyebrow {
+:deep(.settings-section__eyebrow) {
     @apply text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400;
 }
-.settings-section__body {
+:deep(.settings-section__body) {
     @apply pt-4 text-gray-900 dark:text-gray-100;
 }
-.input-field {
+:deep(.input-field) {
     @apply bg-gray-50/90 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 text-sm rounded-2xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-500 dark:focus:border-blue-500 block w-full p-2.5 text-gray-900 dark:text-gray-100 transition;
 }
-.btn-maintenance {
+:deep(.btn-maintenance) {
     @apply w-full px-4 py-3 rounded-2xl border transition flex items-center justify-between;
 }
-.setting-toggle {
-    @apply relative flex flex-row-reverse items-center gap-3 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 px-3 py-3;
+:deep(.setting-toggle) {
+    @apply relative flex flex-row-reverse items-start gap-3 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 px-3 py-3;
 }
-.setting-toggle > :deep(label) {
+:deep(.setting-toggle > label) {
     @apply shrink-0 self-center;
 }
-.setting-toggle :deep(.sr-only) {
+:deep(.setting-toggle .sr-only) {
     @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
 }
-.setting-toggle__label {
+:deep(.setting-toggle__label) {
     @apply flex-1 min-w-0 flex flex-col gap-0.5;
 }
-.setting-toggle__title {
-    @apply text-sm font-semibold text-gray-900 dark:text-white break-words;
+:deep(.setting-toggle__title) {
+    @apply text-sm font-semibold text-gray-900 dark:text-white break-words leading-snug;
 }
-.setting-toggle__description {
-    @apply text-sm text-gray-600 dark:text-gray-300 break-words;
+:deep(.setting-toggle__description) {
+    @apply text-xs sm:text-sm text-gray-600 dark:text-gray-300 break-words leading-snug;
 }
-.setting-toggle__hint {
+:deep(.setting-toggle__hint) {
     @apply text-xs text-gray-500 dark:text-gray-400 break-words;
 }
-.info-callout {
+:deep(.info-callout) {
     @apply rounded-2xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/60 dark:bg-blue-900/20 px-3 py-3 text-blue-900 dark:text-blue-100;
 }
-.monospace-field {
+:deep(.monospace-field) {
     font-family: "Roboto Mono", monospace;
 }
-.address-card {
+:deep(.address-card) {
     @apply relative border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/2 dark:sm:bg-white/2 space-y-2;
 }
-.address-card__label {
+:deep(.address-card__label) {
     @apply text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400;
 }
-.address-card__value {
+:deep(.address-card__value) {
     @apply text-sm text-gray-900 dark:text-white wrap-break-word pr-16;
 }
-.address-card__action {
+:deep(.address-card__action) {
     @apply absolute top-3 right-3 inline-flex items-center gap-1 rounded-full border border-gray-200 dark:border-zinc-700 px-3 py-1 text-xs font-semibold text-gray-700 dark:text-gray-100 bg-white/70 dark:bg-zinc-900/60 hover:border-blue-400 dark:hover:border-blue-500 transition;
 }
 .fade-enter-active,

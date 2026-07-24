@@ -104,6 +104,41 @@ describe("TelephonySettingsSection", () => {
 });
 
 describe("AppearanceSettingsSection", () => {
+    it("renders glass and split-view toggles as stacked setting rows", () => {
+        const wrapper = mount(AppearanceSettingsSection, {
+            props: {
+                visible: true,
+                config: {
+                    theme: "dark",
+                    messages_sidebar_position: "left",
+                    message_font_size: 14,
+                    message_icon_size: 28,
+                    ui_transparency: 0,
+                    ui_glass_enabled: true,
+                    messages_multi_pane_enabled: true,
+                    nomad_tabs_enabled: true,
+                    rrc_enabled: true,
+                    rrc_unread_badges_enabled: true,
+                },
+                detailedOutboundSendStatus: false,
+                messageIconPreviewStyle: { width: "28px", height: "28px" },
+            },
+            global: {
+                mocks: { $t: (key) => key },
+                stubs: {
+                    Toggle: {
+                        template: '<button type="button" class="toggle-stub" />',
+                    },
+                    MaterialDesignIcon: true,
+                },
+            },
+        });
+        const toggles = wrapper.findAll("label.setting-toggle");
+        expect(toggles.length).toBeGreaterThanOrEqual(4);
+        expect(toggles[0].find(".setting-toggle__title").text()).toContain("ui_glass_enabled");
+        expect(toggles[0].find(".setting-toggle__description").text()).toContain("ui_glass_enabled_description");
+    });
+
     it("emits theme and field events without mutating config prop", async () => {
         const config = {
             theme: "light",
