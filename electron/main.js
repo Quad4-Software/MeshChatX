@@ -980,6 +980,17 @@ app.whenReady().then(async () => {
         callback({ responseHeaders });
     });
 
+    // Keep UI downloads under Downloads/MeshChatX so AppContainer ACLs and
+    // reveal-in-folder stay on an app-owned exchange dir, not all of Downloads.
+    try {
+        const exchangeDownloads = path.join(app.getPath("downloads"), "MeshChatX");
+        fs.mkdirSync(exchangeDownloads, { recursive: true });
+        session.defaultSession.setDownloadPath(exchangeDownloads);
+        log(`Download path set to ${exchangeDownloads}`);
+    } catch (error) {
+        log(`Failed to set MeshChatX download path: ${error && error.message ? error.message : error}`);
+    }
+
     // Log Hardware Acceleration status (New in Electron 39)
     const isHardwareAccelerationEnabled = app.isHardwareAccelerationEnabled();
     log(`Hardware Acceleration Enabled: ${isHardwareAccelerationEnabled}`);

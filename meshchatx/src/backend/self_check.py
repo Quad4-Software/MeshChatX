@@ -41,6 +41,7 @@ SELF_CHECK_LABELS = {
     "imports_good": "Critical Imports       ",
     "storage_lock_good": "Storage Lock           ",
     "temp_fs_good": "Temp Filesystem        ",
+    "fs_sandbox_good": "FS Sandbox Modules     ",
     "public_assets_good": "Public Assets          ",
     "lxmf_router_good": "LXMF Router            ",
     "subprocess_good": "Subprocess Spawn       ",
@@ -269,6 +270,80 @@ def check_temp_filesystem() -> dict[str, str]:
         if path and os.path.exists(path):
             with contextlib.suppress(Exception):
                 os.unlink(path)
+
+
+def check_fs_sandbox() -> dict[str, str]:
+    """Verify Landlock/AppContainer/Seccomp helpers import and report status.
+
+    Does not enable sandboxes. Confirms modules load and exchange-folder
+    helpers create MeshChatX subdirs under a fake profile root.
+    """
+    try:
+        from meshchatx.src.backend import appcontainer_sandbox as ac
+        from meshchatx.src.backend import landlock_sandbox as ll
+        from meshchatx.src.backend import seccomp_sandbox as sc
+    except Exception as exc:
+        return _status(False, f"sandbox import failed: {exc}")
+
+    bool_checks = (
+        ("landlock_kernel_supported", ll.landlock_kernel_supported()),
+        ("landlock_requested", ll.landlock_requested()),
+        ("landlock_disabled_by_env", ll.landlock_disabled_by_env()),
+        ("appcontainer_supported", ac.appcontainer_supported()),
+        ("appcontainer_requested", ac.appcontainer_requested()),
+        ("appcontainer_disabled_by_env", ac.appcontainer_disabled_by_env()),
+        ("appcontainer_forced", ac.appcontainer_forced()),
+        ("is_appcontainer_child", ac.is_appcontainer_child()),
+        ("seccomp_kernel_supported", sc.seccomp_kernel_supported()),
+        ("seccomp_requested", sc.seccomp_requested()),
+        ("seccomp_disabled_by_env", sc.seccomp_disabled_by_env()),
+    )
+    for name, value in bool_checks:
+        if not isinstance(value, bool):
+            return _status(False, f"{name} returned non-bool: {type(value)!r}")
+
+    if ac.USER_EXCHANGE_DIR_NAME != "MeshChatX":
+        return _status(
+            False,
+            f"unexpected USER_EXCHANGE_DIR_NAME={ac.USER_EXCHANGE_DIR_NAME!r}",
+        )
+
+    try:
+        with tempfile.TemporaryDirectory(prefix="meshchatx_exchange_") as tmp:
+            documents = os.path.join(tmp, "Documents")
+            downloads = os.path.join(tmp, "Downloads")
+            pictures = os.path.join(tmp, "Pictures")
+            os.makedirs(documents)
+            os.makedirs(downloads)
+            os.makedirs(pictures)
+
+            original_profile = ac._user_profile_dir
+            original_known = ac._windows_known_folder
+            try:
+                ac._user_profile_dir = lambda: tmp  # type: ignore[assignment]
+                ac._windows_known_folder = lambda _fid: None  # type: ignore[assignment]
+                roots = ac.collect_user_exchange_roots(create=True)
+            finally:
+                ac._user_profile_dir = original_profile  # type: ignore[assignment]
+                ac._windows_known_folder = original_known  # type: ignore[assignment]
+
+            expected = {
+                os.path.join(documents, "MeshChatX"),
+                os.path.join(downloads, "MeshChatX"),
+                os.path.join(pictures, "MeshChatX"),
+            }
+            if set(roots) != expected:
+                return _status(
+                    False,
+                    f"exchange roots mismatch: got={roots!r} expected={sorted(expected)!r}",
+                )
+            for path in expected:
+                if not os.path.isdir(path):
+                    return _status(False, f"exchange dir missing: {path}")
+    except Exception as exc:
+        return _status(False, f"exchange roots check failed: {exc}")
+
+    return _status(True)
 
 
 def _is_frozen_executable() -> bool:
@@ -882,7 +957,17 @@ async def _run_web_api_probes(app: Any) -> dict[str, dict[str, str]]:
                 validate=lambda body: (
                     None
                     if body.get("app_info", {}).get("version")
-                    else "app_info.version missing"
+                    and isinstance(
+                        body.get("app_info", {}).get("appcontainer_supported"), bool
+                    )
+                    and isinstance(
+                        body.get("app_info", {}).get("landlock_active"), bool
+                    )
+                    and isinstance(
+                        body.get("app_info", {}).get("fs_sandbox_active"), bool
+                    )
+                    and isinstance(body.get("app_info", {}).get("seccomp_active"), bool)
+                    else "app_info missing version or FS sandbox status fields"
                 ),
             )
             results["http_config_good"] = await _probe_json_get(
@@ -934,7 +1019,27 @@ async def _run_web_api_probes(app: Any) -> dict[str, dict[str, str]]:
             results["http_security_good"] = await _probe_json_get(
                 client,
                 "/api/v1/server/security",
-                require_keys=("listen_host", "listen_port", "auth_enabled"),
+                require_keys=(
+                    "listen_host",
+                    "listen_port",
+                    "auth_enabled",
+                    "landlock_kernel_supported",
+                    "landlock_requested",
+                    "landlock_auto_enabled",
+                    "landlock_disabled_by_env",
+                    "landlock_active",
+                    "appcontainer_supported",
+                    "appcontainer_requested",
+                    "appcontainer_auto_enabled",
+                    "appcontainer_disabled_by_env",
+                    "appcontainer_active",
+                    "fs_sandbox_active",
+                    "seccomp_kernel_supported",
+                    "seccomp_requested",
+                    "seccomp_auto_enabled",
+                    "seccomp_disabled_by_env",
+                    "seccomp_active",
+                ),
             )
             results["http_interfaces_good"] = await _probe_json_get(
                 client,

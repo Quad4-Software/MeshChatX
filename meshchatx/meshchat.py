@@ -108,6 +108,14 @@ from meshchatx.src.backend.landlock_sandbox import (
     landlock_kernel_supported,
     landlock_requested,
 )
+from meshchatx.src.backend.appcontainer_sandbox import (
+    apply_windows_process_mitigations,
+    appcontainer_auto_enabled,
+    appcontainer_disabled_by_env,
+    appcontainer_requested,
+    appcontainer_supported,
+    is_appcontainer_child,
+)
 from meshchatx.src.backend.seccomp_sandbox import (
     apply_seccomp_sandbox,
     seccomp_auto_enabled,
@@ -598,6 +606,7 @@ class ReticulumMeshChat:
         self.listen_port: int | None = None
         self.use_https: bool = True
         self.landlock_active: bool = False
+        self.appcontainer_active: bool = False
         self.seccomp_active: bool = False
         self._pending_identity = identity
         self._network_setup_lock = threading.Lock()
@@ -1243,6 +1252,7 @@ class ReticulumMeshChat:
             self.storage_path or self.storage_dir,
         )
         temp_fs_result = self_check_mod.check_temp_filesystem()
+        fs_sandbox_result = self_check_mod.check_fs_sandbox()
         public_assets_result = self_check_mod.check_public_assets(self.get_public_path)
         lxmf_result = self_check_mod.check_lxmf_router(
             self.message_router,
@@ -1283,6 +1293,7 @@ class ReticulumMeshChat:
             "imports_good": imports_result,
             "storage_lock_good": storage_lock_result,
             "temp_fs_good": temp_fs_result,
+            "fs_sandbox_good": fs_sandbox_result,
             "public_assets_good": public_assets_result,
             "lxmf_router_good": lxmf_result,
             "subprocess_good": subprocess_result,
@@ -5031,12 +5042,22 @@ class ReticulumMeshChat:
             "landlock_auto_enabled": landlock_auto_enabled(),
             "landlock_disabled_by_env": landlock_disabled_by_env(),
             "landlock_active": self.landlock_active,
+            "appcontainer_supported": appcontainer_supported(),
+            "appcontainer_requested": appcontainer_requested(),
+            "appcontainer_auto_enabled": appcontainer_auto_enabled(),
+            "appcontainer_disabled_by_env": appcontainer_disabled_by_env(),
+            "appcontainer_active": self.appcontainer_active,
+            "fs_sandbox_active": bool(self.landlock_active or self.appcontainer_active),
             "seccomp_kernel_supported": seccomp_kernel_supported(),
             "seccomp_requested": seccomp_requested(),
             "seccomp_auto_enabled": seccomp_auto_enabled(),
             "seccomp_disabled_by_env": seccomp_disabled_by_env(),
             "seccomp_active": self.seccomp_active,
         }
+
+    @property
+    def fs_sandbox_active(self) -> bool:
+        return bool(self.landlock_active or self.appcontainer_active)
 
     def get_routes(self):
         routes = web.RouteTableDef()
@@ -10149,6 +10170,27 @@ def main():
     if _maybe_run_embedded_module():
         return
 
+    # Windows: mirror Linux Landlock by supervising the real process in an
+    # AppContainer when requested. Electron already enters via the launcher
+    # module. Skip when already inside the container or when this process is
+    # the launcher supervisor (MESHCHAT_APPCONTAINER_LAUNCHER=1).
+    if (
+        sys.platform == "win32"
+        and appcontainer_requested()
+        and not is_appcontainer_child()
+        and os.environ.get("MESHCHAT_APPCONTAINER_LAUNCHER", "").strip()
+        not in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
+    ):
+        from meshchatx.src.backend.appcontainer_launcher import run_launcher
+
+        os.environ["MESHCHAT_APPCONTAINER_LAUNCHER"] = "1"
+        raise SystemExit(run_launcher(sys.argv[1:]))
+
     # Initialize crash recovery system early to catch startup errors
     recovery = CrashRecovery()
     recovery.install()
@@ -10585,6 +10627,9 @@ def main():
             print(f"Error: Snapshot not found at {snapshot_path}")
 
     enable_https = not args.no_https
+    reticulum_meshchat.appcontainer_active = is_appcontainer_child()
+    if reticulum_meshchat.appcontainer_active:
+        apply_windows_process_mitigations()
     reticulum_meshchat.landlock_active = apply_landlock_sandbox(
         storage_dir=reticulum_meshchat.storage_dir,
         reticulum_config_dir=reticulum_meshchat.reticulum_config_dir,

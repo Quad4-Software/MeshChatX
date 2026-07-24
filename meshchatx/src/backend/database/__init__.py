@@ -140,25 +140,30 @@ class Database:
         relax: bool,
         *,
         landlock_active: bool = False,
+        fs_sandbox_active: bool | None = None,
     ) -> bool:
         """Shrink SQLite cache under low RAM.
 
-        FILE temp spills break complex conversation queries under Landlock
-        (unable to open database file), even when TMPDIR is inside the
-        allowed storage tree. Keep MEMORY temp while Landlock is active and
-        only reduce cache/mmap. Without Landlock, FILE temp is still used.
+        FILE temp spills break complex conversation queries under filesystem
+        sandboxes (Landlock or Windows AppContainer), even when TMPDIR is
+        inside the allowed storage tree. Keep MEMORY temp while a FS sandbox
+        is active and only reduce cache/mmap. Without a sandbox, FILE temp
+        is still used.
         """
+        sandbox_active = (
+            landlock_active if fs_sandbox_active is None else bool(fs_sandbox_active)
+        )
         try:
             if relax:
                 self._ensure_sqlite_temp_dir()
-                use_file_temp = not landlock_active
+                use_file_temp = not sandbox_active
                 self.provider.prefer_temp_store_file = use_file_temp
                 if use_file_temp:
                     self.execute_sql("PRAGMA temp_store=FILE")
                 else:
                     self.execute_sql("PRAGMA temp_store=MEMORY")
                     _log.info(
-                        "Memory pressure under Landlock: keeping temp_store=MEMORY",
+                        "Memory pressure under FS sandbox: keeping temp_store=MEMORY",
                     )
                 self.execute_sql("PRAGMA cache_size=-2000")  # 2 MB
                 self.execute_sql("PRAGMA mmap_size=0")

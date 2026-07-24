@@ -194,6 +194,32 @@ function createBackendProcessManager(deps) {
         };
     }
 
+    function shouldUseAppContainerLauncher() {
+        if (process.platform !== "win32") {
+            return false;
+        }
+        const raw = process.env.MESHCHAT_APPCONTAINER;
+        if (raw !== undefined && raw !== null && String(raw).trim() !== "") {
+            const val = String(raw).trim().toLowerCase();
+            if (["false", "0", "no", "off"].includes(val)) {
+                return false;
+            }
+            if (["true", "1", "yes", "on"].includes(val)) {
+                return true;
+            }
+        }
+        // Default on for Windows desktop shells (Landlock equivalent).
+        return true;
+    }
+
+    function buildSpawnArgs(extraArgs = []) {
+        const backendArgs = buildBackendArgs(extraArgs);
+        if (!shouldUseAppContainerLauncher()) {
+            return backendArgs;
+        }
+        return ["--meshchatx-run-module", "meshchatx.src.backend.appcontainer_launcher", ...backendArgs];
+    }
+
     async function spawnBackend(exePath, integrityStatusRef) {
         if (!exePath) {
             throw new Error("Backend executable path is not set.");
@@ -223,7 +249,11 @@ function createBackendProcessManager(deps) {
             );
         }
 
-        const proc = spawnFn(exePath, buildBackendArgs(), {
+        if (shouldUseAppContainerLauncher()) {
+            log("Starting Windows backend via AppContainer launcher.");
+        }
+
+        const proc = spawnFn(exePath, buildSpawnArgs(), {
             env: buildSpawnEnv(),
             windowsHide: true,
         });
@@ -308,7 +338,7 @@ function createBackendProcessManager(deps) {
         return await new Promise((resolve) => {
             const stdoutChunks = [];
             const stderrChunks = [];
-            const proc = spawnFn(resolvedExePath, buildBackendArgs(extraArgs), {
+            const proc = spawnFn(resolvedExePath, buildSpawnArgs(extraArgs), {
                 env: buildSpawnEnv(),
                 windowsHide: true,
             });

@@ -2053,6 +2053,23 @@
                                     }}
                                 </div>
                                 <div
+                                    v-if="serverSecurity.appcontainer_requested !== undefined"
+                                    class="text-xs text-gray-600 dark:text-gray-400"
+                                >
+                                    {{ $t("app.appcontainer_status") }}:
+                                    {{
+                                        serverSecurity.appcontainer_active
+                                            ? serverSecurity.appcontainer_auto_enabled
+                                                ? $t("app.appcontainer_auto_enabled")
+                                                : $t("app.appcontainer_active")
+                                            : serverSecurity.appcontainer_supported === false
+                                              ? $t("app.appcontainer_unsupported")
+                                              : serverSecurity.appcontainer_disabled_by_env
+                                                ? $t("app.appcontainer_disabled_by_env")
+                                                : $t("app.appcontainer_inactive")
+                                    }}
+                                </div>
+                                <div
                                     v-if="serverSecurity.seccomp_requested !== undefined"
                                     class="text-xs text-gray-600 dark:text-gray-400"
                                 >
@@ -2979,6 +2996,11 @@ export default {
                 landlock_kernel_supported: false,
                 landlock_auto_enabled: false,
                 landlock_disabled_by_env: false,
+                appcontainer_requested: false,
+                appcontainer_active: false,
+                appcontainer_supported: false,
+                appcontainer_auto_enabled: false,
+                appcontainer_disabled_by_env: false,
                 seccomp_requested: false,
                 seccomp_active: false,
                 seccomp_kernel_supported: false,

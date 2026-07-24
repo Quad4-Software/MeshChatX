@@ -22,6 +22,9 @@ function fakeApp() {
             if (name === "documents") {
                 return path.join(home, "Documents");
             }
+            if (name === "pictures") {
+                return path.join(home, "Pictures");
+            }
             throw new Error(`unexpected getPath ${name}`);
         },
     };
@@ -47,6 +50,15 @@ describe("shellPathGuard", () => {
         const legacy = path.join(home, ".reticulum-meshchat");
         const p = path.join(legacy, "identities", "abc", "database.db");
         expect(isAllowedShellPath(p, ctx)).toBe(true);
+    });
+
+    it("allows MeshChatX exchange folders under downloads and documents", () => {
+        const downloadExchange = path.join(home, "Downloads", "MeshChatX", "attachment.bin");
+        const documentExchange = path.join(home, "Documents", "MeshChatX", "export.zip");
+        const pictureExchange = path.join(home, "Pictures", "MeshChatX", "shot.png");
+        expect(isAllowedShellPath(downloadExchange, ctx)).toBe(true);
+        expect(isAllowedShellPath(documentExchange, ctx)).toBe(true);
+        expect(isAllowedShellPath(pictureExchange, ctx)).toBe(true);
     });
 
     it("denies paths outside allowed roots", () => {

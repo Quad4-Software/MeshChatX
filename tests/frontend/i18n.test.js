@@ -134,4 +134,39 @@ describe("i18n Localization Tests", () => {
             }
         }
     });
+
+    it("keeps FS sandbox status keys present in every locale", () => {
+        const required = [
+            "app.landlock_status",
+            "app.landlock_active",
+            "app.landlock_inactive",
+            "app.landlock_auto_enabled",
+            "app.landlock_kernel_unsupported",
+            "app.landlock_disabled_by_env",
+            "app.appcontainer_status",
+            "app.appcontainer_active",
+            "app.appcontainer_inactive",
+            "app.appcontainer_auto_enabled",
+            "app.appcontainer_unsupported",
+            "app.appcontainer_disabled_by_env",
+            "app.seccomp_status",
+            "app.seccomp_active",
+            "app.seccomp_inactive",
+            "app.seccomp_auto_enabled",
+            "app.seccomp_kernel_unsupported",
+            "app.seccomp_disabled_by_env",
+        ];
+        for (const key of required) {
+            const parts = key.split(".");
+            for (const [code, data] of Object.entries(allLocales)) {
+                let current = data;
+                for (const part of parts) {
+                    expect(current?.[part], `${code} missing ${key}`).toBeDefined();
+                    current = current[part];
+                }
+                expect(typeof current, `${code} ${key} type`).toBe("string");
+                expect(String(current).trim().length, `${code} ${key} empty`).toBeGreaterThan(0);
+            }
+        }
+    });
 });

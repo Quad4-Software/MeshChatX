@@ -212,6 +212,9 @@ jobs:
             - name: Verify bleak bundled in frozen backend
               run: bash scripts/ci/github-verify-frozen-bleak.sh build/exe
 
+            - name: Verify FS sandbox modules bundled in frozen backend
+              run: bash scripts/ci/github-verify-frozen-sandbox.sh build/exe
+
             - name: Verify frozen backend has no package bloat
               run: bash scripts/ci/verify-package-contents.sh frozen build/exe
 
@@ -253,6 +256,8 @@ jobs:
                   test -n "$(ls -A .artifacts/linux-build-check/meshchatx/public)"
                   test -n "$(ls -A .artifacts/linux-build-check/build/exe)"
                   bash scripts/ci/github-verify-frozen-bleak.sh \
+                      .artifacts/linux-build-check/build/exe
+                  bash scripts/ci/github-verify-frozen-sandbox.sh \
                       .artifacts/linux-build-check/build/exe
                   bash scripts/ci/verify-package-contents.sh frozen \
                       .artifacts/linux-build-check/build/exe
@@ -398,3 +403,5 @@ jobs:
                   set -o pipefail
                   uv run python -m meshchatx.meshchat --self-check --headless 2>&1 | tee self-check-out.txt
                   grep -E '^\[OK\][[:space:]]+Storage Lock' self-check-out.txt
+                  grep -E '^\[OK\][[:space:]]+FS Sandbox Modules' self-check-out.txt
+                  grep -E '^\[OK\][[:space:]]+HTTP Server Security' self-check-out.txt
