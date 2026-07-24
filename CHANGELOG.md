@@ -57,7 +57,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- Desktop AppImage: closed stdout no longer raises a main-process **write EPIPE** dialog when MeshChatX is backgrounded. Logging uses broken-pipe guards
+- Desktop AppImage: main-process logs always append to storage `logs/meshchatx.log`. Stdout is only used when a TTY is attached, with broken-pipe guards as a fallback, so background launches no longer raise **write EPIPE** dialogs
 - Android: lxmfy packaging, flock soft-lock, splash/logo clipping, Landlock skipped on Android
 - Android RNode BLE/USB via Chaquopy
 - Startup check and disable unsupported interfaces

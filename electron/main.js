@@ -42,9 +42,14 @@ const {
     applyContentProtection,
     applyContentProtectionToWindows,
 } = require("./desktopPrivacySettings");
-const { installBrokenPipeGuards, safeConsoleLog } = require("./safeConsole");
+const { getLogsDir } = require("./backendCrashReport");
+const { installBrokenPipeGuards, createMainProcessLogger } = require("./safeConsole");
 
 installBrokenPipeGuards(process);
+
+const mainProcessLogger = createMainProcessLogger({
+    getLogsDir: () => getLogsDir(getDefaultStorageDir()),
+});
 
 // remember main window
 var mainWindow = null;
@@ -87,7 +92,7 @@ try {
     const disableGpuFile = path.join(storageDir, "disable-gpu");
     if (fs.existsSync(disableGpuFile)) {
         app.disableHardwareAcceleration();
-        safeConsoleLog("Hardware acceleration disabled via storage flag.");
+        mainProcessLogger.write("Hardware acceleration disabled via storage flag.");
     }
 } catch {
     // ignore errors reading storage dir this early
@@ -105,7 +110,7 @@ if (process.platform === "linux") {
 // Detect if running in Flatpak sandbox
 const isRunningInFlatpak = !!process.env.FLATPAK_ID;
 if (isRunningInFlatpak) {
-    safeConsoleLog(`Running in Flatpak sandbox: ${process.env.FLATPAK_ID}`);
+    mainProcessLogger.write(`Running in Flatpak sandbox: ${process.env.FLATPAK_ID}`);
 }
 
 // Protocol registration
@@ -662,8 +667,9 @@ function attachDefaultContextMenu(browserWindow) {
 }
 
 function log(message) {
-    // log to stdout of this process (AppImage may close the pipe later)
-    safeConsoleLog(message);
+    // Durable file under storage/logs/meshchatx.log. Stdout only when a TTY
+    // is attached (desktop AppImage launchers usually close the pipe).
+    mainProcessLogger.write(message);
 
     // make sure main window exists
     if (!mainWindow) {
