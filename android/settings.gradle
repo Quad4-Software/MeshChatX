@@ -13,6 +13,8 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven { url "https://chaquo.com/maven" }
+        // usb-serial-for-android (com.github.mik3y) is published via JitPack
+        maven { url "https://jitpack.io" }
     }
 }
 
