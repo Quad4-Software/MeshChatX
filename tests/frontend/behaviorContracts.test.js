@@ -105,6 +105,20 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
             expect(util).toContain("LOCAL_BACKEND_URL");
         });
 
+        it("SettingsPage deep-scopes shared toggle styles for extracted sections", () => {
+            const src = readSource("meshchatx/src/frontend/components/settings/SettingsPage.vue");
+            expect(src).toContain(":deep(.setting-toggle)");
+            expect(src).toContain(":deep(.setting-toggle__label)");
+            expect(src).toContain(":deep(.setting-toggle__title)");
+        });
+
+        it("Docker runtime images install libseccomp for Seccomp-BPF", () => {
+            const alpine = readSource("scripts/docker/runtime-setup.sh");
+            const chainguard = readSource("scripts/docker/runtime-setup-chainguard.sh");
+            expect(alpine).toMatch(/apk add[^\n]*libseccomp/);
+            expect(chainguard).toMatch(/apk add[^\n]*libseccomp/);
+        });
+
         it("Android backup of app data is disabled", () => {
             const src = readSource("android/app/src/main/AndroidManifest.xml");
             expect(src).toMatch(/android:allowBackup\s*=\s*"false"/);
