@@ -2,7 +2,7 @@
  * Axios-shaped HTTP helpers backed by fetch (same-origin API calls).
  */
 
-import { getCsrfToken } from "./csrfToken.js";
+import { fetchCsrfToken, getCsrfToken } from "./csrfToken.js";
 
 export function isCancel(error) {
     if (!error) return false;
@@ -65,12 +65,28 @@ async function readSuccessBody(response, responseType) {
 }
 
 /**
+ * True when a 403 is a CSRF rejection (not a missing login session).
+ * @param {number} status
+ * @param {unknown} errData
+ * @returns {boolean}
+ */
+export function isCsrfRejection(status, errData) {
+    if (status !== 403) {
+        return false;
+    }
+    const text =
+        (errData && typeof errData === "object" && (errData.error || errData.message)) ||
+        (typeof errData === "string" ? errData : "");
+    return typeof text === "string" && /csrf/i.test(text);
+}
+
+/**
  * @param {{ onAuthError?: (err: Error & { response?: { status: number, data: unknown } }) => void }} options
  */
 export function createApiClient(options = {}) {
     const { onAuthError } = options;
 
-    async function request(method, path, config = {}) {
+    async function request(method, path, config = {}, csrfRetry = false) {
         const { params, data, signal, headers = {}, responseType } = config;
         const url = buildUrl(path, params);
         const hdrs = new Headers(headers);
@@ -111,8 +127,26 @@ export function createApiClient(options = {}) {
                 name: "HttpError",
                 response: { status: response.status, data: errData },
             });
+
+            const mutating = method !== "GET" && method !== "HEAD" && path.startsWith("/api/");
+            if (mutating && !csrfRetry && isCsrfRejection(response.status, errData)) {
+                try {
+                    await fetchCsrfToken({
+                        get(csrfPath) {
+                            return request("GET", csrfPath, {});
+                        },
+                    });
+                } catch {
+                    // Fall through and surface the original CSRF error.
+                    throw err;
+                }
+                return request(method, path, config, true);
+            }
+
             if (onAuthError && (response.status === 401 || response.status === 403)) {
-                onAuthError(err);
+                if (!isCsrfRejection(response.status, errData)) {
+                    onAuthError(err);
+                }
             }
             throw err;
         }

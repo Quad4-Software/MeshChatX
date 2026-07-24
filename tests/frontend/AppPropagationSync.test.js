@@ -226,4 +226,79 @@ describe("App propagation sync", () => {
         expect(ToastUtils.error).toHaveBeenCalledWith("Sync error: No path to node");
         expect(ToastUtils.success).not.toHaveBeenCalled();
     });
+
+    it("still starts sync when request-path fails (stale CSRF / brief offline after background)", async () => {
+        // Oracle: request-path is best-effort priming. The /sync GET already
+        // requests a path server-side. A CSRF or network failure on the POST
+        // must not abort the user-initiated sync (common after a backgrounded tab).
+        axiosMock.post.mockRejectedValue(
+            Object.assign(new Error("HTTP 403"), {
+                response: { status: 403, data: { error: "Invalid or missing CSRF token" } },
+            })
+        );
+        let syncCalled = false;
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/lxmf/propagation-node/sync") {
+                syncCalled = true;
+                return Promise.resolve({ data: { message: "Sync is starting" } });
+            }
+            if (url === "/api/v1/lxmf/propagation-node/status") {
+                return Promise.resolve({
+                    data: {
+                        propagation_node_status: {
+                            state: "complete",
+                            progress: 100,
+                            messages_received: 1,
+                            messages_stored: 1,
+                            delivery_confirmations: 0,
+                            messages_hidden: 0,
+                        },
+                    },
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const ctx = makeSyncContext(axiosMock);
+        await App.methods.syncPropagationNode.call(ctx);
+        await vi.runOnlyPendingTimersAsync();
+
+        expect(syncCalled).toBe(true);
+        expect(ToastUtils.success).toHaveBeenCalled();
+        expect(ToastUtils.error).not.toHaveBeenCalled();
+    });
+
+    it("clears stuck userInitiatedPropagationSync when status returns idle after background", async () => {
+        // Oracle: after a backgrounded tab, chrome can still show a prior sync
+        // as running. A status poll that sees idle/complete must clear the flag
+        // so the next Sync Messages click starts a new sync instead of stop-confirm.
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/lxmf/propagation-node/status") {
+                return Promise.resolve({
+                    data: {
+                        propagation_node_status: {
+                            state: "idle",
+                            progress: 0,
+                            messages_received: 0,
+                            messages_stored: 0,
+                            delivery_confirmations: 0,
+                            messages_hidden: 0,
+                        },
+                    },
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const ctx = makeSyncContext(axiosMock);
+        ctx.userInitiatedPropagationSync = true;
+        ctx.propagationNodeStatus = { state: "path_requested", progress: 5 };
+        expect(ctx.isSyncingPropagationNode).toBe(true);
+
+        await App.methods.updatePropagationNodeStatus.call(ctx);
+
+        expect(ctx.userInitiatedPropagationSync).toBe(false);
+        expect(ctx.propagationNodeStatus.state).toBe("idle");
+        expect(ctx.isSyncingPropagationNode).toBe(false);
+    });
 });
