@@ -16,9 +16,7 @@ describe("remoteBackendUrl", () => {
 
     it("normalizes http(s) LAN origins", () => {
         expect(normalizeRemoteBackendUrl("http://192.168.1.10:9337/")).toBe("http://192.168.1.10:9337");
-        expect(normalizeRemoteBackendUrl("HTTPS://Mesh.Example:8443/app/")).toBe(
-            "https://mesh.example:8443/app"
-        );
+        expect(normalizeRemoteBackendUrl("HTTPS://Mesh.Example:8443/app/")).toBe("https://mesh.example:8443/app");
     });
 
     it("rejects unsafe URLs", () => {

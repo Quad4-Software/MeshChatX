@@ -48,9 +48,9 @@ function detectSerial(env, platform) {
     const hasUsbPolyfillTarget = Boolean(env.navigator?.usb);
     const hasPolyfillModule = Boolean(env.serial);
     const hasNativeFlasher =
-        Boolean(env.MeshChatXAndroid)
-        && typeof env.MeshChatXAndroid.hasNativeRNodeFlasher === "function"
-        && Boolean(env.MeshChatXAndroid.hasNativeRNodeFlasher());
+        Boolean(env.MeshChatXAndroid) &&
+        typeof env.MeshChatXAndroid.hasNativeRNodeFlasher === "function" &&
+        Boolean(env.MeshChatXAndroid.hasNativeRNodeFlasher());
 
     if (hasNativeFlasher) {
         return {
@@ -112,18 +112,14 @@ function detectBluetooth(env, platform) {
     if (platform.hasMeshChatXAndroid) {
         const bridge = env.MeshChatXAndroid;
         const hasPerms =
-            typeof bridge?.hasBluetoothPermissions === "function"
-                ? Boolean(bridge.hasBluetoothPermissions())
-                : false;
+            typeof bridge?.hasBluetoothPermissions === "function" ? Boolean(bridge.hasBluetoothPermissions()) : false;
         return {
             // WebView still has no Web Bluetooth GATT. Permissions matter for
             // mesh RNode BLE and OS pairing. Keep transport disabled for flash
             // selection, but surface a clearer reason + actions.
             available: false,
             kind: "android-bridge",
-            reason: hasPerms
-                ? "android_bridge_no_web_bluetooth"
-                : "android_bluetooth_permission_required",
+            reason: hasPerms ? "android_bridge_no_web_bluetooth" : "android_bluetooth_permission_required",
         };
     }
     return {
