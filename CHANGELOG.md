@@ -83,6 +83,14 @@ All notable changes to this project will be documented in this file.
 - Map remote overlay loads undo layers from a stale generation, and TileCache map view keys are identity-scoped
 - Nomad micron LXMF links route to Messages via onLxmfAddress instead of being ignored
 - RNSH session config_path and identity_path are jailed under storage or the shared Reticulum config dir, and free-form extra_args are rejected
+- Failed identity switch no longer emits identity-switched (which wiped keep-alive UI) and clears the switching overlay via identity-switching-abort
+- Settings, About, and Interfaces refresh identity-scoped state on identity-switched
+- About snapshot/backup restore guards concurrent restores and reloads the web UI after a successful restore
+- Interfaces enable/disable write interface_enabled when neither legacy key exists, and disable returns the correct success message
+- Interfaces enable/disable roll back in-memory config when the Reticulum config write fails
+- Disabling block-all-from-strangers restores a prior inbound stamp cost of 0 instead of forcing 8
+- Discovery settings PATCH returns 500 when RNS reload fails after a successful disk write
+- Interfaces stats map is replaced each poll so deleted interfaces cannot stay Connected
 - Desktop AppImage: main-process logs always append to the storage logs folder (meshchatx.log). Stdout is only used when a terminal is attached, with broken-pipe guards as a fallback, so background launches no longer raise write EPIPE dialogs
 - Android: lxmfy packaging, flock soft-lock, splash/logo clipping, Landlock skipped on Android
 - Android RNode BLE/USB via Chaquopy

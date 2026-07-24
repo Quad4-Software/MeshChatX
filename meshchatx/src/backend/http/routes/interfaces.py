@@ -131,6 +131,8 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     zipfile,
 )
 
+from meshchatx.src.backend.interface_enabled_flag import apply_interface_enabled_flag
+
 
 def register_interfaces_routes(routes, app):
 
@@ -485,6 +487,7 @@ def register_interfaces_routes(routes, app):
             )
 
         # enable interface
+        interfaces_before_write = app._get_interfaces_snapshot()
         interfaces = app._get_interfaces_section()
         if interface_name not in interfaces:
             return web.json_response(
@@ -502,10 +505,7 @@ def register_interfaces_routes(routes, app):
         if i2p_error is not None:
             return web.json_response({"message": i2p_error}, status=422)
 
-        if "enabled" in interface:
-            interface["enabled"] = "true"
-        if "interface_enabled" in interface:
-            interface["interface_enabled"] = "true"
+        apply_interface_enabled_flag(interface, enabled=True)
 
         keys_to_remove = []
         for key, value in interface.items():
@@ -515,7 +515,9 @@ def register_interfaces_routes(routes, app):
             del interface[key]
 
         # save config
-        if not app._write_reticulum_config():
+        if not app._write_reticulum_config(
+            rollback_interfaces=interfaces_before_write,
+        ):
             return web.json_response(
                 {
                     "message": "Failed to write Reticulum config",
@@ -547,6 +549,7 @@ def register_interfaces_routes(routes, app):
             )
 
         # disable interface
+        interfaces_before_write = app._get_interfaces_snapshot()
         interfaces = app._get_interfaces_section()
         if interface_name not in interfaces:
             return web.json_response(
@@ -556,10 +559,7 @@ def register_interfaces_routes(routes, app):
                 status=404,
             )
         interface = interfaces[interface_name]
-        if "enabled" in interface:
-            interface["enabled"] = "false"
-        if "interface_enabled" in interface:
-            interface["interface_enabled"] = "false"
+        apply_interface_enabled_flag(interface, enabled=False)
 
         keys_to_remove = []
         for key, value in interface.items():
@@ -569,7 +569,9 @@ def register_interfaces_routes(routes, app):
             del interface[key]
 
         # save config
-        if not app._write_reticulum_config():
+        if not app._write_reticulum_config(
+            rollback_interfaces=interfaces_before_write,
+        ):
             return web.json_response(
                 {
                     "message": "Failed to write Reticulum config",
@@ -579,7 +581,7 @@ def register_interfaces_routes(routes, app):
 
         return web.json_response(
             {
-                "message": "Interface deleted",
+                "message": "Interface is now disabled",
             },
         )
 

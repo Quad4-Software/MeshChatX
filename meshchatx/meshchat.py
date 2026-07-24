@@ -6057,8 +6057,13 @@ class ReticulumMeshChat:
             if new_value and not old_value:
                 # Enabling block strangers: save current stamp cost and set to max
                 current_cost = self.config.lxmf_inbound_stamp_cost.get()
-                if current_cost < 254:
-                    self.config.lxmf_inbound_stamp_cost_before_block.set(current_cost)
+                if not isinstance(current_cost, int):
+                    current_cost = 0
+                if current_cost < 0:
+                    current_cost = 0
+                elif current_cost > 254:
+                    current_cost = 254
+                self.config.lxmf_inbound_stamp_cost_before_block.set(current_cost)
                 self.config.lxmf_inbound_stamp_cost.set(254)
                 if self.message_router and self.local_lxmf_destination:
                     self.message_router.set_inbound_stamp_cost(
@@ -6073,14 +6078,16 @@ class ReticulumMeshChat:
                         destination_hash=self.local_lxmf_destination.hash,
                     )
             elif not new_value and old_value:
-                # Disabling block strangers: restore previous stamp cost
+                # Disabling block strangers: restore previous stamp cost.
+                # Zero is a valid prior cost (stamps off). Only fall back to 8
+                # when no prior cost was saved (sentinel outside 0..254).
                 saved = self.config.lxmf_inbound_stamp_cost_before_block.get()
-                if saved > 0 and saved < 255:
+                if isinstance(saved, int) and 0 <= saved <= 254:
                     restore_cost = saved
                 else:
                     restore_cost = 8
                 self.config.lxmf_inbound_stamp_cost.set(restore_cost)
-                self.config.lxmf_inbound_stamp_cost_before_block.set(0)
+                self.config.lxmf_inbound_stamp_cost_before_block.set(-1)
                 if self.message_router and self.local_lxmf_destination:
                     self.message_router.set_inbound_stamp_cost(
                         self.local_lxmf_destination.hash,

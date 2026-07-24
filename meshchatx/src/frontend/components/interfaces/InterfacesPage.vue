@@ -939,6 +939,7 @@ export default {
         if (this._batterySaverPrefsHandler) {
             GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
         }
+        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
     },
     mounted() {
         try {
@@ -962,9 +963,16 @@ export default {
             this.startInterfacePollIntervals();
         };
         GlobalEmitter.on(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
+        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
         this.startInterfacePollIntervals();
     },
     methods: {
+        onIdentitySwitched() {
+            this.loadInterfaces();
+            this.updateInterfaceStats();
+            this.loadDiscoveryConfig();
+            this.loadDiscoveredInterfaces();
+        },
         startInterfacePollIntervals() {
             clearInterval(this.reloadInterval);
             clearInterval(this.discoveryInterval);
@@ -1011,14 +1019,17 @@ export default {
                 // fetch interface stats
                 const response = await window.api.get(`/api/v1/interface-stats`);
 
-                // update data
+                // Replace the map so deleted/renamed interfaces do not keep
+                // stale Connected indicators for discovery peers.
+                const nextStats = {};
                 const interfaces = response.data.interface_stats?.interfaces ?? [];
                 for (const iface of interfaces) {
                     const key = iface.interface_name ?? iface.short_name;
                     if (key) {
-                        this.interfaceStats[key] = iface;
+                        nextStats[key] = iface;
                     }
                 }
+                this.interfaceStats = nextStats;
             } catch {
                 // do nothing if failed to load interfaces
             }

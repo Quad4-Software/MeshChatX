@@ -169,4 +169,10 @@ describe("App.vue applyIdentitySwitched", () => {
         await Promise.resolve();
         expect(inner).toHaveBeenCalledWith({ identity_hash: "x", display_name: "Y" });
     });
+
+    it("onIdentitySwitchingAbortShell clears the switching overlay", () => {
+        const ctx = { isSwitchingIdentity: true };
+        App.methods.onIdentitySwitchingAbortShell.call(ctx);
+        expect(ctx.isSwitchingIdentity).toBe(false);
+    });
 });

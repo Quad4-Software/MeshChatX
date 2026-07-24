@@ -124,8 +124,8 @@ class ConfigManager:
         self.lxmf_inbound_stamp_cost_before_block = self.IntConfig(
             self,
             "lxmf_inbound_stamp_cost_before_block",
-            0,
-        )  # saved stamp cost before block strangers was enabled
+            -1,
+        )  # prior stamp cost while block-all is on (-1 means unset)
         self.lxmf_flood_protection_enabled = self.BoolConfig(
             self,
             "lxmf_flood_protection_enabled",

@@ -697,7 +697,9 @@ export default {
                     e.response?.data?.message || this.$t("identities.failed_switch") || "Failed to switch identity";
                 ToastUtils.error(errorMsg);
                 this.isCreating = false;
-                GlobalEmitter.emit("identity-switched");
+                // Do not emit identity-switched on failure. Keep-alive pages treat
+                // that event as a real switch and clear identity-scoped UI.
+                GlobalEmitter.emit("identity-switching-abort");
             }
         },
         async deleteIdentity(identity) {

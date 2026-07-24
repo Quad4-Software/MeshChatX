@@ -3280,10 +3280,12 @@ export default {
     beforeUnmount() {
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
+        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
     },
     mounted() {
         // listen for websocket messages
         WebSocketConnection.on("message", this.onWebsocketMessage);
+        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
 
         this.getConfig();
         this.getServerSecurity();
@@ -3300,6 +3302,16 @@ export default {
         this.loadAndroidShellPrivacy();
     },
     methods: {
+        onIdentitySwitched() {
+            this.getConfig();
+            this.getServerSecurity();
+            this.getTrustedTelemetryPeers();
+            this.loadStickerCount();
+            this.loadGifCount();
+            this.loadBatteryInterfaceRows();
+            this.loadReticulumInstanceSettings();
+            this.loadAndroidShellPrivacy();
+        },
         loadBatterySaverPrefsFromStorage() {
             this.batterySaver = loadBatterySaverPrefs();
             if (!this.batterySaver.interfaceBitrateLimits) {
