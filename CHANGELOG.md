@@ -39,6 +39,7 @@ All notable changes to this project will be documented in this file.
 - Bundled [RNS-over-HTTP](https://github.com/Quad4-Software/RNS-over-HTTP) HTTPInterface with Interfaces page client/server setup, auto-install into the Reticulum interface path, and httpx support (Android includes httpx with HTTP/2 as pure-Python wheels)
 - Docker **extra** image variant (`-extra` suffix): same Alpine Dockerfile with `VARIANT=extra` (adds **i2pd** and **yggdrasil**), built and published beside standard and hardened
 - Docker Alpine/hardened recipes moved into `scripts/docker/*.sh` so Dockerfiles stay thin (shared frontend, venv, overlay, and runtime setup)
+- LXMF send/delivery oracles for no-proof SENT retries, auto-resend claim rules, and ConversationViewer single-bubble absorb/created races
 
 ### Changed
 
@@ -68,6 +69,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- LXMF outbound progress polling stops on REJECTED (previously only DELIVERED / propagated SENT / FAILED / CANCELLED stopped the loop)
 - Web Sync Messages after a backgrounded browser tab: recover stale WebSocket as a shell reconnect, refresh CSRF, and do not abort sync when request-path priming fails
 - Conversations: re-opening an already-read thread no longer decrements the Messages unread badge
 - Notifications: DND still updates the Messages unread badge (DND only suppresses OS notifications and sound)

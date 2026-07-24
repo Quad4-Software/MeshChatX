@@ -124,6 +124,22 @@ describe("outboundMessageStatus LXMF oracle", () => {
         expect(isOpportunisticDeferredDelivery(null)).toBe(false);
     });
 
+    it("sent without delivered is not a hard-fail badge for direct or opportunistic", () => {
+        for (const method of ["direct", "opportunistic"]) {
+            const sent = { state: "sent", method };
+            expect(isOpportunisticDeferredDelivery(sent)).toBe(false);
+            expect(outboundBubbleStatusIconName(sent)).toBe("check");
+            expect(outboundBubbleStatusIconName(sent)).not.toBe("check-all");
+        }
+    });
+
+    it("no-receipt stuck at sent still shows single-check network-sent, not delivered", () => {
+        const stuck = { state: "sent", method: "opportunistic" };
+        expect(outboundBubbleStatusIconName(stuck)).toBe("check");
+        expect(outboundBubbleStatusTitleKey(stuck)).toBe("messages.outbound_sent_network");
+        expect(isOpportunisticDeferredDelivery(stuck)).toBe(false);
+    });
+
     it("LXMF_STATUS_UI_ORACLE_PROVED", () => {
         let pairs = 0;
         for (const state of API_STATES) {

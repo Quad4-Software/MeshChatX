@@ -151,6 +151,7 @@ from meshchatx.src.backend.lxmf_utils import (
     convert_lxmf_message_to_dict,
     convert_lxmf_method_to_string,
     convert_lxmf_state_to_string,
+    is_lxmf_outbound_progress_terminal,
     is_user_facing_lxmf_payload,
     lxmf_fields_are_reaction,
     lxmf_sidebar_preview_for_conversation_latest_row,
@@ -9531,20 +9532,8 @@ class ReticulumMeshChat:
                 ),
             )
 
-            # check message state
-            has_delivered = lxmf_message.state == LXMF.LXMessage.DELIVERED
-            has_propagated = (
-                lxmf_message.state == LXMF.LXMessage.SENT
-                and lxmf_message.method == LXMF.LXMessage.PROPAGATED
-            )
-            has_failed = (
-                lxmf_message.state == LXMF.LXMessage.FAILED
-                and getattr(lxmf_message, "try_propagation_on_fail", False) is not True
-            )
-            is_cancelled = lxmf_message.state == LXMF.LXMessage.CANCELLED
-
             # check if we should stop updating
-            if has_delivered or has_propagated or has_failed or is_cancelled:
+            if is_lxmf_outbound_progress_terminal(lxmf_message):
                 should_update_message = False
             else:
                 await asyncio.sleep(1)
