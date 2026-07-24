@@ -16,6 +16,7 @@ Treat HTTP-up as distinct from RNS-ready. Gate UI on `/api/v1/status`, return 50
 - `starting` is normal, not an error.
 - Electron loading probes accept HTTP 200 with `starting` or `ok`. Do not require `network_ready` before first navigation.
 - Vue boot uses startup interpreters that can mount recovery UI when `failed` still allows degraded UI.
+- A browser service worker may serve a cached app shell while `/api/v1/status` is unreachable. That is not `ui_ready`. Keep gating on status polling.
 
 ## API behaviour
 

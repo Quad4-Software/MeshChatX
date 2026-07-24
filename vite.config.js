@@ -2,6 +2,7 @@ import path from "path";
 import fs from "fs";
 import { defineConfig } from "vite";
 import { MICRON_PARSER_GO_RELEASE_TAG } from "./scripts/micron-parser-go-version.mjs";
+import { meshchatxServiceWorkerPlugin } from "./scripts/build/generate_service_worker.mjs";
 import tailwindcss from "@tailwindcss/vite";
 import vue from "@vitejs/plugin-vue";
 import vuetify from "vite-plugin-vuetify";
@@ -173,6 +174,7 @@ export default defineConfig({
             },
         }),
         vuetify(),
+        meshchatxServiceWorkerPlugin({ buildId: appBuildTimeIso }),
     ],
 
     server: {

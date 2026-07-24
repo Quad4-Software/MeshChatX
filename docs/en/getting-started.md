@@ -44,6 +44,8 @@ meshchatx/meshchat.py (aiohttp server)
 
 The same backend code powers Docker images, Python wheels, Linux packages, Electron desktop builds, and the Android APK. Packaging differs. Behaviour is intended to stay consistent.
 
+In a regular browser (including headless or LAN installs), MeshChatX may register a service worker that caches hashed UI assets and the app shell so repeat loads are faster and a hard refresh can still show the boot splash while the local backend restarts. Mesh messaging, identity, and API data still require the Python backend. Electron does not use this service worker path.
+
 ## Main areas of the UI
 
 | Area               | Route                 | Purpose                                               |

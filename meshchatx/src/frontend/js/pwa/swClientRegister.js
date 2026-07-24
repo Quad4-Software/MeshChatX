@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: 0BSD
+
+/**
+ * Client-side service worker registration helpers (browser only, not Electron).
+ */
+
+/**
+ * Reload only when replacing an existing controller, and only once per page life.
+ * @param {{ hadController: boolean, refreshing: boolean }} state
+ * @returns {{ shouldReload: boolean, nextRefreshing: boolean }}
+ */
+export function decideControllerChangeReload(state) {
+    const hadController = Boolean(state?.hadController);
+    const refreshing = Boolean(state?.refreshing);
+    if (!hadController || refreshing) {
+        return { shouldReload: false, nextRefreshing: refreshing };
+    }
+    return { shouldReload: true, nextRefreshing: true };
+}
+
+/**
+ * @param {unknown} error
+ * @returns {boolean}
+ */
+export function isIgnorableServiceWorkerRegistrationError(error) {
+    const errorMessage = error && typeof error === "object" && "message" in error ? String(error.message || "") : "";
+    const errorName = error && typeof error === "object" && "name" in error ? String(error.name || "") : "";
+    return (
+        errorName === "SecurityError" ||
+        errorMessage.includes("SSL certificate") ||
+        errorMessage.includes("certificate")
+    );
+}
+
+/**
+ * Registration options that keep SW script discovery fresh.
+ * @returns {{ updateViaCache: "none" }}
+ */
+export function serviceWorkerRegisterOptions() {
+    return { updateViaCache: "none" };
+}

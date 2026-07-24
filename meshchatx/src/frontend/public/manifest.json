@@ -1,7 +1,7 @@
 {
-    "name": "MeshChat",
-    "short_name": "MeshChat",
-    "description": "A simple mesh network communications app powered by the Reticulum Network Stack.",
+    "name": "MeshChatX",
+    "short_name": "MeshChatX",
+    "description": "A local-first mesh network communications app powered by the Reticulum Network Stack.",
     "scope": "/",
     "start_url": "/",
     "icons": [
@@ -12,6 +12,6 @@
         }
     ],
     "display": "standalone",
-    "theme_color": "#FFFFFF",
-    "background_color": "#FFFFFF"
+    "theme_color": "#09090b",
+    "background_color": "#09090b"
 }

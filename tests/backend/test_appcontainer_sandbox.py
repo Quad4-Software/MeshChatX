@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -171,6 +171,48 @@ def test_launcher_success_path(monkeypatch, tmp_path):
         ["--headless", "--port", "9337", "--storage-dir", str(tmp_path)]
     )
     assert code == 0
+
+
+def test_main_skips_appcontainer_wrap_for_self_check(monkeypatch, tmp_path):
+    """One-shot --self-check must not CreateProcess into an AppContainer."""
+    from meshchatx import meshchat as meshchat_mod
+    from meshchatx.src.backend.self_check import SELF_CHECK_LABELS
+
+    called = {"launcher": False}
+
+    def boom_launcher(_argv):
+        called["launcher"] = True
+        return 2
+
+    monkeypatch.setattr(meshchat_mod.sys, "platform", "win32")
+    monkeypatch.setattr(meshchat_mod, "appcontainer_requested", lambda: True)
+    monkeypatch.setattr(meshchat_mod, "is_appcontainer_child", lambda: False)
+    monkeypatch.setattr(
+        "meshchatx.src.backend.appcontainer_launcher.run_launcher",
+        boom_launcher,
+    )
+    monkeypatch.setattr(
+        meshchat_mod.sys,
+        "argv",
+        ["meshchat.py", "--storage-dir", str(tmp_path), "--self-check", "--headless"],
+    )
+
+    mock_results = {key: {"status": "ok", "reason": ""} for key in SELF_CHECK_LABELS}
+
+    with (
+        patch("meshchatx.meshchat.ReticulumMeshChat") as mock_app_class,
+        patch("meshchatx.src.backend.identity_context.Database"),
+        patch("meshchatx.src.backend.identity_context.ConfigManager"),
+        patch("aiohttp.web.run_app"),
+        patch.object(meshchat_mod, "_maybe_run_embedded_module", return_value=False),
+    ):
+        mock_app_instance = mock_app_class.return_value
+        mock_app_instance.run_self_test = MagicMock(return_value=mock_results)
+        with pytest.raises(SystemExit) as excinfo:
+            meshchat_mod.main()
+        assert excinfo.value.code == 0
+        assert called["launcher"] is False
+        mock_app_instance.run_self_test.assert_called_once()
 
 
 def test_launcher_reports_launch_failure(monkeypatch, tmp_path):
