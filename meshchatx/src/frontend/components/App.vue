@@ -1640,9 +1640,6 @@ export default {
                     this.updateRelayChatUnreadCount();
                 },
                 "lxmf.delivery": async (json) => {
-                    if (this.config?.do_not_disturb_enabled) {
-                        return;
-                    }
                     if (json.sieve_suppress_notifications) {
                         return;
                     }
@@ -1663,7 +1660,8 @@ export default {
                         userFacing,
                     };
 
-                    // Open peers are mark-as-read by ConversationViewer. Still refresh for other peers.
+                    // DND suppresses OS notifications and sound only. Unread badge must
+                    // still refresh so the Messages nav does not freeze while DND is on.
                     if (isIncoming && userFacing && !sourceOpen) {
                         this.updateUnreadConversationsCount();
                     }

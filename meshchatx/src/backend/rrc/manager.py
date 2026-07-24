@@ -254,7 +254,7 @@ class RRCHub:
         self.manager._notify_change(self)
 
     def _bump_unread(self, room):
-        if not room:
+        if not room or room not in self.rooms:
             return
         self.unread_rooms.add(room)
         self.unread_counts[room] = min(9999, self.unread_counts.get(room, 0) + 1)
@@ -500,15 +500,26 @@ class RRCHub:
         if should_list:
             self._request_room_list()
 
-    def _request_room_list(self):
+    def request_room_list(self):
+        """Request a fresh public room list from the hub (/list).
+
+        The hub reply replaces available_rooms (adds new rooms and drops
+        removed ones). The list notice is silent so it does not appear in
+        chat history.
+        """
+        with self._lock:
+            self._silent_list_pending += 1
         try:
-            with self._lock:
-                self._silent_list_pending += 1
             self.send_command("/list", room=None, record_local=False)
         except Exception:
             with self._lock:
                 if self._silent_list_pending > 0:
                     self._silent_list_pending -= 1
+            raise
+
+    def _request_room_list(self):
+        with contextlib.suppress(Exception):
+            self.request_room_list()
 
     def set_auto_who(self, enabled, save=True):
         with self._lock:
@@ -1261,12 +1272,16 @@ class RRCHub:
                 self._pending_parts.discard(r)
                 if rollback_join:
                     self.rooms.discard(r)
+                    self.unread_rooms.discard(r)
+                    self.mention_rooms.discard(r)
+                    self.unread_counts.pop(r, None)
                 elif self.manager.is_forced_leave_error(text) and r in self.rooms:
                     forced_leave = True
                     self.rooms.discard(r)
                     self.members.pop(r, None)
                     self.unread_rooms.discard(r)
                     self.mention_rooms.discard(r)
+                    self.unread_counts.pop(r, None)
             if rollback_join or forced_leave:
                 self.manager.save()
             # Drop a remembered key that the hub rejected so reconnect does not loop.

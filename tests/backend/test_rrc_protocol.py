@@ -368,6 +368,70 @@ def test_set_auto_list_does_not_list_before_hub_is_connected(tmp_path):
     assert calls == []
 
 
+def test_request_room_list_sends_silent_list(tmp_path):
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    calls = []
+    hub.send_command = lambda text, room=None, record_local=True: calls.append(
+        (text, room, record_local),
+    )
+
+    hub.request_room_list()
+
+    assert calls == [("/list", None, False)]
+    assert hub._silent_list_pending == 1
+
+
+def test_request_room_list_raises_when_disconnected(tmp_path):
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+
+    with pytest.raises(RuntimeError, match="not connected"):
+        hub.request_room_list()
+
+    assert hub._silent_list_pending == 0
+
+
+def test_hub_list_notice_replaces_available_rooms(tmp_path):
+    """A /list reply fully replaces available_rooms (add, remove, topic update)."""
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub.available_rooms = {"lobby": "Main", "gone": None, "kept": "Old"}
+
+    env = proto.make_envelope(
+        proto.T_NOTICE,
+        src=None,
+        body="Registered public rooms\nlobby - Renamed\nkept - Old\nnewroom",
+    )
+    hub._on_packet(proto.encode(env))
+
+    assert hub.available_rooms == {
+        "lobby": "Renamed",
+        "kept": "Old",
+        "newroom": None,
+    }
+    assert "gone" not in hub.available_rooms
+
+
+def test_hub_empty_list_notice_clears_available_rooms(tmp_path):
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub.available_rooms = {"lobby": "Main", "random": None}
+    hub._silent_list_pending = 1
+
+    env = proto.make_envelope(
+        proto.T_NOTICE,
+        src=None,
+        body="No public rooms registered",
+    )
+    hub._on_packet(proto.encode(env))
+
+    assert hub.available_rooms == {}
+    assert hub._silent_list_pending == 0
+    for msgs in hub.messages.values():
+        assert all(m.text != "No public rooms registered" for m in msgs)
+
+
 def test_history_is_persisted_and_reloaded(tmp_path):
     manager = make_manager(tmp_path)
     hub = manager.add_hub(bytes(range(16)))

@@ -1056,6 +1056,7 @@ import { readKmzToFeatures, writeFeaturesToKmzBlob } from "../../js/mapExchange/
 import { getDrawFeatureMetadataPayload, getFeatureAnchorCoordinate } from "../../js/mapExchange/metadataUtils.js";
 import { styleFromMcxProperties } from "../../js/mapExchange/styleFromProperties.js";
 import { computeSegmentMetrics, buildBearingOverlayHtml, buildBearingLiveTooltipHtml } from "../../js/mapGeodesy.js";
+import { isLocalMapServiceUrl } from "../../js/mapLocalUrl.js";
 
 const OPENFREEMAP_DEFAULT_STYLE = "https://tiles.openfreemap.org/styles/bright";
 const DEFAULT_OSM_RASTER = DEFAULT_TILE_SERVER_URL;
@@ -2139,22 +2140,7 @@ export default {
             }
         },
         isLocalUrl(url) {
-            if (!url) return false;
-            try {
-                const urlObj = new URL(url, window.location.origin);
-                return (
-                    urlObj.hostname === "localhost" ||
-                    urlObj.hostname === "127.0.0.1" ||
-                    urlObj.hostname === "::1" ||
-                    urlObj.hostname.startsWith("192.168.") ||
-                    urlObj.hostname.startsWith("10.") ||
-                    urlObj.hostname.startsWith("172.") ||
-                    urlObj.hostname.endsWith(".local") ||
-                    url.startsWith("/")
-                );
-            } catch {
-                return url.startsWith("/") || url.startsWith("./") || !url.startsWith("http");
-            }
+            return isLocalMapServiceUrl(url, typeof window !== "undefined" ? window.location.origin : "");
         },
         isDefaultOnlineUrl(url) {
             if (!url) return false;
@@ -4043,8 +4029,15 @@ export default {
                     return { lon, lat };
                 }
             }
-            if (this.config && this.config.identity_hash) {
-                const myTelemetry = this.telemetryList.find((t) => t.destination_hash === this.config.identity_hash);
+            if (this.config && (this.config.lxmf_address_hash || this.config.identity_hash)) {
+                const myHashes = new Set(
+                    [this.config.lxmf_address_hash, this.config.identity_hash]
+                        .filter(Boolean)
+                        .map((h) => String(h).toLowerCase())
+                );
+                const myTelemetry = this.telemetryList.find((t) =>
+                    myHashes.has(String(t.destination_hash || "").toLowerCase())
+                );
                 if (myTelemetry && myTelemetry.telemetry?.location) {
                     const loc = myTelemetry.telemetry.location;
                     if (loc.longitude != null && loc.latitude != null) {
@@ -4691,9 +4684,16 @@ export default {
                 }
             }
 
-            // Priority 2: Use telemetry data if available for our own hash
-            if (this.config && this.config.identity_hash) {
-                const myTelemetry = this.telemetryList.find((t) => t.destination_hash === this.config.identity_hash);
+            // Priority 2: Use telemetry data if available for our LXMF or identity hash
+            if (this.config && (this.config.lxmf_address_hash || this.config.identity_hash)) {
+                const myHashes = new Set(
+                    [this.config.lxmf_address_hash, this.config.identity_hash]
+                        .filter(Boolean)
+                        .map((h) => String(h).toLowerCase())
+                );
+                const myTelemetry = this.telemetryList.find((t) =>
+                    myHashes.has(String(t.destination_hash || "").toLowerCase())
+                );
                 if (myTelemetry && myTelemetry.telemetry?.location) {
                     const loc = myTelemetry.telemetry.location;
                     this.map.getView().animate({

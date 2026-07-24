@@ -69,6 +69,15 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Web Sync Messages after a backgrounded browser tab: recover stale WebSocket as a shell reconnect, refresh CSRF, and do not abort sync when request-path priming fails
+- Conversations: re-opening an already-read thread no longer decrements the Messages unread badge
+- Notifications: DND still updates the Messages unread badge (DND only suppresses OS notifications and sound)
+- Identity switch clears Relay Chat, NomadNet browser tabs, Map tabs, and RNSH session UI so keep-alive pages cannot show the previous identity
+- Map local URL checks use RFC1918 172.16/12 instead of treating all 172.* hosts as local
+- Messages unread badge no longer overwritten by a paginated or filtered conversation page count
+- Deep-link or compose open marks the conversation read so the sidebar unread state clears
+- Map my-location prefers LXMF address hash telemetry (not only identity hash)
+- RNode flasher SRI lookup matches flat and nested integrity.json keys so zip.min.js loads
+- RRC kick/ban and failed auto-rejoin clear unread_counts so room pills do not stick
 - Desktop AppImage: main-process logs always append to the storage logs folder (meshchatx.log). Stdout is only used when a terminal is attached, with broken-pipe guards as a fallback, so background launches no longer raise write EPIPE dialogs
 - Android: lxmfy packaging, flock soft-lock, splash/logo clipping, Landlock skipped on Android
 - Android RNode BLE/USB via Chaquopy

@@ -80,6 +80,7 @@
 import MapPage from "./MapPage.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import TileCache from "../../js/TileCache";
+import GlobalEmitter from "../../js/GlobalEmitter";
 import { loadMapTabs, saveMapTabs } from "../../js/browserLayoutStore";
 
 const LEGACY_MAP_STATE_KEY = "last_view";
@@ -135,6 +136,7 @@ export default {
     async mounted() {
         this.setupViewportWatcher();
         window.addEventListener("keydown", this.handleKeydown, true);
+        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
 
         if (!(await this.restoreTabs())) {
             const storageId = createStorageId();
@@ -143,10 +145,18 @@ export default {
         }
     },
     beforeUnmount() {
+        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
         this.teardownViewportWatcher();
         window.removeEventListener("keydown", this.handleKeydown, true);
     },
     methods: {
+        onIdentitySwitched() {
+            this.tabs = [];
+            this.activeTabId = null;
+            saveMapTabs({ tabs: [], activeIndex: 0 });
+            const storageId = createStorageId();
+            void this.addTab(null, true, storageId);
+        },
         setupViewportWatcher() {
             if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
                 this.isWideViewport = false;

@@ -151,3 +151,35 @@ async def test_rrc_remove_hub(mock_app):
     get = _find_handler(mock_app, "/api/v1/rrc/hubs", "GET")
     listing = json.loads((await get(_make_request())).body)
     assert listing["hubs"] == []
+
+
+@pytest.mark.asyncio
+async def test_rrc_rooms_list_requests_refresh(mock_app):
+    post_hub = _find_handler(mock_app, "/api/v1/rrc/hubs", "POST")
+    await post_hub(_make_request(json_body={"hub_hash": HUB_HASH_HEX}))
+    hub = mock_app.rrc_manager.find_hub_by_hex(HUB_HASH_HEX)
+    calls = []
+    hub.send_command = lambda text, room=None, record_local=True: calls.append(
+        (text, room, record_local),
+    )
+
+    handler = _find_handler(mock_app, "/api/v1/rrc/hubs/{hub_hash}/rooms/list", "POST")
+    assert handler is not None
+    response = await handler(_make_request(match_info={"hub_hash": HUB_HASH_HEX}))
+    assert response.status == 200
+    data = json.loads(response.body)
+    assert data["message"] == "Room list requested"
+    assert "hub" in data
+    assert calls == [("/list", None, False)]
+
+
+@pytest.mark.asyncio
+async def test_rrc_rooms_list_disconnected_returns_400(mock_app):
+    post_hub = _find_handler(mock_app, "/api/v1/rrc/hubs", "POST")
+    await post_hub(_make_request(json_body={"hub_hash": HUB_HASH_HEX}))
+
+    handler = _find_handler(mock_app, "/api/v1/rrc/hubs/{hub_hash}/rooms/list", "POST")
+    response = await handler(_make_request(match_info={"hub_hash": HUB_HASH_HEX}))
+    assert response.status == 400
+    data = json.loads(response.body)
+    assert "not connected" in data["message"]

@@ -188,6 +188,7 @@ import { diagnose } from "../../js/rnode/Diagnostics.js";
 
 import ToastUtils from "../../js/ToastUtils.js";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
+import { rnodeIntegrityKeyForSrc } from "../../js/rnode/rnodeIntegrityKey.js";
 
 export default {
     name: "RNodeFlasherPage",
@@ -365,12 +366,11 @@ export default {
         async _loadScript(src) {
             // Fetch and verify SRI before injecting
             const integrity = this._rnodeIntegrity || (await this._loadRnodeIntegrity());
-            const pathParts = src.split("/");
-            const filename = pathParts.slice(-2).join("/"); // e.g., "zip.min.js" or "crypto-js@3.9.1-1/core.js"
+            const filename = rnodeIntegrityKeyForSrc(src, integrity);
             const expectedHash = integrity?.[filename];
 
             if (!expectedHash) {
-                throw new Error(`RNode: SRI hash missing for ${filename}. Refusing to load untrusted code.`);
+                throw new Error(`RNode: SRI hash missing for ${filename || src}. Refusing to load untrusted code.`);
             }
 
             const res = await fetch(src);

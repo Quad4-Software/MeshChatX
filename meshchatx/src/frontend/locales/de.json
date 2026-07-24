@@ -3602,6 +3602,8 @@
         "no_hubs": "Noch keine Hubs konfiguriert. Fügen Sie einen hinzu, um zu beginnen.",
         "no_rooms": "Keine Räume beigetreten. Treten Sie einem Raum bei, um zu chatten.",
         "available_rooms": "Verfügbare Räume",
+        "refresh_available_rooms": "Verfügbare Räume aktualisieren",
+        "rooms_list_requested": "Verfügbare Räume werden aktualisiert",
         "join": "Beitreten",
         "no_room_selected": "Wählen Sie einen Raum, um Nachrichten anzuzeigen.",
         "load_previous": "Frühere Nachrichten laden",
