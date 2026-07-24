@@ -242,9 +242,24 @@ def register_reticulum_instance_routes(routes, app):
             )
 
         try:
-            await app.reload_reticulum()
+            reloaded = await app.reload_reticulum()
+            if reloaded is False:
+                return web.json_response(
+                    {
+                        "message": "Discovery settings saved but RNS reload failed",
+                        "reloaded": False,
+                    },
+                    status=500,
+                )
         except Exception as e:
             logger.debug(f"Failed to reload RNS after discovery config update: {e}")
+            return web.json_response(
+                {
+                    "message": f"Discovery settings saved but RNS reload failed: {e}",
+                    "reloaded": False,
+                },
+                status=500,
+            )
 
         discovery_config = {
             "discover_interfaces": reticulum_config.get("discover_interfaces"),
@@ -270,6 +285,7 @@ def register_reticulum_instance_routes(routes, app):
                 else False,
             ),
             "network_identity": reticulum_config.get("network_identity"),
+            "reloaded": True,
         }
 
         return web.json_response({"discovery": discovery_config})

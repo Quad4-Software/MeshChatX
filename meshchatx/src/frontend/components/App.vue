@@ -1072,6 +1072,7 @@ export default {
             this.startClientHeapMemoryWatch();
             GlobalEmitter.on("toast-dismissed", this.onToastDismissedShell);
             GlobalEmitter.on("identity-switching-start", this.onIdentitySwitchingStartShell);
+            GlobalEmitter.on("identity-switching-abort", this.onIdentitySwitchingAbortShell);
             GlobalEmitter.on("identity-switched-apply", this.onIdentitySwitchedApplyShell);
             GlobalEmitter.on("sync-propagation-node", this.onSyncPropagationNodeShell);
             GlobalEmitter.on("config-updated", this.onConfigUpdatedExternally);
@@ -1179,6 +1180,7 @@ export default {
             WebSocketConnection.off("connected", this.onWsShellConnected);
             this.unregisterShellWsHandlers();
             GlobalEmitter.off("identity-switching-start", this.onIdentitySwitchingStartShell);
+            GlobalEmitter.off("identity-switching-abort", this.onIdentitySwitchingAbortShell);
             GlobalEmitter.off("identity-switched-apply", this.onIdentitySwitchedApplyShell);
             GlobalEmitter.off("sync-propagation-node", this.onSyncPropagationNodeShell);
             GlobalEmitter.off("config-updated", this.onConfigUpdatedExternally);
@@ -1372,6 +1374,9 @@ export default {
                     this.isSwitchingIdentity = false;
                 }
             }, 45000);
+        },
+        onIdentitySwitchingAbortShell() {
+            this.isSwitchingIdentity = false;
         },
         onIdentitySwitchedApplyShell(payload) {
             this.applyIdentitySwitched(payload).catch(() => {});

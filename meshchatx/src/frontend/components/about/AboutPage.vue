@@ -1420,6 +1420,7 @@ export default {
             this.restartAboutPollIntervals();
         };
         GlobalEmitter.on(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
+        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
         this.sessionsWsHandler = (payload) => {
             this.applyActiveSessionsPayload(payload);
         };
@@ -1436,12 +1437,22 @@ export default {
         if (this._batterySaverPrefsHandler) {
             GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
         }
+        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
         if (this.sessionsWsHandler) {
             offWsEvent("app.sessions.updated", this.sessionsWsHandler);
             this.sessionsWsHandler = null;
         }
     },
     methods: {
+        onIdentitySwitched() {
+            this.getAppInfo();
+            this.getActiveSessions();
+            this.getDatabaseHealth();
+            this.snapshotsOffset = 0;
+            this.autoBackupsOffset = 0;
+            this.listSnapshots();
+            this.listAutoBackups();
+        },
         restartAboutPollIntervals() {
             if (this.updateInterval) {
                 clearInterval(this.updateInterval);
@@ -1578,20 +1589,33 @@ export default {
             }
         },
         async restoreFromSnapshot(path) {
-            if (!(await DialogUtils.confirm(this.$t("about.restore_snapshot_confirm")))) {
+            if (this.restoreInProgress) {
                 return;
             }
+            this.restoreInProgress = true;
             try {
+                if (!(await DialogUtils.confirm(this.$t("about.restore_snapshot_confirm")))) {
+                    return;
+                }
                 const response = await window.api.post("/api/v1/database/restore", { path });
                 if (response.data.status === "success") {
                     ToastUtils.success(this.$t("about.database_restored"));
-                    if (this.isElectron) {
-                        setTimeout(() => ElectronUtils.relaunch(), 2000);
-                    }
+                    this.scheduleRestoreRelaunch();
                 }
             } catch {
                 ToastUtils.error(this.$t("about.failed_restore_snapshot"));
+            } finally {
+                this.restoreInProgress = false;
             }
+        },
+        scheduleRestoreRelaunch() {
+            if (this.isElectron) {
+                setTimeout(() => ElectronUtils.relaunch(), 2000);
+                return;
+            }
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
         },
         async getAppInfo() {
             try {
@@ -1745,9 +1769,7 @@ export default {
                 this.databaseHealth = response.data.database?.health || this.databaseHealth;
                 this.databaseRecoveryActions = response.data.database?.actions || this.databaseRecoveryActions;
                 ToastUtils.success(this.$t("about.database_restored"));
-                if (this.isElectron) {
-                    setTimeout(() => ElectronUtils.relaunch(), 2000);
-                }
+                this.scheduleRestoreRelaunch();
                 await this.getDatabaseHealth();
             } catch (e) {
                 this.restoreError = this.$t("about.failed_restore_file");
