@@ -81,9 +81,14 @@ import MapPage from "./MapPage.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import TileCache from "../../js/TileCache";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import GlobalState from "../../js/GlobalState";
 import { loadMapTabs, saveMapTabs } from "../../js/browserLayoutStore";
+import {
+    LEGACY_MAP_STATE_KEY,
+    legacyMapTabStateKey,
+    mapViewStateKey,
+} from "../../js/mapStateKeys.js";
 
-const LEGACY_MAP_STATE_KEY = "last_view";
 const DOUBLE_TAP_MS = 400;
 
 function createStorageId() {
@@ -335,15 +340,22 @@ export default {
         },
         async migrateLegacyMapState(storageId) {
             try {
+                const identityHash = GlobalState.config?.identity_hash || null;
+                const tabKey = mapViewStateKey(identityHash, storageId);
+                const existing = await TileCache.getMapState(tabKey);
+                if (existing) {
+                    return;
+                }
+                const unscopedTab = await TileCache.getMapState(legacyMapTabStateKey(storageId));
+                if (unscopedTab) {
+                    await TileCache.setMapState(tabKey, unscopedTab);
+                    return;
+                }
                 const legacy = await TileCache.getMapState(LEGACY_MAP_STATE_KEY);
                 if (!legacy) {
                     return;
                 }
-                const tabKey = `map_tab_${storageId}`;
-                const existing = await TileCache.getMapState(tabKey);
-                if (!existing) {
-                    await TileCache.setMapState(tabKey, legacy);
-                }
+                await TileCache.setMapState(tabKey, legacy);
             } catch {
                 // migration is best-effort
             }

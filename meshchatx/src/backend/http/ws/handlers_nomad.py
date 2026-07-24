@@ -204,7 +204,24 @@ async def handle_nomadnet_page_archives_get(app, client, data):
 
 async def handle_nomadnet_page_archive_load(app, client, data):
     archive_id = data.get("archive_id")
+    download_id = data.get("download_id")
     if archive_id is None:
+        AsyncUtils.run_async(
+            client.send_str(
+                json.dumps(
+                    {
+                        "type": "nomadnet.page.download",
+                        "download_id": download_id,
+                        "nomadnet_page_download": {
+                            "status": "failure",
+                            "destination_hash": "",
+                            "page_path": "",
+                            "failure_reason": "missing archive_id",
+                        },
+                    },
+                ),
+            ),
+        )
         return
 
     archive = app.database.misc.get_archived_page_by_id(archive_id)
@@ -215,7 +232,7 @@ async def handle_nomadnet_page_archive_load(app, client, data):
                 json.dumps(
                     {
                         "type": "nomadnet.page.download",
-                        "download_id": data.get("download_id"),
+                        "download_id": download_id,
                         "nomadnet_page_download": {
                             "status": "success",
                             "destination_hash": archive["destination_hash"],
@@ -228,6 +245,24 @@ async def handle_nomadnet_page_archive_load(app, client, data):
                 ),
             ),
         )
+        return
+
+    AsyncUtils.run_async(
+        client.send_str(
+            json.dumps(
+                {
+                    "type": "nomadnet.page.download",
+                    "download_id": download_id,
+                    "nomadnet_page_download": {
+                        "status": "failure",
+                        "destination_hash": "",
+                        "page_path": "",
+                        "failure_reason": "archive not found",
+                    },
+                },
+            ),
+        ),
+    )
 
     # handle flushing all archived pages
 

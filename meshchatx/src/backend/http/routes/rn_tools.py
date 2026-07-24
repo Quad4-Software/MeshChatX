@@ -156,7 +156,10 @@ def register_rn_tools_routes(routes, app):
         if error is not None:
             return error
         data = await request.json()
-        session = manager.create_session(data or {})
+        try:
+            session = manager.create_session(data or {})
+        except ValueError as e:
+            return web.json_response({"message": str(e)}, status=400)
         autostart = bool((data or {}).get("autostart", True))
         if autostart:
             try:

@@ -1318,6 +1318,13 @@ export default {
                 onNomadUrl: (url) => {
                     this.onNodePageUrlClick(url, null, true, false, this.getLinkNavOptions(event));
                 },
+                onLxmfAddress: (address) => {
+                    const routeName = this.isPopoutMode ? "messages-popout" : "messages";
+                    this.$router.push({
+                        name: routeName,
+                        params: { destinationHash: address },
+                    });
+                },
                 onOpenNode: (destination, fields) => {
                     this.onNodePageUrlClick(destination, fields, true, false, this.getLinkNavOptions(event));
                 },
@@ -1360,6 +1367,28 @@ export default {
                             this.lastPageContentBytes = new TextEncoder().encode(pc).length;
                         }
                         this.fetchArchives();
+                        return;
+                    }
+
+                    if (
+                        nomadnetPageDownload.status === "failure" &&
+                        this.isLoadingNodePage &&
+                        this.currentPageDownloadId === downloadId &&
+                        !this.nomadnetPageDownloadCallbacks[
+                            this.getNomadnetPageDownloadCallbackKey(
+                                nomadnetPageDownload.destination_hash,
+                                nomadnetPageDownload.page_path
+                            )
+                        ]
+                    ) {
+                        this.isLoadingNodePage = false;
+                        this.nodePageLoadPhase = null;
+                        this.currentPageDownloadId = null;
+                        this.nodePageProgress = 0;
+                        ToastUtils.error(this.$t("nomadnet.failed_to_load_page"));
+                        this.nodePageContent = `Failed loading page: ${
+                            nomadnetPageDownload.failure_reason || "archive not found"
+                        }`;
                         return;
                     }
 
@@ -2423,9 +2452,14 @@ export default {
                 return;
             }
 
-            // lxmf urls should open the conversation
-            const normalizedLxmf = Utils.normalizeMeshchatHashHex(url);
-            if (normalizedLxmf.length === 32 && (url.startsWith("lxmf@") || url.startsWith("lxmf://"))) {
+            // lxmf urls should open the conversation (not a Nomad node tab)
+            const urlTrimmed = typeof url === "string" ? url.trim() : "";
+            const normalizedLxmf = Utils.normalizeMeshchatHashHex(urlTrimmed);
+            const lxmfLower = urlTrimmed.toLowerCase();
+            if (
+                normalizedLxmf.length === 32 &&
+                (lxmfLower.startsWith("lxmf@") || lxmfLower.startsWith("lxmf://"))
+            ) {
                 const destinationHash = normalizedLxmf;
                 const routeName = this.isPopoutMode ? "messages-popout" : "messages";
                 await this.$router.push({
@@ -2697,13 +2731,25 @@ export default {
                 this.nodePagePathUrlInput = this.nodePagePath;
             }
 
-            WebSocketConnection.send(
+            // Own the reply even when the local archive list is empty or stale.
+            // Without this, ownsNomadPageDownloadEvent rejects path-mismatched
+            // archive payloads and isLoadingNodePage stays true forever.
+            const downloadId = Math.floor(Math.random() * 1000000);
+            this.currentPageDownloadId = downloadId;
+
+            const sent = WebSocketConnection.send(
                 JSON.stringify({
                     type: "nomadnet.page.archive.load",
                     archive_id: archiveId,
-                    download_id: Math.floor(Math.random() * 1000000),
+                    download_id: downloadId,
                 })
             );
+            if (sent === false) {
+                this.isLoadingNodePage = false;
+                this.nodePageLoadPhase = null;
+                this.currentPageDownloadId = null;
+                ToastUtils.error(this.$t("nomadnet.tab_restore_failed"));
+            }
         },
         manualArchive() {
             if (!this.selectedNode || !this.nodePagePath || !this.nodePageContent) return;

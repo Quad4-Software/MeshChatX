@@ -382,6 +382,48 @@ def test_oracle_join_strips_key_whitespace():
     assert "vault" in sess.rooms
 
 
+def test_oracle_invite_only_link_drop_allows_rejoin():
+    """After +i invite is consumed, link drop must still allow auto-rejoin.
+
+    Intentional PART still requires a fresh invite (see
+    test_oracle_invite_consumed_after_join).
+    """
+    server = make_server()
+    link_op, sess_op = add_session(server, b"\xaa" * 16, nick="op")
+    link_guest, sess_guest = add_session(server, b"\xbb" * 16, nick="guest")
+    server.register_room("club", invite_only=True, founder=sess_op.peer)
+    join(server, link_op, sess_op, "club")
+    server.rooms.add_invite("club", sess_guest.peer, ttl_s=60)
+    first = join(server, link_guest, sess_guest, "club")
+    assert envs_of_type(first, proto.T_JOINED, to_link=link_guest)
+    assert not server.rooms.is_invited("club", sess_guest.peer)
+
+    server._on_close(link_guest)
+    assert server.rooms.is_invited("club", sess_guest.peer)
+
+    link_guest2, sess_guest2 = add_session(server, b"\xbb" * 16, nick="guest")
+    second = join(server, link_guest2, sess_guest2, "club")
+    assert envs_of_type(second, proto.T_JOINED, to_link=link_guest2)
+    assert not server.rooms.is_invited("club", sess_guest.peer)
+
+
+def test_oracle_invite_only_part_still_requires_fresh_invite():
+    server = make_server()
+    link_op, sess_op = add_session(server, b"\xaa" * 16, nick="op")
+    link_guest, sess_guest = add_session(server, b"\xbb" * 16, nick="guest")
+    server.register_room("club", invite_only=True, founder=sess_op.peer)
+    join(server, link_op, sess_op, "club")
+    server.rooms.add_invite("club", sess_guest.peer, ttl_s=60)
+    join(server, link_guest, sess_guest, "club")
+    part(server, link_guest, sess_guest, "club")
+    assert not server.rooms.is_invited("club", sess_guest.peer)
+    denied = join(server, link_guest, sess_guest, "club")
+    assert any(
+        e.get(proto.K_BODY) == "invite-only (+i)"
+        for e in envs_of_type(denied, proto.T_ERROR)
+    )
+
+
 def test_oracle_invite_consumed_after_join():
     server = make_server()
     link_op, sess_op = add_session(server, b"\xaa" * 16, nick="op")

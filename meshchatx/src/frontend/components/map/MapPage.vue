@@ -1019,6 +1019,8 @@ import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
 import DOMPurify from "dompurify";
 import ToastUtils from "../../js/ToastUtils";
 import TileCache from "../../js/TileCache";
+import { mapViewStateKey } from "../../js/mapStateKeys.js";
+import GlobalState from "../../js/GlobalState";
 import {
     detectRasterTileProviderId,
     nextRasterTileProviderId,
@@ -1268,10 +1270,8 @@ export default {
     },
     computed: {
         mapStateKey() {
-            if (this.tabStorageId) {
-                return `map_tab_${this.tabStorageId}`;
-            }
-            return "last_view";
+            const identityHash = this.config?.identity_hash || GlobalState.config?.identity_hash || null;
+            return mapViewStateKey(identityHash, this.tabStorageId || null);
         },
         popoutRouteType() {
             if (this.$route?.meta?.popoutType) {
@@ -4394,6 +4394,7 @@ export default {
                 try {
                     await this.ensureRemoteOverlayLayer(overlay);
                     if (gen !== this.remoteOverlayLoadGeneration) {
+                        this.removeRemoteOverlayLayer(id);
                         return;
                     }
                     const entry = this.remoteOverlayLayers[id];

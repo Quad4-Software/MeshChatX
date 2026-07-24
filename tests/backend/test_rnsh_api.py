@@ -3,6 +3,7 @@
 """Tests for RNSh manager HTTP API endpoints and launcher argv."""
 
 import json
+import os
 from unittest.mock import MagicMock
 
 import pytest
@@ -269,6 +270,12 @@ def test_rnsh_frozen_listen_command_keeps_mirror_flag_separate(monkeypatch):
 
     manager = MagicMock()
     manager.reticulum_config_dir = "/tmp/rns-config"
+    manager.storage_dir = "/tmp/rns-config"
+    manager.resolve_allowed_path = lambda p: (
+        os.path.realpath(p)
+        if os.path.realpath(p).startswith(os.path.realpath("/tmp/rns-config"))
+        else None
+    )
     session = rnsh_mod.RNSHSession(
         manager,
         "s1",
@@ -277,7 +284,7 @@ def test_rnsh_frozen_listen_command_keeps_mirror_flag_separate(monkeypatch):
             "mirror": True,
             "no_auth": True,
             "quiet": 1,
-            "config_path": "/tmp/session-config",
+            "config_path": "/tmp/rns-config/session-config",
         },
     )
     command = session._build_command()
@@ -289,7 +296,9 @@ def test_rnsh_frozen_listen_command_keeps_mirror_flag_separate(monkeypatch):
     assert command.count("-m") == 1
     assert command.index("-m") > command.index(rnsh_mod._RNSH_MODULE)
     assert "--rnsconfig" in command
-    assert command[command.index("--rnsconfig") + 1] == "/tmp/session-config"
+    assert command[command.index("--rnsconfig") + 1] == os.path.realpath(
+        "/tmp/rns-config/session-config"
+    )
     assert "-l" in command
     assert "-n" in command
     assert "-q" in command
@@ -584,3 +593,52 @@ def test_rnsh_manager_save_is_atomic(tmp_path):
     assert not (tmp_path / "rnsh_sessions.json.tmp").exists()
     data = json.loads(store.read_text(encoding="utf-8"))
     assert len(data["sessions"]) == 1
+
+
+def test_oracle_rnsh_rejects_config_path_outside_jail(tmp_path):
+    from meshchatx.src.backend.rnsh_manager import RNSHManager
+
+    storage = tmp_path / "storage"
+    storage.mkdir()
+    bait = tmp_path / "outside"
+    bait.mkdir()
+    (bait / "secret").write_text("nope", encoding="utf-8")
+
+    manager = RNSHManager(str(storage), reticulum_config_dir=str(storage / "rns"))
+    with pytest.raises(ValueError, match="config_path"):
+        manager.create_session(
+            {
+                "mode": "listen",
+                "config_path": str(bait),
+            },
+        )
+    assert (bait / "secret").read_text(encoding="utf-8") == "nope"
+
+
+def test_oracle_rnsh_rejects_extra_args(tmp_path):
+    from meshchatx.src.backend.rnsh_manager import RNSHManager
+
+    manager = RNSHManager(str(tmp_path))
+    with pytest.raises(ValueError, match="extra_args"):
+        manager.create_session(
+            {
+                "mode": "listen",
+                "extra_args": "--help; cat /etc/passwd",
+            },
+        )
+
+
+def test_oracle_rnsh_allows_relative_config_under_storage(tmp_path):
+    from meshchatx.src.backend.rnsh_manager import RNSHManager
+
+    storage = tmp_path / "storage"
+    cfg = storage / "alt-rns"
+    cfg.mkdir(parents=True)
+    manager = RNSHManager(str(storage), reticulum_config_dir=str(storage / "rns"))
+    session = manager.create_session(
+        {
+            "mode": "listen",
+            "config_path": "alt-rns",
+        },
+    )
+    assert session.config["config_path"] == os.path.realpath(str(cfg))

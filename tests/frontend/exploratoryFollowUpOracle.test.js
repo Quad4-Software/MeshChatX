@@ -37,7 +37,6 @@ describe("follow-up oracles from exploratory hunt", () => {
         };
 
         MessagesPage.methods.syncUnreadCount.call(ctx);
-
         expect(GlobalState.unreadConversationsCount).toBe(12);
         expect(emitSpy).toHaveBeenCalledWith("notifications-changed");
         emitSpy.mockRestore();
@@ -62,5 +61,43 @@ describe("follow-up oracles from exploratory hunt", () => {
 
         const loc = await MapPage.methods.resolveMyLocationWgs84.call(ctx);
         expect(loc).toEqual({ lon: 11.1, lat: 22.2 });
+    });
+
+    it("mapViewStateKey scopes TileCache map state by identity", async () => {
+        const { mapViewStateKey, LEGACY_MAP_STATE_KEY } = await import(
+            "../../meshchatx/src/frontend/js/mapStateKeys.js"
+        );
+        const a = "aa".repeat(16);
+        const b = "bb".repeat(16);
+        expect(mapViewStateKey(a)).not.toBe(mapViewStateKey(b));
+        expect(mapViewStateKey(a)).not.toBe(LEGACY_MAP_STATE_KEY);
+        expect(mapViewStateKey(a, "tab-1")).toContain(a.slice(0, 16));
+        expect(mapViewStateKey(a, "tab-1")).not.toBe(mapViewStateKey(b, "tab-1"));
+    });
+
+    it("stale remote overlay generation removes layers added after a newer load started", async () => {
+        const removed = [];
+        const ctx = {
+            map: {},
+            remoteOverlayLoadGeneration: 0,
+            remoteOverlayLayers: {},
+            removeRemoteOverlayLayer(id) {
+                removed.push(id);
+                delete this.remoteOverlayLayers[id];
+            },
+            async ensureRemoteOverlayLayer(overlay) {
+                const id = String(overlay.id);
+                this.remoteOverlayLayers[id] = {
+                    layer: { setVisible: vi.fn() },
+                };
+                // Simulate a newer overlay list while fetch is in flight.
+                this.remoteOverlayLoadGeneration = 2;
+            },
+        };
+        await MapPage.methods.onRemoteOverlaysChanged.call(ctx, [
+            { id: "ov1", visible: true, status: "ready", format: "geojson" },
+        ]);
+        expect(removed).toEqual(["ov1"]);
+        expect(ctx.remoteOverlayLayers.ov1).toBeUndefined();
     });
 });

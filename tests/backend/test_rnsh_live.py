@@ -41,6 +41,11 @@ class _LiveManager:
         self.changes = 0
         self.outputs = 0
 
+    def resolve_allowed_path(self, user_path):
+        from meshchatx.src.backend.rnsh_manager import RNSHManager
+
+        return RNSHManager.resolve_allowed_path(self, user_path)
+
     def _on_session_change(self, _session):
         self.changes += 1
 
