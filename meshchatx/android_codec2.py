@@ -74,6 +74,18 @@ def _libcodec2_candidates() -> list[Path]:
     return candidates
 
 
+def _java_system_load_library(name: str = "codec2") -> bool:
+    """Ask the Android runtime to load a jniLibs shared object by soname."""
+    try:
+        from java.lang import System as JavaSystem
+
+        JavaSystem.loadLibrary(name)
+        return True
+    except Exception as exc:
+        logger.debug("Java System.loadLibrary(%s) failed: %s", name, exc)
+        return False
+
+
 def ensure_codec2_native_library() -> bool:
     """Preload libcodec2.so so import pycodec2 works on Android.
 
@@ -81,6 +93,9 @@ def ensure_codec2_native_library() -> bool:
     extension module only declares a NEEDED entry for libcodec2.so. Without
     preloading or bundling the shared library next to pycodec2.so, imports
     fail at runtime with dlopen errors.
+
+    Order: Java System.loadLibrary (jniLibs), bare CDLL name, then absolute
+    candidate paths including MESHCHAT_NATIVE_LIB_DIR.
     """
     global _codec2_preload_done, _codec2_preload_error
 
@@ -90,6 +105,10 @@ def ensure_codec2_native_library() -> bool:
     _codec2_preload_done = True
 
     if not _is_chaquopy_android():
+        return True
+
+    if _java_system_load_library("codec2"):
+        logger.info("Loaded Codec2 via Java System.loadLibrary(codec2)")
         return True
 
     try:

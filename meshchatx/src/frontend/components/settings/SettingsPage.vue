@@ -729,6 +729,9 @@
                             v-if="isMeshChatXAndroid"
                             :visible="showSection('android')"
                             :android-shell-privacy="androidShellPrivacy"
+                            :remote-backend-url="androidRemoteBackendUrl"
+                            :effective-backend-url="androidEffectiveBackendUrl"
+                            :remote-backend-active="androidRemoteBackendActive"
                             @update:block-screenshots="
                                 (v) => {
                                     androidShellPrivacy.blockScreenshots = v;
@@ -741,6 +744,9 @@
                                     saveAndroidClearClipboardOnBackground();
                                 }
                             "
+                            @update:remote-backend-url="(v) => (androidRemoteBackendUrl = v)"
+                            @apply-remote-backend="applyAndroidRemoteBackend"
+                            @clear-remote-backend="clearAndroidRemoteBackend"
                             @share-apk="shareAndroidApk"
                         />
 
@@ -3055,6 +3061,9 @@ export default {
                 blockScreenshots: false,
                 clearClipboardOnBackground: false,
             },
+            androidRemoteBackendUrl: "",
+            androidEffectiveBackendUrl: "",
+            androidRemoteBackendActive: false,
             reticulumInstance: {
                 share_instance: true,
                 local_hops_delta: false,
@@ -3746,6 +3755,41 @@ export default {
                 blockScreenshots: bridge.getBlockScreenshots(),
                 clearClipboardOnBackground: bridge.getClearClipboardOnBackground(),
             };
+            this.androidRemoteBackendUrl = bridge.getRemoteBackendUrl() || "";
+            this.androidEffectiveBackendUrl = bridge.getEffectiveBackendUrl() || "";
+            this.androidRemoteBackendActive = bridge.isRemoteBackend() === true;
+        },
+        applyAndroidRemoteBackend() {
+            const bridge = new AndroidBridge();
+            const draft = (this.androidRemoteBackendUrl || "").trim();
+            const result = bridge.setRemoteBackendUrlAndRestart(draft);
+            if (result === "invalid") {
+                ToastUtils.error(this.$t("settings.android_remote_backend_invalid"));
+                return;
+            }
+            if (result === "unsupported") {
+                ToastUtils.error(this.$t("settings.android_privacy_save_failed"));
+                return;
+            }
+            if (result === "unchanged") {
+                ToastUtils.info(this.$t("settings.android_remote_backend_unchanged"));
+                return;
+            }
+            ToastUtils.success(this.$t("settings.android_remote_backend_restarting"));
+        },
+        clearAndroidRemoteBackend() {
+            this.androidRemoteBackendUrl = "";
+            const bridge = new AndroidBridge();
+            const result = bridge.setRemoteBackendUrlAndRestart("");
+            if (result === "unsupported") {
+                ToastUtils.error(this.$t("settings.android_privacy_save_failed"));
+                return;
+            }
+            if (result === "unchanged") {
+                ToastUtils.info(this.$t("settings.android_remote_backend_already_local"));
+                return;
+            }
+            ToastUtils.success(this.$t("settings.android_remote_backend_restarting"));
         },
         saveAndroidBlockScreenshots() {
             const bridge = new AndroidBridge();

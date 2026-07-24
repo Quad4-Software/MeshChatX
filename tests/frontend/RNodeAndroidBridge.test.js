@@ -31,14 +31,22 @@ describe("AndroidBridge", () => {
 
     it("requestPermission triggers the appropriate bridge method", async () => {
         const bridge = {
-            requestBluetoothPermissions: vi.fn(),
-            requestUsbPermissions: vi.fn(),
+            requestBluetoothPermissions: vi.fn().mockReturnValue("requested"),
+            requestUsbPermissions: vi.fn().mockReturnValue("requested"),
         };
         const ab = new AndroidBridge(bridge, {});
-        await ab.requestPermission(AndroidBridge.PERM_BLUETOOTH);
-        await ab.requestPermission(AndroidBridge.PERM_USB);
+        await expect(ab.requestPermission(AndroidBridge.PERM_BLUETOOTH)).resolves.toBe("requested");
+        await expect(ab.requestPermission(AndroidBridge.PERM_USB)).resolves.toBe("requested");
         expect(bridge.requestBluetoothPermissions).toHaveBeenCalled();
         expect(bridge.requestUsbPermissions).toHaveBeenCalled();
+    });
+
+    it("hasNativeRNodeFlasher delegates to the bridge", () => {
+        const bridge = { hasNativeRNodeFlasher: vi.fn().mockReturnValue(true), openRNodeFlasher: vi.fn() };
+        const ab = new AndroidBridge(bridge, {});
+        expect(ab.hasNativeRNodeFlasher()).toBe(true);
+        expect(ab.openRNodeFlasher()).toBe(true);
+        expect(bridge.openRNodeFlasher).toHaveBeenCalled();
     });
 
     it("settings helpers return true when bridge accepts the call", () => {
@@ -113,5 +121,28 @@ describe("AndroidBridge", () => {
         expect(ab.setClearClipboardOnBackground(true)).toBe(true);
         expect(bridge.setBlockScreenshots).toHaveBeenCalledWith(true);
         expect(bridge.setClearClipboardOnBackground).toHaveBeenCalledWith(true);
+    });
+
+    it("remote backend helpers default safely when methods are missing", () => {
+        const ab = new AndroidBridge({}, {});
+        expect(ab.getRemoteBackendUrl()).toBe("");
+        expect(ab.getEffectiveBackendUrl()).toBe(null);
+        expect(ab.isRemoteBackend()).toBe(false);
+        expect(ab.setRemoteBackendUrlAndRestart("http://192.168.1.10:9337")).toBe("unsupported");
+    });
+
+    it("remote backend helpers delegate to the bridge", () => {
+        const bridge = {
+            getRemoteBackendUrl: vi.fn().mockReturnValue("http://192.168.1.10:9337"),
+            getEffectiveBackendUrl: vi.fn().mockReturnValue("http://192.168.1.10:9337"),
+            isRemoteBackend: vi.fn().mockReturnValue(true),
+            setRemoteBackendUrlAndRestart: vi.fn().mockReturnValue("ok"),
+        };
+        const ab = new AndroidBridge(bridge, {});
+        expect(ab.getRemoteBackendUrl()).toBe("http://192.168.1.10:9337");
+        expect(ab.getEffectiveBackendUrl()).toBe("http://192.168.1.10:9337");
+        expect(ab.isRemoteBackend()).toBe(true);
+        expect(ab.setRemoteBackendUrlAndRestart("http://10.0.0.2:8000")).toBe("ok");
+        expect(bridge.setRemoteBackendUrlAndRestart).toHaveBeenCalledWith("http://10.0.0.2:8000");
     });
 });

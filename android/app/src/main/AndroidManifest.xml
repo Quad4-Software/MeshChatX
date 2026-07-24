@@ -90,6 +90,13 @@
                 android:resource="@xml/device_filter" />
         </activity>
 
+        <activity
+            android:name=".rnode.RNodeFlasherActivity"
+            android:exported="false"
+            android:label="@string/rnode_flasher_title"
+            android:parentActivityName=".MainActivity"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density|fontScale|keyboard|keyboardHidden|navigation|uiMode|colorMode|layoutDirection" />
+
         <!--
           Non-exported: notification answer/decline PendingIntents only.
           Keeps forgeable CALL_ANSWER / CALL_DECLINE off the exported MainActivity.

@@ -70,6 +70,9 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - LXMF outbound progress polling stops on REJECTED (previously only DELIVERED / propagated SENT / FAILED / CANCELLED stopped the loop)
+- Android Codec2: preload libcodec2 via System.loadLibrary and MESHCHAT_NATIVE_LIB_DIR before Chaquopy imports pycodec2
+- Android RNode flasher is a native Activity (USB serial via usb-serial-for-android, ESP32 ROM flash protocol). Tools opens it instead of a WebView serial polyfill
+- Android RNode flasher: Bluetooth permission request returns real status, handles the result callback, and opens app settings when permanently denied
 - Web Sync Messages after a backgrounded browser tab: recover stale WebSocket as a shell reconnect, refresh CSRF, and do not abort sync when request-path priming fails
 - Conversations: re-opening an already-read thread no longer decrements the Messages unread badge
 - Notifications: DND still updates the Messages unread badge (DND only suppresses OS notifications and sound)

@@ -61,28 +61,53 @@ export default class AndroidBridge {
     }
 
     /**
-     * Request a runtime permission group from Android. Resolves to true if
-     * the permission was already granted (or the call was made on a non-
-     * android build). The actual grant result is delivered asynchronously
-     * by the OS, so callers should re-check via hasPermission afterwards.
+     * Request a runtime permission group from Android.
+     * Resolves to a status string: granted | requested | settings | unsupported | true (legacy).
      */
     async requestPermission(permissionGroup) {
         if (!this.bridge) {
-            return true;
+            return "granted";
         }
         if (permissionGroup === PERM_BLUETOOTH && typeof this.bridge.requestBluetoothPermissions === "function") {
             return safeCall(() => {
-                this.bridge.requestBluetoothPermissions();
-                return true;
-            }, false);
+                const result = this.bridge.requestBluetoothPermissions();
+                if (typeof result === "string") {
+                    return result;
+                }
+                return "requested";
+            }, "unsupported");
         }
         if (permissionGroup === PERM_USB && typeof this.bridge.requestUsbPermissions === "function") {
             return safeCall(() => {
-                this.bridge.requestUsbPermissions();
-                return true;
-            }, false);
+                const result = this.bridge.requestUsbPermissions();
+                if (typeof result === "string") {
+                    return result;
+                }
+                return "requested";
+            }, "unsupported");
         }
-        return false;
+        return "unsupported";
+    }
+
+    hasAndroidSerial() {
+        return this.hasNativeRNodeFlasher();
+    }
+
+    hasNativeRNodeFlasher() {
+        if (!this.bridge || typeof this.bridge.hasNativeRNodeFlasher !== "function") {
+            return false;
+        }
+        return safeCall(() => Boolean(this.bridge.hasNativeRNodeFlasher()), false);
+    }
+
+    openRNodeFlasher() {
+        if (!this.bridge || typeof this.bridge.openRNodeFlasher !== "function") {
+            return false;
+        }
+        return safeCall(() => {
+            this.bridge.openRNodeFlasher();
+            return true;
+        }, false);
     }
 
     openBluetoothSettings() {
@@ -184,6 +209,44 @@ export default class AndroidBridge {
             this.bridge.setClearClipboardOnBackground(Boolean(enabled));
             return true;
         }, false);
+    }
+
+    /**
+     * Configured remote backend URL, or empty string for the on-device local backend.
+     */
+    getRemoteBackendUrl() {
+        if (!this.bridge || typeof this.bridge.getRemoteBackendUrl !== "function") {
+            return "";
+        }
+        return safeCall(() => String(this.bridge.getRemoteBackendUrl() || ""), "");
+    }
+
+    getEffectiveBackendUrl() {
+        if (!this.bridge || typeof this.bridge.getEffectiveBackendUrl !== "function") {
+            return null;
+        }
+        return safeCall(() => this.bridge.getEffectiveBackendUrl(), null);
+    }
+
+    isRemoteBackend() {
+        if (!this.bridge || typeof this.bridge.isRemoteBackend !== "function") {
+            return false;
+        }
+        return safeCall(() => Boolean(this.bridge.isRemoteBackend()), false);
+    }
+
+    /**
+     * Persist remote backend URL and restart the Android shell.
+     * Empty string clears to local. Returns ok | invalid | unchanged | unsupported.
+     */
+    setRemoteBackendUrlAndRestart(url) {
+        if (!this.bridge || typeof this.bridge.setRemoteBackendUrlAndRestart !== "function") {
+            return "unsupported";
+        }
+        return safeCall(() => {
+            const result = this.bridge.setRemoteBackendUrlAndRestart(url == null ? "" : String(url));
+            return typeof result === "string" ? result : "unsupported";
+        }, "unsupported");
     }
 }
 

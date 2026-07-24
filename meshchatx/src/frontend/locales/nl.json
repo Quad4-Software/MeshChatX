@@ -1914,6 +1914,16 @@
         "android_clear_clipboard_on_background_on": "Klembord wordt gewist bij achtergrond",
         "android_clear_clipboard_on_background_off": "Klembord wordt niet meer gewist bij achtergrond",
         "android_privacy_save_failed": "Android-privacy-instelling kon niet worden bijgewerkt.",
+        "android_remote_backend_heading": "URL van externe backend",
+        "android_remote_backend_desc": "Laat deze telefoon-app verbinden met MeshChatX op je desktop of een server in hetzelfde netwerk. Laat leeg om de backend op het apparaat te gebruiken. Een wijziging herstart de app.",
+        "android_remote_backend_placeholder": "https://192.168.1.10:9337",
+        "android_remote_backend_apply": "Toepassen en herstarten",
+        "android_remote_backend_use_local": "Backend op het apparaat gebruiken",
+        "android_remote_backend_active": "Externe backend in gebruik: {url}",
+        "android_remote_backend_invalid": "Voer een geldige http(s)-URL in, of laat leeg voor de backend op het apparaat.",
+        "android_remote_backend_unchanged": "De backend-URL staat al op die waarde.",
+        "android_remote_backend_already_local": "De backend op het apparaat wordt al gebruikt.",
+        "android_remote_backend_restarting": "Opnieuw starten om de backend-URL toe te passen…",
         "nomad_micron_wasm_title": "Micron (WASM)",
         "nomad_micron_wasm_desc_before_link": "Optional WASM renderer (",
         "nomad_micron_wasm_link_label": "micron-parser-go",
@@ -2747,7 +2757,8 @@
                     "android_webview_no_serial": "Android ondersteunt Web Serial niet in deze weergave. Gebruik een desktopbrowser of de ingebouwde flasher.",
                     "browser_unsupported": "Deze browser ondersteunt Web Serial niet. Probeer Chrome, Edge of een andere Chromium-gebaseerde browser.",
                     "android_use_chrome": "Open deze pagina op Android in Chrome om Web Serial via WebUSB te gebruiken.",
-                    "unknown": "USB-serieel kan niet worden geïnitialiseerd in deze omgeving."
+                    "unknown": "USB-serieel kan niet worden geïnitialiseerd in deze omgeving.",
+                    "android_request_usb": "Open de native flasher om USB toe te staan en via serieel te flashen."
                 },
                 "bluetooth": {
                     "title": "Bluetooth is niet beschikbaar",
@@ -2755,14 +2766,25 @@
                     "browser_unsupported": "Deze browser ondersteunt Web Bluetooth niet. Probeer Chrome of Edge.",
                     "insecure_context": "Web Bluetooth vereist een beveiligde context (HTTPS of localhost).",
                     "requires_https": "Open de flasher via HTTPS of localhost om Bluetooth in te schakelen.",
-                    "unknown": "Bluetooth kan niet worden geïnitialiseerd in deze omgeving."
+                    "unknown": "Bluetooth kan niet worden geïnitialiseerd in deze omgeving.",
+                    "android_bridge_no_web_bluetooth": "Bluetooth-toestemming verleend. Flash via USB in de native flasher (Web Bluetooth is niet beschikbaar in WebView).",
+                    "android_bluetooth_permission_required": "Bluetooth-toestemming is vereist voor mesh RNode BLE. Tik op Bluetooth toestaan."
                 },
                 "actions": {
                     "load_polyfill": "Polyfill laden",
                     "request_bluetooth": "Bluetooth toestaan",
                     "open_settings": "Instellingen openen",
                     "polyfill_loading": "USB-serieel polyfill laden...",
-                    "bluetooth_requested": "Bluetooth-toestemming aangevraagd."
+                    "bluetooth_requested": "Bluetooth-toestemming aangevraagd.",
+                    "request_usb": "USB toestaan",
+                    "open_native": "Native flasher openen",
+                    "opened_native": "Native RNode-flasher geopend.",
+                    "bluetooth_already_granted": "Bluetooth-toestemming is al verleend.",
+                    "bluetooth_open_settings": "Open de app-instellingen en schakel Bluetooth-machtigingen in.",
+                    "bluetooth_unsupported": "Bluetooth-toestemmingsverzoek is niet beschikbaar.",
+                    "bluetooth_granted": "Bluetooth-toestemming verleend.",
+                    "bluetooth_denied": "Bluetooth-toestemming geweigerd.",
+                    "usb_requested": "USB-toestemming aangevraagd."
                 }
             },
             "diagnostics": {

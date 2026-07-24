@@ -1914,6 +1914,16 @@
         "android_clear_clipboard_on_background_on": "应用进入后台时将清空剪贴板",
         "android_clear_clipboard_on_background_off": "应用进入后台时不再清空剪贴板",
         "android_privacy_save_failed": "无法更新 Android 隐私设置。",
+        "android_remote_backend_heading": "远程后端 URL",
+        "android_remote_backend_desc": "将此手机应用指向同一网络上桌面或服务器上运行的 MeshChatX。留空则使用设备本地后端。更改后会重启应用。",
+        "android_remote_backend_placeholder": "https://192.168.1.10:9337",
+        "android_remote_backend_apply": "应用并重启",
+        "android_remote_backend_use_local": "使用设备本地后端",
+        "android_remote_backend_active": "正在使用远程后端：{url}",
+        "android_remote_backend_invalid": "请输入有效的 http(s) URL，或留空以使用设备本地后端。",
+        "android_remote_backend_unchanged": "后端 URL 已是该值。",
+        "android_remote_backend_already_local": "已在使用设备本地后端。",
+        "android_remote_backend_restarting": "正在重启以应用后端 URL…",
         "nomad_micron_wasm_title": "Micron (WASM)",
         "nomad_micron_wasm_desc_before_link": "Optional WASM renderer (",
         "nomad_micron_wasm_link_label": "micron-parser-go",
@@ -2747,7 +2757,8 @@
                     "android_webview_no_serial": "Android 在此视图中不支持 Web Serial。请使用桌面浏览器或内置刷机工具。",
                     "browser_unsupported": "此浏览器不支持 Web Serial。请尝试 Chrome、Edge 或其他基于 Chromium 的浏览器。",
                     "android_use_chrome": "在 Android 上，使用 Chrome 打开此页面可通过 WebUSB 使用 Web Serial。",
-                    "unknown": "在此环境中无法初始化 USB 串口。"
+                    "unknown": "在此环境中无法初始化 USB 串口。",
+                    "android_request_usb": "打开原生刷写工具以允许 USB 并通过串口刷写。"
                 },
                 "bluetooth": {
                     "title": "蓝牙不可用",
@@ -2755,14 +2766,25 @@
                     "browser_unsupported": "此浏览器不支持 Web Bluetooth。请尝试 Chrome 或 Edge。",
                     "insecure_context": "Web Bluetooth 需要安全上下文（HTTPS 或 localhost）。",
                     "requires_https": "请通过 HTTPS 或 localhost 打开刷写工具以启用蓝牙。",
-                    "unknown": "在此环境中无法初始化蓝牙。"
+                    "unknown": "在此环境中无法初始化蓝牙。",
+                    "android_bridge_no_web_bluetooth": "已授予蓝牙权限。请在原生刷写工具中通过 USB 刷写（WebView 中不可用 Web Bluetooth）。",
+                    "android_bluetooth_permission_required": "网格 RNode BLE 需要蓝牙权限。请点按“允许蓝牙”。"
                 },
                 "actions": {
                     "load_polyfill": "加载 polyfill",
                     "request_bluetooth": "允许蓝牙",
                     "open_settings": "打开设置",
                     "polyfill_loading": "正在加载 USB 串口 polyfill...",
-                    "bluetooth_requested": "已请求蓝牙权限。"
+                    "bluetooth_requested": "已请求蓝牙权限。",
+                    "request_usb": "允许 USB",
+                    "open_native": "打开原生刷写工具",
+                    "opened_native": "已打开原生 RNode 刷写工具。",
+                    "bluetooth_already_granted": "已授予蓝牙权限。",
+                    "bluetooth_open_settings": "打开应用设置并启用蓝牙权限。",
+                    "bluetooth_unsupported": "无法请求蓝牙权限。",
+                    "bluetooth_granted": "已授予蓝牙权限。",
+                    "bluetooth_denied": "蓝牙权限被拒绝。",
+                    "usb_requested": "已请求 USB 权限。"
                 }
             },
             "diagnostics": {

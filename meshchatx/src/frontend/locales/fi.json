@@ -1930,6 +1930,16 @@
         "android_clear_clipboard_on_background_on": "Leikepöytä tyhjennetään taustalle siirryttäessä",
         "android_clear_clipboard_on_background_off": "Leikepöytää ei enää tyhjennetä taustalle siirryttäessä",
         "android_privacy_save_failed": "Android-yksityisyysasetusta ei voitu päivittää.",
+        "android_remote_backend_heading": "Etätaustajärjestelmän URL",
+        "android_remote_backend_desc": "Ohjaa tämä puhelinsovellus työpöydälläsi tai saman verkon palvelimella olevaan MeshChatX:ään. Jätä tyhjäksi käyttääksesi laitteen omaa taustajärjestelmää. Muutos käynnistää sovelluksen uudelleen.",
+        "android_remote_backend_placeholder": "https://192.168.1.10:9337",
+        "android_remote_backend_apply": "Käytä ja käynnistä uudelleen",
+        "android_remote_backend_use_local": "Käytä laitteen omaa taustajärjestelmää",
+        "android_remote_backend_active": "Käytössä etätaustajärjestelmä: {url}",
+        "android_remote_backend_invalid": "Anna kelvollinen http(s)-URL tai jätä tyhjäksi laitteen omaa taustajärjestelmää varten.",
+        "android_remote_backend_unchanged": "Taustajärjestelmän URL on jo asetettu tähän arvoon.",
+        "android_remote_backend_already_local": "Laitteen oma taustajärjestelmä on jo käytössä.",
+        "android_remote_backend_restarting": "Käynnistetään uudelleen taustajärjestelmän URL:n käyttöönottoa varten…",
         "nomad_micron_wasm_title": "Micron (WASM)",
         "nomad_micron_wasm_desc_before_link": "Käytä nopeampaa moottoria (",
         "nomad_micron_wasm_link_label": "micron-parser-go",
@@ -2747,7 +2757,8 @@
                     "android_webview_no_serial": "Android ei tue Web Serialia tässä näkymässä. Käytä työpöytäselainta tai sisäänrakennettua flasheria.",
                     "browser_unsupported": "Tämä selain ei tue Web Serialia. Kokeile Chromea, Edgeä tai muuta Chromium-pohjaista selainta.",
                     "android_use_chrome": "Androidilla tämän sivun avaaminen Chromessa mahdollistaa Web Serialin käytön WebUSB:n kautta.",
-                    "unknown": "USB-sarjaporttia ei voida alustaa tässä ympäristössä."
+                    "unknown": "USB-sarjaporttia ei voida alustaa tässä ympäristössä.",
+                    "android_request_usb": "Avaa natiivi flasher salliaksesi USB:n ja flashataksesi sarjaportin kautta."
                 },
                 "bluetooth": {
                     "title": "Bluetooth ei ole käytettävissä",
@@ -2755,14 +2766,25 @@
                     "browser_unsupported": "Tämä selain ei tue Web Bluetoothia. Kokeile Chromea tai Edgeä.",
                     "insecure_context": "Web Bluetooth vaatii suojatun yhteyden (HTTPS tai localhost).",
                     "requires_https": "Avaa flasher HTTPS:n tai localhostin kautta ottaaksesi Bluetoothin käyttöön.",
-                    "unknown": "Bluetoothia ei voida alustaa tässä ympäristössä."
+                    "unknown": "Bluetoothia ei voida alustaa tässä ympäristössä.",
+                    "android_bridge_no_web_bluetooth": "Bluetooth-lupa myönnetty. Flashaa USB:llä natiivissa flasherissa (Web Bluetooth ei ole käytettävissä WebViewissä).",
+                    "android_bluetooth_permission_required": "Mesh-RNode BLE vaatii Bluetooth-luvan. Napauta Salli Bluetooth."
                 },
                 "actions": {
                     "load_polyfill": "Lataa polyfill",
                     "request_bluetooth": "Salli Bluetooth",
                     "open_settings": "Avaa asetukset",
                     "polyfill_loading": "Ladataan USB-sarjaportin polyfilliä...",
-                    "bluetooth_requested": "Bluetooth-lupaa pyydetty."
+                    "bluetooth_requested": "Bluetooth-lupaa pyydetty.",
+                    "request_usb": "Salli USB",
+                    "open_native": "Avaa natiivi flasher",
+                    "opened_native": "Natiivi RNode-flasher avattu.",
+                    "bluetooth_already_granted": "Bluetooth-lupa on jo myönnetty.",
+                    "bluetooth_open_settings": "Avaa sovelluksen asetukset ja ota Bluetooth-luvat käyttöön.",
+                    "bluetooth_unsupported": "Bluetooth-lupapyyntö ei ole käytettävissä.",
+                    "bluetooth_granted": "Bluetooth-lupa myönnetty.",
+                    "bluetooth_denied": "Bluetooth-lupa evätty.",
+                    "usb_requested": "USB-lupaa pyydetty."
                 }
             },
             "diagnostics": {

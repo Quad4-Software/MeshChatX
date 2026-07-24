@@ -25,5 +25,25 @@
     <string name="share_apk_chooser_title">Share MeshChatX APK</string>
     <string name="share_apk_failed">Could not prepare APK to share</string>
     <string name="share_apk_unavailable">App package not found</string>
+    <string name="remote_backend_unreachable_title">Remote backend unreachable</string>
+    <string name="remote_backend_unreachable_message">Could not open the configured MeshChatX backend URL. Use the on-device backend, or keep trying if the desktop or server is still starting.</string>
+    <string name="remote_backend_use_local">Use local backend</string>
+    <string name="remote_backend_keep_trying">Keep trying</string>
+    <string name="remote_backend_switching_local">Switching to on-device backend…</string>
+    <string name="remote_backend_switching_remote">Switching to remote backend…</string>
+    <string name="rnode_flasher_title">RNode Flasher</string>
+    <string name="rnode_flasher_subtitle">Native USB flashing for ESP32 RNodes. No WebView serial.</string>
+    <string name="rnode_flasher_usb_device">USB serial device</string>
+    <string name="rnode_flasher_refresh_usb">Refresh</string>
+    <string name="rnode_flasher_allow_usb">Allow USB</string>
+    <string name="rnode_flasher_product">Product</string>
+    <string name="rnode_flasher_model">Model</string>
+    <string name="rnode_flasher_download">Download firmware</string>
+    <string name="rnode_flasher_flash">Flash</string>
+    <string name="rnode_flasher_allow_bluetooth">Allow Bluetooth</string>
+    <string name="rnode_flasher_app_settings">App settings</string>
+    <string name="rnode_flasher_ready">Ready</string>
+    <string name="rnode_flasher_no_usb">No USB serial devices found. Plug in your RNode.</string>
+    <string name="rnode_flasher_busy">Working…</string>
 </resources>
 

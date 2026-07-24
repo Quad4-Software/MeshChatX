@@ -14,13 +14,13 @@ import okhttp3.OkHttpClient;
  * OkHttp for HTTPS to the embedded MeshChatX server on 127.0.0.1 only (self-signed cert, same
  * as WebView SSL ignore). Do not use for public hosts.
  */
-final class LocalhostTrustOkHttpClient {
+public final class LocalhostTrustOkHttpClient {
     private static OkHttpClient instance;
 
     private LocalhostTrustOkHttpClient() {
     }
 
-    static synchronized OkHttpClient get() {
+    public static synchronized OkHttpClient get() {
         if (instance == null) {
             instance = build();
         }

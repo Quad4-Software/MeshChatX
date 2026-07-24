@@ -1,0 +1,521 @@
+[
+  {
+    "name": "Heltec LoRa32 v2",
+    "id": 192,
+    "platform": 128,
+    "firmware_filename": "rnode_firmware_heltec32v2.zip",
+    "flash_config": {
+      "flash_size": "8MB",
+      "flash_files": {
+        "0xe000": "rnode_firmware_heltec32v2.boot_app0",
+        "0x1000": "rnode_firmware_heltec32v2.bootloader",
+        "0x10000": "rnode_firmware_heltec32v2.bin",
+        "0x210000": "console_image.bin",
+        "0x8000": "rnode_firmware_heltec32v2.partitions"
+      }
+    },
+    "models": [
+      {
+        "id": 196,
+        "name": "433 MHz",
+        "mapped_id": null,
+        "flash_config": null,
+        "firmware_filename": null
+      },
+      {
+        "id": 201,
+        "name": "868 MHz / 915 MHz / 923 MHz",
+        "mapped_id": null,
+        "flash_config": null,
+        "firmware_filename": null
+      }
+    ]
+  },
+  {
+    "name": "Heltec LoRa32 v3",
+    "id": 193,
+    "platform": 128,
+    "firmware_filename": "rnode_firmware_heltec32v3.zip",
+    "flash_config": {
+      "flash_size": "8MB",
+      "flash_files": {
+        "0xe000": "rnode_firmware_heltec32v3.boot_app0",
+        "0x0": "rnode_firmware_heltec32v3.bootloader",
+        "0x10000": "rnode_firmware_heltec32v3.bin",
+        "0x210000": "console_image.bin",
+        "0x8000": "rnode_firmware_heltec32v3.partitions"
+      }
+    },
+    "models": [
+      {
+        "id": 197,
+        "name": "433 MHz",
+        "mapped_id": null,
+        "flash_config": null,
+        "firmware_filename": null
+      },
+      {
+        "id": 202,
+        "name": "868 MHz / 915 MHz / 923 MHz",
+        "mapped_id": null,
+        "flash_config": null,
+        "firmware_filename": null
+      }
+    ]
+  },
+  {
+    "name": "Heltec LoRa32 v4",
+    "platform": 128,
+    "firmware_filename": "rnode_firmware_heltec32v4pa.zip",
+    "flash_config": {
+      "flash_size": "16MB",
+      "flash_files": {
+        "0xe000": "rnode_firmware_heltec32v4pa.boot_app0",
+        "0x0": "rnode_firmware_heltec32v4pa.bootloader",
+        "0x10000": "rnode_firmware_heltec32v4pa.bin",
+        "0x210000": "console_image.bin",
+        "0x8000": "rnode_firmware_heltec32v4pa.partitions"
+      }
+    },
+    "models": [
+      {
+        "name": "868 MHz / 915 MHz / 923 MHz with PA",
+        "mapped_id": null,
+        "flash_config": null,
+        "firmware_filename": null
+      }
+    ]
+  },
+  {
+    "name": "LilyGO LoRa32 v1.0",
+    "id": 178,
+    "platform": 128,
+    "firmware_filename": "rnode_firmware_lora32v10.zip",
+    "flash_config": {
+      "flash_size": "4MB",
+      "flash_files": {
+        "0xe000": "rnode_firmware_lora32v10.boot_app0",
+        "0x1000": "rnode_firmware_lora32v10.bootloader",
+        "0x10000": "rnode_firmware_lora32v10.bin",
+        "0x210000": "console_image.bin",
+        "0x8000": "rnode_firmware_lora32v10.partitions"
+      }
+    },
+    "models": [
+      {
+        "id": 186,
+        "name": "433 MHz",
+        "mapped_id": null,
+        "flash_config": null,
+        "firmware_filename": null
+      },
+      {
+        "id": 187,
+        "name": "868 MHz / 915 MHz / 923 MHz",
+        "mapped_id": null,
+        "flash_config": null,
+        "firmware_filename": null
+      }
+    ]
+  },
+  {
+    "name": "LilyGO LoRa32 v2.0",
+    "id": 176,
+    "platform": 128,
+    "firmware_filename": "rnode_firmware_lora32v20.zip",
+    "flash_config": {
+      "flash_size": "4MB",
+      "flash_files": {
+        "0xe000": "rnode_firmware_lora32v20.boot_app0",
+        "0x1000": "rnode_firmware_lora32v20.bootloader",
+        "0x10000": "rnode_firmware_lora32v20.bin",
+        "0x210000": "console_image.bin",
+        "0x8000": "rnode_firmware_lora32v20.partitions"
+      }
+    },
+    "models": [
+      {
+        "id": 179,
+        "name": "433 MHz",
+        "mapped_id": null,
+        "flash_config": null,
+        "firmware_filename": null
+      },
+      {
+        "id": 184,
+        "name": "868 MHz / 915 MHz / 923 MHz",
+        "mapped_id": null,
+        "flash_config": null,
+        "firmware_filename": null
+      }
+    ]
+  },
+  {
+    "name": "LilyGO LoRa32 v2.1",
+    "id": 177,
+    "platform": 128,
+    "flash_config": null,
+    "models": [
+      {
+        "id": 180,
+        "name": "433 MHz",
+        "mapped_id": null,
+        "flash_config": {
+          "flash_size": "4MB",
+          "flash_files": {
+            "0xe000": "rnode_firmware_lora32v21.boot_app0",
+            "0x1000": "rnode_firmware_lora32v21.bootloader",
+            "0x10000": "rnode_firmware_lora32v21.bin",
+            "0x210000": "console_image.bin",
+            "0x8000": "rnode_firmware_lora32v21.partitions"
+          }
+        },
+        "firmware_filename": "rnode_firmware_lora32v21.zip"
+      },
+      {
+        "id": 185,
+        "name": "868/915/923 MHz",
+        "mapped_id": null,
+        "flash_config": {
+          "flash_size": "4MB",
+          "flash_files": {
+            "0xe000": "rnode_firmware_lora32v21.boot_app0",
+            "0x1000": "rnode_firmware_lora32v21.bootloader",
+            "0x10000": "rnode_firmware_lora32v21.bin",
+            "0x210000": "console_image.bin",
+            "0x8000": "rnode_firmware_lora32v21.partitions"
+          }
+        },
+        "firmware_filename": "rnode_firmware_lora32v21.zip"
+      },
+      {
+        "id": 4,
+        "name": "433 MHz, with TCXO",
+        "mapped_id": 180,
+        "flash_config": {
+          "flash_size": "4MB",
+          "flash_files": {
+            "0xe000": "rnode_firmware_lora32v21_tcxo.boot_app0",
+            "0x1000": "rnode_firmware_lora32v21_tcxo.bootloader",
+            "0x10000": "rnode_firmware_lora32v21_tcxo.bin",
+            "0x210000": "console_image.bin",
+            "0x8000": "rnode_firmware_lora32v21_tcxo.partitions"
+          }
+        },
+        "firmware_filename": "rnode_firmware_lora32v21_tcxo.zip"
+      },
+      {
+        "id": 9,
+        "name": "868/915/923 MHz, with TCXO",
+        "mapped_id": 185,
+        "flash_config": {
+          "flash_size": "4MB",
+          "flash_files": {
+            "0xe000": "rnode_firmware_lora32v21_tcxo.boot_app0",
+            "0x1000": "rnode_firmware_lora32v21_tcxo.bootloader",
+            "0x10000": "rnode_firmware_lora32v21_tcxo.bin",
+            "0x210000": "console_image.bin",
+            "0x8000": "rnode_firmware_lora32v21_tcxo.partitions"
+          }
+        },
+        "firmware_filename": "rnode_firmware_lora32v21_tcxo.zip"
+      }
+    ]
+  },
+  {
+    "name": "LilyGO LoRa T3S3",
+    "id": 3,
+    "platform": 128,
+    "flash_config": null,
+    "models": [
+      {
+        "id": 165,
+        "name": "433 MHz (with SX1278 chip)",
+        "mapped_id": null,
+        "flash_config": {
+          "flash_size": "4MB",
+          "flash_files": {
+            "0xe000": "rnode_firmware_t3s3_sx127x.boot_app0",
+            "0x0": "rnode_firmware_t3s3_sx127x.bootloader",
+            "0x10000": "rnode_firmware_t3s3_sx127x.bin",
+            "0x210000": "console_image.bin",
+            "0x8000": "rnode_firmware_t3s3_sx127x.partitions"
+          }
+        },
+        "firmware_filename": "rnode_firmware_t3s3_sx127x.zip"
+      },
+      {
+        "id": 170,
+        "name": "868/915/923 MHz (with SX1276 chip)",
+        "mapped_id": null,
+        "flash_config": {
+          "flash_size": "4MB",
+          "flash_files": {
+            "0xe000": "rnode_firmware_t3s3_sx127x.boot_app0",
+            "0x0": "rnode_firmware_t3s3_sx127x.bootloader",
+            "0x10000": "rnode_firmware_t3s3_sx127x.bin",
+            "0x210000": "console_image.bin",
+            "0x8000": "rnode_firmware_t3s3_sx127x.partitions"
+          }
+        },
+        "firmware_filename": "rnode_firmware_t3s3_sx127x.zip"
+      },
+      {
+        "id": 161,
+        "name": "433 MHz (with SX1268 chip)",
+        "mapped_id": null,
+        "flash_config": {
+          "flash_size": "4MB",
+          "flash_files": {
+            "0xe000": "rnode_firmware_t3s3.boot_app0",
+            "0x0": "rnode_firmware_t3s3.bootloader",
+            "0x10000": "rnode_firmware_t3s3.bin",
+            "0x210000": "console_image.bin",
+            "0x8000": "rnode_firmware_t3s3.partitions"
+          }
+        },
+        "firmware_filename": "rnode_firmware_t3s3.zip"
+      },
+      {
+        "id": 166,
+        "name": "868/915/923 MHz (with SX1262 chip)",
+        "mapped_id": null,
+        "flash_config": {
+          "flash_size": "4MB",
+          "flash_files": {
+            "0xe000": "rnode_firmware_t3s3.boot_app0",
+            "0x0": "rnode_firmware_t3s3.bootloader",
+            "0x10000": "rnode_firmware_t3s3.bin",
+            "0x210000": "console_image.bin",
+            "0x8000": "rnode_firmware_t3s3.partitions"
+          }
+        },
+        "firmware_filename": "rnode_firmware_t3s3.zip"
+      },
+      {
+        "id": 172,
+        "name": "2.4 GHz (with SX1280 chip)",
+        "mapped_id": null,
+        "flash_config": {
+          "flash_size": "4MB",
+          "flash_files": {
+            "0xe000": "rnode_firmware_t3s3_sx1280_pa.boot_app0",
+            "0x0": "rnode_firmware_t3s3_sx1280_pa.bootloader",
+            "0x10000": "rnode_firmware_t3s3_sx1280_pa.bin",
+            "0x210000": "console_image.bin",
+            "0x8000": "rnode_firmware_t3s3_sx1280_pa.partitions"
+          }
+        },
+        "firmware_filename": "rnode_firmware_t3s3_sx1280_pa.zip"
+      }
+    ]
+  },
+  {
+    "name": "LilyGO T-Beam",
+    "id": 224,
+    "platform": 128,
+    "flash_config": null,
+    "models": [
+      {
+        "id": 228,
+        "name": "433 MHz (with SX1278 chip)",
+        "mapped_id": null,
+        "flash_config": {
+          "flash_size": "4MB",
+          "flash_files": {
+            "0xe000": "rnode_firmware_tbeam.boot_app0",
+            "0x1000": "rnode_firmware_tbeam.bootloader",
+            "0x10000": "rnode_firmware_tbeam.bin",
+            "0x210000": "console_image.bin",
+            "0x8000": "rnode_firmware_tbeam.partitions"
+          }
+        },
+        "firmware_filename": "rnode_firmware_tbeam.zip"
+      },
+      {
+        "id": 233,
+        "name": "868/915/923 MHz (with SX1276 chip)",
+        "mapped_id": null,
+        "flash_config": {
+          "flash_size": "4MB",
+          "flash_files": {
+            "0xe000": "rnode_firmware_tbeam.boot_app0",
+            "0x1000": "rnode_firmware_tbeam.bootloader",
+            "0x10000": "rnode_firmware_tbeam.bin",
+            "0x210000": "console_image.bin",
+            "0x8000": "rnode_firmware_tbeam.partitions"
+          }
+        },
+        "firmware_filename": "rnode_firmware_tbeam.zip"
+      },
+      {
+        "id": 227,
+        "name": "433 MHz (with SX1268 chip)",
+        "mapped_id": null,
+        "flash_config": {
+          "flash_size": "4MB",
+          "flash_files": {
+            "0xe000": "rnode_firmware_tbeam_sx1262.boot_app0",
+            "0x1000": "rnode_firmware_tbeam_sx1262.bootloader",
+            "0x10000": "rnode_firmware_tbeam_sx1262.bin",
+            "0x210000": "console_image.bin",
+            "0x8000": "rnode_firmware_tbeam_sx1262.partitions"
+          }
+        },
+        "firmware_filename": "rnode_firmware_tbeam_sx1262.zip"
+      },
+      {
+        "id": 232,
+        "name": "868/915/923 MHz (with SX1262 chip)",
+        "mapped_id": null,
+        "flash_config": {
+          "flash_size": "4MB",
+          "flash_files": {
+            "0xe000": "rnode_firmware_tbeam_sx1262.boot_app0",
+            "0x1000": "rnode_firmware_tbeam_sx1262.bootloader",
+            "0x10000": "rnode_firmware_tbeam_sx1262.bin",
+            "0x210000": "console_image.bin",
+            "0x8000": "rnode_firmware_tbeam_sx1262.partitions"
+          }
+        },
+        "firmware_filename": "rnode_firmware_tbeam_sx1262.zip"
+      }
+    ]
+  },
+  {
+    "name": "LilyGO T-Beam Supreme",
+    "id": 234,
+    "platform": 128,
+    "firmware_filename": "rnode_firmware_tbeam_supreme.zip",
+    "flash_config": {
+      "flash_size": "4MB",
+      "flash_files": {
+        "0xe000": "rnode_firmware_tbeam_supreme.boot_app0",
+        "0x0": "rnode_firmware_tbeam_supreme.bootloader",
+        "0x10000": "rnode_firmware_tbeam_supreme.bin",
+        "0x210000": "console_image.bin",
+        "0x8000": "rnode_firmware_tbeam_supreme.partitions"
+      }
+    },
+    "models": [
+      {
+        "id": 219,
+        "name": "433 MHz (with SX1268 chip)",
+        "mapped_id": null,
+        "flash_config": null,
+        "firmware_filename": null
+      },
+      {
+        "id": 220,
+        "name": "868/915/923 MHz (with SX1262 chip)",
+        "mapped_id": null,
+        "flash_config": null,
+        "firmware_filename": null
+      }
+    ]
+  },
+  {
+    "name": "LilyGO T-Deck",
+    "id": 208,
+    "platform": 128,
+    "firmware_filename": "rnode_firmware_tdeck.zip",
+    "flash_config": {
+      "flash_size": "4MB",
+      "flash_files": {
+        "0xe000": "rnode_firmware_tdeck.boot_app0",
+        "0x0": "rnode_firmware_tdeck.bootloader",
+        "0x10000": "rnode_firmware_tdeck.bin",
+        "0x210000": "console_image.bin",
+        "0x8000": "rnode_firmware_tdeck.partitions"
+      }
+    },
+    "models": [
+      {
+        "id": 212,
+        "name": "433 MHz (with SX1268 chip)",
+        "mapped_id": null,
+        "flash_config": null,
+        "firmware_filename": null
+      },
+      {
+        "id": 217,
+        "name": "868/915/923 MHz (with SX1262 chip)",
+        "mapped_id": null,
+        "flash_config": null,
+        "firmware_filename": null
+      }
+    ]
+  },
+  {
+    "name": "RNode",
+    "id": 3,
+    "platform": 128,
+    "flash_config": null,
+    "models": [
+      {
+        "id": 162,
+        "name": "Handheld v2.1 RNode, 410 - 525 MHz",
+        "mapped_id": null,
+        "flash_config": {
+          "flash_size": "4MB",
+          "flash_files": {
+            "0xe000": "rnode_firmware_ng21.boot_app0",
+            "0x1000": "rnode_firmware_ng21.bootloader",
+            "0x10000": "rnode_firmware_ng21.bin",
+            "0x210000": "console_image.bin",
+            "0x8000": "rnode_firmware_ng21.partitions"
+          }
+        },
+        "firmware_filename": "rnode_firmware_ng21.zip"
+      },
+      {
+        "id": 167,
+        "name": "Handheld v2.1 RNode, 820 - 1020 MHz",
+        "mapped_id": null,
+        "flash_config": {
+          "flash_size": "4MB",
+          "flash_files": {
+            "0xe000": "rnode_firmware_ng21.boot_app0",
+            "0x1000": "rnode_firmware_ng21.bootloader",
+            "0x10000": "rnode_firmware_ng21.bin",
+            "0x210000": "console_image.bin",
+            "0x8000": "rnode_firmware_ng21.partitions"
+          }
+        },
+        "firmware_filename": "rnode_firmware_ng21.zip"
+      },
+      {
+        "id": 161,
+        "name": "Prototype v2.2 RNode, 410 - 525 MHz",
+        "mapped_id": null,
+        "flash_config": {
+          "flash_size": "4MB",
+          "flash_files": {
+            "0xe000": "rnode_firmware_t3s3.boot_app0",
+            "0x0": "rnode_firmware_t3s3.bootloader",
+            "0x10000": "rnode_firmware_t3s3.bin",
+            "0x210000": "console_image.bin",
+            "0x8000": "rnode_firmware_t3s3.partitions"
+          }
+        },
+        "firmware_filename": "rnode_firmware_t3s3.zip"
+      },
+      {
+        "id": 166,
+        "name": "Prototype v2.2 RNode, 820 - 1020 MHz",
+        "mapped_id": null,
+        "flash_config": {
+          "flash_size": "4MB",
+          "flash_files": {
+            "0xe000": "rnode_firmware_t3s3.boot_app0",
+            "0x0": "rnode_firmware_t3s3.bootloader",
+            "0x10000": "rnode_firmware_t3s3.bin",
+            "0x210000": "console_image.bin",
+            "0x8000": "rnode_firmware_t3s3.partitions"
+          }
+        },
+        "firmware_filename": "rnode_firmware_t3s3.zip"
+      }
+    ]
+  }
+]

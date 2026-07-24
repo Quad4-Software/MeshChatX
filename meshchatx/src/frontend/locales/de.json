@@ -2551,7 +2551,8 @@
                     "android_webview_no_serial": "Android unterstützt Web Serial in dieser Ansicht nicht. Verwenden Sie einen Desktop-Browser oder den integrierten Flasher.",
                     "browser_unsupported": "Dieser Browser unterstützt Web Serial nicht. Versuchen Sie Chrome, Edge oder einen anderen Chromium-basierten Browser.",
                     "android_use_chrome": "Öffnen Sie diese Seite unter Android in Chrome, um Web Serial über WebUSB zu nutzen.",
-                    "unknown": "USB-Serial kann in dieser Umgebung nicht initialisiert werden."
+                    "unknown": "USB-Serial kann in dieser Umgebung nicht initialisiert werden.",
+                    "android_request_usb": "Öffne den nativen Flasher, um USB zu erlauben und über die serielle Schnittstelle zu flashen."
                 },
                 "bluetooth": {
                     "title": "Bluetooth ist nicht verfügbar",
@@ -2559,14 +2560,25 @@
                     "browser_unsupported": "Dieser Browser unterstützt Web Bluetooth nicht. Versuchen Sie Chrome oder Edge.",
                     "insecure_context": "Web Bluetooth erfordert einen sicheren Kontext (HTTPS oder localhost).",
                     "requires_https": "Öffnen Sie den Flasher über HTTPS oder localhost, um Bluetooth zu aktivieren.",
-                    "unknown": "Bluetooth kann in dieser Umgebung nicht initialisiert werden."
+                    "unknown": "Bluetooth kann in dieser Umgebung nicht initialisiert werden.",
+                    "android_bridge_no_web_bluetooth": "Bluetooth-Berechtigung erteilt. Flashen Sie über USB im nativen Flasher (Web Bluetooth ist in der WebView nicht verfügbar).",
+                    "android_bluetooth_permission_required": "Für Mesh-RNode-BLE ist die Bluetooth-Berechtigung erforderlich. Tippen Sie auf Bluetooth erlauben."
                 },
                 "actions": {
                     "load_polyfill": "Polyfill laden",
                     "request_bluetooth": "Bluetooth erlauben",
                     "open_settings": "Einstellungen öffnen",
                     "polyfill_loading": "USB-Serial-Polyfill wird geladen...",
-                    "bluetooth_requested": "Bluetooth-Berechtigung angefordert."
+                    "bluetooth_requested": "Bluetooth-Berechtigung angefordert.",
+                    "request_usb": "USB erlauben",
+                    "open_native": "Nativen Flasher öffnen",
+                    "opened_native": "Nativer RNode-Flasher geöffnet.",
+                    "bluetooth_already_granted": "Bluetooth-Berechtigung ist bereits erteilt.",
+                    "bluetooth_open_settings": "Öffnen Sie die App-Einstellungen und aktivieren Sie Bluetooth-Berechtigungen.",
+                    "bluetooth_unsupported": "Anfrage der Bluetooth-Berechtigung ist nicht verfügbar.",
+                    "bluetooth_granted": "Bluetooth-Berechtigung erteilt.",
+                    "bluetooth_denied": "Bluetooth-Berechtigung verweigert.",
+                    "usb_requested": "USB-Berechtigung angefordert."
                 }
             },
             "diagnostics": {
@@ -3366,6 +3378,16 @@
         "android_clear_clipboard_on_background_on": "Zwischenablage wird beim Wechsel in den Hintergrund geleert",
         "android_clear_clipboard_on_background_off": "Zwischenablage wird beim Hintergrundwechsel nicht mehr geleert",
         "android_privacy_save_failed": "Android-Datenschutzeinstellung konnte nicht aktualisiert werden.",
+        "android_remote_backend_heading": "URL des entfernten Backends",
+        "android_remote_backend_desc": "Verbinde diese Telefon-App mit MeshChatX auf deinem Desktop oder einem Server im gleichen Netzwerk. Leer lassen, um das geräteeigene Backend zu nutzen. Eine Änderung startet die App neu.",
+        "android_remote_backend_placeholder": "https://192.168.1.10:9337",
+        "android_remote_backend_apply": "Übernehmen und neu starten",
+        "android_remote_backend_use_local": "Geräteeigenes Backend nutzen",
+        "android_remote_backend_active": "Entferntes Backend aktiv: {url}",
+        "android_remote_backend_invalid": "Gib eine gültige http(s)-URL ein oder lass das Feld leer für das geräteeigene Backend.",
+        "android_remote_backend_unchanged": "Die Backend-URL ist bereits auf diesen Wert gesetzt.",
+        "android_remote_backend_already_local": "Es wird bereits das geräteeigene Backend verwendet.",
+        "android_remote_backend_restarting": "Neustart, um die Backend-URL zu übernehmen…",
         "nomad_micron_wasm_title": "Micron (WASM)",
         "nomad_micron_wasm_desc_before_link": "Optional WASM renderer (",
         "nomad_micron_wasm_link_label": "micron-parser-go",

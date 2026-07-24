@@ -47,7 +47,19 @@ function detectSerial(env, platform) {
     const hasNative = Boolean(env.navigator?.serial);
     const hasUsbPolyfillTarget = Boolean(env.navigator?.usb);
     const hasPolyfillModule = Boolean(env.serial);
+    const hasNativeFlasher =
+        Boolean(env.MeshChatXAndroid)
+        && typeof env.MeshChatXAndroid.hasNativeRNodeFlasher === "function"
+        && Boolean(env.MeshChatXAndroid.hasNativeRNodeFlasher());
 
+    if (hasNativeFlasher) {
+        return {
+            available: true,
+            kind: "android-native-activity",
+            polyfilled: false,
+            reason: null,
+        };
+    }
     if (hasNative) {
         return {
             available: true,
@@ -98,10 +110,20 @@ function detectBluetooth(env, platform) {
         };
     }
     if (platform.hasMeshChatXAndroid) {
+        const bridge = env.MeshChatXAndroid;
+        const hasPerms =
+            typeof bridge?.hasBluetoothPermissions === "function"
+                ? Boolean(bridge.hasBluetoothPermissions())
+                : false;
         return {
+            // WebView still has no Web Bluetooth GATT. Permissions matter for
+            // mesh RNode BLE and OS pairing. Keep transport disabled for flash
+            // selection, but surface a clearer reason + actions.
             available: false,
             kind: "android-bridge",
-            reason: "android_bridge_not_implemented",
+            reason: hasPerms
+                ? "android_bridge_no_web_bluetooth"
+                : "android_bluetooth_permission_required",
         };
     }
     return {
@@ -174,7 +196,12 @@ export function transportSuggestionKeys(capabilities, transportName) {
     const reason = transport.reason ?? "unknown";
     const suggestions = [`tools.rnode_flasher.support.${transportName}.${reason}`];
     if (transportName === TRANSPORT_SERIAL && platform.isAndroid) {
-        suggestions.push("tools.rnode_flasher.support.serial.android_use_chrome");
+        if (reason === "android_webview_no_serial") {
+            suggestions.push("tools.rnode_flasher.support.serial.android_use_chrome");
+        }
+    }
+    if (transportName === TRANSPORT_SERIAL && reason === "android_permission_required") {
+        suggestions.push("tools.rnode_flasher.support.serial.android_request_usb");
     }
     if (transportName === TRANSPORT_BLUETOOTH && !platform.isSecureContext) {
         suggestions.push("tools.rnode_flasher.support.bluetooth.requires_https");

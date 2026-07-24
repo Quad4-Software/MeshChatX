@@ -32,16 +32,23 @@ Keep Chaquopy backend boot, WebView file choosers, storage locks, and external n
 - Chaquopy has no pyjnius. Ship `android/app/src/main/python/jnius/` as a shim over `java.jclass`.
 - Override `usb4a` under `android/app/src/main/python/usb4a/` and inject the Activity via `meshchat_wrapper.start_server(..., activity)`.
 - BLE uses bundled `able` plus `org.able.BLE` (not Kivy PythonActivity).
+- RNode flasher is native `RNodeFlasherActivity` (USB via `UsbSerialHub`, ESP32 ROM flash in Java). WebView only launches it via `openRNodeFlasher()`.
+- Codec2 requires `System.loadLibrary("codec2")` before Python import (see `MeshChatApplication`).
 - Keep RNS panic containment and `panic_on_interface_error = No`.
 
 ## Key files
 
 - `android/app/src/main/java/com/meshchatx/MainActivity.java`
+- `android/app/src/main/java/com/meshchatx/rnode/RNodeFlasherActivity.java`
+- `android/app/src/main/java/com/meshchatx/rnode/UsbSerialHub.java`
+- `android/app/src/main/java/com/meshchatx/rnode/Esp32SerialFlasher.java`
+- `android/app/src/main/java/com/meshchatx/MeshChatApplication.java`
 - `android/app/src/main/java/org/able/BLE.java`
 - `android/app/src/main/python/meshchat_wrapper.py`
 - `android/app/src/main/python/jnius/`
 - `android/app/src/main/python/usb4a/`
 - `android/app/src/main/python/able/`
+- `meshchatx/android_codec2.py`
 - `meshchatx/src/backend/android_rnode/`
 - `meshchatx/src/frontend/js/rnode/AndroidBridge.js`
 - `docs/agents/conventions/android.md`

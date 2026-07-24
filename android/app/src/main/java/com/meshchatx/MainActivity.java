@@ -34,6 +34,7 @@ import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.JavascriptInterface;
+import android.webkit.SslErrorHandler;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ImageView;
@@ -43,6 +44,7 @@ import android.widget.Toast;
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
@@ -75,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String PREF_UI_THEME = "ui_theme";
     private static final String PREF_BLOCK_SCREENSHOTS = "block_screenshots";
     private static final String PREF_CLEAR_CLIPBOARD_ON_BACKGROUND = "clear_clipboard_on_background";
+    private static final String PREF_REMOTE_BACKEND_URL = "remote_backend_url";
     private static final String THEME_DARK = "dark";
     private static final String THEME_LIGHT = "light";
 
@@ -83,7 +86,6 @@ public class MainActivity extends AppCompatActivity {
     private ImageView loadingLogo;
     private TextView loadingText;
     private TextView errorText;
-    private static final String SERVER_URL = "https://127.0.0.1:8000";
     private static final int SERVER_PORT = 8000;
     private static final int RUNTIME_PERMISSIONS_REQUEST_CODE = 1001;
     private static final int WEB_MEDIA_PERMISSION_REQUEST_CODE = 1003;
@@ -122,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
         "Opening MeshChatX…",
         "Finishing up…"
     };
-    private static boolean isAllowedWebViewNavigationUri(Uri uri) {
+    private boolean isAllowedWebViewNavigationUri(Uri uri) {
         if (uri == null) {
             return false;
         }
@@ -145,8 +147,10 @@ public class MainActivity extends AppCompatActivity {
         if (host == null) {
             return false;
         }
-        String h = host.toLowerCase();
-        return "127.0.0.1".equals(h) || "localhost".equals(h) || "[::1]".equals(h) || "::1".equals(h);
+        if (RemoteBackendUrl.isLoopbackHost(host)) {
+            return true;
+        }
+        return RemoteBackendUrl.matchesBackend(uri.toString(), resolveBackendUrl());
     }
 
     private void openExternalBrowserUri(Uri uri) {
@@ -207,21 +211,24 @@ public class MainActivity extends AppCompatActivity {
         // or keyboard/resize gaps. Prefer last saved UI theme (default dark).
         applyShellCanvasTheme(resolvePreferredUiTheme());
         webView.setVisibility(android.view.View.INVISIBLE);
-        showLoading("Starting MeshChatX…");
+        final boolean remoteBackend = isRemoteBackendMode();
+        showLoading(remoteBackend ? "Connecting to remote backend…" : "Starting MeshChatX…");
 
-        if (!Python.isStarted()) {
-            try {
-                Python.start(new AndroidPlatform(this));
-            } catch (Exception e) {
-                backendFailed = true;
-                showStartupError("MeshChatX Python runtime failed to start:", toStackTrace(e));
-                return;
+        if (!remoteBackend) {
+            if (!Python.isStarted()) {
+                try {
+                    Python.start(new AndroidPlatform(this));
+                } catch (Exception e) {
+                    backendFailed = true;
+                    showStartupError("MeshChatX Python runtime failed to start:", toStackTrace(e));
+                    return;
+                }
             }
-        }
-        try {
-            org.able.BLE.setAppContext(this);
-        } catch (Exception ignored) {
-            // BLE class may be unavailable in incomplete builds.
+            try {
+                org.able.BLE.setAppContext(this);
+            } catch (Exception ignored) {
+                // BLE class may be unavailable in incomplete builds.
+            }
         }
         requestRuntimePermissionsIfNeeded();
 
@@ -321,9 +328,18 @@ public class MainActivity extends AppCompatActivity {
 
             @SuppressLint("WebViewClientOnReceivedSslError")
             @Override
-            public void onReceivedSslError(WebView view, android.webkit.SslErrorHandler handler, android.net.http.SslError error) {
-                // Ignore SSL certificate errors for localhost
-                handler.proceed();
+            public void onReceivedSslError(WebView view, SslErrorHandler handler, android.net.http.SslError error) {
+                if (handler == null) {
+                    return;
+                }
+                String errorUrl = error != null ? error.getUrl() : null;
+                Uri uri = errorUrl != null ? Uri.parse(errorUrl) : null;
+                if (isAllowedWebViewNavigationUri(uri)) {
+                    // Local and configured remote backends often use self-signed TLS.
+                    handler.proceed();
+                    return;
+                }
+                handler.cancel();
             }
         });
         webView.addJavascriptInterface(new MeshChatXAndroidBridge(this), "MeshChatXAndroid");
@@ -528,8 +544,13 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        startMeshChatServer();
-        scheduleConnectionRetry("Connecting to local server...");
+        if (isRemoteBackendMode()) {
+            webView.loadUrl(resolveBackendUrl());
+            scheduleConnectionRetry("Connecting to remote backend…");
+        } else {
+            startMeshChatServer();
+            scheduleConnectionRetry("Connecting to local server...");
+        }
     }
 
     @Override
@@ -618,6 +639,39 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    void openAppPermissionSettings() {
+        try {
+            startActivity(
+                new Intent(
+                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.parse("package:" + getPackageName())
+                )
+            );
+        } catch (ActivityNotFoundException ignored) {
+            Toast.makeText(this, "App settings unavailable", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private static final String PREF_BT_PERM_PROMPTED_PREFIX = "bt_perm_prompted_";
+
+    boolean wasBluetoothPermissionDeniedPermanently(String permission) {
+        // After the first prompt, if rationale is false and still denied, treat as permanent.
+        boolean prompted =
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .getBoolean(PREF_BT_PERM_PROMPTED_PREFIX + permission, false);
+        return prompted
+            && ContextCompat.checkSelfPermission(this, permission)
+                != PackageManager.PERMISSION_GRANTED
+            && !ActivityCompat.shouldShowRequestPermissionRationale(this, permission);
+    }
+
+    void markBluetoothPermissionPrompted(String permission) {
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .edit()
+            .putBoolean(PREF_BT_PERM_PROMPTED_PREFIX + permission, true)
+            .apply();
+    }
+
     private String[] grantableWebPermissionResources(PermissionRequest request) {
         if (request == null) {
             return new String[0];
@@ -702,6 +756,30 @@ public class MainActivity extends AppCompatActivity {
             pendingWebPermissionRequest = null;
             return;
         }
+        if (requestCode == RNODE_BLUETOOTH_PERMISSION_REQUEST_CODE) {
+            boolean granted = true;
+            if (grantResults == null || grantResults.length == 0) {
+                granted = false;
+            } else {
+                for (int result : grantResults) {
+                    if (result != PackageManager.PERMISSION_GRANTED) {
+                        granted = false;
+                        break;
+                    }
+                }
+            }
+            final boolean ok = granted;
+            if (webView != null) {
+                webView.evaluateJavascript(
+                    "window.dispatchEvent(new CustomEvent('meshchatx-android-permission',"
+                        + "{detail:{group:'bluetooth',granted:"
+                        + ok
+                        + "}}));",
+                    null
+                );
+            }
+            return;
+        }
         if (requestCode != RUNTIME_PERMISSIONS_REQUEST_CODE) {
             return;
         }
@@ -738,7 +816,91 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean isStartupRequest(String url) {
-        return url != null && url.startsWith(SERVER_URL);
+        return RemoteBackendUrl.matchesBackend(url, resolveBackendUrl());
+    }
+
+    @Nullable
+    private String resolveStoredRemoteBackendUrl() {
+        SharedPreferences prefs = getSharedPreferences(SHELL_PREFS, MODE_PRIVATE);
+        return RemoteBackendUrl.normalize(prefs.getString(PREF_REMOTE_BACKEND_URL, null));
+    }
+
+    private String resolveBackendUrl() {
+        return RemoteBackendUrl.resolveEffectiveUrl(resolveStoredRemoteBackendUrl());
+    }
+
+    private boolean isRemoteBackendMode() {
+        return resolveStoredRemoteBackendUrl() != null;
+    }
+
+    private void persistRemoteBackendUrl(@Nullable String normalizedOrNull) {
+        SharedPreferences.Editor editor = getSharedPreferences(SHELL_PREFS, MODE_PRIVATE).edit();
+        if (normalizedOrNull == null || normalizedOrNull.isEmpty()) {
+            editor.remove(PREF_REMOTE_BACKEND_URL);
+        } else {
+            editor.putString(PREF_REMOTE_BACKEND_URL, normalizedOrNull);
+        }
+        editor.apply();
+    }
+
+    private void restartAppForBackendChange() {
+        Intent intent = getPackageManager().getLaunchIntentForPackage(getPackageName());
+        if (intent != null) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+        }
+        finishAffinity();
+        android.os.Process.killProcess(android.os.Process.myPid());
+    }
+
+    private void offerSwitchToLocalBackend(String title, @Nullable String detail) {
+        final String message = StartupErrorReport.format(
+            title,
+            detail,
+            StartupErrorReport.collect(this)
+        );
+        runOnUiThread(() -> {
+            mainHandler.removeCallbacksAndMessages(null);
+            if (webView != null) {
+                webView.setVisibility(android.view.View.INVISIBLE);
+            }
+            if (loadingLogo != null) {
+                loadingLogo.setVisibility(android.view.View.GONE);
+            }
+            if (progressBar != null) {
+                progressBar.setVisibility(android.view.View.GONE);
+            }
+            if (loadingText != null) {
+                loadingText.setVisibility(android.view.View.GONE);
+            }
+            if (errorText != null) {
+                errorText.setText(message);
+                errorText.setVisibility(android.view.View.VISIBLE);
+            }
+            if (isFinishing()) {
+                return;
+            }
+            new AlertDialog.Builder(this)
+                .setTitle(R.string.remote_backend_unreachable_title)
+                .setMessage(R.string.remote_backend_unreachable_message)
+                .setPositiveButton(R.string.remote_backend_use_local, (dialog, which) -> {
+                    persistRemoteBackendUrl(null);
+                    restartAppForBackendChange();
+                })
+                .setNegativeButton(R.string.remote_backend_keep_trying, (dialog, which) -> {
+                    backendFailed = false;
+                    startupPageLoaded = false;
+                    startupRequestHadLoadError = false;
+                    connectionAttempts = 0;
+                    if (errorText != null) {
+                        errorText.setVisibility(android.view.View.GONE);
+                    }
+                    webView.loadUrl(resolveBackendUrl());
+                    scheduleConnectionRetry("Connecting to remote backend…");
+                })
+                .setCancelable(true)
+                .show();
+        });
     }
 
     private void handleIncomingIntent(Intent intent) {
@@ -831,14 +993,24 @@ public class MainActivity extends AppCompatActivity {
             }
             connectionAttempts += 1;
             if (connectionAttempts > MAX_CONNECTION_ATTEMPTS) {
-                showStartupError(
-                    "Failed to connect to local MeshChatX server after waiting for startup.",
-                    null
-                );
+                if (isRemoteBackendMode()) {
+                    backendFailed = true;
+                    offerSwitchToLocalBackend(
+                        "Failed to connect to remote MeshChatX backend after waiting for startup.",
+                        resolveBackendUrl()
+                    );
+                } else {
+                    showStartupError(
+                        "Failed to connect to local MeshChatX server after waiting for startup.",
+                        null
+                    );
+                }
                 return;
             }
-            webView.loadUrl(SERVER_URL);
-            scheduleConnectionRetry("Still starting…");
+            webView.loadUrl(resolveBackendUrl());
+            scheduleConnectionRetry(
+                isRemoteBackendMode() ? "Still connecting to remote backend…" : "Still starting…"
+            );
         }, retryDelayMs);
     }
 
@@ -1346,6 +1518,54 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
+        public String getRemoteBackendUrl() {
+            String stored = activity.resolveStoredRemoteBackendUrl();
+            return stored != null ? stored : "";
+        }
+
+        @JavascriptInterface
+        public String getEffectiveBackendUrl() {
+            return activity.resolveBackendUrl();
+        }
+
+        @JavascriptInterface
+        public boolean isRemoteBackend() {
+            return activity.isRemoteBackendMode();
+        }
+
+        /**
+         * Persist a remote backend URL and restart the app.
+         * Pass empty string to clear and use the on-device local backend.
+         * Returns ok, invalid, or unsupported.
+         */
+        @JavascriptInterface
+        public String setRemoteBackendUrlAndRestart(String url) {
+            final String normalized = RemoteBackendUrl.normalize(url);
+            if (url != null && !url.trim().isEmpty() && normalized == null) {
+                return "invalid";
+            }
+            String current = activity.resolveStoredRemoteBackendUrl();
+            boolean same =
+                (normalized == null && current == null)
+                    || (normalized != null && normalized.equals(current));
+            if (same) {
+                return "unchanged";
+            }
+            activity.runOnUiThread(() -> {
+                activity.persistRemoteBackendUrl(normalized);
+                Toast.makeText(
+                        activity,
+                        normalized == null
+                            ? R.string.remote_backend_switching_local
+                            : R.string.remote_backend_switching_remote,
+                        Toast.LENGTH_SHORT)
+                    .show();
+                activity.restartAppForBackendChange();
+            });
+            return "ok";
+        }
+
+        @JavascriptInterface
         public String getSidebandPluginsDefaultPath() {
             try {
                 File dir = new File(activity.getFilesDir(), "meshchatx/sideband-plugins");
@@ -1431,9 +1651,31 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
-        public void requestBluetoothPermissions() {
+        public String requestBluetoothPermissions() {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-                return;
+                return "granted";
+            }
+            if (hasBluetoothPermissions()) {
+                return "granted";
+            }
+            final String[] needed = new String[] {
+                Manifest.permission.BLUETOOTH_CONNECT,
+                Manifest.permission.BLUETOOTH_SCAN,
+            };
+            boolean canPrompt = false;
+            for (String permission : needed) {
+                if (ContextCompat.checkSelfPermission(activity, permission)
+                    != PackageManager.PERMISSION_GRANTED) {
+                    if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)
+                        || !activity.wasBluetoothPermissionDeniedPermanently(permission)) {
+                        canPrompt = true;
+                        break;
+                    }
+                }
+            }
+            if (!canPrompt) {
+                activity.runOnUiThread(activity::openAppPermissionSettings);
+                return "settings";
             }
             activity.runOnUiThread(() -> {
                 List<String> missing = new ArrayList<>();
@@ -1442,12 +1684,16 @@ public class MainActivity extends AppCompatActivity {
                 if (missing.isEmpty()) {
                     return;
                 }
+                for (String permission : missing) {
+                    activity.markBluetoothPermissionPrompted(permission);
+                }
                 ActivityCompat.requestPermissions(
                     activity,
                     missing.toArray(new String[0]),
                     RNODE_BLUETOOTH_PERMISSION_REQUEST_CODE
                 );
             });
+            return "requested";
         }
 
         @JavascriptInterface
@@ -1470,31 +1716,38 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
-        public void requestUsbPermissions() {
+        public String requestUsbPermissions() {
             activity.runOnUiThread(() -> {
                 try {
-                    UsbManager manager =
-                        (UsbManager) activity.getSystemService(Context.USB_SERVICE);
-                    if (manager == null) {
-                        return;
-                    }
-                    Intent intent = new Intent("com.meshchatx.USB_PERMISSION");
-                    android.app.PendingIntent permissionIntent =
-                        android.app.PendingIntent.getBroadcast(
-                            activity,
-                            0,
-                            intent,
-                            android.app.PendingIntent.FLAG_IMMUTABLE);
-                    for (android.hardware.usb.UsbDevice device :
-                        manager.getDeviceList().values()) {
-                        if (!manager.hasPermission(device)) {
-                            manager.requestPermission(device, permissionIntent);
-                        }
-                    }
+                    activity.startActivity(
+                        new Intent(activity, com.meshchatx.rnode.RNodeFlasherActivity.class)
+                    );
                 } catch (Exception e) {
                     Toast.makeText(
                         activity,
-                        "USB permission request failed",
+                        "Could not open native RNode flasher",
+                        Toast.LENGTH_SHORT).show();
+                }
+            });
+            return "requested";
+        }
+
+        @JavascriptInterface
+        public boolean hasNativeRNodeFlasher() {
+            return true;
+        }
+
+        @JavascriptInterface
+        public void openRNodeFlasher() {
+            activity.runOnUiThread(() -> {
+                try {
+                    activity.startActivity(
+                        new Intent(activity, com.meshchatx.rnode.RNodeFlasherActivity.class)
+                    );
+                } catch (Exception e) {
+                    Toast.makeText(
+                        activity,
+                        "Could not open native RNode flasher",
                         Toast.LENGTH_SHORT).show();
                 }
             });
@@ -1502,25 +1755,12 @@ public class MainActivity extends AppCompatActivity {
 
         @JavascriptInterface
         public void openBluetoothSettings() {
-            activity.runOnUiThread(() -> {
-                try {
-                    activity.startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS));
-                } catch (ActivityNotFoundException ignored) {
-                    Toast.makeText(activity, "Bluetooth settings unavailable", Toast.LENGTH_SHORT).show();
-                }
-            });
+            activity.runOnUiThread(activity::openAppPermissionSettings);
         }
 
         @JavascriptInterface
         public void openUsbSettings() {
-            activity.runOnUiThread(() -> {
-                try {
-                    activity.startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                        Uri.parse("package:" + activity.getPackageName())));
-                } catch (ActivityNotFoundException ignored) {
-                    Toast.makeText(activity, "USB settings unavailable", Toast.LENGTH_SHORT).show();
-                }
-            });
+            activity.runOnUiThread(activity::openAppPermissionSettings);
         }
 
         @JavascriptInterface
