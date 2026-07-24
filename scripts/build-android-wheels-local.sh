@@ -320,14 +320,14 @@ VENV_DIR="${PYPIDIR}/.venv-local"
 rm -rf "${VENV_DIR}"
 "${PYTHON_BIN}" -m venv "${VENV_DIR}"
 # Some Python images only provide python3/python3.X in venv bin, while the
-# script below invokes `${VENV_DIR}/bin/python`.
+# script below invokes the venv bin/python entrypoint.
 if [[ ! -e "${VENV_DIR}/bin/python" && -e "${VENV_DIR}/bin/python3" ]]; then
     ln -sf python3 "${VENV_DIR}/bin/python"
 fi
 "${VENV_DIR}/bin/pip" install --upgrade pip
 "${VENV_DIR}/bin/pip" install -r "${PYPIDIR}/requirements.txt"
 "${VENV_DIR}/bin/pip" install "numpy==${NUMPY_VERSION}"
-# Chaquopy build-wheel.py shells out to `wheel pack`, so ensure the venv scripts are first on PATH.
+# Chaquopy build-wheel.py shells out to wheel pack, so ensure the venv scripts are first on PATH.
 export PATH="${VENV_DIR}/bin:${PATH}"
 if ! command -v wheel >/dev/null 2>&1; then
     echo "Missing required wheel CLI in virtualenv at ${VENV_DIR}" >&2
@@ -677,8 +677,12 @@ done
 popd >/dev/null
 
 mkdir -p "${OUT_DIR}"
-cp -f "${PYPIDIR}/dist/chaquopy-libcodec2"/chaquopy_libcodec2-"${LIBCODEC2_VERSION}"-*.whl "${OUT_DIR}/"
-cp -f "${PYPIDIR}/dist/pycodec2"/pycodec2-"${PYCODEC2_VERSION}"-*.whl "${OUT_DIR}/"
+shopt -s nullglob
+_codec2_wheels=("${PYPIDIR}/dist/chaquopy-libcodec2/chaquopy_libcodec2-${LIBCODEC2_VERSION}-"*.whl)
+_pycodec2_wheels=("${PYPIDIR}/dist/pycodec2/pycodec2-${PYCODEC2_VERSION}-"*.whl)
+shopt -u nullglob
+cp -f "${_codec2_wheels[@]}" "${OUT_DIR}/"
+cp -f "${_pycodec2_wheels[@]}" "${OUT_DIR}/"
 
 echo "Bundling libcodec2.so into pycodec2 wheels (Android dlopen)"
 "${VENV_DIR}/bin/python" "${ROOT_DIR}/scripts/repack-android-pycodec2-wheels.py" --vendor-dir "${OUT_DIR}"
@@ -1080,12 +1084,14 @@ PY
                 --abi "${abi}" \
                 "${RECIPE_DST}"
 
-            WHEEL_GLOB="${PYPIDIR}/dist/${PACKAGE_NAME}"/*android_"${API_LEVEL}"_"${abi_tag}".whl
-            if ! ls ${WHEEL_GLOB} >/dev/null 2>&1; then
+            shopt -s nullglob
+            wheels=("${PYPIDIR}/dist/${PACKAGE_NAME}/"*android_"${API_LEVEL}_${abi_tag}".whl)
+            shopt -u nullglob
+            if [[ ${#wheels[@]} -eq 0 ]]; then
                 echo "Missing wheel output for ${PACKAGE_NAME} ${PACKAGE_VERSION} ${abi}" >&2
                 exit 1
             fi
-            for built_wheel in ${WHEEL_GLOB}; do
+            for built_wheel in "${wheels[@]}"; do
                 cp -f "${built_wheel}" "${OUT_DIR}/"
                 fix_wheel_libpython_needed "${OUT_DIR}/$(basename "${built_wheel}")" "libpython${PYTHON_MINOR}.so"
             done
@@ -1116,4 +1122,4 @@ fi
 
 echo "Done."
 echo "Built wheels in: ${OUT_DIR}"
-ls -1 "${OUT_DIR}" | sort
+find "${OUT_DIR}" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort

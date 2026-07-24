@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# flatpak-bundler installs runtimes with flatpak --user and a bare ref; that only works
+# flatpak-bundler installs runtimes with flatpak --user and a bare ref. That only works
 # once the Flathub remote exists (see @malept/flatpak-bundler ensureRef).
 set -euo pipefail
 

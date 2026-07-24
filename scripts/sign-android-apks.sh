@@ -70,7 +70,7 @@ if [[ -z "${ANDROID_HOME}" ]]; then
     exit 1
 fi
 
-BT_DIR="$(ls -d "${ANDROID_HOME}"/build-tools/* 2>/dev/null | sort -V | tail -n 1)"
+BT_DIR="$(find "${ANDROID_HOME}/build-tools" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort -V | tail -n 1)"
 if [[ -z "${BT_DIR}" ]]; then
     echo "No Android build-tools found under ${ANDROID_HOME}/build-tools." >&2
     exit 1
@@ -81,9 +81,7 @@ if [[ ! -x "${BT_DIR}/zipalign" || ! -x "${BT_DIR}/apksigner" ]]; then
 fi
 
 APK_GLOB="${APK_GLOB:-android/app/build/outputs/apk/release/*-unsigned.apk}"
-shopt -s nullglob
-APKS=( ${APK_GLOB} )
-shopt -u nullglob
+mapfile -t APKS < <(compgen -G "${APK_GLOB}" || true)
 if [[ ${#APKS[@]} -eq 0 ]]; then
     echo "No unsigned APKs matched: ${APK_GLOB}" >&2
     exit 1

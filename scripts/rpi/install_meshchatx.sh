@@ -5,7 +5,7 @@ set -euo pipefail
 #   MESHCHATX_RELEASES_RSS  Release feed (default: .../MeshChatX/releases.rss)
 #   MESHCHATX_REPO_BASE     Repo root for synthesized wheel URLs if RSS has no
 #                           .whl link in descriptions (default: derived from RSS URL)
-# Cosign: Sigstore attestation verify needs the real cosign binary; this script can
+# Cosign: Sigstore attestation verify needs the real cosign binary. This script can
 # download a checksum-verified release from GitHub to /tmp if none is on PATH.
 #   MESHCHATX_COSIGN_VERSION   (default: 3.0.6)
 #   MESHCHATX_COSIGN_PUB_URL   (default: raw cosign.pub from master in this repo)

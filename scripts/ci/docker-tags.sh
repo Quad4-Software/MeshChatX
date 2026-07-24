@@ -4,8 +4,8 @@
 # Usage: docker-tags.sh <image_name> [output_file]
 # Environment: GITEA_REF / GITHUB_REF, GITEA_REF_NAME / GITHUB_REF_NAME, TAG_SUFFIX
 #
-# The output file contains one `-t registry/image:tag` per line,
-# suitable for passing directly to `docker buildx build`.
+# The output file contains one -t registry/image:tag per line,
+# suitable for passing directly to docker buildx build.
 set -eu
 
 IMAGE="$1"
@@ -14,11 +14,10 @@ SUFFIX="${TAG_SUFFIX:-}"
 : > "$OUTPUT"
 
 _suffix_tag() {
-    local tag="$1"
     if [ -n "$SUFFIX" ]; then
-        printf '%s' "${tag}${SUFFIX}"
+        printf '%s' "${1}${SUFFIX}"
     else
-        printf '%s' "$tag"
+        printf '%s' "$1"
     fi
 }
 

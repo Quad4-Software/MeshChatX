@@ -68,7 +68,7 @@ fail_with_logs() {
 
 probe_status_ok() {
     # Probe from inside the emulator (server binds 127.0.0.1 on-device).
-    # Prefer toybox wget (API 30+ images); fall back to python if present.
+    # Prefer toybox wget (API 30+ images). Fall back to python if present.
     local body=""
     if adb shell "command -v wget >/dev/null 2>&1" >/dev/null 2>&1; then
         body="$(adb shell "wget -qO- --no-check-certificate https://127.0.0.1:8000${STATUS_PATH}" 2>/dev/null | tr -d '\r' || true)"

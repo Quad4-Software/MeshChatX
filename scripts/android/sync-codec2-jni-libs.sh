@@ -23,7 +23,7 @@ fi
 
 for abi in ${ABI_LIST//,/ }; do
     tag="$(abi_to_tag "${abi}")"
-    lib_wheel="$(ls "${VENDOR_DIR}"/chaquopy_libcodec2-*-android_*_"${tag}".whl 2>/dev/null | tail -n 1 || true)"
+    lib_wheel="$(find "${VENDOR_DIR}" -maxdepth 1 -type f -name "chaquopy_libcodec2-*-android_*_${tag}.whl" 2>/dev/null | sort | tail -n 1 || true)"
     if [[ -z "${lib_wheel}" ]]; then
         echo "No chaquopy_libcodec2 wheel for ${abi} under ${VENDOR_DIR}" >&2
         exit 1

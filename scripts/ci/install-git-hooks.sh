@@ -2,7 +2,7 @@
 # Point this clone at .githooks/ (tracked git hooks).
 set -eu
 
-ROOT="$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)"
+ROOT="$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
 git config core.hooksPath .githooks

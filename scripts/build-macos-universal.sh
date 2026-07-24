@@ -17,7 +17,7 @@ cd "$ROOT"
 
 # @electron/universal merges x64 and arm64 app bundles and requires every non-binary
 # file present in both trees to have identical bytes. Per-arch backend-manifest.json
-# contents always differ, so skip embedding it here; electron/main.js treats a missing
+# contents always differ, so skip embedding it here. electron/main.js treats a missing
 # manifest as "skip integrity check" (see verifyBackendIntegrity).
 export MESHCHATX_SKIP_BACKEND_MANIFEST=1
 

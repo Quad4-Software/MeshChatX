@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build macOS universal (x64 + arm64) DMG via electron-builder. Unsigned CI build; signing is disabled.
+# Build macOS universal (x64 + arm64) DMG via electron-builder. Unsigned CI build. Signing is disabled.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
