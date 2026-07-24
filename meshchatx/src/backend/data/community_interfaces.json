@@ -1,321 +1,477 @@
 {
     "_comment": "build_community_interfaces_json.py; source: directory.rns.recipes online listings. RNode omitted. Backbone without transport_identity -> TCPClientInterface. Optional override: public/community_interfaces.json.",
-    "_source": "https://directory.rns.recipes/api/directory/submitted?search=&type=&status=online",
+    "_source": "https://directory.rns.recipes/api/directory/submitted?status=online",
     "interfaces": [
         {
-            "name": "Beleth RNS Hub",
+            "name": "AT-Vienna-Backbone",
             "type": "TCPClientInterface",
-            "target_host": "rns.beleth.net",
+            "target_host": "rns.radical.computer",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
-            "name": "CRN IPv4 / IPv6",
+            "name": "Birdsnet BR",
             "type": "TCPClientInterface",
-            "target_host": "rns.noderage.org",
+            "target_host": "rns.birdsnet.com.br",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "Burger's Raspberry Pi",
+            "type": "TCPClientInterface",
+            "target_host": "188.169.142.232",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "Burger's backbone",
+            "type": "TCPClientInterface",
+            "target_host": "188.169.142.232",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "Catz Node (TCP)",
             "type": "TCPClientInterface",
             "target_host": "77.37.146.243",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
-            "name": "Ether Whisperer",
+            "name": "Cookies Node",
             "type": "TCPClientInterface",
-            "target_host": "132.145.75.143",
+            "target_host": "45.79.202.10",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
-        },
-        {
-            "name": "Ether Whisperer London",
-            "type": "TCPClientInterface",
-            "target_host": "132.145.75.143",
-            "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
-        },
-        {
-            "name": "Helsinki_IP_RNS_Node",
-            "type": "TCPClientInterface",
-            "target_host": "rns.artdaw.com",
-            "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "Inertia.Chat",
             "type": "TCPClientInterface",
             "target_host": "use.inertia.chat",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
-            "name": "MSK SZAO (HaLow Bridge)",
+            "name": "LostInTheNet RSN",
             "type": "TCPClientInterface",
-            "target_host": "dreadgurizta.ru",
+            "target_host": "rns.studiorizzi.net",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "MichMesh",
             "type": "TCPClientInterface",
             "target_host": "rns.michmesh.net",
             "target_port": 7822,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "Nexus BackbonePH",
+            "type": "TCPClientInterface",
+            "target_host": "212.227.208.95",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "QuikStop",
             "type": "TCPClientInterface",
             "target_host": "167.114.185.21",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
-        },
-        {
-            "name": "Quortal TCP Node",
-            "type": "TCPClientInterface",
-            "target_host": "reticulum.qortal.link",
-            "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "R-Net TCP",
             "type": "TCPClientInterface",
             "target_host": "istanbul.reserve.network",
             "target_port": 9034,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "RMAP",
             "type": "TCPClientInterface",
             "target_host": "rmap.world",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
-        },
-        {
-            "name": "RNS Budapest(HU)",
-            "type": "TCPClientInterface",
-            "target_host": "vjs.hu",
-            "target_port": 5858,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "RNS TCP Node Germany 001",
             "type": "TCPClientInterface",
             "target_host": "202.61.243.41",
             "target_port": 4965,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "RNS TCP Node Germany 002",
             "type": "TCPClientInterface",
             "target_host": "193.26.158.230",
             "target_port": 4965,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "RNS Testnet StoppedCold",
             "type": "TCPClientInterface",
             "target_host": "rns.stoppedcold.com",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "RNS Wiegand",
+            "type": "TCPClientInterface",
+            "target_host": "rns.wiegandtech.net",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "RNS_Transport_US-East",
             "type": "TCPClientInterface",
             "target_host": "45.77.109.86",
             "target_port": 4965,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "SPAGOnet",
             "type": "TCPClientInterface",
             "target_host": "rns.pawgslayers.club",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "Santino’s Testbed",
+            "type": "TCPClientInterface",
+            "target_host": "66.63.170.233",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "Simply Equipped (US Cloud)",
             "type": "TCPClientInterface",
             "target_host": "rns.simplyequipped.com",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "Slivovica",
             "type": "TCPClientInterface",
             "target_host": "213.235.65.180",
             "target_port": 4440,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "Sosnitz",
+            "type": "TCPClientInterface",
+            "target_host": "193.180.211.195",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "SparkN0de",
             "type": "TCPClientInterface",
             "target_host": "aspark.uber.space",
             "target_port": 44860,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "Sydney RNS",
+            "type": "TCPClientInterface",
+            "target_host": "sydney.reticulum.au",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "Typenull",
+            "type": "TCPClientInterface",
+            "target_host": "rns.typenull.net",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "UTN Backbone",
+            "type": "TCPClientInterface",
+            "target_host": "rns.utn.lol",
+            "target_port": 4965,
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "WDGWars Node",
+            "type": "TCPClientInterface",
+            "target_host": "rns.wdgwars.pl",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "Washmesh",
+            "type": "TCPClientInterface",
+            "target_host": "reticulum.washmesh.net",
+            "target_port": 7242,
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "ZHULONG1 - Hong Kong Node",
+            "type": "TCPClientInterface",
+            "target_host": "103.195.4.226",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "bnZ-NODE01 (Gothenburg SE)",
             "type": "TCPClientInterface",
             "target_host": "91.207.113.250",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "carlos.node",
             "type": "TCPClientInterface",
             "target_host": "66.42.101.86",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "dismails TCP Interface",
             "type": "TCPClientInterface",
             "target_host": "rns.dismail.de",
             "target_port": 7822,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "feather",
             "type": "TCPClientInterface",
             "target_host": "rns.feather.onl",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "g00n.cloud Hub",
             "type": "TCPClientInterface",
             "target_host": "dfw.us.g00n.cloud",
             "target_port": 6969,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "jsreed5.org Reticulum Entrypoint",
+            "type": "TCPClientInterface",
+            "target_host": "jsreed5.org",
+            "target_port": 8256,
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "lakakhara's rns",
+            "type": "TCPClientInterface",
+            "target_host": "46.17.104.181",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "meshage.me",
+            "type": "TCPClientInterface",
+            "target_host": "rns.meshage.me",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "mobilefabrik TCP",
             "type": "TCPClientInterface",
             "target_host": "phantom.mobilefabrik.com",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "noDNS1",
             "type": "TCPClientInterface",
             "target_host": "202.61.243.41",
             "target_port": 4965,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
-            "name": "reticulum.hardenedbsd.org",
+            "name": "reticulum.me",
             "type": "TCPClientInterface",
-            "target_host": "reticulum.hardenedbsd.org",
+            "target_host": "reticulum.me",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
-            "name": "rns.noderage.org (IPv4 / IPv6)",
+            "name": "rns.h.acked.co.uk",
             "type": "TCPClientInterface",
-            "target_host": "rns.noderage.org",
+            "target_host": "188.166.83.139",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
-            "name": "www.vanheusden.com",
+            "name": "rns.not-a-number.io",
             "type": "TCPClientInterface",
-            "target_host": "vps001.vanheusden.com",
+            "target_host": "rns.not-a-number.io",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "wisco.network - tcp",
+            "type": "TCPClientInterface",
+            "target_host": "rns.wisco.network",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "zer0bitz | IPv4/6",
+            "type": "TCPClientInterface",
+            "target_host": "zer0bitz.ddns.net",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "Beleth RNS Hub - Yggdrasil",
             "type": "TCPClientInterface",
             "target_host": "202:c6ff:5e33:94ca:512f:b192:36f3:1045",
             "target_port": 4343,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "Beleth Yggdrasil",
             "type": "TCPClientInterface",
             "target_host": "200:3953:999b:282e:e526:bcd2:c329:31a",
             "target_port": 4343,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "Catz Node Ygg",
+            "type": "TCPClientInterface",
+            "target_host": "202:dcd9:981a:4f12:1618:1066:13e2:8610",
+            "target_port": 4343,
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "Mike node",
+            "type": "TCPClientInterface",
+            "target_host": "200:186d:b8ad:799b:1146:2f3e:e58a:7478",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "Spaceman-ygg",
             "type": "TCPClientInterface",
             "target_host": "201:e73a:61ee:ca68:4bc5:99d5:fd70:ded1",
             "target_port": 4343,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "Triplebit_Minneapolis_B-Yggdrasil",
             "type": "TCPClientInterface",
             "target_host": "201:1160:3f65:28ea:22b2:efb:a3c0:e012",
             "target_port": 9055,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "ZHULONG1 - YGG - Hong Kong Node",
+            "type": "TCPClientInterface",
+            "target_host": "200:50e5:b8a1:35ce:f51:5456:8f1a:69ae",
+            "target_port": 4243,
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "cea yggdrasil",
             "type": "TCPClientInterface",
             "target_host": "200:cea:10:1b1:3c23:3bc:34c1:8c82",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "kemerovo ygg",
             "type": "TCPClientInterface",
             "target_host": "203:f54a:ffa2:650d:df9d:1473:5228:94dc",
             "target_port": 43434,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "rothbard_RNS_transport_ZA_ygg",
             "type": "TCPClientInterface",
             "target_host": "200:73eb:2e4:14be:aac7:90b3:784b:71a3",
             "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "wisco.network - yggdrasil",
+            "type": "TCPClientInterface",
+            "target_host": "203:b028:b702:aec4:4571:cf81:cb7a:8223",
+            "target_port": 4343,
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "zer0bitz | yggdrasil",
+            "type": "TCPClientInterface",
+            "target_host": "201:3de8:d5da:bc84:85e0:80e:680a:60c8",
+            "target_port": 4343,
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "Casbah I2P Relay",
             "type": "I2PInterface",
             "i2p_peers": ["nckymqd5qchedbvjqsrlovgwc5iupasu3jjnt7fwws5vd4l552yq.b32.i2p"],
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "Catz Node",
             "type": "I2PInterface",
             "i2p_peers": ["namcoiawqes3rdrvazab6war2dui2isuuh5alfdds6xtb3febmca.b32.i2p"],
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "Catz Node I2P",
+            "type": "I2PInterface",
+            "i2p_peers": ["f77ptezksg4qr4rdike5t2kj3hh2oa7l7qmohqwow6uc6evzjjtq.b32.i2p"],
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "DsecT",
+            "type": "I2PInterface",
+            "i2p_peers": ["ohugriah6z7s4tzeqbtaj7r7qcj4dcodudusilq445rh3xv2p3ra.b32.i2p"],
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "Kor's Node",
             "type": "I2PInterface",
             "i2p_peers": ["cknv7n3fnwlpq3uxb466c55d3onfj3wl6yfaqfcalbu5zefxizkq.b32.i2p"],
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
-            "name": "RNS Oren I2P",
+            "name": "QC Backbone PH",
             "type": "I2PInterface",
-            "i2p_peers": ["q6qth2xl5fisekhvm2lbplprwaof4plkbh4cthjnlj2pck7ahp5q.b32.i2p"],
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "i2p_peers": ["ii2ocupidjezvgrxsapedqjnjdcjrkuyzqqspuwbqqtx6tahqsq.b32.i2p"],
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "SparkN0de I2P",
             "type": "I2PInterface",
             "i2p_peers": ["ccrlk4gdxkgrqr633b4msujteaf7gnqw5akxjiek5dhoosfmrdka.b32.i2p"],
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "ZHULONG1 - I2P - Hong Kong Node",
+            "type": "I2PInterface",
+            "i2p_peers": ["ikggyuyzmipveifdirq4cvyn64qpzgk3sukbccjw5wqnkknwlkaa.b32.i2p"],
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "akku i2p",
             "type": "I2PInterface",
             "i2p_peers": ["j4qvsmifjuq2fqn4wj34xu7swgqjyror4hx3qgl3aj3ggxmg6hrq.b32.i2p"],
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
         },
         {
             "name": "rothbard_RNS_transport_ZA_i2p",
             "type": "I2PInterface",
             "i2p_peers": ["guuahj7pyb6ksmjv2bqrjg4cs2wou6cor3ivsi6crntqbzsxnbna.b32.i2p"],
-            "description": "directory.rns.recipes (user-submitted, online)"
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "zer0bitz | i2p",
+            "type": "I2PInterface",
+            "i2p_peers": ["gdludub7eejnh3hhdtofakibaxmkivm5zjfl2zdxxd7btt6l4rkq.b32.i2p"],
+            "description": "directory.rns.recipes (online submitted + discovered)"
+        },
+        {
+            "name": "℮ ecce toronto i2p gateway ℮",
+            "type": "I2PInterface",
+            "i2p_peers": ["iifgzpiinws5jx5qpilph2nj4pnmoe3jdx2nbqa7twjukxskydoq.b32.i2p"],
+            "description": "directory.rns.recipes (online submitted + discovered)"
         }
     ]
 }

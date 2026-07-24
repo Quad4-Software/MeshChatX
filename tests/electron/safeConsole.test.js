@@ -61,12 +61,8 @@ describe("safeConsole", () => {
     it("shouldMirrorStdout is false without a TTY unless forced", () => {
         expect(shouldMirrorStdout({ stdout: { isTTY: false } }, {})).toBe(false);
         expect(shouldMirrorStdout({ stdout: { isTTY: true } }, {})).toBe(true);
-        expect(
-            shouldMirrorStdout({ stdout: { isTTY: false } }, { MESHCHAT_FORCE_STDOUT_LOG: "1" }),
-        ).toBe(true);
-        expect(
-            shouldMirrorStdout({ stdout: { isTTY: true } }, { MESHCHAT_DISABLE_STDOUT_LOG: "1" }),
-        ).toBe(false);
+        expect(shouldMirrorStdout({ stdout: { isTTY: false } }, { MESHCHAT_FORCE_STDOUT_LOG: "1" })).toBe(true);
+        expect(shouldMirrorStdout({ stdout: { isTTY: true } }, { MESHCHAT_DISABLE_STDOUT_LOG: "1" })).toBe(false);
     });
 
     it("createMainProcessLogger appends durable lines and skips non-TTY stdout", () => {

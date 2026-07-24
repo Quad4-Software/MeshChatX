@@ -93,7 +93,7 @@ describe("clipboardUtils", () => {
                 constructor(items) {
                     this.items = items;
                 }
-            },
+            }
         );
         const prev = window.isSecureContext;
         Object.defineProperty(window, "isSecureContext", { configurable: true, value: true });
