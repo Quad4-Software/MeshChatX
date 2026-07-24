@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.8.0] - 2026-07-TBD
+## [4.8.0] - 2026-07-25
 
 ### Added
 
@@ -28,7 +28,7 @@ All notable changes to this project will be documented in this file.
 - Relay Chat room keys so hosts can require a key to join a room
 - Desktop privacy: Windows screen security to omit MeshChatX from screenshots, recording, and Recall
 - Android privacy options to block screenshots and clear the clipboard when backgrounded
-- Messages: **Copy image to clipboard** on the message and full-screen image context menus
+- Tutorial connect: **Internet + local (recommended)** adds AutoInterface and pre-selects 3 random community TCP bootstraps
 - Remote management allow-list for identities that may query this instance with rnstatus/rnpath
 - Post-install prompts for existing users after upgrades
 - Coolify-oriented Docker Compose with resource limits for deployments
@@ -37,6 +37,10 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Tutorial privacy/security step: shorter mobile copy and toggle layout so labels and switches fit
+- Tutorial nav copy uses ASCII `->` instead of Unicode arrows
+- Community interface presets refreshed from directory.rns.recipes (69 online listings)
+- Bundled Reticulum manual refetch (reticulum_docs_bundle.json timestamp)
 - Discovery map markers use dual-halo badge icons (peers, LXMF, discovered, tracking, stale) with banded cluster badges, zoom-gated labels, and cached styles for denser maps
 - Map default basemap is OpenStreetMap (OSM). Style presets list OSM first and identity config wins over stale cached tile URLs
 - UI opens sooner: HTTP binds first, Reticulum starts in the background

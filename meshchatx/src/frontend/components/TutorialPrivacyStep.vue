@@ -1,99 +1,72 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 <template>
-    <div class="space-y-6" :class="compact ? '' : 'py-4'">
-        <div class="space-y-2 text-center sm:text-left">
-            <h2 class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">
+    <div class="tutorial-privacy" :class="compact ? 'tutorial-privacy--compact' : ''">
+        <div class="tutorial-privacy__intro">
+            <h2 class="tutorial-privacy__title">
                 {{ $t("tutorial.privacy_title") }}
             </h2>
-            <p class="text-base text-gray-600 dark:text-zinc-400 max-w-xl">
+            <p class="tutorial-privacy__desc">
                 {{ $t("tutorial.privacy_desc") }}
             </p>
         </div>
 
-        <div class="space-y-3 w-full max-w-xl mx-auto sm:mx-0">
-            <div
-                v-if="showWindowsScreenSecurity"
-                class="p-4 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/90 dark:bg-amber-950/40 text-left space-y-3"
-            >
-                <div class="font-semibold text-amber-950 dark:text-amber-100">
+        <div class="tutorial-privacy__list">
+            <div v-if="showWindowsScreenSecurity" class="tutorial-privacy__callout">
+                <div class="tutorial-privacy__callout-title">
                     {{ $t("app.screen_security_drm_eyebrow") }}
                 </div>
-                <p class="text-sm text-amber-950/90 dark:text-amber-100/90">
-                    {{ $t("app.screen_security_description") }}
+                <p class="tutorial-privacy__callout-body">
+                    {{ $t("tutorial.privacy_screen_security_desc") }}
                 </p>
-                <p class="text-xs text-amber-950/80 dark:text-amber-100/80">
-                    {{ $t("app.screen_security_drm_note") }}
-                </p>
-                <label class="setting-toggle">
-                    <Toggle
-                        id="tutorial-screen-security"
-                        v-model="screenSecurityEnabled"
-                        :disabled="screenSecuritySaving"
-                        @update:model-value="onScreenSecurityChange"
-                    />
-                    <span class="setting-toggle__label">
-                        <span class="setting-toggle__title">{{ $t("app.screen_security_enabled") }}</span>
-                        <span class="setting-toggle__description">{{
-                            $t("app.screen_security_description_short")
-                        }}</span>
-                    </span>
-                </label>
+                <SettingToggleRow
+                    id="tutorial-screen-security"
+                    v-model="screenSecurityEnabled"
+                    :title="$t('app.screen_security_enabled')"
+                    :description="$t('app.screen_security_description_short')"
+                    :disabled="screenSecuritySaving"
+                    @update:model-value="onScreenSecurityChange"
+                />
             </div>
 
-            <label v-if="showAndroidScreenshotBlock" class="setting-toggle">
-                <Toggle
-                    id="tutorial-android-block-screenshots"
-                    v-model="androidBlockScreenshots"
-                    :disabled="androidSaving"
-                    @update:model-value="onAndroidBlockScreenshotsChange"
-                />
-                <span class="setting-toggle__label">
-                    <span class="setting-toggle__title">{{ $t("settings.android_block_screenshots") }}</span>
-                    <span class="setting-toggle__description">{{ $t("settings.android_block_screenshots_desc") }}</span>
-                </span>
-            </label>
+            <SettingToggleRow
+                v-if="showAndroidScreenshotBlock"
+                id="tutorial-android-block-screenshots"
+                v-model="androidBlockScreenshots"
+                :title="$t('settings.android_block_screenshots')"
+                :description="$t('tutorial.privacy_android_screenshots_desc')"
+                :disabled="androidSaving"
+                @update:model-value="onAndroidBlockScreenshotsChange"
+            />
 
-            <label class="setting-toggle">
-                <Toggle
-                    id="tutorial-obfuscate-hops"
-                    v-model="localHopsDelta"
-                    :disabled="reticulumSaving"
-                    @update:model-value="onLocalHopsDeltaChange"
-                />
-                <span class="setting-toggle__label">
-                    <span class="setting-toggle__title">{{ $t("app.obfuscate_hops") }}</span>
-                    <span class="setting-toggle__description">{{ $t("app.obfuscate_hops_description") }}</span>
-                </span>
-            </label>
+            <SettingToggleRow
+                id="tutorial-obfuscate-hops"
+                v-model="localHopsDelta"
+                :title="$t('app.obfuscate_hops')"
+                :description="$t('tutorial.privacy_obfuscate_hops_desc')"
+                :disabled="reticulumSaving"
+                @update:model-value="onLocalHopsDeltaChange"
+            />
 
-            <label class="setting-toggle">
-                <Toggle
-                    id="tutorial-privacy-mode"
-                    v-model="privacyModeEnabled"
-                    :disabled="configSaving"
-                    @update:model-value="onPrivacyModeChange"
-                />
-                <span class="setting-toggle__label">
-                    <span class="setting-toggle__title">{{ $t("app.privacy_mode_enabled") }}</span>
-                    <span class="setting-toggle__description">{{ $t("app.privacy_mode_description") }}</span>
-                </span>
-            </label>
+            <SettingToggleRow
+                id="tutorial-privacy-mode"
+                v-model="privacyModeEnabled"
+                :title="$t('app.privacy_mode_enabled')"
+                :description="$t('tutorial.privacy_mode_desc')"
+                :disabled="configSaving"
+                @update:model-value="onPrivacyModeChange"
+            />
 
-            <label class="setting-toggle">
-                <Toggle
-                    id="tutorial-telemetry"
-                    v-model="telemetryEnabled"
-                    :disabled="configSaving"
-                    @update:model-value="onTelemetryChange"
-                />
-                <span class="setting-toggle__label">
-                    <span class="setting-toggle__title">{{ $t("app.telemetry_enabled") }}</span>
-                    <span class="setting-toggle__description">{{ $t("app.telemetry_description") }}</span>
-                </span>
-            </label>
+            <SettingToggleRow
+                id="tutorial-telemetry"
+                v-model="telemetryEnabled"
+                :title="$t('app.telemetry_enabled')"
+                :description="$t('tutorial.privacy_telemetry_desc')"
+                :disabled="configSaving"
+                @update:model-value="onTelemetryChange"
+            />
         </div>
 
-        <p class="text-xs text-center sm:text-left text-gray-500 dark:text-zinc-500 max-w-xl">
+        <p class="tutorial-privacy__hint">
             {{ $t("tutorial.privacy_later_hint") }}
         </p>
     </div>
@@ -103,12 +76,12 @@
 import ElectronUtils from "../js/ElectronUtils.js";
 import AndroidBridge from "../js/rnode/AndroidBridge.js";
 import ToastUtils from "../js/ToastUtils";
-import Toggle from "./forms/Toggle.vue";
+import SettingToggleRow from "./settings/SettingToggleRow.vue";
 
 export default {
     name: "TutorialPrivacyStep",
     components: {
-        Toggle,
+        SettingToggleRow,
     },
     props: {
         compact: {
@@ -272,3 +245,54 @@ export default {
     },
 };
 </script>
+
+<style scoped>
+.tutorial-privacy {
+    @apply space-y-4;
+}
+.tutorial-privacy--compact {
+    @apply space-y-3;
+}
+.tutorial-privacy__intro {
+    @apply space-y-1 text-center sm:text-left;
+}
+.tutorial-privacy__title {
+    @apply text-xl sm:text-2xl font-black text-gray-900 dark:text-white;
+}
+.tutorial-privacy__desc {
+    @apply text-sm text-gray-600 dark:text-zinc-400 max-w-xl mx-auto sm:mx-0;
+}
+.tutorial-privacy__list {
+    @apply space-y-2 w-full max-w-xl mx-auto sm:mx-0;
+}
+.tutorial-privacy__callout {
+    @apply p-3 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/90 dark:bg-amber-950/40 text-left space-y-2;
+}
+.tutorial-privacy__callout-title {
+    @apply text-sm font-semibold text-amber-950 dark:text-amber-100;
+}
+.tutorial-privacy__callout-body {
+    @apply text-xs text-amber-950/90 dark:text-amber-100/90;
+}
+.tutorial-privacy__hint {
+    @apply text-xs text-center sm:text-left text-gray-500 dark:text-zinc-500 max-w-xl mx-auto sm:mx-0;
+}
+.tutorial-privacy :deep(.setting-toggle) {
+    @apply relative flex flex-row-reverse items-start gap-3 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 px-3 py-2.5;
+}
+.tutorial-privacy :deep(.setting-toggle > label) {
+    @apply shrink-0 self-start mt-0.5;
+}
+.tutorial-privacy :deep(.setting-toggle .sr-only) {
+    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+}
+.tutorial-privacy :deep(.setting-toggle__label) {
+    @apply flex-1 min-w-0 flex flex-col gap-0.5;
+}
+.tutorial-privacy :deep(.setting-toggle__title) {
+    @apply text-sm font-semibold text-gray-900 dark:text-white break-words leading-snug;
+}
+.tutorial-privacy :deep(.setting-toggle__description) {
+    @apply text-xs text-gray-600 dark:text-gray-300 break-words leading-snug;
+}
+</style>

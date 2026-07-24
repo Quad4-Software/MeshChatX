@@ -391,13 +391,41 @@
                         <div class="grid grid-cols-1 gap-4">
                             <button
                                 type="button"
+                                class="text-left flex items-start gap-4 p-5 rounded-2xl bg-indigo-500/5 dark:bg-indigo-500/10 border-2 transition-all"
+                                :class="[
+                                    connectionMode === 'recommended'
+                                        ? 'border-indigo-500 ring-2 ring-indigo-500/30'
+                                        : 'border-indigo-500/20 hover:border-indigo-500',
+                                ]"
+                                :disabled="addingRecommended || savingDiscovery || addingLocal || reloadingReticulum"
+                                @click="useRecommendedMode"
+                            >
+                                <v-icon icon="mdi-access-point-network" color="indigo" size="40"></v-icon>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-bold text-lg text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.mode_recommended_title") }}
+                                    </div>
+                                    <div class="text-sm text-gray-600 dark:text-zinc-400 mt-1">
+                                        {{ $t("tutorial.mode_recommended_desc") }}
+                                    </div>
+                                </div>
+                                <v-progress-circular
+                                    v-if="addingRecommended"
+                                    indeterminate
+                                    size="20"
+                                    width="2"
+                                ></v-progress-circular>
+                            </button>
+
+                            <button
+                                type="button"
                                 class="text-left flex items-start gap-4 p-5 rounded-2xl bg-blue-500/5 dark:bg-blue-500/10 border-2 transition-all"
                                 :class="[
                                     connectionMode === 'discovery'
                                         ? 'border-blue-500 ring-2 ring-blue-500/30'
                                         : 'border-blue-500/20 hover:border-blue-500',
                                 ]"
-                                :disabled="savingDiscovery"
+                                :disabled="savingDiscovery || addingRecommended"
                                 @click="useDiscoveryMode"
                             >
                                 <v-icon icon="mdi-radar" color="blue" size="40"></v-icon>
@@ -425,7 +453,7 @@
                                         ? 'border-emerald-500 ring-2 ring-emerald-500/30'
                                         : 'border-emerald-500/20 hover:border-emerald-500',
                                 ]"
-                                :disabled="addingLocal || reloadingReticulum"
+                                :disabled="addingLocal || addingRecommended || reloadingReticulum"
                                 @click="useLocalMode"
                             >
                                 <v-icon icon="mdi-lan" color="emerald" size="40"></v-icon>
@@ -1508,7 +1536,33 @@
                             </p>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+                            <button
+                                type="button"
+                                class="text-left flex flex-col gap-4 p-8 rounded-3xl bg-indigo-500/5 dark:bg-indigo-500/10 border-2 transition-all hover:scale-[1.02]"
+                                :class="[
+                                    connectionMode === 'recommended'
+                                        ? 'border-indigo-500 ring-2 ring-indigo-500/30'
+                                        : 'border-indigo-500/20 hover:border-indigo-500',
+                                ]"
+                                :disabled="addingRecommended || savingDiscovery || addingLocal || reloadingReticulum"
+                                @click="useRecommendedMode"
+                            >
+                                <v-icon icon="mdi-access-point-network" color="indigo" size="56"></v-icon>
+                                <div class="font-bold text-xl text-gray-900 dark:text-white">
+                                    {{ $t("tutorial.mode_recommended_title") }}
+                                </div>
+                                <div class="text-sm text-gray-600 dark:text-zinc-400">
+                                    {{ $t("tutorial.mode_recommended_desc") }}
+                                </div>
+                                <v-progress-circular
+                                    v-if="addingRecommended"
+                                    indeterminate
+                                    size="20"
+                                    width="2"
+                                ></v-progress-circular>
+                            </button>
+
                             <button
                                 type="button"
                                 class="text-left flex flex-col gap-4 p-8 rounded-3xl bg-blue-500/5 dark:bg-blue-500/10 border-2 transition-all hover:scale-[1.02]"
@@ -1517,7 +1571,7 @@
                                         ? 'border-blue-500 ring-2 ring-blue-500/30'
                                         : 'border-blue-500/20 hover:border-blue-500',
                                 ]"
-                                :disabled="savingDiscovery"
+                                :disabled="savingDiscovery || addingRecommended"
                                 @click="useDiscoveryMode"
                             >
                                 <v-icon icon="mdi-radar" color="blue" size="56"></v-icon>
@@ -1543,7 +1597,7 @@
                                         ? 'border-emerald-500 ring-2 ring-emerald-500/30'
                                         : 'border-emerald-500/20 hover:border-emerald-500',
                                 ]"
-                                :disabled="addingLocal || reloadingReticulum"
+                                :disabled="addingLocal || addingRecommended || reloadingReticulum"
                                 @click="useLocalMode"
                             >
                                 <v-icon icon="mdi-lan" color="emerald" size="56"></v-icon>
@@ -2350,6 +2404,7 @@ export default {
             bootstrapCommunitySectionOpen: true,
             bootstrapAutoPickDone: false,
             pickingRandomBootstraps: false,
+            addingRecommended: false,
             migrationOffer: null,
             migrationBusy: false,
             androidStorageSetup: null,
@@ -2785,12 +2840,57 @@ export default {
                 this.reloadingReticulum = false;
             }
         },
+        async useRecommendedMode() {
+            if (this.addingRecommended) {
+                return;
+            }
+            this.addingRecommended = true;
+            try {
+                await window.api.post("/api/v1/reticulum/interfaces/add", {
+                    name: "Local Network",
+                    type: "AutoInterface",
+                    enabled: true,
+                });
+                this.interfaceAddedViaTutorial = true;
+                GlobalState.hasPendingInterfaceChanges = true;
+                GlobalState.modifiedInterfaceNames.add("Local Network");
+
+                const payload = {
+                    discover_interfaces: true,
+                    autoconnect_discovered_interfaces: 3,
+                    default_bootstrap_only: false,
+                };
+                await window.api.patch(`/api/v1/reticulum/discovery`, payload);
+                this.defaultBootstrapOnly = false;
+
+                ToastUtils.success(this.$t("tutorial.mode_recommended_added"));
+                this.connectionMode = "recommended";
+                this.currentStep = 4;
+                this.bootstrapListSearch = "";
+                this.bootstrapDiscoveredSectionOpen = true;
+                this.bootstrapCommunitySectionOpen = true;
+                this.bootstrapAutoPickDone = false;
+                await this.loadCommunityInterfaces();
+                await this.loadDiscoveredInterfaces();
+                await this.pickRandomTcpBootstraps({ silent: true, auto: true, count: 3 });
+                this.bootstrapAutoPickDone = true;
+            } catch (e) {
+                console.error("Failed to apply recommended connection mode:", e);
+                ToastUtils.error(
+                    e.response?.data?.message ||
+                        this.$t("tutorial.failed_add_local") ||
+                        this.$t("tutorial.failed_enable_discovery")
+                );
+            } finally {
+                this.addingRecommended = false;
+            }
+        },
         async useDiscoveryMode() {
             this.savingDiscovery = true;
             try {
                 const payload = {
                     discover_interfaces: true,
-                    autoconnect_discovered_interfaces: 4,
+                    autoconnect_discovered_interfaces: 3,
                     default_bootstrap_only: false,
                 };
                 await window.api.patch(`/api/v1/reticulum/discovery`, payload);
@@ -2988,7 +3088,8 @@ export default {
                     return;
                 }
                 this.shuffleArrayInPlace(entries);
-                const take = Math.min(4, entries.length);
+                const wanted = Number.isFinite(options.count) ? Number(options.count) : 3;
+                const take = Math.min(Math.max(1, wanted), entries.length);
                 this.selectedBootstrapKeys = entries.slice(0, take).map((e) => e.key);
                 const labels = this.selectedBootstrapKeys.map((k) => this.bootstrapDisplayLabelForKey(k));
                 if (!silent && !auto) {

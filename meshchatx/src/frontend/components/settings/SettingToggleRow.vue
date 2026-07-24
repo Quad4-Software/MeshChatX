@@ -55,3 +55,27 @@ export default {
     emits: ["update:modelValue"],
 };
 </script>
+
+<style scoped>
+.setting-toggle {
+    @apply relative flex flex-row-reverse items-start gap-3 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 px-3 py-3;
+}
+.setting-toggle > :deep(label) {
+    @apply shrink-0 self-center;
+}
+.setting-toggle :deep(.sr-only) {
+    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+}
+.setting-toggle__label {
+    @apply flex-1 min-w-0 flex flex-col gap-0.5;
+}
+.setting-toggle__title {
+    @apply text-sm font-semibold text-gray-900 dark:text-white break-words leading-snug;
+}
+.setting-toggle__description {
+    @apply text-xs sm:text-sm text-gray-600 dark:text-gray-300 break-words leading-snug;
+}
+.setting-toggle__hint {
+    @apply text-xs text-gray-500 dark:text-gray-400 break-words;
+}
+</style>
