@@ -167,22 +167,37 @@ def start_server(port=8000, app_files_dir=None, activity=None):
         asyncio_signal_patch = _patch_asyncio_signal_handlers_for_android()
         aiohttp_run_app_patch = _patch_aiohttp_run_app_for_android()
         _patch_rns_panic_for_android()
-        _install_android_rnode_support(activity)
+        # Codec2 must be ready before any import that pulls LXST.Codecs (soft-import
+        # locks Codec2=None for the process if pycodec2 fails on first import).
         try:
             from meshchatx.android_codec2 import (
                 ensure_codec2_native_library,
+                ensure_lxst_codec2_binding,
                 probe_pycodec2,
             )
 
-            ensure_codec2_native_library()
+            ensure_codec2_native_library(force=True)
             ok, err = probe_pycodec2()
             if ok:
-                print("meshchat_wrapper: Codec2/pycodec2 ready")
+                bound = ensure_lxst_codec2_binding()
+                print(
+                    "meshchat_wrapper: Codec2/pycodec2 ready"
+                    + (" (LXST bound)" if bound else " (LXST bind deferred)")
+                )
             else:
                 print(f"meshchat_wrapper: Codec2/pycodec2 unavailable: {err}")
         except Exception as codec2_exc:
             print(f"meshchat_wrapper: Codec2 preload skipped: {codec2_exc}")
+        _install_android_rnode_support(activity)
         from meshchatx.meshchat import ReticulumMeshChat, main
+
+        try:
+            from meshchatx.android_codec2 import ensure_lxst_codec2_binding
+
+            if ensure_lxst_codec2_binding():
+                print("meshchat_wrapper: LXST Codec2 binding confirmed after meshchat import")
+        except Exception as bind_exc:
+            print(f"meshchat_wrapper: LXST Codec2 bind skipped: {bind_exc}")
 
         try:
             from meshchatx.android_push_bridge import install_websocket_hook

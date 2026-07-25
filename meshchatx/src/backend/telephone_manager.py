@@ -111,8 +111,7 @@ class TelephoneManager:
             from meshchatx import android_codec2
 
             if android_codec2._is_chaquopy_android():
-                ok, _err = android_codec2.probe_pycodec2()
-                if not ok:
+                if not android_codec2.ensure_lxst_codec2_binding():
                     return False
         except Exception:
             pass

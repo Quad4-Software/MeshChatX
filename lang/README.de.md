@@ -352,7 +352,7 @@ task build
 
 ## Versionierung
 
-Aktuelle Version in diesem Repository: `4.8.1`.
+Aktuelle Version in diesem Repository: `4.8.2`.
 
 - Fuer Release-Bumps bearbeiten Sie **nur** `version` in **`package.json`**.
 - **`pnpm run version:sync`** (wird auch zu Beginn von **`pnpm run build`** ausgefuehrt) verbreitet diese Version in **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (Produktzeile), **README** / **lang/README.\*** (Zeilen mit aktueller Version), **`docs/meshchatx_on_raspberry_pi.md`** (pipx-Beispiel) und Hilfsfelder in **`packaging/arch/PKGBUILD`**.

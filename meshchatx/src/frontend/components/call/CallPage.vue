@@ -699,7 +699,12 @@
                                                             @update:model-value="onToggleWebAudio"
                                                         />
                                                         <div class="text-xs text-gray-500 dark:text-zinc-400 px-1">
-                                                            <template v-if="webAudioBridgeRequired">
+                                                            <template v-if="isMeshChatXAndroid()">
+                                                                Required on Android. Calls use the native mic and
+                                                                speaker attached through the audio bridge (not the
+                                                                browser getUserMedia path).
+                                                            </template>
+                                                            <template v-else-if="webAudioBridgeRequired">
                                                                 Required on this host (no LXST host audio device).
                                                                 Browser mic and speaker are used for calls.
                                                             </template>
@@ -2311,17 +2316,18 @@ export default {
             try {
                 return await mediaDevices.getUserMedia(constraints);
             } catch (e) {
-                if (
-                    (e?.name === "NotFoundError" || e?.name === "OverconstrainedError") &&
-                    constraints?.audio &&
-                    typeof constraints.audio === "object" &&
-                    constraints.audio.deviceId
-                ) {
-                    this.selectedAudioInputId = null;
-                    this.logWebAudioFailure("getUserMedia-fallback-wide", e);
-                    return await mediaDevices.getUserMedia({ audio: true });
+                const retryable =
+                    e?.name === "NotFoundError" ||
+                    e?.name === "OverconstrainedError" ||
+                    e?.name === "NotReadableError";
+                if (!retryable) {
+                    throw e;
                 }
-                throw e;
+                // Stale exact deviceId, Brave pre-permission device lists, or busy device.
+                // Wide-open audio is what actually triggers the browser permission prompt.
+                this.selectedAudioInputId = "__meshchat_default_in__";
+                this.logWebAudioFailure("getUserMedia-fallback-wide", e);
+                return await mediaDevices.getUserMedia({ audio: true });
             }
         },
         logWebAudioFailure(stage, error) {
@@ -2479,6 +2485,8 @@ export default {
                     );
                     return;
                 }
+                // Enumerate after permission when possible. Pre-permission refresh
+                // only keeps Default placeholders (blank labels / ids).
                 await this.refreshAudioDevices();
                 const stream = await this.getUserMediaWithMicFallback(mediaDevices);
                 this.audioStream = stream;
@@ -2705,21 +2713,18 @@ export default {
                 if (!mediaDevices) {
                     throw new Error("navigator.mediaDevices is unavailable");
                 }
-                if (this.hasEnumerateDevicesApi(mediaDevices)) {
-                    try {
-                        const devices = await mediaDevices.enumerateDevices();
-                        const hasAudioInput = devices.some((d) => d.kind === "audioinput");
-                        if (devices.length > 0 && !hasAudioInput) {
-                            ToastUtils.error(this.$t("call.no_audio_input_found"));
-                            return false;
-                        }
-                    } catch (enumErr) {
-                        this.logWebAudioFailure("enumerate-devices-preflight", enumErr);
-                    }
-                }
-
-                await this.refreshAudioDevices();
-                const stream = await this.getUserMediaWithMicFallback(mediaDevices);
+                // Do not gate on enumerateDevices before getUserMedia. Brave and
+                // Chromium often omit audioinput (or only list speakers) until the
+                // mic permission prompt has been accepted. Calling getUserMedia
+                // first is what shows the browser permission dialog.
+                this.selectedAudioInputId = "__meshchat_default_in__";
+                const stream = await mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                    },
+                });
                 stream.getTracks().forEach((t) => t.stop());
                 await this.refreshAudioDevices();
                 return true;
@@ -2763,19 +2768,33 @@ export default {
                 const devices = await mediaDevices.enumerateDevices();
                 let inputs = devices.filter((d) => d.kind === "audioinput");
                 let outputs = devices.filter((d) => d.kind === "audiooutput");
-                if (inputs.length === 0 || inputs.every((d) => !d.deviceId || String(d.deviceId).trim() === "")) {
+                // Pre-permission lists often have blank deviceId and blank labels.
+                // Keep the Default placeholder so we do not lock onto phantom IDs.
+                const inputsUsable = inputs.some(
+                    (d) => d.deviceId && String(d.deviceId).trim() !== "" && d.label
+                );
+                if (!inputsUsable) {
                     inputs = [defaultIn];
                 }
-                if (outputs.length === 0 || outputs.every((d) => !d.deviceId || String(d.deviceId).trim() === "")) {
+                const outputsUsable = outputs.some(
+                    (d) => d.deviceId && String(d.deviceId).trim() !== "" && d.label
+                );
+                if (!outputsUsable) {
                     outputs = [defaultOut];
                 }
                 this.audioInputDevices = inputs;
                 this.audioOutputDevices = outputs;
-                if (!this.selectedAudioInputId && this.audioInputDevices.length) {
-                    this.selectedAudioInputId = this.audioInputDevices[0].deviceId;
+                const selectedInStillValid = this.audioInputDevices.some(
+                    (d) => d.deviceId === this.selectedAudioInputId
+                );
+                if (!selectedInStillValid) {
+                    this.selectedAudioInputId = this.audioInputDevices[0]?.deviceId || defaultIn.deviceId;
                 }
-                if (!this.selectedAudioOutputId && this.audioOutputDevices.length) {
-                    this.selectedAudioOutputId = this.audioOutputDevices[0].deviceId;
+                const selectedOutStillValid = this.audioOutputDevices.some(
+                    (d) => d.deviceId === this.selectedAudioOutputId
+                );
+                if (!selectedOutStillValid) {
+                    this.selectedAudioOutputId = this.audioOutputDevices[0]?.deviceId || defaultOut.deviceId;
                 }
             } catch (e) {
                 this.logWebAudioFailure("refresh-devices", e);

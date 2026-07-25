@@ -103,11 +103,28 @@ export default {
         },
         _bluetoothActions() {
             const actions = [];
-            if (this.androidAvailable) {
+            if (!this.androidAvailable) {
+                return actions;
+            }
+            const bluetooth = this.capabilities?.transports?.[TRANSPORT_BLUETOOTH];
+            const needsPermission = bluetooth?.reason === "android_bluetooth_permission_required";
+            if (needsPermission) {
                 actions.push({
                     id: "request-bluetooth",
                     icon: "bluetooth-settings",
                     labelKey: "tools.rnode_flasher.support.actions.request_bluetooth",
+                });
+                actions.push({
+                    id: "open-bluetooth-settings",
+                    icon: "cog",
+                    labelKey: "tools.rnode_flasher.support.actions.open_settings",
+                });
+            } else {
+                // Permissions granted (or N/A). WebView still cannot flash over BLE.
+                actions.push({
+                    id: "open-native-flasher",
+                    icon: "usb",
+                    labelKey: "tools.rnode_flasher.support.actions.open_native",
                 });
                 actions.push({
                     id: "open-bluetooth-settings",

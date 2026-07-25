@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.8.2] - TBD
+
+### Fixed
+
+- **Android LXST / Codec2**: Preload libcodec2 after the Chaquopy runtime starts, reload LXST Codec2 bindings when a soft import left Codec2 unset, and probe pycodec2 before mesh imports so Codec2 voice profiles work instead of reporting no codec on device.
+- **Android calls**: Clarify that the web audio bridge on Android uses native mic and speaker through the telephone audio bridge, not browser getUserMedia.
+- **Android RNode flasher**: Bluetooth Allow and Open settings open the system permission UI when runtime permission is missing or permanently denied. The capabilities banner shows Allow Bluetooth only when needed and otherwise steers users to the native flasher for USB.
+- **Browser calls (Docker / HTTPS)**: Refresh Devices calls getUserMedia first so Brave and Chromium show the microphone permission prompt instead of failing early when enumerateDevices lists no inputs before permission is granted.
+- **HTTP security headers**: Send Permissions-Policy allowing microphone and camera for this origin so reverse proxies that omit the header do not block capture by default.
+
 ## [4.8.1] - 2026-07-25
 
 ### Fixed

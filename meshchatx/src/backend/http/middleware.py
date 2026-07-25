@@ -276,6 +276,9 @@ def create_security_middleware(app):
 
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        # Explicitly allow mic/camera for this origin. Reverse proxies that omit
+        # Permissions-Policy are fine. This documents intent for Brave and Chromium.
+        response.headers["Permissions-Policy"] = "microphone=(self), camera=(self)"
 
         # CSP base configuration
         privacy_mode = privacy_mode_enabled(app.config)

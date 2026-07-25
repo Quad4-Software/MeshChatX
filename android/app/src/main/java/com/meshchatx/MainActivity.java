@@ -594,6 +594,12 @@ public class MainActivity extends AppCompatActivity {
             addIfMissing(missingPermissions, Manifest.permission.POST_NOTIFICATIONS);
         }
         if (!missingPermissions.isEmpty()) {
+            for (String permission : missingPermissions) {
+                if (Manifest.permission.BLUETOOTH_CONNECT.equals(permission)
+                    || Manifest.permission.BLUETOOTH_SCAN.equals(permission)) {
+                    markBluetoothPermissionPrompted(permission);
+                }
+            }
             ActivityCompat.requestPermissions(
                 this,
                 missingPermissions.toArray(new String[0]),
@@ -641,28 +647,56 @@ public class MainActivity extends AppCompatActivity {
 
     void openAppPermissionSettings() {
         try {
-            startActivity(
-                new Intent(
-                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                    Uri.parse("package:" + getPackageName())
-                )
-            );
+            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            intent.setData(Uri.fromParts("package", getPackageName(), null));
+            startActivity(intent);
         } catch (ActivityNotFoundException ignored) {
-            Toast.makeText(this, "App settings unavailable", Toast.LENGTH_SHORT).show();
+            try {
+                startActivity(new Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS));
+            } catch (ActivityNotFoundException ignoredAgain) {
+                Toast.makeText(this, "App settings unavailable", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
     private static final String PREF_BT_PERM_PROMPTED_PREFIX = "bt_perm_prompted_";
 
     boolean wasBluetoothPermissionDeniedPermanently(String permission) {
-        // After the first prompt, if rationale is false and still denied, treat as permanent.
+        if (ContextCompat.checkSelfPermission(this, permission)
+            == PackageManager.PERMISSION_GRANTED) {
+            return false;
+        }
+        // No rationale means either never asked or permanently denied. Once we have
+        // prompted (startup or explicit), treat no-rationale as permanent deny.
         boolean prompted =
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                 .getBoolean(PREF_BT_PERM_PROMPTED_PREFIX + permission, false);
-        return prompted
-            && ContextCompat.checkSelfPermission(this, permission)
-                != PackageManager.PERMISSION_GRANTED
-            && !ActivityCompat.shouldShowRequestPermissionRationale(this, permission);
+        if (!prompted) {
+            return false;
+        }
+        return !ActivityCompat.shouldShowRequestPermissionRationale(this, permission);
+    }
+
+    boolean isBluetoothPermanentlyDenied() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return false;
+        }
+        String[] needed = new String[] {
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.BLUETOOTH_SCAN,
+        };
+        for (String permission : needed) {
+            if (ContextCompat.checkSelfPermission(this, permission)
+                == PackageManager.PERMISSION_GRANTED) {
+                continue;
+            }
+            // After we have prompted once, denied + no rationale means permanent deny.
+            // requestPermissions would show no dialog.
+            if (wasBluetoothPermissionDeniedPermanently(permission)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     void markBluetoothPermissionPrompted(String permission) {
@@ -769,6 +803,14 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             final boolean ok = granted;
+            if (!ok && isBluetoothPermanentlyDenied()) {
+                openAppPermissionSettings();
+                Toast.makeText(
+                    this,
+                    "Bluetooth blocked. Enable it in app settings.",
+                    Toast.LENGTH_LONG
+                ).show();
+            }
             if (webView != null) {
                 webView.evaluateJavascript(
                     "window.dispatchEvent(new CustomEvent('meshchatx-android-permission',"
@@ -782,6 +824,20 @@ public class MainActivity extends AppCompatActivity {
         }
         if (requestCode != RUNTIME_PERMISSIONS_REQUEST_CODE) {
             return;
+        }
+        // Startup BT deny with no rationale: mark permanent path so later Allow
+        // Bluetooth opens settings instead of a silent no-op request.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+            && permissions != null
+            && grantResults != null) {
+            for (int i = 0; i < permissions.length && i < grantResults.length; i++) {
+                String permission = permissions[i];
+                if (!Manifest.permission.BLUETOOTH_CONNECT.equals(permission)
+                    && !Manifest.permission.BLUETOOTH_SCAN.equals(permission)) {
+                    continue;
+                }
+                markBluetoothPermissionPrompted(permission);
+            }
         }
         requestBatteryOptimizationExemptionIfNeeded();
         completePendingWebPermissionRequestFromRuntimeState();
@@ -1658,23 +1714,15 @@ public class MainActivity extends AppCompatActivity {
             if (hasBluetoothPermissions()) {
                 return "granted";
             }
-            final String[] needed = new String[] {
-                Manifest.permission.BLUETOOTH_CONNECT,
-                Manifest.permission.BLUETOOTH_SCAN,
-            };
-            boolean canPrompt = false;
-            for (String permission : needed) {
-                if (ContextCompat.checkSelfPermission(activity, permission)
-                    != PackageManager.PERMISSION_GRANTED) {
-                    if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)
-                        || !activity.wasBluetoothPermissionDeniedPermanently(permission)) {
-                        canPrompt = true;
-                        break;
-                    }
-                }
-            }
-            if (!canPrompt) {
-                activity.runOnUiThread(activity::openAppPermissionSettings);
+            if (activity.isBluetoothPermanentlyDenied()) {
+                activity.runOnUiThread(() -> {
+                    activity.openAppPermissionSettings();
+                    Toast.makeText(
+                        activity,
+                        "Bluetooth blocked. Enable it in app settings.",
+                        Toast.LENGTH_LONG
+                    ).show();
+                });
                 return "settings";
             }
             activity.runOnUiThread(() -> {

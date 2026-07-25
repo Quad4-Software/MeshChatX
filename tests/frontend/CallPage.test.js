@@ -417,8 +417,42 @@ describe("CallPage.vue", () => {
         const mediaDevices = { getUserMedia, enumerateDevices: vi.fn().mockResolvedValue([]) };
         const stream = await wrapper.vm.getUserMediaWithMicFallback(mediaDevices);
         expect(getUserMedia).toHaveBeenCalledTimes(2);
-        expect(wrapper.vm.selectedAudioInputId).toBeNull();
+        expect(wrapper.vm.selectedAudioInputId).toBe("__meshchat_default_in__");
         expect(stream).toBe(fakeStream);
+    });
+
+    it("requestAudioPermission prompts getUserMedia even when enumerate lists only speakers", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        const stop = vi.fn();
+        const getUserMedia = vi.fn().mockResolvedValue({ getTracks: () => [{ stop }] });
+        const enumerateDevices = vi.fn().mockResolvedValue([
+            { kind: "audiooutput", deviceId: "", label: "", groupId: "" },
+        ]);
+        const mediaDevicesDescriptor = Object.getOwnPropertyDescriptor(navigator, "mediaDevices");
+        Object.defineProperty(navigator, "mediaDevices", {
+            configurable: true,
+            value: { getUserMedia, enumerateDevices },
+        });
+        try {
+            await expect(wrapper.vm.requestAudioPermission()).resolves.toBe(true);
+            expect(getUserMedia).toHaveBeenCalledTimes(1);
+            expect(getUserMedia.mock.calls[0][0]).toEqual({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                },
+            });
+            expect(stop).toHaveBeenCalled();
+            expect(enumerateDevices).toHaveBeenCalled();
+        } finally {
+            if (mediaDevicesDescriptor) {
+                Object.defineProperty(navigator, "mediaDevices", mediaDevicesDescriptor);
+            } else {
+                Reflect.deleteProperty(navigator, "mediaDevices");
+            }
+        }
     });
 
     it("pickWebAudioMicConstraints includes browser audio processing hints", async () => {

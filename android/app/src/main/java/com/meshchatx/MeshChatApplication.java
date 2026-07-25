@@ -26,26 +26,18 @@ public class MeshChatApplication extends PyApplication {
 
     @Override
     public void onCreate() {
-        // Preload libcodec2.so into the process before Chaquopy imports pycodec2.
-        // pycodec2.so NEEDED libcodec2.so has no RPATH so dlopen must already
-        // resolve it (jniLibs or System.loadLibrary).
-        preloadCodec2NativeLibrary();
+        // PyApplication sets up native library paths. Preload Codec2 after that
+        // so System.loadLibrary and absolute System.load can resolve jniLibs.
         super.onCreate();
         appContext = getApplicationContext();
+        preloadCodec2NativeLibrary();
         createNotificationChannels();
     }
 
     private void preloadCodec2NativeLibrary() {
+        String nativeDir = null;
         try {
-            System.loadLibrary("codec2");
-        } catch (UnsatisfiedLinkError e) {
-            android.util.Log.w(
-                "MeshChatX",
-                "System.loadLibrary(codec2) failed before Python start: " + e.getMessage()
-            );
-        }
-        try {
-            String nativeDir = getApplicationInfo().nativeLibraryDir;
+            nativeDir = getApplicationInfo().nativeLibraryDir;
             if (nativeDir != null && !nativeDir.isEmpty()) {
                 android.system.Os.setenv("MESHCHAT_NATIVE_LIB_DIR", nativeDir, true);
             }
@@ -53,6 +45,52 @@ public class MeshChatApplication extends PyApplication {
             android.util.Log.w(
                 "MeshChatX",
                 "Could not set MESHCHAT_NATIVE_LIB_DIR: " + e.getMessage()
+            );
+        }
+        java.io.File absoluteLib = null;
+        if (nativeDir != null && !nativeDir.isEmpty()) {
+            absoluteLib = new java.io.File(nativeDir, "libcodec2.so");
+            if (absoluteLib.isFile()) {
+                try {
+                    android.system.Os.setenv(
+                        "MESHCHAT_LIBCODEC2_PATH",
+                        absoluteLib.getAbsolutePath(),
+                        true
+                    );
+                } catch (Exception e) {
+                    android.util.Log.w(
+                        "MeshChatX",
+                        "Could not set MESHCHAT_LIBCODEC2_PATH: " + e.getMessage()
+                    );
+                }
+            } else {
+                absoluteLib = null;
+            }
+        }
+        try {
+            System.loadLibrary("codec2");
+            android.util.Log.i("MeshChatX", "Loaded libcodec2 via System.loadLibrary");
+        } catch (UnsatisfiedLinkError e) {
+            android.util.Log.w(
+                "MeshChatX",
+                "System.loadLibrary(codec2) failed before Python start: " + e.getMessage()
+            );
+        }
+        // Absolute System.load helps some linkers expose the SONAME for later
+        // Python ctypes / extension dlopen even after loadLibrary succeeded.
+        if (absoluteLib == null) {
+            return;
+        }
+        try {
+            System.load(absoluteLib.getAbsolutePath());
+            android.util.Log.i(
+                "MeshChatX",
+                "Loaded libcodec2 via System.load(" + absoluteLib.getAbsolutePath() + ")"
+            );
+        } catch (UnsatisfiedLinkError e) {
+            android.util.Log.w(
+                "MeshChatX",
+                "System.load(libcodec2.so) failed: " + e.getMessage()
             );
         }
     }

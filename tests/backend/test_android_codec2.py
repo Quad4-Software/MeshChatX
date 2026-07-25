@@ -48,11 +48,15 @@ def test_ensure_codec2_prefers_java_load_library():
         patch.object(
             android_codec2, "_java_system_load_library", return_value=True
         ) as java_load,
+        patch.object(android_codec2, "_java_system_load_absolute", return_value=False),
         patch.object(android_codec2, "_cdll_load") as cdll,
+        patch.object(android_codec2, "_libcodec2_candidates", return_value=[]),
     ):
+        # Bare soname CDLL may still fail after Java load. Absolute candidates empty.
+        cdll.side_effect = [OSError("no bare soname")]
         assert android_codec2.ensure_codec2_native_library() is True
         java_load.assert_called_once_with("codec2")
-        cdll.assert_not_called()
+        assert cdll.call_count >= 1
         assert android_codec2.codec2_preload_error() is None
 
 
@@ -82,7 +86,8 @@ def test_libcodec2_candidates_find_without_importing_pycodec2(tmp_path, monkeypa
 
 def test_probe_pycodec2_reports_failure_when_import_breaks():
     android_codec2.reset_codec2_preload_state_for_tests()
-    android_codec2._codec2_preload_done = True
+    android_codec2._codec2_preload_attempted = True
+    android_codec2._codec2_preload_ok = True
     android_codec2._codec2_preload_error = None
     with (
         patch.object(android_codec2, "_is_chaquopy_android", return_value=False),
@@ -101,6 +106,33 @@ def test_probe_pycodec2_reports_failure_when_import_breaks():
             ok, err = android_codec2.probe_pycodec2()
         assert ok is False
         assert err
+
+
+def test_ensure_lxst_codec2_binding_reloads_when_codec2_none():
+    import types
+
+    android_codec2.reset_codec2_preload_state_for_tests()
+
+    fake_codecs = types.ModuleType("LXST.Codecs")
+    fake_codecs.Codec2 = None
+
+    reloaded = types.ModuleType("LXST.Codecs")
+    reloaded.Codec2 = object()
+
+    def import_module(name):
+        if name == "LXST.Codecs":
+            return fake_codecs
+        if name == "LXST.Primitives.Telephony":
+            raise ImportError("telephony skipped in test")
+        raise ImportError(name)
+
+    with (
+        patch.object(android_codec2, "probe_pycodec2", return_value=(True, None)),
+        patch.object(android_codec2.importlib, "import_module", side_effect=import_module),
+        patch.object(android_codec2.importlib, "reload", return_value=reloaded) as reload_mock,
+    ):
+        assert android_codec2.ensure_lxst_codec2_binding() is True
+        assert reload_mock.called
 
 
 def test_vendor_wheels_bundle_libcodec2_for_all_abis():
