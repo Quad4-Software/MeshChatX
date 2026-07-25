@@ -32,6 +32,10 @@ if [[ -z "${EXE}" ]]; then
     exit 1
 fi
 
+if [[ ! -x "${EXE}" ]]; then
+    chmod +x "${EXE}"
+fi
+
 if [[ ! -d "${BUILD_EXE}/lib/email" ]]; then
     echo "frozen runtime verify: lib/email missing (stdlib email must not live only in library.zip)" >&2
     exit 1
