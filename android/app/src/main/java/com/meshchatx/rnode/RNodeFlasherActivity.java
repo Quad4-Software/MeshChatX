@@ -1,7 +1,9 @@
 package com.meshchatx.rnode;
 
 import android.Manifest;
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
@@ -50,6 +52,8 @@ import okhttp3.ResponseBody;
 public final class RNodeFlasherActivity extends AppCompatActivity implements UsbSerialHub.Listener {
     private static final int REQ_BT = 4401;
     private static final String LOCAL_API = "https://127.0.0.1:8000";
+    private static final String PREFS = "rnode_flasher";
+    private static final String PREF_BT_PROMPTED = "bt_perm_prompted";
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final ExecutorService io = Executors.newSingleThreadExecutor();
@@ -182,11 +186,94 @@ public final class RNodeFlasherActivity extends AppCompatActivity implements Usb
             }
         }
         appendLog(ok ? "Bluetooth permission granted." : "Bluetooth permission denied.");
-        Toast.makeText(
-            this,
-            ok ? "Bluetooth allowed" : "Bluetooth denied",
-            Toast.LENGTH_SHORT
-        ).show();
+        if (ok) {
+            Toast.makeText(this, "Bluetooth allowed", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (isBluetoothPermanentlyDenied()) {
+            appendLog("Bluetooth permanently denied. Opening app settings.");
+            Toast.makeText(
+                this,
+                "Bluetooth blocked. Enable it in app settings.",
+                Toast.LENGTH_LONG
+            ).show();
+            openAppSettings();
+            return;
+        }
+        Toast.makeText(this, "Bluetooth denied", Toast.LENGTH_SHORT).show();
+    }
+
+    private boolean isBluetoothPermanentlyDenied() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return false;
+        }
+        String[] needed = new String[] {
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.BLUETOOTH_SCAN,
+        };
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        boolean prompted = prefs.getBoolean(PREF_BT_PROMPTED, false);
+        for (String permission : needed) {
+            if (ContextCompat.checkSelfPermission(this, permission)
+                == PackageManager.PERMISSION_GRANTED) {
+                continue;
+            }
+            if (prompted && !ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void requestBluetooth() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            appendLog("Bluetooth runtime permission not required on this Android version.");
+            Toast.makeText(this, "Bluetooth already allowed on this Android version", Toast.LENGTH_SHORT)
+                .show();
+            return;
+        }
+        List<String> missing = new ArrayList<>();
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
+            != PackageManager.PERMISSION_GRANTED) {
+            missing.add(Manifest.permission.BLUETOOTH_CONNECT);
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
+            != PackageManager.PERMISSION_GRANTED) {
+            missing.add(Manifest.permission.BLUETOOTH_SCAN);
+        }
+        if (missing.isEmpty()) {
+            appendLog("Bluetooth permission already granted.");
+            Toast.makeText(this, "Bluetooth already allowed", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (isBluetoothPermanentlyDenied()) {
+            appendLog("Bluetooth permanently denied. Opening app settings.");
+            Toast.makeText(
+                this,
+                "Bluetooth blocked. Enable it in app settings.",
+                Toast.LENGTH_LONG
+            ).show();
+            openAppSettings();
+            return;
+        }
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean(PREF_BT_PROMPTED, true).apply();
+        ActivityCompat.requestPermissions(this, missing.toArray(new String[0]), REQ_BT);
+        appendLog("Requesting Bluetooth permissions…");
+    }
+
+    private void openAppSettings() {
+        try {
+            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            intent.setData(Uri.fromParts("package", getPackageName(), null));
+            startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+            try {
+                startActivity(new Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS));
+            } catch (ActivityNotFoundException ignored) {
+                Toast.makeText(this, "App settings unavailable", Toast.LENGTH_SHORT).show();
+                appendLog("App settings unavailable: " + e.getMessage());
+            }
+        }
     }
 
     private void refreshPorts() {
@@ -226,38 +313,6 @@ public final class RNodeFlasherActivity extends AppCompatActivity implements Usb
             usbHub.requestPermission(port.deviceId);
             appendLog("Requested USB permission for " + port);
         }
-    }
-
-    private void requestBluetooth() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            appendLog("Bluetooth runtime permission not required on this Android version.");
-            return;
-        }
-        List<String> missing = new ArrayList<>();
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
-            != PackageManager.PERMISSION_GRANTED) {
-            missing.add(Manifest.permission.BLUETOOTH_CONNECT);
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
-            != PackageManager.PERMISSION_GRANTED) {
-            missing.add(Manifest.permission.BLUETOOTH_SCAN);
-        }
-        if (missing.isEmpty()) {
-            appendLog("Bluetooth permission already granted.");
-            Toast.makeText(this, "Bluetooth already allowed", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        ActivityCompat.requestPermissions(this, missing.toArray(new String[0]), REQ_BT);
-        appendLog("Requesting Bluetooth permissions…");
-    }
-
-    private void openAppSettings() {
-        startActivity(
-            new Intent(
-                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                Uri.parse("package:" + getPackageName())
-            )
-        );
     }
 
     private void downloadFirmware() {

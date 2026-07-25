@@ -64,6 +64,16 @@ describe("Capabilities.detectCapabilities", () => {
         expect(caps.transports[TRANSPORT_BLUETOOTH].reason).toBe("android_bluetooth_permission_required");
     });
 
+    it("reports android_bridge_no_web_bluetooth when MeshChatXAndroid already granted BT", () => {
+        const env = mkEnv({
+            navigator: { userAgent: "Android" },
+            MeshChatXAndroid: { hasBluetoothPermissions: () => true },
+        });
+        const caps = detectCapabilities({ env });
+        expect(caps.transports[TRANSPORT_BLUETOOTH].available).toBe(false);
+        expect(caps.transports[TRANSPORT_BLUETOOTH].reason).toBe("android_bridge_no_web_bluetooth");
+    });
+
     it("reports bluetooth available when navigator.bluetooth is present", () => {
         const env = mkEnv({ navigator: { userAgent: "x", bluetooth: {} } });
         const caps = detectCapabilities({ env });

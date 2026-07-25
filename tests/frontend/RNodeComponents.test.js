@@ -52,7 +52,25 @@ describe("RNodeCapabilitiesBanner", () => {
         });
         expect(wrapper.text()).toContain("tools.rnode_flasher.support.bluetooth.title");
         const labels = wrapper.findAll("button").map((b) => b.text());
+        expect(labels.some((l) => l.includes("open_native"))).toBe(true);
+        expect(labels.some((l) => l.includes("open_settings"))).toBe(true);
+        expect(labels.some((l) => l.includes("request_bluetooth"))).toBe(false);
+    });
+
+    it("shows request bluetooth when android permission is required", () => {
+        const env = {
+            isSecureContext: true,
+            navigator: { userAgent: "Android" },
+            MeshChatXAndroid: { hasBluetoothPermissions: () => false },
+        };
+        const caps = detectCapabilities({ env });
+        const wrapper = mountWith(RNodeCapabilitiesBanner, {
+            capabilities: caps,
+            androidAvailable: true,
+        });
+        const labels = wrapper.findAll("button").map((b) => b.text());
         expect(labels.some((l) => l.includes("request_bluetooth"))).toBe(true);
+        expect(labels.some((l) => l.includes("open_settings"))).toBe(true);
     });
 });
 

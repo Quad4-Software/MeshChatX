@@ -321,7 +321,12 @@ export default {
                 return;
             }
             if (action === "open-bluetooth-settings") {
-                this.androidBridge.openBluetoothSettings();
+                if (this.androidBridge.openBluetoothSettings()) {
+                    ToastUtils.info(this.$t("tools.rnode_flasher.support.actions.bluetooth_open_settings"));
+                } else {
+                    ToastUtils.warning(this.$t("tools.rnode_flasher.support.actions.bluetooth_unsupported"));
+                }
+                return;
             }
         },
         async fetchLatestRelease() {

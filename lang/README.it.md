@@ -352,7 +352,7 @@ I target `Makefile` sono wrapper sottili che delegano a `task` (stessi comandi d
 
 ## Versionamento
 
-Versione attuale nel repository: `4.8.1`.
+Versione attuale nel repository: `4.8.2`.
 
 - L'unico valore che modifichi per un bump di release e **`version` in `package.json`**.
 - Esegui **`pnpm run version:sync`** (all'inizio anche di **`pnpm run build`**) per propagare in **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (riga prodotto), **README** / **lang/README.\*** (righe "versione attuale"), **esempio pipx in `docs/meshchatx_on_raspberry_pi.md`**, e aiuti in **`packaging/arch/PKGBUILD`**.
