@@ -2317,9 +2317,7 @@ export default {
                 return await mediaDevices.getUserMedia(constraints);
             } catch (e) {
                 const retryable =
-                    e?.name === "NotFoundError" ||
-                    e?.name === "OverconstrainedError" ||
-                    e?.name === "NotReadableError";
+                    e?.name === "NotFoundError" || e?.name === "OverconstrainedError" || e?.name === "NotReadableError";
                 if (!retryable) {
                     throw e;
                 }
@@ -2770,15 +2768,11 @@ export default {
                 let outputs = devices.filter((d) => d.kind === "audiooutput");
                 // Pre-permission lists often have blank deviceId and blank labels.
                 // Keep the Default placeholder so we do not lock onto phantom IDs.
-                const inputsUsable = inputs.some(
-                    (d) => d.deviceId && String(d.deviceId).trim() !== "" && d.label
-                );
+                const inputsUsable = inputs.some((d) => d.deviceId && String(d.deviceId).trim() !== "" && d.label);
                 if (!inputsUsable) {
                     inputs = [defaultIn];
                 }
-                const outputsUsable = outputs.some(
-                    (d) => d.deviceId && String(d.deviceId).trim() !== "" && d.label
-                );
+                const outputsUsable = outputs.some((d) => d.deviceId && String(d.deviceId).trim() !== "" && d.label);
                 if (!outputsUsable) {
                     outputs = [defaultOut];
                 }

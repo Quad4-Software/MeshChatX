@@ -128,8 +128,12 @@ def test_ensure_lxst_codec2_binding_reloads_when_codec2_none():
 
     with (
         patch.object(android_codec2, "probe_pycodec2", return_value=(True, None)),
-        patch.object(android_codec2.importlib, "import_module", side_effect=import_module),
-        patch.object(android_codec2.importlib, "reload", return_value=reloaded) as reload_mock,
+        patch.object(
+            android_codec2.importlib, "import_module", side_effect=import_module
+        ),
+        patch.object(
+            android_codec2.importlib, "reload", return_value=reloaded
+        ) as reload_mock,
     ):
         assert android_codec2.ensure_lxst_codec2_binding() is True
         assert reload_mock.called
