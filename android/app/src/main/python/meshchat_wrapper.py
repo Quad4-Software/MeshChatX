@@ -195,7 +195,9 @@ def start_server(port=8000, app_files_dir=None, activity=None):
             from meshchatx.android_codec2 import ensure_lxst_codec2_binding
 
             if ensure_lxst_codec2_binding():
-                print("meshchat_wrapper: LXST Codec2 binding confirmed after meshchat import")
+                print(
+                    "meshchat_wrapper: LXST Codec2 binding confirmed after meshchat import"
+                )
         except Exception as bind_exc:
             print(f"meshchat_wrapper: LXST Codec2 bind skipped: {bind_exc}")
 

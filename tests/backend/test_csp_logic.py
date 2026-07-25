@@ -68,7 +68,10 @@ async def test_csp_header_logic(mock_rns_minimal, tmp_path):
         assert "https://tiles.example.com" in csp
         assert "default-src 'self'" in csp
         assert "wasm-unsafe-eval" in csp
-        assert response.headers.get("Permissions-Policy") == "microphone=(self), camera=(self)"
+        assert (
+            response.headers.get("Permissions-Policy")
+            == "microphone=(self), camera=(self)"
+        )
         m = re.search(r"script-src([^;]+);", csp)
         assert m is not None and "blob:" in m.group(1)
         script_src = m.group(1)
