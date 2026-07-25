@@ -721,9 +721,7 @@
                                                         {{ $t("interfaces.autoconnect_announces_to_internal_label") }}
                                                     </div>
                                                     <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                        {{
-                                                            $t("interfaces.autoconnect_announces_to_internal_hint")
-                                                        }}
+                                                        {{ $t("interfaces.autoconnect_announces_to_internal_hint") }}
                                                     </div>
                                                 </div>
                                                 <Toggle
@@ -1422,7 +1420,7 @@ export default {
                         ? Number(discovery.autoconnect_interface_gravity)
                         : null;
                 this.discoveryConfig.autoconnect_announces_to_internal = this.parseBool(
-                    discovery.autoconnect_announces_to_internal ?? false,
+                    discovery.autoconnect_announces_to_internal ?? false
                 );
                 this.discoveryConfig.default_bootstrap_only = this.parseBool(discovery.default_bootstrap_only ?? false);
                 this.discoveryConfig.network_identity = discovery.network_identity ?? "";
