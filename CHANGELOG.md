@@ -6,109 +6,107 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- Browser PWA app-shell caching for hashed UI assets and network-first shell fallback during short backend restarts (not used in Electron)
-- Plugin system: ZIP/WASM install, signed packages (RSG), Python and Sideband backends, install consent, and Settings management
-- Bundled Bug Reports plugin and plugin i18n / UI slots / contribution registries
-- Map overlays from NomadNet and RNGit (KMZ/KML/GeoJSON) with cache and refresh
-- RNS Link WebSocket API for external apps (and plugin capabilities)
-- RNS File Sync for shared folders on the mesh, with an in-app file manager to browse, upload, download, and delete files in the sync folder
-- Settings: Reticulum instance/share controls, tabbed Settings nav, desktop close/tray behavior
-- Nomad favourites: per-identity section layout in the database
-- Optional pip-rns / rngit install path for RNS packages and docs
+- Browser PWA shell caching for UI assets, with a network-first fallback during short backend restarts (not used in Electron)
+- Plugin system: ZIP and WASM install, signed packages (RSG), Python and Sideband backends, install consent, and Settings management
+- Bundled Bug Reports plugin, plus plugin translations, UI slots, and contribution registries
+- Map overlays from NomadNet and RNGit (KMZ, KML, GeoJSON) with cache and refresh
+- RNS Link WebSocket API for external apps and plugins
+- RNS File Sync for shared folders on the mesh, with an in-app file manager to browse, upload, download, and delete files
+- Settings: Reticulum instance and share controls, tabbed Settings navigation, and desktop close or tray behavior
+- Nomad favourites: per-identity section layout
+- Optional pip-rns and rngit install path for RNS packages and docs
 - Message export and import with contacts and read state
 - Message maintenance in Settings: purge old local messages and clear duplicates
 - Host battery status on About and in the header (Electron, Android, Chromium)
 - System resource monitoring for CPU and memory in the UI
 - RSM signing and verification for meshchatx.rsm
 - Notification sound settings
-- LXMFy 2.0.1 vendor refresh with RRC hub client support for bots, plus wasmtime
-- Network visualiser WebGL + WASM renderer (vis-network fallback) and Settings renderer preference
-- Interfaces: internal mode, recursive path requests, announces-from-internal, discovery location command, and Backbone fast-flapping options (RNS 1.3.7 to 1.3.9)
+- LXMFy 2.0.1 with RRC hub client support for bots
+- Network visualiser WebGL and WASM renderer, with a vis-network fallback and a Settings preference
+- Interfaces: internal mode, recursive path requests, announces-from-internal, discovery location command, and Backbone fast-flapping options
 - Reticulum interface module management from the UI
-- Reticulum 1.4.1 and LXMF 1.1.0, with propagation node options and cancel for incoming large message downloads from the header
-- Interfaces: path gravity, announces-to-internal, and discovery autoconnect gravity/mode options (RNS 1.4.1)
+- Reticulum 1.4.1 and LXMF 1.1.0, including propagation node options and cancel for incoming large message downloads
+- Interfaces: path gravity, announces-to-internal, and discovery autoconnect gravity and mode options
 - Relay Chat room keys so hosts can require a key to join a room
 - Desktop privacy: Windows screen security to omit MeshChatX from screenshots, recording, and Recall
 - Android privacy options to block screenshots and clear the clipboard when backgrounded
-- Builds bake git commit and channel into runtime metadata for About (commit) and sidebar (dev label plus short SHA on nightly, preview, and local builds)
-- Tutorial connect: Internet + local (recommended) adds AutoInterface and pre-selects 3 random community TCP bootstraps
-- Remote management allow-list for identities that may query this instance with rnstatus/rnpath
+- About shows the git commit. Nightly, preview, and local builds also show a short channel label in the sidebar
+- Tutorial connect: Internet plus local (recommended) adds AutoInterface and pre-selects three random community TCP bootstraps
+- Remote management allow-list for identities that may query this instance with rnstatus and rnpath
 - Post-install prompts for existing users after upgrades
 - Coolify-oriented Docker Compose with resource limits for deployments
-- LXST telephony half-duplex mode, live duplex switching, push-to-talk (packetizer squelch), and richer in-call stats (rates plus mute state on the active call)
-- Optional Linux seccomp-BPF syscall denylist (libseccomp) alongside Landlock, with auto-detect and MESHCHAT_SECCOMP fallback
-- Bundled [RNS-over-HTTP](https://github.com/Quad4-Software/RNS-over-HTTP) HTTPInterface with Interfaces page client/server setup, auto-install into the Reticulum interface path, and httpx support (Android includes httpx with HTTP/2 as pure-Python wheels)
-- Docker **extra** image variant (`-extra` suffix): same Alpine Dockerfile with `VARIANT=extra` (adds **i2pd** and **yggdrasil**), built and published beside standard and hardened
-- Docker Alpine/hardened recipes moved into `scripts/docker/*.sh` so Dockerfiles stay thin (shared frontend, venv, overlay, and runtime setup)
-- LXMF send/delivery oracles for no-proof SENT retries, auto-resend claim rules, and ConversationViewer single-bubble absorb/created races
+- LXST telephony half-duplex mode, live duplex switching, push-to-talk, and richer in-call stats
+- Optional Linux seccomp-BPF syscall denylist alongside Landlock
+- Bundled [RNS-over-HTTP](https://github.com/Quad4-Software/RNS-over-HTTP) HTTPInterface with Interfaces page client and server setup, auto-install into the Reticulum interface path, and httpx support on Android
+- Docker extra image variant with i2pd and yggdrasil, published beside the standard and hardened images
 
 ### Changed
 
-- Tutorial: language/theme controls no longer overlay bootstrap titles. Connection and bootstrap actions stay locked while discovery or random pick is running
-- Tutorial connect/bootstrap: recommended mode stays on the bootstrap step for next/back, Finish is only on the last step, and random-pick races no longer stick busy or mark auto-pick done without a selection
-- Tutorial privacy/security step: shorter mobile copy and toggle layout so labels and switches fit
-- Auto propagation finder: require usable RNS paths and a scarce LXMF sync probe (treat **PR_COMPLETE** as success), remember verified destination hashes per identity, prefer live announces over memory ghosts, cool down failures, and avoid disruptive re-probes of a working preferred peer
+- Tutorial: language and theme controls no longer overlay bootstrap titles. Connection and bootstrap actions stay locked while discovery or random pick is running
+- Tutorial connect and bootstrap: recommended mode stays on the bootstrap step for next and back, Finish is only on the last step, and random pick no longer sticks busy without a selection
+- Tutorial privacy and security step: shorter mobile copy and toggle layout so labels and switches fit
+- Auto propagation finder: requires usable paths and a scarce LXMF sync probe, remembers verified peers per identity, prefers live announces, cools down failures, and avoids re-probing a working preferred peer
 - Community interface presets refreshed from directory.rns.recipes (69 online listings)
-- Bundled Reticulum manual refetch (reticulum_docs_bundle.json timestamp)
-- Discovery map markers use dual-halo badge icons (peers, LXMF, discovered, tracking, stale) with banded cluster badges, zoom-gated labels, and cached styles for denser maps
-- Map default basemap is OpenStreetMap (OSM). Style presets list OSM first and identity config wins over stale cached tile URLs
+- Bundled Reticulum manual updated
+- Discovery map markers use dual-halo badge icons with banded cluster badges, zoom-gated labels, and cached styles for denser maps
+- Map default basemap is OpenStreetMap. Style presets list OSM first, and identity config wins over stale cached tile URLs
 - UI opens sooner: HTTP binds first, Reticulum starts in the background
-- Conversations load faster: slim list and thread queries via fields_meta and attachment flags
-- Conversation list uses a per-peer summary table so refreshes no longer scan the full message history
-- Conversation list API omits contact image blobs and caps unbounded callers (Map, Network Visualiser)
+- Conversations load faster with slim list and thread queries
+- Conversation list uses a per-peer summary so refreshes no longer scan full message history
+- Conversation list omits contact image blobs and limits heavy callers such as Map and Network Visualiser
 - Messages page conversation poll is slower and skips while the tab is hidden
-- Schema v51 message-flag backfill skips empty databases so fresh init stays fast
+- Fresh database init stays fast by skipping empty message-flag backfill
 - Outbound message status icons and titles reflect delivery method and state more clearly
-- Relay Chat: denser hub UI, announce interval, collapsed system lines, reconnect notices
+- Relay Chat: denser hub UI, announce interval, collapsed system lines, and reconnect notices
 - Relay Chat: clickable Nomad and LXMF links plus basic markdown for code, bold, italic, and strikethrough
-- Low-memory cleanup and SQLite pragmas under memory pressure
+- Low-memory cleanup and SQLite tuning under memory pressure
 - Auto-resend keeps attachments and cleans duplicate outbound rows more reliably
 - Calls and audio work in Docker and headless setups via hostless LXST backends and the web audio bridge
 - Hardened identity path handling, stamp enforcement, plugin integrity, Nomad downloads, and local file path jails
 - Plugin strings live in plugin bundles, not main locale files
-- Docker frontend build installs Go, builds visualiser WASM, and fails if WASM artifacts are missing
+- Docker frontend build includes the visualiser WASM and fails if those artifacts are missing
 
 ### Fixed
 
-- LXMF outbound progress polling stops on REJECTED (previously only DELIVERED / propagated SENT / FAILED / CANCELLED stopped the loop)
-- Android Codec2: preload libcodec2 via System.loadLibrary and MESHCHAT_NATIVE_LIB_DIR before Chaquopy imports pycodec2
-- Android RNode flasher is a native Activity (USB serial via usb-serial-for-android, ESP32 ROM flash protocol). Tools opens it instead of a WebView serial polyfill
+- LXMF outbound progress polling stops on REJECTED as well as delivered, failed, and cancelled states
+- Android Codec2: preload native libcodec2 before Python codec imports
+- Android RNode flasher is a native Activity with USB serial and ESP32 ROM flash. Tools opens it instead of a WebView serial polyfill
 - Android RNode flasher: Bluetooth permission request returns real status, handles the result callback, and opens app settings when permanently denied
-- Web Sync Messages after a backgrounded browser tab: recover stale WebSocket as a shell reconnect, refresh CSRF, and do not abort sync when request-path priming fails
+- Web Sync Messages after a backgrounded browser tab recovers a stale WebSocket, refreshes CSRF, and does not abort sync when path priming fails
 - Conversations: re-opening an already-read thread no longer decrements the Messages unread badge
-- Notifications: DND still updates the Messages unread badge (DND only suppresses OS notifications and sound)
-- Identity switch clears Relay Chat, NomadNet browser tabs, Map tabs, and RNSH session UI so keep-alive pages cannot show the previous identity
-- Map local URL checks use RFC1918 172.16/12 instead of treating all 172.* hosts as local
-- Messages unread badge no longer overwritten by a paginated or filtered conversation page count
+- Notifications: Do Not Disturb still updates the Messages unread badge. It only suppresses OS notifications and sound
+- Identity switch clears Relay Chat, NomadNet browser tabs, Map tabs, and RNSh session UI so keep-alive pages cannot show the previous identity
+- Map local URL checks use the private 172.16.0.0/12 range instead of treating all 172.x hosts as local
+- Messages unread badge is no longer overwritten by a paginated or filtered conversation page count
 - Deep-link or compose open marks the conversation read so the sidebar unread state clears
-- Map my-location prefers LXMF address hash telemetry (not only identity hash)
-- RNode flasher SRI lookup matches flat and nested integrity.json keys so zip.min.js loads
-- RRC kick/ban and failed auto-rejoin clear unread_counts so room pills do not stick
-- Nomad archive load owns its download_id so path-mismatched replies cannot leave the spinner stuck forever
-- RRC invite-only (+i) rooms grant a reconnect invite on unexpected link drop so auto-rejoin still works after the one-shot invite was consumed
-- Map remote overlay loads undo layers from a stale generation, and TileCache map view keys are identity-scoped
-- Nomad micron LXMF links route to Messages via onLxmfAddress instead of being ignored
-- RNSH session config_path and identity_path are jailed under storage or the shared Reticulum config dir, and free-form extra_args are rejected
-- Failed identity switch no longer emits identity-switched (which wiped keep-alive UI) and clears the switching overlay via identity-switching-abort
-- Settings, About, and Interfaces refresh identity-scoped state on identity-switched
-- About snapshot/backup restore guards concurrent restores and reloads the web UI after a successful restore
-- Interfaces enable/disable write interface_enabled when neither legacy key exists, and disable returns the correct success message
-- Interfaces enable/disable roll back in-memory config when the Reticulum config write fails
+- Map my-location prefers LXMF address hash telemetry, not only identity hash
+- RNode flasher integrity lookup matches flat and nested keys so required scripts load
+- Relay Chat kick, ban, and failed auto-rejoin clear unread counts so room pills do not stick
+- Nomad archive load owns its download id so mismatched replies cannot leave the spinner stuck
+- Relay Chat invite-only rooms grant a reconnect invite on unexpected link drop so auto-rejoin still works after the one-shot invite was consumed
+- Map remote overlay loads no longer undo layers from a stale generation, and tile cache view keys are identity-scoped
+- Nomad micron LXMF links route to Messages instead of being ignored
+- RNSh session config and identity paths stay under storage or the shared Reticulum config dir. Free-form extra args are rejected
+- Failed identity switch no longer wipes keep-alive UI and clears the switching overlay correctly
+- Settings, About, and Interfaces refresh identity-scoped state after an identity switch
+- About snapshot and backup restore guards concurrent restores and reloads the web UI after a successful restore
+- Interfaces enable and disable write the enabled flag when neither legacy key exists, and disable returns the correct success message
+- Interfaces enable and disable roll back in-memory config when the Reticulum config write fails
 - Disabling block-all-from-strangers restores a prior inbound stamp cost of 0 instead of forcing 8
-- Discovery settings PATCH returns 500 when RNS reload fails after a successful disk write
+- Discovery settings save returns an error when RNS reload fails after a successful disk write
 - Interfaces stats map is replaced each poll so deleted interfaces cannot stay Connected
-- Desktop AppImage: main-process logs always append to the storage logs folder (meshchatx.log). Stdout is only used when a terminal is attached, with broken-pipe guards as a fallback, so background launches no longer raise write EPIPE dialogs
-- Android: lxmfy packaging, flock soft-lock, splash/logo clipping, Landlock skipped on Android
-- Android RNode BLE/USB via Chaquopy
-- Startup check and disable unsupported interfaces
-- Nomad favourites: no more Unknown Node / lost custom sections
+- Desktop AppImage: logs always append to the storage logs folder. Stdout is only used when a terminal is attached, so background launches no longer raise broken-pipe dialogs
+- Android: LXMFy packaging, flock soft-lock, splash and logo clipping, Landlock skipped on Android
+- Android RNode BLE and USB via Chaquopy
+- Startup checks and disables unsupported interfaces
+- Nomad favourites: no more Unknown Node or lost custom sections
 - Relay Chat message dedupe. Network visualiser faster on large meshes
-- Bots and RNSh work in frozen macOS/Windows builds
-- Sensitive config no longer mutable over WebSocket. Reticulum config repair on startup
+- Bots and RNSh work in frozen macOS and Windows builds
+- Sensitive config is no longer mutable over WebSocket. Reticulum config repair on startup
 - Paper message URI encoding for non-ASCII title and content
 - LXMA contact import works with current RNS public-key loading and remembers the peer key before announce
-- Android calls: overlay accept opens the phone tab so native audio attaches. Web-audio no longer permanently disabled after a bridge error
-- Android Codec2: reliable libcodec2 preload, Gradle fails without Codec2 wheels or jniLibs, and unavailable Codec2 profiles are hidden
+- Android calls: overlay accept opens the phone tab so native audio attaches. Web audio is no longer permanently disabled after a bridge error
+- Android Codec2: reliable native preload, builds fail without Codec2 wheels or jniLibs, and unavailable Codec2 profiles are hidden
 - Unknown meshchatx links return a clear error instead of falling through to LXMF
 - NomadNet Micron copy no longer inserts a newline between every character
 - Unread message count is a red pill on the Messages nav icon
@@ -118,7 +116,7 @@ All notable changes to this project will be documented in this file.
 - Open conversations mark as read when a new message arrives without needing to reselect the thread
 - Unread badges dismiss when navigating back to an already-open Messages or Relay Chat room
 - Startup stage logs no longer print the same stage twice
-- Ctrl+C shutdown no longer floods reentrant logging errors from RNS.exit containment
+- Ctrl+C shutdown no longer floods reentrant logging errors
 - RNStatus interface mode labels match Reticulum modes again, including Internal
 
 ## [4.7.2] - 2026-07-06
