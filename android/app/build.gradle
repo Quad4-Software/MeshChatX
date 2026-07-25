@@ -13,7 +13,7 @@ def pythonTempDir = new File(buildDir, "python-tmp")
 def vendorWheelDir = new File(rootProject.projectDir, "vendor")
 def lxstPatchedWheel = new File(rootProject.projectDir, "vendor/lxst-0.5.0-py3-none-any.whl")
 def bleakPatchedWheel = new File(rootProject.projectDir, "vendor/bleak-3.0.2-py3-none-any.whl")
-def rnsPatchedWheel = new File(rootProject.projectDir, "vendor/rns-1.4.0-py3-none-any.whl")
+def rnsPatchedWheel = new File(rootProject.projectDir, "vendor/rns-1.4.1-py3-none-any.whl")
 def allAndroidAbis = ["arm64-v8a", "x86_64", "armeabi-v7a"]
 def selectedAndroidAbis = (
     project.findProperty("meshchatxAbis")

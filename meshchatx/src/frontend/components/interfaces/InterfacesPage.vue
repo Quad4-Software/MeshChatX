@@ -652,6 +652,86 @@
                                                 0 disables auto-connect.
                                             </div>
                                         </div>
+                                        <div>
+                                            <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                                {{ $t("interfaces.default_gravity_label") }}
+                                            </div>
+                                            <input
+                                                v-model.number="discoveryConfig.default_gravity"
+                                                type="number"
+                                                class="input-field"
+                                            />
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                {{ $t("interfaces.default_gravity_hint") }}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                                {{ $t("interfaces.autoconnect_interface_mode_label") }}
+                                            </div>
+                                            <select
+                                                v-model="discoveryConfig.autoconnect_interface_mode"
+                                                class="input-field"
+                                            >
+                                                <option value="">
+                                                    {{ $t("interfaces.mode_default_full") }}
+                                                </option>
+                                                <option value="full">
+                                                    {{ $t("interfaces.mode_full") }}
+                                                </option>
+                                                <option value="gateway">
+                                                    {{ $t("interfaces.mode_gateway") }}
+                                                </option>
+                                                <option value="access_point">
+                                                    {{ $t("interfaces.mode_access_point") }}
+                                                </option>
+                                                <option value="roaming">
+                                                    {{ $t("interfaces.mode_roaming") }}
+                                                </option>
+                                                <option value="boundary">
+                                                    {{ $t("interfaces.mode_boundary") }}
+                                                </option>
+                                                <option value="internal">
+                                                    {{ $t("interfaces.mode_internal") }}
+                                                </option>
+                                            </select>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                {{ $t("interfaces.autoconnect_interface_mode_hint") }}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                                {{ $t("interfaces.autoconnect_interface_gravity_label") }}
+                                            </div>
+                                            <input
+                                                v-model.number="discoveryConfig.autoconnect_interface_gravity"
+                                                type="number"
+                                                class="input-field"
+                                            />
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                {{ $t("interfaces.autoconnect_interface_gravity_hint") }}
+                                            </div>
+                                        </div>
+                                        <div class="sm:col-span-2">
+                                            <div
+                                                class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                                            >
+                                                <div class="min-w-0 pr-0 sm:pr-4">
+                                                    <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                                                        {{ $t("interfaces.autoconnect_announces_to_internal_label") }}
+                                                    </div>
+                                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                        {{
+                                                            $t("interfaces.autoconnect_announces_to_internal_hint")
+                                                        }}
+                                                    </div>
+                                                </div>
+                                                <Toggle
+                                                    v-model="discoveryConfig.autoconnect_announces_to_internal"
+                                                    class="shrink-0 sm:my-auto"
+                                                />
+                                            </div>
+                                        </div>
                                         <div class="sm:col-span-2">
                                             <div
                                                 class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
@@ -759,6 +839,10 @@ export default {
                 interface_discovery_blacklist: "",
                 required_discovery_value: null,
                 autoconnect_discovered_interfaces: null,
+                default_gravity: null,
+                autoconnect_interface_mode: "",
+                autoconnect_interface_gravity: null,
+                autoconnect_announces_to_internal: false,
                 default_bootstrap_only: false,
                 network_identity: "",
             },
@@ -1324,6 +1408,22 @@ export default {
                     discovery.autoconnect_discovered_interfaces !== ""
                         ? Number(discovery.autoconnect_discovered_interfaces)
                         : null;
+                this.discoveryConfig.default_gravity =
+                    discovery.default_gravity !== undefined &&
+                    discovery.default_gravity !== null &&
+                    discovery.default_gravity !== ""
+                        ? Number(discovery.default_gravity)
+                        : null;
+                this.discoveryConfig.autoconnect_interface_mode = discovery.autoconnect_interface_mode ?? "";
+                this.discoveryConfig.autoconnect_interface_gravity =
+                    discovery.autoconnect_interface_gravity !== undefined &&
+                    discovery.autoconnect_interface_gravity !== null &&
+                    discovery.autoconnect_interface_gravity !== ""
+                        ? Number(discovery.autoconnect_interface_gravity)
+                        : null;
+                this.discoveryConfig.autoconnect_announces_to_internal = this.parseBool(
+                    discovery.autoconnect_announces_to_internal ?? false,
+                );
                 this.discoveryConfig.default_bootstrap_only = this.parseBool(discovery.default_bootstrap_only ?? false);
                 this.discoveryConfig.network_identity = discovery.network_identity ?? "";
             } catch (e) {
@@ -1350,6 +1450,17 @@ export default {
                         this.discoveryConfig.autoconnect_discovered_interfaces === ""
                             ? null
                             : Number(this.discoveryConfig.autoconnect_discovered_interfaces),
+                    default_gravity:
+                        this.discoveryConfig.default_gravity === null || this.discoveryConfig.default_gravity === ""
+                            ? null
+                            : Number(this.discoveryConfig.default_gravity),
+                    autoconnect_interface_mode: this.discoveryConfig.autoconnect_interface_mode || null,
+                    autoconnect_interface_gravity:
+                        this.discoveryConfig.autoconnect_interface_gravity === null ||
+                        this.discoveryConfig.autoconnect_interface_gravity === ""
+                            ? null
+                            : Number(this.discoveryConfig.autoconnect_interface_gravity),
+                    autoconnect_announces_to_internal: this.discoveryConfig.autoconnect_announces_to_internal === true,
                     default_bootstrap_only: this.discoveryConfig.default_bootstrap_only,
                     network_identity: this.discoveryConfig.network_identity || null,
                 };

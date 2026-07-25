@@ -138,6 +138,16 @@ def test_apply_yes_no_option_recursive_prs():
     assert details["announces_from_internal"] == "no"
 
 
+def test_sanitize_imported_gravity_and_announces_to_internal():
+    body = {
+        "gravity": "3",
+        "announces_to_internal": True,
+    }
+    assert InterfaceEditor.sanitize_imported_rns_options(body) is None
+    assert body["gravity"] == 3
+    assert body["announces_to_internal"] == "yes"
+
+
 def test_validate_location_cmd_rejects_shell_metacharacters():
     assert InterfaceEditor.validate_location_cmd("/usr/bin/true") is None
     assert InterfaceEditor.validate_location_cmd("~/bin/gps.sh") is None

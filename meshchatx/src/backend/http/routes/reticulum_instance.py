@@ -156,6 +156,16 @@ def register_reticulum_instance_routes(routes, app):
                 "autoconnect_discovered_interfaces",
                 ReticulumMeshChat.DEFAULT_AUTOCONNECT_DISCOVERED_INTERFACES,
             ),
+            "default_gravity": reticulum_config.get("default_gravity"),
+            "autoconnect_interface_mode": reticulum_config.get(
+                "autoconnect_interface_mode",
+            ),
+            "autoconnect_interface_gravity": reticulum_config.get(
+                "autoconnect_interface_gravity",
+            ),
+            "autoconnect_announces_to_internal": reticulum_config.get(
+                "autoconnect_announces_to_internal",
+            ),
             "default_bootstrap_only": bool(
                 app.current_context.config.default_bootstrap_only.get()
                 if app.current_context and app.current_context.config
@@ -214,6 +224,67 @@ def register_reticulum_instance_routes(routes, app):
             "network_identity",
         ):
             update_config_value(key)
+
+        if "autoconnect_interface_mode" in data:
+            mode_raw = data.get("autoconnect_interface_mode")
+            if mode_raw is None or mode_raw == "":
+                reticulum_config.pop("autoconnect_interface_mode", None)
+            else:
+                mode = InterfaceEditor.normalize_interface_mode(mode_raw)
+                if mode is None:
+                    return web.json_response(
+                        {
+                            "message": (
+                                "autoconnect_interface_mode must be one of: "
+                                "full, gateway, access_point, pointtopoint, "
+                                "roaming, boundary, internal"
+                            ),
+                        },
+                        status=422,
+                    )
+                reticulum_config["autoconnect_interface_mode"] = mode
+
+        if "autoconnect_announces_to_internal" in data:
+            yn = InterfaceEditor.request_yes_no(
+                data.get("autoconnect_announces_to_internal"),
+            )
+            if yn is None:
+                raw = data.get("autoconnect_announces_to_internal")
+                if raw is None or raw == "":
+                    reticulum_config.pop("autoconnect_announces_to_internal", None)
+                else:
+                    return web.json_response(
+                        {
+                            "message": (
+                                "autoconnect_announces_to_internal must be "
+                                "a boolean or yes/no value"
+                            ),
+                        },
+                        status=422,
+                    )
+            else:
+                reticulum_config["autoconnect_announces_to_internal"] = yn
+
+        for gravity_key in ("default_gravity", "autoconnect_interface_gravity"):
+            if gravity_key not in data:
+                continue
+            value = data.get(gravity_key)
+            if value is None or value == "":
+                reticulum_config.pop(gravity_key, None)
+                continue
+            try:
+                gravity = int(value)
+            except (TypeError, ValueError):
+                return web.json_response(
+                    {"message": f"{gravity_key} must be an integer"},
+                    status=422,
+                )
+            if gravity < -10_000 or gravity > 10_000:
+                return web.json_response(
+                    {"message": f"{gravity_key} must be between -10000 and 10000"},
+                    status=422,
+                )
+            reticulum_config[gravity_key] = gravity
 
         # When discover_interfaces is off, also disable autoconnect so RNS
         # does not connect to any discovered interfaces.
@@ -278,6 +349,16 @@ def register_reticulum_instance_routes(routes, app):
             "autoconnect_discovered_interfaces": reticulum_config.get(
                 "autoconnect_discovered_interfaces",
                 ReticulumMeshChat.DEFAULT_AUTOCONNECT_DISCOVERED_INTERFACES,
+            ),
+            "default_gravity": reticulum_config.get("default_gravity"),
+            "autoconnect_interface_mode": reticulum_config.get(
+                "autoconnect_interface_mode",
+            ),
+            "autoconnect_interface_gravity": reticulum_config.get(
+                "autoconnect_interface_gravity",
+            ),
+            "autoconnect_announces_to_internal": reticulum_config.get(
+                "autoconnect_announces_to_internal",
             ),
             "default_bootstrap_only": bool(
                 app.current_context.config.default_bootstrap_only.get()

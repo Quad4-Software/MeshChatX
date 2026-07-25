@@ -64,6 +64,9 @@
                         <span v-if="iface._stats?.bitrate" class="stat-chip"
                             >{{ $t("interface.bitrate") }} {{ formatBitsPerSecond(iface._stats?.bitrate ?? 0) }}</span
                         >
+                        <span v-if="iface._stats?.gravity != null" class="stat-chip"
+                            >{{ $t("interface.gravity") }} {{ iface._stats.gravity }}</span
+                        >
                         <span class="stat-chip" :class="{ 'stat-chip--zero-traffic': isIfaceStatBytesZero('txb') }"
                             >{{ $t("interface.tx") }} {{ formatBytes(iface._stats?.txb ?? 0) }}</span
                         >

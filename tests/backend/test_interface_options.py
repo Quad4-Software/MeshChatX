@@ -764,6 +764,28 @@ async def test_internal_mode_and_rns_bool_options_persist(temp_dir):
 
 
 @pytest.mark.asyncio
+async def test_gravity_and_announces_to_internal_persist(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    free_port = _free_port("tcp")
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "GravityTCP",
+            "type": "TCPServerInterface",
+            "listen_ip": "127.0.0.1",
+            "listen_port": free_port,
+            "gravity": 2,
+            "announces_to_internal": True,
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 200, body
+        saved = config["interfaces"]["GravityTCP"]
+        assert saved["gravity"] == 2
+        assert saved["announces_to_internal"] == "yes"
+
+
+@pytest.mark.asyncio
 async def test_rejects_unknown_interface_mode(temp_dir):
     config = ConfigDict({"reticulum": {}, "interfaces": {}})
 

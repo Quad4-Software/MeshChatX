@@ -388,13 +388,27 @@ class InterfaceEditor:
                     "access_point, pointtopoint, roaming, boundary, internal"
                 )
             iface_body["mode"] = mode
-        for key in ("recursive_prs", "announces_from_internal", "block_fast_flapping"):
+        for key in (
+            "recursive_prs",
+            "announces_from_internal",
+            "announces_to_internal",
+            "block_fast_flapping",
+        ):
             if key not in iface_body:
                 continue
             yn = InterfaceEditor.request_yes_no(iface_body.get(key))
             if yn is None:
                 return f"Imported interface {key} must be a boolean or yes/no value"
             iface_body[key] = yn
+        if "gravity" in iface_body:
+            grav = iface_body.get("gravity")
+            if grav is None or grav == "":
+                iface_body.pop("gravity", None)
+            else:
+                try:
+                    iface_body["gravity"] = int(grav)
+                except (TypeError, ValueError):
+                    return "Imported interface gravity must be an integer"
         if "location_cmd" in iface_body:
             loc = iface_body.get("location_cmd")
             if loc is None or loc == "":

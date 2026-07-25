@@ -349,6 +349,27 @@ describe("AddInterfacePage.vue interface options", () => {
         );
     });
 
+    it("sends gravity and announces_to_internal", async () => {
+        const wrapper = mountPage();
+
+        wrapper.vm.newInterfaceName = "GravityLAN";
+        wrapper.vm.newInterfaceType = "TCPServerInterface";
+        wrapper.vm.newInterfaceListenIp = "127.0.0.1";
+        wrapper.vm.newInterfaceListenPort = 4242;
+        wrapper.vm.sharedInterfaceSettings.gravity = 2;
+        wrapper.vm.sharedInterfaceSettings.announces_to_internal = true;
+
+        await wrapper.vm.saveInterface();
+
+        expect(mockAxios.post).toHaveBeenCalledWith(
+            "/api/v1/reticulum/interfaces/add",
+            expect.objectContaining({
+                gravity: 2,
+                announces_to_internal: true,
+            })
+        );
+    });
+
     it("sends BackboneInterface fast-flapping options in listener mode", async () => {
         const wrapper = mountPage();
 

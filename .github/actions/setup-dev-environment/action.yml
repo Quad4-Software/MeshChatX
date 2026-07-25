@@ -50,9 +50,9 @@ runs:
               if command -v python >/dev/null 2>&1; then
                 py=python
               fi
-              if "$py" -m pip install --user 'rns>=1.4.0' 2>/dev/null; then
+              if "$py" -m pip install --user 'rns>=1.4.1' 2>/dev/null; then
                 :
-              elif "$py" -m pip install --user --break-system-packages 'rns>=1.4.0' 2>/dev/null; then
+              elif "$py" -m pip install --user --break-system-packages 'rns>=1.4.1' 2>/dev/null; then
                 :
               else
                 echo "WARNING: could not install rnid via pip (tree verify may be skipped)" >&2

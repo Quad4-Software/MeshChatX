@@ -25,7 +25,8 @@ All notable changes to this project will be documented in this file.
 - Network visualiser WebGL + WASM renderer (vis-network fallback) and Settings renderer preference
 - Interfaces: internal mode, recursive path requests, announces-from-internal, discovery location command, and Backbone fast-flapping options (RNS 1.3.7 to 1.3.9)
 - Reticulum interface module management from the UI
-- Reticulum 1.4.0 and LXMF 1.1.0, with propagation node options and cancel for incoming large message downloads from the header
+- Reticulum 1.4.1 and LXMF 1.1.0, with propagation node options and cancel for incoming large message downloads from the header
+- Interfaces: path gravity, announces-to-internal, and discovery autoconnect gravity/mode options (RNS 1.4.1)
 - Relay Chat room keys so hosts can require a key to join a room
 - Desktop privacy: Windows screen security to omit MeshChatX from screenshots, recording, and Recall
 - Android privacy options to block screenshots and clear the clipboard when backgrounded

@@ -33,7 +33,7 @@ Options:
   --lxst-version V           LXST wheel version for metadata patch (default: 0.5.0)
   --bleak-version V          bleak pure-python wheel version to vendor (default: 3.0.2)
   --httpx-version V          httpx pure-python wheel version to vendor (default: 0.28.1)
-  --rns-version V            rns wheel version to patch (default: 1.4.0)
+  --rns-version V            rns wheel version to patch (default: 1.4.1)
   --no-lxst-patch            Skip LXST metadata patch
   --no-rns-patch             Skip RNS Android RNodeInterface patch
   --only-recipes LIST        Comma-separated recipe directory names under
@@ -64,7 +64,7 @@ NUMPY_VERSION="1.26.2"
 LXST_VERSION="0.5.0"
 BLEAK_VERSION="3.0.2"
 HTTPX_VERSION="0.28.1"
-RNS_VERSION="1.4.0"
+RNS_VERSION="1.4.1"
 PATCH_LXST="1"
 PATCH_RNS="1"
 ONLY_RECIPES=""

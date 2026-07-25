@@ -2055,7 +2055,7 @@ requires-dist = [
     { name = "psutil", specifier = ">=7.2.2" },
     { name = "pycparser", specifier = ">=3.0" },
     { name = "pyserial", specifier = ">=3.5" },
-    { name = "rns", specifier = ">=1.4.0" },
+    { name = "rns", specifier = ">=1.4.1" },
     { name = "wasmtime", specifier = ">=28.0.0" },
     { name = "websockets", specifier = ">=16.0" },
 ]
@@ -2090,15 +2090,15 @@ wheels = [
 
 [[package]]
 name = "rns"
-version = "1.4.0"
+version = "1.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
     { name = "pyserial" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3c/45/5aaed5107e0d3f434aada725224e1c54af96555959da312c01e12228c1de/rns-1.4.0.tar.gz", hash = "sha256:fa9e76d0a78bf253eae66137e6bbdc65f470db3950a95b034ce32ca845ff0e44", size = 519727, upload-time = "2026-07-20T17:13:03.624Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/be/c3/b7a9b48261f89453502ab88386acd60c1e542155bc7d8734031551417a3e/rns-1.4.1.tar.gz", hash = "sha256:7093abd4125f574796c797f4f89f22093d2cbc43281f941939362b2dd079351e", size = 522170, upload-time = "2026-07-24T23:11:00.374Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/56/4e/1a50351fba424b891a61e5f0fed9f3f631d7a034ae5edcc531d79562467c/rns-1.4.0-py3-none-any.whl", hash = "sha256:a88c6ae15c289867b2d8ee8f6ba4363f4dc728283f892b0790dba226f7dddcae", size = 606736, upload-time = "2026-07-20T17:12:58.403Z" },
+    { url = "https://files.pythonhosted.org/packages/3b/a4/c187a6b9fc2305a9281573279f006bc78d87d1e7fe8315df3b1514c9e662/rns-1.4.1-py3-none-any.whl", hash = "sha256:d92f827cb77df8eda2824153a4d1288e8e2ea588382166f4ca45427288d0ee6b", size = 608512, upload-time = "2026-07-24T23:10:55.268Z" },
 ]
 
 [[package]]
