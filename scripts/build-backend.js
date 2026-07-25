@@ -330,12 +330,7 @@ try {
         }
         const bakeCmdParts = pythonCmd.trim().split(/\s+/).filter(Boolean);
         const bakeCmd = bakeCmdParts[0];
-        let bakeArgs = [
-            ...bakeCmdParts.slice(1),
-            "-m",
-            "meshchatx.src.backend.bake_frozen_lxst_native",
-            buildDir,
-        ];
+        let bakeArgs = [...bakeCmdParts.slice(1), "-m", "meshchatx.src.backend.bake_frozen_lxst_native", buildDir];
         let bakeSpawnCmd = bakeCmd;
         if (rosettaX64) {
             bakeSpawnCmd = "arch";
