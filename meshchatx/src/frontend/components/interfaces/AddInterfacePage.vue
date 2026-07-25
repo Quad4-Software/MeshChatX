@@ -1848,6 +1848,31 @@
                                                     </div>
                                                     <Toggle v-model="sharedInterfaceSettings.announces_from_internal" />
                                                 </div>
+                                                <div class="flex items-start justify-between gap-4">
+                                                    <div class="min-w-0 max-w-md">
+                                                        <FormLabel class="glass-label mb-0!">{{
+                                                            $t("interfaces.announces_to_internal_label")
+                                                        }}</FormLabel>
+                                                        <p class="text-xs text-gray-400 mt-1">
+                                                            {{ $t("interfaces.announces_to_internal_hint") }}
+                                                        </p>
+                                                    </div>
+                                                    <Toggle v-model="sharedInterfaceSettings.announces_to_internal" />
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">{{
+                                                        $t("interfaces.gravity_label")
+                                                    }}</FormLabel>
+                                                    <input
+                                                        v-model="sharedInterfaceSettings.gravity"
+                                                        type="number"
+                                                        :placeholder="$t('interfaces.gravity_placeholder')"
+                                                        class="input-field"
+                                                    />
+                                                    <p class="text-xs text-gray-400 mt-1">
+                                                        {{ $t("interfaces.gravity_hint") }}
+                                                    </p>
+                                                </div>
                                             </div>
                                             <div class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800">
                                                 <FormLabel class="glass-label">Interface Access Code (IFAC)</FormLabel>
@@ -2221,6 +2246,8 @@ export default {
                 bitrate: null,
                 recursive_prs: false,
                 announces_from_internal: true,
+                announces_to_internal: false,
+                gravity: null,
             },
 
             discovery: {
@@ -2891,6 +2918,11 @@ export default {
                     iface.announces_from_internal === undefined || iface.announces_from_internal === null
                         ? true
                         : this.parseBool(iface.announces_from_internal);
+                this.sharedInterfaceSettings.announces_to_internal = this.parseBool(iface.announces_to_internal);
+                this.sharedInterfaceSettings.gravity =
+                    iface.gravity !== undefined && iface.gravity !== null && iface.gravity !== ""
+                        ? Number(iface.gravity)
+                        : null;
 
                 if (iface.frequency) {
                     this.RNodeGHzValue = Math.floor(iface.frequency / 1e9);
@@ -3080,6 +3112,16 @@ export default {
                 this.sharedInterfaceSettings.announces_from_internal = this.parseBool(config.announces_from_internal);
             }
             if (
+                config.announces_to_internal !== undefined &&
+                config.announces_to_internal !== null &&
+                config.announces_to_internal !== ""
+            ) {
+                this.sharedInterfaceSettings.announces_to_internal = this.parseBool(config.announces_to_internal);
+            }
+            if (config.gravity !== undefined && config.gravity !== null && config.gravity !== "") {
+                this.sharedInterfaceSettings.gravity = Number(config.gravity);
+            }
+            if (
                 config.block_fast_flapping !== undefined &&
                 config.block_fast_flapping !== null &&
                 config.block_fast_flapping !== ""
@@ -3196,6 +3238,16 @@ export default {
                     config.announces_from_internal !== ""
                         ? this.parseBool(config.announces_from_internal)
                         : true,
+                announces_to_internal:
+                    config.announces_to_internal !== undefined &&
+                    config.announces_to_internal !== null &&
+                    config.announces_to_internal !== ""
+                        ? this.parseBool(config.announces_to_internal)
+                        : false,
+                gravity:
+                    config.gravity !== undefined && config.gravity !== null && config.gravity !== ""
+                        ? this.numOrNull(config.gravity)
+                        : null,
                 bitrate: this.numOrNull(config.bitrate),
                 network_name: config.network_name || null,
                 passphrase: config.passphrase || null,
@@ -3474,6 +3526,8 @@ export default {
                         mode: this.sharedInterfaceSettings.mode || null,
                         recursive_prs: this.sharedInterfaceSettings.recursive_prs === true,
                         announces_from_internal: this.sharedInterfaceSettings.announces_from_internal !== false,
+                        announces_to_internal: this.sharedInterfaceSettings.announces_to_internal === true,
+                        gravity: this.numOrNull(this.sharedInterfaceSettings.gravity),
                         bitrate: this.sharedInterfaceSettings.bitrate,
                         network_name: this.sharedInterfaceSettings.network_name,
                         passphrase: this.sharedInterfaceSettings.passphrase,
@@ -3631,6 +3685,8 @@ export default {
                             : this.sharedInterfaceSettings.mode || null,
                     recursive_prs: this.sharedInterfaceSettings.recursive_prs === true,
                     announces_from_internal: this.sharedInterfaceSettings.announces_from_internal !== false,
+                    announces_to_internal: this.sharedInterfaceSettings.announces_to_internal === true,
+                    gravity: this.numOrNull(this.sharedInterfaceSettings.gravity),
                     bitrate: this.sharedInterfaceSettings.bitrate,
                     network_name: this.sharedInterfaceSettings.network_name,
                     passphrase: this.sharedInterfaceSettings.passphrase,

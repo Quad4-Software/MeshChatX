@@ -58,6 +58,10 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
                 "interface_discovery_blacklist": "tcp-bad,*:9999",
                 "required_discovery_value": "16",
                 "autoconnect_discovered_interfaces": "2",
+                "default_gravity": "1",
+                "autoconnect_interface_mode": "gateway",
+                "autoconnect_interface_gravity": "2",
+                "autoconnect_announces_to_internal": "yes",
                 "default_bootstrap_only": "yes",
                 "network_identity": "/tmp/net_id",
             },
@@ -107,6 +111,10 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
         )
         assert get_data["discovery"]["required_discovery_value"] == "16"
         assert get_data["discovery"]["autoconnect_discovered_interfaces"] == "2"
+        assert get_data["discovery"]["default_gravity"] == "1"
+        assert get_data["discovery"]["autoconnect_interface_mode"] == "gateway"
+        assert get_data["discovery"]["autoconnect_interface_gravity"] == "2"
+        assert get_data["discovery"]["autoconnect_announces_to_internal"] == "yes"
         assert get_data["discovery"]["default_bootstrap_only"] is True
         assert get_data["discovery"]["network_identity"] == "/tmp/net_id"
 
@@ -118,6 +126,10 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
             "interface_discovery_blacklist": "",
             "required_discovery_value": 18,
             "autoconnect_discovered_interfaces": 5,
+            "default_gravity": 0,
+            "autoconnect_interface_mode": "boundary",
+            "autoconnect_interface_gravity": -1,
+            "autoconnect_announces_to_internal": False,
             "default_bootstrap_only": False,
             "network_identity": "/tmp/other_id",
         }
@@ -140,6 +152,10 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
         assert patch_data["discovery"]["autoconnect_discovered_interfaces"] == (
             ReticulumMeshChat.DEFAULT_AUTOCONNECT_DISCOVERED_INTERFACES
         )
+        assert patch_data["discovery"]["default_gravity"] == 0
+        assert patch_data["discovery"]["autoconnect_interface_mode"] == "boundary"
+        assert patch_data["discovery"]["autoconnect_interface_gravity"] == -1
+        assert patch_data["discovery"]["autoconnect_announces_to_internal"] == "no"
         assert patch_data["discovery"]["default_bootstrap_only"] is False
         assert patch_data["discovery"]["network_identity"] == "/tmp/other_id"
         assert config["reticulum"]["discover_interfaces"] is False
@@ -148,6 +164,10 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
         assert "interface_discovery_blacklist" not in config["reticulum"]
         assert config["reticulum"]["required_discovery_value"] == 18
         assert "autoconnect_discovered_interfaces" not in config["reticulum"]
+        assert config["reticulum"]["default_gravity"] == 0
+        assert config["reticulum"]["autoconnect_interface_mode"] == "boundary"
+        assert config["reticulum"]["autoconnect_interface_gravity"] == -1
+        assert config["reticulum"]["autoconnect_announces_to_internal"] == "no"
         assert "default_bootstrap_only" not in config["reticulum"]
         assert app_instance.current_context.config.default_bootstrap_only.get() is False
         assert config["reticulum"]["network_identity"] == "/tmp/other_id"

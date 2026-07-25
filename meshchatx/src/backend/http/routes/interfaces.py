@@ -1721,6 +1721,33 @@ def register_interfaces_routes(routes, app):
                 },
                 status=422,
             )
+        announces_to_error = InterfaceEditor.apply_yes_no_option(
+            interface_details,
+            data,
+            "announces_to_internal",
+        )
+        if announces_to_error is not None:
+            return web.json_response(
+                {
+                    "message": announces_to_error,
+                },
+                status=422,
+            )
+        gravity_error = InterfaceEditor.apply_positive_number(
+            interface_details,
+            data,
+            "gravity",
+            as_int=True,
+            minimum=-10_000,
+            maximum=10_000,
+        )
+        if gravity_error is not None:
+            return web.json_response(
+                {
+                    "message": gravity_error,
+                },
+                status=422,
+            )
         InterfaceEditor.update_value(interface_details, data, "network_name")
         InterfaceEditor.update_value(interface_details, data, "passphrase")
         InterfaceEditor.update_value(interface_details, data, "ifac_size")

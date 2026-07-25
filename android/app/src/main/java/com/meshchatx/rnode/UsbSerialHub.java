@@ -290,16 +290,13 @@ public final class UsbSerialHub {
             };
         IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                ContextCompat.registerReceiver(
-                    appContext,
-                    permissionReceiver,
-                    filter,
-                    ContextCompat.RECEIVER_NOT_EXPORTED
-                );
-            } else {
-                appContext.registerReceiver(permissionReceiver, filter);
-            }
+            // App-private USB permission result. Not exported to other apps.
+            ContextCompat.registerReceiver(
+                appContext,
+                permissionReceiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            );
             receiverRegistered = true;
         } catch (Exception e) {
             Log.w(TAG, "registerReceiver failed: " + e.getMessage());

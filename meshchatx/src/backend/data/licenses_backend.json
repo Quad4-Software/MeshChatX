@@ -50,7 +50,7 @@
     {
         "name": "cbor2",
         "version": "6.1.1",
-        "author": "Alex Grönholm <alex.gronholm@nextday.fi>",
+        "author": "Alex Gr\u00f6nholm <alex.gronholm@nextday.fi>",
         "license": "MIT"
     },
     {
@@ -163,7 +163,7 @@
     },
     {
         "name": "rns",
-        "version": "1.4.0",
+        "version": "1.4.1",
         "author": "Mark Qvist",
         "license": "Reticulum License"
     },
