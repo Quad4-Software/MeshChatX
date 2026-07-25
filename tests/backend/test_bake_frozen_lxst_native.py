@@ -10,7 +10,9 @@ import pytest
 from meshchatx.src.backend.bake_frozen_lxst_native import bake_lxst_filterlib
 
 
-def test_bake_lxst_filterlib_prunes_alien_blobs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_bake_lxst_filterlib_prunes_alien_blobs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     lxst = tmp_path / "lib" / "LXST"
     lxst.mkdir(parents=True)
     (lxst / "filterlib.dll").write_bytes(b"win")
