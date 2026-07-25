@@ -248,7 +248,7 @@ def appcontainer_requested() -> bool:
         return False
     if override is True:
         return True
-    return appcontainer_supported()
+    return False
 
 
 def appcontainer_auto_enabled() -> bool:

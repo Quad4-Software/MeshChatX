@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - **Windows desktop**: Frozen backends start again instead of failing when aiohttp imports the standard library email package.
 - **Desktop packaging**: Only the correct LXST filterlib binary ships per platform so integrity checks match the installer. CI runs a frozen import smoke test before release.
+- **Windows desktop**: AppContainer sandboxing is opt-in (set MESHCHAT_APPCONTAINER=1) instead of on by default, to avoid extra launcher processes and heavy startup until the path is stable.
 
 ## [4.8.0] - 2026-07-25
 

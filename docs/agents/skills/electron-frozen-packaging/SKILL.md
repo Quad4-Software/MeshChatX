@@ -13,7 +13,7 @@ Package and recover the desktop shell correctly: frozen subprocess re-entry, loa
 - In frozen builds, `sys.executable` **is** MeshChatX.
 - Never spawn `python -m …` or `python -c …` for bots, rnsh, LXMFy, or self-check probes from the packaged app.
 - Use `--meshchatx-run-module <module>` so helpers re-enter the same binary without launching a second full app (storage lock collision).
-- On Windows, Electron starts the long-lived backend through `--meshchatx-run-module meshchatx.src.backend.appcontainer_launcher` unless `MESHCHAT_APPCONTAINER=0`. The launcher CreateProcess-es the real backend into an LPAC AppContainer. Orphan kill must use process-tree termination (`taskkill /T`) so both launcher and child exit.
+- On Windows, Electron can start the backend through `--meshchatx-run-module meshchatx.src.backend.appcontainer_launcher` when `MESHCHAT_APPCONTAINER=1`. The launcher CreateProcess-es the real backend into an LPAC AppContainer. Orphan kill must use process-tree termination (`taskkill /T`) so both launcher and child exit. Default is off (direct backend spawn).
 
 ## Loading and navigation
 
