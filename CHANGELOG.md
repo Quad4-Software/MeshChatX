@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.8.1] - 2026-07-25
+
+### Fixed
+
+- **Windows desktop**: Frozen backends start again instead of failing when aiohttp imports the standard library email package.
+- **Desktop packaging**: Only the correct LXST filterlib binary ships per platform so integrity checks match the installer. CI runs a frozen import smoke test before release.
+
 ## [4.8.0] - 2026-07-25
 
 ### Added

@@ -328,6 +328,25 @@ try {
         if (isDarwin) {
             stripPythonBytecodeArtifacts(buildDir);
         }
+        const bakeCmdParts = pythonCmd.trim().split(/\s+/).filter(Boolean);
+        const bakeCmd = bakeCmdParts[0];
+        let bakeArgs = [
+            ...bakeCmdParts.slice(1),
+            "-m",
+            "meshchatx.src.backend.bake_frozen_lxst_native",
+            buildDir,
+        ];
+        let bakeSpawnCmd = bakeCmd;
+        if (rosettaX64) {
+            bakeSpawnCmd = "arch";
+            bakeArgs = ["-x86_64", bakeCmd, ...bakeArgs];
+        }
+        const bakeResult = spawnSync(bakeSpawnCmd, bakeArgs, {
+            stdio: "inherit",
+            shell: false,
+            env: env,
+        });
+        failOnSpawnResult("LXST filterlib prune", bakeResult);
         if (!verifyBinaryArchitecture(buildDir, arch, targetName)) {
             process.exit(1);
         }

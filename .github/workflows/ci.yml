@@ -215,6 +215,9 @@ jobs:
             - name: Verify FS sandbox modules bundled in frozen backend
               run: bash scripts/ci/github-verify-frozen-sandbox.sh build/exe
 
+            - name: Verify frozen backend import runtime
+              run: bash scripts/ci/github-verify-frozen-runtime.sh build/exe
+
             - name: Verify frozen backend has no package bloat
               run: bash scripts/ci/verify-package-contents.sh frozen build/exe
 
@@ -258,6 +261,8 @@ jobs:
                   bash scripts/ci/github-verify-frozen-bleak.sh \
                       .artifacts/linux-build-check/build/exe
                   bash scripts/ci/github-verify-frozen-sandbox.sh \
+                      .artifacts/linux-build-check/build/exe
+                  bash scripts/ci/github-verify-frozen-runtime.sh \
                       .artifacts/linux-build-check/build/exe
                   bash scripts/ci/verify-package-contents.sh frozen \
                       .artifacts/linux-build-check/build/exe

@@ -17,6 +17,7 @@ from typing import Any
 from meshchatx.src.backend import self_check_probe as _self_check_probe  # noqa: F401
 
 _CRITICAL_IMPORTS = (
+    "email.header",
     "RNS",
     "LXMF",
     "lxmfy",

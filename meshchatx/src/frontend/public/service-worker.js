@@ -371,6 +371,7 @@ function createShellRuntime(options) {
 }
 
 // SPDX-License-Identifier: 0BSD
+/* global ["/","/boot-theme.js","/manifest.json","/favicons/favicon-512x512.png"], cacheNameForBuild, createShellRuntime, SHELL_FALLBACK_URL, NAV_NETWORK_TIMEOUT_MS, UPDATE_MESSAGE_TYPE */
 /**
  * MeshChatX app-shell service worker bootstrap.
  * Preceded at build time by inlined swCachePolicy.js + swShellRuntime.js.
