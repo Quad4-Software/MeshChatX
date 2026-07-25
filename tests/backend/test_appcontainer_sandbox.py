@@ -44,15 +44,15 @@ def test_appcontainer_forced_env(monkeypatch):
         assert ac.appcontainer_forced() is True
 
 
-def test_appcontainer_auto_when_supported(monkeypatch):
+def test_appcontainer_off_by_default_when_env_unset(monkeypatch):
     monkeypatch.delenv("MESHCHAT_APPCONTAINER", raising=False)
     with (
         patch.object(ac, "sys") as mock_sys,
         patch.object(ac, "appcontainer_supported", return_value=True),
     ):
         mock_sys.platform = "win32"
-        assert ac.appcontainer_requested() is True
-        assert ac.appcontainer_auto_enabled() is True
+        assert ac.appcontainer_requested() is False
+        assert ac.appcontainer_auto_enabled() is False
 
 
 def test_is_appcontainer_child(monkeypatch):

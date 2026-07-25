@@ -29,7 +29,7 @@ Landlock / Windows AppContainer + SQLite conversation-load failures (temp_store,
 
 - Module: `meshchatx/src/backend/appcontainer_sandbox.py`
 - Launcher: `meshchatx/src/backend/appcontainer_launcher.py` via `--meshchatx-run-module`
-- Electron win32 spawn uses the launcher unless `MESHCHAT_APPCONTAINER=0`
+- Electron win32 spawn uses the launcher only when `MESHCHAT_APPCONTAINER=1`
 - Docs: `meshchatx-docs/en/platform-guides/windows-sandbox.md`
 
 ## Verification

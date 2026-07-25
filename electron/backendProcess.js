@@ -208,8 +208,8 @@ function createBackendProcessManager(deps) {
                 return true;
             }
         }
-        // Default on for Windows desktop shells (Landlock equivalent).
-        return true;
+        // Opt-in only: set MESHCHAT_APPCONTAINER=1 to use the AppContainer launcher.
+        return false;
     }
 
     function buildSpawnArgs(extraArgs = []) {
