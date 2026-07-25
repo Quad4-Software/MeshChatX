@@ -68,6 +68,9 @@ packages = [
     "cffi",
     "ply",
     "bleak",
+    # aiohttp pulls stdlib email at runtime. Keep the full tree out of library.zip
+    # so relative imports like email._policybase -> email.header work on Windows.
+    "email",
 ]
 
 # Keep FS sandbox helpers even when import tracing is incomplete (Windows
@@ -77,6 +80,7 @@ includes = [
     "meshchatx.src.backend.appcontainer_sandbox",
     "meshchatx.src.backend.appcontainer_launcher",
     "meshchatx.src.backend.seccomp_sandbox",
+    "meshchatx.src.backend.frozen_freeze_probe",
 ]
 
 if sys.version_info >= (3, 13):
@@ -110,6 +114,7 @@ setup(
                 "distutils",
                 "pkg_resources",
             ],
+            "zip_exclude_packages": ["email"],
             "optimize": 2,
             "build_exe": build_exe_dir,
             "replace_paths": [

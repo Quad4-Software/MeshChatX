@@ -14,7 +14,7 @@ body:
       attributes:
           label: MeshChatX version
           description: The version you are using today, if relevant.
-          placeholder: "4.8.0"
+          placeholder: "4.8.1"
 
     - type: dropdown
       id: os

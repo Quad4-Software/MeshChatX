@@ -50,7 +50,7 @@
     {
         "name": "cbor2",
         "version": "6.1.1",
-        "author": "Alex Gr\u00f6nholm <alex.gronholm@nextday.fi>",
+        "author": "Alex Grönholm <alex.gronholm@nextday.fi>",
         "license": "MIT"
     },
     {
@@ -157,7 +157,7 @@
     },
     {
         "name": "reticulum-meshchatx",
-        "version": "4.8.0",
+        "version": "4.8.1",
         "author": "Quad4",
         "license": "0BSD AND MIT"
     },
