@@ -132,6 +132,7 @@ describe("localeTheme adversarial / fuzz", () => {
         const beforeGum = body.slice(0, gum);
         expect(beforeGum).not.toMatch(/\.enumerateDevices\s*\(/);
         expect(beforeGum).not.toContain("no_audio_input_found");
+        expect(body).toMatch(/getUserMedia\(\{\s*audio:\s*true\s*\}/);
     });
 
     it("contract: localeLoader setLocale normalizes before loading messages", () => {
@@ -149,5 +150,8 @@ describe("localeTheme adversarial / fuzz", () => {
         const mw = readSource("meshchatx/src/backend/http/middleware.py");
         expect(mw).toContain("Permissions-Policy");
         expect(mw).toContain("microphone=(self)");
+        expect(mw).toContain("bluetooth=(self)");
+        expect(mw).toContain("serial=(self)");
+        expect(mw).toContain("usb=(self)");
     });
 });

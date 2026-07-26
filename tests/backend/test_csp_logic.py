@@ -70,7 +70,7 @@ async def test_csp_header_logic(mock_rns_minimal, tmp_path):
         assert "wasm-unsafe-eval" in csp
         assert (
             response.headers.get("Permissions-Policy")
-            == "microphone=(self), camera=(self)"
+            == "microphone=(self), camera=(self), bluetooth=(self), serial=(self), usb=(self)"
         )
         m = re.search(r"script-src([^;]+);", csp)
         assert m is not None and "blob:" in m.group(1)

@@ -2782,12 +2782,16 @@
                 "bluetooth": {
                     "title": "Bluetooth is niet beschikbaar",
                     "android_bridge_not_implemented": "Web Bluetooth is niet beschikbaar hier. Gebruik de Bluetooth-instellingen van het systeem of een andere browser.",
-                    "browser_unsupported": "Deze browser ondersteunt Web Bluetooth niet. Probeer Chrome of Edge.",
+                    "browser_unsupported": "Deze browser biedt Web Bluetooth niet. Gebruik een Chromium-build met Web Bluetooth ingeschakeld, of schakel de API-vlag in als je browser die verbergt.",
                     "insecure_context": "Web Bluetooth vereist een beveiligde context (HTTPS of localhost).",
                     "requires_https": "Open de flasher via HTTPS of localhost om Bluetooth in te schakelen.",
                     "unknown": "Bluetooth kan niet worden geïnitialiseerd in deze omgeving.",
                     "android_bridge_no_web_bluetooth": "Bluetooth-toestemming verleend. Flash via USB in de native flasher (Web Bluetooth is niet beschikbaar in WebView).",
-                    "android_bluetooth_permission_required": "Bluetooth-toestemming is vereist voor mesh RNode BLE. Tik op Bluetooth toestaan."
+                    "android_bluetooth_permission_required": "Bluetooth-toestemming is vereist voor mesh RNode BLE. Tik op Bluetooth toestaan.",
+                    "brave_flag_disabled": "Brave schakelt Web Bluetooth standaard uit, dus de browser toont nooit een apparaatkiezer.",
+                    "brave_enable_flag": "Open in Brave brave://flags/#brave-web-bluetooth-api, zet Web Bluetooth API op Enabled, herstart en tik op Opnieuw controleren.",
+                    "brave_recheck": "Na het inschakelen van de vlag gebruik je Opnieuw controleren. Koppelen gebruikt de apparaatkiezer van requestDevice (er is geen aparte toestemmingsdialoog zoals bij de microfoon).",
+                    "chromium_linux_hint": "Op Linux heeft Chromium werkende BlueZ en een beveiligde herkomst nodig (HTTPS of localhost). Tik op Bluetooth proberen om de kiezer te openen wanneer de API aanwezig is."
                 },
                 "actions": {
                     "load_polyfill": "Polyfill laden",
@@ -2805,7 +2809,14 @@
                     "bluetooth_unsupported": "Bluetooth-toestemmingsverzoek is niet beschikbaar.",
                     "bluetooth_granted": "Bluetooth-toestemming verleend.",
                     "bluetooth_denied": "Bluetooth-toestemming geweigerd.",
-                    "usb_requested": "USB-toestemming aangevraagd."
+                    "usb_requested": "USB-toestemming aangevraagd.",
+                    "probe_bluetooth": "Bluetooth proberen",
+                    "recheck_capabilities": "Bluetooth opnieuw controleren",
+                    "bluetooth_now_available": "Web Bluetooth is beschikbaar. Selecteer Bluetooth en ga verder.",
+                    "bluetooth_still_unavailable": "Web Bluetooth is in deze browser nog steeds niet beschikbaar.",
+                    "bluetooth_probe_ok": "Bluetooth-apparaatkiezer werkte. Bluetooth-transport is gereed.",
+                    "bluetooth_probe_cancelled": "Bluetooth-apparaatselectie geannuleerd.",
+                    "bluetooth_probe_failed": "Bluetooth-test mislukt: {error}"
                 }
             },
             "diagnostics": {
@@ -3342,7 +3353,9 @@
         "ringtone_saved": "Ringtone is succesvol opgeslagen",
         "failed_save_ringtone": "Opslaan van bewerkte ringtone mislukt",
         "codec2_unavailable": "Codec2 is not available on this device. Low-bandwidth call profiles are hidden.",
-        "codec2_profile_remapped": "Codec2 is unavailable so the call profile was switched to Opus."
+        "codec2_profile_remapped": "Codec2 is unavailable so the call profile was switched to Opus.",
+        "microphone_permission_needed": "Sta microfoontoegang toe wanneer de browser daarom vraagt en klik daarna opnieuw op Apparaten vernieuwen.",
+        "microphone_insecure_context": "Microfoontoegang vereist HTTPS (of localhost). Open MeshChatX via een beveiligde URL en probeer opnieuw."
     },
     "contacts": {
         "title": "Contacten",

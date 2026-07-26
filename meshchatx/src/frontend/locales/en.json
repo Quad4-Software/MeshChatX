@@ -2788,7 +2788,11 @@
                     "android_bridge_not_implemented": "Web Bluetooth is not available in WebView. Use the native flasher for USB, and Allow Bluetooth for mesh RNode BLE.",
                     "android_bridge_no_web_bluetooth": "Bluetooth permission is granted. Flash over USB in the native flasher (Web Bluetooth is not available in WebView).",
                     "android_bluetooth_permission_required": "Bluetooth permission is required for mesh RNode BLE. Tap Allow Bluetooth.",
-                    "browser_unsupported": "This browser does not support Web Bluetooth. Try Chrome or Edge.",
+                    "browser_unsupported": "This browser does not expose Web Bluetooth. Use a Chromium build with Web Bluetooth enabled, or enable the API flag if your browser hides it.",
+                    "brave_flag_disabled": "Brave disables Web Bluetooth by default, so the browser never shows a device prompt.",
+                    "brave_enable_flag": "In Brave open brave://flags/#brave-web-bluetooth-api, set Web Bluetooth API to Enabled, relaunch, then tap Recheck.",
+                    "brave_recheck": "After enabling the flag, use Recheck Bluetooth. Pairing uses the device chooser from requestDevice (there is no separate mic-style permission dialog).",
+                    "chromium_linux_hint": "On Linux Chromium needs working BlueZ and a secure origin (HTTPS or localhost). Tap Try Bluetooth to open the device chooser when the API is present.",
                     "insecure_context": "Web Bluetooth requires a secure context (HTTPS or localhost).",
                     "requires_https": "Open the flasher over HTTPS or via localhost to enable Bluetooth.",
                     "unknown": "Bluetooth cannot be initialised in this environment."
@@ -2796,6 +2800,8 @@
                 "actions": {
                     "load_polyfill": "Load polyfill",
                     "request_bluetooth": "Allow Bluetooth",
+                    "probe_bluetooth": "Try Bluetooth",
+                    "recheck_capabilities": "Recheck Bluetooth",
                     "request_usb": "Allow USB",
                     "open_native": "Open native flasher",
                     "open_settings": "Open settings",
@@ -2809,6 +2815,11 @@
                     "bluetooth_unsupported": "Bluetooth permission request is unavailable.",
                     "bluetooth_granted": "Bluetooth permission granted.",
                     "bluetooth_denied": "Bluetooth permission denied.",
+                    "bluetooth_now_available": "Web Bluetooth is available. Select Bluetooth and continue.",
+                    "bluetooth_still_unavailable": "Web Bluetooth is still unavailable in this browser.",
+                    "bluetooth_probe_ok": "Bluetooth device chooser worked. Bluetooth transport is ready.",
+                    "bluetooth_probe_cancelled": "Bluetooth device selection cancelled.",
+                    "bluetooth_probe_failed": "Bluetooth probe failed: {error}",
                     "usb_requested": "USB permission requested."
                 }
             },
@@ -3703,6 +3714,8 @@
         "web_audio_not_available": "Web audio not available",
         "no_audio_input_found": "No input audio device found. Check microphone and permissions.",
         "microphone_permission_denied": "Microphone permission denied. Allow access and try again.",
+        "microphone_permission_needed": "Allow microphone access when the browser prompts, then click Refresh Devices again.",
+        "microphone_insecure_context": "Microphone access needs HTTPS (or localhost). Open MeshChatX over a secure URL and try again.",
         "failed_to_update_dnd": "Failed to update Do Not Disturb status",
         "failed_to_update_call_settings": "Failed to update call settings",
         "failed_to_update_recording_status": "Failed to update call recording status",

@@ -421,7 +421,7 @@ describe("CallPage.vue", () => {
         expect(stream).toBe(fakeStream);
     });
 
-    it("requestAudioPermission prompts getUserMedia even when enumerate lists only speakers", async () => {
+    it("requestAudioPermission prompts getUserMedia with bare audio first", async () => {
         const wrapper = mountCallPage();
         await flushPromises();
         const stop = vi.fn();
@@ -437,13 +437,7 @@ describe("CallPage.vue", () => {
         try {
             await expect(wrapper.vm.requestAudioPermission()).resolves.toBe(true);
             expect(getUserMedia).toHaveBeenCalledTimes(1);
-            expect(getUserMedia.mock.calls[0][0]).toEqual({
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true,
-                },
-            });
+            expect(getUserMedia.mock.calls[0][0]).toEqual({ audio: true });
             expect(stop).toHaveBeenCalled();
             expect(enumerateDevices).toHaveBeenCalled();
         } finally {
@@ -451,6 +445,82 @@ describe("CallPage.vue", () => {
                 Object.defineProperty(navigator, "mediaDevices", mediaDevicesDescriptor);
             } else {
                 Reflect.deleteProperty(navigator, "mediaDevices");
+            }
+        }
+    });
+
+    it("requestAudioPermission retries processing constraints after NotFoundError on bare audio", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        const stop = vi.fn();
+        const notFound = new Error("missing");
+        notFound.name = "NotFoundError";
+        const getUserMedia = vi
+            .fn()
+            .mockRejectedValueOnce(notFound)
+            .mockResolvedValueOnce({ getTracks: () => [{ stop }] });
+        Object.defineProperty(navigator, "mediaDevices", {
+            configurable: true,
+            value: {
+                getUserMedia,
+                enumerateDevices: vi.fn().mockResolvedValue([]),
+            },
+        });
+        await expect(wrapper.vm.requestAudioPermission()).resolves.toBe(true);
+        expect(getUserMedia).toHaveBeenCalledTimes(2);
+        expect(getUserMedia.mock.calls[0][0]).toEqual({ audio: true });
+        expect(getUserMedia.mock.calls[1][0]).toEqual({
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+            },
+        });
+        expect(stop).toHaveBeenCalled();
+    });
+
+    it("requestAudioPermission refuses insecure contexts without calling getUserMedia", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        const getUserMedia = vi.fn();
+        Object.defineProperty(navigator, "mediaDevices", {
+            configurable: true,
+            value: { getUserMedia, enumerateDevices: vi.fn() },
+        });
+        const secureDesc = Object.getOwnPropertyDescriptor(window, "isSecureContext");
+        Object.defineProperty(window, "isSecureContext", {
+            configurable: true,
+            value: false,
+        });
+        try {
+            await expect(wrapper.vm.requestAudioPermission()).resolves.toBe(false);
+            expect(getUserMedia).not.toHaveBeenCalled();
+        } finally {
+            if (secureDesc) {
+                Object.defineProperty(window, "isSecureContext", secureDesc);
+            } else {
+                Reflect.deleteProperty(window, "isSecureContext");
+            }
+        }
+    });
+
+    it("resolveMissingMicErrorKey prefers permission-needed when prompt is pending", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        const permsDesc = Object.getOwnPropertyDescriptor(navigator, "permissions");
+        Object.defineProperty(navigator, "permissions", {
+            configurable: true,
+            value: {
+                query: vi.fn().mockResolvedValue({ state: "prompt" }),
+            },
+        });
+        try {
+            await expect(wrapper.vm.resolveMissingMicErrorKey()).resolves.toBe("call.microphone_permission_needed");
+        } finally {
+            if (permsDesc) {
+                Object.defineProperty(navigator, "permissions", permsDesc);
+            } else {
+                Reflect.deleteProperty(navigator, "permissions");
             }
         }
     });
@@ -467,6 +537,16 @@ describe("CallPage.vue", () => {
         expect(constraints.audio.noiseSuppression).toBe(true);
         expect(constraints.audio.autoGainControl).toBe(true);
         expect(constraints.audio.deviceId).toEqual({ exact: "mic-1" });
+    });
+
+    it("pickWebAudioMicConstraints uses bare audio for Default selection", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        wrapper.vm.selectedAudioInputId = "__meshchat_default_in__";
+        const constraints = wrapper.vm.pickWebAudioMicConstraints({
+            enumerateDevices: vi.fn().mockResolvedValue([]),
+        });
+        expect(constraints).toEqual({ audio: true });
     });
 
     it("startWebAudio uses MeshChatXAndroid native bridge when platform is android", async () => {

@@ -2782,12 +2782,16 @@
                 "bluetooth": {
                     "title": "蓝牙不可用",
                     "android_bridge_not_implemented": "此处的 Web 蓝牙不可用。请使用系统蓝牙设置或不同的浏览器。",
-                    "browser_unsupported": "此浏览器不支持 Web Bluetooth。请尝试 Chrome 或 Edge。",
+                    "browser_unsupported": "此浏览器未提供 Web Bluetooth。请使用已启用 Web Bluetooth 的 Chromium 构建，或在浏览器隐藏该 API 时启用相应标志。",
                     "insecure_context": "Web Bluetooth 需要安全上下文（HTTPS 或 localhost）。",
                     "requires_https": "请通过 HTTPS 或 localhost 打开刷写工具以启用蓝牙。",
                     "unknown": "在此环境中无法初始化蓝牙。",
                     "android_bridge_no_web_bluetooth": "已授予蓝牙权限。请在原生刷写工具中通过 USB 刷写（WebView 中不可用 Web Bluetooth）。",
-                    "android_bluetooth_permission_required": "网格 RNode BLE 需要蓝牙权限。请点按“允许蓝牙”。"
+                    "android_bluetooth_permission_required": "网格 RNode BLE 需要蓝牙权限。请点按“允许蓝牙”。",
+                    "brave_flag_disabled": "Brave 默认禁用 Web Bluetooth，因此浏览器永远不会显示设备选择提示。",
+                    "brave_enable_flag": "在 Brave 中打开 brave://flags/#brave-web-bluetooth-api，将 Web Bluetooth API 设为 Enabled，重新启动后点击重新检查。",
+                    "brave_recheck": "启用标志后，使用重新检查蓝牙。配对使用 requestDevice 的设备选择器（没有像麦克风那样的单独权限对话框）。",
+                    "chromium_linux_hint": "在 Linux 上，Chromium 需要可用的 BlueZ 以及安全源（HTTPS 或 localhost）。当 API 可用时，点击尝试蓝牙以打开设备选择器。"
                 },
                 "actions": {
                     "load_polyfill": "加载 polyfill",
@@ -2805,7 +2809,14 @@
                     "bluetooth_unsupported": "无法请求蓝牙权限。",
                     "bluetooth_granted": "已授予蓝牙权限。",
                     "bluetooth_denied": "蓝牙权限被拒绝。",
-                    "usb_requested": "已请求 USB 权限。"
+                    "usb_requested": "已请求 USB 权限。",
+                    "probe_bluetooth": "尝试蓝牙",
+                    "recheck_capabilities": "重新检查蓝牙",
+                    "bluetooth_now_available": "Web Bluetooth 可用。请选择蓝牙并继续。",
+                    "bluetooth_still_unavailable": "此浏览器中 Web Bluetooth 仍不可用。",
+                    "bluetooth_probe_ok": "蓝牙设备选择器工作正常。蓝牙传输已就绪。",
+                    "bluetooth_probe_cancelled": "已取消蓝牙设备选择。",
+                    "bluetooth_probe_failed": "蓝牙检测失败：{error}"
                 }
             },
             "diagnostics": {
@@ -3342,7 +3353,9 @@
         "ringtone_saved": "铃声保存成功",
         "failed_save_ringtone": "保存编辑的铃声失败",
         "codec2_unavailable": "Codec2 is not available on this device. Low-bandwidth call profiles are hidden.",
-        "codec2_profile_remapped": "Codec2 is unavailable so the call profile was switched to Opus."
+        "codec2_profile_remapped": "Codec2 is unavailable so the call profile was switched to Opus.",
+        "microphone_permission_needed": "请在浏览器提示时允许麦克风访问，然后再次点击刷新设备。",
+        "microphone_insecure_context": "麦克风访问需要 HTTPS（或 localhost）。请通过安全 URL 打开 MeshChatX 后重试。"
     },
     "contacts": {
         "title": "联系人",
