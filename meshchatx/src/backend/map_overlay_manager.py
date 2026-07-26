@@ -222,7 +222,9 @@ class MapOverlayManager:
             return None
         return _row_to_dict(row)
 
-    def get_job(self, job_id: str, identity_hash: str | None = None) -> dict[str, Any] | None:
+    def get_job(
+        self, job_id: str, identity_hash: str | None = None
+    ) -> dict[str, Any] | None:
         job = self._jobs.get(job_id)
         if job is None:
             return None

@@ -3481,8 +3481,7 @@ export default {
                 }
                 if (response?.data?.hotswapped) {
                     GlobalEmitter.emit("identity-switched-apply", {
-                        identity_hash:
-                            response.data.identity_hash ?? this.identityImportedHash,
+                        identity_hash: response.data.identity_hash ?? this.identityImportedHash,
                         display_name: response.data.display_name ?? "",
                         requires_reauth: Boolean(response.data.requires_reauth),
                     });
