@@ -87,11 +87,14 @@ Use **Blocked** for specific destination hashes. Combine with sieve filters, mes
 
 ## Data backup
 
-Database backups land in `database-backups/`. Export snapshots from **About** or the API. Electron crash recovery can offer restore when integrity checks fail.
+Database backups land in `database-backups/`. Before a schema upgrade, MeshChatX writes a `backup-pre-migrate-v*-to-v*.zip` in that folder unless `MESHCHAT_SKIP_PRE_MIGRATE_BACKUP=1`. Export snapshots from **About** or the API. Electron crash recovery can offer restore when integrity checks fail.
 
-CLI restore example:
+CLI examples:
 
 ```bash
+meshchatx --list-backups
+meshchatx --export-backup /path/to/export.zip
+meshchatx --export-backup backup-20260101-120000.zip /path/to/copy.zip
 meshchatx --restore-db /path/to/backup.zip
 ```
 

@@ -20,6 +20,7 @@ Bump schema versions correctly, keep backups and snapshots safe, and never confl
 - Backups skip `database-backups/` and `snapshots/` so a new zip does not nest itself (`BACKUP_SKIP_DIR_NAMES`).
 - Suspicious shrink writes `backup-SUSPICIOUS-*.zip` and skips rotation. Do not treat that as a normal backup.
 - Checkpoint WAL before zip snapshots when the live DB is open.
+- Before applying schema upgrades (`current_version` below `LATEST_VERSION`), write `backup-pre-migrate-v*-to-v*.zip` under `database-backups/` unless `MESHCHAT_SKIP_PRE_MIGRATE_BACKUP=1`. Migration aborts if that backup fails.
 - Worker-thread connections must share `DatabaseProvider` pragmas (see `landlock-sqlite`).
 
 ## Two restore operations

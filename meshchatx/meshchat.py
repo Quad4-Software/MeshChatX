@@ -1472,6 +1472,16 @@ class ReticulumMeshChat:
             raise RuntimeError("Database not initialized")
         return self.database.backup_database(self.storage_path, backup_path)
 
+    def list_database_backups(self):
+        if not self.database:
+            raise RuntimeError("Database not initialized")
+        return self.database.list_auto_backups(self.storage_path)
+
+    def export_database_backup(self, name: str, dest_path: str):
+        if not self.database:
+            raise RuntimeError("Database not initialized")
+        return self.database.copy_auto_backup(self.storage_path, name, dest_path)
+
     def prepare_for_database_restore(self) -> str | None:
         db_path = self.database_path
         self._teardown_all_contexts_for_reload()
@@ -10341,6 +10351,8 @@ def main():
         "--backup-db",
         "--restore-db",
         "--restore-from-snapshot",
+        "--list-backups",
+        "--export-backup",
         "--help",
         "-h",
         "--version",
@@ -10470,6 +10482,21 @@ def main():
         "--backup-db",
         type=str,
         help="Create a database backup zip at the given path and exit.",
+    )
+    parser.add_argument(
+        "--list-backups",
+        action="store_true",
+        help="List automatic database backups in storage (JSON) and exit.",
+    )
+    parser.add_argument(
+        "--export-backup",
+        nargs="*",
+        default=None,
+        metavar="ARG",
+        help=(
+            "Export a backup and exit. One argument: write a new zip to PATH. "
+            "Two arguments: copy backup NAME from storage to DEST."
+        ),
     )
     parser.add_argument(
         "--restore-db",
@@ -10699,6 +10726,8 @@ def main():
         args.self_check
         or args.reset_password
         or args.backup_db
+        or args.list_backups
+        or args.export_backup is not None
         or args.restore_db
         or args.restore_from_snapshot,
     )
@@ -10782,6 +10811,29 @@ def main():
     if args.backup_db:
         result = reticulum_meshchat.backup_database(args.backup_db)
         print(f"Backup written to {result['path']} ({result['size']} bytes)")
+        return
+
+    if args.list_backups:
+        backups = reticulum_meshchat.list_database_backups()
+        print(json.dumps({"backups": backups, "total": len(backups)}, indent=2))
+        return
+
+    if args.export_backup is not None:
+        parts = args.export_backup
+        if len(parts) == 1:
+            result = reticulum_meshchat.backup_database(parts[0])
+            print(f"Backup written to {result['path']} ({result['size']} bytes)")
+        elif len(parts) == 2:
+            result = reticulum_meshchat.export_database_backup(parts[0], parts[1])
+            print(
+                f"Exported {result['name']} to {result['path']} ({result['size']} bytes)",
+            )
+        else:
+            print(
+                "Usage: --export-backup PATH | --export-backup NAME DEST",
+                file=sys.stderr,
+            )
+            sys.exit(2)
         return
 
     if args.restore_db:
