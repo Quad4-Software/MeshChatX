@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [4.8.2] - TBD
 
+### Added
+
+- **Public demo mode**: Read-only mesh showcase via `MESHCHAT_DEMO_MODE` or `--demo` (blocked sends and API mutations, in-app demo banner). Optional ALTCHA v3 on login/setup, `MESHCHAT_AUTH_PAGE_HINT` for login page text, and [`docker-compose.demo.yml`](docker-compose.demo.yml) for Coolify.
+
 ### Fixed
 
 - **Messages (personal notes)**: Sending to your own LXMF address or identity is stored locally as delivered (method `local`) without LXMF router outbound, so self-chat no longer hangs in a waiting state.
