@@ -646,17 +646,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void openAppPermissionSettings() {
-        try {
-            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-            intent.setData(Uri.fromParts("package", getPackageName(), null));
-            startActivity(intent);
-        } catch (ActivityNotFoundException ignored) {
-            try {
-                startActivity(new Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS));
-            } catch (ActivityNotFoundException ignoredAgain) {
-                Toast.makeText(this, "App settings unavailable", Toast.LENGTH_SHORT).show();
-            }
-        }
+        AppSettingsLauncher.openAppDetails(this);
+    }
+
+    boolean openBluetoothPermissionSettings() {
+        return AppSettingsLauncher.openBluetoothSettings(this);
     }
 
     private static final String PREF_BT_PERM_PROMPTED_PREFIX = "bt_perm_prompted_";
@@ -804,7 +798,7 @@ public class MainActivity extends AppCompatActivity {
             }
             final boolean ok = granted;
             if (!ok && isBluetoothPermanentlyDenied()) {
-                openAppPermissionSettings();
+                openBluetoothPermissionSettings();
                 Toast.makeText(
                     this,
                     "Bluetooth blocked. Enable it in app settings.",
@@ -1716,7 +1710,7 @@ public class MainActivity extends AppCompatActivity {
             }
             if (activity.isBluetoothPermanentlyDenied()) {
                 activity.runOnUiThread(() -> {
-                    activity.openAppPermissionSettings();
+                    activity.openBluetoothPermissionSettings();
                     Toast.makeText(
                         activity,
                         "Bluetooth blocked. Enable it in app settings.",
@@ -1765,19 +1759,7 @@ public class MainActivity extends AppCompatActivity {
 
         @JavascriptInterface
         public String requestUsbPermissions() {
-            activity.runOnUiThread(() -> {
-                try {
-                    activity.startActivity(
-                        new Intent(activity, com.meshchatx.rnode.RNodeFlasherActivity.class)
-                    );
-                } catch (Exception e) {
-                    Toast.makeText(
-                        activity,
-                        "Could not open native RNode flasher",
-                        Toast.LENGTH_SHORT).show();
-                }
-            });
-            return "requested";
+            return openRNodeFlasher();
         }
 
         @JavascriptInterface
@@ -1786,29 +1768,83 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
-        public void openRNodeFlasher() {
-            activity.runOnUiThread(() -> {
-                try {
-                    activity.startActivity(
-                        new Intent(activity, com.meshchatx.rnode.RNodeFlasherActivity.class)
-                    );
-                } catch (Exception e) {
-                    Toast.makeText(
-                        activity,
-                        "Could not open native RNode flasher",
-                        Toast.LENGTH_SHORT).show();
+        public String openRNodeFlasher() {
+            try {
+                final java.util.concurrent.CountDownLatch latch =
+                    new java.util.concurrent.CountDownLatch(1);
+                final String[] result = new String[] {"error:unknown"};
+                activity.runOnUiThread(() -> {
+                    try {
+                        Intent intent =
+                            new Intent(activity, com.meshchatx.rnode.RNodeFlasherActivity.class);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        activity.startActivity(intent);
+                        result[0] = "ok";
+                    } catch (Exception e) {
+                        String msg =
+                            e.getMessage() != null && !e.getMessage().isEmpty()
+                                ? e.getMessage()
+                                : "Could not open native RNode flasher";
+                        result[0] = "error:" + msg;
+                        Toast.makeText(activity, msg, Toast.LENGTH_LONG).show();
+                    } finally {
+                        latch.countDown();
+                    }
+                });
+                if (!latch.await(3, java.util.concurrent.TimeUnit.SECONDS)) {
+                    return "timeout";
                 }
-            });
+                return result[0];
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return "interrupted";
+            }
         }
 
         @JavascriptInterface
-        public void openBluetoothSettings() {
-            activity.runOnUiThread(activity::openAppPermissionSettings);
+        public String openBluetoothSettings() {
+            try {
+                final java.util.concurrent.CountDownLatch latch =
+                    new java.util.concurrent.CountDownLatch(1);
+                final boolean[] launched = new boolean[] {false};
+                activity.runOnUiThread(() -> {
+                    try {
+                        launched[0] = activity.openBluetoothPermissionSettings();
+                    } finally {
+                        latch.countDown();
+                    }
+                });
+                if (!latch.await(2, java.util.concurrent.TimeUnit.SECONDS)) {
+                    return "timeout";
+                }
+                return launched[0] ? "ok" : "unavailable";
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return "interrupted";
+            }
         }
 
         @JavascriptInterface
-        public void openUsbSettings() {
-            activity.runOnUiThread(activity::openAppPermissionSettings);
+        public String openUsbSettings() {
+            try {
+                final java.util.concurrent.CountDownLatch latch =
+                    new java.util.concurrent.CountDownLatch(1);
+                final boolean[] launched = new boolean[] {false};
+                activity.runOnUiThread(() -> {
+                    try {
+                        launched[0] = AppSettingsLauncher.openAppDetails(activity);
+                    } finally {
+                        latch.countDown();
+                    }
+                });
+                if (!latch.await(2, java.util.concurrent.TimeUnit.SECONDS)) {
+                    return "timeout";
+                }
+                return launched[0] ? "ok" : "unavailable";
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return "interrupted";
+            }
         }
 
         @JavascriptInterface

@@ -164,12 +164,36 @@ def ensure_codec2_native_library(*, force: bool = False) -> bool:
     return False
 
 
+def _install_pycodec2_ctypes_fallback() -> tuple[bool, str | None]:
+    """Install a ctypes pycodec2 stand-in when the Cython extension cannot load.
+
+    Some Android vendor wheels ship an empty pycodec2.so (no PyInit). libcodec2.so
+    is still present. Expose the same Codec2 API LXST expects via ctypes.
+    """
+    try:
+        from meshchatx import pycodec2_ctypes
+
+        ok, err = pycodec2_ctypes.probe()
+        if not ok:
+            return False, err
+        # Drop a broken partial import so LXST picks up the stand-in.
+        sys.modules.pop("pycodec2", None)
+        sys.modules["pycodec2"] = pycodec2_ctypes
+        logger.warning(
+            "Using ctypes Codec2 fallback (native pycodec2 extension unavailable)"
+        )
+        return True, None
+    except Exception as exc:
+        return False, str(exc)
+
+
 def probe_pycodec2() -> tuple[bool, str | None]:
     """Import pycodec2 after preload and report whether Codec2 works."""
     if _is_chaquopy_android() and not ensure_codec2_native_library():
         # Retry once in case native libs appeared after an early failed attempt.
         if not ensure_codec2_native_library(force=True):
-            return False, codec2_preload_error()
+            # Still try ctypes against whatever path we can find.
+            return _install_pycodec2_ctypes_fallback()
     try:
         import pycodec2
 
@@ -177,7 +201,13 @@ def probe_pycodec2() -> tuple[bool, str | None]:
         _ = c2.samples_per_frame()
         return True, None
     except Exception as exc:
-        return False, str(exc)
+        native_error = str(exc)
+        if _is_chaquopy_android():
+            ok, fallback_error = _install_pycodec2_ctypes_fallback()
+            if ok:
+                return True, None
+            return False, fallback_error or native_error
+        return False, native_error
 
 
 def ensure_lxst_codec2_binding() -> bool:

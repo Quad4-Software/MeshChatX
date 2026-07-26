@@ -105,7 +105,10 @@ export default class AndroidBridge {
             return false;
         }
         return safeCall(() => {
-            this.bridge.openRNodeFlasher();
+            const result = this.bridge.openRNodeFlasher();
+            if (typeof result === "string") {
+                return result === "ok" || result === "requested";
+            }
             return true;
         }, false);
     }
@@ -115,7 +118,10 @@ export default class AndroidBridge {
             return false;
         }
         return safeCall(() => {
-            this.bridge.openBluetoothSettings();
+            const result = this.bridge.openBluetoothSettings();
+            if (typeof result === "string") {
+                return result === "ok" || result === "settings";
+            }
             return true;
         }, false);
     }
@@ -125,7 +131,10 @@ export default class AndroidBridge {
             return false;
         }
         return safeCall(() => {
-            this.bridge.openUsbSettings();
+            const result = this.bridge.openUsbSettings();
+            if (typeof result === "string") {
+                return result === "ok" || result === "settings";
+            }
             return true;
         }, false);
     }

@@ -139,6 +139,37 @@ def test_ensure_lxst_codec2_binding_reloads_when_codec2_none():
         assert reload_mock.called
 
 
+def test_probe_falls_back_to_ctypes_on_android_when_pycodec2_broken():
+    android_codec2.reset_codec2_preload_state_for_tests()
+
+    with (
+        patch.object(android_codec2, "_is_chaquopy_android", return_value=True),
+        patch.object(android_codec2, "ensure_codec2_native_library", return_value=True),
+        patch.dict("sys.modules", {"pycodec2": None}),
+    ):
+        import builtins
+
+        real_import = builtins.__import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "pycodec2":
+                raise ImportError("empty pycodec2.so")
+            return real_import(name, *args, **kwargs)
+
+        with (
+            patch("builtins.__import__", side_effect=fake_import),
+            patch.object(
+                android_codec2,
+                "_install_pycodec2_ctypes_fallback",
+                return_value=(True, None),
+            ) as install,
+        ):
+            ok, err = android_codec2.probe_pycodec2()
+        assert ok is True
+        assert err is None
+        install.assert_called_once()
+
+
 def test_vendor_wheels_bundle_libcodec2_for_all_abis():
     import zipfile
 
@@ -154,6 +185,12 @@ def test_vendor_wheels_bundle_libcodec2_for_all_abis():
         with zipfile.ZipFile(wheels[-1]) as zin:
             assert "pycodec2/libcodec2.so" in zin.namelist()
             assert "pycodec2/pycodec2.so" in zin.namelist()
+            # Empty stub extensions (a few KB, no PyInit) cannot provide Codec2.
+            # ctypes fallback covers those builds until wheels are rebuilt.
+            stub_size = zin.getinfo("pycodec2/pycodec2.so").file_size
+            assert stub_size > 0
+            lib_size = zin.getinfo("pycodec2/libcodec2.so").file_size
+            assert lib_size > 100_000
         lib_wheels = sorted(vendor.glob(f"chaquopy_libcodec2-*-android_24_{abi}.whl"))
         if not lib_wheels:
             pytest.skip(f"missing chaquopy_libcodec2 for {abi}")
@@ -229,3 +266,50 @@ def test_repack_script_bundles_libcodec2(tmp_path):
         size_field = line.rsplit(",", 1)[-1]
         assert size_field
         int(size_field)
+
+
+def test_pycodec2_ctypes_roundtrip_with_system_or_jni_lib():
+    """Ctypes Codec2 must encode/decode when libcodec2 is available."""
+    import ctypes.util
+
+    from meshchatx import pycodec2_ctypes
+
+    repo = Path(__file__).resolve().parents[2]
+    jni_lib = (
+        repo
+        / "android"
+        / "app"
+        / "src"
+        / "main"
+        / "jniLibs"
+        / "arm64-v8a"
+        / "libcodec2.so"
+    )
+    system_lib = ctypes.util.find_library("codec2")
+    if system_lib:
+        lib_path = system_lib
+    elif jni_lib.is_file():
+        # Android aarch64 .so will not load on x86_64 hosts.
+        pytest.skip("host cannot load Android arm64 libcodec2.so")
+    else:
+        pytest.skip("libcodec2 not available on host")
+
+    pycodec2_ctypes._lib = None
+    pycodec2_ctypes._lib_error = None
+    with patch.dict("os.environ", {"MESHCHAT_LIBCODEC2_PATH": str(lib_path)}):
+        ok, err = pycodec2_ctypes.probe()
+        if not ok:
+            pytest.skip(f"ctypes Codec2 probe failed: {err}")
+        import numpy as np
+
+        c2 = pycodec2_ctypes.Codec2(1600)
+        spf = c2.samples_per_frame()
+        samples = np.zeros(spf, dtype=np.int16)
+        encoded = c2.encode(samples)
+        assert isinstance(encoded, (bytes, bytearray))
+        assert len(encoded) == c2.bytes_per_frame()
+        decoded = c2.decode(encoded)
+        assert decoded.dtype == np.int16
+        assert decoded.size == spf
+    pycodec2_ctypes._lib = None
+    pycodec2_ctypes._lib_error = None

@@ -303,6 +303,8 @@ export default {
             if (action === "open-native-flasher" || action === "request-usb") {
                 if (this.androidBridge.openRNodeFlasher()) {
                     ToastUtils.info(this.$t("tools.rnode_flasher.support.actions.opened_native"));
+                } else {
+                    ToastUtils.warning(this.$t("tools.rnode_flasher.support.actions.open_native_failed"));
                 }
                 return;
             }
@@ -324,7 +326,7 @@ export default {
                 if (this.androidBridge.openBluetoothSettings()) {
                     ToastUtils.info(this.$t("tools.rnode_flasher.support.actions.bluetooth_open_settings"));
                 } else {
-                    ToastUtils.warning(this.$t("tools.rnode_flasher.support.actions.bluetooth_unsupported"));
+                    ToastUtils.warning(this.$t("tools.rnode_flasher.support.actions.bluetooth_settings_unavailable"));
                 }
                 return;
             }
