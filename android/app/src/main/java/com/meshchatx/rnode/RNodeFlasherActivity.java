@@ -1,7 +1,6 @@
 package com.meshchatx.rnode;
 
 import android.Manifest;
-import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -10,7 +9,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.provider.Settings;
 import android.view.View;
 import android.webkit.CookieManager;
 import android.widget.AdapterView;
@@ -26,6 +24,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.meshchatx.AppSettingsLauncher;
 import com.meshchatx.LocalhostTrustOkHttpClient;
 import com.meshchatx.R;
 
@@ -82,63 +81,75 @@ public final class RNodeFlasherActivity extends AppCompatActivity implements Usb
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_rnode_flasher);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle(R.string.rnode_flasher_title);
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
-
-        usbSpinner = findViewById(R.id.rnodeUsbSpinner);
-        productSpinner = findViewById(R.id.rnodeProductSpinner);
-        modelSpinner = findViewById(R.id.rnodeModelSpinner);
-        progressBar = findViewById(R.id.rnodeProgress);
-        statusView = findViewById(R.id.rnodeStatus);
-        logView = findViewById(R.id.rnodeLog);
-        flashButton = findViewById(R.id.rnodeFlash);
-        downloadButton = findViewById(R.id.rnodeDownloadFirmware);
-
-        usbAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, ports);
-        usbSpinner.setAdapter(usbAdapter);
-
         try {
-            catalog = ProductCatalog.load(this);
-        } catch (Exception e) {
-            appendLog("Failed to load product catalog: " + e.getMessage());
-            catalog = ProductCatalog.empty();
-        }
-        productAdapter =
-            new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, catalog.products());
-        productSpinner.setAdapter(productAdapter);
-        modelAdapter =
-            new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, new ArrayList<>());
-        modelSpinner.setAdapter(modelAdapter);
-
-        productSpinner.setOnItemSelectedListener(
-            new AdapterView.OnItemSelectedListener() {
-                @Override
-                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                    refreshModels();
-                }
-
-                @Override
-                public void onNothingSelected(AdapterView<?> parent) {
-                }
+            setContentView(R.layout.activity_rnode_flasher);
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setTitle(R.string.rnode_flasher_title);
+                getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             }
-        );
 
-        findViewById(R.id.rnodeRefreshUsb).setOnClickListener(v -> refreshPorts());
-        findViewById(R.id.rnodeRequestUsb).setOnClickListener(v -> requestUsbPermission());
-        findViewById(R.id.rnodeRequestBluetooth).setOnClickListener(v -> requestBluetooth());
-        findViewById(R.id.rnodeOpenAppSettings).setOnClickListener(v -> openAppSettings());
-        downloadButton.setOnClickListener(v -> downloadFirmware());
-        flashButton.setOnClickListener(v -> flashSelected());
+            usbSpinner = findViewById(R.id.rnodeUsbSpinner);
+            productSpinner = findViewById(R.id.rnodeProductSpinner);
+            modelSpinner = findViewById(R.id.rnodeModelSpinner);
+            progressBar = findViewById(R.id.rnodeProgress);
+            statusView = findViewById(R.id.rnodeStatus);
+            logView = findViewById(R.id.rnodeLog);
+            flashButton = findViewById(R.id.rnodeFlash);
+            downloadButton = findViewById(R.id.rnodeDownloadFirmware);
 
-        usbHub = new UsbSerialHub(this);
-        usbHub.addListener(this);
-        usbHub.start();
-        refreshPorts();
-        refreshModels();
-        appendLog("Native RNode flasher ready.");
+            usbAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, ports);
+            usbSpinner.setAdapter(usbAdapter);
+
+            try {
+                catalog = ProductCatalog.load(this);
+            } catch (Exception e) {
+                appendLog("Failed to load product catalog: " + e.getMessage());
+                catalog = ProductCatalog.empty();
+            }
+            productAdapter =
+                new ArrayAdapter<>(
+                    this, android.R.layout.simple_spinner_dropdown_item, catalog.products());
+            productSpinner.setAdapter(productAdapter);
+            modelAdapter =
+                new ArrayAdapter<>(
+                    this, android.R.layout.simple_spinner_dropdown_item, new ArrayList<>());
+            modelSpinner.setAdapter(modelAdapter);
+
+            productSpinner.setOnItemSelectedListener(
+                new AdapterView.OnItemSelectedListener() {
+                    @Override
+                    public void onItemSelected(
+                        AdapterView<?> parent, View view, int position, long id) {
+                        refreshModels();
+                    }
+
+                    @Override
+                    public void onNothingSelected(AdapterView<?> parent) {
+                    }
+                }
+            );
+
+            findViewById(R.id.rnodeRefreshUsb).setOnClickListener(v -> refreshPorts());
+            findViewById(R.id.rnodeRequestUsb).setOnClickListener(v -> requestUsbPermission());
+            findViewById(R.id.rnodeRequestBluetooth).setOnClickListener(v -> requestBluetooth());
+            findViewById(R.id.rnodeOpenAppSettings).setOnClickListener(v -> openAppSettings());
+            downloadButton.setOnClickListener(v -> downloadFirmware());
+            flashButton.setOnClickListener(v -> flashSelected());
+
+            usbHub = new UsbSerialHub(this);
+            usbHub.addListener(this);
+            usbHub.start();
+            refreshPorts();
+            refreshModels();
+            appendLog("Native RNode flasher ready.");
+        } catch (Exception e) {
+            String msg =
+                e.getMessage() != null && !e.getMessage().isEmpty()
+                    ? e.getMessage()
+                    : "Native RNode flasher failed to start";
+            Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+            finish();
+        }
     }
 
     @Override
@@ -197,7 +208,7 @@ public final class RNodeFlasherActivity extends AppCompatActivity implements Usb
                 "Bluetooth blocked. Enable it in app settings.",
                 Toast.LENGTH_LONG
             ).show();
-            openAppSettings();
+            openBluetoothSettings();
             return;
         }
         Toast.makeText(this, "Bluetooth denied", Toast.LENGTH_SHORT).show();
@@ -253,7 +264,7 @@ public final class RNodeFlasherActivity extends AppCompatActivity implements Usb
                 "Bluetooth blocked. Enable it in app settings.",
                 Toast.LENGTH_LONG
             ).show();
-            openAppSettings();
+            openBluetoothSettings();
             return;
         }
         getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean(PREF_BT_PROMPTED, true).apply();
@@ -262,18 +273,11 @@ public final class RNodeFlasherActivity extends AppCompatActivity implements Usb
     }
 
     private void openAppSettings() {
-        try {
-            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-            intent.setData(Uri.fromParts("package", getPackageName(), null));
-            startActivity(intent);
-        } catch (ActivityNotFoundException e) {
-            try {
-                startActivity(new Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS));
-            } catch (ActivityNotFoundException ignored) {
-                Toast.makeText(this, "App settings unavailable", Toast.LENGTH_SHORT).show();
-                appendLog("App settings unavailable: " + e.getMessage());
-            }
-        }
+        AppSettingsLauncher.openAppDetails(this);
+    }
+
+    private void openBluetoothSettings() {
+        AppSettingsLauncher.openBluetoothSettings(this);
     }
 
     private void refreshPorts() {

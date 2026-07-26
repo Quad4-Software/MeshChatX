@@ -177,7 +177,7 @@ describe("WebSocketConnection module", () => {
         expect(WebSocketConnection.ws).toBe(firstWs);
 
         // 2. If idleTime is large, it should force a reconnect
-        WebSocketConnection._lastReceivedTime = Date.now() - 60000;
+        WebSocketConnection._lastReceivedTime = Date.now() - 120000;
         WebSocketConnection.handleForegroundOrNetworkChange();
 
         // Wait for the new WebSocket to be created and opened
@@ -225,7 +225,7 @@ describe("WebSocketConnection module", () => {
         await vi.waitUntil(() => WebSocketConnection.ws?.readyState === MockWS.OPEN);
 
         const firstWs = WebSocketConnection.ws;
-        WebSocketConnection._lastReceivedTime = Date.now() - 60000;
+        WebSocketConnection._lastReceivedTime = Date.now() - 120000;
         WebSocketConnection.handleForegroundOrNetworkChange();
 
         const connectingWs = WebSocketConnection.ws;
@@ -300,7 +300,7 @@ describe("WebSocketConnection module", () => {
         await vi.waitUntil(() => WebSocketConnection.ws?.readyState === MockWS.OPEN);
 
         const firstWs = WebSocketConnection.ws;
-        WebSocketConnection._lastReceivedTime = Date.now() - 60000;
+        WebSocketConnection._lastReceivedTime = Date.now() - 120000;
         WebSocketConnection.handleForegroundOrNetworkChange();
 
         await vi.waitUntil(() => WebSocketConnection.ws && WebSocketConnection.ws !== firstWs);
@@ -311,6 +311,57 @@ describe("WebSocketConnection module", () => {
         // Background-tab stale recovery must still tell the shell this is a
         // reconnect so CSRF/config/status can resync (without flashing disconnect).
         expect(connected.mock.calls[1][0]).toEqual({ isReconnect: true });
+
+        WebSocketConnection.destroy();
+    });
+
+    it("does not emit disconnected before the first successful open", async () => {
+        global.WebSocket = class FailingWS {
+            static CONNECTING = 0;
+            static OPEN = 1;
+            static CLOSING = 2;
+            static CLOSED = 3;
+
+            constructor(url) {
+                this.url = url;
+                this.readyState = FailingWS.CONNECTING;
+                this._listeners = { open: [], close: [], error: [], message: [] };
+                queueMicrotask(() => {
+                    this.readyState = FailingWS.CLOSED;
+                    this._listeners.close.forEach((fn) => fn({ code: 1006, reason: "startup" }));
+                });
+            }
+
+            addEventListener(type, fn) {
+                this._listeners[type]?.push(fn);
+            }
+
+            send() {}
+
+            close() {
+                if (this.readyState === FailingWS.CLOSED) {
+                    return;
+                }
+                this.readyState = FailingWS.CLOSED;
+                queueMicrotask(() => {
+                    this._listeners.close.forEach((fn) => fn({}));
+                });
+            }
+        };
+
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+
+        const connected = vi.fn();
+        const disconnected = vi.fn();
+        WebSocketConnection.on("connected", connected);
+        WebSocketConnection.on("disconnected", disconnected);
+
+        WebSocketConnection.connect();
+        await vi.advanceTimersByTimeAsync(50);
+        expect(disconnected).not.toHaveBeenCalled();
+        expect(connected).not.toHaveBeenCalled();
 
         WebSocketConnection.destroy();
     });
@@ -331,7 +382,7 @@ describe("WebSocketConnection module", () => {
         const firstWs = WebSocketConnection.ws;
         // Simulate a zombie OPEN socket after the tab slept: readyState still
         // OPEN, but no frames for longer than the ping interval.
-        WebSocketConnection._lastReceivedTime = Date.now() - 60000;
+        WebSocketConnection._lastReceivedTime = Date.now() - 120000;
         WebSocketConnection.forceReconnect();
 
         await vi.waitUntil(() => WebSocketConnection.ws && WebSocketConnection.ws !== firstWs);
@@ -411,7 +462,7 @@ describe("WebSocketConnection module", () => {
         await vi.waitUntil(() => WebSocketConnection.ws?.readyState === MockWS.OPEN);
 
         const firstWs = WebSocketConnection.ws;
-        WebSocketConnection._lastReceivedTime = Date.now() - 60000;
+        WebSocketConnection._lastReceivedTime = Date.now() - 120000;
 
         // still hidden - must not trigger a reconnect
         global.window.dispatchEvent(new Event("visibilitychange"));
@@ -448,7 +499,7 @@ describe("WebSocketConnection module", () => {
         expect(sendSpy).toHaveBeenCalled();
         expect(WebSocketConnection.ws).toBe(firstWs);
 
-        WebSocketConnection._lastReceivedTime = Date.now() - 60000;
+        WebSocketConnection._lastReceivedTime = Date.now() - 120000;
         global.window.dispatchEvent(new Event("online"));
 
         await vi.waitUntil(() => WebSocketConnection.ws && WebSocketConnection.ws !== firstWs);

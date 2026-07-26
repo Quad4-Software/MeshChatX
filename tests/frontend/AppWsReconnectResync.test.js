@@ -20,6 +20,7 @@ describe("App websocket reconnect shell resync", () => {
 
     afterEach(() => {
         vi.restoreAllMocks();
+        vi.useRealTimers();
     });
 
     function makeShellCtx(overrides = {}) {
@@ -28,6 +29,8 @@ describe("App websocket reconnect shell resync", () => {
             wsDisconnected: true,
             wsDisconnectedAt: Date.now() - 5000,
             wsDisconnectedDurationText: "5s",
+            wsDisconnectBannerShown: true,
+            wsDisconnectGraceTimer: null,
             backendProcessExited: false,
             backendExitCode: null,
             wsDisconnectTickTimer: null,
@@ -42,6 +45,9 @@ describe("App websocket reconnect shell resync", () => {
             updatePropagationNodeStatus: vi.fn(async () => {}),
             resyncShellAfterWebsocketReconnect: App.methods.resyncShellAfterWebsocketReconnect,
             onWsShellConnected: App.methods.onWsShellConnected,
+            onWsShellDisconnected: App.methods.onWsShellDisconnected,
+            _showWsDisconnectedBannerNow: App.methods._showWsDisconnectedBannerNow,
+            _tickWsDisconnectedLabel: App.methods._tickWsDisconnectedLabel,
             ...overrides,
         };
     }
@@ -64,9 +70,52 @@ describe("App websocket reconnect shell resync", () => {
         emitSpy.mockRestore();
     });
 
+    it("resyncs silently after a brief reconnect without celebrating", async () => {
+        const emitSpy = vi.spyOn(GlobalEmitter, "emit");
+        const ctx = makeShellCtx({
+            wsDisconnected: false,
+            wsDisconnectedAt: null,
+            wsDisconnectBannerShown: false,
+        });
+
+        await App.methods.onWsShellConnected.call(ctx, { isReconnect: true });
+
+        expect(fetchCsrfToken).toHaveBeenCalledTimes(1);
+        expect(ctx.wsReconnectedBanner).toBe(false);
+        expect(emitSpy).toHaveBeenCalledWith("websocket-reconnected");
+
+        emitSpy.mockRestore();
+    });
+
+    it("does not show disconnect banner during the grace window", async () => {
+        vi.useFakeTimers();
+        const ctx = makeShellCtx({
+            wsDisconnected: false,
+            wsDisconnectedAt: null,
+            wsDisconnectBannerShown: false,
+            wsDisconnectGraceTimer: null,
+            wsDisconnectTickTimer: null,
+        });
+
+        App.methods.onWsShellDisconnected.call(ctx);
+        expect(ctx.wsDisconnected).toBe(false);
+        expect(ctx.wsDisconnectGraceTimer).not.toBeNull();
+
+        await vi.advanceTimersByTimeAsync(2499);
+        expect(ctx.wsDisconnected).toBe(false);
+
+        await vi.advanceTimersByTimeAsync(2);
+        expect(ctx.wsDisconnected).toBe(true);
+        expect(ctx.wsDisconnectBannerShown).toBe(true);
+    });
+
     it("does not resync shell on the first websocket connect", async () => {
         const emitSpy = vi.spyOn(GlobalEmitter, "emit");
-        const ctx = makeShellCtx({ wsDisconnected: false, wsDisconnectedAt: null });
+        const ctx = makeShellCtx({
+            wsDisconnected: false,
+            wsDisconnectedAt: null,
+            wsDisconnectBannerShown: false,
+        });
 
         await App.methods.onWsShellConnected.call(ctx, { isReconnect: false });
 

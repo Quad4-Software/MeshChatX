@@ -6,9 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- **Android LXST / Codec2**: Preload libcodec2 after the Chaquopy runtime starts, reload LXST Codec2 bindings when a soft import left Codec2 unset, and probe pycodec2 before mesh imports so Codec2 voice profiles work instead of reporting no codec on device.
+- **Android LXST / Codec2**: When the Chaquopy `pycodec2.so` extension is an empty stub, fall back to a ctypes Codec2 binding over the bundled `libcodec2.so` so LXST Codec2 voice profiles work on device. Still preload jniLibs Codec2 and reload soft-imported LXST bindings after probe.
+- **Android RNode flasher**: Open native flasher returns a real status, keeps USB-serial classes through R8, uses an ActionBar theme, and surfaces startup failures instead of silently doing nothing. Bluetooth Open settings tries GrapheneOS-friendly fallbacks (app details, Bluetooth settings, general Settings) instead of toasting unavailable.
+- **Connection banners**: Do not flash disconnected on startup before the first successful WebSocket open. Debounce disconnect UI for 2.5s and only show reconnected when the disconnect banner was actually shown. Foreground recovery prefers a ping for longer before forcing a reconnect.
 - **Android calls**: Clarify that the web audio bridge on Android uses native mic and speaker through the telephone audio bridge, not browser getUserMedia.
-- **Android RNode flasher**: Bluetooth Allow and Open settings open the system permission UI when runtime permission is missing or permanently denied. The capabilities banner shows Allow Bluetooth only when needed and otherwise steers users to the native flasher for USB.
 - **Browser calls (Docker / HTTPS)**: Refresh Devices calls getUserMedia first so Brave and Chromium show the microphone permission prompt instead of failing early when enumerateDevices lists no inputs before permission is granted.
 - **HTTP security headers**: Send Permissions-Policy allowing microphone and camera for this origin so reverse proxies that omit the header do not block capture by default.
 - **UI language**: Persist language changes over the config HTTP API (not WebSocket-only), normalize legacy locale codes, and stop the Reticulum manual language picker from overwriting app UI language.

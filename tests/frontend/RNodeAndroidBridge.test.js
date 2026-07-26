@@ -42,21 +42,40 @@ describe("AndroidBridge", () => {
     });
 
     it("hasNativeRNodeFlasher delegates to the bridge", () => {
-        const bridge = { hasNativeRNodeFlasher: vi.fn().mockReturnValue(true), openRNodeFlasher: vi.fn() };
+        const bridge = {
+            hasNativeRNodeFlasher: vi.fn().mockReturnValue(true),
+            openRNodeFlasher: vi.fn().mockReturnValue("ok"),
+        };
         const ab = new AndroidBridge(bridge, {});
         expect(ab.hasNativeRNodeFlasher()).toBe(true);
         expect(ab.openRNodeFlasher()).toBe(true);
         expect(bridge.openRNodeFlasher).toHaveBeenCalled();
     });
 
+    it("openRNodeFlasher treats error status as failure", () => {
+        const bridge = { openRNodeFlasher: vi.fn().mockReturnValue("error:boom") };
+        const ab = new AndroidBridge(bridge, {});
+        expect(ab.openRNodeFlasher()).toBe(false);
+    });
+
     it("settings helpers return true when bridge accepts the call", () => {
         const bridge = {
-            openBluetoothSettings: vi.fn(),
-            openUsbSettings: vi.fn(),
+            openBluetoothSettings: vi.fn().mockReturnValue("ok"),
+            openUsbSettings: vi.fn().mockReturnValue("ok"),
         };
         const ab = new AndroidBridge(bridge, {});
         expect(ab.openBluetoothSettings()).toBe(true);
         expect(ab.openUsbSettings()).toBe(true);
+    });
+
+    it("settings helpers treat unavailable status as failure", () => {
+        const bridge = {
+            openBluetoothSettings: vi.fn().mockReturnValue("unavailable"),
+            openUsbSettings: vi.fn().mockReturnValue("unavailable"),
+        };
+        const ab = new AndroidBridge(bridge, {});
+        expect(ab.openBluetoothSettings()).toBe(false);
+        expect(ab.openUsbSettings()).toBe(false);
     });
 
     it("settings helpers swallow exceptions and return false", () => {

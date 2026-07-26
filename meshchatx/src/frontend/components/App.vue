@@ -726,6 +726,8 @@ export default {
             wsDisconnectedDurationText: "",
             wsReconnectedBanner: false,
             wsDisconnectTickTimer: null,
+            wsDisconnectGraceTimer: null,
+            wsDisconnectBannerShown: false,
             wsReconnectedHideTimer: null,
             backendProcessExited: false,
             backendExitCode: null,
@@ -1194,6 +1196,7 @@ export default {
             this.wsDisconnected = false;
             this.wsDisconnectedAt = null;
             this.wsDisconnectedDurationText = "";
+            this.wsDisconnectBannerShown = false;
             this.wsReconnectedBanner = false;
             this.backendProcessExited = false;
             this.backendExitCode = null;
@@ -1204,6 +1207,10 @@ export default {
             if (this.wsDisconnectTickTimer != null) {
                 clearInterval(this.wsDisconnectTickTimer);
                 this.wsDisconnectTickTimer = null;
+            }
+            if (this.wsDisconnectGraceTimer != null) {
+                clearTimeout(this.wsDisconnectGraceTimer);
+                this.wsDisconnectGraceTimer = null;
             }
             if (this.wsReconnectedHideTimer != null) {
                 clearTimeout(this.wsReconnectedHideTimer);
@@ -1216,7 +1223,8 @@ export default {
             }
             this.backendProcessExited = true;
             this.backendExitCode = payload?.code ?? null;
-            this.onWsShellDisconnected();
+            // Process exit is serious: show disconnect immediately.
+            this._showWsDisconnectedBannerNow();
         },
         async onRestartBackend() {
             if (!window.electron?.restartBackend) {
@@ -1280,17 +1288,40 @@ export default {
                 ToastUtils.error(this.$t("app.view_backend_logs_failed"));
             }
         },
-        onWsShellDisconnected() {
+        _showWsDisconnectedBannerNow() {
             if (!this.shellRunning) {
                 return;
             }
+            if (this.wsDisconnectGraceTimer != null) {
+                clearTimeout(this.wsDisconnectGraceTimer);
+                this.wsDisconnectGraceTimer = null;
+            }
             this.wsDisconnected = true;
-            this.wsDisconnectedAt = Date.now();
+            this.wsDisconnectBannerShown = true;
+            this.wsDisconnectedAt = this.wsDisconnectedAt || Date.now();
             this._tickWsDisconnectedLabel();
             if (this.wsDisconnectTickTimer != null) {
                 clearInterval(this.wsDisconnectTickTimer);
             }
             this.wsDisconnectTickTimer = setInterval(() => this._tickWsDisconnectedLabel(), 1000);
+        },
+        onWsShellDisconnected() {
+            if (!this.shellRunning) {
+                return;
+            }
+            // Ignore brief reconnect blips (startup, Android resume). Only scare
+            // the user if the socket stays down past the grace window.
+            if (this.wsDisconnected) {
+                return;
+            }
+            if (this.wsDisconnectGraceTimer != null) {
+                return;
+            }
+            this.wsDisconnectedAt = Date.now();
+            this.wsDisconnectGraceTimer = setTimeout(() => {
+                this.wsDisconnectGraceTimer = null;
+                this._showWsDisconnectedBannerNow();
+            }, 2500);
         },
         _tickWsDisconnectedLabel() {
             if (!this.wsDisconnectedAt) {
@@ -1303,9 +1334,15 @@ export default {
             if (!this.shellRunning) {
                 return;
             }
+            const sawDisconnectBanner = this.wsDisconnectBannerShown;
+            if (this.wsDisconnectGraceTimer != null) {
+                clearTimeout(this.wsDisconnectGraceTimer);
+                this.wsDisconnectGraceTimer = null;
+            }
             this.wsDisconnected = false;
             this.wsDisconnectedAt = null;
             this.wsDisconnectedDurationText = "";
+            this.wsDisconnectBannerShown = false;
             this.backendProcessExited = false;
             this.backendExitCode = null;
             if (this.wsDisconnectTickTimer != null) {
@@ -1315,14 +1352,17 @@ export default {
             const isReconnect = payload.isReconnect === true;
             if (isReconnect) {
                 await this.resyncShellAfterWebsocketReconnect();
-                this.wsReconnectedBanner = true;
-                if (this.wsReconnectedHideTimer != null) {
-                    clearTimeout(this.wsReconnectedHideTimer);
+                // Only celebrate when the user actually saw a disconnect banner.
+                if (sawDisconnectBanner) {
+                    this.wsReconnectedBanner = true;
+                    if (this.wsReconnectedHideTimer != null) {
+                        clearTimeout(this.wsReconnectedHideTimer);
+                    }
+                    this.wsReconnectedHideTimer = setTimeout(() => {
+                        this.wsReconnectedBanner = false;
+                        this.wsReconnectedHideTimer = null;
+                    }, 4500);
                 }
-                this.wsReconnectedHideTimer = setTimeout(() => {
-                    this.wsReconnectedBanner = false;
-                    this.wsReconnectedHideTimer = null;
-                }, 4500);
             }
         },
         async resyncShellAfterWebsocketReconnect() {

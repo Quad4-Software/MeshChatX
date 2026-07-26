@@ -6,6 +6,9 @@ const PONG_TIMEOUT_MS = 12000;
 const BASE_RECONNECT_MS = 1000;
 const MAX_RECONNECT_MS = 60000;
 const JITTER_MAX_MS = 400;
+// Foreground recovery: prefer a ping for longer before tearing down a still-OPEN socket.
+// Android WebViews often idle past one ping interval while backgrounded without a dead link.
+const FOREGROUND_FORCE_RECONNECT_IDLE_MS = 90000;
 
 class WebSocketConnection {
     constructor() {
@@ -176,9 +179,27 @@ class WebSocketConnection {
                 this._isForcedReconnect = false;
                 return;
             }
-            if (this._hadSuccessfulOpen) {
-                this._pendingReconnectUi = true;
+            // Startup races (backend still binding) must not flash a disconnect banner.
+            if (!this._hadSuccessfulOpen) {
+                const delay = reconnectDelayWithJitterMs(
+                    this._reconnectAttempt,
+                    BASE_RECONNECT_MS,
+                    MAX_RECONNECT_MS,
+                    JITTER_MAX_MS
+                );
+                this._reconnectAttempt += 1;
+                if (this._reconnectTimeout != null) {
+                    clearTimeout(this._reconnectTimeout);
+                }
+                this._reconnectTimeout = setTimeout(() => {
+                    this._reconnectTimeout = null;
+                    if (!this.destroyed) {
+                        this.reconnect();
+                    }
+                }, delay);
+                return;
             }
+            this._pendingReconnectUi = true;
             this.emit("disconnected");
             const delay = reconnectDelayWithJitterMs(
                 this._reconnectAttempt,
@@ -235,7 +256,7 @@ class WebSocketConnection {
         }
 
         const idleTime = Date.now() - this._lastReceivedTime;
-        if (idleTime > PING_INTERVAL_MS) {
+        if (idleTime > FOREGROUND_FORCE_RECONNECT_IDLE_MS) {
             this.forceReconnect();
         } else {
             this._sendAppPing();
@@ -247,8 +268,9 @@ class WebSocketConnection {
             return;
         }
         if (this.ws) {
-            // Suppress the disconnect banner, but still tell the shell this is a
-            // reconnect so CSRF/config/status resync after background-tab stalls.
+            // Suppress the disconnect banner. Still mark reconnect so CSRF/config
+            // resync after background-tab stalls, but App only celebrates if the
+            // disconnect banner was actually shown.
             if (this._hadSuccessfulOpen) {
                 this._pendingReconnectUi = true;
             }

@@ -95,6 +95,7 @@
             android:exported="false"
             android:label="@string/rnode_flasher_title"
             android:parentActivityName=".MainActivity"
+            android:theme="@style/Theme.MeshChatX.Flasher"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density|fontScale|keyboard|keyboardHidden|navigation|uiMode|colorMode|layoutDirection" />
 
         <!--
