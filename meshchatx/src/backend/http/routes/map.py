@@ -232,17 +232,31 @@ def register_map_routes(routes, app):
 
     @routes.delete("/api/v1/map/drawings/{drawing_id}")
     async def delete_map_drawing(request):
+        identity_hash = app.identity.hash.hex()
         drawing_id = request.match_info.get("drawing_id")
-        app.database.map_drawings.delete_drawing(drawing_id)
+        deleted = app.database.map_drawings.delete_drawing(
+            drawing_id,
+            identity_hash,
+        )
+        if not deleted:
+            return web.json_response({"error": "Drawing not found"}, status=404)
         return web.json_response({"message": "Drawing deleted successfully"})
 
     @routes.patch("/api/v1/map/drawings/{drawing_id}")
     async def update_map_drawing(request):
+        identity_hash = app.identity.hash.hex()
         drawing_id = request.match_info.get("drawing_id")
         data = await request.json()
         name = data.get("name")
         drawing_data = data.get("data")
-        app.database.map_drawings.update_drawing(drawing_id, name, drawing_data)
+        updated = app.database.map_drawings.update_drawing(
+            drawing_id,
+            identity_hash,
+            name,
+            drawing_data,
+        )
+        if not updated:
+            return web.json_response({"error": "Drawing not found"}, status=404)
         return web.json_response({"message": "Drawing updated successfully"})
 
     @routes.get("/api/v1/map/overlays")
