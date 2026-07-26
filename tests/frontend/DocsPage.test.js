@@ -276,17 +276,22 @@ describe("DocsPage.vue", () => {
         expect(wrapper.vm.status.last_error).toBeNull();
     });
 
-    it("opens the Sphinx manual for English and localized site index for other locales", async () => {
+    it("opens the Sphinx manual by default and localized site index via Reticulum language picker", async () => {
         const wrapper = mountDocsPage();
         await nextTick();
 
+        // App UI locale must not rewrite the Reticulum docs entry URL.
         i18nMock.locale = "de";
         await nextTick();
-        expect(wrapper.vm.localDocsUrl).toBe("/reticulum-docs/index_de.html");
-
-        i18nMock.locale = "en";
-        await nextTick();
         expect(wrapper.vm.localDocsUrl).toBe("/reticulum-docs/manual/index.html");
+
+        await wrapper.vm.setLanguage("de");
+        await nextTick();
+        expect(wrapper.vm.localDocsUrl).toMatch(/^\/reticulum-docs\/index_de\.html/);
+
+        await wrapper.vm.setLanguage("en");
+        await nextTick();
+        expect(wrapper.vm.localDocsUrl).toMatch(/^\/reticulum-docs\/manual\/index\.html/);
     });
 
     it("handles extremely long error messages in the UI", async () => {
