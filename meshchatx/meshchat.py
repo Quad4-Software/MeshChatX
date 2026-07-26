@@ -594,6 +594,7 @@ class ReticulumMeshChat:
         )
         self._storage_lock = None
         if not skip_storage_lock:
+            # Serializes startup, schema migration, and runtime for one storage_dir.
             from meshchatx.src.backend.storage_lock import StorageLock, StorageLockError
 
             self._storage_lock = StorageLock(self.storage_dir)

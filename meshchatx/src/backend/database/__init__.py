@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import tempfile
+import time
 import zipfile
 from contextlib import suppress
 from datetime import UTC, datetime
@@ -25,7 +26,12 @@ from .notification_sounds import NotificationSoundDAO
 from .provider import DatabaseProvider
 from .ringtones import RingtoneDAO
 from .rrc_room_keys import RrcRoomKeysDAO
-from .schema import DatabaseSchema, PreMigrationBackupError
+from .schema import (
+    DatabaseSchema,
+    DatabaseTooNewError,
+    PostMigrationVerificationError,
+    PreMigrationBackupError,
+)
 from .sticker_packs import UserStickerPacksDAO
 from .stickers import UserStickersDAO
 from .telemetry import TelemetryDAO
@@ -35,6 +41,7 @@ from .voicemails import VoicemailDAO
 BACKUP_BASELINE_FILENAME = "backup-baseline.json"
 BACKUP_MANIFEST_NAME = "backup-manifest.json"
 BACKUP_SKIP_DIR_NAMES = frozenset({"database-backups", "snapshots"})
+PRE_MIGRATE_BACKUP_PREFIX = "backup-pre-migrate-"
 MIN_SIZE_RATIO = 0.2
 
 _log = logging.getLogger("meshchatx.database")
@@ -70,6 +77,14 @@ def _sanitize_wal_checkpoint_mode(mode: str) -> str:
     return m
 
 
+def _pre_migrate_backup_keep() -> int:
+    raw = os.environ.get("MESHCHAT_PRE_MIGRATE_BACKUP_KEEP", "5").strip()
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        return 5
+
+
 class Database:
     def __init__(self, db_path):
         self.provider = DatabaseProvider.get_instance(db_path)
@@ -94,25 +109,121 @@ class Database:
         self.crash_history = CrashHistoryDAO(self.provider)
         self.rrc_room_keys = RrcRoomKeysDAO(self.provider)
         self._sqlite_memory_relaxed = False
+        self._last_pre_migrate_backup_path: str | None = None
 
     def initialize(self):
         self._tune_sqlite_pragmas()
         self.schema._create_initial_tables()
         current_version = self.schema.get_current_version()
         target_version = DatabaseSchema.LATEST_VERSION
-        if 0 < current_version < target_version:
-            from meshchatx.src.env_utils import env_bool
+        backup_path: str | None = None
+        started = time.monotonic()
+        from_version = current_version
 
-            if not env_bool("MESHCHAT_SKIP_PRE_MIGRATE_BACKUP", False):
-                try:
-                    self._backup_pre_migration(current_version, target_version)
-                except Exception as exc:
-                    msg = (
-                        "Pre-migration backup failed; aborting schema upgrade. "
-                        f"Fix disk space or permissions, or set MESHCHAT_SKIP_PRE_MIGRATE_BACKUP=1: {exc}"
-                    )
-                    raise PreMigrationBackupError(msg) from exc
-        self.schema.migrate(current_version)
+        if current_version > target_version:
+            msg = (
+                f"Database version {current_version} is newer than this MeshChatX build "
+                f"supports ({target_version}). Restore a backup or upgrade the application."
+            )
+            raise DatabaseTooNewError(msg)
+
+        try:
+            if 0 < current_version < target_version:
+                from meshchatx.src.env_utils import env_bool
+
+                if not env_bool("MESHCHAT_SKIP_PRE_MIGRATE_BACKUP", False):
+                    try:
+                        result = self._backup_pre_migration(
+                            current_version,
+                            target_version,
+                        )
+                        backup_path = result.get("path")
+                        self._last_pre_migrate_backup_path = backup_path
+                    except Exception as exc:
+                        msg = (
+                            "Pre-migration backup failed; aborting schema upgrade. "
+                            "Fix disk space or permissions, or set "
+                            "MESHCHAT_SKIP_PRE_MIGRATE_BACKUP=1: "
+                            f"{exc}"
+                        )
+                        raise PreMigrationBackupError(msg) from exc
+            self.schema.migrate(
+                current_version,
+                target_version,
+                update_version=False,
+            )
+            self._verify_after_migration()
+            self.schema._update_database_version_to(target_version)
+            keep = _pre_migrate_backup_keep()
+            if keep > 0:
+                self._prune_pre_migrate_backups(
+                    self._identity_storage_dir(),
+                    keep=keep,
+                    preserve_path=backup_path,
+                )
+        except Exception as exc:
+            duration_ms = int((time.monotonic() - started) * 1000)
+            _log.info(
+                "schema_migration from=%s to=%s backup=%s duration_ms=%s status=failed error=%s",
+                from_version,
+                target_version,
+                backup_path or "",
+                duration_ms,
+                type(exc).__name__,
+            )
+            raise
+        else:
+            duration_ms = int((time.monotonic() - started) * 1000)
+            if from_version < target_version:
+                _log.info(
+                    "schema_migration from=%s to=%s backup=%s duration_ms=%s status=ok",
+                    from_version,
+                    target_version,
+                    backup_path or "",
+                    duration_ms,
+                )
+
+    def _verify_after_migration(self) -> None:
+        rows = self.provider.quick_check()
+        if rows:
+            first = rows[0]
+            val = next(iter(first.values())) if isinstance(first, dict) else first[0]
+            if val != "ok":
+                msg = f"Post-migration quick_check failed: {val!s}"
+                raise PostMigrationVerificationError(msg)
+        self.provider.fetchone("SELECT 1")
+
+    @staticmethod
+    def _prune_pre_migrate_backups(
+        storage_path: str,
+        *,
+        keep: int,
+        preserve_path: str | None = None,
+    ) -> None:
+        if keep <= 0:
+            return
+        backup_dir = os.path.join(storage_path, "database-backups")
+        if not os.path.isdir(backup_dir):
+            return
+        preserve_abs = os.path.abspath(preserve_path) if preserve_path else None
+        entries: list[tuple[str, float]] = []
+        for name in os.listdir(backup_dir):
+            if not name.startswith(PRE_MIGRATE_BACKUP_PREFIX) or not name.endswith(
+                ".zip",
+            ):
+                continue
+            full = os.path.join(backup_dir, name)
+            entries.append((full, os.stat(full).st_mtime))
+        entries.sort(key=lambda item: item[1])
+        idx = 0
+        while len(entries) > keep and idx < len(entries):
+            path, _mtime = entries[idx]
+            if preserve_abs and os.path.abspath(path) == preserve_abs:
+                idx += 1
+                continue
+            with suppress(OSError):
+                os.remove(path)
+            entries.pop(idx)
 
     def execute_sql(self, query, params=None):
         return self.provider.execute(query, params)
@@ -593,7 +704,7 @@ class Database:
         timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
         backup_path = os.path.join(
             backup_dir,
-            f"backup-pre-migrate-v{from_version}-to-v{to_version}-{timestamp}.zip",
+            f"{PRE_MIGRATE_BACKUP_PREFIX}v{from_version}-to-v{to_version}-{timestamp}.zip",
         )
         result = self._backup_to_zip(backup_path)
         print(

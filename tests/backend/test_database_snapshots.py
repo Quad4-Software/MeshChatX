@@ -505,3 +505,60 @@ def test_pre_migration_backup_skipped_with_env(temp_dir, monkeypatch):
     upgraded.close_all()
 
     assert not any("backup-pre-migrate" in row["name"] for row in backups)
+
+
+def test_pre_migration_upgrade_logs_schema_migration_line(temp_dir, caplog):
+    import logging
+
+    from meshchatx.src.backend.database.schema import DatabaseSchema
+
+    caplog.set_level(logging.INFO, logger="meshchatx.database")
+
+    db_path = os.path.join(temp_dir, "test.db")
+    db = Database(db_path)
+    db.initialize()
+    db.close_all()
+
+    prior = DatabaseSchema.LATEST_VERSION - 1
+    if prior < 1:
+        pytest.skip("No prior schema version to simulate")
+
+    provider = DatabaseProvider(db_path)
+    provider.execute(
+        "UPDATE config SET value = ? WHERE key = ?",
+        (str(prior), "database_version"),
+    )
+    provider.close_all()
+
+    upgraded = Database(db_path)
+    upgraded.initialize()
+    upgraded.close_all()
+
+    joined = caplog.text
+    assert "schema_migration" in joined
+    assert "status=ok" in joined
+    assert f"from={prior}" in joined
+
+
+def test_prune_pre_migrate_backups_keeps_newest_five(temp_dir):
+    from meshchatx.src.backend.database import PRE_MIGRATE_BACKUP_PREFIX
+
+    backup_dir = os.path.join(temp_dir, "database-backups")
+    os.makedirs(backup_dir)
+    paths = []
+    for i in range(7):
+        name = f"{PRE_MIGRATE_BACKUP_PREFIX}v{i}-to-v{i + 1}.zip"
+        path = os.path.join(backup_dir, name)
+        with open(path, "wb") as handle:
+            handle.write(b"z")
+        os.utime(path, (1000 + i, 1000 + i))
+        paths.append(path)
+    newest = paths[-1]
+    Database._prune_pre_migrate_backups(temp_dir, keep=5, preserve_path=newest)
+    remaining = [
+        f
+        for f in os.listdir(backup_dir)
+        if f.startswith(PRE_MIGRATE_BACKUP_PREFIX) and f.endswith(".zip")
+    ]
+    assert len(remaining) == 5
+    assert os.path.basename(newest) in remaining

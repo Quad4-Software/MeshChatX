@@ -61,6 +61,8 @@ Default Compose maps `127.0.0.1:8000` on the host to port `8000` in the containe
 
 To bind a host directory instead, mount it at `/config`. The container runs as UID 1000. The host directory must be writable by that user.
 
+Run only **one** MeshChatX instance per `/config` volume. Startup takes an exclusive storage lock so schema migration and runtime do not overlap. For Docker or Coolify, use a single replica on that volume and replace containers in a rolling stop-then-start order instead of two replicas sharing one config path.
+
 ### Public demo instance (Coolify)
 
 For a read-only mesh showcase on [Coolify](https://coolify.io/docs/knowledge-base/docker/compose), deploy [`docker-compose.demo.yml`](../../docker-compose.demo.yml). For a normal (non-demo) Coolify deployment, use [`docker-compose.coolify.yml`](../../docker-compose.coolify.yml).

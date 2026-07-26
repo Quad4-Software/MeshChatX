@@ -15,6 +15,14 @@ class PreMigrationBackupError(RuntimeError):
     pass
 
 
+class PostMigrationVerificationError(RuntimeError):
+    pass
+
+
+class DatabaseTooNewError(RuntimeError):
+    pass
+
+
 def _validate_identifier(name: str, label: str = "identifier") -> str:
     if not _IDENTIFIER_RE.match(name):
         msg = f"Invalid SQL {label}: {name!r}"
@@ -629,7 +637,38 @@ class DatabaseSchema:
                     "CREATE INDEX IF NOT EXISTS idx_debug_logs_anomaly ON debug_logs(is_anomaly)",
                 )
 
-    def _update_database_version(self):
+    def migrate(
+        self,
+        current_version,
+        target_version: int | None = None,
+        *,
+        update_version: bool = True,
+    ):
+        target = (
+            self.LATEST_VERSION
+            if target_version is None
+            else min(max(0, int(target_version)), self.LATEST_VERSION)
+        )
+        self._strict_migrations = True
+        self._migration_errors = []
+        try:
+            self._run_migrations(current_version, target)
+        finally:
+            self._strict_migrations = False
+        if self._migration_errors:
+            first = self._migration_errors[0]
+            raise DatabaseMigrationError(
+                f"{len(self._migration_errors)} migration step(s) failed: {first}",
+            )
+        if update_version:
+            self._update_database_version_to(target)
+
+    def migrate_up_to(self, version: int) -> None:
+        """Apply migrations up to version (for fixtures and tests)."""
+        current = self.get_current_version()
+        self.migrate(current, target_version=version)
+
+    def _update_database_version_to(self, version: int) -> None:
         self.provider.execute(
             """
             INSERT INTO config (key, value, created_at, updated_at)
@@ -638,25 +677,16 @@ class DatabaseSchema:
                 value = EXCLUDED.value,
                 updated_at = EXCLUDED.updated_at
             """,
-            ("database_version", str(self.LATEST_VERSION)),
+            ("database_version", str(version)),
         )
 
-    def migrate(self, current_version):
-        self._strict_migrations = True
-        self._migration_errors = []
-        try:
-            self._run_migrations(current_version)
-        finally:
-            self._strict_migrations = False
-        if self._migration_errors:
-            first = self._migration_errors[0]
-            raise DatabaseMigrationError(
-                f"{len(self._migration_errors)} migration step(s) failed: {first}",
-            )
-        self._update_database_version()
+    def _update_database_version(self):
+        self._update_database_version_to(self.LATEST_VERSION)
 
-    def _run_migrations(self, current_version):
-        if current_version < 7:
+    def _run_migrations(self, current_version, target_version: int | None = None):
+        if target_version is None:
+            target_version = self.LATEST_VERSION
+        if current_version < 7 and target_version >= 7:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS archived_pages (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -677,7 +707,7 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_archived_pages_hash ON archived_pages(hash)",
             )
 
-        if current_version < 8:
+        if current_version < 8 and target_version >= 8:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS crawl_tasks (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -697,7 +727,7 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_crawl_tasks_page_path ON crawl_tasks(page_path)",
             )
 
-        if current_version < 9:
+        if current_version < 9 and target_version >= 9:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS lxmf_forwarding_rules (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -735,7 +765,7 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_forwarding_mappings_recipient_hash ON lxmf_forwarding_mappings(final_recipient_hash)",
             )
 
-        if current_version < 10:
+        if current_version < 10 and target_version >= 10:
             # Ensure unique constraints exist for ON CONFLICT clauses
             # SQLite doesn't support adding UNIQUE constraints via ALTER TABLE,
             # but a UNIQUE index works for ON CONFLICT.
@@ -785,13 +815,13 @@ class DatabaseSchema:
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_conversation_read_state_dest_hash_unique ON lxmf_conversation_read_state(destination_hash)",
             )
 
-        if current_version < 11:
+        if current_version < 11 and target_version >= 11:
             # Add is_spam column to lxmf_messages if it doesn't exist
             self._safe_execute(
                 "ALTER TABLE lxmf_messages ADD COLUMN is_spam INTEGER DEFAULT 0",
             )
 
-        if current_version < 12:
+        if current_version < 12 and target_version >= 12:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS call_history (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -811,7 +841,7 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_call_history_timestamp ON call_history(timestamp)",
             )
 
-        if current_version < 13:
+        if current_version < 13 and target_version >= 13:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS voicemails (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -831,7 +861,7 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_voicemails_timestamp ON voicemails(timestamp)",
             )
 
-        if current_version < 14:
+        if current_version < 14 and target_version >= 14:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS notification_viewed_state (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -848,7 +878,7 @@ class DatabaseSchema:
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_viewed_state_dest_hash_unique ON notification_viewed_state(destination_hash)",
             )
 
-        if current_version < 15:
+        if current_version < 15 and target_version >= 15:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS lxmf_telemetry (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -872,12 +902,12 @@ class DatabaseSchema:
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_telemetry_dest_ts_unique ON lxmf_telemetry(destination_hash, timestamp)",
             )
 
-        if current_version < 16:
+        if current_version < 16 and target_version >= 16:
             self._safe_execute(
                 "ALTER TABLE lxmf_forwarding_rules ADD COLUMN name TEXT",
             )
 
-        if current_version < 17:
+        if current_version < 17 and target_version >= 17:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS ringtones (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -890,7 +920,7 @@ class DatabaseSchema:
                 )
             """)
 
-        if current_version < 18:
+        if current_version < 18 and target_version >= 18:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS contacts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -907,12 +937,12 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_contacts_remote_identity_hash ON contacts(remote_identity_hash)",
             )
 
-        if current_version < 19:
+        if current_version < 19 and target_version >= 19:
             self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_call_history_remote_name ON call_history(remote_identity_name)",
             )
 
-        if current_version < 20:
+        if current_version < 20 and target_version >= 20:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS notifications (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -932,7 +962,7 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_notifications_timestamp ON notifications(timestamp)",
             )
 
-        if current_version < 21:
+        if current_version < 21 and target_version >= 21:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS keyboard_shortcuts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -948,7 +978,7 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_keyboard_shortcuts_identity_hash ON keyboard_shortcuts(identity_hash)",
             )
 
-        if current_version < 22:
+        if current_version < 22 and target_version >= 22:
             # Optimize fetching conversations and favorites
             self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_timestamp ON lxmf_messages(timestamp)",
@@ -961,7 +991,7 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_announces_updated_at ON announces(updated_at)",
             )
 
-        if current_version < 23:
+        if current_version < 23 and target_version >= 23:
             # Further optimize conversation fetching
             self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_conv_optim ON lxmf_messages(source_hash, destination_hash, timestamp DESC)",
@@ -974,7 +1004,7 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_announces_aspect ON announces(aspect)",
             )
 
-        if current_version < 24:
+        if current_version < 24 and target_version >= 24:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS call_recordings (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -994,27 +1024,27 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_call_recordings_timestamp ON call_recordings(timestamp)",
             )
 
-        if current_version < 25:
+        if current_version < 25 and target_version >= 25:
             # Add docs_downloaded to config if not exists
             self._safe_execute(
                 "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
                 ("docs_downloaded", "0"),
             )
 
-        if current_version < 26:
+        if current_version < 26 and target_version >= 26:
             # Add initial_docs_download_attempted to config if not exists
             self._safe_execute(
                 "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
                 ("initial_docs_download_attempted", "0"),
             )
 
-        if current_version < 28:
+        if current_version < 28 and target_version >= 28:
             # Add preferred_ringtone_id to contacts
             self._safe_execute(
                 "ALTER TABLE contacts ADD COLUMN preferred_ringtone_id INTEGER DEFAULT NULL",
             )
 
-        if current_version < 29:
+        if current_version < 29 and target_version >= 29:
             # Performance optimization indexes
             self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_peer_hash ON lxmf_messages(peer_hash)",
@@ -1029,13 +1059,13 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_announces_updated_at ON announces(updated_at)",
             )
 
-        if current_version < 30:
+        if current_version < 30 and target_version >= 30:
             # Add custom_image to contacts
             self._safe_execute(
                 "ALTER TABLE contacts ADD COLUMN custom_image TEXT DEFAULT NULL",
             )
 
-        if current_version < 31:
+        if current_version < 31 and target_version >= 31:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS lxmf_last_sent_icon_hashes (
                     destination_hash TEXT PRIMARY KEY,
@@ -1045,7 +1075,7 @@ class DatabaseSchema:
                 )
             """)
 
-        if current_version < 32:
+        if current_version < 32 and target_version >= 32:
             # Add tutorial_seen and changelog_seen_version to config
             self._safe_execute(
                 "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
@@ -1056,7 +1086,7 @@ class DatabaseSchema:
                 ("changelog_seen_version", "0.0.0"),
             )
 
-        if current_version < 33:
+        if current_version < 33 and target_version >= 33:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS debug_logs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1079,13 +1109,13 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_debug_logs_anomaly ON debug_logs(is_anomaly)",
             )
 
-        if current_version < 34:
+        if current_version < 34 and target_version >= 34:
             # Add updated_at to crawl_tasks
             self._safe_execute(
                 "ALTER TABLE crawl_tasks ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP",
             )
 
-        if current_version < 35:
+        if current_version < 35 and target_version >= 35:
             # Add lxmf_address and lxst_address to contacts
             self._safe_execute(
                 "ALTER TABLE contacts ADD COLUMN lxmf_address TEXT DEFAULT NULL",
@@ -1094,7 +1124,7 @@ class DatabaseSchema:
                 "ALTER TABLE contacts ADD COLUMN lxst_address TEXT DEFAULT NULL",
             )
 
-        if current_version < 36:
+        if current_version < 36 and target_version >= 36:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS lxmf_folders (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1120,7 +1150,7 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_conversation_folders_folder_id ON lxmf_conversation_folders(folder_id)",
             )
 
-        if current_version < 37:
+        if current_version < 37 and target_version >= 37:
             # Add is_telemetry_trusted to contacts
             self._safe_execute(
                 "ALTER TABLE contacts ADD COLUMN is_telemetry_trusted INTEGER DEFAULT 0",
@@ -1131,7 +1161,7 @@ class DatabaseSchema:
                 ("telemetry_enabled", "false"),
             )
 
-        if current_version < 38:
+        if current_version < 38 and target_version >= 38:
             self._safe_execute(
                 "ALTER TABLE lxmf_messages ADD COLUMN reply_to_hash TEXT",
             )
@@ -1139,7 +1169,7 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_reply_to_hash ON lxmf_messages(reply_to_hash)",
             )
 
-        if current_version < 39:
+        if current_version < 39 and target_version >= 39:
             # Indexes for contacts JOIN columns (used in message_handler.get_conversations
             # and announce_manager.get_filtered_announces OR-based JOINs)
             self._safe_execute(
@@ -1172,7 +1202,7 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_state_peer ON lxmf_messages(state, peer_hash)",
             )
 
-        if current_version < 40:
+        if current_version < 40 and target_version >= 40:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS crash_history (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1191,12 +1221,12 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_crash_history_timestamp ON crash_history(timestamp)",
             )
 
-        if current_version < 41:
+        if current_version < 41 and target_version >= 41:
             self._safe_execute(
                 "ALTER TABLE lxmf_messages ADD COLUMN attachments_stripped INTEGER DEFAULT 0",
             )
 
-        if current_version < 42:
+        if current_version < 42 and target_version >= 42:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS access_attempts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1234,7 +1264,7 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_trusted_login_identity ON trusted_login_clients(identity_hash)",
             )
 
-        if current_version < 43:
+        if current_version < 43 and target_version >= 43:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS lxmf_conversation_pins (
                     peer_hash TEXT PRIMARY KEY NOT NULL,
@@ -1245,7 +1275,7 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_conversation_pins_pinned_at ON lxmf_conversation_pins(pinned_at)",
             )
 
-        if current_version < 44:
+        if current_version < 44 and target_version >= 44:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS user_stickers (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1267,7 +1297,7 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_user_stickers_identity_updated ON user_stickers(identity_hash, updated_at)",
             )
 
-        if current_version < 45:
+        if current_version < 45 and target_version >= 45:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS user_gifs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1291,7 +1321,7 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_user_gifs_identity_usage ON user_gifs(identity_hash, usage_count, last_used_at)",
             )
 
-        if current_version < 46:
+        if current_version < 46 and target_version >= 46:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS user_sticker_packs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1344,15 +1374,15 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_user_stickers_pack ON user_stickers(pack_id, sort_order)",
             )
 
-        if current_version < 47:
+        if current_version < 47 and target_version >= 47:
             self._ensure_column("lxmf_messages", "path_hops_at_send", "INTEGER")
             self._ensure_column("lxmf_messages", "path_interface_at_send", "TEXT")
 
-        if current_version < 48:
+        if current_version < 48 and target_version >= 48:
             self._ensure_column("lxmf_messages", "path_finding_measure", "TEXT")
             self._ensure_column("lxmf_messages", "path_row_hash_hex", "TEXT")
 
-        if current_version < 49:
+        if current_version < 49 and target_version >= 49:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS notification_sounds (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1365,7 +1395,7 @@ class DatabaseSchema:
                 )
             """)
 
-        if current_version < 50:
+        if current_version < 50 and target_version >= 50:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS map_overlay_sources (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1405,7 +1435,7 @@ class DatabaseSchema:
                 "ON map_overlay_sources(enabled, next_refresh_at)",
             )
 
-        if current_version < 51:
+        if current_version < 51 and target_version >= 51:
             # Slim conversation list/thread loads: persist attachment flags and
             # fields_meta (fields without base64 payloads) so queries never need
             # to instr()/SELECT multi-MB fields blobs on the hot path.
@@ -1525,7 +1555,7 @@ class DatabaseSchema:
                     """,
                 )
 
-        if current_version < 52:
+        if current_version < 52 and target_version >= 52:
             # Materialized per-peer latest row so conversation list queries do not
             # GROUP BY the full lxmf_messages table on every refresh.
             self._safe_execute(
@@ -1615,7 +1645,7 @@ class DatabaseSchema:
                     """,
                 )
 
-        if current_version < 53:
+        if current_version < 53 and target_version >= 53:
             # Encrypted client-side RRC room keys for +k rooms (identity-scoped).
             self._safe_execute(
                 """
