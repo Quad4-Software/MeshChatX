@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.8.2] - TBD
+## [4.8.2] - 2026-07-26
 
 ### Added
 
@@ -24,12 +24,14 @@ All notable changes to this project will be documented in this file.
 - **Network visualizer**: WebGL background follows light theme and clears while the WASM scene is still loading. Boot theme removes stale dark class when light is selected.
 - **Translator (Landlock)**: On Linux, allow read/execute for user-local pipx CLIs (`~/.local/bin`, `~/.local/share/pipx`) and read-write for Argos Translate data under `~/.local/share/argos-translate`, so `argospm` language lists and local Argos translation work with the filesystem sandbox enabled.
 - **Tests**: Landlock integration probes for subprocess spawn, translator Argos language listing, user-local CLI execution, and home write denial outside RW roots (`tests/backend/test_landlock_integration_surfaces.py`).
+- **Windows desktop**: AppContainer sandboxing is opt-in (set MESHCHAT_APPCONTAINER=1) instead of on by default, to avoid extra launcher processes and heavy startup until the path is stable.
+
+## [4.8.1] - 2026-07-25
 
 ### Fixed
 
 - **Windows desktop**: Frozen backends start again instead of failing when aiohttp imports the standard library email package.
 - **Desktop packaging**: Only the correct LXST filterlib binary ships per platform so integrity checks match the installer. CI runs a frozen import smoke test before release.
-- **Windows desktop**: AppContainer sandboxing is opt-in (set MESHCHAT_APPCONTAINER=1) instead of on by default, to avoid extra launcher processes and heavy startup until the path is stable.
 
 ## [4.8.0] - 2026-07-25
 
