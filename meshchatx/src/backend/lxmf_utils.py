@@ -587,6 +587,8 @@ def convert_lxmf_message_to_dict(
     include_attachments: bool = True,
     reticulum=None,
     message_router=None,
+    state_override: str | None = None,
+    method_override: str | None = None,
 ):
     # handle fields
     fields = {}
@@ -777,9 +779,13 @@ def convert_lxmf_message_to_dict(
         "source_hash": lxmf_message.source_hash.hex(),
         "destination_hash": lxmf_message.destination_hash.hex(),
         "is_incoming": lxmf_message.incoming,
-        "state": convert_lxmf_state_to_string(lxmf_message),
+        "state": state_override
+        if state_override is not None
+        else convert_lxmf_state_to_string(lxmf_message),
         "progress": progress_percentage,
-        "method": convert_lxmf_method_to_string(lxmf_message),
+        "method": method_override
+        if method_override is not None
+        else convert_lxmf_method_to_string(lxmf_message),
         "delivery_attempts": lxmf_message.delivery_attempts,
         "next_delivery_attempt_at": getattr(
             lxmf_message,

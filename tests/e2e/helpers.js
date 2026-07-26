@@ -8,23 +8,16 @@ const CSRF_HEADER = "X-CSRF-Token";
 const E2E_SCROLL_PEER_HASH = `e2e0${"0".repeat(28)}`;
 const E2E_SCROLL_ALT_PEER_HASH = `e2e1${"0".repeat(28)}`;
 
-const _csrfByOrigin = new Map();
-
 /**
  * @param {import('@playwright/test').APIRequestContext} request
  * @param {string} origin e.g. http://127.0.0.1:18079
  */
 async function ensureE2eCsrf(request, origin) {
-    const cached = _csrfByOrigin.get(origin);
-    if (cached) {
-        return cached;
-    }
     const res = await request.get(`${origin}/api/v1/auth/csrf`);
     expect(res.ok()).toBeTruthy();
     const body = await res.json();
     const token = body.csrf_token;
     expect(token && typeof token === "string").toBeTruthy();
-    _csrfByOrigin.set(origin, token);
     return token;
 }
 

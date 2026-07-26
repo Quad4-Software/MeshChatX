@@ -385,6 +385,7 @@ def register_identities_routes(routes, app):
                         "hotswapped": True,
                         "identity_hash": identity_hash,
                         "display_name": display_name,
+                        "requires_reauth": bool(app.auth_enabled),
                     },
                 )
             # fallback to restart if hotswap failed

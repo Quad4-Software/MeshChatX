@@ -656,6 +656,7 @@ def register_lxmf_routes(routes, app):
                 app_extensions=validated_app_extensions,
             )
 
+            is_local_self = app._is_self_lxmf_destination(destination_hash)
             return web.json_response(
                 {
                     "lxmf_message": convert_lxmf_message_to_dict(
@@ -665,6 +666,8 @@ def register_lxmf_routes(routes, app):
                         message_router=app.current_context.message_router
                         if app.current_context
                         else None,
+                        state_override="delivered" if is_local_self else None,
+                        method_override="local" if is_local_self else None,
                     ),
                 },
             )

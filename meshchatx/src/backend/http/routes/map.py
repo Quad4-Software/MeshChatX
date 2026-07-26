@@ -326,7 +326,8 @@ def register_map_routes(routes, app):
         if not app.map_overlay_manager:
             return web.json_response({"error": "unavailable"}, status=503)
         job_id = request.match_info.get("job_id")
-        job = app.map_overlay_manager.get_job(job_id)
+        identity_hash = app.identity.hash.hex()
+        job = app.map_overlay_manager.get_job(job_id, identity_hash=identity_hash)
         if not job:
             return web.json_response({"error": "not_found"}, status=404)
         return web.json_response(job)
@@ -336,7 +337,8 @@ def register_map_routes(routes, app):
         if not app.map_overlay_manager:
             return web.json_response({"error": "unavailable"}, status=503)
         job_id = request.match_info.get("job_id")
-        ok = app.map_overlay_manager.cancel_job(job_id)
+        identity_hash = app.identity.hash.hex()
+        ok = app.map_overlay_manager.cancel_job(job_id, identity_hash=identity_hash)
         if not ok:
             return web.json_response({"error": "not_found"}, status=404)
         return web.json_response({"cancelled": True})
