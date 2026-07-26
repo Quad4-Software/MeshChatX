@@ -11,16 +11,34 @@
         </header>
         <div class="settings-section__body space-y-3">
             <select :value="language" class="input-field" @change="onSelect">
-                <option value="en">English</option>
-                <option value="de">Deutsch</option>
-                <option value="ru">Русский</option>
-                <option value="it">Italiano</option>
+                <option v-for="lang in languages" :key="lang.code" :value="lang.code">
+                    {{ lang.name }}
+                </option>
             </select>
         </div>
     </section>
 </template>
 
 <script>
+import { listLocaleCodes } from "../../../js/localeLoader.js";
+
+const LANGUAGE_NAMES = {
+    de: "Deutsch",
+    en: "English",
+    es: "Español",
+    fi: "Suomi",
+    fr: "Français",
+    it: "Italiano",
+    nl: "Nederlands",
+    ru: "Русский",
+    zh: "中文",
+};
+
+const discoveredLanguages = listLocaleCodes().map((code) => ({
+    code,
+    name: LANGUAGE_NAMES[code] || code,
+}));
+
 export default {
     name: "LanguageSettingsSection",
     props: {
@@ -34,6 +52,11 @@ export default {
         },
     },
     emits: ["change"],
+    computed: {
+        languages() {
+            return discoveredLanguages;
+        },
+    },
     methods: {
         onSelect(event) {
             this.$emit("change", event.target.value);

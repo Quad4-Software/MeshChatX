@@ -414,6 +414,15 @@ describe("behavior contracts: locale, theme, and call audio", () => {
         expect(app).toContain("setLocale(this.$i18n");
     });
 
+    it("main.js registers the real i18n composer for Options API locale switches", () => {
+        const main = readSource("meshchatx/src/frontend/main.js");
+        expect(main).toContain("registerUiI18n");
+        expect(main).toContain("registerUiI18n(i18n)");
+        const loader = readSource("meshchatx/src/frontend/js/localeLoader.js");
+        expect(loader).toContain("export function registerUiI18n");
+        expect(loader).toContain("hasLocaleMessageApi");
+    });
+
     it("Settings language change applies vue-i18n locale after PATCH", () => {
         const settings = readSource("meshchatx/src/frontend/components/settings/SettingsPage.vue");
         expect(settings).toContain("async onLanguageChange()");

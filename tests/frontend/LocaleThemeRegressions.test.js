@@ -145,9 +145,14 @@ describe("locale and theme regressions", () => {
             expect(ctx.config.language).toBe("ru");
         });
 
-        it("onLanguageChange normalizes zh-cn before PATCH and applyLocale", async () => {
-            const updateConfig = vi.fn().mockResolvedValue(undefined);
-            const applyLocale = vi.fn().mockResolvedValue(undefined);
+        it("onLanguageChange applies locale before PATCH so UI is not stuck on English", async () => {
+            const order = [];
+            const updateConfig = vi.fn().mockImplementation(async () => {
+                order.push("updateConfig");
+            });
+            const applyLocale = vi.fn().mockImplementation(async () => {
+                order.push("applyLocale");
+            });
             const ctx = {
                 updateConfig,
                 applyLocale,
@@ -155,8 +160,9 @@ describe("locale and theme regressions", () => {
 
             await App.methods.onLanguageChange.call(ctx, "zh-cn");
 
-            expect(updateConfig).toHaveBeenCalledWith({ language: "zh" }, "language");
             expect(applyLocale).toHaveBeenCalledWith("zh");
+            expect(updateConfig).toHaveBeenCalledWith({ language: "zh" }, "language");
+            expect(order).toEqual(["applyLocale", "updateConfig"]);
         });
     });
 

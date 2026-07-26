@@ -4232,13 +4232,13 @@ export default {
             await this.onLanguageChange();
         },
         async onLanguageChange() {
+            await setLocale(this.$i18n, this.config.language);
             await this.updateConfig(
                 {
                     language: this.config.language,
                 },
                 "language"
             );
-            await setLocale(this.$i18n, this.config.language);
         },
         async onAutoResendFailedMessagesWhenAnnounceReceivedChangeWrapper(value) {
             this.config.auto_resend_failed_messages_when_announce_received = value;

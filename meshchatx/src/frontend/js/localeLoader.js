@@ -2,11 +2,74 @@
 
 const localeModules = import.meta.glob("../locales/*.json");
 
-function resolveComposer(i18nOrComposer) {
-    if (!i18nOrComposer) {
-        return null;
+/**
+ * Real vue-i18n Composer registered at app boot.
+ * Options API this.$i18n under legacy:false is a locale-only proxy without
+ * setLocaleMessage. Call sites pass that proxy, so loaders must fall back here.
+ * @type {import("vue-i18n").Composer | null}
+ */
+let registeredComposer = null;
+
+/**
+ * @param {unknown} obj
+ * @returns {boolean}
+ */
+function hasLocaleMessageApi(obj) {
+    return Boolean(obj && typeof obj.setLocaleMessage === "function");
+}
+
+/**
+ * @param {unknown} composer
+ * @returns {string[]}
+ */
+function listAvailableLocales(composer) {
+    const raw = composer?.availableLocales;
+    if (Array.isArray(raw)) {
+        return raw;
     }
-    return i18nOrComposer.global || i18nOrComposer;
+    if (raw && typeof raw === "object" && Array.isArray(raw.value)) {
+        return raw.value;
+    }
+    return [];
+}
+
+/**
+ * @param {import("vue-i18n").I18n | import("vue-i18n").Composer | null | undefined} i18nOrComposer
+ * @returns {import("vue-i18n").Composer | null}
+ */
+function resolveComposer(i18nOrComposer) {
+    if (i18nOrComposer) {
+        if (hasLocaleMessageApi(i18nOrComposer.global)) {
+            return i18nOrComposer.global;
+        }
+        if (hasLocaleMessageApi(i18nOrComposer)) {
+            return i18nOrComposer;
+        }
+    }
+    if (hasLocaleMessageApi(registeredComposer)) {
+        return registeredComposer;
+    }
+    return null;
+}
+
+/**
+ * Register the app i18n instance so Options API this.$i18n proxies can load packs.
+ * @param {import("vue-i18n").I18n | import("vue-i18n").Composer | null | undefined} i18nOrComposer
+ */
+export function registerUiI18n(i18nOrComposer) {
+    if (!i18nOrComposer) {
+        registeredComposer = null;
+        return;
+    }
+    if (hasLocaleMessageApi(i18nOrComposer.global)) {
+        registeredComposer = i18nOrComposer.global;
+        return;
+    }
+    if (hasLocaleMessageApi(i18nOrComposer)) {
+        registeredComposer = i18nOrComposer;
+        return;
+    }
+    registeredComposer = null;
 }
 
 /**
@@ -83,7 +146,7 @@ export async function ensureLocaleMessages(i18nOrComposer, code) {
     if (!composer) {
         return false;
     }
-    if (composer.availableLocales?.includes(code)) {
+    if (listAvailableLocales(composer).includes(code)) {
         return true;
     }
     if (typeof composer.setLocaleMessage !== "function") {

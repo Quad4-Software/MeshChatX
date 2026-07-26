@@ -30,7 +30,7 @@
                                 currentLanguage === lang.code,
                             'text-gray-900 dark:text-zinc-100': currentLanguage !== lang.code,
                         }"
-                        @click="selectLanguage(lang.code)"
+                        @click.stop="selectLanguage(lang.code)"
                     >
                         <span class="font-medium">{{ lang.name }}</span>
                         <MaterialDesignIcon v-if="currentLanguage === lang.code" icon-name="check" class="w-5 h-5" />
@@ -44,7 +44,7 @@
 <script>
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import { clampFloatingToViewport } from "../js/clampFloatingToViewport.js";
-import { ensureLocaleMessages, listLocaleCodes } from "../js/localeLoader.js";
+import { ensureLocaleMessages, listLocaleCodes, setLocale } from "../js/localeLoader.js";
 
 const LANGUAGE_NAMES = {
     de: "Deutsch",
@@ -145,8 +145,13 @@ export default {
                 return;
             }
 
+            // Apply immediately. Parent persists config. Options API this.$i18n is a
+            // locale-only proxy under legacy:false so setLocale uses registerUiI18n.
             try {
-                await ensureLocaleMessages(this.$i18n, langCode);
+                const ok = await setLocale(this.$i18n, langCode);
+                if (!ok) {
+                    await ensureLocaleMessages(this.$i18n, langCode);
+                }
             } catch {
                 // Locale pack may be unavailable in tests or offline shells.
             }
