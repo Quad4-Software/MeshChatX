@@ -1,5 +1,5 @@
 # Nightly / manual Android emulator smoke: build x86_64 debug APK, install on
-# an AVD, launch MainActivity, and require /api/v1/status == ok.
+# an AVD, launch MainActivity, and require /api/v1/status to respond (ok or starting).
 # Catches Chaquopy boot failures (missing modules, storage lock SystemExit, etc.)
 # that assembleDebug alone cannot see.
 #

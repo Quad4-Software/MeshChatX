@@ -186,7 +186,21 @@ Critical SQLite interaction:
 - Memory-pressure mode may shrink cache/mmap. While Landlock is active, keep MEMORY temp.
 - Without Landlock, FILE temp plus a storage-local `sqlite-tmp` TMPDIR is acceptable.
 
-Landlock apply is process-wide and one-shot. Tests that enable it must run in a subprocess.
+Subprocess and user-local tools:
+
+- Landlock is not only SQLite. Features that **exec** binaries or read data outside `/usr`, the Python prefix, and MeshChatX storage can fail with `Permission denied` while the UI still "detects" the tool on PATH.
+- Read/execute roots include typical pipx layouts: `~/.local/bin`, `~/.local/share/pipx`, and Argos package metadata under `~/.local/share/argos-translate` (RW for Stanza temp files during translation).
+- **Translator (Argos)**: language lists use `argospm list` when the CLI is present. Local translation runs `argos-translate` or the `argostranslate` Python module.
+- **rnsh / rnx**: prefer `python -m …` so installs are not blocked when `~/.local/bin` wrappers are not executable under Landlock. rnsh uses a storage-scoped `HOME`, not the real home directory.
+- **Not covered by default**: symlinks in `~/.local/bin` that point outside allowed trees (for example IDE agent shims), tools installed only under `~/.nvm`, and arbitrary `location_cmd` paths in interface config. Use `MESHCHAT_LANDLOCK=0` to debug or widen rules deliberately in `landlock_sandbox.py`.
+
+Landlock apply is process-wide and one-shot. Tests that enable it must run in a subprocess (`tests/backend/landlock_integration_support.py`).
+
+Verification after Landlock or subprocess-facing edits:
+
+```bash
+uv run pytest tests/backend/test_landlock_sandbox.py tests/backend/test_landlock_integration_surfaces.py tests/backend/test_sqlite_landlock_temp_store.py -q
+```
 
 Also see `docs/en/platform-guides/linux-sandbox.md` for Firejail / Bubblewrap host examples.
 

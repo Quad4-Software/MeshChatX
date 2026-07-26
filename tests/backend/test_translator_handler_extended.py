@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from meshchatx.src.backend.translator_handler import (
+    HAS_ARGOS_LIB,
     TranslatorHandler,
     _normalize_optional_libretranslate_api_key,
 )
@@ -357,3 +358,25 @@ def test_translate_explicit_api_key_overrides_handler_default(mock_session_cls):
     )
     body = mock_session.post.call_args.kwargs.get("json")
     assert body.get("api_key") == "one-off"
+
+
+@pytest.mark.skipif(not HAS_ARGOS_LIB, reason="argostranslate not installed")
+def test_get_supported_languages_falls_back_to_cli_when_lib_has_no_packages():
+    handler = TranslatorHandler(translator_argos_enabled=True)
+    handler.has_argos_lib = True
+    handler.has_argos_cli = True
+    handler.has_argos = True
+    handler.has_requests = False
+    handler.translator_libretranslate_enabled = False
+
+    with (
+        patch("meshchatx.src.backend.translator_handler.package") as mock_pkg,
+        patch.object(handler, "_get_argos_languages_cli") as mock_cli,
+    ):
+        mock_pkg.get_installed_packages.return_value = []
+        mock_cli.return_value = [{"code": "en", "name": "English", "source": "argos"}]
+        langs = handler.get_supported_languages()
+    assert any(
+        lang.get("code") == "en" and lang.get("source") == "argos" for lang in langs
+    )
+    mock_cli.assert_called_once()

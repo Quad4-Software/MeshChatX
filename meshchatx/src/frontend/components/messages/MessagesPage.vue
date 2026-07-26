@@ -97,6 +97,7 @@
                         @update-peer-tracking="onUpdatePeerTracking"
                         @close="onPaneClose(pane.id)"
                         @reload-conversations="requestConversationsRefresh"
+                        @outbound-compose-enqueued="onOutboundComposeEnqueued"
                     />
                     <div
                         v-if="!pane.peer"
@@ -981,6 +982,54 @@ export default {
             }
             const peer = this.peers[peerHash];
             return peer?.custom_display_name ?? peer?.display_name ?? "Anonymous Peer";
+        },
+        onOutboundComposeEnqueued(payload) {
+            if (!payload || !payload.peerHash) {
+                return;
+            }
+            const peerHash = payload.peerHash;
+            const nowSec = Math.floor(Date.now() / 1000);
+            const stub = {
+                content: payload.previewText || "",
+                title: payload.title || "",
+                fields: payload.fields || {},
+                hash: payload.pendingHash || "",
+                timestamp: nowSec,
+                is_incoming: false,
+            };
+            const peerDisplay = this.peerDisplayNameForConversationSidebar(peerHash);
+            const preview = lxmfConversationListPreview(stub, {
+                myLxmfAddressHash: this.config?.lxmf_address_hash || "",
+                peerDisplayName: peerDisplay,
+                t: this.$t.bind(this),
+            });
+            const idx = this.conversations.findIndex((c) => c.destination_hash === peerHash);
+            if (idx !== -1) {
+                const conv = this.conversations[idx];
+                conv.latest_message_preview = preview;
+                conv.latest_message_title = stub.title;
+                conv.latest_message_created_at = nowSec;
+                conv.updated_at = new Date(nowSec * 1000).toISOString();
+            } else {
+                const peer = this.peers[peerHash];
+                this.conversations.unshift({
+                    destination_hash: peerHash,
+                    display_name: peer?.display_name ?? this.selectedPeer?.display_name ?? "Anonymous Peer",
+                    custom_display_name: peer?.custom_display_name ?? this.selectedPeer?.custom_display_name ?? null,
+                    contact_image: peer?.contact_image ?? null,
+                    lxmf_user_icon: peer?.lxmf_user_icon ?? null,
+                    is_unread: false,
+                    is_tracking: peer?.is_tracking ?? false,
+                    failed_messages_count: 0,
+                    has_attachments: false,
+                    latest_message_preview: preview,
+                    latest_message_title: stub.title,
+                    latest_message_created_at: nowSec,
+                    updated_at: new Date(nowSec * 1000).toISOString(),
+                    is_contact: false,
+                });
+                this.resolvePeerDisplayName(peerHash);
+            }
         },
         onOutboundMessageCreated(msg) {
             const peerHash = this.peerHashFromMessage(msg);

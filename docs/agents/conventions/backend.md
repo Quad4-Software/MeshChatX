@@ -11,6 +11,7 @@ Applies when editing `meshchatx/**/*.py`.
 - Multipart parsers must not assume field order.
 - SQLite worker connections must set `temp_store=MEMORY` in `DatabaseProvider` (Landlock-safe).
 - Under Landlock, memory-pressure must not force FILE temp for conversation queries.
+- Subprocess or user-local CLI features must remain usable under Landlock. Extend `landlock_sandbox.py` read/RW roots and add a probe in `tests/backend/test_landlock_integration_surfaces.py` (see `landlock-sqlite` skill).
 - Keep conversation list queries slim: truncate content, derive attachment flags in SQL, avoid shipping full `fields` blobs.
 - Identity restore validates size and empty payloads. Preserve existing identity metadata on re-import.
 - No backticks in code comments. Prefer plain words or quoted identifiers.

@@ -10,6 +10,10 @@ ACTIVITY="${MESHCHATX_ANDROID_ACTIVITY:-com.meshchatx/.MainActivity}"
 STATUS_PATH="${MESHCHATX_SMOKE_STATUS_PATH:-/api/v1/status}"
 TIMEOUT_SEC="${MESHCHATX_SMOKE_TIMEOUT_SEC:-180}"
 LOGCAT_TAG_FILTER="${MESHCHATX_SMOKE_LOGCAT_FILTER:-Python|meshchat|MeshChat|chaquo|AndroidRuntime}"
+DEVICE_HTTP_PORT="${MESHCHATX_SMOKE_DEVICE_PORT:-8000}"
+FORWARD_LOCAL_PORT="${MESHCHATX_SMOKE_FORWARD_PORT:-18080}"
+PROBE_CURL_MAX_TIME="${MESHCHATX_SMOKE_PROBE_MAX_TIME:-5}"
+last_probe_body=""
 
 APK="${1:-${MESHCHATX_APK:-}}"
 if [[ -z "${APK}" ]]; then
@@ -53,11 +57,25 @@ cleanup_logcat() {
     kill "${logcat_pid}" >/dev/null 2>&1 || true
     wait "${logcat_pid}" >/dev/null 2>&1 || true
 }
-trap 'cleanup_logcat; rm -rf "${workdir}"' EXIT
+
+teardown_adb_forward() {
+    adb forward --remove "tcp:${FORWARD_LOCAL_PORT}" >/dev/null 2>&1 || true
+}
+
+setup_adb_forward() {
+    teardown_adb_forward
+    adb forward "tcp:${FORWARD_LOCAL_PORT}" "tcp:${DEVICE_HTTP_PORT}"
+}
+
+trap 'teardown_adb_forward; cleanup_logcat; rm -rf "${workdir}"' EXIT
 
 fail_with_logs() {
     local reason="$1"
     echo "::error::Android emulator smoke failed: ${reason}"
+    if [[ -n "${last_probe_body}" ]]; then
+        echo "---- last /api/v1/status probe body ----"
+        printf '%s\n' "${last_probe_body}"
+    fi
     echo "---- logcat (filtered) ----"
     grep -E "${LOGCAT_TAG_FILTER}|PyException|SystemExit|ModuleNotFoundError|StorageLock|backend failed|Error starting MeshChatX" \
         "${logcat_file}" | tail -n 200 || true
@@ -66,22 +84,67 @@ fail_with_logs() {
     exit 1
 }
 
-probe_status_ok() {
-    # Probe from inside the emulator (server binds 127.0.0.1 on-device).
-    # Prefer toybox wget (API 30+ images). Fall back to python if present.
+status_body_is_healthy() {
+    local body="$1"
+    if [[ -z "${body}" ]]; then
+        return 1
+    fi
+    if printf '%s' "${body}" | grep -qE '"status"[[:space:]]*:[[:space:]]*"failed"'; then
+        return 1
+    fi
+    # ok: network ready. starting: HTTP up while RNS finishes (normal on Android boot).
+    printf '%s' "${body}" | grep -qE '"status"[[:space:]]*:[[:space:]]*"(ok|starting)"'
+}
+
+probe_status_via_host_forward() {
     local body=""
-    if adb shell "command -v wget >/dev/null 2>&1" >/dev/null 2>&1; then
-        body="$(adb shell "wget -qO- --no-check-certificate https://127.0.0.1:8000${STATUS_PATH}" 2>/dev/null | tr -d '\r' || true)"
+    if ! command -v curl >/dev/null 2>&1; then
+        return 1
+    fi
+    body="$(
+        curl -ksS --max-time "${PROBE_CURL_MAX_TIME}" \
+            "https://127.0.0.1:${FORWARD_LOCAL_PORT}${STATUS_PATH}" 2>/dev/null || true
+    )"
+    if [[ -z "${body}" ]]; then
+        body="$(
+            curl -fsS --max-time "${PROBE_CURL_MAX_TIME}" \
+                "http://127.0.0.1:${FORWARD_LOCAL_PORT}${STATUS_PATH}" 2>/dev/null || true
+        )"
+    fi
+    if [[ -z "${body}" ]]; then
+        return 1
+    fi
+    last_probe_body="${body}"
+    status_body_is_healthy "${body}"
+}
+
+probe_status_via_device_shell() {
+    # Fallback when host curl or adb forward is unavailable.
+    local body=""
+    local device_base="127.0.0.1:${DEVICE_HTTP_PORT}"
+    if adb shell "command -v curl >/dev/null 2>&1" >/dev/null 2>&1; then
+        body="$(
+            adb shell "curl -ksS --max-time ${PROBE_CURL_MAX_TIME} https://${device_base}${STATUS_PATH}" \
+                2>/dev/null | tr -d '\r' || true
+        )"
         if [[ -z "${body}" ]]; then
-            body="$(adb shell "wget -qO- http://127.0.0.1:8000${STATUS_PATH}" 2>/dev/null | tr -d '\r' || true)"
+            body="$(
+                adb shell "curl -fsS --max-time ${PROBE_CURL_MAX_TIME} http://${device_base}${STATUS_PATH}" \
+                    2>/dev/null | tr -d '\r' || true
+            )"
         fi
-    elif adb shell "command -v curl >/dev/null 2>&1" >/dev/null 2>&1; then
-        body="$(adb shell "curl -ksS --max-time 3 https://127.0.0.1:8000${STATUS_PATH}" 2>/dev/null | tr -d '\r' || true)"
+    elif adb shell "command -v wget >/dev/null 2>&1" >/dev/null 2>&1; then
+        body="$(
+            adb shell "wget -qO- -T ${PROBE_CURL_MAX_TIME} --no-check-certificate https://${device_base}${STATUS_PATH}" \
+                2>/dev/null | tr -d '\r' || true
+        )"
         if [[ -z "${body}" ]]; then
-            body="$(adb shell "curl -fsS --max-time 3 http://127.0.0.1:8000${STATUS_PATH}" 2>/dev/null | tr -d '\r' || true)"
+            body="$(
+                adb shell "wget -qO- -T ${PROBE_CURL_MAX_TIME} http://${device_base}${STATUS_PATH}" \
+                    2>/dev/null | tr -d '\r' || true
+            )"
         fi
     else
-        # Escape path for embedding in a double-quoted adb shell command.
         local py_path
         py_path="$(printf '%s' "${STATUS_PATH}" | sed 's/\\/\\\\/g; s/"/\\"/g')"
         body="$(
@@ -89,12 +152,12 @@ probe_status_ok() {
 import ssl, urllib.request
 ctx = ssl._create_unverified_context()
 urls = (
-    ('https://127.0.0.1:8000${py_path}', ctx),
-    ('http://127.0.0.1:8000${py_path}', None),
+    ('https://${device_base}${py_path}', ctx),
+    ('http://${device_base}${py_path}', None),
 )
 for url, context in urls:
     try:
-        kwargs = {'timeout': 3}
+        kwargs = {'timeout': ${PROBE_CURL_MAX_TIME}}
         if context is not None:
             kwargs['context'] = context
         print(urllib.request.urlopen(url, **kwargs).read().decode())
@@ -104,8 +167,21 @@ for url, context in urls:
 \"" 2>/dev/null | tr -d '\r' || true
         )"
     fi
-    printf '%s' "${body}" | grep -q '"status"[[:space:]]*:[[:space:]]*"ok"'
+    if [[ -z "${body}" ]]; then
+        return 1
+    fi
+    last_probe_body="${body}"
+    status_body_is_healthy "${body}"
 }
+
+probe_status_ok() {
+    if probe_status_via_host_forward; then
+        return 0
+    fi
+    probe_status_via_device_shell
+}
+
+setup_adb_forward
 
 echo "Waiting up to ${TIMEOUT_SEC}s for backend health (${STATUS_PATH})"
 deadline=$((SECONDS + TIMEOUT_SEC))
@@ -125,8 +201,8 @@ while (( SECONDS < deadline )); do
 done
 
 if [[ "${healthy}" -ne 1 ]]; then
-    fail_with_logs "backend /api/v1/status did not become ok within ${TIMEOUT_SEC}s"
+    fail_with_logs "backend ${STATUS_PATH} did not return ok or starting within ${TIMEOUT_SEC}s"
 fi
 
-echo "Android emulator smoke OK: ${STATUS_PATH} returned status=ok"
+echo "Android emulator smoke OK: ${STATUS_PATH} -> ${last_probe_body}"
 grep -E "${LOGCAT_TAG_FILTER}" "${logcat_file}" | tail -n 40 || true

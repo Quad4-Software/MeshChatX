@@ -22,7 +22,7 @@ export function outboundBubbleStatusIconName(lxmfMessage) {
         if (method === "propagated") {
             return "email-check-outline";
         }
-        if (method === "paper") {
+        if (method === "paper" || method === "local") {
             return "note-check-outline";
         }
         return "check-all";
@@ -31,7 +31,7 @@ export function outboundBubbleStatusIconName(lxmfMessage) {
         if (method === "propagated") {
             return "email-outline";
         }
-        if (method === "paper") {
+        if (method === "paper" || method === "local") {
             return "note-outline";
         }
         return "check";
@@ -51,7 +51,13 @@ export function outboundBubbleStatusTitleKey(lxmfMessage) {
         if (lxmfMessage.method === "propagated") {
             return "messages.outbound_delivered_propagated";
         }
+        if (lxmfMessage.method === "local") {
+            return "messages.outbound_delivered_local";
+        }
         return "messages.outbound_delivered";
+    }
+    if (lxmfMessage.method === "local") {
+        return "messages.outbound_saved_local";
     }
     if (lxmfMessage.method === "propagated") {
         return "messages.outbound_on_propagation_node";

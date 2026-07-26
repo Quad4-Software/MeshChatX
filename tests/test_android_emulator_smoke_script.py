@@ -46,3 +46,4 @@ def test_workflow_references_smoke_script():
     smoke_script = smoke_step.split("script:", 1)[1].split("\n", 1)[0]
     assert "bash scripts/ci/android-emulator-smoke.sh" in smoke_script
     assert "set -euo pipefail" not in smoke_script
+    assert "adb forward" in _SCRIPT.read_text(encoding="utf-8")

@@ -54,12 +54,12 @@ Optional editor rules (if present under `.cursor/rules/` or similar):
 
 ### Identity and data
 
-| Skill                                                                      | Use when                                          |
-| -------------------------------------------------------------------------- | ------------------------------------------------- |
-| [identity-restore](skills/identity-restore/SKILL.md)                       | Identity key vs database zip restore              |
-| [identity-switch-teardown](skills/identity-switch-teardown/SKILL.md)       | Live identity switch without cross-identity leaks |
-| [database-migrations-backups](skills/database-migrations-backups/SKILL.md) | Schema bumps, backups, snapshots, restore safety  |
-| [landlock-sqlite](skills/landlock-sqlite/SKILL.md)                         | Landlock + SQLite conversation failures           |
+| Skill                                                                      | Use when                                            |
+| -------------------------------------------------------------------------- | --------------------------------------------------- |
+| [identity-restore](skills/identity-restore/SKILL.md)                       | Identity key vs database zip restore                |
+| [identity-switch-teardown](skills/identity-switch-teardown/SKILL.md)       | Live identity switch without cross-identity leaks   |
+| [database-migrations-backups](skills/database-migrations-backups/SKILL.md) | Schema bumps, backups, snapshots, restore safety    |
+| [landlock-sqlite](skills/landlock-sqlite/SKILL.md)                         | Landlock + SQLite, subprocess/user-local CLI probes |
 
 ### Security and plugins
 
