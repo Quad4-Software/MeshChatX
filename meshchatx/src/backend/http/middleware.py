@@ -4,7 +4,7 @@
 
 Factories take the live app instance and return middleware callables.
 Order returned by register_all_routes / _define_routes must remain:
-auth, mime_type, security, csrf, ip_allowlist.
+auth, mime_type, security, csrf, ip_allowlist, demo_mode.
 """
 
 from __future__ import annotations
