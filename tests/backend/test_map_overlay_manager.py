@@ -465,3 +465,44 @@ async def test_cancel_job(manager):
     await asyncio.wait_for(started.wait(), timeout=2)
     assert manager.cancel_job(job_id) is True
     assert manager.get_job(job_id)["status"] == "cancelled"
+
+
+@pytest.mark.asyncio
+async def test_cleanup_cancels_running_overlay_job(manager):
+    identity = "id_cleanup"
+    started = asyncio.Event()
+
+    class FakeDownloader:
+        def __init__(self, **kwargs):
+            self._failure = kwargs["on_file_download_failure"]
+            self.cancelled = False
+
+        def cancel(self):
+            self.cancelled = True
+            self._failure("cancelled")
+
+        async def download(self, **_kwargs):
+            started.set()
+            await asyncio.sleep(10)
+
+    manager._file_downloader_factory = lambda **kw: FakeDownloader(**kw)
+    created = await manager.create_overlays(
+        identity,
+        {"kind": "nomadnet_file", "url": f"{HASH}:/file/layer.geojson"},
+    )
+    job_id = created["job_id"]
+    await asyncio.wait_for(started.wait(), timeout=2)
+    manager.cleanup()
+    assert manager.get_job(job_id) is None
+
+
+def test_get_job_and_cancel_scoped_to_identity_hash(manager):
+    manager._jobs["job-a"] = {
+        "job_id": "job-a",
+        "identity_hash": "aa" * 16,
+        "status": "running",
+        "overlay_ids": [],
+    }
+    assert manager.get_job("job-a", identity_hash="bb" * 16) is None
+    assert manager.get_job("job-a", identity_hash="aa" * 16) is not None
+    assert manager.cancel_job("job-a", identity_hash="bb" * 16) is False

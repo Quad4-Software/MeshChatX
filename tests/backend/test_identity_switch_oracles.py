@@ -162,7 +162,67 @@ async def test_oracle_concurrent_hotswap_serializes_critical_section(
 
 
 @pytest.mark.asyncio
-async def test_oracle_delete_identity_evicts_keep_alive_context(mock_rns, temp_dir):
+async def test_oracle_hotswap_broadcast_requires_reauth_when_auth_enabled(
+    mock_rns,
+    temp_dir,
+):
+    app = ReticulumMeshChat(
+        identity=mock_rns["id_instance"],
+        storage_dir=temp_dir,
+        reticulum_config_dir=temp_dir,
+        auth_enabled=True,
+    )
+    app.websocket_broadcast = AsyncMock()
+    app.teardown_identity = MagicMock()
+    mock_ctx = MagicMock()
+    mock_ctx.config.display_name.get.return_value = "User"
+    mock_ctx.config.auth_enabled.get.return_value = True
+    app.setup_identity = MagicMock(side_effect=lambda _id: setattr(app, "current_context", mock_ctx))
+
+    new_hash = "ee" * 16
+    _write_identity_tree(temp_dir, new_hash, b"key")
+    new_id = MagicMock()
+    new_id.hash = bytes.fromhex(new_hash)
+    mock_rns["Identity"].from_file.return_value = new_id
+
+    with patch("meshchatx.meshchat.asyncio.sleep", new=AsyncMock()):
+        await app.hotswap_identity(new_hash)
+
+    payload = json.loads(app.websocket_broadcast.call_args[0][0])
+    assert payload["type"] == "identity_switched"
+    assert payload["requires_reauth"] is True
+
+
+@pytest.mark.asyncio
+async def test_oracle_hotswap_broadcast_no_reauth_when_auth_disabled(
+    mock_rns,
+    temp_dir,
+):
+    app = ReticulumMeshChat(
+        identity=mock_rns["id_instance"],
+        storage_dir=temp_dir,
+        reticulum_config_dir=temp_dir,
+        auth_enabled=False,
+    )
+    app.websocket_broadcast = AsyncMock()
+    app.teardown_identity = MagicMock()
+    mock_ctx = MagicMock()
+    mock_ctx.config.display_name.get.return_value = "User"
+    mock_ctx.config.auth_enabled.get.return_value = False
+    app.setup_identity = MagicMock(side_effect=lambda _id: setattr(app, "current_context", mock_ctx))
+
+    new_hash = "ff" * 16
+    _write_identity_tree(temp_dir, new_hash, b"key")
+    new_id = MagicMock()
+    new_id.hash = bytes.fromhex(new_hash)
+    mock_rns["Identity"].from_file.return_value = new_id
+
+    with patch("meshchatx.meshchat.asyncio.sleep", new=AsyncMock()):
+        await app.hotswap_identity(new_hash)
+
+    payload = json.loads(app.websocket_broadcast.call_args[0][0])
+    assert payload.get("requires_reauth") is False
+
     app = ReticulumMeshChat(
         identity=mock_rns["id_instance"],
         storage_dir=temp_dir,

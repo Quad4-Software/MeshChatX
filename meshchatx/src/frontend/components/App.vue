@@ -1436,6 +1436,21 @@ export default {
 
             ToastUtils.success(this.$t("identities.switched"));
 
+            if (json?.requires_reauth && GlobalState.authEnabled) {
+                GlobalState.authenticated = false;
+                try {
+                    await fetchCsrfToken(window.api);
+                } catch {
+                    // Next mutating request will refresh CSRF when auth completes.
+                }
+                if (this.$route?.name !== "auth") {
+                    this.$router.push("/auth");
+                }
+                this.isSwitchingIdentity = false;
+                GlobalEmitter.emit("identity-switched", json);
+                return;
+            }
+
             GlobalState.unreadConversationsCount = 0;
             GlobalState.missedCallsCount = 0;
             GlobalState.blockedDestinations = [];

@@ -684,6 +684,7 @@ export default {
                     GlobalEmitter.emit("identity-switched-apply", {
                         identity_hash: response.data.identity_hash ?? identity.hash,
                         display_name: response.data.display_name ?? identity.display_name ?? "",
+                        requires_reauth: Boolean(response.data.requires_reauth),
                     });
                 } else {
                     ToastUtils.info(this.$t("identities.switch_scheduled"));

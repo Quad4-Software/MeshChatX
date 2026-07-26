@@ -2884,6 +2884,7 @@ class ReticulumMeshChat:
                             if hasattr(self, "config")
                             else "Unknown"
                         ),
+                        "requires_reauth": bool(self.auth_enabled),
                     },
                 ),
             )
@@ -9368,6 +9369,7 @@ class ReticulumMeshChat:
                 )
 
         if is_local_self:
+            lxmf_message.pack()
             lxmf_message.state = LXMF.LXMessage.DELIVERED
             lxmf_message.progress = 1.0
             local_peer = ctx.local_lxmf_destination.hexhash

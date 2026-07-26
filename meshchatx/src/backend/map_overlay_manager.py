@@ -222,8 +222,13 @@ class MapOverlayManager:
             return None
         return _row_to_dict(row)
 
-    def get_job(self, job_id: str) -> dict[str, Any] | None:
-        return self._jobs.get(job_id)
+    def get_job(self, job_id: str, identity_hash: str | None = None) -> dict[str, Any] | None:
+        job = self._jobs.get(job_id)
+        if job is None:
+            return None
+        if identity_hash is not None and job.get("identity_hash") != identity_hash:
+            return None
+        return job
 
     async def create_overlays(
         self,
@@ -713,9 +718,11 @@ class MapOverlayManager:
             cache_relpath=rel,
         )
 
-    def cancel_job(self, job_id: str) -> bool:
+    def cancel_job(self, job_id: str, identity_hash: str | None = None) -> bool:
         job = self._jobs.get(job_id)
         if not job or job.get("status") not in ("running",):
+            return False
+        if identity_hash is not None and job.get("identity_hash") != identity_hash:
             return False
         fetcher = self._active_fetchers.get(job_id)
         if fetcher is not None:
@@ -876,6 +883,12 @@ class MapOverlayManager:
 
     def cleanup(self) -> None:
         self.stop_scheduler()
+        for job_id in list(self._jobs.keys()):
+            job = self._jobs.get(job_id)
+            if job and job.get("status") == "running":
+                self.cancel_job(job_id)
+        self._jobs.clear()
+        self._active_fetchers.clear()
         work = os.path.join(self.overlay_root(), ".work")
         if os.path.isdir(work):
             shutil.rmtree(work, ignore_errors=True)
