@@ -112,13 +112,14 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { language: "de" });
     });
 
-    it("onLanguageChange applies setLocale after PATCH", async () => {
+    it("onLanguageChange applies setLocale before PATCH", async () => {
         const setLocaleSpy = vi.spyOn(localeLoader, "setLocale").mockResolvedValue(true);
         const w = await mountSettingsPage(api);
         w.vm.$i18n = { global: { locale: { value: "en" } } };
         w.vm.config.language = "ru";
         await w.vm.onLanguageChange();
         expect(setLocaleSpy).toHaveBeenCalledWith(w.vm.$i18n, "ru");
+        expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { language: "ru" });
         setLocaleSpy.mockRestore();
     });
 

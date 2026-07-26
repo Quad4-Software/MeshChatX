@@ -2700,11 +2700,11 @@ export default {
         async onLanguageChange(langCode) {
             const code = normalizeUiLocaleCode(langCode);
             try {
+                await setLocale(this.$i18n, code);
                 await window.api.patch("/api/v1/config", {
                     language: code,
                 });
                 GlobalState.config.language = code;
-                await setLocale(this.$i18n, code);
             } catch (e) {
                 console.error("Failed to update language:", e);
             }

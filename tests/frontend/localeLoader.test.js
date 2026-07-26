@@ -1,15 +1,20 @@
 // SPDX-License-Identifier: 0BSD
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, afterEach } from "vitest";
 import { createI18n } from "vue-i18n";
 import {
     ensureLocaleMessages,
     listLocaleCodes,
     normalizeUiLocaleCode,
+    registerUiI18n,
     setLocale,
 } from "../../meshchatx/src/frontend/js/localeLoader.js";
 
 describe("localeLoader", () => {
+    afterEach(() => {
+        registerUiI18n(null);
+    });
+
     it("lists locale codes with english first", () => {
         const codes = listLocaleCodes();
         expect(codes[0]).toBe("en");
@@ -73,5 +78,18 @@ describe("localeLoader", () => {
         for (const code of junk) {
             await expect(ensureLocaleMessages(i18n, code)).resolves.toBeTypeOf("boolean");
         }
+    });
+
+    it("registerUiI18n lets setLocale recover from a locale-only proxy", async () => {
+        const i18n = createI18n({ legacy: false, locale: "en", messages: { en: { hi: "hi" } } });
+        const proxy = {
+            locale: "en",
+            availableLocales: ["en"],
+            fallbackLocale: "en",
+        };
+        expect(await setLocale(proxy, "de")).toBe(false);
+        registerUiI18n(i18n);
+        expect(await setLocale(proxy, "de")).toBe(true);
+        expect(i18n.global.locale.value).toBe("de");
     });
 });

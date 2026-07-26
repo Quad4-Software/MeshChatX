@@ -1993,13 +1993,14 @@ export default {
         },
         async onLanguageChange(langCode) {
             const code = normalizeUiLocaleCode(langCode);
+            // Switch UI first so a slow or failed PATCH cannot leave the shell stuck on English.
+            await this.applyLocale(code);
             await this.updateConfig(
                 {
                     language: code,
                 },
                 "language"
             );
-            await this.applyLocale(code);
         },
         async composeNewMessage() {
             // go to messages route

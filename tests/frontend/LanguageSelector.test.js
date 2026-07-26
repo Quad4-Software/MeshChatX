@@ -1,5 +1,6 @@
-import { mount } from "@vue/test-utils";
+import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi } from "vitest";
+import { nextTick } from "vue";
 import LanguageSelector from "@/components/LanguageSelector.vue";
 
 describe("LanguageSelector.vue", () => {
@@ -68,6 +69,8 @@ describe("LanguageSelector.vue", () => {
 
         const deButton = wrapper.findAll(".fixed button")[1];
         await deButton.trigger("click");
+        await flushPromises();
+        await nextTick();
 
         expect(wrapper.emitted("language-change")).toBeTruthy();
         expect(wrapper.emitted("language-change")[0]).toEqual(["de"]);
@@ -80,6 +83,8 @@ describe("LanguageSelector.vue", () => {
 
         const enButton = wrapper.findAll(".fixed button")[0];
         await enButton.trigger("click");
+        await flushPromises();
+        await nextTick();
 
         expect(wrapper.emitted("language-change")).toBeFalsy();
         expect(wrapper.find(".fixed").exists()).toBe(false);

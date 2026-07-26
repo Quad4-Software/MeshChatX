@@ -5,6 +5,7 @@ import vClickOutside from "./libs/clickOutside.js";
 import DOMPurify from "dompurify";
 import "./style.css";
 import { injectMeshchatThemeVariables, vuetifyThemesFromTokens } from "./theme/designTokens.js";
+import { registerUiI18n } from "./js/localeLoader.js";
 
 injectMeshchatThemeVariables();
 
@@ -43,6 +44,7 @@ const i18n = createI18n({
         en: enMessages,
     },
 });
+registerUiI18n(i18n);
 
 // init vuetify
 import { createVuetify } from "vuetify";

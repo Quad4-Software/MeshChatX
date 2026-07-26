@@ -36,6 +36,16 @@ Access attempts are logged. Repeated failures can trigger lockout when auth is e
 
 Reset a forgotten password with `--reset-password` or `MESHCHAT_RESET_PASSWORD=true`, then set a new password in the UI.
 
+### Demo mode and ALTCHA
+
+`MESHCHAT_DEMO_MODE=1` (or `--demo`) enables a public showcase profile: privacy mode on, plugins off, no outbound announces, and a default-deny HTTP mutation policy with mesh send blocked. Status reports `demo_mode: true`.
+
+When `MESHCHAT_ALTCHA_ENABLED=1`, login and setup require a valid [ALTCHA](https://altcha.org/docs/v2/widget-v3/) proof-of-work payload (widget v3, server challenges use `PBKDF2/SHA-256` by default). Set `MESHCHAT_ALTCHA_HMAC_KEY` to a long random secret on the server. Optional `MESHCHAT_ALTCHA_COST` tunes PoW difficulty. The widget loads from the bundled `altcha` npm package and fetches challenges from `/api/v1/auth/altcha/challenge`.
+
+`MESHCHAT_AUTH_PAGE_HINT` sets optional plain text on the login page (independent of demo mode). Demo Docker compose defaults to username and password hints for the showcase account.
+
+`MESHCHAT_AUTH_BYPASS=1` skips session auth for local testing only. Do not use it on internet-facing deployments.
+
 ## Transport security
 
 - HTTPS and WSS are on by default.
@@ -59,7 +69,7 @@ Privacy mode does not disable Reticulum mesh traffic. It limits clearnet fetches
 
 On Linux, MeshChatX can enable two complementary in-process sandboxes when supported:
 
-- **Landlock** restricts filesystem paths the backend may use
+- **Landlock** restricts filesystem paths the backend may use. User-local pipx tools (for example Argos Translate under `~/.local`) need explicit read and sometimes write roots. See **Linux sandboxing** in Platform guides.
 - **Seccomp-BPF** installs a syscall denylist (via libseccomp) that blocks kernel-admin and related calls a mesh client does not need
 
 Both auto-enable when available and fall back to a no-op when the platform, kernel, or libraries cannot support them. Override with:
@@ -77,11 +87,14 @@ Use **Blocked** for specific destination hashes. Combine with sieve filters, mes
 
 ## Data backup
 
-Database backups land in `database-backups/`. Export snapshots from **About** or the API. Electron crash recovery can offer restore when integrity checks fail.
+Database backups land in `database-backups/`. Before a schema upgrade, MeshChatX writes a `backup-pre-migrate-v*-to-v*.zip` in that folder unless `MESHCHAT_SKIP_PRE_MIGRATE_BACKUP=1`. After a successful migration it runs `PRAGMA quick_check` and keeps the five newest pre-migrate zips (override with `MESHCHAT_PRE_MIGRATE_BACKUP_KEEP`, `0` disables pruning). If the stored schema version is newer than this build supports, startup refuses to migrate. Only one process should use a given identity storage directory at a time (storage lock). Roll back by restoring a backup zip and running an older MeshChatX build. Export snapshots from **About** or the API. Electron crash recovery can offer restore when integrity checks fail.
 
-CLI restore example:
+CLI examples:
 
 ```bash
+meshchatx --list-backups
+meshchatx --export-backup /path/to/export.zip
+meshchatx --export-backup backup-20260101-120000.zip /path/to/copy.zip
 meshchatx --restore-db /path/to/backup.zip
 ```
 
