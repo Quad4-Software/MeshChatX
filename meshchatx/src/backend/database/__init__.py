@@ -626,7 +626,9 @@ class Database:
             )
         return sorted(backups, key=lambda row: row["created_at"], reverse=True)
 
-    def copy_auto_backup(self, storage_path: str, filename: str, dest_path: str) -> dict:
+    def copy_auto_backup(
+        self, storage_path: str, filename: str, dest_path: str
+    ) -> dict:
         from meshchatx.src.path_utils import safe_path_under_dir
 
         if not isinstance(filename, str) or not filename or "\x00" in filename:
