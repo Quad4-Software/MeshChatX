@@ -46,6 +46,10 @@
         },
         {
             "method": "GET",
+            "path": "/api/v1/auth/altcha/challenge"
+        },
+        {
+            "method": "GET",
             "path": "/api/v1/auth/csrf"
         },
         {
