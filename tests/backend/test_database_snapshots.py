@@ -449,3 +449,59 @@ def test_restore_includes_identity_rrc_and_history(temp_dir):
     reopened.close_all()
     assert row is not None
     assert row["value"] == "before-backup"
+
+
+def test_pre_migration_backup_written_before_schema_upgrade(temp_dir):
+    from meshchatx.src.backend.database.schema import DatabaseSchema
+
+    db_path = os.path.join(temp_dir, "test.db")
+    db = Database(db_path)
+    db.initialize()
+    db.close_all()
+
+    prior = DatabaseSchema.LATEST_VERSION - 1
+    if prior < 1:
+        pytest.skip("No prior schema version to simulate")
+
+    provider = DatabaseProvider(db_path)
+    provider.execute(
+        "UPDATE config SET value = ? WHERE key = ?",
+        (str(prior), "database_version"),
+    )
+    provider.close_all()
+
+    upgraded = Database(db_path)
+    upgraded.initialize()
+    backups = upgraded.list_auto_backups(temp_dir)
+    upgraded.close_all()
+
+    assert any("backup-pre-migrate" in row["name"] for row in backups)
+
+
+def test_pre_migration_backup_skipped_with_env(temp_dir, monkeypatch):
+    from meshchatx.src.backend.database.schema import DatabaseSchema
+
+    monkeypatch.setenv("MESHCHAT_SKIP_PRE_MIGRATE_BACKUP", "1")
+
+    db_path = os.path.join(temp_dir, "test.db")
+    db = Database(db_path)
+    db.initialize()
+    db.close_all()
+
+    prior = DatabaseSchema.LATEST_VERSION - 1
+    if prior < 1:
+        pytest.skip("No prior schema version to simulate")
+
+    provider = DatabaseProvider(db_path)
+    provider.execute(
+        "UPDATE config SET value = ? WHERE key = ?",
+        (str(prior), "database_version"),
+    )
+    provider.close_all()
+
+    upgraded = Database(db_path)
+    upgraded.initialize()
+    backups = upgraded.list_auto_backups(temp_dir)
+    upgraded.close_all()
+
+    assert not any("backup-pre-migrate" in row["name"] for row in backups)

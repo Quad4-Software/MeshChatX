@@ -264,33 +264,7 @@ def register_database_routes(routes, app):
         try:
             limit = int(request.query.get("limit", 100))
             offset = int(request.query.get("offset", 0))
-            backup_dir = os.path.join(app.storage_path, "database-backups")
-            if not os.path.exists(backup_dir):
-                return web.json_response(
-                    {"backups": [], "total": 0, "limit": limit, "offset": offset},
-                )
-
-            backups = []
-            for file in os.listdir(backup_dir):
-                if file.endswith(".zip"):
-                    full_path = os.path.join(backup_dir, file)
-                    stats = os.stat(full_path)
-                    backups.append(
-                        {
-                            "name": file,
-                            "path": full_path,
-                            "size": stats.st_size,
-                            "created_at": datetime.fromtimestamp(
-                                stats.st_mtime,
-                                UTC,
-                            ).isoformat(),
-                        },
-                    )
-            sorted_backups = sorted(
-                backups,
-                key=lambda x: x["created_at"],
-                reverse=True,
-            )
+            sorted_backups = app.database.list_auto_backups(app.storage_path)
             total = len(sorted_backups)
             paginated_backups = sorted_backups[offset : offset + limit]
             return web.json_response(

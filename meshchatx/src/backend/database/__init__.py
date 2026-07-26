@@ -25,7 +25,7 @@ from .notification_sounds import NotificationSoundDAO
 from .provider import DatabaseProvider
 from .ringtones import RingtoneDAO
 from .rrc_room_keys import RrcRoomKeysDAO
-from .schema import DatabaseSchema
+from .schema import DatabaseSchema, PreMigrationBackupError
 from .sticker_packs import UserStickerPacksDAO
 from .stickers import UserStickersDAO
 from .telemetry import TelemetryDAO
@@ -97,7 +97,22 @@ class Database:
 
     def initialize(self):
         self._tune_sqlite_pragmas()
-        self.schema.initialize()
+        self.schema._create_initial_tables()
+        current_version = self.schema.get_current_version()
+        target_version = DatabaseSchema.LATEST_VERSION
+        if 0 < current_version < target_version:
+            from meshchatx.src.env_utils import env_bool
+
+            if not env_bool("MESHCHAT_SKIP_PRE_MIGRATE_BACKUP", False):
+                try:
+                    self._backup_pre_migration(current_version, target_version)
+                except Exception as exc:
+                    msg = (
+                        "Pre-migration backup failed; aborting schema upgrade. "
+                        f"Fix disk space or permissions, or set MESHCHAT_SKIP_PRE_MIGRATE_BACKUP=1: {exc}"
+                    )
+                    raise PreMigrationBackupError(msg) from exc
+        self.schema.migrate(current_version)
 
     def execute_sql(self, query, params=None):
         return self.provider.execute(query, params)
@@ -569,6 +584,75 @@ class Database:
             "path": backup_path,
             "size": os.path.getsize(backup_path),
             "identity_files": len(included),
+        }
+
+    def _backup_pre_migration(self, from_version: int, to_version: int) -> dict:
+        storage_path = self._identity_storage_dir()
+        backup_dir = os.path.join(storage_path, "database-backups")
+        os.makedirs(backup_dir, exist_ok=True)
+        timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+        backup_path = os.path.join(
+            backup_dir,
+            f"backup-pre-migrate-v{from_version}-to-v{to_version}-{timestamp}.zip",
+        )
+        result = self._backup_to_zip(backup_path)
+        print(
+            f"Pre-migration backup written to {result['path']} ({result['size']} bytes)",
+            flush=True,
+        )
+        return result
+
+    def list_auto_backups(self, storage_path: str) -> list[dict]:
+        backup_dir = os.path.join(storage_path, "database-backups")
+        if not os.path.exists(backup_dir):
+            return []
+
+        backups = []
+        for file in os.listdir(backup_dir):
+            if not file.endswith(".zip"):
+                continue
+            full_path = os.path.join(backup_dir, file)
+            stats = os.stat(full_path)
+            backups.append(
+                {
+                    "name": file,
+                    "path": full_path,
+                    "size": stats.st_size,
+                    "created_at": datetime.fromtimestamp(
+                        stats.st_mtime,
+                        UTC,
+                    ).isoformat(),
+                },
+            )
+        return sorted(backups, key=lambda row: row["created_at"], reverse=True)
+
+    def copy_auto_backup(self, storage_path: str, filename: str, dest_path: str) -> dict:
+        from meshchatx.src.path_utils import safe_path_under_dir
+
+        if not isinstance(filename, str) or not filename or "\x00" in filename:
+            msg = "Invalid backup name"
+            raise ValueError(msg)
+        normalized = filename.replace("\\", "/")
+        if normalized != os.path.basename(normalized) or ".." in normalized:
+            msg = "Invalid backup name"
+            raise ValueError(msg)
+
+        backup_dir = os.path.join(storage_path, "database-backups")
+        name = filename if filename.endswith(".zip") else f"{filename}.zip"
+        src = safe_path_under_dir(backup_dir, name)
+        if not src or not os.path.isfile(src):
+            msg = f"Backup not found: {name}"
+            raise FileNotFoundError(msg)
+
+        dest_parent = os.path.dirname(os.path.abspath(dest_path))
+        if dest_parent:
+            os.makedirs(dest_parent, exist_ok=True)
+        shutil.copy2(src, dest_path)
+        return {
+            "name": name,
+            "source": src,
+            "path": os.path.abspath(dest_path),
+            "size": os.path.getsize(dest_path),
         }
 
     def backup_database(

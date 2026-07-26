@@ -11,6 +11,10 @@ class DatabaseMigrationError(RuntimeError):
     pass
 
 
+class PreMigrationBackupError(RuntimeError):
+    pass
+
+
 def _validate_identifier(name: str, label: str = "identifier") -> str:
     if not _IDENTIFIER_RE.match(name):
         msg = f"Invalid SQL {label}: {name!r}"
@@ -141,6 +145,9 @@ class DatabaseSchema:
                 continue
 
             self._ensure_column(table_name, column_name, column_type)
+
+    def get_current_version(self) -> int:
+        return self._get_current_version()
 
     def _get_current_version(self):
         try:
