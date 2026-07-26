@@ -2782,12 +2782,16 @@
                 "bluetooth": {
                     "title": "Bluetooth no disponible",
                     "android_bridge_not_implemented": "Web Bluetooth no está disponible aquí. Use la configuración de Bluetooth del sistema o un navegador diferente.",
-                    "browser_unsupported": "Este navegador no soporta Web Bluetooth. Pruebe con Chrome o Edge.",
+                    "browser_unsupported": "Este navegador no expone Web Bluetooth. Use una compilación Chromium con Web Bluetooth activado, o habilite la bandera de la API si el navegador la oculta.",
                     "insecure_context": "Web Bluetooth requiere un contexto seguro (HTTPS o localhost).",
                     "requires_https": "Abra el flasher a través de HTTPS o localhost para habilitar Bluetooth.",
                     "unknown": "Bluetooth no se puede inicializar en este entorno.",
                     "android_bridge_no_web_bluetooth": "Permiso de Bluetooth concedido. Flashea por USB en el flasher nativo (Web Bluetooth no está disponible en WebView).",
-                    "android_bluetooth_permission_required": "Se requiere permiso de Bluetooth para RNode BLE de malla. Toca Permitir Bluetooth."
+                    "android_bluetooth_permission_required": "Se requiere permiso de Bluetooth para RNode BLE de malla. Toca Permitir Bluetooth.",
+                    "brave_flag_disabled": "Brave desactiva Web Bluetooth por defecto, así que el navegador nunca muestra el selector de dispositivos.",
+                    "brave_enable_flag": "En Brave abra brave://flags/#brave-web-bluetooth-api, ponga Web Bluetooth API en Enabled, reinicie y pulse Volver a comprobar.",
+                    "brave_recheck": "Tras activar la bandera, use Volver a comprobar Bluetooth. El emparejamiento usa el selector de requestDevice (no hay un diálogo de permiso aparte como el del micrófono).",
+                    "chromium_linux_hint": "En Linux, Chromium necesita BlueZ y un origen seguro (HTTPS o localhost). Pulse Probar Bluetooth para abrir el selector cuando la API esté presente."
                 },
                 "actions": {
                     "load_polyfill": "Cargar polyfill",
@@ -2805,7 +2809,14 @@
                     "bluetooth_unsupported": "La solicitud de permiso de Bluetooth no está disponible.",
                     "bluetooth_granted": "Permiso de Bluetooth concedido.",
                     "bluetooth_denied": "Permiso de Bluetooth denegado.",
-                    "usb_requested": "Permiso USB solicitado."
+                    "usb_requested": "Permiso USB solicitado.",
+                    "probe_bluetooth": "Probar Bluetooth",
+                    "recheck_capabilities": "Volver a comprobar Bluetooth",
+                    "bluetooth_now_available": "Web Bluetooth está disponible. Seleccione Bluetooth y continúe.",
+                    "bluetooth_still_unavailable": "Web Bluetooth sigue no disponible en este navegador.",
+                    "bluetooth_probe_ok": "El selector de dispositivos Bluetooth funcionó. El transporte Bluetooth está listo.",
+                    "bluetooth_probe_cancelled": "Selección de dispositivo Bluetooth cancelada.",
+                    "bluetooth_probe_failed": "La prueba de Bluetooth falló: {error}"
                 }
             },
             "diagnostics": {
@@ -3342,7 +3353,9 @@
         "ringtone_saved": "Ringtone se salvó con éxito",
         "failed_save_ringtone": "Error al guardar el tono editado",
         "codec2_unavailable": "Codec2 is not available on this device. Low-bandwidth call profiles are hidden.",
-        "codec2_profile_remapped": "Codec2 is unavailable so the call profile was switched to Opus."
+        "codec2_profile_remapped": "Codec2 is unavailable so the call profile was switched to Opus.",
+        "microphone_permission_needed": "Permita el acceso al micrófono cuando el navegador lo solicite y luego pulse Actualizar dispositivos de nuevo.",
+        "microphone_insecure_context": "El acceso al micrófono requiere HTTPS (o localhost). Abra MeshChatX con una URL segura e inténtelo de nuevo."
     },
     "contacts": {
         "title": "Contactos",

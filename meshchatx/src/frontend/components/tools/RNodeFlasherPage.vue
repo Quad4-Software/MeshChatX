@@ -330,6 +330,53 @@ export default {
                 }
                 return;
             }
+            if (action === "recheck-capabilities") {
+                this.refreshCapabilities();
+                const bt = this.capabilities?.transports?.bluetooth;
+                if (bt?.available) {
+                    ToastUtils.success(this.$t("tools.rnode_flasher.support.actions.bluetooth_now_available"));
+                } else {
+                    ToastUtils.info(this.$t("tools.rnode_flasher.support.actions.bluetooth_still_unavailable"));
+                }
+                return;
+            }
+            if (action === "probe-bluetooth") {
+                await this.probeWebBluetooth();
+            }
+        },
+        async probeWebBluetooth() {
+            this.refreshCapabilities();
+            if (typeof window !== "undefined" && window.isSecureContext === false) {
+                ToastUtils.error(this.$t("tools.rnode_flasher.support.bluetooth.insecure_context"));
+                return;
+            }
+            if (!navigator?.bluetooth) {
+                const reason = this.capabilities?.transports?.bluetooth?.reason;
+                if (reason === "brave_flag_disabled") {
+                    ToastUtils.warning(this.$t("tools.rnode_flasher.support.bluetooth.brave_enable_flag"));
+                } else {
+                    ToastUtils.warning(this.$t("tools.rnode_flasher.support.bluetooth.browser_unsupported"));
+                }
+                return;
+            }
+            // requestDevice() is the browser permission / chooser UI. There is no
+            // separate ambient "allow bluetooth" prompt like microphone.
+            try {
+                await BluetoothTransport.request();
+                this.connectionMethod = TRANSPORT_BLUETOOTH;
+                this.refreshCapabilities();
+                ToastUtils.success(this.$t("tools.rnode_flasher.support.actions.bluetooth_probe_ok"));
+            } catch (e) {
+                if (e?.code === "NO_DEVICE_SELECTED") {
+                    ToastUtils.info(this.$t("tools.rnode_flasher.support.actions.bluetooth_probe_cancelled"));
+                    return;
+                }
+                ToastUtils.error(
+                    this.$t("tools.rnode_flasher.support.actions.bluetooth_probe_failed", {
+                        error: e?.message || String(e),
+                    })
+                );
+            }
         },
         async fetchLatestRelease() {
             try {

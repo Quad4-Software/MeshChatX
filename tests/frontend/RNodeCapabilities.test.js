@@ -87,6 +87,36 @@ describe("Capabilities.detectCapabilities", () => {
         expect(caps.transports[TRANSPORT_BLUETOOTH].reason).toBe("insecure_context");
     });
 
+    it("detects Brave with Web Bluetooth disabled as brave_flag_disabled", () => {
+        const env = mkEnv({
+            isSecureContext: true,
+            navigator: { userAgent: "Mozilla/5.0 Brave/1.0" },
+        });
+        const caps = detectCapabilities({ env });
+        expect(caps.platform.isBrave).toBe(true);
+        expect(caps.transports[TRANSPORT_BLUETOOTH].available).toBe(false);
+        expect(caps.transports[TRANSPORT_BLUETOOTH].reason).toBe("brave_flag_disabled");
+    });
+
+    it("detects Brave via navigator.brave even without Brave in UA", () => {
+        const env = mkEnv({
+            isSecureContext: true,
+            navigator: { userAgent: "Mozilla/5.0 Chrome/120", brave: {} },
+        });
+        const caps = detectCapabilities({ env });
+        expect(caps.platform.isBrave).toBe(true);
+        expect(caps.transports[TRANSPORT_BLUETOOTH].reason).toBe("brave_flag_disabled");
+    });
+
+    it("prefers insecure_context over brave_flag_disabled", () => {
+        const env = mkEnv({
+            isSecureContext: false,
+            navigator: { userAgent: "Mozilla/5.0 Brave/1.0" },
+        });
+        const caps = detectCapabilities({ env });
+        expect(caps.transports[TRANSPORT_BLUETOOTH].reason).toBe("insecure_context");
+    });
+
     it("always exposes wifi transport as available", () => {
         const env = mkEnv();
         const caps = detectCapabilities({ env });
@@ -127,5 +157,13 @@ describe("Capabilities.transportSuggestionKeys", () => {
         const keys = transportSuggestionKeys(caps, TRANSPORT_BLUETOOTH);
         expect(keys).toContain("tools.rnode_flasher.support.bluetooth.insecure_context");
         expect(keys).toContain("tools.rnode_flasher.support.bluetooth.requires_https");
+    });
+    it("includes Brave flag guidance when Web Bluetooth is disabled", () => {
+        const env = mkEnv({ navigator: { userAgent: "Mozilla/5.0 Brave/1.0" } });
+        const caps = detectCapabilities({ env });
+        const keys = transportSuggestionKeys(caps, TRANSPORT_BLUETOOTH);
+        expect(keys).toContain("tools.rnode_flasher.support.bluetooth.brave_flag_disabled");
+        expect(keys).toContain("tools.rnode_flasher.support.bluetooth.brave_enable_flag");
+        expect(keys).toContain("tools.rnode_flasher.support.bluetooth.brave_recheck");
     });
 });

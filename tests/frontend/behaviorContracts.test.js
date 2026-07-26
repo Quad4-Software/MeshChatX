@@ -450,7 +450,8 @@ describe("behavior contracts: locale, theme, and call audio", () => {
 
     it("CallPage refresh devices uses getUserMedia before device enumeration", () => {
         const call = readSource("meshchatx/src/frontend/components/call/CallPage.vue");
-        expect(call).toContain("Do not gate on enumerateDevices before getUserMedia");
+        expect(call).toContain("Wide-open { audio: true } is what");
+        expect(call).toMatch(/requestAudioPermission[\s\S]*getUserMedia\(\{\s*audio:\s*true\s*\}/);
         expect(call).toMatch(/requestAudioPermission[\s\S]*getUserMedia[\s\S]*refreshAudioDevices/);
     });
 });

@@ -2834,12 +2834,16 @@
                 "bluetooth": {
                     "title": "Bluetooth non disponibile",
                     "android_bridge_not_implemented": "Web Bluetooth non è disponibile qui. Usa le impostazioni Bluetooth del sistema o un browser diverso.",
-                    "browser_unsupported": "Questo browser non supporta Web Bluetooth. Prova Chrome o Edge.",
+                    "browser_unsupported": "Questo browser non espone Web Bluetooth. Usa una build Chromium con Web Bluetooth abilitato, oppure attiva il flag dell'API se il browser lo nasconde.",
                     "insecure_context": "Web Bluetooth richiede un contesto sicuro (HTTPS o localhost).",
                     "requires_https": "Apri il flasher tramite HTTPS o localhost per abilitare il Bluetooth.",
                     "unknown": "Bluetooth non può essere inizializzato in questo ambiente.",
                     "android_bridge_no_web_bluetooth": "Autorizzazione Bluetooth concessa. Flasha via USB nel flasher nativo (Web Bluetooth non è disponibile in WebView).",
-                    "android_bluetooth_permission_required": "È richiesta l'autorizzazione Bluetooth per RNode BLE mesh. Tocca Consenti Bluetooth."
+                    "android_bluetooth_permission_required": "È richiesta l'autorizzazione Bluetooth per RNode BLE mesh. Tocca Consenti Bluetooth.",
+                    "brave_flag_disabled": "Brave disabilita Web Bluetooth per impostazione predefinita, quindi il browser non mostra mai il selettore dispositivi.",
+                    "brave_enable_flag": "In Brave apri brave://flags/#brave-web-bluetooth-api, imposta Web Bluetooth API su Enabled, riavvia e poi tocca Ricontrolla.",
+                    "brave_recheck": "Dopo aver abilitato il flag, usa Ricontrolla Bluetooth. L'associazione usa il selettore di requestDevice (non c'è un dialogo di permesso separato come per il microfono).",
+                    "chromium_linux_hint": "Su Linux Chromium richiede BlueZ funzionante e un'origine sicura (HTTPS o localhost). Tocca Prova Bluetooth per aprire il selettore quando l'API è presente."
                 },
                 "actions": {
                     "load_polyfill": "Carica polyfill",
@@ -2857,7 +2861,14 @@
                     "bluetooth_unsupported": "La richiesta di autorizzazione Bluetooth non è disponibile.",
                     "bluetooth_granted": "Autorizzazione Bluetooth concessa.",
                     "bluetooth_denied": "Autorizzazione Bluetooth negata.",
-                    "usb_requested": "Autorizzazione USB richiesta."
+                    "usb_requested": "Autorizzazione USB richiesta.",
+                    "probe_bluetooth": "Prova Bluetooth",
+                    "recheck_capabilities": "Ricontrolla Bluetooth",
+                    "bluetooth_now_available": "Web Bluetooth è disponibile. Seleziona Bluetooth e continua.",
+                    "bluetooth_still_unavailable": "Web Bluetooth non è ancora disponibile in questo browser.",
+                    "bluetooth_probe_ok": "Il selettore dispositivi Bluetooth ha funzionato. Il trasporto Bluetooth è pronto.",
+                    "bluetooth_probe_cancelled": "Selezione dispositivo Bluetooth annullata.",
+                    "bluetooth_probe_failed": "Test Bluetooth non riuscito: {error}"
                 }
             },
             "diagnostics": {
@@ -3394,7 +3405,9 @@
         "ringtone_saved": "Suoneria salvata con successo",
         "failed_save_ringtone": "Impossibile salvare la suoneria modificata",
         "codec2_unavailable": "Codec2 is not available on this device. Low-bandwidth call profiles are hidden.",
-        "codec2_profile_remapped": "Codec2 is unavailable so the call profile was switched to Opus."
+        "codec2_profile_remapped": "Codec2 is unavailable so the call profile was switched to Opus.",
+        "microphone_permission_needed": "Consenti l'accesso al microfono quando il browser lo richiede, poi fai di nuovo clic su Aggiorna dispositivi.",
+        "microphone_insecure_context": "L'accesso al microfono richiede HTTPS (o localhost). Apri MeshChatX con un URL sicuro e riprova."
     },
     "tutorial": {
         "title": "Guida Introduttiva",

@@ -72,6 +72,19 @@ describe("RNodeCapabilitiesBanner", () => {
         expect(labels.some((l) => l.includes("request_bluetooth"))).toBe(true);
         expect(labels.some((l) => l.includes("open_settings"))).toBe(true);
     });
+
+    it("shows desktop Try Bluetooth and Recheck actions when Web Bluetooth is missing", () => {
+        const env = { isSecureContext: true, navigator: { userAgent: "Mozilla/5.0 Brave/1.0" } };
+        const caps = detectCapabilities({ env });
+        const wrapper = mountWith(RNodeCapabilitiesBanner, {
+            capabilities: caps,
+            androidAvailable: false,
+        });
+        expect(caps.transports.bluetooth.reason).toBe("brave_flag_disabled");
+        const labels = wrapper.findAll("button").map((b) => b.text());
+        expect(labels.some((l) => l.includes("probe_bluetooth"))).toBe(true);
+        expect(labels.some((l) => l.includes("recheck_capabilities"))).toBe(true);
+    });
 });
 
 describe("RNodeDeviceSelector", () => {

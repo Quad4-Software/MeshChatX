@@ -2576,12 +2576,16 @@
                 "bluetooth": {
                     "title": "Bluetooth ist nicht verfügbar",
                     "android_bridge_not_implemented": "Web Bluetooth ist hier nicht verfügbar. Verwenden Sie die Bluetooth-Einstellungen des Systems oder einen anderen Browser.",
-                    "browser_unsupported": "Dieser Browser unterstützt Web Bluetooth nicht. Versuchen Sie Chrome oder Edge.",
+                    "browser_unsupported": "Dieser Browser stellt Web Bluetooth nicht bereit. Verwenden Sie einen Chromium-Build mit aktiviertem Web Bluetooth oder aktivieren Sie die API-Flagge, falls Ihr Browser sie ausblendet.",
                     "insecure_context": "Web Bluetooth erfordert einen sicheren Kontext (HTTPS oder localhost).",
                     "requires_https": "Öffnen Sie den Flasher über HTTPS oder localhost, um Bluetooth zu aktivieren.",
                     "unknown": "Bluetooth kann in dieser Umgebung nicht initialisiert werden.",
                     "android_bridge_no_web_bluetooth": "Bluetooth-Berechtigung erteilt. Flashen Sie über USB im nativen Flasher (Web Bluetooth ist in der WebView nicht verfügbar).",
-                    "android_bluetooth_permission_required": "Für Mesh-RNode-BLE ist die Bluetooth-Berechtigung erforderlich. Tippen Sie auf Bluetooth erlauben."
+                    "android_bluetooth_permission_required": "Für Mesh-RNode-BLE ist die Bluetooth-Berechtigung erforderlich. Tippen Sie auf Bluetooth erlauben.",
+                    "brave_flag_disabled": "Brave deaktiviert Web Bluetooth standardmäßig, daher erscheint nie eine Geräteauswahl.",
+                    "brave_enable_flag": "Öffnen Sie in Brave brave://flags/#brave-web-bluetooth-api, setzen Sie Web Bluetooth API auf Enabled, starten Sie neu und tippen Sie dann auf Erneut prüfen.",
+                    "brave_recheck": "Nach dem Aktivieren der Flagge Erneut prüfen verwenden. Die Kopplung nutzt die Geräteauswahl von requestDevice (es gibt keinen separaten Berechtigungsdialog wie beim Mikrofon).",
+                    "chromium_linux_hint": "Unter Linux Chromium braucht BlueZ und einen sicheren Ursprung (HTTPS oder localhost). Tippen Sie auf Bluetooth testen, um die Geräteauswahl zu öffnen, sobald die API verfügbar ist."
                 },
                 "actions": {
                     "load_polyfill": "Polyfill laden",
@@ -2599,7 +2603,14 @@
                     "bluetooth_unsupported": "Anfrage der Bluetooth-Berechtigung ist nicht verfügbar.",
                     "bluetooth_granted": "Bluetooth-Berechtigung erteilt.",
                     "bluetooth_denied": "Bluetooth-Berechtigung verweigert.",
-                    "usb_requested": "USB-Berechtigung angefordert."
+                    "usb_requested": "USB-Berechtigung angefordert.",
+                    "probe_bluetooth": "Bluetooth testen",
+                    "recheck_capabilities": "Bluetooth erneut prüfen",
+                    "bluetooth_now_available": "Web Bluetooth ist verfügbar. Wählen Sie Bluetooth und fahren Sie fort.",
+                    "bluetooth_still_unavailable": "Web Bluetooth ist in diesem Browser weiterhin nicht verfügbar.",
+                    "bluetooth_probe_ok": "Bluetooth-Geräteauswahl hat funktioniert. Bluetooth-Transport ist bereit.",
+                    "bluetooth_probe_cancelled": "Bluetooth-Geräteauswahl abgebrochen.",
+                    "bluetooth_probe_failed": "Bluetooth-Test fehlgeschlagen: {error}"
                 }
             },
             "diagnostics": {
@@ -3136,7 +3147,9 @@
         "ringtone_saved": "Klingelton erfolgreich gespeichert",
         "failed_save_ringtone": "Fehler beim Speichern des bearbeiteten Klingeltons",
         "codec2_unavailable": "Codec2 is not available on this device. Low-bandwidth call profiles are hidden.",
-        "codec2_profile_remapped": "Codec2 is unavailable so the call profile was switched to Opus."
+        "codec2_profile_remapped": "Codec2 is unavailable so the call profile was switched to Opus.",
+        "microphone_permission_needed": "Erlauben Sie den Mikrofonzugriff, wenn der Browser danach fragt, und klicken Sie danach erneut auf Geräte aktualisieren.",
+        "microphone_insecure_context": "Mikrofonzugriff benötigt HTTPS (oder localhost). Öffnen Sie MeshChatX über eine sichere URL und versuchen Sie es erneut."
     },
     "tutorial": {
         "title": "Erste Schritte",

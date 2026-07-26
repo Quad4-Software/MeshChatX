@@ -34,10 +34,12 @@ function detectPlatform(env) {
     const isAndroid = ANDROID_RE.test(ua);
     const isElectron = ELECTRON_RE.test(ua) || Boolean(env.electron);
     const hasMeshChatXAndroid = Boolean(env.MeshChatXAndroid);
+    const isBrave = /Brave/i.test(ua) || Boolean(env.navigator?.brave) || Boolean(env.brave);
     return {
         isAndroid,
         isElectron,
         hasMeshChatXAndroid,
+        isBrave,
         isSecureContext: Boolean(env.isSecureContext),
         userAgent: ua,
     };
@@ -109,6 +111,13 @@ function detectBluetooth(env, platform) {
             reason: null,
         };
     }
+    if (!platform.isSecureContext) {
+        return {
+            available: false,
+            kind: "none",
+            reason: "insecure_context",
+        };
+    }
     if (platform.hasMeshChatXAndroid) {
         const bridge = env.MeshChatXAndroid;
         const hasPerms =
@@ -122,10 +131,19 @@ function detectBluetooth(env, platform) {
             reason: hasPerms ? "android_bridge_no_web_bluetooth" : "android_bluetooth_permission_required",
         };
     }
+    // Brave ships Chromium but disables Web Bluetooth until the flag is on.
+    // navigator.bluetooth is missing in that state, which looks like "unsupported".
+    if (platform.isBrave) {
+        return {
+            available: false,
+            kind: "none",
+            reason: "brave_flag_disabled",
+        };
+    }
     return {
         available: false,
         kind: "none",
-        reason: platform.isSecureContext ? "browser_unsupported" : "insecure_context",
+        reason: "browser_unsupported",
     };
 }
 
@@ -201,6 +219,13 @@ export function transportSuggestionKeys(capabilities, transportName) {
     }
     if (transportName === TRANSPORT_BLUETOOTH && !platform.isSecureContext) {
         suggestions.push("tools.rnode_flasher.support.bluetooth.requires_https");
+    }
+    if (transportName === TRANSPORT_BLUETOOTH && reason === "brave_flag_disabled") {
+        suggestions.push("tools.rnode_flasher.support.bluetooth.brave_enable_flag");
+        suggestions.push("tools.rnode_flasher.support.bluetooth.brave_recheck");
+    }
+    if (transportName === TRANSPORT_BLUETOOTH && reason === "browser_unsupported") {
+        suggestions.push("tools.rnode_flasher.support.bluetooth.chromium_linux_hint");
     }
     return suggestions;
 }

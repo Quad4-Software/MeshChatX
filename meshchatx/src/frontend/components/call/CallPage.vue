@@ -2306,7 +2306,9 @@ export default {
                 : new Set();
             const sid = this.selectedAudioInputId;
             if (sid === "__meshchat_default_in__") {
-                return { audio: processingHints };
+                // Bare audio first for Default: processing flags alone can yield
+                // NotFoundError on Brave and Chromium before mic permission is granted.
+                return { audio: true };
             }
             const id = sid && validIds.has(sid) ? sid : null;
             return id ? { audio: { ...processingHints, deviceId: { exact: id } } } : { audio: processingHints };
@@ -2707,36 +2709,73 @@ export default {
                         return true;
                     }
                 }
+                if (typeof window !== "undefined" && window.isSecureContext === false) {
+                    ToastUtils.error(this.$t("call.microphone_insecure_context"));
+                    return false;
+                }
                 const mediaDevices = this.getMediaDevicesApi();
                 if (!mediaDevices) {
                     throw new Error("navigator.mediaDevices is unavailable");
                 }
-                // Do not gate on enumerateDevices before getUserMedia. Brave and
-                // Chromium often omit audioinput (or only list speakers) until the
-                // mic permission prompt has been accepted. Calling getUserMedia
-                // first is what shows the browser permission dialog.
+                // Brave and Chromium often throw NotFoundError for constrained
+                // getUserMedia (echoCancellation and friends) before permission is
+                // granted, and never show a prompt. Wide-open { audio: true } is what
+                // reliably opens the browser microphone permission dialog.
                 this.selectedAudioInputId = "__meshchat_default_in__";
-                const stream = await mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true,
-                    },
-                });
+                let stream;
+                try {
+                    stream = await mediaDevices.getUserMedia({ audio: true });
+                } catch (firstErr) {
+                    const retryable =
+                        firstErr?.name === "NotFoundError" ||
+                        firstErr?.name === "OverconstrainedError" ||
+                        firstErr?.name === "NotReadableError";
+                    if (!retryable) {
+                        throw firstErr;
+                    }
+                    this.logWebAudioFailure("request-permission-retry-processing", firstErr);
+                    // Some hosts accept processing hints after a failed bare probe.
+                    stream = await mediaDevices.getUserMedia({
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true,
+                        },
+                    });
+                }
                 stream.getTracks().forEach((t) => t.stop());
                 await this.refreshAudioDevices();
                 return true;
             } catch (e) {
                 this.logWebAudioFailure("request-permission", e);
-                const errorKey =
-                    e?.name === "NotFoundError" || e?.name === "OverconstrainedError"
-                        ? "call.no_audio_input_found"
-                        : e?.name === "NotAllowedError"
-                          ? "call.microphone_permission_denied"
-                          : "call.web_audio_not_available";
+                let errorKey = "call.web_audio_not_available";
+                if (e?.name === "NotAllowedError" || e?.name === "SecurityError") {
+                    errorKey = "call.microphone_permission_denied";
+                } else if (e?.name === "NotFoundError" || e?.name === "OverconstrainedError") {
+                    errorKey = await this.resolveMissingMicErrorKey();
+                }
                 ToastUtils.error(this.$t(errorKey));
                 return false;
             }
+        },
+        async resolveMissingMicErrorKey() {
+            // Chromium sometimes reports NotFoundError when permission is blocked
+            // or when the permission prompt never appeared. Prefer a clearer toast.
+            try {
+                const perms = navigator?.permissions;
+                if (perms && typeof perms.query === "function") {
+                    const status = await perms.query({ name: "microphone" });
+                    if (status?.state === "denied") {
+                        return "call.microphone_permission_denied";
+                    }
+                    if (status?.state === "prompt") {
+                        return "call.microphone_permission_needed";
+                    }
+                }
+            } catch {
+                // Permissions API name may be unsupported.
+            }
+            return "call.no_audio_input_found";
         },
         async refreshAudioDevices() {
             const defaultIn = {

@@ -2782,12 +2782,16 @@
                 "bluetooth": {
                     "title": "Bluetooth ei ole käytettävissä",
                     "android_bridge_not_implemented": "Web Bluetooth ei ole käytettävissä täällä. Käytä käyttöjärjestelmän Bluetooth-asetuksia tai toista selainta.",
-                    "browser_unsupported": "Tämä selain ei tue Web Bluetoothia. Kokeile Chromea tai Edgeä.",
+                    "browser_unsupported": "Tämä selain ei tarjoa Web Bluetoothia. Käytä Chromium-buildia, jossa Web Bluetooth on käytössä, tai ota API-lippu käyttöön, jos selain piilottaa sen.",
                     "insecure_context": "Web Bluetooth vaatii suojatun yhteyden (HTTPS tai localhost).",
                     "requires_https": "Avaa flasher HTTPS:n tai localhostin kautta ottaaksesi Bluetoothin käyttöön.",
                     "unknown": "Bluetoothia ei voida alustaa tässä ympäristössä.",
                     "android_bridge_no_web_bluetooth": "Bluetooth-lupa myönnetty. Flashaa USB:llä natiivissa flasherissa (Web Bluetooth ei ole käytettävissä WebViewissä).",
-                    "android_bluetooth_permission_required": "Mesh-RNode BLE vaatii Bluetooth-luvan. Napauta Salli Bluetooth."
+                    "android_bluetooth_permission_required": "Mesh-RNode BLE vaatii Bluetooth-luvan. Napauta Salli Bluetooth.",
+                    "brave_flag_disabled": "Brave poistaa Web Bluetoothin oletuksena käytöstä, joten selain ei koskaan näytä laitevalitsinta.",
+                    "brave_enable_flag": "Avaa Bravessa brave://flags/#brave-web-bluetooth-api, aseta Web Bluetooth API tilaan Enabled, käynnistä uudelleen ja napauta Tarkista uudelleen.",
+                    "brave_recheck": "Lipun käyttöönoton jälkeen käytä Tarkista Bluetooth uudelleen. Paritus käyttää requestDevice-laitteen valitsinta (ei erillistä lupadialogia kuten mikrofonilla).",
+                    "chromium_linux_hint": "Linuxissa Chromium tarvitsee toimivan BlueZ:n ja suojatun alkuperän (HTTPS tai localhost). Napauta Kokeile Bluetoothia avataksesi valitsimen, kun API on käytettävissä."
                 },
                 "actions": {
                     "load_polyfill": "Lataa polyfill",
@@ -2805,7 +2809,14 @@
                     "bluetooth_unsupported": "Bluetooth-lupapyyntö ei ole käytettävissä.",
                     "bluetooth_granted": "Bluetooth-lupa myönnetty.",
                     "bluetooth_denied": "Bluetooth-lupa evätty.",
-                    "usb_requested": "USB-lupaa pyydetty."
+                    "usb_requested": "USB-lupaa pyydetty.",
+                    "probe_bluetooth": "Kokeile Bluetoothia",
+                    "recheck_capabilities": "Tarkista Bluetooth uudelleen",
+                    "bluetooth_now_available": "Web Bluetooth on käytettävissä. Valitse Bluetooth ja jatka.",
+                    "bluetooth_still_unavailable": "Web Bluetooth ei ole edelleenkään käytettävissä tässä selaimessa.",
+                    "bluetooth_probe_ok": "Bluetooth-laitteen valitsin toimi. Bluetooth-siirtoyhteys on valmis.",
+                    "bluetooth_probe_cancelled": "Bluetooth-laitteen valinta peruutettiin.",
+                    "bluetooth_probe_failed": "Bluetooth-testi epäonnistui: {error}"
                 }
             },
             "diagnostics": {
@@ -3549,7 +3560,9 @@
         "ringtone_saved": "Soittoääni tallennettu onnistuneesti",
         "failed_save_ringtone": "Muokatun soittoäänen tallentaminen epäonnistui",
         "codec2_unavailable": "Codec2 is not available on this device. Low-bandwidth call profiles are hidden.",
-        "codec2_profile_remapped": "Codec2 is unavailable so the call profile was switched to Opus."
+        "codec2_profile_remapped": "Codec2 is unavailable so the call profile was switched to Opus.",
+        "microphone_permission_needed": "Salli mikrofonin käyttö, kun selain pyytää sitä, ja napsauta sitten Päivitä laitteet uudelleen.",
+        "microphone_insecure_context": "Mikrofonin käyttö edellyttää HTTPS:ää (tai localhostia). Avaa MeshChatX suojatulla URL-osoitteella ja yritä uudelleen."
     },
     "contacts": {
         "title": "Yhteystiedot",

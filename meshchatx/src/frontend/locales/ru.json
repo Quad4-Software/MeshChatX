@@ -2576,12 +2576,16 @@
                 "bluetooth": {
                     "title": "Bluetooth недоступен",
                     "android_bridge_not_implemented": "Web Bluetooth здесь недоступен. Используйте настройки Bluetooth в ОС или другой браузер.",
-                    "browser_unsupported": "Этот браузер не поддерживает Web Bluetooth. Попробуйте Chrome или Edge.",
+                    "browser_unsupported": "Этот браузер не предоставляет Web Bluetooth. Используйте сборку Chromium с включённым Web Bluetooth или включите флаг API, если браузер его скрывает.",
                     "insecure_context": "Web Bluetooth требует безопасного контекста (HTTPS или localhost).",
                     "requires_https": "Откройте прошивальщик через HTTPS или localhost, чтобы включить Bluetooth.",
                     "unknown": "Bluetooth не может быть инициализирован в этом окружении.",
                     "android_bridge_no_web_bluetooth": "Разрешение Bluetooth выдано. Прошивайте по USB во встроенном прошивальщике (Web Bluetooth недоступен в WebView).",
-                    "android_bluetooth_permission_required": "Для mesh RNode BLE требуется разрешение Bluetooth. Нажмите «Разрешить Bluetooth»."
+                    "android_bluetooth_permission_required": "Для mesh RNode BLE требуется разрешение Bluetooth. Нажмите «Разрешить Bluetooth».",
+                    "brave_flag_disabled": "Brave по умолчанию отключает Web Bluetooth, поэтому браузер никогда не показывает выбор устройства.",
+                    "brave_enable_flag": "В Brave откройте brave://flags/#brave-web-bluetooth-api, установите Web Bluetooth API в Enabled, перезапустите и нажмите Проверить снова.",
+                    "brave_recheck": "После включения флага используйте Проверить Bluetooth снова. Сопряжение использует выбор устройства requestDevice (отдельного диалога разрешения, как у микрофона, нет).",
+                    "chromium_linux_hint": "В Linux Chromium нужен рабочий BlueZ и безопасный origin (HTTPS или localhost). Нажмите Проверить Bluetooth, чтобы открыть выбор устройства, когда API доступен."
                 },
                 "actions": {
                     "load_polyfill": "Загрузить полифилл",
@@ -2599,7 +2603,14 @@
                     "bluetooth_unsupported": "Запрос разрешения Bluetooth недоступен.",
                     "bluetooth_granted": "Разрешение Bluetooth выдано.",
                     "bluetooth_denied": "В разрешении Bluetooth отказано.",
-                    "usb_requested": "Запрошено разрешение USB."
+                    "usb_requested": "Запрошено разрешение USB.",
+                    "probe_bluetooth": "Проверить Bluetooth",
+                    "recheck_capabilities": "Проверить Bluetooth снова",
+                    "bluetooth_now_available": "Web Bluetooth доступен. Выберите Bluetooth и продолжите.",
+                    "bluetooth_still_unavailable": "Web Bluetooth по-прежнему недоступен в этом браузере.",
+                    "bluetooth_probe_ok": "Выбор Bluetooth-устройства сработал. Bluetooth-транспорт готов.",
+                    "bluetooth_probe_cancelled": "Выбор Bluetooth-устройства отменён.",
+                    "bluetooth_probe_failed": "Проверка Bluetooth не удалась: {error}"
                 }
             },
             "diagnostics": {
@@ -3136,7 +3147,9 @@
         "ringtone_saved": "Рингтон успешно сохранён",
         "failed_save_ringtone": "Не удалось сохранить отредактированный рингтон",
         "codec2_unavailable": "Codec2 is not available on this device. Low-bandwidth call profiles are hidden.",
-        "codec2_profile_remapped": "Codec2 is unavailable so the call profile was switched to Opus."
+        "codec2_profile_remapped": "Codec2 is unavailable so the call profile was switched to Opus.",
+        "microphone_permission_needed": "Разрешите доступ к микрофону, когда браузер запросит его, затем снова нажмите Обновить устройства.",
+        "microphone_insecure_context": "Доступ к микрофону требует HTTPS (или localhost). Откройте MeshChatX по защищённому URL и попробуйте снова."
     },
     "tutorial": {
         "title": "Начало работы",
