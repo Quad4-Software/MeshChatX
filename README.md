@@ -85,7 +85,13 @@ docker compose up -d
 ```bash
 docker run -d --name reticulum-meshchatx \
   --restart unless-stopped \
+  --init \
+  --user 1000:1000 \
   --security-opt no-new-privileges:true \
+  --cap-drop ALL \
+  --read-only \
+  --tmpfs /tmp:noexec,nosuid,size=256m \
+  --tmpfs /home/meshchat:nosuid,size=64m \
   --cpus=2.0 \
   --memory=1g \
   --memory-reservation=256m \

@@ -13,6 +13,7 @@ import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _SMOKE_SCRIPT = _REPO_ROOT / "scripts" / "ci" / "docker-runtime-smoke.sh"
+_HARDENED_SMOKE_SCRIPT = _REPO_ROOT / "scripts" / "ci" / "docker-hardened-smoke.sh"
 
 
 def _docker_available() -> bool:
@@ -51,6 +52,31 @@ def test_docker_image_serves_status():
     )
     assert result.returncode == 0, (
         f"Docker runtime smoke failed (exit {result.returncode})\n"
+        f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    )
+    assert '"status": "ok"' in result.stdout or '"status":"ok"' in result.stdout
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(
+    os.environ.get("MESHCHAT_DOCKER_SMOKE") != "1",
+    reason="Set MESHCHAT_DOCKER_SMOKE=1 to run Docker hardened compose + run smoke",
+)
+@pytest.mark.skipif(not _docker_available(), reason="Docker is not available")
+def test_docker_hardened_compose_and_run_serve_status():
+    env = os.environ.copy()
+    env.setdefault("MESHCHAT_DOCKER_SMOKE_TIMEOUT", "240")
+    result = subprocess.run(
+        ["bash", str(_HARDENED_SMOKE_SCRIPT)],
+        cwd=_REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=int(env["MESHCHAT_DOCKER_SMOKE_TIMEOUT"]) + 600,
+        check=False,
+    )
+    assert result.returncode == 0, (
+        f"Docker hardened smoke failed (exit {result.returncode})\n"
         f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
     )
     assert '"status": "ok"' in result.stdout or '"status":"ok"' in result.stdout
