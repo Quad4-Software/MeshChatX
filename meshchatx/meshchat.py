@@ -603,6 +603,7 @@ class ReticulumMeshChat:
         self.websocket_clients: list[web.WebSocketResponse] = []
         self.active_sessions = ActiveSessionTracker()
         self._websocket_broadcast_lock = asyncio.Lock()
+        self._identity_hotswap_lock = asyncio.Lock()
         self.listen_host: str | None = None
         self.listen_port: int | None = None
         self.use_https: bool = True
@@ -1810,17 +1811,27 @@ class ReticulumMeshChat:
 
         # Check if we already have a context for this identity
         if identity_hash in self.contexts:
-            self.current_context = self.contexts[identity_hash]
-            if not self.current_context.running:
-                self.current_context.setup()
-            self.web_audio_bridge = WebAudioBridge(
-                self.current_context.telephone_manager,
-                self.current_context.config,
-                force_enabled=self.web_audio_required(),
+            identity_storage_dir = os.path.join(
+                self.storage_dir,
+                "identities",
+                identity_hash,
             )
-            if self._network_ready:
-                self._finish_deferred_startup_services()
-            return
+            if not os.path.isdir(identity_storage_dir):
+                stale = self.contexts.pop(identity_hash)
+                with contextlib.suppress(Exception):
+                    stale.teardown()
+            else:
+                self.current_context = self.contexts[identity_hash]
+                if not self.current_context.running:
+                    self.current_context.setup()
+                self.web_audio_bridge = WebAudioBridge(
+                    self.current_context.telephone_manager,
+                    self.current_context.config,
+                    force_enabled=self.web_audio_required(),
+                )
+                if self._network_ready:
+                    self._finish_deferred_startup_services()
+                return
 
         # Initialize Reticulum if not already done
         if not hasattr(self, "reticulum"):
@@ -2805,6 +2816,13 @@ class ReticulumMeshChat:
             return False
 
     async def hotswap_identity(self, identity_hash, keep_alive=False):
+        async with self._identity_hotswap_lock:
+            return await self._hotswap_identity_locked(
+                identity_hash,
+                keep_alive=keep_alive,
+            )
+
+    async def _hotswap_identity_locked(self, identity_hash, keep_alive=False):
         old_identity = self.identity
 
         main_identity_file = self.identity_file_path or os.path.join(
@@ -2947,13 +2965,26 @@ class ReticulumMeshChat:
     def create_identity(self, display_name=None):
         return self.identity_manager.create_identity(display_name)
 
+    def _evict_cached_identity_context(self, identity_hash: str) -> None:
+        canonical = normalize_identity_storage_hash(identity_hash)
+        if not canonical:
+            return
+        ctx = self.contexts.pop(canonical, None)
+        if ctx is None:
+            return
+        with contextlib.suppress(Exception):
+            ctx.teardown()
+
     def delete_identity(self, identity_hash):
         current_hash = (
             self.identity.hash.hex()
             if hasattr(self, "identity") and self.identity
             else None
         )
-        return self.identity_manager.delete_identity(identity_hash, current_hash)
+        deleted = self.identity_manager.delete_identity(identity_hash, current_hash)
+        if deleted:
+            self._evict_cached_identity_context(identity_hash)
+        return deleted
 
     def restore_identity_from_bytes(
         self,
