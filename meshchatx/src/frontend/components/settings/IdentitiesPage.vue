@@ -473,11 +473,16 @@ export default {
     mounted() {
         this.getIdentities();
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.on("identity-switching-abort", this.onIdentitySwitchAborted);
     },
     beforeUnmount() {
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.off("identity-switching-abort", this.onIdentitySwitchAborted);
     },
     methods: {
+        onIdentitySwitchAborted() {
+            this.isCreating = false;
+        },
         onIdentitySwitched() {
             this.getIdentities();
             this.isCreating = false;
@@ -688,6 +693,8 @@ export default {
                     });
                 } else {
                     ToastUtils.info(this.$t("identities.switch_scheduled"));
+                    this.isCreating = false;
+                    GlobalEmitter.emit("identity-switching-abort");
                     setTimeout(() => {
                         window.location.reload();
                     }, 2000);

@@ -1424,46 +1424,60 @@ export default {
         },
         async applyIdentitySwitched(json) {
             const hash = json?.identity_hash;
+            const endSwitchUi = (aborted = false) => {
+                this.isSwitchingIdentity = false;
+                if (aborted) {
+                    GlobalEmitter.emit("identity-switching-abort");
+                }
+            };
             if (hash == null || hash === "") {
+                endSwitchUi(true);
                 return;
             }
             const now = Date.now();
             if (this.identitySwitchDedupeHash === hash && now - this.identitySwitchDedupeAt < 10000) {
+                endSwitchUi(false);
                 return;
             }
             this.identitySwitchDedupeHash = hash;
             this.identitySwitchDedupeAt = now;
 
-            ToastUtils.success(this.$t("identities.switched"));
+            try {
+                if (json?.requires_reauth && GlobalState.authEnabled) {
+                    ToastUtils.info(this.$t("identities.sign_in_after_switch"));
+                    GlobalState.authenticated = false;
+                    try {
+                        await fetchCsrfToken(window.api);
+                    } catch {
+                        // Next mutating request will refresh CSRF when auth completes.
+                    }
+                    if (this.$route?.name !== "auth") {
+                        this.$router.push("/auth");
+                    }
+                    endSwitchUi(true);
+                    return;
+                }
 
-            if (json?.requires_reauth && GlobalState.authEnabled) {
-                GlobalState.authenticated = false;
-                try {
-                    await fetchCsrfToken(window.api);
-                } catch {
-                    // Next mutating request will refresh CSRF when auth completes.
-                }
-                if (this.$route?.name !== "auth") {
-                    this.$router.push("/auth");
-                }
-                this.isSwitchingIdentity = false;
+                ToastUtils.success(this.$t("identities.switched"));
+
+                GlobalState.unreadConversationsCount = 0;
+                GlobalState.missedCallsCount = 0;
+                GlobalState.blockedDestinations = [];
+
+                await this.getConfig();
+                await this.updateRingtonePlayer();
+                await this.getAppInfo();
+                await this.getBlockedDestinations();
+                this.updateTelephoneStatus();
+
                 GlobalEmitter.emit("identity-switched", json);
+            } catch (e) {
+                console.error("applyIdentitySwitched failed", e);
+                ToastUtils.error(this.$t("identities.failed_switch"));
+                endSwitchUi(true);
                 return;
             }
-
-            GlobalState.unreadConversationsCount = 0;
-            GlobalState.missedCallsCount = 0;
-            GlobalState.blockedDestinations = [];
-
-            await this.getConfig();
-            await this.updateRingtonePlayer();
-            await this.getAppInfo();
-            await this.getBlockedDestinations();
-            this.updateTelephoneStatus();
-
-            this.isSwitchingIdentity = false;
-
-            GlobalEmitter.emit("identity-switched", json);
+            endSwitchUi(false);
         },
         onSyncPropagationNodeShell() {
             this.syncPropagationNode();

@@ -1014,6 +1014,7 @@
         "switch_confirm": "Overschakelen naar identiteit \"{name}\"?",
         "delete_confirm": "Weet u zeker dat u identiteit \"{name}\" wilt verwijderen? Dit kan niet ongedaan worden gemaakt.",
         "switched": "Identiteit succesvol gewisseld.",
+        "sign_in_after_switch": "Identiteit gewijzigd. Meld u opnieuw aan om door te gaan.",
         "created": "Identiteit succesvol aangemaakt",
         "deleted": "Identiteit verwijderd",
         "failed_load": "Kon identiteiten niet laden",

@@ -1016,6 +1016,7 @@
         "switch_after_restore_confirm": "Switch to restored identity \"{name}\" now?",
         "delete_confirm": "Delete \"{name}\"? This cannot be undone.",
         "switched": "Identity switched successfully.",
+        "sign_in_after_switch": "Identity changed. Sign in again to continue.",
         "created": "Identity created successfully",
         "deleted": "Identity deleted",
         "failed_load": "Failed to load identities",

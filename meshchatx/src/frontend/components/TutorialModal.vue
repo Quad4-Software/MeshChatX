@@ -2363,6 +2363,7 @@ import AndroidStorageBridge from "../js/AndroidStorageBridge.js";
 import ToastUtils from "../js/ToastUtils";
 import DialogUtils from "../js/DialogUtils";
 import GlobalState from "../js/GlobalState";
+import GlobalEmitter from "../js/GlobalEmitter";
 import { bundledReticulumDocsUrl } from "../js/reticulumDocsEntryUrl.js";
 import LanguageSelector from "./LanguageSelector.vue";
 import { normalizeUiLocaleCode, setLocale } from "../js/localeLoader.js";
@@ -3466,6 +3467,7 @@ export default {
                 return true;
             }
             try {
+                GlobalEmitter.emit("identity-switching-start");
                 const response = await window.api.post("/api/v1/identities/switch", {
                     identity_hash: this.identityImportedHash,
                 });
@@ -3477,8 +3479,16 @@ export default {
                         ToastUtils.warning(this.$t("tutorial.identity_default_delete_failed"));
                     }
                 }
-                if (response?.data?.hotswapped === false) {
+                if (response?.data?.hotswapped) {
+                    GlobalEmitter.emit("identity-switched-apply", {
+                        identity_hash:
+                            response.data.identity_hash ?? this.identityImportedHash,
+                        display_name: response.data.display_name ?? "",
+                        requires_reauth: Boolean(response.data.requires_reauth),
+                    });
+                } else if (response?.data?.hotswapped === false) {
                     ToastUtils.info(this.$t("identities.switch_scheduled"));
+                    GlobalEmitter.emit("identity-switching-abort");
                     setTimeout(() => {
                         window.location.reload();
                     }, 1500);
@@ -3487,6 +3497,7 @@ export default {
                 return true;
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("tutorial.identity_switch_failed"));
+                GlobalEmitter.emit("identity-switching-abort");
                 return false;
             }
         },

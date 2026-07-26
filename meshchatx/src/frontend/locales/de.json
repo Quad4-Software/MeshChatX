@@ -1014,6 +1014,7 @@
         "switch_confirm": "Zu Identität \"{name}\" wechseln?",
         "delete_confirm": "Sind Sie sicher, dass Sie die Identität \"{name}\" löschen möchten? Dies kann nicht rückgängig gemacht werden.",
         "switched": "Identität erfolgreich gewechselt.",
+        "sign_in_after_switch": "Identität gewechselt. Bitte melden Sie sich erneut an.",
         "created": "Identität erfolgreich erstellt",
         "deleted": "Identität gelöscht",
         "failed_load": "Laden von Identitäten fehlgeschlagen",
