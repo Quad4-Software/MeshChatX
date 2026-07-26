@@ -9,6 +9,8 @@
         <AppShellBanners
             :show-emergency="Boolean(appInfo?.emergency)"
             :emergency-label="$t('app.emergency_mode_active')"
+            :show-demo="GlobalState.demoMode"
+            :demo-label="$t('app.demo_mode_active')"
             :show-ws-disconnected="showWsDisconnectedBanner"
             :ws-disconnected-label="backendOfflineBannerLabel"
             :show-backend-recovery-actions="showBackendRecoveryActions"
@@ -676,6 +678,7 @@ export default {
         const vuetifyTheme = useTheme();
         return {
             vuetifyTheme,
+            GlobalState,
         };
     },
     data() {

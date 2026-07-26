@@ -36,6 +36,16 @@ Access attempts are logged. Repeated failures can trigger lockout when auth is e
 
 Reset a forgotten password with `--reset-password` or `MESHCHAT_RESET_PASSWORD=true`, then set a new password in the UI.
 
+### Demo mode and ALTCHA
+
+`MESHCHAT_DEMO_MODE=1` (or `--demo`) enables a public showcase profile: privacy mode on, plugins off, no outbound announces, and a default-deny HTTP mutation policy with mesh send blocked. Status reports `demo_mode: true`.
+
+When `MESHCHAT_ALTCHA_ENABLED=1`, login and setup require a valid [ALTCHA](https://altcha.org/docs/v2/widget-v3/) proof-of-work payload (widget v3, server challenges use `PBKDF2/SHA-256` by default). Set `MESHCHAT_ALTCHA_HMAC_KEY` to a long random secret on the server. Optional `MESHCHAT_ALTCHA_COST` tunes PoW difficulty. The widget loads from the bundled `altcha` npm package and fetches challenges from `/api/v1/auth/altcha/challenge`.
+
+`MESHCHAT_AUTH_PAGE_HINT` sets optional plain text on the login page (independent of demo mode). Demo Docker compose defaults to username and password hints for the showcase account.
+
+`MESHCHAT_AUTH_BYPASS=1` skips session auth for local testing only. Do not use it on internet-facing deployments.
+
 ## Transport security
 
 - HTTPS and WSS are on by default.

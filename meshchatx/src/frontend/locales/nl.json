@@ -370,6 +370,7 @@
         "loading_overlay_title": "Schakelen van profiel",
         "loading_overlay_subtitle": "Uw chats en instellingen laden. Dit duurt meestal een paar seconden.",
         "emergency_mode_active": "Noodmodus actief - Gebruik van in-geheugen database en beperkte diensten.",
+        "demo_mode_active": "Demomodus: alleen-lezen mesh-demo. Verzenden en instellingen wijzigen is uitgeschakeld.",
         "backend_disconnected": "Verbinding verbroken met backend",
         "backend_process_stopped": "Reticulum-backend gestopt",
         "backend_reconnected": "Verbinding met backend",
@@ -3936,6 +3937,24 @@
         "identity_created": "Management identity created",
         "failed_load_identities": "Failed to load management identities",
         "failed_create_identity": "Failed to create management identity"
+    },
+    "auth": {
+        "setup_title": "Eerste installatie",
+        "login_title": "Authenticatie vereist",
+        "setup_subtitle": "Stel een beheerderswachtwoord in om uw MeshChatX-exemplaar te beveiligen",
+        "login_subtitle": "Voer uw wachtwoord in om door te gaan",
+        "password_label": "Wachtwoord",
+        "password_placeholder": "Wachtwoord invoeren",
+        "password_min_length": "Wachtwoord moet minstens 8 tekens lang zijn",
+        "confirm_password_label": "Wachtwoord bevestigen",
+        "confirm_password_placeholder": "Wachtwoord bevestigen",
+        "processing": "Bezig...",
+        "set_password": "Wachtwoord instellen",
+        "login": "Inloggen",
+        "passwords_mismatch": "Wachtwoorden komen niet overeen",
+        "altcha_required": "Voltooi eerst de verificatie-uitdaging",
+        "status_check_failed": "Authenticatiestatus kon niet worden gecontroleerd",
+        "failed": "Authenticatie mislukt"
     },
     "post_install": {
         "windows_screen_security_title": "Windows-schermbeveiliging inschakelen?",

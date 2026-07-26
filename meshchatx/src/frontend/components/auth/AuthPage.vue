@@ -1,90 +1,116 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="h-dvh min-h-0 w-full flex items-center justify-center bg-slate-50 dark:bg-zinc-950">
-        <div class="w-full max-w-md p-8">
-            <div
-                class="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg border border-gray-200 dark:border-zinc-800 p-8"
-            >
-                <div class="text-center mb-8">
-                    <div
-                        class="w-16 h-16 mx-auto mb-4 rounded-2xl overflow-hidden bg-white/70 dark:bg-white/10 border border-gray-200 dark:border-zinc-700 shadow-inner flex items-center justify-center"
-                    >
-                        <img class="w-16 h-16 object-contain p-2" :src="logoUrl" />
-                    </div>
-                    <h1 class="text-2xl font-bold text-gray-900 dark:text-zinc-100 mb-2">
-                        {{ isSetup ? "Initial Setup" : "Authentication Required" }}
-                    </h1>
-                    <p class="text-sm text-gray-600 dark:text-zinc-400">
-                        {{
-                            isSetup
-                                ? "Set an admin password to secure your MeshChatX instance"
-                                : "Please enter your password to continue"
-                        }}
-                    </p>
-                </div>
+    <div class="h-dvh min-h-0 w-full flex flex-col bg-slate-50 dark:bg-zinc-950">
+        <div
+            v-if="demoMode"
+            class="relative z-100 shrink-0 bg-amber-600 text-white px-4 py-2 text-center text-sm font-medium shadow-md border-b border-amber-700/80"
+            role="status"
+        >
+            {{ $t("app.demo_mode_active") }}
+        </div>
 
-                <form class="space-y-6" @submit.prevent="handleSubmit">
-                    <div>
-                        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">
-                            Password
-                        </label>
-                        <input
-                            id="password"
-                            v-model="password"
-                            type="password"
-                            required
-                            minlength="8"
-                            class="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Enter password"
-                            autocomplete="current-password"
-                        />
-                        <p v-if="isSetup" class="mt-2 text-xs text-gray-500 dark:text-zinc-500">
-                            Password must be at least 8 characters long
+        <div class="flex-1 min-h-0 flex items-center justify-center">
+            <div class="w-full max-w-md p-8">
+                <div
+                    class="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg border border-gray-200 dark:border-zinc-800 p-8"
+                >
+                    <div class="text-center mb-8">
+                        <div
+                            class="w-16 h-16 mx-auto mb-4 rounded-2xl overflow-hidden bg-white/70 dark:bg-white/10 border border-gray-200 dark:border-zinc-700 shadow-inner flex items-center justify-center"
+                        >
+                            <img class="w-16 h-16 object-contain p-2" :src="logoUrl" alt="" />
+                        </div>
+                        <h1 class="text-2xl font-bold text-gray-900 dark:text-zinc-100 mb-2">
+                            {{ isSetup ? $t("auth.setup_title") : $t("auth.login_title") }}
+                        </h1>
+                        <p class="text-sm text-gray-600 dark:text-zinc-400">
+                            {{ isSetup ? $t("auth.setup_subtitle") : $t("auth.login_subtitle") }}
+                        </p>
+                        <p
+                            v-if="authPageHint"
+                            class="mt-3 text-xs text-gray-600 dark:text-zinc-400 whitespace-pre-line"
+                        >
+                            {{ authPageHint }}
                         </p>
                     </div>
 
-                    <div v-if="isSetup">
-                        <label
-                            for="confirmPassword"
-                            class="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2"
+                    <form class="space-y-6" @submit.prevent="handleSubmit">
+                        <div>
+                            <label
+                                for="password"
+                                class="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2"
+                            >
+                                {{ $t("auth.password_label") }}
+                            </label>
+                            <input
+                                id="password"
+                                v-model="password"
+                                type="password"
+                                required
+                                :minlength="isSetup ? 8 : 1"
+                                class="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                :placeholder="$t('auth.password_placeholder')"
+                                autocomplete="current-password"
+                            />
+                            <p v-if="isSetup" class="mt-2 text-xs text-gray-500 dark:text-zinc-500">
+                                {{ $t("auth.password_min_length") }}
+                            </p>
+                        </div>
+
+                        <div v-if="isSetup">
+                            <label
+                                for="confirmPassword"
+                                class="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2"
+                            >
+                                {{ $t("auth.confirm_password_label") }}
+                            </label>
+                            <input
+                                id="confirmPassword"
+                                v-model="confirmPassword"
+                                type="password"
+                                required
+                                minlength="8"
+                                class="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                :placeholder="$t('auth.confirm_password_placeholder')"
+                                autocomplete="new-password"
+                            />
+                        </div>
+
+                        <div v-if="altchaEnabled" class="min-h-[52px]">
+                            <altcha-widget
+                                ref="altchaWidget"
+                                :challenge="altchaChallengeUrl"
+                                auto="onsubmit"
+                                name="altcha"
+                            ></altcha-widget>
+                        </div>
+
+                        <div
+                            v-if="error"
+                            class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
                         >
-                            Confirm Password
-                        </label>
-                        <input
-                            id="confirmPassword"
-                            v-model="confirmPassword"
-                            type="password"
-                            required
-                            minlength="8"
-                            class="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Confirm password"
-                            autocomplete="new-password"
-                        />
-                    </div>
+                            <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
+                        </div>
 
-                    <div
-                        v-if="error"
-                        class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
-                    >
-                        <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
-                    </div>
-
-                    <button
-                        type="submit"
-                        :disabled="isLoading || (isSetup && password !== confirmPassword)"
-                        class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
-                    >
-                        <span v-if="isLoading">Processing...</span>
-                        <span v-else>{{ isSetup ? "Set Password" : "Login" }}</span>
-                    </button>
-                </form>
+                        <button
+                            type="submit"
+                            :disabled="isLoading || (isSetup && password !== confirmPassword)"
+                            class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
+                        >
+                            <span v-if="isLoading">{{ $t("auth.processing") }}</span>
+                            <span v-else>{{ isSetup ? $t("auth.set_password") : $t("auth.login") }}</span>
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </template>
 
 <script>
+import "altcha";
+
 import logoUrl from "../../assets/images/logo.png";
 
 export default {
@@ -97,6 +123,10 @@ export default {
             error: "",
             isLoading: false,
             isSetup: false,
+            altchaEnabled: false,
+            demoMode: false,
+            authPageHint: "",
+            altchaChallengeUrl: "/api/v1/auth/altcha/challenge",
         };
     },
     async mounted() {
@@ -119,22 +149,39 @@ export default {
                 }
 
                 this.isSetup = !status.password_set;
+                this.altchaEnabled = status.altcha_enabled === true;
+                this.demoMode = status.demo_mode === true;
+                const hint = status.auth_page_hint;
+                this.authPageHint = typeof hint === "string" ? hint : "";
             } catch (e) {
                 console.error("Failed to check auth status:", e);
-                this.error = "Failed to check authentication status";
+                this.error = this.$t("auth.status_check_failed");
             }
+        },
+        readAltchaPayload() {
+            const widget = this.$refs.altchaWidget;
+            if (!widget) {
+                return null;
+            }
+            if (typeof widget.getPayload === "function") {
+                return widget.getPayload();
+            }
+            if (widget.value) {
+                return widget.value;
+            }
+            return null;
         },
         async handleSubmit() {
             this.error = "";
 
             if (this.isSetup) {
                 if (this.password !== this.confirmPassword) {
-                    this.error = "Passwords do not match";
+                    this.error = this.$t("auth.passwords_mismatch");
                     return;
                 }
 
                 if (this.password.length < 8) {
-                    this.error = "Password must be at least 8 characters long";
+                    this.error = this.$t("auth.password_min_length");
                     return;
                 }
             }
@@ -143,13 +190,21 @@ export default {
 
             try {
                 const endpoint = this.isSetup ? "/api/v1/auth/setup" : "/api/v1/auth/login";
-                await window.api.post(endpoint, {
-                    password: this.password,
-                });
+                const body = { password: this.password };
+                if (this.altchaEnabled) {
+                    const altchaPayload = this.readAltchaPayload();
+                    if (!altchaPayload) {
+                        this.error = this.$t("auth.altcha_required");
+                        this.isLoading = false;
+                        return;
+                    }
+                    body.altcha = altchaPayload;
+                }
+                await window.api.post(endpoint, body);
 
                 window.location.reload();
             } catch (e) {
-                this.error = e.response?.data?.error || "Authentication failed";
+                this.error = e.response?.data?.error || this.$t("auth.failed");
                 this.password = "";
                 this.confirmPassword = "";
             } finally {

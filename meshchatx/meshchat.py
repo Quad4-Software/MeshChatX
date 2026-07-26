@@ -81,6 +81,12 @@ from meshchatx.src.backend.csrf import (
     rotate_session_csrf_token,
     validate_csrf_header,
 )
+from meshchatx.src.backend.altcha_auth import altcha_enabled_from_env
+from meshchatx.src.backend.auth_page_hint import auth_page_hint_from_env
+from meshchatx.src.backend.demo_mode import (
+    auth_bypass_from_env,
+    demo_auth_password_from_env,
+)
 from meshchatx.src.backend.database.access_attempts import (
     LOGIN_PATH,
     MAX_FAILED_BEFORE_LOCKOUT,
@@ -560,9 +566,14 @@ class ReticulumMeshChat:
         plugins_enabled: bool = True,
         defer_network_setup: bool = False,
         headless: bool = False,
+        demo_mode: bool = False,
+        altcha_enabled: bool = False,
     ):
         self.running = True
         self.plugins_enabled = plugins_enabled
+        self.demo_mode = bool(demo_mode)
+        self.altcha_enabled = bool(altcha_enabled)
+        self.auth_page_hint = auth_page_hint_from_env()
         self._memory_diag_enabled = memory_diag_enabled
         self._mem_diag = None
         self._headless = bool(headless)
@@ -1034,6 +1045,8 @@ class ReticulumMeshChat:
 
     @property
     def auth_enabled(self):
+        if auth_bypass_from_env():
+            return False
         if self.config:
             return self.config.auth_enabled.get()
         return self.auth_enabled_initial
@@ -1682,6 +1695,11 @@ class ReticulumMeshChat:
             self._sideband_telemetry_running = False
 
     def _startup_status_payload(self) -> dict:
+        demo_fields = {
+            "demo_mode": self.demo_mode,
+            "altcha_enabled": self.altcha_enabled,
+            "auth_page_hint": self.auth_page_hint,
+        }
         if self._startup_stage == "failed" or self._startup_error:
             payload = {
                 "status": "failed",
@@ -1694,6 +1712,7 @@ class ReticulumMeshChat:
                 "https_enabled": self.use_https,
                 "is_loopback_bind": _is_loopback_bind_host(self.listen_host),
                 "plugins_enabled": self.plugins_enabled,
+                **demo_fields,
                 **self._landlock_status_dict(),
             }
             if self._startup_error:
@@ -1716,6 +1735,7 @@ class ReticulumMeshChat:
             "https_enabled": self.use_https,
             "is_loopback_bind": _is_loopback_bind_host(self.listen_host),
             "plugins_enabled": self.plugins_enabled,
+            **demo_fields,
             **self._landlock_status_dict(),
         }
 
@@ -1831,6 +1851,7 @@ class ReticulumMeshChat:
                 )
                 if self._network_ready:
                     self._finish_deferred_startup_services()
+                self._apply_demo_mode_runtime()
                 return
 
         # Initialize Reticulum if not already done
@@ -1880,6 +1901,27 @@ class ReticulumMeshChat:
 
         if self._network_ready:
             self._finish_deferred_startup_services()
+
+        self._apply_demo_mode_runtime()
+
+    def _apply_demo_mode_runtime(self) -> None:
+        if not self.demo_mode:
+            return
+        ctx = self.current_context
+        if not ctx or not ctx.config:
+            return
+        self.plugins_enabled = False
+        ctx.config.privacy_mode_enabled.set(True)
+        ctx.config.auto_announce_enabled.set(False)
+        if self.auth_enabled_initial:
+            ctx.config.auth_enabled.set(True)
+        if self.auth_enabled and ctx.config.auth_password_hash.get() is None:
+            password = demo_auth_password_from_env()
+            password_hash = bcrypt.hashpw(
+                password.encode("utf-8"),
+                bcrypt.gensalt(),
+            ).decode("utf-8")
+            ctx.config.auth_password_hash.set(password_hash)
 
     def _finish_deferred_startup_services(self) -> None:
         """Start non-critical services after network_ready is published."""
@@ -5106,6 +5148,7 @@ class ReticulumMeshChat:
             security_middleware,
             csrf_middleware,
             ip_allowlist_middleware,
+            demo_mode_middleware,
         ) = register_all_routes(routes, self)
 
         return (
@@ -5114,6 +5157,7 @@ class ReticulumMeshChat:
             security_middleware,
             csrf_middleware,
             ip_allowlist_middleware,
+            demo_mode_middleware,
         )
 
     def _encrypted_cookie_storage(self, use_https: bool) -> EncryptedCookieStorage:
@@ -5215,6 +5259,7 @@ class ReticulumMeshChat:
             security_middleware,
             csrf_middleware,
             ip_allowlist_middleware,
+            demo_mode_middleware,
         ) = self._define_routes(routes)
 
         ssl_context = None
@@ -5324,6 +5369,7 @@ class ReticulumMeshChat:
                 security_middleware,
                 csrf_middleware,
                 ip_allowlist_middleware,
+                demo_mode_middleware,
             ],
         )
 
@@ -5521,6 +5567,8 @@ class ReticulumMeshChat:
 
     # handle announcing
     async def announce(self, context=None):
+        if self.demo_mode:
+            return
         ctx = context or self.current_context
         if not ctx:
             return
@@ -10387,6 +10435,12 @@ def main():
         help="Enable basic authentication for the web interface. Can also be set via MESHCHAT_AUTH environment variable.",
     )
     parser.add_argument(
+        "--demo",
+        action="store_true",
+        default=env_bool("MESHCHAT_DEMO_MODE", False),
+        help="Public demo mode: read-only mesh and blocked API mutations. Can also be set via MESHCHAT_DEMO_MODE environment variable.",
+    )
+    parser.add_argument(
         "--no-https",
         action="store_true",
         default=env_bool("MESHCHAT_NO_HTTPS", False),
@@ -10648,6 +10702,16 @@ def main():
         or args.restore_db
         or args.restore_from_snapshot,
     )
+    if auth_bypass_from_env():
+        print(
+            "WARNING: MESHCHAT_AUTH_BYPASS=1 disables web UI authentication",
+            file=sys.stderr,
+            flush=True,
+        )
+
+    demo_mode = bool(args.demo)
+    altcha_on = altcha_enabled_from_env()
+
     reticulum_meshchat = ReticulumMeshChat(
         identity,
         args.storage_dir,
@@ -10663,9 +10727,11 @@ def main():
         rns_loglevel=rns_log_cli,
         migration_context=migration_context,
         memory_diag_enabled=args.memory_diag,
-        plugins_enabled=not args.disable_plugins,
+        plugins_enabled=(not args.disable_plugins) and not demo_mode,
         defer_network_setup=not needs_immediate_network,
         headless=bool(args.headless),
+        demo_mode=demo_mode,
+        altcha_enabled=altcha_on,
     )
 
     # store recovery on app for wiring with identity context

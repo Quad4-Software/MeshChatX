@@ -385,6 +385,12 @@ if (networkReady) {
         GlobalState.networkReady = true;
     }
     try {
+        const statusResponse = await window.api.get("/api/v1/status");
+        GlobalState.demoMode = !!statusResponse.data?.demo_mode;
+    } catch {
+        // status optional during early boot
+    }
+    try {
         await fetchCsrfToken(window.api);
     } catch {
         // CSRF token will be retried on the next mutating request if needed.
@@ -396,6 +402,7 @@ if (networkReady) {
             const status = response.data;
             GlobalState.authEnabled = !!status.auth_enabled;
             GlobalState.authenticated = !!status.authenticated;
+            GlobalState.demoMode = !!status.demo_mode;
             GlobalState.authSessionResolved = true;
 
             if (!status.auth_enabled) {
