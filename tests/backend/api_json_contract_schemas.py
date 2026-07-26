@@ -196,7 +196,13 @@ _SERVER_BIND_STATUS_SCHEMA: dict = {
     "seccomp_requested": {"type": "boolean"},
     "seccomp_auto_enabled": {"type": "boolean"},
     "seccomp_disabled_by_env": {"type": "boolean"},
-    "seccomp_active": {"type": "boolean"},
+        "seccomp_active": {"type": "boolean"},
+}
+
+_DEMO_PUBLIC_STATUS_FIELDS: dict = {
+    "demo_mode": {"type": "boolean"},
+    "altcha_enabled": {"type": "boolean"},
+    "auth_page_hint": {"type": ["string", "null"]},
 }
 
 API_V1_STATUS_SCHEMA: dict = {
@@ -213,6 +219,7 @@ API_V1_STATUS_SCHEMA: dict = {
         "ui_ready": {"type": "boolean"},
         "error": {"type": "string"},
         **_SERVER_BIND_STATUS_SCHEMA,
+        **_DEMO_PUBLIC_STATUS_FIELDS,
     },
     "additionalProperties": False,
 }
@@ -339,6 +346,7 @@ AUTH_STATUS_SCHEMA: dict = {
             "enum": ["http", "starting", "rns", "identity", "ready", "failed"],
         },
         "error": {"type": "string"},
+        **_DEMO_PUBLIC_STATUS_FIELDS,
     },
     "additionalProperties": False,
 }

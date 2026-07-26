@@ -13,6 +13,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+pytest_plugins = ["tests.backend.test_lxmf_local_self_message"]
+
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend import reticulum_pathfinding
 from tests.backend.test_lxmf_local_self_message import (
