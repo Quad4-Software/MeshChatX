@@ -1014,6 +1014,7 @@
         "switch_confirm": "¿Cambiar a la identidad «{name}»?",
         "delete_confirm": "¿Estás seguro de que quieres eliminar la identidad \"{name}\"? Esto no puede ser deshecho.",
         "switched": "Identidad cambiada correctamente.",
+        "sign_in_after_switch": "Identidad cambiada. Inicia sesión de nuevo para continuar.",
         "created": "Identidad creada con éxito",
         "deleted": "Identidad eliminada",
         "failed_load": "No se pudieron cargar las identidades",

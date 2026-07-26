@@ -1014,6 +1014,7 @@
         "switch_confirm": "切换到身份「{name}」？",
         "delete_confirm": "您确定要删除身份 \"{name}\" 吗？此操作无法撤销。",
         "switched": "身份切换成功。",
+        "sign_in_after_switch": "身份已切换。请重新登录以继续。",
         "created": "身份创建成功",
         "deleted": "身份已删除",
         "failed_load": "加载身份失败",

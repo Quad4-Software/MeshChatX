@@ -21,7 +21,7 @@
                         {{ $t("app.loading_overlay_kicker") }}
                     </p>
                     <h2 class="mt-1.5 text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
-                        {{ $t("app.loading_overlay_title") }}
+                        {{ $t("app.switching_identity") }}
                     </h2>
                     <p class="mt-3 text-sm leading-relaxed text-gray-600 dark:text-zinc-400">
                         {{ $t("app.loading_overlay_subtitle") }}

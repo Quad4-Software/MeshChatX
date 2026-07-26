@@ -4,6 +4,10 @@ import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
 import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
 import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
 
+vi.mock("../../meshchatx/src/frontend/js/csrfToken.js", () => ({
+    fetchCsrfToken: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     default: {
         success: vi.fn(),
@@ -88,6 +92,7 @@ describe("App.vue applyIdentitySwitched", () => {
         expect(ctx.getConfig).toHaveBeenCalledTimes(1);
         expect(ToastUtils.success).toHaveBeenCalledTimes(1);
         expect(GlobalEmitter.emit).toHaveBeenCalledTimes(1);
+        expect(ctx.isSwitchingIdentity).toBe(false);
     });
 
     it("applies again for a different identity hash", async () => {
@@ -111,7 +116,8 @@ describe("App.vue applyIdentitySwitched", () => {
             display_name: "X",
         });
         expect(ctx.getConfig).not.toHaveBeenCalled();
-        expect(GlobalEmitter.emit).not.toHaveBeenCalled();
+        expect(GlobalEmitter.emit).toHaveBeenCalledWith("identity-switching-abort");
+        expect(ctx.isSwitchingIdentity).toBe(false);
     });
 
     it("no-ops when identity_hash is missing", async () => {
@@ -120,6 +126,8 @@ describe("App.vue applyIdentitySwitched", () => {
             display_name: "X",
         });
         expect(ctx.getConfig).not.toHaveBeenCalled();
+        expect(GlobalEmitter.emit).toHaveBeenCalledWith("identity-switching-abort");
+        expect(ctx.isSwitchingIdentity).toBe(false);
     });
 
     it("re-applies same hash after dedupe window expires", async () => {
@@ -140,6 +148,40 @@ describe("App.vue applyIdentitySwitched", () => {
         expect(ctx.getConfig).toHaveBeenCalledTimes(1);
         expect(ToastUtils.success).toHaveBeenCalledTimes(1);
         expect(GlobalEmitter.emit).toHaveBeenCalledTimes(1);
+    });
+
+    it("requires reauth without wiping UI via identity-switched", async () => {
+        GlobalState.authEnabled = true;
+        const ctx = {
+            ...makeCtx(),
+            $route: { name: "settings" },
+            $router: { push: vi.fn() },
+        };
+        await App.methods.applyIdentitySwitched.call(ctx, {
+            identity_hash: "h1",
+            requires_reauth: true,
+        });
+        expect(ToastUtils.info).toHaveBeenCalledWith("identities.sign_in_after_switch");
+        expect(ToastUtils.success).not.toHaveBeenCalled();
+        expect(ctx.getConfig).not.toHaveBeenCalled();
+        expect(GlobalEmitter.emit).toHaveBeenCalledWith("identity-switching-abort");
+        expect(GlobalEmitter.emit).not.toHaveBeenCalledWith(
+            "identity-switched",
+            expect.anything(),
+        );
+        expect(ctx.$router.push).toHaveBeenCalledWith("/auth");
+        expect(ctx.isSwitchingIdentity).toBe(false);
+    });
+
+    it("shows error and aborts when post-switch refresh fails", async () => {
+        const ctx = makeCtx();
+        ctx.getConfig.mockRejectedValueOnce(new Error("network"));
+        await App.methods.applyIdentitySwitched.call(ctx, {
+            identity_hash: "h1",
+        });
+        expect(ToastUtils.error).toHaveBeenCalledWith("identities.failed_switch");
+        expect(GlobalEmitter.emit).toHaveBeenCalledWith("identity-switching-abort");
+        expect(ctx.isSwitchingIdentity).toBe(false);
     });
 
     it("performance: dedupe path skips async work for many duplicate applies", async () => {

@@ -1014,6 +1014,7 @@
         "switch_confirm": "Vaihda identiteettiin \"{name}\"?",
         "delete_confirm": "Haluatko varmasti poistaa identiteetin \"{name}\"? Toimintoa ei voi kumota.",
         "switched": "Identiteetti vaihdettu.",
+        "sign_in_after_switch": "Identiteetti vaihdettu. Kirjaudu uudelleen jatkaaksesi.",
         "created": "Identiteetti luotu",
         "deleted": "Identiteetti poistettu",
         "failed_load": "Identiteettien lataaminen epäonnistui",

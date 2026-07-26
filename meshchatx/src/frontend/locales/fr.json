@@ -1014,6 +1014,7 @@
         "switch_confirm": "Passer à l'identité « {name} » ?",
         "delete_confirm": "Voulez-vous vraiment supprimer l'identité \"{name}\" ? Cela ne peut être annulé.",
         "switched": "Identité changée avec succès.",
+        "sign_in_after_switch": "Identité modifiée. Reconnectez-vous pour continuer.",
         "created": "Identité créée avec succès",
         "deleted": "Identité supprimée",
         "failed_load": "Impossible de charger les identités",
