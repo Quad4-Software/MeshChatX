@@ -35,11 +35,18 @@ mkdir -p "$CONFIG_DIR"
 echo "Starting container on host port ${HOST_PORT}..."
 docker run -d \
     --name "$CONTAINER" \
+    --init \
+    --user 1000:1000 \
+    --security-opt no-new-privileges:true \
+    --cap-drop ALL \
+    --read-only \
+    --tmpfs /tmp:noexec,nosuid,size=256m \
+    --tmpfs /home/meshchat:nosuid,size=64m \
     --cpus=2.0 \
     --memory=1g \
     --memory-reservation=256m \
     --pids-limit=512 \
-    -p "${HOST_PORT}:8000" \
+    -p "127.0.0.1:${HOST_PORT}:8000" \
     -v "${CONFIG_DIR}:/config" \
     "$IMAGE" >/dev/null
 
