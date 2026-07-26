@@ -343,6 +343,7 @@
         "loading_overlay_title": "Смена профиля",
         "loading_overlay_subtitle": "Загрузка чатов и настроек. Обычно это занимает несколько секунд.",
         "emergency_mode_active": "Аварийный режим активен. Используется база данных в оперативной памяти и ограниченные службы.",
+        "demo_mode_active": "Демо-режим: демонстрация сети только для чтения. Отправка и изменение настроек отключены.",
         "backend_disconnected": "Нет соединения с сервером",
         "backend_process_stopped": "Сервер Reticulum остановлен",
         "backend_reconnected": "Соединение с сервером восстановлено",
@@ -3936,6 +3937,24 @@
         "identity_created": "Management identity created",
         "failed_load_identities": "Failed to load management identities",
         "failed_create_identity": "Failed to create management identity"
+    },
+    "auth": {
+        "setup_title": "Первоначальная настройка",
+        "login_title": "Требуется аутентификация",
+        "setup_subtitle": "Задайте пароль администратора для защиты экземпляра MeshChatX",
+        "login_subtitle": "Введите пароль, чтобы продолжить",
+        "password_label": "Пароль",
+        "password_placeholder": "Введите пароль",
+        "password_min_length": "Пароль должен содержать не менее 8 символов",
+        "confirm_password_label": "Подтвердите пароль",
+        "confirm_password_placeholder": "Подтвердите пароль",
+        "processing": "Обработка...",
+        "set_password": "Задать пароль",
+        "login": "Войти",
+        "passwords_mismatch": "Пароли не совпадают",
+        "altcha_required": "Сначала завершите проверку",
+        "status_check_failed": "Не удалось проверить состояние аутентификации",
+        "failed": "Ошибка аутентификации"
     },
     "post_install": {
         "windows_screen_security_title": "Включить защиту экрана Windows?",

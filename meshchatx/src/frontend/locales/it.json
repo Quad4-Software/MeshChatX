@@ -370,6 +370,7 @@
         "loading_overlay_title": "Cambio profilo",
         "loading_overlay_subtitle": "Caricamento chat e impostazioni. Di solito bastano pochi secondi.",
         "emergency_mode_active": "Modalità Emergenza Attiva - Utilizzo del database in memoria e servizi limitati.",
+        "demo_mode_active": "Modalità demo: vetrina mesh in sola lettura. Invio e modifiche alle impostazioni disabilitati.",
         "backend_disconnected": "Disconnesso dal backend",
         "backend_process_stopped": "Backend Reticulum arrestato",
         "backend_reconnected": "Riconnesso al backend",
@@ -3936,6 +3937,24 @@
         "identity_created": "Management identity created",
         "failed_load_identities": "Failed to load management identities",
         "failed_create_identity": "Failed to create management identity"
+    },
+    "auth": {
+        "setup_title": "Configurazione iniziale",
+        "login_title": "Autenticazione richiesta",
+        "setup_subtitle": "Imposta una password amministratore per proteggere la tua istanza MeshChatX",
+        "login_subtitle": "Inserisci la password per continuare",
+        "password_label": "Password",
+        "password_placeholder": "Inserisci password",
+        "password_min_length": "La password deve contenere almeno 8 caratteri",
+        "confirm_password_label": "Conferma password",
+        "confirm_password_placeholder": "Conferma password",
+        "processing": "Elaborazione...",
+        "set_password": "Imposta password",
+        "login": "Accedi",
+        "passwords_mismatch": "Le password non corrispondono",
+        "altcha_required": "Completa prima la verifica",
+        "status_check_failed": "Impossibile verificare lo stato di autenticazione",
+        "failed": "Autenticazione non riuscita"
     },
     "post_install": {
         "windows_screen_security_title": "Attivare la sicurezza schermo di Windows?",

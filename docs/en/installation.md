@@ -61,6 +61,17 @@ Default Compose maps `127.0.0.1:8000` on the host to port `8000` in the containe
 
 To bind a host directory instead, mount it at `/config`. The container runs as UID 1000. The host directory must be writable by that user.
 
+### Public demo instance (Coolify)
+
+For a read-only mesh showcase on [Coolify](https://coolify.io/docs/knowledge-base/docker/compose), deploy [`docker-compose.demo.yml`](../../docker-compose.demo.yml). For a normal (non-demo) Coolify deployment, use [`docker-compose.coolify.yml`](../../docker-compose.coolify.yml).
+
+- `MESHCHAT_DEMO_MODE=1` blocks outbound mesh actions and almost all API mutations.
+- `MESHCHAT_AUTH=1` with default showcase password `demo` (`MESHCHAT_DEMO_AUTH_PASSWORD`).
+- Optional `MESHCHAT_AUTH_PAGE_HINT` shows custom text on the login page (for example `Username: demo` and `Password: demo`). Demo compose sets a default hint.
+- `MESHCHAT_ALTCHA_ENABLED=1` and a strong `MESHCHAT_ALTCHA_HMAC_KEY` (required in demo compose via `:?`). The UI uses ALTCHA widget v3 with `PBKDF2/SHA-256` challenges from `/api/v1/auth/altcha/challenge`.
+- Assign a domain with container port **8000**, for example `https://meshchatx.example.com:8000`.
+- Do not set `MESHCHAT_AUTH_BYPASS=1` on a public host.
+
 ## Python wheel
 
 1. Download `reticulum_meshchatx-*-py3-none-any.whl` from [releases](https://github.com/Quad4-Software/MeshChatX/releases).

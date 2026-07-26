@@ -291,6 +291,8 @@ def mock_app(db, tmp_path, temp_db):
         if app.rrc_manager is not None:
             app.rrc_manager.set_database(app.database)
         app.websocket_broadcast = MagicMock(side_effect=lambda data: None)
+        app.demo_mode = False
+        app.altcha_enabled = False
 
         yield app
         app.teardown_identity()
@@ -306,8 +308,8 @@ async def fetch_api_csrf_headers(client):
 
 
 def extend_meshchat_middlewares(aio_app, middlewares):
-    auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw = middlewares
-    aio_app.middlewares.extend([auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw])
+    auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw = middlewares
+    aio_app.middlewares.extend([auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw])
 
 
 def pytest_collection_modifyitems(session, config, items):

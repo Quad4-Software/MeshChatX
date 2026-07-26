@@ -336,8 +336,10 @@ async def test_auth_middleware_allows_status_and_static_while_starting(
 ):
     app = _make_deferred_app(mock_identity, temp_dir)
     routes = web.RouteTableDef()
-    auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw = app._define_routes(routes)
-    aio_app = web.Application(middlewares=[auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw])
+    auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw = app._define_routes(routes)
+    aio_app = web.Application(
+        middlewares=[auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw]
+    )
     aio_app.add_routes(routes)
 
     async with TestClient(TestServer(aio_app)) as client:
@@ -362,8 +364,10 @@ async def test_auth_middleware_allows_status_and_static_while_starting(
 async def test_auth_middleware_allows_csrf_while_starting(mock_identity, temp_dir):
     app = _make_deferred_app(mock_identity, temp_dir)
     routes = web.RouteTableDef()
-    auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw = app._define_routes(routes)
-    aio_app = web.Application(middlewares=[auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw])
+    auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw = app._define_routes(routes)
+    aio_app = web.Application(
+        middlewares=[auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw]
+    )
     aio_app.add_routes(routes)
 
     with patch(

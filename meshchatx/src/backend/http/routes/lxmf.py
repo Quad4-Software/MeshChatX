@@ -532,6 +532,11 @@ def register_lxmf_routes(routes, app):
     # send lxmf message
     @routes.post("/api/v1/lxmf-messages/send")
     async def lxmf_messages_send(request):
+        from meshchatx.src.backend.demo_mode import demo_mode_block_response
+
+        blocked = demo_mode_block_response(app)
+        if blocked is not None:
+            return blocked
         # get request body as json
         data = await request.json()
 

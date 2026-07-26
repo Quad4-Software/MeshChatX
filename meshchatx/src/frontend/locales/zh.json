@@ -370,6 +370,7 @@
         "loading_overlay_title": "切换配置",
         "loading_overlay_subtitle": "正在加载您的聊天和设置。这通常需要几秒钟。",
         "emergency_mode_active": "紧急模式激活 - 使用内存数据库和受限服务。",
+        "demo_mode_active": "演示模式：只读网状网络展示。已禁用发送和设置更改。",
         "backend_disconnected": "后端已断开",
         "backend_process_stopped": "Reticulum 后端已停止",
         "backend_reconnected": "已重新连接到后端",
@@ -3936,6 +3937,24 @@
         "identity_created": "Management identity created",
         "failed_load_identities": "Failed to load management identities",
         "failed_create_identity": "Failed to create management identity"
+    },
+    "auth": {
+        "setup_title": "初始设置",
+        "login_title": "需要身份验证",
+        "setup_subtitle": "设置管理员密码以保护您的 MeshChatX 实例",
+        "login_subtitle": "请输入密码以继续",
+        "password_label": "密码",
+        "password_placeholder": "输入密码",
+        "password_min_length": "密码长度至少为 8 个字符",
+        "confirm_password_label": "确认密码",
+        "confirm_password_placeholder": "确认密码",
+        "processing": "处理中...",
+        "set_password": "设置密码",
+        "login": "登录",
+        "passwords_mismatch": "两次输入的密码不一致",
+        "altcha_required": "请先完成验证挑战",
+        "status_check_failed": "无法检查身份验证状态",
+        "failed": "身份验证失败"
     },
     "post_install": {
         "windows_screen_security_title": "启用 Windows 屏幕安全？",

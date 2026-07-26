@@ -20,6 +20,7 @@ const globalState = reactive({
     networkDegradedError: null,
     networkStarting: false,
     networkReady: true,
+    demoMode: false,
     config: {
         show_unknown_contact_banner: true,
         banished_effect_enabled: true,

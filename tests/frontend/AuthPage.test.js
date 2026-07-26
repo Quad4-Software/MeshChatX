@@ -2,6 +2,26 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import AuthPage from "../../meshchatx/src/frontend/components/auth/AuthPage.vue";
 
+const authI18n = {
+    "auth.setup_title": "Initial Setup",
+    "auth.login_title": "Authentication Required",
+    "auth.setup_subtitle": "Set an admin password to secure your MeshChatX instance",
+    "auth.login_subtitle": "Please enter your password to continue",
+    "auth.password_label": "Password",
+    "auth.password_placeholder": "Enter password",
+    "auth.password_min_length": "Password must be at least 8 characters long",
+    "auth.confirm_password_label": "Confirm Password",
+    "auth.confirm_password_placeholder": "Confirm password",
+    "auth.processing": "Processing...",
+    "auth.set_password": "Set Password",
+    "auth.login": "Login",
+    "auth.passwords_mismatch": "Passwords do not match",
+    "auth.altcha_required": "Complete the verification challenge first",
+    "auth.status_check_failed": "Failed to check authentication status",
+    "auth.failed": "Authentication failed",
+    "app.demo_mode_active": "Demo mode active",
+};
+
 describe("AuthPage.vue", () => {
     let axiosMock;
     let routerMock;
@@ -41,6 +61,12 @@ describe("AuthPage.vue", () => {
             global: {
                 mocks: {
                     $router: routerMock,
+                    $t: (key) => authI18n[key] || key,
+                },
+                config: {
+                    compilerOptions: {
+                        isCustomElement: (tag) => tag === "altcha-widget",
+                    },
                 },
             },
         });

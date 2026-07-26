@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from meshchatx.src.backend.http.live_names import inject_meshchat_names
+from meshchatx.src.backend.demo_mode import demo_mode_blocks_ws_type
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     AsyncUtils,
     json,
@@ -52,6 +53,21 @@ async def dispatch_websocket_data(app, client, data):
 
     _type = data.get("type")
     if not _type:
+        return
+
+    if demo_mode_blocks_ws_type(app, _type):
+        logger.warning("Rejected WebSocket mutator in demo mode: %s", _type)
+        AsyncUtils.run_async(
+            client.send_str(
+                json.dumps(
+                    {
+                        "type": "error",
+                        "message": "Demo mode is read-only",
+                        "code": "demo_readonly",
+                    },
+                ),
+            ),
+        )
         return
 
     if websocket_type_requires_auth(_type):

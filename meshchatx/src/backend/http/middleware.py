@@ -94,7 +94,11 @@ def create_auth_middleware(app):
 
         # Allow CSRF bootstrap and auth status while the network stack starts so the
         # Vue shell can load and show an in-app waiting state.
-        if path in ("/api/v1/auth/csrf", "/api/v1/auth/status"):
+        if path in (
+            "/api/v1/auth/csrf",
+            "/api/v1/auth/status",
+            "/api/v1/auth/altcha/challenge",
+        ):
             return await handler(request)
 
         # Serve the web UI shell and static files while an identity context is still
@@ -149,6 +153,7 @@ def create_auth_middleware(app):
             "/api/v1/auth/login",
             "/api/v1/auth/status",
             "/api/v1/auth/logout",
+            "/api/v1/auth/altcha/challenge",
             "/manifest.json",
             "/service-worker.js",
         ]

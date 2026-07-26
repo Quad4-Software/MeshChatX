@@ -378,6 +378,7 @@
         "loading_overlay_title": "Vaihdetaan profiilia",
         "loading_overlay_subtitle": "Ladataan viestejä ja asetuksia. Tässä menee yleensä muutama sekunti.",
         "emergency_mode_active": "Hätätila käynnissä - Käytetään muistinsisäistä tietokantaa ja rajoitettuja palveluja.",
+        "demo_mode_active": "Demotila: vain luku -verkkoesittely. Lähetys ja asetusten muutokset on poistettu käytöstä.",
         "backend_disconnected": "Irrotettu taustapalvelusta",
         "backend_process_stopped": "Reticulum-taustapalvelu pysäytetty",
         "backend_reconnected": "Liitetty uudelleen taustapalveluun",
@@ -3936,6 +3937,24 @@
         "identity_created": "Management identity created",
         "failed_load_identities": "Failed to load management identities",
         "failed_create_identity": "Failed to create management identity"
+    },
+    "auth": {
+        "setup_title": "Alkuasennus",
+        "login_title": "Tunnistautuminen vaaditaan",
+        "setup_subtitle": "Aseta ylläpitäjän salasana MeshChatX-instanssin suojaamiseksi",
+        "login_subtitle": "Anna salasana jatkaaksesi",
+        "password_label": "Salasana",
+        "password_placeholder": "Anna salasana",
+        "password_min_length": "Salasanan on oltava vähintään 8 merkkiä",
+        "confirm_password_label": "Vahvista salasana",
+        "confirm_password_placeholder": "Vahvista salasana",
+        "processing": "Käsitellään...",
+        "set_password": "Aseta salasana",
+        "login": "Kirjaudu",
+        "passwords_mismatch": "Salasanat eivät täsmää",
+        "altcha_required": "Suorita ensin vahvistustehtävä",
+        "status_check_failed": "Tunnistautumistilan tarkistus epäonnistui",
+        "failed": "Tunnistautuminen epäonnistui"
     },
     "post_install": {
         "windows_screen_security_title": "Otetaanko Windowsin näytön suojaus käyttöön?",

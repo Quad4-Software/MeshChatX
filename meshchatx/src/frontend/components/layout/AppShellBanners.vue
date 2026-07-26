@@ -13,6 +13,14 @@
         </div>
 
         <div
+            v-if="showDemo"
+            class="relative z-100 bg-amber-600 text-white px-4 py-2 text-center text-sm font-medium shadow-md border-b border-amber-700/80"
+            role="status"
+        >
+            {{ demoLabel }}
+        </div>
+
+        <div
             v-if="showWsDisconnected"
             class="relative z-100 bg-red-700 text-white px-4 py-3 text-center text-sm font-medium shadow-md border-b border-red-800/80"
             role="status"
@@ -100,6 +108,14 @@ export default {
             default: false,
         },
         emergencyLabel: {
+            type: String,
+            default: "",
+        },
+        showDemo: {
+            type: Boolean,
+            default: false,
+        },
+        demoLabel: {
             type: String,
             default: "",
         },
