@@ -315,11 +315,19 @@ def register_lxmf_routes(routes, app):
     @routes.get("/api/v1/lxmf/propagation-nodes")
     async def propagation_nodes_get(request):
         ctx = app.current_context
+        if not ctx or not getattr(ctx, "running", False) or ctx.database is None:
+            return web.json_response(
+                {
+                    "message": "Application is initializing or switching identity",
+                },
+                status=503,
+            )
+        database = ctx.database
         # get query params
         limit = request.query.get("limit", None)
 
         # get lxmf.propagation announces
-        results = app.database.announces.get_announces(aspect="lxmf.propagation")
+        results = database.announces.get_announces(aspect="lxmf.propagation")
 
         # limit results
         if limit is not None:
@@ -351,7 +359,7 @@ def register_lxmf_routes(routes, app):
         local_stats = app.get_local_propagation_node_stats(context=ctx) if ctx else None
         for announce in results:
             # find an lxmf.delivery announce for the same identity hash, so we can use that as an "operater by" name
-            lxmf_delivery_results = app.database.announces.get_filtered_announces(
+            lxmf_delivery_results = database.announces.get_filtered_announces(
                 aspect="lxmf.delivery",
                 identity_hash=announce["identity_hash"],
             )
@@ -360,7 +368,7 @@ def register_lxmf_routes(routes, app):
             )
 
             # find a nomadnetwork.node announce for the same identity hash, so we can use that as an "operated by" name
-            nomadnetwork_node_results = app.database.announces.get_filtered_announces(
+            nomadnetwork_node_results = database.announces.get_filtered_announces(
                 aspect="nomadnetwork.node",
                 identity_hash=announce["identity_hash"],
             )
