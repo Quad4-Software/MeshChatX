@@ -239,9 +239,15 @@ tasks:
         aliases: [lint:be]
         desc: Lint Python code (Ruff + basedpyright)
         cmds:
+            - uv run python scripts/ci/check_schema_migrations.py
             - uv run ruff check .
             - uv run ruff format --check .
             - uv run basedpyright -p pyrightconfig.json --level error
+
+    schema-fixtures:
+        desc: Regenerate schema_v{N}.db migration test fixtures when LATEST_VERSION bumps
+        cmds:
+            - uv run python scripts/ci/schema_fixture_generate.py
 
     # --- Testing & Analysis ---
 
@@ -324,6 +330,7 @@ tasks:
         aliases: [test:be, test:be:full]
         desc: Run Python tests (pytest, includes perf/memory profiling, same as GitHub CI)
         cmds:
+            - task: schema-fixtures
             - uv run pytest tests/backend -n auto {{.PYTEST_ARGS | default ""}}
 
     test:be:cov:

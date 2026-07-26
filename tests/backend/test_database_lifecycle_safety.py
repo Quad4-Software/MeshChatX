@@ -88,7 +88,7 @@ def test_migration_failure_does_not_bump_version(temp_dir):
         ("database_version", "47"),
     )
 
-    def fail_run(_current_version):
+    def fail_run(_current_version, _target_version):
         schema._migration_errors.append("simulated migration failure")
 
     schema._run_migrations = fail_run

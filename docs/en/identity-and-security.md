@@ -87,7 +87,7 @@ Use **Blocked** for specific destination hashes. Combine with sieve filters, mes
 
 ## Data backup
 
-Database backups land in `database-backups/`. Before a schema upgrade, MeshChatX writes a `backup-pre-migrate-v*-to-v*.zip` in that folder unless `MESHCHAT_SKIP_PRE_MIGRATE_BACKUP=1`. Export snapshots from **About** or the API. Electron crash recovery can offer restore when integrity checks fail.
+Database backups land in `database-backups/`. Before a schema upgrade, MeshChatX writes a `backup-pre-migrate-v*-to-v*.zip` in that folder unless `MESHCHAT_SKIP_PRE_MIGRATE_BACKUP=1`. After a successful migration it runs `PRAGMA quick_check` and keeps the five newest pre-migrate zips (override with `MESHCHAT_PRE_MIGRATE_BACKUP_KEEP`, `0` disables pruning). If the stored schema version is newer than this build supports, startup refuses to migrate. Only one process should use a given identity storage directory at a time (storage lock). Roll back by restoring a backup zip and running an older MeshChatX build. Export snapshots from **About** or the API. Electron crash recovery can offer restore when integrity checks fail.
 
 CLI examples:
 

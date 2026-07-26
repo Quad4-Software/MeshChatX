@@ -85,6 +85,9 @@ storage/
 testing/
 telemetry_test_lxmf/
 temp-tests/
+*.db
+*.db-wal
+*.db-shm
 
 # Logs
 *.log

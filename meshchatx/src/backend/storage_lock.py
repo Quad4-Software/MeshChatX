@@ -61,6 +61,7 @@ class StorageLock:
         self._soft = False
 
     def acquire(self) -> None:
+        """Exclusive lock for one storage_dir (startup, migration, and runtime)."""
         os.makedirs(self.storage_dir, exist_ok=True)
         self._handle = open(self.lock_path, "a+b")
         try:
@@ -89,7 +90,8 @@ class StorageLock:
                 self._handle.close()
                 self._handle = None
             raise StorageLockError(
-                f"Another MeshChatX instance is already using storage at {self.storage_dir}",
+                f"Another MeshChatX instance is already using storage at {self.storage_dir} "
+                f"(lock file {self.lock_path})",
             ) from exc
         self._write_pid()
         atexit.register(self.release)
@@ -108,7 +110,8 @@ class StorageLock:
             self._handle.close()
             self._handle = None
             raise StorageLockError(
-                f"Another MeshChatX instance is already using storage at {self.storage_dir}",
+                f"Another MeshChatX instance is already using storage at {self.storage_dir} "
+                f"(lock file {self.lock_path})",
             )
         self._write_pid()
 
