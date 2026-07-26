@@ -322,6 +322,24 @@ def _existing_dir(path: str | None) -> str | None:
     return None
 
 
+def _collect_user_local_cli_roots() -> list[str]:
+    """User-installed CLIs (pipx Argos Translate, rnsh/rnx wrappers, git-remote-rns, etc.)."""
+    home = os.path.expanduser("~")
+    if not home or home == "~":
+        return []
+    candidates = (
+        os.path.join(home, ".local", "bin"),
+        os.path.join(home, ".local", "share", "argos-translate"),
+        os.path.join(home, ".local", "share", "pipx"),
+    )
+    paths: list[str] = []
+    for candidate in candidates:
+        existing = _existing_dir(candidate)
+        if existing and existing not in paths:
+            paths.append(existing)
+    return paths
+
+
 def _collect_read_roots() -> list[str]:
     roots = {
         "/usr",
@@ -369,6 +387,8 @@ def _collect_read_roots() -> list[str]:
         prefix = _existing_dir(prefix_candidate)
         if prefix:
             roots.add(prefix)
+    for root in _collect_user_local_cli_roots():
+        roots.add(root)
     return sorted(roots)
 
 
@@ -391,6 +411,11 @@ def _collect_rw_roots(
             paths.append(existing)
     if os.path.isdir("/dev"):
         paths.append("/dev")
+    argos_share = _existing_dir(
+        os.path.join(os.path.expanduser("~"), ".local", "share", "argos-translate"),
+    )
+    if argos_share and argos_share not in paths:
+        paths.append(argos_share)
     return paths
 
 

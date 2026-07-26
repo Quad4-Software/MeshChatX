@@ -26,7 +26,7 @@ const API_STATES = [
     "unknown",
 ];
 
-const API_METHODS = ["opportunistic", "direct", "propagated", "paper", "unknown"];
+const API_METHODS = ["opportunistic", "direct", "propagated", "paper", "local", "unknown"];
 
 /**
  * Independent UI oracle. Must stay in sync with product intent, not by
@@ -35,12 +35,12 @@ const API_METHODS = ["opportunistic", "direct", "propagated", "paper", "unknown"
 function oracleIconName({ state, method }) {
     if (state === "delivered") {
         if (method === "propagated") return "email-check-outline";
-        if (method === "paper") return "note-check-outline";
+        if (method === "paper" || method === "local") return "note-check-outline";
         return "check-all";
     }
     if (state === "sent" || state === "propagated" || state === "unknown") {
         if (method === "propagated") return "email-outline";
-        if (method === "paper") return "note-outline";
+        if (method === "paper" || method === "local") return "note-outline";
         return "check";
     }
     return "check";
@@ -49,8 +49,10 @@ function oracleIconName({ state, method }) {
 function oracleTitleKey({ state, method }) {
     if (state === "delivered") {
         if (method === "propagated") return "messages.outbound_delivered_propagated";
+        if (method === "local") return "messages.outbound_delivered_local";
         return "messages.outbound_delivered";
     }
+    if (method === "local") return "messages.outbound_saved_local";
     if (method === "propagated") return "messages.outbound_on_propagation_node";
     return "messages.outbound_sent_network";
 }
@@ -111,6 +113,17 @@ describe("outboundMessageStatus LXMF oracle", () => {
     it("paper uses note icons for sent and delivered", () => {
         expect(outboundBubbleStatusIconName({ state: "sent", method: "paper" })).toBe("note-outline");
         expect(outboundBubbleStatusIconName({ state: "delivered", method: "paper" })).toBe("note-check-outline");
+    });
+
+    it("local method uses note-check icon when delivered", () => {
+        const msg = { state: "delivered", method: "local" };
+        expect(outboundBubbleStatusIconName(msg)).toBe("note-check-outline");
+        expect(outboundBubbleStatusTitleKey(msg)).toBe("messages.outbound_delivered_local");
+    });
+
+    it("local method while sending uses note outline title for saved local", () => {
+        const msg = { state: "sending", method: "local" };
+        expect(outboundBubbleStatusTitleKey(msg)).toBe("messages.outbound_saved_local");
     });
 
     it("backend never emits state=propagated but UI still treats it as sent-like", () => {

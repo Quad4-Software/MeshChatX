@@ -35,6 +35,7 @@
         "test:i18n": "vitest run tests/frontend/i18n.test.js",
         "test:loadtime": "vitest run tests/frontend/LoadTimePerformance.test.js",
         "test:ui": "vitest --ui --open --exclude tests/frontend/LoadTimePerformance.test.js",
+        "pretest:e2e": "playwright install chromium",
         "test:e2e": "playwright test",
         "test:e2e:ui": "playwright test --ui",
         "test:e2e:install": "playwright install chromium",

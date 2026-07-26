@@ -223,12 +223,14 @@ class TranslatorHandler:
                     )
             except Exception as e:
                 print(f"Failed to fetch Argos languages: {e}")
-        elif self.has_argos_cli:
-            try:
-                cli_langs = self._get_argos_languages_cli()
-                languages.extend(cli_langs)
-            except Exception as e:
-                print(f"Failed to fetch Argos languages via CLI: {e}")
+        if self.has_argos_cli:
+            has_argos_langs = any(lang.get("source") == "argos" for lang in languages)
+            if not has_argos_langs:
+                try:
+                    cli_langs = self._get_argos_languages_cli()
+                    languages.extend(cli_langs)
+                except Exception as e:
+                    print(f"Failed to fetch Argos languages via CLI: {e}")
 
         return {
             "languages": languages,

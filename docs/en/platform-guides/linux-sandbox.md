@@ -11,6 +11,8 @@ MeshChatX also applies optional **in-process** Linux sandboxes when available:
 
 Those layers fall back cleanly when unsupported. Firejail and Bubblewrap remain useful as an outer wrapper.
 
+**Landlock and user-local tools:** When Landlock is active, MeshChatX whitelists common pipx paths (`~/.local/bin`, `~/.local/share/pipx`) and Argos Translate data under `~/.local/share/argos-translate` so local translation and similar CLIs keep working. Tools installed elsewhere (for example only under `~/.nvm`) or symlink shims that point outside those trees may still fail with permission errors. Disable Landlock temporarily with `MESHCHAT_LANDLOCK=0` while debugging PATH-only failures.
+
 **Containers:** If you already run MeshChatX with Docker or Podman, that is a different isolation model, this document is aimed at **host-installed** `meshchatx` (or `meshchat`).
 
 ## Prerequisites

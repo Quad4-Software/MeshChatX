@@ -1789,7 +1789,13 @@ export default {
             required: true,
         },
     },
-    emits: ["close", "reload-conversations", "update:selectedPeer", "update-peer-tracking"],
+    emits: [
+        "close",
+        "reload-conversations",
+        "update:selectedPeer",
+        "update-peer-tracking",
+        "outbound-compose-enqueued",
+    ],
     data() {
         return {
             GlobalState,
@@ -5619,6 +5625,15 @@ export default {
             );
             await this._sendMessageChain;
         },
+        isSelfLxmfDestination(peerHash) {
+            if (!peerHash || typeof peerHash !== "string") {
+                return false;
+            }
+            const mine = (this.myLxmfAddressHash || "").toLowerCase();
+            const identity = (this.config?.identity_hash || "").toLowerCase();
+            const peer = peerHash.toLowerCase();
+            return (mine && peer === mine) || (identity && peer === identity);
+        },
         async _enqueueOutboundFromCompose() {
             try {
                 const job = await this.buildOutboundJobSnapshot();
@@ -5626,6 +5641,16 @@ export default {
                     return;
                 }
                 this._outboundQueue.enqueue(job);
+                if (this.isSelfLxmfDestination(job.destinationHash)) {
+                    ToastUtils.info(this.$t("messages.self_notes_toast"));
+                }
+                this.$emit("outbound-compose-enqueued", {
+                    peerHash: job.destinationHash,
+                    previewText: job.text,
+                    title: "",
+                    fields: job.fields || {},
+                    pendingHash: job.pendingHash,
+                });
                 this.clearComposeAfterEnqueue();
                 this.$nextTick(() => {
                     this.adjustTextareaHeight();

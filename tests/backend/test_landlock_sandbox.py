@@ -97,6 +97,17 @@ def test_collect_read_roots_includes_proc_for_psutil():
     assert "/proc" in roots
 
 
+def test_collect_read_roots_includes_user_local_cli_when_present():
+    home = os.path.expanduser("~")
+    local_bin = os.path.join(home, ".local", "bin")
+    roots = ll._collect_read_roots()
+    if os.path.isdir(local_bin):
+        assert any(
+            local_bin == root or local_bin.startswith(root.rstrip("/") + "/")
+            for root in roots
+        ), f"{local_bin!r} not covered by landlock read roots"
+
+
 def test_collect_read_roots_includes_interpreter_prefix():
     roots = ll._collect_read_roots()
     exe = os.path.realpath(sys.executable)
@@ -210,24 +221,19 @@ def test_landlock_abi_version_on_linux():
 )
 def test_apply_landlock_preserves_storage_write_and_truncate(tmp_path):
     """Apply sandbox in a subprocess and confirm RW + truncate still work."""
-    import subprocess
-    import textwrap
-    from pathlib import Path
+    from tests.backend.landlock_integration_support import (
+        assert_probe_ok,
+        run_python_under_landlock,
+    )
 
     storage = tmp_path / "storage"
     storage.mkdir()
-    script = textwrap.dedent(
+    result = run_python_under_landlock(
         f"""
         import os
         import sys
-        from meshchatx.src.backend.landlock_sandbox import apply_landlock_sandbox
 
         storage = {str(storage)!r}
-        os.environ["MESHCHAT_LANDLOCK"] = "1"
-        ok = apply_landlock_sandbox(storage_dir=storage, log_dir=storage)
-        if not ok:
-            print("APPLY_FAILED")
-            sys.exit(2)
         path = os.path.join(storage, "landlock-abi-check.txt")
         with open(path, "w", encoding="utf-8") as handle:
             handle.write("hello")
@@ -239,17 +245,52 @@ def test_apply_landlock_preserves_storage_write_and_truncate(tmp_path):
             print("TRUNCATE_FAILED", repr(data))
             sys.exit(3)
         print("OK")
+        sys.exit(0)
+        """,
+        storage=storage,
+    )
+    assert_probe_ok(result)
+
+
+@pytest.mark.skipif(
+    sys.platform != "linux" or not ll.landlock_kernel_supported(),
+    reason="Landlock apply requires a supported Linux kernel",
+)
+def test_apply_landlock_allows_user_local_argospm_list(tmp_path):
+    """Pipx Argos under ~/.local must remain usable for translator language lists."""
+    import shutil
+
+    from tests.backend.landlock_integration_support import (
+        assert_probe_ok,
+        run_python_under_landlock,
+    )
+
+    if not shutil.which("argospm"):
+        pytest.skip("argospm not on PATH")
+
+    storage = tmp_path / "storage"
+    storage.mkdir()
+    result = run_python_under_landlock(
         """
+        import subprocess
+        import sys
+
+        proc = subprocess.run(
+            ["argospm", "list"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        if proc.returncode != 0:
+            print("ARGOSPM_FAILED", proc.stderr or proc.stdout)
+            sys.exit(3)
+        if not (proc.stdout or "").strip():
+            print("ARGOSPM_EMPTY")
+            sys.exit(4)
+        print("OK")
+        sys.exit(0)
+        """,
+        storage=storage,
     )
-    result = subprocess.run(
-        [sys.executable, "-c", script],
-        cwd=str(Path(__file__).resolve().parents[2]),
-        capture_output=True,
-        text=True,
-        timeout=30,
-        check=False,
-    )
-    if "APPLY_FAILED" in result.stdout:
-        pytest.skip("Landlock could not be applied in this environment")
-    assert result.returncode == 0, (result.stdout, result.stderr)
-    assert "OK" in result.stdout
+    assert_probe_ok(result)

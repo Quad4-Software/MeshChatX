@@ -7,6 +7,9 @@ Applies when editing `tests/**/*.{py,js}`.
 - Mock `window.api` for page tests. Assert toasts when outcomes are user-visible.
 - Prefer focused files over full suite unless the user asks for broad runs.
 - Landlock tests that apply the sandbox must run in a subprocess (one restrict per process).
+- Shared runner: `tests/backend/landlock_integration_support.py` (`run_python_under_landlock`).
+- Subprocess and user-local CLI probes: `tests/backend/test_landlock_integration_surfaces.py`.
+- Unit tests for rules and ABI: `tests/backend/test_landlock_sandbox.py`.
 - Long-running / notification soak suites can hang. Prefer timeouts and avoid piping pytest through `tail` in agent shells.
 
 ## Oracle style (no soft fuzz)

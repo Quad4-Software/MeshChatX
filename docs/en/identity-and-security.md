@@ -59,7 +59,7 @@ Privacy mode does not disable Reticulum mesh traffic. It limits clearnet fetches
 
 On Linux, MeshChatX can enable two complementary in-process sandboxes when supported:
 
-- **Landlock** restricts filesystem paths the backend may use
+- **Landlock** restricts filesystem paths the backend may use. User-local pipx tools (for example Argos Translate under `~/.local`) need explicit read and sometimes write roots. See **Linux sandboxing** in Platform guides.
 - **Seccomp-BPF** installs a syscall denylist (via libseccomp) that blocks kernel-admin and related calls a mesh client does not need
 
 Both auto-enable when available and fall back to a no-op when the platform, kernel, or libraries cannot support them. Override with:

@@ -3,9 +3,46 @@ const { expect } = require("@playwright/test");
 
 const E2E_BACKEND_PORT = process.env.E2E_BACKEND_PORT || "18079";
 const E2E_BACKEND_ORIGIN = `http://127.0.0.1:${E2E_BACKEND_PORT}`;
+const CSRF_HEADER = "X-CSRF-Token";
 
 const E2E_SCROLL_PEER_HASH = `e2e0${"0".repeat(28)}`;
 const E2E_SCROLL_ALT_PEER_HASH = `e2e1${"0".repeat(28)}`;
+
+const _csrfByOrigin = new Map();
+
+/**
+ * @param {import('@playwright/test').APIRequestContext} request
+ * @param {string} origin e.g. http://127.0.0.1:18079
+ */
+async function ensureE2eCsrf(request, origin) {
+    const cached = _csrfByOrigin.get(origin);
+    if (cached) {
+        return cached;
+    }
+    const res = await request.get(`${origin}/api/v1/auth/csrf`);
+    expect(res.ok()).toBeTruthy();
+    const body = await res.json();
+    const token = body.csrf_token;
+    expect(token && typeof token === "string").toBeTruthy();
+    _csrfByOrigin.set(origin, token);
+    return token;
+}
+
+/**
+ * POST with session cookie and CSRF header (Playwright request keeps cookies per context).
+ * @param {import('@playwright/test').APIRequestContext} request
+ * @param {string} url absolute URL
+ * @param {object} [data] JSON body
+ */
+async function e2ePost(request, url, data) {
+    const origin = new URL(url).origin;
+    const token = await ensureE2eCsrf(request, origin);
+    const headers = { [CSRF_HEADER]: token };
+    if (data === undefined) {
+        return request.post(url, { headers });
+    }
+    return request.post(url, { headers, data });
+}
 
 function buildE2eLxmfRow({ peerHash, localHash, index, total, inbound }) {
     const hash = crypto.randomBytes(16).toString("hex");
@@ -70,8 +107,8 @@ async function seedE2eLongConversationThread(request, opts = {}) {
             })
         );
     }
-    const imp = await request.post(`${E2E_BACKEND_ORIGIN}/api/v1/maintenance/messages/import`, {
-        data: { messages },
+    const imp = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/maintenance/messages/import`, {
+        messages,
     });
     expect(imp.ok()).toBeTruthy();
     return { peerHash, localHash };
@@ -98,8 +135,8 @@ async function seedE2eAltShortConversationThread(request, opts = {}) {
         row.content = `E2E alt short ${String(i).padStart(3, "0")} ${"x".repeat(48)}`;
         messages.push(row);
     }
-    const imp = await request.post(`${E2E_BACKEND_ORIGIN}/api/v1/maintenance/messages/import`, {
-        data: { messages },
+    const imp = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/maintenance/messages/import`, {
+        messages,
     });
     expect(imp.ok()).toBeTruthy();
     return { peerHash, localHash };
@@ -112,10 +149,10 @@ const PALETTE_PLACEHOLDER = /Search commands,\s*(routes|navigate),\s*or peers\.{
  * (v-overlay scrim) do not block pointer clicks on the shell.
  */
 async function prepareE2eSession(request) {
-    const tutorial = await request.post(`${E2E_BACKEND_ORIGIN}/api/v1/app/tutorial/seen`);
+    const tutorial = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/app/tutorial/seen`);
     expect(tutorial.ok()).toBeTruthy();
-    const changelog = await request.post(`${E2E_BACKEND_ORIGIN}/api/v1/app/changelog/seen`, {
-        data: { version: "999.999.999" },
+    const changelog = await e2ePost(request, `${E2E_BACKEND_ORIGIN}/api/v1/app/changelog/seen`, {
+        version: "999.999.999",
     });
     expect(changelog.ok()).toBeTruthy();
 }
@@ -157,6 +194,8 @@ module.exports = {
     E2E_SCROLL_ALT_PEER_HASH,
     PALETTE_PLACEHOLDER,
     dismissMapOnboardingTooltip,
+    e2ePost,
+    ensureE2eCsrf,
     openCommandPalette,
     prepareE2eSession,
     getE2eLocalLxmfHash,

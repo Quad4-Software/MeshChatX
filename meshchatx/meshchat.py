@@ -5207,12 +5207,15 @@ class ReticulumMeshChat:
                         raise FileNotFoundError(msg)
                     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
                     ssl_context.load_cert_chain(cert_path, key_path)
-                    print(f"HTTPS enabled with custom certificate at {cert_path}")
+                    print(
+                        f"HTTPS enabled with custom certificate at {cert_path}",
+                        flush=True,
+                    )
                 else:
                     generate_ssl_certificate(cert_path, key_path)
                     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
                     ssl_context.load_cert_chain(cert_path, key_path)
-                    print(f"HTTPS enabled with certificate at {cert_path}")
+                    print(f"HTTPS enabled with certificate at {cert_path}", flush=True)
             except Exception as e:
                 if custom_ssl:
                     print(f"Failed to load custom SSL certificate: {e}")
@@ -5357,7 +5360,7 @@ class ReticulumMeshChat:
         app.on_startup.append(on_startup)
 
         protocol = "https" if use_https else "http"
-        print(f"Starting web server on {protocol}://{host}:{port}")
+        print(f"Starting web server on {protocol}://{host}:{port}", flush=True)
 
         # Start memory diagnostics if enabled
         if self._memory_diag_enabled:
@@ -8997,6 +9000,29 @@ class ReticulumMeshChat:
         router.handle_outbound(lxmf_message)
 
     # upserts the provided lxmf message to the database
+    def _is_self_lxmf_destination(self, destination_hash: str, context=None) -> bool:
+        """True when destination_hash refers to this identity's own LXMF peer."""
+        ctx = context or self.current_context
+        if not ctx or not ctx.local_lxmf_destination:
+            return False
+        norm_dest = normalize_hex_identifier(destination_hash)
+        if not norm_dest:
+            return False
+        local_lxmf = normalize_hex_identifier(ctx.local_lxmf_destination.hexhash)
+        if norm_dest == local_lxmf:
+            return True
+        if ctx.identity:
+            local_id = normalize_hex_identifier(ctx.identity.hash.hex())
+            if norm_dest == local_id:
+                return True
+        try:
+            resolved = self.get_lxmf_destination_hash_for_identity_hash(norm_dest)
+            if resolved and normalize_hex_identifier(resolved) == local_lxmf:
+                return True
+        except Exception:
+            pass
+        return False
+
     def db_upsert_lxmf_message(
         self,
         lxmf_message: LXMF.LXMessage,
@@ -9005,6 +9031,8 @@ class ReticulumMeshChat:
         context=None,
         path_finding_measure: str | None = None,
         path_row_hash_hex: str | None = None,
+        state_override: str | None = None,
+        method_override: str | None = None,
     ):
         ctx = context or self.current_context
         if not ctx:
@@ -9016,6 +9044,10 @@ class ReticulumMeshChat:
             reticulum=self.reticulum,
             message_router=ctx.message_router,
         )
+        if state_override is not None:
+            lxmf_message_dict["state"] = state_override
+        if method_override is not None:
+            lxmf_message_dict["method"] = method_override
         lxmf_message_dict["is_spam"] = 1 if is_spam else 0
         lxmf_message_dict["attachments_stripped"] = 1 if attachments_stripped else 0
         if path_finding_measure is not None:
@@ -9106,10 +9138,20 @@ class ReticulumMeshChat:
             raise ValueError(msg) from exc
 
         wants_propagated = delivery_method == "propagated"
+        is_local_self = self._is_self_lxmf_destination(destination_hash, ctx)
+        if is_local_self and wants_propagated:
+            msg = "Propagated delivery is not available for messages to yourself."
+            raise ValueError(msg)
 
         # Direct/opportunistic need a live peer path. Propagated uses the
         # propagation node, so skip the peer path wait (still record outcome).
-        if wants_propagated:
+        if is_local_self:
+            path_outcome = reticulum_pathfinding.OutboundPathOutcome(
+                True,
+                "local_self",
+                False,
+            )
+        elif wants_propagated:
             path_outcome = reticulum_pathfinding.OutboundPathOutcome(
                 False,
                 "skipped_for_propagated",
@@ -9121,6 +9163,8 @@ class ReticulumMeshChat:
             path_outcome = await self._await_transport_path(destination_hash_bytes)
 
         destination_identity = self.recall_identity(destination_hash)
+        if destination_identity is None and is_local_self and ctx.identity:
+            destination_identity = ctx.identity
         if destination_identity is None:
             msg = (
                 "Could not recall destination identity. "
@@ -9130,7 +9174,11 @@ class ReticulumMeshChat:
 
         # Direct/opportunistic delivery needs a live transport path. Propagated
         # delivery can proceed without a peer path (it uses the propagation node).
-        if not wants_propagated and not path_outcome.path_available:
+        if (
+            not is_local_self
+            and not wants_propagated
+            and not path_outcome.path_available
+        ):
             msg = (
                 "No path to destination. "
                 "Use Path Finder or wait for a route, then try again."
@@ -9287,6 +9335,40 @@ class ReticulumMeshChat:
                     destination_hash,
                     current_icon_hash,
                 )
+
+        if is_local_self:
+            lxmf_message.state = LXMF.LXMessage.DELIVERED
+            lxmf_message.progress = 1.0
+            local_peer = ctx.local_lxmf_destination.hexhash
+            if not no_display:
+                self.db_upsert_lxmf_message(
+                    lxmf_message,
+                    context=ctx,
+                    path_finding_measure=reticulum_pathfinding.format_outbound_path_finding_measure(
+                        path_outcome,
+                    ),
+                    path_row_hash_hex=local_peer,
+                    state_override="delivered",
+                    method_override="local",
+                )
+                ws_payload = convert_lxmf_message_to_dict(
+                    lxmf_message,
+                    include_attachments=False,
+                    reticulum=self.reticulum,
+                    message_router=ctx.message_router,
+                )
+                ws_payload["state"] = "delivered"
+                ws_payload["method"] = "local"
+                ws_payload["progress"] = 100.0
+                await self.websocket_broadcast(
+                    json.dumps(
+                        {
+                            "type": "lxmf_message_created",
+                            "lxmf_message": ws_payload,
+                        },
+                    ),
+                )
+            return lxmf_message
 
         # register delivery callbacks
         lxmf_message.register_delivery_callback(
