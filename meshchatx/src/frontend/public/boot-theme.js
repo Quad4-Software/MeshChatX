@@ -18,6 +18,7 @@
             document.documentElement.dataset.bootTheme = "dark";
             document.documentElement.style.colorScheme = "dark";
         } else {
+            document.documentElement.classList.remove("dark");
             document.documentElement.dataset.bootTheme = "light";
             document.documentElement.style.colorScheme = "light";
         }

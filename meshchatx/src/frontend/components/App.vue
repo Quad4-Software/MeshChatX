@@ -649,7 +649,8 @@ import {
     BATTERY_SAVER_CHANGED_EVENT,
     loadBatterySaverPrefs,
 } from "../js/settings/batterySaverPrefs.js";
-import { setLocale } from "../js/localeLoader.js";
+import { normalizeUiLocaleCode, setLocale } from "../js/localeLoader.js";
+import { patchServerConfig } from "../js/settings/settingsConfigService.js";
 
 export default {
     name: "App",
@@ -1853,12 +1854,20 @@ export default {
         },
         async updateConfig(config, label = null) {
             try {
-                WebSocketConnection.send(
-                    JSON.stringify({
-                        type: "config.set",
-                        config: config,
-                    })
-                );
+                if (window.api?.patch) {
+                    const next = await patchServerConfig(config, window.api);
+                    mergeGlobalConfig(next);
+                    this.config = { ...this.config, ...next };
+                } else {
+                    WebSocketConnection.send(
+                        JSON.stringify({
+                            type: "config.set",
+                            config: config,
+                        })
+                    );
+                    mergeGlobalConfig(config);
+                    this.config = { ...this.config, ...config };
+                }
                 if (label) {
                     ToastUtils.success(
                         this.$t("app.setting_auto_saved", {
@@ -1868,6 +1877,9 @@ export default {
                 }
             } catch (e) {
                 console.error(e);
+                if (label) {
+                    ToastUtils.error(this.$t("common.save_failed"));
+                }
             }
         },
         async saveIdentitySettings() {
@@ -1902,20 +1914,20 @@ export default {
             if (!langCode) {
                 return;
             }
-            try {
-                await setLocale(this.$i18n, langCode);
-            } catch {
-                this.$i18n.locale = langCode;
+            const ok = await setLocale(this.$i18n, langCode);
+            if (!ok) {
+                await setLocale(this.$i18n, "en");
             }
         },
         async onLanguageChange(langCode) {
+            const code = normalizeUiLocaleCode(langCode);
             await this.updateConfig(
                 {
-                    language: langCode,
+                    language: code,
                 },
                 "language"
             );
-            await this.applyLocale(langCode);
+            await this.applyLocale(code);
         },
         async composeNewMessage() {
             // go to messages route

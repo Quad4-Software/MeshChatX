@@ -65,6 +65,7 @@ import { DataSet } from "vis-data";
 import { getMdiIconPath } from "../../js/mdiIconNames.js";
 import Utils from "../../js/Utils";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import GlobalState from "../../js/GlobalState";
 import NetworkVisualiserLoadingOverlay from "./internal/NetworkVisualiserLoadingOverlay.vue";
 import NetworkVisualiserToolbar from "./internal/NetworkVisualiserToolbar.vue";
 import NetworkVisualiserLegend from "./internal/NetworkVisualiserLegend.vue";
@@ -328,6 +329,10 @@ export default {
         if (this._batterySaverPrefsHandler) {
             GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
         }
+        if (this._themeObserver) {
+            this._themeObserver.disconnect();
+            this._themeObserver = null;
+        }
         clearInterval(this.reloadInterval);
         if (this.hopFilterDebounceTimer) {
             clearTimeout(this.hopFilterDebounceTimer);
@@ -401,6 +406,16 @@ export default {
         };
         GlobalEmitter.on(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
 
+        if (typeof MutationObserver !== "undefined" && typeof document !== "undefined") {
+            this._themeObserver = new MutationObserver(() => {
+                this.webglEngine?.requestRedraw?.();
+            });
+            this._themeObserver.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ["class"],
+            });
+        }
+
         this.loadVisualiserDisplayPrefs();
         this.applyBatterySaverVisualiserPrefs();
         this.resolveEngineMode();
@@ -408,6 +423,19 @@ export default {
         this.init();
     },
     methods: {
+        resolveVisualiserIsDark() {
+            const theme = GlobalState.config?.theme;
+            if (theme === "light") {
+                return false;
+            }
+            if (theme === "dark") {
+                return true;
+            }
+            if (typeof document !== "undefined") {
+                return document.documentElement.classList.contains("dark");
+            }
+            return false;
+        },
         applyBatterySaverVisualiserPrefs() {
             const prefs = this.batterySaverPrefs || loadBatterySaverPrefs();
             if (!prefs.enabled) {
@@ -861,7 +889,7 @@ export default {
             try {
                 this.webglEngine = createVisualiserWebGLEngine(canvas, {
                     getLiveLayout: () => this.enablePhysics === true,
-                    isDark: () => document.documentElement.classList.contains("dark"),
+                    isDark: () => this.resolveVisualiserIsDark(),
                     onNodeActivate: (id, meta) => this.onWebGLNodeActivate(id, meta),
                     onHover: (id, meta, x, y) => this.onWebGLHover(id, meta, x, y),
                 });

@@ -642,7 +642,6 @@
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
-import GlobalState from "../../js/GlobalState";
 import { bundledReticulumDocsUrl } from "../../js/reticulumDocsEntryUrl.js";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
@@ -674,6 +673,7 @@ export default {
             docSections: [],
             docLanguages: [],
             defaultDocsLanguage: "en",
+            reticulumDocsLang: "en",
             meshchatxDocsLang: "en",
             docToc: [],
             meshchatxListError: null,
@@ -700,7 +700,7 @@ export default {
     },
     computed: {
         currentLang() {
-            return this.$i18n.locale;
+            return this.reticulumDocsLang;
         },
         localDocsUrl() {
             let path;
@@ -978,17 +978,10 @@ export default {
                 });
         },
         async setLanguage(langCode) {
-            try {
-                this.showLanguages = false;
-                this.selectedReticulumPath = null;
-                await window.api.patch("/api/v1/config", {
-                    language: langCode,
-                });
-                this.$i18n.locale = langCode;
-                GlobalState.config.language = langCode;
-            } catch (error) {
-                console.error("Failed to update language:", error);
-            }
+            this.showLanguages = false;
+            this.selectedReticulumPath = null;
+            this.reticulumDocsLang = langCode;
+            this.reticulumDocsCacheBust += 1;
         },
         debounceSearch() {
             if (this.searchTimeout) clearTimeout(this.searchTimeout);

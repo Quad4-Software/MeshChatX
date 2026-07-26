@@ -469,6 +469,30 @@ describe("createVisualiserWebGLEngine interactions", () => {
         expect(zoomAt).toHaveBeenCalledWith(50, 60, 1.12);
     });
 
+    it("clears light background when WASM draw buffers are not ready", async () => {
+        engine.destroy();
+        engine = null;
+        clearSceneGlobals();
+        const gl = stubGl();
+        installSceneReadyStubs({
+            meshchatxVisualiserSceneSet: () => JSON.stringify({ ok: true, nodes: 0, edges: 0 }),
+            meshchatxVisualiserSceneGetDrawBuffers: () => ({ ok: false }),
+        });
+        globalThis.meshchatxVisualiserSceneResize = vi.fn();
+        canvas = makeCanvas(gl);
+        engine = createVisualiserWebGLEngine(canvas, {
+            getLiveLayout: () => false,
+            isDark: () => false,
+        });
+        await new Promise((resolve) => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(resolve);
+            });
+        });
+        expect(gl.clearColor).toHaveBeenCalledWith(0.973, 0.98, 0.988, 1);
+        expect(gl.clear).toHaveBeenCalled();
+    });
+
     it("setGraph and updateNodeImages upload icon textures", async () => {
         const bitmap = { width: 32, height: 32, close: vi.fn() };
         vi.stubGlobal(

@@ -2,7 +2,12 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { createI18n } from "vue-i18n";
-import { ensureLocaleMessages, listLocaleCodes, setLocale } from "../../meshchatx/src/frontend/js/localeLoader.js";
+import {
+    ensureLocaleMessages,
+    listLocaleCodes,
+    normalizeUiLocaleCode,
+    setLocale,
+} from "../../meshchatx/src/frontend/js/localeLoader.js";
 
 describe("localeLoader", () => {
     it("lists locale codes with english first", () => {
@@ -53,6 +58,13 @@ describe("localeLoader", () => {
     it("adversarial: ensureLocaleMessages(null) is false", async () => {
         expect(await ensureLocaleMessages(null, "en")).toBe(false);
         expect(await setLocale(undefined, "en")).toBe(false);
+    });
+
+    it("normalizeUiLocaleCode maps aliases and rejects unknown packs", () => {
+        expect(normalizeUiLocaleCode("zh-cn")).toBe("zh");
+        expect(normalizeUiLocaleCode("ru")).toBe("ru");
+        expect(normalizeUiLocaleCode("jp")).toBe("en");
+        expect(normalizeUiLocaleCode("")).toBe("en");
     });
 
     it("fuzz: random codes never throw", async () => {

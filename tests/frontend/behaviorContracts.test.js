@@ -404,3 +404,44 @@ describe("behavior contracts: network visualiser performance", () => {
         expect(prefs).toContain('"vis"');
     });
 });
+
+describe("behavior contracts: locale, theme, and call audio", () => {
+    it("App persists shell config through HTTP PATCH helpers", () => {
+        const app = readSource("meshchatx/src/frontend/components/App.vue");
+        expect(app).toContain("patchServerConfig");
+        expect(app).toContain("normalizeUiLocaleCode");
+        expect(app).toContain("async applyLocale(");
+        expect(app).toContain("setLocale(this.$i18n");
+    });
+
+    it("Settings language change applies vue-i18n locale after PATCH", () => {
+        const settings = readSource("meshchatx/src/frontend/components/settings/SettingsPage.vue");
+        expect(settings).toContain("async onLanguageChange()");
+        expect(settings).toContain("setLocale(this.$i18n");
+        expect(settings).toContain("patchServerConfig");
+    });
+
+    it("Docs manual language picker is isolated from UI config.language", () => {
+        const docs = readSource("meshchatx/src/frontend/components/docs/DocsPage.vue");
+        expect(docs).toContain("reticulumDocsLang");
+        expect(docs).not.toMatch(/setLanguage[\s\S]{0,400}api\.patch/);
+    });
+
+    it("boot-theme.js clears html.dark when light is selected", () => {
+        const boot = readSource("meshchatx/src/frontend/public/boot-theme.js");
+        expect(boot).toContain('classList.remove("dark")');
+    });
+
+    it("network visualiser theme follows GlobalState before html.dark fallback", () => {
+        const vis = readSource("meshchatx/src/frontend/components/network-visualiser/NetworkVisualiser.vue");
+        expect(vis).toContain("resolveVisualiserIsDark");
+        expect(vis).toContain('theme === "light"');
+        expect(vis).toContain("GlobalState.config");
+    });
+
+    it("CallPage refresh devices uses getUserMedia before device enumeration", () => {
+        const call = readSource("meshchatx/src/frontend/components/call/CallPage.vue");
+        expect(call).toContain("Do not gate on enumerateDevices before getUserMedia");
+        expect(call).toMatch(/requestAudioPermission[\s\S]*getUserMedia[\s\S]*refreshAudioDevices/);
+    });
+});

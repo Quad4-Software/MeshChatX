@@ -21,10 +21,13 @@ vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
 }));
 
 describe("App.vue sidebar announce and auto-announce interval", () => {
-    const axiosMock = { get: vi.fn() };
+    const axiosMock = { get: vi.fn(), patch: vi.fn() };
 
     beforeEach(() => {
         vi.clearAllMocks();
+        axiosMock.patch.mockResolvedValue({
+            data: { config: { auto_announce_interval_seconds: 3600 } },
+        });
         window.api = axiosMock;
     });
 
@@ -83,7 +86,7 @@ describe("App.vue sidebar announce and auto-announce interval", () => {
         expect(ToastUtils.error).toHaveBeenCalled();
     });
 
-    it("onAnnounceIntervalSecondsChange sends config.set with interval", async () => {
+    it("onAnnounceIntervalSecondsChange PATCHes announce interval", async () => {
         const ctx = {
             config: { auto_announce_interval_seconds: 3600 },
             updateConfig: App.methods.updateConfig,
@@ -92,10 +95,8 @@ describe("App.vue sidebar announce and auto-announce interval", () => {
 
         await App.methods.onAnnounceIntervalSecondsChange.call(ctx);
 
-        expect(WebSocketConnection.send).toHaveBeenCalled();
-        const raw = WebSocketConnection.send.mock.calls[0][0];
-        const parsed = JSON.parse(raw);
-        expect(parsed.type).toBe("config.set");
-        expect(parsed.config.auto_announce_interval_seconds).toBe(3600);
+        expect(axiosMock.patch).toHaveBeenCalledWith("/api/v1/config", {
+            auto_announce_interval_seconds: 3600,
+        });
     });
 });

@@ -2365,6 +2365,7 @@ import DialogUtils from "../js/DialogUtils";
 import GlobalState from "../js/GlobalState";
 import { bundledReticulumDocsUrl } from "../js/reticulumDocsEntryUrl.js";
 import LanguageSelector from "./LanguageSelector.vue";
+import { normalizeUiLocaleCode, setLocale } from "../js/localeLoader.js";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import Toggle from "./forms/Toggle.vue";
 import TutorialPrivacyStep from "./TutorialPrivacyStep.vue";
@@ -2696,12 +2697,13 @@ export default {
             }
         },
         async onLanguageChange(langCode) {
+            const code = normalizeUiLocaleCode(langCode);
             try {
                 await window.api.patch("/api/v1/config", {
-                    language: langCode,
+                    language: code,
                 });
-                this.$i18n.locale = langCode;
-                GlobalState.config.language = langCode;
+                GlobalState.config.language = code;
+                await setLocale(this.$i18n, code);
             } catch (e) {
                 console.error("Failed to update language:", e);
             }

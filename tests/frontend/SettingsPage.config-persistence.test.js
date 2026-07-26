@@ -5,6 +5,7 @@ import Toggle from "../../meshchatx/src/frontend/components/forms/Toggle.vue";
 import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
 import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
 import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnection";
+import * as localeLoader from "../../meshchatx/src/frontend/js/localeLoader.js";
 import { buildFullServerConfig, createWindowApi } from "./fixtures/settingsPageTestApi.js";
 
 vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
@@ -109,6 +110,16 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
         w.vm.config.language = "de";
         await w.vm.onLanguageChange();
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { language: "de" });
+    });
+
+    it("onLanguageChange applies setLocale after PATCH", async () => {
+        const setLocaleSpy = vi.spyOn(localeLoader, "setLocale").mockResolvedValue(true);
+        const w = await mountSettingsPage(api);
+        w.vm.$i18n = { global: { locale: { value: "en" } } };
+        w.vm.config.language = "ru";
+        await w.vm.onLanguageChange();
+        expect(setLocaleSpy).toHaveBeenCalledWith(w.vm.$i18n, "ru");
+        setLocaleSpy.mockRestore();
     });
 
     it("onMessageFontSizeChange PATCHes after debounce", async () => {
