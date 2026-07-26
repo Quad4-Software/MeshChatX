@@ -178,6 +178,15 @@ wheels = [
 ]
 
 [[package]]
+name = "altcha"
+version = "2.0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f0/c2/295917abf45cab0a33c2cd167beb645c68044e7b45967880375b4d4339ce/altcha-2.0.2.tar.gz", hash = "sha256:5897bb3812569e9b7b5234d7d93e216d9f158c9ccf0f5b822380bcdba59c1626", size = 23492, upload-time = "2026-06-20T10:16:26.389Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b5/9e/c9a1bcdfb33bc91c0f22f675c69fe7a7743f65b16eed9b80fd070ecc583b/altcha-2.0.2-py3-none-any.whl", hash = "sha256:1631905ac468538fccff04cabf6d2f026c03fe170aa96cab0af799363cb405e8", size = 18744, upload-time = "2026-06-20T10:16:25.228Z" },
+]
+
+[[package]]
 name = "anyio"
 version = "4.14.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2005,6 +2014,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
     { name = "aiohttp-session" },
+    { name = "altcha" },
     { name = "audioop-lts", marker = "python_full_version >= '3.13'" },
     { name = "bcrypt" },
     { name = "bleak" },
@@ -2042,6 +2052,7 @@ dev = [
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.14.1" },
     { name = "aiohttp-session", specifier = ">=2.12.1,<3.0.0" },
+    { name = "altcha", specifier = ">=2.0.2" },
     { name = "audioop-lts", marker = "python_full_version >= '3.13'", specifier = ">=0.2.2" },
     { name = "bcrypt", specifier = ">=5.0.0,<6.0.0" },
     { name = "bleak", specifier = ">=3.0.2,<4.0" },

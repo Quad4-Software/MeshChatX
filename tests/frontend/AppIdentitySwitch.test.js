@@ -165,10 +165,7 @@ describe("App.vue applyIdentitySwitched", () => {
         expect(ToastUtils.success).not.toHaveBeenCalled();
         expect(ctx.getConfig).not.toHaveBeenCalled();
         expect(GlobalEmitter.emit).toHaveBeenCalledWith("identity-switching-abort");
-        expect(GlobalEmitter.emit).not.toHaveBeenCalledWith(
-            "identity-switched",
-            expect.anything(),
-        );
+        expect(GlobalEmitter.emit).not.toHaveBeenCalledWith("identity-switched", expect.anything());
         expect(ctx.$router.push).toHaveBeenCalledWith("/auth");
         expect(ctx.isSwitchingIdentity).toBe(false);
     });

@@ -20,7 +20,6 @@ from tests.backend.test_lxmf_local_self_message import (
     REMOTE_PEER,
     _fake_lxmf_message,
     _lxmf_message_factory,
-    local_self_app,
 )
 
 
