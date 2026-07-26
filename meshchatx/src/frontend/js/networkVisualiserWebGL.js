@@ -628,6 +628,19 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
         return { width: cssW, height: cssH };
     }
 
+    function clearBackground(dark) {
+        resize();
+        if (dark) {
+            gl.clearColor(0.035, 0.035, 0.04, 1);
+        } else {
+            gl.clearColor(0.973, 0.98, 0.988, 1);
+        }
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        if (labelCtx && labelCanvas) {
+            labelCtx.clearRect(0, 0, labelCanvas.width, labelCanvas.height);
+        }
+    }
+
     /**
      * @param {Float32Array} nodes packed NODE_STRIDE
      * @param {Float32Array} edges packed EDGE_STRIDE
@@ -774,6 +787,7 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
         draw,
         resize,
         destroy,
+        clearBackground,
         ensureIcon: (url) => atlas.ensure(url),
         iconUv: (slot) => atlas.uvForSlot(slot),
         getIconSlot: (url) => atlas.getSlot(url),

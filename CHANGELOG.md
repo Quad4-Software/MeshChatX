@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
 - **Android RNode flasher**: Bluetooth Allow and Open settings open the system permission UI when runtime permission is missing or permanently denied. The capabilities banner shows Allow Bluetooth only when needed and otherwise steers users to the native flasher for USB.
 - **Browser calls (Docker / HTTPS)**: Refresh Devices calls getUserMedia first so Brave and Chromium show the microphone permission prompt instead of failing early when enumerateDevices lists no inputs before permission is granted.
 - **HTTP security headers**: Send Permissions-Policy allowing microphone and camera for this origin so reverse proxies that omit the header do not block capture by default.
+- **UI language**: Persist language changes over the config HTTP API (not WebSocket-only), normalize legacy locale codes, and stop the Reticulum manual language picker from overwriting app UI language.
+- **Network visualizer**: WebGL background follows light theme and clears while the WASM scene is still loading. Boot theme removes stale dark class when light is selected.
 
 ## [4.8.1] - 2026-07-25
 

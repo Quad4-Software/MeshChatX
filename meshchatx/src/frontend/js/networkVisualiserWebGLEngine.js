@@ -448,14 +448,17 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
             dirty = true;
         }
         if (!dirty && !live) return;
+        const dark = typeof hooks.isDark === "function" ? hooks.isDark() : false;
         const buf = callScene("meshchatxVisualiserSceneGetDrawBuffers");
-        if (!buf || buf.ok === false) return;
+        if (!buf || buf.ok === false) {
+            renderer.clearBackground(dark);
+            return;
+        }
         const camera = {
             x: buf.camX || 0,
             y: buf.camY || 0,
             zoom: buf.zoom > 0 ? buf.zoom : 1,
         };
-        const dark = typeof hooks.isDark === "function" ? hooks.isDark() : false;
         const sceneCount = buf.nodes && buf.nodes.length ? Math.floor(buf.nodes.length / SCENE_NODE_STRIDE) : 0;
         const need = sceneCount * NODE_STRIDE;
         if (drawNodeScratch.length < need) {

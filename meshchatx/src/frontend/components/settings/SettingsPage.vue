@@ -2826,6 +2826,7 @@ import {
     fetchMergedConfig,
     patchServerConfig,
 } from "../../js/settings/settingsConfigService";
+import { setLocale } from "../../js/localeLoader.js";
 import {
     applyTransportMode,
     applyReticulumInstanceSettings,
@@ -4237,6 +4238,7 @@ export default {
                 },
                 "language"
             );
+            await setLocale(this.$i18n, this.config.language);
         },
         async onAutoResendFailedMessagesWhenAnnounceReceivedChangeWrapper(value) {
             this.config.auto_resend_failed_messages_when_announce_received = value;

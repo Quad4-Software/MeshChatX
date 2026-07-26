@@ -102,6 +102,15 @@ describe("Theme Switching", () => {
                 },
             }),
             post: vi.fn().mockResolvedValue({ data: {} }),
+            patch: vi.fn().mockImplementation(async (_url, body) => ({
+                data: {
+                    config: {
+                        theme: "light",
+                        display_name: "Test User",
+                        ...body,
+                    },
+                },
+            })),
         };
         window.api = axiosMock;
     });
@@ -172,8 +181,6 @@ describe("Theme Switching", () => {
     });
 
     it("toggles theme from light to dark", async () => {
-        const WebSocketConnection = await import("../../meshchatx/src/frontend/js/WebSocketConnection");
-
         const wrapper = mount(App, {
             global: {
                 stubs: {
@@ -200,21 +207,7 @@ describe("Theme Switching", () => {
         await wrapper.vm.toggleTheme();
         await wrapper.vm.$nextTick();
 
-        expect(WebSocketConnection.default.send).toHaveBeenCalled();
-        const sendCalls = WebSocketConnection.default.send.mock.calls;
-        const configSetCall = sendCalls.find((call) => {
-            try {
-                const parsed = JSON.parse(call[0]);
-                return parsed.type === "config.set";
-            } catch {
-                return false;
-            }
-        });
-        expect(configSetCall).toBeDefined();
-        if (configSetCall) {
-            const callArgs = JSON.parse(configSetCall[0]);
-            expect(callArgs.config.theme).toBe("dark");
-        }
+        expect(axiosMock.patch).toHaveBeenCalledWith("/api/v1/config", { theme: "dark" });
     });
 
     it("toggles theme from dark to light", async () => {
@@ -243,20 +236,12 @@ describe("Theme Switching", () => {
         wrapper.vm.config = { ...(wrapper.vm.config || {}), theme: "dark" };
         await wrapper.vm.$nextTick();
 
-        WebSocketConnection.send.mockClear();
+        axiosMock.patch.mockClear();
 
         await wrapper.vm.toggleTheme();
         await flushPromises();
 
-        const configSetCall = WebSocketConnection.send.mock.calls.find((call) => {
-            try {
-                const parsed = JSON.parse(call[0]);
-                return parsed.type === "config.set" && parsed.config?.theme === "light";
-            } catch {
-                return false;
-            }
-        });
-        expect(configSetCall).toBeDefined();
+        expect(axiosMock.patch).toHaveBeenCalledWith("/api/v1/config", { theme: "light" });
     });
 
     it("shows correct icon for theme toggle button", async () => {

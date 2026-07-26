@@ -426,9 +426,9 @@ describe("CallPage.vue", () => {
         await flushPromises();
         const stop = vi.fn();
         const getUserMedia = vi.fn().mockResolvedValue({ getTracks: () => [{ stop }] });
-        const enumerateDevices = vi.fn().mockResolvedValue([
-            { kind: "audiooutput", deviceId: "", label: "", groupId: "" },
-        ]);
+        const enumerateDevices = vi
+            .fn()
+            .mockResolvedValue([{ kind: "audiooutput", deviceId: "", label: "", groupId: "" }]);
         const mediaDevicesDescriptor = Object.getOwnPropertyDescriptor(navigator, "mediaDevices");
         Object.defineProperty(navigator, "mediaDevices", {
             configurable: true,
