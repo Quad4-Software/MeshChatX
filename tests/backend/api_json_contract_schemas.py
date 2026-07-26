@@ -351,6 +351,23 @@ AUTH_STATUS_SCHEMA: dict = {
     "additionalProperties": False,
 }
 
+ALTCHA_CHALLENGE_SCHEMA: dict = {
+    "type": "object",
+    "required": ["parameters", "signature"],
+    "properties": {
+        "parameters": {
+            "type": "object",
+            "required": ["algorithm"],
+            "properties": {
+                "algorithm": {"type": "string"},
+            },
+            "additionalProperties": True,
+        },
+        "signature": {"type": "string"},
+    },
+    "additionalProperties": True,
+}
+
 TELEPHONE_VOICEMAIL_STATUS_SCHEMA: dict = {
     "type": "object",
     "required": [
