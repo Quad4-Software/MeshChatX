@@ -291,14 +291,22 @@ def test_landlock_user_local_bin_script_executable(tmp_path):
     local_bin = os.path.join(os.path.expanduser("~"), ".local", "bin")
     if not os.path.isdir(local_bin):
         pytest.skip("~/.local/bin not present")
-    preferred = ("argospm", "argos-translate", "argostranslate", "git-remote-rns")
+    # Pipx-style CLIs only. git-remote-rns imports RNS at startup and is not a
+    # generic --help smoke target for Landlock execute permission.
+    preferred = (
+        ("argospm", ["--help"]),
+        ("argos-translate", ["--help"]),
+        ("argostranslate", ["--help"]),
+    )
     cmd = None
-    for name in preferred:
+    cmd_argv = None
+    for name, extra_argv in preferred:
         path = os.path.join(local_bin, name)
         if os.path.isfile(path) and os.access(path, os.X_OK):
             cmd = path
+            cmd_argv = [path, *extra_argv]
             break
-    if cmd is None:
+    if cmd is None or cmd_argv is None:
         pytest.skip("no known pipx-style CLI in ~/.local/bin")
     storage = tmp_path / "storage"
     storage.mkdir()
@@ -308,7 +316,7 @@ def test_landlock_user_local_bin_script_executable(tmp_path):
         import sys
 
         proc = subprocess.run(
-            [{cmd!r}],
+            {cmd_argv!r},
             capture_output=True,
             text=True,
             timeout=10,
