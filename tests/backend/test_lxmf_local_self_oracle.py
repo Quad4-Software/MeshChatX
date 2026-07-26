@@ -13,15 +13,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-pytest_plugins = ["tests.backend.test_lxmf_local_self_message"]
-
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend import reticulum_pathfinding
-from tests.backend.test_lxmf_local_self_message import (
+from tests.backend.lxmf_local_self_support import (
     LOCAL_LXMF,
     REMOTE_PEER,
-    _fake_lxmf_message,
-    _lxmf_message_factory,
+    fake_lxmf_message,
+    lxmf_message_factory,
 )
 
 
@@ -71,7 +69,7 @@ async def test_local_self_sqlite_row_delivered_local(local_self_app):
 
     with (
         patch("meshchatx.meshchat.RNS.Destination", return_value=fake_destination),
-        patch("meshchatx.meshchat.LXMF.LXMessage", side_effect=_lxmf_message_factory),
+        patch("meshchatx.meshchat.LXMF.LXMessage", side_effect=lxmf_message_factory),
         patch(
             "meshchatx.src.backend.lxmf_utils.lxmf_message_solving_stamps",
             return_value=False,
@@ -99,7 +97,7 @@ async def test_local_self_conversation_summary_updated(local_self_app):
 
     with (
         patch("meshchatx.meshchat.RNS.Destination", return_value=fake_destination),
-        patch("meshchatx.meshchat.LXMF.LXMessage", side_effect=_lxmf_message_factory),
+        patch("meshchatx.meshchat.LXMF.LXMessage", side_effect=lxmf_message_factory),
         patch(
             "meshchatx.src.backend.lxmf_utils.lxmf_message_solving_stamps",
             return_value=False,
@@ -136,7 +134,7 @@ async def test_remote_peer_still_invokes_mesh_outbound(local_self_app):
 
     with (
         patch("meshchatx.meshchat.RNS.Destination", return_value=fake_destination),
-        patch("meshchatx.meshchat.LXMF.LXMessage", side_effect=_lxmf_message_factory),
+        patch("meshchatx.meshchat.LXMF.LXMessage", side_effect=lxmf_message_factory),
         patch(
             "meshchatx.src.backend.lxmf_utils.lxmf_message_solving_stamps",
             return_value=False,
@@ -155,7 +153,7 @@ async def test_remote_peer_still_invokes_mesh_outbound(local_self_app):
 
 def test_db_upsert_override_writes_local_method(local_self_app):
     app = local_self_app
-    msg = _fake_lxmf_message()
+    msg = fake_lxmf_message()
     msg.content = b"stored"
     ReticulumMeshChat.db_upsert_lxmf_message(
         app,
@@ -180,7 +178,7 @@ async def test_local_self_websocket_payload_is_delivered_local(local_self_app):
 
     with (
         patch("meshchatx.meshchat.RNS.Destination", return_value=fake_destination),
-        patch("meshchatx.meshchat.LXMF.LXMessage", side_effect=_lxmf_message_factory),
+        patch("meshchatx.meshchat.LXMF.LXMessage", side_effect=lxmf_message_factory),
         patch(
             "meshchatx.src.backend.lxmf_utils.lxmf_message_solving_stamps",
             return_value=False,

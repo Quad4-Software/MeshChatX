@@ -247,7 +247,7 @@ async def _csp_for_path(app_instance, path: str) -> str:
         return web.Response(text="test")
 
     routes = web.RouteTableDef()
-    _, _, security_middleware, _, _, _, _ = app_instance._define_routes(routes)
+    _, _, security_middleware, _, _, _ = app_instance._define_routes(routes)
     response = await security_middleware(request, mock_handler)
     return response.headers.get("Content-Security-Policy", "")
 

@@ -196,7 +196,7 @@ _SERVER_BIND_STATUS_SCHEMA: dict = {
     "seccomp_requested": {"type": "boolean"},
     "seccomp_auto_enabled": {"type": "boolean"},
     "seccomp_disabled_by_env": {"type": "boolean"},
-        "seccomp_active": {"type": "boolean"},
+    "seccomp_active": {"type": "boolean"},
 }
 
 _DEMO_PUBLIC_STATUS_FIELDS: dict = {
