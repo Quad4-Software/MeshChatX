@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - **Public demo mode**: Read-only mesh showcase via `MESHCHAT_DEMO_MODE` or `--demo` (blocked sends and API mutations, in-app demo banner). Optional ALTCHA v3 on login/setup, `MESHCHAT_AUTH_PAGE_HINT` for login page text, and [`docker-compose.demo.yml`](docker-compose.demo.yml) for Coolify.
+- **Database upgrades**: Automatic `backup-pre-migrate-*.zip` before schema migrations (skip with `MESHCHAT_SKIP_PRE_MIGRATE_BACKUP=1`). CLI `--list-backups` and `--export-backup` to list or copy backups for rollback.
 
 ### Fixed
 
