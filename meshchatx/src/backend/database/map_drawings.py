@@ -37,15 +37,21 @@ class MapDrawingsDAO:
             (identity_hash,),
         )
 
-    def delete_drawing(self, drawing_id):
-        self.provider.execute(
-            "DELETE FROM map_drawings WHERE id = ?",
-            (drawing_id,),
+    def delete_drawing(self, drawing_id, identity_hash: str) -> bool:
+        cur = self.provider.execute(
+            "DELETE FROM map_drawings WHERE id = ? AND identity_hash = ?",
+            (drawing_id, identity_hash),
         )
+        return cur.rowcount > 0
 
-    def update_drawing(self, drawing_id, name, data):
+    def update_drawing(self, drawing_id, identity_hash: str, name, data) -> bool:
         now = datetime.now(UTC)
-        self.provider.execute(
-            "UPDATE map_drawings SET name = ?, data = ?, updated_at = ? WHERE id = ?",
-            (name, data, now, drawing_id),
+        cur = self.provider.execute(
+            """
+            UPDATE map_drawings
+            SET name = ?, data = ?, updated_at = ?
+            WHERE id = ? AND identity_hash = ?
+            """,
+            (name, data, now, drawing_id, identity_hash),
         )
+        return cur.rowcount > 0
