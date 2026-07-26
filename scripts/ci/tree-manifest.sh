@@ -63,6 +63,10 @@ tracked_paths() {
 }
 
 generate() {
+	if command -v python3 >/dev/null 2>&1 && [ -f "$ROOT/scripts/ci/tree_manifest_generate.py" ]; then
+		python3 "$ROOT/scripts/ci/tree_manifest_generate.py"
+		return $?
+	fi
 	printf '%s\n' "$MANIFEST_HEADER"
 	tracked_paths | while IFS= read -r f; do
 		[ -n "$f" ] || continue
