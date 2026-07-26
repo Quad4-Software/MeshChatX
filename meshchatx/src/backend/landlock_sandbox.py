@@ -340,6 +340,22 @@ def _collect_user_local_cli_roots() -> list[str]:
     return paths
 
 
+def _collect_meshchatx_package_read_roots() -> list[str]:
+    """Editable installs may load sources outside sys.path entries."""
+    paths: list[str] = []
+    try:
+        import meshchatx as pkg
+    except ImportError:
+        return paths
+    init_file = getattr(pkg, "__file__", None)
+    if not init_file:
+        return paths
+    pkg_dir = _existing_dir(os.path.dirname(os.path.abspath(init_file)))
+    if pkg_dir and pkg_dir not in paths:
+        paths.append(pkg_dir)
+    return paths
+
+
 def _collect_read_roots() -> list[str]:
     roots = {
         "/usr",
@@ -388,6 +404,8 @@ def _collect_read_roots() -> list[str]:
         if prefix:
             roots.add(prefix)
     for root in _collect_user_local_cli_roots():
+        roots.add(root)
+    for root in _collect_meshchatx_package_read_roots():
         roots.add(root)
     return sorted(roots)
 

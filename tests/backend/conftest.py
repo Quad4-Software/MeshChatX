@@ -25,6 +25,8 @@ from tests.backend.support.test_temp_dir import (
     ensure_test_temp_dirs,
 )
 
+pytest_plugins = ["tests.backend.lxmf_local_self_support"]
+
 
 def _ensure_coverage_data_dir() -> None:
     ensure_test_temp_dirs()

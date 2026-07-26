@@ -108,6 +108,20 @@ def test_collect_read_roots_includes_user_local_cli_when_present():
         ), f"{local_bin!r} not covered by landlock read roots"
 
 
+def test_collect_read_roots_includes_meshchatx_package_dir():
+    roots = ll._collect_read_roots()
+    import meshchatx as pkg
+
+    init_file = getattr(pkg, "__file__", None)
+    assert init_file
+    pkg_dir = os.path.realpath(os.path.dirname(os.path.abspath(init_file)))
+    assert any(
+        pkg_dir == os.path.realpath(root)
+        or pkg_dir.startswith(os.path.realpath(root).rstrip("/") + "/")
+        for root in roots
+    ), f"meshchatx package dir {pkg_dir!r} not covered by read roots"
+
+
 def test_collect_read_roots_includes_interpreter_prefix():
     roots = ll._collect_read_roots()
     exe = os.path.realpath(sys.executable)
