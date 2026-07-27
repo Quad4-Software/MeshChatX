@@ -139,8 +139,9 @@ Common flags and environment variables:
 | `--ssl-key`              | `MESHCHAT_SSL_KEY`       | auto           | TLS private key path               |
 | `--headless`             | `MESHCHAT_HEADLESS`      | false          | Do not open a browser              |
 | `--auth`                 | `MESHCHAT_AUTH`          | false          | Require HTTP basic auth for the UI |
-| `--storage-dir`          | `MESHCHAT_STORAGE_DIR`   | `./storage`    | Application data directory         |
-| `--reticulum-config-dir` | (see `--help`)           | `~/.reticulum` | Reticulum configuration            |
+| `--storage-dir`          | `MESHCHAT_STORAGE_DIR`          | `./storage`    | Application data directory         |
+| `--reticulum-config-dir` | `MESHCHAT_RETICULUM_CONFIG_DIR` | `~/.reticulum` | Reticulum configuration            |
+| `--data-dir`             | `MESHCHAT_DATA_DIR`             | none           | Portable root (`storage` + `.reticulum` subdirs when the two paths above are unset) |
 | `--identity-file`        | `MESHCHAT_IDENTITY_FILE` | none           | Load identity from file            |
 | `--rns-log-level`        | `MESHCHAT_RNS_LOG_LEVEL` | none           | Reticulum log level                |
 | `--auto-recover`         | `MESHCHAT_AUTO_RECOVER`  | false          | Attempt SQLite recovery on start   |
@@ -148,6 +149,35 @@ Common flags and environment variables:
 | `--disable-plugins`      |                          | false          | Disable the plugin system          |
 
 CLI flags override environment variables when both are set.
+
+### Portable installs (removable media, Tails, USB sticks)
+
+MeshChatX already supports relocating all persistent state off the home directory. Use either explicit paths or a single data root:
+
+```bash
+export PERSIST="/media/amnesia/Persistent/meshchatx"
+mkdir -p "$PERSIST"
+
+meshchatx --headless \
+  --data-dir="$PERSIST"
+```
+
+That creates and uses `$PERSIST/storage` for MeshChatX (identities, SQLite, plugins) and `$PERSIST/.reticulum` for Reticulum interfaces and transport config. You can set the same layout with environment variables:
+
+```bash
+export MESHCHAT_DATA_DIR="$PERSIST"
+meshchatx --headless
+```
+
+Equivalent explicit form (overrides any `--data-dir` subpaths when you set these yourself):
+
+```bash
+meshchatx --headless \
+  --storage-dir="$PERSIST/storage" \
+  --reticulum-config-dir="$PERSIST/.reticulum"
+```
+
+On Windows portable Electron builds, storage and Reticulum config default next to the `.exe` when `PORTABLE_EXECUTABLE_DIR` is set. On Linux and macOS desktop builds, Electron still defaults to `~/.reticulum-meshchatx` and `~/.reticulum` unless you pass the flags above (or set `MESHCHAT_DATA_DIR` / `MESHCHAT_STORAGE_DIR` / `MESHCHAT_RETICULUM_CONFIG_DIR` in the environment before launch).
 
 ## Reticulum manual bundle
 

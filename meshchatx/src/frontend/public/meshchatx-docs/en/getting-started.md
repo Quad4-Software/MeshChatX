@@ -79,10 +79,12 @@ Use the search bar to query both sets at once. MeshChatX guide text is currently
 
 ## Storage locations
 
-| Data                  | Typical path                                       |
+| Data                  | Typical path (CLI default)                         |
 | --------------------- | -------------------------------------------------- |
-| MeshChatX app data    | `~/.reticulum-meshchatx/` on Linux and macOS       |
-| Reticulum config      | `~/.reticulum/`                                    |
+| MeshChatX app data    | `./storage` (or `--storage-dir` / `MESHCHAT_STORAGE_DIR`) |
+| Reticulum config      | `~/.reticulum` (or `--reticulum-config-dir` / `MESHCHAT_RETICULUM_CONFIG_DIR`) |
+| Portable bundle       | `<data-dir>/storage` and `<data-dir>/.reticulum` when using `--data-dir` / `MESHCHAT_DATA_DIR` |
+| Desktop Electron data | `~/.reticulum-meshchatx` and `~/.reticulum` unless overridden at launch |
 | Per-identity database | `<storage>/identities/<identity_hash>/database.db` |
 | Docker volume         | `meshchatx-config` mounted at `/config`            |
 
