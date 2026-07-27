@@ -218,6 +218,7 @@ jobs:
                       "anyio-*-py3-none-any.whl"
                       "hpack-*-py3-none-any.whl"
                       "hyperframe-*-py3-none-any.whl"
+                      "altcha-2.0.2-py3-none-any.whl"
                   )
                   missing=0
                   for pattern in "${required[@]}"; do
