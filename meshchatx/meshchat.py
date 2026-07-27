@@ -289,6 +289,7 @@ from meshchatx.src.path_utils import (
     get_file_path,
     is_path_within_dir,
     resolve_log_dir,
+    resolve_meshchat_data_roots,
     safe_path_under_dir,
 )
 from meshchatx.src.path_utils import (
@@ -10505,6 +10506,16 @@ def main():
         help="Restore the database from the given path (zip or db file) and exit.",
     )
     parser.add_argument(
+        "--data-dir",
+        type=str,
+        default=os.environ.get("MESHCHAT_DATA_DIR"),
+        help=(
+            "Portable data root: uses <dir>/storage and <dir>/.reticulum when "
+            "--storage-dir and --reticulum-config-dir are not set. "
+            "Can also be set via MESHCHAT_DATA_DIR."
+        ),
+    )
+    parser.add_argument(
         "--reticulum-config-dir",
         type=str,
         default=os.environ.get("MESHCHAT_RETICULUM_CONFIG_DIR"),
@@ -10603,6 +10614,12 @@ def main():
     # Disable crash recovery if requested via flag
     if args.no_crash_recovery:
         recovery.disable()
+
+    args.storage_dir, args.reticulum_config_dir = resolve_meshchat_data_roots(
+        data_dir=args.data_dir,
+        storage_dir=args.storage_dir,
+        reticulum_config_dir=args.reticulum_config_dir,
+    )
 
     planned_storage_dir = args.storage_dir
     if not planned_storage_dir:

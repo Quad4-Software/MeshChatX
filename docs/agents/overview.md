@@ -276,6 +276,7 @@ Common overrides (CLI flags usually mirror these):
 | `MESHCHAT_HEADLESS` / `--headless`                         | Do not auto-launch a browser                     |
 | `MESHCHAT_STORAGE_DIR` / `--storage-dir`                   | App storage root                                 |
 | `MESHCHAT_RETICULUM_CONFIG_DIR` / `--reticulum-config-dir` | Reticulum config dir                             |
+| `MESHCHAT_DATA_DIR` / `--data-dir`                         | Portable root for storage + Reticulum when those two are unset |
 | `MESHCHAT_PUBLIC_DIR` / `--public-dir`                     | Frontend assets dir                              |
 | `MESHCHAT_AUTH` / `--auth`                                 | Enable web auth                                  |
 | `MESHCHAT_NO_HTTPS` / `--no-https`                         | HTTP instead of HTTPS                            |

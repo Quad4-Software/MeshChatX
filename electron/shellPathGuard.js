@@ -93,6 +93,14 @@ function isAllowedShellPath(targetPath, ctx) {
     const userArgv = ctx.getUserProvidedArguments(process.argv);
     add(parseArgvFlag(userArgv, "--storage-dir"));
     add(parseArgvFlag(userArgv, "--reticulum-config-dir"));
+    const dataDir =
+        parseArgvFlag(userArgv, "--data-dir") ||
+        (process.env.MESHCHAT_DATA_DIR && String(process.env.MESHCHAT_DATA_DIR).trim()) ||
+        null;
+    if (dataDir) {
+        add(path.join(dataDir, "storage"));
+        add(path.join(dataDir, ".reticulum"));
+    }
 
     for (const root of roots) {
         if (root && isResolvedPathUnderRoot(resolved, root)) {

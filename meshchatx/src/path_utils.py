@@ -93,6 +93,31 @@ def resolve_log_dir():
     return None
 
 
+def resolve_meshchat_data_roots(
+    *,
+    data_dir: str | None,
+    storage_dir: str | None,
+    reticulum_config_dir: str | None,
+) -> tuple[str | None, str | None]:
+    """Apply MESHCHAT_DATA_DIR / --data-dir when explicit roots are unset.
+
+    Layout under data_dir:
+      storage/     MeshChatX databases and identity tree
+      .reticulum/  Reticulum interfaces and transport config
+    """
+    root = (data_dir or os.environ.get("MESHCHAT_DATA_DIR") or "").strip()
+    if not root:
+        return storage_dir, reticulum_config_dir
+    root = os.path.abspath(os.path.expanduser(root))
+    out_storage = storage_dir
+    out_reticulum = reticulum_config_dir
+    if not out_storage:
+        out_storage = os.path.join(root, "storage")
+    if not out_reticulum:
+        out_reticulum = os.path.join(root, ".reticulum")
+    return out_storage, out_reticulum
+
+
 def request_client_ip(
     request: web.Request,
     trusted_proxy_cidrs: str | None = None,

@@ -1859,9 +1859,6 @@ def register_interfaces_routes(routes, app):
                 status=500,
             )
 
-    # preview importable interfaces
-
-    # preview importable interfaces
     @routes.post("/api/v1/reticulum/interfaces/import-preview")
     async def import_interfaces_preview(request):
         try:
