@@ -2735,7 +2735,8 @@
                 "invalid_host": "请输入有效的主机名或 IP 地址。",
                 "bluetooth_flash_unsupported": "蓝牙无法用于刷写固件。请使用串口或 WiFi 进行刷写，然后返回蓝牙进行管理。",
                 "failed_diagnostics": "运行诊断失败：{error}",
-                "failed_detect_with_reason": "检测 RNode 失败：{error}"
+                "failed_detect_with_reason": "检测 RNode 失败：{error}",
+                "use_native_flasher": "Android 上的 USB 访问需要通过原生 RNode 刷机器窗口进行，正在重新打开。"
             },
             "alerts": {
                 "firmware_downloaded": "推荐的固件已下载并装入.",

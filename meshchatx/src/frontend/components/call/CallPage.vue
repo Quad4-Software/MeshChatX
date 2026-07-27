@@ -695,14 +695,18 @@
                                                             id="web-audio-toggle"
                                                             :model-value="webAudioBridgeEnabled"
                                                             :disabled="webAudioBridgeRequired"
-                                                            label="Web Audio Bridge"
+                                                            :label="
+                                                                isMeshChatXAndroid()
+                                                                    ? 'Native Audio Bridge'
+                                                                    : 'Web Audio Bridge'
+                                                            "
                                                             @update:model-value="onToggleWebAudio"
                                                         />
                                                         <div class="text-xs text-gray-500 dark:text-zinc-400 px-1">
                                                             <template v-if="isMeshChatXAndroid()">
-                                                                Required on Android. Calls use the native mic and
-                                                                speaker attached through the audio bridge (not the
-                                                                browser getUserMedia path).
+                                                                Always on for Android calls. Audio goes through the
+                                                                phone's native mic and speaker (AudioRecord and
+                                                                AudioTrack), never the WebView's browser microphone API.
                                                             </template>
                                                             <template v-else-if="webAudioBridgeRequired">
                                                                 Required on this host (no LXST host audio device).
@@ -777,7 +781,7 @@
                                                 </div>
 
                                                 <!-- Web Audio Device Selection -->
-                                                <div v-if="webAudioBridgeEnabled" class="flex flex-col gap-2 mt-2">
+                                                <div v-if="showWebAudioDeviceSelector" class="flex flex-col gap-2 mt-2">
                                                     <div class="flex flex-col gap-1">
                                                         <div
                                                             class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1"
@@ -1891,6 +1895,12 @@ export default {
     computed: {
         webAudioBridgeEnabled() {
             return Boolean(this.webAudioBridgeRequired || this.config?.telephone_web_audio_enabled);
+        },
+        showWebAudioDeviceSelector() {
+            // Android routes call audio through the native mic/speaker, not a
+            // browser device picker, so the Web Audio device selector only
+            // applies to browser/Electron hosts.
+            return this.webAudioBridgeEnabled && !this.isMeshChatXAndroid();
         },
         isMicMuted() {
             return this.localMicMuted;

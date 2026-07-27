@@ -2529,7 +2529,8 @@
                 "invalid_host": "Bitte geben Sie einen gültigen Host oder eine gültige IP-Adresse ein.",
                 "bluetooth_flash_unsupported": "Bluetooth kann nicht zum Flashen von Firmware verwendet werden. Verwenden Sie seriell oder WLAN zum Flashen und kehren Sie dann für die Verwaltung zu Bluetooth zurück.",
                 "failed_diagnostics": "Fehler beim Ausführen der Diagnose: {error}",
-                "failed_detect_with_reason": "Fehler beim Erkennen von RNode: {error}"
+                "failed_detect_with_reason": "Fehler beim Erkennen von RNode: {error}",
+                "use_native_flasher": "Der USB-Zugriff unter Android erfolgt über das native RNode-Flasher-Fenster. Es wird jetzt erneut geöffnet."
             },
             "alerts": {
                 "firmware_downloaded": "Empfohlene Firmware wurde heruntergeladen und geladen.",

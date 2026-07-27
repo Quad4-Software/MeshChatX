@@ -2529,7 +2529,8 @@
                 "invalid_host": "Пожалуйста, введите действительный хост или IP-адрес.",
                 "bluetooth_flash_unsupported": "Bluetooth нельзя использовать для прошивки. Используйте последовательный порт или WiFi для прошивки, затем вернитесь к Bluetooth для управления.",
                 "failed_diagnostics": "Не удалось выполнить диагностику: {error}",
-                "failed_detect_with_reason": "Не удалось обнаружить RNode: {error}"
+                "failed_detect_with_reason": "Не удалось обнаружить RNode: {error}",
+                "use_native_flasher": "Доступ к USB на Android выполняется через окно нативной программы прошивки RNode. Открываем его снова."
             },
             "alerts": {
                 "firmware_downloaded": "Рекомендуемая прошивка была скачана и загружена.",

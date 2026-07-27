@@ -507,8 +507,20 @@ export default {
                 throw e;
             }
         },
+        _requireWebSerialOrReopenNative() {
+            if (typeof navigator !== "undefined" && navigator.serial) {
+                return;
+            }
+            if (this.androidBridge.hasNativeRNodeFlasher()) {
+                this.androidBridge.openRNodeFlasher();
+                const err = new Error(this.$t("tools.rnode_flasher.errors.use_native_flasher"));
+                err.code = "ANDROID_NATIVE_FLASHER_REQUIRED";
+                throw err;
+            }
+        },
         async _openTransport() {
             if (this.connectionMethod === TRANSPORT_SERIAL) {
+                this._requireWebSerialOrReopenNative();
                 const transport = await SerialTransport.request();
                 await transport.open({ baudRate: 115200 });
                 this.connectedTransportLabel = transport.description();
@@ -666,6 +678,7 @@ export default {
             this.isEnteringDfuMode = true;
             this.flashError = null;
             try {
+                this._requireWebSerialOrReopenNative();
                 const transport = await SerialTransport.request();
                 const flasher = new Nrf52DfuFlasher(transport.port);
                 await flasher.enterDfuMode();
@@ -758,6 +771,7 @@ export default {
             this.flashingStatus = this.$t("tools.rnode_flasher.connecting_device");
             let transport = null;
             try {
+                this._requireWebSerialOrReopenNative();
                 transport = await SerialTransport.request();
                 const flasher = new Nrf52DfuFlasher(transport.port);
                 await flasher.flash(this.firmwareFile, (percentage, message) => {
@@ -791,6 +805,7 @@ export default {
             this.flashingStatus = this.$t("tools.rnode_flasher.connecting_device");
             let transport = null;
             try {
+                this._requireWebSerialOrReopenNative();
                 transport = await SerialTransport.request();
 
                 const blobReader = new window.zip.BlobReader(this.firmwareFile);
