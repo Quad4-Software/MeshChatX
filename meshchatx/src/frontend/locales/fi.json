@@ -2735,7 +2735,8 @@
                 "invalid_host": "Anna kelvollinen isäntä- tai IP-osoite.",
                 "bluetooth_flash_unsupported": "Bluetoothia ei voi käyttää laiteohjelmiston päivittämiseen. Käytä Serial- tai WiFi-yhteyttä päivittämiseen, palaa sitten Bluetoothiin hallintaa varten.",
                 "failed_diagnostics": "Diagnostiikan suorittaminen epäonnistui: {error}",
-                "failed_detect_with_reason": "RNodea ei voitu tunnistaa: {error}"
+                "failed_detect_with_reason": "RNodea ei voitu tunnistaa: {error}",
+                "use_native_flasher": "USB-käyttö Androidissa tapahtuu natiivin RNode-flasher-ikkunan kautta. Avataan se nyt uudelleen."
             },
             "alerts": {
                 "firmware_downloaded": "Suositeltu laiteohjelmisto on ladattu ja asennettu.",

@@ -27,6 +27,7 @@ import androidx.core.content.ContextCompat;
 import com.meshchatx.AppSettingsLauncher;
 import com.meshchatx.LocalhostTrustOkHttpClient;
 import com.meshchatx.R;
+import com.meshchatx.RemoteBackendUrl;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -50,9 +51,10 @@ import okhttp3.ResponseBody;
  */
 public final class RNodeFlasherActivity extends AppCompatActivity implements UsbSerialHub.Listener {
     private static final int REQ_BT = 4401;
-    private static final String LOCAL_API = "https://127.0.0.1:8000";
     private static final String PREFS = "rnode_flasher";
     private static final String PREF_BT_PROMPTED = "bt_perm_prompted";
+    private static final String SHELL_PREFS = "meshchatx_shell";
+    private static final String PREF_REMOTE_BACKEND_URL = "remote_backend_url";
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final ExecutorService io = Executors.newSingleThreadExecutor();
@@ -429,11 +431,34 @@ public final class RNodeFlasherActivity extends AppCompatActivity implements Usb
         });
     }
 
+    /**
+     * Resolve the effective backend origin, matching MainActivity so the flasher
+     * still works when the shell is configured against a remote backend instead
+     * of the on-device local API.
+     */
+    private String resolveApiBaseUrl() {
+        SharedPreferences prefs = getSharedPreferences(SHELL_PREFS, MODE_PRIVATE);
+        return RemoteBackendUrl.resolveEffectiveUrl(prefs.getString(PREF_REMOTE_BACKEND_URL, null));
+    }
+
+    /**
+     * The localhost-only client skips certificate validation for the embedded
+     * self-signed 127.0.0.1 server. A configured remote backend must keep normal
+     * system certificate validation, so it gets a plain OkHttpClient instead.
+     */
+    private OkHttpClient httpClientFor(String apiBaseUrl) {
+        if (RemoteBackendUrl.isLocalBackendUrl(apiBaseUrl)) {
+            return LocalhostTrustOkHttpClient.get();
+        }
+        return new OkHttpClient.Builder().connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS).build();
+    }
+
     private byte[] fetchFirmwareZip(String filename) throws Exception {
-        OkHttpClient client = LocalhostTrustOkHttpClient.get();
-        // Resolve latest release asset URL via local API, then download through proxy.
-        String releaseUrl = LOCAL_API + "/api/v1/tools/rnode/latest_release";
-        Request releaseReq = authorizedGet(releaseUrl);
+        String apiBaseUrl = resolveApiBaseUrl();
+        OkHttpClient client = httpClientFor(apiBaseUrl);
+        // Resolve latest release asset URL via the backend API, then download through proxy.
+        String releaseUrl = apiBaseUrl + "/api/v1/tools/rnode/latest_release";
+        Request releaseReq = authorizedGet(apiBaseUrl, releaseUrl);
         String assetUrl;
         try (Response response = client.newCall(releaseReq).execute()) {
             if (!response.isSuccessful() || response.body() == null) {
@@ -458,10 +483,10 @@ public final class RNodeFlasherActivity extends AppCompatActivity implements Usb
             }
         }
         String downloadUrl =
-            LOCAL_API
+            apiBaseUrl
                 + "/api/v1/tools/rnode/download_firmware?url="
                 + Uri.encode(assetUrl);
-        Request dlReq = authorizedGet(downloadUrl);
+        Request dlReq = authorizedGet(apiBaseUrl, downloadUrl);
         try (Response response = client.newCall(dlReq).execute()) {
             if (!response.isSuccessful() || response.body() == null) {
                 throw new IllegalStateException("download_firmware HTTP " + response.code());
@@ -471,9 +496,9 @@ public final class RNodeFlasherActivity extends AppCompatActivity implements Usb
         }
     }
 
-    private Request authorizedGet(String url) {
+    private Request authorizedGet(String apiBaseUrl, String url) {
         Request.Builder builder = new Request.Builder().url(url).get();
-        String cookie = CookieManager.getInstance().getCookie(LOCAL_API);
+        String cookie = CookieManager.getInstance().getCookie(apiBaseUrl);
         if (cookie != null && !cookie.isEmpty()) {
             builder.header("Cookie", cookie);
         }

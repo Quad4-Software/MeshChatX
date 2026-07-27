@@ -2787,7 +2787,8 @@
                 "invalid_host": "Inserisci un host o indirizzo IP valido.",
                 "bluetooth_flash_unsupported": "Bluetooth non può essere utilizzato per scrivere il firmware. Usa Serial o WiFi per scrivere, poi torna a Bluetooth per la gestione.",
                 "failed_diagnostics": "Esecuzione diagnostica fallita: {error}",
-                "failed_detect_with_reason": "Rilevamento RNode fallito: {error}"
+                "failed_detect_with_reason": "Rilevamento RNode fallito: {error}",
+                "use_native_flasher": "L'accesso USB su Android avviene tramite la finestra nativa del flasher RNode. Riapertura in corso."
             },
             "alerts": {
                 "firmware_downloaded": "Il firmware consigliato è stato scaricato e caricato.",

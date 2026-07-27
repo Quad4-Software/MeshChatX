@@ -2735,7 +2735,8 @@
                 "invalid_host": "Voer een geldige host of IP-adres in.",
                 "bluetooth_flash_unsupported": "Bluetooth kan niet worden gebruikt om firmware te flashen. Gebruik Seriële of WiFi om te flashen, keer daarna terug naar Bluetooth voor beheer.",
                 "failed_diagnostics": "Diagnostiek uitvoeren mislukt: {error}",
-                "failed_detect_with_reason": "RNode detectie mislukt: {error}"
+                "failed_detect_with_reason": "RNode detectie mislukt: {error}",
+                "use_native_flasher": "USB-toegang op Android verloopt via het native RNode-flasher-venster. Wordt nu opnieuw geopend."
             },
             "alerts": {
                 "firmware_downloaded": "Aanbevolen firmware is gedownload en geladen.",
