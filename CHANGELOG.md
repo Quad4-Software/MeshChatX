@@ -2,30 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.8.2] - 2026-07-26
+## [4.8.2] - 2026-07-27
 
 ### Added
 
-- **Public demo mode**: Read-only mesh showcase via `MESHCHAT_DEMO_MODE` or `--demo` (blocked sends and API mutations, in-app demo banner). Optional ALTCHA v3 on login/setup, `MESHCHAT_AUTH_PAGE_HINT` for login page text, and [`docker-compose.demo.yml`](docker-compose.demo.yml) for Coolify.
-- **Database upgrades**: Automatic `backup-pre-migrate-*.zip` before schema migrations (skip with `MESHCHAT_SKIP_PRE_MIGRATE_BACKUP=1`). CLI `--list-backups` and `--export-backup` to list or copy backups for rollback. Post-migrate `quick_check`, structured migration logs, pre-migrate zip retention (five by default), storage lock for single-writer volumes, and N-1/N-2 fixture upgrade tests.
+- **Public demo mode**: Read-only mesh showcase via `MESHCHAT_DEMO_MODE` or `--demo` (blocked sends and API mutations, in-app demo banner). Optional ALTCHA v3 on login/setup, `MESHCHAT_AUTH_PAGE_HINT` for login page text, and [docker-compose.demo.yml](docker-compose.demo.yml) for Coolify.
+- **Database upgrades**: Automatic backup-pre-migrate-*.zip before schema migrations (skip with `MESHCHAT_SKIP_PRE_MIGRATE_BACKUP=1`). CLI `--list-backups` and `--export-backup` to list or copy backups for rollback. Post-migrate quick_check, structured migration logs, pre-migrate zip retention (five by default), storage lock for single-writer volumes, and N-1/N-2 fixture upgrade tests.
 
 ### Fixed
 
-- **Messages (personal notes)**: Sending to your own LXMF address or identity is stored locally as delivered (method `local`) without LXMF router outbound, so self-chat no longer hangs in a waiting state.
+- **Messages (personal notes)**: Sending to your own LXMF address or identity is stored locally as delivered (method local) without LXMF router outbound, so self-chat no longer hangs in a waiting state.
 - **Messages sidebar**: Conversation list updates optimistically when you press Send, before the server acknowledges the message.
 - **E2E**: Playwright API helpers attach CSRF tokens for direct backend POSTs; `pretest:e2e` installs Chromium before the suite runs.
-- **Android LXST / Codec2**: When the Chaquopy `pycodec2.so` extension is an empty stub, fall back to a ctypes Codec2 binding over the bundled `libcodec2.so` so LXST Codec2 voice profiles work on device. Still preload jniLibs Codec2 and reload soft-imported LXST bindings after probe.
+- **Android LXST / Codec2**: When the Chaquopy pycodec2.so extension is an empty stub, fall back to a ctypes Codec2 binding over the bundled libcodec2.so so LXST Codec2 voice profiles work on device. Still preload jniLibs Codec2 and reload soft-imported LXST bindings after probe.
 - **Android RNode flasher**: Open native flasher returns a real status, keeps USB-serial classes through R8, uses an ActionBar theme, and surfaces startup failures instead of silently doing nothing. Bluetooth Open settings tries GrapheneOS-friendly fallbacks (app details, Bluetooth settings, general Settings) instead of toasting unavailable.
 - **Connection banners**: Do not flash disconnected on startup before the first successful WebSocket open. Debounce disconnect UI for 2.5s and only show reconnected when the disconnect banner was actually shown. Foreground recovery prefers a ping for longer before forcing a reconnect.
 - **Android calls**: Clarify that the web audio bridge on Android uses native mic and speaker through the telephone audio bridge, not browser getUserMedia.
-- **Browser calls (Docker / HTTPS)**: Refresh Devices prompts with bare `getUserMedia({ audio: true })` first so Brave and Chromium show the microphone dialog. Constrained requests (echoCancellation and friends) often return NotFoundError before permission is granted and never ask. Clearer toasts for insecure HTTP and pending/denied mic permission.
+- **Browser calls (Docker / HTTPS)**: Refresh Devices prompts with bare getUserMedia({ audio: true }) first so Brave and Chromium show the microphone dialog. Constrained requests (echoCancellation and friends) often return NotFoundError before permission is granted and never ask. Clearer toasts for insecure HTTP and pending/denied mic permission.
 - **HTTP security headers**: Send Permissions-Policy allowing microphone, camera, bluetooth, serial, and usb for this origin so reverse proxies that omit the header do not block capture or RNode flasher hardware APIs by default.
-- **RNode flasher Bluetooth**: Detect Brave's disabled-by-default Web Bluetooth API, show how to enable `brave://flags/#brave-web-bluetooth-api`, and offer Try Bluetooth / Recheck actions. Web Bluetooth has no mic-style prompt. The device chooser from `requestDevice()` is the permission UI.
+- **RNode flasher Bluetooth**: Detect Brave's disabled-by-default Web Bluetooth API, show how to enable `brave://flags/#brave-web-bluetooth-api`, and offer Try Bluetooth / Recheck actions. Web Bluetooth has no mic-style prompt. The device chooser from requestDevice() is the permission UI.
 - **UI language**: Persist language changes over the config HTTP API (not WebSocket-only), normalize legacy locale codes, and stop the Reticulum manual language picker from overwriting app UI language.
 - **Network visualizer**: WebGL background follows light theme and clears while the WASM scene is still loading. Boot theme removes stale dark class when light is selected.
-- **Translator (Landlock)**: On Linux, allow read/execute for user-local pipx CLIs (`~/.local/bin`, `~/.local/share/pipx`) and read-write for Argos Translate data under `~/.local/share/argos-translate`, so `argospm` language lists and local Argos translation work with the filesystem sandbox enabled.
-- **Tests**: Landlock integration probes for subprocess spawn, translator Argos language listing, user-local CLI execution, and home write denial outside RW roots (`tests/backend/test_landlock_integration_surfaces.py`).
-- **Windows desktop**: AppContainer sandboxing is opt-in (set MESHCHAT_APPCONTAINER=1) instead of on by default, to avoid extra launcher processes and heavy startup until the path is stable.
+- **Translator (Landlock)**: On Linux, allow read/execute for user-local pipx CLIs (`~/.local/bin`, `~/.local/share/pipx`) and read-write for Argos Translate data under `~/.local/share/argos-translate`, so argospm language lists and local Argos translation work with the filesystem sandbox enabled.
+- **Tests**: Landlock integration probes for subprocess spawn, translator Argos language listing, user-local CLI execution, and home write denial outside RW roots (tests/backend/test_landlock_integration_surfaces.py).
+- **Windows desktop**: AppContainer sandboxing is opt-in (set `MESHCHAT_APPCONTAINER=1`) instead of on by default, to avoid extra launcher processes and heavy startup until the path is stable.
 
 ## [4.8.1] - 2026-07-25
 
