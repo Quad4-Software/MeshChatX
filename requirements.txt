@@ -118,6 +118,10 @@ aiosignal==1.4.0 \
     --hash=sha256:053243f8b92b990551949e63930a839ff0cf0b0ebbe0597b0f3fb19e1a0fe82e \
     --hash=sha256:f47eecd9468083c2029cc99945502cb7708b082c232f9aca65da147157b251c7
     # via aiohttp
+altcha==2.0.2 \
+    --hash=sha256:1631905ac468538fccff04cabf6d2f026c03fe170aa96cab0af799363cb405e8 \
+    --hash=sha256:5897bb3812569e9b7b5234d7d93e216d9f158c9ccf0f5b822380bcdba59c1626
+    # via reticulum-meshchatx
 anyio==4.14.2 \
     --hash=sha256:9f505dda5ac9f0c8309b5e8bd445a8c2bf7246f3ce950121e45ea15bc41d1494 \
     --hash=sha256:cfa139f3ed1a23ee8f88a145ddb5ac7605b8bbfd8592baacd7ce3d8bb4313c7f
@@ -585,8 +589,8 @@ lxmf==1.1.0 \
     # via
     #   lxst
     #   reticulum-meshchatx
-lxst==0.5.0 \
-    --hash=sha256:9351e25afff9888b928da788203c842d7fb5147237935e48270c54c14bada4cd
+lxst==0.5.1 \
+    --hash=sha256:6dabc63bd166a040d55d94155aec65ca85ef1114401d60f3c878907621a4e8f5
     # via reticulum-meshchatx
 miniaudio==1.71 \
     --hash=sha256:06222d80b057ca4beccb6f97a134c2c2bf646ef7890e1759cfc09db7eecec44d \
@@ -1022,9 +1026,9 @@ pyserial==3.5 \
     # via
     #   reticulum-meshchatx
     #   rns
-rns==1.4.1 \
-    --hash=sha256:7093abd4125f574796c797f4f89f22093d2cbc43281f941939362b2dd079351e \
-    --hash=sha256:d92f827cb77df8eda2824153a4d1288e8e2ea588382166f4ca45427288d0ee6b
+rns==1.4.2 \
+    --hash=sha256:275e4369819c99fbbdb8b70a0d4eb3fc9767716fca639fe7206856839fb3867a \
+    --hash=sha256:a3e9be1c178878103284a111be89761f146c44c33a150a7745c15f02b115aa37
     # via
     #   lxmf
     #   lxst
