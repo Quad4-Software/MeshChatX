@@ -23,16 +23,52 @@ const INTERFACE_HINTS = [
     "configobj",
 ];
 
+const DATABASE_RECOVERY_HINTS = [
+    "database version",
+    "newer than this meshchatx build",
+    "database initialization failed",
+    "schema migration",
+    "restore a backup",
+    "databasetoonew",
+    "premigrationbackup",
+    "postmigrationverification",
+    "quick_check failed",
+    "integrity failure",
+];
+
+/**
+ * @param {unknown} error
+ * @returns {string}
+ */
+export function networkErrorText(error) {
+    return String(error || "").trim();
+}
+
 /**
  * @param {unknown} error
  * @returns {boolean}
  */
 export function isLikelyInterfaceRecoveryError(error) {
-    const text = String(error || "").toLowerCase();
+    const text = networkErrorText(error).toLowerCase();
     if (!text) {
         return false;
     }
+    if (isDatabaseRecoveryError(error)) {
+        return false;
+    }
     return INTERFACE_HINTS.some((hint) => text.includes(hint));
+}
+
+/**
+ * @param {unknown} error
+ * @returns {boolean}
+ */
+export function isDatabaseRecoveryError(error) {
+    const text = networkErrorText(error).toLowerCase();
+    if (!text) {
+        return false;
+    }
+    return DATABASE_RECOVERY_HINTS.some((hint) => text.includes(hint));
 }
 
 /**
@@ -44,6 +80,22 @@ export function isLikelyInterfaceRecoveryError(error) {
 export function recoveryRouteForNetworkError(error) {
     if (isLikelyInterfaceRecoveryError(error)) {
         return "interfaces";
+    }
+    return null;
+}
+
+/**
+ * Full route location for degraded startup when the UI should jump to recovery.
+ * @param {unknown} error
+ * @returns {{ name: string, hash?: string } | null}
+ */
+export function recoveryLocationForNetworkError(error) {
+    if (isDatabaseRecoveryError(error)) {
+        return { name: "about", hash: "#about-database-backups" };
+    }
+    const routeName = recoveryRouteForNetworkError(error);
+    if (routeName) {
+        return { name: routeName };
     }
     return null;
 }

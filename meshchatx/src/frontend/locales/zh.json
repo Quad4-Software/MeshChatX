@@ -2905,7 +2905,15 @@
         },
         "mesh_server": {
             "title": "网格服务器",
-            "description": "主机Micron页面和文件用于网格上的对等端."
+            "description": "主机Micron页面和文件用于网格上的对等端.",
+            "announce_settings": "公告设置",
+            "announce_enabled_label": "自动公告",
+            "announce_interval_label": "公告间隔(分钟)",
+            "announce_off_badge": "自动公告已关闭",
+            "last_announced_ago": "{time}前最后公告",
+            "never_announced": "尚未公告",
+            "announce_settings_saved": "公告设置已保存",
+            "announce_settings_failed": "保存公告设置失败"
         },
         "rns_tunnel": {
             "title": "RNS 隧道",

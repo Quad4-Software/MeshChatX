@@ -441,6 +441,7 @@
         "network_degraded": "RNS unavailable. The app is still running so you can diagnose and recover without wiping data.",
         "recover_network": "Retry RNS",
         "open_settings": "Open settings",
+        "open_backups": "Open backups",
         "open_interfaces": "Open interfaces",
         "network_recovered": "RNS recovered",
         "network_recover_failed": "Could not recover RNS. Check the error details, then retry or review settings and interfaces.",
@@ -1109,6 +1110,7 @@
         "app_name": "MeshChatX",
         "automatic_backups_desc": "Automated daily snapshots of your database.",
         "automatic_backups_title": "Automatic Backups",
+        "automatic_backups_empty": "No automatic backups yet. Use Restore from file above or create a manual backup after the database is healthy.",
         "backup_download_failed": "Failed to download backup",
         "backup_downloaded": "Backup downloaded",
         "backend_stack": "Python packages",
@@ -1162,6 +1164,9 @@
         "recovery": "Recovery",
         "recovery_complete": "Database recovery finished.",
         "recovery_confirm": "Run database recovery? This runs a full integrity check and compacts the database (VACUUM). It can take a while and the app may feel unresponsive. This does not load a backup file.",
+        "auto_recover_confirm": "Try automatic recovery? MeshChatX will restore the newest backup that matches this app version, or run SQLite repair if no backup fits.",
+        "auto_recover_backup": "Restored from the latest compatible backup. The app will restart.",
+        "auto_recover_failed": "Automatic recovery could not fix the database. Pick a backup manually or restore from file.",
         "recovery_failed": "Recovery failed",
         "vacuum_complete": "Database vacuum finished.",
         "vacuum_failed": "Could not vacuum the database.",
@@ -2909,7 +2914,15 @@
         },
         "mesh_server": {
             "title": "Mesh Server",
-            "description": "Publish Micron pages and small files for mesh peers to open."
+            "description": "Publish Micron pages and small files for mesh peers to open.",
+            "announce_settings": "Announce Settings",
+            "announce_enabled_label": "Announce automatically",
+            "announce_interval_label": "Announce interval (minutes)",
+            "announce_off_badge": "Auto-announce off",
+            "last_announced_ago": "Last announced {time} ago",
+            "never_announced": "Never announced",
+            "announce_settings_saved": "Announce settings saved",
+            "announce_settings_failed": "Failed to save announce settings"
         },
         "rns_tunnel": {
             "title": "RNS Tunnel",

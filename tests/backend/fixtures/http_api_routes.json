@@ -166,6 +166,10 @@
         },
         {
             "method": "POST",
+            "path": "/api/v1/database/auto-recover"
+        },
+        {
+            "method": "POST",
             "path": "/api/v1/database/restore"
         },
         {
@@ -827,6 +831,10 @@
         {
             "method": "POST",
             "path": "/api/v1/page-nodes/{node_id}/announce"
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/page-nodes/{node_id}/announce-settings"
         },
         {
             "method": "GET",

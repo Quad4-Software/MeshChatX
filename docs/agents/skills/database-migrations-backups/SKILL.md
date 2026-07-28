@@ -47,11 +47,7 @@ This writes `tests/backend/fixtures/schema_versions/schema_v{N}.db` for latest, 
 
 ## Two restore operations
 
-| Goal                               | API / CLI                                       | Artifact                    |
-| ---------------------------------- | ----------------------------------------------- | --------------------------- |
-| Private key only                   | `POST /api/v1/identity/restore`                 | identity key bytes / `.bin` |
-| History + settings + identity tree | `POST /api/v1/database/restore`, `--restore-db` | `.zip`                      |
-
+Private key only vs full history/settings/identity tree restore are different operations with different APIs. Full table: `docs/agents/overview.md` (Identity key restore vs database restore section).
 Details for pickers and tutorial copy: `identity-restore`.
 
 ## Key files

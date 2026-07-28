@@ -48,11 +48,4 @@ Full checklist: `docs/agents/skills/reticulum-design-gates/SKILL.md`.
 
 ## Before you ship mesh-facing code
 
-Answer all of these. If any answer is wrong, redesign.
-
-1. Does this still work with no clearnet and only Reticulum interfaces up?
-2. Does it address a destination hash / aspect, not an IP or URL, for mesh peers?
-3. Can it tolerate minutes of delay or a missing path without corrupting state?
-4. Is the wire payload as small as the intent allows?
-5. Would a hostile transport node learn nothing useful beyond ciphertext and routing proofs?
-6. Is identity material and personal metadata default-redacted in any export or bug path?
+Run the full review checklist in `docs/agents/skills/reticulum-design-gates/SKILL.md` (clearnet-disabled operation, destination hash addressing, delay/missing-path tolerance, payload size, hostile-transport secrecy, identity/metadata redaction, no cross-identity leakage). If any gate fails, redesign.

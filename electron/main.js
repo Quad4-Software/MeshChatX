@@ -21,6 +21,7 @@ const { createBackendProcessManager } = require("./backendProcess");
 const { getCrashRecoveryInfo } = require("./offlineRecovery");
 const {
     getUserProvidedArguments,
+    resolvePortableStorageRoots,
     formatRenderProcessGoneDetails,
     isLocalBackendUrl,
     shouldOpenInElectronWindow,
@@ -685,26 +686,26 @@ function log(message) {
     mainWindow.webContents.send("log", message);
 }
 
-function getDefaultStorageDir() {
-    const portableExecutableDir = process.env.PORTABLE_EXECUTABLE_DIR;
-    if (process.platform === "win32" && portableExecutableDir != null) {
-        return path.join(portableExecutableDir, ".reticulum-meshchatx");
-    }
+// Resolves storage and Reticulum config roots the same way on every platform:
+// explicit --storage-dir/--reticulum-config-dir (flag or env) first, then
+// --data-dir/MESHCHAT_DATA_DIR (portable root), then a Windows portable exe
+// directory, then the user home directory. See mainHelpers.resolvePortableStorageRoots.
+function getPortableStorageRoots() {
+    return resolvePortableStorageRoots({
+        argv: process.argv,
+        env: process.env,
+        homeDir: app.getPath("home"),
+        isWindows: process.platform === "win32",
+        portableExecutableDir: process.env.PORTABLE_EXECUTABLE_DIR,
+    });
+}
 
-    return path.join(app.getPath("home"), ".reticulum-meshchatx");
+function getDefaultStorageDir() {
+    return getPortableStorageRoots().storageDir;
 }
 
 function getDefaultReticulumConfigDir() {
-    // if we are running a windows portable exe, we want to use .reticulum in the portable exe dir
-    // e.g if we launch "E:\Some\Path\MeshChat.exe" we want to use "E:\Some\Path\.reticulum"
-    const portableExecutableDir = process.env.PORTABLE_EXECUTABLE_DIR;
-    if (process.platform === "win32" && portableExecutableDir != null) {
-        return path.join(portableExecutableDir, ".reticulum");
-    }
-
-    // otherwise, we will fall back to using the .reticulum folder in the users home directory
-    // e.g: ~/.reticulum
-    return path.join(app.getPath("home"), ".reticulum");
+    return getPortableStorageRoots().reticulumConfigDir;
 }
 
 function getAppIconPath() {

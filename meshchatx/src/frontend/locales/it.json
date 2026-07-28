@@ -2957,7 +2957,15 @@
         },
         "mesh_server": {
             "title": "Mesh Server",
-            "description": "Pubblica pagine Micron e file per i peer sulla mesh."
+            "description": "Pubblica pagine Micron e file per i peer sulla mesh.",
+            "announce_settings": "Impostazioni annuncio",
+            "announce_enabled_label": "Annuncia automaticamente",
+            "announce_interval_label": "Intervallo di annuncio (minuti)",
+            "announce_off_badge": "Annuncio automatico disattivato",
+            "last_announced_ago": "Ultimo annuncio {time} fa",
+            "never_announced": "Mai annunciato",
+            "announce_settings_saved": "Impostazioni annuncio salvate",
+            "announce_settings_failed": "Impossibile salvare le impostazioni annuncio"
         },
         "rns_tunnel": {
             "title": "RNS Tunnel",

@@ -344,6 +344,35 @@ describe("AboutPage.vue", () => {
         expect(wrapper.vm.databaseActionError).toBe("about.recovery_failed");
     });
 
+    it("runs auto recover and schedules relaunch when a compatible backup is restored", async () => {
+        vi.spyOn(DialogUtils, "confirm").mockResolvedValue(true);
+        axiosMock.get.mockResolvedValue({
+            data: { app_info: {}, config: {}, database: {} },
+        });
+        axiosMock.post.mockImplementation((url) => {
+            if (url === "/api/v1/database/auto-recover") {
+                return Promise.resolve({
+                    data: {
+                        strategy: "restore_backup",
+                        message: "Restored database from backup-1.zip",
+                        requires_relaunch: true,
+                    },
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountAboutPage();
+        await wrapper.vm.$nextTick();
+        const scheduleSpy = vi.spyOn(wrapper.vm, "scheduleRestoreRelaunch");
+
+        await wrapper.vm.runAutoRecover();
+
+        expect(DialogUtils.confirm).toHaveBeenCalledWith("about.auto_recover_confirm");
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/database/auto-recover", { relaunch: true });
+        expect(ToastUtils.success).toHaveBeenCalledWith("Restored database from backup-1.zip");
+        expect(scheduleSpy).toHaveBeenCalled();
+    });
+
     it("displays Free Space from database health", async () => {
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/app/info") return Promise.resolve({ data: { app_info: { version: "1.0.0" } } });

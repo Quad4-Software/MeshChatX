@@ -2905,7 +2905,15 @@
         },
         "mesh_server": {
             "title": "Serveur Mesh",
-            "description": "Hôte des pages et des fichiers Micron pour les pairs sur le maillage."
+            "description": "Hôte des pages et des fichiers Micron pour les pairs sur le maillage.",
+            "announce_settings": "Paramètres d'annonce",
+            "announce_enabled_label": "Annoncer automatiquement",
+            "announce_interval_label": "Intervalle d'annonce (minutes)",
+            "announce_off_badge": "Annonce automatique désactivée",
+            "last_announced_ago": "Dernière annonce il y a {time}",
+            "never_announced": "Jamais annoncé",
+            "announce_settings_saved": "Paramètres d'annonce enregistrés",
+            "announce_settings_failed": "Impossible d'enregistrer les paramètres d'annonce"
         },
         "rns_tunnel": {
             "title": "Tunnel RNS",

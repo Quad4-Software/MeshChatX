@@ -31,7 +31,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 53
+    LATEST_VERSION = 54
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -1664,3 +1664,8 @@ class DatabaseSchema:
                 "CREATE INDEX IF NOT EXISTS idx_rrc_room_keys_hub "
                 "ON rrc_room_keys(hub_hash, dest_name)",
             )
+
+        if current_version < 54 and target_version >= 54:
+            # v54: version alignment for databases already stamped at 54 without
+            # additional structural changes beyond v53.
+            pass

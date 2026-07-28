@@ -1,8 +1,15 @@
-# Reproducible native build (wheel, Linux AppImage/deb/rpm) in one image.
+# Reproducible native build (wheel, Linux AppImage/deb/rpm/apk) in one image.
 # Default target builds everything; override with --build-arg MESHCHATX_BUILD_TARGETS=wheel|electron|all
+# Pick specific Linux package formats with --build-arg MESHCHATX_LINUX_FORMATS=appimage,deb,rpm,apk (default: all)
 #
-# Build:
+# Build (all formats):
 #   docker build -f Dockerfile.build -t meshchatx-build:local .
+#
+# Build only an AppImage and deb:
+#   docker build -f Dockerfile.build \
+#       --build-arg MESHCHATX_BUILD_TARGETS=electron \
+#       --build-arg MESHCHATX_LINUX_FORMATS=appimage,deb \
+#       -t meshchatx-build:local .
 #
 # Copy artifacts to the host (example):
 #   cid=$(docker create meshchatx-build:local)
@@ -13,10 +20,13 @@ FROM python:3.14.4-slim-trixie
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
-    MESHCHATX_BUILD_TARGETS=all
+    MESHCHATX_BUILD_TARGETS=all \
+    MESHCHATX_LINUX_FORMATS=all
 
 ARG MESHCHATX_BUILD_TARGETS=all
 ENV MESHCHATX_BUILD_TARGETS=${MESHCHATX_BUILD_TARGETS}
+ARG MESHCHATX_LINUX_FORMATS=all
+ENV MESHCHATX_LINUX_FORMATS=${MESHCHATX_LINUX_FORMATS}
 
 WORKDIR /src
 COPY . /src

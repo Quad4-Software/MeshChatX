@@ -177,7 +177,14 @@ meshchatx --headless \
   --reticulum-config-dir="$PERSIST/.reticulum"
 ```
 
-On Windows portable Electron builds, storage and Reticulum config default next to the `.exe` when `PORTABLE_EXECUTABLE_DIR` is set. On Linux and macOS desktop builds, Electron still defaults to `~/.reticulum-meshchatx` and `~/.reticulum` unless you pass the flags above (or set `MESHCHAT_DATA_DIR` / `MESHCHAT_STORAGE_DIR` / `MESHCHAT_RETICULUM_CONFIG_DIR` in the environment before launch).
+The Electron desktop app (AppImage, portable exe, macOS bundle) honors the same `--data-dir` / `--storage-dir` / `--reticulum-config-dir` flags (or the matching `MESHCHAT_DATA_DIR` / `MESHCHAT_STORAGE_DIR` / `MESHCHAT_RETICULUM_CONFIG_DIR` environment variables) on every platform, not just Windows:
+
+```bash
+export PERSIST="/media/amnesia/Persistent/meshchatx"
+./MeshChatX-x86_64.AppImage --data-dir="$PERSIST"
+```
+
+On Windows portable exe builds, storage and Reticulum config also default next to the `.exe` when `PORTABLE_EXECUTABLE_DIR` is set (used by the portable target automatically), without needing any flags.
 
 ## Reticulum manual bundle
 

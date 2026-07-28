@@ -4,10 +4,13 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const {
     getUserProvidedArguments,
+    parseArgvFlag,
+    resolvePortableStorageRoots,
     formatRenderProcessGoneDetails,
     isLocalBackendUrl,
     shouldOpenInElectronWindow,
 } = require("../../electron/mainHelpers.js");
+const path = require("node:path");
 
 describe("electron/mainHelpers", () => {
     it("getUserProvidedArguments filters ignored flags and skips argv[0]", () => {
@@ -50,5 +53,108 @@ describe("electron/mainHelpers", () => {
         expect(shouldAllowInWindowNavigation("blob:https://127.0.0.1:9337/print")).toBe(true);
         expect(shouldAllowInWindowNavigation("https://example.com/")).toBe(false);
         expect(shouldAllowInWindowNavigation("file:///etc/passwd")).toBe(false);
+    });
+
+    it("parseArgvFlag reads a value following the flag", () => {
+        expect(parseArgvFlag(["--storage-dir", "/mnt/persist"], "--storage-dir")).toBe("/mnt/persist");
+    });
+
+    it("parseArgvFlag returns null when the flag is missing or has no value", () => {
+        expect(parseArgvFlag(["--headless"], "--storage-dir")).toBeNull();
+        expect(parseArgvFlag(["--storage-dir"], "--storage-dir")).toBeNull();
+        expect(parseArgvFlag(["--storage-dir", "--headless"], "--storage-dir")).toBeNull();
+    });
+});
+
+describe("electron/mainHelpers resolvePortableStorageRoots (portable mode)", () => {
+    const homeDir = path.join("home", "user");
+
+    function resolve(overrides = {}) {
+        return resolvePortableStorageRoots({
+            argv: ["/app/electron"],
+            env: {},
+            homeDir,
+            isWindows: false,
+            portableExecutableDir: null,
+            ...overrides,
+        });
+    }
+
+    it("defaults to the home directory when nothing is configured", () => {
+        expect(resolve()).toEqual({
+            storageDir: path.join(homeDir, ".reticulum-meshchatx"),
+            reticulumConfigDir: path.join(homeDir, ".reticulum"),
+        });
+    });
+
+    it("derives storage and reticulum roots from --data-dir", () => {
+        const roots = resolve({ argv: ["/app/electron", "--data-dir", "/mnt/tails/persist"] });
+        expect(roots).toEqual({
+            storageDir: path.resolve("/mnt/tails/persist", "storage"),
+            reticulumConfigDir: path.resolve("/mnt/tails/persist", ".reticulum"),
+        });
+    });
+
+    it("derives storage and reticulum roots from MESHCHAT_DATA_DIR", () => {
+        const roots = resolve({ env: { MESHCHAT_DATA_DIR: "/mnt/tails/persist" } });
+        expect(roots).toEqual({
+            storageDir: path.resolve("/mnt/tails/persist", "storage"),
+            reticulumConfigDir: path.resolve("/mnt/tails/persist", ".reticulum"),
+        });
+    });
+
+    it("explicit --storage-dir and --reticulum-config-dir win over --data-dir", () => {
+        const roots = resolve({
+            argv: ["/app/electron", "--data-dir", "/mnt/tails/persist", "--storage-dir", "/mnt/tails/custom-storage"],
+        });
+        expect(roots.storageDir).toBe("/mnt/tails/custom-storage");
+        expect(roots.reticulumConfigDir).toBe(path.resolve("/mnt/tails/persist", ".reticulum"));
+    });
+
+    it("explicit MESHCHAT_STORAGE_DIR / MESHCHAT_RETICULUM_CONFIG_DIR env vars win over MESHCHAT_DATA_DIR", () => {
+        const roots = resolve({
+            env: {
+                MESHCHAT_DATA_DIR: "/mnt/tails/persist",
+                MESHCHAT_STORAGE_DIR: "/mnt/tails/custom-storage",
+            },
+        });
+        expect(roots.storageDir).toBe("/mnt/tails/custom-storage");
+        expect(roots.reticulumConfigDir).toBe(path.resolve("/mnt/tails/persist", ".reticulum"));
+    });
+
+    it("argv flags win over env vars for the same setting", () => {
+        const roots = resolve({
+            argv: ["/app/electron", "--data-dir", "/mnt/argv-persist"],
+            env: { MESHCHAT_DATA_DIR: "/mnt/env-persist" },
+        });
+        expect(roots.storageDir).toBe(path.resolve("/mnt/argv-persist", "storage"));
+    });
+
+    it("falls back to the Windows portable executable directory when set", () => {
+        const roots = resolve({
+            isWindows: true,
+            portableExecutableDir: "E:\\Portable",
+        });
+        expect(roots).toEqual({
+            storageDir: path.join("E:\\Portable", ".reticulum-meshchatx"),
+            reticulumConfigDir: path.join("E:\\Portable", ".reticulum"),
+        });
+    });
+
+    it("ignores the Windows portable executable directory on non-Windows platforms", () => {
+        const roots = resolve({
+            isWindows: false,
+            portableExecutableDir: "/mnt/portable",
+        });
+        expect(roots.storageDir).toBe(path.join(homeDir, ".reticulum-meshchatx"));
+    });
+
+    it("--data-dir wins over the Windows portable executable directory", () => {
+        const roots = resolve({
+            argv: ["/app/electron", "--data-dir", "/mnt/tails/persist"],
+            isWindows: true,
+            portableExecutableDir: "E:\\Portable",
+        });
+        expect(roots.storageDir).toBe(path.resolve("/mnt/tails/persist", "storage"));
     });
 });

@@ -3,18 +3,7 @@
 const fs = require("fs");
 const path = require("node:path");
 
-function parseArgvFlag(argv, flagName) {
-    const list = Array.isArray(argv) ? argv : [];
-    const idx = list.indexOf(flagName);
-    if (idx === -1 || idx + 1 >= list.length) {
-        return null;
-    }
-    const v = list[idx + 1];
-    if (!v || v.startsWith("--")) {
-        return null;
-    }
-    return v;
-}
+const { parseArgvFlag } = require("./mainHelpers");
 
 function resolveDirForPrefixCheck(dirPath) {
     try {

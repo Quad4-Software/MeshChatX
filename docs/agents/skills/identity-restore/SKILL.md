@@ -6,11 +6,7 @@ Identity key import vs database zip restore, tutorial and Android pickers.
 
 ## Two different restores
 
-| Goal                 | UI                                 | API / artifact                           |
-| -------------------- | ---------------------------------- | ---------------------------------------- |
-| Identity private key | Tutorial step 2, Identities import | `POST /api/v1/identity/restore`          |
-| LXMF + settings + DB | About → Restore from File          | `POST /api/v1/database/restore` (`.zip`) |
-
+Full table of goal / UI / API for both restore paths: `docs/agents/overview.md` (Identity key restore vs database restore section).
 Never imply identity-key import restores message history.
 
 ## Guards checklist

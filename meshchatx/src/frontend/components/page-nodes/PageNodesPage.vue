@@ -49,8 +49,16 @@
                                     :class="node.running ? 'bg-green-500' : 'bg-gray-400'"
                                 ></div>
                                 <div class="min-w-0">
-                                    <div class="font-semibold text-gray-900 dark:text-white truncate">
-                                        {{ node.name }}
+                                    <div class="flex items-center gap-2">
+                                        <div class="font-semibold text-gray-900 dark:text-white truncate">
+                                            {{ node.name }}
+                                        </div>
+                                        <span
+                                            v-if="!node.announce_enabled"
+                                            class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 shrink-0"
+                                        >
+                                            {{ $t("tools.mesh_server.announce_off_badge") }}
+                                        </span>
                                     </div>
                                     <div
                                         v-if="node.destination_hash"
@@ -111,6 +119,7 @@
                             <span v-if="node.stats">{{ node.stats.pages_served }} pages</span>
                             <span v-if="node.stats">{{ node.stats.files_served }} files</span>
                             <span v-if="node.stats">{{ node.stats.links_established }} links</span>
+                            <span>{{ formatLastAnnounced(node.last_announced_at) }}</span>
                         </div>
                     </div>
                 </div>
@@ -150,6 +159,43 @@
                             </button>
                         </div>
                         <div class="font-mono text-sm select-all">{{ selectedNode.destination_hash }}</div>
+                    </div>
+
+                    <!-- Announce settings -->
+                    <div
+                        class="p-3 rounded-lg bg-slate-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 space-y-3"
+                    >
+                        <div class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                            {{ $t("tools.mesh_server.announce_settings") }}
+                        </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <Toggle
+                                id="mesh-server-announce-enabled"
+                                v-model="announceSettingsForm.announce_enabled"
+                                :label="$t('tools.mesh_server.announce_enabled_label')"
+                            />
+                        </div>
+                        <div v-if="announceSettingsForm.announce_enabled" class="flex items-center gap-3">
+                            <label for="mesh-server-announce-interval" class="glass-label mb-0 shrink-0">
+                                {{ $t("tools.mesh_server.announce_interval_label") }}
+                            </label>
+                            <input
+                                id="mesh-server-announce-interval"
+                                v-model.number="announceIntervalMinutes"
+                                type="number"
+                                min="1"
+                                max="1440"
+                                class="input-field w-24"
+                            />
+                        </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                                {{ formatLastAnnounced(selectedNode.last_announced_at) }}
+                            </span>
+                            <button class="primary-chip py-1! px-3! text-xs!" @click="saveAnnounceSettings">
+                                {{ $t("common.save") }}
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Tabs: Pages / Files -->
@@ -357,12 +403,19 @@
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import DialogUtils from "../../js/DialogUtils";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
+import Toggle from "../forms/Toggle.vue";
+import Utils from "../../js/Utils";
+
+const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900;
+const ANNOUNCE_INTERVAL_MIN_MINUTES = 1;
+const ANNOUNCE_INTERVAL_MAX_MINUTES = 1440;
 
 export default {
     name: "PageNodesPage",
     components: {
         MaterialDesignIcon,
         ToolsPageHeader,
+        Toggle,
     },
     data() {
         return {
@@ -380,7 +433,27 @@ export default {
             statusMessage: "",
             statusSuccess: true,
             statusTimeout: null,
+            announceSettingsForm: {
+                announce_enabled: true,
+                announce_interval_seconds: DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+            },
         };
+    },
+    computed: {
+        announceIntervalMinutes: {
+            get() {
+                const seconds =
+                    this.announceSettingsForm.announce_interval_seconds || DEFAULT_ANNOUNCE_INTERVAL_SECONDS;
+                return Math.round(seconds / 60);
+            },
+            set(minutes) {
+                const clamped = Math.max(
+                    ANNOUNCE_INTERVAL_MIN_MINUTES,
+                    Math.min(ANNOUNCE_INTERVAL_MAX_MINUTES, Number(minutes) || ANNOUNCE_INTERVAL_MIN_MINUTES)
+                );
+                this.announceSettingsForm.announce_interval_seconds = clamped * 60;
+            },
+        },
     },
     async mounted() {
         await this.loadNodes();
@@ -409,6 +482,10 @@ export default {
             this.selectedNode = node;
             this.detailTab = "pages";
             this.editingPage = null;
+            this.announceSettingsForm = {
+                announce_enabled: node.announce_enabled !== false,
+                announce_interval_seconds: node.announce_interval_seconds || DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+            };
         },
         async createNode() {
             if (!this.createNodeName.trim()) return;
@@ -457,9 +534,35 @@ export default {
             try {
                 await window.api.post(`/api/v1/page-nodes/${nodeId}/announce`);
                 this.showStatus("Announced on mesh", true);
+                await this.loadNodes();
             } catch {
                 this.showStatus("Failed to announce", false);
             }
+        },
+        async saveAnnounceSettings() {
+            if (!this.selectedNode) return;
+            try {
+                const response = await window.api.patch(
+                    `/api/v1/page-nodes/${this.selectedNode.node_id}/announce-settings`,
+                    {
+                        announce_enabled: this.announceSettingsForm.announce_enabled,
+                        announce_interval_seconds: this.announceSettingsForm.announce_interval_seconds,
+                    }
+                );
+                this.selectedNode = response.data;
+                this.showStatus(this.$t("tools.mesh_server.announce_settings_saved"), true);
+                await this.loadNodes();
+            } catch {
+                this.showStatus(this.$t("tools.mesh_server.announce_settings_failed"), false);
+            }
+        },
+        formatLastAnnounced(lastAnnouncedAt) {
+            if (!lastAnnouncedAt) {
+                return this.$t("tools.mesh_server.never_announced");
+            }
+            return this.$t("tools.mesh_server.last_announced_ago", {
+                time: Utils.formatSecondsAgoForI18n(lastAnnouncedAt),
+            });
         },
         async renameNode() {
             if (!this.renameNodeName.trim() || !this.selectedNode) return;

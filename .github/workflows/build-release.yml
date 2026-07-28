@@ -30,9 +30,7 @@ on:
     workflow_dispatch:
 
 permissions:
-    contents: write
-    actions: write
-    id-token: write
+    contents: read
 
 concurrency:
     group: build-release-${{ github.workflow }}-${{ github.ref }}
@@ -100,7 +98,6 @@ jobs:
         timeout-minutes: 120
         permissions:
             contents: read
-            actions: write
         env:
             FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
             MESHCHATX_FRONTEND_PREBUILT: "1"
@@ -163,7 +160,6 @@ jobs:
             hashes: ${{ steps.hash.outputs.hashes }}
         permissions:
             contents: read
-            actions: write
             id-token: write
         steps:
             - name: Checkout
@@ -218,7 +214,6 @@ jobs:
         timeout-minutes: 90
         permissions:
             contents: read
-            actions: write
         env:
             FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
             MESHCHATX_FRONTEND_PREBUILT: "1"
@@ -309,7 +304,6 @@ jobs:
         needs: frontend
         permissions:
             contents: read
-            actions: write
         strategy:
             fail-fast: false
             matrix:

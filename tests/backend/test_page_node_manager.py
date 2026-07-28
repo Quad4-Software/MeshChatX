@@ -167,6 +167,78 @@ class TestPageNodeManagerAnnounce:
         assert mock_dest.announce.call_count >= 2
 
 
+class TestPageNodeManagerAnnounceSettings:
+    def test_create_node_with_custom_announce_settings(self, storage_dir, mock_rns):
+        mgr = _make_manager(storage_dir)
+        node = mgr.create_node(
+            "Custom", announce_enabled=False, announce_interval_seconds=120
+        )
+        assert node.announce_enabled is False
+        assert node.announce_interval_seconds == 120
+
+    def test_create_node_defaults_announce_enabled(self, storage_dir, mock_rns):
+        mgr = _make_manager(storage_dir)
+        node = mgr.create_node("Defaults")
+        assert node.announce_enabled is True
+
+    def test_set_announce_settings_updates_node(self, storage_dir, mock_rns):
+        mgr = _make_manager(storage_dir)
+        node = mgr.create_node("Settable")
+        mgr.set_announce_settings(
+            node.node_id, announce_enabled=False, announce_interval_seconds=300
+        )
+        assert node.announce_enabled is False
+        assert node.announce_interval_seconds == 300
+
+    def test_set_announce_settings_persists_to_disk(self, storage_dir, mock_rns):
+        from meshchatx.src.backend.page_node import PageNode
+
+        mgr = _make_manager(storage_dir)
+        node = mgr.create_node("Persisted", node_id="persist-announce")
+        mgr.set_announce_settings(node.node_id, announce_enabled=False)
+
+        config = PageNode.load_config(node.base_dir)
+        assert config["announce_enabled"] is False
+
+    def test_set_announce_settings_nonexistent_raises(self, storage_dir, mock_rns):
+        mgr = _make_manager(storage_dir)
+        with pytest.raises(KeyError):
+            mgr.set_announce_settings("nope", announce_enabled=False)
+
+    def test_load_nodes_restores_announce_settings(self, storage_dir, mock_rns):
+        mgr = _make_manager(storage_dir)
+        node = mgr.create_node("Reloaded", node_id="reload-1")
+        mgr.set_announce_settings(
+            node.node_id, announce_enabled=False, announce_interval_seconds=200
+        )
+
+        mgr2 = _make_manager(storage_dir)
+        mgr2.load_nodes()
+        reloaded = mgr2.nodes["reload-1"]
+        assert reloaded.announce_enabled is False
+        assert reloaded.announce_interval_seconds == 200
+
+    def test_on_announce_callback_wired_through_manager(self, storage_dir, mock_rns):
+        calls = []
+        mgr = _make_manager(storage_dir)
+        mgr.on_announce = calls.append
+        node = mgr.create_node("Callback")
+        mgr.start_node(node.node_id)
+        assert calls == [node]
+
+    def test_on_announce_callback_wired_for_loaded_nodes(self, storage_dir, mock_rns):
+        mgr = _make_manager(storage_dir)
+        node = mgr.create_node("ToReload", node_id="reload-cb")
+        node.save_config()
+
+        calls = []
+        mgr2 = _make_manager(storage_dir)
+        mgr2.on_announce = calls.append
+        mgr2.load_nodes()
+        mgr2.start_node("reload-cb")
+        assert calls == [mgr2.nodes["reload-cb"]]
+
+
 class TestPageNodeManagerRename:
     def test_rename_node(self, storage_dir, mock_rns):
         mgr = _make_manager(storage_dir)

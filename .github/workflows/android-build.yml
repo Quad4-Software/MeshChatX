@@ -32,7 +32,6 @@ on:
 
 permissions:
     contents: read
-    actions: write
 
 concurrency:
     group: android-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -66,8 +65,7 @@ jobs:
         needs: frontend
         timeout-minutes: 90
         permissions:
-            contents: write
-            actions: write
+            contents: read
         defaults:
             run:
                 shell: bash

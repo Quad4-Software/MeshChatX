@@ -16,10 +16,11 @@ from meshchatx.src.backend.page_node import PageNode
 class PageNodeManager:
     """Manages multiple PageNode instances."""
 
-    def __init__(self, storage_dir):
+    def __init__(self, storage_dir, on_announce=None):
         self.storage_dir = os.path.join(storage_dir, "page_nodes")
         os.makedirs(self.storage_dir, exist_ok=True)
         self.nodes: dict[str, PageNode] = {}
+        self.on_announce = on_announce
 
     def load_nodes(self):
         """Discover and load all persisted nodes from disk."""
@@ -40,10 +41,19 @@ class PageNodeManager:
                 node_id=node_id,
                 name=config["name"],
                 base_dir=node_dir,
+                announce_enabled=config.get("announce_enabled", True),
+                announce_interval_seconds=config.get("announce_interval_seconds"),
+                on_announce=self.on_announce,
             )
             self.nodes[node_id] = node
 
-    def create_node(self, name, node_id=None):
+    def create_node(
+        self,
+        name,
+        node_id=None,
+        announce_enabled=True,
+        announce_interval_seconds=None,
+    ):
         """Create a new page node, persist its config, and return it."""
         if node_id is None:
             node_id = str(uuid.uuid4())
@@ -51,7 +61,14 @@ class PageNodeManager:
         node_dir = os.path.join(self.storage_dir, node_id)
         os.makedirs(node_dir, exist_ok=True)
 
-        node = PageNode(node_id=node_id, name=name, base_dir=node_dir)
+        node = PageNode(
+            node_id=node_id,
+            name=name,
+            base_dir=node_dir,
+            announce_enabled=announce_enabled,
+            announce_interval_seconds=announce_interval_seconds,
+            on_announce=self.on_announce,
+        )
         node.save_config()
         self.nodes[node_id] = node
         return node
@@ -119,6 +136,20 @@ class PageNodeManager:
                     node.announce()
                 except Exception as e:
                     print(f"Failed to announce page node {node.node_id}: {e}")
+
+    def set_announce_settings(
+        self, node_id, announce_enabled=None, announce_interval_seconds=None
+    ):
+        """Update a node's announce enablement/interval, persist, and resync its timer."""
+        node = self.nodes.get(node_id)
+        if node is None:
+            raise KeyError(f"Node {node_id} not found")
+        node.set_announce_settings(
+            announce_enabled=announce_enabled,
+            announce_interval_seconds=announce_interval_seconds,
+        )
+        node.save_config()
+        return node
 
     def rename_node(self, node_id, new_name):
         """Rename a node and persist the change."""

@@ -102,7 +102,7 @@ class TestPageNodeSetup:
         rns_mock, _, _ = mock_rns
         node = _make_node(node_dir, mock_rns)
         node.setup()
-        rns_mock.Identity.remember.assert_called_once()
+        rns_mock.Identity.remember.assert_called()
 
 
 class TestPageNodeTeardown:
@@ -137,6 +137,7 @@ class TestPageNodeAnnounce:
         node = _make_node(node_dir, mock_rns)
         node.setup()
         _, _, mock_dest = mock_rns
+        mock_dest.announce.reset_mock()
         node.announce()
         mock_dest.announce.assert_called_once()
 
@@ -153,6 +154,228 @@ class TestPageNodeAnnounce:
         node.announce()
         call_kwargs = mock_dest.announce.call_args
         assert call_kwargs[1]["app_data"] == b"Test Node"
+
+    def test_setup_announces_immediately_when_enabled(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        _, _, mock_dest = mock_rns
+        node.setup()
+        mock_dest.announce.assert_called_once()
+
+    def test_setup_skips_announce_when_disabled(self, node_dir, mock_rns):
+        from meshchatx.src.backend.page_node import PageNode
+
+        _, mock_identity, _ = mock_rns
+        node = PageNode(
+            node_id="test-node-disabled",
+            name="Disabled Node",
+            base_dir=node_dir,
+            identity=mock_identity,
+            announce_enabled=False,
+        )
+        _, _, mock_dest = mock_rns
+        node.setup()
+        mock_dest.announce.assert_not_called()
+
+    def test_announce_records_last_announced_at(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        assert node.last_announced_at is None
+        node.setup()
+        assert node.last_announced_at is not None
+
+    def test_announce_does_not_update_last_announced_at_when_not_running(
+        self, node_dir, mock_rns
+    ):
+        node = _make_node(node_dir, mock_rns)
+        node.announce()
+        assert node.last_announced_at is None
+
+    def test_announce_invokes_on_announce_callback(self, node_dir, mock_rns):
+        from meshchatx.src.backend.page_node import PageNode
+
+        _, mock_identity, _ = mock_rns
+        calls = []
+        node = PageNode(
+            node_id="test-node-cb",
+            name="Callback Node",
+            base_dir=node_dir,
+            identity=mock_identity,
+            on_announce=calls.append,
+        )
+        node.setup()
+        assert calls == [node]
+
+    def test_announce_callback_exceptions_are_suppressed(self, node_dir, mock_rns):
+        from meshchatx.src.backend.page_node import PageNode
+
+        _, mock_identity, _ = mock_rns
+
+        def boom(_node):
+            raise RuntimeError("boom")
+
+        node = PageNode(
+            node_id="test-node-cb-boom",
+            name="Boom Node",
+            base_dir=node_dir,
+            identity=mock_identity,
+            on_announce=boom,
+        )
+        node.setup()  # must not raise
+        assert node.running is True
+
+    def test_teardown_cancels_announce_timer(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        assert node._announce_timer is not None
+        node.teardown()
+        assert node._announce_timer is None
+
+
+class TestPageNodeAnnounceInterval:
+    def test_normalize_defaults_when_none(self):
+        from meshchatx.src.backend.page_node import (
+            DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+            normalize_announce_interval_seconds,
+        )
+
+        assert (
+            normalize_announce_interval_seconds(None)
+            == DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+        )
+
+    def test_normalize_zero_or_negative_disables(self):
+        from meshchatx.src.backend.page_node import normalize_announce_interval_seconds
+
+        assert normalize_announce_interval_seconds(0) == 0
+        assert normalize_announce_interval_seconds(-30) == 0
+
+    def test_normalize_clamps_to_min_and_max(self):
+        from meshchatx.src.backend.page_node import (
+            MAX_ANNOUNCE_INTERVAL_SECONDS,
+            MIN_ANNOUNCE_INTERVAL_SECONDS,
+            normalize_announce_interval_seconds,
+        )
+
+        assert normalize_announce_interval_seconds(1) == MIN_ANNOUNCE_INTERVAL_SECONDS
+        assert (
+            normalize_announce_interval_seconds(999999) == MAX_ANNOUNCE_INTERVAL_SECONDS
+        )
+
+    def test_normalize_invalid_type_returns_default(self):
+        from meshchatx.src.backend.page_node import (
+            DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+            normalize_announce_interval_seconds,
+        )
+
+        assert (
+            normalize_announce_interval_seconds("not-a-number")
+            == DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+        )
+
+    def test_node_defaults_to_default_interval(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        from meshchatx.src.backend.page_node import DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+
+        assert node.announce_interval_seconds == DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+        assert node.announce_enabled is True
+
+    def test_node_clamps_custom_interval_on_construction(self, node_dir, mock_rns):
+        from meshchatx.src.backend.page_node import PageNode
+
+        _, mock_identity, _ = mock_rns
+        node = PageNode(
+            node_id="test-node-clamp",
+            name="Clamp Node",
+            base_dir=node_dir,
+            identity=mock_identity,
+            announce_interval_seconds=5,
+        )
+        assert node.announce_interval_seconds == 60
+
+    def test_setup_starts_announce_timer_when_enabled(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        assert node._announce_timer is not None
+
+    def test_setup_skips_timer_when_disabled(self, node_dir, mock_rns):
+        from meshchatx.src.backend.page_node import PageNode
+
+        _, mock_identity, _ = mock_rns
+        node = PageNode(
+            node_id="test-node-no-timer",
+            name="No Timer Node",
+            base_dir=node_dir,
+            identity=mock_identity,
+            announce_enabled=False,
+        )
+        node.setup()
+        assert node._announce_timer is None
+
+    def test_setup_skips_timer_when_interval_zero(self, node_dir, mock_rns):
+        from meshchatx.src.backend.page_node import PageNode
+
+        _, mock_identity, _ = mock_rns
+        node = PageNode(
+            node_id="test-node-zero-interval",
+            name="Zero Interval Node",
+            base_dir=node_dir,
+            identity=mock_identity,
+            announce_interval_seconds=0,
+        )
+        node.setup()
+        assert node._announce_timer is None
+
+    def test_announce_timer_fire_reannounces_and_reschedules(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        _, _, mock_dest = mock_rns
+        mock_dest.announce.reset_mock()
+        node._announce_timer_fire()
+        mock_dest.announce.assert_called_once()
+        assert node._announce_timer is not None
+
+    def test_announce_timer_fire_noop_when_disabled_meanwhile(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        _, _, mock_dest = mock_rns
+        node.announce_enabled = False
+        mock_dest.announce.reset_mock()
+        node._announce_timer_fire()
+        mock_dest.announce.assert_not_called()
+        assert node._announce_timer is None
+
+    def test_set_announce_settings_updates_enabled_and_interval(
+        self, node_dir, mock_rns
+    ):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        node.set_announce_settings(announce_enabled=True, announce_interval_seconds=120)
+        assert node.announce_enabled is True
+        assert node.announce_interval_seconds == 120
+        assert node._announce_timer is not None
+
+    def test_set_announce_settings_disable_cancels_timer(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        node.set_announce_settings(announce_enabled=False)
+        assert node.announce_enabled is False
+        assert node._announce_timer is None
+
+    def test_set_announce_settings_interval_zero_cancels_timer(
+        self, node_dir, mock_rns
+    ):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        node.set_announce_settings(announce_interval_seconds=0)
+        assert node.announce_interval_seconds == 0
+        assert node._announce_timer is None
+
+    def test_set_announce_settings_partial_update_keeps_other_field(
+        self, node_dir, mock_rns
+    ):
+        node = _make_node(node_dir, mock_rns)
+        node.set_announce_settings(announce_interval_seconds=300)
+        assert node.announce_enabled is True
+        assert node.announce_interval_seconds == 300
 
 
 class TestPageNodePages:
@@ -369,6 +592,32 @@ class TestPageNodeConfig:
 
         assert PageNode.load_config(node_dir) is None
 
+    def test_save_config_persists_announce_settings(self, node_dir, mock_rns):
+        from meshchatx.src.backend.page_node import PageNode
+
+        node = _make_node(node_dir, mock_rns)
+        node.set_announce_settings(
+            announce_enabled=False, announce_interval_seconds=120
+        )
+        node.save_config()
+
+        config = PageNode.load_config(node_dir)
+        assert config["announce_enabled"] is False
+        assert config["announce_interval_seconds"] == 120
+
+    def test_save_config_defaults_announce_settings(self, node_dir, mock_rns):
+        from meshchatx.src.backend.page_node import (
+            DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+            PageNode,
+        )
+
+        node = _make_node(node_dir, mock_rns)
+        node.save_config()
+
+        config = PageNode.load_config(node_dir)
+        assert config["announce_enabled"] is True
+        assert config["announce_interval_seconds"] == DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+
 
 class TestPageNodeStatus:
     def test_get_status(self, node_dir, mock_rns):
@@ -384,6 +633,19 @@ class TestPageNodeStatus:
         assert isinstance(status["stats"], dict)
         assert status["unique_connections"] == 0
         assert status["uptime_seconds"] >= 0
+
+    def test_get_status_includes_announce_fields(self, node_dir, mock_rns):
+        from meshchatx.src.backend.page_node import DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+
+        node = _make_node(node_dir, mock_rns)
+        status = node.get_status()
+        assert status["announce_enabled"] is True
+        assert status["announce_interval_seconds"] == DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+        assert status["last_announced_at"] is None
+
+        node.setup()
+        status = node.get_status()
+        assert status["last_announced_at"] is not None
 
     def test_get_destination_hash_when_not_running(self, node_dir, mock_rns):
         node = _make_node(node_dir, mock_rns)

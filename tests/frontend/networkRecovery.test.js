@@ -3,7 +3,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+    isDatabaseRecoveryError,
     isLikelyInterfaceRecoveryError,
+    recoveryLocationForNetworkError,
     recoveryRouteForNetworkError,
 } from "../../meshchatx/src/frontend/js/networkRecovery.js";
 
@@ -18,5 +20,16 @@ describe("networkRecovery", () => {
         expect(isLikelyInterfaceRecoveryError("RNode interface failed to open")).toBe(true);
         expect(recoveryRouteForNetworkError("AutoInterface bind error")).toBe("interfaces");
         expect(recoveryRouteForNetworkError("I2P interface unavailable")).toBe("interfaces");
+    });
+
+    it("detects database recovery errors and routes to About backups", () => {
+        const msg =
+            "Database version 55 is newer than this MeshChatX build supports (54). Restore a backup or upgrade the application.";
+        expect(isDatabaseRecoveryError(msg)).toBe(true);
+        expect(isLikelyInterfaceRecoveryError(msg)).toBe(false);
+        expect(recoveryLocationForNetworkError(msg)).toEqual({
+            name: "about",
+            hash: "#about-database-backups",
+        });
     });
 });

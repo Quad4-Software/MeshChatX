@@ -2905,7 +2905,15 @@
         },
         "mesh_server": {
             "title": "Servidor Mesh",
-            "description": "Host Micron páginas y archivos para pares en la malla."
+            "description": "Host Micron páginas y archivos para pares en la malla.",
+            "announce_settings": "Ajustes de anuncio",
+            "announce_enabled_label": "Anunciar automáticamente",
+            "announce_interval_label": "Intervalo de anuncio (minutos)",
+            "announce_off_badge": "Anuncio automático desactivado",
+            "last_announced_ago": "Último anuncio hace {time}",
+            "never_announced": "Nunca anunciado",
+            "announce_settings_saved": "Ajustes de anuncio guardados",
+            "announce_settings_failed": "No se pudieron guardar los ajustes de anuncio"
         },
         "rns_tunnel": {
             "title": "Tunel RNS",

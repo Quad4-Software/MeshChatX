@@ -130,23 +130,23 @@ Open the UI at the host and port you chose. HTTPS is enabled by default with a s
 
 Common flags and environment variables:
 
-| Flag                     | Environment variable     | Default        | Description                        |
-| ------------------------ | ------------------------ | -------------- | ---------------------------------- |
-| `--host`                 | `MESHCHAT_HOST`          | `127.0.0.1`    | Bind address                       |
-| `--port`                 | `MESHCHAT_PORT`          | `8000`         | HTTP or HTTPS port                 |
-| `--no-https`             | `MESHCHAT_NO_HTTPS`      | false          | Serve plain HTTP                   |
-| `--ssl-cert`             | `MESHCHAT_SSL_CERT`      | auto           | TLS certificate path               |
-| `--ssl-key`              | `MESHCHAT_SSL_KEY`       | auto           | TLS private key path               |
-| `--headless`             | `MESHCHAT_HEADLESS`      | false          | Do not open a browser              |
-| `--auth`                 | `MESHCHAT_AUTH`          | false          | Require HTTP basic auth for the UI |
-| `--storage-dir`          | `MESHCHAT_STORAGE_DIR`          | `./storage`    | Application data directory         |
-| `--reticulum-config-dir` | `MESHCHAT_RETICULUM_CONFIG_DIR` | `~/.reticulum` | Reticulum configuration            |
+| Flag                     | Environment variable            | Default        | Description                                                                         |
+| ------------------------ | ------------------------------- | -------------- | ----------------------------------------------------------------------------------- |
+| `--host`                 | `MESHCHAT_HOST`                 | `127.0.0.1`    | Bind address                                                                        |
+| `--port`                 | `MESHCHAT_PORT`                 | `8000`         | HTTP or HTTPS port                                                                  |
+| `--no-https`             | `MESHCHAT_NO_HTTPS`             | false          | Serve plain HTTP                                                                    |
+| `--ssl-cert`             | `MESHCHAT_SSL_CERT`             | auto           | TLS certificate path                                                                |
+| `--ssl-key`              | `MESHCHAT_SSL_KEY`              | auto           | TLS private key path                                                                |
+| `--headless`             | `MESHCHAT_HEADLESS`             | false          | Do not open a browser                                                               |
+| `--auth`                 | `MESHCHAT_AUTH`                 | false          | Require HTTP basic auth for the UI                                                  |
+| `--storage-dir`          | `MESHCHAT_STORAGE_DIR`          | `./storage`    | Application data directory                                                          |
+| `--reticulum-config-dir` | `MESHCHAT_RETICULUM_CONFIG_DIR` | `~/.reticulum` | Reticulum configuration                                                             |
 | `--data-dir`             | `MESHCHAT_DATA_DIR`             | none           | Portable root (`storage` + `.reticulum` subdirs when the two paths above are unset) |
-| `--identity-file`        | `MESHCHAT_IDENTITY_FILE` | none           | Load identity from file            |
-| `--rns-log-level`        | `MESHCHAT_RNS_LOG_LEVEL` | none           | Reticulum log level                |
-| `--auto-recover`         | `MESHCHAT_AUTO_RECOVER`  | false          | Attempt SQLite recovery on start   |
-| `--emergency`            |                          | false          | Start without database             |
-| `--disable-plugins`      |                          | false          | Disable the plugin system          |
+| `--identity-file`        | `MESHCHAT_IDENTITY_FILE`        | none           | Load identity from file                                                             |
+| `--rns-log-level`        | `MESHCHAT_RNS_LOG_LEVEL`        | none           | Reticulum log level                                                                 |
+| `--auto-recover`         | `MESHCHAT_AUTO_RECOVER`         | false          | Attempt SQLite recovery on start                                                    |
+| `--emergency`            |                                 | false          | Start without database                                                              |
+| `--disable-plugins`      |                                 | false          | Disable the plugin system                                                           |
 
 CLI flags override environment variables when both are set.
 
@@ -177,7 +177,14 @@ meshchatx --headless \
   --reticulum-config-dir="$PERSIST/.reticulum"
 ```
 
-On Windows portable Electron builds, storage and Reticulum config default next to the `.exe` when `PORTABLE_EXECUTABLE_DIR` is set. On Linux and macOS desktop builds, Electron still defaults to `~/.reticulum-meshchatx` and `~/.reticulum` unless you pass the flags above (or set `MESHCHAT_DATA_DIR` / `MESHCHAT_STORAGE_DIR` / `MESHCHAT_RETICULUM_CONFIG_DIR` in the environment before launch).
+The Electron desktop app (AppImage, portable exe, macOS bundle) honors the same `--data-dir` / `--storage-dir` / `--reticulum-config-dir` flags (or the matching `MESHCHAT_DATA_DIR` / `MESHCHAT_STORAGE_DIR` / `MESHCHAT_RETICULUM_CONFIG_DIR` environment variables) on every platform, not just Windows:
+
+```bash
+export PERSIST="/media/amnesia/Persistent/meshchatx"
+./MeshChatX-x86_64.AppImage --data-dir="$PERSIST"
+```
+
+On Windows portable exe builds, storage and Reticulum config also default next to the `.exe` when `PORTABLE_EXECUTABLE_DIR` is set (used by the portable target automatically), without needing any flags.
 
 ## Reticulum manual bundle
 

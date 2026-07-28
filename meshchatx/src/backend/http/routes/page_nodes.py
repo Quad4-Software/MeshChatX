@@ -146,7 +146,13 @@ def register_page_nodes_routes(routes, app):
         name = data.get("name", "").strip()
         if not name:
             return web.json_response({"message": "Name is required"}, status=400)
-        node = app.page_node_manager.create_node(name)
+        announce_enabled = bool(data.get("announce_enabled", True))
+        announce_interval_seconds = data.get("announce_interval_seconds")
+        node = app.page_node_manager.create_node(
+            name,
+            announce_enabled=announce_enabled,
+            announce_interval_seconds=announce_interval_seconds,
+        )
         return web.json_response(node.get_status())
 
     @routes.get("/api/v1/page-nodes/{node_id}")
@@ -213,6 +219,34 @@ def register_page_nodes_routes(routes, app):
         try:
             app.page_node_manager.rename_node(node_id, new_name)
             return web.json_response({"message": "Renamed"})
+        except KeyError:
+            return web.json_response({"message": "Node not found"}, status=404)
+
+    @routes.patch("/api/v1/page-nodes/{node_id}/announce-settings")
+    async def page_nodes_update_announce_settings(request):
+        node_id = request.match_info["node_id"]
+        try:
+            data = await request.json()
+        except Exception as e:
+            return web.json_response(
+                {"message": f"Invalid request body: {e}"},
+                status=400,
+            )
+        announce_enabled = (
+            data.get("announce_enabled") if "announce_enabled" in data else None
+        )
+        announce_interval_seconds = (
+            data.get("announce_interval_seconds")
+            if "announce_interval_seconds" in data
+            else None
+        )
+        try:
+            node = app.page_node_manager.set_announce_settings(
+                node_id,
+                announce_enabled=announce_enabled,
+                announce_interval_seconds=announce_interval_seconds,
+            )
+            return web.json_response(node.get_status())
         except KeyError:
             return web.json_response({"message": "Node not found"}, status=404)
 

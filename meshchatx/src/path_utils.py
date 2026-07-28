@@ -58,7 +58,12 @@ def resolve_path_under_dir(directory: str, user_path: str) -> str | None:
 
 
 def resolve_log_dir():
-    """Choose a writable log directory across container, desktop, and Windows."""
+    """Choose a writable log directory across container, desktop, and Windows.
+
+    Honors MESHCHAT_STORAGE_DIR first, then falls back to deriving a logs
+    directory from MESHCHAT_DATA_DIR (portable mode) when storage dir is
+    unset, matching resolve_meshchat_data_roots precedence.
+    """
     env_dir = os.environ.get("MESHCHAT_LOG_DIR")
     candidates = []
     if env_dir:
@@ -67,6 +72,16 @@ def resolve_log_dir():
     storage_dir = os.environ.get("MESHCHAT_STORAGE_DIR")
     if storage_dir:
         candidates.append(os.path.join(storage_dir, "logs"))
+    else:
+        data_dir = os.environ.get("MESHCHAT_DATA_DIR")
+        if data_dir:
+            candidates.append(
+                os.path.join(
+                    os.path.abspath(os.path.expanduser(data_dir)),
+                    "storage",
+                    "logs",
+                ),
+            )
 
     candidates.append("/config/logs")
 

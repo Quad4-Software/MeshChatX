@@ -10,3 +10,5 @@
 - Do not commit/push unless asked.
 - User-visible UI strings: i18n keys. Action feedback: `ToastUtils`.
 - Do not invent install/run flows when Taskfile already covers them.
+- Do not create markdown docs unless asked (except agent guidance under `docs/agents/` when requested).
+- Do not generate exploit PoCs, malware, or attack tooling.
