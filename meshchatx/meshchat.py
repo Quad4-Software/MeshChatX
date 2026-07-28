@@ -652,7 +652,10 @@ class ReticulumMeshChat:
         self.download_id_counter = 0
 
         self.identity_manager = IdentityManager(self.storage_dir, identity_file_path)
-        self.page_node_manager = PageNodeManager(self.storage_dir)
+        self.page_node_manager = PageNodeManager(
+            self.storage_dir,
+            on_announce=self._register_local_page_node_announce,
+        )
         self.plugin_manager = PluginManager(self.storage_dir, app=self)
         from meshchatx.src.backend.bug_report_manager import BugReportManager
 
@@ -1528,6 +1531,38 @@ class ReticulumMeshChat:
         if relaunch:
             self._schedule_process_restart()
         return result
+
+    def auto_recover_database(self, *, relaunch: bool = True) -> dict:
+        from meshchatx.src.backend.database.auto_recover import (
+            run_auto_database_recover,
+        )
+        from meshchatx.src.backend.database.schema import DatabaseSchema
+
+        storage = self.storage_path
+        if not storage:
+            msg = "Storage path is unknown"
+            raise RuntimeError(msg)
+
+        def restore_fn(path: str) -> dict:
+            return self.restore_database(path, relaunch=relaunch)
+
+        def sqlite_recover_fn() -> dict:
+            path = self.database_path
+            if not path:
+                msg = "Database path is unknown"
+                raise RuntimeError(msg)
+            from meshchatx.src.backend.database import Database
+
+            db = Database(path)
+            return db.run_database_recovery()
+
+        return run_auto_database_recover(
+            storage,
+            self.database_path,
+            DatabaseSchema.LATEST_VERSION,
+            restore_fn,
+            sqlite_recover_fn=sqlite_recover_fn,
+        )
 
     def _resolve_database_restore_path(self, path: str) -> str | None:
         """Resolve a restore zip under identity snapshots or database-backups only."""

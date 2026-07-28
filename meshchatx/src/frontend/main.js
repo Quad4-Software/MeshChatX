@@ -19,7 +19,7 @@ import { registerCoreContributions } from "./js/registries/registerCoreContribut
 import { installWsEventBridge } from "./js/registries/wsEventBridge.js";
 import { pluginHost } from "./js/plugins/PluginHost.js";
 import GlobalState from "./js/GlobalState.js";
-import { recoveryRouteForNetworkError } from "./js/networkRecovery.js";
+import { recoveryLocationForNetworkError } from "./js/networkRecovery.js";
 import ElectronUtils from "./js/ElectronUtils.js";
 import {
     decideControllerChangeReload,
@@ -554,10 +554,10 @@ if (networkReady) {
             });
         }
         if (GlobalState.networkDegraded) {
-            const recoveryRoute = recoveryRouteForNetworkError(GlobalState.networkDegradedError);
-            if (recoveryRoute) {
+            const recoveryLocation = recoveryLocationForNetworkError(GlobalState.networkDegradedError);
+            if (recoveryLocation) {
                 try {
-                    router.replace({ name: recoveryRoute });
+                    router.replace(recoveryLocation);
                 } catch {
                     // Route may not exist yet during early boot, but the banner still guides the user.
                 }

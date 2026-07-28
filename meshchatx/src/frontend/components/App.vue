@@ -26,11 +26,17 @@
             :network-recovering="networkRecovering"
             :recover-network-label="$t('app.recover_network')"
             :open-settings-label="$t('app.open_settings')"
+            :show-open-backups="showDatabaseRecoveryActions"
+            :open-backups-label="$t('app.open_backups')"
+            :auto-recover-label="$t('common.auto_recover')"
+            :auto-recovering="databaseAutoRecovering"
             :open-interfaces-label="$t('app.open_interfaces')"
             @restart-backend="onRestartBackend"
             @view-backend-logs="onViewBackendCrashReport"
             @recover-network="onRecoverNetwork"
             @open-settings="onOpenSettingsForRecovery"
+            @open-backups="onOpenBackupsForRecovery"
+            @auto-recover-database="onAutoRecoverDatabase"
             @open-interfaces="onOpenInterfacesForRecovery"
         />
 
@@ -642,6 +648,7 @@ import ToneGenerator from "../js/ToneGenerator";
 import { listNavItems } from "../js/registries/navRegistry.js";
 import { onWsEvent, offWsEvent } from "../js/registries/wsEventRegistry.js";
 import { shouldShowMultiSessionToast } from "../js/activeSessions.js";
+import { isDatabaseRecoveryError, recoveryLocationForNetworkError } from "../js/networkRecovery.js";
 import { handleLxmIngestUriResult } from "../js/ingestUriResultNavigation.js";
 import { applyRelayShareLink, parseMeshchatRelayUri } from "../js/relayLinkUtils.js";
 import logoUrl from "../assets/images/logo.png";
@@ -736,6 +743,7 @@ export default {
             backendExitCode: null,
             backendRestarting: false,
             networkRecovering: false,
+            databaseAutoRecovering: false,
             userInitiatedPropagationSync: false,
 
             identitySwitchDedupeHash: null,
@@ -853,10 +861,13 @@ export default {
         },
         networkDegradedBannerLabel() {
             const detail = GlobalState.networkDegradedError;
-            if (detail) {
-                return `${this.$t("app.network_degraded")}: ${detail}`;
+            if (detail && String(detail).trim()) {
+                return String(detail).trim();
             }
             return this.$t("app.network_degraded");
+        },
+        showDatabaseRecoveryActions() {
+            return isDatabaseRecoveryError(GlobalState.networkDegradedError);
         },
         identitySidebarLabel() {
             const raw = this.displayName;
@@ -929,6 +940,10 @@ export default {
             this._unsubOpenConversations();
             this._unsubOpenConversations = null;
         }
+        if (typeof this._networkDegradedRecoveryWatchStop === "function") {
+            this._networkDegradedRecoveryWatchStop();
+            this._networkDegradedRecoveryWatchStop = null;
+        }
     },
     mounted() {
         try {
@@ -952,6 +967,13 @@ export default {
             // ignore
         }
         this.startShellAuthWatch();
+        this._networkDegradedRecoveryWatchStop = watch(
+            () => [GlobalState.networkDegraded, GlobalState.networkDegradedError],
+            () => {
+                this.maybeNavigateNetworkRecovery();
+            }
+        );
+        this.maybeNavigateNetworkRecovery();
         this.applyShellAppearance();
         if (ElectronUtils.isElectron()) {
             if (typeof window.electron.onBackendProcessExited === "function") {
@@ -1252,6 +1274,59 @@ export default {
         },
         onOpenSettingsForRecovery() {
             this.$router.push({ name: "settings" });
+        },
+        onOpenBackupsForRecovery() {
+            this.$router.push({ name: "about", hash: "#about-database-backups" });
+        },
+        async onAutoRecoverDatabase() {
+            if (this.databaseAutoRecovering) {
+                return;
+            }
+            if (!(await DialogUtils.confirm(this.$t("about.auto_recover_confirm")))) {
+                return;
+            }
+            this.databaseAutoRecovering = true;
+            try {
+                const response = await window.api.post("/api/v1/database/auto-recover", {
+                    relaunch: true,
+                });
+                const strategy = response.data?.strategy;
+                const msg = response.data?.message;
+                if (strategy === "restore_backup") {
+                    ToastUtils.success(msg || this.$t("about.auto_recover_backup"));
+                    if (response.data?.requires_relaunch) {
+                        return;
+                    }
+                } else if (strategy === "sqlite_recovery") {
+                    ToastUtils.success(msg || this.$t("about.recovery_complete"));
+                    await this.onRecoverNetwork();
+                } else {
+                    ToastUtils.error(msg || this.$t("about.auto_recover_failed"));
+                }
+            } catch (e) {
+                const err =
+                    e.response?.data?.message || e.response?.data?.error || this.$t("about.auto_recover_failed");
+                ToastUtils.error(err);
+            } finally {
+                this.databaseAutoRecovering = false;
+            }
+        },
+        maybeNavigateNetworkRecovery() {
+            if (!GlobalState.networkDegraded || this.$route?.name === "auth") {
+                return;
+            }
+            const loc = recoveryLocationForNetworkError(GlobalState.networkDegradedError);
+            if (!loc) {
+                return;
+            }
+            if (
+                loc.name === "about" &&
+                this.$route?.name === "about" &&
+                this.$route?.hash === "#about-database-backups"
+            ) {
+                return;
+            }
+            this.$router.push(loc).catch(() => {});
         },
         async onRecoverNetwork() {
             if (this.networkRecovering) {

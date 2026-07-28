@@ -14,8 +14,10 @@ to fetch a page, or /file/name for files.
 Supported page filename extensions are .mu, .md, .txt, and .html.
 """
 
+import contextlib
 import json
 import os
+import threading
 import time
 
 import RNS
@@ -25,6 +27,29 @@ ASPECT = "node"
 DEFAULT_INDEX = "index.mu"
 
 ALLOWED_PAGE_EXTENSIONS = frozenset({".mu", ".md", ".txt", ".html"})
+
+DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900
+MIN_ANNOUNCE_INTERVAL_SECONDS = 60
+MAX_ANNOUNCE_INTERVAL_SECONDS = 86400
+
+
+def normalize_announce_interval_seconds(
+    value,
+    default=DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+):
+    """Clamp an announce interval to the supported range, or 0 to disable periodic announces."""
+    if value is None:
+        return int(default)
+    try:
+        seconds = int(value)
+    except (TypeError, ValueError):
+        return int(default)
+    if seconds <= 0:
+        return 0
+    return max(
+        MIN_ANNOUNCE_INTERVAL_SECONDS,
+        min(MAX_ANNOUNCE_INTERVAL_SECONDS, seconds),
+    )
 
 
 def normalize_page_filename(name: str) -> str:
@@ -74,7 +99,17 @@ def _reject_name_component_too_long(parent_dir: str, component: str) -> None:
 class PageNode:
     """A single page-serving node on the Reticulum mesh."""
 
-    def __init__(self, node_id, name, base_dir, identity=None, identity_path=None):
+    def __init__(
+        self,
+        node_id,
+        name,
+        base_dir,
+        identity=None,
+        identity_path=None,
+        announce_enabled=True,
+        announce_interval_seconds=DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+        on_announce=None,
+    ):
         self.node_id = node_id
         self.name = name
         self.base_dir = base_dir
@@ -91,6 +126,14 @@ class PageNode:
         self._stats = {"pages_served": 0, "files_served": 0, "links_established": 0}
         self._serve_started_at = None
         self._unique_remote_hashes = set()
+
+        self.announce_enabled = bool(announce_enabled)
+        self.announce_interval_seconds = normalize_announce_interval_seconds(
+            announce_interval_seconds,
+        )
+        self.last_announced_at = None
+        self.on_announce = on_announce
+        self._announce_timer = None
 
     def setup(self):
         """Create directories, load or create identity, set up RNS destination."""
@@ -120,6 +163,11 @@ class PageNode:
 
         self.running = True
         self._serve_started_at = time.time()
+
+        if self.announce_enabled:
+            self.announce()
+        self._sync_announce_timer()
+
         return self.destination.hash.hex()
 
     def announce(self):
@@ -129,10 +177,60 @@ class PageNode:
             app_data = self.name.encode("utf-8")
             self.destination.announce(app_data=app_data)
             self._ensure_local_path()
+            self.last_announced_at = time.time()
+            if self.on_announce is not None:
+                with contextlib.suppress(Exception):
+                    self.on_announce(self)
+
+    def _cancel_announce_timer(self):
+        """Cancel the pending periodic announce timer, if any."""
+        timer = self._announce_timer
+        self._announce_timer = None
+        if timer is not None:
+            with contextlib.suppress(Exception):
+                timer.cancel()
+
+    def _sync_announce_timer(self):
+        """Reschedule the periodic announce timer to match current settings."""
+        self._cancel_announce_timer()
+        if not self.running or not self.announce_enabled:
+            return
+        interval = normalize_announce_interval_seconds(
+            self.announce_interval_seconds,
+            default=0,
+        )
+        if interval <= 0:
+            return
+        timer = threading.Timer(interval, self._announce_timer_fire)
+        timer.daemon = True
+        self._announce_timer = timer
+        timer.start()
+
+    def _announce_timer_fire(self):
+        """Timer callback: announce then reschedule for the next interval."""
+        self._announce_timer = None
+        if not self.running or not self.announce_enabled:
+            return
+        with contextlib.suppress(Exception):
+            self.announce()
+        self._sync_announce_timer()
+
+    def set_announce_settings(
+        self, announce_enabled=None, announce_interval_seconds=None
+    ):
+        """Update announce enablement and/or interval, then resync the periodic timer."""
+        if announce_enabled is not None:
+            self.announce_enabled = bool(announce_enabled)
+        if announce_interval_seconds is not None:
+            self.announce_interval_seconds = normalize_announce_interval_seconds(
+                announce_interval_seconds,
+            )
+        self._sync_announce_timer()
 
     def teardown(self):
         """Deregister handlers and clean up."""
         self.running = False
+        self._cancel_announce_timer()
         self._serve_started_at = None
         self._unique_remote_hashes.clear()
         if self.destination:
@@ -424,6 +522,9 @@ class PageNode:
             "pages": self.list_pages(),
             "files": self.list_files(),
             "stats": dict(self._stats),
+            "announce_enabled": self.announce_enabled,
+            "announce_interval_seconds": self.announce_interval_seconds,
+            "last_announced_at": self.last_announced_at,
         }
 
     def save_config(self):
@@ -431,6 +532,8 @@ class PageNode:
         config = {
             "node_id": self.node_id,
             "name": self.name,
+            "announce_enabled": self.announce_enabled,
+            "announce_interval_seconds": self.announce_interval_seconds,
         }
         config_path = os.path.join(self.base_dir, "config.json")
         with open(config_path, "w") as f:

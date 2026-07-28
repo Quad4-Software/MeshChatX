@@ -51,6 +51,7 @@
         "dist:linux-arm64": "pnpm run electron-postinstall && cross-env PLATFORM=linux ARCH=arm64 pnpm run build && electron-builder --linux AppImage deb --arm64 --publish=never",
         "dist:linux-arm64:offline": "cross-env MESHCHATX_OFFLINE_BUILD=1 pnpm run dist:linux-arm64",
         "dist:rpm": "pnpm run electron-postinstall && cross-env PLATFORM=linux pnpm run build && electron-builder --linux rpm --publish=never",
+        "dist:apk": "pnpm run electron-postinstall && cross-env PLATFORM=linux pnpm run build && electron-builder --linux apk --publish=never",
         "dist:flatpak": "pnpm run electron-postinstall && cross-env PLATFORM=linux pnpm run build && electron-builder --linux flatpak --publish=never",
         "dist:flatpak-prebuilt": "pnpm run electron-postinstall && cross-env PLATFORM=linux pnpm run version:sync && cross-env PLATFORM=linux pnpm run build-backend && electron-builder --linux flatpak --x64 --publish=never",
         "dist:windows": "pnpm run electron-postinstall && cross-env PLATFORM=win32 pnpm run build && electron-builder --win portable nsis --publish=never",

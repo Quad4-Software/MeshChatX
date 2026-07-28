@@ -78,11 +78,29 @@
                     {{ recoverNetworkLabel }}
                 </button>
                 <button
+                    v-if="!showOpenBackups"
                     type="button"
                     class="rounded-md bg-white/10 px-3 py-1 text-xs font-semibold hover:bg-white/20"
                     @click="$emit('open-settings')"
                 >
                     {{ openSettingsLabel }}
+                </button>
+                <button
+                    v-if="showOpenBackups"
+                    type="button"
+                    class="rounded-md bg-white/15 px-3 py-1 text-xs font-semibold hover:bg-white/25 disabled:opacity-60"
+                    :disabled="autoRecovering"
+                    @click="$emit('auto-recover-database')"
+                >
+                    {{ autoRecoverLabel }}
+                </button>
+                <button
+                    v-if="showOpenBackups"
+                    type="button"
+                    class="rounded-md bg-white/15 px-3 py-1 text-xs font-semibold hover:bg-white/25"
+                    @click="$emit('open-backups')"
+                >
+                    {{ openBackupsLabel }}
                 </button>
                 <button
                     type="button"
@@ -179,11 +197,35 @@ export default {
             type: String,
             default: "",
         },
+        showOpenBackups: {
+            type: Boolean,
+            default: false,
+        },
+        openBackupsLabel: {
+            type: String,
+            default: "",
+        },
+        autoRecoverLabel: {
+            type: String,
+            default: "",
+        },
+        autoRecovering: {
+            type: Boolean,
+            default: false,
+        },
         openInterfacesLabel: {
             type: String,
             default: "",
         },
     },
-    emits: ["restart-backend", "view-backend-logs", "recover-network", "open-settings", "open-interfaces"],
+    emits: [
+        "restart-backend",
+        "view-backend-logs",
+        "recover-network",
+        "open-settings",
+        "open-backups",
+        "auto-recover-database",
+        "open-interfaces",
+    ],
 };
 </script>

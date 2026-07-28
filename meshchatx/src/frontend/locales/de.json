@@ -2699,7 +2699,15 @@
         },
         "mesh_server": {
             "title": "Mesh-Server",
-            "description": "Micron-Seiten und Dateien für Peers im Mesh bereitstellen."
+            "description": "Micron-Seiten und Dateien für Peers im Mesh bereitstellen.",
+            "announce_settings": "Ankündigungseinstellungen",
+            "announce_enabled_label": "Automatisch ankündigen",
+            "announce_interval_label": "Ankündigungsintervall (Minuten)",
+            "announce_off_badge": "Automatische Ankündigung aus",
+            "last_announced_ago": "Zuletzt angekündigt vor {time}",
+            "never_announced": "Noch nie angekündigt",
+            "announce_settings_saved": "Ankündigungseinstellungen gespeichert",
+            "announce_settings_failed": "Ankündigungseinstellungen konnten nicht gespeichert werden"
         },
         "rns_tunnel": {
             "title": "RNSTunnel",

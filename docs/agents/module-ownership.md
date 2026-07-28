@@ -83,5 +83,13 @@ Frontend ownership contracts:
 | HTTP JSON GET schemas     | `http_api_response_schemas.py`, `http_api_response_registry.py`                                                                                                  |
 | Core status/auth/app_info | `api_json_contract_schemas.py`                                                                                                                                   |
 | WS message manifest       | `tests/backend/fixtures/ws_message_manifest.json`, `ws_contract_helpers.py` (reads `meshchat.py`, `backend/http/**/*.py`, `lifecycle/**`, `rns_link_manager.py`) |
+| Schema version manifest   | `tests/backend/fixtures/schema_versions/manifest.json`, `schema_versions_contract_helpers.py` (reads `DatabaseSchema.LATEST_VERSION`)                            |
+| Backend table itself      | `tests/backend/fixtures/backend_module_ownership.json`, `test_module_ownership_contract.py` (parses this doc's Backend table and checks paths exist)             |
 
 Schema contracts stay in `tests/backend/`. Route and WS owners are production modules under `backend/http/`.
+
+All four fixtures above are generator-checked, not hand-edited: each owning test derives the
+expected structure from source and fails on drift, with an `UPDATE_HTTP_API_ROUTES=1` /
+`UPDATE_WS_MESSAGE_MANIFEST=1` / `UPDATE_SCHEMA_VERSIONS_MANIFEST=1` / `UPDATE_BACKEND_MODULE_OWNERSHIP=1`
+escape hatch to rewrite the fixture, matching the `UPDATE_FRONTEND_OWNERSHIP=1` pattern used by
+`tests/frontend/frontendOwnershipContract.test.js`.

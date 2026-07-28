@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Run inside Dockerfile.build after COPY. Writes outputs to /artifacts.
-# Env: MESHCHATX_BUILD_TARGETS = all | wheel | electron (electron = AppImage+deb per arch + best-effort RPM, no wheel)
+# Env: MESHCHATX_BUILD_TARGETS = all | wheel | electron (electron = Linux packages, no wheel)
+# Env: MESHCHATX_LINUX_FORMATS = comma list of appimage,deb,rpm,apk (default: all four)
 set -euo pipefail
 
 cd /src

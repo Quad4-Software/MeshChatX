@@ -583,6 +583,11 @@ class IdentityContext:
             self.bot_handler = BotHandler(
                 identity_path=self.storage_path,
                 config_manager=self.config,
+                default_reticulum_config_dir=getattr(
+                    self.app,
+                    "reticulum_config_dir",
+                    None,
+                ),
             )
             try:
                 self.bot_handler.restore_enabled_bots()

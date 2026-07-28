@@ -2,6 +2,7 @@
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
+#   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
 
 name: Mutation testing
 
@@ -72,7 +73,7 @@ jobs:
 
             - name: Upload mutation reports
               if: always()
-              uses: actions/upload-artifact@v5.0.0
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
               with:
                   name: mutation-reports
                   path: |

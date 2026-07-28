@@ -4,10 +4,9 @@
 
 from __future__ import annotations
 
-import json
+import os
 import shutil
 import tempfile
-import os
 from pathlib import Path
 from unittest.mock import patch
 
@@ -22,6 +21,11 @@ from meshchatx.src.backend.database import (
 )
 from meshchatx.src.backend.database.provider import DatabaseProvider
 from meshchatx.src.backend.database.schema import DatabaseSchema
+from tests.backend.schema_versions_contract_helpers import (
+    derive_schema_versions_manifest,
+    load_schema_versions_manifest,
+    write_schema_versions_manifest,
+)
 
 FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures" / "schema_versions"
 MANIFEST = FIXTURE_DIR / "manifest.json"
@@ -46,10 +50,20 @@ def _fixture_path(version: int) -> Path:
 
 
 def test_manifest_matches_latest_version():
+    live = derive_schema_versions_manifest(DatabaseSchema.LATEST_VERSION)
+    if os.environ.get("UPDATE_SCHEMA_VERSIONS_MANIFEST") == "1":
+        write_schema_versions_manifest(MANIFEST, live)
+        pytest.skip(
+            "UPDATE_SCHEMA_VERSIONS_MANIFEST=1: fixture updated; re-run without the env var",
+        )
     if not MANIFEST.is_file():
         pytest.skip("schema fixture manifest missing")
-    data = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    assert int(data["latest_version"]) == DatabaseSchema.LATEST_VERSION
+    expected = load_schema_versions_manifest(MANIFEST)
+    assert live == expected, (
+        "Schema versions manifest drifted. Run: "
+        "UPDATE_SCHEMA_VERSIONS_MANIFEST=1 uv run pytest "
+        "tests/backend/test_schema_migration_matrix.py -k manifest_matches_latest_version"
+    )
 
 
 @pytest.mark.parametrize(

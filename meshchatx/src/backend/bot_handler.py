@@ -25,12 +25,29 @@ _MESHCHATX_RUN_MODULE_FLAG = "--meshchatx-run-module"
 
 
 class BotHandler:
-    def __init__(self, identity_path, config_manager=None):
+    def __init__(
+        self,
+        identity_path,
+        config_manager=None,
+        default_reticulum_config_dir=None,
+    ):
+        """Manage LXMFy bot subprocesses for one identity.
+
+        default_reticulum_config_dir should be the running app's own
+        reticulum_config_dir so bots stay inside a custom --data-dir /
+        --reticulum-config-dir root instead of leaking to the home
+        directory. MESHCHAT_BOT_RETICULUM_CONFIG_DIR still overrides both,
+        for callers that intentionally want bots on a separate RNS instance.
+        """
         self.identity_path = os.path.abspath(identity_path)
         self.config_manager = config_manager
+        fallback_reticulum_dir = default_reticulum_config_dir or "~/.reticulum"
         self.bot_reticulum_config_dir = os.path.abspath(
             os.path.expanduser(
-                os.environ.get("MESHCHAT_BOT_RETICULUM_CONFIG_DIR", "~/.reticulum"),
+                os.environ.get(
+                    "MESHCHAT_BOT_RETICULUM_CONFIG_DIR",
+                    fallback_reticulum_dir,
+                ),
             ),
         )
         self.bots_dir = os.path.join(self.identity_path, "bots")

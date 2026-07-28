@@ -870,6 +870,15 @@
                                 </button>
                                 <button
                                     type="button"
+                                    class="primary-chip px-4! py-1.5! text-xs!"
+                                    :disabled="databaseActionInProgress"
+                                    @click="runAutoRecover"
+                                >
+                                    <v-icon icon="mdi-auto-fix" start size="14"></v-icon>
+                                    {{ $t("common.auto_recover") }}
+                                </button>
+                                <button
+                                    type="button"
                                     class="danger-chip px-4! py-1.5! text-xs!"
                                     :disabled="databaseActionInProgress"
                                     @click="runRecovery"
@@ -934,7 +943,10 @@
                             </div>
                         </div>
 
-                        <div class="border-t border-zinc-100 dark:border-zinc-800 pt-8 space-y-8">
+                        <div
+                            id="about-database-backups"
+                            class="border-t border-zinc-100 dark:border-zinc-800 pt-8 space-y-8"
+                        >
                             <!-- Backups -->
                             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                                 <div class="space-y-1">
@@ -1090,7 +1102,7 @@
                             </div>
 
                             <!-- Auto Backups -->
-                            <div v-if="autoBackups && autoBackups.length > 0" class="space-y-6">
+                            <div class="space-y-6">
                                 <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                                     <div class="space-y-1">
                                         <div
@@ -1193,6 +1205,12 @@
                                             </button>
                                         </div>
                                     </div>
+                                </div>
+                                <div
+                                    v-else
+                                    class="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700 px-4 py-6 text-center text-xs text-gray-500"
+                                >
+                                    {{ $t("about.automatic_backups_empty") }}
                                 </div>
                             </div>
                         </div>
@@ -1409,6 +1427,13 @@ export default {
             return "";
         },
     },
+    watch: {
+        "$route.hash"() {
+            this.$nextTick(() => {
+                this.scrollToDatabaseBackupsIfNeeded();
+            });
+        },
+    },
     mounted() {
         this.getAppInfo();
         this.getActiveSessions();
@@ -1426,6 +1451,9 @@ export default {
         };
         onWsEvent("app.sessions.updated", this.sessionsWsHandler);
         this.restartAboutPollIntervals();
+        this.$nextTick(() => {
+            this.scrollToDatabaseBackupsIfNeeded();
+        });
     },
     beforeUnmount() {
         if (this.updateInterval) {
@@ -1452,6 +1480,16 @@ export default {
             this.autoBackupsOffset = 0;
             this.listSnapshots();
             this.listAutoBackups();
+        },
+        scrollToDatabaseBackupsIfNeeded() {
+            const hash = typeof this.$route?.hash === "string" ? this.$route.hash : "";
+            if (!hash.includes("about-database-backups")) {
+                return;
+            }
+            const el = document.getElementById("about-database-backups");
+            if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
         },
         restartAboutPollIntervals() {
             if (this.updateInterval) {
@@ -1779,6 +1817,44 @@ export default {
                 this.restoreInProgress = false;
                 this.restoreFile = null;
                 this.restoreFileName = "";
+            }
+        },
+        async runAutoRecover() {
+            if (this.databaseActionInProgress) {
+                return;
+            }
+            if (!(await DialogUtils.confirm(this.$t("about.auto_recover_confirm")))) {
+                return;
+            }
+            this.databaseActionInProgress = true;
+            this.databaseActionMessage = "";
+            this.databaseActionError = "";
+            try {
+                const response = await window.api.post("/api/v1/database/auto-recover", { relaunch: true });
+                const strategy = response.data?.strategy;
+                const msg = response.data?.message;
+                if (strategy === "restore_backup") {
+                    ToastUtils.success(msg || this.$t("about.auto_recover_backup"));
+                    if (response.data?.requires_relaunch) {
+                        this.scheduleRestoreRelaunch();
+                    }
+                } else if (strategy === "sqlite_recovery") {
+                    if (response.data.database?.health) {
+                        this.databaseHealth = response.data.database.health;
+                    }
+                    this.databaseRecoveryActions = response.data.database?.actions || [];
+                    ToastUtils.success(msg || this.$t("about.recovery_complete"));
+                } else {
+                    this.databaseActionError = msg || this.$t("about.auto_recover_failed");
+                    ToastUtils.error(this.databaseActionError);
+                }
+            } catch (e) {
+                this.databaseActionError = this.$t("about.auto_recover_failed");
+                const detail = e?.response?.data?.message || e?.response?.data?.error;
+                ToastUtils.error(detail || this.databaseActionError);
+                console.log(e);
+            } finally {
+                this.databaseActionInProgress = false;
             }
         },
         async runRecovery() {

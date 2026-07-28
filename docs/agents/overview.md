@@ -319,16 +319,7 @@ meshchatx --restore-db /path/to/backup.zip
 
 ## Agent hard rules
 
-1. No emojis in code, markdown, or docs you write for this repo.
-2. No TODO / FIXME noise comments.
-3. No emdashes or semicolons in comments or docs you write.
-4. No backticks in code comments. Prefer plain words or quoted identifiers.
-5. Do not create markdown docs unless asked (except agent guidance under `docs/agents/` when requested).
-6. Do not commit or push unless the user asks.
-7. Do not generate exploit PoCs, malware, or attack tooling.
-8. Prefer minimal diffs. Match nearby style.
-9. Do not invent install/run flows when Taskfile already covers them.
-10. Mesh-facing designs must pass Zen / architecture gates (`reticulum-zen.md` / `reticulum-design-gates`).
+Full list: `docs/agents/conventions/core.md` (mirrors the always-on editor rule). Mesh-facing designs must additionally pass the Zen / architecture gates (`reticulum-zen.md` / `reticulum-design-gates`).
 
 ## High-risk change checklist
 

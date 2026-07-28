@@ -22,6 +22,51 @@ def test_bot_handler_init(temp_identity_dir):
     assert handler.bots_state == []
 
 
+def test_bot_handler_default_reticulum_dir_falls_back_to_home(
+    temp_identity_dir,
+    monkeypatch,
+):
+    monkeypatch.delenv("MESHCHAT_BOT_RETICULUM_CONFIG_DIR", raising=False)
+    handler = BotHandler(temp_identity_dir)
+    assert handler.bot_reticulum_config_dir == os.path.abspath(
+        os.path.expanduser("~/.reticulum"),
+    )
+
+
+def test_bot_handler_uses_app_reticulum_config_dir_for_portable_mode(
+    temp_identity_dir,
+    tmp_path,
+    monkeypatch,
+):
+    """Bots must stay inside a custom --data-dir / --reticulum-config-dir.
+
+    Root instead of leaking their own RNS instance to the home directory.
+    """
+    monkeypatch.delenv("MESHCHAT_BOT_RETICULUM_CONFIG_DIR", raising=False)
+    portable_reticulum_dir = tmp_path / "persist" / ".reticulum"
+    handler = BotHandler(
+        temp_identity_dir,
+        default_reticulum_config_dir=str(portable_reticulum_dir),
+    )
+    assert handler.bot_reticulum_config_dir == os.path.abspath(
+        str(portable_reticulum_dir),
+    )
+
+
+def test_bot_handler_env_override_wins_over_app_reticulum_config_dir(
+    temp_identity_dir,
+    tmp_path,
+    monkeypatch,
+):
+    override_dir = tmp_path / "separate-bot-rns"
+    monkeypatch.setenv("MESHCHAT_BOT_RETICULUM_CONFIG_DIR", str(override_dir))
+    handler = BotHandler(
+        temp_identity_dir,
+        default_reticulum_config_dir=str(tmp_path / "persist" / ".reticulum"),
+    )
+    assert handler.bot_reticulum_config_dir == os.path.abspath(str(override_dir))
+
+
 def test_bot_handler_load_save_state(temp_identity_dir):
     handler = BotHandler(temp_identity_dir)
     test_state = [{"id": "bot1", "enabled": True, "storage_dir": "some/path"}]

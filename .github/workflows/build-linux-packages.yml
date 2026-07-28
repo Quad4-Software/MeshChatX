@@ -64,7 +64,6 @@ jobs:
         timeout-minutes: 120
         permissions:
             contents: read
-            actions: write
         env:
             FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
             MESHCHATX_FRONTEND_PREBUILT: "1"

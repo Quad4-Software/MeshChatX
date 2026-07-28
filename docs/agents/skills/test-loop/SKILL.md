@@ -48,8 +48,4 @@ pnpm exec vitest run tests/frontend/<related>.test.js
 
 ## After identity / Landlock edits
 
-Run the matching skill's verification section before claiming done.
-
-```bash
-uv run pytest tests/backend/test_landlock_sandbox.py tests/backend/test_landlock_integration_surfaces.py tests/backend/test_sqlite_landlock_temp_store.py -q
-```
+Run the matching skill's verification section before claiming done: `landlock-sqlite` for the full Landlock/SQLite/AppContainer command set, `identity-switch-teardown` or `identity-restore` for identity flows.

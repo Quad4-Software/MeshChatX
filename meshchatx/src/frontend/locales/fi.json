@@ -2905,7 +2905,15 @@
         },
         "mesh_server": {
             "title": "Mesh-palvelin",
-            "description": "Julkaise Micron-sivuja ja pieniä tiedostoja mesh-vertaisten avattavaksi."
+            "description": "Julkaise Micron-sivuja ja pieniä tiedostoja mesh-vertaisten avattavaksi.",
+            "announce_settings": "Ilmoitusasetukset",
+            "announce_enabled_label": "Ilmoita automaattisesti",
+            "announce_interval_label": "Ilmoitusväli (minuuttia)",
+            "announce_off_badge": "Automaattinen ilmoitus pois",
+            "last_announced_ago": "Viimeksi ilmoitettu {time} sitten",
+            "never_announced": "Ei koskaan ilmoitettu",
+            "announce_settings_saved": "Ilmoitusasetukset tallennettu",
+            "announce_settings_failed": "Ilmoitusasetusten tallennus epäonnistui"
         },
         "rns_tunnel": {
             "title": "RNS Tunnel",

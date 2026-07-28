@@ -264,7 +264,17 @@ def register_database_routes(routes, app):
         try:
             limit = int(request.query.get("limit", 100))
             offset = int(request.query.get("offset", 0))
-            sorted_backups = app.database.list_auto_backups(app.storage_path)
+            storage_path = app.storage_path
+            if app.database is not None:
+                sorted_backups = app.database.list_auto_backups(storage_path)
+            else:
+                from meshchatx.src.backend.database import Database
+
+                db_path = app.database_path
+                if not db_path:
+                    sorted_backups = []
+                else:
+                    sorted_backups = Database(db_path).list_auto_backups(storage_path)
             total = len(sorted_backups)
             paginated_backups = sorted_backups[offset : offset + limit]
             return web.json_response(
@@ -401,6 +411,39 @@ def register_database_routes(routes, app):
             return web.json_response(
                 {
                     "message": f"Failed to recover database: {e!s}",
+                },
+                status=500,
+            )
+
+    @routes.post("/api/v1/database/auto-recover")
+    async def database_auto_recover(request):
+        try:
+            try:
+                data = await request.json()
+            except Exception:
+                data = {}
+            if not isinstance(data, dict):
+                data = {}
+            relaunch = bool(data.get("relaunch", True))
+            result = app.auto_recover_database(relaunch=relaunch)
+            status = 200 if result.get("strategy") != "none" else 500
+            return web.json_response(
+                {
+                    "message": result.get("message"),
+                    "strategy": result.get("strategy"),
+                    "requires_relaunch": bool(result.get("requires_relaunch")),
+                    "backup": result.get("backup"),
+                    "database": result.get("database"),
+                    "restore_result": result.get("restore_result"),
+                    "error": result.get("error"),
+                },
+                status=status,
+            )
+        except Exception as e:
+            return web.json_response(
+                {
+                    "message": f"Auto recovery failed: {e!s}",
+                    "strategy": "none",
                 },
                 status=500,
             )

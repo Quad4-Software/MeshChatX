@@ -32,13 +32,7 @@ Also read:
 
 ## Placement
 
-| Kind                        | Put it here                                         | Example                             |
-| --------------------------- | --------------------------------------------------- | ----------------------------------- |
-| Page-private panel or UI    | `components/<feature>/internal/*.vue`               | MapSearchBar                        |
-| Settings chunk              | `components/settings/sections/*SettingsSection.vue` | TelephonySettingsSection            |
-| Pure logic                  | colocated `*.js` or `js/<feature>/`                 | clusterUtils, settingsConfigService |
-| Cross-feature primitive     | root `components/` or `components/forms/`           | ConfirmDialog, Toggle               |
-| Nav, tools, commands wiring | `js/registries/` only                               | never grow App.vue for discovery    |
+Placement table (page-private panels, settings chunks, pure logic, cross-feature primitives, nav/tools wiring): `docs/agents/module-ownership.md` (Frontend mega-pages section). Do not invent folders outside that table.
 
 ## Pre-extract inventory (mandatory)
 

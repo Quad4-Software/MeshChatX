@@ -631,6 +631,12 @@ tasks:
         cmds:
             - "{{.NPM}} run dist:rpm"
 
+    dist:fe:apk:
+        desc: Build Alpine APK package
+        deps: [build:frontend]
+        cmds:
+            - "{{.NPM}} run dist:apk"
+
     dist:fe:flatpak:
         desc: Build Flatpak package
         deps: [build:frontend]

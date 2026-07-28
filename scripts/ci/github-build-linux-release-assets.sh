@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Build wheel, Linux AppImage/deb (x64 + arm64), optional RPM, frontend zip, and SBOM under ./release-assets/.
+# Build wheel, Linux AppImage/deb (x64 + arm64), optional RPM/APK, frontend zip, and SBOM under ./release-assets/.
 # Expects repo root as cwd, dependencies installed (task install / pnpm), and meshchatx/public populated when building Electron.
 # Optional: SKIP_WHEEL=1, SKIP_ELECTRON=1, TRIVY_SBOM=0
+# Optional: MESHCHATX_LINUX_FORMATS = comma list of appimage,deb,rpm,apk (default: all four)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -33,6 +34,33 @@ case "$HOST_ARCH" in
     *) NATIVE_ARCH="$HOST_ARCH" ;;
 esac
 
+LINUX_FORMATS="${MESHCHATX_LINUX_FORMATS:-all}"
+if [ "$LINUX_FORMATS" = "all" ]; then
+    LINUX_FORMATS="appimage,deb,rpm,apk"
+fi
+
+has_format() {
+    case ",$LINUX_FORMATS," in
+        *",$1,"*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+for _fmt in ${LINUX_FORMATS//,/ }; do
+    case "$_fmt" in
+        appimage|deb|rpm|apk) ;;
+        *)
+            echo "Unknown Linux package format '$_fmt' in MESHCHATX_LINUX_FORMATS (expected appimage, deb, rpm, apk, or all)" >&2
+            exit 1
+            ;;
+    esac
+done
+
+appimage_deb_targets=""
+has_format appimage && appimage_deb_targets="$appimage_deb_targets AppImage"
+has_format deb && appimage_deb_targets="$appimage_deb_targets deb"
+appimage_deb_targets="${appimage_deb_targets# }"
+
 if [ "${SKIP_WHEEL:-0}" != 1 ]; then
     if [ "$NATIVE_ARCH" = "x64" ]; then
         echo "Building Python wheel..."
@@ -45,26 +73,45 @@ else
 fi
 
 if [ "${SKIP_ELECTRON:-0}" != 1 ]; then
-    if [ "$NATIVE_ARCH" = "x64" ]; then
-        echo "Electron linux x64..."
-        pnpm run dist:linux-x64
-    elif [ "$NATIVE_ARCH" = "arm64" ]; then
-        echo "Electron linux arm64..."
-        pnpm run dist:linux-arm64
+    if [ -n "$appimage_deb_targets" ]; then
+        pnpm run electron-postinstall
+        if [ "$NATIVE_ARCH" = "x64" ]; then
+            echo "Electron linux x64 ($appimage_deb_targets)..."
+            PLATFORM=linux ARCH=x64 pnpm run build
+            # shellcheck disable=SC2086
+            pnpm exec electron-builder --linux $appimage_deb_targets --x64 --publish=never
+        elif [ "$NATIVE_ARCH" = "arm64" ]; then
+            echo "Electron linux arm64 ($appimage_deb_targets)..."
+            PLATFORM=linux ARCH=arm64 pnpm run build
+            # shellcheck disable=SC2086
+            pnpm exec electron-builder --linux $appimage_deb_targets --arm64 --publish=never
+        fi
+    else
+        echo "Skipping AppImage/deb (not selected in MESHCHATX_LINUX_FORMATS)."
     fi
 
     if [ "$NATIVE_ARCH" = "x64" ]; then
-        echo "RPM (best-effort)..."
-        if ! task dist:fe:rpm; then
-            echo "RPM build failed or skipped; continuing." >&2
+        if has_format rpm; then
+            echo "RPM (best-effort)..."
+            if ! task dist:fe:rpm; then
+                echo "RPM build failed or skipped; continuing." >&2
+            fi
         fi
+        if has_format apk; then
+            echo "APK (best-effort)..."
+            if ! task dist:fe:apk; then
+                echo "APK build failed or skipped; continuing." >&2
+            fi
+        fi
+    elif has_format rpm || has_format apk; then
+        echo "Skipping RPM/APK on $NATIVE_ARCH runner (built on x64 only)." >&2
     fi
 else
     echo "Skipping Electron packages (SKIP_ELECTRON=1)."
 fi
 
 echo "Collecting release files..."
-find dist -maxdepth 1 -type f \( -name "*-linux*.AppImage" -o -name "*-linux*.deb" -o -name "*-linux*.rpm" \) -exec cp -f {} release-assets/ \; 2>/dev/null || true
+find dist -maxdepth 1 -type f \( -name "*-linux*.AppImage" -o -name "*-linux*.deb" -o -name "*-linux*.rpm" -o -name "*-linux*.apk" \) -exec cp -f {} release-assets/ \; 2>/dev/null || true
 find python-dist -maxdepth 1 -type f -name "*.whl" -exec cp -f {} release-assets/ \; 2>/dev/null || true
 
 if [ -d meshchatx/public ] && [ "${SKIP_ELECTRON:-0}" != 1 ]; then

@@ -2699,7 +2699,15 @@
         },
         "mesh_server": {
             "title": "Mesh-сервер",
-            "description": "Публикация страниц Micron и файлов для узлов в mesh."
+            "description": "Публикация страниц Micron и файлов для узлов в mesh.",
+            "announce_settings": "Настройки анонсов",
+            "announce_enabled_label": "Анонсировать автоматически",
+            "announce_interval_label": "Интервал анонса (минуты)",
+            "announce_off_badge": "Автоанонс выключен",
+            "last_announced_ago": "Последний анонс {time} назад",
+            "never_announced": "Анонсов еще не было",
+            "announce_settings_saved": "Настройки анонса сохранены",
+            "announce_settings_failed": "Не удалось сохранить настройки анонса"
         },
         "rns_tunnel": {
             "title": "RNS Tunnel",
