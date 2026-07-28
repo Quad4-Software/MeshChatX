@@ -10,7 +10,7 @@ storage/page_nodes/<node_id>/.
 import os
 import uuid
 
-from meshchatx.src.backend.page_node import PageNode
+from meshchatx.src.backend.page_node import PageNode, normalize_announce_interval_seconds
 
 
 class PageNodeManager:
@@ -42,7 +42,9 @@ class PageNodeManager:
                 name=config["name"],
                 base_dir=node_dir,
                 announce_enabled=config.get("announce_enabled", True),
-                announce_interval_seconds=config.get("announce_interval_seconds"),
+                announce_interval_seconds=normalize_announce_interval_seconds(
+                    config.get("announce_interval_seconds"),
+                ),
                 on_announce=self.on_announce,
             )
             self.nodes[node_id] = node
@@ -66,7 +68,9 @@ class PageNodeManager:
             name=name,
             base_dir=node_dir,
             announce_enabled=announce_enabled,
-            announce_interval_seconds=announce_interval_seconds,
+            announce_interval_seconds=normalize_announce_interval_seconds(
+                announce_interval_seconds,
+            ),
             on_announce=self.on_announce,
         )
         node.save_config()
