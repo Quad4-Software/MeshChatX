@@ -150,6 +150,84 @@ peers = aaa.b32.i2p
     )
 
 
+def test_apply_startup_recovery_step_does_not_blindly_disable_i2p(tmp_path):
+    config_path = tmp_path / "config"
+    config_path.write_text(
+        """[reticulum]
+enable_transport = True
+[interfaces]
+[[MyI2P]]
+type = I2PInterface
+interface_enabled = true
+peers = aaa.b32.i2p
+""",
+        encoding="utf-8",
+    )
+    disabled = recovery.apply_startup_recovery_step(
+        str(config_path),
+        "some unrelated bind failure with no interface name",
+        attempt=0,
+    )
+    assert disabled == []
+    cfg = ConfigObj(str(config_path))
+    assert str(cfg["interfaces"]["MyI2P"]["interface_enabled"]).lower() in (
+        "true",
+        "yes",
+        "1",
+    )
+
+
+def test_create_reticulum_with_recovery_uses_rns_log_for_unnamed_panic(tmp_path):
+    import RNS
+
+    config_path = tmp_path / "config"
+    config_path.write_text(
+        """[reticulum]
+enable_transport = True
+[interfaces]
+[[MyI2P]]
+type = I2PInterface
+interface_enabled = true
+peers = aaa.b32.i2p
+[[FlakyTcp]]
+type = TCPClientInterface
+interface_enabled = true
+""",
+        encoding="utf-8",
+    )
+    recovery.install_rns_panic_containment(force=True)
+    calls = {"n": 0}
+
+    def construct():
+        calls["n"] += 1
+        if calls["n"] == 1:
+            RNS.log(
+                'The interface "FlakyTcp" could not be created. Check your '
+                "configuration file for errors!",
+                RNS.LOG_ERROR,
+            )
+            RNS.panic()
+        return "ok"
+
+    result = recovery.create_reticulum_with_recovery(
+        str(tmp_path),
+        construct=construct,
+        max_attempts=3,
+    )
+    assert result == "ok"
+    cfg = ConfigObj(str(config_path))
+    assert str(cfg["interfaces"]["FlakyTcp"]["interface_enabled"]).lower() in (
+        "false",
+        "no",
+        "0",
+    )
+    assert str(cfg["interfaces"]["MyI2P"]["interface_enabled"]).lower() in (
+        "true",
+        "yes",
+        "1",
+    )
+
+
 def test_extract_interface_names_from_error():
     names = recovery.extract_interface_names_from_error(
         'AutoInterface[HomeLAN] failed; also interface "Radio1" offline',

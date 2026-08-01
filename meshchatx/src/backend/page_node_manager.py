@@ -10,7 +10,10 @@ storage/page_nodes/<node_id>/.
 import os
 import uuid
 
-from meshchatx.src.backend.page_node import PageNode, normalize_announce_interval_seconds
+from meshchatx.src.backend.page_node import (
+    PageNode,
+    normalize_announce_interval_seconds,
+)
 
 
 class PageNodeManager:
