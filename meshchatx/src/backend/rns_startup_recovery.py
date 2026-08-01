@@ -29,9 +29,7 @@ _ORIGINAL_PANIC = None
 _ORIGINAL_EXIT = None
 _EXIT_IN_PROGRESS = False
 
-# Prefer disabling these types first when init fails without a named culprit.
 _HIGH_RISK_TYPES = (
-    "I2PInterface",
     "RNodeMultiInterface",
     "RNodeInterface",
     "RNodeIPInterface",
@@ -40,7 +38,45 @@ _HIGH_RISK_TYPES = (
     "KISSInterface",
     "AX25KISSInterface",
     "PipeInterface",
+    "I2PInterface",
 )
+
+_CAPTURED_ERROR_LOG_LINES: list[str] = []
+_ORIGINAL_RNS_LOG = None
+
+
+def _capturing_log(msg, level=3, *args, **kwargs):
+    try:
+        import RNS
+
+        if level <= RNS.LOG_ERROR:
+            _CAPTURED_ERROR_LOG_LINES.append(str(msg))
+            del _CAPTURED_ERROR_LOG_LINES[:-20]
+    except Exception:
+        pass
+    return _ORIGINAL_RNS_LOG(msg, level, *args, **kwargs)
+
+
+@contextlib.contextmanager
+def _capture_rns_error_logs():
+    global _ORIGINAL_RNS_LOG
+    try:
+        import RNS
+    except Exception:
+        yield
+        return
+
+    _CAPTURED_ERROR_LOG_LINES.clear()
+    _ORIGINAL_RNS_LOG = RNS.log
+    RNS.log = _capturing_log
+    try:
+        yield
+    finally:
+        RNS.log = _ORIGINAL_RNS_LOG
+
+
+def _mentions_i2p(text: str) -> bool:
+    return "i2p" in str(text).lower()
 
 
 class RnsPanicError(RuntimeError):
@@ -75,6 +111,8 @@ def install_rns_panic_containment(*, force: bool = False) -> bool:
         if _args:
             message = f"RNS.panic(): {_args[0]}"
         # Avoid logging handlers here. Panic can run under signal context.
+        if _CAPTURED_ERROR_LOG_LINES:
+            message = message + " | " + " | ".join(_CAPTURED_ERROR_LOG_LINES[-5:])
         raise RnsPanicError(message)
 
     def _contained_exit(code: int = 0):
@@ -289,7 +327,7 @@ def apply_startup_recovery_step(
     """Disable something that might be blocking RNS init. Returns disabled names.
 
     Steps escalate with *attempt*:
-    0. Named interfaces from the error (if any), else I2P
+    0. Named interfaces from the error (if any), else I2P when error mentions I2P
     1. RNode / serial / kiss family
     2. AutoInterface
     3. Any remaining enabled high-risk interface (one at a time)
@@ -308,7 +346,7 @@ def apply_startup_recovery_step(
             return disabled
 
     if attempt <= 0:
-        if i2p_support.disable_all_i2p_in_config(config_path):
+        if _mentions_i2p(error) and i2p_support.disable_all_i2p_in_config(config_path):
             # Names unknown here, so report a synthetic marker for logs/tests.
             disabled.append("__i2p__")
         return disabled
@@ -354,7 +392,8 @@ def create_reticulum_with_recovery(
     last_exc: Exception | None = None
     for attempt in range(max_attempts):
         try:
-            return construct()
+            with _capture_rns_error_logs():
+                return construct()
         except Exception as exc:
             last_exc = exc
             disabled = apply_startup_recovery_step(

@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: 0BSD
 
+import contextlib
 import os
 import signal
 import sys
 import threading
+import time
 
 # Prevents a second meshchat main() if Java starts two threads (e.g. activity edge cases).
 _server_loop_lock = threading.Lock()
@@ -134,6 +136,72 @@ def _install_android_rnode_support(activity=None):
         print(f"meshchat_wrapper: Android RNode support skipped: {exc}")
 
 
+def _probe_local_status_payload(port, timeout=1.5):
+    import http.client
+    import json
+    import ssl
+
+    def _fetch(use_https):
+        conn = None
+        try:
+            if use_https:
+                context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                context.check_hostname = False
+                context.verify_mode = ssl.CERT_NONE
+                conn = http.client.HTTPSConnection(
+                    "127.0.0.1",
+                    port,
+                    timeout=timeout,
+                    context=context,
+                )
+            else:
+                conn = http.client.HTTPConnection("127.0.0.1", port, timeout=timeout)
+            conn.request("GET", "/api/v1/status")
+            response = conn.getresponse()
+            body = response.read()
+            if response.status != 200:
+                return None
+            return json.loads(body.decode("utf-8"))
+        except Exception:
+            return None
+        finally:
+            if conn is not None:
+                with contextlib.suppress(Exception):
+                    conn.close()
+
+    return _fetch(True) or _fetch(False)
+
+
+def _local_backend_matches(port, timeout=1.5):
+    payload = _probe_local_status_payload(port, timeout=timeout)
+    if not isinstance(payload, dict):
+        return False
+    expected_keys = {"stage", "network_ready", "listen_port", "https_enabled"}
+    if not expected_keys.issubset(payload.keys()):
+        return False
+    return payload.get("listen_port") == port
+
+
+def _wait_for_own_backend_or_free_port(
+    port,
+    *,
+    wait_seconds=3.0,
+    poll_interval=0.3,
+    probe_timeout=1.5,
+):
+    from meshchatx.src.backend.interface_port_check import is_port_in_use
+
+    deadline = time.monotonic() + wait_seconds
+    while True:
+        if not is_port_in_use("127.0.0.1", port):
+            return "free"
+        if _local_backend_matches(port, timeout=probe_timeout):
+            return "serving"
+        if time.monotonic() >= deadline:
+            return "busy"
+        time.sleep(poll_interval)
+
+
 def start_server(port=8000, app_files_dir=None, activity=None):
     global _server_loop_active
     with _server_loop_lock:
@@ -152,6 +220,26 @@ def start_server(port=8000, app_files_dir=None, activity=None):
             os.makedirs(reticulum_config_dir, exist_ok=True)
             _ensure_android_reticulum_config(reticulum_config_dir)
             _clear_stale_storage_lock(storage_dir)
+
+        try:
+            port_outcome = _wait_for_own_backend_or_free_port(port)
+        except Exception as port_check_exc:
+            port_outcome = "free"
+            print(
+                f"meshchat_wrapper: port availability check skipped: {port_check_exc}"
+            )
+
+        if port_outcome == "serving":
+            print(
+                f"meshchat_wrapper: MeshChatX backend already serving on port {port}, "
+                "skipping duplicate start_server (activity was likely recreated)",
+            )
+            return
+        if port_outcome == "busy":
+            print(
+                f"meshchat_wrapper: port {port} is still occupied by another process "
+                "after waiting, attempting to start anyway",
+            )
 
         original_signal = signal.signal
 
