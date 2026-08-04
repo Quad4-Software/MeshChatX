@@ -80,7 +80,7 @@ def resolve_message_age_cutoff(
 ) -> float | None:
     """Resolve a purge/export cutoff from query-style inputs.
 
-    Returns None when neither filter is provided. Prefer ``before`` when both
+    Returns None when neither filter is provided. Prefer the "before" argument when both
     are set. Raises ValueError on invalid input.
     """
     before_raw = None if before is None else str(before).strip()
