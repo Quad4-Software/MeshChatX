@@ -1,6 +1,6 @@
 # Architecture and design
 
-MeshChatX is a heavily extended fork of Reticulum MeshChat. The goals below shaped how the codebase is organized.
+MeshChatX is a fork of Reticulum MeshChat with LXST telephony, RRC relay chat, Nomad tooling, plugins, and a SQL backend without Peewee. The goals below shaped how the codebase is organized.
 
 ## Design goals
 

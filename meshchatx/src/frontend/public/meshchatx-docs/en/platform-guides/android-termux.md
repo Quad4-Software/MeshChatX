@@ -1,12 +1,12 @@
 # Android with Termux
 
-It's possible to run MeshChatX on Android using [Termux](https://termux.dev/). Installation is now much simpler since the wheel package includes both the server and pre-built web assets.
+MeshChatX runs on Android through [Termux](https://termux.dev/). Release wheels ship the Python backend and built web UI, so you do not need Node on the phone for a normal install.
 
-## Method 1: Install from Wheel (Recommended)
+## Install from wheel
 
-This is the easiest method - the wheel includes everything you need.
+The wheel bundles server code and frontend assets.
 
-### Install System Dependencies
+### System packages
 
 ```
 pkg upgrade
@@ -18,7 +18,7 @@ pkg install build-essential
 
 > Note: Python 3.11 or higher is required. Check with `python --version`.
 
-### Download and Install Wheel
+### Wheel install
 
 Download the latest wheel from the [releases page](https://github.com/Quad4-Software/MeshChatX/releases), then:
 
@@ -26,9 +26,9 @@ Download the latest wheel from the [releases page](https://github.com/Quad4-Soft
 pip install reticulum_meshchatx-*-py3-none-any.whl
 ```
 
-The wheel will automatically install all Python dependencies. Building `cryptography` may take a while on Android.
+The wheel pulls Python dependencies automatically. Building `cryptography` can take several minutes on Android.
 
-### Run MeshChatX
+### Run
 
 ```
 meshchatx
@@ -36,13 +36,13 @@ meshchatx
 
 (`meshchat` is a compatibility alias for the same entry point.)
 
-Then open your Android web browser and navigate to `http://localhost:8000`
+Open `http://localhost:8000` in the Android browser.
 
-## Method 2: Install from Source
+## Install from source
 
-If you need to build from source (for development or if no wheel is available for your architecture):
+Use this path for development or when no wheel fits your setup.
 
-### Install System Dependencies
+### System packages
 
 ```
 pkg upgrade
@@ -54,14 +54,14 @@ pkg install binutils
 pkg install build-essential
 ```
 
-### Install pnpm
+### pnpm
 
 ```
 corepack enable
 corepack prepare pnpm@latest --activate
 ```
 
-### Clone and Build
+### Clone and build
 
 ```
 git clone https://github.com/Quad4-Software/MeshChatX.git
@@ -74,7 +74,7 @@ uv build --wheel
 pip install dist/*.whl
 ```
 
-### Run MeshChatX
+### Run
 
 ```
 meshchatx
@@ -82,6 +82,6 @@ meshchatx
 
 (`meshchat` is a compatibility alias for the same entry point.)
 
-## Configuration Notes
+## Configuration notes
 
-> Note: The default `AutoInterface` may not work on your Android device. You will need to configure another interface such as `TCPClientInterface` in the settings.
+> Note: The default `AutoInterface` may not work on your Android device. Configure another interface such as `TCPClientInterface` in the settings.

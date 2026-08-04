@@ -21,7 +21,7 @@ Plugins cannot rewrite core MeshChatX. They do not get open-ended filesystem or 
 | --------------- | ------------------------- | ----------------------------------------------- |
 | Frontend JS     | Browser Web Worker        | Medium. Sandboxed worker, capability grants     |
 | Backend WASM    | `wasmtime` on the server  | Medium. Fuel-metered, capability-gated host     |
-| Backend Python  | In-process with MeshChatX | High. Permission-checked host, still powerful   |
+| Backend Python  | In-process with MeshChatX | High. Permission-checked in-process host        |
 | Sideband `*.py` | In-process, flat files    | Highest. Opt-in danger switch, full host access |
 
 A packaged plugin can ship frontend only, backend only, or both.
@@ -269,7 +269,7 @@ These run in-process with full host access. They are not ZIP-permission gated. K
 ## Operator tips
 
 - Prefer signed packages from publishers you added yourself
-- Deny `network: fetch` unless the plugin truly needs clearnet
+- Deny `network: fetch` unless the plugin needs clearnet HTTP
 - Prefer WASM backends over Python when you can
 - Use `--disable-plugins` when diagnosing weird UI or backend behaviour
 - Treat Sideband plugins like running arbitrary local scripts

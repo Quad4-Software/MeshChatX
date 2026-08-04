@@ -200,7 +200,7 @@ CI release builds use the clearnet path. Without a bundled copy the Reticulum ta
 
 MeshChatX includes optional tooling to pull `rns`, `lxmf`, `lxst`, and the Reticulum manual from markqvist's rngit remotes over the mesh instead of clearnet.
 
-**Note:** Installing Python packages over RNS is significantly slower than PyPI and is intended for use in environments with mesh access but restricted clearnet. PyPI remains the default and recommended path for CI and standard development.
+**Note:** Installing Python packages over RNS is slower than PyPI and fits mesh-only hosts with restricted clearnet. PyPI remains the default path for CI and standard development.
 
 | Remote                                                       | Purpose               |
 | ------------------------------------------------------------ | --------------------- |
