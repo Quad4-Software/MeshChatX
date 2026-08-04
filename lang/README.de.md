@@ -199,7 +199,7 @@ Wenn Sie absichtlich Abhaengigkeiten aktualisieren wollen, fuehren Sie `pnpm upd
 
 Um das native `meshchatx`-Programm (Alias: `meshchat`) mit zusaetzlicher Dateisystem-Isolation auszufuehren, koennen Sie **Firejail** oder **Bubblewrap** (`bwrap`) nutzen, bei weiterhin normalem Netzwerkzugriff fuer Reticulum und die Web-Oberflaeche. Vollstaendige Beispiele (pip/pipx, UV, Hinweise zu USB-Seriell) finden Sie in:
 
-- [`docs/meshchatx_linux_sandbox.md`](../docs/meshchatx_linux_sandbox.md)
+- [`docs/en/platform-guides/linux-sandbox.md`](../docs/en/platform-guides/linux-sandbox.md)
 
 Dieselbe Seite erscheint in der in-app-Liste **Dokumentation** (MeshChatX-Dokumentation), wenn sie aus den gebuendelten oder synchronisierten `meshchatx-docs`-Dateien ausgeliefert wird.
 
@@ -308,7 +308,7 @@ Hinweise:
 
 Weitere Dokumentation:
 
-- [`docs/meshchatx_on_android_with_termux.md`](../docs/meshchatx_on_android_with_termux.md)
+- [`docs/en/platform-guides/android-termux.md`](../docs/en/platform-guides/android-termux.md)
 - [`android/README.md`](../android/README.md)
 
 ## Konfiguration
@@ -361,7 +361,7 @@ task build
 Aktuelle Version in diesem Repository: `4.8.2`.
 
 - Fuer Release-Bumps bearbeiten Sie **nur** `version` in **`package.json`**.
-- **`pnpm run version:sync`** (wird auch zu Beginn von **`pnpm run build`** ausgefuehrt) verbreitet diese Version in **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (Produktzeile), **README** / **lang/README.\*** (Zeilen mit aktueller Version), **`docs/meshchatx_on_raspberry_pi.md`** (pipx-Beispiel) und Hilfsfelder in **`packaging/arch/PKGBUILD`**.
+- **`pnpm run version:sync`** (wird auch zu Beginn von **`pnpm run build`** ausgefuehrt) verbreitet diese Version in **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (Produktzeile), **README** / **lang/README.\*** (Zeilen mit aktueller Version), **`docs/en/platform-guides/raspberry-pi.md`** (pipx-Beispiel) und Hilfsfelder in **`packaging/arch/PKGBUILD`**.
 - **`meshchatx.__version__`** wird aus **`meshchatx/src/version.py`** gelesen, ohne `meshchatx.src` zu importieren, damit ein normales `import meshchatx` leicht bleibt.
 - **Changelog**-Eintrage bleiben beim Release manuell.
 

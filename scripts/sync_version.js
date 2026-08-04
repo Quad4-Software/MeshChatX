@@ -4,8 +4,8 @@
  *
  * Writes: meshchatx/__init__.py (__version__), meshchatx/src/version.py, pyproject.toml [project].version,
  * meshchatx/src/backend/data/THIRD_PARTY_NOTICES.txt (reticulum-meshchatx line only),
- * README + lang README "current version" lines, docs/meshchatx_on_raspberry_pi.md,
- * meshchatx/src/frontend/public/meshchatx-docs/meshchatx_on_raspberry_pi.md,
+ * README + lang README "current version" lines, docs/en/platform-guides/raspberry-pi.md,
+ * meshchatx/src/frontend/public/meshchatx-docs/en/platform-guides/raspberry-pi.md,
  * meshchatx/src/backend/data/licenses_backend.json (reticulum-meshchatx entry),
  * android/app/build.gradle,
  * pipx example, packaging/arch/PKGBUILD pkgver / printf fallback,
@@ -101,8 +101,11 @@ function patchRaspberryPiDoc(c) {
     return x;
 }
 
-patchFile("docs/meshchatx_on_raspberry_pi.md", patchRaspberryPiDoc);
-patchFile("meshchatx/src/frontend/public/meshchatx-docs/meshchatx_on_raspberry_pi.md", patchRaspberryPiDoc);
+patchFile("docs/en/platform-guides/raspberry-pi.md", patchRaspberryPiDoc);
+patchFile(
+    "meshchatx/src/frontend/public/meshchatx-docs/en/platform-guides/raspberry-pi.md",
+    patchRaspberryPiDoc
+);
 
 const licensesBackendPath = path.join(root, "meshchatx", "src", "backend", "data", "licenses_backend.json");
 if (fs.existsSync(licensesBackendPath)) {

@@ -2,7 +2,7 @@
 
 [Русский](lang/README.ru.md) | [Deutsch](lang/README.de.md) | [Italiano](lang/README.it.md) | [中文](lang/README.zh.md) | [日本語](lang/README.ja.md)
 
-A extensively modified and feature-rich fork of [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) by Liam Cottle.
+Fork of [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) by Liam Cottle. MeshChatX adds LXST voice calls, RRC relay chat, Nomad map overlays, plugins, raw SQLite (no Peewee), and Electron 41 desktop builds.
 
 This project is independent from the original Reticulum MeshChat project and is not affiliated with it.
 
@@ -197,7 +197,7 @@ If you intentionally want to update dependencies, run `pnpm update` / `uv lock` 
 
 To run the native `meshchatx` binary (alias: `meshchat`) with extra filesystem isolation, you can use **Firejail** or **Bubblewrap** (`bwrap`) while keeping normal network access for Reticulum and the web UI. Full examples (pip/pipx, Poetry, USB serial notes) are in:
 
-- [`docs/meshchatx_linux_sandbox.md`](docs/meshchatx_linux_sandbox.md)
+- [`docs/en/platform-guides/linux-sandbox.md`](docs/en/platform-guides/linux-sandbox.md)
 
 The same page appears in the in-app **Documentation** list (MeshChatX docs) when served from the bundled or synced `meshchatx-docs` files.
 
@@ -391,7 +391,7 @@ Notes:
 
 Additional docs:
 
-- [`docs/meshchatx_on_android_with_termux.md`](docs/meshchatx_on_android_with_termux.md)
+- [`docs/en/platform-guides/android-termux.md`](docs/en/platform-guides/android-termux.md)
 - [`android/README.md`](android/README.md)
 
 ## Configuration
@@ -450,7 +450,7 @@ task build
 Current version in this repo is `4.8.2`.
 
 - **`package.json`** `version` is the only value you edit for a release bump.
-- Run **`pnpm run version:sync`** (also run at the start of **`pnpm run build`**) to propagate that version into **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (product line), **README** / **lang/README.\*** “current version” lines, **`docs/meshchatx_on_raspberry_pi.md`** pipx example, and **`packaging/arch/PKGBUILD`** helpers.
+- Run **`pnpm run version:sync`** (also run at the start of **`pnpm run build`**) to propagate that version into **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (product line), **README** / **lang/README.\*** “current version” lines, **`docs/en/platform-guides/raspberry-pi.md`** pipx example, and **`packaging/arch/PKGBUILD`** helpers.
 - **`meshchatx.__version__`** is read from **`meshchatx/src/version.py`** without importing **`meshchatx.src`**, so a plain `import meshchatx` stays lightweight.
 - **Changelog** entries stay manual when you cut a release.
 
@@ -521,7 +521,7 @@ People are then welcome to submit fixes to me via LXMF (`f489752fbef161c64d65e38
 
 Locale discovery is automatic. Add a new file under `meshchatx/src/frontend/locales/` (for example `xx.json`) with the same keys as `en.json` and a top-level `_languageName` string for the label shown in the language selector. You can copy `en.json` and translate every value by hand; **machine-assisted generation is optional** and never required.
 
-**Optional: Argos Translate bootstrap** -- If you want a machine-generated first draft from `en.json`, you can use `scripts/argos_translate.py`. It handles formatting, color output, and helps protect interpolation variables (like `{count}`) from accidental edits.
+**Optional: Argos Translate bootstrap.** For a machine-generated first draft from `en.json`, use `scripts/argos_translate.py`. It handles formatting, color output, and protects interpolation variables (like `{count}`) from accidental edits.
 
 ```bash
 # Install argostranslate if you haven't already

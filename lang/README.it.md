@@ -199,7 +199,7 @@ Se vuoi aggiornare intenzionalmente le dipendenze, esegui `pnpm update` / `uv lo
 
 Per eseguire il binario nativo `meshchatx` (alias: `meshchat`) con isolamento aggiuntivo del filesystem, puoi usare **Firejail** o **Bubblewrap** (`bwrap`) mantenendo l'accesso di rete normale per Reticulum e l'interfaccia web. Esempi completi (pip/pipx, UV, note sulla seriale USB) sono in:
 
-- [`docs/meshchatx_linux_sandbox.md`](../docs/meshchatx_linux_sandbox.md)
+- [`docs/en/platform-guides/linux-sandbox.md`](../docs/en/platform-guides/linux-sandbox.md)
 
 La stessa pagina compare nell'elenco **Documentazione** (documentazione MeshChatX) in-app quando viene servita dai file `meshchatx-docs` in bundle o sincronizzati.
 
@@ -308,7 +308,7 @@ Note:
 
 Documentazione aggiuntiva:
 
-- [`docs/meshchatx_on_android_with_termux.md`](../docs/meshchatx_on_android_with_termux.md)
+- [`docs/en/platform-guides/android-termux.md`](../docs/en/platform-guides/android-termux.md)
 - [`android/README.md`](../android/README.md)
 
 ## Configurazione
@@ -361,7 +361,7 @@ I target `Makefile` sono wrapper sottili che delegano a `task` (stessi comandi d
 Versione attuale nel repository: `4.8.2`.
 
 - L'unico valore che modifichi per un bump di release e **`version` in `package.json`**.
-- Esegui **`pnpm run version:sync`** (all'inizio anche di **`pnpm run build`**) per propagare in **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (riga prodotto), **README** / **lang/README.\*** (righe "versione attuale"), **esempio pipx in `docs/meshchatx_on_raspberry_pi.md`**, e aiuti in **`packaging/arch/PKGBUILD`**.
+- Esegui **`pnpm run version:sync`** (all'inizio anche di **`pnpm run build`**) per propagare in **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (riga prodotto), **README** / **lang/README.\*** (righe "versione attuale"), **esempio pipx in `docs/en/platform-guides/raspberry-pi.md`**, e aiuti in **`packaging/arch/PKGBUILD`**.
 - **`meshchatx.__version__`** si legge da **`meshchatx/src/version.py`** senza importare **`meshchatx.src`**, cosi un semplice `import meshchatx` resta leggero.
 - Le voci del **changelog** restano manuali quando tagghi una release.
 

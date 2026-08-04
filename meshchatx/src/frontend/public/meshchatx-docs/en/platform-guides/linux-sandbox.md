@@ -38,7 +38,7 @@ Adjust paths if you prefer another location.
 Firejail applies a profile (or defaults) on top of your command. For MeshChatX you typically want:
 
 - **Network** left available so Reticulum and the web UI can work (do not use `--net=none` unless you know you need it).
-- **Writable** only your chosen data directory (and anything else the app truly needs).
+- **Writable** only your chosen data directory (and any other paths the app needs).
 
 ### Installed `meshchatx` (pip, pipx, or system package)
 

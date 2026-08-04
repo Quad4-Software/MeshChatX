@@ -199,7 +199,7 @@ uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 
 若要在额外隔离文件系统的情况下运行原生 `meshchatx`（别名：`meshchat`），可使用 **Firejail** 或 **Bubblewrap**（`bwrap`），同时保留 Reticulum 与 Web 界面所需的网络访问。完整示例（pip/pipx、UV、USB 串口说明）见:
 
-- [`docs/meshchatx_linux_sandbox.md`](../docs/meshchatx_linux_sandbox.md)
+- [`docs/en/platform-guides/linux-sandbox.md`](../docs/en/platform-guides/linux-sandbox.md)
 
 从已捆绑或已同步的 `meshchatx-docs` 文件提供服务时，应用内 **文档** 列表（MeshChatX 文档）亦会显示同一页面。
 
@@ -308,7 +308,7 @@ cd android
 
 更多文档:
 
-- [`docs/meshchatx_on_android_with_termux.md`](../docs/meshchatx_on_android_with_termux.md)
+- [`docs/en/platform-guides/android-termux.md`](../docs/en/platform-guides/android-termux.md)
 - [`android/README.md`](../android/README.md)
 
 ## 配置
@@ -361,7 +361,7 @@ task build
 本仓库当前版本: `4.8.2`。
 
 - 发布版本号**只**改 **`package.json` 的 `version`**。
-- 运行 **`pnpm run version:sync`**（在 **`pnpm run build`** 开头也会执行）可将该版本同步到 **`pyproject.toml`**、**`meshchatx/src/version.py`**、**`THIRD_PARTY_NOTICES.txt`**（产品行）、**README** / **lang/README.\*** 中的“当前版本”行、**`docs/meshchatx_on_raspberry_pi.md`** 的 pipx 示例，以及 **`packaging/arch/PKGBUILD`** 的辅助字段。
+- 运行 **`pnpm run version:sync`**（在 **`pnpm run build`** 开头也会执行）可将该版本同步到 **`pyproject.toml`**、**`meshchatx/src/version.py`**、**`THIRD_PARTY_NOTICES.txt`**（产品行）、**README** / **lang/README.\*** 中的“当前版本”行、**`docs/en/platform-guides/raspberry-pi.md`** 的 pipx 示例，以及 **`packaging/arch/PKGBUILD`** 的辅助字段。
 - **`meshchatx.__version__`** 从 **`meshchatx/src/version.py`** 读取且不导入 **`meshchatx.src`**，因此普通 `import meshchatx` 仍很轻量。
 - **变更日志**在发版时仍由人工维护。
 

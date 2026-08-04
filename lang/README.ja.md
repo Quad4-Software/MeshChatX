@@ -199,7 +199,7 @@ uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 
 ネイティブの `meshchatx`（エイリアス: `meshchat`）をファイルシステムをより隔離した状態で動かすには、Reticulum と Web UI 向けの通常のネットワークアクセスを保ちつつ **Firejail** または **Bubblewrap**（`bwrap`）を使えます。詳しい例（pip/pipx、UV、USB シリアルの注意）は次を参照:
 
-- [`docs/meshchatx_linux_sandbox.md`](../docs/meshchatx_linux_sandbox.md)
+- [`docs/en/platform-guides/linux-sandbox.md`](../docs/en/platform-guides/linux-sandbox.md)
 
 同梱または同期された `meshchatx-docs` から配信する場合、同じページがアプリ内 **ドキュメント** 一覧（MeshChatX ドキュメント）にも表示されます。
 
@@ -308,7 +308,7 @@ cd android
 
 追加ドキュメント:
 
-- [`docs/meshchatx_on_android_with_termux.md`](../docs/meshchatx_on_android_with_termux.md)
+- [`docs/en/platform-guides/android-termux.md`](../docs/en/platform-guides/android-termux.md)
 - [`android/README.md`](../android/README.md)
 
 ## 設定
@@ -361,7 +361,7 @@ task build
 このリポジトリの現在のバージョンは `4.8.2` です。
 
 - リリースのバージョン上げは **`package.json` の `version` のみ**編集します。
-- **`pnpm run version:sync`**（**`pnpm run build`** 開始時にも実行）で、**`pyproject.toml`**、**`meshchatx/src/version.py`**、**`THIRD_PARTY_NOTICES.txt`**（製品行）、**README** / **lang/README.\***（現在のバージョン行）、**`docs/meshchatx_on_raspberry_pi.md`** の pipx 例、**`packaging/arch/PKGBUILD`** の補助フィールドに反映します。
+- **`pnpm run version:sync`**（**`pnpm run build`** 開始時にも実行）で、**`pyproject.toml`**、**`meshchatx/src/version.py`**、**`THIRD_PARTY_NOTICES.txt`**（製品行）、**README** / **lang/README.\***（現在のバージョン行）、**`docs/en/platform-guides/raspberry-pi.md`** の pipx 例、**`packaging/arch/PKGBUILD`** の補助フィールドに反映します。
 - **`meshchatx.__version__`** は **`meshchatx/src/version.py`** から読み、**`meshchatx.src`** をインポートしないため、単なる `import meshchatx` は軽量のままです。
 - **Changelog** のエントリはリリース時に手作業のままです。
 

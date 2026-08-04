@@ -199,7 +199,7 @@ uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 
 Чтобы запускать нативный `meshchatx` (псевдоним: `meshchat`) с дополнительной изоляцией файловой системы, можно использовать **Firejail** или **Bubblewrap** (`bwrap`), сохраняя обычный сетевой доступ для Reticulum и веб-интерфейса. Полные примеры (pip/pipx, UV, USB-serial) в:
 
-- [`docs/meshchatx_linux_sandbox.md`](../docs/meshchatx_linux_sandbox.md)
+- [`docs/en/platform-guides/linux-sandbox.md`](../docs/en/platform-guides/linux-sandbox.md)
 
 Та же страница отображается в списке **Документация** (документация MeshChatX) в приложении, если файлы отдаются из встроенных или синхронизированных `meshchatx-docs`.
 
@@ -308,7 +308,7 @@ cd android
 
 Дополнительная документация:
 
-- [`docs/meshchatx_on_android_with_termux.md`](../docs/meshchatx_on_android_with_termux.md)
+- [`docs/en/platform-guides/android-termux.md`](../docs/en/platform-guides/android-termux.md)
 - [`android/README.md`](../android/README.md)
 
 ## Конфигурация
@@ -361,7 +361,7 @@ task build
 Текущая версия в репозитории: `4.8.2`.
 
 - Редактируйте для релизного бампа **только** поле `version` в **`package.json`**.
-- Команда **`pnpm run version:sync`** (также в начале **`pnpm run build`**) распространяет эту версию в **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (строка продукта), **README** / **lang/README.\*** (строки «текущая версия»), **`docs/meshchatx_on_raspberry_pi.md`** (пример pipx) и вспомогательные поля **`packaging/arch/PKGBUILD`**.
+- Команда **`pnpm run version:sync`** (также в начале **`pnpm run build`**) распространяет эту версию в **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (строка продукта), **README** / **lang/README.\*** (строки «текущая версия»), **`docs/en/platform-guides/raspberry-pi.md`** (пример pipx) и вспомогательные поля **`packaging/arch/PKGBUILD`**.
 - **`meshchatx.__version__`** читается из **`meshchatx/src/version.py`** без импорта **`meshchatx.src`**, поэтому обычный `import meshchatx` остаётся лёгким.
 - Записи **changelog** по-прежнему вносятся вручную при релизе.
 
