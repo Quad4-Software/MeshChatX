@@ -11,7 +11,7 @@
             <template #actions>
                 <button type="button" class="primary-chip px-4 py-2 text-sm shrink-0" @click="showCreateDialog = true">
                     <MaterialDesignIcon icon-name="plus" class="w-4 h-4" />
-                    Create Node
+                    {{ $t("tools.mesh_server.create_node") }}
                 </button>
             </template>
         </ToolsPageHeader>
@@ -21,7 +21,7 @@
                     v-if="loading"
                     class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-8 sm:py-12 text-center"
                 >
-                    <div class="text-gray-500 dark:text-gray-400">Loading nodes...</div>
+                    <div class="text-gray-500 dark:text-gray-400">{{ $t("tools.mesh_server.loading") }}</div>
                 </div>
 
                 <div
@@ -29,9 +29,9 @@
                     class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-8 sm:py-12 text-center"
                 >
                     <MaterialDesignIcon icon-name="server-network" class="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                    <div class="text-gray-600 dark:text-gray-400 mb-2">No mesh servers yet</div>
+                    <div class="text-gray-600 dark:text-gray-400 mb-2">{{ $t("tools.mesh_server.empty_title") }}</div>
                     <div class="text-sm text-gray-500 dark:text-gray-500">
-                        Create a server to start serving Micron pages over the mesh.
+                        {{ $t("tools.mesh_server.empty_description") }}
                     </div>
                 </div>
 
@@ -70,28 +70,33 @@
                             </div>
                             <div class="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                                 <span class="text-xs text-gray-500 dark:text-gray-400 mr-1">
-                                    {{ node.pages.length }}p / {{ node.files.length }}f
+                                    {{
+                                        $t("tools.mesh_server.stats_pages_files", {
+                                            pages: node.pages.length,
+                                            files: node.files.length,
+                                        })
+                                    }}
                                 </span>
                                 <button
                                     v-if="!node.running"
                                     class="primary-chip py-1! px-2.5! text-xs!"
                                     @click.stop="startNode(node.node_id)"
                                 >
-                                    Start
+                                    {{ $t("tools.mesh_server.start") }}
                                 </button>
                                 <button
                                     v-else
                                     class="secondary-chip py-1! px-2.5! text-xs! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
                                     @click.stop="stopNode(node.node_id)"
                                 >
-                                    Stop
+                                    {{ $t("tools.mesh_server.stop") }}
                                 </button>
                                 <button
                                     v-if="node.running"
                                     class="secondary-chip py-1! px-2.5! text-xs!"
                                     @click.stop="announceNode(node.node_id)"
                                 >
-                                    Announce
+                                    {{ $t("tools.mesh_server.announce") }}
                                 </button>
                                 <button
                                     v-if="node.running && node.destination_hash"
@@ -99,7 +104,7 @@
                                     @click.stop="viewNode(node)"
                                 >
                                     <MaterialDesignIcon icon-name="eye" class="w-3.5 h-3.5" />
-                                    View
+                                    {{ $t("tools.mesh_server.view") }}
                                 </button>
                                 <button
                                     class="secondary-chip py-1! px-2.5! text-xs! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
@@ -114,11 +119,41 @@
                             v-if="node.stats || node.running"
                             class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400 pl-6"
                         >
-                            <span v-if="node.running">{{ formatMeshUptime(node.uptime_seconds) }} uptime</span>
-                            <span>{{ node.unique_connections ?? 0 }} connections</span>
-                            <span v-if="node.stats">{{ node.stats.pages_served }} pages</span>
-                            <span v-if="node.stats">{{ node.stats.files_served }} files</span>
-                            <span v-if="node.stats">{{ node.stats.links_established }} links</span>
+                            <span v-if="node.running">
+                                {{
+                                    $t("tools.mesh_server.uptime", {
+                                        time: formatMeshUptime(node.uptime_seconds),
+                                    })
+                                }}
+                            </span>
+                            <span>
+                                {{
+                                    $t("tools.mesh_server.connections", {
+                                        count: node.unique_connections ?? 0,
+                                    })
+                                }}
+                            </span>
+                            <span v-if="node.stats">
+                                {{
+                                    $t("tools.mesh_server.pages_served", {
+                                        count: node.stats.pages_served,
+                                    })
+                                }}
+                            </span>
+                            <span v-if="node.stats">
+                                {{
+                                    $t("tools.mesh_server.files_served", {
+                                        count: node.stats.files_served,
+                                    })
+                                }}
+                            </span>
+                            <span v-if="node.stats">
+                                {{
+                                    $t("tools.mesh_server.links", {
+                                        count: node.stats.links_established,
+                                    })
+                                }}
+                            </span>
                             <span>{{ formatLastAnnounced(node.last_announced_at) }}</span>
                         </div>
                     </div>
@@ -135,7 +170,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <button class="secondary-chip py-1! px-3! text-xs!" @click="showRenameDialog = true">
-                                Rename
+                                {{ $t("tools.mesh_server.rename") }}
                             </button>
                             <button class="secondary-chip py-1! px-3! text-xs!" @click="selectedNode = null">
                                 <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
@@ -148,14 +183,16 @@
                         class="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
                     >
                         <div class="flex items-center justify-between mb-1">
-                            <div class="text-xs font-bold uppercase tracking-wider">Destination Hash</div>
+                            <div class="text-xs font-bold uppercase tracking-wider">
+                                {{ $t("tools.mesh_server.destination_hash") }}
+                            </div>
                             <button
                                 v-if="selectedNode.running"
                                 class="primary-chip py-0.5! px-2! text-xs!"
                                 @click="viewNode(selectedNode)"
                             >
                                 <MaterialDesignIcon icon-name="eye" class="w-3 h-3" />
-                                View in Browser
+                                {{ $t("tools.mesh_server.view_in_browser") }}
                             </button>
                         </div>
                         <div class="font-mono text-sm select-all">{{ selectedNode.destination_hash }}</div>
@@ -175,18 +212,23 @@
                                 :label="$t('tools.mesh_server.announce_enabled_label')"
                             />
                         </div>
-                        <div v-if="announceSettingsForm.announce_enabled" class="flex items-center gap-3">
-                            <label for="mesh-server-announce-interval" class="glass-label mb-0 shrink-0">
-                                {{ $t("tools.mesh_server.announce_interval_label") }}
-                            </label>
-                            <input
-                                id="mesh-server-announce-interval"
-                                v-model.number="announceIntervalMinutes"
-                                type="number"
-                                min="1"
-                                max="1440"
-                                class="input-field w-24"
-                            />
+                        <div v-if="announceSettingsForm.announce_enabled" class="space-y-1">
+                            <div class="flex items-center gap-3">
+                                <label for="mesh-server-announce-interval" class="glass-label mb-0 shrink-0">
+                                    {{ $t("tools.mesh_server.announce_interval_label") }}
+                                </label>
+                                <input
+                                    id="mesh-server-announce-interval"
+                                    v-model.number="announceIntervalMinutes"
+                                    type="number"
+                                    min="0"
+                                    max="1440"
+                                    class="input-field w-24"
+                                />
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                {{ $t("tools.mesh_server.announce_interval_manual_hint") }}
+                            </div>
                         </div>
                         <div class="flex items-center justify-between gap-3">
                             <span class="text-xs text-gray-500 dark:text-gray-400">
@@ -209,7 +251,11 @@
                             ]"
                             @click="detailTab = 'pages'"
                         >
-                            Pages ({{ selectedNode.pages.length }})
+                            {{
+                                $t("tools.mesh_server.tabs_pages", {
+                                    count: selectedNode.pages.length,
+                                })
+                            }}
                         </button>
                         <button
                             :class="[
@@ -220,7 +266,11 @@
                             ]"
                             @click="detailTab = 'files'"
                         >
-                            Files ({{ selectedNode.files.length }})
+                            {{
+                                $t("tools.mesh_server.tabs_files", {
+                                    count: selectedNode.files.length,
+                                })
+                            }}
                         </button>
                     </div>
 
@@ -230,13 +280,13 @@
                             <input
                                 v-model="newPageName"
                                 type="text"
-                                placeholder="Page name (e.g. index)"
+                                :placeholder="$t('tools.mesh_server.page_name_placeholder')"
                                 class="input-field flex-1"
                                 @keyup.enter="addPage"
                             />
                             <button class="primary-chip py-1! px-3! text-xs!" @click="addPage">
                                 <MaterialDesignIcon icon-name="plus" class="w-3.5 h-3.5" />
-                                Add Page
+                                {{ $t("tools.mesh_server.add_page") }}
                             </button>
                         </div>
 
@@ -244,7 +294,7 @@
                             v-if="selectedNode.pages.length === 0"
                             class="text-sm text-gray-500 dark:text-gray-400 py-4 text-center"
                         >
-                            No pages yet. Add one or publish from the Micron Editor.
+                            {{ $t("tools.mesh_server.no_pages") }}
                         </div>
 
                         <div
@@ -258,7 +308,7 @@
                             </div>
                             <div class="flex items-center gap-2">
                                 <button class="secondary-chip py-0.5! px-2! text-xs!" @click="editPage(page)">
-                                    Edit
+                                    {{ $t("common.edit") }}
                                 </button>
                                 <button
                                     class="secondary-chip py-0.5! px-2! text-xs! text-red-500!"
@@ -273,12 +323,18 @@
                         <div v-if="editingPage" class="space-y-2">
                             <div class="flex items-center justify-between">
                                 <div class="text-sm font-semibold text-gray-900 dark:text-white">
-                                    Editing: {{ editingPage }}
+                                    {{
+                                        $t("tools.mesh_server.editing_page", {
+                                            name: editingPage,
+                                        })
+                                    }}
                                 </div>
                                 <div class="flex gap-2">
-                                    <button class="primary-chip py-1! px-3! text-xs!" @click="savePage">Save</button>
+                                    <button class="primary-chip py-1! px-3! text-xs!" @click="savePage">
+                                        {{ $t("common.save") }}
+                                    </button>
                                     <button class="secondary-chip py-1! px-3! text-xs!" @click="editingPage = null">
-                                        Cancel
+                                        {{ $t("common.cancel") }}
                                     </button>
                                 </div>
                             </div>
@@ -295,7 +351,7 @@
                             <input ref="fileInput" type="file" class="hidden" @change="uploadFile" />
                             <button class="primary-chip py-1! px-3! text-xs!" @click="$refs.fileInput.click()">
                                 <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
-                                Upload File
+                                {{ $t("tools.mesh_server.upload_file") }}
                             </button>
                         </div>
 
@@ -303,7 +359,7 @@
                             v-if="selectedNode.files.length === 0"
                             class="text-sm text-gray-500 dark:text-gray-400 py-4 text-center"
                         >
-                            No files yet. Upload files to serve over the mesh.
+                            {{ $t("tools.mesh_server.no_files") }}
                         </div>
 
                         <div
@@ -337,22 +393,26 @@
             @click.self="showCreateDialog = false"
         >
             <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl space-y-4">
-                <div class="text-lg font-semibold text-gray-900 dark:text-white">Create Mesh Server</div>
+                <div class="text-lg font-semibold text-gray-900 dark:text-white">
+                    {{ $t("tools.mesh_server.create_dialog_title") }}
+                </div>
                 <div>
-                    <label class="glass-label">Server Name</label>
+                    <label class="glass-label">{{ $t("tools.mesh_server.server_name_label") }}</label>
                     <input
                         v-model="createNodeName"
                         type="text"
-                        placeholder="My Mesh Server"
+                        :placeholder="$t('tools.mesh_server.server_name_placeholder')"
                         class="input-field"
                         @keyup.enter="createNode"
                     />
                 </div>
                 <div class="flex justify-end gap-2">
                     <button class="secondary-chip py-1.5! px-4! text-sm!" @click="showCreateDialog = false">
-                        Cancel
+                        {{ $t("common.cancel") }}
                     </button>
-                    <button class="primary-chip py-1.5! px-4! text-sm!" @click="createNode">Create</button>
+                    <button class="primary-chip py-1.5! px-4! text-sm!" @click="createNode">
+                        {{ $t("tools.mesh_server.create") }}
+                    </button>
                 </div>
             </div>
         </div>
@@ -364,9 +424,11 @@
             @click.self="showRenameDialog = false"
         >
             <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl space-y-4">
-                <div class="text-lg font-semibold text-gray-900 dark:text-white">Rename Server</div>
+                <div class="text-lg font-semibold text-gray-900 dark:text-white">
+                    {{ $t("tools.mesh_server.rename_dialog_title") }}
+                </div>
                 <div>
-                    <label class="glass-label">New Name</label>
+                    <label class="glass-label">{{ $t("tools.mesh_server.new_name_label") }}</label>
                     <input
                         v-model="renameNodeName"
                         type="text"
@@ -377,24 +439,13 @@
                 </div>
                 <div class="flex justify-end gap-2">
                     <button class="secondary-chip py-1.5! px-4! text-sm!" @click="showRenameDialog = false">
-                        Cancel
+                        {{ $t("common.cancel") }}
                     </button>
-                    <button class="primary-chip py-1.5! px-4! text-sm!" @click="renameNode">Rename</button>
+                    <button class="primary-chip py-1.5! px-4! text-sm!" @click="renameNode">
+                        {{ $t("tools.mesh_server.rename") }}
+                    </button>
                 </div>
             </div>
-        </div>
-
-        <!-- Status message -->
-        <div
-            v-if="statusMessage"
-            class="fixed bottom-4 right-4 z-50 p-3 rounded-lg shadow-lg text-sm"
-            :class="
-                statusSuccess
-                    ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200'
-                    : 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200'
-            "
-        >
-            {{ statusMessage }}
         </div>
     </div>
 </template>
@@ -404,11 +455,23 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import DialogUtils from "../../js/DialogUtils";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 import Toggle from "../forms/Toggle.vue";
+import ToastUtils from "../../js/ToastUtils";
 import Utils from "../../js/Utils";
 
 const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900;
 const ANNOUNCE_INTERVAL_MIN_MINUTES = 1;
 const ANNOUNCE_INTERVAL_MAX_MINUTES = 1440;
+
+function resolveAnnounceIntervalSeconds(seconds, defaultSeconds = DEFAULT_ANNOUNCE_INTERVAL_SECONDS) {
+    if (seconds == null) {
+        return defaultSeconds;
+    }
+    const n = Number(seconds);
+    if (!Number.isFinite(n)) {
+        return defaultSeconds;
+    }
+    return n;
+}
 
 export default {
     name: "PageNodesPage",
@@ -430,9 +493,6 @@ export default {
             newPageName: "",
             editingPage: null,
             editingPageContent: "",
-            statusMessage: "",
-            statusSuccess: true,
-            statusTimeout: null,
             announceSettingsForm: {
                 announce_enabled: true,
                 announce_interval_seconds: DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
@@ -442,14 +502,24 @@ export default {
     computed: {
         announceIntervalMinutes: {
             get() {
-                const seconds =
-                    this.announceSettingsForm.announce_interval_seconds || DEFAULT_ANNOUNCE_INTERVAL_SECONDS;
+                const seconds = resolveAnnounceIntervalSeconds(
+                    this.announceSettingsForm.announce_interval_seconds,
+                    DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+                );
+                if (seconds === 0) {
+                    return 0;
+                }
                 return Math.round(seconds / 60);
             },
             set(minutes) {
+                const n = Number(minutes);
+                if (Number.isFinite(n) && n === 0) {
+                    this.announceSettingsForm.announce_interval_seconds = 0;
+                    return;
+                }
                 const clamped = Math.max(
                     ANNOUNCE_INTERVAL_MIN_MINUTES,
-                    Math.min(ANNOUNCE_INTERVAL_MAX_MINUTES, Number(minutes) || ANNOUNCE_INTERVAL_MIN_MINUTES)
+                    Math.min(ANNOUNCE_INTERVAL_MAX_MINUTES, Number.isFinite(n) ? n : ANNOUNCE_INTERVAL_MIN_MINUTES),
                 );
                 this.announceSettingsForm.announce_interval_seconds = clamped * 60;
             },
@@ -473,7 +543,7 @@ export default {
                     }
                 }
             } catch {
-                this.showStatus("Failed to load nodes", false);
+                ToastUtils.error(this.$t("tools.mesh_server.failed_load"));
             } finally {
                 this.loading = false;
             }
@@ -484,7 +554,7 @@ export default {
             this.editingPage = null;
             this.announceSettingsForm = {
                 announce_enabled: node.announce_enabled !== false,
-                announce_interval_seconds: node.announce_interval_seconds || DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+                announce_interval_seconds: resolveAnnounceIntervalSeconds(node.announce_interval_seconds),
             };
         },
         async createNode() {
@@ -493,50 +563,54 @@ export default {
                 await window.api.post("/api/v1/page-nodes", { name: this.createNodeName.trim() });
                 this.createNodeName = "";
                 this.showCreateDialog = false;
-                this.showStatus("Server created", true);
+                ToastUtils.success(this.$t("tools.mesh_server.created"));
                 await this.loadNodes();
             } catch (e) {
-                this.showStatus(e.response?.data?.message || "Failed to create server", false);
+                ToastUtils.error(e.response?.data?.message || this.$t("tools.mesh_server.failed_create"));
             }
         },
         async deleteNode(nodeId) {
-            if (!(await DialogUtils.confirm("Delete this mesh server and all its content?"))) return;
+            if (!(await DialogUtils.confirm(this.$t("tools.mesh_server.delete_confirm")))) return;
             try {
                 await window.api.delete(`/api/v1/page-nodes/${nodeId}`);
                 if (this.selectedNode && this.selectedNode.node_id === nodeId) {
                     this.selectedNode = null;
                 }
-                this.showStatus("Server deleted", true);
+                ToastUtils.success(this.$t("tools.mesh_server.deleted"));
                 await this.loadNodes();
             } catch {
-                this.showStatus("Failed to delete server", false);
+                ToastUtils.error(this.$t("tools.mesh_server.failed_delete"));
             }
         },
         async startNode(nodeId) {
             try {
                 const response = await window.api.post(`/api/v1/page-nodes/${nodeId}/start`);
-                this.showStatus(`Server started: ${response.data.destination_hash}`, true);
+                ToastUtils.success(
+                    this.$t("tools.mesh_server.started", {
+                        hash: response.data.destination_hash,
+                    }),
+                );
                 await this.loadNodes();
             } catch (e) {
-                this.showStatus(e.response?.data?.message || "Failed to start server", false);
+                ToastUtils.error(e.response?.data?.message || this.$t("tools.mesh_server.failed_start"));
             }
         },
         async stopNode(nodeId) {
             try {
                 await window.api.post(`/api/v1/page-nodes/${nodeId}/stop`);
-                this.showStatus("Server stopped", true);
+                ToastUtils.success(this.$t("tools.mesh_server.stopped"));
                 await this.loadNodes();
             } catch {
-                this.showStatus("Failed to stop server", false);
+                ToastUtils.error(this.$t("tools.mesh_server.failed_stop"));
             }
         },
         async announceNode(nodeId) {
             try {
                 await window.api.post(`/api/v1/page-nodes/${nodeId}/announce`);
-                this.showStatus("Announced on mesh", true);
+                ToastUtils.success(this.$t("tools.mesh_server.announced"));
                 await this.loadNodes();
             } catch {
-                this.showStatus("Failed to announce", false);
+                ToastUtils.error(this.$t("tools.mesh_server.failed_announce"));
             }
         },
         async saveAnnounceSettings() {
@@ -547,13 +621,13 @@ export default {
                     {
                         announce_enabled: this.announceSettingsForm.announce_enabled,
                         announce_interval_seconds: this.announceSettingsForm.announce_interval_seconds,
-                    }
+                    },
                 );
                 this.selectedNode = response.data;
-                this.showStatus(this.$t("tools.mesh_server.announce_settings_saved"), true);
+                ToastUtils.success(this.$t("tools.mesh_server.announce_settings_saved"));
                 await this.loadNodes();
             } catch {
-                this.showStatus(this.$t("tools.mesh_server.announce_settings_failed"), false);
+                ToastUtils.error(this.$t("tools.mesh_server.announce_settings_failed"));
             }
         },
         formatLastAnnounced(lastAnnouncedAt) {
@@ -572,10 +646,10 @@ export default {
                 });
                 this.renameNodeName = "";
                 this.showRenameDialog = false;
-                this.showStatus("Server renamed", true);
+                ToastUtils.success(this.$t("tools.mesh_server.renamed"));
                 await this.loadNodes();
             } catch {
-                this.showStatus("Failed to rename server", false);
+                ToastUtils.error(this.$t("tools.mesh_server.failed_rename"));
             }
         },
         async addPage() {
@@ -586,16 +660,16 @@ export default {
                     content: "",
                 });
                 this.newPageName = "";
-                this.showStatus("Page created", true);
+                ToastUtils.success(this.$t("tools.mesh_server.page_created"));
                 await this.loadNodes();
             } catch {
-                this.showStatus("Failed to create page", false);
+                ToastUtils.error(this.$t("tools.mesh_server.failed_page_create"));
             }
         },
         async editPage(pageName) {
             try {
                 const response = await window.api.get(
-                    `/api/v1/page-nodes/${this.selectedNode.node_id}/pages/${encodeURIComponent(pageName)}`
+                    `/api/v1/page-nodes/${this.selectedNode.node_id}/pages/${encodeURIComponent(pageName)}`,
                 );
                 let body = response.data;
                 if (typeof body === "string") {
@@ -608,7 +682,7 @@ export default {
                 this.editingPage = pageName;
                 this.editingPageContent = body?.content ?? "";
             } catch {
-                this.showStatus("Failed to load page", false);
+                ToastUtils.error(this.$t("tools.mesh_server.failed_page_load"));
             }
         },
         async savePage() {
@@ -620,25 +694,33 @@ export default {
                 });
                 this.editingPage = null;
                 this.editingPageContent = "";
-                this.showStatus("Page saved", true);
+                ToastUtils.success(this.$t("tools.mesh_server.page_saved"));
                 await this.loadNodes();
             } catch {
-                this.showStatus("Failed to save page", false);
+                ToastUtils.error(this.$t("tools.mesh_server.failed_page_save"));
             }
         },
         async deletePage(pageName) {
-            if (!(await DialogUtils.confirm(`Delete page "${pageName}"?`))) return;
+            if (
+                !(await DialogUtils.confirm(
+                    this.$t("tools.mesh_server.delete_page_confirm", {
+                        name: pageName,
+                    }),
+                ))
+            ) {
+                return;
+            }
             try {
                 await window.api.delete(
-                    `/api/v1/page-nodes/${this.selectedNode.node_id}/pages/${encodeURIComponent(pageName)}`
+                    `/api/v1/page-nodes/${this.selectedNode.node_id}/pages/${encodeURIComponent(pageName)}`,
                 );
                 if (this.editingPage === pageName) {
                     this.editingPage = null;
                 }
-                this.showStatus("Page deleted", true);
+                ToastUtils.success(this.$t("tools.mesh_server.page_deleted"));
                 await this.loadNodes();
             } catch {
-                this.showStatus("Failed to delete page", false);
+                ToastUtils.error(this.$t("tools.mesh_server.failed_page_delete"));
             }
         },
         async uploadFile(event) {
@@ -650,23 +732,31 @@ export default {
                 await window.api.post(`/api/v1/page-nodes/${this.selectedNode.node_id}/files`, formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
-                this.showStatus("File uploaded", true);
+                ToastUtils.success(this.$t("tools.mesh_server.file_uploaded"));
                 await this.loadNodes();
             } catch {
-                this.showStatus("Failed to upload file", false);
+                ToastUtils.error(this.$t("tools.mesh_server.failed_file_upload"));
             }
             event.target.value = "";
         },
         async deleteFile(fileName) {
-            if (!(await DialogUtils.confirm(`Delete file "${fileName}"?`))) return;
+            if (
+                !(await DialogUtils.confirm(
+                    this.$t("tools.mesh_server.delete_file_confirm", {
+                        name: fileName,
+                    }),
+                ))
+            ) {
+                return;
+            }
             try {
                 await window.api.delete(
-                    `/api/v1/page-nodes/${this.selectedNode.node_id}/files/${encodeURIComponent(fileName)}`
+                    `/api/v1/page-nodes/${this.selectedNode.node_id}/files/${encodeURIComponent(fileName)}`,
                 );
-                this.showStatus("File deleted", true);
+                ToastUtils.success(this.$t("tools.mesh_server.file_deleted"));
                 await this.loadNodes();
             } catch {
-                this.showStatus("Failed to delete file", false);
+                ToastUtils.error(this.$t("tools.mesh_server.failed_file_delete"));
             }
         },
         viewNode(node) {
@@ -701,14 +791,6 @@ export default {
             if (months) parts.push(`${months} month${months === 1 ? "" : "s"}`);
             if (days) parts.push(`${days} day${days === 1 ? "" : "s"}`);
             return parts.length ? parts.join(" ") : "0d";
-        },
-        showStatus(message, success) {
-            this.statusMessage = message;
-            this.statusSuccess = success;
-            if (this.statusTimeout) clearTimeout(this.statusTimeout);
-            this.statusTimeout = setTimeout(() => {
-                this.statusMessage = "";
-            }, 3000);
         },
     },
 };

@@ -1,7 +1,19 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import PageNodesPage from "@/components/page-nodes/PageNodesPage.vue";
+import ToastUtils from "@/js/ToastUtils";
 import { mountToolsPageGlobals } from "./testI18n.js";
+
+vi.mock("@/js/ToastUtils", () => ({
+    default: {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+        loading: vi.fn(),
+        dismiss: vi.fn(),
+    },
+}));
 
 const NODE_ID = "node-1";
 
@@ -116,6 +128,9 @@ describe("PageNodesPage.vue", () => {
         wrapper.vm.selectNode(wrapper.vm.nodes[0]);
 
         wrapper.vm.announceIntervalMinutes = 0;
+        expect(wrapper.vm.announceSettingsForm.announce_interval_seconds).toBe(0);
+
+        wrapper.vm.announceIntervalMinutes = -5;
         expect(wrapper.vm.announceSettingsForm.announce_interval_seconds).toBe(60);
 
         wrapper.vm.announceIntervalMinutes = 999999;
@@ -139,6 +154,17 @@ describe("PageNodesPage.vue", () => {
         });
     });
 
+    it("preserves a zero announce interval when selecting a node", async () => {
+        axiosMock.get.mockResolvedValue({
+            data: [makeNode({ announce_interval_seconds: 0 })],
+        });
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.nodes.length).toBe(1));
+        wrapper.vm.selectNode(wrapper.vm.nodes[0]);
+        expect(wrapper.vm.announceSettingsForm.announce_interval_seconds).toBe(0);
+        expect(wrapper.vm.announceIntervalMinutes).toBe(0);
+    });
+
     it("shows an error toast when saving announce settings fails", async () => {
         axiosMock.patch.mockRejectedValueOnce(new Error("boom"));
         const wrapper = mountPage();
@@ -146,8 +172,7 @@ describe("PageNodesPage.vue", () => {
         wrapper.vm.selectNode(wrapper.vm.nodes[0]);
 
         await wrapper.vm.saveAnnounceSettings();
-        expect(wrapper.vm.statusMessage).toBe("Failed to save announce settings");
-        expect(wrapper.vm.statusSuccess).toBe(false);
+        expect(ToastUtils.error).toHaveBeenCalledWith("Failed to save announce settings");
     });
 
     it("creates a node without touching announce settings by default", async () => {
