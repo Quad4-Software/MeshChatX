@@ -54,7 +54,10 @@ def _capturing_log(msg, level=3, *args, **kwargs):
             del _CAPTURED_ERROR_LOG_LINES[:-20]
     except Exception:
         pass
-    return _ORIGINAL_RNS_LOG(msg, level, *args, **kwargs)
+    original = _ORIGINAL_RNS_LOG
+    if original is None:
+        return
+    return original(msg, level, *args, **kwargs)
 
 
 @contextlib.contextmanager
@@ -346,7 +349,9 @@ def apply_startup_recovery_step(
             return disabled
 
     if attempt <= 0:
-        if _mentions_i2p(error) and i2p_support.disable_all_i2p_in_config(config_path):
+        if _mentions_i2p(str(error)) and i2p_support.disable_all_i2p_in_config(
+            config_path
+        ):
             # Names unknown here, so report a synthetic marker for logs/tests.
             disabled.append("__i2p__")
         return disabled
