@@ -569,6 +569,49 @@ describe("RelayChatPage.vue", () => {
         });
     });
 
+    it("preserves a zero announce interval when opening hosted hub settings", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/servers") {
+                return Promise.resolve({
+                    data: { hubs: [makeHostedHub({ announce_interval_seconds: 0 })] },
+                });
+            }
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({ data: { hubs: [] } });
+            }
+            if (url === "/api/v1/announces") {
+                return Promise.resolve({ data: { announces: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.serverHubs.length).toBe(1));
+
+        wrapper.vm.openHostHubSettings(wrapper.vm.serverHubs[0]);
+        expect(wrapper.vm.hostHubSettingsForm.announce_interval_seconds).toBe(0);
+        expect(wrapper.vm.hostAnnounceIntervalMinutes).toBe(0);
+    });
+
+    it("saves a zero announce interval for hosted hub settings", async () => {
+        axiosMock.patch.mockResolvedValueOnce({
+            data: { hub: makeHostedHub({ announce_interval_seconds: 0 }) },
+        });
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.serverHubs.length).toBe(1));
+
+        wrapper.vm.openHostHubSettings(wrapper.vm.serverHubs[0]);
+        wrapper.vm.hostHubSettingsForm.announce_interval_seconds = 0;
+        wrapper.vm.hostAnnounceIntervalDraft = "0";
+        wrapper.vm.onHostAnnounceIntervalBlur();
+        await wrapper.vm.saveHostHubSettings();
+
+        expect(axiosMock.patch).toHaveBeenCalledWith(`/api/v1/rrc/servers/${HOSTED_HUB_ID}`, {
+            name: "My Hub",
+            announce: true,
+            announce_interval_seconds: 0,
+        });
+    });
+
     it("toggles available rooms collapse and persists layout", async () => {
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/rrc/hubs") {

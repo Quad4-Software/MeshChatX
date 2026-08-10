@@ -20,6 +20,10 @@ export function announceSliderPosToMinutes(pos) {
  * @returns {number} Slider position 0 .. ANNOUNCE_SLIDER_POS_MAX
  */
 export function announceMinutesToSliderPos(minutes) {
+    const raw = Number(minutes);
+    if (Number.isFinite(raw) && raw === 0) {
+        return 0;
+    }
     const m = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, Math.round(Number(minutes) || MIN_MINUTES)));
     return Math.round(((m - MIN_MINUTES) / (MAX_MINUTES - MIN_MINUTES)) * ANNOUNCE_SLIDER_POS_MAX);
 }
