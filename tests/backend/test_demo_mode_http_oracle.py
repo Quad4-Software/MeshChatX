@@ -24,6 +24,8 @@ from tests.backend.demo_http_support import build_test_aio_app
         ("POST", "/api/v1/identities/create"),
         ("DELETE", "/api/v1/lxmf-messages/aa"),
         ("PATCH", "/api/v1/server/security"),
+        ("POST", "/api/v1/lxmf/propagation-node/sync"),
+        ("POST", "/api/v1/lxmf/propagation-node/stop-sync"),
     ],
 )
 @pytest.mark.asyncio

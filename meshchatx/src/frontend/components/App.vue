@@ -2109,7 +2109,7 @@ export default {
                         // continue to sync
                     }
                 }
-                await window.api.get("/api/v1/lxmf/propagation-node/sync");
+                await window.api.post("/api/v1/lxmf/propagation-node/sync");
             } catch (e) {
                 this.userInitiatedPropagationSync = false;
                 const errorMessage =
@@ -2202,7 +2202,7 @@ export default {
         async stopSyncingPropagationNode() {
             const propagationSyncToastKey = "propagation-sync-status";
             try {
-                await window.api.get("/api/v1/lxmf/propagation-node/stop-sync");
+                await window.api.post("/api/v1/lxmf/propagation-node/stop-sync");
             } catch {
                 // do nothing on error
             }

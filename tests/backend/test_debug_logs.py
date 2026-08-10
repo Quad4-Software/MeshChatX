@@ -115,3 +115,32 @@ def test_log_cleanup(handler, db):
 
     count = db.debug_logs.get_total_count()
     assert count <= 11  # 10 + the trigger log
+
+
+def test_set_database_flushes_buffered_logs_to_previous_database(tmp_path):
+    db_a_file = tmp_path / "a.db"
+    db_b_file = tmp_path / "b.db"
+    db_a = Database(str(db_a_file))
+    db_b = Database(str(db_b_file))
+    db_a.initialize()
+    db_b.initialize()
+
+    handler = PersistentLogHandler(database=db_a, flush_interval=3600)
+    logger = logging.getLogger("identity_a_logger")
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+
+    logger.info("identity A buffered log")
+    assert len(handler.logs_buffer) == 1
+
+    handler.set_database(db_b)
+    logger.info("identity B log")
+    handler._flush_to_db()
+
+    logs_a = db_a.debug_logs.get_logs(limit=10)
+    logs_b = db_b.debug_logs.get_logs(limit=10)
+    assert any("identity A buffered log" in row["message"] for row in logs_a)
+    assert all("identity A buffered log" not in row["message"] for row in logs_b)
+    assert any("identity B log" in row["message"] for row in logs_b)
+
+    logger.removeHandler(handler)

@@ -278,4 +278,23 @@ target_port = 4242`;
             })
         );
     });
+
+    it("imports announce_interval zero and equator coordinates from config", async () => {
+        const wrapper = mountPage();
+
+        wrapper.vm.applyConfig({
+            name: "ZeroInterval",
+            type: "TCPClientInterface",
+            target_host: "node.example",
+            target_port: "4242",
+            discoverable: "yes",
+            announce_interval: 0,
+            latitude: 0,
+            longitude: 0,
+        });
+
+        expect(wrapper.vm.discovery.announce_interval).toBe(0);
+        expect(wrapper.vm.discovery.latitude).toBe(0);
+        expect(wrapper.vm.discovery.longitude).toBe(0);
+    });
 });

@@ -204,8 +204,13 @@ def register_lxmf_routes(routes, app):
     # sync propagation node
 
     # sync propagation node
-    @routes.get("/api/v1/lxmf/propagation-node/sync")
+    @routes.post("/api/v1/lxmf/propagation-node/sync")
     async def propagation_node_sync(request):
+        from meshchatx.src.backend.demo_mode import demo_mode_block_response
+
+        blocked = demo_mode_block_response(app)
+        if blocked is not None:
+            return blocked
         # ensure propagation node is configured before attempting to sync
         outbound_node = app.message_router.get_outbound_propagation_node()
         if outbound_node is None:
@@ -234,8 +239,13 @@ def register_lxmf_routes(routes, app):
     # stop syncing propagation node
 
     # stop syncing propagation node
-    @routes.get("/api/v1/lxmf/propagation-node/stop-sync")
+    @routes.post("/api/v1/lxmf/propagation-node/stop-sync")
     async def propagation_node_stop_sync(request):
+        from meshchatx.src.backend.demo_mode import demo_mode_block_response
+
+        blocked = demo_mode_block_response(app)
+        if blocked is not None:
+            return blocked
         app.stop_propagation_node_sync()
 
         return web.json_response(
