@@ -1393,17 +1393,34 @@ const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900;
 const ANNOUNCE_INTERVAL_MIN_MINUTES = 1;
 const ANNOUNCE_INTERVAL_MAX_MINUTES = 1440;
 
+function resolveAnnounceIntervalSeconds(seconds, defaultSeconds = DEFAULT_ANNOUNCE_INTERVAL_SECONDS) {
+    if (seconds == null) {
+        return defaultSeconds;
+    }
+    const n = Number(seconds);
+    if (!Number.isFinite(n)) {
+        return defaultSeconds;
+    }
+    return n;
+}
+
 function clampAnnounceIntervalMinutes(value) {
     const n = Number.parseInt(String(value ?? ""), 10);
     if (!Number.isFinite(n)) {
         return Math.round(DEFAULT_ANNOUNCE_INTERVAL_SECONDS / 60);
+    }
+    if (n === 0) {
+        return 0;
     }
     return Math.max(ANNOUNCE_INTERVAL_MIN_MINUTES, Math.min(ANNOUNCE_INTERVAL_MAX_MINUTES, n));
 }
 
 function secondsToAnnounceMinutes(seconds) {
     const s = Number(seconds);
-    if (!Number.isFinite(s) || s <= 0) {
+    if (Number.isFinite(s) && s === 0) {
+        return 0;
+    }
+    if (!Number.isFinite(s) || s < 0) {
         return Math.round(DEFAULT_ANNOUNCE_INTERVAL_SECONDS / 60);
     }
     return clampAnnounceIntervalMinutes(Math.round(s / 60));
@@ -1938,10 +1955,7 @@ export default {
             this.hostHubSettingsForm = {
                 name: hub.name || "",
                 announce: hub.announce !== false,
-                announce_interval_seconds:
-                    hub.announce_interval_seconds > 0
-                        ? hub.announce_interval_seconds
-                        : DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+                announce_interval_seconds: resolveAnnounceIntervalSeconds(hub.announce_interval_seconds),
             };
             this.hostAnnounceIntervalDraft = null;
             this.showHostHubSettings = true;
