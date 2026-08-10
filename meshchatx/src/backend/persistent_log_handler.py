@@ -42,6 +42,13 @@ class PersistentLogHandler(logging.Handler):
 
     def set_database(self, database):
         with self.lock:
+            if (
+                self.database is not None
+                and database is not None
+                and self.database is not database
+                and self.logs_buffer
+            ):
+                self._flush_to_db()
             self.database = database
 
     def emit(self, record):

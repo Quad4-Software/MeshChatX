@@ -3138,15 +3138,21 @@ export default {
                 this.discovery.discoverable = this.parseBool(config.discoverable);
             }
             if (config.discovery_name) this.discovery.discovery_name = config.discovery_name;
-            if (config.announce_interval) this.discovery.announce_interval = Number(config.announce_interval);
+            if (config.announce_interval != null && config.announce_interval !== "") {
+                this.discovery.announce_interval = Number(config.announce_interval);
+            }
             if (config.reachable_on) this.discovery.reachable_on = config.reachable_on;
             if (config.discovery_stamp_value)
                 this.discovery.discovery_stamp_value = Number(config.discovery_stamp_value);
             if (config.discovery_encrypt !== undefined)
                 this.discovery.discovery_encrypt = this.parseBool(config.discovery_encrypt);
             if (config.publish_ifac !== undefined) this.discovery.publish_ifac = this.parseBool(config.publish_ifac);
-            if (config.latitude) this.discovery.latitude = Number(config.latitude);
-            if (config.longitude) this.discovery.longitude = Number(config.longitude);
+            if (config.latitude != null && config.latitude !== "") {
+                this.discovery.latitude = Number(config.latitude);
+            }
+            if (config.longitude != null && config.longitude !== "") {
+                this.discovery.longitude = Number(config.longitude);
+            }
             if (config.height) this.discovery.height = Number(config.height);
             if (config.location_cmd) this.discovery.location_cmd = String(config.location_cmd);
 

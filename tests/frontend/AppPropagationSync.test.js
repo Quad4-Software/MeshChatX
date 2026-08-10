@@ -106,11 +106,13 @@ describe("App propagation sync", () => {
     });
 
     it("shows detailed success toast with stored, confirmations and hidden counts", async () => {
-        axiosMock.post.mockResolvedValue({ data: { message: "ok" } });
-        axiosMock.get.mockImplementation((url) => {
+        axiosMock.post.mockImplementation((url) => {
             if (url === "/api/v1/lxmf/propagation-node/sync") {
                 return Promise.resolve({ data: { message: "Sync is starting" } });
             }
+            return Promise.resolve({ data: { message: "ok" } });
+        });
+        axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/lxmf/propagation-node/status") {
                 return Promise.resolve({
                     data: {
@@ -138,17 +140,20 @@ describe("App propagation sync", () => {
         expect(ToastUtils.success).toHaveBeenCalledWith(
             "Sync complete. 8 messages received. (3 stored, 2 confirmations, 3 hidden)"
         );
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/lxmf/propagation-node/sync");
         expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/destination/deadbeef/request-path");
         expect(ToastUtils.error).not.toHaveBeenCalled();
     });
 
     it("polls status while syncing and updates live loading toast", async () => {
-        axiosMock.post.mockResolvedValue({ data: { message: "ok" } });
-        let statusCalls = 0;
-        axiosMock.get.mockImplementation((url) => {
+        axiosMock.post.mockImplementation((url) => {
             if (url === "/api/v1/lxmf/propagation-node/sync") {
                 return Promise.resolve({ data: { message: "Sync is starting" } });
             }
+            return Promise.resolve({ data: { message: "ok" } });
+        });
+        let statusCalls = 0;
+        axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/lxmf/propagation-node/status") {
                 statusCalls += 1;
                 if (statusCalls < 3) {
@@ -196,11 +201,13 @@ describe("App propagation sync", () => {
     });
 
     it("uses translated status in error toast when sync ends in a failure state", async () => {
-        axiosMock.post.mockResolvedValue({ data: { message: "ok" } });
-        axiosMock.get.mockImplementation((url) => {
+        axiosMock.post.mockImplementation((url) => {
             if (url === "/api/v1/lxmf/propagation-node/sync") {
                 return Promise.resolve({ data: { message: "Sync is starting" } });
             }
+            return Promise.resolve({ data: { message: "ok" } });
+        });
+        axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/lxmf/propagation-node/status") {
                 return Promise.resolve({
                     data: {
@@ -228,20 +235,22 @@ describe("App propagation sync", () => {
     });
 
     it("still starts sync when request-path fails (stale CSRF / brief offline after background)", async () => {
-        // Oracle: request-path is best-effort priming. The /sync GET already
+        // Oracle: request-path is best-effort priming. The /sync POST already
         // requests a path server-side. A CSRF or network failure on the POST
         // must not abort the user-initiated sync (common after a backgrounded tab).
-        axiosMock.post.mockRejectedValue(
-            Object.assign(new Error("HTTP 403"), {
-                response: { status: 403, data: { error: "Invalid or missing CSRF token" } },
-            })
-        );
         let syncCalled = false;
-        axiosMock.get.mockImplementation((url) => {
+        axiosMock.post.mockImplementation((url) => {
             if (url === "/api/v1/lxmf/propagation-node/sync") {
                 syncCalled = true;
                 return Promise.resolve({ data: { message: "Sync is starting" } });
             }
+            return Promise.reject(
+                Object.assign(new Error("HTTP 403"), {
+                    response: { status: 403, data: { error: "Invalid or missing CSRF token" } },
+                })
+            );
+        });
+        axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/lxmf/propagation-node/status") {
                 return Promise.resolve({
                     data: {
