@@ -185,6 +185,10 @@ import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 const NOMAD_DESTINATION_HASH = /^[a-fA-F0-9]{32}$/;
 const PAGE_EXTENSIONS = [".mu", ".html", ".md", ".txt"];
 
+function pageNamesFromList(pages) {
+    return (pages || []).map((entry) => (typeof entry === "string" ? entry : entry?.name)).filter(Boolean);
+}
+
 export default {
     name: "MicronEditorPage",
     components: {
@@ -1052,7 +1056,8 @@ ${b}=
             return /^\d+$/.test(trimmed.slice(numberedPrefix.length));
         },
         async resolvePublishPageBase(tab, existingPages, serverName) {
-            const hasIndex = existingPages.includes("index.mu");
+            const pageNames = pageNamesFromList(existingPages);
+            const hasIndex = pageNames.includes("index.mu");
             if (!hasIndex) {
                 return "index";
             }
@@ -1127,7 +1132,8 @@ ${b}=
                     });
                     const savedName = response.data?.name;
                     if (savedName) {
-                        existingPages = [...new Set([...existingPages, savedName])];
+                        const pageNames = pageNamesFromList(existingPages);
+                        existingPages = [...new Set([...pageNames, savedName])];
                     }
                     published++;
                 } catch {

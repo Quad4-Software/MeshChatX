@@ -203,6 +203,7 @@ def test_try_serve_local_helpers_strip_traversal():
     node.pages_dir = "/tmp/mesh_pages"
     node._stats = {"files_served": 0, "pages_served": 0}
     node.get_page_content = MagicMock(return_value="page ok")
+    node.serve_page_content = MagicMock(return_value=b"page ok")
     app.page_node_manager = MagicMock()
     app.page_node_manager.nodes = {"1": node}
 
@@ -218,8 +219,10 @@ def test_try_serve_local_helpers_strip_traversal():
         app,
         dh,
         "/page/../../../x.mu",
+        request_data={"var_x": "1"},
     )
-    node.get_page_content.assert_called_once()
-    called = node.get_page_content.call_args[0][0]
-    assert called == "x.mu"
+    node.serve_page_content.assert_called_once()
+    called = node.serve_page_content.call_args
+    assert called.args[0] == "x.mu"
+    assert called.kwargs.get("data") == {"var_x": "1"}
     assert page_out == "page ok"

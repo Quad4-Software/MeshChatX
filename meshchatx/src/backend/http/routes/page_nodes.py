@@ -148,10 +148,12 @@ def register_page_nodes_routes(routes, app):
             return web.json_response({"message": "Name is required"}, status=400)
         announce_enabled = bool(data.get("announce_enabled", True))
         announce_interval_seconds = data.get("announce_interval_seconds")
+        executable_pages_enabled = bool(data.get("executable_pages_enabled", False))
         node = app.page_node_manager.create_node(
             name,
             announce_enabled=announce_enabled,
             announce_interval_seconds=announce_interval_seconds,
+            executable_pages_enabled=executable_pages_enabled,
         )
         return web.json_response(node.get_status())
 
@@ -240,12 +242,25 @@ def register_page_nodes_routes(routes, app):
             if "announce_interval_seconds" in data
             else None
         )
+        executable_pages_enabled = (
+            data.get("executable_pages_enabled")
+            if "executable_pages_enabled" in data
+            else None
+        )
         try:
+            node = app.page_node_manager.get_node(node_id)
+            if node is None:
+                return web.json_response({"message": "Node not found"}, status=404)
             node = app.page_node_manager.set_announce_settings(
                 node_id,
                 announce_enabled=announce_enabled,
                 announce_interval_seconds=announce_interval_seconds,
             )
+            if executable_pages_enabled is not None:
+                node = app.page_node_manager.set_executable_pages_enabled(
+                    node_id,
+                    bool(executable_pages_enabled),
+                )
             return web.json_response(node.get_status())
         except KeyError:
             return web.json_response({"message": "Node not found"}, status=404)
@@ -273,15 +288,21 @@ def register_page_nodes_routes(routes, app):
             )
         name = data.get("name", "")
         content = data.get("content", "")
+        executable = data.get("executable") if "executable" in data else None
         if not name:
             return web.json_response(
                 {"message": "Page name is required"},
                 status=400,
             )
         try:
-            saved_name = node.add_page(name, content)
+            saved_name = node.add_page(name, content, executable=executable)
         except ValueError as e:
             return web.json_response({"message": str(e)}, status=400)
+        except OSError as e:
+            return web.json_response(
+                {"message": f"Failed to set executable flag: {e}"},
+                status=400,
+            )
         except OSError as e:
             return web.json_response(
                 {"message": f"Failed to write page: {e}"},
@@ -292,7 +313,13 @@ def register_page_nodes_routes(routes, app):
                 {"message": f"Failed to save page: {e}"},
                 status=500,
             )
-        return web.json_response({"name": saved_name, "message": "Page saved"})
+        return web.json_response(
+            {
+                "name": saved_name,
+                "executable": node.is_page_executable(saved_name),
+                "message": "Page saved",
+            },
+        )
 
     @routes.get("/api/v1/page-nodes/{node_id}/pages/{page_name}")
     async def page_nodes_get_page(request):
@@ -304,7 +331,13 @@ def register_page_nodes_routes(routes, app):
         content = node.get_page_content(page_name)
         if content is None:
             return web.json_response({"message": "Page not found"}, status=404)
-        return web.json_response({"name": page_name, "content": content})
+        return web.json_response(
+            {
+                "name": page_name,
+                "content": content,
+                "executable": node.is_page_executable(page_name),
+            },
+        )
 
     @routes.delete("/api/v1/page-nodes/{node_id}/pages/{page_name}")
     async def page_nodes_delete_page(request):

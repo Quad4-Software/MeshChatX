@@ -17,6 +17,8 @@ Supported page filename extensions are .mu, .md, .txt, and .html.
 import contextlib
 import json
 import os
+import stat
+import subprocess
 import threading
 import time
 
@@ -31,6 +33,9 @@ ALLOWED_PAGE_EXTENSIONS = frozenset({".mu", ".md", ".txt", ".html"})
 DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900
 MIN_ANNOUNCE_INTERVAL_SECONDS = 60
 MAX_ANNOUNCE_INTERVAL_SECONDS = 86400
+EXECUTABLE_PAGE_TIMEOUT_SECONDS = 15
+
+PAGE_GENERATION_FAILED_MICRON = ">Page Generation Failed\n\nThe page could not be generated.\n"
 
 
 def normalize_announce_interval_seconds(
@@ -83,6 +88,47 @@ def _safe_mesh_file_basename(name: str) -> str:
     return base
 
 
+def _is_windows_platform() -> bool:
+    if os.name == "nt":
+        return True
+    try:
+        return bool(RNS.vendor.platformutils.is_windows())
+    except Exception:
+        return False
+
+
+def _page_generation_error_bytes(reason: str) -> bytes:
+    text = PAGE_GENERATION_FAILED_MICRON
+    if reason:
+        text += f"\n{reason}\n"
+    return text.encode("utf-8")
+
+
+def _build_executable_page_env(
+    data,
+    link_id=None,
+    remote_identity=None,
+) -> dict[str, str]:
+    env_map: dict[str, str] = {}
+    if "PATH" in os.environ:
+        env_map["PATH"] = os.environ["PATH"]
+    if link_id is not None:
+        with contextlib.suppress(Exception):
+            env_map["link_id"] = RNS.hexrep(link_id, delimit=False)
+    if remote_identity is not None:
+        with contextlib.suppress(Exception):
+            remote_hash = getattr(remote_identity, "hash", None)
+            if remote_hash is not None:
+                env_map["remote_identity"] = RNS.hexrep(remote_hash, delimit=False)
+    if data is not None and isinstance(data, dict):
+        for key, value in data.items():
+            if isinstance(key, str) and (
+                key.startswith("field_") or key.startswith("var_")
+            ):
+                env_map[key] = str(value)
+    return env_map
+
+
 def _reject_name_component_too_long(parent_dir: str, component: str) -> None:
     """Raise ValueError if basename exceeds this directory's filename length limit."""
     try:
@@ -108,6 +154,7 @@ class PageNode:
         identity_path=None,
         announce_enabled=True,
         announce_interval_seconds=DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+        executable_pages_enabled=False,
         on_announce=None,
     ):
         self.node_id = node_id
@@ -131,6 +178,7 @@ class PageNode:
         self.announce_interval_seconds = normalize_announce_interval_seconds(
             announce_interval_seconds,
         )
+        self.executable_pages_enabled = bool(executable_pages_enabled)
         self.last_announced_at = None
         self.on_announce = on_announce
         self._announce_timer = None
@@ -226,6 +274,10 @@ class PageNode:
                 announce_interval_seconds,
             )
         self._sync_announce_timer()
+
+    def set_executable_pages_enabled(self, enabled):
+        """Enable or disable dynamic executable page serving for this node."""
+        self.executable_pages_enabled = bool(enabled)
 
     def teardown(self):
         """Deregister handlers and clean up."""
@@ -363,22 +415,108 @@ class PageNode:
         self.destination.deregister_request_handler(rpath)
         self._registered_file_paths.discard(rpath)
 
+    def _resolve_page_path(self, name):
+        try:
+            safe_name = normalize_page_filename(name)
+            _reject_name_component_too_long(self.pages_dir, safe_name)
+        except ValueError:
+            return None
+        page_path = os.path.join(self.pages_dir, safe_name)
+        if not os.path.isfile(page_path):
+            return None
+        return page_path
+
+    def is_page_executable(self, name):
+        """Return whether the page file has the execute permission bit set."""
+        if _is_windows_platform():
+            return False
+        page_path = self._resolve_page_path(name)
+        if page_path is None:
+            return False
+        return os.access(page_path, os.X_OK)
+
+    def set_page_executable(self, name, enabled):
+        """Set or clear the execute permission bit on a page file."""
+        if _is_windows_platform():
+            raise OSError("executable pages are not supported on Windows")
+        page_path = self._resolve_page_path(name)
+        if page_path is None:
+            raise ValueError("page not found")
+        mode = os.stat(page_path).st_mode
+        if enabled:
+            os.chmod(page_path, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        else:
+            os.chmod(
+                page_path,
+                mode & ~(stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH),
+            )
+
+    def _should_execute_page(self, page_path):
+        if not self.executable_pages_enabled:
+            return False
+        if _is_windows_platform():
+            return False
+        return os.access(page_path, os.X_OK)
+
+    def _read_static_page_bytes(self, page_path):
+        with open(page_path, "rb") as f:
+            return f.read()
+
+    def _execute_page_bytes(self, page_path, data=None, link_id=None, remote_identity=None):
+        env_map = _build_executable_page_env(data, link_id, remote_identity)
+        try:
+            generated = subprocess.run(
+                [page_path],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                env=env_map,
+                timeout=EXECUTABLE_PAGE_TIMEOUT_SECONDS,
+            )
+            return generated.stdout
+        except subprocess.TimeoutExpired:
+            return _page_generation_error_bytes("The page script timed out.")
+        except OSError as e:
+            return _page_generation_error_bytes(str(e))
+        except Exception as e:
+            return _page_generation_error_bytes(str(e))
+
+    def serve_page_content(
+        self,
+        name,
+        data=None,
+        link_id=None,
+        remote_identity=None,
+    ):
+        """Serve a page as static bytes or by executing it when enabled and executable."""
+        page_path = self._resolve_page_path(name)
+        if page_path is None:
+            return None
+        try:
+            if self._should_execute_page(page_path):
+                content = self._execute_page_bytes(
+                    page_path,
+                    data=data,
+                    link_id=link_id,
+                    remote_identity=remote_identity,
+                )
+            else:
+                content = self._read_static_page_bytes(page_path)
+            self._stats["pages_served"] += 1
+            return content
+        except Exception:
+            return None
+
     def _make_page_responder(self, page_name):
         """Return a closure that serves a specific page."""
 
         def responder(path, data, request_id, link_id, remote_identity, requested_at):
             self._note_remote_identity(remote_identity)
-            safe_name = os.path.basename(page_name)
-            page_path = os.path.join(self.pages_dir, safe_name)
-            if not os.path.isfile(page_path):
-                return None
-            try:
-                with open(page_path, "rb") as f:
-                    content = f.read()
-                self._stats["pages_served"] += 1
-                return content
-            except Exception:
-                return None
+            return self.serve_page_content(
+                page_name,
+                data=data,
+                link_id=link_id,
+                remote_identity=remote_identity,
+            )
 
         return responder
 
@@ -401,7 +539,7 @@ class PageNode:
 
         return responder
 
-    def add_page(self, name, content):
+    def add_page(self, name, content, executable=None):
         """Write a page file and register its request handler."""
         os.makedirs(self.pages_dir, exist_ok=True)
         name = normalize_page_filename(name)
@@ -411,6 +549,8 @@ class PageNode:
             content = content.encode("utf-8")
         with open(page_path, "wb") as f:
             f.write(content)
+        if executable is not None:
+            self.set_page_executable(name, bool(executable))
         if self.running:
             try:
                 self._register_page_handler(name)
@@ -435,15 +575,21 @@ class PageNode:
         return False
 
     def list_pages(self):
-        """Return a list of page names."""
+        """Return page metadata dicts with name and executable state."""
         if not os.path.isdir(self.pages_dir):
             return []
-        return sorted(
-            f
-            for f in os.listdir(self.pages_dir)
-            if os.path.isfile(os.path.join(self.pages_dir, f))
-            and is_allowed_page_filename(f)
-        )
+        pages = []
+        for fname in sorted(os.listdir(self.pages_dir)):
+            fpath = os.path.join(self.pages_dir, fname)
+            if not os.path.isfile(fpath) or not is_allowed_page_filename(fname):
+                continue
+            pages.append(
+                {
+                    "name": fname,
+                    "executable": self.is_page_executable(fname),
+                },
+            )
+        return pages
 
     def get_page_content(self, name):
         """Read and return a page's content."""
@@ -524,6 +670,7 @@ class PageNode:
             "stats": dict(self._stats),
             "announce_enabled": self.announce_enabled,
             "announce_interval_seconds": self.announce_interval_seconds,
+            "executable_pages_enabled": self.executable_pages_enabled,
             "last_announced_at": self.last_announced_at,
         }
 
@@ -534,6 +681,7 @@ class PageNode:
             "name": self.name,
             "announce_enabled": self.announce_enabled,
             "announce_interval_seconds": self.announce_interval_seconds,
+            "executable_pages_enabled": self.executable_pages_enabled,
         }
         config_path = os.path.join(self.base_dir, "config.json")
         with open(config_path, "w") as f:

@@ -34,6 +34,9 @@ def mock_rns():
         mock.Destination.SINGLE = 0
         mock.Destination.ALLOW_ALL = 0xFF
         mock.Transport = MagicMock()
+        mock.vendor = MagicMock()
+        mock.vendor.platformutils = MagicMock()
+        mock.vendor.platformutils.is_windows.return_value = False
 
         yield mock, mock_identity, mock_destination
 
@@ -458,7 +461,10 @@ class TestPageNodePages:
         node.add_page("b.mu", "b")
         node.add_page("a.mu", "a")
         pages = node.list_pages()
-        assert pages == ["a.mu", "b.mu"]
+        assert pages == [
+            {"name": "a.mu", "executable": False},
+            {"name": "b.mu", "executable": False},
+        ]
 
     def test_get_page_content(self, node_dir, mock_rns):
         node = _make_node(node_dir, mock_rns)
@@ -618,6 +624,16 @@ class TestPageNodeConfig:
         assert config["announce_enabled"] is True
         assert config["announce_interval_seconds"] == DEFAULT_ANNOUNCE_INTERVAL_SECONDS
 
+    def test_save_config_persists_executable_pages_enabled(self, node_dir, mock_rns):
+        from meshchatx.src.backend.page_node import PageNode
+
+        node = _make_node(node_dir, mock_rns)
+        node.set_executable_pages_enabled(True)
+        node.save_config()
+
+        config = PageNode.load_config(node_dir)
+        assert config["executable_pages_enabled"] is True
+
 
 class TestPageNodeStatus:
     def test_get_status(self, node_dir, mock_rns):
@@ -629,7 +645,7 @@ class TestPageNodeStatus:
         assert status["name"] == "Test Node"
         assert status["running"] is True
         assert status["destination_hash"] is not None
-        assert "index.mu" in status["pages"]
+        assert "index.mu" in [p["name"] for p in status["pages"]]
         assert isinstance(status["stats"], dict)
         assert status["unique_connections"] == 0
         assert status["uptime_seconds"] >= 0
@@ -749,3 +765,92 @@ class TestPageNodeEdgeCases:
         name = node.add_page("../../etc/passwd", "malicious")
         assert name == "passwd.mu"
         assert not os.path.exists(os.path.join(node_dir, "..", "etc"))
+
+
+class TestPageNodeExecutablePages:
+    def test_executable_disabled_serves_static_even_when_chmod_x(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        script = "#!/usr/bin/env python3\nprint('dynamic')\n"
+        node.add_page("dyn.mu", script, executable=True)
+        assert node.serve_page_content("dyn.mu") == script.encode("utf-8")
+
+    def test_executable_enabled_runs_script(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        node.set_executable_pages_enabled(True)
+        script = "#!/usr/bin/env python3\nprint('dynamic-output')\n"
+        node.add_page("dyn.mu", script, executable=True)
+        result = node.serve_page_content("dyn.mu")
+        assert result == b"dynamic-output\n"
+
+    def test_executable_passes_env_vars(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        node.set_executable_pages_enabled(True)
+        script = (
+            "#!/usr/bin/env python3\n"
+            "import os\n"
+            "print(os.environ.get('var_name', ''), end='')\n"
+            "print('|', os.environ.get('field_form', ''), end='')\n"
+        )
+        node.add_page("env.mu", script, executable=True)
+        result = node.serve_page_content(
+            "env.mu",
+            data={"var_name": "alice", "field_form": "submit", "ignored": "x"},
+            link_id=b"\x01" * 16,
+            remote_identity=MagicMock(hash=b"\x02" * 16),
+        )
+        assert b"alice" in result
+        assert b"submit" in result
+
+    def test_executable_timeout_returns_error_page(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        node.set_executable_pages_enabled(True)
+        script = "#!/usr/bin/env python3\nimport time\ntime.sleep(30)\n"
+        node.add_page("slow.mu", script, executable=True)
+        result = node.serve_page_content("slow.mu")
+        assert b">Page Generation Failed" in result
+        assert b"timed out" in result.lower()
+
+    def test_get_page_content_never_executes(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        node.set_executable_pages_enabled(True)
+        script = "#!/usr/bin/env python3\nprint('dynamic')\n"
+        node.add_page("dyn.mu", script, executable=True)
+        assert node.get_page_content("dyn.mu") == script
+
+    def test_windows_platform_skips_execution(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        node.set_executable_pages_enabled(True)
+        script = "#!/usr/bin/env python3\nprint('dynamic')\n"
+        node.add_page("dyn.mu", script, executable=True)
+        with patch(
+            "meshchatx.src.backend.page_node._is_windows_platform",
+            return_value=True,
+        ):
+            result = node.serve_page_content("dyn.mu")
+        assert result == script.encode("utf-8")
+
+    def test_set_page_executable_round_trip(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        node.add_page("toggle.mu", "static")
+        assert node.is_page_executable("toggle.mu") is False
+        node.set_page_executable("toggle.mu", True)
+        assert node.is_page_executable("toggle.mu") is True
+        node.set_page_executable("toggle.mu", False)
+        assert node.is_page_executable("toggle.mu") is False
+
+    def test_page_responder_uses_serve_page_content(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        node.set_executable_pages_enabled(True)
+        script = "#!/usr/bin/env python3\nprint('from-responder')\n"
+        node.add_page("dyn.mu", script, executable=True)
+        responder = node._make_page_responder("dyn.mu")
+        result = responder("/page/dyn.mu", {"var_x": "1"}, "req1", b"\xab" * 16, None, 0)
+        assert result == b"from-responder\n"

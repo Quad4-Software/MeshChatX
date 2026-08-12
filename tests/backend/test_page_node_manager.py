@@ -32,6 +32,9 @@ def mock_rns():
         mock.Destination.SINGLE = 0
         mock.Destination.ALLOW_ALL = 0xFF
         mock.Transport = MagicMock()
+        mock.vendor = MagicMock()
+        mock.vendor.platformutils = MagicMock()
+        mock.vendor.platformutils.is_windows.return_value = False
 
         yield mock, mock_identity, mock_destination
 
@@ -55,7 +58,7 @@ class TestPageNodeManagerCreate:
         node = mgr.create_node("Publish Target")
         saved_name = node.add_page("index", "hello mesh")
         assert saved_name == "index.mu"
-        assert node.list_pages() == ["index.mu"]
+        assert node.list_pages() == [{"name": "index.mu", "executable": False}]
         assert node.running is False
 
     def test_create_node_with_custom_id(self, storage_dir, mock_rns):
@@ -180,6 +183,20 @@ class TestPageNodeManagerAnnounceSettings:
         mgr = _make_manager(storage_dir)
         node = mgr.create_node("Defaults")
         assert node.announce_enabled is True
+
+    def test_create_node_with_executable_pages_enabled(self, storage_dir, mock_rns):
+        mgr = _make_manager(storage_dir)
+        node = mgr.create_node("Dynamic", executable_pages_enabled=True)
+        assert node.executable_pages_enabled is True
+
+    def test_set_executable_pages_enabled_persists(self, storage_dir, mock_rns):
+        from meshchatx.src.backend.page_node import PageNode
+
+        mgr = _make_manager(storage_dir)
+        node = mgr.create_node("Dynamic")
+        mgr.set_executable_pages_enabled(node.node_id, True)
+        config = PageNode.load_config(node.base_dir)
+        assert config["executable_pages_enabled"] is True
 
     def test_set_announce_settings_updates_node(self, storage_dir, mock_rns):
         mgr = _make_manager(storage_dir)
