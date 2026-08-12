@@ -103,6 +103,7 @@ def test_backup_baseline_created_on_first_backup(temp_dir):
         data = json.load(f)
     assert "message_count" in data
     assert "total_bytes" in data
+    assert "main_bytes" in data
     assert "timestamp" in data
 
 
@@ -110,29 +111,30 @@ def test_backup_suspicious_when_messages_gone_skips_cleanup_and_baseline(temp_di
     db_path = os.path.join(temp_dir, "test.db")
     db = Database(db_path)
     db.initialize()
-    db.messages.upsert_lxmf_message(
-        {
-            "hash": "h1",
-            "source_hash": "s",
-            "destination_hash": "d",
-            "peer_hash": "p",
-            "state": "delivered",
-            "progress": 1.0,
-            "is_incoming": 1,
-            "method": "direct",
-            "delivery_attempts": 0,
-            "next_delivery_attempt_at": None,
-            "title": "t",
-            "content": "c",
-            "fields": "{}",
-            "timestamp": 0,
-            "rssi": None,
-            "snr": None,
-            "quality": None,
-            "is_spam": 0,
-            "reply_to_hash": None,
-        },
-    )
+    for i in range(6):
+        db.messages.upsert_lxmf_message(
+            {
+                "hash": f"h{i}",
+                "source_hash": "s",
+                "destination_hash": "d",
+                "peer_hash": "p",
+                "state": "delivered",
+                "progress": 1.0,
+                "is_incoming": 1,
+                "method": "direct",
+                "delivery_attempts": 0,
+                "next_delivery_attempt_at": None,
+                "title": "t",
+                "content": "c",
+                "fields": "{}",
+                "timestamp": 0,
+                "rssi": None,
+                "snr": None,
+                "quality": None,
+                "is_spam": 0,
+                "reply_to_hash": None,
+            },
+        )
     result1 = db.backup_database(temp_dir, max_count=3)
     assert result1.get("suspicious") is not True
     backup_dir = os.path.join(temp_dir, "database-backups")
@@ -140,14 +142,14 @@ def test_backup_suspicious_when_messages_gone_skips_cleanup_and_baseline(temp_di
     assert zip_count_after_first == 1
     with open(os.path.join(backup_dir, "backup-baseline.json")) as f:
         baseline_after_first = json.load(f)
-    assert baseline_after_first["message_count"] == 1
+    assert baseline_after_first["message_count"] == 6
 
     db.messages.delete_all_lxmf_messages()
     assert db.messages.count_lxmf_messages() == 0
     result2 = db.backup_database(temp_dir, max_count=3)
     assert result2.get("suspicious") is True
     assert "baseline" in result2
-    assert result2["baseline"]["message_count"] == 1
+    assert result2["baseline"]["message_count"] == 6
     assert result2["current_stats"]["message_count"] == 0
     zip_count_after_suspicious = sum(
         1 for f in os.listdir(backup_dir) if f.endswith(".zip")
@@ -156,7 +158,7 @@ def test_backup_suspicious_when_messages_gone_skips_cleanup_and_baseline(temp_di
     assert any("SUSPICIOUS" in f for f in os.listdir(backup_dir) if f.endswith(".zip"))
     with open(os.path.join(backup_dir, "backup-baseline.json")) as f:
         baseline_after_suspicious = json.load(f)
-    assert baseline_after_suspicious["message_count"] == 1
+    assert baseline_after_suspicious["message_count"] == 6
 
 
 def test_backup_suspicious_when_size_collapsed_skips_cleanup(temp_dir):
@@ -247,29 +249,30 @@ def test_check_db_health_at_open_baseline_suspicious_content(temp_dir):
     db_path = os.path.join(temp_dir, "test.db")
     db = Database(db_path)
     db.initialize()
-    db.messages.upsert_lxmf_message(
-        {
-            "hash": "h1",
-            "source_hash": "s",
-            "destination_hash": "d",
-            "peer_hash": "p",
-            "state": "delivered",
-            "progress": 1.0,
-            "is_incoming": 1,
-            "method": "direct",
-            "delivery_attempts": 0,
-            "next_delivery_attempt_at": None,
-            "title": "t",
-            "content": "c",
-            "fields": "{}",
-            "timestamp": 0,
-            "rssi": None,
-            "snr": None,
-            "quality": None,
-            "is_spam": 0,
-            "reply_to_hash": None,
-        },
-    )
+    for i in range(6):
+        db.messages.upsert_lxmf_message(
+            {
+                "hash": f"h{i}",
+                "source_hash": "s",
+                "destination_hash": "d",
+                "peer_hash": "p",
+                "state": "delivered",
+                "progress": 1.0,
+                "is_incoming": 1,
+                "method": "direct",
+                "delivery_attempts": 0,
+                "next_delivery_attempt_at": None,
+                "title": "t",
+                "content": "c",
+                "fields": "{}",
+                "timestamp": 0,
+                "rssi": None,
+                "snr": None,
+                "quality": None,
+                "is_spam": 0,
+                "reply_to_hash": None,
+            },
+        )
     db.backup_database(temp_dir)
     db.messages.delete_all_lxmf_messages()
     issues = db.check_db_health_at_open(temp_dir)
@@ -345,6 +348,62 @@ def test_is_backup_suspicious_does_not_mistrigger_small_db():
         db._is_backup_suspicious({"message_count": 5, "total_bytes": 55_000}, baseline)
         is False
     )
+
+
+def test_is_backup_suspicious_last_message_gone_size_grew():
+    from meshchatx.src.backend.database import Database
+
+    db = Database(":memory:")
+    db.initialize()
+    baseline = {"message_count": 1, "total_bytes": 8_978_368}
+    current = {"message_count": 0, "total_bytes": 9_162_256}
+    assert db._is_backup_suspicious(current, baseline) is False
+
+
+def test_is_backup_suspicious_wal_checkpoint_same_count():
+    from meshchatx.src.backend.database import Database
+
+    db = Database(":memory:")
+    db.initialize()
+    baseline = {"message_count": 1, "total_bytes": 4_824_640}
+    current = {"message_count": 1, "total_bytes": 847_952}
+    assert db._is_backup_suspicious(current, baseline) is False
+
+
+def test_is_backup_suspicious_inbox_wiped_still_flags():
+    from meshchatx.src.backend.database import Database
+
+    db = Database(":memory:")
+    db.initialize()
+    baseline = {"message_count": 70, "total_bytes": 15_420_968}
+    current = {"message_count": 0, "total_bytes": 11_292_728}
+    assert db._is_backup_suspicious(current, baseline) is True
+
+
+def test_is_backup_suspicious_failed_count_does_not_flag():
+    from meshchatx.src.backend.database import Database
+
+    db = Database(":memory:")
+    db.initialize()
+    baseline = {"message_count": 70, "total_bytes": 15_420_968}
+    current = {"message_count": -1, "total_bytes": 15_420_968}
+    assert db._is_backup_suspicious(current, baseline) is False
+
+
+def test_merge_health_issues_keeps_first_content_anomaly():
+    from meshchatx.src.backend.database import Database
+
+    first = (
+        "Database content anomaly: was 70 messages / 15420968 bytes, "
+        "now 0 / 11292728. Restore from backup if needed."
+    )
+    second = (
+        "Database content anomaly: was 70 messages / 15420968 bytes, "
+        "now 0 / 11408088. Restore from backup if needed."
+    )
+    integrity = "Database integrity check failed: corrupt"
+    merged = Database.merge_health_issues([first], [second, integrity, first])
+    assert merged == [first, integrity]
 
 
 def test_backup_includes_identity_rrc_and_history(temp_dir):

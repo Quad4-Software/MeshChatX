@@ -628,6 +628,7 @@ import {
     markMemoryWarningDismissed,
     showMemoryWarningToastIfNeeded,
 } from "../js/healthMemoryWarning.js";
+import { showDatabaseHealthIssuesToastIfNeeded, resetDatabaseHealthWarningState } from "../js/databaseHealthWarning.js";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import QRCode from "qrcode";
 import LanguageSelector from "./LanguageSelector.vue";
@@ -1537,6 +1538,7 @@ export default {
                 }
 
                 ToastUtils.success(this.$t("identities.switched"));
+                resetDatabaseHealthWarningState();
 
                 GlobalState.unreadConversationsCount = 0;
                 GlobalState.missedCallsCount = 0;
@@ -1851,9 +1853,7 @@ export default {
                     }
                 },
                 database_health_warning: (json) => {
-                    if (json.issues && json.issues.length > 0) {
-                        ToastUtils.warning(json.issues.join(" ") || "Database issue detected.", 8000);
-                    }
+                    showDatabaseHealthIssuesToastIfNeeded(json.issues, ToastUtils);
                 },
                 health_warning: (json) => {
                     handleHealthWarningPayload(json, ToastUtils);
@@ -1884,12 +1884,7 @@ export default {
                 const response = await window.api.get(`/api/v1/app/info`);
                 this.appInfo = response.data.app_info;
 
-                if (this.appInfo.database_health_issues && this.appInfo.database_health_issues.length > 0) {
-                    const msg =
-                        this.appInfo.database_health_issues.join(" ") ||
-                        "Database issue detected. Check About > Database.";
-                    ToastUtils.warning(msg, 8000);
-                }
+                showDatabaseHealthIssuesToastIfNeeded(this.appInfo.database_health_issues, ToastUtils);
 
                 // check URL params for modal triggers
                 const urlParams = new URLSearchParams(window.location.search);

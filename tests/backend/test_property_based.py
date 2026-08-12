@@ -12,6 +12,12 @@ from hypothesis import strategies as st
 
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend.colour_utils import ColourUtils
+from meshchatx.src.backend.database import (
+    MESSAGE_DROP_RATIO,
+    MIN_SIZE_COMPARE_BYTES,
+    MIN_SIZE_RATIO,
+    MIN_WIPE_MESSAGE_COUNT,
+)
 from meshchatx.src.backend.identity_manager import IdentityManager
 from meshchatx.src.backend.interface_config_parser import InterfaceConfigParser
 from meshchatx.src.backend.lxmf_utils import (
@@ -933,19 +939,28 @@ def test_parse_lxmf_display_name_extended(aspect, data):
         pass
 
 
-MIN_SIZE_RATIO = 0.2
-
-
 def _is_backup_suspicious_reference(current_stats, baseline):
     if not baseline:
         return False
     prev_count = baseline.get("message_count", 0)
-    prev_bytes = baseline.get("total_bytes", 0)
     curr_count = current_stats.get("message_count", 0)
-    curr_bytes = current_stats.get("total_bytes", 0)
-    if prev_count > 0 and curr_count == 0:
+    if curr_count < 0:
+        return False
+    prev_main = baseline.get("main_bytes")
+    curr_main = current_stats.get("main_bytes")
+    if prev_main is not None and curr_main is not None:
+        prev_bytes, curr_bytes = prev_main, curr_main
+    else:
+        prev_bytes = baseline.get("total_bytes", 0)
+        curr_bytes = current_stats.get("total_bytes", 0)
+    if prev_count >= MIN_WIPE_MESSAGE_COUNT and curr_count == 0:
         return True
-    if prev_bytes > 100_000 and curr_bytes < prev_bytes * MIN_SIZE_RATIO:
+    if (
+        prev_bytes > MIN_SIZE_COMPARE_BYTES
+        and curr_bytes < prev_bytes * MIN_SIZE_RATIO
+        and prev_count > 0
+        and curr_count < prev_count * MESSAGE_DROP_RATIO
+    ):
         return True
     return False
 
