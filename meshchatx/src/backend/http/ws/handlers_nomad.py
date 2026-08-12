@@ -531,6 +531,7 @@ async def handle_nomadnet_page_download(app, client, data):
     local_page = app._try_serve_local_page_node(
         destination_hash,
         page_path_to_download,
+        request_data=combined_data,
     )
     if local_page is not None:
         app.archive_page(destination_hash.hex(), page_path, local_page)

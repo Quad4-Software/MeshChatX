@@ -40,6 +40,18 @@ Typical workflow:
 3. Start the node and announce it on the mesh.
 4. Share your destination hash so others can open `/page/index.mu` on your node.
 
+### Executable (dynamic) pages
+
+On Linux and macOS you can opt in per node to **executable pages**. When enabled:
+
+- Non-executable pages are served as static files.
+- Pages marked executable (via the Mesh Server UI or `chmod +x`) run as scripts using their shebang.
+- Request `field_*` and `var_*` values are passed as environment variables.
+- `link_id` and `remote_identity` are supplied when available.
+- Script stdout is returned as the page body. Failures return a controlled error page.
+
+Executable pages are disabled on Windows (static serving only). Editing a page in Mesh Server always shows the file source, never the script output.
+
 API endpoints under `/api/v1/page-nodes/` manage CRUD operations, start and stop, and file listings.
 
 Pages are served at `/page/<name>` and files at `/file/<name>` on the node destination.

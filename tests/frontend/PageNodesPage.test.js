@@ -27,11 +27,12 @@ function makeNode(overrides = {}) {
         active_links: 0,
         unique_connections: 0,
         uptime_seconds: 60,
-        pages: ["index.mu"],
+        pages: [{ name: "index.mu", executable: false }],
         files: [],
         stats: { pages_served: 0, files_served: 0, links_established: 0 },
         announce_enabled: true,
         announce_interval_seconds: 900,
+        executable_pages_enabled: false,
         last_announced_at: null,
         ...overrides,
     };
@@ -96,6 +97,7 @@ describe("PageNodesPage.vue", () => {
         expect(wrapper.vm.announceSettingsForm).toEqual({
             announce_enabled: true,
             announce_interval_seconds: 900,
+            executable_pages_enabled: false,
         });
     });
 
@@ -109,6 +111,7 @@ describe("PageNodesPage.vue", () => {
         expect(wrapper.vm.announceSettingsForm).toEqual({
             announce_enabled: false,
             announce_interval_seconds: 300,
+            executable_pages_enabled: false,
         });
     });
 
@@ -145,12 +148,14 @@ describe("PageNodesPage.vue", () => {
         wrapper.vm.announceSettingsForm = {
             announce_enabled: false,
             announce_interval_seconds: 300,
+            executable_pages_enabled: true,
         };
         await wrapper.vm.saveAnnounceSettings();
 
         expect(axiosMock.patch).toHaveBeenCalledWith(`/api/v1/page-nodes/${NODE_ID}/announce-settings`, {
             announce_enabled: false,
             announce_interval_seconds: 300,
+            executable_pages_enabled: true,
         });
     });
 
@@ -184,5 +189,22 @@ describe("PageNodesPage.vue", () => {
         await wrapper.vm.createNode();
 
         expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/page-nodes", { name: "Fresh Node" });
+    });
+
+    it("saves page executable flag via POST API", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.nodes.length).toBe(1));
+        wrapper.vm.selectNode(wrapper.vm.nodes[0]);
+        wrapper.vm.editingPage = "index.mu";
+        wrapper.vm.editingPageContent = "#!/usr/bin/env python3\nprint('x')\n";
+        wrapper.vm.editingPageExecutable = true;
+
+        await wrapper.vm.savePage();
+
+        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/page-nodes/${NODE_ID}/pages`, {
+            name: "index.mu",
+            content: "#!/usr/bin/env python3\nprint('x')\n",
+            executable: true,
+        });
     });
 });

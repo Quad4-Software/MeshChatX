@@ -207,6 +207,16 @@
                         </div>
                         <div class="flex items-center justify-between gap-3">
                             <Toggle
+                                id="mesh-server-executable-pages-enabled"
+                                v-model="announceSettingsForm.executable_pages_enabled"
+                                :label="$t('tools.mesh_server.executable_pages_enabled_label')"
+                            />
+                        </div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                            {{ $t("tools.mesh_server.executable_pages_warning") }}
+                        </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <Toggle
                                 id="mesh-server-announce-enabled"
                                 v-model="announceSettingsForm.announce_enabled"
                                 :label="$t('tools.mesh_server.announce_enabled_label')"
@@ -299,20 +309,26 @@
 
                         <div
                             v-for="page in selectedNode.pages"
-                            :key="page"
+                            :key="page.name"
                             class="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700"
                         >
                             <div class="flex items-center gap-2">
                                 <MaterialDesignIcon icon-name="file-document-outline" class="w-4 h-4 text-teal-500" />
-                                <span class="text-sm font-mono text-gray-900 dark:text-white">{{ page }}</span>
+                                <span class="text-sm font-mono text-gray-900 dark:text-white">{{ page.name }}</span>
+                                <span
+                                    v-if="page.executable"
+                                    class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300"
+                                >
+                                    {{ $t("tools.mesh_server.executable_badge") }}
+                                </span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <button class="secondary-chip py-0.5! px-2! text-xs!" @click="editPage(page)">
+                                <button class="secondary-chip py-0.5! px-2! text-xs!" @click="editPage(page.name)">
                                     {{ $t("common.edit") }}
                                 </button>
                                 <button
                                     class="secondary-chip py-0.5! px-2! text-xs! text-red-500!"
-                                    @click="deletePage(page)"
+                                    @click="deletePage(page.name)"
                                 >
                                     <MaterialDesignIcon icon-name="delete" class="w-3 h-3" />
                                 </button>
@@ -337,6 +353,13 @@
                                         {{ $t("common.cancel") }}
                                     </button>
                                 </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <Toggle
+                                    id="mesh-server-page-executable"
+                                    v-model="editingPageExecutable"
+                                    :label="$t('tools.mesh_server.page_executable_label')"
+                                />
                             </div>
                             <textarea
                                 v-model="editingPageContent"
@@ -493,9 +516,11 @@ export default {
             newPageName: "",
             editingPage: null,
             editingPageContent: "",
+            editingPageExecutable: false,
             announceSettingsForm: {
                 announce_enabled: true,
                 announce_interval_seconds: DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+                executable_pages_enabled: false,
             },
         };
     },
@@ -555,6 +580,7 @@ export default {
             this.announceSettingsForm = {
                 announce_enabled: node.announce_enabled !== false,
                 announce_interval_seconds: resolveAnnounceIntervalSeconds(node.announce_interval_seconds),
+                executable_pages_enabled: node.executable_pages_enabled === true,
             };
         },
         async createNode() {
@@ -621,6 +647,7 @@ export default {
                     {
                         announce_enabled: this.announceSettingsForm.announce_enabled,
                         announce_interval_seconds: this.announceSettingsForm.announce_interval_seconds,
+                        executable_pages_enabled: this.announceSettingsForm.executable_pages_enabled,
                     },
                 );
                 this.selectedNode = response.data;
@@ -681,6 +708,7 @@ export default {
                 }
                 this.editingPage = pageName;
                 this.editingPageContent = body?.content ?? "";
+                this.editingPageExecutable = body?.executable === true;
             } catch {
                 ToastUtils.error(this.$t("tools.mesh_server.failed_page_load"));
             }
@@ -691,9 +719,11 @@ export default {
                 await window.api.post(`/api/v1/page-nodes/${this.selectedNode.node_id}/pages`, {
                     name: this.editingPage,
                     content: this.editingPageContent,
+                    executable: this.editingPageExecutable,
                 });
                 this.editingPage = null;
                 this.editingPageContent = "";
+                this.editingPageExecutable = false;
                 ToastUtils.success(this.$t("tools.mesh_server.page_saved"));
                 await this.loadNodes();
             } catch {

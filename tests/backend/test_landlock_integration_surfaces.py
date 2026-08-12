@@ -405,6 +405,47 @@ def test_landlock_rnsh_module_spawn_when_installed(tmp_path):
     assert_probe_ok(result)
 
 
+@requires_landlock_integration
+def test_landlock_executable_page_script_spawn(tmp_path):
+    storage = tmp_path / "storage"
+    storage.mkdir()
+    result = run_python_under_landlock(
+        """
+        import os
+        import stat
+        import subprocess
+        import sys
+
+        pages_dir = os.path.join(storage, "pages")
+        os.makedirs(pages_dir, exist_ok=True)
+        script_path = os.path.join(pages_dir, "dyn.mu")
+        with open(script_path, "w", encoding="utf-8") as handle:
+            handle.write("#!/usr/bin/env python3\\nprint('landlock-page-ok', flush=True)\\n")
+        os.chmod(
+            script_path,
+            os.stat(script_path).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH,
+        )
+        env = {}
+        if "PATH" in os.environ:
+            env["PATH"] = os.environ["PATH"]
+        child = subprocess.run(
+            [script_path],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            env=env,
+        )
+        if "landlock-page-ok" not in (child.stdout or ""):
+            print("BAD_OUT", child.stdout, child.stderr, child.returncode)
+            sys.exit(4)
+        print("OK")
+        sys.exit(0)
+        """,
+        storage=storage,
+    )
+    assert_probe_ok(result)
+
+
 @pytest.mark.parametrize(
     ("path_name", "collector"),
     [

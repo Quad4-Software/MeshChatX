@@ -10216,7 +10216,14 @@ class ReticulumMeshChat:
             self.config.nomad_default_page_path.get() or "/page/index.mu",
         )
 
-    def _try_serve_local_page_node(self, destination_hash, page_path):
+    def _try_serve_local_page_node(
+        self,
+        destination_hash,
+        page_path,
+        request_data=None,
+        link_id=None,
+        remote_identity=None,
+    ):
         """Serve a page from disk when the hash matches a local page node.
 
         Returns the page content string, or None.
@@ -10228,10 +10235,15 @@ class ReticulumMeshChat:
                 page_name = page_path.lstrip("/")
                 page_name = page_name.removeprefix("page/")
                 page_name = os.path.basename(page_name)
-                content = node.get_page_content(page_name)
-                if content is not None:
-                    node._stats["pages_served"] += 1
-                return content
+                raw = node.serve_page_content(
+                    page_name,
+                    data=request_data,
+                    link_id=link_id,
+                    remote_identity=remote_identity,
+                )
+                if raw is None:
+                    return None
+                return raw.decode("utf-8", errors="replace")
         return None
 
     def _try_serve_local_page_node_file(self, destination_hash, file_path):

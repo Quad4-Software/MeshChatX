@@ -48,6 +48,7 @@ class PageNodeManager:
                 announce_interval_seconds=normalize_announce_interval_seconds(
                     config.get("announce_interval_seconds"),
                 ),
+                executable_pages_enabled=config.get("executable_pages_enabled", False),
                 on_announce=self.on_announce,
             )
             self.nodes[node_id] = node
@@ -58,6 +59,7 @@ class PageNodeManager:
         node_id=None,
         announce_enabled=True,
         announce_interval_seconds=None,
+        executable_pages_enabled=False,
     ):
         """Create a new page node, persist its config, and return it."""
         if node_id is None:
@@ -74,6 +76,7 @@ class PageNodeManager:
             announce_interval_seconds=normalize_announce_interval_seconds(
                 announce_interval_seconds,
             ),
+            executable_pages_enabled=executable_pages_enabled,
             on_announce=self.on_announce,
         )
         node.save_config()
@@ -155,6 +158,15 @@ class PageNodeManager:
             announce_enabled=announce_enabled,
             announce_interval_seconds=announce_interval_seconds,
         )
+        node.save_config()
+        return node
+
+    def set_executable_pages_enabled(self, node_id, enabled):
+        """Enable or disable executable page serving for a node."""
+        node = self.nodes.get(node_id)
+        if node is None:
+            raise KeyError(f"Node {node_id} not found")
+        node.set_executable_pages_enabled(enabled)
         node.save_config()
         return node
 
