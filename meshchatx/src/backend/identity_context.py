@@ -14,7 +14,7 @@ from meshchatx.src.backend.auto_propagation_manager import AutoPropagationManage
 from meshchatx.src.backend.bot_handler import BotHandler
 from meshchatx.src.backend.community_interfaces import CommunityInterfacesManager
 from meshchatx.src.backend.config_manager import ConfigManager
-from meshchatx.src.backend.database import Database
+from meshchatx.src.backend.database import Database, merge_health_issues
 from meshchatx.src.backend.docs_manager import DocsManager
 from meshchatx.src.backend.forwarding_manager import ForwardingManager
 from meshchatx.src.backend.integrity_manager import (
@@ -680,10 +680,10 @@ class IdentityContext:
                     existing = list(
                         getattr(self.app, "database_health_issues", []) or [],
                     )
-                    for issue in full_db_issues:
-                        if issue not in existing:
-                            existing.append(issue)
-                    self.app.database_health_issues = existing
+                    self.app.database_health_issues = merge_health_issues(
+                        existing,
+                        full_db_issues,
+                    )
             except Exception as exc:
                 print(f"Failed deferred DB health check: {exc}")
 

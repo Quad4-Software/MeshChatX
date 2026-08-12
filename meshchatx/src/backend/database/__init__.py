@@ -43,8 +43,33 @@ BACKUP_MANIFEST_NAME = "backup-manifest.json"
 BACKUP_SKIP_DIR_NAMES = frozenset({"database-backups", "snapshots"})
 PRE_MIGRATE_BACKUP_PREFIX = "backup-pre-migrate-"
 MIN_SIZE_RATIO = 0.2
+MIN_WIPE_MESSAGE_COUNT = 5
+MESSAGE_DROP_RATIO = 0.5
+MIN_SIZE_COMPARE_BYTES = 100_000
+_CONTENT_ANOMALY_PREFIX = "Database content anomaly:"
 
 _log = logging.getLogger("meshchatx.database")
+
+
+def merge_health_issues(existing, incoming):
+    """Merge health issue lists without duplicating content-anomaly snapshots.
+
+    Quick then full open checks can produce two anomaly strings that differ
+    only in live byte counts (WAL growth). Keep the first anomaly.
+    """
+    merged: list[str] = []
+    have_anomaly = False
+    for issue in list(existing or []) + list(incoming or []):
+        if not issue or not isinstance(issue, str):
+            continue
+        if issue in merged:
+            continue
+        if issue.startswith(_CONTENT_ANOMALY_PREFIX):
+            if have_anomaly:
+                continue
+            have_anomaly = True
+        merged.append(issue)
+    return merged
 
 
 class DatabaseRestoreError(RuntimeError):
@@ -354,7 +379,13 @@ class Database:
         except (OSError, json.JSONDecodeError):
             return None
 
-    def _write_backup_baseline(self, storage_path, message_count, total_bytes):
+    def _write_backup_baseline(
+        self,
+        storage_path,
+        message_count,
+        total_bytes,
+        main_bytes=None,
+    ):
         path = self._get_backup_baseline_path(storage_path)
         try:
             os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -363,6 +394,8 @@ class Database:
                 "total_bytes": total_bytes,
                 "timestamp": datetime.now(UTC).isoformat(),
             }
+            if main_bytes is not None:
+                data["main_bytes"] = main_bytes
             with open(path, "w") as f:
                 json.dump(data, f, indent=2)
         except OSError as e:
@@ -377,20 +410,45 @@ class Database:
         return {
             "message_count": message_count,
             "total_bytes": stats["total_bytes"],
+            "main_bytes": stats["main_bytes"],
         }
+
+    @staticmethod
+    def _size_bytes_for_compare(current_stats, baseline):
+        """Prefer main file size when both sides have it.
+
+        total_bytes includes WAL and SHM, which shrink on checkpoint or vacuum
+        without any message loss.
+        """
+        prev_main = baseline.get("main_bytes")
+        curr_main = current_stats.get("main_bytes")
+        if prev_main is not None and curr_main is not None:
+            return prev_main, curr_main
+        return (
+            baseline.get("total_bytes", 0),
+            current_stats.get("total_bytes", 0),
+        )
 
     def _is_backup_suspicious(self, current_stats, baseline):
         if not baseline:
             return False
         prev_count = baseline.get("message_count", 0)
-        prev_bytes = baseline.get("total_bytes", 0)
         curr_count = current_stats.get("message_count", 0)
-        curr_bytes = current_stats.get("total_bytes", 0)
-        if prev_count > 0 and curr_count == 0:
+        if curr_count < 0:
+            return False
+        prev_bytes, curr_bytes = self._size_bytes_for_compare(current_stats, baseline)
+        if prev_count >= MIN_WIPE_MESSAGE_COUNT and curr_count == 0:
             return True
-        if prev_bytes > 100_000 and curr_bytes < prev_bytes * MIN_SIZE_RATIO:
+        if (
+            prev_bytes > MIN_SIZE_COMPARE_BYTES
+            and curr_bytes < prev_bytes * MIN_SIZE_RATIO
+            and prev_count > 0
+            and curr_count < prev_count * MESSAGE_DROP_RATIO
+        ):
             return True
         return False
+
+    merge_health_issues = staticmethod(merge_health_issues)
 
     def check_db_health_at_open(self, storage_path, *, quick: bool = False):
         """Run integrity and baseline checks after opening the database.
@@ -838,6 +896,7 @@ class Database:
             storage_path,
             current_stats["message_count"],
             current_stats["total_bytes"],
+            current_stats.get("main_bytes"),
         )
         return result
 
