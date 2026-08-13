@@ -158,29 +158,34 @@ def create_auth_middleware(app):
             "/service-worker.js",
         ]
 
-        # check if path is public
-        is_public = any(path.startswith(public) for public in public_paths)
+        # Exact public API paths only. startswith would treat
+        # /api/v1/status.json as public because it prefixes /api/v1/status.
+        is_public = path in public_paths
         if path.startswith(("/reticulum-docs/", "/meshchatx-docs/")):
             is_public = True
 
-        # check if requesting setup page (index.html will show setup if needed)
+        # Static UI files are public. API paths are not, even when they end
+        # in .js/.json/.wasm (plugin assets live at /api/v1/plugins/.../asset/).
         if (
             path == "/"
             or path.startswith(
                 ("/assets/", "/favicons/", "/reticulum-docs/", "/meshchatx-docs/"),
             )
-            or path.endswith(
-                (
-                    ".js",
-                    ".css",
-                    ".json",
-                    ".wasm",
-                    ".png",
-                    ".jpg",
-                    ".jpeg",
-                    ".ico",
-                    ".svg",
-                ),
+            or (
+                not path.startswith("/api/")
+                and path.endswith(
+                    (
+                        ".js",
+                        ".css",
+                        ".json",
+                        ".wasm",
+                        ".png",
+                        ".jpg",
+                        ".jpeg",
+                        ".ico",
+                        ".svg",
+                    ),
+                )
             )
         ):
             is_public = True
