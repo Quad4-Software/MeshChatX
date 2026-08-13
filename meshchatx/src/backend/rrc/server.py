@@ -508,13 +508,13 @@ class RRCHubServer:
         if not isinstance(room, str) or not room:
             self._queue_error(outgoing, link, "JOIN requires room name")
             return
-        if len(sess.rooms) >= self.max_rooms_per_session:
-            self._queue_error(outgoing, link, "too many rooms")
-            return
         try:
             r = self._norm_room(room)
         except ValueError as e:
             self._queue_error(outgoing, link, str(e))
+            return
+        if r not in sess.rooms and len(sess.rooms) >= self.max_rooms_per_session:
+            self._queue_error(outgoing, link, "too many rooms")
             return
 
         peer = sess.peer if isinstance(sess.peer, (bytes, bytearray)) else None
@@ -553,14 +553,14 @@ class RRCHubServer:
         if not self._room_members.get(r):
             self.rooms.ensure_state(r, founder=peer)
 
-        # One-shot invite: consume after a successful ACL pass so PART+reJOIN
-        # cannot reuse the same invite forever while TTL is live.
-        if self.rooms.consume_invite(r, peer):
-            self.rooms.persist(r)
-
         members = self._room_members.setdefault(r, set())
         already = link in members
         existing = [m for m in members if m != link]
+        # One-shot invite: consume after a successful ACL pass so PART+reJOIN
+        # cannot reuse the same invite forever while TTL is live. Skip consume
+        # on re-JOIN so a fresh invite issued while present is not burned.
+        if not already and self.rooms.consume_invite(r, peer):
+            self.rooms.persist(r)
         members.add(link)
         sess.rooms.add(r)
 

@@ -1174,8 +1174,6 @@ class RRCHub:
         if isinstance(src, (bytes, bytearray)) and isinstance(nick, str) and nick:
             with self._lock:
                 self.nicks[bytes(src)] = nick
-                if isinstance(room, str) and room:
-                    self.members.setdefault(room.strip().lower(), set()).add(bytes(src))
         if not isinstance(body, str):
             return
         msg = proto.RRCMessage(

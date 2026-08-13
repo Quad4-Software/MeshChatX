@@ -92,7 +92,11 @@ class HubCommandHandler:
             return True
         lines = ["Registered public rooms:"]
         for name, topic in sorted(public, key=lambda x: x[0]):
-            lines.append("  " + name + " - " + topic if topic else "  " + name)
+            topic_txt = topic.strip() if isinstance(topic, str) else ""
+            if topic_txt:
+                lines.append("  " + name + " - " + topic_txt)
+            else:
+                lines.append("  " + name)
         server._queue_notice(outgoing, link, None, "\n".join(lines))
         return True
 
@@ -348,7 +352,8 @@ class HubCommandHandler:
             )
             return True
         st = server.rooms.ensure_state(r, founder=peer)
-        if st.get("registered") and st.get("founder") not in (None, peer):
+        founder = st.get("founder")
+        if founder is not None and peer is not None and bytes(founder) != bytes(peer):
             if not server.rooms.is_room_op(r, peer):
                 server._queue_error(
                     outgoing,
@@ -398,8 +403,7 @@ class HubCommandHandler:
         if not st.get("registered"):
             server._queue_notice(outgoing, link, room, f"room {r} is not registered")
             return True
-        st["registered"] = False
-        server.rooms.delete_from_registry(r)
+        server.rooms.unregister_room(r)
         server._queue_notice(outgoing, link, room, f"unregistered room {r}")
         server.manager._notify_change(server)
         return True
@@ -581,11 +585,11 @@ class HubCommandHandler:
             server._queue_notice(outgoing, link, None, "bad room: " + str(e))
             return True
         op = parts[2].lower()
-        st = server.rooms.ensure_state(r)
-        bans = st.setdefault("bans", set())
         if not server.rooms.is_room_op(r, peer):
             server._queue_error(outgoing, link, "not authorized", room=r)
             return True
+        st = server.rooms.ensure_state(r)
+        bans = st.setdefault("bans", set())
         if op == "list":
             if not bans:
                 server._queue_notice(outgoing, link, room, f"no bans in {r}")

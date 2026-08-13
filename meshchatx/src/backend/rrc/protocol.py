@@ -255,6 +255,11 @@ def parse_room_list_notice(text):
         s = line.strip()
         if not s:
             continue
+        if s.endswith(" -"):
+            name = s[:-2].strip().lstrip("#").lower()
+            if name:
+                rooms[name] = None
+            continue
         if " - " in s:
             name, topic = s.split(" - ", 1)
             rooms[name.strip().lower()] = topic.strip() or None
