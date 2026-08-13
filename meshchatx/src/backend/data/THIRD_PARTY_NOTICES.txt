@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-07-27T11:14:33.171764Z
+Generated at: 2026-08-13T05:23:39.929319Z
 Frontend source: pnpm
 
 Python dependencies
@@ -7,7 +7,7 @@ Python dependencies
 aiohappyeyeballs 2.6.1
   License: PSF-2.0
   Author: J. Nick Koston
-aiohttp 3.14.1
+aiohttp 3.14.3
   License: Apache-2.0 AND MIT
   Author: -
 aiohttp-session 2.12.1
@@ -43,7 +43,7 @@ certifi 2026.7.22
 cffi 2.0.0
   License: MIT
   Author: Armin Rigo, Maciej Fijalkowski
-cryptography 49.0.0
+cryptography 50.0.0
   License: Apache-2.0 OR BSD-3-Clause
   Author: The Python Cryptographic Authority and individual contributors <cryptography-dev@python.org>
 dbus-fast 5.0.22
@@ -610,7 +610,7 @@ boolbase 1.0.0
 boolean 3.0.1
   License: MIT
   Author: -
-brace-expansion 1.1.12
+brace-expansion 1.1.17
   License: MIT
   Author: -
 buffer-from 1.0.0
@@ -937,7 +937,7 @@ fast-json-stable-stringify 2.1.0
 fast-levenshtein 2.0.6
   License: MIT
   Author: Ramesh Nair
-fast-uri 4.1.1
+fast-uri 4.1.2
   License: BSD-3-Clause
   Author: Vincent Le Goff
 fd-package-json 2.0.0
@@ -1099,7 +1099,7 @@ inline-process-browser 1.0.0
 invert-kv 2.0.0
   License: MIT
   Author: Sindre Sorhus
-ip-address 9.0.5
+ip-address 10.5.0
   License: MIT
   Author: Beau Gunderson
 is-blob 2.1.0
@@ -1168,12 +1168,9 @@ js-beautify 1.14.9
 js-tokens 10.0.0
   License: MIT
   Author: Simon Lydell
-js-yaml 4.2.0
+js-yaml 5.2.3
   License: MIT
   Author: Vladimir Zapparov
-jsbn 1.1.0
-  License: MIT
-  Author: Tom Wu
 jsdom 29.1.1
   License: MIT
   Author: -
@@ -1342,7 +1339,7 @@ ms 2.0.0
 muggle-string 0.4.1
   License: MIT
   Author: -
-nanoid 3.3.12
+nanoid 3.3.18
   License: MIT
   Author: Andrey Sitnik
 natural-compare 1.4.0
@@ -1495,7 +1492,7 @@ plist 3.0.5
 pngjs 5.0.0
   License: MIT
   Author: -
-postcss 8.5.19
+postcss 8.5.26
   License: MIT
   Author: Andrey Sitnik
 postcss-selector-parser 7.1.4
@@ -1687,7 +1684,7 @@ source-map 0.6.0
 source-map 0.3.0
   License: BSD
   Author: Nick Fitzgerald
-source-map-js 1.0.2
+source-map-js 1.2.1
   License: BSD-3-Clause
   Author: Valentin 7rulnik Semirulnik
 source-map-support 0.5.19
@@ -1816,7 +1813,7 @@ typescript 6.0.3
 unbash 4.0.3
   License: ISC
   Author: Lars Kappert
-undici 7.28.0
+undici 7.29.0
   License: MIT
   Author: -
 undici-types 7.16.0
