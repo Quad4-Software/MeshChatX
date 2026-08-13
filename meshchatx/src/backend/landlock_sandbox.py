@@ -489,6 +489,35 @@ def _add_path_beneath_rule(
         os.close(fd)
 
 
+def _normalize_extra_landlock_read_root(path: str) -> str | None:
+    """Return a realpath extra read root, or None when it would widen the jail.
+
+    Rejects the filesystem root and the user home directory itself. A Sideband
+    plugins folder may live under home. Home or / as the extra root would let
+    a compromised plugin read ssh keys and the rest of the host tree.
+    """
+    if not isinstance(path, str) or not path.strip():
+        return None
+    try:
+        resolved = os.path.realpath(os.path.abspath(os.path.expanduser(path.strip())))
+    except OSError:
+        return None
+    if not os.path.isdir(resolved):
+        return None
+    fs_root = os.path.realpath(os.path.abspath(os.sep))
+    if resolved == fs_root:
+        return None
+    home = os.path.expanduser("~")
+    if home and home != "~":
+        try:
+            home_real = os.path.realpath(os.path.abspath(home))
+        except OSError:
+            home_real = ""
+        if home_real and resolved == home_real:
+            return None
+    return resolved
+
+
 def extra_read_roots_from_app(app) -> list[str]:
     """Sideband command-plugin dirs chosen in settings, if they exist on disk.
 
@@ -505,8 +534,8 @@ def extra_read_roots_from_app(app) -> list[str]:
         raw = None
     if not raw:
         return []
-    resolved = os.path.abspath(os.path.expanduser(str(raw)))
-    if os.path.isdir(resolved):
+    resolved = _normalize_extra_landlock_read_root(str(raw))
+    if resolved:
         return [resolved]
     return []
 
@@ -562,8 +591,8 @@ def apply_landlock_sandbox(
         for extra in extra_read_roots or []:
             if not extra:
                 continue
-            resolved = os.path.abspath(os.path.expanduser(str(extra)))
-            if os.path.isdir(resolved) and resolved not in read_roots:
+            resolved = _normalize_extra_landlock_read_root(str(extra))
+            if resolved and resolved not in read_roots:
                 read_roots.append(resolved)
         for root in read_roots:
             _add_path_beneath_rule(

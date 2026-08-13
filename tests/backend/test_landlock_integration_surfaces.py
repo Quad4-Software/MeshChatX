@@ -603,5 +603,16 @@ def test_extra_read_roots_from_app_uses_command_plugins_path(tmp_path):
     assert ll.extra_read_roots_from_app(_App(str(missing))) == []
     present = tmp_path / "plugins"
     present.mkdir()
-    assert ll.extra_read_roots_from_app(_App(str(present))) == [str(present)]
+    assert ll.extra_read_roots_from_app(_App(str(present))) == [
+        os.path.realpath(str(present)),
+    ]
     assert ll.extra_read_roots_from_app(_App(None)) == []
+    assert ll.extra_read_roots_from_app(_App(os.sep)) == []
+    home = os.path.expanduser("~")
+    if home and home != "~" and os.path.isdir(home):
+        assert ll.extra_read_roots_from_app(_App(home)) == []
+    nested = tmp_path / "homeish" / "plugins"
+    nested.mkdir(parents=True)
+    assert ll.extra_read_roots_from_app(_App(str(nested))) == [
+        os.path.realpath(str(nested)),
+    ]

@@ -192,3 +192,25 @@ async def test_telephone_audio_ws_bad_json_does_not_crash_handler(web_audio_app)
 
     assert pong["type"] == "pong"
     bridge.detach_client.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_telephone_audio_ws_demo_mode_rejects_before_attach(web_audio_app):
+    from meshchatx.src.backend.demo_mode import DEMO_READONLY_CODE
+
+    web_audio_app.demo_mode = True
+    bridge = _bridge_with_clients()
+    web_audio_app.web_audio_bridge = bridge
+
+    aio_app = _build_aio_app(web_audio_app)
+    async with TestClient(TestServer(aio_app)) as client:
+        ws = await client.ws_connect("/ws/telephone/audio")
+        msg = await ws.receive_json()
+        await ws.send_bytes(b"\x01\x02\x03")
+        await ws.close()
+
+    assert msg["type"] == "error"
+    assert msg["code"] == DEMO_READONLY_CODE
+    bridge.send_status.assert_not_called()
+    bridge.attach_client.assert_not_called()
+    bridge.push_client_frame.assert_not_called()

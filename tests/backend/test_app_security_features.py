@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: 0BSD
 
 import secrets
+from unittest.mock import MagicMock
 
 import bcrypt
 import pytest
@@ -153,3 +154,20 @@ async def test_privacy_mode_blocks_map_export(mock_app):
             headers=headers,
         )
         assert r.status == 403
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
+async def test_privacy_mode_blocks_repository_refresh(mock_app):
+    mock_app.config.privacy_mode_enabled.set(True)
+    mock_app.repository_server_manager = MagicMock()
+    aio_app = _make_aio_app(mock_app, use_https=False)
+
+    async with TestClient(TestServer(aio_app)) as client:
+        headers = await fetch_api_csrf_headers(client)
+        r = await client.post(
+            "/api/v1/repository-server/refresh-bundled",
+            headers=headers,
+        )
+        assert r.status == 403
+        mock_app.repository_server_manager.refresh_bundled_wheels.assert_not_called()

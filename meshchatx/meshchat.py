@@ -2119,6 +2119,9 @@ class ReticulumMeshChat:
         self.contexts.clear()
         self.current_context = None
         self.running = False
+        # Same drop as teardown_identity. Reload and zip restore must not keep
+        # Nomad or RNS Link sessions from the torn-down identities.
+        self._clear_mesh_link_caches()
         gc.collect()
 
     async def _send_rns_reload_status(

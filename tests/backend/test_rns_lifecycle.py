@@ -910,3 +910,33 @@ async def test_reload_teardown_stops_all_context_services(mock_rns, temp_dir):
         ctx_b.teardown.assert_called_once()
         assert app.contexts == {}
         assert app.current_context is None
+
+
+def test_teardown_all_contexts_for_reload_clears_mesh_link_caches(mock_rns, temp_dir):
+    with (
+        patch("meshchatx.src.backend.identity_context.Database"),
+        patch("meshchatx.src.backend.identity_context.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.MapManager"),
+        patch("meshchatx.src.backend.identity_context.TelephoneManager"),
+        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
+        patch("LXMF.LXMRouter"),
+    ):
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app.contexts = {}
+        app.current_context = None
+        app.page_node_manager.teardown = MagicMock()
+        app._clear_mesh_link_caches = MagicMock()
+        app._teardown_all_contexts_for_reload()
+        app._clear_mesh_link_caches.assert_called_once()
