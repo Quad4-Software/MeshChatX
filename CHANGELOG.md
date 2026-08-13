@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file.
 - **Landlock extra read roots**: The Sideband command-plugin directory from Settings is added as a Landlock read root when that folder exists on disk. A missing path is not widened to its parent. `/sys` is a read root so USB serial metadata lookups can stat sysfs.
 - **Map discovery (`map-data-v1`)**: Publish sanitized GeoJSON/KML/KMZ packs from the Map page. Peers hear a slim announce (`n` label, `c` count), fetch `/catalog` and `/map/<id>` over an RNS Link, and add the pack as a local overlay. NomadNet `/file/` and RNGit stay as an advanced source. Schema 55 adds `map_published`.
 - **KML/KMZ sanitizer**: Strips NetworkLink, remote hrefs (including javascript and vbscript), unsafe KMZ entries (svg/html/js), and DTD/ENTITY before overlay import or mesh publish. Remote icon URLs are removed, not left for OpenLayers to fetch.
+- **Network visualiser planet view**: WebGL wraps the 2D force layout onto a globe (your node on the front). Flat stays the default. vis-network stays 2D. Drag orbits, scroll zooms. Toggle is on the visualiser toolbar and in Settings.
 
 ### Changed
 
@@ -33,6 +34,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- **Docker frontend build**: Copy `scripts/vite-dx.mjs` into the Node stage. `vite.config.js` imports it for Vue DevTools gates, so `vite build` failed with UNRESOLVED_IMPORT when the file was missing from the image.
 - **Map KMZ import**: ArcGIS KMZ files (including [GhostMaps](https://github.com/s2underground/GhostMaps) ATAK exports) failed in two ways. An unused .xsl balloon stylesheet next to doc.kml was treated as an unsafe zip entry and showed "Could not read vector file." HTML balloon text inside CDATA left a stray CDATA closer after sanitizing, so OpenLayers parsed zero features. Sidecars that are not KML or raster icons are skipped. CDATA HTML is flattened to escaped plain text. Placemarks and zip-local PNG/JPEG/GIF/WebP icons still import.
 - **Collapsed sidebar**: Icons in the 64px app rail (nav, More, collapse chevron, identity chip, announce) and the Messages/Nomad collapse chevrons sit on the vertical center line. Collapsed nav links no longer keep the expanded right-margin offset.
 - **Messages (personal notes)**: Sending to your own LXMF address or identity is stored locally as delivered (method local) without LXMF router outbound, so self-chat no longer hangs in a waiting state.
@@ -46,7 +48,7 @@ All notable changes to this project will be documented in this file.
 - **HTTP security headers**: Send Permissions-Policy allowing microphone, camera, bluetooth, serial, and usb for this origin so reverse proxies that omit the header do not block capture or RNode flasher hardware APIs by default.
 - **RNode flasher Bluetooth**: Detect Brave's disabled-by-default Web Bluetooth API, show how to enable `brave://flags/#brave-web-bluetooth-api`, and offer Try Bluetooth / Recheck actions. Web Bluetooth has no mic-style prompt. The device chooser from requestDevice() is the permission UI.
 - **UI language**: Persist language changes over the config HTTP API (not WebSocket-only), normalize legacy locale codes, and stop the Reticulum manual language picker from overwriting app UI language.
-- **Network visualizer**: WebGL background follows light theme and clears while the WASM scene is still loading. Boot theme removes stale dark class when light is selected.
+- **Network visualizer**: WebGL background follows light theme and clears while the WASM scene is still loading. Boot theme removes stale dark class when light is selected. WebGL live layout springs are 200 (me to interface) and 240 (peers) instead of 440/500, repulsion is 1800 instead of 5600, and ticks sleep once a step moves less than 0.15 world units. Planet view keeps nodes on the front-to-back hemisphere (no wrap past the far pole), draws far nodes under near ones, and reloads after an identity switch instead of keeping the previous identity's path table and positions.
 - **Translator (Landlock)**: On Linux, allow read/execute for user-local pipx CLIs (`~/.local/bin`, `~/.local/share/pipx`) and read-write for Argos Translate data under `~/.local/share/argos-translate`, so argospm language lists and local Argos translation work with the filesystem sandbox enabled.
 - **Tests**: Landlock integration probes for subprocess spawn, translator Argos language listing, user-local CLI execution, and home write denial outside RW roots (tests/backend/test_landlock_integration_surfaces.py).
 - **Windows desktop**: AppContainer sandboxing is opt-in (set `MESHCHAT_APPCONTAINER=1`) instead of on by default, to avoid extra launcher processes and heavy startup until the path is stable.
