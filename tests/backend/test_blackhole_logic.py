@@ -356,6 +356,28 @@ def test_oracle_banish_identity_hash_persists_related_dest_and_wipes_history():
     assert args[0] == bytes.fromhex(ident)
 
 
+def test_oracle_banish_does_not_remove_reticulum_interfaces():
+    """Banish blackholes the peer. It must not delete interface config sections."""
+    import copy
+
+    app, ctx = _banish_app()
+    app.reticulum.config = {
+        "interfaces": {
+            "artyom.ddns.net": {
+                "type": "TCPClientInterface",
+                "interface_enabled": "True",
+                "target_host": "10.100.11.12",
+                "target_port": "4242",
+            }
+        }
+    }
+    before = copy.deepcopy(app.reticulum.config["interfaces"])
+    with patch("meshchatx.meshchat.AsyncUtils") as async_utils:
+        async_utils.run_async = MagicMock()
+        app.banish_lxmf_peer("a" * 32)
+    assert app.reticulum.config["interfaces"] == before
+
+
 def test_oracle_lift_identity_unblocks_related_dest():
     app, ctx = _banish_app()
     ident = "a" * 32

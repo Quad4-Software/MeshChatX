@@ -46,19 +46,19 @@
         </ToolsPageHeader>
 
         <div
-            class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+            class="flex-1 min-h-0 overflow-hidden w-full px-3 sm:px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-col"
         >
-            <div class="space-y-4 w-full min-w-0 max-w-6xl mx-auto">
+            <div class="space-y-4 w-full min-w-0 max-w-6xl mx-auto flex-1 min-h-0 flex flex-col">
                 <p
                     v-if="configPath"
-                    class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate"
+                    class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate shrink-0"
                     :title="configPath"
                 >
                     {{ configPath }}
                 </p>
                 <div
                     v-if="showRestartReminder"
-                    class="bg-amber-600 text-white border border-amber-500/30 p-4 sm:rounded-xl flex flex-wrap gap-3 items-center"
+                    class="bg-amber-600 text-white border border-amber-500/30 p-4 sm:rounded-xl flex flex-wrap gap-3 items-center shrink-0"
                 >
                     <div class="flex items-center gap-3">
                         <MaterialDesignIcon icon-name="alert" class="w-6 h-6" />
@@ -84,10 +84,10 @@
                 </div>
 
                 <div
-                    class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden"
+                    class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden flex-1 min-h-0 flex flex-col"
                 >
                     <div
-                        class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/60 text-xs text-gray-600 dark:text-gray-300"
+                        class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/60 text-xs text-gray-600 dark:text-gray-300 shrink-0"
                     >
                         <span class="flex items-center gap-1.5">
                             <MaterialDesignIcon icon-name="information-outline" class="w-3.5 h-3.5" />
@@ -97,17 +97,19 @@
                             {{ $t("tools.reticulum_config_editor.unsaved") }}
                         </span>
                     </div>
-                    <textarea
-                        ref="editorRef"
-                        v-model="content"
-                        spellcheck="false"
-                        autocapitalize="off"
-                        autocomplete="off"
-                        autocorrect="off"
-                        :placeholder="loading ? $t('tools.reticulum_config_editor.loading') : ''"
-                        class="w-full bg-white dark:bg-zinc-900 text-gray-900 dark:text-white p-4 font-mono text-xs sm:text-sm resize-none focus:outline-hidden min-h-[420px] sm:min-h-[60vh]"
-                        @keydown.tab.prevent="insertTab"
-                    ></textarea>
+                    <div class="relative flex-1 min-h-[12rem]">
+                        <textarea
+                            ref="editorRef"
+                            v-model="content"
+                            spellcheck="false"
+                            autocapitalize="off"
+                            autocomplete="off"
+                            autocorrect="off"
+                            :placeholder="loading ? $t('tools.reticulum_config_editor.loading') : ''"
+                            class="absolute inset-0 w-full h-full bg-white dark:bg-zinc-900 text-gray-900 dark:text-white p-4 font-mono text-xs sm:text-sm resize-none focus:outline-hidden"
+                            @keydown.tab.prevent="insertTab"
+                        ></textarea>
+                    </div>
                 </div>
             </div>
         </div>

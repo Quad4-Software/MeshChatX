@@ -73,6 +73,9 @@
         "documentation": "文档",
         "about": "关于",
         "nav_more": "更多",
+        "nav_layout_saved": "侧边栏顺序已保存",
+        "nav_move_up": "上移",
+        "nav_move_down": "下移",
         "manage_identities": "管理身份",
         "nav_group": {
             "communicate": "通讯",

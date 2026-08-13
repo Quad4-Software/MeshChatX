@@ -74,6 +74,9 @@
         "documentation": "Dokumentaatio",
         "about": "Tietoja",
         "nav_more": "Lisää",
+        "nav_layout_saved": "Sivupalkin järjestys tallennettu",
+        "nav_move_up": "Siirrä ylös",
+        "nav_move_down": "Siirrä alas",
         "manage_identities": "Hallitse identiteettejä",
         "nav_group": {
             "communicate": "Viestintä",

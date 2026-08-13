@@ -146,6 +146,7 @@ describe("App.vue sidebar identity label and announce control", () => {
         vi.clearAllMocks();
         axiosMock.get.mockImplementation(defaultAxiosImplementation);
         window.localStorage?.removeItem("meshchatx.sidebar.app");
+        window.localStorage?.removeItem("meshchatx.sidebar.nav_layout");
     });
 
     afterEach(() => {
@@ -400,5 +401,63 @@ describe("App.vue sidebar identity label and announce control", () => {
         expect(wrapper.vm.isShowingMoreNav).toBe(false);
         const nav = wrapper.findComponent({ name: "AppSidebarNav" });
         expect(nav.text()).toContain("Network Visualiser");
+    });
+
+    it("shows the sidebar save icon only while expanded edit mode is on", async () => {
+        registerCoreContributions();
+        wrapper = makeMountedApp();
+        await readyShell(wrapper.vm.$router);
+        expect(wrapper.find("[data-testid=sidebar-nav-layout-save]").exists()).toBe(false);
+        wrapper.vm.enterSidebarNavEdit();
+        await flushPromises();
+        expect(wrapper.vm.isSidebarNavEditing).toBe(true);
+        expect(wrapper.find("[data-testid=sidebar-nav-layout-save]").exists()).toBe(true);
+        wrapper.vm.isSidebarCollapsed = true;
+        await flushPromises();
+        expect(wrapper.vm.isSidebarNavEditing).toBe(false);
+        expect(wrapper.find("[data-testid=sidebar-nav-layout-save]").exists()).toBe(false);
+    });
+
+    it("saves sidebar order from the collapse-row save button", async () => {
+        registerCoreContributions();
+        wrapper = makeMountedApp();
+        await readyShell(wrapper.vm.$router);
+        wrapper.vm.enterSidebarNavEdit();
+        await flushPromises();
+        wrapper.vm.onSidebarNavReorder({ kind: "item-offset", itemId: "contacts", delta: -1 });
+        await wrapper.find("[data-testid=sidebar-nav-layout-save]").trigger("click");
+        await flushPromises();
+        expect(wrapper.vm.isSidebarNavEditing).toBe(false);
+        expect(ToastUtils.success).toHaveBeenCalled();
+        const communicate = wrapper.vm.primaryNavGroups.find((group) => group.id === "communicate");
+        expect(communicate.items.map((item) => item.id).slice(0, 3)).toEqual(["messages", "contacts", "call"]);
+    });
+
+    it("clears sidebar link edit mode after saving", async () => {
+        registerCoreContributions();
+        wrapper = makeMountedApp();
+        await readyShell(wrapper.vm.$router);
+        wrapper.vm.enterSidebarNavEdit();
+        await flushPromises();
+        const editingLink = wrapper.findComponent({ name: "AppSidebarNav" }).findComponent({ name: "SidebarLink" });
+        expect(editingLink.props("editMode")).toBe(true);
+        await wrapper.find("[data-testid=sidebar-nav-layout-save]").trigger("click");
+        await flushPromises();
+        const nav = wrapper.findComponent({ name: "AppSidebarNav" });
+        expect(nav.vm.navHoldArmed).toBe(false);
+        const links = nav.findAllComponents({ name: "SidebarLink" });
+        expect(links.length).toBeGreaterThan(0);
+        for (const link of links) {
+            expect(link.props("editMode")).toBe(false);
+        }
+    });
+
+    it("does not enter sidebar edit mode while collapsed", async () => {
+        registerCoreContributions();
+        wrapper = makeMountedApp();
+        await readyShell(wrapper.vm.$router);
+        wrapper.vm.isSidebarCollapsed = true;
+        wrapper.vm.enterSidebarNavEdit();
+        expect(wrapper.vm.isSidebarNavEditing).toBe(false);
     });
 });

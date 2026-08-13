@@ -4377,6 +4377,63 @@ class ReticulumMeshChat:
 
         return interfaces
 
+    @staticmethod
+    def _copy_interface_section(details):
+        try:
+            return copy.deepcopy(dict(details))
+        except Exception:
+            try:
+                return copy.deepcopy(details)
+            except Exception:
+                return {}
+
+    def _disk_interface_sections(self) -> dict:
+        """Parse [[interface]] sections from the on-disk Reticulum config file.
+
+        The Interfaces page reads reticulum.config in memory. The raw config
+        editor reads the file. Those two can diverge after a raw save, a
+        failed write, or an external edit, which hides a configured interface
+        from the tiles.
+        """
+        try:
+            path = self._reticulum_config_file_path()
+        except Exception:
+            path = None
+        if not path or not os.path.isfile(path):
+            return {}
+        try:
+            from RNS.vendor.configobj import ConfigObj
+
+            cfg = ConfigObj(path)
+        except Exception:
+            return {}
+        interfaces = cfg.get("interfaces")
+        if not isinstance(interfaces, dict):
+            return {}
+        copied = {}
+        for name, details in interfaces.items():
+            if not isinstance(details, dict):
+                continue
+            copied[str(name)] = self._copy_interface_section(details)
+        return copied
+
+    def _sync_interfaces_from_disk(self, *, replace: bool = False) -> None:
+        """Align the live interfaces map with the on-disk config file.
+
+        replace False adds disk-only sections so tiles and delete/enable can
+        see them. replace True makes the live map match the file (raw editor
+        save or restore).
+        """
+        disk = self._disk_interface_sections()
+        mem = self._get_interfaces_section()
+        if replace:
+            for name in list(mem.keys()):
+                if name not in disk:
+                    del mem[name]
+        for name, details in disk.items():
+            if replace or name not in mem:
+                mem[name] = details
+
     def _get_interfaces_snapshot(self):
         snapshot = {}
         interfaces = self._get_interfaces_section()

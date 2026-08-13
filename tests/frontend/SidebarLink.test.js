@@ -56,4 +56,12 @@ describe("SidebarLink UI", () => {
         expect(wrapper.find("a").exists()).toBe(true);
         expect(wrapper.vm.isCollapsed).toBe(true);
     });
+
+    it("does not navigate when editMode is on", async () => {
+        const wrapper = mountSidebarLink({ editMode: true });
+        const innerLink = wrapper.find("a.rounded-r-full");
+        await innerLink.trigger("click");
+        expect(wrapper.emitted("click")).toBeDefined();
+        expect(wrapper.vm.editMode).toBe(true);
+    });
 });

@@ -73,6 +73,9 @@
         "documentation": "Dokumentation",
         "about": "Über",
         "nav_more": "Mehr",
+        "nav_layout_saved": "Reihenfolge der Seitenleiste gespeichert",
+        "nav_move_up": "Nach oben",
+        "nav_move_down": "Nach unten",
         "manage_identities": "Identitäten verwalten",
         "nav_group": {
             "communicate": "Kommunikation",

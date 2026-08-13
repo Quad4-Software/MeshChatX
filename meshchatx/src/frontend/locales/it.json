@@ -73,6 +73,9 @@
         "documentation": "Documentazione",
         "about": "Informazioni",
         "nav_more": "Altro",
+        "nav_layout_saved": "Ordine della barra laterale salvato",
+        "nav_move_up": "Sposta su",
+        "nav_move_down": "Sposta giù",
         "manage_identities": "Gestisci identità",
         "nav_group": {
             "communicate": "Comunicare",
