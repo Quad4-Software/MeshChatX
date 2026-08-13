@@ -130,6 +130,8 @@ jobs:
 
             - name: Setup Task
               if: matrix.setup_trivy
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
               run: sh scripts/ci/setup-task.sh
 
             - name: Apt update (for Trivy .deb)

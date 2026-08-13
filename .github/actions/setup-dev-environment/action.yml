@@ -105,4 +105,6 @@ runs:
         - name: Setup Task
           if: inputs.install-task == 'true'
           shell: bash
+          env:
+              GITHUB_TOKEN: ${{ github.token }}
           run: sh scripts/ci/setup-task.sh "${{ inputs.task-version }}"
