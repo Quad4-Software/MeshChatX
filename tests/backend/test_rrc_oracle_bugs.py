@@ -660,3 +660,129 @@ def test_oracle_list_notice_replaces_available_rooms(
         assert name in previous
     for name in updated:
         assert hub.available_rooms[name] != (previous.get(name) or None)
+
+
+def test_oracle_unregister_preserves_live_key_modes_and_bans():
+    """Slash /unregister must drop +r only. Live +k/+i/bans stay while members remain."""
+    server = make_server()
+    link_op, sess_op = add_session(server, b"\xaa" * 16, nick="op")
+    link_bob, sess_bob = add_session(server, b"\xbb" * 16, nick="bob")
+    banned = b"\xcc" * 16
+    server.register_room(
+        "vault",
+        key="secret",
+        invite_only=True,
+        founder=sess_op.peer,
+    )
+    join(server, link_op, sess_op, "vault", key="secret")
+    server.rooms.add_invite("vault", sess_bob.peer, ttl_s=60)
+    join(server, link_bob, sess_bob, "vault")
+    server.rooms.ensure_state("vault")["bans"].add(banned)
+
+    out = msg(server, link_op, sess_op, "vault", "/unregister vault")
+    assert envs_of_type(out, proto.T_ERROR, to_link=link_op) == []
+    st = server.rooms.get_state("vault")
+    assert st is not None
+    assert st.get("registered") is False
+    assert st.get("key") == "secret"
+    assert st.get("invite_only") is True
+    assert banned in (st.get("bans") or set())
+    assert sess_op.peer in (st.get("ops") or set())
+
+    link_eve, sess_eve = add_session(server, b"\xee" * 16, nick="eve")
+    denied = join(server, link_eve, sess_eve, "vault")
+    assert any(
+        e.get(proto.K_BODY) == "invite-only (+i)"
+        for e in envs_of_type(denied, proto.T_ERROR)
+    )
+    assert "vault" not in sess_eve.rooms
+
+
+def test_oracle_rejoin_at_room_cap_succeeds():
+    """Re-JOIN of a room you already occupy must not hit the session room cap."""
+    server = make_server()
+    server.max_rooms_per_session = 1
+    link, sess = add_session(server, b"\xaa" * 16, nick="alice")
+    first = join(server, link, sess, "lobby")
+    assert envs_of_type(first, proto.T_JOINED, to_link=link)
+    out = join(server, link, sess, "lobby")
+    assert not any(
+        "too many" in str(e.get(proto.K_BODY) or "").lower()
+        for e in envs_of_type(out, proto.T_ERROR)
+    )
+    assert envs_of_type(out, proto.T_JOINED, to_link=link)
+    assert "lobby" in sess.rooms
+
+
+def test_oracle_mode_and_ban_unknown_room_do_not_create_ghost_state():
+    """Failed ACL commands must not persist rooms.toml-style ghost state."""
+    server = make_server()
+    link, sess = add_session(server, b"\xaa" * 16, nick="alice")
+    join(server, link, sess, "lobby")
+    msg(server, link, sess, "lobby", "/mode ghostroom +m")
+    assert server.rooms.get_state("ghostroom") is None
+    msg(server, link, sess, "lobby", "/ban ghostroom list")
+    assert server.rooms.get_state("ghostroom") is None
+    msg(server, link, sess, "lobby", "/kick ghostroom bob")
+    assert server.rooms.get_state("ghostroom") is None
+
+
+def test_oracle_non_founder_cannot_register_unregistered_room():
+    """Only the founder or a room op may /register, even before +r is set."""
+    server = make_server()
+    link_a, sess_a = add_session(server, b"\xaa" * 16, nick="alice")
+    link_b, sess_b = add_session(server, b"\xbb" * 16, nick="bob")
+    join(server, link_a, sess_a, "lobby")
+    join(server, link_b, sess_b, "lobby")
+    assert server.rooms.get_state("lobby")["founder"] == sess_a.peer
+    denied = msg(server, link_b, sess_b, "lobby", "/register lobby")
+    assert envs_of_type(denied, proto.T_ERROR, to_link=link_b)
+    assert server.rooms.get_state("lobby")["registered"] is False
+    ok = msg(server, link_a, sess_a, "lobby", "/register lobby")
+    assert envs_of_type(ok, proto.T_ERROR, to_link=link_a) == []
+    assert server.rooms.get_state("lobby")["registered"] is True
+
+
+def test_oracle_outside_msg_does_not_add_client_member(tmp_path):
+    """Without +n, hub MSG from a non-member must not pollute the client member list."""
+    manager = RRCManager(
+        identity=FakeIdentity(b"\x11" * 16),
+        storage_dir=str(tmp_path),
+    )
+    hub = manager.add_hub(HUB_HASH, name="Client")
+    own = b"\x11" * 16
+    member = b"\xaa" * 16
+    outsider = b"\xee" * 16
+    hub.rooms.add("lobby")
+    hub.members["lobby"] = {own, member}
+    hub._handle_msg(
+        proto.make_envelope(
+            proto.T_MSG,
+            src=outsider,
+            room="lobby",
+            nick="eve",
+            body="from outside",
+        ),
+    )
+    assert outsider not in hub.members.get("lobby", set())
+    assert hub.members["lobby"] == {own, member}
+    assert hub.nicks.get(outsider) == "eve"
+
+
+def test_oracle_rejoin_does_not_consume_fresh_invite():
+    """Re-JOIN while already a member must not burn a newly issued invite."""
+    server = make_server()
+    link_op, sess_op = add_session(server, b"\xaa" * 16, nick="op")
+    link_guest, sess_guest = add_session(server, b"\xbb" * 16, nick="guest")
+    server.register_room("club", invite_only=True, founder=sess_op.peer)
+    join(server, link_op, sess_op, "club")
+    server.rooms.add_invite("club", sess_guest.peer, ttl_s=60)
+    join(server, link_guest, sess_guest, "club")
+    assert not server.rooms.is_invited("club", sess_guest.peer)
+    server.rooms.add_invite("club", sess_guest.peer, ttl_s=60)
+    assert server.rooms.is_invited("club", sess_guest.peer)
+    join(server, link_guest, sess_guest, "club")
+    assert server.rooms.is_invited("club", sess_guest.peer)
+    part(server, link_guest, sess_guest, "club")
+    again = join(server, link_guest, sess_guest, "club")
+    assert envs_of_type(again, proto.T_JOINED, to_link=link_guest)

@@ -466,3 +466,142 @@ def test_read_roots_cover_user_local_paths_when_present(path_name, collector):
     assert any(
         target == root or target.startswith(root.rstrip("/") + "/") for root in roots
     ), f"{target!r} not covered by landlock read roots ({path_name})"
+
+
+@requires_landlock_integration
+def test_landlock_allows_sysfs_tty_and_pyserial_comports(tmp_path):
+    """RNode port listing needs open() of /sys/class/tty, not only stat()."""
+    storage = tmp_path / "storage"
+    storage.mkdir()
+    result = run_python_under_landlock(
+        """
+        import os
+        import sys
+
+        tty_class = "/sys/class/tty"
+        names = os.listdir(tty_class)
+        if not names:
+            print("OK")
+            sys.exit(0)
+        uevent = os.path.join(tty_class, names[0], "uevent")
+        if os.path.exists(uevent):
+            with open(uevent, encoding="utf-8", errors="replace") as handle:
+                handle.read(64)
+        from serial.tools import list_ports
+
+        ports = list_ports.comports()
+        print("OK", len(ports))
+        sys.exit(0)
+        """,
+        storage=storage,
+    )
+    assert_probe_ok(result)
+
+
+@requires_landlock_integration
+def test_landlock_loads_custom_interface_module_from_configdir(tmp_path):
+    """RNS interfacepath is under reticulum_config_dir, already an RW root."""
+    storage = tmp_path / "storage"
+    storage.mkdir()
+    rns_dir = tmp_path / "rns"
+    iface_dir = rns_dir / "interfaces"
+    iface_dir.mkdir(parents=True)
+    result = run_python_under_landlock(
+        f"""
+        import sys
+
+        path = {str(iface_dir / "ExampleInterface.py")!r}
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write("interface_class = object\\n")
+        with open(path, encoding="utf-8") as handle:
+            code = handle.read()
+        ns = {{}}
+        exec(code, ns)
+        if ns.get("interface_class") is not object:
+            print("BAD_NS", ns)
+            sys.exit(3)
+        print("OK")
+        sys.exit(0)
+        """,
+        storage=storage,
+        reticulum_config_dir=rns_dir,
+    )
+    assert_probe_ok(result)
+
+
+@requires_landlock_integration
+def test_landlock_loads_python_plugin_from_storage(tmp_path):
+    storage = tmp_path / "storage"
+    plugin_dir = storage / "plugins" / "installed" / "demo"
+    plugin_dir.mkdir(parents=True)
+    result = run_python_under_landlock(
+        f"""
+        import importlib.util
+        import sys
+
+        path = {str(plugin_dir / "main.py")!r}
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write("VALUE = 7\\n")
+        spec = importlib.util.spec_from_file_location("meshchatx_plugin_demo", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        if getattr(module, "VALUE", None) != 7:
+            print("BAD_VALUE", getattr(module, "VALUE", None))
+            sys.exit(3)
+        print("OK")
+        sys.exit(0)
+        """,
+        storage=storage,
+    )
+    assert_probe_ok(result)
+
+
+@requires_landlock_integration
+def test_landlock_extra_read_root_allows_sideband_plugin_dir(tmp_path):
+    storage = tmp_path / "storage"
+    storage.mkdir()
+    sideband = tmp_path / "sideband-plugins"
+    sideband.mkdir()
+    script = sideband / "cmd.py"
+    script.write_text("COMMAND = 'ping'\\n", encoding="utf-8")
+    result = run_python_under_landlock(
+        f"""
+        import sys
+
+        path = {str(script)!r}
+        with open(path, encoding="utf-8") as handle:
+            text = handle.read()
+        if "ping" not in text:
+            print("BAD_TEXT", text)
+            sys.exit(3)
+        print("OK")
+        sys.exit(0)
+        """,
+        storage=storage,
+        extra_read_roots=[str(sideband)],
+    )
+    assert_probe_ok(result)
+
+
+def test_extra_read_roots_from_app_uses_command_plugins_path(tmp_path):
+    class _Path:
+        def __init__(self, value):
+            self._value = value
+
+        def get(self):
+            return self._value
+
+    class _Cfg:
+        def __init__(self, value):
+            self.command_plugins_path = _Path(value)
+
+    class _App:
+        def __init__(self, value):
+            self.config = _Cfg(value)
+
+    missing = tmp_path / "nope"
+    assert ll.extra_read_roots_from_app(_App(str(missing))) == []
+    present = tmp_path / "plugins"
+    present.mkdir()
+    assert ll.extra_read_roots_from_app(_App(str(present))) == [str(present)]
+    assert ll.extra_read_roots_from_app(_App(None)) == []

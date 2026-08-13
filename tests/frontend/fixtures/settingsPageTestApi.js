@@ -91,6 +91,7 @@ export function buildFullServerConfig(overrides = {}) {
         banished_color: "#dc2626",
         message_font_size: 14,
         messages_sidebar_position: "left",
+        app_sidebar_layout: "grouped",
         message_icon_size: 28,
         ui_transparency: 0,
         ui_glass_enabled: true,

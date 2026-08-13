@@ -12,7 +12,10 @@ const MaterialDesignIcon = { template: '<div class="mdi"></div>', props: ["iconN
 
 function mountDialog() {
     return mount(ConfirmDialog, {
-        global: { components: { MaterialDesignIcon } },
+        global: {
+            components: { MaterialDesignIcon },
+            mocks: { $t: (key) => key },
+        },
     });
 }
 
@@ -40,7 +43,7 @@ describe("ConfirmDialog UI", () => {
         showFn({ message: "Delete this item?", resolve: vi.fn() });
         await wrapper.vm.$nextTick();
         expect(wrapper.vm.pendingConfirm).toEqual({ message: "Delete this item?" });
-        expect(wrapper.text()).toContain("Confirm Action");
+        expect(wrapper.text()).toContain("common.confirm_action");
         expect(wrapper.text()).toContain("Delete this item?");
     });
 
@@ -49,8 +52,8 @@ describe("ConfirmDialog UI", () => {
         const showFn = GlobalEmitter.on.mock.calls.find((c) => c[0] === "confirm")?.[1];
         showFn({ message: "Sure?", resolve: vi.fn() });
         await wrapper.vm.$nextTick();
-        expect(wrapper.text()).toContain("Cancel");
-        expect(wrapper.text()).toContain("Confirm");
+        expect(wrapper.text()).toContain("common.cancel");
+        expect(wrapper.text()).toContain("common.confirm");
     });
 
     it("calls resolve(true) and clears when Confirm clicked", async () => {
@@ -70,7 +73,7 @@ describe("ConfirmDialog UI", () => {
         const showFn = GlobalEmitter.on.mock.calls.find((c) => c[0] === "confirm")?.[1];
         showFn({ message: "Sure?", resolve });
         await wrapper.vm.$nextTick();
-        const cancelBtn = wrapper.findAll("button").find((b) => b.text() === "Cancel");
+        const cancelBtn = wrapper.findAll("button").find((b) => b.text() === "common.cancel");
         await cancelBtn.trigger("click");
         expect(resolve).toHaveBeenCalledWith(false);
         expect(wrapper.vm.pendingConfirm).toBeNull();

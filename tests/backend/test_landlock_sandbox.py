@@ -97,6 +97,11 @@ def test_collect_read_roots_includes_proc_for_psutil():
     assert "/proc" in roots
 
 
+def test_collect_read_roots_includes_sys_for_serial_usb_metadata():
+    roots = ll._collect_read_roots()
+    assert "/sys" in roots
+
+
 def test_collect_read_roots_includes_user_local_cli_when_present():
     home = os.path.expanduser("~")
     local_bin = os.path.join(home, ".local", "bin")
