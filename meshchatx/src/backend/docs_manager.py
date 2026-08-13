@@ -234,8 +234,8 @@ class DocsManager:
     def _sync_docs_tree(self, src_docs, dest_dir):
         """Copy manifest, markdown, and text files from src_docs into dest_dir.
 
-        Skips agents/ (contributor and automated-agent guidance, not
-        end-user documentation).
+        Skips a top-level agents/ directory if one is present under docs/.
+        Agent guidance lives at repo-root .agents/ and is not in-app docs.
         """
         for root, dirnames, files in os.walk(src_docs):
             rel_root = os.path.relpath(root, src_docs)
