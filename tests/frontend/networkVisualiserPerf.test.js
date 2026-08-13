@@ -86,6 +86,9 @@ describe("networkVisualiserPerf", () => {
         expect(res.edges).toHaveLength(1);
         expect(res.nodes[0].id).toBe("aa");
         expect(res.edges[0].width).toBe(2.5);
+        const dx = res.nodes[0].x - 10;
+        const dy = res.nodes[0].y - 20;
+        expect(Math.hypot(dx, dy)).toBeGreaterThanOrEqual(240);
         expect(buildPathGraph({ path_table: [], announces: {} }).nodes).toEqual([]);
     });
 

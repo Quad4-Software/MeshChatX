@@ -213,5 +213,14 @@ describe("TileCache.js", () => {
             expect(await TileCache.getTile("https://x/t.png")).toBeUndefined();
             expect(await TileCache.getMapState("last_view")).toBeUndefined();
         });
+
+        it("getTile is a memory hit after the first IndexedDB read", async () => {
+            const key = "https://tiles.example/mem.png";
+            await TileCache.setTile(key, Uint8Array.from([7, 8]).buffer);
+            const first = await TileCache.getTile(key);
+            expect(TileCache._memCache.has(key)).toBe(true);
+            const second = await TileCache.getTile(key);
+            expect(second).toBe(first);
+        });
     });
 });

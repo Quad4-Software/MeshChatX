@@ -97,6 +97,7 @@ def test_reticulum_meshchat_init(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.AnnounceManager"),
         patch("meshchatx.src.backend.identity_context.ArchiverManager"),
         patch("meshchatx.src.backend.identity_context.MapManager"),
+        patch("meshchatx.src.backend.identity_context.MapDataManager"),
         patch("meshchatx.src.backend.identity_context.DocsManager"),
         patch("meshchatx.src.backend.identity_context.NomadNetworkManager"),
         patch("meshchatx.src.backend.identity_context.TelephoneManager"),
@@ -150,7 +151,7 @@ def test_reticulum_meshchat_init(mock_rns, temp_dir):
         mock_rns["LXMRouter"].assert_called_once()
 
         # Verify Announce Handlers registration
-        assert mock_rns["Transport"].register_announce_handler.call_count == 5
+        assert mock_rns["Transport"].register_announce_handler.call_count == 6
 
         app.teardown_identity()
 
@@ -165,6 +166,7 @@ def test_reticulum_meshchat_init_with_auth(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.AnnounceManager"),
         patch("meshchatx.src.backend.identity_context.ArchiverManager"),
         patch("meshchatx.src.backend.identity_context.MapManager"),
+        patch("meshchatx.src.backend.identity_context.MapDataManager"),
         patch("meshchatx.src.backend.identity_context.DocsManager"),
         patch("meshchatx.src.backend.identity_context.NomadNetworkManager"),
         patch("meshchatx.src.backend.identity_context.TelephoneManager"),
@@ -198,6 +200,7 @@ def test_reticulum_meshchat_init_database_failure_recovery(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.AnnounceManager"),
         patch("meshchatx.src.backend.identity_context.ArchiverManager"),
         patch("meshchatx.src.backend.identity_context.MapManager"),
+        patch("meshchatx.src.backend.identity_context.MapDataManager"),
         patch("meshchatx.src.backend.identity_context.DocsManager"),
         patch("meshchatx.src.backend.identity_context.NomadNetworkManager"),
         patch("meshchatx.src.backend.identity_context.TelephoneManager"),

@@ -19,6 +19,7 @@ from meshchatx.src.backend.map_geo_validator import (
     GeoValidationError,
     validate_geo_bytes,
 )
+from meshchatx.src.backend.map_geo_sanitizer import sanitize_geo_bytes
 from meshchatx.src.backend.map_overlay_export import (
     CONTENT_TYPES,
     EXTENSIONS,
@@ -272,6 +273,85 @@ class MapOverlayManager:
         job_id = await self._start_job_for_ids(identity_hash, created_ids, specs)
         overlays = [self.get_overlay(identity_hash, i) for i in created_ids]
         return {"job_id": job_id, "overlays": overlays}
+
+    async def ingest_local_overlay(
+        self,
+        identity_hash: str,
+        *,
+        kind: str,
+        destination_hash: str,
+        path_or_repo_path: str,
+        name: str,
+        payload: bytes,
+        hinted_format: str | None = None,
+        ref: str = "HEAD",
+    ) -> dict[str, Any]:
+        max_sources = self._cfg_int("map_overlay_max_sources")
+        existing = self.database.map_overlays.get_by_unique(
+            identity_hash,
+            kind,
+            destination_hash,
+            path_or_repo_path,
+            ref,
+        )
+        if existing:
+            oid = int(existing["id"])
+        else:
+            current = self.database.map_overlays.count_for_identity(identity_hash)
+            if current + 1 > max_sources:
+                raise OverlaySourceParseError("max_sources_exceeded")
+            oid = self.database.map_overlays.insert(
+                identity_hash,
+                kind=kind,
+                destination_hash=destination_hash,
+                path_or_repo_path=path_or_repo_path,
+                ref=ref,
+                name=name or "overlay",
+                status="pending",
+            )
+        row = self.database.map_overlays.get_by_id(oid)
+        gen = int(row["generation"] or 0) + 1 if row else 1
+        self.database.map_overlays.update_fields(
+            oid,
+            status="fetching",
+            last_error=None,
+            generation=gen,
+        )
+        job_id = "local-" + uuid.uuid4().hex[:12]
+        self._jobs[job_id] = {
+            "job_id": job_id,
+            "identity_hash": identity_hash,
+            "overlay_ids": [oid],
+            "status": "running",
+            "phase": "validating",
+            "progress": 0.0,
+            "error": None,
+            "created_at": datetime.now(UTC).isoformat(),
+        }
+        try:
+            await self._commit_bytes(
+                job_id,
+                identity_hash,
+                oid,
+                gen,
+                payload,
+                hinted_format=hinted_format,
+                resolved_ref=ref,
+                refresh_interval=0,
+            )
+            self._jobs[job_id]["status"] = "success"
+            self._jobs[job_id]["phase"] = "done"
+            self._jobs[job_id]["progress"] = 1.0
+        except Exception as exc:
+            code = getattr(exc, "code", str(exc))
+            self._jobs[job_id]["status"] = "error"
+            self._jobs[job_id]["error"] = code
+            self._mark_error(oid, code)
+            raise
+        return {
+            "job_id": job_id,
+            "overlay": self.get_overlay(identity_hash, oid),
+        }
 
     async def refresh_overlay(
         self,
@@ -671,6 +751,9 @@ class MapOverlayManager:
             return
         limits = self.limits()
         self._set_phase(job_id, "validating")
+        sanitized = sanitize_geo_bytes(payload, hinted_format=hinted_format)
+        payload = sanitized.data
+        hinted_format = sanitized.format
         validated = validate_geo_bytes(
             payload,
             hinted_format=hinted_format,

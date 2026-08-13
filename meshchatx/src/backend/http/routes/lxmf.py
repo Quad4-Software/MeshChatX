@@ -337,14 +337,23 @@ def register_lxmf_routes(routes, app):
         limit = request.query.get("limit", None)
 
         # get lxmf.propagation announces
-        results = database.announces.get_announces(aspect="lxmf.propagation")
-
-        # limit results
+        limit_int = None
         if limit is not None:
             try:
-                results = results[: int(limit)]
+                limit_int = max(0, int(limit))
             except (ValueError, TypeError):
-                pass
+                limit_int = None
+        results = database.announces.get_announces(
+            aspect="lxmf.propagation",
+            limit=limit_int,
+        )
+
+        related_index = database.announces.index_announces_by_identity_aspect(
+            database.announces.get_announces_for_identity_hashes(
+                [a.get("identity_hash") for a in results],
+                aspects=["lxmf.delivery", "nomadnetwork.node"],
+            ),
+        )
 
         # process announces
         lxmf_propagation_nodes = []
@@ -368,22 +377,10 @@ def register_lxmf_routes(routes, app):
             local_destination_hash = None
         local_stats = app.get_local_propagation_node_stats(context=ctx) if ctx else None
         for announce in results:
-            # find an lxmf.delivery announce for the same identity hash, so we can use that as an "operater by" name
-            lxmf_delivery_results = database.announces.get_filtered_announces(
-                aspect="lxmf.delivery",
-                identity_hash=announce["identity_hash"],
-            )
-            lxmf_delivery_announce = (
-                lxmf_delivery_results[0] if lxmf_delivery_results else None
-            )
-
-            # find a nomadnetwork.node announce for the same identity hash, so we can use that as an "operated by" name
-            nomadnetwork_node_results = database.announces.get_filtered_announces(
-                aspect="nomadnetwork.node",
-                identity_hash=announce["identity_hash"],
-            )
-            nomadnetwork_node_announce = (
-                nomadnetwork_node_results[0] if nomadnetwork_node_results else None
+            ident = announce.get("identity_hash")
+            lxmf_delivery_announce = related_index.get((ident, "lxmf.delivery"))
+            nomadnetwork_node_announce = related_index.get(
+                (ident, "nomadnetwork.node"),
             )
 
             # get a display name from other announces belonging to the propagation nodes identity
@@ -818,7 +815,7 @@ def register_lxmf_routes(routes, app):
             app.message_handler.get_conversation_messages,
             local_hash,
             destination_hash,
-            limit=min(int(count), 1000) if count else 100,
+            limit=app.message_handler.clamp_conversation_messages_limit(count),
             after_id=after_id if order == "asc" else None,
             before_id=after_id if order == "desc" else None,
         )
@@ -851,8 +848,14 @@ def register_lxmf_routes(routes, app):
         if db_lxmf_message is None:
             return web.json_response({"message": "Message not found"}, status=404)
 
-        # parse fields
-        fields = json.loads(db_lxmf_message["fields"])
+        from meshchatx.src.backend.lxmf_utils import parse_stored_lxmf_fields
+
+        fields = parse_stored_lxmf_fields(db_lxmf_message["fields"])
+        if fields is None:
+            return web.json_response(
+                {"message": "Invalid attachment data"},
+                status=400,
+            )
 
         # handle image
         if attachment_type == "image" and "image" in fields:
@@ -1155,6 +1158,12 @@ def register_lxmf_routes(routes, app):
                 app.database.telemetry.get_tracking_states,
                 peer_hashes,
             )
+            viewed_map = {}
+            if filter_unread:
+                viewed_map = await asyncio.to_thread(
+                    app.database.messages.get_notification_last_viewed_at_map,
+                    peer_hashes,
+                )
 
             conversations = []
             for row in row_dicts:
@@ -1192,8 +1201,8 @@ def register_lxmf_routes(routes, app):
 
                 # Add extra check for notification viewed state if unread
                 if is_unread and filter_unread:
-                    if app.database.messages.is_notification_viewed(
-                        other_user_hash,
+                    if app.database.messages.notification_viewed_covers(
+                        viewed_map.get(other_user_hash),
                         row["timestamp"],
                     ):
                         is_unread = False

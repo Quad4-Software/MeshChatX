@@ -31,7 +31,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 54
+    LATEST_VERSION = 55
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -560,6 +560,23 @@ class DatabaseSchema:
                     FOREIGN KEY (folder_id) REFERENCES lxmf_folders(id) ON DELETE CASCADE
                 )
             """,
+            "map_published": """
+                CREATE TABLE IF NOT EXISTS map_published (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT NOT NULL,
+                    map_id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    format TEXT NOT NULL,
+                    size INTEGER NOT NULL,
+                    sha256 TEXT NOT NULL,
+                    bbox TEXT,
+                    feature_count INTEGER NOT NULL DEFAULT 0,
+                    path TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(identity_hash, map_id)
+                )
+            """,
         }
 
         for table_name, create_sql in tables.items():
@@ -635,6 +652,15 @@ class DatabaseSchema:
                 )
                 self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_debug_logs_anomaly ON debug_logs(is_anomaly)",
+                )
+            elif table_name == "map_published":
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_map_published_identity "
+                    "ON map_published(identity_hash)",
+                )
+                self._safe_execute(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_map_published_identity_map "
+                    "ON map_published(identity_hash, map_id)",
                 )
 
     def migrate(
@@ -1669,3 +1695,32 @@ class DatabaseSchema:
             # v54: version alignment for databases already stamped at 54 without
             # additional structural changes beyond v53.
             pass
+
+        if current_version < 55 and target_version >= 55:
+            self._safe_execute(
+                """
+                CREATE TABLE IF NOT EXISTS map_published (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT NOT NULL,
+                    map_id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    format TEXT NOT NULL,
+                    size INTEGER NOT NULL,
+                    sha256 TEXT NOT NULL,
+                    bbox TEXT,
+                    feature_count INTEGER NOT NULL DEFAULT 0,
+                    path TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(identity_hash, map_id)
+                )
+                """,
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_map_published_identity "
+                "ON map_published(identity_hash)",
+            )
+            self._safe_execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_map_published_identity_map "
+                "ON map_published(identity_hash, map_id)",
+            )

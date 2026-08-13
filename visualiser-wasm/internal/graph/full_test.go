@@ -7,6 +7,7 @@ import (
 
 	"github.com/Quad4-Software/MeshChatX/visualiser-wasm/internal/filter"
 	"github.com/Quad4-Software/MeshChatX/visualiser-wasm/internal/graph"
+	"github.com/Quad4-Software/MeshChatX/visualiser-wasm/internal/layout"
 )
 
 func TestBuildFullGraphIncludesMeAndInterfaces(t *testing.T) {
@@ -35,5 +36,8 @@ func TestBuildFullGraphIncludesMeAndInterfaces(t *testing.T) {
 	}
 	if len(res.LayoutEdges) != len(res.Edges) {
 		t.Fatalf("layout springs mismatch")
+	}
+	if res.LayoutEdges[0].Length != layout.DefaultHubSpringLen {
+		t.Fatalf("hub spring length got %v", res.LayoutEdges[0].Length)
 	}
 }

@@ -248,28 +248,23 @@ func (s *Scene) Tick(steps int) {
 			fixed = true
 		}
 		layoutNodes[i] = layout.Node{
-			ID:    n.ID,
-			X:     n.X,
-			Y:     n.Y,
-			Vx:    s.vx[i],
-			Vy:    s.vy[i],
-			Mass:  n.Mass,
-			Fixed: fixed,
+			ID:     n.ID,
+			X:      n.X,
+			Y:      n.Y,
+			Vx:     s.vx[i],
+			Vy:     s.vy[i],
+			Mass:   n.Mass,
+			Fixed:  fixed,
+			Radius: n.Size,
 		}
 	}
 	layoutEdges := make([]layout.Edge, 0, len(s.edges))
 	for i := range s.edges {
 		e := &s.edges[i]
-		// WebGL node radii are ~18-48. Rest lengths must clear diameters
-		// like vis-network springLength 200 does for smaller canvas glyphs.
-		length := 300.0
-		if e.Width >= 2.5 {
-			length = 260
-		}
 		layoutEdges = append(layoutEdges, layout.Edge{
 			From:   e.From,
 			To:     e.To,
-			Length: length,
+			Length: layout.SpringLength(e.Width),
 		})
 	}
 	// Softer than one-shot Settle defaults so live layout does not twitch.
@@ -279,8 +274,8 @@ func (s *Scene) Tick(steps int) {
 		Edges:      layoutEdges,
 		Iterations: steps,
 		Gravity:    -1,
-		Repulsion:  1800,
-		SpringK:    0.014,
+		Repulsion:  layout.LiveRepulsion,
+		SpringK:    layout.LiveSpringK,
 		Damping:    0.58,
 		MaxSpeed:   6,
 	})

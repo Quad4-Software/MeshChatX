@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { extentDiagonal, buildClusterItems, getFeatureCoord } from "@/components/map/internal/clusterUtils.js";
+import {
+    extentDiagonal,
+    buildClusterItems,
+    getFeatureCoord,
+    gridClusterCandidates,
+} from "@/components/map/internal/clusterUtils.js";
 import { getDiscoveredIconName } from "@/components/map/internal/discoveredIcons.js";
 import { dedupeDiscoveredMapNodes, dedupeTelemetryMarkersForMap } from "@/components/map/internal/mapDedupe.js";
 
@@ -92,6 +97,33 @@ describe("clusterUtils.buildClusterItems", () => {
             [0, 0]
         );
         expect(buildClusterItems(cluster)).toHaveLength(1);
+    });
+});
+
+describe("clusterUtils.gridClusterCandidates", () => {
+    it("groups nearby points into the same cell", () => {
+        const groups = gridClusterCandidates(
+            [
+                { key: "a", coord: [0, 0], clusterable: true },
+                { key: "b", coord: [5, 5], clusterable: true },
+                { key: "c", coord: [100, 100], clusterable: true },
+            ],
+            10
+        );
+        const sizes = groups.map((g) => g.length).sort((a, b) => a - b);
+        expect(sizes).toEqual([1, 2]);
+    });
+
+    it("keeps non-clusterable items as singles", () => {
+        const groups = gridClusterCandidates(
+            [
+                { key: "a", coord: [0, 0], clusterable: false },
+                { key: "b", coord: [1, 1], clusterable: false },
+            ],
+            10
+        );
+        expect(groups).toHaveLength(2);
+        expect(groups.every((g) => g.length === 1)).toBe(true);
     });
 });
 

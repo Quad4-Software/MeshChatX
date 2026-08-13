@@ -36,6 +36,21 @@ _MUTATING_SAMPLES = (
     ("POST", "/api/v1/filesync/mkdir", {"path": "folder"}),
     ("DELETE", "/api/v1/filesync/entry", {"path": "a.txt"}),
     ("POST", "/api/v1/lxmf/propagation-node/cancel-inbound", {}),
+    ("POST", "/api/v1/map/data/announce", {}),
+    ("POST", "/api/v1/map/data/catalog", {"destination_hash": "aa" * 16}),
+    ("POST", "/api/v1/map/data/publish", {"name": "x", "data_b64": "e30="}),
+    (
+        "POST",
+        "/api/v1/map/data/fetch",
+        {"destination_hash": "aa" * 16, "map_id": "a" * 16},
+    ),
+    (
+        "POST",
+        "/api/v1/map/data/add-overlay",
+        {"destination_hash": "aa" * 16, "map_id": "a" * 16},
+    ),
+    ("PATCH", "/api/v1/map/data/config", {"announce_enabled": False}),
+    ("DELETE", "/api/v1/map/data/published/aaaaaaaaaaaaaaaa", None),
 )
 
 
@@ -100,6 +115,8 @@ async def test_eect_mutating_without_csrf_rejected(mock_app, monkeypatch):
             for method, path, body in samples:
                 if method == "PATCH":
                     resp = await client.patch(path, json=body)
+                elif method == "DELETE":
+                    resp = await client.delete(path)
                 else:
                     resp = await client.post(path, json=body)
                 assert_no_unexpected_http_500(resp.status, await resp.text())
@@ -121,6 +138,8 @@ async def test_eect_mutating_with_csrf_accepted(mock_app, monkeypatch):
             for method, path, body in samples:
                 if method == "PATCH":
                     resp = await client.patch(path, json=body, headers=headers)
+                elif method == "DELETE":
+                    resp = await client.delete(path, headers=headers)
                 else:
                     resp = await client.post(path, json=body, headers=headers)
                 body_text = await resp.text()

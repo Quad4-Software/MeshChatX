@@ -100,10 +100,10 @@ var (
 	fontHighDark  = map[string]any{"color": "#000000", "size": 11.0}
 	fontHidden    = map[string]any{"size": 0.0}
 
-	colorLxmfDirectLight = nodeColor("#10b981", "#ecfdf5")
-	colorLxmfDirectDark  = nodeColor("#10b981", "#064e3b")
-	colorLxmfMultiLight  = nodeColor("#3b82f6", "#eff6ff")
-	colorLxmfMultiDark   = nodeColor("#3b82f6", "#1e40af")
+	colorLxmfDirectLight  = nodeColor("#10b981", "#ecfdf5")
+	colorLxmfDirectDark   = nodeColor("#10b981", "#064e3b")
+	colorLxmfMultiLight   = nodeColor("#3b82f6", "#eff6ff")
+	colorLxmfMultiDark    = nodeColor("#3b82f6", "#1e40af")
 	colorNomadDirectLight = nodeColor("#10b981", "#ecfdf5")
 	colorNomadDirectDark  = nodeColor("#10b981", "#064e3b")
 	colorNomadMultiLight  = nodeColor("#8b5cf6", "#f5f3ff")
@@ -114,10 +114,10 @@ var (
 	edgeMultiLight  = map[string]any{"color": "#3b82f6", "opacity": 0.5}
 	edgeMultiDark   = map[string]any{"color": "#60a5fa", "opacity": 0.5}
 
-	imgUser1Hop  = "/assets/images/network-visualiser/user_1hop.png"
-	imgUser      = "/assets/images/network-visualiser/user.png"
+	imgUser1Hop   = "/assets/images/network-visualiser/user_1hop.png"
+	imgUser       = "/assets/images/network-visualiser/user.png"
 	imgServer1Hop = "/assets/images/network-visualiser/server_1hop.png"
-	imgServer    = "/assets/images/network-visualiser/server.png"
+	imgServer     = "/assets/images/network-visualiser/server.png"
 )
 
 // BuildPathGraph constructs announce nodes and edges from the path table.
@@ -244,11 +244,11 @@ func resolvePosition(hash, iface string, pos map[string]XY) (float64, float64) {
 		return prev.X, prev.Y
 	}
 	if ip, ok := pos[iface]; ok {
-		x, y := hashpos.Around(hash, ip.X, ip.Y, 150, 150)
+		x, y := hashpos.Around(hash, ip.X, ip.Y, 240, 220)
 		pos[hash] = XY{X: x, Y: y}
 		return x, y
 	}
-	x, y := hashpos.XY(hash, 600, 200)
+	x, y := hashpos.XY(hash, 720, 280)
 	pos[hash] = XY{X: x, Y: y}
 	return x, y
 }

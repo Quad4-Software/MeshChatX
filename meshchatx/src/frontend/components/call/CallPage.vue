@@ -791,10 +791,7 @@
                                                         <select
                                                             v-model="selectedAudioInputId"
                                                             class="input-field py-1! px-2! text-[10px]! rounded-lg! border-gray-200! dark:border-zinc-800! min-w-[120px]"
-                                                            @change="
-                                                                stopWebAudio();
-                                                                startWebAudio();
-                                                            "
+                                                            @change="restartWebAudio"
                                                         >
                                                             <option
                                                                 v-for="(d, idx) in audioInputDevices"
@@ -814,10 +811,7 @@
                                                         <select
                                                             v-model="selectedAudioOutputId"
                                                             class="input-field py-1! px-2! text-[10px]! rounded-lg! border-gray-200! dark:border-zinc-800! min-w-[120px]"
-                                                            @change="
-                                                                stopWebAudio();
-                                                                startWebAudio();
-                                                            "
+                                                            @change="restartWebAudio"
                                                         >
                                                             <option
                                                                 v-for="(d, idx) in audioOutputDevices"
@@ -831,7 +825,7 @@
                                                     <button
                                                         class="text-[10px] bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-zinc-400 py-1 rounded-lg font-bold uppercase tracking-wider hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
                                                         type="button"
-                                                        @click="requestAudioPermission"
+                                                        @click="onRefreshAudioDevices"
                                                     >
                                                         Refresh Devices
                                                     </button>
@@ -1763,6 +1757,13 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import Toggle from "../forms/Toggle.vue";
 import ToastUtils from "../../js/ToastUtils";
+import {
+    WEB_AUDIO_MIC_TOAST_KEY,
+    classifyGetUserMediaError,
+    isBraveBrowser,
+    promptMicrophoneAccess,
+    queryMicrophonePermissionState,
+} from "../../js/webAudioMicPermission";
 import RingtoneEditor from "./audio/RingtoneEditor.vue";
 import CallPhonebookTab from "./tabs/CallPhonebookTab.vue";
 import CallContactsTab from "./tabs/CallContactsTab.vue";
@@ -1877,6 +1878,9 @@ export default {
             audioOutputDevices: [],
             selectedAudioInputId: null,
             selectedAudioOutputId: null,
+            webAudioStartBlocked: false,
+            webAudioMicReady: false,
+            webAudioStartInFlight: false,
             remoteAudioEl: null,
             useAndroidNativeTelephone: false,
             androidNativeTelephoneListener: null,
@@ -2315,13 +2319,14 @@ export default {
                   )
                 : new Set();
             const sid = this.selectedAudioInputId;
-            if (sid === "__meshchat_default_in__") {
-                // Bare audio first for Default: processing flags alone can yield
-                // NotFoundError on Brave and Chromium before mic permission is granted.
+            // Bare audio unless a post-permission device id is selected.
+            // Processing flags or deviceId.exact before the prompt yield
+            // NotFoundError on Brave and Chromium with no permission dialog.
+            if (!sid || sid === "__meshchat_default_in__") {
                 return { audio: true };
             }
-            const id = sid && validIds.has(sid) ? sid : null;
-            return id ? { audio: { ...processingHints, deviceId: { exact: id } } } : { audio: processingHints };
+            const id = validIds.has(sid) ? sid : null;
+            return id ? { audio: { ...processingHints, deviceId: { exact: id } } } : { audio: true };
         },
         async getUserMediaWithMicFallback(mediaDevices) {
             const constraints = this.pickWebAudioMicConstraints(mediaDevices);
@@ -2356,7 +2361,7 @@ export default {
         },
         async disableWebAudioBridgeWithError(errorKey, error, stage = "unknown") {
             this.logWebAudioFailure(stage, error);
-            ToastUtils.error(this.$t(errorKey));
+            ToastUtils.error(this.$t(errorKey), 5000, WEB_AUDIO_MIC_TOAST_KEY);
             // On Android / headless hosts the backend forces web audio. Permanently
             // clearing the config flag just creates a retry/toast loop.
             if (!this.isMeshChatXAndroid() && !this.webAudioBridgeRequired) {
@@ -2399,7 +2404,7 @@ export default {
             const previousValue = this.config.telephone_web_audio_enabled;
             this.config.telephone_web_audio_enabled = newVal;
             try {
-                if (newVal && this.activeCall) {
+                if (newVal) {
                     const permitted = await this.requestAudioPermission();
                     if (!permitted) {
                         this.config.telephone_web_audio_enabled = false;
@@ -2419,6 +2424,11 @@ export default {
                 // revert on failure
                 this.config.telephone_web_audio_enabled = previousValue;
             }
+        },
+        async restartWebAudio() {
+            this.webAudioStartBlocked = false;
+            this.stopWebAudio();
+            await this.startWebAudio();
         },
         async startWebAudio() {
             if (!this.activeCall) {
@@ -2485,9 +2495,23 @@ export default {
             if (this.audioWs) {
                 this.stopWebAudio();
             }
+            if (this.webAudioStartInFlight || this.webAudioStartBlocked) {
+                return;
+            }
+            this.webAudioStartInFlight = true;
             try {
+                if (typeof window !== "undefined" && window.isSecureContext === false) {
+                    this.webAudioStartBlocked = true;
+                    await this.disableWebAudioBridgeWithError(
+                        "call.microphone_insecure_context",
+                        new Error("insecure context"),
+                        "start-preflight-insecure"
+                    );
+                    return;
+                }
                 const mediaDevices = this.getMediaDevicesApi();
                 if (!mediaDevices) {
+                    this.webAudioStartBlocked = true;
                     await this.disableWebAudioBridgeWithError(
                         "call.web_audio_not_available",
                         new Error("navigator.mediaDevices is unavailable"),
@@ -2495,11 +2519,13 @@ export default {
                     );
                     return;
                 }
-                // Enumerate after permission when possible. Pre-permission refresh
-                // only keeps Default placeholders (blank labels / ids).
-                await this.refreshAudioDevices();
+                // First capture must be unconstrained. enumerateDevices before
+                // permission can lock onto Brave farbling ids and skip the prompt.
+                this.selectedAudioInputId = "__meshchat_default_in__";
                 const stream = await this.getUserMediaWithMicFallback(mediaDevices);
                 this.audioStream = stream;
+                this.webAudioMicReady = true;
+                this.webAudioStartBlocked = false;
                 await this.refreshAudioDevices();
 
                 if (!this.audioCtx) {
@@ -2699,93 +2725,78 @@ export default {
                 this.audioWs = ws;
                 this.refreshAudioDevices();
             } catch (err) {
-                const errorKey =
-                    err?.name === "NotFoundError" || err?.name === "OverconstrainedError"
-                        ? "call.no_audio_input_found"
-                        : err?.name === "NotAllowedError"
-                          ? "call.microphone_permission_denied"
-                          : "call.web_audio_not_available";
+                this.webAudioStartBlocked = true;
+                const permissionState = await queryMicrophonePermissionState();
+                const errorKey = classifyGetUserMediaError(err, {
+                    permissionState,
+                    isBrave: isBraveBrowser(),
+                });
                 await this.disableWebAudioBridgeWithError(errorKey, err, "start-catch");
+            } finally {
+                this.webAudioStartInFlight = false;
             }
+        },
+        async onRefreshAudioDevices() {
+            const permitted = await this.requestAudioPermission();
+            if (!permitted || !this.activeCall || !this.webAudioBridgeEnabled) {
+                return;
+            }
+            await this.restartWebAudio();
         },
         async requestAudioPermission() {
             try {
                 if (this.isMeshChatXAndroid()) {
                     const tel = window.MeshChatXAndroid?.isTelephoneNativeAudioAvailable;
                     if (typeof tel === "function" && tel()) {
+                        this.webAudioMicReady = true;
+                        this.webAudioStartBlocked = false;
                         return true;
                     }
                     if (window.MeshChatXAndroid?.isNativePcmAudioAvailable?.()) {
+                        this.webAudioMicReady = true;
+                        this.webAudioStartBlocked = false;
                         return true;
                     }
                 }
                 if (typeof window !== "undefined" && window.isSecureContext === false) {
-                    ToastUtils.error(this.$t("call.microphone_insecure_context"));
+                    ToastUtils.error(this.$t("call.microphone_insecure_context"), 5000, WEB_AUDIO_MIC_TOAST_KEY);
                     return false;
                 }
                 const mediaDevices = this.getMediaDevicesApi();
                 if (!mediaDevices) {
                     throw new Error("navigator.mediaDevices is unavailable");
                 }
-                // Brave and Chromium often throw NotFoundError for constrained
-                // getUserMedia (echoCancellation and friends) before permission is
-                // granted, and never show a prompt. Wide-open { audio: true } is what
-                // reliably opens the browser microphone permission dialog.
+                // Wide-open { audio: true } is what opens the permission dialog.
+                // Do not follow a failed probe with processing constraints.
                 this.selectedAudioInputId = "__meshchat_default_in__";
-                let stream;
-                try {
-                    stream = await mediaDevices.getUserMedia({ audio: true });
-                } catch (firstErr) {
-                    const retryable =
-                        firstErr?.name === "NotFoundError" ||
-                        firstErr?.name === "OverconstrainedError" ||
-                        firstErr?.name === "NotReadableError";
-                    if (!retryable) {
-                        throw firstErr;
-                    }
-                    this.logWebAudioFailure("request-permission-retry-processing", firstErr);
-                    // Some hosts accept processing hints after a failed bare probe.
-                    stream = await mediaDevices.getUserMedia({
-                        audio: {
-                            echoCancellation: true,
-                            noiseSuppression: true,
-                            autoGainControl: true,
-                        },
-                    });
-                }
-                stream.getTracks().forEach((t) => t.stop());
+                await promptMicrophoneAccess(mediaDevices);
+                this.webAudioMicReady = true;
+                this.webAudioStartBlocked = false;
                 await this.refreshAudioDevices();
                 return true;
             } catch (e) {
                 this.logWebAudioFailure("request-permission", e);
-                let errorKey = "call.web_audio_not_available";
-                if (e?.name === "NotAllowedError" || e?.name === "SecurityError") {
-                    errorKey = "call.microphone_permission_denied";
-                } else if (e?.name === "NotFoundError" || e?.name === "OverconstrainedError") {
-                    errorKey = await this.resolveMissingMicErrorKey();
-                }
-                ToastUtils.error(this.$t(errorKey));
+                this.webAudioStartBlocked = true;
+                const errorKey = await this.resolveMissingMicErrorKey(e);
+                ToastUtils.error(this.$t(errorKey), 5000, WEB_AUDIO_MIC_TOAST_KEY);
                 return false;
             }
         },
-        async resolveMissingMicErrorKey() {
-            // Chromium sometimes reports NotFoundError when permission is blocked
-            // or when the permission prompt never appeared. Prefer a clearer toast.
-            try {
-                const perms = navigator?.permissions;
-                if (perms && typeof perms.query === "function") {
-                    const status = await perms.query({ name: "microphone" });
-                    if (status?.state === "denied") {
-                        return "call.microphone_permission_denied";
-                    }
-                    if (status?.state === "prompt") {
-                        return "call.microphone_permission_needed";
-                    }
-                }
-            } catch {
-                // Permissions API name may be unsupported.
+        async resolveMissingMicErrorKey(error) {
+            const permissionState = await queryMicrophonePermissionState();
+            if (error) {
+                return classifyGetUserMediaError(error, {
+                    permissionState,
+                    isBrave: isBraveBrowser(),
+                });
             }
-            return "call.no_audio_input_found";
+            if (permissionState === "denied") {
+                return "call.microphone_permission_denied";
+            }
+            if (permissionState === "prompt") {
+                return isBraveBrowser() ? "call.microphone_prompt_blocked" : "call.microphone_permission_needed";
+            }
+            return isBraveBrowser() ? "call.microphone_prompt_blocked" : "call.no_audio_input_found";
         },
         async refreshAudioDevices() {
             const defaultIn = {
@@ -3856,6 +3867,9 @@ export default {
             this.wasDeclined = false;
 
             try {
+                if (this.webAudioBridgeEnabled) {
+                    await this.requestAudioPermission();
+                }
                 await window.api.post(`/api/v1/telephone/call/${hashToCall}`);
             } catch (e) {
                 this.initiationStatus = null;
@@ -3903,6 +3917,9 @@ export default {
         },
         async answerCall() {
             try {
+                if (this.webAudioBridgeEnabled) {
+                    await this.requestAudioPermission();
+                }
                 await window.api.post("/api/v1/telephone/answer");
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_answer_call"));

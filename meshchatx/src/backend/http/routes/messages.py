@@ -160,7 +160,13 @@ def register_messages_routes(routes, app):
 
         # get request data
         data = await request.json()
-        display_name = data.get("display_name")
+        raw_name = data.get("display_name")
+        if raw_name is None:
+            display_name = ""
+        elif isinstance(raw_name, str):
+            display_name = raw_name.strip()
+        else:
+            display_name = str(raw_name).strip()
 
         # update display name if provided
         if len(display_name) > 0:
@@ -265,7 +271,14 @@ def register_messages_routes(routes, app):
             filter_unread = parse_bool_query_param(
                 request.query.get("unread", "false"),
             )
-            limit = int(request.query.get("limit", 50))
+            try:
+                limit = int(request.query.get("limit", 50))
+            except (TypeError, ValueError):
+                limit = 50
+            if limit < 0:
+                limit = 0
+            elif limit > 500:
+                limit = 500
 
             # 1. Fetch system notifications
             system_notifications = app.database.misc.get_notifications(
@@ -283,11 +296,20 @@ def register_messages_routes(routes, app):
                     local_hash,
                     filter_unread=True,
                 )
-                for db_message in db_conversations:
-                    # Convert to dict if needed
-                    if not isinstance(db_message, dict):
-                        db_message = dict(db_message)
-
+                conv_rows = [
+                    dict(db_message) if not isinstance(db_message, dict) else db_message
+                    for db_message in db_conversations
+                ]
+                peer_hashes = []
+                for db_message in conv_rows:
+                    if db_message["source_hash"] == local_hash:
+                        peer_hashes.append(db_message["destination_hash"])
+                    else:
+                        peer_hashes.append(db_message["source_hash"])
+                viewed_map = app.database.messages.get_notification_last_viewed_at_map(
+                    peer_hashes,
+                )
+                for db_message in conv_rows:
                     # determine other user hash
                     if db_message["source_hash"] == local_hash:
                         other_user_hash = db_message["destination_hash"]
@@ -299,8 +321,8 @@ def register_messages_routes(routes, app):
                         message_title=db_message.get("title"),
                         message_content=db_message.get("content"),
                     ):
-                        if not app.database.messages.is_notification_viewed(
-                            other_user_hash,
+                        if not app.database.messages.notification_viewed_covers(
+                            viewed_map.get(other_user_hash),
                             db_message["timestamp"],
                         ):
                             total_unread_peer_hashes.add(other_user_hash)
@@ -344,8 +366,8 @@ def register_messages_routes(routes, app):
                         continue
 
                     # Check if notification has been viewed
-                    if app.database.messages.is_notification_viewed(
-                        other_user_hash,
+                    if app.database.messages.notification_viewed_covers(
+                        viewed_map.get(other_user_hash),
                         latest_for_preview["timestamp"],
                     ):
                         continue
@@ -467,10 +489,20 @@ def register_messages_routes(routes, app):
                     local_hash,
                     filter_unread=True,
                 )
-                for conv in unread_conversations or []:
-                    if not isinstance(conv, dict):
-                        conv = dict(conv)
-
+                count_rows = [
+                    dict(conv) if not isinstance(conv, dict) else conv
+                    for conv in unread_conversations or []
+                ]
+                count_hashes = []
+                for conv in count_rows:
+                    if conv["source_hash"] == local_hash:
+                        count_hashes.append(conv["destination_hash"])
+                    else:
+                        count_hashes.append(conv["source_hash"])
+                viewed_map = app.database.messages.get_notification_last_viewed_at_map(
+                    count_hashes,
+                )
+                for conv in count_rows:
                     if conv["source_hash"] == local_hash:
                         other_user_hash = conv["destination_hash"]
                     else:
@@ -482,8 +514,8 @@ def register_messages_routes(routes, app):
                         message_title=conv.get("title"),
                         message_content=conv.get("content"),
                     ):
-                        if not app.database.messages.is_notification_viewed(
-                            other_user_hash,
+                        if not app.database.messages.notification_viewed_covers(
+                            viewed_map.get(other_user_hash),
                             conv["timestamp"],
                         ):
                             lxmf_total_unread_count += 1
@@ -525,8 +557,8 @@ def register_messages_routes(routes, app):
                     ):
                         continue
 
-                    if not app.database.messages.is_notification_viewed(
-                        other_user_hash,
+                    if not app.database.messages.notification_viewed_covers(
+                        viewed_map.get(other_user_hash),
                         latest_for_check["timestamp"],
                     ):
                         lxmf_unread_count += 1

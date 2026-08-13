@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
     conversationListSignature,
     countUnreadConversations,
+    sortConversationsPinnedFirst,
     syncConversationListInPlace,
 } from "../../meshchatx/src/frontend/js/lxmfConversationListSync.js";
 
@@ -58,5 +59,25 @@ describe("lxmfConversationListSync", () => {
         expect(changed).toBe(true);
         expect(existing.map((row) => row.destination_hash)).toEqual(["c".repeat(32), "a".repeat(32)]);
         expect(existing[1].display_name).toBe("Alpha");
+    });
+
+    it("returns the same array when nothing is pinned", () => {
+        const conversations = [{ destination_hash: "a".repeat(32) }, { destination_hash: "b".repeat(32) }];
+        expect(sortConversationsPinnedFirst(conversations, new Set())).toBe(conversations);
+        expect(sortConversationsPinnedFirst(conversations, null)).toBe(conversations);
+    });
+
+    it("pins selected hashes without changing relative order of the rest", () => {
+        const a = "a".repeat(32);
+        const b = "b".repeat(32);
+        const c = "c".repeat(32);
+        const conversations = [
+            { destination_hash: a, name: "A" },
+            { destination_hash: b, name: "B" },
+            { destination_hash: c, name: "C" },
+        ];
+        const out = sortConversationsPinnedFirst(conversations, new Set([c]));
+        expect(out.map((row) => row.destination_hash)).toEqual([c, a, b]);
+        expect(conversations[0].destination_hash).toBe(a);
     });
 });

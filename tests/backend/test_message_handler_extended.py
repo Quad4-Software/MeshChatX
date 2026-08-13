@@ -81,6 +81,7 @@ def test_get_conversations_base(mock_db):
     assert "con.custom_image as contact_image" not in query
     assert "SELECT peer_hash, MAX(id) as max_id" not in query
     assert "FROM lxmf_messages\n                WHERE state = 'failed'" not in query
+    assert "GROUP BY" not in query
 
 
 def test_get_conversations_with_filters(mock_db):
@@ -111,3 +112,33 @@ def test_clamp_conversations_limit():
     assert MessageHandler.clamp_conversations_limit(99999) == 2000
     assert MessageHandler.clamp_conversations_limit(-1) == 0
     assert MessageHandler.clamp_conversations_limit("nope") == 500
+
+
+def test_clamp_conversation_messages_limit():
+    from meshchatx.src.backend.message_handler import MessageHandler
+
+    assert MessageHandler.clamp_conversation_messages_limit(None) == 100
+    assert MessageHandler.clamp_conversation_messages_limit(50) == 50
+    assert MessageHandler.clamp_conversation_messages_limit(0) == 0
+    assert MessageHandler.clamp_conversation_messages_limit(-1) == 0
+    assert MessageHandler.clamp_conversation_messages_limit(99999) == 1000
+    assert MessageHandler.clamp_conversation_messages_limit("nope") == 100
+
+
+def test_get_conversation_messages_rejects_negative_sql_limit(mock_db):
+    handler = MessageHandler(mock_db)
+    handler.get_conversation_messages("local", "peer", limit=-1, offset=-5)
+
+    args, _ = mock_db.provider.fetchall.call_args
+    _query, params = args
+    assert params[-2] == 0
+    assert params[-1] == 0
+
+
+def test_get_conversation_messages_caps_oversize_limit(mock_db):
+    handler = MessageHandler(mock_db)
+    handler.get_conversation_messages("local", "peer", limit=50000)
+
+    args, _ = mock_db.provider.fetchall.call_args
+    _query, params = args
+    assert params[-2] == MessageHandler.MAX_CONVERSATION_MESSAGES_LIMIT

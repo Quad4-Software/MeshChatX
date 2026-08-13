@@ -100,6 +100,7 @@
                             <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
                         </div>
                         <input
+                            ref="settingsSearchInput"
                             :value="searchQuery"
                             type="search"
                             inputmode="search"
@@ -108,21 +109,33 @@
                             autocorrect="off"
                             autocapitalize="none"
                             spellcheck="false"
-                            class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl py-3 pl-12 pr-4 text-sm focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-hidden transition-all shadow-xs"
-                            :placeholder="$t('app.search_settings') || 'Search settings...'"
+                            :aria-label="$t('settings.search_label')"
+                            :class="[
+                                'w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl py-3 pl-12 text-sm focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-hidden transition-all shadow-xs',
+                                settingsSearchActive ? 'pr-12' : 'pr-4',
+                            ]"
+                            :placeholder="$t('app.search_settings')"
                             @input="onSettingsSearchInput"
                             @change="onSettingsSearchInput"
                             @compositionend="onSettingsSearchCompositionEnd"
+                            @keydown.esc.prevent="clearSettingsSearch"
                         />
                         <button
                             v-if="settingsSearchActive"
                             type="button"
                             class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                            :aria-label="$t('settings.search_clear')"
                             @click="clearSettingsSearch"
                         >
                             <MaterialDesignIcon icon-name="close-circle" class="size-5" />
                         </button>
                     </div>
+                    <p
+                        v-if="settingsSearchActive && hasSearchResults"
+                        class="w-full max-w-6xl xl:max-w-7xl 2xl:max-w-360 mx-auto mt-2 px-1 text-xs text-gray-500 dark:text-zinc-500"
+                    >
+                        {{ $t("settings.search_match_count", { n: settingsSearchMatchTotal }) }}
+                    </p>
                 </div>
 
                 <!-- no results -->
@@ -135,23 +148,27 @@
                     >
                         <MaterialDesignIcon icon-name="magnify-close" class="size-8 text-gray-400" />
                     </div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">No results found</h3>
-                    <p class="text-gray-500 dark:text-gray-400">No settings match "{{ settingsSearchDisplay }}"</p>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        {{ $t("settings.search_no_results") }}
+                    </h3>
+                    <p class="text-gray-500 dark:text-gray-400">
+                        {{ $t("settings.search_no_match", { query: settingsSearchDisplay }) }}
+                    </p>
                     <button
                         type="button"
                         class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition font-semibold text-sm"
                         @click="clearSettingsSearch"
                     >
-                        Clear search
+                        {{ $t("settings.search_clear") }}
                     </button>
                 </div>
 
                 <!-- settings panel -->
                 <div v-show="hasSearchResults" class="settings-panel">
                     <SettingsNav
-                        v-if="!settingsSearchActive"
-                        :active-tab="activeSettingsTab"
-                        @select="selectSettingsTab"
+                        :active-tab="settingsNavActiveTab"
+                        :match-counts="settingsSearchActive ? settingsSearchMatchCounts : null"
+                        @select="onSettingsNavSelect"
                     />
                     <div class="settings-panel__content">
                         <StrangerProtectionSettingsSection
@@ -1392,6 +1409,19 @@
                                                 }}</span>
                                             </span>
                                         </label>
+                                        <label class="setting-toggle">
+                                            <Toggle
+                                                :model-value="config.announce_store_map_data"
+                                                @update:model-value="
+                                                    (v) => onAnnounceStoreToggle('announce_store_map_data', v)
+                                                "
+                                            />
+                                            <span class="setting-toggle__label">
+                                                <span class="setting-toggle__title">{{
+                                                    $t("app.announce_store_map_data")
+                                                }}</span>
+                                            </span>
+                                        </label>
                                     </div>
                                     <div
                                         class="text-xs font-semibold text-gray-700 dark:text-zinc-300 uppercase tracking-wide"
@@ -1435,6 +1465,18 @@
                                                 @change="onAnnounceLimitsChange"
                                             />
                                         </div>
+                                        <div class="space-y-1">
+                                            <label class="text-xs font-medium">{{
+                                                $t("app.announce_limit_map_data")
+                                            }}</label>
+                                            <input
+                                                v-model.number="config.announce_max_stored_map_data"
+                                                type="number"
+                                                min="1"
+                                                class="input-field"
+                                                @change="onAnnounceLimitsChange"
+                                            />
+                                        </div>
                                     </div>
                                     <div
                                         class="text-xs font-semibold text-gray-700 dark:text-zinc-300 uppercase tracking-wide"
@@ -1472,6 +1514,18 @@
                                             }}</label>
                                             <input
                                                 v-model.number="config.announce_fetch_limit_lxmf_propagation"
+                                                type="number"
+                                                min="1"
+                                                class="input-field"
+                                                @change="onAnnounceLimitsChange"
+                                            />
+                                        </div>
+                                        <div class="space-y-1">
+                                            <label class="text-xs font-medium">{{
+                                                $t("app.announce_limit_map_data")
+                                            }}</label>
+                                            <input
+                                                v-model.number="config.announce_fetch_limit_map_data"
                                                 type="number"
                                                 min="1"
                                                 class="input-field"
@@ -2884,7 +2938,14 @@ import {
 } from "../../js/settings/incomingDeliveryLimit";
 import { normalizeRetentionValue } from "../../js/localMessageRetention";
 import { matchesSettingSearch, normalizeSearchString } from "../../js/settingsSearchUtils";
-import { DEFAULT_SETTINGS_TAB, normalizeSettingsTabId, SETTINGS_TABS } from "../../js/settings/settingsTabs.js";
+import {
+    ALL_SETTINGS_SECTIONS,
+    DEFAULT_SETTINGS_TAB,
+    normalizeSettingsTabId,
+    SETTINGS_TABS,
+    settingsSectionBelongsToTab,
+    settingsSectionSearchExtras,
+} from "../../js/settings/settingsTabs.js";
 import { getAllSettingsSectionKeywords } from "../../js/registries/settingsSectionRegistry.js";
 import { isMicronWasmBundled } from "../../js/MicronWasmLoader.js";
 import MicronWasmUpdateModal from "./MicronWasmUpdateModal.vue";
@@ -2961,12 +3022,15 @@ export default {
                 announce_store_lxst_telephony: true,
                 announce_store_nomadnetwork_node: true,
                 announce_store_lxmf_propagation: true,
+                announce_store_map_data: true,
                 announce_max_stored_lxmf_delivery: 1000,
                 announce_max_stored_nomadnetwork_node: 1000,
                 announce_max_stored_lxmf_propagation: 1000,
+                announce_max_stored_map_data: 1000,
                 announce_fetch_limit_lxmf_delivery: 500,
                 announce_fetch_limit_nomadnetwork_node: 500,
                 announce_fetch_limit_lxmf_propagation: 500,
+                announce_fetch_limit_map_data: 500,
                 announce_search_max_fetch: 2000,
                 discovered_interfaces_max_return: 500,
                 message_font_size: 14,
@@ -3066,6 +3130,7 @@ export default {
             messageAgePurgePreviewLoading: false,
             messageAgePurgeBusy: false,
             searchQuery: "",
+            searchTabFilter: null,
             activeSettingsTab: DEFAULT_SETTINGS_TAB,
             micronWasmUpdateModalOpen: false,
             trustedTelemetryPeers: [],
@@ -3130,11 +3195,30 @@ export default {
         settingsSearchDisplay() {
             return normalizeSearchString(this.searchQuery) || this.searchQuery;
         },
+        settingsNavActiveTab() {
+            if (this.settingsSearchActive) {
+                const filter = this.searchTabFilter;
+                if (filter && this.settingsSearchMatchCounts[filter] > 0) {
+                    return filter;
+                }
+                return "";
+            }
+            return this.activeSettingsTab;
+        },
+        settingsSearchMatchCounts() {
+            /** @type {Record<string, number>} */
+            const counts = {};
+            for (const tab of SETTINGS_TABS) {
+                counts[tab.id] = tab.sections.filter((sectionKey) => this.sectionMatchesQuery(sectionKey)).length;
+            }
+            return counts;
+        },
+        settingsSearchMatchTotal() {
+            return ALL_SETTINGS_SECTIONS.filter((sectionKey) => this.sectionMatchesQuery(sectionKey)).length;
+        },
         hasSearchResults() {
-            if (!normalizeSearchString(this.searchQuery)) return true;
-            return Object.values(this.sectionKeywords).some((keywords) =>
-                matchesSettingSearch(keywords, (k) => this.$t(k), this.searchQuery)
-            );
+            if (!this.settingsSearchActive) return true;
+            return this.settingsSearchMatchTotal > 0;
         },
         selfTestChecks() {
             if (!this.selfTestResults) {
@@ -3324,11 +3408,13 @@ export default {
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        window.removeEventListener("keydown", this.onSettingsSearchHotkey);
     },
     mounted() {
         // listen for websocket messages
         WebSocketConnection.on("message", this.onWebsocketMessage);
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+        window.addEventListener("keydown", this.onSettingsSearchHotkey);
 
         this.getConfig();
         this.getServerSecurity();
@@ -3765,6 +3851,9 @@ export default {
             const el = e?.target;
             if (!el || el.tagName !== "INPUT") return;
             this.searchQuery = el.value;
+            if (!normalizeSearchString(this.searchQuery)) {
+                this.searchTabFilter = null;
+            }
         },
         onSettingsSearchCompositionEnd(e) {
             const el = e?.target;
@@ -3773,6 +3862,43 @@ export default {
         },
         clearSettingsSearch() {
             this.searchQuery = "";
+            this.searchTabFilter = null;
+        },
+        onSettingsSearchHotkey(e) {
+            if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+            const active = document.activeElement;
+            const inField =
+                active && (["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName) || active.isContentEditable);
+            if (inField) return;
+            e.preventDefault();
+            const input = this.$refs.settingsSearchInput;
+            if (input && typeof input.focus === "function") {
+                input.focus();
+                if (typeof input.select === "function") {
+                    input.select();
+                }
+            }
+        },
+        onSettingsNavSelect(tabId) {
+            if (this.settingsSearchActive) {
+                this.searchTabFilter = this.searchTabFilter === tabId ? null : tabId;
+                return;
+            }
+            this.selectSettingsTab(tabId);
+        },
+        sectionAvailable(sectionKey) {
+            if (sectionKey === "plugins" && GlobalState.pluginsEnabled === false) {
+                return false;
+            }
+            return true;
+        },
+        sectionSearchTexts(sectionKey) {
+            const keywords = this.sectionKeywords[sectionKey] || [];
+            return [...keywords, ...settingsSectionSearchExtras(sectionKey)];
+        },
+        sectionMatchesQuery(sectionKey) {
+            if (!this.sectionAvailable(sectionKey)) return false;
+            return matchesSettingSearch(this.sectionSearchTexts(sectionKey), (k) => this.$t(k), this.searchQuery);
         },
         shareAndroidApk() {
             const bridge = new AndroidBridge();
@@ -3857,15 +3983,18 @@ export default {
             return matchesSettingSearch(texts, (k) => this.$t(k), this.searchQuery);
         },
         showSection(sectionKey) {
-            if (sectionKey === "plugins" && GlobalState.pluginsEnabled === false) {
+            if (!this.sectionAvailable(sectionKey)) {
                 return false;
             }
             if (this.settingsSearchActive) {
-                const keywords = this.sectionKeywords[sectionKey];
-                if (!keywords) {
+                if (!this.sectionMatchesQuery(sectionKey)) {
                     return false;
                 }
-                return this.matchesSearch(...keywords);
+                const filter = this.searchTabFilter;
+                if (filter && this.settingsSearchMatchCounts[filter] > 0) {
+                    return settingsSectionBelongsToTab(sectionKey, filter);
+                }
+                return true;
             }
             const tab = SETTINGS_TABS.find((entry) => entry.id === this.activeSettingsTab);
             return Boolean(tab && tab.sections.includes(sectionKey));
@@ -4063,9 +4192,11 @@ export default {
                     announce_max_stored_lxmf_delivery: numOrNull(c.announce_max_stored_lxmf_delivery),
                     announce_max_stored_nomadnetwork_node: numOrNull(c.announce_max_stored_nomadnetwork_node),
                     announce_max_stored_lxmf_propagation: numOrNull(c.announce_max_stored_lxmf_propagation),
+                    announce_max_stored_map_data: numOrNull(c.announce_max_stored_map_data),
                     announce_fetch_limit_lxmf_delivery: numOrNull(c.announce_fetch_limit_lxmf_delivery),
                     announce_fetch_limit_nomadnetwork_node: numOrNull(c.announce_fetch_limit_nomadnetwork_node),
                     announce_fetch_limit_lxmf_propagation: numOrNull(c.announce_fetch_limit_lxmf_propagation),
+                    announce_fetch_limit_map_data: numOrNull(c.announce_fetch_limit_map_data),
                     announce_search_max_fetch: numOrNull(c.announce_search_max_fetch),
                     discovered_interfaces_max_return: numOrNull(c.discovered_interfaces_max_return),
                 },

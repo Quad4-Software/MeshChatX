@@ -231,11 +231,11 @@ export function buildPathGraphJs(req) {
             const ip = positions[entry.interface];
             const angle = hashAngle(entry.hash);
             if (ip && Number.isFinite(ip.x) && Number.isFinite(ip.y)) {
-                const dist = 150 + hash01(entry.hash, "r") * 150;
+                const dist = 240 + hash01(entry.hash, "r") * 220;
                 x = ip.x + Math.cos(angle) * dist;
                 y = ip.y + Math.sin(angle) * dist;
             } else {
-                const dist = 600 + hash01(entry.hash, "r") * 200;
+                const dist = 720 + hash01(entry.hash, "r") * 280;
                 x = Math.cos(angle) * dist;
                 y = Math.sin(angle) * dist;
             }
@@ -377,11 +377,12 @@ export function buildFullGraph(req) {
             y: n.y,
             mass: n.group === "me" ? 4 : n.group === "interface" ? 2.5 : 1,
             fixed: n.id === "me",
+            radius: Number.isFinite(n.size) ? n.size : 22,
         })),
         layout_edges: (path.edges || []).map((e) => ({
             from: e.from,
             to: e.to,
-            length: e.width >= 2 ? 260 : 300,
+            length: e.width >= 2.5 ? 440 : 500,
         })),
     };
 }

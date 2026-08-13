@@ -132,6 +132,19 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 )
 
 
+async def first_multipart_file_field(reader, field_name="file"):
+    """Return the first multipart part named field_name, or the first with a filename."""
+    while True:
+        field = await reader.next()
+        if field is None:
+            return None
+        name = field.name or ""
+        if name == field_name or field.filename:
+            return field
+        with contextlib.suppress(Exception):
+            await field.read()
+
+
 def register_telephone_routes(routes, app):
 
     # serve telephone status
@@ -159,25 +172,15 @@ def register_telephone_routes(routes, app):
         active_call = None
         telephone_active_call = app.telephone_manager.telephone.active_call
         if telephone_active_call is not None:
-            # Filter out incoming calls if DND or contacts-only is active and call is ringing
+            # Filter ringing inbound calls that policy must not surface
             is_ringing = app.telephone_manager.telephone.call_status == 4
             if telephone_active_call.is_incoming and is_ringing:
-                if app.config.do_not_disturb_enabled.get():
-                    # Don't report active call if DND is on and it's ringing
-                    telephone_active_call = None
-                elif (
-                    app.config.telephone_allow_calls_from_contacts_only.get()
-                    or app.config.block_all_from_strangers.get()
+                remote_identity = telephone_active_call.get_remote_identity()
+                caller_hash = remote_identity.hash.hex() if remote_identity else None
+                if not caller_hash or app.incoming_call_is_policy_filtered(
+                    caller_hash,
                 ):
-                    remote_identity = telephone_active_call.get_remote_identity()
-                    if remote_identity:
-                        caller_hash = remote_identity.hash.hex()
-                        if not app._is_contact(caller_hash):
-                            # Don't report active call if contacts-only is on and caller is not a contact
-                            telephone_active_call = None
-                    else:
-                        # Don't report active call if we cannot identify the caller
-                        telephone_active_call = None
+                    telephone_active_call = None
 
         if telephone_active_call is not None:
             remote_identity = telephone_active_call.get_remote_identity()
@@ -419,6 +422,14 @@ def register_telephone_routes(routes, app):
                 status=404,
             )
 
+        caller_hash = caller_identity.hash.hex()
+        if app.is_destination_blocked(caller_hash):
+            app.telephone_manager.request_hangup()
+            return web.json_response(
+                {"message": "Caller is banished"},
+                status=403,
+            )
+
         # answer call
         await asyncio.to_thread(
             app.telephone_manager.telephone.answer,
@@ -456,6 +467,13 @@ def register_telephone_routes(routes, app):
         caller_identity = active_call.get_remote_identity()
         if not caller_identity:
             return web.json_response({"message": "No remote identity"}, status=400)
+
+        if app.is_destination_blocked(caller_identity.hash.hex()):
+            app.telephone_manager.request_hangup()
+            return web.json_response(
+                {"message": "Caller is banished"},
+                status=403,
+            )
 
         # trigger voicemail session
         await asyncio.to_thread(
@@ -745,6 +763,14 @@ def register_telephone_routes(routes, app):
                 status=400,
             )
 
+        if app.is_destination_blocked(identity_hash_hex):
+            return web.json_response(
+                {
+                    "message": "Cannot call a banished identity",
+                },
+                status=403,
+            )
+
         # initiate call in background to be non-blocking for the UI
         async def _initiate():
             try:
@@ -1006,7 +1032,12 @@ def register_telephone_routes(routes, app):
                 status=400,
             )
 
-        side = request.match_info.get("side")  # rx or tx
+        side = request.match_info.get("side")
+        if side not in ("rx", "tx"):
+            return web.json_response(
+                {"message": "Invalid recording side"},
+                status=400,
+            )
         recording = app.database.telephone.get_call_recording(recording_id)
         if recording:
             filename = recording[f"filename_{side}"]
@@ -1072,14 +1103,14 @@ def register_telephone_routes(routes, app):
     async def telephone_voicemail_greeting_upload(request):
         try:
             reader = await request.multipart()
-            field = await reader.next()
-            if field.name != "file":
+            field = await first_multipart_file_field(reader)
+            if field is None:
                 return web.json_response(
                     {"message": "File field required"},
                     status=400,
                 )
 
-            filename = field.filename
+            filename = field.filename or "upload"
             extension = os.path.splitext(filename)[1].lower()
             if extension not in [".mp3", ".ogg", ".wav", ".m4a", ".flac"]:
                 return web.json_response(
@@ -1242,14 +1273,14 @@ def register_telephone_routes(routes, app):
     async def telephone_ringtone_upload(request):
         try:
             reader = await request.multipart()
-            field = await reader.next()
-            if field.name != "file":
+            field = await first_multipart_file_field(reader)
+            if field is None:
                 return web.json_response(
                     {"message": "File field required"},
                     status=400,
                 )
 
-            filename = field.filename
+            filename = field.filename or "upload"
             extension = os.path.splitext(filename)[1].lower()
             if extension not in [".mp3", ".ogg", ".wav", ".m4a", ".flac"]:
                 return web.json_response(
@@ -1424,14 +1455,14 @@ def register_telephone_routes(routes, app):
             )
         try:
             reader = await request.multipart()
-            field = await reader.next()
-            if field.name != "file":
+            field = await first_multipart_file_field(reader)
+            if field is None:
                 return web.json_response(
                     {"message": "File field required"},
                     status=400,
                 )
 
-            filename = field.filename
+            filename = field.filename or "upload"
             extension = os.path.splitext(filename)[1].lower()
             if extension not in [".mp3", ".ogg", ".wav", ".m4a", ".flac"]:
                 return web.json_response(

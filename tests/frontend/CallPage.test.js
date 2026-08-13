@@ -379,7 +379,7 @@ describe("CallPage.vue", () => {
         expect(stop).toHaveBeenCalled();
     });
 
-    it("onToggleWebAudio enabling without active call skips microphone preflight", async () => {
+    it("onToggleWebAudio enabling without active call still runs microphone preflight", async () => {
         const wrapper = mountCallPage();
         await flushPromises();
         wrapper.vm.config = { telephone_web_audio_enabled: false };
@@ -387,7 +387,7 @@ describe("CallPage.vue", () => {
         const permit = vi.spyOn(wrapper.vm, "requestAudioPermission").mockResolvedValue(true);
         const patch = vi.spyOn(wrapper.vm, "updateConfig").mockResolvedValue(undefined);
         await wrapper.vm.onToggleWebAudio(true);
-        expect(permit).not.toHaveBeenCalled();
+        expect(permit).toHaveBeenCalled();
         expect(patch).toHaveBeenCalledWith({ telephone_web_audio_enabled: true });
     });
 
@@ -449,16 +449,12 @@ describe("CallPage.vue", () => {
         }
     });
 
-    it("requestAudioPermission retries processing constraints after NotFoundError on bare audio", async () => {
+    it("requestAudioPermission does not retry with processing constraints after NotFoundError", async () => {
         const wrapper = mountCallPage();
         await flushPromises();
-        const stop = vi.fn();
         const notFound = new Error("missing");
         notFound.name = "NotFoundError";
-        const getUserMedia = vi
-            .fn()
-            .mockRejectedValueOnce(notFound)
-            .mockResolvedValueOnce({ getTracks: () => [{ stop }] });
+        const getUserMedia = vi.fn().mockRejectedValue(notFound);
         Object.defineProperty(navigator, "mediaDevices", {
             configurable: true,
             value: {
@@ -466,17 +462,13 @@ describe("CallPage.vue", () => {
                 enumerateDevices: vi.fn().mockResolvedValue([]),
             },
         });
-        await expect(wrapper.vm.requestAudioPermission()).resolves.toBe(true);
-        expect(getUserMedia).toHaveBeenCalledTimes(2);
-        expect(getUserMedia.mock.calls[0][0]).toEqual({ audio: true });
-        expect(getUserMedia.mock.calls[1][0]).toEqual({
-            audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true,
-            },
-        });
-        expect(stop).toHaveBeenCalled();
+        try {
+            await expect(wrapper.vm.requestAudioPermission()).resolves.toBe(false);
+            expect(getUserMedia).toHaveBeenCalledTimes(1);
+            expect(getUserMedia.mock.calls[0][0]).toEqual({ audio: true });
+        } finally {
+            Reflect.deleteProperty(navigator, "mediaDevices");
+        }
     });
 
     it("requestAudioPermission refuses insecure contexts without calling getUserMedia", async () => {
@@ -547,6 +539,27 @@ describe("CallPage.vue", () => {
             enumerateDevices: vi.fn().mockResolvedValue([]),
         });
         expect(constraints).toEqual({ audio: true });
+    });
+
+    it("pickWebAudioMicConstraints uses bare audio when no device is selected", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        wrapper.vm.selectedAudioInputId = null;
+        const constraints = wrapper.vm.pickWebAudioMicConstraints({
+            enumerateDevices: vi.fn().mockResolvedValue([]),
+        });
+        expect(constraints).toEqual({ audio: true });
+    });
+
+    it("startWebAudio skips a second attempt after a blocked failure", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        wrapper.vm.config = { telephone_web_audio_enabled: true };
+        wrapper.vm.activeCall = { status: 6 };
+        wrapper.vm.webAudioStartBlocked = true;
+        const getMedia = vi.spyOn(wrapper.vm, "getMediaDevicesApi");
+        await wrapper.vm.startWebAudio();
+        expect(getMedia).not.toHaveBeenCalled();
     });
 
     it("startWebAudio uses MeshChatXAndroid native bridge when platform is android", async () => {

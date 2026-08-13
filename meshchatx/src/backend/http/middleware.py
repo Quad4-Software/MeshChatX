@@ -286,11 +286,19 @@ def create_security_middleware(app):
 
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        # Explicitly allow mic/camera and hardware transports for this origin.
-        # Listing only mic/camera without bluetooth/serial/usb has caused some
-        # Chromium and Brave builds to treat hardware APIs as unavailable.
-        response.headers["Permissions-Policy"] = (
-            "microphone=(self), camera=(self), bluetooth=(self), serial=(self), usb=(self)"
+        # Explicitly allow mic/camera, autoplay, speaker routing, and hardware
+        # transports for this origin. Listing only mic/camera without bluetooth
+        # /serial/usb has caused some Chromium and Brave builds to treat
+        # hardware APIs as unavailable. Feature-Policy is the legacy name still
+        # read by older Chromium-based Brave builds.
+        permissions_policy = (
+            "microphone=(self), camera=(self), autoplay=(self), speaker-selection=(self), "
+            "bluetooth=(self), serial=(self), usb=(self)"
+        )
+        response.headers["Permissions-Policy"] = permissions_policy
+        response.headers["Feature-Policy"] = (
+            "microphone 'self'; camera 'self'; autoplay 'self'; speaker-selection 'self'; "
+            "bluetooth 'self'; serial 'self'; usb 'self'"
         )
 
         # CSP base configuration
@@ -299,6 +307,10 @@ def create_security_middleware(app):
             "'self'",
             "ws://localhost:*",
             "wss://localhost:*",
+            "ws://127.0.0.1:*",
+            "wss://127.0.0.1:*",
+            "ws://[::1]:*",
+            "wss://[::1]:*",
             "blob:",
         ]
         img_sources = [

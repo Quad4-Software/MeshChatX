@@ -97,13 +97,63 @@ class AnnounceDAO:
             (aspect, excess),
         )
 
-    def get_announces(self, aspect=None):
+    def get_announces(self, aspect=None, limit=None, offset=0):
+        query = "SELECT * FROM announces"
+        params = []
         if aspect:
-            return self.provider.fetchall(
-                "SELECT * FROM announces WHERE aspect = ?",
-                (aspect,),
-            )
-        return self.provider.fetchall("SELECT * FROM announces")
+            query += " WHERE aspect = ?"
+            params.append(aspect)
+        if limit is not None:
+            query += " ORDER BY updated_at DESC LIMIT ? OFFSET ?"
+            params.extend([int(limit), int(offset or 0)])
+        return self.provider.fetchall(query, params)
+
+    def get_announces_for_identity_hashes(self, identity_hashes, aspects=None):
+        """Return announce rows for many identity hashes, newest first."""
+        if not identity_hashes:
+            return []
+        aspect_list = [a for a in (aspects or []) if isinstance(a, str) and a.strip()]
+        if not aspect_list:
+            return []
+        hash_list = []
+        seen = set()
+        for raw in identity_hashes:
+            if not isinstance(raw, str):
+                continue
+            h = raw.strip()
+            if not h or h in seen:
+                continue
+            seen.add(h)
+            hash_list.append(h)
+        if not hash_list:
+            return []
+        chunk_size = 400
+        out = []
+        aspect_placeholders = ", ".join(["?"] * len(aspect_list))
+        for start in range(0, len(hash_list), chunk_size):
+            chunk = hash_list[start : start + chunk_size]
+            hash_placeholders = ", ".join(["?"] * len(chunk))
+            sql = f"""
+                SELECT identity_hash, aspect, app_data, destination_hash, updated_at
+                FROM announces
+                WHERE identity_hash IN ({hash_placeholders})
+                  AND aspect IN ({aspect_placeholders})
+                ORDER BY updated_at DESC
+            """
+            out.extend(self.provider.fetchall(sql, [*chunk, *aspect_list]))
+        return out
+
+    def index_announces_by_identity_aspect(self, rows):
+        index = {}
+        for row in rows or []:
+            ident = row.get("identity_hash")
+            aspect = row.get("aspect")
+            if not ident or not aspect:
+                continue
+            key = (ident, aspect)
+            if key not in index:
+                index[key] = row
+        return index
 
     def get_announce_by_hash(self, destination_hash):
         return self.provider.fetchone(

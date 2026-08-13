@@ -234,36 +234,12 @@ def register_blocklist_routes(routes, app):
             )
 
         try:
-            app.database.misc.add_blocked_destination(destination_hash)
-            # Block all known destinations for the same identity
-            announce = app.database.announces.get_announce_by_hash(
-                destination_hash,
-            )
-            if announce and announce.get("identity_hash"):
-                identity_hash = announce["identity_hash"]
-                other_announces = app.database.announces.get_announces_by_identity_hash(
-                    identity_hash,
-                )
-                for other in other_announces:
-                    other_hash = other["destination_hash"]
-                    if other_hash != destination_hash:
-                        app.database.misc.add_blocked_destination(other_hash)
-                        app._lxmf_reticulum_enforce_block(other_hash)
-                        app._delete_contact_and_stamp_ticket(other_hash)
+            app.banish_lxmf_peer(destination_hash)
         except Exception:
             return web.json_response(
-                {"error": "Destination already blocked"},
+                {"error": "Failed to banish destination"},
                 status=400,
             )
-
-        app._lxmf_reticulum_enforce_block(destination_hash)
-        app._delete_contact_and_stamp_ticket(destination_hash)
-
-        local_hash = app.local_lxmf_destination.hash.hex()
-        app.message_handler.delete_conversation(local_hash, destination_hash)
-
-        app.sync_telephone_call_policy()
-        AsyncUtils.run_async(app._broadcast_blocked_destinations())
 
         return web.json_response({"message": "ok"})
 
@@ -280,43 +256,7 @@ def register_blocklist_routes(routes, app):
             )
 
         try:
-            app.database.misc.delete_blocked_destination(destination_hash)
-
-            # Unblock all known destinations for the same identity
-            announce = app.database.announces.get_announce_by_hash(
-                destination_hash,
-            )
-            if announce and announce.get("identity_hash"):
-                identity_hash = announce["identity_hash"]
-                other_announces = app.database.announces.get_announces_by_identity_hash(
-                    identity_hash,
-                )
-                for other in other_announces:
-                    other_hash = other["destination_hash"]
-                    if other_hash != destination_hash:
-                        app.database.misc.delete_blocked_destination(other_hash)
-
-            # Always remove from Reticulum blackhole if available
-            try:
-                if hasattr(app, "reticulum") and app.reticulum:
-                    identity_hash = None
-                    announce = app.database.announces.get_announce_by_hash(
-                        destination_hash,
-                    )
-                    if announce and announce.get("identity_hash"):
-                        identity_hash = announce["identity_hash"]
-
-                    target_hash = identity_hash or destination_hash
-                    dest_bytes = bytes.fromhex(target_hash)
-
-                    if hasattr(app.reticulum, "unblackhole_identity"):
-                        app.reticulum.unblackhole_identity(dest_bytes)
-            except Exception as e:
-                print(f"Failed to unblackhole identity in Reticulum: {e}")
-
-            AsyncUtils.run_async(app._broadcast_blocked_destinations())
-            app.sync_telephone_call_policy()
-
+            app.lift_lxmf_peer_banishment(destination_hash)
             return web.json_response({"message": "ok"})
         except Exception as e:
             return web.json_response({"error": str(e)}, status=500)

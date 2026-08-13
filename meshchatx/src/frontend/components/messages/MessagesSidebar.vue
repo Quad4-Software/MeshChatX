@@ -826,6 +826,7 @@ import GlobalEmitter from "../../js/GlobalEmitter";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
 import ToastUtils from "../../js/ToastUtils";
 import { importMessagesFromFile } from "../../js/messageImport";
+import { sortConversationsPinnedFirst } from "../../js/lxmfConversationListSync";
 
 export default {
     name: "MessagesSidebar",
@@ -1036,18 +1037,7 @@ export default {
             return Boolean(this.contextMenu.targetHash && this.pinnedSet.has(this.contextMenu.targetHash));
         },
         displayedConversations() {
-            const list = [...this.conversations];
-            const pinned = this.pinnedSet;
-            const idx = new Map(list.map((c, i) => [c.destination_hash, i]));
-            list.sort((a, b) => {
-                const ap = pinned.has(a.destination_hash);
-                const bp = pinned.has(b.destination_hash);
-                if (ap !== bp) {
-                    return ap ? -1 : 1;
-                }
-                return idx.get(a.destination_hash) - idx.get(b.destination_hash);
-            });
-            return list;
+            return sortConversationsPinnedFirst(this.conversations, this.pinnedSet);
         },
         peersCount() {
             return Object.keys(this.peers).length;
@@ -1063,8 +1053,12 @@ export default {
             return timedPeers.map((tp) => tp.p);
         },
         searchedPeers() {
-            return this.peersOrderedByLatestAnnounce.filter((peer) => {
-                const search = this.peersSearchTerm.toLowerCase();
+            const search = (this.peersSearchTerm || "").toLowerCase();
+            const ordered = this.peersOrderedByLatestAnnounce;
+            if (!search) {
+                return ordered;
+            }
+            return ordered.filter((peer) => {
                 const matchesDisplayName = peer.display_name.toLowerCase().includes(search);
                 const matchesCustomDisplayName = peer.custom_display_name?.toLowerCase()?.includes(search) === true;
                 const matchesDestinationHash = peer.destination_hash.toLowerCase().includes(search);

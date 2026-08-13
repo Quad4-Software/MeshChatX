@@ -5,6 +5,8 @@ import {
     fetchTileBlobWithRetry,
     fetchJsonWithRetry,
     TILE_FETCH_TIMEOUT_MS,
+    neighborTileCoords,
+    expandTileUrl,
 } from "@/js/mapTileNetwork";
 
 describe("mapTileNetwork", () => {
@@ -98,6 +100,22 @@ describe("mapTileNetwork", () => {
             expect(r.status).toBe(404);
             expect(global.fetch).toHaveBeenCalledTimes(1);
             delete global.fetch;
+        });
+    });
+
+    describe("tile URL helpers", () => {
+        it("uses an 8s tile fetch timeout", () => {
+            expect(TILE_FETCH_TIMEOUT_MS).toBe(8000);
+        });
+
+        it("expands z/x/y placeholders", () => {
+            expect(expandTileUrl("https://t.example/{z}/{x}/{y}.png", 3, 1, 2)).toBe("https://t.example/3/1/2.png");
+        });
+
+        it("returns a 3x3 neighbor ring around the center tile", () => {
+            const tiles = neighborTileCoords(0, 0, 4, 1);
+            expect(tiles).toHaveLength(9);
+            expect(tiles.every((t) => t.z === 4)).toBe(true);
         });
     });
 });

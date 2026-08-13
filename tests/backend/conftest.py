@@ -204,6 +204,9 @@ def mock_app(db, tmp_path, temp_db):
         )
         stack.enter_context(patch("meshchatx.src.backend.identity_context.MapManager"))
         stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.MapDataManager"),
+        )
+        stack.enter_context(
             patch("meshchatx.src.backend.identity_context.MessageHandler"),
         )
         stack.enter_context(

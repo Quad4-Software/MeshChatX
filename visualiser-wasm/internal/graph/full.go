@@ -9,6 +9,7 @@ import (
 	"github.com/Quad4-Software/MeshChatX/visualiser-wasm/internal/filter"
 	"github.com/Quad4-Software/MeshChatX/visualiser-wasm/internal/hashpos"
 	"github.com/Quad4-Software/MeshChatX/visualiser-wasm/internal/icon"
+	"github.com/Quad4-Software/MeshChatX/visualiser-wasm/internal/layout"
 )
 
 // InterfaceIn is a preformatted interface row from the JS side.
@@ -65,11 +66,12 @@ type FullResult struct {
 
 // LayoutBody is a compact body for the WASM force settle.
 type LayoutBody struct {
-	ID    string  `json:"id"`
-	X     float64 `json:"x"`
-	Y     float64 `json:"y"`
-	Mass  float64 `json:"mass"`
-	Fixed bool    `json:"fixed"`
+	ID     string  `json:"id"`
+	X      float64 `json:"x"`
+	Y      float64 `json:"y"`
+	Mass   float64 `json:"mass"`
+	Fixed  bool    `json:"fixed"`
+	Radius float64 `json:"radius"`
 }
 
 // LayoutSpring is a compact spring for the WASM force settle.
@@ -108,7 +110,7 @@ func BuildFullGraph(req FullRequest) FullResult {
 		seen[n.ID] = struct{}{}
 		nodes = append(nodes, n)
 		nodeIDs = append(nodeIDs, n.ID)
-		layoutNodes = append(layoutNodes, LayoutBody{ID: n.ID, X: n.X, Y: n.Y, Mass: mass, Fixed: fixed})
+		layoutNodes = append(layoutNodes, LayoutBody{ID: n.ID, X: n.X, Y: n.Y, Mass: mass, Fixed: fixed, Radius: n.Size})
 	}
 	addEdge := func(e EdgeOut, length float64) {
 		edges = append(edges, e)
@@ -142,7 +144,7 @@ func BuildFullGraph(req FullRequest) FullResult {
 		addNode(me, 4, true)
 	}
 
-	radius := 400.0
+	radius := 520.0
 	ifaceN := len(req.Interfaces)
 	for j, entry := range req.Interfaces {
 		if !filter.MatchesSearch(searchLower, entry.Label) && !filter.MatchesSearch(searchLower, entry.Name) {
@@ -177,7 +179,7 @@ func BuildFullGraph(req FullRequest) FullResult {
 			if !entry.Online {
 				col = edgeOffline(req.DarkMode)
 			}
-			addEdge(EdgeOut{ID: eid, From: "me", To: entry.Name, Color: col, Width: 3, Hidden: false}, 300)
+			addEdge(EdgeOut{ID: eid, From: "me", To: entry.Name, Color: col, Width: 3, Hidden: false}, layout.SpringLength(3))
 		}
 	}
 
@@ -214,7 +216,7 @@ func BuildFullGraph(req FullRequest) FullResult {
 		addNode(node, 2.5, false)
 		if _, ok := seen["me"]; ok {
 			eid := "me~" + entry.Name
-			addEdge(EdgeOut{ID: eid, From: "me", To: entry.Name, Color: edgeDirect(req.DarkMode), Width: 3, Hidden: false}, 300)
+			addEdge(EdgeOut{ID: eid, From: "me", To: entry.Name, Color: edgeDirect(req.DarkMode), Width: 3, Hidden: false}, layout.SpringLength(3))
 		}
 	}
 
@@ -226,7 +228,7 @@ func BuildFullGraph(req FullRequest) FullResult {
 			if !filter.MatchesSearch(searchLower, disc.Label) {
 				continue
 			}
-			x, y := hashpos.XY(disc.ID, 800, 200)
+			x, y := hashpos.XY(disc.ID, 900, 280)
 			p := resolveOr(pos, disc.ID, x, y)
 			node := NodeOut{
 				ID:            disc.ID,
@@ -251,7 +253,7 @@ func BuildFullGraph(req FullRequest) FullResult {
 				if req.DarkMode {
 					col["color"] = "#155e75"
 				}
-				addEdge(EdgeOut{ID: eid, From: "me", To: disc.ID, Color: col, Width: 1, Hidden: false}, 320)
+				addEdge(EdgeOut{ID: eid, From: "me", To: disc.ID, Color: col, Width: 1, Hidden: false}, layout.SpringLength(1))
 			}
 		}
 	}
@@ -274,11 +276,7 @@ func BuildFullGraph(req FullRequest) FullResult {
 		addNode(n, 1, false)
 	}
 	for _, e := range pathRes.Edges {
-		length := 300.0
-		if e.Width >= 2 {
-			length = 260
-		}
-		addEdge(e, length)
+		addEdge(e, layout.SpringLength(e.Width))
 	}
 	iconQueue = append(iconQueue, pathRes.IconQueue...)
 

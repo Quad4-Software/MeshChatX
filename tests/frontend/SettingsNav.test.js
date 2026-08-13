@@ -45,6 +45,31 @@ describe("SettingsNav", () => {
     it("exposes an accessible navigation landmark", () => {
         const wrapper = mountNav();
         const nav = wrapper.find("nav.settings-nav");
-        expect(nav.attributes("aria-label")).toBe("Settings sections");
+        expect(nav.attributes("aria-label")).toBe("settings.nav_label");
+    });
+
+    it("shows match counts during search and disables empty tabs", async () => {
+        const wrapper = mount(SettingsNav, {
+            props: {
+                activeTab: "",
+                matchCounts: { general: 2, messages: 0, network: 1 },
+            },
+            global: {
+                mocks: {
+                    $t: (key) => key,
+                },
+            },
+        });
+        const buttons = wrapper.findAll(".settings-nav__tab");
+        const general = buttons.find((btn) => btn.text().includes("settings.tabs.general"));
+        const messages = buttons.find((btn) => btn.text().includes("settings.tabs.messages"));
+        expect(general).toBeDefined();
+        expect(messages).toBeDefined();
+        expect(general.text()).toContain("2");
+        expect(messages.attributes("disabled")).toBeDefined();
+        await general.trigger("click");
+        expect(wrapper.emitted("select")).toEqual([["general"]]);
+        await messages.trigger("click");
+        expect(wrapper.emitted("select")).toEqual([["general"]]);
     });
 });

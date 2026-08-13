@@ -121,7 +121,7 @@ describe("localeTheme adversarial / fuzz", () => {
     it("contract: CallPage requestAudioPermission prompts getUserMedia before refreshAudioDevices", () => {
         const call = readSource("meshchatx/src/frontend/components/call/CallPage.vue");
         const body = extractMethodBody(call, "requestAudioPermission");
-        const gum = body.indexOf("getUserMedia");
+        const gum = body.indexOf("promptMicrophoneAccess");
         const refresh = body.indexOf("refreshAudioDevices");
         const enumerateCall = body.indexOf(".enumerateDevices(");
         expect(gum).toBeGreaterThan(-1);
@@ -132,7 +132,7 @@ describe("localeTheme adversarial / fuzz", () => {
         const beforeGum = body.slice(0, gum);
         expect(beforeGum).not.toMatch(/\.enumerateDevices\s*\(/);
         expect(beforeGum).not.toContain("no_audio_input_found");
-        expect(body).toMatch(/getUserMedia\(\{\s*audio:\s*true\s*\}/);
+        expect(body).toContain("promptMicrophoneAccess");
     });
 
     it("contract: localeLoader setLocale normalizes before loading messages", () => {
@@ -150,6 +150,8 @@ describe("localeTheme adversarial / fuzz", () => {
         const mw = readSource("meshchatx/src/backend/http/middleware.py");
         expect(mw).toContain("Permissions-Policy");
         expect(mw).toContain("microphone=(self)");
+        expect(mw).toContain("autoplay=(self)");
+        expect(mw).toContain("Feature-Policy");
         expect(mw).toContain("bluetooth=(self)");
         expect(mw).toContain("serial=(self)");
         expect(mw).toContain("usb=(self)");

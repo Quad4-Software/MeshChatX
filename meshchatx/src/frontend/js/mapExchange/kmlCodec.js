@@ -3,6 +3,7 @@
 import KML from "ol/format/KML";
 import { normalizeFeatureMetadataProps } from "./metadataUtils.js";
 import { normalizeKmlImportedFeatures, ensureOlStylesForKmlExport } from "./styleFromProperties.js";
+import { sanitizeKmlText } from "./kmlSanitize.js";
 
 /**
  * @param {string} text
@@ -10,12 +11,13 @@ import { normalizeKmlImportedFeatures, ensureOlStylesForKmlExport } from "./styl
  * @returns {import("ol/Feature").default[]}
  */
 export function readKmlToFeatures(text, featureProjection) {
+    const sanitized = sanitizeKmlText(text, { zipLocalOk: false });
     const format = new KML({
         extractStyles: true,
         showNetworkLinks: false,
         showPointNames: false,
     });
-    const features = format.readFeatures(text, {
+    const features = format.readFeatures(sanitized.text, {
         dataProjection: "EPSG:4326",
         featureProjection,
     });

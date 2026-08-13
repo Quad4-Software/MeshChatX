@@ -212,7 +212,11 @@ test.describe("RNode flasher Web Bluetooth chooser path", () => {
         const policy = index.headers()["permissions-policy"] || "";
         expect(policy).toContain("bluetooth=(self)");
         expect(policy).toContain("microphone=(self)");
+        expect(policy).toContain("autoplay=(self)");
+        expect(policy).toContain("speaker-selection=(self)");
         expect(policy).toContain("serial=(self)");
         expect(policy).toContain("usb=(self)");
+        const featurePolicy = index.headers()["feature-policy"] || "";
+        expect(featurePolicy).toContain("microphone 'self'");
     });
 });

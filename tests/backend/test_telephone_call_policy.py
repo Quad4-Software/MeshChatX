@@ -4,6 +4,10 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+from meshchatx.meshchat import ReticulumMeshChat
+from meshchatx.src.backend.http.routes.telephone import first_multipart_file_field
 from meshchatx.src.backend.telephone_manager import TelephoneManager
 
 
@@ -106,3 +110,108 @@ def test_sync_telephone_call_policy_wires_allowed_fn():
 
     ctx.config.do_not_disturb_enabled.get.return_value = True
     assert allowed(bytes.fromhex("aa" * 16)) is False
+
+
+def test_incoming_call_is_policy_filtered_hides_banished_and_dnd():
+    app = ReticulumMeshChat.__new__(ReticulumMeshChat)
+    ctx = MagicMock()
+    ctx.config.do_not_disturb_enabled.get.return_value = False
+    ctx.config.telephone_allow_calls_from_contacts_only.get.return_value = False
+    ctx.config.block_all_from_strangers.get.return_value = False
+    app.current_context = ctx
+    app.is_destination_blocked = MagicMock(return_value=False)
+    app._is_contact = MagicMock(return_value=True)
+
+    friend = "aa" * 16
+    assert app.incoming_call_is_policy_filtered(friend) is False
+
+    app.is_destination_blocked.return_value = True
+    assert app.incoming_call_is_policy_filtered(friend) is True
+
+    app.is_destination_blocked.return_value = False
+    ctx.config.do_not_disturb_enabled.get.return_value = True
+    assert app.incoming_call_is_policy_filtered(friend) is True
+
+
+def test_sync_allowed_fail_closed_when_block_lookup_raises():
+    app = ReticulumMeshChat.__new__(ReticulumMeshChat)
+    ctx = MagicMock()
+    tm = MagicMock()
+    ctx.telephone_manager = tm
+    ctx.config.do_not_disturb_enabled.get.return_value = False
+    ctx.config.telephone_allow_calls_from_contacts_only.get.return_value = False
+    ctx.config.block_all_from_strangers.get.return_value = False
+    ctx.database.misc.get_blocked_destinations.return_value = []
+    app.current_context = ctx
+    app.is_destination_blocked = MagicMock(side_effect=RuntimeError("db down"))
+    app._is_contact = MagicMock(return_value=True)
+
+    app.sync_telephone_call_policy(context=ctx)
+    allowed = tm.set_call_policy.call_args.kwargs["allowed_fn"]
+    assert allowed(bytes.fromhex("aa" * 16)) is False
+
+
+class _FakeMultipartPart:
+    def __init__(self, name, filename=None, data=b""):
+        self.name = name
+        self.filename = filename
+        self._data = data
+
+    async def read(self):
+        return self._data
+
+
+class _FakeMultipartReader:
+    def __init__(self, parts):
+        self._parts = list(parts)
+
+    async def next(self):
+        if not self._parts:
+            return None
+        return self._parts.pop(0)
+
+
+@pytest.mark.asyncio
+async def test_oracle_multipart_skips_non_file_fields():
+    csrf = _FakeMultipartPart("csrf_token", filename=None, data=b"tok")
+    audio = _FakeMultipartPart("file", filename="ring.wav", data=b"RIFF")
+    reader = _FakeMultipartReader([csrf, audio])
+    field = await first_multipart_file_field(reader)
+    assert field is audio
+    assert field.filename == "ring.wav"
+
+
+@pytest.mark.asyncio
+async def test_oracle_multipart_missing_file_returns_none():
+    reader = _FakeMultipartReader(
+        [_FakeMultipartPart("csrf_token", filename=None, data=b"tok")],
+    )
+    assert await first_multipart_file_field(reader) is None
+
+
+@pytest.mark.asyncio
+async def test_telephone_call_refuses_banished_identity(mock_app):
+    mock_app.is_destination_blocked = MagicMock(return_value=True)
+    mock_app.telephone_manager.telephone = MagicMock()
+    mock_app.telephone_manager.telephone.busy = False
+    mock_app.telephone_manager.telephone.active_call = None
+    mock_app.telephone_manager.initiation_status = None
+    mock_app.telephone_manager.initiate = MagicMock()
+
+    request = MagicMock()
+    request.match_info = {"identity_hash": "aa" * 16}
+    request.query = {}
+
+    handler = None
+    for route in mock_app.get_routes():
+        if (
+            route.method == "POST"
+            and route.path == "/api/v1/telephone/call/{identity_hash}"
+        ):
+            handler = route.handler
+            break
+    assert handler is not None
+
+    response = await handler(request)
+    assert response.status == 403
+    mock_app.telephone_manager.initiate.assert_not_called()

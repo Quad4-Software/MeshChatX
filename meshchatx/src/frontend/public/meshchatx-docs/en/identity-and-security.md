@@ -25,6 +25,7 @@ MeshChatX tracks announces for aspects such as:
 | `lxmf.propagation`  | Propagation node                  |
 | `nomadnetwork.node` | NomadNet page server              |
 | `rrc.hub`           | Relay chat hub (when RRC enabled) |
+| `map-data-v1`       | Published GeoJSON/KML/KMZ packs   |
 
 Announce records store signal metadata and parsed app data for display names and icons.
 

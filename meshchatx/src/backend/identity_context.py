@@ -24,6 +24,7 @@ from meshchatx.src.backend.integrity_manager import (
 )
 from meshchatx.src.backend.map_manager import MapManager
 from meshchatx.src.backend.map_overlay_manager import MapOverlayManager
+from meshchatx.src.backend.map_data_manager import MapDataManager
 from meshchatx.src.backend.meshchat_utils import create_lxmf_router
 from meshchatx.src.backend.message_handler import MessageHandler
 from meshchatx.src.backend.nomadnet_utils import NomadNetworkManager
@@ -84,6 +85,7 @@ class IdentityContext:
         self.archiver_manager = None
         self.map_manager = None
         self.map_overlay_manager = None
+        self.map_data_manager = None
         self.docs_manager = None
         self.repository_server_manager = None
         self.nomadnet_manager = None
@@ -220,6 +222,7 @@ class IdentityContext:
         self.archiver_manager = ArchiverManager(self.database)
         self.map_manager = MapManager(self.config, self.app.storage_dir)
         self.map_overlay_manager = None
+        self.map_data_manager = None
         self.docs_manager = DocsManager(
             self.config,
             self.app.get_public_path(),
@@ -491,6 +494,19 @@ class IdentityContext:
                 self.map_overlay_manager.start_scheduler()
             except Exception:
                 pass
+            self.map_data_manager = MapDataManager(
+                self.config,
+                self.database,
+                self.storage_path,
+                self.identity,
+                reticulum=getattr(self.app, "reticulum", None),
+                link_manager_getter=lambda: getattr(self.app, "rns_link_manager", None),
+                overlay_manager_getter=lambda: self.map_overlay_manager,
+            )
+            try:
+                self.map_data_manager.start()
+            except Exception as exc:
+                print(f"Failed to start map data manager: {exc}")
         except Exception as exc:
             print(f"Failed to start map overlay manager: {exc}")
 
@@ -811,6 +827,17 @@ class IdentityContext:
                     )
                 ),
             ),
+            AnnounceHandler(
+                "map-data-v1",
+                lambda aspect, dh, ai, ad, aph: self.app.on_map_data_announce_received(
+                    aspect,
+                    dh,
+                    ai,
+                    ad,
+                    aph,
+                    context=self,
+                ),
+            ),
             *(
                 [
                     AnnounceHandler(
@@ -1017,6 +1044,12 @@ class IdentityContext:
             except Exception:
                 pass
             self.map_overlay_manager = None
+        if self.map_data_manager:
+            try:
+                self.map_data_manager.stop()
+            except Exception:
+                pass
+            self.map_data_manager = None
         if self.map_manager:
             self.map_manager = None
 

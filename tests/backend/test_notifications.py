@@ -70,6 +70,30 @@ def test_missed_call_notification(mock_app):
     assert mock_app.websocket_broadcast.called
 
 
+def test_missed_call_skipped_when_caller_banished(mock_app):
+    """Banished callers must not create missed-call notifications."""
+    mock_app.database.misc.provider.execute("DELETE FROM notifications")
+    mock_app.is_destination_blocked = MagicMock(return_value=True)
+
+    caller_identity = MagicMock()
+    caller_identity.hash = b"caller_hash_32_bytes_long_012345"
+    mock_app.telephone_manager.call_is_incoming = True
+    mock_app.telephone_manager.call_status_at_end = 4
+    mock_app.telephone_manager.call_start_time = time.time() - 10
+    mock_app.telephone_manager.call_was_established = False
+
+    mock_app.on_telephone_call_ended(caller_identity)
+
+    notifications = mock_app.database.misc.get_notifications()
+    assert notifications == []
+    missed = [
+        c
+        for c in mock_app.websocket_broadcast.call_args_list
+        if "telephone_missed_call" in str(c)
+    ]
+    assert missed == []
+
+
 def test_voicemail_notification(mock_app):
     """Test that a new voicemail triggers a notification."""
     remote_hash = "remote_hash_hex"

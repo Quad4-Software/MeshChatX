@@ -36,6 +36,8 @@ class MessageHandler:
     # Default and hard cap when callers omit or overshoot limit.
     DEFAULT_CONVERSATIONS_LIMIT = 500
     MAX_CONVERSATIONS_LIMIT = 2000
+    DEFAULT_CONVERSATION_MESSAGES_LIMIT = 100
+    MAX_CONVERSATION_MESSAGES_LIMIT = 1000
 
     def get_conversation_messages(
         self,
@@ -46,6 +48,12 @@ class MessageHandler:
         after_id=None,
         before_id=None,
     ):
+        limit = self.clamp_conversation_messages_limit(limit)
+        try:
+            offset = max(0, int(offset or 0))
+        except (TypeError, ValueError):
+            offset = 0
+
         query = f"""
             SELECT {self._CONVERSATION_MESSAGE_COLUMNS}
             FROM lxmf_messages
@@ -132,6 +140,25 @@ class MessageHandler:
             return cls.MAX_CONVERSATIONS_LIMIT
         return value
 
+    @classmethod
+    def clamp_conversation_messages_limit(cls, limit):
+        """Normalize per-conversation message LIMIT. Negative must not reach SQLite.
+
+        SQLite treats a negative LIMIT as unlimited, so count=-1 would dump every
+        row including attachment blobs that still fit the 16KB fields fallback.
+        """
+        if limit is None:
+            return cls.DEFAULT_CONVERSATION_MESSAGES_LIMIT
+        try:
+            value = int(limit)
+        except (TypeError, ValueError):
+            return cls.DEFAULT_CONVERSATION_MESSAGES_LIMIT
+        if value < 0:
+            return 0
+        if value > cls.MAX_CONVERSATION_MESSAGES_LIMIT:
+            return cls.MAX_CONVERSATION_MESSAGES_LIMIT
+        return value
+
     def get_conversations(
         self,
         local_hash,
@@ -182,10 +209,17 @@ class MessageHandler:
             FROM lxmf_conversation_summaries s
             LEFT JOIN announces a ON a.destination_hash = s.peer_hash
             LEFT JOIN custom_destination_display_names c ON c.destination_hash = s.peer_hash
-            LEFT JOIN contacts con ON (
-                con.remote_identity_hash = s.peer_hash OR
-                con.lxmf_address = s.peer_hash OR
-                con.lxst_address = s.peer_hash
+            LEFT JOIN contacts con ON con.id = (
+                SELECT c2.id FROM contacts c2
+                WHERE c2.remote_identity_hash = s.peer_hash
+                   OR c2.lxmf_address = s.peer_hash
+                   OR c2.lxst_address = s.peer_hash
+                ORDER BY CASE
+                    WHEN c2.remote_identity_hash = s.peer_hash THEN 0
+                    WHEN c2.lxmf_address = s.peer_hash THEN 1
+                    ELSE 2
+                END
+                LIMIT 1
             )
             LEFT JOIN lxmf_user_icons i ON i.destination_hash = s.peer_hash
             LEFT JOIN lxmf_conversation_read_state r ON r.destination_hash = s.peer_hash
@@ -242,7 +276,7 @@ class MessageHandler:
         if where_clauses:
             query += " WHERE " + " AND ".join(where_clauses)
 
-        query += " GROUP BY s.peer_hash ORDER BY s.latest_message_id DESC"
+        query += " ORDER BY s.latest_message_id DESC"
         query += " LIMIT ? OFFSET ?"
         params.extend([limit, offset])
 

@@ -108,9 +108,9 @@ func TestTickPersistsVelocityAndSettles(t *testing.T) {
 	s.Set(SetRequest{
 		Nodes: []Node{
 			{ID: "me", X: 0, Y: 0, Kind: KindMe, Fixed: true, Mass: 4},
-			// Start near spring rest length so live ticks should calm quickly.
-			{ID: "a", X: 260, Y: 0, Kind: KindPeer, Mass: 1},
-			{ID: "b", X: -260, Y: 0, Kind: KindPeer, Mass: 1},
+			// Start near hub spring rest length so live ticks should calm quickly.
+			{ID: "a", X: 440, Y: 0, Kind: KindPeer, Mass: 1, Size: 22},
+			{ID: "b", X: -440, Y: 0, Kind: KindPeer, Mass: 1, Size: 22},
 		},
 		Edges: []Edge{
 			{From: "me", To: "a", Width: 3},
@@ -132,5 +132,27 @@ func TestTickPersistsVelocityAndSettles(t *testing.T) {
 	}
 	if math.Hypot(s.vx[1], s.vy[1]) > 1.2 {
 		t.Fatalf("velocity should damp toward rest, got %v %v", s.vx[1], s.vy[1])
+	}
+}
+
+func TestTickSeparatesStackedPeers(t *testing.T) {
+	s := New()
+	s.Set(SetRequest{
+		Nodes: []Node{
+			{ID: "me", X: 0, Y: 0, Kind: KindMe, Fixed: true, Mass: 4, Size: 32},
+			{ID: "a", X: 12, Y: 0, Kind: KindPeer, Mass: 1, Size: 22},
+			{ID: "b", X: 14, Y: 3, Kind: KindPeer, Mass: 1, Size: 22},
+		},
+		Edges: []Edge{
+			{From: "me", To: "a", Width: 1},
+			{From: "me", To: "b", Width: 1},
+		},
+	})
+	for i := 0; i < 80; i++ {
+		s.Tick(3)
+	}
+	dist := math.Hypot(s.nodes[1].X-s.nodes[2].X, s.nodes[1].Y-s.nodes[2].Y)
+	if dist < 80 {
+		t.Fatalf("stacked peers should spread, dist=%v a=(%v,%v) b=(%v,%v)", dist, s.nodes[1].X, s.nodes[1].Y, s.nodes[2].X, s.nodes[2].Y)
 	}
 }
