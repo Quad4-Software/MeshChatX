@@ -516,9 +516,13 @@ export default {
         },
         async downloadIdentityFile() {
             try {
-                const response = await window.api.get("/api/v1/identity/backup/download", {
-                    responseType: "arraybuffer",
-                });
+                const response = await window.api.post(
+                    "/api/v1/identity/backup/download",
+                    {},
+                    {
+                        responseType: "arraybuffer",
+                    }
+                );
                 await DownloadUtils.downloadFromApiResponse(response, "identity");
                 ToastUtils.success(this.$t("identities.identity_exported"));
             } catch {
@@ -527,7 +531,7 @@ export default {
         },
         async copyIdentityBase32() {
             try {
-                const response = await window.api.get("/api/v1/identity/backup/base32");
+                const response = await window.api.post("/api/v1/identity/backup/base32");
                 const base32 = response.data?.identity_base32 ?? "";
                 if (!base32) {
                     ToastUtils.error(this.$t("identities.no_identity_available"));
@@ -541,9 +545,13 @@ export default {
         },
         async downloadAllIdentities() {
             try {
-                const response = await window.api.get("/api/v1/identities/export-all", {
-                    responseType: "arraybuffer",
-                });
+                const response = await window.api.post(
+                    "/api/v1/identities/export-all",
+                    {},
+                    {
+                        responseType: "arraybuffer",
+                    }
+                );
                 await DownloadUtils.downloadFromApiResponse(response, "identities_export.zip");
                 ToastUtils.success(this.$t("identities.export_all_success"));
             } catch (e) {

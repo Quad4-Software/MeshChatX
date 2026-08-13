@@ -346,9 +346,17 @@ def register_bots_routes(routes, app):
                 status=500,
             )
 
-    @routes.get("/api/v1/bots/export")
+    @routes.post("/api/v1/bots/export")
     async def bots_export(request):
-        bot_id = request.query.get("bot_id")
+        bot_id = None
+        try:
+            data = await request.json()
+            if isinstance(data, dict):
+                bot_id = data.get("bot_id")
+        except Exception:
+            bot_id = None
+        if not bot_id:
+            bot_id = request.query.get("bot_id")
 
         if not bot_id:
             return web.json_response(

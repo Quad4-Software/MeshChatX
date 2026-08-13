@@ -524,7 +524,7 @@ import Utils from "../../js/Utils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import ToastUtils from "../../js/ToastUtils";
 import { copyTextToClipboard, readTextFromClipboard } from "../../js/clipboardUtils.js";
-import { getDestinationPath } from "../../js/reticulumPathfinding.js";
+import { postDestinationPath } from "../../js/reticulumPathfinding.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 import {
@@ -954,8 +954,7 @@ export default {
                 return;
             }
             try {
-                const response = await getDestinationPath(window.api, hash, {
-                    request: "1",
+                const response = await postDestinationPath(window.api, hash, {
                     timeout: 4,
                 });
                 this.nodePathsByHash = {

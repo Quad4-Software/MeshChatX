@@ -27,6 +27,7 @@
         "failed_to_stop": "Stoppen van bot is mislukt",
         "delete_bot": "Bot verwijderen",
         "export_identity": "Identiteit exporteren",
+        "export_failed": "Botidentiteit kon niet worden geëxporteerd",
         "bot_deleted": "Bot is succesvol verwijderd",
         "failed_to_delete": "Verwijderen van bot is mislukt",
         "more_bots_coming": "Er komen nog meer bots aan.",

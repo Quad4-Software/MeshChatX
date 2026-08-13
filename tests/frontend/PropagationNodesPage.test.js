@@ -207,7 +207,7 @@ describe("PropagationNodesPage", () => {
     });
 
     it("fetches path for a destination hash", async () => {
-        axiosMock.get.mockResolvedValueOnce({
+        axiosMock.post.mockResolvedValueOnce({
             data: {
                 path: { hops: 2, next_hop_interface: "TCP Client" },
             },
@@ -216,9 +216,13 @@ describe("PropagationNodesPage", () => {
             nodePathsByHash: {},
         };
         await PropagationNodesPage.methods.requestPathForNode.call(ctx, "abcd");
-        expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/destination/abcd/path", {
-            params: { request: "1", timeout: 4 },
-        });
+        expect(axiosMock.post).toHaveBeenCalledWith(
+            "/api/v1/destination/abcd/path",
+            {},
+            {
+                params: { timeout: 4 },
+            }
+        );
         expect(ctx.nodePathsByHash.abcd).toEqual({ hops: 2, next_hop_interface: "TCP Client" });
     });
 

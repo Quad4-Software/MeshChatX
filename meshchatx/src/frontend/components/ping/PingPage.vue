@@ -37,7 +37,7 @@
                         </div>
                         <div>
                             <label class="glass-label">{{ $t("ping.timeout_seconds") }}</label>
-                            <input v-model="timeout" type="number" min="1" class="input-field" />
+                            <input v-model="timeout" type="number" min="1" max="600" class="input-field" />
                         </div>
                     </div>
 
@@ -197,7 +197,7 @@ export default {
             }
 
             // simple check to ensure destination hash is valid
-            if (this.timeout == null || this.timeout < 1) {
+            if (this.timeout == null || this.timeout < 1 || this.timeout > 600) {
                 DialogUtils.alert(this.$t("ping.timeout_must_be_number"));
                 return;
             }
@@ -238,12 +238,16 @@ export default {
                 this.seq++;
 
                 // ping destination
-                const response = await window.api.get(`/api/v1/ping/${this.destinationHash}/lxmf.delivery`, {
-                    signal: this.abortController.signal,
-                    params: {
-                        timeout: this.timeout,
-                    },
-                });
+                const response = await window.api.post(
+                    `/api/v1/ping/${this.destinationHash}/lxmf.delivery`,
+                    {},
+                    {
+                        signal: this.abortController.signal,
+                        params: {
+                            timeout: this.timeout,
+                        },
+                    }
+                );
 
                 const pingResult = response.data.ping_result;
                 const rttMilliseconds = (pingResult.rtt * 1000).toFixed(3);

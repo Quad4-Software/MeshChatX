@@ -8,7 +8,30 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_get_destination_path_with_request_calls_prepare_fresh(mock_app):
+async def test_get_destination_path_with_request_is_400(mock_app):
+    h = next(
+        r.handler
+        for r in mock_app.get_routes()
+        if r.path == "/api/v1/destination/{destination_hash}/path" and r.method == "GET"
+    )
+    dest = "a" * 32
+    req = SimpleNamespace(
+        match_info={"destination_hash": dest},
+        query={"request": "1", "timeout": "1"},
+        method="GET",
+    )
+    with patch(
+        "meshchatx.meshchat.reticulum_pathfinding.prepare_fresh_path_request",
+    ) as pfp:
+        response = await h(req)
+    pfp.assert_not_called()
+    assert response.status == 400
+    data = json.loads(response.body)
+    assert "POST" in data["message"]
+
+
+@pytest.mark.asyncio
+async def test_post_destination_path_calls_prepare_fresh(mock_app):
     mock_app.reticulum = MagicMock()
     mock_app.reticulum.get_next_hop.return_value = bytes(16)
     mock_app.reticulum.get_next_hop_if_name.return_value = "if0"
@@ -16,11 +39,13 @@ async def test_get_destination_path_with_request_calls_prepare_fresh(mock_app):
         r.handler
         for r in mock_app.get_routes()
         if r.path == "/api/v1/destination/{destination_hash}/path"
+        and r.method == "POST"
     )
     dest = "a" * 32
     req = SimpleNamespace(
         match_info={"destination_hash": dest},
-        query={"request": "1", "timeout": "1"},
+        query={"timeout": "1"},
+        method="POST",
     )
     with (
         patch(
@@ -33,6 +58,10 @@ async def test_get_destination_path_with_request_calls_prepare_fresh(mock_app):
         patch("meshchatx.meshchat.RNS.Transport.has_path", return_value=True),
         patch("meshchatx.meshchat.RNS.Transport.hops_to", return_value=2),
         patch("meshchatx.meshchat.asyncio.sleep", new_callable=AsyncMock),
+        patch(
+            "meshchatx.meshchat.AsyncUtils.run_async",
+            side_effect=lambda coro: coro.close() if hasattr(coro, "close") else None,
+        ),
     ):
         response = await h(req)
     pfp.assert_called_once()

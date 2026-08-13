@@ -388,11 +388,15 @@ export default {
             const pingToastKey = "conversation-ping";
             ToastUtils.loading(this.$t("messages.ping_in_progress"), 0, pingToastKey);
             try {
-                const response = await window.api.get(`/api/v1/ping/${destinationHash}/lxmf.delivery`, {
-                    params: {
-                        timeout: 30,
-                    },
-                });
+                const response = await window.api.post(
+                    `/api/v1/ping/${destinationHash}/lxmf.delivery`,
+                    {},
+                    {
+                        params: {
+                            timeout: 30,
+                        },
+                    }
+                );
 
                 const pingResult = response.data.ping_result;
                 const rttMilliseconds = (pingResult.rtt * 1000).toFixed(3);

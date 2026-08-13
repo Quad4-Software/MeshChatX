@@ -89,7 +89,7 @@
             "path": "/api/v1/bots/delete"
         },
         {
-            "method": "GET",
+            "method": "POST",
             "path": "/api/v1/bots/export"
         },
         {
@@ -138,6 +138,10 @@
         },
         {
             "method": "POST",
+            "path": "/api/v1/database/auto-recover"
+        },
+        {
+            "method": "POST",
             "path": "/api/v1/database/backup"
         },
         {
@@ -163,10 +167,6 @@
         {
             "method": "POST",
             "path": "/api/v1/database/recover"
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/database/auto-recover"
         },
         {
             "method": "POST",
@@ -218,6 +218,10 @@
         },
         {
             "method": "GET",
+            "path": "/api/v1/destination/{destination_hash}/path"
+        },
+        {
+            "method": "POST",
             "path": "/api/v1/destination/{destination_hash}/path"
         },
         {
@@ -433,7 +437,7 @@
             "path": "/api/v1/identities/create"
         },
         {
-            "method": "GET",
+            "method": "POST",
             "path": "/api/v1/identities/export-all"
         },
         {
@@ -445,11 +449,11 @@
             "path": "/api/v1/identities/{identity_hash}"
         },
         {
-            "method": "GET",
+            "method": "POST",
             "path": "/api/v1/identity/backup/base32"
         },
         {
-            "method": "GET",
+            "method": "POST",
             "path": "/api/v1/identity/backup/download"
         },
         {
@@ -585,11 +589,11 @@
             "path": "/api/v1/lxmf/propagation-node/stop"
         },
         {
-            "method": "GET",
+            "method": "POST",
             "path": "/api/v1/lxmf/propagation-node/stop-sync"
         },
         {
-            "method": "GET",
+            "method": "POST",
             "path": "/api/v1/lxmf/propagation-node/sync"
         },
         {
@@ -885,7 +889,7 @@
             "path": "/api/v1/path-table"
         },
         {
-            "method": "GET",
+            "method": "POST",
             "path": "/api/v1/ping/{destination_hash}/lxmf.delivery"
         },
         {

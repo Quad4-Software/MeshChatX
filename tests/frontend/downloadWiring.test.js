@@ -39,15 +39,31 @@ describe("download wiring through DownloadUtils", () => {
                         headers: {},
                     });
                 }
+                return Promise.resolve({ data: {}, headers: {} });
+            }),
+            post: vi.fn().mockImplementation((url) => {
                 if (String(url).includes("/identity/backup/download")) {
                     return Promise.resolve({
                         data: new ArrayBuffer(2),
                         headers: {},
                     });
                 }
+                if (String(url).includes("/identities/export-all")) {
+                    return Promise.resolve({
+                        data: new ArrayBuffer(3),
+                        headers: {},
+                    });
+                }
+                if (String(url).includes("/api/v1/bots/export")) {
+                    return Promise.resolve({
+                        data: new ArrayBuffer(5),
+                        headers: {
+                            "content-disposition": 'attachment; filename="bot_bot1_identity"',
+                        },
+                    });
+                }
                 return Promise.resolve({ data: {}, headers: {} });
             }),
-            post: vi.fn().mockResolvedValue({ data: {} }),
             delete: vi.fn().mockResolvedValue({ data: {} }),
         };
         window.api = axiosMock;
@@ -116,6 +132,11 @@ describe("download wiring through DownloadUtils", () => {
 
         await wrapper.vm.downloadIdentityFile();
 
+        expect(axiosMock.post).toHaveBeenCalledWith(
+            "/api/v1/identity/backup/download",
+            {},
+            expect.objectContaining({ responseType: "arraybuffer" })
+        );
         expect(DownloadUtils.downloadFromApiResponse).toHaveBeenCalledWith(
             expect.objectContaining({ data: expect.any(ArrayBuffer) }),
             "identity"

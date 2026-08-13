@@ -1,6 +1,21 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import BotsPage from "@/components/tools/BotsPage.vue";
+import DownloadUtils from "@/js/DownloadUtils";
+import ToastUtils from "@/js/ToastUtils";
+
+vi.mock("@/js/DownloadUtils", () => ({
+    default: {
+        downloadFromApiResponse: vi.fn(() => Promise.resolve()),
+    },
+}));
+
+vi.mock("@/js/ToastUtils", () => ({
+    default: {
+        success: vi.fn(),
+        error: vi.fn(),
+    },
+}));
 
 describe("BotsPage.vue", () => {
     let axiosMock;
@@ -125,5 +140,29 @@ describe("BotsPage.vue", () => {
             name: "messages",
             params: { destinationHash: "a".repeat(32) },
         });
+    });
+
+    it("exports bot identity through window.api and DownloadUtils", async () => {
+        axiosMock.post.mockResolvedValue({
+            data: new ArrayBuffer(4),
+            headers: { "content-disposition": 'attachment; filename="bot_bot1_identity"' },
+        });
+        const wrapper = mountBotsPage();
+        await vi.waitFor(() => expect(wrapper.vm.loading).toBe(false));
+        await wrapper.vm.exportIdentity("bot1");
+        expect(axiosMock.post).toHaveBeenCalledWith(
+            "/api/v1/bots/export",
+            { bot_id: "bot1" },
+            { responseType: "arraybuffer" }
+        );
+        expect(DownloadUtils.downloadFromApiResponse).toHaveBeenCalled();
+    });
+
+    it("toasts when bot identity export fails", async () => {
+        axiosMock.post.mockRejectedValue({ response: { data: { message: "nope" } } });
+        const wrapper = mountBotsPage();
+        await vi.waitFor(() => expect(wrapper.vm.loading).toBe(false));
+        await wrapper.vm.exportIdentity("bot1");
+        expect(ToastUtils.error).toHaveBeenCalledWith("nope");
     });
 });

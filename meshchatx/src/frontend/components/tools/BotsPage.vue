@@ -400,6 +400,7 @@
 
 <script>
 import ToastUtils from "../../js/ToastUtils";
+import DownloadUtils from "../../js/DownloadUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
 
@@ -533,8 +534,17 @@ export default {
                 ToastUtils.error(this.$t("bots.failed_to_delete"));
             }
         },
-        exportIdentity(botId) {
-            window.open(`/api/v1/bots/export?bot_id=${botId}`, "_blank");
+        async exportIdentity(botId) {
+            try {
+                const response = await window.api.post(
+                    "/api/v1/bots/export",
+                    { bot_id: botId },
+                    { responseType: "arraybuffer" }
+                );
+                await DownloadUtils.downloadFromApiResponse(response, `bot_${botId}_identity`);
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || this.$t("bots.export_failed"));
+            }
         },
         startEditName(bot) {
             this.editingBotId = bot.id;

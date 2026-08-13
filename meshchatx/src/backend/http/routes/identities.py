@@ -134,7 +134,7 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 
 def register_identities_routes(routes, app):
 
-    @routes.get("/api/v1/identity/backup/download")
+    @routes.post("/api/v1/identity/backup/download")
     async def identity_backup_download(request):
         try:
             info = app.backup_identity()
@@ -155,7 +155,7 @@ def register_identities_routes(routes, app):
                 status=500,
             )
 
-    @routes.get("/api/v1/identity/backup/base32")
+    @routes.post("/api/v1/identity/backup/base32")
     async def identity_backup_base32(request):
         try:
             return web.json_response(
@@ -266,7 +266,7 @@ def register_identities_routes(routes, app):
                 status=500,
             )
 
-    @routes.get("/api/v1/identities/export-all")
+    @routes.post("/api/v1/identities/export-all")
     async def identities_export_all(request):
         try:
             all_bytes = app.identity_manager.get_all_identity_backup_bytes()

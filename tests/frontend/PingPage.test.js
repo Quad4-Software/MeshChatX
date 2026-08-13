@@ -54,7 +54,7 @@ describe("PingPage.vue", () => {
     });
 
     it("pings and displays results", async () => {
-        axiosMock.get.mockResolvedValue({
+        axiosMock.post.mockResolvedValue({
             data: {
                 ping_result: {
                     rtt: 0.1234,
@@ -89,7 +89,7 @@ describe("PingPage.vue", () => {
     });
 
     it("terminates previous loop when stop and start are called sequentially", async () => {
-        axiosMock.get.mockResolvedValue({
+        axiosMock.post.mockResolvedValue({
             data: {
                 ping_result: {
                     rtt: 0.1,
