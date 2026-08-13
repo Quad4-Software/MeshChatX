@@ -29,12 +29,8 @@ describe("electron/hardwareDevicePermissions", () => {
     });
 
     it("labels usb and bluetooth devices", () => {
-        expect(usbDeviceLabel({ productName: "Heltec", vendorId: 0x10c4 })).toBe(
-            "Heltec (0x10c4)"
-        );
-        expect(bluetoothDeviceLabel({ deviceName: "RNode BLE", deviceId: "aa" })).toBe(
-            "RNode BLE"
-        );
+        expect(usbDeviceLabel({ productName: "Heltec", vendorId: 0x10c4 })).toBe("Heltec (0x10c4)");
+        expect(bluetoothDeviceLabel({ deviceName: "RNode BLE", deviceId: "aa" })).toBe("RNode BLE");
     });
 
     it("treats cancel and out-of-range buttons as no selection", () => {

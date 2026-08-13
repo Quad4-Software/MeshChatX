@@ -17,11 +17,7 @@
                         />
                     </RouterLink>
                 </div>
-                <div
-                    v-if="!isCollapsed"
-                    class="my-auto min-w-0 flex-1 dark:text-white truncate"
-                    :title="identityLabel"
-                >
+                <div v-if="!isCollapsed" class="my-auto min-w-0 flex-1 dark:text-white truncate" :title="identityLabel">
                     {{ identityLabel }}
                 </div>
                 <div v-if="!isCollapsed" class="my-auto ml-auto shrink-0">

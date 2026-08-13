@@ -7,10 +7,7 @@
                 <SidebarLink :to="item.route" :is-collapsed="isCollapsed">
                     <template #icon>
                         <span class="relative inline-flex shrink-0">
-                            <MaterialDesignIcon
-                                :icon-name="item.icon"
-                                class="w-6 h-6 text-gray-700 dark:text-white"
-                            />
+                            <MaterialDesignIcon :icon-name="item.icon" class="w-6 h-6 text-gray-700 dark:text-white" />
                             <span
                                 v-if="isCollapsed && getNavBadgeCount(item) > 0 && item.badge?.pill"
                                 class="absolute -right-2 -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
