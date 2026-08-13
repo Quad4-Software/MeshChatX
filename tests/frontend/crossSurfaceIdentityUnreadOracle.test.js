@@ -170,4 +170,13 @@ describe("identity-switch surface contracts", () => {
         expect(src).toContain('GlobalEmitter.on("identity-switched"');
         expect(src).toMatch(/this\.tabs\s*=\s*\[\]/);
     });
+
+    it("NetworkVisualiser listens for identity-switched and clears cached graph state", () => {
+        const src = readFrontend("components/network-visualiser/NetworkVisualiser.vue");
+        expect(src).toContain('GlobalEmitter.on("identity-switched"');
+        expect(src).toMatch(/onIdentitySwitched/);
+        expect(src).toMatch(/this\.cachedPositions\s*=\s*\{\}/);
+        expect(src).toMatch(/this\.pathTable\s*=\s*\[\]/);
+        expect(src).toMatch(/this\.announces\s*=\s*\{\}/);
+    });
 });

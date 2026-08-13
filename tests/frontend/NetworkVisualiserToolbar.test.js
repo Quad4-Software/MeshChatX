@@ -111,4 +111,27 @@ describe("NetworkVisualiserToolbar", () => {
         const manualIcons = manualBusy.findAll(".mdi-stub").map((n) => n.attributes("data-icon"));
         expect(manualIcons).toContain("loading");
     });
+
+    it("hides planet view buttons unless the engine is WebGL", () => {
+        const wasm = mountToolbar({ engineMode: "wasm" });
+        expect(wasm.find("#visualiser-view-planet").exists()).toBe(false);
+        expect(wasm.find("#visualiser-view-flat").exists()).toBe(false);
+        wasm.unmount();
+
+        const vis = mountToolbar({ engineMode: "fallback" });
+        expect(vis.find("#visualiser-view-planet").exists()).toBe(false);
+        vis.unmount();
+
+        const webgl = mountToolbar({ engineMode: "webgl", viewMode: "flat" });
+        expect(webgl.find("#visualiser-view-flat").exists()).toBe(true);
+        expect(webgl.find("#visualiser-view-planet").exists()).toBe(true);
+        expect(webgl.find("#visualiser-view-flat").attributes("aria-pressed")).toBe("true");
+        expect(webgl.find("#visualiser-view-planet").attributes("aria-pressed")).toBe("false");
+    });
+
+    it("emits planet view mode from the WebGL toolbar", async () => {
+        const w = mountToolbar({ engineMode: "webgl", viewMode: "flat" });
+        await w.find("#visualiser-view-planet").trigger("click");
+        expect(w.emitted("update:viewMode")?.[0]).toEqual(["planet"]);
+    });
 });

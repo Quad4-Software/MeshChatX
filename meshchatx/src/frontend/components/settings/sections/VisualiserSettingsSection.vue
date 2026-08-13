@@ -28,6 +28,23 @@
                     <option value="vis">{{ $t("visualiser.renderer_option_vis") }}</option>
                 </select>
             </div>
+            <div class="space-y-2">
+                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {{ $t("visualiser.view_mode") }}
+                </div>
+                <p class="text-xs text-gray-600 dark:text-gray-400">
+                    {{ $t("visualiser.view_mode_desc") }}
+                </p>
+                <select
+                    id="settings-visualiser-view-mode"
+                    :value="viewMode"
+                    class="input-field"
+                    @change="$emit('view-mode-change', $event.target.value)"
+                >
+                    <option value="flat">{{ $t("visualiser.view_mode_flat_full") }}</option>
+                    <option value="planet">{{ $t("visualiser.view_mode_planet_full") }}</option>
+                </select>
+            </div>
             <label class="setting-toggle">
                 <Toggle
                     id="settings-visualiser-offline"
@@ -69,6 +86,10 @@ export default {
             type: String,
             default: "auto",
         },
+        viewMode: {
+            type: String,
+            default: "flat",
+        },
         showDisabledInterfaces: {
             type: Boolean,
             default: false,
@@ -78,6 +99,6 @@ export default {
             default: false,
         },
     },
-    emits: ["renderer-change", "show-disabled-change", "show-discovered-change"],
+    emits: ["renderer-change", "view-mode-change", "show-disabled-change", "show-discovered-change"],
 };
 </script>

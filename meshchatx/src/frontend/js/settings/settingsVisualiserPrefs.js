@@ -7,12 +7,15 @@ const KEY_DISCOVERED = "meshchatx.visualiser.showDiscoveredInterfaces";
 const KEY_LIVE_LAYOUT = "meshchatx.visualiser.enablePhysics";
 const KEY_AUTO_RELOAD = "meshchatx.visualiser.autoReload";
 const KEY_RENDERER = "meshchatx.visualiser.renderer";
+const KEY_VIEW_MODE = "meshchatx.visualiser.viewMode";
 
 export const VISUALISER_DISPLAY_PREFS_CHANGED = "visualiser-display-prefs-changed";
 
 /** @typedef {"auto" | "webgl" | "vis"} VisualiserRendererPref */
+/** @typedef {"flat" | "planet"} VisualiserViewModePref */
 
 export const VISUALISER_RENDERER_OPTIONS = ["auto", "webgl", "vis"];
+export const VISUALISER_VIEW_MODE_OPTIONS = ["flat", "planet"];
 
 /**
  * @param {string} key
@@ -59,6 +62,28 @@ export function normalizeVisualiserRenderer(raw) {
 }
 
 /**
+ * @param {unknown} raw
+ * @returns {VisualiserViewModePref}
+ */
+export function normalizeVisualiserViewMode(raw) {
+    return raw === "planet" ? "planet" : "flat";
+}
+
+/**
+ * @returns {VisualiserViewModePref}
+ */
+function readViewMode() {
+    try {
+        if (typeof localStorage === "undefined") {
+            return "flat";
+        }
+        return normalizeVisualiserViewMode(localStorage.getItem(KEY_VIEW_MODE));
+    } catch {
+        return "flat";
+    }
+}
+
+/**
  * @returns {VisualiserRendererPref}
  */
 function readRenderer() {
@@ -79,6 +104,7 @@ function readRenderer() {
  *   enablePhysics: boolean,
  *   autoReload: boolean,
  *   renderer: VisualiserRendererPref,
+ *   viewMode: VisualiserViewModePref,
  * }}
  */
 export function loadVisualiserDisplayPrefs() {
@@ -89,6 +115,7 @@ export function loadVisualiserDisplayPrefs() {
         enablePhysics: readBool(KEY_LIVE_LAYOUT, true),
         autoReload: readBool(KEY_AUTO_RELOAD, false),
         renderer: readRenderer(),
+        viewMode: readViewMode(),
     };
 }
 
@@ -139,6 +166,24 @@ export function persistVisualiserRenderer(val, opts = {}) {
     try {
         if (typeof localStorage !== "undefined") {
             localStorage.setItem(KEY_RENDERER, next);
+        }
+    } catch {
+        /* ignore */
+    }
+    if (opts.emit !== false) {
+        GlobalEmitter.emit(VISUALISER_DISPLAY_PREFS_CHANGED);
+    }
+}
+
+/**
+ * @param {unknown} val
+ * @param {{ emit?: boolean }} [opts]
+ */
+export function persistVisualiserViewMode(val, opts = {}) {
+    const next = normalizeVisualiserViewMode(val);
+    try {
+        if (typeof localStorage !== "undefined") {
+            localStorage.setItem(KEY_VIEW_MODE, next);
         }
     } catch {
         /* ignore */

@@ -42,6 +42,7 @@
             :search-query="searchQuery"
             :preferred-renderer="preferredRenderer"
             :engine-mode="engineMode"
+            :view-mode="viewMode"
             :fps="fps"
             @update:is-showing-controls="isShowingControls = $event"
             @update:auto-reload="autoReload = $event"
@@ -49,6 +50,7 @@
             @update:hop-max-filter="onUserHopMaxFilterChange"
             @update:search-query="searchQuery = $event"
             @update:preferred-renderer="onPreferredRendererChange"
+            @update:view-mode="onViewModeChange"
             @manual-update="manualUpdate"
         />
         <NetworkVisualiserLegend
@@ -79,6 +81,7 @@ import {
     dedupeIconQueueEntries,
     lodLevelFromScale,
     pathHashesWithinHopFilter,
+    layoutSpringLength,
     pickAdaptiveFetchConcurrency,
     settleLayout,
     warmVisualiserWasm,
@@ -97,6 +100,7 @@ import {
     persistVisualiserAutoReload,
     persistVisualiserLiveLayout,
     persistVisualiserRenderer,
+    persistVisualiserViewMode,
     VISUALISER_DISPLAY_PREFS_CHANGED,
 } from "../../js/settings/settingsVisualiserPrefs.js";
 import ToastUtils from "../../js/ToastUtils";
@@ -192,6 +196,7 @@ export default {
             isLoading: false,
             enablePhysics: displayPrefs.enablePhysics,
             preferredRenderer: displayPrefs.renderer || "auto",
+            viewMode: displayPrefs.viewMode === "planet" ? "planet" : "flat",
             showDisabledInterfaces: displayPrefs.showDisabledInterfaces,
             showDiscoveredInterfaces: displayPrefs.showDiscoveredInterfaces,
             loadingStatus: "Initializing...",
@@ -326,6 +331,9 @@ export default {
         if (this._visualiserPrefsHandler) {
             GlobalEmitter.off(VISUALISER_DISPLAY_PREFS_CHANGED, this._visualiserPrefsHandler);
         }
+        if (this._identitySwitchedHandler) {
+            GlobalEmitter.off("identity-switched", this._identitySwitchedHandler);
+        }
         if (this._batterySaverPrefsHandler) {
             GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
         }
@@ -384,17 +392,27 @@ export default {
 
         this._visualiserPrefsHandler = async () => {
             const prevRenderer = this.preferredRenderer;
+            const prevDisabled = this.showDisabledInterfaces;
+            const prevDiscovered = this.showDiscoveredInterfaces;
             this.loadVisualiserDisplayPrefs();
             this.applyBatterySaverVisualiserPrefs();
+            this.webglEngine?.setViewMode?.(this.viewMode);
             if (this.preferredRenderer !== prevRenderer) {
                 await this.reinitRenderer();
                 return;
             }
-            if (this.hasRenderer) {
+            const filtersChanged =
+                this.showDisabledInterfaces !== prevDisabled || this.showDiscoveredInterfaces !== prevDiscovered;
+            if (filtersChanged && this.hasRenderer) {
                 this.processVisualization();
             }
         };
         GlobalEmitter.on(VISUALISER_DISPLAY_PREFS_CHANGED, this._visualiserPrefsHandler);
+
+        this._identitySwitchedHandler = () => {
+            this.onIdentitySwitched();
+        };
+        GlobalEmitter.on("identity-switched", this._identitySwitchedHandler);
 
         this._batterySaverPrefsHandler = (prefs) => {
             this.batterySaverPrefs = prefs || loadBatterySaverPrefs();
@@ -543,16 +561,51 @@ export default {
         async persistVisualiserCache() {
             const identityHash = this.config?.identity_hash;
             if (!identityHash) return;
-            const positions = this.snapshotNodePositions();
-            this.cachedPositions = { ...this.cachedPositions, ...positions };
+            const pathTable = this.pathTable;
+            const announces = this.announces;
+            const positions = { ...this.cachedPositions, ...this.snapshotNodePositions() };
+            this.cachedPositions = positions;
             await saveVisualiserCache({
                 identityHash,
-                pathTable: this.pathTable,
-                announces: this.announces,
-                positions: this.cachedPositions,
+                pathTable,
+                announces,
+                positions,
                 pathSoftCap: VIZ_PATH_TABLE_SOFT_CAP,
                 announceSoftCap: VIZ_ANNOUNCE_SOFT_CAP,
             });
+        },
+        onIdentitySwitched() {
+            this.vizRunGeneration += 1;
+            this.iconQueueGeneration += 1;
+            this.iconQueue = [];
+            if (this.abortController) {
+                this.abortController.abort();
+            }
+            this.abortController = new AbortController();
+            this.cachedPositions = {};
+            this.pathTable = [];
+            this.announces = {};
+            this.conversations = {};
+            this.interfaces = [];
+            this.discoveredInterfaces = [];
+            this.discoveredActive = [];
+            this.graphNodeCount = 0;
+            this.graphEdgeCount = 0;
+            this.config = null;
+            if (this.webglEngine) {
+                try {
+                    this.webglEngine.setGraph([], []);
+                } catch {
+                    /* engine may already be torn down */
+                }
+            }
+            try {
+                this.nodes.clear();
+                this.edges.clear();
+            } catch {
+                /* DataSet may already be destroyed */
+            }
+            void this.update({ silent: false });
         },
         onUserHopMaxFilterChange(v) {
             this.hopMaxFilter = v;
@@ -851,6 +904,7 @@ export default {
             this.enablePhysics = p.enablePhysics;
             this.autoReload = p.autoReload;
             this.preferredRenderer = p.renderer || "auto";
+            this.viewMode = p.viewMode === "planet" ? "planet" : "flat";
         },
         async onPreferredRendererChange(next) {
             const normalized = next === "webgl" || next === "vis" || next === "auto" ? next : "auto";
@@ -858,6 +912,13 @@ export default {
             this.preferredRenderer = normalized;
             persistVisualiserRenderer(normalized, { emit: false });
             await this.reinitRenderer();
+        },
+        onViewModeChange(next) {
+            const normalized = next === "planet" ? "planet" : "flat";
+            if (normalized === this.viewMode) return;
+            this.viewMode = normalized;
+            persistVisualiserViewMode(normalized, { emit: false });
+            this.webglEngine?.setViewMode?.(normalized);
         },
         destroyActiveRenderer() {
             this.hoverTooltip = null;
@@ -893,6 +954,7 @@ export default {
                     onNodeActivate: (id, meta) => this.onWebGLNodeActivate(id, meta),
                     onHover: (id, meta, x, y) => this.onWebGLHover(id, meta, x, y),
                 });
+                this.webglEngine.setViewMode(this.viewMode);
                 this.rendererMode = "webgl";
                 this.engineMode = "webgl";
                 return true;
@@ -965,7 +1027,7 @@ export default {
             const layoutEdges = this.edges.get().map((e) => ({
                 from: e.from,
                 to: e.to,
-                length: e.width >= 2.5 ? 440 : 500,
+                length: layoutSpringLength(e.width),
             }));
             const settled = settleLayout({ nodes: layoutNodes, edges: layoutEdges, iterations: 0 });
             const positions = settled?.positions || {};
@@ -1682,7 +1744,7 @@ export default {
                 graph.layout_edges = graphEdges.map((e) => ({
                     from: e.from,
                     to: e.to,
-                    length: e.width >= 2.5 ? 440 : 500,
+                    length: layoutSpringLength(e.width),
                 }));
             }
 

@@ -1034,12 +1034,19 @@
                         <VisualiserSettingsSection
                             :visible="showSection('visualiser')"
                             :renderer="visualiserRenderer"
+                            :view-mode="visualiserViewMode"
                             :show-disabled-interfaces="visualiserShowDisabledInterfaces"
                             :show-discovered-interfaces="visualiserShowDiscoveredInterfaces"
                             @renderer-change="
                                 (v) => {
                                     visualiserRenderer = v;
                                     onVisualiserRendererChange();
+                                }
+                            "
+                            @view-mode-change="
+                                (v) => {
+                                    visualiserViewMode = v;
+                                    onVisualiserViewModeChange();
                                 }
                             "
                             @show-disabled-change="onVisualiserShowDisabledChange"
@@ -2925,6 +2932,7 @@ import {
     persistVisualiserShowDisabled,
     persistVisualiserShowDiscovered,
     persistVisualiserRenderer,
+    persistVisualiserViewMode,
 } from "../../js/settings/settingsVisualiserPrefs";
 import { loadBatterySaverPrefs, saveBatterySaverPrefs } from "../../js/settings/batterySaverPrefs.js";
 import {
@@ -3141,6 +3149,7 @@ export default {
             visualiserShowDisabledInterfaces: false,
             visualiserShowDiscoveredInterfaces: false,
             visualiserRenderer: "auto",
+            visualiserViewMode: "flat",
             batterySaver: loadBatterySaverPrefs(),
             batteryInterfaceRows: [],
             batteryBitrateBusy: false,
@@ -3815,6 +3824,7 @@ export default {
             this.visualiserShowDisabledInterfaces = p.showDisabledInterfaces;
             this.visualiserShowDiscoveredInterfaces = p.showDiscoveredInterfaces;
             this.visualiserRenderer = p.renderer || "auto";
+            this.visualiserViewMode = p.viewMode === "planet" ? "planet" : "flat";
         },
         onVisualiserShowDisabledChange(val) {
             this.visualiserShowDisabledInterfaces = val;
@@ -3826,6 +3836,9 @@ export default {
         },
         onVisualiserRendererChange() {
             persistVisualiserRenderer(this.visualiserRenderer);
+        },
+        onVisualiserViewModeChange() {
+            persistVisualiserViewMode(this.visualiserViewMode);
         },
         async getTrustedTelemetryPeers() {
             try {

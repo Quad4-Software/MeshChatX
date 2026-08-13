@@ -461,12 +461,33 @@ describe("createVisualiserWebGLEngine interactions", () => {
         expect(globalThis.meshchatxVisualiserScenePanBy).not.toHaveBeenCalled();
     });
 
+    it("planet pinch dollies orbit instead of SceneZoomAt", () => {
+        engine.setViewMode("planet");
+        const fire = (type, props) => {
+            const ev = new Event(type, { bubbles: true });
+            Object.assign(ev, props);
+            canvas.dispatchEvent(ev);
+        };
+        fire("pointerdown", { pointerId: 1, pointerType: "touch", button: 0, clientX: 110, clientY: 120 });
+        fire("pointerdown", { pointerId: 2, pointerType: "touch", button: 0, clientX: 210, clientY: 120 });
+        fire("pointermove", { pointerId: 2, pointerType: "touch", button: 0, clientX: 250, clientY: 120 });
+        expect(zoomAt).not.toHaveBeenCalled();
+    });
+
     it("wheel zoom calls SceneZoomAt", () => {
         const ev = new Event("wheel", { bubbles: true, cancelable: true });
         Object.assign(ev, { clientX: 60, clientY: 80, deltaY: -100 });
         canvas.dispatchEvent(ev);
         // css: 60-10=50, 80-20=60
         expect(zoomAt).toHaveBeenCalledWith(50, 60, 1.12);
+    });
+
+    it("planet wheel does not call SceneZoomAt", () => {
+        engine.setViewMode("planet");
+        const ev = new Event("wheel", { bubbles: true, cancelable: true });
+        Object.assign(ev, { clientX: 60, clientY: 80, deltaY: -100 });
+        canvas.dispatchEvent(ev);
+        expect(zoomAt).not.toHaveBeenCalled();
     });
 
     it("clears light background when WASM draw buffers are not ready", async () => {

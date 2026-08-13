@@ -12,6 +12,22 @@ import {
     SCENE_NODE_STRIDE,
     tryCreateWebGL2Context,
 } from "./networkVisualiserWebGL.js";
+import {
+    DEFAULT_ORBIT_DIST,
+    DEFAULT_ORBIT_PITCH,
+    DEFAULT_ORBIT_YAW,
+    FLAT_VIEW,
+    PLANET_VIEW,
+    clampOrbit,
+    layoutToWasmScreen,
+    normalizeVisualiserViewMode,
+    orbitEye,
+    pickPlanetNode,
+    planetLodZoom,
+    pointerToLayout,
+    projectPlanetScene,
+    screenToDrawWorld,
+} from "./networkVisualiserPlanet.js";
 
 export { isVisualiserWebGLSceneReady };
 
@@ -304,6 +320,15 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
     const pointers = new Map();
     let pinchLastDist = 0;
     let iconLoadGen = 0;
+    let viewMode = FLAT_VIEW;
+    let orbitYaw = DEFAULT_ORBIT_YAW;
+    let orbitPitch = DEFAULT_ORBIT_PITCH;
+    let orbitDist = DEFAULT_ORBIT_DIST;
+    let planetLayoutScale = 400;
+    /** @type {{id:string,sx:number,sy:number,size:number}[]} */
+    let planetPick = [];
+    /** @type {{sx:number,sy:number,size:number,facing:number,front:boolean}[]} */
+    let planetProjected = [];
 
     function cssPoint(ev) {
         const rect = canvas.getBoundingClientRect();
@@ -439,41 +464,124 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
         dirty = true;
     }
 
+    function setViewMode(mode) {
+        const next = normalizeVisualiserViewMode(mode);
+        if (next === viewMode) {
+            dirty = true;
+            return;
+        }
+        viewMode = next;
+        dirty = true;
+    }
+
+    function isPlanet() {
+        return viewMode === PLANET_VIEW;
+    }
+
+    function pickNodeAt(cssX, cssY, pad) {
+        if (isPlanet()) {
+            return pickPlanetNode(planetPick, cssX, cssY, pad || 14);
+        }
+        return callScene("meshchatxVisualiserScenePick", cssX, cssY, pad || 16) || null;
+    }
+
+    function applyPlanetOrbit(nextYaw, nextPitch, nextDist) {
+        const c = clampOrbit(nextYaw, nextPitch, nextDist);
+        orbitYaw = c.yaw;
+        orbitPitch = c.pitch;
+        orbitDist = c.dist;
+        dirty = true;
+    }
+
     function frame() {
         if (!running) return;
         rafId = requestAnimationFrame(frame);
         const live = typeof hooks.getLiveLayout === "function" ? hooks.getLiveLayout() : false;
         if (live && pointerMode !== "drag") {
-            callScene("meshchatxVisualiserSceneTick", 1);
-            dirty = true;
+            const moved = callScene("meshchatxVisualiserSceneTick", 1);
+            // false means the WASM solver is asleep. null/undefined is an older
+            // wasm or stub, keep drawing.
+            if (moved !== false) dirty = true;
         }
-        if (!dirty && !live) return;
+        if (!dirty) return;
         const dark = typeof hooks.isDark === "function" ? hooks.isDark() : false;
         const buf = callScene("meshchatxVisualiserSceneGetDrawBuffers");
         if (!buf || buf.ok === false) {
             renderer.clearBackground(dark);
             return;
         }
-        const camera = {
-            x: buf.camX || 0,
-            y: buf.camY || 0,
-            zoom: buf.zoom > 0 ? buf.zoom : 1,
-        };
         const sceneCount = buf.nodes && buf.nodes.length ? Math.floor(buf.nodes.length / SCENE_NODE_STRIDE) : 0;
         const need = sceneCount * NODE_STRIDE;
         if (drawNodeScratch.length < need) {
             drawNodeScratch = new Float32Array(need);
         }
         const drawNodes = mergeSceneNodesWithTextures(buf.nodes, texMeta, drawNodeScratch);
-        const labels = collectWebGLLabels({
-            zoom: camera.zoom,
-            sceneCount,
-            nodes: buf.nodes,
-            labelByIndex,
-            idByIndex,
-            hoverId,
-        });
-        const size = renderer.draw(drawNodes, buf.edges, camera, dark, labels);
+        let camera = {
+            x: buf.camX || 0,
+            y: buf.camY || 0,
+            zoom: buf.zoom > 0 ? buf.zoom : 1,
+        };
+        let drawEdges = buf.edges;
+        let paintNodes = drawNodes;
+        const css = renderer.getCssSize();
+        if (isPlanet()) {
+            const planet = projectPlanetScene({
+                nodes: drawNodes,
+                edges: buf.edges,
+                width: css.width,
+                height: css.height,
+                yaw: orbitYaw,
+                pitch: orbitPitch,
+                dist: orbitDist,
+                dark,
+                idByIndex,
+            });
+            paintNodes = planet.nodes;
+            drawEdges = planet.edges;
+            camera = planet.camera;
+            planetPick = planet.pick;
+            planetProjected = planet.projected;
+            planetLayoutScale = planet.layoutScale;
+        } else {
+            planetPick = [];
+            planetProjected = [];
+        }
+        const labelZoom = isPlanet() ? planetLodZoom(orbitDist) : camera.zoom;
+        let paintLabels;
+        if (isPlanet()) {
+            paintLabels = [];
+            const lod = lodLevelFromScale(labelZoom);
+            if (lod !== "low") {
+                for (let i = 0; i < planetProjected.length; i++) {
+                    const rec = planetProjected[i];
+                    if (!rec?.front) continue;
+                    const id = idByIndex[i] != null ? String(idByIndex[i]) : null;
+                    const isMe = id === "me";
+                    const isHover = hoverId != null && id === hoverId;
+                    if (lod === "medium" && !isMe && !isHover) continue;
+                    const text = truncateWebGLLabel(labelByIndex[i]);
+                    if (!text) continue;
+                    const draw = screenToDrawWorld(rec.sx, rec.sy, css.width, css.height);
+                    paintLabels.push({
+                        x: draw.x,
+                        y: draw.y,
+                        size: rec.size,
+                        text,
+                        fontSize: isMe ? 16 : 11,
+                    });
+                }
+            }
+        } else {
+            paintLabels = collectWebGLLabels({
+                zoom: labelZoom,
+                sceneCount,
+                nodes: buf.nodes,
+                labelByIndex,
+                idByIndex,
+                hoverId,
+            });
+        }
+        const size = renderer.draw(paintNodes, drawEdges, camera, dark, paintLabels);
         callScene("meshchatxVisualiserSceneResize", size.width, size.height);
         nodeCount = buf.nodeCount || nodeCount;
         edgeCount = buf.edgeCount || edgeCount;
@@ -503,7 +611,7 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
         }
         lastX = p.x;
         lastY = p.y;
-        const id = callScene("meshchatxVisualiserScenePick", p.x, p.y, 16);
+        const id = pickNodeAt(p.x, p.y, 16);
         if (id) {
             callScene("meshchatxVisualiserSceneDragStart", id);
             pointerMode = "drag";
@@ -525,27 +633,53 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
             if (dist <= 0) return;
             const factor = dist / pinchLastDist;
             if (Math.abs(factor - 1) > 0.001) {
-                const mid = pointerMidpoint(pair.a, pair.b);
-                callScene("meshchatxVisualiserSceneZoomAt", mid.x, mid.y, factor);
+                if (isPlanet()) {
+                    applyPlanetOrbit(orbitYaw, orbitPitch, orbitDist / factor);
+                } else {
+                    const mid = pointerMidpoint(pair.a, pair.b);
+                    callScene("meshchatxVisualiserSceneZoomAt", mid.x, mid.y, factor);
+                    dirty = true;
+                }
                 pinchLastDist = dist;
-                dirty = true;
             }
             return;
         }
         if (pointerMode === "drag") {
-            callScene("meshchatxVisualiserSceneDragTo", p.x, p.y);
-            dirty = true;
+            if (isPlanet()) {
+                const css = renderer.getCssSize();
+                const eye = orbitEye(orbitYaw, orbitPitch, orbitDist);
+                const layout = pointerToLayout(p.x, p.y, css.width, css.height, eye, planetLayoutScale);
+                if (layout) {
+                    const zoomBuf = callScene("meshchatxVisualiserSceneGetDrawBuffers");
+                    const screen = layoutToWasmScreen(layout.x, layout.y, css.width, css.height, {
+                        x: zoomBuf?.camX || 0,
+                        y: zoomBuf?.camY || 0,
+                        zoom: zoomBuf?.zoom > 0 ? zoomBuf.zoom : 1,
+                    });
+                    callScene("meshchatxVisualiserSceneDragTo", screen.x, screen.y);
+                    dirty = true;
+                }
+            } else {
+                callScene("meshchatxVisualiserSceneDragTo", p.x, p.y);
+                dirty = true;
+            }
         } else if (pointerMode === "pan") {
-            const zoomBuf = callScene("meshchatxVisualiserSceneGetDrawBuffers");
-            const zoom = zoomBuf?.zoom > 0 ? zoomBuf.zoom : 1;
-            const dx = (lastX - p.x) / zoom;
-            const dy = (lastY - p.y) / zoom;
-            callScene("meshchatxVisualiserScenePanBy", dx, dy);
-            lastX = p.x;
-            lastY = p.y;
-            dirty = true;
+            if (isPlanet()) {
+                applyPlanetOrbit(orbitYaw - (p.x - lastX) * 0.008, orbitPitch + (p.y - lastY) * 0.008, orbitDist);
+                lastX = p.x;
+                lastY = p.y;
+            } else {
+                const zoomBuf = callScene("meshchatxVisualiserSceneGetDrawBuffers");
+                const zoom = zoomBuf?.zoom > 0 ? zoomBuf.zoom : 1;
+                const dx = (lastX - p.x) / zoom;
+                const dy = (lastY - p.y) / zoom;
+                callScene("meshchatxVisualiserScenePanBy", dx, dy);
+                lastX = p.x;
+                lastY = p.y;
+                dirty = true;
+            }
         } else {
-            const id = callScene("meshchatxVisualiserScenePick", p.x, p.y, 14) || null;
+            const id = pickNodeAt(p.x, p.y, 14);
             if (id !== hoverId) {
                 hoverId = id;
                 dirty = true;
@@ -589,7 +723,7 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
 
     function onDblClick(ev) {
         const p = cssPoint(ev);
-        const id = callScene("meshchatxVisualiserScenePick", p.x, p.y, 16);
+        const id = pickNodeAt(p.x, p.y, 16);
         if (!id) return;
         if (typeof hooks.onNodeActivate === "function") {
             hooks.onNodeActivate(id, metaById.get(id) || null);
@@ -598,8 +732,12 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
 
     function onWheel(ev) {
         ev.preventDefault();
-        const p = cssPoint(ev);
         const factor = ev.deltaY < 0 ? 1.12 : 1 / 1.12;
+        if (isPlanet()) {
+            applyPlanetOrbit(orbitYaw, orbitPitch, orbitDist / factor);
+            return;
+        }
+        const p = cssPoint(ev);
         callScene("meshchatxVisualiserSceneZoomAt", p.x, p.y, factor);
         dirty = true;
     }
@@ -650,6 +788,7 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
         getPositions,
         getCounts,
         setLiveLayout,
+        setViewMode,
         destroy,
         requestRedraw: () => {
             dirty = true;

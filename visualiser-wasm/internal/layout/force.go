@@ -11,25 +11,37 @@ import (
 
 const (
 	// DefaultRepulsion is 1/r^2 strength when Request.Repulsion is 0.
-	DefaultRepulsion = 5200.0
+	// vis-network barnesHut uses gravitationalConstant -3500. Keep this near
+	// that scale so WASM settle does not inflate the graph.
+	DefaultRepulsion = 1800.0
 	// DefaultSpringK is hooke stiffness when Request.SpringK is 0.
-	DefaultSpringK = 0.028
+	DefaultSpringK = 0.032
 	// DefaultSpringLen is rest length when an edge omits Length.
-	DefaultSpringLen = 500.0
+	// vis-network barnesHut springLength is 200. Peers sit a bit further out.
+	DefaultSpringLen = 240.0
 	// DefaultHubSpringLen is rest length for thick hub edges (me to interface).
-	DefaultHubSpringLen = 440.0
+	DefaultHubSpringLen = 200.0
 	// DefaultCellSize is the repulsion grid bucket in world units.
-	DefaultCellSize = 400.0
+	DefaultCellSize = 180.0
 	// DefaultMinSep is used when a body has no Radius.
-	DefaultMinSep = 96.0
+	DefaultMinSep = 48.0
 	// CollisionPad is extra gap beyond the two node radii.
-	CollisionPad = 48.0
+	CollisionPad = 16.0
 	// CollisionK is extra push when two discs overlap the min gap.
-	CollisionK = 3.0
-	// LiveRepulsion is WebGL live-tick repulsion (softer springs, same spacing).
-	LiveRepulsion = 5600.0
+	// Keep this below 1 so stacked nodes unstick without launching.
+	CollisionK = 0.85
+	// LiveRepulsion is WebGL live-tick repulsion.
+	LiveRepulsion = 1800.0
 	// LiveSpringK is WebGL live-tick spring stiffness.
-	LiveSpringK = 0.012
+	LiveSpringK = 0.016
+	// LiveDamping is WebGL live-tick velocity keep fraction.
+	LiveDamping = 0.78
+	// LiveMaxSpeed caps WebGL live-tick motion per step.
+	LiveMaxSpeed = 4.0
+	// LiveRestSpeed zeros live velocity below this length.
+	LiveRestSpeed = 0.25
+	// LiveSleepShift is the max per-tick move that still counts as rest.
+	LiveSleepShift = 0.15
 )
 
 // SpringLength returns rest length from vis-style edge width.

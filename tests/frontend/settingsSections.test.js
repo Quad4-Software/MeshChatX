@@ -251,11 +251,12 @@ describe("BatterySettingsSection", () => {
 });
 
 describe("VisualiserSettingsSection", () => {
-    it("emits renderer and visibility changes", async () => {
+    it("emits renderer, view mode, and visibility changes", async () => {
         const wrapper = mount(VisualiserSettingsSection, {
             props: {
                 visible: true,
                 renderer: "auto",
+                viewMode: "flat",
                 showDisabledInterfaces: false,
                 showDiscoveredInterfaces: true,
             },
@@ -264,8 +265,10 @@ describe("VisualiserSettingsSection", () => {
             },
         });
         expect(wrapper.text()).toContain("visualiser.title");
-        await wrapper.find("select").setValue("webgl");
+        await wrapper.find("#settings-visualiser-renderer").setValue("webgl");
         expect(wrapper.emitted("renderer-change")?.at(-1)).toEqual(["webgl"]);
+        await wrapper.find("#settings-visualiser-view-mode").setValue("planet");
+        expect(wrapper.emitted("view-mode-change")?.at(-1)).toEqual(["planet"]);
         const toggles = wrapper.findAllComponents({ name: "Toggle" });
         await toggles[0].vm.$emit("update:modelValue", true);
         expect(wrapper.emitted("show-disabled-change")).toEqual([[true]]);

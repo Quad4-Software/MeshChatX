@@ -95,7 +95,7 @@ func TestBuildPathGraphSeedsPeersAwayFromInterface(t *testing.T) {
 	dx := res.Nodes[0].X - 100
 	dy := res.Nodes[0].Y - 200
 	dist := dx*dx + dy*dy
-	if dist < 240*240 {
+	if dist < 140*140 {
 		t.Fatalf("peer seeded too close to interface: (%v,%v)", res.Nodes[0].X, res.Nodes[0].Y)
 	}
 }

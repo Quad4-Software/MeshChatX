@@ -6,7 +6,9 @@ import {
     persistVisualiserShowDisabled,
     persistVisualiserShowDiscovered,
     persistVisualiserRenderer,
+    persistVisualiserViewMode,
     normalizeVisualiserRenderer,
+    normalizeVisualiserViewMode,
 } from "@/js/settings/settingsVisualiserPrefs.js";
 
 describe("settingsVisualiserPrefs", () => {
@@ -14,13 +16,14 @@ describe("settingsVisualiserPrefs", () => {
         localStorage.clear();
     });
 
-    it("defaults live layout on, auto-reload off, renderer auto", () => {
+    it("defaults live layout on, auto-reload off, renderer auto, view flat", () => {
         expect(loadVisualiserDisplayPrefs()).toEqual({
             showDisabledInterfaces: false,
             showDiscoveredInterfaces: false,
             enablePhysics: true,
             autoReload: false,
             renderer: "auto",
+            viewMode: "flat",
         });
     });
 
@@ -35,6 +38,7 @@ describe("settingsVisualiserPrefs", () => {
             enablePhysics: false,
             autoReload: true,
             renderer: "auto",
+            viewMode: "flat",
         });
         persistVisualiserLiveLayout(true);
         expect(loadVisualiserDisplayPrefs().enablePhysics).toBe(true);
@@ -53,5 +57,13 @@ describe("settingsVisualiserPrefs", () => {
         expect(loadVisualiserDisplayPrefs().renderer).toBe("webgl");
         persistVisualiserRenderer("vis", { emit: false });
         expect(loadVisualiserDisplayPrefs().renderer).toBe("vis");
+    });
+
+    it("normalizes and persists planet view mode", () => {
+        expect(normalizeVisualiserViewMode("nope")).toBe("flat");
+        persistVisualiserViewMode("planet");
+        expect(loadVisualiserDisplayPrefs().viewMode).toBe("planet");
+        persistVisualiserViewMode("flat", { emit: false });
+        expect(loadVisualiserDisplayPrefs().viewMode).toBe("flat");
     });
 });

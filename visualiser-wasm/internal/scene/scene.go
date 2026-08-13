@@ -82,6 +82,9 @@ type Scene struct {
 	camY    float64
 	zoom    float64
 	dragIdx int
+	// sleeping is true when live ticks have damped below LiveRestSpeed.
+	// Stops per-frame force jitter once the graph has settled.
+	sleeping bool
 }
 
 // New returns an empty scene centred on the origin.
@@ -97,6 +100,9 @@ func New() *Scene {
 
 // Set replaces nodes and edges. Preserves camera unless zoom is > 0 in req.
 func (s *Scene) Set(req SetRequest) {
+	oldVx := s.vx
+	oldVy := s.vy
+	oldIndex := s.index
 	s.nodes = append([]Node(nil), req.Nodes...)
 	s.edges = append([]Edge(nil), req.Edges...)
 	s.index = make(map[string]int, len(s.nodes))
@@ -132,8 +138,21 @@ func (s *Scene) Set(req SetRequest) {
 		s.camY = req.CamY
 	}
 	s.dragIdx = -1
+	s.sleeping = false
 	s.vx = make([]float64, len(s.nodes))
 	s.vy = make([]float64, len(s.nodes))
+	// Carry momentum for ids that survived the rebuild so auto-refresh
+	// does not kick a settling graph back into motion from v=0.
+	if oldIndex != nil && len(oldVx) == len(oldVy) {
+		for i := range s.nodes {
+			j, ok := oldIndex[s.nodes[i].ID]
+			if !ok || j < 0 || j >= len(oldVx) {
+				continue
+			}
+			s.vx[i] = oldVx[j]
+			s.vy[i] = oldVy[j]
+		}
+	}
 }
 
 func defaultSize(kind int) float64 {
@@ -226,9 +245,13 @@ func (s *Scene) screenToWorld(sx, sy float64) (float64, float64) {
 }
 
 // Tick runs a few force iterations when live layout is on.
-func (s *Scene) Tick(steps int) {
+// Returns true when any unfixed node moved this call.
+func (s *Scene) Tick(steps int) bool {
 	if len(s.nodes) == 0 {
-		return
+		return false
+	}
+	if s.sleeping && s.dragIdx < 0 {
+		return false
 	}
 	if steps <= 0 {
 		steps = 1
@@ -276,25 +299,45 @@ func (s *Scene) Tick(steps int) {
 		Gravity:    -1,
 		Repulsion:  layout.LiveRepulsion,
 		SpringK:    layout.LiveSpringK,
-		Damping:    0.58,
-		MaxSpeed:   6,
+		Damping:    layout.LiveDamping,
+		MaxSpeed:   layout.LiveMaxSpeed,
 	})
-	const restSpeed = 0.12
+	moved := false
+	maxSpeed := 0.0
+	maxShift := 0.0
 	for i := range s.nodes {
 		if s.dragIdx == i {
 			s.vx[i] = 0
 			s.vy[i] = 0
 			continue
 		}
+		dx := layoutNodes[i].X - s.nodes[i].X
+		dy := layoutNodes[i].Y - s.nodes[i].Y
 		s.nodes[i].X = layoutNodes[i].X
 		s.nodes[i].Y = layoutNodes[i].Y
 		s.vx[i] = layoutNodes[i].Vx
 		s.vy[i] = layoutNodes[i].Vy
-		if math.Hypot(s.vx[i], s.vy[i]) < restSpeed {
+		speed := math.Hypot(s.vx[i], s.vy[i])
+		if speed < layout.LiveRestSpeed {
 			s.vx[i] = 0
 			s.vy[i] = 0
+			speed = 0
+		}
+		if speed > maxSpeed {
+			maxSpeed = speed
+		}
+		shift := math.Hypot(dx, dy)
+		if shift > maxShift {
+			maxShift = shift
+		}
+		if shift > layout.LiveSleepShift {
+			moved = true
 		}
 	}
+	if s.dragIdx < 0 && maxSpeed < layout.LiveRestSpeed && maxShift < layout.LiveSleepShift {
+		s.sleeping = true
+	}
+	return moved
 }
 
 // PositionsMap returns id -> xy for caching.
@@ -341,6 +384,7 @@ func (s *Scene) DragStart(id string) bool {
 		return false
 	}
 	s.dragIdx = i
+	s.sleeping = false
 	return true
 }
 
@@ -352,6 +396,7 @@ func (s *Scene) DragTo(screenX, screenY float64) {
 	wx, wy := s.screenToWorld(screenX, screenY)
 	s.nodes[s.dragIdx].X = wx
 	s.nodes[s.dragIdx].Y = wy
+	s.sleeping = false
 }
 
 // DragEnd clears the drag target.

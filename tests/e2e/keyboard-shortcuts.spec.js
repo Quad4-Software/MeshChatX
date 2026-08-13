@@ -66,7 +66,7 @@ test.describe("Keyboard shortcuts (global)", () => {
             const el = ul && ul.closest(".fixed");
             return el ? el.className : "";
         });
-        expect(classAfterCollapse).toContain("w-16");
+        expect(classAfterCollapse).toContain("w-14");
 
         await page.keyboard.press("Control+b");
         const classAfterExpand = await page.evaluate(() => {

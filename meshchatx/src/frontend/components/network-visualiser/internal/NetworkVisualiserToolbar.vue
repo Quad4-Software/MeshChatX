@@ -151,6 +151,46 @@
                     />
                 </div>
 
+                <div v-if="engineMode === 'webgl'" class="flex items-center justify-between gap-2">
+                    <span class="text-sm font-semibold text-gray-700 dark:text-zinc-300">{{
+                        $t("visualiser.view_mode")
+                    }}</span>
+                    <div
+                        class="inline-flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5 dark:border-zinc-700 dark:bg-zinc-800"
+                        role="group"
+                        :aria-label="$t('visualiser.view_mode')"
+                    >
+                        <button
+                            id="visualiser-view-flat"
+                            type="button"
+                            class="rounded-md px-2.5 py-1 text-[11px] font-bold"
+                            :class="
+                                viewMode === 'flat'
+                                    ? 'bg-white text-blue-600 shadow-xs dark:bg-zinc-700 dark:text-blue-300'
+                                    : 'text-gray-500 dark:text-zinc-400'
+                            "
+                            :aria-pressed="viewMode === 'flat' ? 'true' : 'false'"
+                            @click="$emit('update:viewMode', 'flat')"
+                        >
+                            {{ $t("visualiser.view_mode_flat") }}
+                        </button>
+                        <button
+                            id="visualiser-view-planet"
+                            type="button"
+                            class="rounded-md px-2.5 py-1 text-[11px] font-bold"
+                            :class="
+                                viewMode === 'planet'
+                                    ? 'bg-white text-blue-600 shadow-xs dark:bg-zinc-700 dark:text-blue-300'
+                                    : 'text-gray-500 dark:text-zinc-400'
+                            "
+                            :aria-pressed="viewMode === 'planet' ? 'true' : 'false'"
+                            @click="$emit('update:viewMode', 'planet')"
+                        >
+                            {{ $t("visualiser.view_mode_planet") }}
+                        </button>
+                    </div>
+                </div>
+
                 <div class="space-y-2">
                     <div class="flex items-center justify-between gap-2">
                         <label
@@ -303,6 +343,13 @@ export default {
                 return ["checking", "wasm", "fallback", "webgl"].includes(v);
             },
         },
+        viewMode: {
+            type: String,
+            default: "flat",
+            validator(v) {
+                return v === "flat" || v === "planet";
+            },
+        },
         fps: { type: Number, default: 0 },
     },
     emits: [
@@ -312,6 +359,7 @@ export default {
         "update:hopMaxFilter",
         "update:searchQuery",
         "update:preferredRenderer",
+        "update:viewMode",
         "manual-update",
     ],
     data() {
