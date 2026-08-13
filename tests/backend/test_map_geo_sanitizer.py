@@ -129,7 +129,9 @@ def test_sanitize_kmz_skips_unreferenced_svg_keeps_placemark():
     assert result.feature_count == 1
     assert "skipped_kmz_entry" in result.stripped
     with zipfile.ZipFile(io.BytesIO(result.data)) as zf:
-        names = [n.replace("\\", "/").lower() for n in zf.namelist() if not n.endswith("/")]
+        names = [
+            n.replace("\\", "/").lower() for n in zf.namelist() if not n.endswith("/")
+        ]
         assert "doc.kml" in names
         assert "icon.svg" not in names
 
