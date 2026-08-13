@@ -448,7 +448,11 @@ export function layoutToWasmScreen(lx, ly, width, height, cam = null) {
 export function projectPlanetScene(opts) {
     const width = Math.max(1, opts?.width || 1);
     const height = Math.max(1, opts?.height || 1);
-    const orbit = clampOrbit(opts?.yaw ?? DEFAULT_ORBIT_YAW, opts?.pitch ?? DEFAULT_ORBIT_PITCH, opts?.dist ?? DEFAULT_ORBIT_DIST);
+    const orbit = clampOrbit(
+        opts?.yaw ?? DEFAULT_ORBIT_YAW,
+        opts?.pitch ?? DEFAULT_ORBIT_PITCH,
+        opts?.dist ?? DEFAULT_ORBIT_DIST
+    );
     const eye = orbitEye(orbit.yaw, orbit.pitch, orbit.dist);
     const view = lookAtOrigin(eye);
     const proj = perspective(PLANET_FOV_Y, width / height, PLANET_NEAR, PLANET_FAR);
@@ -531,10 +535,7 @@ export function projectPlanetScene(opts) {
         depthScratch.set(nodeScratch.subarray(NODE_STRIDE, NODE_STRIDE + bodyNeed));
         for (let s = 0; s < srcCount; s++) {
             const i = order[s];
-            nodeScratch.set(
-                depthScratch.subarray(i * NODE_STRIDE, (i + 1) * NODE_STRIDE),
-                (s + 1) * NODE_STRIDE
-            );
+            nodeScratch.set(depthScratch.subarray(i * NODE_STRIDE, (i + 1) * NODE_STRIDE), (s + 1) * NODE_STRIDE);
         }
     }
 
@@ -570,13 +571,37 @@ export function projectPlanetScene(opts) {
 
     for (let i = 0; i < grid.length; i++) {
         const ln = grid[i];
-        writeSeg(ln.x1, ln.y1, ln.z1, ln.x2, ln.y2, ln.z2, gridColor[0], gridColor[1], gridColor[2], gridColor[3], true);
+        writeSeg(
+            ln.x1,
+            ln.y1,
+            ln.z1,
+            ln.x2,
+            ln.y2,
+            ln.z2,
+            gridColor[0],
+            gridColor[1],
+            gridColor[2],
+            gridColor[3],
+            true
+        );
     }
     for (let i = 0; i < srcEdgeCount; i++) {
         const o = i * EDGE_STRIDE;
         const a = layoutToSphere(srcEdges[o], srcEdges[o + 1], layoutScale);
         const b = layoutToSphere(srcEdges[o + 2], srcEdges[o + 3], layoutScale);
-        writeSeg(a.x, a.y, a.z, b.x, b.y, b.z, srcEdges[o + 4], srcEdges[o + 5], srcEdges[o + 6], srcEdges[o + 7] || 0.45, false);
+        writeSeg(
+            a.x,
+            a.y,
+            a.z,
+            b.x,
+            b.y,
+            b.z,
+            srcEdges[o + 4],
+            srcEdges[o + 5],
+            srcEdges[o + 6],
+            srcEdges[o + 7] || 0.45,
+            false
+        );
     }
 
     return {
