@@ -95,6 +95,8 @@ jobs:
                   artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
 
             - name: Setup Task
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
               run: sh scripts/ci/setup-task.sh
 
             - name: Build release-assets

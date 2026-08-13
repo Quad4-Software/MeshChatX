@@ -120,6 +120,8 @@ jobs:
                   go-version: ${{ env.GO_VERSION }}
 
             - name: Setup Task
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
               run: sh scripts/ci/setup-task.sh 3.49.1
 
             - name: Run visualiser-wasm tests

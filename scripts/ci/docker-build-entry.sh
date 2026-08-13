@@ -26,14 +26,7 @@ if ! command -v node >/dev/null 2>&1; then
     apt-get install -y nodejs
 fi
 
-TASK_VER="${TASK_VERSION:-3.46.4}"
-_TASK_ARCH="$(uname -m)"
-case "$_TASK_ARCH" in
-    x86_64) _TASK_ARCH="amd64" ;;
-    aarch64) _TASK_ARCH="arm64" ;;
-esac
-curl -fsSL "https://github.com/go-task/task/releases/download/v${TASK_VER}/task_linux_${_TASK_ARCH}.tar.gz" \
-    | tar xz -C /usr/local/bin task
+sh scripts/ci/setup-task.sh "${TASK_VERSION:-3.49.1}"
 
 corepack enable
 corepack prepare "pnpm@${PNPM_VERSION}" --activate
