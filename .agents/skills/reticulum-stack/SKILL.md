@@ -42,13 +42,13 @@ Address peers as destination hash + aspect. Do not store `host:port` as the mesh
 
 Aspects MeshChatX already uses:
 
-| Aspect | Meaning |
-| --- | --- |
-| `lxmf.delivery` | LXMF mail |
-| `lxmf.propagation` | Propagation node |
-| `lxst.telephony` | LXST calls |
+| Aspect              | Meaning              |
+| ------------------- | -------------------- |
+| `lxmf.delivery`     | LXMF mail            |
+| `lxmf.propagation`  | Propagation node     |
+| `lxst.telephony`    | LXST calls           |
 | `nomadnetwork.node` | NomadNet page server |
-| `rrc.hub` | Relay Chat hub |
+| `rrc.hub`           | Relay Chat hub       |
 
 Custom apps get their own aspect (example from design gates: `mcx-bugs-v1`). Do not overload `lxmf.delivery` for non-mail traffic. RNS Link API aspects are dot-separated app name plus sub-aspects (example `microrn.mgmt`).
 

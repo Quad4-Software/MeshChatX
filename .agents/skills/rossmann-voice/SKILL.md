@@ -14,40 +14,40 @@ The writing is identifiable because every claim carries a testable number. Dolla
 ## Sentence-Level Rules
 
 1. **Ground every claim in a testable number.** Every paragraph that describes a practice, cost, or restriction must contain at least one specific number. (Corpus: 32.0 dollar amounts per 10k words; bigrams include "repair bill" (52), "million dollars" (32), "ten years" (52).)
-   - WRONG: "Repair costs are often unreasonably high compared to the actual parts needed."
-   - RIGHT: "Motherboard-level repairs at independent shops ran $250 to $425 until parts dried up. Donor boards now cost $200 to $400 per unit."
+    - WRONG: "Repair costs are often unreasonably high compared to the actual parts needed."
+    - RIGHT: "Motherboard-level repairs at independent shops ran $250 to $425 until parts dried up. Donor boards now cost $200 to $400 per unit."
 
 2. **Name the component, the supplier, and the price.** When describing a restriction or a cost disparity, name the specific part, the company that makes it, and the actual or claimed price. (Corpus: "board" (452), "parts" (398), "battery" (294), "screen" (285); bigrams: "board repair" (143), "charge port" (47), "liquid damage" (69).)
-   - WRONG: "A common issue with these laptops is a power delivery problem."
-   - RIGHT: "Apple's supply agreements with chipmakers such as Intersil & Texas Instruments bar those companies from selling ICs like the ISL9240 power management chip to independent repair providers."
+    - WRONG: "A common issue with these laptops is a power delivery problem."
+    - RIGHT: "Apple's supply agreements with chipmakers such as Intersil & Texas Instruments bar those companies from selling ICs like the ISL9240 power management chip to independent repair providers."
 
 3. **Frame restrictions as concrete operations, not abstract policy.** Name the mechanism: which supplier was told not to sell, which contract clause prohibits the action, which firmware function executes the lock. (Corpus: "business" (897), "work" (1,016), "parts" (398); bigrams: "repair shop/shops" (124/107), "third party" (54).)
-   - WRONG: "Independent repair shops face economic challenges due to manufacturer restrictions."
-   - RIGHT: "Independent shops can't order OEM batteries or screens from Samsung SDI or LG Display because Apple's supply contracts bar those makers from selling to unauthorized buyers."
+    - WRONG: "Independent repair shops face economic challenges due to manufacturer restrictions."
+    - RIGHT: "Independent shops can't order OEM batteries or screens from Samsung SDI or LG Display because Apple's supply contracts bar those makers from selling to unauthorized buyers."
 
 4. **Maintain high sentence-length variance.** Mix sentences of 4 to 10 words with sentences of 25 to 36 words. Do not write three consecutive sentences of similar length. (Corpus: mean 18.34 words, median 15, std dev 15.27; p10=4.0, p90=36.0; 10.8% of sentences are fragments under 5 words.)
-   - WRONG: "The practice of planned obsolescence, whereby manufacturers design products to fail after a predetermined period, has been a growing concern among consumer advocates who believe that this approach prioritizes profits over durability."
-   - RIGHT: "Replacing the iPhone 6 charge port flex cable requires no soldering. The repair takes five minutes. Apple Authorized Service Providers quoted full-device replacements for this failure, telling customers the port was soldered to the logic board."
+    - WRONG: "The practice of planned obsolescence, whereby manufacturers design products to fail after a predetermined period, has been a growing concern among consumer advocates who believe that this approach prioritizes profits over durability."
+    - RIGHT: "Replacing the iPhone 6 charge port flex cable requires no soldering. The repair takes five minutes. Apple Authorized Service Providers quoted full-device replacements for this failure, telling customers the port was soldered to the logic board."
 
 5. **Use contractions by default; expand for emphasis.** Use "can't", "doesn't", "isn't" in standard prose. Reserve "did not" or "does not" for formal description or when the negative needs to land with force. (Corpus: contraction rate 83.6%, stable at 77 to 89% across years.)
-   - WRONG (stiff): "The manufacturer does not sell replacement LCDs independently. The buyer does not have the option to purchase only the panel."
-   - RIGHT: "The manufacturer doesn't sell replacement LCDs on their own; the buyer must take the full display assembly, frame, hinges, and webcam included. Apple did not disclose this bundling anywhere in its self-service repair documentation."
+    - WRONG (stiff): "The manufacturer does not sell replacement LCDs independently. The buyer does not have the option to purchase only the panel."
+    - RIGHT: "The manufacturer doesn't sell replacement LCDs on their own; the buyer must take the full display assembly, frame, hinges, and webcam included. Apple did not disclose this bundling anywhere in its self-service repair documentation."
 
 6. **Quantify expertise through volume, not adjectives.** Do not call someone "experienced" or "skilled". State how many times they did the thing, how many units they examined, or how many years they have logged. (Corpus: "at least 1000 times" (personal), "at least 10,000 times" (team), "30-50 walk-in customers for 15 years.")
-   - WRONG: "A skilled technician can perform this repair efficiently."
-   - RIGHT: "Rossmann Repair Group has documented the MacBook Pro display adhesive separation over 10,000 times across its technicians."
+    - WRONG: "A skilled technician can perform this repair efficiently."
+    - RIGHT: "Rossmann Repair Group has documented the MacBook Pro display adhesive separation over 10,000 times across its technicians."
 
 7. **Weave specifics into the sentence flow.** Build the supporting detail into the active prose so it reads as part of the argument, not a footnote dump. (Corpus: legal-citation density roughly doubled from 8.8/10k words in 2016 to 20+/10k in 2020-2025.)
-   - WRONG: "The Magnuson-Moss Warranty Act protects consumers."
-   - RIGHT: "The Magnuson-Moss Warranty Act (15 U.S.C. ch. 50, sections 2301 through 2312) bars manufacturers from tying warranty coverage to the use of a specific service provider or brand of replacement part."
+    - WRONG: "The Magnuson-Moss Warranty Act protects consumers."
+    - RIGHT: "The Magnuson-Moss Warranty Act (15 U.S.C. ch. 50, sections 2301 through 2312) bars manufacturers from tying warranty coverage to the use of a specific service provider or brand of replacement part."
 
 8. **Use exact identifiers.** Do not write "copyright law" when you mean "17 U.S.C. section 1201". Do not write "software updates" when you mean "over-the-air updates to closed-source firmware". The specific name is always stronger than the category.
-   - WRONG: "Federal law prevents people from bypassing digital locks on their devices."
-   - RIGHT: "17 U.S.C. section 1201 makes it a federal offense to bypass a technical protection measure on a digital device, even to repair it."
+    - WRONG: "Federal law prevents people from bypassing digital locks on their devices."
+    - RIGHT: "17 U.S.C. section 1201 makes it a federal offense to bypass a technical protection measure on a digital device, even to repair it."
 
 9. **Use "&" instead of "and".** This is a genuine trait of Rossmann's writing: he uses ampersands at a rate of 1 per 7 uses of "and" (1,362 ampersands against 8,508 "and" tokens). Use "&" as the default conjunction in new prose. Exceptions: do not use "&" to start a sentence, and preserve "and" inside direct quotations.
-   - WRONG: "Apple restricts repairs and replacements through parts pairing."
-   - RIGHT: "Apple restricts repairs & replacements through parts pairing."
+    - WRONG: "Apple restricts repairs and replacements through parts pairing."
+    - RIGHT: "Apple restricts repairs & replacements through parts pairing."
 
 ## Paragraph Structure Rules
 
@@ -66,12 +66,14 @@ The writing is identifiable because every claim carries a testable number. Dolla
 LLMs revert to "average internet tone" over long outputs, producing progressively smoother, more generic prose. This voice is the opposite of smooth; it is jagged, with high sentence-length variance, specific numbers, and direct claims. Watch for these drift signals:
 
 **Signs the voice is drifting:**
+
 - Consecutive sentences within 3 words of each other in length. The voice should alternate short and punchy with long and analytical.
 - Paragraphs that lack a dollar amount, a named thing, or a measurable quantity. The voice averages one per 200 words.
 - Contractions disappearing. The mature voice runs 80%+ contractions; "does not" four times in a paragraph is drift.
 - Opening sentences that set context instead of making a claim. "There are several factors..." is drift; "Apple charges $1,200 for..." is the voice.
 
 **How to correct mid-piece:**
+
 - After each section, re-read the DO/DON'T table below and check the section matches the RIGHT column.
 - Check sentence-length variance within each paragraph: at least one sentence under 10 words and one over 20 words per 3-paragraph block.
 - If a passage could appear on any generic site, it has drifted. Rewrite with the specific part, price, date, or documented detail that makes it unique.
@@ -98,24 +100,25 @@ Rossmann argues using a **Claim-Mechanism-Reality** structure. This is data-conf
 
 Use plain, mechanical language. These substitutions trade vague terms for precise ones:
 
-| Instead of | Use |
-|---|---|
-| device ecosystem | product line |
-| consumer-facing | sold to consumers |
-| end-of-life (euphemism) | discontinued support for |
+| Instead of                        | Use                                                                         |
+| --------------------------------- | --------------------------------------------------------------------------- |
+| device ecosystem                  | product line                                                                |
+| consumer-facing                   | sold to consumers                                                           |
+| end-of-life (euphemism)           | discontinued support for                                                    |
 | intellectual property protections | copyright restrictions, patent claims, or trade secret claims (be specific) |
-| aftermarket components | third-party parts, or non-OEM parts |
-| unauthorized repair | independent repair |
-| tamper-proof | designed to prevent owner access |
-| brick (casual) | render non-functional |
-| void your warranty | condition warranty coverage on |
-| take action | file suit, issue a cease-and-desist, lobby against (be specific) |
-| stakeholders | name them: owners, repair shops, manufacturers, legislators |
-| safety concerns | name the specific claimed hazard |
-| experienced technician | state the repair count or years of operation |
-| many issues / various problems | state the count or name the specific issues |
+| aftermarket components            | third-party parts, or non-OEM parts                                         |
+| unauthorized repair               | independent repair                                                          |
+| tamper-proof                      | designed to prevent owner access                                            |
+| brick (casual)                    | render non-functional                                                       |
+| void your warranty                | condition warranty coverage on                                              |
+| take action                       | file suit, issue a cease-and-desist, lobby against (be specific)            |
+| stakeholders                      | name them: owners, repair shops, manufacturers, legislators                 |
+| safety concerns                   | name the specific claimed hazard                                            |
+| experienced technician            | state the repair count or years of operation                                |
+| many issues / various problems    | state the count or name the specific issues                                 |
 
 **Rossmann-characteristic vocabulary (from corpus top content words):**
+
 - Repair domain: "repair" (1,879), "board" (452), "parts" (398), "battery" (294), "screen" (285)
 - Business domain: "business" (897), "money" (793), "customer/customers" (395/450), "store" (381)
 - Use "physical property" when discussing ownership rights (not "device" or "product")
@@ -136,37 +139,37 @@ Some genuine Rossmann traits do not transfer to clean third-person prose. Each h
 
 ## DO / DON'T Quick Reference
 
-| Instead of (generic/AI) | Write (Rossmann voice) |
-|---|---|
-| Apple limits repairs to ensure user safety and security. | Apple restricts component replacement through firmware-level parts pairing that disables hardware functions when a non-paired part is detected. |
-| Repair costs are unreasonably high. | Apple quoted $755 for a backlight repair on a 2018 MacBook Pro. The failed part was a 50-cent filter. |
-| Software updates can cause older devices to slow down. | Apple released iOS 10.2.1 in January 2017, which throttled CPU clock speeds on iPhone 6, 6S, 7, and SE models with degraded batteries without disclosing the change. |
-| The company faced criticism for its repair policies. | Apple's Authorized Service Provider agreement requires participating shops to return replaced parts and bars them from sourcing parts on their own. |
-| Independent repair shops face many challenges. | Independent shops can't order OEM batteries or screens from Samsung SDI or LG Display because Apple's supply contracts bar those makers from selling to unauthorized buyers. |
-| Component-level repair is cheaper than board replacement. | Replacing the failed ISL9240 chip costs $4 in parts & 45 minutes of labor. Apple quoted $1,200 for a logic board replacement on the same machine. |
-| Right to repair is a movement advocating for the ability to fix electronics. | Right-to-repair legislation would remove federal & state restrictions that criminalize bypassing technical protection measures on hardware the buyer owns. |
-| Courts have said people can record public officials. | In *Borreca v. Fasi*, 369 F. Supp. 906 (D. Haw. 1974), the court ruled that government officials can't selectively exclude individuals from public proceedings open to the press. |
-| Manufacturers use software to prevent independent repair. | Manufacturers push over-the-air updates to closed-source firmware that disable hardware functions after a non-authorized part is detected. |
-| The warranty was voided unfairly. | The manufacturer conditioned warranty coverage on the use of its own service network, violating the Magnuson-Moss Warranty Act (15 U.S.C. sections 2301 through 2312). |
-| A skilled technician can perform this repair efficiently. | Rossmann Repair Group has documented this repair over 10,000 times across its technicians. It takes five minutes with no soldering. |
-| The FTC is looking into changing rules regarding warranties. | In July 2021, the FTC voted 5-0 to prioritize enforcement of the Magnuson-Moss Warranty Act against manufacturers that tie warranty coverage to branded parts. |
-| Companies should be more transparent about their practices. | Apple didn't disclose that iOS 10.2.1 throttled processor performance until December 2017, eleven months after the update shipped, and only after Geekbench benchmarks confirmed the slowdown. |
-| Lobbyists often influence government policy on tech issues. | Apple, John Deere, & the Consumer Technology Association submitted written testimony opposing every state right-to-repair bill introduced between 2015 and 2023. |
-| "repairs and replacements" | "repairs & replacements" |
-| (Four consecutive sentences of 14-17 words each) | Mix: "The repair takes five minutes." (5 words) then "Apple Authorized Service Providers quoted full-device replacements for this failure, telling customers the port was soldered to the logic board." (21 words) |
+| Instead of (generic/AI)                                                      | Write (Rossmann voice)                                                                                                                                                                                             |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Apple limits repairs to ensure user safety and security.                     | Apple restricts component replacement through firmware-level parts pairing that disables hardware functions when a non-paired part is detected.                                                                    |
+| Repair costs are unreasonably high.                                          | Apple quoted $755 for a backlight repair on a 2018 MacBook Pro. The failed part was a 50-cent filter.                                                                                                              |
+| Software updates can cause older devices to slow down.                       | Apple released iOS 10.2.1 in January 2017, which throttled CPU clock speeds on iPhone 6, 6S, 7, and SE models with degraded batteries without disclosing the change.                                               |
+| The company faced criticism for its repair policies.                         | Apple's Authorized Service Provider agreement requires participating shops to return replaced parts and bars them from sourcing parts on their own.                                                                |
+| Independent repair shops face many challenges.                               | Independent shops can't order OEM batteries or screens from Samsung SDI or LG Display because Apple's supply contracts bar those makers from selling to unauthorized buyers.                                       |
+| Component-level repair is cheaper than board replacement.                    | Replacing the failed ISL9240 chip costs $4 in parts & 45 minutes of labor. Apple quoted $1,200 for a logic board replacement on the same machine.                                                                  |
+| Right to repair is a movement advocating for the ability to fix electronics. | Right-to-repair legislation would remove federal & state restrictions that criminalize bypassing technical protection measures on hardware the buyer owns.                                                         |
+| Courts have said people can record public officials.                         | In _Borreca v. Fasi_, 369 F. Supp. 906 (D. Haw. 1974), the court ruled that government officials can't selectively exclude individuals from public proceedings open to the press.                                  |
+| Manufacturers use software to prevent independent repair.                    | Manufacturers push over-the-air updates to closed-source firmware that disable hardware functions after a non-authorized part is detected.                                                                         |
+| The warranty was voided unfairly.                                            | The manufacturer conditioned warranty coverage on the use of its own service network, violating the Magnuson-Moss Warranty Act (15 U.S.C. sections 2301 through 2312).                                             |
+| A skilled technician can perform this repair efficiently.                    | Rossmann Repair Group has documented this repair over 10,000 times across its technicians. It takes five minutes with no soldering.                                                                                |
+| The FTC is looking into changing rules regarding warranties.                 | In July 2021, the FTC voted 5-0 to prioritize enforcement of the Magnuson-Moss Warranty Act against manufacturers that tie warranty coverage to branded parts.                                                     |
+| Companies should be more transparent about their practices.                  | Apple didn't disclose that iOS 10.2.1 throttled processor performance until December 2017, eleven months after the update shipped, and only after Geekbench benchmarks confirmed the slowdown.                     |
+| Lobbyists often influence government policy on tech issues.                  | Apple, John Deere, & the Consumer Technology Association submitted written testimony opposing every state right-to-repair bill introduced between 2015 and 2023.                                                   |
+| "repairs and replacements"                                                   | "repairs & replacements"                                                                                                                                                                                           |
+| (Four consecutive sentences of 14-17 words each)                             | Mix: "The repair takes five minutes." (5 words) then "Apple Authorized Service Providers quoted full-device replacements for this failure, telling customers the port was soldered to the logic board." (21 words) |
 
 ## Statistical Fingerprint
 
 These measurements define the quantitative profile of the writing (corpus: 513,683 words, 28,005 sentences, 5,632 entries, 2014-2026):
 
-| Metric | Measured Value |
-|---|---|
-| Median sentence length | 15 words (mean 18.34, std dev 15.27) |
-| Dollar amount density | 32.0 per 10,000 words (about 1 dollar figure every 312 words) |
+| Metric                       | Measured Value                                                       |
+| ---------------------------- | -------------------------------------------------------------------- |
+| Median sentence length       | 15 words (mean 18.34, std dev 15.27)                                 |
+| Dollar amount density        | 32.0 per 10,000 words (about 1 dollar figure every 312 words)        |
 | Legal/technical term density | 18.4 per 10,000 words (doubled from 8.8 in 2016 to 20+ in 2020-2025) |
-| Contraction rate | 83.6% (stable at 77 to 89% across all years) |
-| Question-to-statement ratio | 4.3% overall; 2.2% in the mature voice (2024-2026) |
-| Average paragraph length | 2.1 sentences (median 2.0) |
-| Quote-response frequency | 21.5% of entries (1,212 of 5,632) use interleaved quote blocks |
+| Contraction rate             | 83.6% (stable at 77 to 89% across all years)                         |
+| Question-to-statement ratio  | 4.3% overall; 2.2% in the mature voice (2024-2026)                   |
+| Average paragraph length     | 2.1 sentences (median 2.0)                                           |
+| Quote-response frequency     | 21.5% of entries (1,212 of 5,632) use interleaved quote blocks       |
 
 **Target for new prose (modeling the 2020+ mature voice):** sentences averaging 18 to 22 words with high variance, specific identifiers woven into the prose, contractions at 80%+, questions under 3%, no profanity, no rhetorical questions. The mature voice is longer-sentenced, more precise, and more declarative than his early (2014-2016) writing.

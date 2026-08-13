@@ -67,24 +67,24 @@ Critical lifecycle facts:
 
 ## Repository layout
 
-| Path                              | Role                                        |
-| --------------------------------- | ------------------------------------------- |
-| `meshchatx/meshchat.py`           | Orchestration, CLI, lifecycle entry         |
-| `meshchatx/src/backend/http/`     | HTTP middleware, route modules, WS dispatch |
-| `meshchatx/src/backend/`          | Managers, DB, security, Landlock, plugins   |
-| `.agents/module-ownership.md`     | Domain to manager/HTTP/WS/tests map         |
-| `meshchatx/src/frontend/`         | Vue 3 UI, locales, registries, helpers      |
-| `meshchatx/public/`               | Built frontend assets consumed at runtime   |
-| `electron/`                       | Desktop shell around local HTTPS backend    |
-| `android/`                        | WebView + Chaquopy Python bridge            |
-| `tests/backend/`                  | pytest                                      |
-| `tests/frontend/`                 | vitest                                      |
-| `tests/e2e/`                      | Playwright                                  |
-| `docs/en/`                        | In-app / shipped English docs               |
-| `vendor/`                         | Vendored deps (LXMFy, RNS FileSync)         |
-| `Taskfile.yml`                    | Preferred command entrypoints               |
-| `.agents/`                        | Agent guidance (this tree)                  |
-| `AGENTS.md`                       | Short pointer to `.agents/`                 |
+| Path                          | Role                                        |
+| ----------------------------- | ------------------------------------------- |
+| `meshchatx/meshchat.py`       | Orchestration, CLI, lifecycle entry         |
+| `meshchatx/src/backend/http/` | HTTP middleware, route modules, WS dispatch |
+| `meshchatx/src/backend/`      | Managers, DB, security, Landlock, plugins   |
+| `.agents/module-ownership.md` | Domain to manager/HTTP/WS/tests map         |
+| `meshchatx/src/frontend/`     | Vue 3 UI, locales, registries, helpers      |
+| `meshchatx/public/`           | Built frontend assets consumed at runtime   |
+| `electron/`                   | Desktop shell around local HTTPS backend    |
+| `android/`                    | WebView + Chaquopy Python bridge            |
+| `tests/backend/`              | pytest                                      |
+| `tests/frontend/`             | vitest                                      |
+| `tests/e2e/`                  | Playwright                                  |
+| `docs/en/`                    | In-app / shipped English docs               |
+| `vendor/`                     | Vendored deps (LXMFy, RNS FileSync)         |
+| `Taskfile.yml`                | Preferred command entrypoints               |
+| `.agents/`                    | Agent guidance (this tree)                  |
+| `AGENTS.md`                   | Short pointer to `.agents/`                 |
 
 Business rules belong in backend managers under `meshchatx/src/backend/`.
 Keep `meshchat.py` focused on transport and lifecycle when possible.
