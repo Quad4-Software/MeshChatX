@@ -13,6 +13,7 @@ import hashlib
 import os
 import subprocess
 import sys
+import threading
 from pathlib import Path
 
 MANIFEST_HEADER = "# meshchatx tree manifest v1"
@@ -72,6 +73,15 @@ def _read_batch_blob(stdout, header: bytes) -> bytes | None:
     return data
 
 
+def _feed_cat_file_stdin(stdin, oids: list[str]) -> None:
+    try:
+        for oid in oids:
+            stdin.write(f"{oid}\n".encode("ascii"))
+        stdin.close()
+    except BrokenPipeError:
+        pass
+
+
 def generate_manifest(root: Path) -> str:
     env = os.environ.copy()
     env["LC_ALL"] = "C"
@@ -103,23 +113,33 @@ def generate_manifest(root: Path) -> str:
     assert proc.stdin is not None
     assert proc.stdout is not None
 
-    stdin_buf = "".join(f"{oid}\n" for _path, _mode, oid in rows).encode("ascii")
-    proc.stdin.write(stdin_buf)
-    proc.stdin.close()
-
-    for path, _mode, _oid in rows:
-        header = proc.stdout.readline()
-        if not header:
-            raise RuntimeError("git cat-file --batch closed stdout early")
-        blob = _read_batch_blob(proc.stdout, header)
-        if blob is None:
-            continue
-        digest = hashlib.sha256(blob).hexdigest()
-        lines.append(f"{digest}  {path}")
-
-    proc.wait()
-    if proc.returncode not in (0, None):
-        raise RuntimeError(f"git cat-file --batch exited {proc.returncode}")
+    # Writer thread feeds oids while this thread reads blobs. Writing the full
+    # oid list first deadlocks once cat-file fills the stdout pipe (about 64KiB).
+    writer = threading.Thread(
+        target=_feed_cat_file_stdin,
+        args=(proc.stdin, [oid for _path, _mode, oid in rows]),
+        daemon=True,
+    )
+    writer.start()
+    try:
+        for path, _mode, _oid in rows:
+            header = proc.stdout.readline()
+            if not header:
+                raise RuntimeError("git cat-file --batch closed stdout early")
+            blob = _read_batch_blob(proc.stdout, header)
+            if blob is None:
+                continue
+            digest = hashlib.sha256(blob).hexdigest()
+            lines.append(f"{digest}  {path}")
+        writer.join(timeout=30)
+        proc.wait()
+        if proc.returncode not in (0, None):
+            raise RuntimeError(f"git cat-file --batch exited {proc.returncode}")
+    except Exception:
+        proc.kill()
+        writer.join(timeout=5)
+        proc.wait()
+        raise
 
     return "\n".join(lines) + "\n"
 
