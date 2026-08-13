@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import os
 
 import pytest
 
@@ -363,6 +364,26 @@ async def test_patch_and_delete(manager):
     assert patched["refresh_interval_seconds"] == 120
     assert manager.delete_overlay(identity, oid) is True
     assert manager.get_overlay(identity, oid) is None
+
+
+def test_cache_relpath_escape_is_not_read_or_deleted(manager, tmp_path, db):
+    identity = "id_escape"
+    bait = tmp_path / "secret.bin"
+    bait.write_bytes(b"keep-me")
+    oid = db.map_overlays.insert(
+        identity,
+        kind="nomadnet_file",
+        destination_hash=HASH,
+        path_or_repo_path="/file/x.geojson",
+        ref="",
+        name="x",
+    )
+    rel = os.path.relpath(str(bait), start=manager.overlay_root())
+    db.map_overlays.update_fields(oid, cache_relpath=rel, format="geojson")
+    assert ".." in rel.replace("\\", "/")
+    assert manager.read_cache_bytes(identity, oid) is None
+    assert manager.delete_overlay(identity, oid) is True
+    assert bait.read_bytes() == b"keep-me"
 
 
 @pytest.mark.asyncio

@@ -246,7 +246,15 @@ def register_interfaces_routes(routes, app):
                         )
 
                     data = await response.read()
-                    filename = url.split("/")[-1]
+                    filename = os.path.basename(
+                        (url.split("/")[-1] or "").split("?")[0],
+                    )
+                    filename = (
+                        filename.replace('"', "_")
+                        .replace("\r", "")
+                        .replace("\n", "")
+                        .replace("\x00", "")
+                    ) or "firmware.zip"
 
                     return web.Response(
                         body=data,
