@@ -35,6 +35,19 @@
             </div>
 
             <div class="space-y-2">
+                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {{ $t("app.app_sidebar_layout") }}
+                </div>
+                <select :value="sidebarLayoutValue" class="input-field" @change="onAppSidebarLayoutSelect">
+                    <option value="grouped">{{ $t("app.app_sidebar_layout_grouped") }}</option>
+                    <option value="classic">{{ $t("app.app_sidebar_layout_classic") }}</option>
+                </select>
+                <p class="text-xs text-gray-600 dark:text-gray-400">
+                    {{ $t("app.app_sidebar_layout_description") }}
+                </p>
+            </div>
+
+            <div class="space-y-2">
                 <div class="flex items-center justify-between">
                     <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Message Font Size</div>
                     <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
@@ -384,6 +397,7 @@ export default {
         "update-field",
         "theme-change",
         "messages-sidebar-position-change",
+        "app-sidebar-layout-change",
         "message-font-size-change",
         "message-icon-size-change",
         "ui-transparency-change",
@@ -398,6 +412,12 @@ export default {
         "message-timestamp-grouping-change",
         "bubble-color-change",
     ],
+    computed: {
+        sidebarLayoutValue() {
+            const layout = this.config?.app_sidebar_layout;
+            return layout === "classic" ? "classic" : "grouped";
+        },
+    },
     methods: {
         emitField(key, value, eventName, eventArg) {
             this.$emit("update-field", { key, value });
@@ -414,6 +434,10 @@ export default {
         },
         onMessagesSidebarPositionSelect(event) {
             this.emitField("messages_sidebar_position", event.target.value, "messages-sidebar-position-change");
+        },
+        onAppSidebarLayoutSelect(event) {
+            const value = event.target.value === "classic" ? "classic" : "grouped";
+            this.emitField("app_sidebar_layout", value, "app-sidebar-layout-change");
         },
         onMessageFontSizeInput(event) {
             this.emitField("message_font_size", Number(event.target.value), "message-font-size-change");

@@ -380,17 +380,7 @@
 
                 <!-- conversations -->
                 <div class="flex h-full overflow-y-auto" @scroll="onConversationsScroll">
-                    <div v-if="isLoading" class="w-full divide-y divide-gray-100 dark:divide-zinc-800">
-                        <div v-for="i in 6" :key="i" class="p-3 animate-pulse">
-                            <div class="flex gap-3">
-                                <div class="rounded-sm bg-gray-200 dark:bg-zinc-800" :style="messageIconStyle"></div>
-                                <div class="flex-1 space-y-2 py-1">
-                                    <div class="h-2 bg-gray-200 dark:bg-zinc-800 rounded-sm w-3/4"></div>
-                                    <div class="h-2 bg-gray-200 dark:bg-zinc-800 rounded-sm w-1/2"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <LoadingState v-if="isLoading" class="w-full" :message="$t('messages.loading_conversations')" />
                     <div v-else-if="displayedConversations.length > 0" class="w-full">
                         <div
                             v-for="conversation of displayedConversations"
@@ -488,6 +478,14 @@
                                         {{ formatTimeAgo(conversation.updated_at) }}
                                     </div>
                                 </div>
+                                <button
+                                    type="button"
+                                    class="mt-0.5 block w-full text-[10px] font-mono text-gray-500 dark:text-zinc-500 truncate hover:text-blue-600 dark:hover:text-blue-400 text-left"
+                                    :title="conversation.destination_hash"
+                                    @click.stop="copyConversationHash(conversation.destination_hash)"
+                                >
+                                    {{ formatDestinationHash(conversation.destination_hash) }}
+                                </button>
                                 <div class="text-gray-600 dark:text-gray-400 text-xs mt-0.5 truncate">
                                     {{
                                         stripMarkdown(
@@ -621,34 +619,28 @@
                             <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-gray-400" />
                         </div>
                     </div>
-                    <div v-else class="mx-auto my-auto text-center leading-5">
-                        <div v-if="isLoading" class="flex flex-col text-gray-900 dark:text-gray-100">
-                            <div class="mx-auto mb-1 text-gray-500">
-                                <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin" />
-                            </div>
-                            <div class="font-semibold">{{ $t("messages.loading_conversations") }}</div>
-                        </div>
+                    <div v-else class="mx-auto my-auto text-center leading-5 px-4">
+                        <LoadingState v-if="isLoading" :message="$t('messages.loading_conversations')" />
 
-                        <!-- no conversations at all -->
-                        <div
+                        <EmptyState
                             v-else-if="conversations.length === 0 && !isFilterActive"
-                            class="flex flex-col text-gray-900 dark:text-gray-100"
+                            icon="tray-remove"
+                            :title="$t('messages.no_conversations')"
+                            :description="$t('messages.no_conversations_hint')"
                         >
-                            <div class="mx-auto mb-1 text-gray-500">
-                                <MaterialDesignIcon icon-name="tray-remove" class="size-6" />
-                            </div>
-                            <div class="font-semibold">No Conversations</div>
-                            <div>Discover peers on the Announces tab</div>
-                        </div>
+                            <template #action>
+                                <RouterLink :to="{ name: 'interfaces' }" class="primary-chip text-sm">
+                                    {{ $t("messages.add_interface_cta") }}
+                                </RouterLink>
+                            </template>
+                        </EmptyState>
 
-                        <!-- is searching or filtering, but no results -->
-                        <div v-else-if="isFilterActive" class="flex flex-col text-gray-900 dark:text-gray-100">
-                            <div class="mx-auto mb-1 text-gray-500">
-                                <MaterialDesignIcon icon-name="magnify-close" class="size-6" />
-                            </div>
-                            <div class="font-semibold">{{ $t("messages.no_search_results") }}</div>
-                            <div>{{ $t("messages.no_search_results_conversations") }}</div>
-                        </div>
+                        <EmptyState
+                            v-else-if="isFilterActive"
+                            icon="magnify-close"
+                            :title="$t('messages.no_search_results')"
+                            :description="$t('messages.no_search_results_conversations')"
+                        />
                     </div>
                 </div>
 
@@ -825,6 +817,8 @@
 <script>
 import Utils from "../../js/Utils";
 import DialogUtils from "../../js/DialogUtils";
+import EmptyState from "../EmptyState.vue";
+import LoadingState from "../LoadingState.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
@@ -840,6 +834,8 @@ import { importMessagesFromFile } from "../../js/messageImport";
 export default {
     name: "MessagesSidebar",
     components: {
+        EmptyState,
+        LoadingState,
         MaterialDesignIcon,
         LxmfUserIcon,
         ContextMenuDivider,
@@ -1477,6 +1473,20 @@ export default {
                 return `${base} bg-blue-600 text-white dark:bg-blue-500`;
             }
             return `${base} bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-zinc-200`;
+        },
+        formatDestinationHash(hash) {
+            return Utils.formatDestinationHash(hash);
+        },
+        async copyConversationHash(hash) {
+            if (!hash) {
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(hash);
+                ToastUtils.success(this.$t("common.copied"));
+            } catch {
+                ToastUtils.error(this.$t("common.failed_to_copy"));
+            }
         },
     },
 };

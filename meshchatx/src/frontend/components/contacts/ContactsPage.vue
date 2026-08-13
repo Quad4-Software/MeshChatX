@@ -62,26 +62,13 @@
 
                 <div class="min-w-0">
                     <template v-if="isLoading && contacts.length === 0">
-                        <div
-                            v-for="i in 8"
-                            :key="'skeleton-' + i"
-                            class="flex items-center gap-3 border-b border-gray-100 px-1 py-3 dark:border-zinc-800"
-                        >
-                            <div
-                                class="size-10 sm:size-12 rounded-full bg-gray-200 dark:bg-zinc-700 animate-pulse shrink-0"
-                            />
-                            <div class="flex-1 min-w-0 space-y-2">
-                                <div class="h-4 w-32 bg-gray-200 dark:bg-zinc-700 rounded-sm animate-pulse" />
-                                <div class="h-3 w-48 bg-gray-100 dark:bg-zinc-800 rounded-sm animate-pulse" />
-                            </div>
-                        </div>
+                        <LoadingState :message="$t('contacts.loading')" />
                     </template>
-                    <div
+                    <EmptyState
                         v-else-if="!isLoading && contacts.length === 0"
-                        class="py-10 text-center text-gray-500 dark:text-zinc-400"
-                    >
-                        {{ $t("contacts.no_contacts") }}
-                    </div>
+                        icon="account-multiple-outline"
+                        :title="$t('contacts.no_contacts')"
+                    />
                     <div v-else class="divide-y divide-gray-100 dark:divide-zinc-800">
                         <div
                             v-for="contact in mergedContacts"
@@ -107,14 +94,22 @@
                                     {{ contact.name }}
                                 </div>
                                 <div class="flex flex-col gap-0.5">
-                                    <div v-if="contact.remote_destination_hash" class="flex items-center gap-1.5">
+                                    <div
+                                        v-if="contact.remote_destination_hash"
+                                        class="flex items-center gap-1.5 min-w-0"
+                                    >
                                         <MaterialDesignIcon
                                             icon-name="message-text-outline"
                                             class="size-4 text-blue-500 dark:text-blue-400 shrink-0"
                                         />
-                                        <span class="text-xs font-mono text-gray-500 dark:text-zinc-400 break-all">{{
-                                            contact.remote_destination_hash
-                                        }}</span>
+                                        <button
+                                            type="button"
+                                            class="text-xs font-mono text-gray-500 dark:text-zinc-400 truncate hover:text-blue-600 dark:hover:text-blue-400 text-left"
+                                            :title="contact.remote_destination_hash"
+                                            @click.stop="copyContactHash(contact.remote_destination_hash)"
+                                        >
+                                            {{ formatContactHash(contact.remote_destination_hash) }}
+                                        </button>
                                     </div>
                                     <div v-if="contact.remote_telephony_hash" class="flex items-center gap-1.5">
                                         <MaterialDesignIcon
@@ -428,6 +423,9 @@
 
 <script>
 import QRCode from "qrcode";
+import Utils from "../../js/Utils";
+import EmptyState from "../EmptyState.vue";
+import LoadingState from "../LoadingState.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import ToastUtils from "../../js/ToastUtils";
@@ -449,6 +447,8 @@ import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
 export default {
     name: "ContactsPage",
     components: {
+        EmptyState,
+        LoadingState,
         MaterialDesignIcon,
         LxmfUserIcon,
         ContextMenuDivider,
@@ -849,6 +849,15 @@ export default {
             } else {
                 ToastUtils.error(this.$t("contacts.failed_build_contact_uri"));
             }
+        },
+        formatContactHash(hash) {
+            return Utils.formatDestinationHash(hash);
+        },
+        async copyContactHash(hash) {
+            if (!hash) {
+                return;
+            }
+            await this.copyToClipboard(hash, this.$t("common.copied"));
         },
         async shareContact(contact) {
             this.closeContextMenu();
