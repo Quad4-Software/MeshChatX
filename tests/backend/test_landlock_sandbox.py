@@ -313,3 +313,26 @@ def test_apply_landlock_allows_user_local_argospm_list(tmp_path):
         storage=storage,
     )
     assert_probe_ok(result)
+
+
+def test_normalize_extra_landlock_read_root_rejects_overbroad(tmp_path):
+    plugins = tmp_path / "sideband-plugins"
+    plugins.mkdir()
+    assert ll._normalize_extra_landlock_read_root(str(plugins)) == os.path.realpath(
+        str(plugins),
+    )
+    assert ll._normalize_extra_landlock_read_root(os.sep) is None
+    assert ll._normalize_extra_landlock_read_root("") is None
+    home = os.path.expanduser("~")
+    if home and home != "~" and os.path.isdir(home):
+        assert ll._normalize_extra_landlock_read_root(home) is None
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symlink semantics differ on Windows")
+def test_normalize_extra_landlock_read_root_rejects_symlink_to_fs_root(tmp_path):
+    link = tmp_path / "rootlink"
+    try:
+        link.symlink_to(os.sep)
+    except OSError:
+        pytest.skip("cannot create symlink to filesystem root")
+    assert ll._normalize_extra_landlock_read_root(str(link)) is None

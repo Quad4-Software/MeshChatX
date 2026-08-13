@@ -193,6 +193,19 @@ def register_websocket_upgrade_routes(routes, app):
         )
         await websocket_response.prepare(request)
 
+        if getattr(app, "demo_mode", False):
+            await websocket_response.send_str(
+                json.dumps(
+                    {
+                        "type": "error",
+                        "message": "Demo mode is read-only",
+                        "code": "demo_readonly",
+                    },
+                ),
+            )
+            await websocket_response.close()
+            return websocket_response
+
         # Chaquopy Android and headless/web deployments have no usable LXST
         # host audio device, so always allow the websocket bridge.
         web_audio_allowed = (
