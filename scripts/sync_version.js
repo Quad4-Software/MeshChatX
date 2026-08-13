@@ -102,10 +102,7 @@ function patchRaspberryPiDoc(c) {
 }
 
 patchFile("docs/en/platform-guides/raspberry-pi.md", patchRaspberryPiDoc);
-patchFile(
-    "meshchatx/src/frontend/public/meshchatx-docs/en/platform-guides/raspberry-pi.md",
-    patchRaspberryPiDoc
-);
+patchFile("meshchatx/src/frontend/public/meshchatx-docs/en/platform-guides/raspberry-pi.md", patchRaspberryPiDoc);
 
 const licensesBackendPath = path.join(root, "meshchatx", "src", "backend", "data", "licenses_backend.json");
 if (fs.existsSync(licensesBackendPath)) {

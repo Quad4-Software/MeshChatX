@@ -2510,15 +2510,46 @@
                                     <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                         {{ $t("app.preferred_propagation_node") }}
                                     </div>
-                                    <input
-                                        v-model="config.lxmf_preferred_propagation_node_destination_hash"
-                                        type="text"
-                                        :placeholder="$t('app.preferred_node_placeholder')"
-                                        class="input-field monospace-field"
-                                        @input="onLxmfPreferredPropagationNodeDestinationHashChange"
-                                    />
+                                    <div class="flex flex-col sm:flex-row gap-2">
+                                        <input
+                                            v-model="config.lxmf_preferred_propagation_node_destination_hash"
+                                            type="text"
+                                            spellcheck="false"
+                                            autocomplete="off"
+                                            :placeholder="$t('app.preferred_node_placeholder')"
+                                            class="input-field monospace-field flex-1 min-w-0"
+                                            @input="onLxmfPreferredPropagationNodeDestinationHashChange"
+                                            @keydown.enter.prevent="savePreferredPropagationNodeHash(true)"
+                                            @paste="onPreferredPropagationNodePaste"
+                                        />
+                                        <button
+                                            type="button"
+                                            class="secondary-chip shrink-0"
+                                            @click="pastePreferredPropagationNodeHash"
+                                        >
+                                            {{ $t("tools.propagation_nodes.paste_hash") }}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="primary-chip shrink-0"
+                                            @click="savePreferredPropagationNodeHash(true)"
+                                        >
+                                            {{ $t("tools.propagation_nodes.set_preferred") }}
+                                        </button>
+                                        <button
+                                            v-if="config.lxmf_preferred_propagation_node_destination_hash"
+                                            type="button"
+                                            class="secondary-chip shrink-0"
+                                            @click="clearPreferredPropagationNodeHash"
+                                        >
+                                            {{ $t("tools.propagation_nodes.clear_preferred") }}
+                                        </button>
+                                    </div>
                                     <div class="text-xs text-gray-600 dark:text-gray-400">
                                         {{ $t("app.fallback_node_description") }}
+                                    </div>
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("tools.propagation_nodes.manual_hint") }}
                                     </div>
                                 </div>
                                 <div class="space-y-2">
@@ -2794,6 +2825,7 @@ import Utils from "../../js/Utils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
+import { readTextFromClipboard } from "../../js/clipboardUtils.js";
 import { importMessagesFromFile } from "../../js/messageImport";
 import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
@@ -4294,14 +4326,68 @@ export default {
         async onLxmfPreferredPropagationNodeDestinationHashChange() {
             if (this.saveTimeouts.preferred_node) clearTimeout(this.saveTimeouts.preferred_node);
             this.saveTimeouts.preferred_node = setTimeout(async () => {
+                await this.savePreferredPropagationNodeHash(false);
+            }, 1000);
+        },
+        onPreferredPropagationNodePaste(event) {
+            const text = event.clipboardData?.getData("text") || "";
+            const parsed = Utils.parseDestinationHash(text);
+            if (!parsed) {
+                return;
+            }
+            event.preventDefault();
+            this.config.lxmf_preferred_propagation_node_destination_hash = parsed;
+        },
+        async pastePreferredPropagationNodeHash() {
+            const result = await readTextFromClipboard();
+            if (!result.ok) {
+                ToastUtils.error(this.$t("messages.failed_read_clipboard"));
+                return;
+            }
+            const parsed = Utils.parseDestinationHash(result.text);
+            if (!parsed) {
+                ToastUtils.error(this.$t("tools.propagation_nodes.invalid_hash"));
+                return;
+            }
+            this.config.lxmf_preferred_propagation_node_destination_hash = parsed;
+            await this.savePreferredPropagationNodeHash(true);
+        },
+        async clearPreferredPropagationNodeHash() {
+            this.config.lxmf_preferred_propagation_node_destination_hash = "";
+            await this.savePreferredPropagationNodeHash(true);
+        },
+        async savePreferredPropagationNodeHash(showInvalidToast) {
+            if (this.saveTimeouts.preferred_node) {
+                clearTimeout(this.saveTimeouts.preferred_node);
+                this.saveTimeouts.preferred_node = null;
+            }
+            const raw = this.config.lxmf_preferred_propagation_node_destination_hash;
+            const trimmed = (raw || "").toString().trim();
+            if (!trimmed) {
                 await this.updateConfig(
                     {
-                        lxmf_preferred_propagation_node_destination_hash:
-                            this.config.lxmf_preferred_propagation_node_destination_hash,
+                        lxmf_preferred_propagation_node_destination_hash: null,
                     },
                     "preferred_node"
                 );
-            }, 1000);
+                return;
+            }
+            const parsed = Utils.parseDestinationHash(trimmed);
+            if (!parsed) {
+                if (showInvalidToast) {
+                    ToastUtils.error(this.$t("tools.propagation_nodes.invalid_hash"));
+                }
+                return;
+            }
+            this.config.lxmf_preferred_propagation_node_destination_hash = parsed;
+            const patch = {
+                lxmf_preferred_propagation_node_destination_hash: parsed,
+            };
+            if (this.config.lxmf_preferred_propagation_node_auto_select) {
+                patch.lxmf_preferred_propagation_node_auto_select = false;
+                this.config.lxmf_preferred_propagation_node_auto_select = false;
+            }
+            await this.updateConfig(patch, "preferred_node");
         },
         async onLxmfPreferredPropagationNodeAutoSelectChange() {
             await this.updateConfig(

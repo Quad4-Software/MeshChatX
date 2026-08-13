@@ -35,7 +35,9 @@ MIN_ANNOUNCE_INTERVAL_SECONDS = 60
 MAX_ANNOUNCE_INTERVAL_SECONDS = 86400
 EXECUTABLE_PAGE_TIMEOUT_SECONDS = 15
 
-PAGE_GENERATION_FAILED_MICRON = ">Page Generation Failed\n\nThe page could not be generated.\n"
+PAGE_GENERATION_FAILED_MICRON = (
+    ">Page Generation Failed\n\nThe page could not be generated.\n"
+)
 
 
 def normalize_announce_interval_seconds(
@@ -462,7 +464,9 @@ class PageNode:
         with open(page_path, "rb") as f:
             return f.read()
 
-    def _execute_page_bytes(self, page_path, data=None, link_id=None, remote_identity=None):
+    def _execute_page_bytes(
+        self, page_path, data=None, link_id=None, remote_identity=None
+    ):
         env_map = _build_executable_page_env(data, link_id, remote_identity)
         try:
             generated = subprocess.run(
