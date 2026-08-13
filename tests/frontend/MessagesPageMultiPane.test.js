@@ -62,6 +62,9 @@ describe("MessagesPage multi-pane", () => {
         expect(wrapper.vm.panes).toHaveLength(1);
         expect(wrapper.vm.focusedPaneId).toBe(wrapper.vm.panes[0].id);
         expect(wrapper.vm.selectedPeer).toBeNull();
+        const viewer = wrapper.findComponent({ name: "ConversationViewer" });
+        expect(viewer.exists()).toBe(true);
+        expect(viewer.props("selectedPeer")).toBeNull();
     });
 
     it("selectedPeer getter and setter are backed by the focused pane", () => {

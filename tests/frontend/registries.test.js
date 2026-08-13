@@ -133,11 +133,23 @@ describe("registerCoreContributions", () => {
     it("demotes secondary nav entries to the more tier", () => {
         const moreIds = CORE_NAV_ENTRIES.filter((entry) => entry.navTier === "more").map((entry) => entry.id);
         expect(moreIds).toEqual(
-            expect.arrayContaining(["archives", "interfaces", "network-visualiser", "blocked", "identities", "about"])
+            expect.arrayContaining(["archives", "network-visualiser", "blocked", "identities", "about"])
         );
+        expect(moreIds).not.toContain("interfaces");
         const primaryIds = CORE_NAV_ENTRIES.filter((entry) => entry.navTier === "primary").map((entry) => entry.id);
         expect(primaryIds).toEqual(
-            expect.arrayContaining(["messages", "call", "contacts", "nomadnetwork", "map", "tools", "settings"])
+            expect.arrayContaining([
+                "messages",
+                "call",
+                "contacts",
+                "nomadnetwork",
+                "map",
+                "interfaces",
+                "tools",
+                "settings",
+            ])
         );
+        const interfaces = CORE_NAV_ENTRIES.find((entry) => entry.id === "interfaces");
+        expect(interfaces).toMatchObject({ navTier: "primary", group: "app" });
     });
 });

@@ -53,7 +53,7 @@
 
                 <!-- header -->
                 <div
-                    class="flex min-w-0 items-center gap-1 border-b border-sem-border bg-sem-surface-muted/60 px-2 py-1.5 sm:px-3 sm:py-2"
+                    class="flex min-w-0 items-center gap-1 border-b border-sem-border bg-sem-surface px-2 py-1 sm:px-3"
                 >
                     <!-- favourite button -->
                     <div class="my-auto shrink-0">
@@ -76,24 +76,21 @@
                     </div>
 
                     <!-- node info -->
-                    <div class="my-auto dark:text-gray-100 flex-1 min-w-0 flex items-baseline gap-1 overflow-hidden">
+                    <div class="my-auto dark:text-gray-100 flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
                         <span
-                            class="font-semibold truncate inline-block min-w-0 max-w-[min(100%,12rem)] sm:max-w-xs md:max-w-sm"
+                            class="font-medium truncate inline-block min-w-0 max-w-[min(100%,12rem)] sm:max-w-xs md:max-w-sm"
                             :title="selectedNode.custom_display_name || selectedNode.display_name"
                             >{{ selectedNode.custom_display_name || selectedNode.display_name }}</span
                         >
                         <span
                             v-if="selectedNodePath"
-                            class="text-sm cursor-pointer whitespace-nowrap shrink-0 hidden sm:inline"
+                            class="text-xs text-sem-fg-muted cursor-pointer whitespace-nowrap shrink-0 hidden sm:inline"
                             @click="onDestinationPathClick(selectedNodePath)"
                         >
-                            - {{ selectedNodePath.hops }}
+                            {{ selectedNodePath.hops }}
                             {{ selectedNodePath.hops === 1 ? $t("app.hop") : $t("app.hops_plural") }}
-                            {{ $t("nomadnet.path_away_suffix") }}
                             <template v-if="navbarPageStats">
-                                <span class="text-gray-500 dark:text-gray-400 font-normal">
-                                    - {{ navbarPageStats.duration }} - {{ navbarPageStats.sizeLabel }}
-                                </span>
+                                · {{ navbarPageStats.duration }} · {{ navbarPageStats.sizeLabel }}
                             </template>
                         </span>
                         <v-tooltip
@@ -109,7 +106,7 @@
                             <template #activator="{ props: tooltipActivatorProps }">
                                 <span
                                     v-bind="tooltipActivatorProps"
-                                    class="shrink-0 hidden sm:inline-flex sm:items-center max-w-[7.5rem] md:max-w-[9rem] truncate rounded border border-gray-300 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium leading-tight text-gray-600 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-gray-400 dark:focus-visible:ring-blue-400"
+                                    class="shrink-0 hidden sm:inline-flex sm:items-center max-w-[7.5rem] md:max-w-[9rem] truncate rounded px-1 py-0.5 text-[11px] font-medium leading-tight text-sem-fg-muted cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400"
                                     tabindex="0"
                                     role="button"
                                     >{{ nomadBrowserRendererChip.label }}</span
@@ -325,11 +322,11 @@
 
                 <!-- browser navigation -->
                 <div
-                    class="nomad-browser-chrome flex w-full min-w-0 items-center gap-1 overflow-x-auto border-b border-sem-border bg-sem-surface-muted/60 px-2 py-1.5 sm:gap-1.5 sm:px-3"
+                    class="nomad-browser-chrome flex w-full min-w-0 items-center gap-0.5 overflow-x-auto border-b border-sem-border bg-sem-surface px-2 py-1 sm:gap-1 sm:px-3"
                 >
                     <IconButton
                         class="nomad-icon-btn shrink-0"
-                        title="Home"
+                        :title="$t('nomadnet.nav_home')"
                         @click="loadNodePage(selectedNode.destination_hash, defaultNodePagePath)"
                     >
                         <MaterialDesignIcon icon-name="home" class="size-5" />
@@ -347,7 +344,7 @@
                     </IconButton>
                     <IconButton
                         class="nomad-icon-btn shrink-0"
-                        title="Back"
+                        :title="$t('nomadnet.nav_back')"
                         :disabled="nodePagePathHistory.length === 0"
                         @click="loadPreviousNodePage"
                     >
@@ -364,7 +361,7 @@
                     </div>
                     <IconButton
                         class="nomad-icon-btn shrink-0"
-                        title="Go"
+                        :title="$t('nomadnet.nav_go')"
                         @click="onNodePageUrlClick(nodePagePathUrlInput)"
                     >
                         <MaterialDesignIcon icon-name="arrow-right" class="size-5" />
@@ -567,7 +564,7 @@
                 <div class="mx-auto mt-2">
                     <button
                         type="button"
-                        class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-xs hover:bg-gray-400 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700 dark:focus-visible:outline-zinc-500"
+                        class="my-auto inline-flex items-center gap-x-1 rounded-md bg-blue-600 px-2.5 py-1 text-sm font-medium text-white hover:bg-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500"
                         @click.stop="openUrl"
                     >
                         {{ $t("nomadnet.open_nomadnet_url") }}
@@ -2934,10 +2931,10 @@ export default {
 }
 
 .nomad-url-input {
-    border-radius: 999px;
+    border-radius: 0.5rem;
     border: 1px solid var(--mc-border, #27272a);
     background: color-mix(in srgb, var(--mc-surface-muted, #18181b) 85%, transparent);
-    padding: 0.45rem 0.85rem;
+    padding: 0.35rem 0.75rem;
     font-size: 0.8125rem;
     color: var(--mc-text, #f3f4f6);
     outline: none;

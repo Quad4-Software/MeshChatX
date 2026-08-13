@@ -80,7 +80,7 @@ describe("SendMessageButton Component", () => {
                 deliveryMethod: null,
             },
         });
-        expect(wrapper.text()).toContain("Send");
+        expect(wrapper.text()).toContain("messages.send");
     });
 
     it("shows sending state when isSendingMessage is true", () => {
@@ -92,7 +92,7 @@ describe("SendMessageButton Component", () => {
                 deliveryMethod: null,
             },
         });
-        expect(wrapper.text()).toContain("Send");
+        expect(wrapper.text()).toContain("messages.send");
         expect(wrapper.html()).toContain("opacity-60");
     });
 
@@ -118,7 +118,7 @@ describe("SendMessageButton Component", () => {
                 deliveryMethod: "direct",
             },
         });
-        expect(wrapper.text()).toContain("Send (Direct)");
+        expect(wrapper.text()).toContain("messages.send_direct");
     });
 
     it("emits send event when send button is clicked", async () => {

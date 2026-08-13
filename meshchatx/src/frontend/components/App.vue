@@ -290,8 +290,8 @@
                                     :identity-label="identitySidebarLabel"
                                     :last-announced-label="lastAnnouncedSidebarLabel"
                                     :is-collapsed="isSidebarCollapsed"
-                                    @update:display-name="displayName = $event"
-                                    @save-identity="saveIdentitySettings"
+                                    @update:display-name="onDisplayNameUpdate"
+                                    @save-identity="flushIdentitySave"
                                     @send-announce="sendAnnounce"
                                     @announce-interval-change="onAnnounceIntervalChange"
                                     @copy-value="copyValue"
@@ -304,8 +304,8 @@
                                     :identity-label="identitySidebarLabel"
                                     :last-announced-label="lastAnnouncedSidebarLabel"
                                     :is-collapsed="isSidebarCollapsed"
-                                    @update:display-name="displayName = $event"
-                                    @save-identity="saveIdentitySettings"
+                                    @update:display-name="onDisplayNameUpdate"
+                                    @save-identity="flushIdentitySave"
                                     @send-announce="sendAnnounce"
                                     @announce-interval-change="onAnnounceIntervalChange"
                                     @copy-value="copyValue"
@@ -513,6 +513,8 @@ import {
 import { normalizeUiLocaleCode, setLocale } from "../js/localeLoader.js";
 import { patchServerConfig } from "../js/settings/settingsConfigService.js";
 
+const IDENTITY_SAVE_DEBOUNCE_MS = 500;
+
 export default {
     name: "App",
     components: {
@@ -560,6 +562,7 @@ export default {
             shellRunning: false,
 
             displayName: "Anonymous Peer",
+            identitySaveTimer: null,
             config: null,
             appInfo: null,
             hasCheckedForModals: false,
@@ -795,6 +798,10 @@ export default {
         },
     },
     beforeUnmount() {
+        if (this.identitySaveTimer != null) {
+            clearTimeout(this.identitySaveTimer);
+            this.identitySaveTimer = null;
+        }
         if (typeof this._shellAuthWatchStop === "function") {
             this._shellAuthWatchStop();
             this._shellAuthWatchStop = null;
@@ -1911,10 +1918,35 @@ export default {
                 }
             }
         },
+        onDisplayNameUpdate(value) {
+            this.displayName = value;
+            this.scheduleIdentitySave();
+        },
+        scheduleIdentitySave() {
+            if (this.identitySaveTimer != null) {
+                clearTimeout(this.identitySaveTimer);
+            }
+            this.identitySaveTimer = setTimeout(() => {
+                this.identitySaveTimer = null;
+                void this.saveIdentitySettings();
+            }, IDENTITY_SAVE_DEBOUNCE_MS);
+        },
+        flushIdentitySave() {
+            if (this.identitySaveTimer != null) {
+                clearTimeout(this.identitySaveTimer);
+                this.identitySaveTimer = null;
+            }
+            void this.saveIdentitySettings();
+        },
         async saveIdentitySettings() {
+            const nextName = this.displayName;
+            const currentName = this.config?.display_name ?? "";
+            if (String(nextName) === String(currentName)) {
+                return;
+            }
             await this.updateConfig(
                 {
-                    display_name: this.displayName,
+                    display_name: nextName,
                 },
                 "display_name_placeholder"
             );

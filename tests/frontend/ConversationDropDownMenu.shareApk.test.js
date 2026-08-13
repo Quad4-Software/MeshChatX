@@ -96,14 +96,13 @@ describe("ConversationDropDownMenu share APK", () => {
         wrapper.unmount();
     });
 
-    it("shows share APK icon button in non-compact Android mode", () => {
+    it("shows share APK in non-compact Android overflow menu", () => {
         window.MeshChatXAndroid = {
             getPlatform: () => "android",
             shareApk: vi.fn(),
         };
         const wrapper = mountMenu(false);
-        const btn = wrapper.findAll("button").find((b) => b.attributes("title") === "messages.share_apk");
-        expect(btn).toBeTruthy();
+        expect(wrapper.text()).toContain("messages.share_apk");
         wrapper.unmount();
     });
 });

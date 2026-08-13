@@ -161,7 +161,7 @@
                                             d="m15 11.25-3-3m0 0-3 3m3-3v7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
                                         />
                                     </svg>
-                                    <span>Load Previous</span>
+                                    <span>{{ $t("messages.load_previous") }}</span>
                                 </button>
                             </div>
                         </template>
@@ -187,7 +187,7 @@
                                         d="m15 11.25-3-3m0 0-3 3m3-3v7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
                                     />
                                 </svg>
-                                <span>Load Previous</span>
+                                <span>{{ $t("messages.load_previous") }}</span>
                             </button>
                             <ConversationMessageListVirtual
                                 ref="messageListVirtual"
@@ -256,7 +256,7 @@
 
             <!-- send message -->
             <div
-                class="w-full border-t border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 sm:px-4 pt-2.5"
+                class="w-full border-t border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 sm:px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
                 :style="composerChromeStyle"
             >
                 <div class="w-full">
@@ -279,9 +279,9 @@
                                 d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
                             />
                         </svg>
-                        <span class="text-sm text-yellow-800 dark:text-yellow-200"
-                            >You have banished this user. They cannot send you messages or establish links.</span
-                        >
+                        <span class="text-sm text-yellow-800 dark:text-yellow-200">{{
+                            $t("messages.banished_peer_notice")
+                        }}</span>
                     </div>
 
                     <!-- message composer -->
@@ -417,7 +417,7 @@
                             <!-- audio attachment -->
                             <div v-if="newMessageAudio" class="attachment-card">
                                 <div class="attachment-card__body w-full">
-                                    <div class="attachment-card__title">Voice Note</div>
+                                    <div class="attachment-card__title">{{ $t("messages.voice_note") }}</div>
                                     <div class="attachment-card__meta mb-2">
                                         {{ formatBytes(newMessageAudio.audio_blob.size) }}
                                     </div>
@@ -753,13 +753,13 @@
                         >
                             <div class="flex-1 min-w-0 border-l-2 border-blue-500 pl-3">
                                 <div
-                                    class="flex items-center gap-1 text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-0.5"
+                                    class="flex items-center gap-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 mb-0.5"
                                 >
                                     <MaterialDesignIcon icon-name="reply" class="size-3" />
                                     {{ $t("messages.replying_to") }}
                                 </div>
                                 <div class="text-xs text-gray-600 dark:text-zinc-400 truncate italic">
-                                    {{ replyingTo.lxmf_message.content || "(Attachment)" }}
+                                    {{ replyingTo.lxmf_message.content || $t("messages.attachment_placeholder") }}
                                 </div>
                             </div>
                             <button
@@ -822,8 +822,7 @@
                                 v-if="!translateTargetSelectOptions.length"
                                 class="w-full text-xs text-amber-700/90 dark:text-amber-300/90 -mt-0.5"
                             >
-                                No translation languages available yet. Open the Translator tool or enable a backend,
-                                then return here.
+                                {{ $t("messages.translate_no_languages") }}
                             </p>
                         </div>
 
@@ -903,7 +902,7 @@
             >
                 <ContextMenuItem @click="replyToMessage(messageContextMenu.chatItem)">
                     <MaterialDesignIcon icon-name="reply" class="size-4 text-indigo-500" />
-                    Reply
+                    {{ $t("messages.reply") }}
                 </ContextMenuItem>
                 <ContextMenuItem
                     v-if="messageContextMenu.openedFromBubble && copyableMessagePlainText(messageContextMenu.chatItem)"
@@ -959,7 +958,7 @@
                     "
                 >
                     <MaterialDesignIcon icon-name="code-json" class="size-4 text-gray-400" />
-                    View Raw LXM
+                    {{ $t("messages.view_raw_lxm") }}
                 </ContextMenuItem>
                 <ContextMenuItem
                     v-if="messageContextMenu.chatItem?.lxmf_message?.fields?.image"
@@ -1009,7 +1008,7 @@
                     "
                 >
                     <MaterialDesignIcon icon-name="refresh" class="size-4" />
-                    Retry
+                    {{ $t("messages.retry") }}
                 </ContextMenuItem>
                 <ContextMenuItem
                     v-if="isSelectedPeerBlocked && selectedPeer"
@@ -1028,7 +1027,7 @@
                     "
                 >
                     <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
-                    Delete
+                    {{ $t("common.delete") }}
                 </ContextMenuItem>
             </ContextMenuPanel>
         </Teleport>
@@ -1036,99 +1035,77 @@
 
     <!-- no peer selected -->
     <div v-else class="flex flex-col h-full overflow-y-auto bg-gray-50/50 dark:bg-zinc-950/50">
-        <div class="max-w-4xl mx-auto w-full px-4 py-8 sm:py-12 flex flex-col items-center">
-            <!-- welcome header -->
-            <div class="text-center mb-12">
+        <div class="max-w-2xl mx-auto w-full px-4 py-8 sm:py-10 flex flex-col items-center">
+            <div class="text-center mb-8">
                 <div
-                    class="inline-flex items-center justify-center p-4 rounded-3xl bg-indigo-600 shadow-xl shadow-indigo-500/20 mb-6"
+                    class="inline-flex items-center justify-center size-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 mb-4"
                 >
-                    <MaterialDesignIcon icon-name="message-text" class="size-10 text-white" />
+                    <MaterialDesignIcon icon-name="message-text-outline" class="size-6" />
                 </div>
-                <h1 class="text-3xl font-black text-gray-900 dark:text-white tracking-tight mb-3">
+                <h1 class="text-xl font-semibold text-gray-900 dark:text-white mb-1">
                     {{ $t("messages.no_active_chat") }}
                 </h1>
-                <p class="text-gray-500 dark:text-zinc-400 max-w-sm mx-auto">
+                <p class="text-sm text-gray-500 dark:text-zinc-400 max-w-sm mx-auto">
                     {{ $t("messages.select_peer_or_enter_address") }}
                 </p>
             </div>
 
-            <!-- main actions grid -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full mb-12">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mb-8">
                 <button
                     type="button"
-                    class="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/5 transition-all group"
+                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:border-blue-400/60 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
                     @click="focusComposeInput"
                 >
-                    <div
-                        class="size-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform"
-                    >
-                        <MaterialDesignIcon icon-name="plus" class="size-6" />
-                    </div>
-                    <span class="text-sm font-bold text-gray-900 dark:text-zinc-100">New Message</span>
+                    <MaterialDesignIcon icon-name="plus" class="size-5 text-blue-600 dark:text-blue-400" />
+                    <span class="text-xs font-medium text-gray-800 dark:text-zinc-200">{{ $t("app.compose") }}</span>
                 </button>
 
                 <button
                     type="button"
-                    class="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all group"
+                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:border-blue-400/60 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
                     @click="syncPropagationNode"
                 >
-                    <div
-                        class="size-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform"
-                    >
-                        <MaterialDesignIcon
-                            icon-name="sync"
-                            class="size-6"
-                            :class="{ 'animate-spin': isSyncingPropagationNode }"
-                            :style="isSyncingPropagationNode ? { animationDirection: 'reverse' } : {}"
-                        />
-                    </div>
-                    <span class="text-sm font-bold text-gray-900 dark:text-zinc-100">{{
-                        isSyncingPropagationNode ? "Syncing..." : "Sync Node"
+                    <MaterialDesignIcon
+                        icon-name="sync"
+                        class="size-5 text-blue-600 dark:text-blue-400"
+                        :class="{ 'animate-spin': isSyncingPropagationNode }"
+                        :style="isSyncingPropagationNode ? { animationDirection: 'reverse' } : {}"
+                    />
+                    <span class="text-xs font-medium text-gray-800 dark:text-zinc-200">{{
+                        isSyncingPropagationNode ? $t("app.syncing") : $t("app.sync_now")
                     }}</span>
                 </button>
 
                 <button
                     type="button"
-                    class="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all group"
+                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:border-blue-400/60 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
                     @click="copyMyAddress"
                 >
-                    <div
-                        class="size-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform"
-                    >
-                        <MaterialDesignIcon icon-name="content-copy" class="size-6" />
-                    </div>
-                    <span class="text-sm font-bold text-gray-900 dark:text-zinc-100">My Address</span>
+                    <MaterialDesignIcon icon-name="content-copy" class="size-5 text-blue-600 dark:text-blue-400" />
+                    <span class="text-xs font-medium text-gray-800 dark:text-zinc-200">{{
+                        $t("messages.my_address")
+                    }}</span>
                 </button>
 
                 <button
                     type="button"
-                    class="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all group"
+                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:border-blue-400/60 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
                     @click="$router.push({ name: 'identities' })"
                 >
-                    <div
-                        class="size-12 rounded-2xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform"
-                    >
-                        <MaterialDesignIcon icon-name="account-multiple" class="size-6" />
-                    </div>
-                    <span class="text-sm font-bold text-gray-900 dark:text-zinc-100">Identities</span>
+                    <MaterialDesignIcon icon-name="account-multiple" class="size-5 text-blue-600 dark:text-blue-400" />
+                    <span class="text-xs font-medium text-gray-800 dark:text-zinc-200">{{ $t("app.identities") }}</span>
                 </button>
             </div>
 
-            <!-- latest chats section -->
-            <div v-if="latestConversations.length > 0" class="w-full mb-12">
-                <div class="flex items-center justify-between mb-6">
-                    <h2
-                        class="text-sm font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest flex items-center gap-2"
-                    >
-                        <MaterialDesignIcon icon-name="history" class="size-4" />
-                        Latest Conversations
-                    </h2>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div v-if="latestConversations.length > 0" class="w-full mb-8">
+                <h2 class="text-xs font-medium text-gray-500 dark:text-zinc-500 mb-2">
+                    {{ $t("messages.latest_conversations") }}
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div
                         v-for="chat in latestConversations"
                         :key="chat.destination_hash"
-                        class="group cursor-pointer p-4 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-3xl hover:border-blue-500/50 hover:shadow-xl transition-all flex items-center gap-4"
+                        class="group cursor-pointer p-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl hover:border-blue-400/60 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-3"
                         @click="$emit('update:selectedPeer', chat)"
                     >
                         <div class="shrink-0">
@@ -1145,34 +1122,33 @@
                                 :icon-background-colour="
                                     chat.lxmf_user_icon ? chat.lxmf_user_icon.background_colour : ''
                                 "
-                                icon-class="size-12 sm:size-14"
+                                icon-class="size-10"
                             />
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between gap-2">
-                                <div class="font-bold text-gray-900 dark:text-zinc-100 truncate">
+                                <div class="font-medium text-sm text-gray-900 dark:text-zinc-100 truncate">
                                     {{ chat.custom_display_name ?? chat.display_name }}
                                 </div>
-                                <div class="text-[10px] text-gray-400 dark:text-zinc-500 whitespace-nowrap">
+                                <div class="text-[11px] text-gray-400 dark:text-zinc-500 whitespace-nowrap">
                                     {{ formatTimeAgo(chat.updated_at) }}
                                 </div>
                             </div>
                             <div class="text-xs text-gray-500 dark:text-zinc-500 truncate mt-0.5">
-                                {{ chat.latest_message_preview || chat.latest_message_title || "No messages yet" }}
+                                {{
+                                    chat.latest_message_preview ||
+                                    chat.latest_message_title ||
+                                    $t("messages.no_messages_yet")
+                                }}
                             </div>
                         </div>
-                        <MaterialDesignIcon
-                            icon-name="chevron-right"
-                            class="size-5 text-gray-300 dark:text-zinc-700 group-hover:text-blue-500 transition-colors"
-                        />
                     </div>
                 </div>
             </div>
 
-            <!-- address input composer -->
             <div class="w-full max-w-xl">
                 <div class="relative group">
-                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <MaterialDesignIcon
                             icon-name="at"
                             class="size-5 text-gray-400 group-focus-within:text-blue-500 transition-colors"
@@ -1184,8 +1160,8 @@
                         v-model="composeAddress"
                         :readonly="isTranslatingMessage"
                         type="text"
-                        class="w-full bg-white dark:bg-zinc-900 border-2 border-gray-100 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-base rounded-3xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 pl-12 pr-4 py-4 shadow-xs transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-600 font-medium"
-                        placeholder="Enter LXMF address to start a conversation..."
+                        class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 pl-10 pr-4 py-2.5 transition-colors placeholder:text-gray-400 dark:placeholder:text-zinc-500"
+                        :placeholder="$t('messages.compose_address_placeholder')"
                         @keydown.enter.exact.prevent="onComposeEnterPressed"
                         @keydown.up.prevent="handleComposeInputUp"
                         @keydown.down.prevent="handleComposeInputDown"
@@ -1193,25 +1169,24 @@
                         @blur="onComposeInputBlur"
                     />
 
-                    <!-- Suggestions Dropdown -->
                     <div
                         v-if="isComposeInputFocused && composeSuggestions.length > 0"
-                        class="absolute z-50 left-0 right-0 bottom-full mb-4 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300"
+                        class="absolute z-50 left-0 right-0 bottom-full mb-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-lg overflow-hidden"
                     >
-                        <div class="p-2 space-y-1">
+                        <div class="p-1 space-y-0.5">
                             <div
                                 v-for="(suggestion, index) in composeSuggestions"
                                 :key="suggestion.hash"
-                                class="px-4 py-3 flex items-center gap-3 cursor-pointer rounded-2xl transition-all"
+                                class="px-3 py-2 flex items-center gap-3 cursor-pointer rounded-lg transition-colors"
                                 :class="[
                                     index === selectedComposeSuggestionIndex
-                                        ? 'bg-blue-600 text-white shadow-lg'
+                                        ? 'bg-blue-600 text-white'
                                         : 'hover:bg-gray-50 dark:hover:bg-zinc-800/50 text-gray-700 dark:text-zinc-300',
                                 ]"
                                 @mousedown.prevent="selectComposeSuggestion(suggestion)"
                             >
                                 <div
-                                    class="shrink-0 size-10 rounded-xl flex items-center justify-center"
+                                    class="shrink-0 size-8 rounded-lg flex items-center justify-center"
                                     :class="[
                                         index === selectedComposeSuggestionIndex
                                             ? 'bg-white/20'
@@ -1220,10 +1195,10 @@
                                               : 'bg-gray-100 dark:bg-zinc-800 text-gray-500',
                                     ]"
                                 >
-                                    <MaterialDesignIcon :icon-name="suggestion.icon" class="size-5" />
+                                    <MaterialDesignIcon :icon-name="suggestion.icon" class="size-4" />
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <div class="text-sm font-bold truncate">
+                                    <div class="text-sm font-medium truncate">
                                         {{ suggestion.name }}
                                     </div>
                                     <div class="text-[10px] font-mono opacity-60 truncate">
@@ -1232,9 +1207,9 @@
                                 </div>
                                 <div
                                     v-if="suggestion.type === 'contact'"
-                                    class="text-[10px] uppercase font-black tracking-widest opacity-40 px-2 py-1 rounded-md bg-black/5"
+                                    class="text-[10px] font-medium text-gray-500 dark:text-zinc-400"
                                 >
-                                    Contact
+                                    {{ $t("messages.contact_badge") }}
                                 </div>
                             </div>
                         </div>
@@ -1781,8 +1756,10 @@ export default {
             default: "",
         },
         selectedPeer: {
-            type: Object,
-            required: true,
+            default: null,
+            validator(value) {
+                return value == null || (typeof value === "object" && !Array.isArray(value));
+            },
         },
         conversations: {
             type: Array,
@@ -7298,16 +7275,16 @@ export default {
     @apply inline-flex items-center justify-center text-gray-500 dark:text-gray-300 hover:text-red-500;
 }
 .attachment-action-button {
-    @apply inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 bg-white shadow-xs transition-all;
+    @apply inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors;
 }
 .attachment-action-button:hover {
-    @apply bg-gray-50 text-gray-900 border-blue-400;
+    @apply text-gray-900 dark:text-white;
 }
 .dark .attachment-action-button {
-    @apply border-zinc-700 text-zinc-100 bg-zinc-900;
+    @apply text-zinc-300;
 }
 .dark .attachment-action-button:hover {
-    @apply bg-zinc-800 text-white border-blue-500;
+    @apply text-white;
 }
 
 .compose-emoji-picker {

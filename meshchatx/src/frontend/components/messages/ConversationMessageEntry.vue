@@ -302,7 +302,7 @@
                         v-if="['failed', 'cancelled'].includes(entry.items[0].lxmf_message.state)"
                         type="button"
                         class="ml-0.5 p-0.5 rounded-sm hover:bg-white/20 transition-colors"
-                        title="Retry sending"
+                        :title="$t('messages.retry')"
                         @click.stop="cv.retrySendingMessage(entry.items[0])"
                     >
                         <MaterialDesignIcon icon-name="refresh" class="size-3 text-white" />
@@ -1042,7 +1042,7 @@
                             class="text-[10px] mt-1 text-right opacity-60"
                             :class="cv.outboundAttachmentCaptionClass(chatItem)"
                         >
-                            Voice Note •
+                            {{ $t("messages.voice_note") }} •
                             {{ cv.formatAttachmentSize(chatItem.lxmf_message.fields.audio, "audio") }}
                         </div>
                     </div>
@@ -1236,7 +1236,7 @@
                                 v-if="['failed', 'cancelled'].includes(chatItem.lxmf_message.state)"
                                 type="button"
                                 class="ml-0.5 p-0.5 rounded-sm hover:bg-white/20 transition-colors"
-                                title="Retry sending"
+                                :title="$t('messages.retry')"
                                 @click.stop="cv.retrySendingMessage(chatItem)"
                             >
                                 <MaterialDesignIcon icon-name="refresh" class="size-3 text-white" />

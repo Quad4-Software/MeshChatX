@@ -3,8 +3,8 @@
 <template>
     <DropDownMenu v-if="compact">
         <template #button>
-            <IconButton>
-                <MaterialDesignIcon icon-name="dots-vertical" class="size-7" />
+            <IconButton :title="$t('messages.more_actions')">
+                <MaterialDesignIcon icon-name="dots-vertical" class="size-5" />
             </IconButton>
         </template>
         <template #items>
@@ -50,7 +50,7 @@
             </DropDownMenuItem>
             <DropDownMenuItem @click="onPingDestination">
                 <MaterialDesignIcon icon-name="flash" class="size-5" />
-                <span>Ping Destination</span>
+                <span>{{ $t("messages.ping_peer") }}</span>
             </DropDownMenuItem>
             <DropDownMenuItem @click="$emit('open-telemetry-history')">
                 <MaterialDesignIcon icon-name="satellite-variant" class="size-5" />
@@ -76,31 +76,29 @@
 
             <DropDownMenuItem @click="onSetCustomDisplayName">
                 <MaterialDesignIcon icon-name="account-edit" class="size-5" />
-                <span>Set Custom Display Name</span>
+                <span>{{ $t("messages.set_custom_display_name") }}</span>
             </DropDownMenuItem>
 
-            <!-- block/unblock button -->
             <div class="border-t">
                 <DropDownMenuItem v-if="!isBlocked" @click="onBlockDestination">
                     <MaterialDesignIcon icon-name="gavel" class="size-5 text-red-500" />
-                    <span class="text-red-500">Banish User</span>
+                    <span class="text-red-500">{{ $t("messages.banish_user") }}</span>
                 </DropDownMenuItem>
                 <DropDownMenuItem v-else @click="onUnblockDestination">
                     <MaterialDesignIcon icon-name="check-circle" class="size-5 text-green-500" />
-                    <span class="text-green-500">Lift Banishment</span>
+                    <span class="text-green-500">{{ $t("banishment.lift_banishment") }}</span>
                 </DropDownMenuItem>
             </div>
 
-            <!-- delete message history button -->
             <div class="border-t">
                 <DropDownMenuItem @click="onDeleteMessageHistory">
                     <MaterialDesignIcon icon-name="delete" class="size-5 text-red-500" />
-                    <span class="text-red-500">Delete Message History</span>
+                    <span class="text-red-500">{{ $t("messages.delete_message_history") }}</span>
                 </DropDownMenuItem>
             </div>
         </template>
     </DropDownMenu>
-    <div v-else class="flex items-center gap-0.5 sm:gap-1 flex-wrap justify-end max-w-[min(100%,52vw)] sm:max-w-none">
+    <div v-else class="flex items-center gap-0.5 justify-end">
         <IconButton
             v-if="hasFailedMessages"
             :title="$t('messages.retry_failed')"
@@ -112,33 +110,59 @@
         <IconButton :title="$t('messages.start_call')" class="shrink-0" @click="$emit('start-call')">
             <MaterialDesignIcon icon-name="phone" class="size-5" />
         </IconButton>
-        <IconButton :title="$t('messages.share_contact')" class="shrink-0" @click="$emit('share-contact')">
-            <MaterialDesignIcon icon-name="notebook-outline" class="size-5" />
-        </IconButton>
-        <IconButton v-if="isMeshChatXAndroid" :title="$t('messages.share_apk')" class="shrink-0" @click="onShareApk">
-            <MaterialDesignIcon icon-name="share-variant" class="size-5" />
-        </IconButton>
-        <IconButton title="Ping Destination" class="shrink-0" @click="onPingDestination">
-            <MaterialDesignIcon icon-name="flash" class="size-5" />
-        </IconButton>
-        <IconButton :title="$t('messages.telemetry_history')" class="shrink-0" @click="$emit('open-telemetry-history')">
-            <MaterialDesignIcon icon-name="satellite-variant" class="size-5" />
-        </IconButton>
-        <IconButton
-            v-if="GlobalState?.config?.telemetry_enabled"
-            :title="contact?.is_telemetry_trusted ? $t('app.telemetry_trust_revoke') : $t('app.telemetry_trust_grant')"
-            class="shrink-0"
-            @click="onToggleTelemetryTrust"
-        >
-            <MaterialDesignIcon
-                :icon-name="contact?.is_telemetry_trusted ? 'shield-check' : 'shield-outline'"
-                :class="contact?.is_telemetry_trusted ? 'text-blue-500' : 'text-gray-500'"
-                class="size-5"
-            />
-        </IconButton>
-        <IconButton :title="$t('messages.custom_display_name')" class="shrink-0" @click="onSetCustomDisplayName">
-            <MaterialDesignIcon icon-name="account-edit" class="size-5" />
-        </IconButton>
+        <DropDownMenu class="shrink-0">
+            <template #button>
+                <IconButton :title="$t('messages.more_actions')">
+                    <MaterialDesignIcon icon-name="dots-vertical" class="size-5" />
+                </IconButton>
+            </template>
+            <template #items>
+                <DropDownMenuItem @click="$emit('share-contact')">
+                    <MaterialDesignIcon icon-name="notebook-outline" class="size-5" />
+                    <span>{{ $t("messages.share_contact") }}</span>
+                </DropDownMenuItem>
+                <DropDownMenuItem v-if="isMeshChatXAndroid" :title="$t('messages.share_apk')" @click="onShareApk">
+                    <MaterialDesignIcon icon-name="share-variant" class="size-5" />
+                    <span>{{ $t("messages.share_apk") }}</span>
+                </DropDownMenuItem>
+                <DropDownMenuItem @click="onPingDestination">
+                    <MaterialDesignIcon icon-name="flash" class="size-5" />
+                    <span>{{ $t("messages.ping_peer") }}</span>
+                </DropDownMenuItem>
+                <DropDownMenuItem @click="$emit('open-telemetry-history')">
+                    <MaterialDesignIcon icon-name="satellite-variant" class="size-5" />
+                    <span>{{ $t("messages.telemetry_history") }}</span>
+                </DropDownMenuItem>
+                <DropDownMenuItem v-if="GlobalState?.config?.telemetry_enabled" @click="onToggleTelemetryTrust">
+                    <MaterialDesignIcon
+                        :icon-name="contact?.is_telemetry_trusted ? 'shield-check' : 'shield-outline'"
+                        :class="contact?.is_telemetry_trusted ? 'text-blue-500' : 'text-gray-500'"
+                        class="size-5"
+                    />
+                    <span>{{
+                        contact?.is_telemetry_trusted
+                            ? $t("app.telemetry_trust_revoke")
+                            : $t("app.telemetry_trust_grant")
+                    }}</span>
+                </DropDownMenuItem>
+                <DropDownMenuItem @click="onSetCustomDisplayName">
+                    <MaterialDesignIcon icon-name="account-edit" class="size-5" />
+                    <span>{{ $t("messages.set_custom_display_name") }}</span>
+                </DropDownMenuItem>
+                <DropDownMenuItem v-if="!isBlocked" @click="onBlockDestination">
+                    <MaterialDesignIcon icon-name="gavel" class="size-5 text-red-500" />
+                    <span class="text-red-500">{{ $t("messages.banish_user") }}</span>
+                </DropDownMenuItem>
+                <DropDownMenuItem v-else @click="onUnblockDestination">
+                    <MaterialDesignIcon icon-name="check-circle" class="size-5 text-green-500" />
+                    <span class="text-green-500">{{ $t("banishment.lift_banishment") }}</span>
+                </DropDownMenuItem>
+                <DropDownMenuItem @click="onDeleteMessageHistory">
+                    <MaterialDesignIcon icon-name="delete" class="size-5 text-red-500" />
+                    <span class="text-red-500">{{ $t("messages.delete_message_history") }}</span>
+                </DropDownMenuItem>
+            </template>
+        </DropDownMenu>
         <IconButton
             data-testid="conversation-popout"
             :title="$t('messages.pop_out_chat')"
@@ -146,15 +170,6 @@
             @click="$emit('popout')"
         >
             <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
-        </IconButton>
-        <IconButton v-if="!isBlocked" title="Banish User" class="shrink-0" @click="onBlockDestination">
-            <MaterialDesignIcon icon-name="gavel" class="size-5 text-red-500" />
-        </IconButton>
-        <IconButton v-else title="Lift Banishment" class="shrink-0" @click="onUnblockDestination">
-            <MaterialDesignIcon icon-name="check-circle" class="size-5 text-green-500" />
-        </IconButton>
-        <IconButton title="Delete Message History" class="shrink-0" @click="onDeleteMessageHistory">
-            <MaterialDesignIcon icon-name="delete" class="size-5 text-red-500" />
         </IconButton>
     </div>
 </template>

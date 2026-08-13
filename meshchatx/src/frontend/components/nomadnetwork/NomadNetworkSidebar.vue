@@ -121,7 +121,7 @@
                         v-model="favouritesSearchTerm"
                         type="text"
                         :placeholder="$t('nomadnet.search_favourites_placeholder', { count: favourites.length })"
-                        class="input-field w-full rounded-none"
+                        class="input-field w-full"
                     />
                     <div
                         v-if="favouritesSelectionMode"
@@ -179,9 +179,7 @@
                         </div>
                     </div>
                 </div>
-                <div
-                    class="flex items-center justify-between px-3 pt-2 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400"
-                >
+                <div class="flex items-center justify-between px-3 pt-2 text-xs text-gray-500 dark:text-gray-400">
                     <div class="flex items-center gap-1 min-w-0">
                         <button
                             type="button"
@@ -194,15 +192,15 @@
                                 <MaterialDesignIcon icon-name="checkbox-multiple-marked-outline" />
                             </span>
                         </button>
-                        <span class="font-semibold truncate">Sections</span>
+                        <span class="font-medium truncate">{{ $t("nomadnet.sections") }}</span>
                     </div>
                     <button
                         type="button"
-                        class="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                        class="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
                         @click="createSection"
                     >
                         <MaterialDesignIcon icon-name="plus" class="size-4" />
-                        <span>Add Section</span>
+                        <span>{{ $t("nomadnet.add_section") }}</span>
                     </button>
                 </div>
                 <div class="flex-1 overflow-y-auto px-2 pb-4">
@@ -260,7 +258,7 @@
                                             :ref="`sectionInput-${section.id}`"
                                             v-model="editingSectionName"
                                             type="text"
-                                            class="flex-1 bg-transparent border-b border-blue-500 text-xs font-semibold uppercase tracking-wide text-gray-900 dark:text-white focus:outline-hidden min-w-0"
+                                            class="flex-1 bg-transparent border-b border-blue-500 text-xs font-medium text-gray-900 dark:text-white focus:outline-hidden min-w-0"
                                             @click.stop
                                             @keydown.enter="saveSectionName"
                                             @keydown.esc="cancelEditingSection"
@@ -276,7 +274,7 @@
                                     </template>
                                     <span
                                         v-else
-                                        class="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300 truncate"
+                                        class="text-xs font-medium text-gray-600 dark:text-gray-300 truncate"
                                         @click.stop="startEditingSection(section)"
                                     >
                                         {{ section.name }}
@@ -1776,29 +1774,29 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .sidebar-tab {
-    @apply flex h-full w-1/2 items-center justify-center text-sm font-semibold text-gray-500 dark:text-gray-400 border-b-2 border-transparent transition;
+    @apply flex h-full w-1/2 items-center justify-center text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent transition;
 }
 .sidebar-tab--active {
     @apply text-blue-600 border-blue-500 dark:text-blue-300 dark:border-blue-400;
 }
 .favourite-card {
-    @apply flex items-center gap-3 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/70 px-3 py-2 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 hover:z-10;
+    @apply flex items-center gap-3 rounded-lg px-2 py-1.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-800/80 hover:z-10;
 }
 .favourite-card--active {
-    @apply border-blue-500 dark:border-blue-400 bg-blue-50/60 dark:bg-blue-900/30;
+    @apply bg-blue-50/80 dark:bg-blue-900/25;
 }
 .favourite-card__icon,
 .announce-card__icon {
-    @apply w-10 h-10 rounded-xl bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-gray-500 dark:text-gray-300;
+    @apply w-9 h-9 rounded-lg bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-gray-500 dark:text-gray-300;
 }
 .favourite-card--dragging {
-    @apply opacity-60 ring-2 ring-blue-300 dark:ring-blue-600;
+    @apply opacity-60 ring-1 ring-blue-300 dark:ring-blue-600;
 }
 .announce-card {
-    @apply flex items-center gap-3 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/70 px-3 py-2 hover:border-blue-400 dark:hover:border-blue-500 hover:z-10;
+    @apply flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-zinc-800/80 hover:z-10;
 }
 .announce-card--active {
-    @apply border-blue-500 dark:border-blue-400 bg-blue-50/70 dark:bg-blue-900/30;
+    @apply bg-blue-50/80 dark:bg-blue-900/25;
 }
 .empty-state {
     @apply flex flex-col items-center justify-center text-center gap-2 text-gray-500 dark:text-gray-400;

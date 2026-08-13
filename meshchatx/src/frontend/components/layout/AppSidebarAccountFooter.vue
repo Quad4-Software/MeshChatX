@@ -3,51 +3,57 @@
 <template>
     <div v-if="config" class="bg-white border-t border-gray-200 dark:border-zinc-800 dark:bg-zinc-950">
         <div
-            class="flex items-center gap-2 p-3 cursor-pointer text-gray-700 dark:text-white"
+            class="cursor-pointer text-gray-700 dark:text-white"
             data-testid="sidebar-account-chip"
             @click="onAccountChipClick"
         >
-            <RouterLink :to="{ name: 'profile.icon' }" class="shrink-0" @click.stop>
-                <LxmfUserIcon
-                    :icon-name="config.lxmf_user_icon_name"
-                    :icon-foreground-colour="config.lxmf_user_icon_foreground_colour"
-                    :icon-background-colour="config.lxmf_user_icon_background_colour"
-                    icon-class="size-8"
-                />
-            </RouterLink>
-            <div v-if="!isCollapsed" class="min-w-0 flex-1">
-                <div class="truncate text-sm font-semibold" :title="identityLabel">
-                    {{ identityLabel }}
+            <div class="flex items-center gap-2 p-3 pb-1">
+                <RouterLink :to="{ name: 'profile.icon' }" class="shrink-0" @click.stop>
+                    <LxmfUserIcon
+                        :icon-name="config.lxmf_user_icon_name"
+                        :icon-foreground-colour="config.lxmf_user_icon_foreground_colour"
+                        :icon-background-colour="config.lxmf_user_icon_background_colour"
+                        icon-class="size-8"
+                    />
+                </RouterLink>
+                <div v-if="!isCollapsed" class="min-w-0 flex-1">
+                    <div class="truncate text-sm font-semibold" :title="identityLabel">
+                        {{ identityLabel }}
+                    </div>
                 </div>
-                <div class="truncate text-[11px] text-gray-500 dark:text-zinc-400">
-                    <span v-if="config.last_announced_at">
-                        {{ $t("app.last_announced", { time: lastAnnouncedLabel }) }}
-                    </span>
-                    <span v-else>{{ $t("app.last_announced_never") }}</span>
+                <div v-if="!isCollapsed" class="flex shrink-0 items-center gap-1">
+                    <button
+                        type="button"
+                        class="inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-blue-400 transition-colors"
+                        :title="$t('app.announce_now')"
+                        data-testid="sidebar-announce-radio"
+                        @click.stop="$emit('send-announce')"
+                    >
+                        <MaterialDesignIcon icon-name="radio" class="size-5" />
+                    </button>
+                    <button
+                        type="button"
+                        class="inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-blue-400 transition-colors"
+                        :title="$t('app.show_qr')"
+                        @click.stop="$emit('open-lxmf-qr')"
+                    >
+                        <MaterialDesignIcon icon-name="qrcode" class="size-5" />
+                    </button>
+                    <MaterialDesignIcon
+                        :icon-name="isExpanded ? 'chevron-up' : 'chevron-down'"
+                        class="size-5 text-gray-400 shrink-0"
+                    />
                 </div>
             </div>
-            <div v-if="!isCollapsed" class="flex shrink-0 items-center gap-1">
-                <button
-                    type="button"
-                    class="inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-blue-400 transition-colors"
-                    :title="$t('app.announce_now')"
-                    data-testid="sidebar-announce-radio"
-                    @click.stop="$emit('send-announce')"
-                >
-                    <MaterialDesignIcon icon-name="radio" class="size-5" />
-                </button>
-                <button
-                    type="button"
-                    class="inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-blue-400 transition-colors"
-                    :title="$t('app.show_qr')"
-                    @click.stop="$emit('open-lxmf-qr')"
-                >
-                    <MaterialDesignIcon icon-name="qrcode" class="size-5" />
-                </button>
-                <MaterialDesignIcon
-                    :icon-name="isExpanded ? 'chevron-up' : 'chevron-down'"
-                    class="size-5 text-gray-400 shrink-0"
-                />
+            <div
+                v-if="!isCollapsed"
+                class="px-3 pb-2 text-[11px] leading-snug text-gray-500 dark:text-zinc-400"
+                data-testid="sidebar-last-announced"
+            >
+                <span v-if="config.last_announced_at">
+                    {{ $t("app.last_announced", { time: lastAnnouncedLabel }) }}
+                </span>
+                <span v-else>{{ $t("app.last_announced_never") }}</span>
             </div>
         </div>
 
@@ -55,17 +61,17 @@
             v-if="isExpanded && !isCollapsed"
             class="divide-y divide-gray-200 border-t border-gray-200 text-gray-900 dark:divide-zinc-800 dark:border-zinc-800 dark:text-zinc-200"
         >
-            <div class="flex items-center gap-2 p-2">
+            <div class="p-2">
                 <input
                     :value="displayName"
                     type="text"
+                    data-testid="sidebar-display-name"
                     :placeholder="$t('app.display_name_placeholder')"
                     class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full min-w-0 p-2.5 dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-200 dark:focus:ring-blue-400 dark:focus:border-blue-400"
                     @input="$emit('update:displayName', $event.target.value)"
+                    @keydown.enter.prevent="$emit('save-identity')"
+                    @blur="$emit('save-identity')"
                 />
-                <button type="button" class="primary-chip shrink-0 text-xs" @click="$emit('save-identity')">
-                    {{ $t("common.save") }}
-                </button>
             </div>
 
             <div class="p-2 space-y-2 text-xs">

@@ -169,10 +169,7 @@ export function createShellRuntime(options) {
     async function networkFirstNavigation(eventLike) {
         const request = eventLike.request;
         try {
-            let response = null;
-            if (eventLike.preloadResponse) {
-                response = await eventLike.preloadResponse;
-            }
+            let response = await settlePreloadResponse(eventLike.preloadResponse);
             if (!response) {
                 response = await networkWithTimeout(request, navTimeoutMs);
             }
@@ -239,4 +236,63 @@ export function createShellRuntime(options) {
         cacheName,
         shellFallbackUrl,
     };
+}
+
+/**
+ * Await navigation preload without throwing when Chrome cancels it.
+ * @param {Promise<Response|null>|null|undefined} preloadResponse
+ * @returns {Promise<Response|null>}
+ */
+export async function settlePreloadResponse(preloadResponse) {
+    if (preloadResponse == null) {
+        return null;
+    }
+    try {
+        return await preloadResponse;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * True only for same-origin navigations that resolveFetch will handle.
+ * Accessing event.preloadResponse without respondWith throws NetworkError on cancel.
+ * @param {Request} request
+ * @param {string} origin
+ * @returns {boolean}
+ */
+export function shouldAttachNavigationPreload(request, origin) {
+    if (!request || typeof request.url !== "string") {
+        return false;
+    }
+    let url;
+    try {
+        url = new URL(request.url);
+    } catch {
+        return false;
+    }
+    if (url.origin !== origin) {
+        return false;
+    }
+    return classifyShellRequest(request, url) === "navigation";
+}
+
+/**
+ * Fetch listener: touch preloadResponse only when this event will respondWith a navigation.
+ * @param {{ request: Request, preloadResponse?: Promise<Response|null>, respondWith: (p: Promise<Response>) => void }} event
+ * @param {{ resolveFetch: (request: Request, extras?: object) => Promise<Response>|null }} runtime
+ * @param {string} origin
+ * @returns {boolean} true when respondWith was called
+ */
+export function handleFetchEvent(event, runtime, origin) {
+    const extras = {};
+    if (shouldAttachNavigationPreload(event.request, origin)) {
+        extras.preloadResponse = event.preloadResponse;
+    }
+    const handled = runtime.resolveFetch(event.request, extras);
+    if (handled) {
+        event.respondWith(handled);
+        return true;
+    }
+    return false;
 }

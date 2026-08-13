@@ -9,8 +9,11 @@ import { cacheNameForBuild, SHELL_CACHE_PREFIX } from "../../meshchatx/src/front
 import {
     createShellRuntime,
     findForbiddenCachedUrls,
+    handleFetchEvent,
     oracleExpectedStrategy,
     selectCachesToDelete,
+    settlePreloadResponse,
+    shouldAttachNavigationPreload,
     SHELL_FALLBACK_URL,
 } from "../../meshchatx/src/frontend/js/pwa/swShellRuntime.js";
 import {
@@ -236,5 +239,126 @@ describe("swClientRegister update lifecycle oracle", () => {
 
     it("oracle: register options force updateViaCache none", () => {
         expect(serviceWorkerRegisterOptions()).toEqual({ updateViaCache: "none" });
+    });
+});
+
+describe("swShellRuntime navigation preload", () => {
+    function makeFetchEvent(request, preload) {
+        let preloadAccessed = false;
+        const event = {
+            request,
+            get preloadResponse() {
+                preloadAccessed = true;
+                return preload;
+            },
+            respondWith: vi.fn(),
+            waitUntil: vi.fn(),
+        };
+        return {
+            event,
+            wasPreloadAccessed() {
+                return preloadAccessed;
+            },
+        };
+    }
+
+    it("oracle: attach preload only for same-origin navigations that resolveFetch handles", () => {
+        const cases = [
+            { pathname: "/", method: "GET", mode: "navigate" },
+            { pathname: "/index.html", method: "GET", mode: "navigate" },
+            { pathname: "/map", method: "GET", mode: "navigate" },
+            { pathname: "/api/v1/status", method: "GET", mode: "navigate" },
+            { pathname: "/ws", method: "GET", mode: "navigate" },
+            { pathname: "/assets/app.js", method: "GET", mode: "cors" },
+            { pathname: "/boot-theme.js", method: "GET", mode: "cors" },
+            { pathname: "/", method: "POST", mode: "navigate" },
+        ];
+        for (const input of cases) {
+            const url = `${ORIGIN}${input.pathname}`;
+            const request = makeRequest(url, { method: input.method, mode: input.mode });
+            const expected = oracleExpectedStrategy(input) === "navigation";
+            expect(shouldAttachNavigationPreload(request, ORIGIN)).toBe(expected);
+        }
+        expect(shouldAttachNavigationPreload(makeRequest("https://evil.example/", { mode: "navigate" }), ORIGIN)).toBe(
+            false
+        );
+    });
+
+    it("does not read preloadResponse for API or asset fetches", () => {
+        const caches = new MemoryCacheStorage();
+        const runtime = createShellRuntime({
+            caches,
+            fetch: vi.fn(async () => okResponse("asset")),
+            cacheName: cacheNameForBuild("preload"),
+            origin: ORIGIN,
+        });
+        const api = makeFetchEvent(makeRequest(`${ORIGIN}/api/v1/status`));
+        expect(handleFetchEvent(api.event, runtime, ORIGIN)).toBe(false);
+        expect(api.wasPreloadAccessed()).toBe(false);
+        expect(api.event.respondWith).not.toHaveBeenCalled();
+
+        const asset = makeFetchEvent(makeRequest(`${ORIGIN}/assets/app.js`));
+        expect(handleFetchEvent(asset.event, runtime, ORIGIN)).toBe(true);
+        expect(asset.wasPreloadAccessed()).toBe(false);
+        expect(asset.event.respondWith).toHaveBeenCalled();
+    });
+
+    it("reads preloadResponse only when responding to a navigation", async () => {
+        const caches = new MemoryCacheStorage();
+        const preload = Promise.resolve(okResponse("<html>pre</html>", { headers: { "content-type": "text/html" } }));
+        const fetchFn = vi.fn();
+        const runtime = createShellRuntime({
+            caches,
+            fetch: fetchFn,
+            cacheName: cacheNameForBuild("nav-preload"),
+            origin: ORIGIN,
+        });
+        const nav = makeFetchEvent(makeRequest(`${ORIGIN}/`, { mode: "navigate" }), preload);
+        expect(handleFetchEvent(nav.event, runtime, ORIGIN)).toBe(true);
+        expect(nav.wasPreloadAccessed()).toBe(true);
+        expect(nav.event.respondWith).toHaveBeenCalled();
+        const response = await nav.event.respondWith.mock.calls[0][0];
+        expect(await response.text()).toContain("pre");
+        expect(fetchFn).not.toHaveBeenCalled();
+    });
+
+    it("cancelled navigation preload falls through to cache without throwing", async () => {
+        const caches = new MemoryCacheStorage();
+        const cacheName = cacheNameForBuild("cancelled");
+        await (await caches.open(cacheName)).put(
+            SHELL_FALLBACK_URL,
+            okResponse("<html>shell</html>", { headers: { "content-type": "text/html" } })
+        );
+        const cancelled = Promise.reject(
+            Object.assign(new Error("The service worker navigation preload request was cancelled"), {
+                name: "NetworkError",
+            })
+        );
+        void cancelled.catch(() => {});
+        const fetchFn = vi.fn(async () => {
+            throw new Error("network failed");
+        });
+        const runtime = createShellRuntime({
+            caches,
+            fetch: fetchFn,
+            cacheName,
+            origin: ORIGIN,
+        });
+        const navReq = makeRequest(`${ORIGIN}/map`, { mode: "navigate" });
+        const response = await runtime.networkFirstNavigation({
+            request: navReq,
+            preloadResponse: cancelled,
+        });
+        expect(await response.text()).toContain("shell");
+        expect(fetchFn).toHaveBeenCalled();
+    });
+
+    it("settlePreloadResponse maps a rejected preload to null", async () => {
+        const cancelled = Promise.reject(new Error("cancelled"));
+        void cancelled.catch(() => {});
+        await expect(settlePreloadResponse(cancelled)).resolves.toBeNull();
+        await expect(settlePreloadResponse(null)).resolves.toBeNull();
+        const ok = okResponse("ok");
+        await expect(settlePreloadResponse(Promise.resolve(ok))).resolves.toBe(ok);
     });
 });

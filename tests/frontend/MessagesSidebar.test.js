@@ -20,7 +20,15 @@ vi.mock("../../meshchatx/src/frontend/js/Utils", () => ({
     },
 }));
 
+vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
+    default: {
+        success: vi.fn(),
+        error: vi.fn(),
+    },
+}));
+
 import Utils from "../../meshchatx/src/frontend/js/Utils";
+import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
 
 function defaultProps(overrides = {}) {
     return {
@@ -72,9 +80,9 @@ describe("MessagesSidebar UI", () => {
 
     it("shows Folders section with All Messages and Uncategorized", () => {
         const wrapper = mountSidebar();
-        expect(wrapper.text()).toContain("Folders");
-        expect(wrapper.text()).toContain("All Messages");
-        expect(wrapper.text()).toContain("Uncategorized");
+        expect(wrapper.text()).toContain("messages.folders");
+        expect(wrapper.text()).toContain("messages.all_messages");
+        expect(wrapper.text()).toContain("messages.uncategorized");
     });
 
     it("shows custom folders when provided", () => {
@@ -103,7 +111,7 @@ describe("MessagesSidebar UI", () => {
     it("emits folder-click when All Messages is clicked", async () => {
         const wrapper = mountSidebar();
         const clickables = wrapper.findAll(".cursor-pointer");
-        const allMessagesRow = clickables.find((r) => r.text().includes("All Messages"));
+        const allMessagesRow = clickables.find((r) => r.text().includes("messages.all_messages"));
         expect(allMessagesRow.exists()).toBe(true);
         await allMessagesRow.trigger("click");
         expect(wrapper.emitted("folder-click")).toBeTruthy();
@@ -163,7 +171,7 @@ describe("MessagesSidebar UI", () => {
             ],
         });
         await wrapper.vm.$nextTick();
-        const selectionBtn = wrapper.find('button[title="Selection Mode"]');
+        const selectionBtn = wrapper.find('button[title="nomadnet.sidebar_selection_mode"]');
         expect(selectionBtn.exists()).toBe(true);
         await selectionBtn.trigger("click");
         await wrapper.vm.$nextTick();
@@ -291,5 +299,60 @@ describe("MessagesSidebar UI", () => {
         expect(wrapper.text()).toContain("messages.no_search_results_peers");
         expect(wrapper.text()).not.toContain("messages.searching_announces");
         expect(wrapper.text()).not.toContain("messages.no_peers_discovered");
+    });
+
+    it("does not show the LXMF hash on conversation rows", async () => {
+        const conversations = [
+            {
+                destination_hash: "abc123def456",
+                display_name: "Alice",
+                updated_at: new Date().toISOString(),
+                is_unread: false,
+                failed_messages_count: 0,
+            },
+        ];
+        const wrapper = mountSidebar({ conversations });
+        await wrapper.vm.$nextTick();
+        const row = wrapper.find(".conversation-item");
+        expect(row.exists()).toBe(true);
+        expect(row.text()).toContain("Alice");
+        expect(row.text()).not.toContain("abc123de");
+        expect(row.text()).not.toContain("abc123def456");
+    });
+
+    it("copies the LXMF hash from the conversation context menu", async () => {
+        window.api = {
+            get: vi.fn().mockResolvedValue({ data: { is_contact: false } }),
+        };
+        const writeText = vi.fn().mockResolvedValue(undefined);
+        vi.stubGlobal("navigator", {
+            ...navigator,
+            clipboard: { writeText },
+        });
+        const conversations = [
+            {
+                destination_hash: "abc123def456",
+                display_name: "Alice",
+                updated_at: new Date().toISOString(),
+                is_unread: false,
+                failed_messages_count: 0,
+            },
+        ];
+        const wrapper = mountSidebar({ conversations });
+        await wrapper.vm.$nextTick();
+        await wrapper.find(".conversation-item").trigger("contextmenu");
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.contextMenu.show).toBe(true);
+        expect(wrapper.vm.contextMenu.targetHash).toBe("abc123def456");
+        expect(wrapper.text()).toContain("messages.copy_lxmf");
+        const copyItem = wrapper.findAll("button").find((b) => b.text().includes("messages.copy_lxmf"));
+        expect(copyItem).toBeTruthy();
+        await copyItem.trigger("click");
+        await wrapper.vm.$nextTick();
+        expect(writeText).toHaveBeenCalledWith("abc123def456");
+        expect(ToastUtils.success).toHaveBeenCalledWith("common.copied");
+        expect(wrapper.vm.contextMenu.show).toBe(false);
+        vi.unstubAllGlobals();
+        delete window.api;
     });
 });
