@@ -27,6 +27,7 @@
         "failed_to_stop": "Botin pysäytys epäonnistui",
         "delete_bot": "Poista botti",
         "export_identity": "Vie identiteetti",
+        "export_failed": "Botin identiteettiä ei voitu viedä",
         "bot_deleted": "Botin poisto onnistui",
         "failed_to_delete": "Botin poisto epäonnistui",
         "more_bots_coming": "Lisää botteja tulossa!",

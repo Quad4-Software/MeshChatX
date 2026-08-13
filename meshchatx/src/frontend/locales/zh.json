@@ -27,6 +27,7 @@
         "failed_to_stop": "停止机器人失败",
         "delete_bot": "删除机器人",
         "export_identity": "导出身份",
+        "export_failed": "无法导出机器人身份",
         "bot_deleted": "机器人删除成功",
         "failed_to_delete": "删除机器人失败",
         "more_bots_coming": "更多机器人即将推出！",

@@ -69,14 +69,18 @@ def test_bot_handler_env_override_wins_over_app_reticulum_config_dir(
 
 def test_bot_handler_load_save_state(temp_identity_dir):
     handler = BotHandler(temp_identity_dir)
-    test_state = [{"id": "bot1", "enabled": True, "storage_dir": "some/path"}]
+    storage = os.path.join(handler.bots_dir, "bot1")
+    os.makedirs(storage, exist_ok=True)
+    test_state = [{"id": "bot1", "enabled": True, "storage_dir": storage}]
     handler.bots_state = test_state
     handler._save_state()
 
-    # New handler instance to load state
     handler2 = BotHandler(temp_identity_dir)
     assert len(handler2.bots_state) == 1
     assert handler2.bots_state[0]["id"] == "bot1"
+    assert os.path.realpath(handler2.bots_state[0]["storage_dir"]) == os.path.realpath(
+        storage,
+    )
 
 
 def test_get_available_templates(temp_identity_dir):
@@ -319,3 +323,99 @@ def test_read_subprocess_log_unknown_bot(temp_identity_dir):
     handler = BotHandler(temp_identity_dir)
     with pytest.raises(ValueError, match="Unknown bot"):
         handler.read_subprocess_log("nope")
+
+
+def _outside_bait_identity(tmp_path):
+    outside = tmp_path / "outside-bot"
+    outside.mkdir()
+    bait = outside / "identity"
+    bait.write_bytes(b"SECRET_BAIT_BYTES")
+    log_path = outside / "meshchatx_bot_subprocess.log"
+    log_path.write_text("OUTSIDE_LOG\n", encoding="utf-8")
+    return outside, bait, log_path
+
+
+def test_get_bot_identity_path_rejects_escaped_storage(temp_identity_dir, tmp_path):
+    handler = BotHandler(temp_identity_dir)
+    outside, bait, _log = _outside_bait_identity(tmp_path)
+    bot_id = "escaped"
+    handler.bots_state = [
+        {
+            "id": bot_id,
+            "storage_dir": str(outside),
+            "bot_config_dir": str(outside),
+        },
+    ]
+    assert handler.get_bot_identity_path(bot_id) is None
+    assert bait.read_bytes() == b"SECRET_BAIT_BYTES"
+
+
+def test_load_state_drops_escaped_storage(temp_identity_dir, tmp_path):
+    handler = BotHandler(temp_identity_dir)
+    outside, bait, _log = _outside_bait_identity(tmp_path)
+    handler.bots_state = [
+        {
+            "id": "escaped",
+            "enabled": True,
+            "storage_dir": str(outside),
+            "bot_config_dir": str(outside),
+        },
+    ]
+    handler._save_state()
+    handler2 = BotHandler(temp_identity_dir)
+    assert handler2.bots_state == []
+    assert bait.read_bytes() == b"SECRET_BAIT_BYTES"
+
+
+def test_read_subprocess_log_rejects_escaped_storage(temp_identity_dir, tmp_path):
+    handler = BotHandler(temp_identity_dir)
+    outside, bait, log_path = _outside_bait_identity(tmp_path)
+    handler.bots_state = [
+        {
+            "id": "escaped",
+            "storage_dir": str(outside),
+            "bot_config_dir": str(outside),
+        },
+    ]
+    with pytest.raises(ValueError, match="invalid bot storage directory"):
+        handler.read_subprocess_log("escaped")
+    assert log_path.read_text(encoding="utf-8") == "OUTSIDE_LOG\n"
+    assert bait.read_bytes() == b"SECRET_BAIT_BYTES"
+
+
+@patch.object(BotHandler, "_is_pid_alive", return_value=True)
+def test_request_announce_rejects_escaped_storage(
+    mock_alive,
+    temp_identity_dir,
+    tmp_path,
+):
+    handler = BotHandler(temp_identity_dir)
+    outside, bait, _log = _outside_bait_identity(tmp_path)
+    handler.bots_state = [
+        {
+            "id": "escaped",
+            "storage_dir": str(outside),
+            "bot_config_dir": str(outside),
+            "pid": 99999,
+        },
+    ]
+    with pytest.raises(RuntimeError, match="invalid bot storage directory"):
+        handler.request_announce("escaped")
+    assert not (outside / "meshchatx_request_announce").exists()
+    assert bait.read_bytes() == b"SECRET_BAIT_BYTES"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symlink jail oracle is POSIX")
+def test_get_bot_identity_path_rejects_symlink_out_bot_config_dir(
+    temp_identity_dir,
+    tmp_path,
+):
+    handler = BotHandler(temp_identity_dir)
+    bot_id = handler.start_bot("echo", "Echo")
+    storage = os.path.join(handler.bots_dir, bot_id)
+    outside, bait, _log = _outside_bait_identity(tmp_path)
+    cfg_link = os.path.join(storage, "config_link")
+    os.symlink(str(outside), cfg_link)
+    handler.bots_state[0]["bot_config_dir"] = cfg_link
+    assert handler.get_bot_identity_path(bot_id) is None
+    assert bait.read_bytes() == b"SECRET_BAIT_BYTES"

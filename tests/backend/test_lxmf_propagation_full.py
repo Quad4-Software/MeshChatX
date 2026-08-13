@@ -344,7 +344,7 @@ async def test_destination_path_returns_local_hop_zero_for_local_destinations(mo
     path_handler = next(
         r.handler
         for r in mock_app.get_routes()
-        if r.path == "/api/v1/destination/{destination_hash}/path"
+        if r.path == "/api/v1/destination/{destination_hash}/path" and r.method == "GET"
     )
     request = SimpleNamespace(
         match_info={"destination_hash": local_hash},

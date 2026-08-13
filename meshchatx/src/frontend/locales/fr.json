@@ -27,6 +27,7 @@
         "failed_to_stop": "Échec de l'arrêt du robot",
         "delete_bot": "Supprimer Bot",
         "export_identity": "Identité d'exportation",
+        "export_failed": "Impossible d'exporter l'identité du bot",
         "bot_deleted": "Bot supprimé avec succès",
         "failed_to_delete": "Impossible de supprimer le bot",
         "more_bots_coming": "D'autres robots arrivent bientôt !",

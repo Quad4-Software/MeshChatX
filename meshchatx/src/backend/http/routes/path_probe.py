@@ -131,66 +131,93 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     zipfile,
 )
 
+# Same ceiling as RNProbeHandler.MAX_TIMEOUT_S
+PATH_PROBE_MIN_TIMEOUT_S = 1
+PATH_PROBE_MAX_TIMEOUT_S = 600
+PATH_WAIT_REQUIRES_POST_MESSAGE = (
+    "Waiting for a path requires POST. GET /path is a snapshot only."
+)
+
+
+def parse_path_probe_timeout(raw, *, default=15):
+    if raw is None or raw == "":
+        raw = default
+    try:
+        timeout_seconds = int(raw)
+    except (TypeError, ValueError):
+        return None, "Timeout must be an integer."
+    if (
+        timeout_seconds < PATH_PROBE_MIN_TIMEOUT_S
+        or timeout_seconds > PATH_PROBE_MAX_TIMEOUT_S
+    ):
+        return None, (
+            f"Timeout must be between {PATH_PROBE_MIN_TIMEOUT_S} and "
+            f"{PATH_PROBE_MAX_TIMEOUT_S} seconds."
+        )
+    return timeout_seconds, None
+
+
+async def read_path_probe_timeout_raw(request, default=15):
+    query = getattr(request, "query", None) or {}
+    if "timeout" in query:
+        return query.get("timeout")
+    method = str(getattr(request, "method", "GET") or "GET").upper()
+    if method == "POST":
+        try:
+            body = await request.json()
+        except Exception:
+            body = None
+        if isinstance(body, dict) and body.get("timeout") is not None:
+            return body.get("timeout")
+    return default
+
+
+def local_destination_hashes(app):
+    hashes: set[str] = set()
+    with contextlib.suppress(Exception):
+        if app.current_context and app.current_context.identity:
+            hashes.add(app.current_context.identity.hash.hex())
+    with contextlib.suppress(Exception):
+        if app.local_lxmf_destination is not None:
+            hashes.add(app.local_lxmf_destination.hash.hex())
+    with contextlib.suppress(Exception):
+        if app.current_context and app.current_context.message_router:
+            pdest = app.current_context.message_router.propagation_destination
+            if pdest is not None and getattr(pdest, "hash", None):
+                hashes.add(pdest.hash.hex())
+    return hashes
+
 
 def register_path_probe_routes(routes, app):
 
-    # get path to destination
-    @routes.get("/api/v1/destination/{destination_hash}/path")
-    async def destination_path(request):
-        # get path params
-        destination_hash = request.match_info.get("destination_hash", "")
+    def maybe_resend_failed_for_current(destination_hash_str):
+        ctx = app.current_context
+        if (
+            ctx is not None
+            and ctx.running
+            and ctx.config.auto_resend_failed_messages_when_announce_received.get()
+        ):
+            AsyncUtils.run_async(
+                app.resend_failed_messages_for_destination(
+                    destination_hash_str,
+                    context=ctx,
+                ),
+            )
 
-        # convert destination hash to bytes
-        destination_hash = bytes.fromhex(destination_hash)
-        destination_hash_hex = destination_hash.hex()
-        local_hashes: set[str] = set()
-        with contextlib.suppress(Exception):
-            if app.current_context and app.current_context.identity:
-                local_hashes.add(app.current_context.identity.hash.hex())
-        with contextlib.suppress(Exception):
-            if app.local_lxmf_destination is not None:
-                local_hashes.add(app.local_lxmf_destination.hash.hex())
-        with contextlib.suppress(Exception):
-            if app.current_context and app.current_context.message_router:
-                pdest = app.current_context.message_router.propagation_destination
-                if pdest is not None and getattr(pdest, "hash", None):
-                    local_hashes.add(pdest.hash.hex())
-
-        if destination_hash_hex in local_hashes:
-            return web.json_response(
-                {
-                    "path": {
-                        "hops": 0,
-                        "next_hop": destination_hash_hex,
-                        "next_hop_interface": "Local",
-                    },
-                    "path_stale": False,
-                    "path_unresponsive": False,
+    def local_path_response(destination_hash_hex):
+        return web.json_response(
+            {
+                "path": {
+                    "hops": 0,
+                    "next_hop": destination_hash_hex,
+                    "next_hop_interface": "Local",
                 },
-            )
+                "path_stale": False,
+                "path_unresponsive": False,
+            },
+        )
 
-        # check if user wants to request the path from the network right now
-        request_query_param = request.query.get("request", "false")
-        should_request_now = request_query_param in ("true", "1")
-        if should_request_now:
-            # determine how long we should wait for a path response
-            timeout_seconds = int(request.query.get("timeout", 15))
-            timeout_after_seconds = time.time() + timeout_seconds
-
-            reticulum = app.reticulum if hasattr(app, "reticulum") else None
-            reticulum_pathfinding.prepare_fresh_path_request(
-                reticulum,
-                destination_hash,
-            )
-
-            # wait until we have a path, or give up after the configured timeout
-            while (
-                not RNS.Transport.has_path(destination_hash)
-                and time.time() < timeout_after_seconds
-            ):
-                await asyncio.sleep(0.1)
-
-        # ensure path is known
+    def destination_path_snapshot(destination_hash):
         if not RNS.Transport.has_path(destination_hash):
             pm = reticulum_pathfinding.path_metadata_for_api(destination_hash)
             return web.json_response(
@@ -200,7 +227,6 @@ def register_path_probe_routes(routes, app):
                 },
             )
 
-        # determine next hop and hop count
         hops = RNS.Transport.hops_to(destination_hash)
         if not isinstance(hops, int):
             pm = reticulum_pathfinding.path_metadata_for_api(destination_hash)
@@ -219,7 +245,6 @@ def register_path_probe_routes(routes, app):
         ):
             next_hop_bytes = None
 
-        # ensure next hop provided
         if next_hop_bytes is None:
             pm = reticulum_pathfinding.path_metadata_for_api(destination_hash)
             return web.json_response(
@@ -247,6 +272,62 @@ def register_path_probe_routes(routes, app):
                 **pm,
             },
         )
+
+    @routes.get("/api/v1/destination/{destination_hash}/path")
+    async def destination_path(request):
+        destination_hash = request.match_info.get("destination_hash", "")
+        destination_hash = bytes.fromhex(destination_hash)
+        destination_hash_hex = destination_hash.hex()
+
+        request_query_param = request.query.get("request", "false")
+        if request_query_param in ("true", "1"):
+            return web.json_response(
+                {"message": PATH_WAIT_REQUIRES_POST_MESSAGE},
+                status=400,
+            )
+
+        if destination_hash_hex in local_destination_hashes(app):
+            return local_path_response(destination_hash_hex)
+
+        return destination_path_snapshot(destination_hash)
+
+    @routes.post("/api/v1/destination/{destination_hash}/path")
+    async def destination_path_wait(request):
+        destination_hash = request.match_info.get("destination_hash", "")
+        try:
+            destination_hash_bytes = bytes.fromhex(destination_hash)
+        except Exception:
+            return web.json_response(
+                {"message": "invalid destination hash"},
+                status=400,
+            )
+        destination_hash_hex = destination_hash_bytes.hex()
+
+        timeout_raw = await read_path_probe_timeout_raw(request, default=15)
+        timeout_seconds, timeout_error = parse_path_probe_timeout(timeout_raw)
+        if timeout_error:
+            return web.json_response({"message": timeout_error}, status=400)
+
+        if destination_hash_hex in local_destination_hashes(app):
+            return local_path_response(destination_hash_hex)
+
+        timeout_after_seconds = time.time() + timeout_seconds
+        reticulum = app.reticulum if hasattr(app, "reticulum") else None
+        reticulum_pathfinding.prepare_fresh_path_request(
+            reticulum,
+            destination_hash_bytes,
+        )
+
+        while (
+            not RNS.Transport.has_path(destination_hash_bytes)
+            and time.time() < timeout_after_seconds
+        ):
+            await asyncio.sleep(0.1)
+
+        if RNS.Transport.has_path(destination_hash_bytes):
+            maybe_resend_failed_for_current(destination_hash_hex)
+
+        return destination_path_snapshot(destination_hash_bytes)
 
     # drop path to destination
 
@@ -290,19 +371,8 @@ def register_path_probe_routes(routes, app):
             destination_hash_bytes,
         )
 
-        # if path is already available, resend failed messages for this destination
         if RNS.Transport.has_path(destination_hash_bytes):
-            for _ctx in list(app.contexts.values()):
-                if (
-                    _ctx.running
-                    and _ctx.config.auto_resend_failed_messages_when_announce_received.get()
-                ):
-                    AsyncUtils.run_async(
-                        app.resend_failed_messages_for_destination(
-                            destination_hash,
-                            context=_ctx,
-                        ),
-                    )
+            maybe_resend_failed_for_current(destination_hash)
 
         return web.json_response(
             {
@@ -400,7 +470,7 @@ def register_path_probe_routes(routes, app):
     # this allows us to ping/probe any active lxmf.delivery destination and get rtt/snr/rssi data on demand
     # https://github.com/markqvist/LXMF/blob/9ff76c0473e9d4107e079f266dd08144bb74c7c8/LXMF/LXMRouter.py#L234
     # https://github.com/markqvist/LXMF/blob/9ff76c0473e9d4107e079f266dd08144bb74c7c8/LXMF/LXMRouter.py#L1374
-    @routes.get("/api/v1/ping/{destination_hash}/lxmf.delivery")
+    @routes.post("/api/v1/ping/{destination_hash}/lxmf.delivery")
     async def ping_lxmf_delivery(request):
         # get path params
         destination_hash_str = request.match_info.get("destination_hash", "")
@@ -413,16 +483,11 @@ def register_path_probe_routes(routes, app):
                 status=400,
             )
 
-        try:
-            timeout_seconds = int(request.query.get("timeout", 15))
-        except (TypeError, ValueError):
+        timeout_raw = await read_path_probe_timeout_raw(request, default=15)
+        timeout_seconds, timeout_error = parse_path_probe_timeout(timeout_raw)
+        if timeout_error:
             return web.json_response(
-                {"message": "Ping failed. Timeout must be an integer."},
-                status=400,
-            )
-        if timeout_seconds < 1:
-            return web.json_response(
-                {"message": "Ping failed. Timeout must be at least 1 second."},
+                {"message": f"Ping failed. {timeout_error}"},
                 status=400,
             )
 
@@ -513,18 +578,7 @@ def register_path_probe_routes(routes, app):
         rtt_milliseconds = round(rtt * 1000, 3)
         rtt_duration_string = f"{rtt_milliseconds} ms"
 
-        # resend any previously failed messages to this destination now that path is available
-        for _ctx in list(app.contexts.values()):
-            if (
-                _ctx.running
-                and _ctx.config.auto_resend_failed_messages_when_announce_received.get()
-            ):
-                AsyncUtils.run_async(
-                    app.resend_failed_messages_for_destination(
-                        destination_hash_str,
-                        context=_ctx,
-                    ),
-                )
+        maybe_resend_failed_for_current(destination_hash_str)
 
         return web.json_response(
             {

@@ -3,6 +3,7 @@
 import { describe, it, expect, vi } from "vitest";
 import {
     getDestinationPath,
+    postDestinationPath,
     postRequestPath,
     postDropPath,
     runDestinationPathFinder,
@@ -13,11 +14,11 @@ import {
 } from "../../meshchatx/src/frontend/js/reticulumPathfinding.js";
 
 describe("reticulumPathfinding.js", () => {
-    it("getDestinationPath builds expected URL and forwards params", () => {
+    it("getDestinationPath builds expected URL without a request query", () => {
         const api = { get: vi.fn().mockResolvedValue({ data: { path: null } }) };
         getDestinationPath(api, "deadbeef", { request: true, timeout: 12 });
         expect(api.get).toHaveBeenCalledWith("/api/v1/destination/deadbeef/path", {
-            params: { request: "1", timeout: 12 },
+            params: { timeout: 12 },
         });
     });
 
@@ -33,6 +34,33 @@ describe("reticulumPathfinding.js", () => {
         postDropPath(api, "ab");
         expect(api.post).toHaveBeenCalledWith("/api/v1/destination/ab/request-path");
         expect(api.post).toHaveBeenCalledWith("/api/v1/destination/ab/drop-path");
+    });
+
+    it("postDestinationPath posts the path URL with timeout query", () => {
+        const api = { post: vi.fn().mockResolvedValue({ data: { path: null } }) };
+        postDestinationPath(api, "deadbeef", { timeout: 4 });
+        expect(api.post).toHaveBeenCalledWith(
+            "/api/v1/destination/deadbeef/path",
+            {},
+            {
+                params: { timeout: 4 },
+            }
+        );
+    });
+
+    it("runDestinationPathFinder force posts path wait", async () => {
+        const api = {
+            post: vi.fn().mockResolvedValue({ data: { path: { hops: 2 } } }),
+        };
+        const r = await runDestinationPathFinder(api, "h", "force", { forceTimeout: 9 });
+        expect(r).toEqual({ ok: true, path: { hops: 2 } });
+        expect(api.post).toHaveBeenCalledWith(
+            "/api/v1/destination/h/path",
+            {},
+            {
+                params: { timeout: 9 },
+            }
+        );
     });
 
     it("runDestinationPathFinder quick only posts request-path", async () => {

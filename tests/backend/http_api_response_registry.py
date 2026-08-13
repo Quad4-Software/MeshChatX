@@ -281,7 +281,7 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     ),
     HttpJsonContract("GET", "/api/v1/identities", IDENTITIES_LIST_SCHEMA),
     HttpJsonContract(
-        "GET",
+        "POST",
         "/api/v1/identity/backup/base32",
         IDENTITY_BACKUP_BASE32_SCHEMA,
     ),
@@ -661,7 +661,6 @@ HTTP_JSON_GET_CONTRACT_EXCLUDED: tuple[str, ...] = (
     "/api/v1/telephone/voicemails/{id}/audio",
     "/api/v1/lxmf/propagation-node/sync",
     "/api/v1/lxmf/propagation-node/stop-sync",
-    "/api/v1/ping/{destination_hash}/lxmf.delivery",
 )
 
 _HTTP_JSON_GET_EXCLUDED_PATTERNS: tuple[re.Pattern[str], ...] = (

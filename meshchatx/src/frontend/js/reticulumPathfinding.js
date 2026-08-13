@@ -74,18 +74,27 @@ export async function warmPathIfNeeded(api, hash, snapshot) {
 }
 
 /**
+ * Snapshot-only. Waiting for a path uses postDestinationPath.
+ *
  * @param {import("axios").AxiosInstance} api
  * @param {string} hash
- * @param {{ request?: "0" | "1" | boolean, timeout?: number } & Record<string, string | number | boolean | undefined>} [params]
+ * @param {Record<string, string | number | boolean | undefined>} [params]
  */
 export function getDestinationPath(api, hash, params) {
     const q = { ...params };
-    if (q.request === true) {
-        q.request = "1";
-    } else if (q.request === false) {
-        q.request = "0";
-    }
+    delete q.request;
     return api.get(destinationPath(hash), { params: q });
+}
+
+/**
+ * @param {import("axios").AxiosInstance} api
+ * @param {string} hash
+ * @param {{ timeout?: number }} [options]
+ */
+export function postDestinationPath(api, hash, options) {
+    const timeout = options?.timeout;
+    const params = timeout == null ? {} : { timeout };
+    return api.post(destinationPath(hash), {}, { params });
 }
 
 export function postRequestPath(api, hash) {
@@ -113,10 +122,7 @@ export async function runDestinationPathFinder(api, hash, mode, options) {
         return { ok: true, path: null };
     }
     if (mode === "force") {
-        const res = await getDestinationPath(api, hash, {
-            request: "1",
-            timeout: forceTimeout,
-        });
+        const res = await postDestinationPath(api, hash, { timeout: forceTimeout });
         return { ok: true, path: res.data?.path ?? null };
     }
     if (mode === "drop_then_request") {

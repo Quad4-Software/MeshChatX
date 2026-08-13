@@ -83,9 +83,14 @@ class BotHandler:
     def _load_state(self):
         try:
             with open(self.state_file, encoding="utf-8") as f:
-                self.bots_state = json.load(f)
-                # Ensure all storage paths are absolute
-                for entry in self.bots_state:
+                loaded = json.load(f)
+                if not isinstance(loaded, list):
+                    self.bots_state = []
+                    return
+                kept = []
+                for entry in loaded:
+                    if not isinstance(entry, dict):
+                        continue
                     if "storage_dir" in entry:
                         entry["storage_dir"] = os.path.abspath(entry["storage_dir"])
                     if entry.get("bot_config_dir"):
@@ -96,6 +101,14 @@ class BotHandler:
                         entry["reticulum_config_dir"] = os.path.abspath(
                             os.path.expanduser(entry["reticulum_config_dir"]),
                         )
+                    if self._jailed_bot_dirs(entry) is None:
+                        logger.warning(
+                            "Dropping bot %s: storage path is outside the identity bots directory",
+                            entry.get("id"),
+                        )
+                        continue
+                    kept.append(entry)
+                self.bots_state = kept
         except FileNotFoundError:
             self.bots_state = []
         except Exception:
@@ -198,10 +211,21 @@ class BotHandler:
                 break
         if entry is None:
             raise ValueError(f"Unknown bot: {bot_id}")
-        storage_dir = entry.get("storage_dir")
+        jailed = self._jailed_bot_dirs(entry)
+        if jailed is None:
+            raise ValueError("invalid bot storage directory")
+        storage_dir, _bot_config_dir = jailed
         path = BotHandler._subprocess_log_path(storage_dir)
         if not path:
             return {"log": None, "truncated": False, "total_bytes": 0}
+        if os.path.exists(path):
+            jailed_path = self._jailed_file_under(
+                storage_dir,
+                "meshchatx_bot_subprocess.log",
+            )
+            if jailed_path is None:
+                raise ValueError("invalid bot storage directory")
+            path = jailed_path
         try:
             total = os.path.getsize(path)
         except OSError:
@@ -528,9 +552,10 @@ class BotHandler:
         pid = entry.get("pid")
         if not pid or not self._is_pid_alive(pid):
             raise RuntimeError("bot is not running")
-        sd = entry.get("storage_dir")
-        if not sd:
-            raise RuntimeError("bot has no storage directory")
+        jailed = self._jailed_bot_dirs(entry)
+        if jailed is None:
+            raise RuntimeError("invalid bot storage directory")
+        sd, _bot_config_dir = jailed
         req = os.path.join(sd, "meshchatx_request_announce")
         try:
             with open(req, "w", encoding="utf-8") as f:
@@ -549,6 +574,78 @@ class BotHandler:
         if real != bots_root and not real.startswith(bots_root + os.sep):
             return None
         return real
+
+    def _jailed_bot_dirs(self, entry):
+        """Return jailed (storage_dir, bot_config_dir) or None if either path escapes."""
+        if not entry:
+            return None
+        storage_dir = self._jailed_bot_storage_dir(entry.get("storage_dir"))
+        if not storage_dir:
+            return None
+        raw_cfg = entry.get("bot_config_dir")
+        if raw_cfg:
+            bot_config_dir = self._jailed_bot_storage_dir(raw_cfg)
+            if not bot_config_dir:
+                return None
+        else:
+            bot_config_dir = os.path.join(storage_dir, "config")
+        return storage_dir, bot_config_dir
+
+    def _jailed_file_under(self, root, *parts):
+        if not root:
+            return None
+        candidate = os.path.join(root, *parts)
+        if not os.path.exists(candidate):
+            return None
+        real = os.path.realpath(candidate)
+        root_real = os.path.realpath(root)
+        if real != root_real and not real.startswith(root_real + os.sep):
+            return None
+        return real
+
+    def get_bot_identity_path(self, bot_id):
+        entry = None
+        for e in self.bots_state:
+            if e.get("id") == bot_id:
+                entry = e
+                break
+
+        if not entry:
+            return None
+
+        jailed = self._jailed_bot_dirs(entry)
+        if jailed is None:
+            return None
+        storage_dir, bot_config_dir = jailed
+
+        for path in (
+            self._jailed_file_under(bot_config_dir, "identity"),
+            self._jailed_file_under(bot_config_dir, "lxmf", "identity"),
+        ):
+            if path:
+                return path
+
+        reticulum_config_dir = entry.get("reticulum_config_dir")
+        if reticulum_config_dir:
+            allowed_shared = os.path.realpath(
+                os.path.join(self.bot_reticulum_config_dir, "identity"),
+            )
+            candidate = os.path.realpath(
+                os.path.join(os.path.expanduser(reticulum_config_dir), "identity"),
+            )
+            if candidate == allowed_shared and os.path.isfile(candidate):
+                return candidate
+
+        for path in (
+            self._jailed_file_under(storage_dir, "config", "identity"),
+            self._jailed_file_under(storage_dir, "identity"),
+            self._jailed_file_under(storage_dir, "config", "lxmf", "identity"),
+            self._jailed_file_under(storage_dir, "lxmf", "identity"),
+        ):
+            if path:
+                return path
+
+        return None
 
     def delete_bot(self, bot_id):
         # Stop it first
@@ -579,56 +676,6 @@ class BotHandler:
             logger.info("Deleted bot %s", bot_id)
             return True
         return False
-
-    def get_bot_identity_path(self, bot_id):
-        entry = None
-        for e in self.bots_state:
-            if e.get("id") == bot_id:
-                entry = e
-                break
-
-        if not entry:
-            return None
-
-        storage_dir = entry.get("storage_dir")
-        if not storage_dir:
-            return None
-
-        bot_config_dir = entry.get("bot_config_dir")
-        if bot_config_dir:
-            id_path_bot_cfg = os.path.join(bot_config_dir, "identity")
-            if os.path.exists(id_path_bot_cfg):
-                return id_path_bot_cfg
-            id_path_lxmf_cfg = os.path.join(bot_config_dir, "lxmf", "identity")
-            if os.path.exists(id_path_lxmf_cfg):
-                return id_path_lxmf_cfg
-
-        reticulum_config_dir = entry.get("reticulum_config_dir")
-        if reticulum_config_dir:
-            id_path_shared = os.path.join(reticulum_config_dir, "identity")
-            if os.path.exists(id_path_shared):
-                return id_path_shared
-
-        # LXMFy stores identity in the 'config' subdirectory by default
-        id_path = os.path.join(storage_dir, "config", "identity")
-        if os.path.exists(id_path):
-            return id_path
-
-        # Fallback to direct identity file if it was moved or configured differently
-        id_path_alt = os.path.join(storage_dir, "identity")
-        if os.path.exists(id_path_alt):
-            return id_path_alt
-
-        # LXMFy may nest inside config/lxmf
-        id_path_lxmf = os.path.join(storage_dir, "config", "lxmf", "identity")
-        if os.path.exists(id_path_lxmf):
-            return id_path_lxmf
-
-        id_path_lxmf_root = os.path.join(storage_dir, "lxmf", "identity")
-        if os.path.exists(id_path_lxmf_root):
-            return id_path_lxmf_root
-
-        return None
 
     def _load_identity_for_bot(self, bot_id):
         identity_path = self.get_bot_identity_path(bot_id)

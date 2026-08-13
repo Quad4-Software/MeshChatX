@@ -27,6 +27,7 @@
         "failed_to_stop": "Error al detener bot",
         "delete_bot": "Eliminar bot",
         "export_identity": "Exportar identidad",
+        "export_failed": "No se pudo exportar la identidad del bot",
         "bot_deleted": "Bot eliminado con éxito",
         "failed_to_delete": "Error al eliminar bot",
         "more_bots_coming": "¡Más bots pronto!",
