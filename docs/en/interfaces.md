@@ -74,6 +74,12 @@ LXMF, LXST, and Nomad features become reachable
 3. Watch the path table (**Tools → RNPath**) if connectivity fails.
 4. Enable **auto-announce** so your services are visible.
 
+## I2P
+
+I2P uses the local router's SAM API (usually `127.0.0.1:7656`). Enable SAM in the router. Do not run Java I2P and i2pd at the same time.
+
+MeshChatX allows one I2P interface, last in the list, with Transport Mode on. New interfaces default `connectable` off. Turn it on only if this node should accept inbound I2P peers. That makes the node an I2P transport. At least one `b32.i2p` peer is required.
+
 ## Bundled documentation hints
 
 The Interfaces UI links into the Reticulum manual sections on interface options. Open **Documentation → Reticulum** and search for `interfaces` if you need field-by-field reference.

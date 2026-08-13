@@ -1066,7 +1066,7 @@ def register_interfaces_routes(routes, app):
         if interface_type == "I2PInterface":
             connectable_value = data.get("connectable")
             if connectable_value is None or connectable_value == "":
-                interface_details["connectable"] = "True"
+                interface_details["connectable"] = "False"
             else:
                 interface_details["connectable"] = (
                     "True"

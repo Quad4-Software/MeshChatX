@@ -740,6 +740,51 @@ async def test_i2p_connectable_can_be_disabled(temp_dir):
 
 
 @pytest.mark.asyncio
+async def test_i2p_connectable_defaults_to_false_when_omitted(temp_dir):
+    config = ConfigDict(
+        {
+            "reticulum": {"enable_transport": "True"},
+            "interfaces": {},
+        },
+    )
+
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "I2POut",
+            "type": "I2PInterface",
+            "peers": ["abcdef.b32.i2p"],
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 200, body
+        saved = config["interfaces"]["I2POut"]
+        assert saved["connectable"] == "False"
+
+
+@pytest.mark.asyncio
+async def test_i2p_connectable_true_still_persists(temp_dir):
+    config = ConfigDict(
+        {
+            "reticulum": {"enable_transport": "True"},
+            "interfaces": {},
+        },
+    )
+
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "I2PIn",
+            "type": "I2PInterface",
+            "peers": ["abcdef.b32.i2p"],
+            "connectable": True,
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 200, body
+        saved = config["interfaces"]["I2PIn"]
+        assert saved["connectable"] == "True"
+
+
+@pytest.mark.asyncio
 async def test_internal_mode_and_rns_bool_options_persist(temp_dir):
     config = ConfigDict({"reticulum": {}, "interfaces": {}})
 

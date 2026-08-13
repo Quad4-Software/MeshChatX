@@ -279,6 +279,53 @@ describe("AddInterfacePage.vue interface options", () => {
         );
     });
 
+    it("defaults I2P connectable off and requires a peer", async () => {
+        const wrapper = mountPage();
+        const ToastUtils = (await import("../../meshchatx/src/frontend/js/ToastUtils")).default;
+
+        expect(wrapper.vm.newInterfaceConnectable).toBe(false);
+
+        wrapper.vm.newInterfaceName = "I2P";
+        wrapper.vm.newInterfaceType = "I2PInterface";
+        wrapper.vm.I2PSettings.newInterfacePeers = ["  "];
+        wrapper.vm.config = { ...(wrapper.vm.config || {}), is_transport_enabled: true };
+        wrapper.vm.reticulumInstance = {
+            ...(wrapper.vm.reticulumInstance || {}),
+            enable_transport: true,
+        };
+        wrapper.vm.existingInterfaces = {};
+
+        await wrapper.vm.saveInterface();
+        expect(ToastUtils.error).toHaveBeenCalledWith("interfaces.i2p_peers_required");
+        expect(mockAxios.post).not.toHaveBeenCalled();
+
+        wrapper.vm.I2PSettings.newInterfacePeers = ["abcdef.b32.i2p"];
+        await wrapper.vm.saveInterface();
+
+        expect(mockAxios.post).toHaveBeenCalledWith(
+            "/api/v1/reticulum/interfaces/add",
+            expect.objectContaining({
+                type: "I2PInterface",
+                peers: ["abcdef.b32.i2p"],
+                connectable: false,
+            })
+        );
+    });
+
+    it("shows I2P SAM copy and a connectable warning when inbound is on", async () => {
+        const wrapper = mountPage();
+        wrapper.vm.newInterfaceType = "I2PInterface";
+        await wrapper.vm.$nextTick();
+        expect(wrapper.text()).toContain("interfaces.i2p_sam_required");
+        expect(wrapper.text()).toContain("interfaces.i2p_connectable_hint");
+        expect(wrapper.text()).not.toContain("interfaces.i2p_connectable_warning");
+
+        wrapper.vm.newInterfaceConnectable = true;
+        await wrapper.vm.$nextTick();
+        expect(wrapper.text()).toContain("interfaces.i2p_connectable_warning");
+        expect(wrapper.text()).toContain("interfaces.i2p_peers_add");
+    });
+
     it("sends I2P connectable=false when peer disables it", async () => {
         const wrapper = mountPage();
 
