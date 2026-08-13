@@ -29,6 +29,7 @@ const {
 } = require("./mainHelpers");
 const { isAllowedShellPath } = require("./shellPathGuard");
 const { normalizeExternalUrlForOpen } = require("./safeExternalUrl");
+const { attachHardwareDevicePermissionHandlers } = require("./hardwareDevicePermissions");
 const {
     loadCloseSettings,
     saveCloseSettings,
@@ -952,6 +953,11 @@ app.whenReady().then(async () => {
         attachInWindowNavigationGuard(browserWindow);
         const privacy = getDesktopPrivacySettings();
         applyScreenSecurityToWindow(browserWindow, privacy.screenSecurityEnabled === true);
+    });
+
+    attachHardwareDevicePermissionHandlers(session.defaultSession, {
+        dialog,
+        getParentWindow: getDialogParentWindow,
     });
 
     // Security: Enforce CSP for all requests as a shell-level fallback
