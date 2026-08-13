@@ -47,6 +47,7 @@ All notable changes to this project will be documented in this file.
 - **Propagation sync API**: `/api/v1/lxmf/propagation-node/sync` and `stop-sync` are POST (CSRF and demo-mode blocked), not GET.
 - **Android startup**: If `127.0.0.1:<port>` already answers MeshChatX `/api/v1/status` for this listen port, the wrapper reuses that backend instead of treating the port as busy. A different process on the port still fails. RNS startup recovery only disables I2P on the first attempt when the error text mentions I2P, and attaches recent RNS error log lines to contained panics.
 - **Relay Chat hosting**: `/unregister` removes the room from the registry. `/list` omits a dangling ` - ` on rooms with no topic, and clients parse that line. Ban, invite, and op checks read existing room state and do not create a room just to answer. `/ban list` requires op before mutating state.
+- **I2P interface**: New I2P interfaces default `connectable` to off, matching RNS. On plus Transport Mode opens a server SAM destination. If that session dies, RNS tears the I2P interface down until restart. The Add Interface form requires at least one b32 peer and states SAM must listen on 127.0.0.1:7656.
 - **Identity switch logs**: Persistent log handler flushes the in-memory buffer to the old database before swapping the handle, so lines queued during switch are not dropped.
 
 ## [4.8.1] - 2026-07-25
