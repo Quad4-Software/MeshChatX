@@ -1,0 +1,42 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Backend: Launch meshchat",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "meshchatx.meshchat",
+            "args": ["--headless", "--host", "127.0.0.1", "--port", "8000"],
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true,
+            "env": {
+                "PYTHONUNBUFFERED": "1"
+            }
+        },
+        {
+            "name": "Backend: Attach debugpy",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "127.0.0.1",
+                "port": 5678
+            },
+            "justMyCode": true
+        },
+        {
+            "name": "Frontend: Chrome (Vite)",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://127.0.0.1:5173",
+            "webRoot": "${workspaceFolder}/meshchatx/src/frontend"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "MeshChatX: Vite + Python",
+            "configurations": ["Backend: Attach debugpy", "Frontend: Chrome (Vite)"],
+            "preLaunchTask": "meshchatx: debug",
+            "stopAll": true
+        }
+    ]
+}

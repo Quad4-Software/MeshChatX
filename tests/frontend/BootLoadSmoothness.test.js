@@ -52,6 +52,8 @@ describe("boot and load smoothness", () => {
         expect(main).toContain("ElectronUtils.isElectron()");
         expect(main).toContain("serviceWorkerRegisterOptions");
         expect(main).toContain("decideControllerChangeReload");
+        expect(main).toContain("shouldRegisterServiceWorker");
+        expect(main).toContain("import.meta.env.DEV");
     });
 
     it("App.vue fades non-keepAlive route swaps on canvas background", () => {

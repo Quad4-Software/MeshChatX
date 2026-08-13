@@ -110,6 +110,7 @@ task test:frontend
 task test:e2e
 task run
 task dev
+task debug
 ```
 
 Optional RNS/rngit tooling (requires mesh reachability, often slower than PyPI):
@@ -290,6 +291,10 @@ Common overrides (CLI flags usually mirror these):
 | `MESHCHAT_DISABLE_CSRF`                                    | Dangerous. Tests/dev only                                      |
 | `MESHCHAT_SKIP_STORAGE_LOCK`                               | Dangerous. Avoid overlapping instances carefully               |
 | `MESHCHAT_RNS_LOG_LEVEL`                                   | RNS log verbosity                                              |
+| `MESHCHAT_DEBUGPY`                                         | `task debug`: listen with debugpy                              |
+| `MESHCHAT_DEBUGPY_PORT`                                    | debugpy port (default 5678, bind 127.0.0.1)                    |
+| `MESHCHAT_DEBUGPY_WAIT`                                    | `1` pauses backend until a debugger attaches                   |
+| `MESHCHAT_VUE_DEVTOOLS`                                    | `0` disables the Vite Vue DevTools overlay                     |
 
 Restore helpers:
 

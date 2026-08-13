@@ -83,6 +83,7 @@ dev = [
     "pytest-cov>=7.1.0",
     "pytest-xdist>=3.8.0",
     "ruff>=0.14.0",
+    "debugpy>=1.8.16",
     "mutmut>=3.5.0; python_version < '4.0'",
     "basedpyright>=1.39.9",
 ]

@@ -3,8 +3,10 @@ import fs from "fs";
 import { defineConfig } from "vite";
 import { MICRON_PARSER_GO_RELEASE_TAG } from "./scripts/micron-parser-go-version.mjs";
 import { meshchatxServiceWorkerPlugin } from "./scripts/build/generate_service_worker.mjs";
+import { detectLaunchEditor, isVueDevToolsEnabled } from "./scripts/vite-dx.mjs";
 import tailwindcss from "@tailwindcss/vite";
 import vue from "@vitejs/plugin-vue";
+import vueDevTools from "vite-plugin-vue-devtools";
 import vuetify from "vite-plugin-vuetify";
 
 const vendorChunkGroups = [
@@ -153,9 +155,10 @@ function loadVisualiserWasmIntegrity() {
 const micronWasmIntegrity = loadMicronWasmIntegrity();
 const visualiserWasmIntegrity = loadVisualiserWasmIntegrity();
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
     define: {
         __APP_BUILD_TIME__: JSON.stringify(appBuildTimeIso),
+        __VUE_PROD_DEVTOOLS__: "false",
         "import.meta.env.VITE_MICRON_WASM_BUNDLED": JSON.stringify(micronWasmBundled ? "true" : "false"),
         "import.meta.env.VITE_MICRON_PARSER_GO_RELEASE": JSON.stringify(MICRON_PARSER_GO_RELEASE_TAG),
         "import.meta.env.VITE_VISUALISER_WASM_BUNDLED": JSON.stringify(visualiserWasmBundled ? "true" : "false"),
@@ -166,6 +169,13 @@ export default defineConfig({
     },
     plugins: [
         tailwindcss(),
+        ...(isVueDevToolsEnabled({ command })
+            ? [
+                  vueDevTools({
+                      launchEditor: detectLaunchEditor(),
+                  }),
+              ]
+            : []),
         vue({
             template: {
                 compilerOptions: {
@@ -177,8 +187,18 @@ export default defineConfig({
         meshchatxServiceWorkerPlugin({ buildId: appBuildTimeIso }),
     ],
 
+    css: {
+        devSourcemap: true,
+    },
+
     server: {
+        host: "127.0.0.1",
         port: 5173,
+        strictPort: true,
+        clearScreen: false,
+        warmup: {
+            clientFiles: ["./main.js", "./components/App.vue", "./components/messages/MessagesPage.vue"],
+        },
         proxy: {
             "/api": {
                 target: e2eBackendOrigin,
@@ -279,4 +299,4 @@ export default defineConfig({
             "micron-parser": path.join(__dirname, "node_modules", "micron-parser", "js", "micron-parser.js"),
         },
     },
-});
+}));
