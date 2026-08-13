@@ -34,6 +34,7 @@ def run_python_under_landlock(
     *,
     storage: str | Path,
     reticulum_config_dir: str | Path | None = None,
+    extra_read_roots: list[str] | None = None,
     extra_env: dict[str, str] | None = None,
     timeout: float = 90,
 ) -> subprocess.CompletedProcess[str]:
@@ -41,6 +42,9 @@ def run_python_under_landlock(
     storage_s = str(storage)
     rns_s = str(reticulum_config_dir) if reticulum_config_dir is not None else None
     rns_kw = f", reticulum_config_dir={rns_s!r}" if rns_s is not None else ""
+    extra_kw = ""
+    if extra_read_roots:
+        extra_kw = f", extra_read_roots={list(extra_read_roots)!r}"
     body_clean = textwrap.dedent(body).strip()
     script = (
         "import os\n"
@@ -50,7 +54,7 @@ def run_python_under_landlock(
         f"storage = {storage_s!r}\n"
         "ok = apply_landlock_sandbox(\n"
         f"    storage_dir=storage,\n"
-        f"    log_dir=storage{rns_kw},\n"
+        f"    log_dir=storage{rns_kw}{extra_kw},\n"
         ")\n"
         "if not ok:\n"
         f"    print({APPLY_FAILED_MARKER!r})\n"

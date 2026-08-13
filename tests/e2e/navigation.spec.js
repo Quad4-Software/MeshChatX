@@ -102,6 +102,7 @@ test.describe("Sidebar and keyboard navigation", () => {
         await expect(page).toHaveURL(/#\/settings/);
         await expect(page.getByText("Profile", { exact: true }).first()).toBeVisible({ timeout: 20000 });
 
+        await page.getByTestId("sidebar-more-toggle").click();
         await sideNav.locator('a[href*="#/about"]').click();
         await expect(page).toHaveURL(/#\/about/);
         await expect(page.getByText("MeshChatX", { exact: true }).first()).toBeVisible({ timeout: 20000 });

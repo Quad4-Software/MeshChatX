@@ -170,6 +170,13 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { messages_sidebar_position: "right" });
     });
 
+    it("onAppSidebarLayoutChange PATCHes app_sidebar_layout", async () => {
+        const w = await mountSettingsPage(api);
+        w.vm.config.app_sidebar_layout = "classic";
+        await w.vm.onAppSidebarLayoutChange();
+        expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { app_sidebar_layout: "classic" });
+    });
+
     it("resetAppearanceDefaults PATCHes full appearance payload", async () => {
         const w = await mountSettingsPage(api);
         await w.vm.resetAppearanceDefaults();
@@ -178,6 +185,7 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
             expect.objectContaining({
                 theme: "light",
                 messages_sidebar_position: "left",
+                app_sidebar_layout: "grouped",
                 message_font_size: 14,
                 message_icon_size: 28,
                 ui_transparency: 0,

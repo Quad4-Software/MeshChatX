@@ -121,7 +121,8 @@ describe("RelayChatPage security and fuzz", () => {
         for (const payload of safePayloads) {
             expect(() => wrapper.vm.onWebsocketMessage(payload)).not.toThrow();
         }
-        expect(() => wrapper.vm.onWebsocketMessage({ data: "null" })).toThrow();
+        expect(() => wrapper.vm.onWebsocketMessage({ data: "null" })).not.toThrow();
+        expect(() => wrapper.vm.onWebsocketMessage({ data: "true" })).not.toThrow();
     });
 
     it("fuzz websocket event shapes without throwing", async () => {

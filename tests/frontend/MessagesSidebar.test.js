@@ -138,15 +138,16 @@ describe("MessagesSidebar UI", () => {
         expect(wrapper.text()).toContain("Alice");
     });
 
-    it("shows loading skeleton when isLoading is true", () => {
+    it("shows loading state when isLoading is true", () => {
         const wrapper = mountSidebar({ isLoading: true });
-        expect(wrapper.find(".animate-pulse").exists()).toBe(true);
+        expect(wrapper.text()).toContain("messages.loading_conversations");
     });
 
     it("shows no conversations empty state when conversations empty and not loading", () => {
         const wrapper = mountSidebar({ conversations: [], isLoading: false });
-        expect(wrapper.text()).toContain("No Conversations");
-        expect(wrapper.text()).toContain("Discover peers on the Announces tab");
+        expect(wrapper.text()).toContain("messages.no_conversations");
+        expect(wrapper.text()).toContain("messages.no_conversations_hint");
+        expect(wrapper.text()).toContain("messages.add_interface_cta");
     });
 
     it("toggles selection mode when selection button is clicked", async () => {

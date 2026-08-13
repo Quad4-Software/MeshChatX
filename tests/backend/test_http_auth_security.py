@@ -2,6 +2,7 @@
 
 import asyncio
 import secrets
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import bcrypt
 import pytest
@@ -12,6 +13,7 @@ from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from meshchatx.src.backend.config_manager import ConfigManager
+from meshchatx.src.backend.http.middleware import create_auth_middleware
 from tests.backend.conftest import extend_meshchat_middlewares, fetch_api_csrf_headers
 
 
@@ -202,3 +204,88 @@ async def test_reset_password_exposes_setup_screen(mock_app):
         assert status.status == 200
         body = await status.json()
         assert body["password_set"] is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
+async def test_auth_rejects_api_paths_that_end_with_static_extensions(mock_app):
+    """Unauthenticated /api/v1 paths must 401 even when the URL looks like a static file.
+
+    Plugin assets are /api/v1/plugins/{id}/asset/{path} and commonly end in
+    .js/.json/.wasm. Those suffixes are public only for non-API static files.
+    """
+    mock_app.config.auth_enabled.set(True)
+    mock_app.config.auth_password_hash.set(
+        bcrypt.hashpw(b"x", bcrypt.gensalt()).decode("utf-8"),
+    )
+    aio_app = _make_aio_app(mock_app, use_https=False)
+
+    async with TestClient(TestServer(aio_app)) as client:
+        config = await client.get("/api/v1/config")
+        assert config.status == 401
+
+        disguised = await client.get("/api/v1/config.json")
+        assert disguised.status == 401, (
+            f"expected 401 for disguised API path, got {disguised.status}"
+        )
+
+        plugin_js = await client.get(
+            "/api/v1/plugins/com.meshchatx.mcx-bugs/asset/frontend/main.js",
+        )
+        assert plugin_js.status == 401, (
+            f"expected 401 for plugin JS asset, got {plugin_js.status}"
+        )
+
+        plugin_wasm = await client.get(
+            "/api/v1/plugins/com.meshchatx.mcx-bugs/asset/backend/main.wasm",
+        )
+        assert plugin_wasm.status == 401, (
+            f"expected 401 for plugin wasm asset, got {plugin_wasm.status}"
+        )
+
+        status_prefix = await client.get("/api/v1/status.json")
+        assert status_prefix.status == 401, (
+            f"expected 401 for status prefix disguise, got {status_prefix.status}"
+        )
+
+        manifest = await client.get("/manifest.json")
+        assert manifest.status == 200
+
+
+@pytest.mark.asyncio
+async def test_auth_middleware_does_not_treat_api_static_suffixes_as_public():
+    """Oracle: password auth still applies when an API path ends in .js/.json/.wasm."""
+    app = MagicMock()
+    app.auth_enabled = True
+    app.current_context = MagicMock(running=True)
+    app.identity.hash.hex.return_value = "aa" * 16
+    app._startup_stage = "ok"
+
+    handler = AsyncMock(return_value=web.Response(status=200, text="ok"))
+    mw = create_auth_middleware(app)
+    empty_session = AsyncMock(return_value={})
+
+    async def call(path):
+        request = MagicMock()
+        request.path = path
+        with patch(
+            "meshchatx.src.backend.http.middleware.get_session",
+            empty_session,
+        ):
+            return await mw(request, handler)
+
+    for path in (
+        "/api/v1/config.json",
+        "/api/v1/status.json",
+        "/api/v1/plugins/com.meshchatx.mcx-bugs/asset/frontend/main.js",
+        "/api/v1/plugins/com.meshchatx.mcx-bugs/asset/backend/main.wasm",
+    ):
+        handler.reset_mock()
+        resp = await call(path)
+        assert resp.status == 401, f"{path} expected 401, got {resp.status}"
+        handler.assert_not_awaited()
+
+    handler.reset_mock()
+    public = await call("/manifest.json")
+    assert public.status == 200
+    handler.assert_awaited_once()

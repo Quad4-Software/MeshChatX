@@ -129,4 +129,15 @@ describe("registerCoreContributions", () => {
         const call = CORE_NAV_ENTRIES.find((entry) => entry.id === "call");
         expect(call?.badge).toEqual({ source: "missedCallsCount", pill: true, cap: 99 });
     });
+
+    it("demotes secondary nav entries to the more tier", () => {
+        const moreIds = CORE_NAV_ENTRIES.filter((entry) => entry.navTier === "more").map((entry) => entry.id);
+        expect(moreIds).toEqual(
+            expect.arrayContaining(["archives", "interfaces", "network-visualiser", "blocked", "identities", "about"])
+        );
+        const primaryIds = CORE_NAV_ENTRIES.filter((entry) => entry.navTier === "primary").map((entry) => entry.id);
+        expect(primaryIds).toEqual(
+            expect.arrayContaining(["messages", "call", "contacts", "nomadnetwork", "map", "tools", "settings"])
+        );
+    });
 });

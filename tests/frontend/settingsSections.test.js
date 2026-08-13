@@ -111,6 +111,7 @@ describe("AppearanceSettingsSection", () => {
                 config: {
                     theme: "dark",
                     messages_sidebar_position: "left",
+                    app_sidebar_layout: "grouped",
                     message_font_size: 14,
                     message_icon_size: 28,
                     ui_transparency: 0,
@@ -178,6 +179,38 @@ describe("AppearanceSettingsSection", () => {
         await wrapper.findComponent({ name: "Toggle" }).vm.$emit("update:modelValue", false);
         expect(wrapper.emitted("update-field")?.at(-1)).toEqual([{ key: "ui_glass_enabled", value: false }]);
         expect(wrapper.emitted("ui-glass-enabled-change")).toHaveLength(1);
+    });
+
+    it("emits app-sidebar-layout-change when sidebar layout select changes", async () => {
+        const config = {
+            theme: "light",
+            messages_sidebar_position: "left",
+            app_sidebar_layout: "grouped",
+            message_font_size: 14,
+            message_icon_size: 28,
+            ui_transparency: 0,
+            ui_glass_enabled: true,
+            messages_multi_pane_enabled: false,
+            nomad_tabs_enabled: false,
+            rrc_enabled: false,
+            rrc_unread_badges_enabled: true,
+        };
+        const wrapper = mount(AppearanceSettingsSection, {
+            props: {
+                visible: true,
+                config,
+                detailedOutboundSendStatus: false,
+                messageIconPreviewStyle: { width: "28px", height: "28px" },
+            },
+            global: {
+                mocks: { $t: (key) => key },
+            },
+        });
+        const selects = wrapper.findAll("select");
+        await selects[2].setValue("classic");
+        expect(wrapper.emitted("update-field")?.at(-1)).toEqual([{ key: "app_sidebar_layout", value: "classic" }]);
+        expect(wrapper.emitted("app-sidebar-layout-change")).toHaveLength(1);
+        expect(config.app_sidebar_layout).toBe("grouped");
     });
 });
 
