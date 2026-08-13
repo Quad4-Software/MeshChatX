@@ -586,6 +586,7 @@ export default {
             reloadInterval: null,
             appInfoInterval: null,
             unreadCountInterval: null,
+            lastAnnouncedTick: 0,
 
             isSidebarOpen: false,
             isSidebarCollapsed: false,
@@ -734,6 +735,7 @@ export default {
             if (!this.config?.last_announced_at) {
                 return "";
             }
+            void this.lastAnnouncedTick;
             return this.formatSecondsAgo(this.config.last_announced_at);
         },
         isSyncingPropagationNode() {
@@ -1120,6 +1122,7 @@ export default {
                 () => {
                     this.updateTelephoneStatus();
                     this.updatePropagationNodeStatus();
+                    this.lastAnnouncedTick += 1;
                 },
                 applyBackgroundPollInterval(1000, prefs)
             );
@@ -1698,8 +1701,8 @@ export default {
                 keyboard_shortcuts: (json) => {
                     KeyboardShortcuts.setShortcuts(json.shortcuts);
                 },
-                announced: () => {
-                    this.getConfig();
+                announced: (json) => {
+                    this.applyAnnouncedEvent(json);
                 },
                 telephone_ringing: (json) => {
                     if (this.config?.do_not_disturb_enabled) {
@@ -1923,6 +1926,22 @@ export default {
                 // do nothing if failed to load config
                 console.log(e);
             }
+        },
+        applyAnnouncedEvent(json) {
+            const identityHash = typeof json?.identity_hash === "string" ? json.identity_hash : "";
+            if (identityHash && this.config?.identity_hash && identityHash !== this.config.identity_hash) {
+                return;
+            }
+            const raw = json?.last_announced_at;
+            if (raw != null && raw !== "") {
+                const ts = Number(raw);
+                if (this.config && Number.isFinite(ts)) {
+                    mergeGlobalConfig({ last_announced_at: ts });
+                    this.config = { ...this.config, last_announced_at: ts };
+                    return;
+                }
+            }
+            this.getConfig();
         },
         async getBlockedDestinations() {
             try {

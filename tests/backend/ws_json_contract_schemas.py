@@ -58,7 +58,13 @@ WS_MESSAGE_SCHEMAS: dict[str, dict] = {
         required=["config"],
         properties={"config": _WS_OBJECT},
     ),
-    "announced": _ws_type("announced"),
+    "announced": _ws_type(
+        "announced",
+        properties={
+            "identity_hash": _WS_STRING,
+            "last_announced_at": {"type": ["integer", "null"]},
+        },
+    ),
     "blocked_destinations": _ws_type(
         "blocked_destinations",
         required=["blocked_destinations"],
@@ -282,7 +288,11 @@ WS_MESSAGE_SAMPLES: dict[str, dict] = {
     },
     "config.set": {"type": "config.set", "config": {"display_name": "Test"}},
     "config": {"type": "config", "config": {"display_name": "Test"}},
-    "announced": {"type": "announced"},
+    "announced": {
+        "type": "announced",
+        "identity_hash": "abc123",
+        "last_announced_at": 1700000000,
+    },
     "blocked_destinations": {
         "type": "blocked_destinations",
         "blocked_destinations": [],

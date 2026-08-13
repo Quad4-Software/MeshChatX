@@ -96,3 +96,21 @@ def test_last_announced_at_config_roundtrip_db(tmp_path):
         database.close()
         if os.path.exists(db_path):
             os.remove(db_path)
+
+
+@pytest.mark.asyncio
+async def test_send_announced_includes_last_announced_at(mock_app):
+    from unittest.mock import AsyncMock
+    import json
+
+    ts = 1_700_000_000
+    mock_app.current_context.config.last_announced_at.set(ts)
+    mock_app.websocket_broadcast = AsyncMock()
+
+    await mock_app.send_announced_to_websocket_clients()
+
+    mock_app.websocket_broadcast.assert_awaited_once()
+    payload = json.loads(mock_app.websocket_broadcast.await_args.args[0])
+    assert payload["type"] == "announced"
+    assert payload["last_announced_at"] == ts
+    assert payload["identity_hash"] == mock_app.current_context.identity_hash
