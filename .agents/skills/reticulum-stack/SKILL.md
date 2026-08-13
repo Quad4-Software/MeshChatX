@@ -49,6 +49,7 @@ Aspects MeshChatX already uses:
 | `lxst.telephony`    | LXST calls           |
 | `nomadnetwork.node` | NomadNet page server |
 | `rrc.hub`           | Relay Chat hub       |
+| `map-data-v1`       | Published map packs  |
 
 Custom apps get their own aspect (example from design gates: `mcx-bugs-v1`). Do not overload `lxmf.delivery` for non-mail traffic. RNS Link API aspects are dot-separated app name plus sub-aspects (example `microrn.mgmt`).
 

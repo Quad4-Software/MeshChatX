@@ -15,12 +15,18 @@ All notable changes to this project will be documented in this file.
 - **Propagation nodes**: Preferred node hash can be pasted from the clipboard on the Propagation Nodes page and in Settings, with path-request and clear actions on the preferred row.
 - **Database health toast**: SQLite health issues from `/api/v1/app/info` show a warning toast once per issue fingerprint per session, not on every 15-second poll. Identity switch resets the fingerprint. The same text remains on About > Database.
 - **Landlock extra read roots**: The Sideband command-plugin directory from Settings is added as a Landlock read root when that folder exists on disk. A missing path is not widened to its parent. `/sys` is a read root so USB serial metadata lookups can stat sysfs.
+- **Map discovery (`map-data-v1`)**: Publish sanitized GeoJSON/KML/KMZ packs from the Map page. Peers hear a slim announce (`n` label, `c` count), fetch `/catalog` and `/map/<id>` over an RNS Link, and add the pack as a local overlay. NomadNet `/file/` and RNGit stay as an advanced source. Schema 55 adds `map_published`.
+- **KML/KMZ sanitizer**: Strips NetworkLink, remote hrefs (including javascript and vbscript), unsafe KMZ entries (svg/html/js), and DTD/ENTITY before overlay import or mesh publish. Remote icon URLs are removed, not left for OpenLayers to fetch.
 
 ### Changed
 
+- **App sidebar**: Network Visualiser is under Explore with Nomad Network and Map, not in More.
 - **Messages empty state**: The no-conversations view tells you to add a mesh interface and announce, or to use the Announces tab, with an Add interface action.
 - **Mesh Server UI**: Remaining mesh-server strings (create, start, stop, toasts, empty copy) are translated in the bundled locales. Announce interval 0 is labeled as manual-only (no periodic timer).
 - **Docs**: Getting started lists sidebar More destinations. Linux sandbox guide covers USB serial under Landlock, executable Mesh Server pages, and `location_cmd` / Sideband plugin folders that must already exist on an allowed root at process start.
+- **Map page**: Discover / Publish / Layers / Offline side tabs. Drawing toolbar keeps Select, Point, Line, Polygon, Circle, Measure, one Bearing tool, Save, Load, and Locate. MBTiles export, Share, and Ping left the always-visible row (Ping stays on right-click).
+- **Map tiles and markers**: TileCache keeps a memory LRU and no longer writes IndexedDB metadata on every hit. Marker updates reuse Features by destination hash and cluster on a grid. Inactive MapBrowser tabs wait until first shown before constructing OpenLayers. Online tile fetch timeout is 8s.
+- **Settings search**: Query splits on hyphens and punctuation (`dark-mode`), matches compact forms (`darkmode`), and treats 1-2 character tokens as whole words so `me` does not hit Theme. Tab names and camelCase section ids are searchable. The empty state is translated. Matching tab counts stay visible while searching. `/` focuses the search field.
 
 ### Fixed
 

@@ -50,6 +50,21 @@ Path helpers live in `meshchatx/src/path_utils.py`, `ssl_self_signed.py`, and `e
 
 Switching identities tears down the old context and loads another. Global mutable state that could leak between identities is avoided by design.
 
+## Destination aspects
+
+Mesh peers are addressed by destination hash plus aspect. MeshChatX currently uses:
+
+| Aspect              | Role                         |
+| ------------------- | ---------------------------- |
+| `lxmf.delivery`     | LXMF mail                    |
+| `lxmf.propagation`  | Propagation node             |
+| `lxst.telephony`    | LXST calls                   |
+| `nomadnetwork.node` | NomadNet / Mesh Server pages |
+| `rrc.hub`           | Relay Chat hub               |
+| `map-data-v1`       | Published map overlay packs  |
+
+`map-data-v1` announce app_data is a short JSON label and file count. Catalog and file bytes travel over an RNS Link, not announce payloads or LXMF.
+
 ## Manager-centric domain logic
 
 Feature behaviour lives in modules under `meshchatx/src/backend/`. Examples include message handling, announce trimming, documentation, maps, page nodes, telemetry, interfaces, forwarding aliases, and RN-specific tool handlers.
@@ -76,6 +91,7 @@ Routes are registered through `backend/http/register.py` into aiohttp route tabl
 - Nomad Network and page nodes
 - RRC client and server
 - Tools (ping, RNPath, RNCP, RNSH, translator, bots)
+- Map overlays and map-data-v1 publish/discover
 - Documentation and maintenance
 
 The frontend uses `fetch` via `apiClient.js` with CSRF tokens on mutating requests.
