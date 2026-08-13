@@ -640,8 +640,7 @@
                                             <div
                                                 class="bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-2xl border border-blue-100 dark:border-blue-900/20 text-xs text-blue-800 dark:text-blue-300"
                                             >
-                                                To use the I2P interface, you must have an I2P router running on your
-                                                system with SAM enabled.
+                                                {{ $t("interfaces.i2p_sam_required") }}
                                             </div>
                                             <div
                                                 v-if="!transportEnabled"
@@ -657,12 +656,23 @@
                                             </div>
                                             <div class="flex items-center gap-2">
                                                 <Toggle id="i2p-connectable" v-model="newInterfaceConnectable" />
-                                                <FormLabel for="i2p-connectable" class="cursor-pointer mb-0! text-sm"
-                                                    >Allow incoming peers (connectable)</FormLabel
-                                                >
+                                                <FormLabel for="i2p-connectable" class="cursor-pointer mb-0! text-sm">{{
+                                                    $t("interfaces.i2p_connectable_label")
+                                                }}</FormLabel>
+                                            </div>
+                                            <p class="text-xs text-gray-600 dark:text-zinc-400">
+                                                {{ $t("interfaces.i2p_connectable_hint") }}
+                                            </p>
+                                            <div
+                                                v-if="newInterfaceConnectable"
+                                                class="bg-amber-50/80 dark:bg-amber-900/20 p-3 rounded-2xl border border-amber-200 dark:border-amber-800/40 text-xs text-amber-900 dark:text-amber-200"
+                                            >
+                                                {{ $t("interfaces.i2p_connectable_warning") }}
                                             </div>
                                             <div>
-                                                <FormLabel class="glass-label">Initial Peers (Optional)</FormLabel>
+                                                <FormLabel class="glass-label">{{
+                                                    $t("interfaces.i2p_peers_label")
+                                                }}</FormLabel>
                                                 <div class="space-y-2">
                                                     <div
                                                         v-for="(peer, index) in I2PSettings.newInterfacePeers"
@@ -672,7 +682,7 @@
                                                         <input
                                                             v-model="I2PSettings.newInterfacePeers[index]"
                                                             type="text"
-                                                            placeholder="b32.i2p address"
+                                                            :placeholder="$t('interfaces.i2p_peers_placeholder')"
                                                             class="input-field"
                                                         />
                                                         <button
@@ -691,7 +701,8 @@
                                                         class="secondary-chip py-1! px-3! text-[10px]!"
                                                         @click="addI2PPeer('')"
                                                     >
-                                                        <MaterialDesignIcon icon-name="plus" class="size-3" /> Add Peer
+                                                        <MaterialDesignIcon icon-name="plus" class="size-3" />
+                                                        {{ $t("interfaces.i2p_peers_add") }}
                                                     </button>
                                                 </div>
                                             </div>
@@ -2203,7 +2214,7 @@ export default {
             newInterfaceFixedMTU: null,
             newInterfaceBootstrapOnly: true,
             newInterfaceConfiguredBitrate: null,
-            newInterfaceConnectable: true,
+            newInterfaceConnectable: false,
             newInterfaceBackboneListenMode: false,
             newInterfaceBackboneListenPort: null,
             newInterfaceBackboneListenIp: null,
@@ -2805,7 +2816,7 @@ export default {
                 this.newInterfaceMaxReconnectTries = iface.max_reconnect_tries ?? null;
                 this.newInterfaceFixedMTU = iface.fixed_mtu ?? null;
                 this.newInterfaceConnectable =
-                    iface.connectable === undefined ? true : this.parseBool(iface.connectable);
+                    iface.connectable === undefined ? false : this.parseBool(iface.connectable);
 
                 if (iface.type === "BackboneInterface") {
                     this.newInterfaceBackboneListenMode = iface.listen_port != null && iface.listen_port !== "";
@@ -3307,7 +3318,7 @@ export default {
                     config.type === "I2PInterface"
                         ? config.connectable !== undefined && config.connectable !== null && config.connectable !== ""
                             ? this.parseBool(config.connectable)
-                            : true
+                            : false
                         : null,
                 group_id: config.group_id || null,
                 multicast_address_type: config.multicast_address_type || null,
@@ -3442,6 +3453,16 @@ export default {
                             : this.$t("interfaces.i2p_already_exists")
                     );
                     return;
+                }
+
+                if (this.newInterfaceType === "I2PInterface") {
+                    const peers = (this.I2PSettings.newInterfacePeers || [])
+                        .map((p) => String(p).trim())
+                        .filter(Boolean);
+                    if (!peers.length) {
+                        ToastUtils.error(this.$t("interfaces.i2p_peers_required"));
+                        return;
+                    }
                 }
 
                 if (this.newInterfaceType === "RNodeInterface" && this.newInterfaceRNodeUseBle) {
