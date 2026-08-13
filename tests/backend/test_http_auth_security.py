@@ -248,8 +248,14 @@ async def test_auth_rejects_api_paths_that_end_with_static_extensions(mock_app):
             f"expected 401 for status prefix disguise, got {status_prefix.status}"
         )
 
-        manifest = await client.get("/manifest.json")
-        assert manifest.status == 200
+        # Do not GET /manifest.json here. That route uses FileResponse, which
+        # calls loop.run_in_executor. mock_app patches threading.Thread so the
+        # executor never runs and the client hangs until TimeoutError.
+        # A missing static asset is enough: middleware must not 401 it.
+        static_js = await client.get("/assets/does-not-exist.js")
+        assert static_js.status != 401, (
+            f"expected static non-API path to skip auth, got {static_js.status}"
+        )
 
 
 @pytest.mark.asyncio

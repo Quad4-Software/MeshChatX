@@ -2,7 +2,7 @@
 
 <template>
     <div
-        class="relative z-20 flex flex-wrap items-center gap-y-2 px-3 sm:px-4 py-3 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
+        class="relative z-20 flex items-center gap-2 px-3 sm:px-4 py-2 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
     >
         <div class="shrink-0 mr-3">
             <LxmfUserIcon
@@ -119,14 +119,10 @@
         <div class="ml-auto flex items-center gap-0.5 sm:gap-1.5 min-w-0 shrink-0">
             <DropDownMenu v-if="!compactPeerActions" class="shrink-0" data-testid="conversation-path-ops">
                 <template #button>
-                    <IconButton
-                        :title="$t('nomadnet.path_finder')"
-                        :disabled="pathfinderInProgress"
-                        class="text-blue-600 dark:text-blue-400"
-                    >
+                    <IconButton :title="$t('nomadnet.path_finder')" :disabled="pathfinderInProgress">
                         <MaterialDesignIcon
                             :icon-name="pathfinderInProgress ? 'loading' : 'map-marker-path'"
-                            :class="['size-6 sm:size-7', pathfinderInProgress ? 'animate-spin' : '']"
+                            :class="['size-5', pathfinderInProgress ? 'animate-spin' : '']"
                         />
                     </IconButton>
                 </template>
@@ -165,11 +161,12 @@
             />
 
             <IconButton
+                data-testid="conversation-close"
                 :title="compactPeerActions ? $t('messages.back_to_list') : $t('common.close')"
                 class="shrink-0"
                 @click="$emit('close')"
             >
-                <MaterialDesignIcon :icon-name="compactPeerActions ? 'arrow-left' : 'close'" class="size-6 sm:size-7" />
+                <MaterialDesignIcon :icon-name="compactPeerActions ? 'arrow-left' : 'close'" class="size-5" />
             </IconButton>
         </div>
     </div>

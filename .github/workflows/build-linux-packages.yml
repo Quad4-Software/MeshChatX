@@ -4,6 +4,7 @@
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
 #   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
+#   actions/cache@v4.2.0               1bd1e32a3bdc45362d1e726936510720a7c30a57
 
 name: Build Linux packages
 
@@ -18,6 +19,7 @@ on:
             - "package.json"
             - "scripts/ensure-flatpak-flathub-remote.sh"
             - "scripts/ci/github-build-linux-*.sh"
+            - "scripts/ci/github-warm-appimage-tools.sh"
             - ".github/workflows/build-linux-packages.yml"
             - ".github/workflows/build-release.yml"
             - ".github/workflows/frontend-build.yml"
@@ -83,6 +85,14 @@ jobs:
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
+            - name: Cache electron-builder toolsets
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: ~/.cache/electron-builder
+                  key: electron-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
+                  restore-keys: |
+                      electron-builder-${{ runner.os }}-${{ runner.arch }}-
+
             - name: Linux packaging APT dependencies
               run: bash scripts/ci/github-apt-linux-packaging.sh
 
@@ -100,6 +110,8 @@ jobs:
               run: sh scripts/ci/setup-task.sh
 
             - name: Build release-assets
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
               run: bash scripts/ci/github-build-linux-release-assets.sh
 
             - name: Upload Linux build-test artifact (${{ matrix.arch }})
