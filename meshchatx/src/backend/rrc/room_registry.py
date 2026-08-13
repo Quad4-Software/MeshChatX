@@ -178,7 +178,9 @@ class RoomRegistry:
             return False
         if self.hub.policy.is_server_op(peer_hash):
             return True
-        st = self.ensure_state(room)
+        st = self.get_state(room)
+        if st is None:
+            return False
         founder = st.get("founder")
         if isinstance(founder, (bytes, bytearray)) and bytes(founder) == bytes(
             peer_hash,
@@ -192,23 +194,31 @@ class RoomRegistry:
             return False
         if self.is_room_op(room, peer_hash):
             return True
-        st = self.ensure_state(room)
+        st = self.get_state(room)
+        if st is None:
+            return False
         voiced = st.get("voiced")
         return isinstance(voiced, set) and bytes(peer_hash) in voiced
 
     def is_room_moderated(self, room):
-        st = self.ensure_state(room)
+        st = self.get_state(room)
+        if st is None:
+            return False
         return bool(st.get("moderated"))
 
     def is_room_banned(self, room, peer_hash):
         if peer_hash is None:
             return False
-        st = self.ensure_state(room)
+        st = self.get_state(room)
+        if st is None:
+            return False
         bans = st.get("bans")
         return isinstance(bans, set) and bytes(peer_hash) in bans
 
     def is_invited(self, room, peer_hash):
-        st = self.ensure_state(room)
+        st = self.get_state(room)
+        if st is None:
+            return False
         inv = st.get("invited")
         if not isinstance(inv, dict) or not inv:
             return False
