@@ -218,8 +218,8 @@ class NomadnetDownloader:
 
     async def download(
         self,
-        path_lookup_timeout: int | None = None,
-        link_establishment_timeout: int | None = None,
+        path_lookup_timeout: float | None = None,
+        link_establishment_timeout: float | None = None,
     ):
         if self.is_cancelled:
             return

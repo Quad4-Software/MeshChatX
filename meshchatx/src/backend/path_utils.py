@@ -23,14 +23,14 @@ def slowest_online_bitrate(reticulum=None):
     return None
 
 
-def path_response_window(destination_hash, reticulum=None):
+def path_response_window(destination_hash, reticulum=None) -> float:
     if reticulum is None:
         reticulum = RNS.Reticulum.get_instance()
-    window = reticulum.get_first_hop_timeout(destination_hash)
+    window = float(reticulum.get_first_hop_timeout(destination_hash))
     bitrate = slowest_online_bitrate(reticulum)
     if bitrate:
         window = max(
             window,
             2 * (PATH_EXCHANGE_BYTES * 8 / max(bitrate, MIN_WINDOW_BITRATE)) + 10,
         )
-    return max(window, RNS.Transport.PATH_REQUEST_TIMEOUT)
+    return max(window, float(RNS.Transport.PATH_REQUEST_TIMEOUT))
