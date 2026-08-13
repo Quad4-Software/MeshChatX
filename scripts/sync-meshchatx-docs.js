@@ -1,7 +1,7 @@
 /**
  * Copy docs/ tree into meshchatx/src/frontend/public/meshchatx-docs/ for in-app serving.
  * Source of truth: docs/ at repo root.
- * Skips docs/agents/ (contributor/agent guidance, not end-user docs).
+ * Agent guidance lives under .agents/ at repo root, not under docs/.
  */
 
 const fs = require("fs");
@@ -12,7 +12,7 @@ const srcDir = path.join(root, "docs");
 const destDir = path.join(root, "meshchatx", "src", "frontend", "public", "meshchatx-docs");
 
 const COPY_EXTENSIONS = new Set([".md", ".txt", ".json"]);
-const SKIP_TOP_LEVEL_DIRS = new Set(["agents"]);
+const SKIP_TOP_LEVEL_DIRS = new Set();
 
 function walkSync(dir, callback, relBase = "") {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

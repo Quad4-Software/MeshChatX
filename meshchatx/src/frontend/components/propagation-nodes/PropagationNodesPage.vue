@@ -923,6 +923,7 @@ export default {
                 return;
             }
             this.manualHashDraft = parsed;
+            await this.usePropagationNode(parsed);
         },
         async copyPreferredHash() {
             const hash = this.config.lxmf_preferred_propagation_node_destination_hash;

@@ -28,7 +28,9 @@ vi.mock("../../meshchatx/src/frontend/js/Utils", () => ({
         formatTimeAgo: (d) => "1h ago",
         formatDestinationHash: (h) => (h && h.length >= 8 ? h.slice(0, 8) + "…" : h),
         parseDestinationHash: (h) => {
-            const compact = String(h || "").replace(/[^0-9a-fA-F]/g, "");
+            let text = String(h || "").trim();
+            text = text.replace(/^(lxmf|lxma|lxm|rns):\/\//i, "");
+            const compact = text.replace(/[^0-9a-fA-F]/g, "");
             return compact.length >= 32 ? compact.slice(0, 32).toLowerCase() : null;
         },
     },

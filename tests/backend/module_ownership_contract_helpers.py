@@ -2,7 +2,7 @@
 
 """Helpers for the backend module ownership contract.
 
-Parses the "Backend" table in docs/agents/module-ownership.md into a plain
+Parses the "Backend" table in .agents/module-ownership.md into a plain
 row structure, and resolves the backtick-quoted spans in that table to
 on-disk paths under meshchatx/src/backend/ or
 meshchatx/src/frontend/components/. Prose cells without backtick spans
