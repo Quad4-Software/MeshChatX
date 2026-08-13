@@ -13,6 +13,10 @@ Those layers fall back cleanly when unsupported. Firejail and Bubblewrap remain 
 
 **Landlock and user-local tools:** When Landlock is active, MeshChatX whitelists common pipx paths (`~/.local/bin`, `~/.local/share/pipx`) and Argos Translate data under `~/.local/share/argos-translate` so local translation and similar CLIs keep working. Tools installed elsewhere (for example only under `~/.nvm`) or symlink shims that point outside those trees may still fail with permission errors. Disable Landlock temporarily with `MESHCHAT_LANDLOCK=0` while debugging PATH-only failures.
 
+**Landlock and USB serial:** Landlock read roots include `/sys` so pyserial can read USB product strings for RNode listing. `/dev` is already a write root (including `IOCTL_DEV` on ABI 5+) so opening `/dev/ttyACM*` still works. Seccomp does not block serial `ioctl`. The user still needs `dialout` (or equivalent) group membership, and Ubuntu/Kubuntu `brltty` can steal CDC ACM devices before MeshChatX sees them.
+
+**Landlock and custom code:** Interface modules under the Reticulum `interfaces/` directory, Mesh Server executable pages under identity storage, and installed MeshChatX plugins under `storage/plugins` stay readable and writable. `location_cmd`, PipeInterface commands, and Sideband plugin folders must already exist on an allowed root at process start (`/usr`, `~/.local/bin`, storage, or the configured Sideband path). Restart after pointing Sideband at a new directory.
+
 **Containers:** If you already run MeshChatX with Docker or Podman, that is a different isolation model, this document is aimed at **host-installed** `meshchatx` (or `meshchat`).
 
 ## Prerequisites

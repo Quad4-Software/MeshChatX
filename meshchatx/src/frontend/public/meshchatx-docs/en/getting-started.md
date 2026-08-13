@@ -56,13 +56,14 @@ In a regular browser (including headless or LAN installs), MeshChatX may registe
 | Relay chat         | `/relay-chat`         | RRC hubs and rooms (when enabled in settings)         |
 | Nomad Network      | `/nomadnetwork`       | Browse remote NomadNet pages and files                |
 | Map                | `/map`                | OpenLayers map, offline tiles, telemetry              |
-| Archives           | `/archives`           | Versioned snapshots of Nomad pages                    |
 | Tools              | `/tools`              | Ping, path tools, RNCP, bots, documentation, and more |
-| Interfaces         | `/interfaces`         | Add and manage Reticulum interfaces                   |
-| Network visualiser | `/network-visualiser` | Graph view of mesh topology                           |
-| Blocked            | `/blocked`            | Blocked destinations                                  |
 | Settings           | `/settings`           | Theme, language, LXMF, telephone, security            |
-| Identities         | `/identities`         | Create, import, or switch identities                  |
+| Archives           | `/archives`           | Versioned snapshots of Nomad pages (sidebar More)     |
+| Interfaces         | `/interfaces`         | Add and manage Reticulum interfaces (sidebar More)    |
+| Network visualiser | `/network-visualiser` | Graph view of mesh topology (sidebar More)            |
+| Blocked            | `/blocked`            | Blocked destinations (sidebar More)                   |
+| Identities         | `/identities`         | Create, import, or switch identities (sidebar More)   |
+| About              | `/about`              | Version, health, backups (sidebar More or footer)     |
 | Documentation      | `/documentation`      | MeshChatX guides and the Reticulum manual             |
 
 Relay chat appears only when `rrc_enabled` is turned on in settings. When enabled, the Relay chat icon can show a red mention count. Messages shows unread conversation count. Calls shows unread missed-call count.
