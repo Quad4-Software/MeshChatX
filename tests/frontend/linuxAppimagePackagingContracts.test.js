@@ -16,8 +16,8 @@ describe("Linux AppImage packaging contracts", () => {
 
         const warm = readSource("scripts/ci/github-warm-appimage-tools.sh");
         expect(warm).toContain(`APPIMAGE_TOOLSET="${toolset}"`);
-        expect(warm).toContain("FILENAME=\"appimage-tools-runtime-20251108.tar.gz\"");
-        expect(warm).toContain("SHA256=\"a784a8c26331ec2e945c23d6bdb14af5c9df27f5939825d84b8709c61dc81eb0\"");
+        expect(warm).toContain('FILENAME="appimage-tools-runtime-20251108.tar.gz"');
+        expect(warm).toContain('SHA256="a784a8c26331ec2e945c23d6bdb14af5c9df27f5939825d84b8709c61dc81eb0"');
         expect(warm).toContain("--http1.1");
         expect(warm).toContain("--retry-all-errors");
     });
@@ -42,7 +42,10 @@ describe("Linux AppImage packaging contracts", () => {
         expect(release).toContain("Cache electron-builder toolsets");
         expect(release).toContain("~/.cache/electron-builder");
 
-        const linuxBuild = linux.slice(linux.indexOf("- name: Build release-assets"), linux.indexOf("- name: Build release-assets") + 400);
+        const linuxBuild = linux.slice(
+            linux.indexOf("- name: Build release-assets"),
+            linux.indexOf("- name: Build release-assets") + 400
+        );
         const releaseBuild = release.slice(
             release.indexOf("- name: Build release-assets"),
             release.indexOf("- name: Build release-assets") + 400
