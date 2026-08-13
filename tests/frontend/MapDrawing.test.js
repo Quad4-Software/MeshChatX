@@ -376,7 +376,7 @@ describe("MapPage.vue - Drawing and Measurement Tools", () => {
         const wrapper = mountMapPage();
         await wrapper.vm.$nextTick();
         expect(wrapper.find('button[title="map.tool_bearing"]').exists()).toBe(true);
-        expect(wrapper.find('button[title="map.tool_bearing_from_here"]').exists()).toBe(true);
+        expect(wrapper.find('button[title="map.tool_bearing_from_here"]').exists()).toBe(false);
     });
 
     it("toggles bearing mode", async () => {
@@ -419,7 +419,11 @@ describe("MapPage.vue - Drawing and Measurement Tools", () => {
             await wrapper.vm.$nextTick();
             await new Promise((resolve) => setTimeout(resolve, 50));
             await wrapper.vm.$nextTick();
-            await wrapper.find('button[title="map.tool_bearing_from_here"]').trigger("click");
+            await wrapper.find('button[title="map.tool_bearing"]').trigger("click");
+            await wrapper.vm.$nextTick();
+            const fromHere = wrapper.findComponent({ name: "MapBearingInstructions" }).find("button");
+            expect(fromHere.exists()).toBe(true);
+            await fromHere.trigger("click");
             await flushPromises();
             await wrapper.vm.$nextTick();
             expect(wrapper.vm.isBearingMode).toBe(true);
