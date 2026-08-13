@@ -17,11 +17,17 @@ from collections import deque
 
 import RNS
 
+from meshchatx.src.backend.path_utils import (
+    path_response_window,
+    slowest_online_bitrate,
+)
 from meshchatx.src.backend.rrc import protocol as proto
 from meshchatx.src.backend.rrc.room_key_crypto import decrypt_room_key, encrypt_room_key
 from meshchatx.src.backend.rrc.server import _LoopbackEndpoint
 
 DEFAULT_DEST_NAME = proto.DEFAULT_DEST_NAME
+SLOW_CHANNEL_BPS = 300
+_slow_connect_gate = threading.Semaphore(1)
 BAD_KEY_MARKERS = ("bad key (+k)", "bad key")
 FORCED_LEAVE_MARKERS = ("kicked from", "banned from")
 
@@ -300,21 +306,37 @@ class RRCHub:
                 return
 
             timeout_s = 20.0
-            if not RNS.Transport.has_path(self.hub_hash):
-                RNS.Transport.request_path(self.hub_hash)
-                deadline = time.monotonic() + min(5.0, timeout_s)
-                while time.monotonic() < deadline:
-                    if RNS.Transport.has_path(self.hub_hash):
-                        break
-                    time.sleep(0.1)
+            bitrate = slowest_online_bitrate()
+            gate = (
+                _slow_connect_gate
+                if bitrate is not None and bitrate < SLOW_CHANNEL_BPS
+                else None
+            )
+            if gate is not None:
+                gate.acquire()
+            try:
+                if not RNS.Transport.has_path(self.hub_hash):
+                    RNS.Transport.request_path(self.hub_hash)
+                    try:
+                        path_wait = path_response_window(self.hub_hash)
+                    except Exception:
+                        path_wait = float(RNS.Transport.PATH_REQUEST_TIMEOUT)
+                    deadline = time.monotonic() + path_wait
+                    while time.monotonic() < deadline:
+                        if RNS.Transport.has_path(self.hub_hash):
+                            break
+                        time.sleep(0.1)
 
-            hub_identity = None
-            deadline = time.monotonic() + timeout_s
-            while time.monotonic() < deadline:
-                hub_identity = RNS.Identity.recall(self.hub_hash)
-                if hub_identity is not None:
-                    break
-                time.sleep(0.2)
+                hub_identity = None
+                deadline = time.monotonic() + timeout_s
+                while time.monotonic() < deadline:
+                    hub_identity = RNS.Identity.recall(self.hub_hash)
+                    if hub_identity is not None:
+                        break
+                    time.sleep(0.2)
+            finally:
+                if gate is not None:
+                    gate.release()
 
             if hub_identity is None:
                 self._set_status(RRCHub.STATUS_FAILED, "Hub identity unknown")

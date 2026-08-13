@@ -7,6 +7,8 @@ import time
 
 import RNS
 
+from .path_utils import path_response_window
+
 logger = logging.getLogger(__name__)
 
 
@@ -122,7 +124,7 @@ class RNProbeHandler:
             timeout_after = time.time() + (
                 timeout
                 or self.DEFAULT_TIMEOUT
-                + self.reticulum.get_first_hop_timeout(destination_hash)
+                + path_response_window(destination_hash, self.reticulum)
             )
             while (
                 receipt.status == RNS.PacketReceipt.SENT and time.time() < timeout_after

@@ -6,6 +6,8 @@ import time
 
 import RNS
 
+from .path_utils import path_response_window
+
 logger = logging.getLogger(__name__)
 
 
@@ -24,7 +26,7 @@ class RNPathTraceHandler:
             # Request path if we don't have it
             if not RNS.Transport.has_path(destination_hash):
                 RNS.Transport.request_path(destination_hash)
-                timeout = 10
+                timeout = path_response_window(destination_hash, self.reticulum)
                 start_time = time.time()
                 while (
                     not RNS.Transport.has_path(destination_hash)

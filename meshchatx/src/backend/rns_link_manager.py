@@ -10,6 +10,7 @@ from typing import Optional
 import RNS
 
 from meshchatx.src.backend import reticulum_pathfinding
+from meshchatx.src.backend.path_utils import path_response_window
 from meshchatx.src.backend.reticulum_pathfinding import ReticulumLike
 
 # Cache of established RNS Links keyed by (aspect_str, destination_hash_bytes).
@@ -36,6 +37,11 @@ LINK_IDLE_TTL_S = 30 * 60
 
 # Wait granularity while polling for path / link (seconds).
 _POLL_INTERVAL_S = 0.02
+
+# Slow path and link margins
+PATH_MARGIN_S = 5.0
+LINK_MARGIN_S = 5.0
+_FALLBACK_LINK_TIMEOUT_S = 15.0
 
 
 def cached_link_count() -> int:
@@ -235,8 +241,8 @@ class RnsLinkManager:
         *,
         auto_identify: bool = False,
         on_phase: Callable[[str], None] | None = None,
-        path_lookup_timeout: float = 15.0,
-        link_establishment_timeout: float = 15.0,
+        path_lookup_timeout: float | None = None,
+        link_establishment_timeout: float | None = None,
     ) -> tuple[Optional["RNS.Link"], bool, str | None]:
         """Open (or reuse) a Link to (aspect, destination_hash).
 
@@ -274,12 +280,36 @@ class RnsLinkManager:
         )
         if not RNS.Transport.has_path(destination_hash):
             _phase("finding_path")
-            deadline = time.time() + path_lookup_timeout
+            now = time.time()
+            if path_lookup_timeout is None:
+                fast_deadline = (
+                    now + PATH_MARGIN_S + float(RNS.Reticulum.DEFAULT_PER_HOP_TIMEOUT)
+                )
+                try:
+                    # Cold-path deadline uses the slowest online advertised bitrate
+                    slow_deadline = (
+                        now
+                        + PATH_MARGIN_S
+                        + path_response_window(
+                            destination_hash,
+                            self._get_reticulum(),
+                        )
+                    )
+                except Exception:
+                    slow_deadline = (
+                        now + PATH_MARGIN_S + float(RNS.Transport.PATH_REQUEST_TIMEOUT)
+                    )
+            else:
+                fast_deadline = slow_deadline = now + path_lookup_timeout
+            slow_phase = False
             try:
                 while (
                     not RNS.Transport.has_path(destination_hash)
-                    and time.time() < deadline
+                    and time.time() < slow_deadline
                 ):
+                    if not slow_phase and time.time() >= fast_deadline:
+                        slow_phase = True
+                        _phase("finding_path_slow")
                     await asyncio.sleep(_POLL_INTERVAL_S)
             except asyncio.CancelledError:
                 # No link object yet, so there is nothing to tear down. Just propagate.
@@ -316,7 +346,12 @@ class RnsLinkManager:
             *sub_aspects,
         )
 
-        link = RNS.Link(destination)
+        link = RNS.Link(
+            destination,
+            established_callback=lambda lnk, _aspect=aspect, _dh=destination_hash: (
+                _cache_link_if_active(_aspect, _dh, lnk)
+            ),
+        )
         link.set_packet_callback(
             lambda data, packet, _aspect=aspect, _dh=destination_hash: self._on_packet(
                 _aspect,
@@ -332,9 +367,19 @@ class RnsLinkManager:
             ),
         )
 
-        deadline = time.time() + link_establishment_timeout
+        # Get the link establishment_timeout from RNS if not explicitly pinned
+        rns_timeout = getattr(link, "establishment_timeout", None)
+        if link_establishment_timeout is not None:
+            deadline = time.time() + link_establishment_timeout
+        elif isinstance(rns_timeout, (int, float)) and rns_timeout > 0:
+            deadline = time.time() + rns_timeout + LINK_MARGIN_S
+        else:
+            deadline = time.time() + _FALLBACK_LINK_TIMEOUT_S
         try:
-            while link.status is not RNS.Link.ACTIVE and time.time() < deadline:
+            while (
+                link.status not in (RNS.Link.ACTIVE, RNS.Link.CLOSED)
+                and time.time() < deadline
+            ):
                 await asyncio.sleep(_POLL_INTERVAL_S)
         except asyncio.CancelledError:
             # Caller bailed (typically: WS client disconnected). Tear down the
@@ -346,10 +391,8 @@ class RnsLinkManager:
                 pass
             raise
         if link.status is not RNS.Link.ACTIVE:
-            try:
-                link.teardown()
-            except Exception:
-                pass
+            if link.status is RNS.Link.CLOSED:
+                return None, False, "link_establishment_failed"
             return None, False, "link_establishment_timeout"
 
         _cache_link_if_active(aspect, destination_hash, link)
