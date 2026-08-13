@@ -19,6 +19,7 @@
  * @property {string} [imageAlt]
  * @property {{ href: string, target: string, icon: string }} [extraAction]
  * @property {string | null} [pluginId]
+ * @property {'diagnostics' | 'transfer' | 'messaging' | 'network' | 'other'} [group]
  */
 
 /** @type {ToolEntry[]} */
@@ -30,6 +31,7 @@ export const CORE_TOOLS_ENTRIES = [
         iconBg: "tool-card__icon bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-200",
         titleKey: "tools.ping.title",
         descriptionKey: "tools.ping.description",
+        group: "diagnostics",
     },
     {
         name: "rnprobe",
@@ -38,6 +40,7 @@ export const CORE_TOOLS_ENTRIES = [
         iconBg: "tool-card__icon bg-purple-50 text-purple-500 dark:bg-purple-900/30 dark:text-purple-200",
         titleKey: "tools.rnprobe.title",
         descriptionKey: "tools.rnprobe.description",
+        group: "diagnostics",
     },
     {
         name: "rnstatus",
@@ -46,6 +49,7 @@ export const CORE_TOOLS_ENTRIES = [
         iconBg: "tool-card__icon bg-orange-50 text-orange-500 dark:bg-orange-900/30 dark:text-orange-200",
         titleKey: "tools.rnstatus.title",
         descriptionKey: "tools.rnstatus.description",
+        group: "diagnostics",
     },
     {
         name: "rnpath",
@@ -54,6 +58,7 @@ export const CORE_TOOLS_ENTRIES = [
         iconBg: "tool-card__icon bg-indigo-50 text-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-200",
         titleKey: "tools.rnpath.title",
         descriptionKey: "tools.rnpath.description",
+        group: "diagnostics",
     },
     {
         name: "rnpath-trace",
@@ -62,6 +67,7 @@ export const CORE_TOOLS_ENTRIES = [
         iconBg: "tool-card__icon bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-200",
         titleKey: "tools.rnpath_trace.title",
         descriptionKey: "tools.rnpath_trace.description",
+        group: "diagnostics",
     },
     {
         name: "rncp",
@@ -70,6 +76,7 @@ export const CORE_TOOLS_ENTRIES = [
         iconBg: "tool-card__icon bg-green-50 text-green-500 dark:bg-green-900/30 dark:text-green-200",
         titleKey: "tools.rncp.title",
         descriptionKey: "tools.rncp.description",
+        group: "transfer",
     },
     {
         name: "rns-filesync",
@@ -79,6 +86,7 @@ export const CORE_TOOLS_ENTRIES = [
         titleKey: "tools.rns_filesync.title",
         descriptionKey: "tools.rns_filesync.description",
         alpha: true,
+        group: "transfer",
     },
     {
         name: "rnsh",
@@ -88,6 +96,7 @@ export const CORE_TOOLS_ENTRIES = [
         titleKey: "tools.rnsh.title",
         descriptionKey: "tools.rnsh.description",
         alpha: true,
+        group: "network",
     },
     {
         name: "rnx",
@@ -97,6 +106,7 @@ export const CORE_TOOLS_ENTRIES = [
         titleKey: "tools.rnx.title",
         descriptionKey: "tools.rnx.description",
         alpha: true,
+        group: "network",
     },
     {
         name: "propagation-nodes",
@@ -105,6 +115,7 @@ export const CORE_TOOLS_ENTRIES = [
         iconBg: "tool-card__icon bg-cyan-50 text-cyan-500 dark:bg-cyan-900/30 dark:text-cyan-200",
         titleKey: "tools.propagation_nodes.title",
         descriptionKey: "tools.propagation_nodes.description",
+        group: "messaging",
     },
     {
         name: "forwarder",
@@ -113,6 +124,7 @@ export const CORE_TOOLS_ENTRIES = [
         iconBg: "tool-card__icon bg-rose-50 text-rose-500 dark:bg-rose-900/30 dark:text-rose-200",
         titleKey: "tools.forwarder.title",
         descriptionKey: "tools.forwarder.description",
+        group: "messaging",
     },
     {
         name: "sieve-filters",
@@ -121,6 +133,7 @@ export const CORE_TOOLS_ENTRIES = [
         iconBg: "tool-card__icon bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-200",
         titleKey: "tools.sieve_filters.title",
         descriptionKey: "tools.sieve_filters.description",
+        group: "messaging",
     },
     {
         name: "message-blocklist",
@@ -130,6 +143,7 @@ export const CORE_TOOLS_ENTRIES = [
         titleKey: "tools.message_blocklist.title",
         descriptionKey: "tools.message_blocklist.description",
         beta: true,
+        group: "messaging",
     },
     {
         name: "bots",
@@ -138,6 +152,7 @@ export const CORE_TOOLS_ENTRIES = [
         iconBg: "tool-card__icon bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-200",
         titleKey: "tools.bots.title",
         descriptionKey: "tools.bots.description",
+        group: "other",
     },
     {
         name: "paper-message",
@@ -146,6 +161,7 @@ export const CORE_TOOLS_ENTRIES = [
         iconBg: "tool-card__icon bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-200",
         titleKey: "tools.paper_message.title",
         descriptionKey: "tools.paper_message.description",
+        group: "messaging",
     },
     {
         name: "translator",
@@ -154,6 +170,7 @@ export const CORE_TOOLS_ENTRIES = [
         iconBg: "tool-card__icon bg-indigo-50 text-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-200",
         titleKey: "tools.translator.title",
         descriptionKey: "tools.translator.description",
+        group: "messaging",
     },
     {
         name: "micron-editor",
@@ -162,6 +179,7 @@ export const CORE_TOOLS_ENTRIES = [
         iconBg: "tool-card__icon bg-teal-50 text-teal-500 dark:bg-teal-900/30 dark:text-teal-200",
         titleKey: "tools.micron_editor.title",
         descriptionKey: "tools.micron_editor.description",
+        group: "other",
     },
     {
         name: "documentation",
@@ -170,6 +188,7 @@ export const CORE_TOOLS_ENTRIES = [
         iconBg: "tool-card__icon bg-cyan-50 text-cyan-500 dark:bg-cyan-900/30 dark:text-cyan-200",
         titleKey: "docs.title",
         descriptionKey: "docs.subtitle",
+        group: "other",
     },
     {
         name: "repository-server",
@@ -178,6 +197,7 @@ export const CORE_TOOLS_ENTRIES = [
         iconBg: "tool-card__icon bg-sky-50 text-sky-600 dark:bg-sky-900/30 dark:text-sky-200",
         titleKey: "tools.repository_server.title",
         descriptionKey: "tools.repository_server.description",
+        group: "network",
     },
     {
         name: "reticulum-config-editor",
@@ -186,6 +206,7 @@ export const CORE_TOOLS_ENTRIES = [
         iconBg: "tool-card__icon bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-200",
         titleKey: "tools.reticulum_config_editor.title",
         descriptionKey: "tools.reticulum_config_editor.description",
+        group: "network",
     },
     {
         name: "rnode-flasher",
@@ -202,6 +223,7 @@ export const CORE_TOOLS_ENTRIES = [
             target: "_blank",
             icon: "open-in-new",
         },
+        group: "network",
     },
     {
         name: "mesh-server",
@@ -210,6 +232,7 @@ export const CORE_TOOLS_ENTRIES = [
         iconBg: "tool-card__icon bg-amber-50 text-amber-500 dark:bg-amber-900/30 dark:text-amber-200",
         titleKey: "tools.mesh_server.title",
         descriptionKey: "tools.mesh_server.description",
+        group: "network",
     },
     {
         name: "rns-tunnel",
@@ -218,6 +241,7 @@ export const CORE_TOOLS_ENTRIES = [
         iconBg: "tool-card__icon bg-indigo-50 text-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-200",
         titleKey: "tools.rns_tunnel.title",
         descriptionKey: "tools.rns_tunnel.description",
+        group: "network",
     },
     {
         name: "debug-logs",
@@ -227,5 +251,6 @@ export const CORE_TOOLS_ENTRIES = [
         titleKey: "debug.title",
         descriptionKey: "debug.description",
         customClass: "bg-amber-50/50 dark:bg-transparent",
+        group: "other",
     },
 ];
