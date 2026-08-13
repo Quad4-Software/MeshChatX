@@ -82,7 +82,6 @@ class MapManager:
                     files.append(
                         {
                             "name": f,
-                            "path": full_path,
                             "size": stats.st_size,
                             "mtime": stats.st_mtime,
                             "is_active": full_path == self.get_offline_path(),

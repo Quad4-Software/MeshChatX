@@ -788,6 +788,32 @@ class TestPageNodeEdgeCases:
         responder = node._make_file_responder("escape.bin")
         assert responder("/file/escape.bin", None, None, None, None, None) is None
 
+    @pytest.mark.skipif(os.name == "nt", reason="symlink jail oracle is POSIX")
+    def test_page_symlink_out_is_not_readable_or_overwritten(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        bait_dir = os.path.join(os.path.dirname(node_dir), "outside-jail")
+        os.makedirs(bait_dir, exist_ok=True)
+        bait = os.path.join(bait_dir, "secret.mu")
+        with open(bait, "w", encoding="utf-8") as f:
+            f.write("keep-me")
+        bait_mode = os.stat(bait).st_mode
+        os.symlink(bait, os.path.join(node.pages_dir, "escape.mu"))
+
+        assert node.get_page_content("escape.mu") is None
+        assert node.serve_page_content("escape.mu") is None
+        assert node.list_pages() == []
+        assert node.remove_page("escape.mu") is False
+        with pytest.raises(ValueError, match="invalid page name"):
+            node.add_page("escape.mu", "overwrite")
+        with pytest.raises(ValueError, match="page not found"):
+            node.set_page_executable("escape.mu", True)
+        with open(bait, encoding="utf-8") as f:
+            assert f.read() == "keep-me"
+        assert os.stat(bait).st_mode == bait_mode
+        responder = node._make_page_responder("escape.mu")
+        assert responder("/page/escape.mu", None, None, None, None, None) is None
+
 
 class TestPageNodeExecutablePages:
     def test_executable_disabled_serves_static_even_when_chmod_x(

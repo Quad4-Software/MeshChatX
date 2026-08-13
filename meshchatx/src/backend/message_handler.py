@@ -124,6 +124,22 @@ class MessageHandler:
         "(COALESCE(s.has_image, 0) = 1 OR COALESCE(s.has_audio, 0) = 1 "
         "OR COALESCE(s.has_files, 0) = 1)"
     )
+    # Pick one contact from a SELECT subquery. JOIN ON (SELECT ... s.peer_hash)
+    # fails on some SQLite builds with "no such column: s.peer_hash".
+    # Identity hash wins over lxmf then lxst.
+    _CONTACT_MATCH_SQL = (
+        "(con.remote_identity_hash = s.peer_hash"
+        " OR con.lxmf_address = s.peer_hash"
+        " OR con.lxst_address = s.peer_hash)"
+    )
+    _CONTACT_PICK_ORDER_SQL = """
+            ORDER BY CASE
+                WHEN con.remote_identity_hash = s.peer_hash THEN 0
+                WHEN con.lxmf_address = s.peer_hash THEN 1
+                ELSE 2
+            END
+            LIMIT 1
+    """
 
     @classmethod
     def clamp_conversations_limit(cls, limit):
@@ -195,32 +211,31 @@ class MessageHandler:
                 CASE WHEN {self._FIELDS_HAS_ATTACHMENTS_SQL} THEN 1 ELSE 0 END as has_attachments,
                 a.app_data as peer_app_data,
                 c.display_name as custom_display_name,
-                CASE
-                    WHEN con.custom_image IS NOT NULL AND con.custom_image != ''
-                    THEN 1 ELSE 0
-                END as has_contact_image,
-                con.name as contact_name,
+                (
+                    SELECT CASE
+                        WHEN con.custom_image IS NOT NULL AND con.custom_image != ''
+                        THEN 1 ELSE 0
+                    END
+                    FROM contacts con
+                    WHERE {self._CONTACT_MATCH_SQL}
+                    {self._CONTACT_PICK_ORDER_SQL}
+                ) as has_contact_image,
+                (
+                    SELECT con.name FROM contacts con
+                    WHERE {self._CONTACT_MATCH_SQL}
+                    {self._CONTACT_PICK_ORDER_SQL}
+                ) as contact_name,
                 i.icon_name, i.foreground_colour, i.background_colour,
                 r.last_read_at,
                 f.id as folder_id,
                 fn.name as folder_name,
                 COALESCE(s.failed_count, 0) as failed_count,
-                CASE WHEN con.id IS NOT NULL THEN 1 ELSE 0 END as is_contact
+                CASE WHEN EXISTS (
+                    SELECT 1 FROM contacts con WHERE {self._CONTACT_MATCH_SQL}
+                ) THEN 1 ELSE 0 END as is_contact
             FROM lxmf_conversation_summaries s
             LEFT JOIN announces a ON a.destination_hash = s.peer_hash
             LEFT JOIN custom_destination_display_names c ON c.destination_hash = s.peer_hash
-            LEFT JOIN contacts con ON con.id = (
-                SELECT c2.id FROM contacts c2
-                WHERE c2.remote_identity_hash = s.peer_hash
-                   OR c2.lxmf_address = s.peer_hash
-                   OR c2.lxst_address = s.peer_hash
-                ORDER BY CASE
-                    WHEN c2.remote_identity_hash = s.peer_hash THEN 0
-                    WHEN c2.lxmf_address = s.peer_hash THEN 1
-                    ELSE 2
-                END
-                LIMIT 1
-            )
             LEFT JOIN lxmf_user_icons i ON i.destination_hash = s.peer_hash
             LEFT JOIN lxmf_conversation_read_state r ON r.destination_hash = s.peer_hash
             LEFT JOIN lxmf_conversation_folders f ON f.peer_hash = s.peer_hash
@@ -253,9 +268,13 @@ class MessageHandler:
             if search:
                 like_term = f"%{search}%"
                 # Search latest summary fields or any historical message for the peer
-                where_clauses.append("""
+                where_clauses.append(f"""
                     (s.title LIKE ? OR s.content_preview LIKE ? OR s.peer_hash LIKE ?
-                     OR c.display_name LIKE ? OR con.name LIKE ?
+                     OR c.display_name LIKE ?
+                     OR EXISTS (
+                        SELECT 1 FROM contacts con
+                        WHERE {self._CONTACT_MATCH_SQL} AND con.name LIKE ?
+                     )
                      OR s.peer_hash IN (
                         SELECT peer_hash FROM lxmf_messages
                         WHERE title LIKE ? OR content LIKE ?

@@ -64,6 +64,7 @@ def test_list_mbtiles(mock_config, temp_dir):
     assert len(files) == 2
     assert any(f["name"] == "map1.mbtiles" for f in files)
     assert any(f["size"] == 2 for f in files if f["name"] == "map2.mbtiles")
+    assert all("path" not in f for f in files)
 
 
 def test_get_metadata(mock_config, temp_dir):

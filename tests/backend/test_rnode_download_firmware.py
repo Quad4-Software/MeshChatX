@@ -146,6 +146,32 @@ async def test_download_firmware_returns_zip_for_allowed_url(web_app):
 
 
 @pytest.mark.asyncio
+async def test_download_firmware_strips_crlf_from_content_disposition(web_app):
+    aio_app = _build_aio_app(web_app)
+    fake_zip = b"PK\x03\x04hdr"
+    fake_session = _FakeSession(200, fake_zip)
+    hostile_name = 'evil.zip"\r\nX-Injected: yes'
+    url = "https://github.com/owner/repo/releases/download/v1/" + hostile_name
+
+    with patch("aiohttp.ClientSession", MagicMock(return_value=fake_session)):
+        async with TestClient(TestServer(aio_app)) as client:
+            r = await client.get(
+                "/api/v1/tools/rnode/download_firmware",
+                params={"url": url},
+            )
+            assert r.status == 200
+            disp = r.headers.get("Content-Disposition", "")
+            prefix = 'attachment; filename="'
+            assert disp.startswith(prefix)
+            assert disp.endswith('"')
+            inner = disp[len(prefix) : -1]
+            assert "\r" not in disp
+            assert "\n" not in disp
+            assert '"' not in inner
+            assert await r.read() == fake_zip
+
+
+@pytest.mark.asyncio
 async def test_download_firmware_propagates_upstream_error_status(web_app):
     aio_app = _build_aio_app(web_app)
     fake_session = _FakeSession(404, b"")

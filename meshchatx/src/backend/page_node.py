@@ -359,9 +359,7 @@ class PageNode:
         if not os.path.isdir(self.pages_dir):
             return
         for fname in os.listdir(self.pages_dir):
-            if not os.path.isfile(os.path.join(self.pages_dir, fname)):
-                continue
-            if not is_allowed_page_filename(fname):
+            if self._jail_page_path(fname, must_exist=True) is None:
                 continue
             self._register_page_handler(fname)
 
@@ -422,16 +420,30 @@ class PageNode:
         self.destination.deregister_request_handler(rpath)
         self._registered_file_paths.discard(rpath)
 
-    def _resolve_page_path(self, name):
+    def _jail_page_path(self, name, *, must_exist=False):
+        """Resolve a page name under pages_dir after realpath.
+
+        Returns None when the name is invalid, the path escapes the jail
+        (including symlink-out), or must_exist is set and the file is missing.
+        """
         try:
             safe_name = normalize_page_filename(name)
             _reject_name_component_too_long(self.pages_dir, safe_name)
         except ValueError:
             return None
-        page_path = os.path.join(self.pages_dir, safe_name)
-        if not os.path.isfile(page_path):
+        if not os.path.isdir(self.pages_dir):
             return None
-        return page_path
+        root = os.path.realpath(self.pages_dir)
+        raw = os.path.join(root, safe_name)
+        resolved = os.path.realpath(raw)
+        if not _path_is_under_root(resolved, root):
+            return None
+        if must_exist and not os.path.isfile(resolved):
+            return None
+        return resolved
+
+    def _resolve_page_path(self, name):
+        return self._jail_page_path(name, must_exist=True)
 
     def is_page_executable(self, name):
         """Return whether the page file has the execute permission bit set."""
@@ -588,9 +600,10 @@ class PageNode:
     def add_page(self, name, content, executable=None):
         """Write a page file and register its request handler."""
         os.makedirs(self.pages_dir, exist_ok=True)
-        name = normalize_page_filename(name)
-        _reject_name_component_too_long(self.pages_dir, name)
-        page_path = os.path.join(self.pages_dir, name)
+        page_path = self._jail_page_path(name, must_exist=False)
+        if page_path is None:
+            raise ValueError("invalid page name")
+        name = os.path.basename(page_path)
         if isinstance(content, str):
             content = content.encode("utf-8")
         with open(page_path, "wb") as f:
@@ -608,17 +621,16 @@ class PageNode:
 
     def remove_page(self, name):
         """Remove a page and deregister its request handler."""
-        try:
-            name = normalize_page_filename(name)
-            _reject_name_component_too_long(self.pages_dir, name)
-        except ValueError:
+        page_path = self._jail_page_path(name, must_exist=True)
+        if page_path is None:
             return False
-        page_path = os.path.join(self.pages_dir, name)
-        if os.path.isfile(page_path):
+        try:
+            name = os.path.basename(page_path)
             os.remove(page_path)
-            self._deregister_page_handler(name)
-            return True
-        return False
+        except OSError:
+            return False
+        self._deregister_page_handler(name)
+        return True
 
     def list_pages(self):
         """Return page metadata dicts with name and executable state."""
@@ -626,8 +638,8 @@ class PageNode:
             return []
         pages = []
         for fname in sorted(os.listdir(self.pages_dir)):
-            fpath = os.path.join(self.pages_dir, fname)
-            if not os.path.isfile(fpath) or not is_allowed_page_filename(fname):
+            fpath = self._jail_page_path(fname, must_exist=True)
+            if fpath is None:
                 continue
             pages.append(
                 {
@@ -639,13 +651,8 @@ class PageNode:
 
     def get_page_content(self, name):
         """Read and return a page's content."""
-        try:
-            name = normalize_page_filename(name)
-            _reject_name_component_too_long(self.pages_dir, name)
-        except ValueError:
-            return None
-        page_path = os.path.join(self.pages_dir, name)
-        if not os.path.isfile(page_path):
+        page_path = self._jail_page_path(name, must_exist=True)
+        if page_path is None:
             return None
         with open(page_path, encoding="utf-8") as f:
             return f.read()

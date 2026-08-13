@@ -425,6 +425,7 @@ class DatabaseSchema:
                     remote_identity_hash TEXT UNIQUE,
                     lxmf_address TEXT,
                     lxst_address TEXT,
+                    custom_image TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
@@ -560,6 +561,31 @@ class DatabaseSchema:
                     FOREIGN KEY (folder_id) REFERENCES lxmf_folders(id) ON DELETE CASCADE
                 )
             """,
+            "lxmf_conversation_summaries": """
+                CREATE TABLE IF NOT EXISTS lxmf_conversation_summaries (
+                    peer_hash TEXT PRIMARY KEY NOT NULL,
+                    latest_message_id INTEGER NOT NULL,
+                    latest_message_hash TEXT,
+                    source_hash TEXT,
+                    destination_hash TEXT,
+                    state TEXT,
+                    progress REAL,
+                    is_incoming INTEGER,
+                    title TEXT,
+                    content_preview TEXT,
+                    timestamp REAL,
+                    is_spam INTEGER,
+                    reply_to_hash TEXT,
+                    created_at TEXT,
+                    updated_at TEXT,
+                    has_image INTEGER,
+                    has_audio INTEGER,
+                    has_files INTEGER,
+                    has_reaction INTEGER,
+                    has_telemetry INTEGER,
+                    failed_count INTEGER NOT NULL DEFAULT 0
+                )
+            """,
             "map_published": """
                 CREATE TABLE IF NOT EXISTS map_published (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -652,6 +678,15 @@ class DatabaseSchema:
                 )
                 self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_debug_logs_anomaly ON debug_logs(is_anomaly)",
+                )
+            elif table_name == "lxmf_conversation_summaries":
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_conversation_summaries_latest_id "
+                    "ON lxmf_conversation_summaries(latest_message_id DESC)",
+                )
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_conversation_summaries_timestamp "
+                    "ON lxmf_conversation_summaries(timestamp DESC)",
                 )
             elif table_name == "map_published":
                 self._safe_execute(

@@ -42,6 +42,7 @@ from meshchatx.src.backend.rngit_sparse_fetcher import (
     RngitFetchError,
     RngitSparseFetcher,
 )
+from meshchatx.src.path_utils import is_path_within_dir
 
 _log = logging.getLogger("meshchatx.map_overlays")
 
@@ -143,6 +144,15 @@ class MapOverlayManager:
     ) -> tuple[str, str]:
         rel = os.path.join(identity_hash, f"{overlay_id}.{fmt}")
         return os.path.join(self.overlay_root(), rel), rel
+
+    def _cache_abs_under_root(self, rel: str) -> str | None:
+        if not isinstance(rel, str) or not rel or "\x00" in rel:
+            return None
+        root = self.overlay_root()
+        abs_path = os.path.join(root, rel)
+        if not is_path_within_dir(abs_path, root):
+            return None
+        return os.path.realpath(abs_path)
 
     def _cfg_int(self, key: str) -> int:
         conf = getattr(self.config, key)
@@ -764,8 +774,8 @@ class MapOverlayManager:
         digest = hashlib.sha256(payload).hexdigest()
         row = self.database.map_overlays.get_by_id(overlay_id)
         if row and row.get("content_sha256") == digest and row.get("cache_relpath"):
-            abs_existing = os.path.join(self.overlay_root(), row["cache_relpath"])
-            if os.path.isfile(abs_existing):
+            abs_existing = self._cache_abs_under_root(row["cache_relpath"])
+            if abs_existing and os.path.isfile(abs_existing):
                 now = datetime.now(UTC)
                 next_at = None
                 if refresh_interval > 0:
@@ -879,9 +889,9 @@ class MapOverlayManager:
             return False
         rel = row.get("cache_relpath")
         if rel:
-            abs_path = os.path.join(self.overlay_root(), rel)
+            abs_path = self._cache_abs_under_root(rel)
             try:
-                if os.path.isfile(abs_path):
+                if abs_path and os.path.isfile(abs_path):
                     os.remove(abs_path)
             except OSError:
                 pass
@@ -895,8 +905,8 @@ class MapOverlayManager:
         row = self.get_overlay(identity_hash, overlay_id)
         if not row or not row.get("cache_relpath") or not row.get("format"):
             return None
-        abs_path = os.path.join(self.overlay_root(), row["cache_relpath"])
-        if not os.path.isfile(abs_path):
+        abs_path = self._cache_abs_under_root(row["cache_relpath"])
+        if not abs_path or not os.path.isfile(abs_path):
             return None
         with open(abs_path, "rb") as f:
             data = f.read()

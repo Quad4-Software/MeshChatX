@@ -335,7 +335,13 @@ def register_filesync_routes(routes, app):
         filename = result.get("filename") or "download"
         if not abspath or not os.path.isfile(abspath):
             return web.json_response({"message": "file not found"}, status=404)
-        safe_name = os.path.basename(str(filename)).replace('"', "")
+        safe_name = (
+            os.path.basename(str(filename))
+            .replace('"', "_")
+            .replace("\r", "")
+            .replace("\n", "")
+            .replace("\x00", "")
+        ) or "download"
         return web.FileResponse(
             abspath,
             headers={

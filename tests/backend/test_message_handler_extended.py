@@ -82,6 +82,7 @@ def test_get_conversations_base(mock_db):
     assert "SELECT peer_hash, MAX(id) as max_id" not in query
     assert "FROM lxmf_messages\n                WHERE state = 'failed'" not in query
     assert "GROUP BY" not in query
+    assert "LEFT JOIN contacts con ON con.id" not in query
 
 
 def test_get_conversations_with_filters(mock_db):

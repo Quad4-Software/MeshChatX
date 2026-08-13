@@ -10,7 +10,7 @@ os.environ["MESHCHAT_APPCONTAINER"] = "0"
 
 import socket
 from contextlib import ExitStack
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import RNS
@@ -163,6 +163,43 @@ def db(temp_db):
     provider.close_all()
 
 
+def _stub_map_data_manager(app):
+    """Make patched MapDataManager awaitable and JSON-serializable for HTTP tests."""
+    mgr = app.map_data_manager
+    if mgr is None:
+        return
+    status = {
+        "aspect": "map-data-v1",
+        "running": True,
+        "destination_hash": "aa" * 16,
+        "display_name": "x",
+        "announce_enabled": False,
+        "announce_interval": 900,
+        "max_bytes": 524288,
+        "published_count": 0,
+    }
+    mgr.status.return_value = status
+    mgr.list_published.return_value = []
+    mgr.list_heard.return_value = []
+    mgr.announce.return_value = status
+    mgr.update_settings.return_value = status
+    mgr.publish_bytes.return_value = {
+        "map": {
+            "map_id": "a" * 16,
+            "name": "x",
+            "format": "geojson",
+            "size": 2,
+        },
+        "stripped": [],
+    }
+    mgr.unpublish.return_value = True
+    mgr.fetch_catalog = AsyncMock(
+        return_value={"destination_hash": "aa" * 16, "maps": []},
+    )
+    mgr.fetch_map_bytes = AsyncMock(return_value=b"{}")
+    mgr.add_as_overlay = AsyncMock(return_value={"ok": True})
+
+
 @pytest.fixture
 def mock_app(db, tmp_path, temp_db):
     real_identity_class = RNS.Identity
@@ -298,6 +335,7 @@ def mock_app(db, tmp_path, temp_db):
         app.websocket_broadcast = MagicMock(side_effect=lambda data: None)
         app.demo_mode = False
         app.altcha_enabled = False
+        _stub_map_data_manager(app)
 
         yield app
         app.teardown_identity()
