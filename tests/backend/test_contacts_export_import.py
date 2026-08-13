@@ -242,3 +242,53 @@ async def test_contacts_import_deduplicates(mock_rns_minimal, temp_dir):
         assert len(rows) == 2
         names = {r["name"] for r in rows}
         assert names == {"Second", "Third"}
+
+
+@pytest.mark.asyncio
+async def test_contacts_import_roundtrips_icon_and_skips_short_hash(
+    mock_rns_minimal,
+    temp_dir,
+):
+    with patch("meshchatx.meshchat.generate_ssl_certificate"):
+        app = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        handler = None
+        for route in app.get_routes():
+            if (
+                route.path == "/api/v1/telephone/contacts/import"
+                and route.method == "POST"
+            ):
+                handler = route.handler
+                break
+        assert handler is not None
+
+        request = MagicMock()
+        request.json = AsyncMock(
+            return_value={
+                "contacts": [
+                    {
+                        "name": "Alice",
+                        "remote_identity_hash": "a" * 32,
+                        "lxmf_icon": {
+                            "icon_name": "account",
+                            "foreground_colour": "#FFFFFF",
+                            "background_colour": "#000000",
+                        },
+                    },
+                    {"name": "Nope", "remote_identity_hash": "aa"},
+                ],
+            },
+        )
+        response = await handler(request)
+        data = json.loads(response.body)
+        assert data["added"] == 1
+        assert data["skipped"] == 1
+        icon = app.database.misc.get_user_icon("a" * 32)
+        assert icon is not None
+        assert icon["icon_name"] == "account"
+        rows = app.database.contacts.get_contacts(limit=10)
+        assert len(rows) == 1
+        assert rows[0]["name"] == "Alice"

@@ -471,10 +471,8 @@ def register_database_routes(routes, app):
         try:
             backup_info = app.database.backup_database(app.storage_path)
             file_path = backup_info["path"]
-            with open(file_path, "rb") as f:
-                data = f.read()
-            return web.Response(
-                body=data,
+            return web.FileResponse(
+                path=file_path,
                 headers={
                     "Content-Type": "application/zip",
                     "Content-Disposition": f'attachment; filename="{os.path.basename(file_path)}"',

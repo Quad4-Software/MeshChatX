@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import LXMF
 import pytest
+import RNS
 
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend.lxmf_message_fields import LxmfAudioField
@@ -112,15 +113,9 @@ async def test_lxm_ingest_uri_lxma_adds_contact(mock_app):
     mock_client = MagicMock()
     mock_client.send_str = MagicMock(return_value=asyncio.sleep(0))
 
-    fake_identity = MagicMock()
-    fake_identity.hash = bytes.fromhex("bb" * 16)
-    fake_identity.pub = object()
-    fake_identity.get_public_key.return_value = b"\x11" * 64
-
-    def load_public_key(_key_bytes):
-        return None
-
-    fake_identity.load_public_key.side_effect = load_public_key
+    peer = RNS.Identity()
+    dest = RNS.Destination.hash(peer, "lxmf", "delivery").hex()
+    uri = f"lxma://{dest}:{peer.get_public_key().hex()}"
 
     mock_app.config.auth_enabled.get.return_value = False
 
@@ -129,22 +124,21 @@ async def test_lxm_ingest_uri_lxma_adds_contact(mock_app):
             "meshchatx.meshchat.AsyncUtils.run_async",
             side_effect=lambda coro: asyncio.create_task(coro),
         ),
-        patch("meshchatx.meshchat.RNS.Identity", return_value=fake_identity),
         patch("meshchatx.meshchat.RNS.Identity.remember") as remember_mock,
     ):
         await mock_app.on_websocket_data_received(
             mock_client,
             {
                 "type": "lxm.ingest_uri",
-                "uri": f"lxma://{'aa' * 16}:{'11' * 64}",
+                "uri": uri,
             },
         )
         await asyncio.sleep(0)
 
     mock_app.database.contacts.add_contact.assert_called_once_with(
-        "Contact aaaaaaaa",
-        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        lxmf_address="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        f"Contact {dest[:8]}",
+        peer.hash.hex(),
+        lxmf_address=dest,
     )
     remember_mock.assert_called_once()
     mock_app.message_router.ingest_lxm_uri.assert_not_called()
@@ -153,7 +147,7 @@ async def test_lxm_ingest_uri_lxma_adds_contact(mock_app):
     assert payload["type"] == "lxm.ingest_uri.result"
     assert payload["status"] == "success"
     assert payload["ingest_type"] == "lxma_contact"
-    assert payload["destination_hash"] == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    assert payload["destination_hash"] == dest
 
 
 @pytest.mark.asyncio
@@ -166,23 +160,10 @@ async def test_lxm_ingest_uri_lxma_accepts_128_hex_public_key(mock_app):
     mock_client = MagicMock()
     mock_client.send_str = MagicMock(return_value=asyncio.sleep(0))
 
-    fake_identity = MagicMock()
-    fake_identity.hash = bytes.fromhex("bb" * 16)
-    fake_identity.pub = object()
-    fake_identity.get_public_key.return_value = b"\x01" * 64
-
-    def load_public_key(key_bytes):
-        # Match real RNS: return None even on success.
-        if len(key_bytes) != 64:
-            fake_identity.pub = None
-            fake_identity.hash = None
-            return None
-        fake_identity.pub = object()
-        fake_identity.hash = bytes.fromhex("bb" * 16)
-        return None
-
-    fake_identity.load_public_key.side_effect = load_public_key
-
+    peer = RNS.Identity()
+    dest = RNS.Destination.hash(peer, "lxmf", "delivery").hex()
+    pub = peer.get_public_key()
+    assert len(pub) == 64
     mock_app.config.auth_enabled.get.return_value = False
 
     with (
@@ -190,14 +171,13 @@ async def test_lxm_ingest_uri_lxma_accepts_128_hex_public_key(mock_app):
             "meshchatx.meshchat.AsyncUtils.run_async",
             side_effect=lambda coro: asyncio.create_task(coro),
         ),
-        patch("meshchatx.meshchat.RNS.Identity", return_value=fake_identity),
         patch("meshchatx.meshchat.RNS.Identity.remember"),
     ):
         await mock_app.on_websocket_data_received(
             mock_client,
             {
                 "type": "lxm.ingest_uri",
-                "uri": f"lxma://{'aa' * 16}:{'1' * 128}",
+                "uri": f"lxma://{dest}:{pub.hex()}",
             },
         )
         await asyncio.sleep(0)
@@ -206,8 +186,10 @@ async def test_lxm_ingest_uri_lxma_accepts_128_hex_public_key(mock_app):
     payload = json.loads(mock_client.send_str.call_args[0][0])
     assert payload["status"] == "success"
     assert payload["ingest_type"] == "lxma_contact"
-    assert fake_identity.load_public_key.call_count >= 1
-    assert len(fake_identity.load_public_key.call_args[0][0]) == 64
+    assert payload["destination_hash"] == dest
+    kwargs = mock_app.database.contacts.add_contact.call_args
+    assert kwargs.kwargs["lxmf_address"] == dest
+    assert kwargs.args[1] == peer.hash.hex()
 
 
 def test_identity_from_public_key_bytes_accepts_real_rns_none_return():

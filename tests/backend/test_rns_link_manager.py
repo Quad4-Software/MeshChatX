@@ -547,6 +547,10 @@ def test_parse_dest_aspect_helpers():
         {"destination_hash": "zz", "aspect": "a"},
     )
     assert err == "invalid_destination_hash"
+    _, _, err = ReticulumMeshChat._rns_link_parse_dest_aspect(
+        {"destination_hash": "aa", "aspect": "microrn.mgmt"},
+    )
+    assert err == "invalid_destination_hash"
 
 
 def test_rns_link_cache_evicts_over_cap():
