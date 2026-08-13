@@ -21,7 +21,8 @@ describe("service worker build", () => {
         expect(template).toContain("clients.claim");
         expect(template).toContain("navigationPreload");
         expect(template).toContain("UPDATE_MESSAGE_TYPE");
-        expect(template).toContain("resolveFetch");
+        expect(template).toContain("handleFetchEvent");
+        expect(template).not.toContain("preloadResponse: event.preloadResponse");
         expect(template).toContain("__MESHCHATX_SW_BUILD_ID__");
         expect(template).toContain("__MESHCHATX_SW_PRECACHE_JSON__");
     });
@@ -45,6 +46,11 @@ describe("service worker build", () => {
         expect(source).toContain('"/boot-theme.js"');
         expect(source).toContain("function classifyShellRequest");
         expect(source).toContain("function createShellRuntime");
+        expect(source).toContain("function handleFetchEvent");
+        expect(source).toContain("handleFetchEvent(event, runtime, self.location.origin)");
+        expect(source).not.toContain("preloadResponse: event.preloadResponse");
+        expect(source).toContain("function settlePreloadResponse");
+        expect(source).toContain("function shouldAttachNavigationPreload");
         expect(source).toContain("function findForbiddenCachedUrls");
         expect(source).not.toContain("__MESHCHATX_SW_BUILD_ID__");
         expect(source).not.toContain("__MESHCHATX_SW_PRECACHE_JSON__");
@@ -57,7 +63,9 @@ describe("service worker build", () => {
         const publicSw = readFileSync(result.outfile, "utf8");
         expect(publicSw).toContain('const BUILD_ID = "dev"');
         expect(publicSw).toContain("createShellRuntime");
+        expect(publicSw).toContain("handleFetchEvent");
         expect(publicSw).toContain("resolveFetch");
+        expect(publicSw).not.toContain("preloadResponse: event.preloadResponse");
         expect(publicSw).not.toContain("__MESHCHATX_SW_");
     });
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: 0BSD
-/* global __MESHCHATX_SW_PRECACHE_JSON__, cacheNameForBuild, createShellRuntime, SHELL_FALLBACK_URL, NAV_NETWORK_TIMEOUT_MS, UPDATE_MESSAGE_TYPE */
+/* global __MESHCHATX_SW_PRECACHE_JSON__, cacheNameForBuild, createShellRuntime, handleFetchEvent, SHELL_FALLBACK_URL, NAV_NETWORK_TIMEOUT_MS, UPDATE_MESSAGE_TYPE */
 /**
  * MeshChatX app-shell service worker bootstrap.
  * Preceded at build time by inlined swCachePolicy.js + swShellRuntime.js.
@@ -67,10 +67,5 @@ self.addEventListener("message", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-    const handled = runtime.resolveFetch(event.request, {
-        preloadResponse: event.preloadResponse,
-    });
-    if (handled) {
-        event.respondWith(handled);
-    }
+    handleFetchEvent(event, runtime, self.location.origin);
 });

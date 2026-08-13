@@ -65,10 +65,10 @@
                     />
                 </svg>
                 <span :class="isSendingMessage ? 'opacity-60' : ''">
-                    <span v-if="deliveryMethod === 'direct'">Send (Direct)</span>
-                    <span v-else-if="deliveryMethod === 'opportunistic'">Send (Opportunistic)</span>
-                    <span v-else-if="deliveryMethod === 'propagated'">Send (Propagated)</span>
-                    <span v-else>Send</span>
+                    <span v-if="deliveryMethod === 'direct'">{{ $t("messages.send_direct") }}</span>
+                    <span v-else-if="deliveryMethod === 'opportunistic'">{{ $t("messages.send_opportunistic") }}</span>
+                    <span v-else-if="deliveryMethod === 'propagated'">{{ $t("messages.send_propagated") }}</span>
+                    <span v-else>{{ $t("messages.send") }}</span>
                 </span>
             </button>
             <div class="relative self-stretch">
@@ -113,31 +113,31 @@
                         class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap border-b border-gray-100 dark:border-zinc-800"
                         @click="setDeliveryMethod(null)"
                     >
-                        Send Automatically
+                        {{ $t("messages.send_automatically") }}
                     </button>
                     <button
                         type="button"
                         class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
                         @click="setDeliveryMethod('direct')"
                     >
-                        Send over Direct Link
+                        {{ $t("messages.send_over_direct_link") }}
                     </button>
                     <button
                         type="button"
                         class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
                         @click="setDeliveryMethod('opportunistic')"
                     >
-                        Send Opportunistically
+                        {{ $t("messages.send_opportunistically") }}
                     </button>
                     <button
                         type="button"
                         class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
                         @click="setDeliveryMethod('propagated')"
                     >
-                        Send to Propagation Node
+                        {{ $t("messages.send_to_propagation_node") }}
                     </button>
                     <div
-                        class="border-t border-gray-100 dark:border-zinc-800 text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-500 px-4 pt-2 pb-1"
+                        class="border-t border-gray-100 dark:border-zinc-800 text-[11px] font-medium text-gray-500 dark:text-zinc-500 px-4 pt-2 pb-1"
                     >
                         {{ $t("messages.send_menu_more_label") }}
                     </div>
@@ -197,7 +197,7 @@ export default {
             if (this.isSendingMessage) {
                 return this.sendingTooltip;
             }
-            return "Send (hold for delivery options)";
+            return this.$t("messages.send_hold_for_options");
         },
     },
     beforeUnmount() {

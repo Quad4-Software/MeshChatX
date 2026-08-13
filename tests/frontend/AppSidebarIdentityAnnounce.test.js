@@ -7,6 +7,7 @@ import App from "../../meshchatx/src/frontend/components/App.vue";
 import { appPackageVersion } from "./fixtures/repoPackageVersion.js";
 import en from "../../meshchatx/src/frontend/locales/en.json";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
+import { registerCoreContributions } from "../../meshchatx/src/frontend/js/registries/registerCoreContributions.js";
 
 vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
     default: {
@@ -148,6 +149,7 @@ describe("App.vue sidebar identity label and announce control", () => {
     });
 
     afterEach(() => {
+        vi.useRealTimers();
         if (wrapper) {
             wrapper.unmount();
             wrapper = undefined;
@@ -292,5 +294,99 @@ describe("App.vue sidebar identity label and announce control", () => {
         expect(footer.vm.isShowingAnnounceSection).toBe(true);
         await header.trigger("click");
         expect(footer.vm.isShowingAnnounceSection).toBe(false);
+    });
+
+    it("grouped footer has no save button and last announced is not clipped by action icons", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/config") {
+                return Promise.resolve({
+                    data: { config: makeConfig({ last_announced_at: Math.floor(Date.now() / 1000) - 90 }) },
+                });
+            }
+            return defaultAxiosImplementation(url);
+        });
+        wrapper = makeMountedApp();
+        await readyShell(wrapper.vm.$router);
+        const footer = wrapper.findComponent({ name: "AppSidebarAccountFooter" });
+        expect(footer.exists()).toBe(true);
+        const saveButtons = footer.findAll("button").filter((b) => /^\s*Save\s*$/i.test(b.text()));
+        expect(saveButtons).toHaveLength(0);
+        const announced = footer.find("[data-testid=sidebar-last-announced]");
+        expect(announced.exists()).toBe(true);
+        expect(announced.classes().join(" ")).not.toMatch(/\btruncate\b/);
+        expect(announced.text()).toMatch(/Last announced/i);
+        const radio = footer.find("[data-testid=sidebar-announce-radio]");
+        expect(radio.exists()).toBe(true);
+        expect(radio.element.parentElement).not.toBe(announced.element.parentElement);
+    });
+
+    it("saves display name on Enter without a save button", async () => {
+        axiosMock.patch = vi.fn().mockResolvedValue({
+            data: { config: makeConfig({ display_name: "Renamed Peer" }) },
+        });
+        wrapper = makeMountedApp();
+        await readyShell(wrapper.vm.$router);
+        const footer = wrapper.findComponent({ name: "AppSidebarAccountFooter" });
+        await footer.find("[data-testid=sidebar-account-chip]").trigger("click");
+        const input = footer.find("[data-testid=sidebar-display-name]");
+        expect(input.exists()).toBe(true);
+        await input.setValue("Renamed Peer");
+        await input.trigger("keydown.enter");
+        await flushPromises();
+        expect(axiosMock.patch).toHaveBeenCalledWith(
+            "/api/v1/config",
+            expect.objectContaining({ display_name: "Renamed Peer" })
+        );
+        expect(ToastUtils.success).toHaveBeenCalled();
+    });
+
+    it("auto-saves display name after typing debounce", async () => {
+        axiosMock.patch = vi.fn().mockResolvedValue({
+            data: { config: makeConfig({ display_name: "Debounced Name" }) },
+        });
+        wrapper = makeMountedApp();
+        await readyShell(wrapper.vm.$router);
+        const footer = wrapper.findComponent({ name: "AppSidebarAccountFooter" });
+        await footer.find("[data-testid=sidebar-account-chip]").trigger("click");
+        vi.useFakeTimers();
+        const input = footer.find("[data-testid=sidebar-display-name]");
+        await input.setValue("Debounced Name");
+        expect(axiosMock.patch).not.toHaveBeenCalled();
+        await vi.advanceTimersByTimeAsync(500);
+        await flushPromises();
+        expect(axiosMock.patch).toHaveBeenCalledWith(
+            "/api/v1/config",
+            expect.objectContaining({ display_name: "Debounced Name" })
+        );
+        vi.useRealTimers();
+    });
+
+    it("hash route changes between pages do not throw", async () => {
+        wrapper = makeMountedApp();
+        await readyShell(wrapper.vm.$router);
+        await wrapper.vm.$router.push({ name: "map" });
+        await flushPromises();
+        expect(wrapper.vm.$route.name).toBe("map");
+        await wrapper.vm.$router.push({ name: "messages" });
+        await flushPromises();
+        expect(wrapper.vm.$route.name).toBe("messages");
+        await wrapper.vm.$router.push({ name: "nomadnetwork" });
+        await flushPromises();
+        expect(wrapper.vm.$route.name).toBe("nomadnetwork");
+    });
+
+    it("shows Interfaces in the App group without opening More", async () => {
+        registerCoreContributions();
+        wrapper = makeMountedApp();
+        await readyShell(wrapper.vm.$router);
+        const appGroup = wrapper.vm.primaryNavGroups.find((group) => group.id === "app");
+        expect(appGroup?.items.map((item) => item.id)).toEqual(
+            expect.arrayContaining(["interfaces", "tools", "settings"])
+        );
+        expect(appGroup.items[0].id).toBe("interfaces");
+        expect(wrapper.vm.moreNavItems.map((item) => item.id)).not.toContain("interfaces");
+        expect(wrapper.vm.isShowingMoreNav).toBe(false);
+        const nav = wrapper.findComponent({ name: "AppSidebarNav" });
+        expect(nav.text()).toContain("Interfaces");
     });
 });

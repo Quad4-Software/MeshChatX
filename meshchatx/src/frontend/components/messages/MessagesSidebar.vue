@@ -27,7 +27,7 @@
                     class="p-2 rounded-xl transition-colors"
                     :class="
                         tab === 'conversations'
-                            ? 'bg-indigo-600 text-white dark:bg-indigo-500'
+                            ? 'bg-blue-600 text-white dark:bg-blue-500'
                             : 'text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
                     "
                     @click="tab = 'conversations'"
@@ -39,7 +39,7 @@
                     class="p-2 rounded-xl transition-colors"
                     :class="
                         tab === 'announces'
-                            ? 'bg-indigo-600 text-white dark:bg-indigo-500'
+                            ? 'bg-blue-600 text-white dark:bg-blue-500'
                             : 'text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
                     "
                     @click="tab = 'announces'"
@@ -81,10 +81,10 @@
                 <div class="-mb-px flex h-10 min-w-0 items-stretch" :class="{ 'flex-row-reverse': isRightSidebar }">
                     <div class="flex min-w-0 flex-1">
                         <div
-                            class="flex w-full cursor-pointer items-center justify-center border-b-2 px-1 text-center text-sm font-semibold uppercase tracking-wide transition"
+                            class="flex w-full cursor-pointer items-center justify-center border-b-2 px-1 text-center text-sm font-medium transition"
                             :class="[
                                 tab === 'conversations'
-                                    ? 'border-indigo-500 text-indigo-600 dark:border-indigo-400 dark:text-indigo-300'
+                                    ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300'
                                     : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-gray-200',
                             ]"
                             @click="tab = 'conversations'"
@@ -92,10 +92,10 @@
                             {{ $t("messages.conversations") }}
                         </div>
                         <div
-                            class="flex w-full cursor-pointer items-center justify-center border-b-2 px-1 text-center text-sm font-semibold uppercase tracking-wide transition"
+                            class="flex w-full cursor-pointer items-center justify-center border-b-2 px-1 text-center text-sm font-medium transition"
                             :class="[
                                 tab === 'announces'
-                                    ? 'border-indigo-500 text-indigo-600 dark:border-indigo-400 dark:text-indigo-300'
+                                    ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300'
                                     : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-gray-200',
                             ]"
                             @click="tab = 'announces'"
@@ -136,15 +136,15 @@
                                 :icon-name="foldersExpanded ? 'chevron-down' : 'chevron-right'"
                                 class="size-4 text-gray-400"
                             />
-                            <span class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-500">
-                                Folders
+                            <span class="text-xs font-medium text-gray-500 dark:text-zinc-500">
+                                {{ $t("messages.folders") }}
                             </span>
                         </div>
                         <div class="flex gap-1" @click.stop>
                             <button
                                 type="button"
                                 class="p-1 text-gray-400 hover:text-indigo-500 hover:bg-gray-200/50 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-                                title="Create Folder"
+                                :title="$t('messages.create_folder')"
                                 @click="createFolder"
                             >
                                 <MaterialDesignIcon icon-name="folder-plus-outline" class="size-4" />
@@ -171,7 +171,7 @@
                                         "
                                     >
                                         <MaterialDesignIcon icon-name="export" class="size-4" />
-                                        <span>Export Folders</span>
+                                        <span>{{ $t("messages.export_folders") }}</span>
                                     </button>
                                     <button
                                         type="button"
@@ -182,7 +182,7 @@
                                         "
                                     >
                                         <MaterialDesignIcon icon-name="import" class="size-4" />
-                                        <span>Import Folders</span>
+                                        <span>{{ $t("messages.import_folders") }}</span>
                                     </button>
                                 </div>
                             </div>
@@ -208,7 +208,7 @@
                             @drop="onDropOnFolder($event, null)"
                         >
                             <MaterialDesignIcon icon-name="inbox-outline" class="size-4" />
-                            <span class="truncate flex-1">All Messages</span>
+                            <span class="truncate flex-1">{{ $t("messages.all_messages") }}</span>
                         </div>
                         <div
                             class="px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors text-sm"
@@ -226,7 +226,7 @@
                             @drop="onDropOnFolder($event, 0)"
                         >
                             <MaterialDesignIcon icon-name="folder-outline" class="size-4" />
-                            <span class="truncate flex-1">Uncategorized</span>
+                            <span class="truncate flex-1">{{ $t("messages.uncategorized") }}</span>
                         </div>
                         <div
                             v-for="folder in folders"
@@ -277,7 +277,7 @@
                             :value="conversationSearchTerm"
                             type="text"
                             :placeholder="$t('messages.search_placeholder', { count: conversations.length })"
-                            class="input-field flex-1 w-full rounded-none"
+                            class="input-field flex-1 w-full"
                             @input="onConversationSearchInput"
                         />
                     </div>
@@ -285,7 +285,7 @@
                         <button
                             type="button"
                             class="p-1 mr-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
-                            title="Selection Mode"
+                            :title="$t('nomadnet.sidebar_selection_mode')"
                             :class="{ 'text-blue-500 dark:text-blue-400': selectionMode }"
                             @click="toggleSelectionMode"
                         >
@@ -325,7 +325,7 @@
                                 @change="toggleSelectAll"
                             />
                             <span class="text-xs font-semibold text-blue-700 dark:text-blue-400">
-                                {{ selectedHashes.size }} selected
+                                {{ $t("messages.bulk_selected_count", { count: selectedHashes.size }) }}
                             </span>
                         </div>
                         <div class="flex gap-2">
@@ -334,14 +334,14 @@
                                 class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
                                 @click="bulkMarkAsRead"
                             >
-                                Mark as read
+                                {{ $t("messages.mark_as_read") }}
                             </button>
                             <button
                                 type="button"
-                                class="text-xs font-bold text-red-600 dark:text-red-400 hover:underline"
+                                class="text-xs font-medium text-red-600 dark:text-red-400 hover:underline"
                                 @click="bulkDelete"
                             >
-                                Delete
+                                {{ $t("common.delete") }}
                             </button>
                             <div class="relative">
                                 <button
@@ -349,7 +349,7 @@
                                     class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
                                     @click="moveMenu.show = !moveMenu.show"
                                 >
-                                    Move to
+                                    {{ $t("messages.move_to") }}
                                 </button>
                                 <div
                                     v-if="moveMenu.show"
@@ -361,7 +361,7 @@
                                         class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
                                         @click="moveSelectedToFolder(null)"
                                     >
-                                        Uncategorized
+                                        {{ $t("messages.uncategorized") }}
                                     </button>
                                     <button
                                         v-for="folder in folders"
@@ -399,11 +399,11 @@
                                 isRightSidebar,
                             ]"
                             :class="[
-                                'flex cursor-pointer p-2 relative group conversation-item',
+                                'flex cursor-pointer px-2 py-2 relative group conversation-item',
                                 selectionEdgeBorderClass,
                                 conversation.destination_hash === selectedDestinationHash
-                                    ? 'bg-gray-100 dark:bg-zinc-700 border-blue-500 dark:border-blue-400'
-                                    : 'bg-white dark:bg-zinc-950 border-transparent hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-gray-200 dark:hover:border-zinc-600',
+                                    ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-500 dark:border-blue-400'
+                                    : 'bg-white dark:bg-zinc-950 border-transparent hover:bg-gray-50 dark:hover:bg-zinc-800/80',
                                 selectedHashes.has(conversation.destination_hash)
                                     ? 'bg-blue-50/50 dark:bg-blue-900/10'
                                     : '',
@@ -478,19 +478,11 @@
                                         {{ formatTimeAgo(conversation.updated_at) }}
                                     </div>
                                 </div>
-                                <button
-                                    type="button"
-                                    class="mt-0.5 block w-full text-[10px] font-mono text-gray-500 dark:text-zinc-500 truncate hover:text-blue-600 dark:hover:text-blue-400 text-left"
-                                    :title="conversation.destination_hash"
-                                    @click.stop="copyConversationHash(conversation.destination_hash)"
-                                >
-                                    {{ formatDestinationHash(conversation.destination_hash) }}
-                                </button>
                                 <div class="text-gray-600 dark:text-gray-400 text-xs mt-0.5 truncate">
                                     {{
                                         stripMarkdown(
                                             conversation.latest_message_preview ?? conversation.latest_message_title
-                                        ) ?? "No messages yet"
+                                        ) ?? $t("messages.no_messages_yet")
                                     }}
                                 </div>
                             </div>
@@ -499,7 +491,7 @@
                                     <div
                                         v-if="pinnedSet.has(conversation.destination_hash)"
                                         class="text-blue-500 dark:text-blue-400"
-                                        title="Pinned"
+                                        :title="$t('messages.pinned')"
                                     >
                                         <MaterialDesignIcon icon-name="pin" class="w-4 h-4" />
                                     </div>
@@ -556,6 +548,10 @@
                                         : $t("messages.pin_conversation")
                                 }}
                             </ContextMenuItem>
+                            <ContextMenuItem v-if="contextMenu.targetHash" @click="copyLxmfFromContextMenu">
+                                <MaterialDesignIcon icon-name="content-copy" class="size-4 text-gray-400" />
+                                {{ $t("messages.copy_lxmf") }}
+                            </ContextMenuItem>
                             <ContextMenuItem @click="contextMenuIngestPaperMessage">
                                 <MaterialDesignIcon icon-name="qrcode-scan" class="size-4 text-gray-400" />
                                 {{ $t("messages.ingest_paper_message") }}
@@ -587,15 +583,15 @@
                                 />
                                 {{
                                     contextMenu.targetContact?.is_telemetry_trusted
-                                        ? "Revoke Telemetry Trust"
-                                        : "Trust for Telemetry"
+                                        ? $t("app.telemetry_trust_revoke")
+                                        : $t("app.telemetry_trust_grant")
                                 }}
                             </ContextMenuItem>
                             <ContextMenuDivider v-if="GlobalState.config.telemetry_enabled" />
-                            <ContextMenuSectionLabel>Move to Folder</ContextMenuSectionLabel>
+                            <ContextMenuSectionLabel>{{ $t("messages.move_to_folder") }}</ContextMenuSectionLabel>
                             <ContextMenuItem @click="moveSelectedToFolder(null)">
                                 <MaterialDesignIcon icon-name="inbox-arrow-down" class="size-4 opacity-70" />
-                                Uncategorized
+                                {{ $t("messages.uncategorized") }}
                             </ContextMenuItem>
                             <div class="max-h-[200px] overflow-y-auto custom-scrollbar">
                                 <ContextMenuItem
@@ -610,7 +606,7 @@
                             <ContextMenuDivider />
                             <ContextMenuItem item-class="text-red-600 dark:text-red-400" @click="bulkDelete">
                                 <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
-                                Delete
+                                {{ $t("common.delete") }}
                             </ContextMenuItem>
                         </ContextMenuPanel>
 
@@ -646,17 +642,17 @@
 
                 <div
                     v-if="messageImportDragOver"
-                    class="pointer-events-none absolute inset-0 z-50 flex items-center justify-center border-2 border-dashed border-indigo-500 bg-indigo-500/10"
+                    class="pointer-events-none absolute inset-0 z-50 flex items-center justify-center border-2 border-dashed border-blue-500 bg-blue-500/10"
                 >
                     <div class="px-4 text-center">
                         <MaterialDesignIcon
                             icon-name="import"
-                            class="mx-auto size-8 text-indigo-600 dark:text-indigo-400"
+                            class="mx-auto size-8 text-blue-600 dark:text-blue-400"
                         />
-                        <p class="mt-2 text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+                        <p class="mt-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
                             {{ $t("maintenance.import_messages") }}
                         </p>
-                        <p class="text-xs text-indigo-600/80 dark:text-indigo-400/80">
+                        <p class="text-xs text-blue-600/80 dark:text-blue-400/80">
                             {{ $t("maintenance.import_messages_desc") }}
                         </p>
                     </div>
@@ -712,8 +708,8 @@
                                 'flex cursor-pointer p-2 relative',
                                 selectionEdgeBorderClass,
                                 peer.destination_hash === selectedDestinationHash
-                                    ? 'bg-gray-100 dark:bg-zinc-700 border-blue-500 dark:border-blue-400'
-                                    : 'bg-white dark:bg-zinc-950 border-transparent hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-gray-200 dark:hover:border-zinc-600',
+                                    ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-500 dark:border-blue-400'
+                                    : 'bg-white dark:bg-zinc-950 border-transparent hover:bg-gray-50 dark:hover:bg-zinc-800/80',
                             ]"
                             @click="onPeerClick(peer)"
                         >
@@ -1190,6 +1186,11 @@ export default {
             this.$emit("toggle-conversation-pin", h);
             this.contextMenu.show = false;
         },
+        async copyLxmfFromContextMenu() {
+            const hash = this.contextMenu.targetHash;
+            this.contextMenu.show = false;
+            await this.copyConversationHash(hash);
+        },
         onFolderContextMenu(event) {
             event.preventDefault();
             // Show folder management menu
@@ -1290,8 +1291,8 @@ export default {
         },
         async deleteFolder(folder) {
             const confirmed = await DialogUtils.confirm(
-                `Are you sure you want to delete the folder "${folder.name}"? Conversations will be moved to Uncategorized.`,
-                "Delete Folder"
+                this.$t("messages.delete_folder_confirm", { name: folder.name }),
+                this.$t("messages.delete_folder")
             );
             if (confirmed) {
                 this.$emit("delete-folder", folder.id);
@@ -1468,14 +1469,11 @@ export default {
             this.$emit("peers-search-changed", event.target.value);
         },
         filterChipClasses(isActive) {
-            const base = "px-2 py-1 rounded-full text-xs font-semibold transition-colors";
+            const base = "px-2 py-0.5 rounded-full text-xs font-medium transition-colors";
             if (isActive) {
                 return `${base} bg-blue-600 text-white dark:bg-blue-500`;
             }
             return `${base} bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-zinc-200`;
-        },
-        formatDestinationHash(hash) {
-            return Utils.formatDestinationHash(hash);
         },
         async copyConversationHash(hash) {
             if (!hash) {

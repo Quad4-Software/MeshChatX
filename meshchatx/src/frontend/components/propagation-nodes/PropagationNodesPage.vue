@@ -1,630 +1,518 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
-        <ToolsPageHeader
-            icon="mailbox"
-            :title="$t('tools.propagation_nodes.title')"
-            :description="$t('tools.propagation_nodes.description')"
-            accent="cyan"
-        />
-        <div class="flex-1 overflow-y-auto min-w-0">
-            <div class="px-4 py-4 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-                <div class="rounded-2xl border border-gray-200 dark:border-zinc-800 p-4">
-                    <div class="flex items-start justify-between gap-3">
-                        <button
-                            type="button"
-                            class="min-w-0 text-left"
-                            @click="isLocalManagerCollapsed = !isLocalManagerCollapsed"
-                        >
-                            <div class="flex items-center gap-2 min-w-0">
-                                <MaterialDesignIcon
-                                    :icon-name="isLocalManagerCollapsed ? 'chevron-right' : 'chevron-down'"
-                                    class="size-5 text-gray-500 dark:text-zinc-400 shrink-0"
-                                />
-                                <div class="font-semibold text-gray-900 dark:text-zinc-100 truncate">
-                                    Hosted Propagation Node
-                                </div>
-                                <span
-                                    v-if="localPropagationNode"
-                                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
-                                    :class="
-                                        localNodeIsRunning
-                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                                            : 'bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-zinc-300'
-                                    "
-                                >
-                                    {{ localNodeIsRunning ? "Running" : "Stopped" }}
-                                </span>
-                                <span
-                                    v-if="
-                                        localPropagationNode &&
-                                        config.lxmf_preferred_propagation_node_destination_hash ===
-                                            localPropagationNode.destination_hash
-                                    "
-                                    class="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300"
-                                >
-                                    Preferred
-                                </span>
-                            </div>
-                        </button>
-                        <div class="flex items-center gap-2 shrink-0">
-                            <button
-                                type="button"
-                                class="text-gray-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-40"
-                                title="Announce now"
-                                :disabled="!localPropagationNode"
-                                @click="announceNow"
-                            >
-                                <MaterialDesignIcon icon-name="bullhorn" class="size-5" />
-                            </button>
-                            <button
-                                v-if="!localNodeIsRunning"
-                                type="button"
-                                class="text-gray-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 disabled:opacity-40"
-                                title="Start node"
-                                :disabled="!localPropagationNode"
-                                @click="startLocalPropagationNode"
-                            >
-                                <MaterialDesignIcon icon-name="play" class="size-5" />
-                            </button>
-                            <button
-                                v-if="localNodeIsRunning"
-                                type="button"
-                                class="text-gray-500 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400"
-                                title="Restart node"
-                                @click="restartLocalPropagationNode"
-                            >
-                                <MaterialDesignIcon icon-name="refresh" class="size-5" />
-                            </button>
-                            <button
-                                v-if="localNodeIsRunning"
-                                type="button"
-                                class="text-gray-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400"
-                                title="Stop node"
-                                @click="stopLocalPropagationNode"
-                            >
-                                <MaterialDesignIcon icon-name="stop" class="size-5" />
-                            </button>
-                        </div>
-                    </div>
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas text-sem-fg">
+        <ToolsPageHeader icon="mailbox" :title="$t('tools.propagation_nodes.title')" accent="cyan">
+            <template #actions>
+                <button
+                    type="button"
+                    class="inline-flex size-9 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-accent"
+                    :title="$t('tools.propagation_nodes.reload')"
+                    @click="loadPropagationNodes"
+                >
+                    <MaterialDesignIcon icon-name="refresh" class="size-5" />
+                </button>
+            </template>
+        </ToolsPageHeader>
 
-                    <div v-if="!isLocalManagerCollapsed" class="mt-3 space-y-3">
-                        <div
-                            v-if="config.lxmf_local_propagation_node_address_hash"
-                            class="text-xs font-mono text-gray-600 dark:text-zinc-400 break-all"
-                        >
-                            &lt;{{ config.lxmf_local_propagation_node_address_hash }}&gt;
-                        </div>
-                        <div class="text-xs text-gray-600 dark:text-zinc-400 flex items-center gap-2">
-                            <template v-if="nodePathFor(config.lxmf_local_propagation_node_address_hash)">
-                                <span>{{
-                                    formatPathLabel(nodePathFor(config.lxmf_local_propagation_node_address_hash))
-                                }}</span>
-                            </template>
-                            <template v-else>
-                                <span>No path yet</span>
-                            </template>
-                            <button
-                                type="button"
-                                class="text-gray-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-40"
-                                title="Find path now"
-                                :disabled="!config.lxmf_local_propagation_node_address_hash"
-                                @click="requestPathForNode(config.lxmf_local_propagation_node_address_hash)"
-                            >
-                                <MaterialDesignIcon icon-name="map-marker-path" class="size-4" />
-                            </button>
-                        </div>
-                        <label class="block text-xs text-gray-600 dark:text-zinc-400">
-                            Display name
-                            <div class="mt-1 flex items-center gap-2">
-                                <input
-                                    v-model.trim="localNodeDisplayNameDraft"
-                                    type="text"
-                                    maxlength="64"
-                                    class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
-                                    placeholder="Anonymous Peer"
-                                    @keydown.enter.prevent="saveLocalNodeDisplayName"
-                                />
-                                <button
-                                    type="button"
-                                    class="text-gray-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400"
-                                    title="Save name"
-                                    @click="saveLocalNodeDisplayName"
-                                >
-                                    <MaterialDesignIcon icon-name="check" class="size-5" />
-                                </button>
-                                <button
-                                    type="button"
-                                    class="text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-100"
-                                    title="Reset to Anonymous"
-                                    @click="resetLocalNodeDisplayName"
-                                >
-                                    <MaterialDesignIcon icon-name="restore" class="size-5" />
-                                </button>
-                            </div>
-                        </label>
-                        <div
-                            v-if="localNodeStatsVisible"
-                            class="text-xs text-gray-600 dark:text-zinc-400 flex flex-wrap gap-x-3 gap-y-1"
-                        >
-                            <span
-                                >{{ formatSeconds(localPropagationNode.local_node_stats.uptime_seconds) }} uptime</span
-                            >
-                            <span>{{ localPropagationNode.local_node_stats.total_peers }} peers</span>
-                            <span>{{ localPropagationNode.local_node_stats.messagestore_count }} messages stored</span>
-                            <span>{{ localPropagationNode.local_node_stats.client_messages_received }} received</span>
-                            <span>{{ localPropagationNode.local_node_stats.client_messages_served }} served</span>
-                            <span>{{ formatStorageUsage(localPropagationNode.local_node_stats) }} storage</span>
-                            <span>RX {{ formatByteSize(localPropagationNode.local_node_stats.rx_bytes) }}</span>
-                            <span>TX {{ formatByteSize(localPropagationNode.local_node_stats.tx_bytes) }}</span>
-                        </div>
-                        <div v-else class="text-xs text-gray-500 dark:text-zinc-500">
-                            Node stats appear when running.
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                            <label class="text-xs text-gray-600 dark:text-zinc-400 block">
-                                {{ $t("app.incoming_message_size") }}
-                                <span class="block mt-0.5 font-normal text-[11px] text-gray-500 dark:text-zinc-500">{{
-                                    $t("app.incoming_message_size_description")
-                                }}</span>
-                                <select
-                                    v-model="lxmfIncomingDeliveryPreset"
-                                    class="mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
-                                    @change="onLxmfIncomingDeliveryPresetChange"
-                                >
-                                    <option value="1mb">{{ $t("app.incoming_message_size_1mb") }}</option>
-                                    <option value="10mb">{{ $t("app.incoming_message_size_10mb") }}</option>
-                                    <option value="25mb">{{ $t("app.incoming_message_size_25mb") }}</option>
-                                    <option value="50mb">{{ $t("app.incoming_message_size_50mb") }}</option>
-                                    <option value="1gb">{{ $t("app.incoming_message_size_1gb") }}</option>
-                                    <option value="custom">{{ $t("app.incoming_message_size_custom") }}</option>
-                                </select>
-                                <div
-                                    v-if="lxmfIncomingDeliveryPreset === 'custom'"
-                                    class="mt-1 flex flex-wrap items-center gap-2"
-                                >
-                                    <input
-                                        v-model.number="lxmfIncomingDeliveryCustomAmount"
-                                        type="number"
-                                        min="0.001"
-                                        step="any"
-                                        class="min-w-0 flex-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
-                                        @input="onLxmfIncomingDeliveryCustomChange"
-                                    />
-                                    <select
-                                        v-model="lxmfIncomingDeliveryCustomUnit"
-                                        class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
-                                        @change="onLxmfIncomingDeliveryCustomChange"
-                                    >
-                                        <option value="mb">{{ $t("app.incoming_message_size_unit_mb") }}</option>
-                                        <option value="gb">{{ $t("app.incoming_message_size_unit_gb") }}</option>
-                                    </select>
-                                </div>
-                                <div class="mt-1 text-[11px] text-gray-500 dark:text-zinc-500">
-                                    {{ formatByteSize(config.lxmf_delivery_transfer_limit_in_bytes) }}
-                                </div>
-                            </label>
-                            <label class="text-xs text-gray-600 dark:text-zinc-400">
-                                Propagation transfer limit (MB)
-                                <input
-                                    v-model.number="propagationLimitInputMb"
-                                    type="number"
-                                    min="0.001"
-                                    step="0.01"
-                                    class="mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
-                                    @input="onPropagationTransferLimitChange"
-                                />
-                                <div class="mt-1 text-[11px] text-gray-500 dark:text-zinc-500">
-                                    {{ formatByteSize(config.lxmf_propagation_transfer_limit_in_bytes) }}
-                                </div>
-                            </label>
-                            <label class="text-xs text-gray-600 dark:text-zinc-400">
-                                Propagation sync limit (MB)
-                                <input
-                                    v-model.number="propagationSyncLimitInputMb"
-                                    type="number"
-                                    min="0.001"
-                                    step="0.01"
-                                    class="mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
-                                    @input="onPropagationSyncLimitChange"
-                                />
-                                <div class="mt-1 text-[11px] text-gray-500 dark:text-zinc-500">
-                                    {{ formatByteSize(config.lxmf_propagation_sync_limit_in_bytes) }}
-                                </div>
-                            </label>
-                        </div>
-                        <label class="block text-xs text-gray-600 dark:text-zinc-400">
-                            Propagation stamp cost
-                            <input
-                                v-model.number="config.lxmf_propagation_node_stamp_cost"
-                                type="number"
-                                min="13"
-                                max="254"
-                                class="mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
-                                @input="onPropagationStampCostChange"
-                            />
-                        </label>
-                        <div class="flex flex-wrap gap-2">
-                            <button
-                                type="button"
-                                class="inline-flex items-center gap-x-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors disabled:opacity-40"
-                                :disabled="!localPropagationNode"
-                                @click="useLocalPropagationNode"
-                            >
-                                Use Our Node
-                            </button>
-                        </div>
-                    </div>
+        <div class="shrink-0 border-b border-sem-border">
+            <div class="flex items-center gap-2 px-3 py-1.5 min-h-10">
+                <button
+                    type="button"
+                    class="flex min-w-0 flex-1 items-center gap-2 text-left"
+                    data-testid="prop-nodes-hosted-toggle"
+                    @click="isLocalManagerCollapsed = !isLocalManagerCollapsed"
+                >
+                    <MaterialDesignIcon
+                        :icon-name="isLocalManagerCollapsed ? 'chevron-right' : 'chevron-down'"
+                        class="size-4 text-sem-fg-muted shrink-0"
+                    />
+                    <span class="text-sm font-medium truncate">{{ $t("tools.propagation_nodes.hosted_heading") }}</span>
+                    <span
+                        v-if="localPropagationNode"
+                        class="inline-flex items-center rounded-full px-1.5 py-0 text-[10px] font-semibold shrink-0"
+                        :class="
+                            localNodeIsRunning
+                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                                : 'bg-sem-surface-muted text-sem-fg-muted'
+                        "
+                    >
+                        {{
+                            localNodeIsRunning
+                                ? $t("tools.propagation_nodes.running")
+                                : $t("tools.propagation_nodes.stopped")
+                        }}
+                    </span>
+                    <span
+                        v-if="
+                            localPropagationNode &&
+                            config.lxmf_preferred_propagation_node_destination_hash ===
+                                localPropagationNode.destination_hash
+                        "
+                        class="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0 text-[10px] font-semibold text-blue-700 dark:text-blue-300 shrink-0"
+                    >
+                        {{ $t("tools.propagation_nodes.preferred_badge") }}
+                    </span>
+                </button>
+                <div class="flex items-center gap-0.5 shrink-0">
+                    <button
+                        type="button"
+                        class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-accent disabled:opacity-40"
+                        :title="$t('app.announce_now')"
+                        :disabled="!localPropagationNode"
+                        @click="announceNow"
+                    >
+                        <MaterialDesignIcon icon-name="bullhorn" class="size-4" />
+                    </button>
+                    <button
+                        v-if="!localNodeIsRunning"
+                        type="button"
+                        class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-emerald-600 disabled:opacity-40"
+                        :title="$t('tools.propagation_nodes.start_node')"
+                        :disabled="!localPropagationNode"
+                        @click="startLocalPropagationNode"
+                    >
+                        <MaterialDesignIcon icon-name="play" class="size-4" />
+                    </button>
+                    <button
+                        v-if="localNodeIsRunning"
+                        type="button"
+                        class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-amber-600"
+                        :title="$t('tools.propagation_nodes.restart_node')"
+                        @click="restartLocalPropagationNode"
+                    >
+                        <MaterialDesignIcon icon-name="refresh" class="size-4" />
+                    </button>
+                    <button
+                        v-if="localNodeIsRunning"
+                        type="button"
+                        class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-red-600"
+                        :title="$t('tools.propagation_nodes.stop_node')"
+                        @click="stopLocalPropagationNode"
+                    >
+                        <MaterialDesignIcon icon-name="stop" class="size-4" />
+                    </button>
                 </div>
             </div>
 
-            <div class="px-4 py-4 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-                <div class="rounded-2xl border border-gray-200 dark:border-zinc-800 p-4 space-y-3">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <div class="font-semibold text-gray-900 dark:text-zinc-100">
-                                {{ $t("tools.propagation_nodes.preferred_heading") }}
-                            </div>
-                            <div
-                                v-if="config.lxmf_preferred_propagation_node_destination_hash"
-                                class="mt-1 text-sm text-gray-600 dark:text-zinc-400 font-mono break-all"
-                            >
-                                {{ $t("tools.propagation_nodes.using_label") }}
-                                &lt;{{ config.lxmf_preferred_propagation_node_destination_hash }}&gt;
-                            </div>
-                            <div v-else class="mt-1 text-sm text-gray-600 dark:text-zinc-400">
-                                {{ $t("tools.propagation_nodes.preferred_none") }}
-                            </div>
-                        </div>
-                        <div
-                            v-if="config.lxmf_preferred_propagation_node_destination_hash"
-                            class="flex items-center gap-2 shrink-0"
-                        >
-                            <button
-                                type="button"
-                                class="text-gray-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400"
-                                :title="$t('tools.propagation_nodes.copy_hash')"
-                                @click="copyPreferredHash"
-                            >
-                                <MaterialDesignIcon icon-name="content-copy" class="size-5" />
-                            </button>
-                            <button
-                                type="button"
-                                class="text-gray-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400"
-                                :title="$t('tools.propagation_nodes.find_path')"
-                                @click="requestPathForNode(config.lxmf_preferred_propagation_node_destination_hash)"
-                            >
-                                <MaterialDesignIcon icon-name="map-marker-path" class="size-5" />
-                            </button>
-                            <button
-                                type="button"
-                                class="text-gray-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400"
-                                :title="$t('tools.propagation_nodes.clear_preferred')"
-                                @click="stopUsingPropagationNode"
-                            >
-                                <MaterialDesignIcon icon-name="close" class="size-5" />
-                            </button>
-                        </div>
-                    </div>
-                    <div
-                        v-if="config.lxmf_preferred_propagation_node_destination_hash"
-                        class="text-xs text-gray-500 dark:text-zinc-500 flex items-center gap-2"
+            <div
+                v-if="!isLocalManagerCollapsed"
+                data-testid="prop-nodes-hosted-expanded"
+                class="px-3 pb-3 space-y-2 border-t border-sem-border"
+            >
+                <div
+                    v-if="config.lxmf_local_propagation_node_address_hash"
+                    class="pt-2 text-[11px] font-mono text-sem-fg-muted break-all"
+                >
+                    {{ formatDestinationHash(config.lxmf_local_propagation_node_address_hash) }}
+                </div>
+                <div class="text-[11px] text-sem-fg-muted flex items-center gap-2">
+                    <span>{{ formatPathLabel(nodePathFor(config.lxmf_local_propagation_node_address_hash)) }}</span>
+                    <button
+                        type="button"
+                        class="inline-flex size-7 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-accent disabled:opacity-40"
+                        :title="$t('tools.propagation_nodes.find_path')"
+                        :disabled="!config.lxmf_local_propagation_node_address_hash"
+                        @click="requestPathForNode(config.lxmf_local_propagation_node_address_hash)"
                     >
-                        <template v-if="nodePathFor(config.lxmf_preferred_propagation_node_destination_hash)">
-                            <span>{{
-                                formatPathLabel(nodePathFor(config.lxmf_preferred_propagation_node_destination_hash))
-                            }}</span>
-                        </template>
-                        <template v-else>
-                            <span>{{ $t("tools.propagation_nodes.no_path") }}</span>
-                        </template>
-                    </div>
-                    <p
-                        v-if="config.lxmf_preferred_propagation_node_auto_select"
-                        class="text-xs text-amber-700 dark:text-amber-300"
-                    >
-                        {{ $t("tools.propagation_nodes.auto_select_on_notice") }}
-                    </p>
-                    <div class="flex flex-col sm:flex-row gap-2">
+                        <MaterialDesignIcon icon-name="map-marker-path" class="size-4" />
+                    </button>
+                </div>
+                <label class="block text-[11px] text-sem-fg-muted">
+                    {{ $t("tools.propagation_nodes.display_name") }}
+                    <div class="mt-1 flex items-center gap-2">
                         <input
-                            v-model="manualHashDraft"
+                            v-model.trim="localNodeDisplayNameDraft"
                             type="text"
-                            spellcheck="false"
-                            autocomplete="off"
-                            :placeholder="$t('tools.propagation_nodes.manual_placeholder')"
-                            class="flex-1 min-w-0 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 px-4 py-2 shadow-xs font-mono transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500"
-                            @keydown.enter.prevent="setPreferredFromDraft"
-                            @paste="onManualHashPaste"
+                            maxlength="64"
+                            class="input-field py-1.5 text-sm"
+                            :placeholder="$t('tools.propagation_nodes.display_name')"
+                            @keydown.enter.prevent="saveLocalNodeDisplayName"
                         />
                         <button
                             type="button"
-                            class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800 px-3 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 shadow-xs transition-colors shrink-0"
-                            @click="pastePreferredHash"
+                            class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-emerald-600"
+                            :title="$t('tools.propagation_nodes.save_name')"
+                            @click="saveLocalNodeDisplayName"
                         >
-                            <MaterialDesignIcon icon-name="content-paste" class="size-4" />
-                            {{ $t("tools.propagation_nodes.paste_hash") }}
+                            <MaterialDesignIcon icon-name="check" class="size-4" />
                         </button>
                         <button
                             type="button"
-                            class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors disabled:opacity-40 shrink-0"
-                            :disabled="isSavingPreferred || !manualHashDraft"
-                            @click="setPreferredFromDraft"
+                            class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted"
+                            :title="$t('tools.propagation_nodes.reset_name')"
+                            @click="resetLocalNodeDisplayName"
                         >
-                            {{ $t("tools.propagation_nodes.set_preferred") }}
+                            <MaterialDesignIcon icon-name="restore" class="size-4" />
                         </button>
                     </div>
-                    <p class="text-xs text-gray-500 dark:text-zinc-500">
-                        {{ $t("tools.propagation_nodes.manual_hint") }}
-                    </p>
+                </label>
+                <div
+                    v-if="localNodeStatsVisible"
+                    class="text-[11px] text-sem-fg-muted flex flex-wrap gap-x-3 gap-y-0.5"
+                >
+                    <span>{{
+                        $t("tools.propagation_nodes.stats_uptime", {
+                            time: formatSeconds(localPropagationNode.local_node_stats.uptime_seconds),
+                        })
+                    }}</span>
+                    <span>{{
+                        $t("tools.propagation_nodes.stats_peers", {
+                            count: localPropagationNode.local_node_stats.total_peers,
+                        })
+                    }}</span>
+                    <span>{{
+                        $t("tools.propagation_nodes.stats_messages", {
+                            count: localPropagationNode.local_node_stats.messagestore_count,
+                        })
+                    }}</span>
+                    <span>{{
+                        $t("tools.propagation_nodes.stats_received", {
+                            count: localPropagationNode.local_node_stats.client_messages_received,
+                        })
+                    }}</span>
+                    <span>{{
+                        $t("tools.propagation_nodes.stats_served", {
+                            count: localPropagationNode.local_node_stats.client_messages_served,
+                        })
+                    }}</span>
+                    <span>{{
+                        $t("tools.propagation_nodes.stats_storage", {
+                            size: formatStorageUsage(localPropagationNode.local_node_stats),
+                        })
+                    }}</span>
+                    <span>RX {{ formatByteSize(localPropagationNode.local_node_stats.rx_bytes) }}</span>
+                    <span>TX {{ formatByteSize(localPropagationNode.local_node_stats.tx_bytes) }}</span>
+                </div>
+                <div v-else class="text-[11px] text-sem-fg-muted">
+                    {{ $t("tools.propagation_nodes.stats_when_running") }}
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <label class="text-[11px] text-sem-fg-muted block">
+                        {{ $t("app.incoming_message_size") }}
+                        <select
+                            v-model="lxmfIncomingDeliveryPreset"
+                            class="input-field mt-1 py-1.5 text-sm"
+                            @change="onLxmfIncomingDeliveryPresetChange"
+                        >
+                            <option value="1mb">{{ $t("app.incoming_message_size_1mb") }}</option>
+                            <option value="10mb">{{ $t("app.incoming_message_size_10mb") }}</option>
+                            <option value="25mb">{{ $t("app.incoming_message_size_25mb") }}</option>
+                            <option value="50mb">{{ $t("app.incoming_message_size_50mb") }}</option>
+                            <option value="1gb">{{ $t("app.incoming_message_size_1gb") }}</option>
+                            <option value="custom">{{ $t("app.incoming_message_size_custom") }}</option>
+                        </select>
+                        <div
+                            v-if="lxmfIncomingDeliveryPreset === 'custom'"
+                            class="mt-1 flex flex-wrap items-center gap-2"
+                        >
+                            <input
+                                v-model.number="lxmfIncomingDeliveryCustomAmount"
+                                type="number"
+                                min="0.001"
+                                step="any"
+                                class="input-field min-w-0 flex-1 py-1.5 text-sm"
+                                @input="onLxmfIncomingDeliveryCustomChange"
+                            />
+                            <select
+                                v-model="lxmfIncomingDeliveryCustomUnit"
+                                class="input-field py-1.5 text-sm w-auto"
+                                @change="onLxmfIncomingDeliveryCustomChange"
+                            >
+                                <option value="mb">{{ $t("app.incoming_message_size_unit_mb") }}</option>
+                                <option value="gb">{{ $t("app.incoming_message_size_unit_gb") }}</option>
+                            </select>
+                        </div>
+                    </label>
+                    <label class="text-[11px] text-sem-fg-muted">
+                        {{ $t("tools.propagation_nodes.transfer_limit_mb") }}
+                        <input
+                            v-model.number="propagationLimitInputMb"
+                            type="number"
+                            min="0.001"
+                            step="0.01"
+                            class="input-field mt-1 py-1.5 text-sm"
+                            @input="onPropagationTransferLimitChange"
+                        />
+                    </label>
+                    <label class="text-[11px] text-sem-fg-muted">
+                        {{ $t("tools.propagation_nodes.sync_limit_mb") }}
+                        <input
+                            v-model.number="propagationSyncLimitInputMb"
+                            type="number"
+                            min="0.001"
+                            step="0.01"
+                            class="input-field mt-1 py-1.5 text-sm"
+                            @input="onPropagationSyncLimitChange"
+                        />
+                    </label>
+                </div>
+                <label class="block text-[11px] text-sem-fg-muted">
+                    {{ $t("tools.propagation_nodes.stamp_cost") }}
+                    <input
+                        v-model.number="config.lxmf_propagation_node_stamp_cost"
+                        type="number"
+                        min="13"
+                        max="254"
+                        class="input-field mt-1 py-1.5 text-sm"
+                        @input="onPropagationStampCostChange"
+                    />
+                </label>
+                <button
+                    type="button"
+                    class="primary-chip text-xs"
+                    :disabled="!localPropagationNode"
+                    @click="useLocalPropagationNode"
+                >
+                    {{ $t("tools.propagation_nodes.use_our_node") }}
+                </button>
+            </div>
+        </div>
+
+        <div class="shrink-0 border-b border-sem-border px-3 py-1.5 space-y-1.5">
+            <div class="flex items-center gap-2 min-w-0">
+                <span class="text-xs font-medium text-sem-fg-muted shrink-0">{{
+                    $t("tools.propagation_nodes.preferred_heading")
+                }}</span>
+                <span
+                    v-if="config.lxmf_preferred_propagation_node_destination_hash"
+                    class="min-w-0 flex-1 truncate font-mono text-[11px] text-sem-fg-secondary"
+                    :title="config.lxmf_preferred_propagation_node_destination_hash"
+                >
+                    {{ formatDestinationHash(config.lxmf_preferred_propagation_node_destination_hash) }}
+                </span>
+                <span v-else class="min-w-0 flex-1 truncate text-[11px] text-sem-fg-muted">{{
+                    $t("tools.propagation_nodes.preferred_none_short")
+                }}</span>
+                <div
+                    v-if="config.lxmf_preferred_propagation_node_destination_hash"
+                    class="flex items-center gap-0.5 shrink-0"
+                >
+                    <button
+                        type="button"
+                        class="inline-flex size-7 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-accent"
+                        :title="$t('tools.propagation_nodes.copy_hash')"
+                        @click="copyPreferredHash"
+                    >
+                        <MaterialDesignIcon icon-name="content-copy" class="size-4" />
+                    </button>
+                    <button
+                        type="button"
+                        class="inline-flex size-7 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-accent"
+                        :title="$t('tools.propagation_nodes.find_path')"
+                        @click="requestPathForNode(config.lxmf_preferred_propagation_node_destination_hash)"
+                    >
+                        <MaterialDesignIcon icon-name="map-marker-path" class="size-4" />
+                    </button>
+                    <button
+                        type="button"
+                        class="inline-flex size-7 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-red-600"
+                        :title="$t('tools.propagation_nodes.clear_preferred')"
+                        @click="stopUsingPropagationNode"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-4" />
+                    </button>
                 </div>
             </div>
-
-            <!-- search and sort -->
             <div
-                v-if="propagationNodes.length > 0"
-                class="flex flex-col sm:flex-row gap-2 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 px-4 py-3"
+                v-if="nodePathFor(config.lxmf_preferred_propagation_node_destination_hash)"
+                class="text-[11px] text-sem-fg-muted"
             >
+                {{ formatPathLabel(nodePathFor(config.lxmf_preferred_propagation_node_destination_hash)) }}
+            </div>
+            <p
+                v-if="config.lxmf_preferred_propagation_node_auto_select"
+                class="text-[11px] text-amber-700 dark:text-amber-300"
+            >
+                {{ $t("tools.propagation_nodes.auto_select_on_notice") }}
+            </p>
+            <div class="flex gap-1.5">
+                <input
+                    v-model="manualHashDraft"
+                    type="text"
+                    spellcheck="false"
+                    autocomplete="off"
+                    :placeholder="$t('tools.propagation_nodes.manual_placeholder')"
+                    :title="$t('tools.propagation_nodes.manual_hint')"
+                    class="input-field min-w-0 flex-1 py-1.5 font-mono text-xs"
+                    @keydown.enter.prevent="setPreferredFromDraft"
+                    @paste="onManualHashPaste"
+                />
+                <button type="button" class="secondary-chip shrink-0 text-xs px-3 py-1.5" @click="pastePreferredHash">
+                    {{ $t("tools.propagation_nodes.paste_hash") }}
+                </button>
+                <button
+                    type="button"
+                    class="primary-chip shrink-0 text-xs px-3 py-1.5"
+                    :disabled="isSavingPreferred || !manualHashDraft"
+                    @click="setPreferredFromDraft"
+                >
+                    {{ $t("tools.propagation_nodes.set_preferred") }}
+                </button>
+            </div>
+        </div>
+
+        <div
+            v-if="propagationNodes.length > 0"
+            class="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-sem-border"
+        >
+            <div class="relative min-w-0 flex-1">
+                <MaterialDesignIcon
+                    icon-name="magnify"
+                    class="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-sem-fg-muted pointer-events-none"
+                />
                 <input
                     v-model="searchTerm"
-                    type="text"
-                    :placeholder="`Search ${propagationNodes.length} Propagation Nodes...`"
-                    class="flex-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 px-4 py-2 shadow-xs transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500"
+                    type="search"
+                    data-testid="prop-nodes-search"
+                    :placeholder="$t('tools.propagation_nodes.search_placeholder', { count: propagationNodes.length })"
+                    class="input-field pl-11! py-2 text-sm"
                 />
-                <select
-                    v-model="sortBy"
-                    class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 px-4 py-2 shadow-xs transition-all min-w-[180px]"
+            </div>
+            <select
+                v-model="sortBy"
+                data-testid="prop-nodes-sort"
+                class="shrink-0 w-44 bg-sem-surface-muted border border-sem-border text-sm rounded-2xl px-2.5 py-2 text-sem-fg"
+            >
+                <option value="preferred">{{ $t("tools.propagation_nodes.sort_preferred") }}</option>
+                <option value="recent">{{ $t("tools.propagation_nodes.sort_recent") }}</option>
+                <option value="oldest">{{ $t("tools.propagation_nodes.sort_oldest") }}</option>
+                <option value="name">{{ $t("tools.propagation_nodes.sort_name") }}</option>
+                <option value="name-desc">{{ $t("tools.propagation_nodes.sort_name_desc") }}</option>
+            </select>
+        </div>
+
+        <div data-testid="prop-nodes-list" class="flex-1 min-h-0 overflow-y-auto">
+            <div
+                v-if="paginatedNodes.length > 0"
+                class="divide-y divide-sem-border"
+                role="radiogroup"
+                :aria-label="$t('tools.propagation_nodes.preferred_heading')"
+            >
+                <div
+                    v-for="propagationNode of paginatedNodes"
+                    :key="propagationNode.destination_hash"
+                    class="flex items-center gap-0.5 hover:bg-sem-surface-muted/60"
+                    :class="{
+                        'bg-blue-50/70 dark:bg-blue-950/20': isPreferredNode(propagationNode.destination_hash),
+                    }"
                 >
-                    <option value="name">Sort by Name</option>
-                    <option value="name-desc">Sort by Name (Z-A)</option>
-                    <option value="recent">Sort by Recent</option>
-                    <option value="oldest">Sort by Oldest</option>
-                    <option value="preferred">Preferred First</option>
-                </select>
+                    <button
+                        type="button"
+                        role="radio"
+                        :aria-checked="isPreferredNode(propagationNode.destination_hash) ? 'true' : 'false'"
+                        :data-testid="'prop-node-' + propagationNode.destination_hash"
+                        class="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2 text-left"
+                        :title="
+                            isPreferredNode(propagationNode.destination_hash)
+                                ? $t('tools.propagation_nodes.preferred_badge')
+                                : $t('tools.propagation_nodes.set_as_preferred')
+                        "
+                        @click="selectPreferredNode(propagationNode.destination_hash)"
+                    >
+                        <MaterialDesignIcon
+                            :icon-name="
+                                isPreferredNode(propagationNode.destination_hash) ? 'radiobox-marked' : 'radiobox-blank'
+                            "
+                            class="size-5 shrink-0"
+                            :class="
+                                isPreferredNode(propagationNode.destination_hash)
+                                    ? 'text-sem-accent'
+                                    : 'text-sem-fg-muted'
+                            "
+                        />
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <span class="truncate text-sm font-medium">{{
+                                    propagationNode.operator_display_name ||
+                                    $t("tools.propagation_nodes.unknown_operator")
+                                }}</span>
+                                <span
+                                    v-if="propagationNode.is_propagation_enabled === false"
+                                    class="shrink-0 rounded-full bg-red-100 dark:bg-red-900/30 px-1.5 text-[10px] font-semibold text-red-700 dark:text-red-300"
+                                >
+                                    {{ $t("tools.propagation_nodes.disabled") }}
+                                </span>
+                                <span
+                                    v-if="propagationNode.is_local_node"
+                                    class="shrink-0 rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-1.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300"
+                                >
+                                    {{ $t("tools.propagation_nodes.our_node") }}
+                                </span>
+                            </div>
+                            <div
+                                class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-sem-fg-muted"
+                            >
+                                <span class="font-mono truncate" :title="propagationNode.destination_hash">{{
+                                    formatDestinationHash(propagationNode.destination_hash)
+                                }}</span>
+                                <span>{{
+                                    $t("tools.propagation_nodes.announced_ago", {
+                                        time: formatTimeAgo(propagationNode.updated_at),
+                                    })
+                                }}</span>
+                                <span>{{ formatPathLabel(nodePathFor(propagationNode.destination_hash)) }}</span>
+                            </div>
+                        </div>
+                    </button>
+                    <button
+                        type="button"
+                        class="inline-flex size-8 shrink-0 items-center justify-center rounded-lg mr-2 text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-accent"
+                        :title="$t('tools.propagation_nodes.find_path')"
+                        @click="requestPathForNode(propagationNode.destination_hash)"
+                    >
+                        <MaterialDesignIcon icon-name="map-marker-path" class="size-4" />
+                    </button>
+                </div>
             </div>
 
-            <!-- propagation nodes -->
-            <div class="h-full overflow-y-auto px-4 py-4">
-                <div v-if="paginatedNodes.length > 0" class="space-y-3 w-full">
-                    <div
-                        v-for="propagationNode of paginatedNodes"
-                        :key="propagationNode.destination_hash"
-                        class="border border-gray-200 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-900 shadow-xs hover:shadow-md transition-shadow overflow-hidden"
-                        :class="{
-                            'ring-2 ring-blue-500 dark:ring-blue-400':
-                                config.lxmf_preferred_propagation_node_destination_hash ===
-                                propagationNode.destination_hash,
-                        }"
+            <div
+                v-if="totalPages > 1"
+                class="flex items-center justify-between gap-2 px-3 py-2 border-t border-sem-border text-xs text-sem-fg-muted"
+            >
+                <span>{{
+                    $t("tools.propagation_nodes.showing_range", {
+                        start: startIndex + 1,
+                        end: endIndex,
+                        total: sortedAndSearchedPropagationNodes.length,
+                    })
+                }}</span>
+                <div class="flex items-center gap-1">
+                    <button
+                        :disabled="currentPage === 1"
+                        type="button"
+                        class="secondary-chip text-xs px-2 py-1 disabled:opacity-40"
+                        @click="currentPage = Math.max(1, currentPage - 1)"
                     >
-                        <div class="p-4 flex items-center gap-3">
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <div class="font-semibold text-gray-900 dark:text-zinc-100 truncate">
-                                        {{ propagationNode.operator_display_name ?? "Unknown Operator" }}
-                                    </div>
-                                    <span
-                                        v-if="
-                                            config.lxmf_preferred_propagation_node_destination_hash ===
-                                            propagationNode.destination_hash
-                                        "
-                                        class="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300"
-                                    >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 20 20"
-                                            fill="currentColor"
-                                            class="w-3 h-3"
-                                        >
-                                            <path
-                                                fill-rule="evenodd"
-                                                d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z"
-                                                clip-rule="evenodd"
-                                            />
-                                        </svg>
-                                        Preferred
-                                    </span>
-                                    <span
-                                        v-if="propagationNode.is_propagation_enabled === false"
-                                        class="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-0.5 text-xs font-semibold text-red-700 dark:text-red-300"
-                                    >
-                                        Disabled
-                                    </span>
-                                    <span
-                                        v-if="propagationNode.is_local_node"
-                                        class="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
-                                    >
-                                        Our Node
-                                    </span>
-                                </div>
-                                <div class="text-sm text-gray-600 dark:text-zinc-400 font-mono truncate">
-                                    &lt;{{ propagationNode.destination_hash }}&gt;
-                                </div>
-                                <div class="text-xs text-gray-500 dark:text-zinc-500 mt-1">
-                                    Announced {{ formatTimeAgo(propagationNode.updated_at) }}
-                                </div>
-                                <div class="text-xs text-gray-500 dark:text-zinc-500 mt-1 flex items-center gap-2">
-                                    <template v-if="nodePathFor(propagationNode.destination_hash)">
-                                        <span>{{
-                                            formatPathLabel(nodePathFor(propagationNode.destination_hash))
-                                        }}</span>
-                                    </template>
-                                    <template v-else>
-                                        <span>No path</span>
-                                    </template>
-                                    <button
-                                        type="button"
-                                        class="text-gray-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400"
-                                        title="Find path now"
-                                        @click="requestPathForNode(propagationNode.destination_hash)"
-                                    >
-                                        <MaterialDesignIcon icon-name="map-marker-path" class="size-4" />
-                                    </button>
-                                </div>
-                                <div
-                                    v-if="propagationNode.local_node_stats"
-                                    class="text-xs text-gray-500 dark:text-zinc-500 mt-1 flex flex-wrap gap-x-3 gap-y-1"
-                                >
-                                    <span
-                                        >{{
-                                            formatSeconds(propagationNode.local_node_stats.uptime_seconds)
-                                        }}
-                                        uptime</span
-                                    >
-                                    <span>{{ propagationNode.local_node_stats.total_peers }} peers</span>
-                                    <span>{{ propagationNode.local_node_stats.messagestore_count }} stored</span>
-                                    <span
-                                        >{{ propagationNode.local_node_stats.client_messages_received }} received</span
-                                    >
-                                    <span>{{ propagationNode.local_node_stats.client_messages_served }} served</span>
-                                    <span>{{ formatStorageUsage(propagationNode.local_node_stats) }} storage</span>
-                                    <span>RX {{ formatByteSize(propagationNode.local_node_stats.rx_bytes) }}</span>
-                                    <span>TX {{ formatByteSize(propagationNode.local_node_stats.tx_bytes) }}</span>
-                                </div>
-                            </div>
-                            <div class="shrink-0">
-                                <button
-                                    v-if="
-                                        config.lxmf_preferred_propagation_node_destination_hash ===
-                                        propagationNode.destination_hash
-                                    "
-                                    type="button"
-                                    class="inline-flex items-center gap-x-1.5 rounded-xl bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
-                                    @click="stopUsingPropagationNode"
-                                >
-                                    Stop Using
-                                </button>
-                                <button
-                                    v-else
-                                    type="button"
-                                    class="inline-flex items-center gap-x-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-                                    @click="usePropagationNode(propagationNode.destination_hash)"
-                                >
-                                    Set as Preferred
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                        {{ $t("tools.propagation_nodes.previous") }}
+                    </button>
+                    <button
+                        :disabled="currentPage === totalPages"
+                        type="button"
+                        class="secondary-chip text-xs px-2 py-1 disabled:opacity-40"
+                        @click="currentPage = Math.min(totalPages, currentPage + 1)"
+                    >
+                        {{ $t("tools.propagation_nodes.next") }}
+                    </button>
                 </div>
+            </div>
 
-                <!-- pagination -->
-                <div
-                    v-if="totalPages > 1"
-                    class="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 dark:border-zinc-800"
-                >
-                    <div class="text-sm text-gray-600 dark:text-zinc-400">
-                        Showing {{ startIndex + 1 }}-{{ endIndex }} of {{ sortedAndSearchedPropagationNodes.length }}
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button
-                            :disabled="currentPage === 1"
-                            type="button"
-                            class="inline-flex items-center gap-x-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 shadow-xs transition-colors"
-                            @click="currentPage = Math.max(1, currentPage - 1)"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-4 h-4"
-                            >
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                            </svg>
-                            Previous
-                        </button>
-                        <div class="flex items-center gap-1">
-                            <button
-                                v-for="page in visiblePages"
-                                :key="page"
-                                type="button"
-                                :class="[
-                                    page === currentPage
-                                        ? 'bg-blue-600 text-white dark:bg-blue-600'
-                                        : 'bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800',
-                                ]"
-                                class="w-10 h-10 rounded-xl border border-gray-200 dark:border-zinc-800 text-sm font-medium shadow-xs transition-colors"
-                                @click="currentPage = page"
-                            >
-                                {{ page }}
-                            </button>
-                        </div>
-                        <button
-                            :disabled="currentPage === totalPages"
-                            type="button"
-                            class="inline-flex items-center gap-x-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 shadow-xs transition-colors"
-                            @click="currentPage = Math.min(totalPages, currentPage + 1)"
-                        >
-                            Next
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-4 h-4"
-                            >
-                                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                            </svg>
-                        </button>
-                    </div>
+            <div
+                v-if="sortedAndSearchedPropagationNodes.length === 0"
+                class="flex h-full min-h-40 items-center justify-center px-4 text-center"
+            >
+                <div v-if="propagationNodes.length === 0" class="flex flex-col items-center text-sem-fg-muted">
+                    <MaterialDesignIcon icon-name="mailbox" class="size-8 mb-2 opacity-70" />
+                    <div class="font-semibold text-sem-fg">{{ $t("tools.propagation_nodes.no_nodes_title") }}</div>
+                    <div class="text-sm mt-1">{{ $t("tools.propagation_nodes.empty_announced") }}</div>
+                    <button type="button" class="primary-chip mt-3 text-xs" @click="loadPropagationNodes">
+                        {{ $t("tools.propagation_nodes.reload") }}
+                    </button>
                 </div>
-
-                <div v-else-if="sortedAndSearchedPropagationNodes.length === 0" class="flex h-full">
-                    <div class="mx-auto my-auto text-center leading-5 text-gray-900 dark:text-gray-100">
-                        <!-- no propagation nodes at all -->
-                        <div v-if="propagationNodes.length === 0" class="flex flex-col">
-                            <div class="mx-auto mb-1">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke-width="1.5"
-                                    stroke="currentColor"
-                                    class="size-6"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H6.911a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661Z"
-                                    />
-                                </svg>
-                            </div>
-                            <div class="font-semibold">No Propagation Nodes</div>
-                            <div>{{ $t("tools.propagation_nodes.empty_announced") }}</div>
-                            <div class="mt-4">
-                                <button
-                                    type="button"
-                                    class="inline-flex items-center gap-x-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-                                    @click="loadPropagationNodes"
-                                >
-                                    Reload
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- is searching, but no results -->
-                        <div v-if="searchTerm !== '' && propagationNodes.length > 0" class="flex flex-col">
-                            <div class="mx-auto mb-1">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke-width="1.5"
-                                    stroke="currentColor"
-                                    class="w-6 h-6"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-                                    />
-                                </svg>
-                            </div>
-                            <div class="font-semibold">No Search Results</div>
-                            <div>Your search didn't match any Propagation Nodes!</div>
-                        </div>
-                    </div>
+                <div v-else-if="searchTerm !== ''" class="flex flex-col items-center text-sem-fg-muted">
+                    <MaterialDesignIcon icon-name="magnify" class="size-8 mb-2 opacity-70" />
+                    <div class="font-semibold text-sem-fg">{{ $t("tools.propagation_nodes.no_search_title") }}</div>
+                    <div class="text-sm mt-1">{{ $t("tools.propagation_nodes.no_search_hint") }}</div>
                 </div>
             </div>
         </div>
@@ -675,7 +563,7 @@ export default {
                 propagationSyncLimit: null,
                 propagationStampCost: null,
             },
-            isLocalManagerCollapsed: false,
+            isLocalManagerCollapsed: true,
             localNodeDisplayNameDraft: "",
             lxmfIncomingDeliveryPreset: "10mb",
             lxmfIncomingDeliveryCustomAmount: 10,
@@ -714,15 +602,23 @@ export default {
             switch (this.sortBy) {
                 case "name":
                     nodes.sort((a, b) => {
-                        const nameA = (a.operator_display_name ?? "Unknown Operator").toLowerCase();
-                        const nameB = (b.operator_display_name ?? "Unknown Operator").toLowerCase();
+                        const nameA = (
+                            a.operator_display_name || this.$t("tools.propagation_nodes.unknown_operator")
+                        ).toLowerCase();
+                        const nameB = (
+                            b.operator_display_name || this.$t("tools.propagation_nodes.unknown_operator")
+                        ).toLowerCase();
                         return nameA.localeCompare(nameB);
                     });
                     break;
                 case "name-desc":
                     nodes.sort((a, b) => {
-                        const nameA = (a.operator_display_name ?? "Unknown Operator").toLowerCase();
-                        const nameB = (b.operator_display_name ?? "Unknown Operator").toLowerCase();
+                        const nameA = (
+                            a.operator_display_name || this.$t("tools.propagation_nodes.unknown_operator")
+                        ).toLowerCase();
+                        const nameB = (
+                            b.operator_display_name || this.$t("tools.propagation_nodes.unknown_operator")
+                        ).toLowerCase();
                         return nameB.localeCompare(nameA);
                     });
                     break;
@@ -771,19 +667,6 @@ export default {
         },
         paginatedNodes() {
             return this.sortedAndSearchedPropagationNodes.slice(this.startIndex, this.endIndex);
-        },
-        visiblePages() {
-            const pages = [];
-            const maxVisible = 5;
-            let start = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
-            let end = Math.min(this.totalPages, start + maxVisible - 1);
-            if (end - start < maxVisible - 1) {
-                start = Math.max(1, end - maxVisible + 1);
-            }
-            for (let i = start; i <= end; i++) {
-                pages.push(i);
-            }
-            return pages;
         },
     },
     watch: {
@@ -888,6 +771,15 @@ export default {
             await this.requestPathForNode(parsed);
             return true;
         },
+        isPreferredNode(destinationHash) {
+            return this.config.lxmf_preferred_propagation_node_destination_hash === destinationHash;
+        },
+        async selectPreferredNode(destinationHash) {
+            if (this.isPreferredNode(destinationHash)) {
+                return;
+            }
+            await this.usePropagationNode(destinationHash);
+        },
         async stopUsingPropagationNode() {
             const didUpdate = await this.updateConfig({
                 lxmf_preferred_propagation_node_destination_hash: null,
@@ -990,7 +882,7 @@ export default {
             try {
                 await window.api.get("/api/v1/announce");
                 if (showSuccessToast) {
-                    ToastUtils.success("Announce triggered");
+                    ToastUtils.success(this.$t("tools.propagation_nodes.announce_triggered"));
                 }
                 await this.loadPropagationNodes();
                 await this.refreshPriorityNodePaths();
@@ -1007,7 +899,7 @@ export default {
                 }
                 this.localNodeDisplayNameDraft = nextName;
                 await this.announceNow(false);
-                ToastUtils.success("Name saved and announced");
+                ToastUtils.success(this.$t("tools.propagation_nodes.name_saved"));
                 await this.loadPropagationNodes();
                 await this.refreshPriorityNodePaths();
             } catch {
@@ -1086,12 +978,21 @@ export default {
         },
         formatPathLabel(path) {
             if (!path) {
-                return "No path";
+                return this.$t("tools.propagation_nodes.no_path");
             }
             const hops = Number(path.hops);
-            const hopsText = Number.isFinite(hops) ? `${hops} ${hops === 1 ? "hop" : "hops"}` : "Unknown hops";
-            const iface = path.next_hop_interface || "unknown interface";
-            return `${hopsText} via ${iface}`;
+            let hopsText = this.$t("tools.propagation_nodes.unknown_hops");
+            if (Number.isFinite(hops)) {
+                hopsText =
+                    hops === 1
+                        ? this.$t("tools.propagation_nodes.hop_one")
+                        : this.$t("tools.propagation_nodes.hop_many", { count: hops });
+            }
+            const iface = path.next_hop_interface || this.$t("tools.propagation_nodes.unknown_interface");
+            return this.$t("tools.propagation_nodes.path_via", { hops: hopsText, iface });
+        },
+        formatDestinationHash(hash) {
+            return Utils.formatDestinationHash(hash);
         },
         async onLxmfIncomingDeliveryPresetChange() {
             if (this.lxmfIncomingDeliveryPreset === "custom") {

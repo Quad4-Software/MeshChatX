@@ -119,6 +119,59 @@ describe("ConversationViewer.vue", () => {
         });
     };
 
+    it("accepts a null selectedPeer without Vue Invalid prop warnings", async () => {
+        const warnings = [];
+        const warn = vi.spyOn(console, "warn").mockImplementation((...args) => {
+            warnings.push(args.map(String).join(" "));
+        });
+        const wrapper = mount(ConversationViewer, {
+            props: {
+                selectedPeer: null,
+                myLxmfAddressHash: "my-hash",
+                conversations: [],
+            },
+            global: {
+                config: {
+                    warnHandler(msg) {
+                        warnings.push(String(msg));
+                    },
+                },
+                directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
+                mocks: {
+                    $t: (key) => key,
+                    $route: { meta: {} },
+                    $router: { push: vi.fn() },
+                },
+                stubs: {
+                    MaterialDesignIcon: true,
+                    AddImageButton: true,
+                    AddAudioButton: true,
+                    SendMessageButton: true,
+                    ConversationDropDownMenu: true,
+                    PaperMessageModal: true,
+                    AudioWaveformPlayer: true,
+                    LxmfUserIcon: true,
+                },
+            },
+        });
+        await flushPromises();
+        expect(wrapper.text()).toContain("messages.no_active_chat");
+        const propWarns = warnings.filter((msg) => /Invalid prop/i.test(msg) && /selectedPeer/.test(msg));
+        expect(propWarns).toEqual([]);
+        warn.mockRestore();
+        wrapper.unmount();
+    });
+
+    it("clears the thread and keeps the empty state when selectedPeer becomes null", async () => {
+        const wrapper = mountConversationViewer();
+        await flushPromises();
+        expect(wrapper.text()).not.toContain("messages.no_active_chat");
+        await wrapper.setProps({ selectedPeer: null });
+        await flushPromises();
+        expect(wrapper.text()).toContain("messages.no_active_chat");
+        wrapper.unmount();
+    });
+
     it("markConversationAsRead skips server call and reload when conversation is already read", async () => {
         const wrapper = mountConversationViewer();
         await flushPromises();
@@ -875,8 +928,10 @@ describe("ConversationViewer.vue", () => {
         wrapper.vm.messageContextMenu.show = true;
         await wrapper.vm.$nextTick();
 
-        const menuHtml = wrapper.html();
-        expect(menuHtml).toContain("Retry");
+        const retryInMenu = Array.from(document.body.querySelectorAll("button")).some((b) =>
+            b.textContent.includes("messages.retry")
+        );
+        expect(retryInMenu).toBe(true);
     });
 
     it("does not show retry in context menu for delivered messages", async () => {
@@ -900,7 +955,7 @@ describe("ConversationViewer.vue", () => {
         wrapper.vm.messageContextMenu.show = true;
         await wrapper.vm.$nextTick();
 
-        const retryButtons = wrapper.findAll("button").filter((b) => b.text().includes("Retry"));
+        const retryButtons = wrapper.findAll("button").filter((b) => b.text().includes("messages.retry"));
         expect(retryButtons).toHaveLength(0);
     });
 
@@ -1039,7 +1094,7 @@ describe("ConversationViewer.vue", () => {
         await wrapper.vm.$nextTick();
 
         const retryButtonEl = Array.from(document.body.querySelectorAll("button")).find((b) =>
-            b.textContent.includes("Retry")
+            b.textContent.includes("messages.retry")
         );
         expect(retryButtonEl).toBeDefined();
 

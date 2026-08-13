@@ -4,11 +4,11 @@
     <div class="inline-flex">
         <button
             type="button"
-            class="my-auto inline-flex items-center gap-x-1 rounded-full border border-gray-200 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/80 px-3 py-1.5 text-xs font-semibold text-gray-800 dark:text-gray-100 shadow-xs hover:border-blue-400 dark:hover:border-blue-500 transition"
+            class="my-auto inline-flex items-center gap-x-1 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-900 dark:hover:text-white transition-colors"
             @click="showMenu"
         >
             <MaterialDesignIcon icon-name="image-plus" class="w-4 h-4" />
-            <span class="hidden xl:inline-block whitespace-nowrap">Add Image</span>
+            <span class="hidden sm:inline whitespace-nowrap">{{ $t("messages.add_image") }}</span>
         </button>
 
         <div class="relative block">
@@ -31,28 +31,28 @@
                             class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
                             @click="addImage('low')"
                         >
-                            Low Quality (320x320)
+                            {{ $t("messages.image_quality_low") }}
                         </button>
                         <button
                             type="button"
                             class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
                             @click="addImage('medium')"
                         >
-                            Medium Quality (640x640)
+                            {{ $t("messages.image_quality_medium") }}
                         </button>
                         <button
                             type="button"
                             class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
                             @click="addImage('high')"
                         >
-                            High Quality (1280x1280)
+                            {{ $t("messages.image_quality_high") }}
                         </button>
                         <button
                             type="button"
                             class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
                             @click="addImage('original')"
                         >
-                            Original Quality
+                            {{ $t("messages.image_quality_original") }}
                         </button>
                     </div>
                 </div>

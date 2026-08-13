@@ -20,15 +20,6 @@
                 <div v-if="!isCollapsed" class="my-auto min-w-0 flex-1 dark:text-white truncate" :title="identityLabel">
                     {{ identityLabel }}
                 </div>
-                <div v-if="!isCollapsed" class="my-auto ml-auto shrink-0">
-                    <button
-                        type="button"
-                        class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-xs hover:bg-gray-400 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700 dark:focus-visible:outline-zinc-500"
-                        @click.stop="$emit('save-identity')"
-                    >
-                        {{ $t("common.save") }}
-                    </button>
-                </div>
             </div>
             <div
                 v-if="isShowingMyIdentitySection && !isCollapsed"
@@ -38,9 +29,12 @@
                     <input
                         :value="displayName"
                         type="text"
+                        data-testid="sidebar-display-name"
                         :placeholder="$t('app.display_name_placeholder')"
                         class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-200 dark:focus:ring-blue-400 dark:focus:border-blue-400"
                         @input="$emit('update:displayName', $event.target.value)"
+                        @keydown.enter.prevent="$emit('save-identity')"
+                        @blur="$emit('save-identity')"
                     />
                 </div>
                 <div class="p-2 dark:border-zinc-900 overflow-hidden text-xs">
@@ -123,7 +117,10 @@
                         <option :value="43200">{{ $t("app.announce_interval_12h") }}</option>
                         <option :value="86400">{{ $t("app.announce_interval_24h") }}</option>
                     </select>
-                    <div class="text-[10px] text-gray-700 dark:text-zinc-100 mt-1">
+                    <div
+                        class="text-[10px] leading-snug text-gray-700 dark:text-zinc-100 mt-1"
+                        data-testid="sidebar-last-announced"
+                    >
                         <span v-if="config.last_announced_at">
                             {{ $t("app.last_announced", { time: lastAnnouncedLabel }) }}
                         </span>
