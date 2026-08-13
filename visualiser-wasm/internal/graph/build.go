@@ -244,11 +244,11 @@ func resolvePosition(hash, iface string, pos map[string]XY) (float64, float64) {
 		return prev.X, prev.Y
 	}
 	if ip, ok := pos[iface]; ok {
-		x, y := hashpos.Around(hash, ip.X, ip.Y, 240, 220)
+		x, y := hashpos.Around(hash, ip.X, ip.Y, 140, 90)
 		pos[hash] = XY{X: x, Y: y}
 		return x, y
 	}
-	x, y := hashpos.XY(hash, 720, 280)
+	x, y := hashpos.XY(hash, 400, 160)
 	pos[hash] = XY{X: x, Y: y}
 	return x, y
 }

@@ -12,7 +12,7 @@ test.describe("Shell: sidebar, theme, call, search", () => {
         const toggleButton = sidebar.locator("div.hidden.sm\\:flex button").first();
         await expect(sidebar).toHaveClass(/w-80/);
         await toggleButton.click();
-        await expect(sidebar).toHaveClass(/w-16/);
+        await expect(sidebar).toHaveClass(/w-14/);
         await toggleButton.click();
         await expect(sidebar).toHaveClass(/w-80/);
     });

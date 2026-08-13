@@ -178,8 +178,7 @@ func sceneTickHandler(_ js.Value, args []js.Value) any {
 	if len(args) > 0 && args[0].Type() == js.TypeNumber {
 		steps = int(args[0].Int())
 	}
-	visualiserScene.Tick(steps)
-	return nil
+	return visualiserScene.Tick(steps)
 }
 
 func sceneResizeHandler(_ js.Value, args []js.Value) any {

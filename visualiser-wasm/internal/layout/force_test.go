@@ -103,6 +103,35 @@ func TestSettlePreservesAndUpdatesVelocity(t *testing.T) {
 	}
 }
 
+func TestSettleStaysCompact(t *testing.T) {
+	res := layout.Settle(layout.Request{
+		Nodes: []layout.Node{
+			{ID: "me", X: 0, Y: 0, Mass: 4, Fixed: true, Radius: 32},
+			{ID: "iface", X: 210, Y: 0, Mass: 2.5, Radius: 24},
+			{ID: "a", X: 350, Y: 20, Mass: 1, Radius: 22},
+			{ID: "b", X: 350, Y: -20, Mass: 1, Radius: 22},
+		},
+		Edges: []layout.Edge{
+			{From: "me", To: "iface", Length: layout.DefaultHubSpringLen},
+			{From: "iface", To: "a", Length: layout.DefaultSpringLen},
+			{From: "iface", To: "b", Length: layout.DefaultSpringLen},
+		},
+		Iterations: 140,
+	})
+	iface := res.Positions["iface"]
+	hubDist := math.Hypot(iface.X, iface.Y)
+	if hubDist < 80 || hubDist > 360 {
+		t.Fatalf("interface should stay near hub rest length, got dist=%v pos=%#v", hubDist, iface)
+	}
+	for _, id := range []string{"a", "b"} {
+		p := res.Positions[id]
+		d := math.Hypot(p.X-iface.X, p.Y-iface.Y)
+		if d > 420 {
+			t.Fatalf("%s exploded away from interface: dist=%v p=%#v iface=%#v", id, d, p, iface)
+		}
+	}
+}
+
 func BenchmarkSettle500(b *testing.B) {
 	nodes := make([]layout.Node, 500)
 	edges := make([]layout.Edge, 0, 500)

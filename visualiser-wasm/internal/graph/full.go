@@ -144,7 +144,7 @@ func BuildFullGraph(req FullRequest) FullResult {
 		addNode(me, 4, true)
 	}
 
-	radius := 520.0
+	radius := 210.0
 	ifaceN := len(req.Interfaces)
 	for j, entry := range req.Interfaces {
 		if !filter.MatchesSearch(searchLower, entry.Label) && !filter.MatchesSearch(searchLower, entry.Name) {
@@ -228,7 +228,7 @@ func BuildFullGraph(req FullRequest) FullResult {
 			if !filter.MatchesSearch(searchLower, disc.Label) {
 				continue
 			}
-			x, y := hashpos.XY(disc.ID, 900, 280)
+			x, y := hashpos.XY(disc.ID, 480, 160)
 			p := resolveOr(pos, disc.ID, x, y)
 			node := NodeOut{
 				ID:            disc.ID,

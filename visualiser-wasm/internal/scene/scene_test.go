@@ -5,6 +5,8 @@ package scene
 import (
 	"math"
 	"testing"
+
+	"github.com/Quad4-Software/MeshChatX/visualiser-wasm/internal/layout"
 )
 
 func TestSetPackAndPick(t *testing.T) {
@@ -109,8 +111,8 @@ func TestTickPersistsVelocityAndSettles(t *testing.T) {
 		Nodes: []Node{
 			{ID: "me", X: 0, Y: 0, Kind: KindMe, Fixed: true, Mass: 4},
 			// Start near hub spring rest length so live ticks should calm quickly.
-			{ID: "a", X: 440, Y: 0, Kind: KindPeer, Mass: 1, Size: 22},
-			{ID: "b", X: -440, Y: 0, Kind: KindPeer, Mass: 1, Size: 22},
+			{ID: "a", X: layout.DefaultHubSpringLen, Y: 0, Kind: KindPeer, Mass: 1, Size: 22},
+			{ID: "b", X: -layout.DefaultHubSpringLen, Y: 0, Kind: KindPeer, Mass: 1, Size: 22},
 		},
 		Edges: []Edge{
 			{From: "me", To: "a", Width: 3},
@@ -154,5 +156,59 @@ func TestTickSeparatesStackedPeers(t *testing.T) {
 	dist := math.Hypot(s.nodes[1].X-s.nodes[2].X, s.nodes[1].Y-s.nodes[2].Y)
 	if dist < 80 {
 		t.Fatalf("stacked peers should spread, dist=%v a=(%v,%v) b=(%v,%v)", dist, s.nodes[1].X, s.nodes[1].Y, s.nodes[2].X, s.nodes[2].Y)
+	}
+}
+
+func TestTickSleepsWhenSettled(t *testing.T) {
+	s := New()
+	s.Set(SetRequest{
+		Nodes: []Node{
+			{ID: "me", X: 0, Y: 0, Kind: KindMe, Fixed: true, Mass: 4, Size: 32},
+			{ID: "a", X: layout.DefaultHubSpringLen, Y: 0, Kind: KindPeer, Mass: 1, Size: 22},
+		},
+		Edges: []Edge{{From: "me", To: "a", Width: 3}},
+	})
+	for i := 0; i < 120; i++ {
+		s.Tick(1)
+	}
+	x := s.nodes[1].X
+	y := s.nodes[1].Y
+	moved := s.Tick(1)
+	if moved {
+		t.Fatalf("settled live layout should sleep, still moving to (%v,%v) from (%v,%v)", s.nodes[1].X, s.nodes[1].Y, x, y)
+	}
+	if s.nodes[1].X != x || s.nodes[1].Y != y {
+		t.Fatalf("sleeping tick moved node from (%v,%v) to (%v,%v)", x, y, s.nodes[1].X, s.nodes[1].Y)
+	}
+}
+
+func TestTickDoesNotExplode(t *testing.T) {
+	s := New()
+	s.Set(SetRequest{
+		Nodes: []Node{
+			{ID: "me", X: 0, Y: 0, Kind: KindMe, Fixed: true, Mass: 4, Size: 32},
+			{ID: "iface", X: 210, Y: 0, Kind: KindIfaceOn, Mass: 2.5, Size: 24},
+			{ID: "a", X: 350, Y: 16, Kind: KindPeer, Mass: 1, Size: 22},
+			{ID: "b", X: 350, Y: -16, Kind: KindPeer, Mass: 1, Size: 22},
+		},
+		Edges: []Edge{
+			{From: "me", To: "iface", Width: 3},
+			{From: "iface", To: "a", Width: 1},
+			{From: "iface", To: "b", Width: 1},
+		},
+	})
+	for i := 0; i < 90; i++ {
+		s.Tick(1)
+	}
+	iface := s.nodes[1]
+	hubDist := math.Hypot(iface.X, iface.Y)
+	if hubDist > 360 {
+		t.Fatalf("live layout inflated hub distance to %v", hubDist)
+	}
+	for i := 2; i < 4; i++ {
+		d := math.Hypot(s.nodes[i].X-iface.X, s.nodes[i].Y-iface.Y)
+		if d > 420 {
+			t.Fatalf("live layout exploded peer %s dist=%v", s.nodes[i].ID, d)
+		}
 	}
 }

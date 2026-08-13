@@ -645,4 +645,23 @@ describe("NetworkVisualiser.vue", () => {
         expect(processSpy).toHaveBeenCalledTimes(1);
         expect(processSpy).toHaveBeenCalledWith({ silent: true });
     });
+
+    it("clears identity-scoped graph state on identity switch", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        wrapper.vm.update = vi.fn().mockResolvedValue();
+        wrapper.vm.cachedPositions = { oldpeer: { x: 9, y: 8 } };
+        wrapper.vm.pathTable = [{ hash: "oldpeer" }];
+        wrapper.vm.announces = { oldpeer: { destination_hash: "oldpeer" } };
+        wrapper.vm.config = { identity_hash: "aaaa" };
+        wrapper.vm.webglEngine = { setGraph: vi.fn(), destroy: vi.fn() };
+        wrapper.vm.onIdentitySwitched();
+        expect(wrapper.vm.cachedPositions).toEqual({});
+        expect(wrapper.vm.pathTable).toEqual([]);
+        expect(wrapper.vm.announces).toEqual({});
+        expect(wrapper.vm.config).toBeNull();
+        expect(wrapper.vm.webglEngine.setGraph).toHaveBeenCalledWith([], []);
+        expect(wrapper.vm.update).toHaveBeenCalledWith({ silent: false });
+        wrapper.unmount();
+    });
 });

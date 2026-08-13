@@ -66,7 +66,7 @@
                             <MaterialDesignIcon :icon-name="isSidebarOpen ? 'close' : 'menu'" class="size-6" />
                         </button>
                         <div class="flex min-w-0 flex-1 items-center gap-2 sm:flex-initial sm:gap-3">
-                            <div class="hidden shrink-0 justify-start sm:flex sm:w-16 sm:justify-center">
+                            <div class="hidden shrink-0 justify-start sm:flex sm:w-14 sm:justify-center">
                                 <div
                                     class="flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-xl sm:h-14 sm:w-14"
                                     @click="onAppNameClick"
@@ -218,7 +218,7 @@
                         class="absolute inset-y-0 left-0 z-70 transform transition-all duration-300 ease-in-out sm:relative sm:inset-auto sm:z-0 sm:flex sm:translate-x-0"
                         :class="[
                             isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
-                            isSidebarCollapsed ? 'w-16' : 'w-80 md:max-lg:w-64 lg:w-80',
+                            isSidebarCollapsed ? 'w-14' : 'w-80 md:max-lg:w-64 lg:w-80',
                         ]"
                     >
                         <div

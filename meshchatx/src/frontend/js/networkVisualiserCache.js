@@ -9,7 +9,9 @@
 const DB_NAME = "meshchatx_visualiser_cache";
 const DB_VERSION = 1;
 const STORE_NAME = "snapshots";
-const CACHE_VERSION = 1;
+// Bump when layout scale changes so stored x/y from an older spring length
+// are not reused as the new compact seed.
+const CACHE_VERSION = 2;
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 let dbPromise = null;

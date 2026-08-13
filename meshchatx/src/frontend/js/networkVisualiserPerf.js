@@ -11,6 +11,21 @@ export const VIZ_ANNOUNCE_ASPECTS = ["lxmf.delivery", "nomadnetwork.node"];
 
 export const ANNOUNCE_HASH_CHUNK_SIZE = 500;
 
+/** Must match visualiser-wasm layout.DefaultHubSpringLen. */
+export const VIZ_HUB_SPRING_LEN = 200;
+
+/** Must match visualiser-wasm layout.DefaultSpringLen. */
+export const VIZ_PEER_SPRING_LEN = 240;
+
+/**
+ * vis-style edge width to WASM spring rest length.
+ * @param {number} width
+ * @returns {number}
+ */
+export function layoutSpringLength(width) {
+    return Number(width) >= 2.5 ? VIZ_HUB_SPRING_LEN : VIZ_PEER_SPRING_LEN;
+}
+
 /** Soft cap for client-side path table rows kept in the visualiser. */
 export const VIZ_PATH_TABLE_SOFT_CAP = 20_000;
 
@@ -231,11 +246,11 @@ export function buildPathGraphJs(req) {
             const ip = positions[entry.interface];
             const angle = hashAngle(entry.hash);
             if (ip && Number.isFinite(ip.x) && Number.isFinite(ip.y)) {
-                const dist = 240 + hash01(entry.hash, "r") * 220;
+                const dist = 140 + hash01(entry.hash, "r") * 90;
                 x = ip.x + Math.cos(angle) * dist;
                 y = ip.y + Math.sin(angle) * dist;
             } else {
-                const dist = 720 + hash01(entry.hash, "r") * 280;
+                const dist = 400 + hash01(entry.hash, "r") * 160;
                 x = Math.cos(angle) * dist;
                 y = Math.sin(angle) * dist;
             }
@@ -382,7 +397,7 @@ export function buildFullGraph(req) {
         layout_edges: (path.edges || []).map((e) => ({
             from: e.from,
             to: e.to,
-            length: e.width >= 2.5 ? 440 : 500,
+            length: layoutSpringLength(e.width),
         })),
     };
 }

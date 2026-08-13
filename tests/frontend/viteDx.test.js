@@ -52,6 +52,20 @@ describe("vite-dx Vue DevTools gate", () => {
         expect(vite).toContain("clearScreen: false");
     });
 
+    it("Docker frontend stages copy every vite.config.js scripts/ import", () => {
+        const vite = readFileSync(resolve(ROOT, "vite.config.js"), "utf8");
+        const imports = [...vite.matchAll(/from\s+"(\.\/scripts\/[^"]+)"/g)].map((m) => m[1].replace(/^\.\//, ""));
+        expect(imports.length).toBeGreaterThan(0);
+        expect(imports).toContain("scripts/vite-dx.mjs");
+        for (const dockerfile of ["Dockerfile", "Dockerfile.hardened"]) {
+            const body = readFileSync(resolve(ROOT, dockerfile), "utf8");
+            const frontendStage = body.split(/^FROM /m)[1] || "";
+            for (const rel of imports) {
+                expect(frontendStage, `${dockerfile} missing COPY ${rel}`).toContain(`COPY ${rel} ${rel}`);
+            }
+        }
+    });
+
     it("e2e Vite stack disables Vue DevTools", () => {
         const e2e = readFileSync(resolve(ROOT, "scripts/e2e/start-e2e-stack.sh"), "utf8");
         expect(e2e).toContain("MESHCHAT_VUE_DEVTOOLS=0");

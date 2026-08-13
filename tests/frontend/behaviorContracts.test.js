@@ -399,9 +399,16 @@ describe("behavior contracts: network visualiser performance", () => {
         expect(webgl).not.toContain("zoom >= 0.45");
         const prefs = readSource("meshchatx/src/frontend/js/settings/settingsVisualiserPrefs.js");
         expect(prefs).toContain("persistVisualiserRenderer");
+        expect(prefs).toContain("persistVisualiserViewMode");
         expect(prefs).toContain('"auto"');
         expect(prefs).toContain('"webgl"');
         expect(prefs).toContain('"vis"');
+        expect(prefs).toContain('"planet"');
+        const planet = readSource("meshchatx/src/frontend/js/networkVisualiserPlanet.js");
+        expect(planet).toContain("projectPlanetScene");
+        expect(planet).toContain("layoutToSphere");
+        expect(engine).toContain("setViewMode");
+        expect(engine).toContain("projectPlanetScene");
     });
 });
 

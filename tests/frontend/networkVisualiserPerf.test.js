@@ -10,6 +10,7 @@ import {
     lodLevelFromScale,
     pathHashesWithinHopFilter,
     pathHashesWithinHopFilterJs,
+    layoutSpringLength,
     pickAdaptiveFetchConcurrency,
 } from "@/js/networkVisualiserPerf.js";
 
@@ -28,6 +29,8 @@ describe("networkVisualiserPerf", () => {
     it("exports visualiser constants", () => {
         expect(VIZ_ANNOUNCE_ASPECTS).toEqual(["lxmf.delivery", "nomadnetwork.node"]);
         expect(ANNOUNCE_HASH_CHUNK_SIZE).toBe(500);
+        expect(layoutSpringLength(3)).toBe(200);
+        expect(layoutSpringLength(1)).toBe(240);
     });
 
     it("pathHashesWithinHopFilter respects hop max", () => {
@@ -88,7 +91,7 @@ describe("networkVisualiserPerf", () => {
         expect(res.edges[0].width).toBe(2.5);
         const dx = res.nodes[0].x - 10;
         const dy = res.nodes[0].y - 20;
-        expect(Math.hypot(dx, dy)).toBeGreaterThanOrEqual(240);
+        expect(Math.hypot(dx, dy)).toBeGreaterThanOrEqual(140);
         expect(buildPathGraph({ path_table: [], announces: {} }).nodes).toEqual([]);
     });
 
