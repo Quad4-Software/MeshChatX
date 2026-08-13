@@ -65,7 +65,9 @@ overflow-checks = true
 
 
 @pytest.mark.skipif(shutil.which("patch") is None, reason="patch is required")
-def test_pyo3_no_interpreter_patch_applies_to_cryptography_50_0_0(tmp_path: Path) -> None:
+def test_pyo3_no_interpreter_patch_applies_to_cryptography_50_0_0(
+    tmp_path: Path,
+) -> None:
     assert META.read_text(encoding="utf-8").count('version: "50.0.0"') == 1
     cargo = tmp_path / "Cargo.toml"
     cargo.write_text(CARGO_TOML_50_0_0, encoding="utf-8")
@@ -78,5 +80,12 @@ def test_pyo3_no_interpreter_patch_applies_to_cryptography_50_0_0(tmp_path: Path
     )
     assert result.returncode == 0, result.stderr or result.stdout
     patched = cargo.read_text(encoding="utf-8")
-    assert patched.count('pyo3 = { version = "0.29", features = ["abi3", "abi3t", "abi3-py310"] }') == 1
-    assert patched.count('pyo3 = { version = "0.29", features = ["abi3", "abi3t"] }') == 0
+    assert (
+        patched.count(
+            'pyo3 = { version = "0.29", features = ["abi3", "abi3t", "abi3-py310"] }'
+        )
+        == 1
+    )
+    assert (
+        patched.count('pyo3 = { version = "0.29", features = ["abi3", "abi3t"] }') == 0
+    )

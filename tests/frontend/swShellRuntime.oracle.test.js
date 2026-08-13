@@ -325,10 +325,9 @@ describe("swShellRuntime navigation preload", () => {
     it("cancelled navigation preload falls through to cache without throwing", async () => {
         const caches = new MemoryCacheStorage();
         const cacheName = cacheNameForBuild("cancelled");
-        await (await caches.open(cacheName)).put(
-            SHELL_FALLBACK_URL,
-            okResponse("<html>shell</html>", { headers: { "content-type": "text/html" } })
-        );
+        await (
+            await caches.open(cacheName)
+        ).put(SHELL_FALLBACK_URL, okResponse("<html>shell</html>", { headers: { "content-type": "text/html" } }));
         const cancelled = Promise.reject(
             Object.assign(new Error("The service worker navigation preload request was cancelled"), {
                 name: "NetworkError",
