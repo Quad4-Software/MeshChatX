@@ -10,7 +10,7 @@ MeshChatX is a fork of Reticulum MeshChat with LXST telephony, RRC relay chat, N
 - Keep the Python backend and Vue frontend independently testable.
 - Run in constrained environments with predictable SQLite behaviour.
 
-Mesh features should follow Reticulum’s post-IP design patterns (portable identity hashes, announces, store-and-forward, transport-agnostic APIs, scarce payloads). Agent and contributor gates live in `docs/agents/conventions/reticulum-zen.md` and `docs/agents/skills/reticulum-design-gates/SKILL.md`, derived from the [Zen of Reticulum](https://reticulum.network/manual/zen.html).
+Mesh features should follow Reticulum’s post-IP design patterns (portable identity hashes, announces, store-and-forward, transport-agnostic APIs, scarce payloads). Agent and contributor gates live in `.agents/conventions/reticulum-zen.md` and `.agents/skills/reticulum-design-gates/SKILL.md`, derived from the [Zen of Reticulum](https://reticulum.network/manual/zen.html).
 
 ## Process overview
 
@@ -35,7 +35,7 @@ Optional **Electron** wraps the same backend binary and loads the UI from the lo
 
 ## Application shell
 
-`ReticulumMeshChat` in `meshchatx/meshchat.py` is the orchestration layer. It wires HTTP via `meshchatx/src/backend/http/`, starts and stops identity contexts, wires crash recovery, and coordinates shared process concerns. Domain to route ownership is documented in `docs/agents/module-ownership.md`.
+`ReticulumMeshChat` in `meshchatx/meshchat.py` is the orchestration layer. It wires HTTP via `meshchatx/src/backend/http/`, starts and stops identity contexts, wires crash recovery, and coordinates shared process concerns. Domain to route ownership is documented in `.agents/module-ownership.md`.
 
 Path helpers live in `meshchatx/src/path_utils.py`, `ssl_self_signed.py`, and `env_utils.py`. `meshchat.py` re-exports them for compatibility.
 
