@@ -2,12 +2,13 @@
 
 <template>
     <div class="flex-1 overflow-y-auto" :class="isEditing ? 'select-none' : ''" data-testid="sidebar-classic-nav">
-        <ul class="py-3 pr-2 space-y-1">
+        <ul class="py-3 space-y-1" :class="isCollapsed ? 'px-0' : 'pr-2'">
             <li
                 v-for="item in navItems"
                 :key="item.id"
                 class="flex items-center"
                 :class="[
+                    isCollapsed ? 'justify-center' : '',
                     isEditing && draggingId === item.id && draggingKind === 'item' ? 'opacity-50' : '',
                     isEditing && dragOverKey === `item:${item.id}`
                         ? 'ring-1 ring-blue-400 dark:ring-blue-500 rounded-r-full'

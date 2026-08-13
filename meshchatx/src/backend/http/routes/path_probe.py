@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     GeoValidationError,
     OutboundHttpBlockedError,
@@ -131,6 +130,8 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     zipfile,
 )
 
+from meshchatx.src.backend.path_utils import path_response_window
+
 # Same ceiling as RNProbeHandler.MAX_TIMEOUT_S
 PATH_PROBE_MIN_TIMEOUT_S = 1
 PATH_PROBE_MAX_TIMEOUT_S = 600
@@ -139,9 +140,11 @@ PATH_WAIT_REQUIRES_POST_MESSAGE = (
 )
 
 
-def parse_path_probe_timeout(raw, *, default=15):
+def parse_path_probe_timeout(raw, *, default=None):
     if raw is None or raw == "":
         raw = default
+    if raw is None or raw == "":
+        return None, None
     try:
         timeout_seconds = int(raw)
     except (TypeError, ValueError):
@@ -157,7 +160,7 @@ def parse_path_probe_timeout(raw, *, default=15):
     return timeout_seconds, None
 
 
-async def read_path_probe_timeout_raw(request, default=15):
+async def read_path_probe_timeout_raw(request, default=None):
     query = getattr(request, "query", None) or {}
     if "timeout" in query:
         return query.get("timeout")
@@ -303,10 +306,16 @@ def register_path_probe_routes(routes, app):
             )
         destination_hash_hex = destination_hash_bytes.hex()
 
-        timeout_raw = await read_path_probe_timeout_raw(request, default=15)
+        timeout_raw = await read_path_probe_timeout_raw(request)
         timeout_seconds, timeout_error = parse_path_probe_timeout(timeout_raw)
         if timeout_error:
             return web.json_response({"message": timeout_error}, status=400)
+        if timeout_seconds is None:
+            reticulum = app.reticulum if hasattr(app, "reticulum") else None
+            timeout_seconds = path_response_window(
+                destination_hash_bytes,
+                reticulum,
+            )
 
         if destination_hash_hex in local_destination_hashes(app):
             return local_path_response(destination_hash_hex)
@@ -483,12 +492,17 @@ def register_path_probe_routes(routes, app):
                 status=400,
             )
 
-        timeout_raw = await read_path_probe_timeout_raw(request, default=15)
+        timeout_raw = await read_path_probe_timeout_raw(request)
         timeout_seconds, timeout_error = parse_path_probe_timeout(timeout_raw)
         if timeout_error:
             return web.json_response(
                 {"message": f"Ping failed. {timeout_error}"},
                 status=400,
+            )
+        if timeout_seconds is None:
+            reticulum = app.reticulum if hasattr(app, "reticulum") else None
+            timeout_seconds = int(
+                round(path_response_window(destination_hash, reticulum)),
             )
 
         # Split the budget so path discovery cannot consume the whole timeout.

@@ -315,6 +315,7 @@ class RRCHub:
             if gate is not None:
                 gate.acquire()
             try:
+                path_wait = timeout_s
                 if not RNS.Transport.has_path(self.hub_hash):
                     RNS.Transport.request_path(self.hub_hash)
                     try:
@@ -328,7 +329,7 @@ class RRCHub:
                         time.sleep(0.1)
 
                 hub_identity = None
-                deadline = time.monotonic() + timeout_s
+                deadline = time.monotonic() + path_wait
                 while time.monotonic() < deadline:
                     hub_identity = RNS.Identity.recall(self.hub_hash)
                     if hub_identity is not None:

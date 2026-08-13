@@ -18,7 +18,6 @@ from rns_filesync.constants import (
     APP_NAME,
     ASPECT,
     BLOCK_SIZE,
-    LINK_TIMEOUT_DEFAULT,
     PATH_TIMEOUT_DEFAULT,
     RECONNECT_BASE_INTERVAL,
     RECONNECT_MAX_INTERVAL,
@@ -33,6 +32,7 @@ from rns_filesync.inventory import (
 )
 from rns_filesync.paths import PathJailError, normalize_relpath, resolve_under_root
 from rns_filesync.peers import (
+    adaptive_path_timeout,
     create_outbound_destination,
     establish_link,
     hex_hash,
@@ -276,7 +276,7 @@ class FileSyncService:
     def connect_peer(
         self,
         identity_hash: str | bytes,
-        timeout: float = PATH_TIMEOUT_DEFAULT,
+        timeout: float | None = None,
     ) -> dict[str, Any]:
         """Connect using identity hash (destination hash accepted as fallback)."""
         peer_hash = parse_hash(identity_hash)
@@ -291,8 +291,7 @@ class FileSyncService:
 
         identity, how = resolve_peer_identity(peer_hash)
         if identity is None:
-            # Path request may populate known destinations for destination hashes.
-            wait_for_path(peer_hash, timeout=min(timeout, 5.0))
+            wait_for_path(peer_hash, timeout=timeout)
             identity, how = resolve_peer_identity(peer_hash)
         if identity is None:
             msg = f"could not recall identity for {peer_hex}"
@@ -309,7 +308,6 @@ class FileSyncService:
             destination,
             established_callback=self._on_link_established,
             closed_callback=self._on_link_closed,
-            timeout=LINK_TIMEOUT_DEFAULT,
         )
         if link is None:
             msg = f"link failed for {peer_hex}"
@@ -1053,7 +1051,11 @@ class FileSyncService:
 
             def job(target=peer_id):
                 try:
-                    result = self.connect_peer(target, timeout=PATH_TIMEOUT_DEFAULT)
+                    try:
+                        wait_s = adaptive_path_timeout(parse_hash(target))
+                    except Exception:
+                        wait_s = PATH_TIMEOUT_DEFAULT
+                    result = self.connect_peer(target, timeout=wait_s)
                     with self._lock:
                         if result.get("ok"):
                             self._reconnect_backoff.pop(target, None)

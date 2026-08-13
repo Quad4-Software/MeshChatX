@@ -200,7 +200,8 @@ export async function readKmzToFeatures(arrayBuffer, featureProjection) {
             throw new KmlSanitizeError("path_traversal");
         }
         if (!kmzEntryAllowed(name)) {
-            throw new KmlSanitizeError("unsafe_kmz_entry");
+            // ArcGIS KMZ exports include unused .xsl balloon stylesheets.
+            continue;
         }
     }
     const kmlName = findKmlEntryName(zip);

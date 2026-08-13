@@ -16,6 +16,10 @@ from typing import Any
 import RNS
 
 from meshchatx.src.backend.management_identities import resolve_identity_path
+from meshchatx.src.backend.path_utils import (
+    link_establishment_window,
+    path_response_window,
+)
 
 
 def _truncated_hash_len() -> int:
@@ -140,9 +144,16 @@ class _RemoteRequest:
         self._link = RNS.Link(destination)
         self._link.set_link_established_callback(on_established)
         self._link.set_link_closed_callback(on_closed)
+        request_wait = max(
+            float(self.timeout),
+            link_establishment_window(
+                self._link,
+                self.destination_hash,
+            ),
+        )
 
         try:
-            if not self._event.wait(timeout=max(1.0, float(self.timeout))):
+            if not self._event.wait(timeout=max(1.0, request_wait)):
                 raise TimeoutError("Remote management request timed out")
             if self._error is not None:
                 raise self._error
@@ -173,9 +184,7 @@ def remote_request(
     if identity is None:
         raise ValueError(f"Could not load management identity from {resolved}")
     wait = (
-        float(timeout)
-        if timeout not in (None, "")
-        else float(RNS.Transport.PATH_REQUEST_TIMEOUT)
+        float(timeout) if timeout not in (None, "") else path_response_window(dest_hash)
     )
     return _RemoteRequest(dest_hash, identity, path, data, wait).run()
 

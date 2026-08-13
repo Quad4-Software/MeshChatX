@@ -101,15 +101,67 @@ def test_sanitize_kml_keeps_data_png_icon():
     assert b"data:image/png" in result.data
 
 
-def test_sanitize_kmz_rejects_svg_entry():
+def test_sanitize_kml_flattens_cdata_html_description():
+    kml = b"""<?xml version="1.0" encoding="utf-8"?>
+    <kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+      <Placemark><name>Leaking Tanks</name>
+        <description><![CDATA[<h2>Hostile</h2><script>alert(1)</script>]]></description>
+        <Point><coordinates>-117.99,33.78,0</coordinates></Point>
+      </Placemark>
+    </Document></kml>"""
+    result = sanitize_geo_bytes(kml)
+    assert result.feature_count == 1
+    assert "html_description" in result.stripped
+    lower = result.data.lower()
+    assert b"<script" not in lower
+    assert b"<h2" not in lower
+    assert b"hostile" in lower
+
+
+def test_sanitize_kmz_skips_unreferenced_svg_keeps_placemark():
     kml = b"""<?xml version="1.0"?>
     <kml xmlns="http://www.opengis.net/kml/2.2"><Document>
       <Placemark><Point><coordinates>1,2,0</coordinates></Point></Placemark>
     </Document></kml>"""
     data = _kmz({"doc.kml": kml, "icon.svg": b"<svg></svg>"})
-    with pytest.raises(GeoValidationError) as exc:
-        sanitize_geo_bytes(data)
-    assert exc.value.code == "unsafe_kmz_entry"
+    result = sanitize_geo_bytes(data)
+    assert result.format == "kmz"
+    assert result.feature_count == 1
+    assert "skipped_kmz_entry" in result.stripped
+    with zipfile.ZipFile(io.BytesIO(result.data)) as zf:
+        names = [n.replace("\\", "/").lower() for n in zf.namelist() if not n.endswith("/")]
+        assert "doc.kml" in names
+        assert "icon.svg" not in names
+
+
+def test_sanitize_kmz_skips_arcgis_xsl_sidecar():
+    kml = b"""<?xml version="1.0"?>
+    <kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+      <Style><IconStyle><Icon><href>Layer0_Symbol.png</href></Icon></IconStyle></Style>
+      <Placemark><name>ArcGIS Point</name>
+        <styleUrl>#s</styleUrl>
+        <Point><coordinates>1,2,0</coordinates></Point>
+      </Placemark>
+    </Document></kml>"""
+    data = _kmz(
+        {
+            "doc.kml": kml,
+            "F2E8A9CB2E0A446C9BCA87742DD683E5.xsl": (
+                b"<?xml version='1.0'?>"
+                b"<xsl:stylesheet xmlns:xsl='http://www.w3.org/1999/XSL/Transform' version='1.0'/>"
+            ),
+            "Layer0_Symbol.png": TINY_PNG,
+        }
+    )
+    result = sanitize_geo_bytes(data)
+    assert result.format == "kmz"
+    assert result.feature_count == 1
+    assert "skipped_kmz_entry" in result.stripped
+    with zipfile.ZipFile(io.BytesIO(result.data)) as zf:
+        names = [n.replace("\\", "/") for n in zf.namelist() if not n.endswith("/")]
+        assert "doc.kml" in names
+        assert "Layer0_Symbol.png" in names
+        assert not any(n.lower().endswith(".xsl") for n in names)
 
 
 def test_sanitize_kmz_keeps_zip_local_png():

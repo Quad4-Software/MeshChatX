@@ -9,7 +9,7 @@ from collections.abc import Callable
 
 import RNS
 
-from .path_utils import path_response_window
+from .path_utils import link_establishment_window, path_response_window
 
 
 class RNCPHandler:
@@ -37,6 +37,16 @@ class RNCPHandler:
                 self.on_receive_completed(payload)
             except Exception:
                 pass
+
+    def _path_wait_seconds(
+        self,
+        destination_hash: bytes,
+        timeout: float | None,
+    ) -> float:
+        window = path_response_window(destination_hash, self.reticulum)
+        if timeout is None:
+            return window
+        return max(float(timeout), window)
 
     def _default_fetch_save_dir(self) -> str:
         path = os.path.join(self.storage_dir, "rncp", "downloads")
@@ -398,9 +408,8 @@ class RNCPHandler:
         if not RNS.Transport.has_path(destination_hash):
             RNS.Transport.request_path(destination_hash)
 
-        if timeout is None:
-            timeout = path_response_window(destination_hash, self.reticulum)
-        timeout_after = time.time() + timeout
+        path_wait = self._path_wait_seconds(destination_hash, timeout)
+        timeout_after = time.time() + path_wait
         while (
             not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after
         ):
@@ -420,7 +429,11 @@ class RNCPHandler:
         )
 
         link = RNS.Link(receiver_destination)
-        timeout_after = time.time() + timeout
+        timeout_after = time.time() + link_establishment_window(
+            link,
+            destination_hash,
+            self.reticulum,
+        )
         while link.status != RNS.Link.ACTIVE and time.time() < timeout_after:
             await asyncio.sleep(0.1)
 
@@ -501,9 +514,8 @@ class RNCPHandler:
         if not RNS.Transport.has_path(destination_hash):
             RNS.Transport.request_path(destination_hash)
 
-        if timeout is None:
-            timeout = path_response_window(destination_hash, self.reticulum)
-        timeout_after = time.time() + timeout
+        path_wait = self._path_wait_seconds(destination_hash, timeout)
+        timeout_after = time.time() + path_wait
         while (
             not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after
         ):
@@ -523,7 +535,11 @@ class RNCPHandler:
         )
 
         link = RNS.Link(listener_destination)
-        timeout_after = time.time() + timeout
+        timeout_after = time.time() + link_establishment_window(
+            link,
+            destination_hash,
+            self.reticulum,
+        )
         while link.status != RNS.Link.ACTIVE and time.time() < timeout_after:
             await asyncio.sleep(0.1)
 

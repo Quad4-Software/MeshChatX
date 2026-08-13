@@ -48,7 +48,8 @@
                 </template>
             </div>
             <ul
-                class="py-1 pr-2 space-y-1"
+                class="py-1 space-y-1"
+                :class="isCollapsed ? 'px-0' : 'pr-2'"
                 @dragover.prevent="setNavDragOver(`group-end:${group.id}`, $event)"
                 @drop.prevent="onGroupListDrop(group.id)"
             >
@@ -57,6 +58,7 @@
                     :key="item.id"
                     class="flex items-center"
                     :class="[
+                        isCollapsed ? 'justify-center' : '',
                         isEditing && draggingId === item.id && draggingKind === 'item' ? 'opacity-50' : '',
                         isEditing && dragOverKey === `item:${item.id}`
                             ? 'ring-1 ring-blue-400 dark:ring-blue-500 rounded-r-full'
@@ -145,8 +147,8 @@
         >
             <button
                 type="button"
-                class="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 dark:text-zinc-200 dark:hover:bg-zinc-800 transition-colors"
-                :class="isCollapsed ? 'justify-center' : ''"
+                class="flex w-full items-center gap-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 dark:text-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+                :class="isCollapsed ? 'justify-center px-0' : 'px-4'"
                 data-testid="sidebar-more-toggle"
                 @pointerdown="onNavHoldPointerDown"
                 @pointermove="onNavHoldPointerMove"

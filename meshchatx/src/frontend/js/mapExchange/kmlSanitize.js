@@ -97,18 +97,36 @@ function rewriteHrefAttrs(text, { zipLocalOk }) {
     return { text: out, stripped };
 }
 
+function unwrapDescriptionInner(inner) {
+    const trimmed = String(inner).trim();
+    const cdata = trimmed.match(/^<!\[CDATA\[([\s\S]*?)\]\]>$/);
+    if (cdata) {
+        return cdata[1];
+    }
+    return String(inner);
+}
+
+function escapeXmlText(value) {
+    return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function looksLikeHtml(value) {
+    return /<[a-z][\s\S]*>/i.test(value);
+}
+
 function stripDescriptionHtml(text) {
     const stripped = [];
     const out = String(text).replace(/<description\b[^>]*>([\s\S]*?)<\/description>/gi, (full, inner) => {
-        if (/<[a-z][\s\S]*>/i.test(inner)) {
-            stripped.push("html_description");
-            const plain = String(inner)
-                .replace(/<[^>]+>/g, " ")
-                .replace(/\s+/g, " ")
-                .trim();
-            return `<description>${plain}</description>`;
+        const content = unwrapDescriptionInner(inner);
+        if (!looksLikeHtml(content) && !looksLikeHtml(inner)) {
+            return full;
         }
-        return full;
+        stripped.push("html_description");
+        const plain = content
+            .replace(/<[^>]+>/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+        return `<description>${escapeXmlText(plain)}</description>`;
     });
     return { text: out, stripped };
 }

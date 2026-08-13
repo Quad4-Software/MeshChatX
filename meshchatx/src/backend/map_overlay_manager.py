@@ -38,6 +38,7 @@ from meshchatx.src.backend.map_overlay_sources import (
     parse_create_payload,
 )
 from meshchatx.src.backend.nomadnet_downloader import NomadnetFileDownloader
+from meshchatx.src.backend.path_utils import path_response_window
 from meshchatx.src.backend.rngit_sparse_fetcher import (
     RngitFetchError,
     RngitSparseFetcher,
@@ -623,6 +624,14 @@ class MapOverlayManager:
         generation: int,
     ) -> None:
         path_timeout = self._cfg_int("map_overlay_path_timeout_seconds")
+        try:
+            dest = bytes.fromhex(spec.destination_hash)
+            path_timeout = max(
+                float(path_timeout),
+                path_response_window(dest, self.reticulum),
+            )
+        except Exception:
+            path_timeout = float(path_timeout)
         transfer_timeout = self._cfg_int("map_overlay_transfer_timeout_seconds")
         job_timeout = self._cfg_int("map_overlay_job_timeout_seconds")
 
@@ -662,7 +671,6 @@ class MapOverlayManager:
             await asyncio.wait_for(
                 downloader.download(
                     path_lookup_timeout=path_timeout,
-                    link_establishment_timeout=path_timeout,
                 ),
                 timeout=job_timeout,
             )

@@ -22,6 +22,7 @@ from meshchatx.src.backend.map_geo_validator import (
     validate_geo_bytes,
 )
 from meshchatx.src.backend.map_overlay_manager import atomic_write_bytes
+from meshchatx.src.backend.path_utils import path_response_window
 from meshchatx.src.path_utils import is_path_within_dir
 
 _log = logging.getLogger("meshchatx.map_data")
@@ -545,6 +546,13 @@ class MapDataManager:
         if link_manager is None:
             raise MapDataError("link_unavailable")
         path_timeout = int(self.config.map_overlay_path_timeout_seconds.get() or 30)
+        try:
+            path_timeout = max(
+                float(path_timeout),
+                path_response_window(destination_hash, self.reticulum),
+            )
+        except Exception:
+            path_timeout = float(path_timeout)
         transfer_timeout = int(
             self.config.map_overlay_transfer_timeout_seconds.get() or 120
         )
@@ -553,7 +561,6 @@ class MapDataManager:
             destination_hash,
             MAP_ASPECT,
             path_lookup_timeout=float(path_timeout),
-            link_establishment_timeout=float(path_timeout),
         )
         if link is None:
             code = (

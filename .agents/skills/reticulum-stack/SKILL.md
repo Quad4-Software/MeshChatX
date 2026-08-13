@@ -59,6 +59,11 @@ Announce ingest caps and store toggles live in `announce_manager.py` (`announce_
 
 Missing path: request a path, allow LXMF propagate where that is the protocol, show a recoverable outbound state. Do not spin the UI until an ACK arrives on a LoRa-class link.
 
+Do not pin a 15 second (or any fixed) timer for cold path requests or first-hop link setup. Reticulum already knows the interface bitrate.
+
+- Path wait: `meshchatx/src/backend/path_utils.py` `path_response_window`. Uses `RNS.Reticulum.get_instance().get_first_hop_timeout()` (not `RNS.Transport.first_hop_timeout()`, which is wrong on a shared rnsd client) plus an airtime floor from the slowest online interface bitrate, clamped to `RNS.Reticulum.MINIMUM_BITRATE` (5 bps).
+- Link wait: `link.establishment_timeout` plus `LINK_ESTABLISHMENT_MARGIN_S` via `link_establishment_window`. Pass `None` so callers do not override RNS.
+
 Links are live sessions on top of paths. LXST calls and RRC hubs use links. LXMF mail is store-and-forward and must survive a missing path.
 
 ## Key files

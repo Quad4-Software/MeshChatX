@@ -7,7 +7,7 @@
             class="flex flex-col h-full min-h-0 bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-800"
         >
             <div
-                class="hidden sm:flex h-10 shrink-0 items-center justify-end border-b border-gray-200 dark:border-zinc-800 px-2"
+                class="hidden sm:flex h-10 shrink-0 items-center justify-center border-b border-gray-200 dark:border-zinc-800 px-2"
             >
                 <button
                     type="button"

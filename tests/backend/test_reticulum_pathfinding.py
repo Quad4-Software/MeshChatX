@@ -220,9 +220,19 @@ def test_prepare_fresh_uses_expire_path_without_reticulum():
         req.assert_called_once_with(DEST)
 
 
-def test_lxmf_path_wait_cap_uses_rns_default():
+def test_lxmf_path_wait_cap_uses_rns_default_without_destination():
     v = rp.lxmf_path_wait_cap_seconds()
     assert 30.0 <= v <= 120.0
+
+
+def test_lxmf_path_wait_cap_uses_path_response_window_for_destination():
+    reticulum = MagicMock()
+    with patch(
+        "meshchatx.src.backend.reticulum_pathfinding.path_response_window",
+        return_value=86.8,
+    ) as mocked:
+        assert rp.lxmf_path_wait_cap_seconds(DEST, reticulum) == 86.8
+        mocked.assert_called_once_with(DEST, reticulum)
 
 
 def test_lxmf_path_wait_cap_falls_back_when_float_fails():

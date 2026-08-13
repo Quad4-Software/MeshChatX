@@ -436,7 +436,11 @@ def register_rn_tools_routes(routes, app):
         data = await request.json()
         destination_hash_str = data.get("destination_hash", "")
         file_path = data.get("file_path", "")
-        timeout = float(data.get("timeout", RNS.Transport.PATH_REQUEST_TIMEOUT))
+        timeout_raw = data.get("timeout")
+        try:
+            timeout = float(timeout_raw) if timeout_raw not in (None, "") else None
+        except (TypeError, ValueError):
+            timeout = None
         no_compress = bool(data.get("no_compress", False))
 
         try:
@@ -496,7 +500,11 @@ def register_rn_tools_routes(routes, app):
         data = await request.json()
         destination_hash_str = data.get("destination_hash", "")
         file_path = data.get("file_path", "")
-        timeout = float(data.get("timeout", RNS.Transport.PATH_REQUEST_TIMEOUT))
+        timeout_raw = data.get("timeout")
+        try:
+            timeout = float(timeout_raw) if timeout_raw not in (None, "") else None
+        except (TypeError, ValueError):
+            timeout = None
         save_path = data.get("save_path")
         allow_overwrite = bool(data.get("allow_overwrite", False))
 

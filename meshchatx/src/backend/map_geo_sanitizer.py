@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import re
 import zipfile
 from dataclasses import dataclass, field
 from io import BytesIO
@@ -114,6 +115,14 @@ def _set_href_on_element(el: ET.Element, value: str | None) -> None:
                 el.attrib[key] = value
 
 
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+_WS_RE = re.compile(r"\s+")
+
+
+def _flatten_html_text(text: str) -> str:
+    return _WS_RE.sub(" ", _HTML_TAG_RE.sub(" ", text)).strip()
+
+
 def _strip_description_html(el: ET.Element) -> bool:
     tag = _strip_ns(el.tag).lower()
     if tag != "description":
@@ -129,8 +138,13 @@ def _strip_description_html(el: ET.Element) -> bool:
         if child.tail and child.tail.strip():
             texts.append(child.tail.strip())
         el.remove(child)
-    el.text = " ".join(texts) if texts else None
-    return had_children
+    combined = " ".join(texts)
+    changed = had_children
+    if "<" in combined and ">" in combined:
+        combined = _flatten_html_text(combined)
+        changed = True
+    el.text = combined or None
+    return changed
 
 
 def _walk_strip_kml(
@@ -277,7 +291,10 @@ def sanitize_kmz_bytes(data: bytes) -> SanitizeResult:
                 raise GeoValidationError("path_traversal")
             ext = _zip_entry_ext(name)
             if ext not in ALLOWED_KMZ_EXTS:
-                raise GeoValidationError("unsafe_kmz_entry")
+                # ArcGIS KMZ exports include unused .xsl balloon stylesheets.
+                # Drop sidecars instead of rejecting the archive.
+                stripped.append("skipped_kmz_entry")
+                continue
             payload = zf.read(info.filename)
             kept[name] = payload
             lower = name.lower()

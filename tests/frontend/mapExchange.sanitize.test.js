@@ -116,15 +116,60 @@ describe("kmlSanitize oracle", () => {
         expect(out.stripped).toContain("remote_href");
     });
 
-    it("rejects kmz with svg entry", async () => {
+    it("flattens CDATA HTML descriptions without leaving a CDATA closer", () => {
+        const kml = `<?xml version="1.0" encoding="utf-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+<Placemark><name>Leaking Tanks</name>
+<description><![CDATA[<h2>Hostile</h2></br><script>alert(1)</script>]]></description>
+<Point><coordinates>-117.99,33.78,0</coordinates></Point>
+</Placemark></Document></kml>`;
+        const out = sanitizeKmlText(kml);
+        expect(out.stripped).toContain("html_description");
+        expect(out.text).not.toMatch(/\]\]>/);
+        expect(out.text.toLowerCase()).not.toContain("<script");
+        expect(out.text.toLowerCase()).not.toContain("<h2");
+        const parsed = new DOMParser().parseFromString(out.text, "application/xml");
+        expect(parsed.getElementsByTagName("parsererror").length).toBe(0);
+        const features = readKmlToFeatures(kml, "EPSG:3857");
+        expect(features.length).toBe(1);
+        expect(String(features[0].get("name") || "")).toContain("Leaking");
+    });
+
+    it("skips unreferenced svg kmz entry and keeps placemarks", async () => {
         const kml = `<?xml version="1.0"?>
 <kml xmlns="http://www.opengis.net/kml/2.2"><Document>
-<Placemark><Point><coordinates>1,2,0</coordinates></Point></Placemark>
+<Placemark><name>Keep</name><Point><coordinates>1,2,0</coordinates></Point></Placemark>
 </Document></kml>`;
         const zip = new JSZip();
         zip.file("doc.kml", kml);
         zip.file("icon.svg", "<svg></svg>");
         const buf = await zip.generateAsync({ type: "arraybuffer" });
-        await expect(readKmzToFeatures(buf, "EPSG:3857")).rejects.toMatchObject({ code: "unsafe_kmz_entry" });
+        const features = await readKmzToFeatures(buf, "EPSG:3857");
+        expect(features.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("imports ArcGIS-style kmz with unused xsl sidecar", async () => {
+        const kml = `<?xml version="1.0"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+<Style id="s"><IconStyle><Icon><href>Layer0_Symbol.png</href></Icon></IconStyle></Style>
+<Placemark><name>ArcGIS Point</name>
+<styleUrl>#s</styleUrl>
+<Point><coordinates>1,2,0</coordinates></Point>
+</Placemark></Document></kml>`;
+        const zip = new JSZip();
+        zip.file("doc.kml", kml);
+        zip.file(
+            "F2E8A9CB2E0A446C9BCA87742DD683E5.xsl",
+            "<?xml version='1.0'?><xsl:stylesheet xmlns:xsl='http://www.w3.org/1999/XSL/Transform' version='1.0'/>"
+        );
+        const png = Uint8Array.from(
+            atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="),
+            (c) => c.charCodeAt(0)
+        );
+        zip.file("Layer0_Symbol.png", png);
+        const buf = await zip.generateAsync({ type: "arraybuffer" });
+        const features = await readKmzToFeatures(buf, "EPSG:3857");
+        expect(features.length).toBeGreaterThanOrEqual(1);
+        expect(String(features[0].get("name") || "")).toContain("ArcGIS");
     });
 });

@@ -15,6 +15,7 @@ from meshchatx.src.backend.meshchat_utils import (
     hex_identifier_to_bytes,
     normalize_hex_identifier,
 )
+from meshchatx.src.backend.path_utils import path_response_window
 
 
 class Tee:
@@ -638,9 +639,17 @@ class TelephoneManager:
 
             if not RNS.Transport.has_path(call_destination_hash):
                 self._update_initiation_status("Requesting path...")
+                path_wait = float(timeout_seconds)
+                try:
+                    path_wait = max(
+                        path_wait,
+                        path_response_window(call_destination_hash),
+                    )
+                except Exception:
+                    pass
                 has_path = await self._await_path(
                     call_destination_hash,
-                    timeout_seconds=min(timeout_seconds, 10),
+                    timeout_seconds=path_wait,
                 )
                 if self._is_initiation_cancelled():
                     return None

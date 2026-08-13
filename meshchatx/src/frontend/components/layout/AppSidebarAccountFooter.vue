@@ -7,7 +7,7 @@
             data-testid="sidebar-account-chip"
             @click="onAccountChipClick"
         >
-            <div class="flex items-center gap-2 p-3 pb-1">
+            <div class="flex items-center gap-2" :class="isCollapsed ? 'justify-center p-2' : 'p-3 pb-1'">
                 <RouterLink :to="{ name: 'profile.icon' }" class="shrink-0" @click.stop>
                     <LxmfUserIcon
                         :icon-name="config.lxmf_user_icon_name"
