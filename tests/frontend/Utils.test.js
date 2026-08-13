@@ -16,6 +16,33 @@ describe("Utils.js", () => {
         });
     });
 
+    describe("parseDestinationHash", () => {
+        const hash = "a39610c89d18bb48c73e429582423c24";
+
+        it("accepts a bare 32-character hash", () => {
+            expect(Utils.parseDestinationHash(hash)).toBe(hash);
+            expect(Utils.parseDestinationHash(hash.toUpperCase())).toBe(hash);
+        });
+
+        it("accepts brackets, spaces, colons, and lxmf links", () => {
+            expect(Utils.parseDestinationHash(`<${hash}>`)).toBe(hash);
+            expect(Utils.parseDestinationHash(`lxmf://${hash}`)).toBe(hash);
+            expect(Utils.parseDestinationHash("a3:96:10:c8:9d:18:bb:48:c7:3e:42:95:82:42:3c:24")).toBe(hash);
+            expect(Utils.parseDestinationHash(`  ${hash}  `)).toBe(hash);
+        });
+
+        it("takes the destination hash from an lxma URI", () => {
+            expect(Utils.parseDestinationHash(`lxma://${hash}:${"ab".repeat(32)}`)).toBe(hash);
+        });
+
+        it("returns null for missing or short values", () => {
+            expect(Utils.parseDestinationHash(null)).toBeNull();
+            expect(Utils.parseDestinationHash("")).toBeNull();
+            expect(Utils.parseDestinationHash("deadbeef")).toBeNull();
+            expect(Utils.parseDestinationHash("not a hash")).toBeNull();
+        });
+    });
+
     describe("formatBytes", () => {
         it("formats 0 bytes correctly", () => {
             expect(Utils.formatBytes(0)).toBe("0 Bytes");

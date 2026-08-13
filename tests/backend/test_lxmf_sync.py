@@ -94,7 +94,10 @@ async def test_lxmf_sync_endpoints(mock_app):
     # 2. Test sync initiation
     sync_handler = None
     for route in mock_app.get_routes():
-        if route.path == "/api/v1/lxmf/propagation-node/sync" and route.method == "POST":
+        if (
+            route.path == "/api/v1/lxmf/propagation-node/sync"
+            and route.method == "POST"
+        ):
             sync_handler = route.handler
             break
 
@@ -137,7 +140,10 @@ async def test_specific_node_hash_validation(mock_app):
     # Trigger sync
     sync_handler = None
     for route in mock_app.get_routes():
-        if route.path == "/api/v1/lxmf/propagation-node/sync" and route.method == "POST":
+        if (
+            route.path == "/api/v1/lxmf/propagation-node/sync"
+            and route.method == "POST"
+        ):
             sync_handler = route.handler
             break
 

@@ -12,6 +12,17 @@ class Utils {
         return `<${leftSide}...${rightSide}>`;
     }
 
+    static parseDestinationHash(raw) {
+        if (raw == null) {
+            return null;
+        }
+        const compact = String(raw).replace(/[^0-9a-fA-F]/g, "");
+        if (compact.length < 32) {
+            return null;
+        }
+        return compact.slice(0, 32).toLowerCase();
+    }
+
     static formatBytes(bytes) {
         if (!bytes || bytes <= 0) {
             return "0 Bytes";

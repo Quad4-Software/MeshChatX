@@ -768,7 +768,9 @@ class TestPageNodeEdgeCases:
 
 
 class TestPageNodeExecutablePages:
-    def test_executable_disabled_serves_static_even_when_chmod_x(self, node_dir, mock_rns):
+    def test_executable_disabled_serves_static_even_when_chmod_x(
+        self, node_dir, mock_rns
+    ):
         node = _make_node(node_dir, mock_rns)
         node.setup()
         script = "#!/usr/bin/env python3\nprint('dynamic')\n"
@@ -852,5 +854,7 @@ class TestPageNodeExecutablePages:
         script = "#!/usr/bin/env python3\nprint('from-responder')\n"
         node.add_page("dyn.mu", script, executable=True)
         responder = node._make_page_responder("dyn.mu")
-        result = responder("/page/dyn.mu", {"var_x": "1"}, "req1", b"\xab" * 16, None, 0)
+        result = responder(
+            "/page/dyn.mu", {"var_x": "1"}, "req1", b"\xab" * 16, None, 0
+        )
         assert result == b"from-responder\n"

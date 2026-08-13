@@ -7,6 +7,7 @@ import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
 import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnection";
 import * as localeLoader from "../../meshchatx/src/frontend/js/localeLoader.js";
 import { buildFullServerConfig, createWindowApi } from "./fixtures/settingsPageTestApi.js";
+import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
 
 vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
     default: {
@@ -255,11 +256,40 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
 
     it("onLxmfPreferredPropagationNodeDestinationHashChange PATCHes after debounce", async () => {
         const w = await mountSettingsPage(api);
-        w.vm.config.lxmf_preferred_propagation_node_destination_hash = "deadbeef";
+        w.vm.config.lxmf_preferred_propagation_node_destination_hash = "a39610c89d18bb48c73e429582423c24";
         await w.vm.onLxmfPreferredPropagationNodeDestinationHashChange();
         await vi.advanceTimersByTimeAsync(1000);
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", {
-            lxmf_preferred_propagation_node_destination_hash: "deadbeef",
+            lxmf_preferred_propagation_node_destination_hash: "a39610c89d18bb48c73e429582423c24",
+        });
+    });
+
+    it("does not PATCH an incomplete preferred node hash on debounce", async () => {
+        const w = await mountSettingsPage(api);
+        api.patch.mockClear();
+        w.vm.config.lxmf_preferred_propagation_node_destination_hash = "deadbeef";
+        await w.vm.onLxmfPreferredPropagationNodeDestinationHashChange();
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(api.patch).not.toHaveBeenCalled();
+    });
+
+    it("savePreferredPropagationNodeHash toasts on invalid hash", async () => {
+        const w = await mountSettingsPage(api);
+        api.patch.mockClear();
+        w.vm.config.lxmf_preferred_propagation_node_destination_hash = "nope";
+        await w.vm.savePreferredPropagationNodeHash(true);
+        expect(ToastUtils.error).toHaveBeenCalledWith("tools.propagation_nodes.invalid_hash");
+        expect(api.patch).not.toHaveBeenCalled();
+    });
+
+    it("savePreferredPropagationNodeHash turns off auto-select", async () => {
+        const w = await mountSettingsPage(api);
+        w.vm.config.lxmf_preferred_propagation_node_auto_select = true;
+        w.vm.config.lxmf_preferred_propagation_node_destination_hash = "<A39610C89D18BB48C73E429582423C24>";
+        await w.vm.savePreferredPropagationNodeHash(true);
+        expect(api.patch).toHaveBeenCalledWith("/api/v1/config", {
+            lxmf_preferred_propagation_node_destination_hash: "a39610c89d18bb48c73e429582423c24",
+            lxmf_preferred_propagation_node_auto_select: false,
         });
     });
 

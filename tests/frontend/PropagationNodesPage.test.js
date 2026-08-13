@@ -211,4 +211,59 @@ describe("PropagationNodesPage", () => {
         });
         expect(ctx.nodePathsByHash.abcd).toEqual({ hops: 2, next_hop_interface: "TCP Client" });
     });
+
+    it("sets preferred node from a pasted hash and turns off auto-select", async () => {
+        const ctx = {
+            config: { lxmf_preferred_propagation_node_auto_select: true },
+            manualHashDraft: "",
+            updateConfig: vi.fn().mockResolvedValue(true),
+            requestPathForNode: vi.fn(),
+            $t: (k) => k,
+        };
+        await PropagationNodesPage.methods.usePropagationNode.call(ctx, "<A39610C89D18BB48C73E429582423C24>");
+        expect(ctx.updateConfig).toHaveBeenCalledWith({
+            lxmf_preferred_propagation_node_destination_hash: "a39610c89d18bb48c73e429582423c24",
+            lxmf_preferred_propagation_node_auto_select: false,
+        });
+        expect(ctx.manualHashDraft).toBe("a39610c89d18bb48c73e429582423c24");
+        expect(ToastUtils.success).toHaveBeenCalledWith("tools.propagation_nodes.preferred_set");
+        expect(ctx.requestPathForNode).toHaveBeenCalledWith("a39610c89d18bb48c73e429582423c24");
+    });
+
+    it("rejects an invalid preferred node hash", async () => {
+        const ctx = {
+            config: { lxmf_preferred_propagation_node_auto_select: false },
+            updateConfig: vi.fn(),
+            requestPathForNode: vi.fn(),
+            $t: (k) => k,
+        };
+        await PropagationNodesPage.methods.usePropagationNode.call(ctx, "nope");
+        expect(ctx.updateConfig).not.toHaveBeenCalled();
+        expect(ToastUtils.error).toHaveBeenCalledWith("tools.propagation_nodes.invalid_hash");
+    });
+
+    it("normalizes a pasted hash in the draft field", () => {
+        const ctx = { manualHashDraft: "" };
+        const event = {
+            clipboardData: { getData: () => "<a39610c89d18bb48c73e429582423c24>" },
+            preventDefault: vi.fn(),
+        };
+        PropagationNodesPage.methods.onManualHashPaste.call(ctx, event);
+        expect(event.preventDefault).toHaveBeenCalled();
+        expect(ctx.manualHashDraft).toBe("a39610c89d18bb48c73e429582423c24");
+    });
+
+    it("clears preferred node and draft", async () => {
+        const ctx = {
+            manualHashDraft: "a39610c89d18bb48c73e429582423c24",
+            updateConfig: vi.fn().mockResolvedValue(true),
+            $t: (k) => k,
+        };
+        await PropagationNodesPage.methods.stopUsingPropagationNode.call(ctx);
+        expect(ctx.updateConfig).toHaveBeenCalledWith({
+            lxmf_preferred_propagation_node_destination_hash: null,
+        });
+        expect(ctx.manualHashDraft).toBe("");
+        expect(ToastUtils.success).toHaveBeenCalledWith("tools.propagation_nodes.preferred_cleared");
+    });
 });

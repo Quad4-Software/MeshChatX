@@ -529,7 +529,7 @@ export default {
             get() {
                 const seconds = resolveAnnounceIntervalSeconds(
                     this.announceSettingsForm.announce_interval_seconds,
-                    DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+                    DEFAULT_ANNOUNCE_INTERVAL_SECONDS
                 );
                 if (seconds === 0) {
                     return 0;
@@ -544,7 +544,7 @@ export default {
                 }
                 const clamped = Math.max(
                     ANNOUNCE_INTERVAL_MIN_MINUTES,
-                    Math.min(ANNOUNCE_INTERVAL_MAX_MINUTES, Number.isFinite(n) ? n : ANNOUNCE_INTERVAL_MIN_MINUTES),
+                    Math.min(ANNOUNCE_INTERVAL_MAX_MINUTES, Number.isFinite(n) ? n : ANNOUNCE_INTERVAL_MIN_MINUTES)
                 );
                 this.announceSettingsForm.announce_interval_seconds = clamped * 60;
             },
@@ -614,7 +614,7 @@ export default {
                 ToastUtils.success(
                     this.$t("tools.mesh_server.started", {
                         hash: response.data.destination_hash,
-                    }),
+                    })
                 );
                 await this.loadNodes();
             } catch (e) {
@@ -648,7 +648,7 @@ export default {
                         announce_enabled: this.announceSettingsForm.announce_enabled,
                         announce_interval_seconds: this.announceSettingsForm.announce_interval_seconds,
                         executable_pages_enabled: this.announceSettingsForm.executable_pages_enabled,
-                    },
+                    }
                 );
                 this.selectedNode = response.data;
                 ToastUtils.success(this.$t("tools.mesh_server.announce_settings_saved"));
@@ -696,7 +696,7 @@ export default {
         async editPage(pageName) {
             try {
                 const response = await window.api.get(
-                    `/api/v1/page-nodes/${this.selectedNode.node_id}/pages/${encodeURIComponent(pageName)}`,
+                    `/api/v1/page-nodes/${this.selectedNode.node_id}/pages/${encodeURIComponent(pageName)}`
                 );
                 let body = response.data;
                 if (typeof body === "string") {
@@ -735,14 +735,14 @@ export default {
                 !(await DialogUtils.confirm(
                     this.$t("tools.mesh_server.delete_page_confirm", {
                         name: pageName,
-                    }),
+                    })
                 ))
             ) {
                 return;
             }
             try {
                 await window.api.delete(
-                    `/api/v1/page-nodes/${this.selectedNode.node_id}/pages/${encodeURIComponent(pageName)}`,
+                    `/api/v1/page-nodes/${this.selectedNode.node_id}/pages/${encodeURIComponent(pageName)}`
                 );
                 if (this.editingPage === pageName) {
                     this.editingPage = null;
@@ -774,14 +774,14 @@ export default {
                 !(await DialogUtils.confirm(
                     this.$t("tools.mesh_server.delete_file_confirm", {
                         name: fileName,
-                    }),
+                    })
                 ))
             ) {
                 return;
             }
             try {
                 await window.api.delete(
-                    `/api/v1/page-nodes/${this.selectedNode.node_id}/files/${encodeURIComponent(fileName)}`,
+                    `/api/v1/page-nodes/${this.selectedNode.node_id}/files/${encodeURIComponent(fileName)}`
                 );
                 ToastUtils.success(this.$t("tools.mesh_server.file_deleted"));
                 await this.loadNodes();

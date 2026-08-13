@@ -259,6 +259,107 @@
                 </div>
             </div>
 
+            <div class="px-4 py-4 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                <div class="rounded-2xl border border-gray-200 dark:border-zinc-800 p-4 space-y-3">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="font-semibold text-gray-900 dark:text-zinc-100">
+                                {{ $t("tools.propagation_nodes.preferred_heading") }}
+                            </div>
+                            <div
+                                v-if="config.lxmf_preferred_propagation_node_destination_hash"
+                                class="mt-1 text-sm text-gray-600 dark:text-zinc-400 font-mono break-all"
+                            >
+                                {{ $t("tools.propagation_nodes.using_label") }}
+                                &lt;{{ config.lxmf_preferred_propagation_node_destination_hash }}&gt;
+                            </div>
+                            <div v-else class="mt-1 text-sm text-gray-600 dark:text-zinc-400">
+                                {{ $t("tools.propagation_nodes.preferred_none") }}
+                            </div>
+                        </div>
+                        <div
+                            v-if="config.lxmf_preferred_propagation_node_destination_hash"
+                            class="flex items-center gap-2 shrink-0"
+                        >
+                            <button
+                                type="button"
+                                class="text-gray-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400"
+                                :title="$t('tools.propagation_nodes.copy_hash')"
+                                @click="copyPreferredHash"
+                            >
+                                <MaterialDesignIcon icon-name="content-copy" class="size-5" />
+                            </button>
+                            <button
+                                type="button"
+                                class="text-gray-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400"
+                                :title="$t('tools.propagation_nodes.find_path')"
+                                @click="requestPathForNode(config.lxmf_preferred_propagation_node_destination_hash)"
+                            >
+                                <MaterialDesignIcon icon-name="map-marker-path" class="size-5" />
+                            </button>
+                            <button
+                                type="button"
+                                class="text-gray-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400"
+                                :title="$t('tools.propagation_nodes.clear_preferred')"
+                                @click="stopUsingPropagationNode"
+                            >
+                                <MaterialDesignIcon icon-name="close" class="size-5" />
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        v-if="config.lxmf_preferred_propagation_node_destination_hash"
+                        class="text-xs text-gray-500 dark:text-zinc-500 flex items-center gap-2"
+                    >
+                        <template v-if="nodePathFor(config.lxmf_preferred_propagation_node_destination_hash)">
+                            <span>{{
+                                formatPathLabel(nodePathFor(config.lxmf_preferred_propagation_node_destination_hash))
+                            }}</span>
+                        </template>
+                        <template v-else>
+                            <span>{{ $t("tools.propagation_nodes.no_path") }}</span>
+                        </template>
+                    </div>
+                    <p
+                        v-if="config.lxmf_preferred_propagation_node_auto_select"
+                        class="text-xs text-amber-700 dark:text-amber-300"
+                    >
+                        {{ $t("tools.propagation_nodes.auto_select_on_notice") }}
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input
+                            v-model="manualHashDraft"
+                            type="text"
+                            spellcheck="false"
+                            autocomplete="off"
+                            :placeholder="$t('tools.propagation_nodes.manual_placeholder')"
+                            class="flex-1 min-w-0 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 px-4 py-2 shadow-xs font-mono transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500"
+                            @keydown.enter.prevent="setPreferredFromDraft"
+                            @paste="onManualHashPaste"
+                        />
+                        <button
+                            type="button"
+                            class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800 px-3 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 shadow-xs transition-colors shrink-0"
+                            @click="pastePreferredHash"
+                        >
+                            <MaterialDesignIcon icon-name="content-paste" class="size-4" />
+                            {{ $t("tools.propagation_nodes.paste_hash") }}
+                        </button>
+                        <button
+                            type="button"
+                            class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors disabled:opacity-40 shrink-0"
+                            :disabled="isSavingPreferred || !manualHashDraft"
+                            @click="setPreferredFromDraft"
+                        >
+                            {{ $t("tools.propagation_nodes.set_preferred") }}
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-zinc-500">
+                        {{ $t("tools.propagation_nodes.manual_hint") }}
+                    </p>
+                </div>
+            </div>
+
             <!-- search and sort -->
             <div
                 v-if="propagationNodes.length > 0"
@@ -490,7 +591,7 @@
                                 </svg>
                             </div>
                             <div class="font-semibold">No Propagation Nodes</div>
-                            <div>Check back later, once someone has announced.</div>
+                            <div>{{ $t("tools.propagation_nodes.empty_announced") }}</div>
                             <div class="mt-4">
                                 <button
                                     type="button"
@@ -534,6 +635,7 @@
 import Utils from "../../js/Utils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import ToastUtils from "../../js/ToastUtils";
+import { copyTextToClipboard, readTextFromClipboard } from "../../js/clipboardUtils.js";
 import { getDestinationPath } from "../../js/reticulumPathfinding.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
@@ -556,12 +658,15 @@ export default {
             propagationNodes: [],
             config: {
                 lxmf_preferred_propagation_node_destination_hash: null,
+                lxmf_preferred_propagation_node_auto_select: false,
                 lxmf_local_propagation_node_address_hash: null,
                 lxmf_delivery_transfer_limit_in_bytes: 1000 * 1000 * 10,
                 lxmf_propagation_transfer_limit_in_bytes: 1000 * 256,
                 lxmf_propagation_sync_limit_in_bytes: 1000 * 10240,
                 lxmf_propagation_node_stamp_cost: 16,
             },
+            manualHashDraft: "",
+            isSavingPreferred: false,
             currentPage: 1,
             itemsPerPage: 20,
             saveTimeouts: {
@@ -721,6 +826,7 @@ export default {
                 case "config": {
                     this.config = json.config;
                     this.syncManagerInputsFromConfig();
+                    this.syncManualHashDraftFromConfig();
                     break;
                 }
             }
@@ -730,6 +836,7 @@ export default {
                 const response = await window.api.get("/api/v1/config");
                 this.config = response.data.config;
                 this.syncManagerInputsFromConfig();
+                this.syncManualHashDraftFromConfig();
             } catch (e) {
                 console.log(e);
                 ToastUtils.error(this.$t("common.save_failed"));
@@ -761,15 +868,84 @@ export default {
             }
         },
         async usePropagationNode(destination_hash) {
-            await this.updateConfig({
-                lxmf_preferred_propagation_node_destination_hash: destination_hash,
-            });
-            await this.requestPathForNode(destination_hash);
+            const parsed = Utils.parseDestinationHash(destination_hash);
+            if (!parsed) {
+                ToastUtils.error(this.$t("tools.propagation_nodes.invalid_hash"));
+                return false;
+            }
+            const patch = {
+                lxmf_preferred_propagation_node_destination_hash: parsed,
+            };
+            if (this.config.lxmf_preferred_propagation_node_auto_select) {
+                patch.lxmf_preferred_propagation_node_auto_select = false;
+            }
+            const didUpdate = await this.updateConfig(patch);
+            if (!didUpdate) {
+                return false;
+            }
+            this.manualHashDraft = parsed;
+            ToastUtils.success(this.$t("tools.propagation_nodes.preferred_set"));
+            await this.requestPathForNode(parsed);
+            return true;
         },
         async stopUsingPropagationNode() {
-            await this.updateConfig({
+            const didUpdate = await this.updateConfig({
                 lxmf_preferred_propagation_node_destination_hash: null,
             });
+            if (!didUpdate) {
+                return;
+            }
+            this.manualHashDraft = "";
+            ToastUtils.success(this.$t("tools.propagation_nodes.preferred_cleared"));
+        },
+        syncManualHashDraftFromConfig() {
+            const preferred = this.config.lxmf_preferred_propagation_node_destination_hash || "";
+            this.manualHashDraft = preferred;
+        },
+        onManualHashPaste(event) {
+            const text = event.clipboardData?.getData("text") || "";
+            const parsed = Utils.parseDestinationHash(text);
+            if (!parsed) {
+                return;
+            }
+            event.preventDefault();
+            this.manualHashDraft = parsed;
+        },
+        async pastePreferredHash() {
+            const result = await readTextFromClipboard();
+            if (!result.ok) {
+                ToastUtils.error(this.$t("messages.failed_read_clipboard"));
+                return;
+            }
+            const parsed = Utils.parseDestinationHash(result.text);
+            if (!parsed) {
+                ToastUtils.error(this.$t("tools.propagation_nodes.invalid_hash"));
+                return;
+            }
+            this.manualHashDraft = parsed;
+        },
+        async copyPreferredHash() {
+            const hash = this.config.lxmf_preferred_propagation_node_destination_hash;
+            if (!hash) {
+                return;
+            }
+            const ok = await copyTextToClipboard(hash);
+            if (ok) {
+                ToastUtils.success(this.$t("common.copied"));
+            } else {
+                ToastUtils.error(this.$t("common.failed_to_copy"));
+            }
+        },
+        async setPreferredFromDraft() {
+            if (this.isSavingPreferred) {
+                return;
+            }
+            this.isSavingPreferred = true;
+            try {
+                await this.usePropagationNode(this.manualHashDraft);
+            } finally {
+                this.isSavingPreferred = false;
+            }
         },
         async useLocalPropagationNode() {
             if (!this.localPropagationNode) return;
