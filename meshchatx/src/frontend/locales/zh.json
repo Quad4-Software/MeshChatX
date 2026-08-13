@@ -3963,6 +3963,7 @@
         "presence_connection": "{count} 条连接事件",
         "join_room_key_placeholder": "房间密钥（如需要）",
         "room_key_prompt": "请输入 #{room} 的密钥",
+        "room_key_optional_prompt": "#{room} 的密钥（如不需要可留空）",
         "bad_key": "房间密钥错误。请输入正确密钥以加入。",
         "join_requested": "已发送加入请求",
         "host_room_key_placeholder": "房间密钥（可选）",

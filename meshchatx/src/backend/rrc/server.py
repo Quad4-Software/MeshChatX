@@ -427,20 +427,21 @@ class RRCHubServer:
             if t == proto.T_HELLO:
                 self._handle_hello(link, sess, env, outgoing)
             return
-        if not self._refill_and_take(sess):
-            outgoing.append(
-                (
-                    link,
-                    proto.encode(
-                        proto.make_envelope(
-                            proto.T_ERROR,
-                            src=self.identity.hash,
-                            body="rate limited",
+        if t in (proto.T_MSG, proto.T_ACTION, proto.T_NOTICE):
+            if not self._refill_and_take(sess):
+                outgoing.append(
+                    (
+                        link,
+                        proto.encode(
+                            proto.make_envelope(
+                                proto.T_ERROR,
+                                src=self.identity.hash,
+                                body="rate limited",
+                            ),
                         ),
                     ),
-                ),
-            )
-            return
+                )
+                return
         if t == proto.T_HELLO:
             self._handle_hello(link, sess, env, outgoing)
         elif t == proto.T_JOIN:

@@ -3963,6 +3963,7 @@
         "presence_connection": "{count} événements de connexion",
         "join_room_key_placeholder": "Clé de salon (si requise)",
         "room_key_prompt": "Entrez la clé pour #{room}",
+        "room_key_optional_prompt": "Clé pour #{room} (laisser vide si aucune)",
         "bad_key": "Mauvaise clé de salon. Entrez la bonne clé pour rejoindre.",
         "join_requested": "Demande d'adhésion envoyée",
         "host_room_key_placeholder": "Clé de salon (facultative)",

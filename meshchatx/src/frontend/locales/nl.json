@@ -3963,6 +3963,7 @@
         "presence_connection": "{count} verbindingsgebeurtenissen",
         "join_room_key_placeholder": "Kamersleutel (indien vereist)",
         "room_key_prompt": "Voer de sleutel in voor #{room}",
+        "room_key_optional_prompt": "Sleutel voor #{room} (leeg laten indien geen)",
         "bad_key": "Verkeerde kamersleutel. Voer de juiste sleutel in om toe te treden.",
         "join_requested": "Toetredingsverzoek verzonden",
         "host_room_key_placeholder": "Kamersleutel (optioneel)",

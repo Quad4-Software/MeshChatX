@@ -1283,14 +1283,21 @@ class RRCHub:
                     self.unread_rooms.discard(r)
                     self.mention_rooms.discard(r)
                     self.unread_counts.pop(r, None)
-            if rollback_join or forced_leave:
-                self.manager.save()
             # Drop a remembered key that the hub rejected so reconnect does not loop.
             if self.manager.is_bad_key_error(text):
                 with contextlib.suppress(Exception):
                     self.manager.forget_room_key(self, r)
         msg = proto.RRCMessage("error", r, None, None, text, proto.now_ms())
         self._record_notice(msg)
+        if r and (rollback_join or forced_leave):
+            with self._lock:
+                self.messages.pop(r, None)
+                self.members.pop(r, None)
+            self._delete_history(r)
+            if self.manager.active_room_for(self) == r:
+                self.manager.set_active(self, None)
+            self.manager.save()
+            self.manager._notify_change(self)
 
     def _handle_resource_envelope(self, env):
         body = env.get(proto.K_BODY)

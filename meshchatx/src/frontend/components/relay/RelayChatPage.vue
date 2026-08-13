@@ -2754,7 +2754,25 @@ export default {
             }
         },
         async joinAvailableRoom(hub, room) {
-            await this.joinRoomByName(hub, room);
+            const roomName = String(room || "").trim();
+            if (!hub || !roomName) {
+                return;
+            }
+            const stored = Array.isArray(hub.stored_key_rooms) && hub.stored_key_rooms.includes(roomName);
+            if (stored) {
+                await this.joinRoomByName(hub, roomName);
+                return;
+            }
+            const entered = await DialogUtils.prompt(
+                this.$t("relay_chat.room_key_optional_prompt", { room: roomName }),
+                "",
+                { inputType: "password" }
+            );
+            if (entered == null) {
+                return;
+            }
+            const key = String(entered).trim() || null;
+            await this.joinRoomByName(hub, roomName, { key });
         },
         isBadKeyErrorText(text) {
             if (typeof text !== "string") {

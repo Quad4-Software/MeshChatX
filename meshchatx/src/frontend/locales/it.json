@@ -3963,6 +3963,7 @@
         "presence_connection": "{count} eventi di connessione",
         "join_room_key_placeholder": "Chiave della stanza (se richiesta)",
         "room_key_prompt": "Inserisci la chiave per #{room}",
+        "room_key_optional_prompt": "Chiave per #{room} (lascia vuoto se non richiesta)",
         "bad_key": "Chiave della stanza errata. Inserisci la chiave corretta per entrare.",
         "join_requested": "Richiesta di accesso inviata",
         "host_room_key_placeholder": "Chiave della stanza (facoltativa)",
