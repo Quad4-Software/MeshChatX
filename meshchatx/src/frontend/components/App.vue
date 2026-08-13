@@ -226,11 +226,23 @@
                         >
                             <!-- toggle button for desktop (h-10 aligns with Messages/Nomad collapse rows) -->
                             <div
-                                class="hidden sm:flex h-10 shrink-0 items-center justify-end border-b border-gray-200 dark:border-zinc-800 px-2"
+                                class="h-10 shrink-0 items-center justify-end gap-1 border-b border-gray-200 dark:border-zinc-800 px-2"
+                                :class="isSidebarNavEditing && !isSidebarCollapsed ? 'flex' : 'hidden sm:flex'"
                             >
                                 <button
+                                    v-if="isSidebarNavEditing && !isSidebarCollapsed"
                                     type="button"
                                     class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
+                                    data-testid="sidebar-nav-layout-save"
+                                    :title="$t('common.save')"
+                                    :aria-label="$t('common.save')"
+                                    @click="saveSidebarNavLayout"
+                                >
+                                    <MaterialDesignIcon icon-name="content-save" class="size-5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors hidden sm:inline-flex"
                                     @click="isSidebarCollapsed = !isSidebarCollapsed"
                                 >
                                     <MaterialDesignIcon
@@ -266,20 +278,26 @@
                                     :primary-nav-groups="primaryNavGroups"
                                     :more-nav-items="moreNavItems"
                                     :is-collapsed="isSidebarCollapsed"
+                                    :is-editing="isSidebarNavEditing"
                                     :is-showing-more-nav="isShowingMoreNav"
                                     :unread-conversations-count="unreadConversationsCount"
                                     :relay-chat-unread-count="relayChatUnreadCount"
                                     :missed-calls-count="missedCallsCount"
                                     @more-toggle="onMoreNavToggle"
+                                    @edit-start="enterSidebarNavEdit"
+                                    @nav-reorder="onSidebarNavReorder"
                                 />
                             </template>
                             <AppSidebarClassicNav
                                 v-else
                                 :nav-items="visibleNavItems"
                                 :is-collapsed="isSidebarCollapsed"
+                                :is-editing="isSidebarNavEditing"
                                 :unread-conversations-count="unreadConversationsCount"
                                 :relay-chat-unread-count="relayChatUnreadCount"
                                 :missed-calls-count="missedCallsCount"
+                                @edit-start="enterSidebarNavEdit"
+                                @nav-reorder="onSidebarNavReorder"
                             />
 
                             <div>
@@ -506,6 +524,18 @@ import { applyRelayShareLink, parseMeshchatRelayUri } from "../js/relayLinkUtils
 import logoUrl from "../assets/images/logo.png";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../js/browserLayoutStore";
 import {
+    applyNavLayout,
+    captureNavLayout,
+    cloneNavLayout,
+    loadAppSidebarNavLayout,
+    moveNavGroup,
+    moveNavGroupByOffset,
+    moveNavItem,
+    moveNavItemByOffset,
+    orderItemsByLayout,
+    saveAppSidebarNavLayout,
+} from "../js/appSidebarNavLayout.js";
+import {
     applyBackgroundPollInterval,
     BATTERY_SAVER_CHANGED_EVENT,
     loadBatterySaverPrefs,
@@ -557,6 +587,9 @@ export default {
             isSidebarOpen: false,
             isSidebarCollapsed: false,
             isShowingMoreNav: false,
+            isSidebarNavEditing: false,
+            sidebarNavLayoutSaved: null,
+            sidebarNavLayoutDraft: null,
 
             isSwitchingIdentity: false,
             shellRunning: false,
@@ -660,17 +693,32 @@ export default {
         rrcEnabled() {
             return GlobalState.config?.rrc_enabled !== false;
         },
-        visibleNavItems() {
+        rawVisibleNavItems() {
             return listNavItems().filter((item) => this.isNavItemVisible(item));
         },
-        primaryNavItems() {
-            return this.visibleNavItems.filter((item) => item.navTier !== "more");
+        activeNavLayout() {
+            if (this.isSidebarNavEditing && this.sidebarNavLayoutDraft) {
+                return this.sidebarNavLayoutDraft;
+            }
+            return this.sidebarNavLayoutSaved;
+        },
+        navLayoutView() {
+            return applyNavLayout(this.rawVisibleNavItems, this.activeNavLayout, {
+                includeEmptyGroups: this.isSidebarNavEditing && this.useGroupedAppSidebar,
+            });
+        },
+        visibleNavItems() {
+            if (!this.useGroupedAppSidebar) {
+                return orderItemsByLayout(this.rawVisibleNavItems, this.activeNavLayout);
+            }
+            const view = this.navLayoutView;
+            return [...view.primaryGroups.flatMap((group) => group.items), ...view.moreItems];
         },
         moreNavItems() {
-            return this.visibleNavItems.filter((item) => item.navTier === "more");
+            return this.navLayoutView.moreItems;
         },
         primaryNavGroups() {
-            return this.buildNavGroups(this.primaryNavItems);
+            return this.navLayoutView.primaryGroups;
         },
         useGroupedAppSidebar() {
             const layout = this.config?.app_sidebar_layout;
@@ -795,6 +843,9 @@ export default {
         },
         isSidebarCollapsed(collapsed) {
             saveFeatureSidebarCollapsed("app", collapsed);
+            if (collapsed) {
+                this.discardSidebarNavEdit();
+            }
         },
     },
     beforeUnmount() {
@@ -835,6 +886,7 @@ export default {
             if (savedSidebarCollapsed !== null) {
                 this.isSidebarCollapsed = savedSidebarCollapsed;
             }
+            this.sidebarNavLayoutSaved = loadAppSidebarNavLayout();
             const v = localStorage.getItem("meshchatx_detailed_outbound_send_status");
             if (v === "true" || v === "false") {
                 GlobalState.detailedOutboundSendStatus = v === "true";
@@ -890,19 +942,57 @@ export default {
             }
             return true;
         },
-        buildNavGroups(items) {
-            const order = ["communicate", "explore", "app", "network"];
-            const groups = {};
-            for (const item of items) {
-                const groupId = item.group || "app";
-                if (!groups[groupId]) {
-                    groups[groupId] = [];
-                }
-                groups[groupId].push(item);
+        enterSidebarNavEdit() {
+            if (this.isSidebarCollapsed || this.isSidebarNavEditing) {
+                return;
             }
-            return order
-                .filter((groupId) => groups[groupId]?.length)
-                .map((groupId) => ({ id: groupId, items: groups[groupId] }));
+            const view = applyNavLayout(this.rawVisibleNavItems, this.sidebarNavLayoutSaved, {
+                includeEmptyGroups: this.useGroupedAppSidebar,
+            });
+            this.sidebarNavLayoutDraft = captureNavLayout(view.primaryGroups, view.moreItems);
+            this.isSidebarNavEditing = true;
+            if (this.useGroupedAppSidebar) {
+                this.isShowingMoreNav = true;
+            }
+        },
+        discardSidebarNavEdit() {
+            this.isSidebarNavEditing = false;
+            this.sidebarNavLayoutDraft = null;
+        },
+        saveSidebarNavLayout() {
+            if (this.isSidebarCollapsed || !this.isSidebarNavEditing) {
+                return;
+            }
+            const layout = this.sidebarNavLayoutDraft;
+            if (!layout) {
+                this.discardSidebarNavEdit();
+                return;
+            }
+            saveAppSidebarNavLayout(layout);
+            this.sidebarNavLayoutSaved = cloneNavLayout(layout);
+            this.discardSidebarNavEdit();
+            ToastUtils.success(this.$t("app.nav_layout_saved"));
+        },
+        onSidebarNavReorder(op) {
+            if (!this.isSidebarNavEditing || this.isSidebarCollapsed || !op) {
+                return;
+            }
+            const preservePlacement = !this.useGroupedAppSidebar;
+            const items = this.rawVisibleNavItems;
+            let layout = this.sidebarNavLayoutDraft;
+            if (!layout) {
+                return;
+            }
+            if (op.kind === "item") {
+                layout = moveNavItem(layout, op.itemId, op.target, items, { preservePlacement });
+            } else if (op.kind === "group") {
+                layout = moveNavGroup(layout, op.groupId, op.beforeGroupId);
+            } else if (op.kind === "item-offset") {
+                layout = moveNavItemByOffset(layout, op.itemId, op.delta, items, { preservePlacement });
+            } else if (op.kind === "group-offset") {
+                layout = moveNavGroupByOffset(layout, op.groupId, op.delta);
+            }
+            this.sidebarNavLayoutDraft = layout;
         },
         onMoreNavToggle() {
             if (this.isSidebarCollapsed) {

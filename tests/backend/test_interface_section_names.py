@@ -193,4 +193,4 @@ async def test_failed_write_rolls_back_dirty_interfaces(tmp_path):
         body = json.loads(response.body)
         assert response.status == 500, body
         assert "Failed to write Reticulum config" in body["message"]
-        assert config["interfaces"] == {}
+        assert "Good Node" not in config["interfaces"]

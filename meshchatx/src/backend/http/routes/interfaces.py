@@ -349,11 +349,17 @@ def register_interfaces_routes(routes, app):
     # fetch reticulum interfaces
     @routes.get("/api/v1/reticulum/interfaces")
     async def reticulum_interfaces(request):
+        app._sync_interfaces_from_disk()
         interfaces = app._get_interfaces_snapshot()
 
         processed_interfaces = {}
         for interface_name, interface in interfaces.items():
-            interface_data = copy.deepcopy(interface)
+            if not isinstance(interface, dict):
+                continue
+            try:
+                interface_data = copy.deepcopy(interface)
+            except Exception:
+                interface_data = dict(interface)
 
             # handle sub-interfaces for RNodeMultiInterface
             if interface_data.get("type") == "RNodeMultiInterface":
@@ -487,6 +493,7 @@ def register_interfaces_routes(routes, app):
             )
 
         # enable interface
+        app._sync_interfaces_from_disk()
         interfaces_before_write = app._get_interfaces_snapshot()
         interfaces = app._get_interfaces_section()
         if interface_name not in interfaces:
@@ -549,6 +556,7 @@ def register_interfaces_routes(routes, app):
             )
 
         # disable interface
+        app._sync_interfaces_from_disk()
         interfaces_before_write = app._get_interfaces_snapshot()
         interfaces = app._get_interfaces_section()
         if interface_name not in interfaces:
@@ -602,6 +610,8 @@ def register_interfaces_routes(routes, app):
                 status=422,
             )
 
+        app._sync_interfaces_from_disk()
+        interfaces_before_write = app._get_interfaces_snapshot()
         interfaces = app._get_interfaces_section()
         if interface_name not in interfaces:
             return web.json_response(
@@ -615,7 +625,9 @@ def register_interfaces_routes(routes, app):
         del interfaces[interface_name]
 
         # save config
-        if not app._write_reticulum_config():
+        if not app._write_reticulum_config(
+            rollback_interfaces=interfaces_before_write,
+        ):
             return web.json_response(
                 {
                     "message": "Failed to write Reticulum config",
@@ -777,6 +789,7 @@ def register_interfaces_routes(routes, app):
             )
 
         # get existing interfaces
+        app._sync_interfaces_from_disk()
         interfaces = app._get_interfaces_section()
 
         # ensure name is not for an existing interface, to prevent overwriting
@@ -2013,6 +2026,7 @@ def register_interfaces_routes(routes, app):
                                 )
 
             # update reticulum config with new interfaces
+            app._sync_interfaces_from_disk()
             interfaces_before_write = app._get_interfaces_snapshot()
             interfaces = app._get_interfaces_section()
             interfaces.update(interface_config)

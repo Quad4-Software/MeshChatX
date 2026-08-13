@@ -45,6 +45,26 @@ def test_parse_best_effort_on_failure():
     assert "Fixed Interface" in names
 
 
+def test_parse_dotted_hostname_section_name():
+    config_text = """
+[[artyom.ddns.net]]
+  type = TCPClientInterface
+  interface_enabled = True
+  target_host = 10.100.11.12
+  target_port = 4242
+  name = artyom.ddns.net
+[[Catz-Node (TCP)]]
+  type = TCPClientInterface
+"""
+    interfaces = InterfaceConfigParser.parse(config_text)
+    names = [i["name"] for i in interfaces]
+    assert "artyom.ddns.net" in names
+    assert "Catz-Node (TCP)" in names
+    dotted = next(i for i in interfaces if i["name"] == "artyom.ddns.net")
+    assert dotted["type"] == "TCPClientInterface"
+    assert dotted["target_host"] == "10.100.11.12"
+
+
 def test_parse_subsections():
     config_text = """
 [[Interface With Sub]]

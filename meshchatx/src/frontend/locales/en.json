@@ -74,6 +74,9 @@
         "documentation": "Documentation",
         "about": "About",
         "nav_more": "More",
+        "nav_layout_saved": "Sidebar order saved",
+        "nav_move_up": "Move up",
+        "nav_move_down": "Move down",
         "manage_identities": "Manage identities",
         "nav_group": {
             "communicate": "Communicate",

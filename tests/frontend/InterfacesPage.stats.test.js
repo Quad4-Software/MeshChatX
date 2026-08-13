@@ -104,6 +104,39 @@ describe("InterfacesPage interface-stats merge", () => {
         expect(wrapper.vm.interfacesWithStats[0]._stats).toEqual(stats);
     });
 
+    it("keeps hostname section names such as artyom.ddns.net in the tile list", async () => {
+        window.api.get = vi.fn((url) => {
+            if (url.includes("/api/v1/reticulum/interfaces")) {
+                return Promise.resolve({
+                    data: {
+                        interfaces: {
+                            "Default Interface": { type: "AutoInterface", enabled: true },
+                            "artyom.ddns.net": {
+                                type: "TCPClientInterface",
+                                interface_enabled: "True",
+                                target_host: "10.100.11.12",
+                                target_port: "4242",
+                            },
+                            "Catz-Node (TCP)": { type: "TCPClientInterface", enabled: true },
+                        },
+                    },
+                });
+            }
+            if (url.includes("/api/v1/app/info")) {
+                return Promise.resolve({ data: { app_info: { is_reticulum_running: true } } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountInterfacesPage();
+        await wrapper.vm.loadInterfaces();
+        const names = wrapper.vm.filteredInterfaces.map((iface) => iface._name);
+        expect(names).toContain("artyom.ddns.net");
+        expect(names).toContain("Default Interface");
+        expect(names).toContain("Catz-Node (TCP)");
+        expect(names).toHaveLength(3);
+    });
+
     it("falls back to short_name when interface_name is absent", async () => {
         window.api.get = vi.fn((url) => {
             if (url.includes("/api/v1/reticulum/interfaces")) {

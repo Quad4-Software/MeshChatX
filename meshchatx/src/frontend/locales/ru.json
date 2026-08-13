@@ -73,6 +73,9 @@
         "documentation": "Документация",
         "about": "О программе",
         "nav_more": "Ещё",
+        "nav_layout_saved": "Порядок боковой панели сохранён",
+        "nav_move_up": "Переместить вверх",
+        "nav_move_down": "Переместить вниз",
         "manage_identities": "Управление личностями",
         "nav_group": {
             "communicate": "Общение",

@@ -317,26 +317,36 @@ function ensurePlacement(layout, itemId, placement) {
 }
 
 /**
- * @param {NavLayout} layout
- * @param {string} itemId
- * @param {number} insertAt
+ * @param {Array<{ id: string, group?: string, navTier?: string }>} items
+ * @param {NavLayout | null | undefined} layout
+ * @returns {NavLayout}
  */
-function insertItemOrder(layout, itemId, insertAt) {
-    const next = layout.itemOrder.filter((id) => id !== itemId);
-    const index = Math.max(0, Math.min(insertAt, next.length));
-    next.splice(index, 0, itemId);
-    layout.itemOrder = next;
+function layoutFromItems(items, layout) {
+    const view = applyNavLayout(items, layout);
+    return captureNavLayout(view.primaryGroups, view.moreItems);
 }
 
 /**
  * @param {NavLayout} layout
- * @param {Array<{ id: string, group?: string, navTier?: string }>} items
- * @param {string} itemId
- * @returns {number}
+ * @param {Array<{ id: string }>} items
+ * @param {string} movingId
+ * @param {number} insertAt
  */
-function itemOrderIndex(layout, items, itemId) {
-    const ordered = orderItemsByLayout(items, layout);
-    return ordered.findIndex((item) => item.id === itemId);
+function moveIdInItemOrder(layout, items, movingId, insertAt) {
+    const ids = orderItemsByLayout(items, layout).map((item) => item.id);
+    const without = ids.filter((id) => id !== movingId);
+    const index = Math.max(0, Math.min(insertAt, without.length));
+    without.splice(index, 0, movingId);
+    layout.itemOrder = without;
+}
+
+/**
+ * @param {NavLayout | null | undefined} layout
+ * @param {Array<{ id: string, group?: string, navTier?: string }>} items
+ * @returns {NavLayout}
+ */
+function layoutOrDefault(layout, items) {
+    return cloneNavLayout(layout) || layoutFromItems(items || [], null);
 }
 
 /**
@@ -348,7 +358,7 @@ function itemOrderIndex(layout, items, itemId) {
  * @returns {NavLayout | null}
  */
 export function moveNavItem(layout, itemId, target, items, options = {}) {
-    const next = cloneNavLayout(layout) || captureNavLayout(applyNavLayout(items, null).primaryGroups, applyNavLayout(items, null).moreItems);
+    const next = layoutOrDefault(layout, items);
     const movingId = cleanId(itemId);
     if (!movingId || !target || typeof target !== "object") {
         return next;
@@ -362,6 +372,8 @@ export function moveNavItem(layout, itemId, target, items, options = {}) {
     if (!next.placements[movingId]) {
         ensurePlacement(next, movingId, defaultNavPlacement(movingItem));
     }
+    const orderedIds = () => orderItemsByLayout(items, next).map((item) => item.id);
+
     if (target.type === "item") {
         const targetId = cleanId(target.id);
         if (!targetId || targetId === movingId) {
@@ -372,45 +384,51 @@ export function moveNavItem(layout, itemId, target, items, options = {}) {
             return next;
         }
         if (!preservePlacement) {
-            const targetPlacement = placementFor(targetItem, next);
-            ensurePlacement(next, movingId, targetPlacement);
+            ensurePlacement(next, movingId, placementFor(targetItem, next));
         }
-        let insertAt = itemOrderIndex(next, items, targetId);
+        const ids = orderedIds();
+        const without = ids.filter((id) => id !== movingId);
+        let insertAt = without.indexOf(targetId);
         if (insertAt < 0) {
-            insertAt = next.itemOrder.length;
+            insertAt = without.length;
         } else if (target.position === "after") {
             insertAt += 1;
         }
-        const movingIndex = itemOrderIndex(next, items, movingId);
-        if (movingIndex >= 0 && movingIndex < insertAt) {
-            insertAt -= 1;
-        }
-        insertItemOrder(next, movingId, insertAt);
+        without.splice(insertAt, 0, movingId);
+        next.itemOrder = without;
         return next;
     }
+
     if (target.type === "group" || target.type === "group-start" || target.type === "group-end") {
         const groupId = cleanId(target.id) || "app";
         if (!preservePlacement) {
             ensurePlacement(next, movingId, { group: groupId, tier: "primary" });
         }
         const view = applyNavLayout(items, next, { includeEmptyGroups: true });
-        const group = view.primaryGroups.find((entry) => entry.id === groupId);
-        const groupItems = group?.items || [];
+        const groupItems = (view.primaryGroups.find((entry) => entry.id === groupId)?.items || []).filter(
+            (item) => item.id !== movingId
+        );
         if (target.type === "group-end" && groupItems.length > 0) {
             const lastId = groupItems[groupItems.length - 1].id;
-            if (lastId === movingId) {
-                return next;
-            }
-            return moveNavItem(next, movingId, { type: "item", id: lastId, position: "after" }, items, options);
+            const ids = orderedIds().filter((id) => id !== movingId);
+            const insertAt = ids.indexOf(lastId);
+            moveIdInItemOrder(next, items, movingId, insertAt < 0 ? ids.length : insertAt + 1);
+            return next;
         }
-        if (groupItems.length > 0 && groupItems[0].id !== movingId) {
-            return moveNavItem(next, movingId, { type: "item", id: groupItems[0].id, position: "before" }, items, options);
+        if (groupItems.length > 0) {
+            const firstId = groupItems[0].id;
+            const ids = orderedIds().filter((id) => id !== movingId);
+            const insertAt = ids.indexOf(firstId);
+            moveIdInItemOrder(next, items, movingId, insertAt < 0 ? 0 : insertAt);
+            return next;
         }
-        const firstMore = view.moreItems[0];
-        const insertAt = firstMore ? itemOrderIndex(next, items, firstMore.id) : next.itemOrder.length;
-        insertItemOrder(next, movingId, insertAt < 0 ? next.itemOrder.length : insertAt);
+        const firstMore = view.moreItems.find((item) => item.id !== movingId);
+        const ids = orderedIds().filter((id) => id !== movingId);
+        const insertAt = firstMore ? ids.indexOf(firstMore.id) : ids.length;
+        moveIdInItemOrder(next, items, movingId, insertAt < 0 ? ids.length : insertAt);
         return next;
     }
+
     if (target.type === "more" || target.type === "more-start" || target.type === "more-end") {
         if (!preservePlacement) {
             const current = next.placements[movingId] || defaultNavPlacement(movingItem);
@@ -418,19 +436,19 @@ export function moveNavItem(layout, itemId, target, items, options = {}) {
         }
         const view = applyNavLayout(items, next);
         const moreItems = view.moreItems.filter((item) => item.id !== movingId);
+        const ids = orderedIds().filter((id) => id !== movingId);
         if (target.type === "more-end" && moreItems.length > 0) {
-            return moveNavItem(
-                next,
-                movingId,
-                { type: "item", id: moreItems[moreItems.length - 1].id, position: "after" },
-                items,
-                options
-            );
+            const lastId = moreItems[moreItems.length - 1].id;
+            const insertAt = ids.indexOf(lastId);
+            moveIdInItemOrder(next, items, movingId, insertAt < 0 ? ids.length : insertAt + 1);
+            return next;
         }
         if (moreItems.length > 0) {
-            return moveNavItem(next, movingId, { type: "item", id: moreItems[0].id, position: "before" }, items, options);
+            const insertAt = ids.indexOf(moreItems[0].id);
+            moveIdInItemOrder(next, items, movingId, insertAt < 0 ? ids.length : insertAt);
+            return next;
         }
-        insertItemOrder(next, movingId, next.itemOrder.length);
+        moveIdInItemOrder(next, items, movingId, ids.length);
         return next;
     }
     return next;

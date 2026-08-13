@@ -90,6 +90,9 @@ describe("ReticulumConfigEditorPage.vue", () => {
         expect(wrapper.vm.originalContent).toBe(SAMPLE_CONFIG);
         expect(wrapper.text()).toContain(CONFIG_PATH);
         expect(wrapper.text()).toContain("tools.reticulum_config_editor.title");
+        const editorShell = wrapper.find(".relative.flex-1");
+        expect(editorShell.exists()).toBe(true);
+        expect(wrapper.find("textarea").classes()).toContain("absolute");
     });
 
     it("marks the editor as dirty when the textarea changes", async () => {

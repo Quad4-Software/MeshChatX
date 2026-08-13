@@ -73,6 +73,9 @@
         "documentation": "Documentatie",
         "about": "Info",
         "nav_more": "Meer",
+        "nav_layout_saved": "Volgorde van de zijbalk opgeslagen",
+        "nav_move_up": "Omhoog",
+        "nav_move_down": "Omlaag",
         "manage_identities": "Identiteiten beheren",
         "nav_group": {
             "communicate": "Communiceren",

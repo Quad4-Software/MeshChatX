@@ -804,6 +804,7 @@ def register_reticulum_instance_routes(routes, app):
             with open(config_path, "w") as f:
                 f.write(content)
             i2p_support.guard_i2p_interfaces_in_config(config_path)
+            app._sync_interfaces_from_disk(replace=True)
             return web.json_response(
                 {
                     "message": "Reticulum config saved",
@@ -824,6 +825,7 @@ def register_reticulum_instance_routes(routes, app):
             default_text = app._write_rns_reticulum_default_config_file(
                 config_path,
             )
+            app._sync_interfaces_from_disk(replace=True)
             return web.json_response(
                 {
                     "message": "Reticulum config restored to defaults",

@@ -5,6 +5,7 @@
         <a
             :href="href"
             type="button"
+            :draggable="false"
             :class="[
                 isActive
                     ? 'bg-blue-100 text-blue-800 group:text-blue-800 dark:bg-zinc-800 dark:text-blue-300'
@@ -36,14 +37,19 @@ export default {
             type: Boolean,
             default: false,
         },
+        editMode: {
+            type: Boolean,
+            default: false,
+        },
     },
     emits: ["click"],
     methods: {
         handleNavigate(event, navigate) {
-            // emit click event for SidebarLink element
             this.$emit("click");
-
-            // handle navigation
+            if (this.editMode) {
+                event.preventDefault();
+                return;
+            }
             navigate(event);
         },
     },
