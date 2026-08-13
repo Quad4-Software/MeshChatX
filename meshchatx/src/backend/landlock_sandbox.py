@@ -366,6 +366,11 @@ def _collect_read_roots() -> list[str]:
         "/sbin",
         # RNS get_interface_stats() uses psutil for rss, and psutil reads /proc/self.
         "/proc",
+        # pyserial list_ports and RNode USB metadata read sysfs. Landlock still
+        # allows stat/realpath on /sys while open() of idVendor fails, and
+        # pyserial then raises TypeError from int(None, 16) which 500s
+        # /api/v1/comports whenever a USB serial device is plugged in.
+        "/sys",
     }
     for path in sys.path:
         existing = _existing_dir(path)
@@ -484,12 +489,35 @@ def _add_path_beneath_rule(
         os.close(fd)
 
 
+def extra_read_roots_from_app(app) -> list[str]:
+    """Sideband command-plugin dirs chosen in settings, if they exist on disk.
+
+    Does not fall back to the parent directory. A missing path must not widen
+    Landlock to whatever folder happens to sit above it.
+    """
+    try:
+        cfg = getattr(app, "config", None)
+        path_cfg = (
+            getattr(cfg, "command_plugins_path", None) if cfg is not None else None
+        )
+        raw = path_cfg.get() if path_cfg is not None else None
+    except Exception:
+        raw = None
+    if not raw:
+        return []
+    resolved = os.path.abspath(os.path.expanduser(str(raw)))
+    if os.path.isdir(resolved):
+        return [resolved]
+    return []
+
+
 def apply_landlock_sandbox(
     *,
     storage_dir: str | None = None,
     reticulum_config_dir: str | None = None,
     public_dir: str | None = None,
     log_dir: str | None = None,
+    extra_read_roots: list[str] | None = None,
 ) -> bool:
     """Apply Landlock rules. Returns True when the sandbox is active."""
     if not landlock_requested():
@@ -530,7 +558,14 @@ def apply_landlock_sandbox(
         return False
 
     try:
-        for root in _collect_read_roots():
+        read_roots = list(_collect_read_roots())
+        for extra in extra_read_roots or []:
+            if not extra:
+                continue
+            resolved = os.path.abspath(os.path.expanduser(str(extra)))
+            if os.path.isdir(resolved) and resolved not in read_roots:
+                read_roots.append(resolved)
+        for root in read_roots:
             _add_path_beneath_rule(
                 libc, add_rule_nr, ruleset_fd, root, read_access, handled
             )
