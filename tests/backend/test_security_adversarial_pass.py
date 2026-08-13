@@ -179,6 +179,7 @@ def test_oracle_executable_page_env_cannot_clobber_path_or_inject_loader():
     env = _build_executable_page_env(
         {
             "PATH": "/evil/bin",
+            "SYSTEMROOT": r"C:\evil",
             "LD_PRELOAD": "/evil.so",
             "PYTHONPATH": "/evil/py",
             "field_name": "ok",
@@ -190,6 +191,9 @@ def test_oracle_executable_page_env_cannot_clobber_path_or_inject_loader():
         remote_identity=None,
     )
     assert env.get("PATH") == os.environ.get("PATH")
+    assert env.get("SYSTEMROOT") == os.environ.get("SYSTEMROOT")
+    if "SYSTEMROOT" not in os.environ:
+        assert "SYSTEMROOT" not in env
     assert "LD_PRELOAD" not in env
     assert "PYTHONPATH" not in env
     assert env["field_name"] == "ok"

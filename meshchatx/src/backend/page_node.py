@@ -17,8 +17,11 @@ Supported page filename extensions are .mu, .md, .txt, and .html.
 import contextlib
 import json
 import os
+import shlex
+import shutil
 import stat
 import subprocess
+import sys
 import threading
 import time
 
@@ -38,6 +41,29 @@ EXECUTABLE_PAGE_TIMEOUT_SECONDS = 15
 PAGE_GENERATION_FAILED_MICRON = (
     ">Page Generation Failed\n\nThe page could not be generated.\n"
 )
+
+# Host env copied into executable page scripts. Request field_* / var_* cannot
+# overwrite these names. Windows Python needs SYSTEMROOT to start.
+_EXECUTABLE_PAGE_HOST_ENV_KEYS = (
+    "PATH",
+    "SYSTEMROOT",
+    "WINDIR",
+    "SYSTEMDRIVE",
+    "PATHEXT",
+    "COMSPEC",
+    "TEMP",
+    "TMP",
+)
+
+_SHEBANG_INTERPRETER_ALIASES = {
+    "python": ("python", "python3", "py"),
+    "python3": ("python3", "python", "py"),
+    "py": ("py", "python", "python3"),
+    "node": ("node", "nodejs"),
+    "nodejs": ("node", "nodejs"),
+    "sh": ("bash", "sh"),
+    "bash": ("bash", "sh"),
+}
 
 
 def normalize_announce_interval_seconds(
@@ -110,14 +136,112 @@ def _page_generation_error_bytes(reason: str) -> bytes:
     return text.encode("utf-8")
 
 
+def _normalize_executable_page_names(names) -> list[str]:
+    """Return unique allowed page filenames from a config list."""
+    if not isinstance(names, list):
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for item in names:
+        if not isinstance(item, str):
+            continue
+        try:
+            safe = normalize_page_filename(item)
+        except ValueError:
+            continue
+        if safe in seen:
+            continue
+        seen.add(safe)
+        out.append(safe)
+    return out
+
+
+def _parse_page_shebang(page_path: str) -> tuple[str, list[str]] | None:
+    """Return (program, extra_args) from a page shebang, or None."""
+    try:
+        with open(page_path, "rb") as handle:
+            first = handle.readline()
+    except OSError:
+        return None
+    if not first.startswith(b"#!"):
+        return None
+    line = first[2:].decode("utf-8", errors="replace").strip()
+    if not line:
+        return None
+    windows_path = len(line) >= 3 and line[0].isalpha() and line[1] == ":"
+    try:
+        tokens = shlex.split(line, posix=not windows_path)
+    except ValueError:
+        return None
+    if not tokens:
+        return None
+    program = tokens[0]
+    rest = tokens[1:]
+    base = os.path.basename(program.replace("\\", "/"))
+    if base.lower() in ("env", "env.exe") and rest:
+        if rest[0] == "-S":
+            rest = rest[1:]
+        if not rest:
+            return None
+        return rest[0], rest[1:]
+    return program, rest
+
+
+def _shebang_lookup_names(name: str) -> tuple[str, ...]:
+    stem = name
+    if stem.lower().endswith(".exe"):
+        stem = stem[:-4]
+    aliases = _SHEBANG_INTERPRETER_ALIASES.get(stem.lower())
+    if aliases:
+        return aliases
+    if stem != name:
+        return (name, stem)
+    return (name,)
+
+
+def _resolve_shebang_interpreter(program: str) -> str | None:
+    """Resolve a shebang program to an executable path on this host."""
+    if os.path.isabs(program) and os.path.isfile(program):
+        return program
+    name = os.path.basename(program.replace("\\", "/"))
+    if not name or name in (".", ".."):
+        return None
+    frozen = bool(getattr(sys, "frozen", False))
+    for candidate in _shebang_lookup_names(name):
+        found = shutil.which(candidate)
+        if found:
+            return found
+    stem = name.lower()
+    if stem.endswith(".exe"):
+        stem = stem[:-4]
+    if not frozen and stem in ("python", "python3", "py"):
+        executable = sys.executable
+        if executable and os.path.isfile(executable):
+            return executable
+    return None
+
+
+def _windows_page_command(page_path: str) -> list[str] | None:
+    """Build argv to run a page script on Windows via its shebang."""
+    parsed = _parse_page_shebang(page_path)
+    if parsed is None:
+        return None
+    program, extra = parsed
+    interpreter = _resolve_shebang_interpreter(program)
+    if interpreter is None:
+        return None
+    return [interpreter, *extra, page_path]
+
+
 def _build_executable_page_env(
     data,
     link_id=None,
     remote_identity=None,
 ) -> dict[str, str]:
     env_map: dict[str, str] = {}
-    if "PATH" in os.environ:
-        env_map["PATH"] = os.environ["PATH"]
+    for key in _EXECUTABLE_PAGE_HOST_ENV_KEYS:
+        if key in os.environ:
+            env_map[key] = os.environ[key]
     if link_id is not None:
         with contextlib.suppress(Exception):
             env_map["link_id"] = RNS.hexrep(link_id, delimit=False)
@@ -161,6 +285,7 @@ class PageNode:
         announce_enabled=True,
         announce_interval_seconds=DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
         executable_pages_enabled=False,
+        executable_page_names=None,
         on_announce=None,
     ):
         self.node_id = node_id
@@ -185,6 +310,9 @@ class PageNode:
             announce_interval_seconds,
         )
         self.executable_pages_enabled = bool(executable_pages_enabled)
+        self._executable_page_names = set(
+            _normalize_executable_page_names(executable_page_names),
+        )
         self.last_announced_at = None
         self.on_announce = on_announce
         self._announce_timer = None
@@ -446,36 +574,45 @@ class PageNode:
         return self._jail_page_path(name, must_exist=True)
 
     def is_page_executable(self, name):
-        """Return whether the page file has the execute permission bit set."""
-        if _is_windows_platform():
-            return False
+        """Return whether this page is marked executable for dynamic serving."""
         page_path = self._resolve_page_path(name)
         if page_path is None:
+            return False
+        return self._is_page_marked_executable(page_path)
+
+    def _is_page_marked_executable(self, page_path):
+        name = os.path.basename(page_path)
+        if name in self._executable_page_names:
+            return True
+        if _is_windows_platform():
             return False
         return os.access(page_path, os.X_OK)
 
     def set_page_executable(self, name, enabled):
-        """Set or clear the execute permission bit on a page file."""
-        if _is_windows_platform():
-            raise OSError("executable pages are not supported on Windows")
+        """Mark or unmark a page as executable and persist the flag."""
         page_path = self._resolve_page_path(name)
         if page_path is None:
             raise ValueError("page not found")
-        mode = os.stat(page_path).st_mode
+        name = os.path.basename(page_path)
         if enabled:
-            os.chmod(page_path, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+            self._executable_page_names.add(name)
+            if not _is_windows_platform():
+                mode = os.stat(page_path).st_mode
+                os.chmod(page_path, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
         else:
-            os.chmod(
-                page_path,
-                mode & ~(stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH),
-            )
+            self._executable_page_names.discard(name)
+            if not _is_windows_platform():
+                mode = os.stat(page_path).st_mode
+                os.chmod(
+                    page_path,
+                    mode & ~(stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH),
+                )
+        self.save_config()
 
     def _should_execute_page(self, page_path):
         if not self.executable_pages_enabled:
             return False
-        if _is_windows_platform():
-            return False
-        return os.access(page_path, os.X_OK)
+        return self._is_page_marked_executable(page_path)
 
     def _read_static_page_bytes(self, page_path):
         with open(page_path, "rb") as f:
@@ -485,14 +622,29 @@ class PageNode:
         self, page_path, data=None, link_id=None, remote_identity=None
     ):
         env_map = _build_executable_page_env(data, link_id, remote_identity)
+        run_kwargs = {
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.DEVNULL,
+            "env": env_map,
+            "timeout": EXECUTABLE_PAGE_TIMEOUT_SECONDS,
+        }
+        if _is_windows_platform():
+            command = _windows_page_command(page_path)
+            if command is None:
+                return _page_generation_error_bytes(
+                    "Could not resolve a script interpreter from the page shebang.",
+                )
+            env_map.setdefault("PYTHONIOENCODING", "utf-8")
+            if os.name == "nt":
+                run_kwargs["creationflags"] = getattr(
+                    subprocess,
+                    "CREATE_NO_WINDOW",
+                    0x08000000,
+                )
+        else:
+            command = [page_path]
         try:
-            generated = subprocess.run(
-                [page_path],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
-                env=env_map,
-                timeout=EXECUTABLE_PAGE_TIMEOUT_SECONDS,
-            )
+            generated = subprocess.run(command, **run_kwargs)
             return generated.stdout
         except subprocess.TimeoutExpired:
             return _page_generation_error_bytes("The page script timed out.")
@@ -629,6 +781,8 @@ class PageNode:
             os.remove(page_path)
         except OSError:
             return False
+        self._executable_page_names.discard(name)
+        self.save_config()
         self._deregister_page_handler(name)
         return True
 
@@ -737,6 +891,7 @@ class PageNode:
             "announce_enabled": self.announce_enabled,
             "announce_interval_seconds": self.announce_interval_seconds,
             "executable_pages_enabled": self.executable_pages_enabled,
+            "executable_page_names": sorted(self._executable_page_names),
         }
         config_path = os.path.join(self.base_dir, "config.json")
         with open(config_path, "w") as f:

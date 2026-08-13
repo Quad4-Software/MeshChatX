@@ -42,15 +42,16 @@ Typical workflow:
 
 ### Executable (dynamic) pages
 
-On Linux and macOS you can opt in per node to **executable pages**. When enabled:
+You can opt in per node to **executable pages**. When enabled:
 
 - Non-executable pages are served as static files.
-- Pages marked executable (via the Mesh Server UI or `chmod +x`) run as scripts using their shebang.
+- Pages marked executable in the Mesh Server editor run as scripts. On Linux and macOS, `chmod +x` on the page file also marks it.
+- The first line must be a shebang such as `#!/usr/bin/env python3`. Windows does not exec scripts by shebang, so Mesh Server resolves that interpreter on PATH (`python`, `py`, `node`, and similar).
 - Request `field_*` and `var_*` values are passed as environment variables.
 - `link_id` and `remote_identity` are supplied when available.
 - Script stdout is returned as the page body. Failures return a controlled error page.
 
-Executable pages are disabled on Windows (static serving only). Editing a page in Mesh Server always shows the file source, never the script output.
+Editing a page in Mesh Server always shows the file source, never the script output.
 
 API endpoints under `/api/v1/page-nodes/` manage CRUD operations, start and stop, and file listings.
 

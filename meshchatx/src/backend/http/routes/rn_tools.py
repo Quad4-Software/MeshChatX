@@ -636,6 +636,7 @@ def register_rn_tools_routes(routes, app):
         )
         sorting = request.query.get("sorting")
         sort_reverse = request.query.get("sort_reverse", "false") in ("true", "1")
+        show_all = request.query.get("show_all", "false") in ("true", "1")
         remote = (request.query.get("remote") or "").strip()
         identity_path = (request.query.get("identity_path") or "").strip() or None
         identity_name = (request.query.get("identity_name") or "").strip() or None
@@ -682,6 +683,7 @@ def register_rn_tools_routes(routes, app):
                     stats=stats,
                     link_count=link_count,
                     include_local_blackhole=False,
+                    show_all=show_all,
                 )
                 status["remote"] = remote
             else:
@@ -689,6 +691,7 @@ def register_rn_tools_routes(routes, app):
                     include_link_stats=include_link_stats,
                     sorting=sorting,
                     sort_reverse=sort_reverse,
+                    show_all=show_all,
                 )
             return web.json_response(status)
         except (ValueError, FileNotFoundError) as e:
