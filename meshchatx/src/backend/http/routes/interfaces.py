@@ -132,6 +132,7 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 )
 
 from meshchatx.src.backend.interface_enabled_flag import apply_interface_enabled_flag
+from meshchatx.src.backend.serial_comports import list_serial_comports
 
 
 def register_interfaces_routes(routes, app):
@@ -139,18 +140,9 @@ def register_interfaces_routes(routes, app):
     # fetch com ports
     @routes.get("/api/v1/comports")
     async def comports(request):
-        comports = [
-            {
-                "device": comport.device,
-                "product": comport.product,
-                "serial_number": comport.serial_number,
-            }
-            for comport in list_ports.comports()
-        ]
-
         return web.json_response(
             {
-                "comports": comports,
+                "comports": list_serial_comports(),
             },
         )
 
