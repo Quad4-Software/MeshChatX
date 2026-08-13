@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: 0BSD
 
+from __future__ import annotations
+
 import base64
 import contextlib
 import json
@@ -259,6 +261,25 @@ class IdentityManager:
         return False
 
     _MAX_IDENTITY_BYTES = 65536
+
+    @staticmethod
+    async def read_upload_bytes_capped(
+        read_chunk,
+        max_bytes: int | None = None,
+    ) -> bytes:
+        """Read an upload in chunks and refuse anything above max_bytes."""
+        limit = IdentityManager._MAX_IDENTITY_BYTES if max_bytes is None else max_bytes
+        chunks: list[bytes] = []
+        total = 0
+        while True:
+            chunk = await read_chunk()
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > limit:
+                raise ValueError("Identity file is too large")
+            chunks.append(chunk)
+        return b"".join(chunks)
 
     def restore_identity_from_bytes(
         self,

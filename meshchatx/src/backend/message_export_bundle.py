@@ -3,7 +3,10 @@
 
 from __future__ import annotations
 
-from meshchatx.src.backend.meshchat_utils import parse_lxmf_display_name
+from meshchatx.src.backend.meshchat_utils import (
+    normalize_identity_storage_hash,
+    parse_lxmf_display_name,
+)
 
 MESSAGE_EXPORT_FORMAT = "meshchatx/messages/v2"
 
@@ -109,7 +112,23 @@ def build_messages_export_bundle(database, messages_list: list[dict]) -> dict:
     }
 
 
-def _import_contacts(database, contacts) -> tuple[int, int]:
+def _canonical_dest_hash(value) -> str:
+    if not isinstance(value, str):
+        return ""
+    return normalize_identity_storage_hash(value)
+
+
+def _optional_dest_hash(value) -> str | None:
+    if value is None or value == "":
+        return None
+    hashed = _canonical_dest_hash(value)
+    if not hashed:
+        raise ValueError("invalid destination hash")
+    return hashed
+
+
+def import_contacts_list(database, contacts) -> tuple[int, int]:
+    """Import contacts from an export list. Skip rows with invalid hashes."""
     if not isinstance(contacts, list):
         return 0, 0
     seen = {}
@@ -117,7 +136,7 @@ def _import_contacts(database, contacts) -> tuple[int, int]:
     for c in contacts:
         if not isinstance(c, dict):
             continue
-        h = c.get("remote_identity_hash")
+        h = _canonical_dest_hash(c.get("remote_identity_hash"))
         if h:
             seen[h] = c
         else:
@@ -127,19 +146,21 @@ def _import_contacts(database, contacts) -> tuple[int, int]:
     skipped = 0
     for c in unique_contacts:
         name = c.get("name")
-        remote_identity_hash = c.get("remote_identity_hash")
+        remote_identity_hash = _canonical_dest_hash(c.get("remote_identity_hash"))
         if not name or not remote_identity_hash:
             skipped += 1
             continue
         try:
+            lxmf_address = _optional_dest_hash(c.get("lxmf_address"))
+            lxst_address = _optional_dest_hash(c.get("lxst_address"))
             database.contacts.add_contact(
                 name,
                 remote_identity_hash,
-                lxmf_address=c.get("lxmf_address"),
-                lxst_address=c.get("lxst_address"),
+                lxmf_address=lxmf_address,
+                lxst_address=lxst_address,
                 preferred_ringtone_id=c.get("preferred_ringtone_id"),
                 custom_image=c.get("custom_image"),
-                is_telemetry_trusted=c.get("is_telemetry_trusted", 0),
+                is_telemetry_trusted=1 if c.get("is_telemetry_trusted") else 0,
             )
             icon = c.get("lxmf_icon")
             if isinstance(icon, dict) and icon.get("icon_name"):
@@ -153,6 +174,10 @@ def _import_contacts(database, contacts) -> tuple[int, int]:
         except Exception:
             skipped += 1
     return added, skipped
+
+
+def _import_contacts(database, contacts) -> tuple[int, int]:
+    return import_contacts_list(database, contacts)
 
 
 def _import_display_names(database, display_names) -> int:

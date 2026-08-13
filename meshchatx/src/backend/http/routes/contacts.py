@@ -343,36 +343,9 @@ def register_contacts_routes(routes, app):
                     {"message": "Invalid import format: contacts must be an array"},
                     status=400,
                 )
-            seen = {}
-            no_hash = []
-            for c in contacts:
-                h = c.get("remote_identity_hash")
-                if h:
-                    seen[h] = c
-                else:
-                    no_hash.append(c)
-            unique_contacts = list(seen.values()) + no_hash
-            added = 0
-            skipped = 0
-            for c in unique_contacts:
-                name = c.get("name")
-                remote_identity_hash = c.get("remote_identity_hash")
-                if not name or not remote_identity_hash:
-                    skipped += 1
-                    continue
-                try:
-                    app.database.contacts.add_contact(
-                        name,
-                        remote_identity_hash,
-                        lxmf_address=c.get("lxmf_address"),
-                        lxst_address=c.get("lxst_address"),
-                        preferred_ringtone_id=c.get("preferred_ringtone_id"),
-                        custom_image=c.get("custom_image"),
-                        is_telemetry_trusted=c.get("is_telemetry_trusted", 0),
-                    )
-                    added += 1
-                except Exception:
-                    skipped += 1
+            from meshchatx.src.backend.message_export_bundle import import_contacts_list
+
+            added, skipped = import_contacts_list(app.database, contacts)
             app.sync_telephone_call_policy()
             return web.json_response(
                 {"message": "Import complete", "added": added, "skipped": skipped},

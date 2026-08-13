@@ -6702,10 +6702,10 @@ class ReticulumMeshChat:
         aspect = data.get("aspect")
         if not dest_hex or not aspect:
             return None, None, "missing_destination_or_aspect"
-        try:
-            return bytes.fromhex(dest_hex), aspect, None
-        except ValueError:
+        dest = hex_identifier_to_bytes(dest_hex if isinstance(dest_hex, str) else None)
+        if dest is None or len(dest) != 16:
             return None, None, "invalid_destination_hash"
+        return dest, aspect, None
 
     @staticmethod
     async def _rns_link_send(client, payload):

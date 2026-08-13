@@ -322,37 +322,13 @@ async def handle_lxm_ingest_uri(app, client, data):
 
         # LXMA contact sharing URI:
         # lxma://<destination_hash_hex>:<public_key_hex>
-        if uri.lower().startswith("lxma://"):
-            lxma_payload = uri[7:]
-            if ":" not in lxma_payload:
-                raise ValueError(
-                    "Invalid LXMA URI format, expected lxma://<destination_hash>:<public_key>",
-                )
+        if uri_raw.lower().startswith("lxma://"):
+            from meshchatx.src.backend.lxma_contact import bind_lxma_contact
 
-            destination_hash_hex, public_key_hex = lxma_payload.split(":", 1)
-            destination_hash_hex = destination_hash_hex.strip().lower()
-            public_key_hex = public_key_hex.strip().lower()
-
-            if len(destination_hash_hex) != 32:
-                raise ValueError(
-                    "Invalid LXMA destination hash length, expected 32 hex characters",
-                )
-            if len(public_key_hex) not in (64, 128):
-                raise ValueError(
-                    "Invalid LXMA public key length, expected 64 or 128 hex characters",
-                )
-
-            bytes.fromhex(destination_hash_hex)
-            raw_bytes = bytes.fromhex(public_key_hex)
-
-            # RNS Identity.load_public_key docs say True/False but the
-            # implementation returns None on success. Prefer full 64-byte
-            # keys; truncated 32-byte material is not a valid RNS pubkey.
-            identity = app._identity_from_public_key_bytes(raw_bytes)
-            if identity is None and len(raw_bytes) > 32:
-                identity = app._identity_from_public_key_bytes(raw_bytes[:32])
-            if identity is None:
-                raise ValueError("Invalid LXMA public key")
+            destination_hash_hex, identity = bind_lxma_contact(
+                uri_raw,
+                app._identity_from_public_key_bytes,
+            )
 
             remote_identity_hash = identity.hash.hex()
             existing_contact = app.database.contacts.get_contact_by_identity_hash(

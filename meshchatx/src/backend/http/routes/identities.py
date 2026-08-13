@@ -183,19 +183,13 @@ def register_identities_routes(routes, app):
                 field = await reader.next()
                 while field is not None:
                     if field.name == "file":
-                        with tempfile.NamedTemporaryFile(delete=False) as tmp:
-                            while True:
-                                chunk = await field.read_chunk()
-                                if not chunk:
-                                    break
-                                tmp.write(chunk)
-                            temp_path = tmp.name
-                        try:
-                            with open(temp_path, "rb") as f:
-                                identity_bytes = f.read()
-                        finally:
-                            with contextlib.suppress(OSError):
-                                os.remove(temp_path)
+                        from meshchatx.src.backend.identity_manager import (
+                            IdentityManager,
+                        )
+
+                        identity_bytes = await IdentityManager.read_upload_bytes_capped(
+                            field.read_chunk,
+                        )
                     elif field.name == "display_name":
                         display_name = (await field.text()).strip() or None
                     field = await reader.next()
