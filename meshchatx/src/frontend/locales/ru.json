@@ -3963,6 +3963,7 @@
         "presence_connection": "{count} событий соединения",
         "join_room_key_placeholder": "Ключ комнаты (если нужен)",
         "room_key_prompt": "Введите ключ для #{room}",
+        "room_key_optional_prompt": "Ключ для #{room} (оставьте пустым, если не нужен)",
         "bad_key": "Неверный ключ комнаты. Введите правильный ключ, чтобы войти.",
         "join_requested": "Запрос на вход отправлен",
         "host_room_key_placeholder": "Ключ комнаты (необязательно)",

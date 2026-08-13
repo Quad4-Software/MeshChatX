@@ -3093,6 +3093,7 @@
         "join_room_placeholder": "room name",
         "join_room_key_placeholder": "Room key (if required)",
         "room_key_prompt": "Enter the key for #{room}",
+        "room_key_optional_prompt": "Key for #{room} (leave blank if none)",
         "bad_key": "Wrong room key. Enter the correct key to join.",
         "join_requested": "Join request sent",
         "leave_room": "Leave Room",

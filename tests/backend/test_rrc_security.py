@@ -267,6 +267,44 @@ def test_server_rate_limits_flood():
     assert out[0][1][proto.K_BODY] == "rate limited"
 
 
+def test_server_rate_limit_does_not_block_join_or_part():
+    """Chat flood tokens must not trap JOIN or PART."""
+    server = make_server(rate_per_min=2)
+    link = FakeLink(FakeIdentity(b"\x13" * 16))
+    sess = add_session(server, link, link._identity.hash, nick="flooder")
+    sess.tokens = 0.0
+    sess.last_refill = time.monotonic()
+    joined = route(
+        server,
+        link,
+        sess,
+        proto.make_envelope(proto.T_JOIN, src=sess.peer, room="lobby"),
+    )
+    assert any(e[proto.K_T] == proto.T_JOINED for _, e in joined)
+    assert "lobby" in sess.rooms
+    parted = route(
+        server,
+        link,
+        sess,
+        proto.make_envelope(proto.T_PART, src=sess.peer, room="lobby"),
+    )
+    assert any(e[proto.K_T] == proto.T_PARTED for _, e in parted)
+    assert "lobby" not in sess.rooms
+    still_limited = route(
+        server,
+        link,
+        sess,
+        proto.make_envelope(
+            proto.T_MSG,
+            src=sess.peer,
+            room="lobby",
+            body="still flooding",
+        ),
+    )
+    assert still_limited[0][1][proto.K_T] == proto.T_ERROR
+    assert still_limited[0][1][proto.K_BODY] == "rate limited"
+
+
 def test_server_unwelcomed_client_only_gets_hello_handling():
     server = make_server()
     link = FakeLink(FakeIdentity(b"\x04" * 16))

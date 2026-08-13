@@ -3963,6 +3963,7 @@
         "presence_connection": "{count} eventos de conexión",
         "join_room_key_placeholder": "Clave de sala (si se requiere)",
         "room_key_prompt": "Introduce la clave de #{room}",
+        "room_key_optional_prompt": "Clave de #{room} (déjala en blanco si no hay)",
         "bad_key": "Clave de sala incorrecta. Introduce la clave correcta para unirte.",
         "join_requested": "Solicitud de unión enviada",
         "host_room_key_placeholder": "Clave de sala (opcional)",

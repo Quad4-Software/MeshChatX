@@ -207,6 +207,7 @@ def test_oracle_client_kick_error_leaves_joined_room(tmp_path):
     hub = manager.add_hub(HUB_HASH, name="Client")
     hub.rooms.add("lobby")
     hub.members["lobby"] = {b"\x11" * 16, b"\xaa" * 16}
+    hub.messages["lobby"] = []
     hub.unread_counts["lobby"] = 4
     hub.unread_rooms.add("lobby")
     hub.mention_rooms.add("lobby")
@@ -223,6 +224,8 @@ def test_oracle_client_kick_error_leaves_joined_room(tmp_path):
     assert "lobby" not in hub.unread_counts
     assert "lobby" not in hub.unread_rooms
     assert "lobby" not in hub.mention_rooms
+    assert "lobby" not in hub.messages
+    assert "lobby" not in hub.ordered_known_rooms()
 
 
 def test_oracle_invite_only_rollback_clears_unread(tmp_path):
@@ -233,6 +236,7 @@ def test_oracle_invite_only_rollback_clears_unread(tmp_path):
     )
     hub = manager.add_hub(HUB_HASH, name="Client")
     hub.rooms.add("private")
+    hub.messages["private"] = []
     hub.unread_counts["private"] = 2
     hub.unread_rooms.add("private")
     hub._pending_joins.add("private")
@@ -247,6 +251,31 @@ def test_oracle_invite_only_rollback_clears_unread(tmp_path):
     assert "private" not in hub.rooms
     assert "private" not in hub.unread_counts
     assert "private" not in hub.unread_rooms
+    assert "private" not in hub.messages
+    assert "private" not in hub.ordered_known_rooms()
+
+
+def test_oracle_client_ban_error_drops_known_room(tmp_path):
+    """Ban ERROR must drop the room from the sidebar the same way PART does."""
+    manager = RRCManager(
+        identity=FakeIdentity(b"\x11" * 16),
+        storage_dir=str(tmp_path),
+    )
+    hub = manager.add_hub(HUB_HASH, name="Client")
+    hub.rooms.add("lobby")
+    hub.messages["lobby"] = []
+    hub.members["lobby"] = {b"\x11" * 16}
+    hub._handle_error(
+        proto.make_envelope(
+            proto.T_ERROR,
+            src=HUB_HASH,
+            room="lobby",
+            body="banned from lobby",
+        ),
+    )
+    assert "lobby" not in hub.rooms
+    assert "lobby" not in hub.messages
+    assert "lobby" not in hub.ordered_known_rooms()
 
 
 def test_oracle_register_room_key_strips_like_join_paths():

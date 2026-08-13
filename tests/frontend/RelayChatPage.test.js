@@ -121,6 +121,7 @@ describe("RelayChatPage.vue", () => {
 
     afterEach(() => {
         delete window.api;
+        vi.restoreAllMocks();
     });
 
     const mountPage = () => mount(RelayChatPage, { global: mountToolsPageGlobals() });
@@ -156,6 +157,12 @@ describe("RelayChatPage.vue", () => {
     });
 
     it("joins an unjoined available room via the API when clicked", async () => {
+        const DialogUtils = (await import("@/js/DialogUtils")).default;
+        const ToastUtils = (await import("@/js/ToastUtils")).default;
+        vi.spyOn(DialogUtils, "prompt").mockResolvedValue("");
+        vi.spyOn(ToastUtils, "info").mockImplementation(() => {});
+        vi.spyOn(ToastUtils, "success").mockImplementation(() => {});
+        vi.spyOn(ToastUtils, "error").mockImplementation(() => {});
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/rrc/hubs") {
                 return Promise.resolve({
@@ -175,8 +182,102 @@ describe("RelayChatPage.vue", () => {
 
         await wrapper.vm.joinAvailableRoom(wrapper.vm.hubs[0], "random");
 
+        expect(DialogUtils.prompt).toHaveBeenCalled();
         expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms`, {
             room: "random",
+            remember: true,
+        });
+    });
+
+    it("sends an available-room key when the optional prompt is filled", async () => {
+        const DialogUtils = (await import("@/js/DialogUtils")).default;
+        const ToastUtils = (await import("@/js/ToastUtils")).default;
+        vi.spyOn(DialogUtils, "prompt").mockResolvedValue("hunter2");
+        vi.spyOn(ToastUtils, "info").mockImplementation(() => {});
+        vi.spyOn(ToastUtils, "success").mockImplementation(() => {});
+        vi.spyOn(ToastUtils, "error").mockImplementation(() => {});
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({
+                    data: { hubs: [makeHub({ available_rooms: { vault: null } })] },
+                });
+            }
+            if (url === "/api/v1/rrc/servers") {
+                return Promise.resolve({ data: { hubs: [] } });
+            }
+            if (url === "/api/v1/announces") {
+                return Promise.resolve({ data: { announces: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+
+        await wrapper.vm.joinAvailableRoom(wrapper.vm.hubs[0], "vault");
+
+        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms`, {
+            room: "vault",
+            remember: true,
+            key: "hunter2",
+        });
+    });
+
+    it("does not join an available room when the key prompt is cancelled", async () => {
+        const DialogUtils = (await import("@/js/DialogUtils")).default;
+        vi.spyOn(DialogUtils, "prompt").mockResolvedValue(null);
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({
+                    data: { hubs: [makeHub({ available_rooms: { vault: null } })] },
+                });
+            }
+            if (url === "/api/v1/rrc/servers") {
+                return Promise.resolve({ data: { hubs: [] } });
+            }
+            if (url === "/api/v1/announces") {
+                return Promise.resolve({ data: { announces: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        axiosMock.post.mockClear();
+
+        await wrapper.vm.joinAvailableRoom(wrapper.vm.hubs[0], "vault");
+
+        expect(axiosMock.post).not.toHaveBeenCalled();
+    });
+
+    it("skips the key prompt when an available room already has a stored key", async () => {
+        const DialogUtils = (await import("@/js/DialogUtils")).default;
+        const ToastUtils = (await import("@/js/ToastUtils")).default;
+        vi.spyOn(DialogUtils, "prompt").mockResolvedValue("unused");
+        vi.spyOn(ToastUtils, "info").mockImplementation(() => {});
+        vi.spyOn(ToastUtils, "success").mockImplementation(() => {});
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({
+                    data: {
+                        hubs: [makeHub({ available_rooms: { vault: null }, stored_key_rooms: ["vault"] })],
+                    },
+                });
+            }
+            if (url === "/api/v1/rrc/servers") {
+                return Promise.resolve({ data: { hubs: [] } });
+            }
+            if (url === "/api/v1/announces") {
+                return Promise.resolve({ data: { announces: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+
+        await wrapper.vm.joinAvailableRoom(wrapper.vm.hubs[0], "vault");
+
+        expect(DialogUtils.prompt).not.toHaveBeenCalled();
+        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms`, {
+            room: "vault",
             remember: true,
         });
     });
