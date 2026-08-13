@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- **Dependencies**: LXMF 1.1.1. Unanswered path requests during propagation peer sync now apply sync backoff instead of retrying immediately. Requires RNS 1.4.2 (already pinned).
 - **App sidebar**: Network Visualiser is under Explore with Nomad Network and Map, not in More.
 - **Messages empty state**: The no-conversations view tells you to add a mesh interface and announce, or to use the Announces tab, with an Add interface action.
 - **Mesh Server UI**: Remaining mesh-server strings (create, start, stop, toasts, empty copy) are translated in the bundled locales. Announce interval 0 is labeled as manual-only (no periodic timer).

@@ -358,7 +358,7 @@ chaquopy {
             // shim, usb4a context bridge, and able BLE stack so USB/BT/BLE RNode can
             // run. RNode over TCP needs neither native module and always works.
             install rnsPatchedWheel.absolutePath
-            install "lxmf>=1.1.0"
+            install "lxmf>=1.1.1"
             install "numpy==1.26.2"
             install "chaquopy-libcodec2==1.2.0"
             install "pycodec2==4.1.1"

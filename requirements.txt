@@ -583,9 +583,9 @@ idna==3.18 \
     #   anyio
     #   httpx
     #   yarl
-lxmf==1.1.0 \
-    --hash=sha256:187e5cba257163ba1cffa1b49a33dc8893cf3b982397ccd77461ceaa5cd54af1 \
-    --hash=sha256:3836550364e059aa94eb955f9a862d20287643518d7a0b2a167b3b58c1d07cbd
+lxmf==1.1.1 \
+    --hash=sha256:3cdb4c5b3a4ec091ed538050228d8bd15db3ca4dfe7d69be3350ebc6c6d7e696 \
+    --hash=sha256:f2f7ea17d793fcc32cab826e81e8e9824404d025d1fc71b143be3242d45e6a5e
     # via
     #   lxst
     #   reticulum-meshchatx

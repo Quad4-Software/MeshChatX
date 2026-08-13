@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-08-13T05:23:39.929319Z
+Generated at: 2026-08-13T17:30:12.793310Z
 Frontend source: pnpm
 
 Python dependencies
@@ -64,7 +64,7 @@ httpx 0.28.1
 idna 3.18
   License: BSD-3-Clause
   Author: Kim Davies <kim+pypi@gumleaf.org>
-lxmf 1.1.0
+lxmf 1.1.1
   License: Reticulum License
   Author: Mark Qvist
 lxmfy 2.0.1
