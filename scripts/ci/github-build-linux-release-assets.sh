@@ -61,6 +61,46 @@ has_format appimage && appimage_deb_targets="$appimage_deb_targets AppImage"
 has_format deb && appimage_deb_targets="$appimage_deb_targets deb"
 appimage_deb_targets="${appimage_deb_targets# }"
 
+if [ -n "${GITHUB_TOKEN:-}" ] && [ -z "${GH_TOKEN:-}" ]; then
+    export GH_TOKEN="$GITHUB_TOKEN"
+fi
+
+# Retry electron-builder when GitHub CDN drops the TLS stream (ECONNRESET).
+# Freeze already finished. This only re-runs packaging.
+run_electron_builder() {
+    _max="${ELECTRON_BUILDER_RETRIES:-5}"
+    _n=1
+    _delay=8
+    while true; do
+        _log="$(mktemp)"
+        set +e
+        pnpm exec electron-builder "$@" 2>&1 | tee "$_log"
+        _status="${PIPESTATUS[0]}"
+        set -e
+        if [ "$_status" -eq 0 ]; then
+            rm -f "$_log"
+            return 0
+        fi
+        if [ "$_n" -ge "$_max" ]; then
+            echo "electron-builder failed after ${_n} attempt(s)" >&2
+            rm -f "$_log"
+            return "$_status"
+        fi
+        if ! grep -Eqi 'ECONNRESET|ETIMEDOUT|ECONNREFUSED|ENOTFOUND|EPIPE|socket hang up|RequestError' "$_log"; then
+            rm -f "$_log"
+            return "$_status"
+        fi
+        echo "electron-builder hit a transient network error (attempt ${_n}/${_max}). Retrying in ${_delay}s." >&2
+        rm -f "$_log"
+        sleep "$_delay"
+        _n=$((_n + 1))
+        _delay=$((_delay * 2))
+        if [ "$_delay" -gt 60 ]; then
+            _delay=60
+        fi
+    done
+}
+
 if [ "${SKIP_WHEEL:-0}" != 1 ]; then
     if [ "$NATIVE_ARCH" = "x64" ]; then
         echo "Building Python wheel..."
@@ -74,17 +114,20 @@ fi
 
 if [ "${SKIP_ELECTRON:-0}" != 1 ]; then
     if [ -n "$appimage_deb_targets" ]; then
+        if has_format appimage; then
+            bash scripts/ci/github-warm-appimage-tools.sh
+        fi
         pnpm run electron-postinstall
         if [ "$NATIVE_ARCH" = "x64" ]; then
             echo "Electron linux x64 ($appimage_deb_targets)..."
             PLATFORM=linux ARCH=x64 pnpm run build
             # shellcheck disable=SC2086
-            pnpm exec electron-builder --linux $appimage_deb_targets --x64 --publish=never
+            run_electron_builder --linux $appimage_deb_targets --x64 --publish=never
         elif [ "$NATIVE_ARCH" = "arm64" ]; then
             echo "Electron linux arm64 ($appimage_deb_targets)..."
             PLATFORM=linux ARCH=arm64 pnpm run build
             # shellcheck disable=SC2086
-            pnpm exec electron-builder --linux $appimage_deb_targets --arm64 --publish=never
+            run_electron_builder --linux $appimage_deb_targets --arm64 --publish=never
         fi
     else
         echo "Skipping AppImage/deb (not selected in MESHCHATX_LINUX_FORMATS)."

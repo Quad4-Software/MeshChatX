@@ -141,8 +141,8 @@ describe("ConversationViewer.vue button interactions", () => {
         const wrapper = mountViewer();
         await wrapper.vm.$nextTick();
 
-        const closeBtn = wrapper.findAll("button").find((b) => b.attributes("title") === "Close");
-        expect(closeBtn).toBeDefined();
+        const closeBtn = wrapper.find("[data-testid=conversation-close]");
+        expect(closeBtn.exists()).toBe(true);
 
         await closeBtn.trigger("click");
 
@@ -172,12 +172,12 @@ describe("ConversationViewer.vue button interactions", () => {
         expect(wrapper.vm.messageContextMenu.show).toBe(true);
 
         const menuEl = Array.from(document.body.querySelectorAll(".context-menu-panel")).find(
-            (el) => el.textContent?.includes("Reply") && el.textContent?.includes("Delete")
+            (el) => el.textContent?.includes("messages.reply") && el.textContent?.includes("common.delete")
         );
         expect(menuEl).toBeTruthy();
 
         const replyBtn = menuEl?.querySelector("button");
-        expect(replyBtn?.textContent).toContain("Reply");
+        expect(replyBtn?.textContent).toContain("messages.reply");
 
         replyBtn?.click();
         await wrapper.vm.$nextTick();
@@ -202,10 +202,10 @@ describe("ConversationViewer.vue button interactions", () => {
         await wrapper.vm.$nextTick();
 
         const menuEl = Array.from(document.body.querySelectorAll(".context-menu-panel")).find(
-            (el) => el.textContent?.includes("Reply") && el.textContent?.includes("Delete")
+            (el) => el.textContent?.includes("messages.reply") && el.textContent?.includes("common.delete")
         );
         const deleteBtn = menuEl
-            ? Array.from(menuEl.querySelectorAll("button")).find((b) => b.textContent.includes("Delete"))
+            ? Array.from(menuEl.querySelectorAll("button")).find((b) => b.textContent.includes("common.delete"))
             : null;
         expect(deleteBtn).toBeTruthy();
 

@@ -294,7 +294,8 @@ describe("Visibility Checks", () => {
 
         const dialogElement = wrapper.find(".fixed");
         expect(dialogElement.exists()).toBe(true);
-        expect(wrapper.text()).toContain("Confirm");
+        expect(wrapper.text()).toContain("common.confirm_action");
+        expect(wrapper.text()).toContain("common.confirm");
     });
 
     it("ConfirmDialog hides when pendingConfirm is null", async () => {

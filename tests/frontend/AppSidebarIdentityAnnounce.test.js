@@ -144,6 +144,7 @@ describe("App.vue sidebar identity label and announce control", () => {
         window.api = axiosMock;
         vi.clearAllMocks();
         axiosMock.get.mockImplementation(defaultAxiosImplementation);
+        window.localStorage?.removeItem("meshchatx.sidebar.app");
     });
 
     afterEach(() => {
@@ -259,13 +260,37 @@ describe("App.vue sidebar identity label and announce control", () => {
         expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/announce");
     });
 
-    it("clicking announce section header (not the radio) toggles expanded state", async () => {
+    it("clicking grouped account chip (not the radio) toggles expanded state", async () => {
+        wrapper = makeMountedApp();
+        await readyShell(wrapper.vm.$router);
+        const footer = wrapper.findComponent({ name: "AppSidebarAccountFooter" });
+        expect(footer.exists()).toBe(true);
+        expect(footer.find("[data-testid=sidebar-account-chip]").exists()).toBe(true);
+        expect(footer.find("[data-testid=sidebar-announce-radio]").exists()).toBe(true);
+        expect(footer.vm.isExpanded).toBe(false);
+        await footer.find("[data-testid=sidebar-account-chip]").trigger("click");
+        expect(footer.vm.isExpanded).toBe(true);
+        await footer.find("[data-testid=sidebar-account-chip]").trigger("click");
+        expect(footer.vm.isExpanded).toBe(false);
+    });
+
+    it("classic sidebar announce header toggles expanded state", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/config") {
+                return Promise.resolve({
+                    data: { config: makeConfig({ app_sidebar_layout: "classic" }) },
+                });
+            }
+            return defaultAxiosImplementation(url);
+        });
         wrapper = makeMountedApp();
         await readyShell(wrapper.vm.$router);
         const header = wrapper.find("[data-testid=sidebar-announce-header]");
         expect(header.exists()).toBe(true);
-        wrapper.vm.isShowingAnnounceSection = true;
+        const footer = wrapper.findComponent({ name: "AppSidebarClassicFooter" });
+        expect(footer.exists()).toBe(true);
+        expect(footer.vm.isShowingAnnounceSection).toBe(true);
         await header.trigger("click");
-        expect(wrapper.vm.isShowingAnnounceSection).toBe(false);
+        expect(footer.vm.isShowingAnnounceSection).toBe(false);
     });
 });

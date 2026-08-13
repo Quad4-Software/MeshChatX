@@ -117,6 +117,14 @@ jobs:
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
+            - name: Cache electron-builder toolsets
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: ~/.cache/electron-builder
+                  key: electron-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
+                  restore-keys: |
+                      electron-builder-${{ runner.os }}-${{ runner.arch }}-
+
             - name: Linux packaging APT dependencies
               run: bash scripts/ci/github-apt-linux-packaging.sh
 
@@ -143,6 +151,8 @@ jobs:
               run: sh scripts/ci/setup-trivy.sh
 
             - name: Build release-assets
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
               run: bash scripts/ci/github-build-linux-release-assets.sh
 
             - name: Upload Linux release artifact (${{ matrix.arch }})
