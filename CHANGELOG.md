@@ -8,6 +8,19 @@ All notable changes to this project will be documented in this file.
 
 - **Public demo mode**: Read-only mesh showcase via `MESHCHAT_DEMO_MODE` or `--demo` (blocked sends and API mutations, in-app demo banner). Optional ALTCHA v3 on login/setup, `MESHCHAT_AUTH_PAGE_HINT` for login page text, and [docker-compose.demo.yml](docker-compose.demo.yml) for Coolify.
 - **Database upgrades**: Automatic backup-pre-migrate-*.zip before schema migrations (skip with `MESHCHAT_SKIP_PRE_MIGRATE_BACKUP=1`). CLI `--list-backups` and `--export-backup` to list or copy backups for rollback. Post-migrate quick_check, structured migration logs, pre-migrate zip retention (five by default), storage lock for single-writer volumes, and N-1/N-2 fixture upgrade tests.
+- **App sidebar**: Grouped layout is the default. Primary links sit under Communicate, Explore, Network, and App labels, with a More disclosure for Archives, Interfaces, Identities, About, and similar destinations. Appearance setting `app_sidebar_layout` can switch back to Classic (one flat list and the expanded identity footer). The grouped footer is a compact identity chip with announce, QR, and auto-announce interval (15 minutes through 24 hours).
+- **Tools page**: Tools are listed under Diagnostics, Transfer, Messaging, Network, and Other instead of one ungrouped grid.
+- **Mesh Server executable pages**: On Linux and macOS, a per-node opt-in runs pages marked executable (Mesh Server toggle or `chmod +x`) as shebang scripts. Request `field_*` and `var_*` values plus `link_id` and `remote_identity` are passed in the environment. Script stdout is the page body. Failures return a controlled error page. Disabled on Windows (static files only). Editing a page always shows the file source, never the script output.
+- **Electron hardware choosers**: Serial, USB, and Bluetooth device requests in the desktop app open a native picker (RNode flasher, Web Serial). Electron does not show Chromium's chooser dialog for those APIs.
+- **Propagation nodes**: Preferred node hash can be pasted from the clipboard on the Propagation Nodes page and in Settings, with path-request and clear actions on the preferred row.
+- **Database health toast**: SQLite health issues from `/api/v1/app/info` show a warning toast once per issue fingerprint per session, not on every 15-second poll. Identity switch resets the fingerprint. The same text remains on About > Database.
+- **Landlock extra read roots**: The Sideband command-plugin directory from Settings is added as a Landlock read root when that folder exists on disk. A missing path is not widened to its parent. `/sys` is a read root so USB serial metadata lookups can stat sysfs.
+
+### Changed
+
+- **Messages empty state**: The no-conversations view tells you to add a mesh interface and announce, or to use the Announces tab, with an Add interface action.
+- **Mesh Server UI**: Remaining mesh-server strings (create, start, stop, toasts, empty copy) are translated in the bundled locales. Announce interval 0 is labeled as manual-only (no periodic timer).
+- **Docs**: Getting started lists sidebar More destinations. Linux sandbox guide covers USB serial under Landlock, executable Mesh Server pages, and `location_cmd` / Sideband plugin folders that must already exist on an allowed root at process start.
 
 ### Fixed
 
@@ -28,6 +41,13 @@ All notable changes to this project will be documented in this file.
 - **Windows desktop**: AppContainer sandboxing is opt-in (set `MESHCHAT_APPCONTAINER=1`) instead of on by default, to avoid extra launcher processes and heavy startup until the path is stable.
 - **Portable mode (Electron)**: The desktop app now honors `--data-dir`/`MESHCHAT_DATA_DIR` and `--storage-dir`/`--reticulum-config-dir` (flag or `MESHCHAT_STORAGE_DIR`/`MESHCHAT_RETICULUM_CONFIG_DIR` env var) on Linux and macOS, not just the Windows portable exe directory. Storage, Reticulum config, crash reports, and logs all resolve from the same root, so a removable drive or Tails persistence volume no longer touches `~/.reticulum-meshchatx` or `~/.reticulum`. Bots spawned for an identity now default their own RNS instance to the app's `reticulum_config_dir` instead of always falling back to `~/.reticulum` (`MESHCHAT_BOT_RETICULUM_CONFIG_DIR` still overrides this for a separate bot RNS instance). `resolve_log_dir()` also derives a logs directory from `MESHCHAT_DATA_DIR` when `MESHCHAT_STORAGE_DIR` is unset.
 - **Mesh Server (page nodes)**: A page node now re-announces itself on the mesh on a timer instead of only once when you press Announce, so peers do not lose the route after the initial announce expires. Each server has its own announce interval (default 15 minutes, clamped between 1 minute and 24 hours) and an automatic-announce toggle to disable mesh announcing for that server entirely. The mesh servers page shows when a server last announced and lets you edit the interval and toggle from the server's detail view.
+- **Auth middleware**: Public API paths are exact matches. `/api/v1/status.json` is no longer public because it prefixed `/api/v1/status`. Plugin assets under `/api/v1/plugins/` that end in `.js`, `.json`, or `.wasm` require auth instead of matching the static-file suffix rule.
+- **Interfaces / serial ports**: `GET /api/v1/comports` no longer returns 500 when pyserial hits Landlock on USB `idVendor` under `/sys`. It catches that TypeError and globs `/dev/ttyUSB*`, `/dev/ttyACM*`, `/dev/ttyAMA*`, and `/dev/rfcomm*` (not leftover `ttyS*` 8250 nodes).
+- **Announce interval 0**: Mesh Server and Relay Chat hosted-hub settings keep 0 as manual announce (no timer) instead of snapping the slider back to 15 minutes.
+- **Propagation sync API**: `/api/v1/lxmf/propagation-node/sync` and `stop-sync` are POST (CSRF and demo-mode blocked), not GET.
+- **Android startup**: If `127.0.0.1:<port>` already answers MeshChatX `/api/v1/status` for this listen port, the wrapper reuses that backend instead of treating the port as busy. A different process on the port still fails. RNS startup recovery only disables I2P on the first attempt when the error text mentions I2P, and attaches recent RNS error log lines to contained panics.
+- **Relay Chat hosting**: `/unregister` removes the room from the registry. `/list` omits a dangling ` - ` on rooms with no topic, and clients parse that line. Ban, invite, and op checks read existing room state and do not create a room just to answer. `/ban list` requires op before mutating state.
+- **Identity switch logs**: Persistent log handler flushes the in-memory buffer to the old database before swapping the handle, so lines queued during switch are not dropped.
 
 ## [4.8.1] - 2026-07-25
 
@@ -548,7 +568,7 @@ All notable changes to this project will be documented in this file.
 
 ## [4.5.0] - 2026-04-23
 
-### TL;DR 
+### TL;DR
 
 - **Android App!**: MeshChatX now has a native Android app you can install (not just for Termux users).
 - **Linux Packaging**: Added **Snap** and **Flatpak** initial support.
@@ -558,20 +578,20 @@ All notable changes to this project will be documented in this file.
 - **Announcements**: The app now handles timed announcements and reminders in a way that's more predictable and easy to understand.
 - **Hot Reload RNS**: You can now restart the Reticulum network stack directly from MeshChatX if there’s a problem.
 - **Config Editor Tool**: Added config editor tool to edit within app.
-- **Repository Server Tool**: New **Tool** for the optional local file shelf to redestribute reticulum and meshchatx python wheels locally or any file you upload. 
+- **Repository Server Tool**: New **Tool** for the optional local file shelf to redestribute reticulum and meshchatx python wheels locally or any file you upload.
 - **Dangerous Links**: The app can warn you before you open links from people you don’t know, if you happen to click on it by mistake.
 - **Message Rules**: New sieve tool for simple patterns. Matching stuff can land in the right folder, quiet the notification bell, or other actions you pick.
 - **Chats, Images and Reactions**: Bigger chats load faster, images are grouped and sized better, styling improvements to reactions.
 - **Looks and Effects**: You can make parts of the UI transparent or enable a "glass effect" look, with clear settings to control these options.
 - **Simpler Internals**: The app’s settings and chat features were reorganized behind the scenes, making it easier to maintain and more stable.
 - **Visualiser Improvements**: The visualiser now handles really big or complex networks much more smoothly. Also added better incremental hop slider and set default to 4 hops for faster and less laggy loading. The slider will also remember what you set.
-- **Easier Device Connections**: Advanced users can now see special codes (IFAC) that help with connecting certain types of interfaces here and via the API. 
+- **Easier Device Connections**: Advanced users can now see special codes (IFAC) that help with connecting certain types of interfaces here and via the API.
 - **Better Reliability**: The desktop (Electron) app recovers better from connection problems and crashes.
 - **Audio Without ffmpeg**: Voicemail, ringtones, and microphone capture use in-process encoding (**LXST** / **miniaudio**) so containers and minimal installs no longer need an **ffmpeg** binary for those paths.
 - **Calls and Microphone**: Picking input and output devices is less fiddly, permission edge cases recover more gracefully, and the microphone path through the browser stack has improved.
 - **Bundled Offline Docs**: In-app documentation can include the **Reticulum manual**, fetched at build time and bundled for offline reading; the docs page upload and sharing flow is smoother. Docs will also actually start on proper manual page.
 - **More Languages**: Spanish, French, Dutch, and Chinese options were added to the app’s language selector.
-- **Message Size Limits**: You can now set how big incoming messages can be (from 1MB up to 1GB) with easy presets or custom values. 
+- **Message Size Limits**: You can now set how big incoming messages can be (from 1MB up to 1GB) with easy presets or custom values.
 - **Interface Options**: The Add Interface page now exposes the full set of options the Reticulum stack supports.
 - **Map**: Another free map style, improve tile caching to show offline, mbtiles take priority, and improved markers.
 - **Nomad Browsing Path Finder**: Path finder tool that shows on failed links to pages, allowing you to manually try a bunch of path finding methods.
@@ -928,37 +948,37 @@ All notable changes to this project will be documented in this file.
 
 ### New Features
 
-- **Advanced Diagnostic Engine**: 
+- **Advanced Diagnostic Engine**:
     - Mathematically grounded crash recovery system using **Probabilistic Active Inference**, **Shannon Entropy**, and **KL-Divergence**.
     - **Deterministic Manifold Constraints**: Actively monitors structural system laws (V1: Version Integrity, V4: Resource Capacity).
     - **Failure Manifold Mapping**: Identifies "Failure Manifolds" across the vertical stack, including RNS identity failures, LXMF storage issues, and interface offline states.
-    - **Intelligent Integrity Monitoring**: 
+    - **Intelligent Integrity Monitoring**:
         - Implemented **Shannon Entropy Analysis** for critical files and databases to detect non-linear content shifts (e.g., unauthorized encryption or random data injection).
         - Integrated **SQLite Structural Verification** via `PRAGMA integrity_check` to distinguish between binary hash changes (dirty shutdowns) and actual database corruption.
         - Refined ignore logic for volatile LXMF/RNS files to eliminate false positives in tampering detection.
         - Added advanced security alerts for content anomalies, signature mismatches, and critical component compromises.
-- **RNS Auto-Configuration**: 
+- **RNS Auto-Configuration**:
     - Automatic creation and repair of the Reticulum configuration file (`~/.reticulum/config`) if it is missing, invalid, or corrupt.
 - **Expanded Security Pipeline**:
     - Integrated **Trivy** for both filesystem (codebase) and container image scanning.
     - Consolidated security scans into a unified `scan.yml` workflow for better visibility.
     - Updated container workflows to include fail-fast filesystem checks.
-- **Network Visualiser Optimization**: 
+- **Network Visualiser Optimization**:
     - Implemented **AbortController** support to cancel pending API requests on component unmount.
     - Added high-performance batch fetching for path tables and announces (up to 1000 items per request).
-- **Announce Pagination**: 
+- **Announce Pagination**:
     - Added backend and database-level pagination for announces to improve UI responsiveness in large networks.
-- **Improved Installation**: 
+- **Improved Installation**:
     - Added support and documentation for installing via **Pre-built Wheels (.whl)** from releases, which bundle the built frontend for a simpler setup experience.
 
 ### Improvements
 
-- **Reliability & Memory Management**: 
+- **Reliability & Memory Management**:
     - Fixed a major concurrency issue where in-memory SQLite databases (`:memory:`) were not shared across background threads, causing "no such table" errors.
     - Resolved `asyncio` event loop race conditions in `WebAudioBridge` using a lazy-loading loop property with fallback.
     - Refactored `IdentityContext` teardown to ensure all managers are properly nullified and callbacks cleared, preventing memory leaks and reference cycles.
     - Added client list cleanup in `WebAudioBridge` when calls end.
-- **UI/UX**: 
+- **UI/UX**:
     - Enhanced **LXMF link handling** with better rendering logic for `lxmf://` and `rns://` URIs.
     - Fixed a critical hang in the **Startup Wizard** where "Finish" or "Skip" buttons could become unresponsive.
     - Improved UI navigation safety by automatically closing the tutorial modal when navigating away.
@@ -968,7 +988,7 @@ All notable changes to this project will be documented in this file.
     - Updated Docker dev-image workflows to trigger on master branch pushes.
     - Refactored telemetry data packing for more efficient location transmission.
     - Updated dependencies including **Electron Forge (7.11.1)**, **Prettier (3.8.0)**, and ESLint plugins for better stability and formatting.
-- **Testing**: 
+- **Testing**:
     - **Frontend UI Test Suite Expansion**: Added comprehensive Vitest suites for all diagnostic and utility tools (Ping, Trace, Probe, RNode Flasher, Micron Editor, etc.).
     - **Property-Based Testing**: Significant expansion with `hypothesis` to ensure robustness of the diagnostic engine, identity restoration, and markdown renderer.
     - **Integrity Validation Suite**: Added extensive property-based tests for entropy mathematical bounds and simulated corruption scenarios (SQLite b-tree breakage, content type shifts).
@@ -981,7 +1001,7 @@ Season 1 Episode 1 - A MASSIVE REFACTOR
 
 ### New Features
 
-- **Banishment System (formerly Blocked):** 
+- **Banishment System (formerly Blocked):**
     - Renamed all instances of "Blocked" to **"Banished"**, you can now banish really annoying people to the shadow realm.
     - **Blackhole Integration:** Automatically blackholes identities at the RNS transport layer when they are banished in MeshChatX. This prevents their traffic from being relayed through your node and publishes the update to your interfaces (trusted interfaces will pull and enforce the banishment).
     - Integrated RNS 1.1.0 Blackhole to display publishing status, sources, and current blackhole counts in the RNStatus page.
@@ -991,7 +1011,7 @@ Season 1 Episode 1 - A MASSIVE REFACTOR
     - Added support for custom ringtones and a brand-new ringtone editor.
     - New **Audio Waveform Visualization** for voice messages, providing interactive playback with a visual waveform representation.
 - **Paper Messages:** Introduced a tool for generating and scanning paper-based messages with built-in QR code generation for easy sharing.
-- **LXMF Telemetry & Live Tracking**: 
+- **LXMF Telemetry & Live Tracking**:
     - Full implementation of Sideband-compatible (Still need to test Columba) telemetry (FIELD_TELEMETRY & FIELD_TELEMETRY_STREAM).
     - Live tracking with real-time map updates, distinct blue pulsing animations, and historical path tracing (breadcrumb trails).
     - Mini-chat integrated into map markers for quick communication with telemetry peers.
@@ -1031,7 +1051,7 @@ Season 1 Episode 1 - A MASSIVE REFACTOR
     - **Smoother Settings:** Changing settings now uses "smart saving" (debouncing) to prevent unnecessary disk work and keep the interface responsive.
     - **Backend Efficiency:** A massive core refactor and new database optimizations make message handling and search nearly instantaneous. Added pagination to announce and discovery lists to improve performance in large networks.
 - **Calling:** The call screen and overlays have been completely redesigned to look better and work more smoothly.
-- **Messaging:** 
+- **Messaging:**
     - Polished the message lists and archive views to make them easier to navigate.
     - Added "Retry All" functionality for failed or cancelled messages in conversation views.
     - Improved handling of `lxm.ingest_uri.result` with detailed notifications for success/error/warning states.
