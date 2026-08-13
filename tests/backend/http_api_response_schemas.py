@@ -453,6 +453,45 @@ MAP_MBTILES_SCHEMA: dict = {
     "items": _OBJECT,
 }
 
+MAP_DATA_STATUS_SCHEMA: dict = {
+    "type": "object",
+    "required": [
+        "aspect",
+        "running",
+        "destination_hash",
+        "display_name",
+        "announce_enabled",
+        "announce_interval",
+        "max_bytes",
+        "published_count",
+    ],
+    "properties": {
+        "aspect": _STRING,
+        "running": _BOOLEAN,
+        "destination_hash": {"type": ["string", "null"]},
+        "display_name": _STRING,
+        "announce_enabled": _BOOLEAN,
+        "announce_interval": _INTEGER,
+        "max_bytes": _INTEGER,
+        "published_count": _INTEGER,
+    },
+    "additionalProperties": True,
+}
+
+MAP_DATA_PUBLISHED_SCHEMA: dict = {
+    "type": "object",
+    "required": ["maps"],
+    "properties": {"maps": _ARRAY},
+    "additionalProperties": True,
+}
+
+MAP_DATA_HEARD_SCHEMA: dict = {
+    "type": "object",
+    "required": ["announces"],
+    "properties": {"announces": _ARRAY},
+    "additionalProperties": True,
+}
+
 TELEMETRY_PEERS_SCHEMA: dict = {
     "type": "object",
     "required": ["telemetry"],
