@@ -109,6 +109,7 @@ from meshchatx.src.backend.interface_port_check import (
 from meshchatx.src.backend.ip_allowlist import client_ip_allowed
 from meshchatx.src.backend.landlock_sandbox import (
     apply_landlock_sandbox,
+    extra_read_roots_from_app,
     landlock_auto_enabled,
     landlock_disabled_by_env,
     landlock_kernel_supported,
@@ -6300,6 +6301,13 @@ class ReticulumMeshChat:
                 if s in ("left", "right"):
                     self.config.messages_sidebar_position.set(s)
 
+        if "app_sidebar_layout" in data:
+            raw = data["app_sidebar_layout"]
+            if raw is not None:
+                s = str(raw).strip().lower()
+                if s in ("grouped", "classic"):
+                    self.config.app_sidebar_layout.set(s)
+
         if "message_icon_size" in data:
             try:
                 value = int(data["message_icon_size"])
@@ -7282,6 +7290,7 @@ class ReticulumMeshChat:
             "banished_color": ctx.config.banished_color.get(),
             "message_font_size": ctx.config.message_font_size.get(),
             "messages_sidebar_position": ctx.config.messages_sidebar_position.get(),
+            "app_sidebar_layout": ctx.config.app_sidebar_layout.get(),
             "messages_multi_pane_enabled": ctx.config.messages_multi_pane_enabled.get(),
             "nomad_tabs_enabled": ctx.config.nomad_tabs_enabled.get(),
             "rrc_enabled": ctx.config.rrc_enabled.get(),
@@ -10942,6 +10951,7 @@ def main():
         reticulum_config_dir=reticulum_meshchat.reticulum_config_dir,
         public_dir=reticulum_meshchat.public_dir_override or get_file_path("public"),
         log_dir=resolve_log_dir(),
+        extra_read_roots=extra_read_roots_from_app(reticulum_meshchat),
     )
     # Apply after Landlock so landlock_* syscalls are not blocked by the filter.
     reticulum_meshchat.seccomp_active = apply_seccomp_sandbox()

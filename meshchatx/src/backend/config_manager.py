@@ -472,6 +472,11 @@ class ConfigManager:
             "messages_sidebar_position",
             "left",
         )
+        self.app_sidebar_layout = self.StringConfig(
+            self,
+            "app_sidebar_layout",
+            "grouped",
+        )
         self.messages_multi_pane_enabled = self.BoolConfig(
             self,
             "messages_multi_pane_enabled",
