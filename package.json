@@ -237,6 +237,9 @@
             "synopsis": "Mesh networking chat client",
             "description": "A simple mesh network communications app powered by the Reticulum Network Stack"
         },
+        "apk": {
+            "artifactName": "ReticulumMeshChatX-v${version}-${os}-alpine-${arch}.${ext}"
+        },
         "flatpak": {
             "runtime": "org.freedesktop.Platform",
             "runtimeVersion": "25.08",
