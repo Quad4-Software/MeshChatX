@@ -1101,6 +1101,12 @@
                             <v-icon icon="mdi-information-outline" class="shrink-0"></v-icon>
                             <span>{{ $t("tutorial.docker_note") }}</span>
                         </div>
+                        <RouterLink
+                            :to="{ name: 'documentation' }"
+                            class="text-sm font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                        >
+                            {{ $t("tutorial.learn_more_docs") }}
+                        </RouterLink>
                     </div>
                 </transition>
             </v-card-text>
@@ -2301,6 +2307,12 @@
                                 </div>
                             </div>
                         </div>
+                        <RouterLink
+                            :to="{ name: 'documentation' }"
+                            class="text-base font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                        >
+                            {{ $t("tutorial.learn_more_docs") }}
+                        </RouterLink>
                     </div>
                 </transition>
 
@@ -3406,6 +3418,9 @@ export default {
                 return;
             }
             this.currentStep++;
+            if (this.currentStep === 6 || this.currentStep === 7) {
+                this.currentStep = 8;
+            }
             if (this.currentStep === 4) {
                 this.bootstrapListSearch = "";
                 this.bootstrapDiscoveredSectionOpen = true;
@@ -3417,6 +3432,10 @@ export default {
                 return;
             }
             if (this.currentStep <= 1) return;
+            if (this.currentStep === 8) {
+                this.currentStep = 5;
+                return;
+            }
             if (
                 this.currentStep === 5 &&
                 this.connectionMode !== "discovery" &&
@@ -3520,6 +3539,7 @@ export default {
                 }
                 await this.markSeen();
                 this.visible = false;
+                GlobalEmitter.emit("tutorial-finished");
                 if (this.interfaceAddedViaTutorial) {
                     ToastUtils.success(this.$t("tutorial.ready_finished"));
                 }

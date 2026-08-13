@@ -17,7 +17,9 @@
                             <MaterialDesignIcon icon-name="alert-circle" class="w-6 h-6" />
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-xl font-black text-gray-900 dark:text-white mb-2">Confirm Action</h3>
+                            <h3 class="text-xl font-black text-gray-900 dark:text-white mb-2">
+                                {{ $t("common.confirm_action") }}
+                            </h3>
                             <p class="text-gray-600 dark:text-zinc-300 whitespace-pre-wrap leading-relaxed">
                                 {{ pendingConfirm.message }}
                             </p>
@@ -30,14 +32,14 @@
                             class="px-6 py-3 text-sm font-bold text-gray-700 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 rounded-xl hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all active:scale-95"
                             @click="cancel"
                         >
-                            Cancel
+                            {{ $t("common.cancel") }}
                         </button>
                         <button
                             type="button"
                             class="px-6 py-3 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-lg shadow-red-600/20 transition-all active:scale-95"
                             @click="confirm"
                         >
-                            Confirm
+                            {{ $t("common.confirm") }}
                         </button>
                     </div>
                 </div>

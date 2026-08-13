@@ -211,9 +211,11 @@ export default {
     },
     mounted() {
         window.addEventListener("keydown", this.handleGlobalKeydown, true);
+        GlobalEmitter.on("open-command-palette", this.open);
     },
     beforeUnmount() {
         window.removeEventListener("keydown", this.handleGlobalKeydown, true);
+        GlobalEmitter.off("open-command-palette", this.open);
     },
     methods: {
         handleGlobalKeydown(e) {

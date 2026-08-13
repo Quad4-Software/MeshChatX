@@ -3268,6 +3268,9 @@ export default {
             } catch {
                 return;
             }
+            if (!json || typeof json !== "object" || Array.isArray(json)) {
+                return;
+            }
             if (json.type === "rrc.change") {
                 this.fetchHubs();
             } else if (json.type === "rrc.message") {

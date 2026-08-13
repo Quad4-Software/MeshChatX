@@ -51,7 +51,7 @@
                         selectedPeerLxmfStampInfo?.stamp_cost ||
                         lxmfHasOutboundTicket
                     "
-                    class="flex items-center gap-2 min-w-0"
+                    class="hidden sm:flex items-center gap-2 min-w-0"
                 >
                     <span class="text-gray-300 dark:text-zinc-700 shrink-0">•</span>
 
@@ -164,8 +164,12 @@
                 @path-finder-drop="$emit('path-finder-drop')"
             />
 
-            <IconButton title="Close" class="shrink-0" @click="$emit('close')">
-                <MaterialDesignIcon icon-name="close" class="size-6 sm:size-7" />
+            <IconButton
+                :title="compactPeerActions ? $t('messages.back_to_list') : $t('common.close')"
+                class="shrink-0"
+                @click="$emit('close')"
+            >
+                <MaterialDesignIcon :icon-name="compactPeerActions ? 'arrow-left' : 'close'" class="size-6 sm:size-7" />
             </IconButton>
         </div>
     </div>

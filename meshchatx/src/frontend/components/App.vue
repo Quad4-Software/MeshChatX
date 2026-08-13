@@ -94,7 +94,7 @@
                             <button
                                 type="button"
                                 class="relative hidden sm:inline-flex rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-                                :title="config?.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+                                :title="config?.theme === 'dark' ? $t('app.light_theme') : $t('app.dark_theme')"
                                 @click="toggleTheme"
                             >
                                 <MaterialDesignIcon
@@ -105,36 +105,17 @@
                             <LanguageSelector class="hidden sm:block" @language-change="onLanguageChange" />
                             <button
                                 type="button"
-                                class="sm:hidden rounded-full p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors relative"
-                                :title="$t('app.messages')"
-                                @click="$router.push({ name: 'messages' })"
+                                class="hidden sm:inline-flex rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                :title="commandPaletteTitle"
+                                :aria-label="commandPaletteTitle"
+                                data-testid="header-command-palette"
+                                @click="openCommandPalette"
                             >
-                                <MaterialDesignIcon icon-name="message-text" class="w-5 h-5" />
-                                <span
-                                    v-if="unreadConversationsCount > 0"
-                                    class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
-                                >
-                                    {{ unreadConversationsCount > 99 ? "99+" : unreadConversationsCount }}
-                                </span>
-                            </button>
-                            <button
-                                v-if="rrcEnabled"
-                                type="button"
-                                class="relative sm:hidden rounded-full p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-                                :title="$t('app.relay_chat')"
-                                @click="$router.push({ name: 'relay-chat' })"
-                            >
-                                <MaterialDesignIcon icon-name="forum" class="w-5 h-5" />
-                                <span
-                                    v-if="relayChatUnreadCount > 0"
-                                    class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
-                                >
-                                    {{ relayChatUnreadCount > 99 ? "99+" : relayChatUnreadCount }}
-                                </span>
+                                <MaterialDesignIcon icon-name="magnify" class="w-5 h-5 sm:w-6 sm:h-6" />
                             </button>
                             <button
                                 type="button"
-                                class="relative rounded-full p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center sm:p-2 sm:min-h-0 sm:min-w-0 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                class="hidden sm:inline-flex rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors relative"
                                 :title="$t('app.audio_calls')"
                                 @click="$router.push({ name: 'call' })"
                             >
@@ -196,12 +177,19 @@
                                     }}</span>
                                 </span>
                             </button>
-                            <button type="button" class="hidden sm:flex rounded-full" @click="composeNewMessage">
+                            <button
+                                type="button"
+                                class="inline-flex rounded-full min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 items-center justify-center"
+                                :title="$t('app.compose')"
+                                :aria-label="$t('app.compose')"
+                                data-testid="header-compose"
+                                @click="composeNewMessage"
+                            >
                                 <span
                                     class="flex rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-white shadow-xs transition hover:bg-zinc-800 dark:border-zinc-400 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-white"
                                 >
                                     <span>
-                                        <MaterialDesignIcon icon-name="email" class="w-6 h-6" />
+                                        <MaterialDesignIcon icon-name="email" class="w-5 h-5 sm:w-6 sm:h-6" />
                                     </span>
                                     <span class="hidden sm:inline-block my-auto mx-1 text-sm font-semibold">{{
                                         $t("app.compose")
@@ -259,7 +247,7 @@
                                 <button
                                     type="button"
                                     class="flex items-center gap-2 flex-1 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-                                    :title="config?.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+                                    :title="config?.theme === 'dark' ? $t('app.light_theme') : $t('app.dark_theme')"
                                     @click="toggleTheme"
                                 >
                                     <MaterialDesignIcon
@@ -273,197 +261,56 @@
                                 <LanguageSelector @language-change="onLanguageChange" />
                             </div>
 
-                            <!-- navigation -->
-                            <div class="flex-1">
-                                <ul class="py-3 pr-2 space-y-1">
-                                    <li v-for="item in visibleNavItems" :key="item.id">
-                                        <SidebarLink :to="item.route" :is-collapsed="isSidebarCollapsed">
-                                            <template #icon>
-                                                <span class="relative inline-flex shrink-0">
-                                                    <MaterialDesignIcon
-                                                        :icon-name="item.icon"
-                                                        class="w-6 h-6 text-gray-700 dark:text-white"
-                                                    />
-                                                    <span
-                                                        v-if="
-                                                            isSidebarCollapsed &&
-                                                            getNavBadgeCount(item) > 0 &&
-                                                            item.badge?.pill
-                                                        "
-                                                        class="absolute -right-2 -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
-                                                    >
-                                                        {{ formatNavBadgeCount(item) }}
-                                                    </span>
-                                                </span>
-                                            </template>
-                                            <template #text>
-                                                <span>{{ item.label || $t(item.labelKey) }}</span>
-                                                <span
-                                                    v-if="getNavBadgeCount(item) > 0 && !item.badge?.pill"
-                                                    class="ml-auto mr-2"
-                                                >
-                                                    {{ getNavBadgeCount(item) }}
-                                                </span>
-                                                <span
-                                                    v-else-if="
-                                                        !isSidebarCollapsed &&
-                                                        getNavBadgeCount(item) > 0 &&
-                                                        item.badge?.pill
-                                                    "
-                                                    class="ml-auto mr-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
-                                                >
-                                                    {{ formatNavBadgeCount(item) }}
-                                                </span>
-                                            </template>
-                                        </SidebarLink>
-                                    </li>
-                                </ul>
-                            </div>
+                            <template v-if="useGroupedAppSidebar">
+                                <AppSidebarNav
+                                    :primary-nav-groups="primaryNavGroups"
+                                    :more-nav-items="moreNavItems"
+                                    :is-collapsed="isSidebarCollapsed"
+                                    :is-showing-more-nav="isShowingMoreNav"
+                                    :unread-conversations-count="unreadConversationsCount"
+                                    :relay-chat-unread-count="relayChatUnreadCount"
+                                    :missed-calls-count="missedCallsCount"
+                                    @more-toggle="onMoreNavToggle"
+                                />
+                            </template>
+                            <AppSidebarClassicNav
+                                v-else
+                                :nav-items="visibleNavItems"
+                                :is-collapsed="isSidebarCollapsed"
+                                :unread-conversations-count="unreadConversationsCount"
+                                :relay-chat-unread-count="relayChatUnreadCount"
+                                :missed-calls-count="missedCallsCount"
+                            />
 
                             <div>
-                                <!-- my identity -->
-                                <div
-                                    v-if="config"
-                                    class="bg-white border-t border-gray-200 dark:border-zinc-800 dark:bg-zinc-950"
-                                >
-                                    <div
-                                        class="flex text-gray-700 p-3 cursor-pointer"
-                                        @click="isShowingMyIdentitySection = !isShowingMyIdentitySection"
-                                    >
-                                        <div class="my-auto mr-2 shrink-0">
-                                            <RouterLink :to="{ name: 'profile.icon' }" @click.stop>
-                                                <LxmfUserIcon
-                                                    :icon-name="config?.lxmf_user_icon_name"
-                                                    :icon-foreground-colour="config?.lxmf_user_icon_foreground_colour"
-                                                    :icon-background-colour="config?.lxmf_user_icon_background_colour"
-                                                    icon-class="size-7"
-                                                />
-                                            </RouterLink>
-                                        </div>
-                                        <div
-                                            v-if="!isSidebarCollapsed"
-                                            class="my-auto min-w-0 flex-1 dark:text-white truncate"
-                                            :title="identitySidebarLabel"
-                                        >
-                                            {{ identitySidebarLabel }}
-                                        </div>
-                                        <div v-if="!isSidebarCollapsed" class="my-auto ml-auto shrink-0">
-                                            <button
-                                                type="button"
-                                                class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-xs hover:bg-gray-400 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700 dark:focus-visible:outline-zinc-500"
-                                                @click.stop="saveIdentitySettings"
-                                            >
-                                                {{ $t("common.save") }}
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div
-                                        v-if="isShowingMyIdentitySection && !isSidebarCollapsed"
-                                        class="divide-y divide-gray-200 text-gray-900 border-t border-gray-200 dark:divide-zinc-800 dark:text-zinc-200 dark:border-zinc-800"
-                                    >
-                                        <div class="p-2">
-                                            <input
-                                                v-model="displayName"
-                                                type="text"
-                                                :placeholder="$t('app.display_name_placeholder')"
-                                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-200 dark:focus:ring-blue-400 dark:focus:border-blue-400"
-                                            />
-                                        </div>
-                                        <div class="p-2 dark:border-zinc-900 overflow-hidden text-xs">
-                                            <div>{{ $t("app.identity_hash") }}</div>
-                                            <div
-                                                class="text-[10px] text-gray-700 dark:text-zinc-400 truncate font-mono cursor-pointer"
-                                                :title="config.identity_hash"
-                                                @click="copyValue(config.identity_hash, $t('app.identity_hash'))"
-                                            >
-                                                {{ config.identity_hash }}
-                                            </div>
-                                        </div>
-                                        <div class="p-2 dark:border-zinc-900 overflow-hidden text-xs">
-                                            <div>{{ $t("app.lxmf_address") }}</div>
-                                            <div class="flex min-w-0 items-center gap-1">
-                                                <div
-                                                    class="min-w-0 flex-1 text-[10px] text-gray-700 dark:text-zinc-400 truncate font-mono cursor-pointer"
-                                                    :title="config.lxmf_address_hash"
-                                                    @click="copyValue(config.lxmf_address_hash, $t('app.lxmf_address'))"
-                                                >
-                                                    {{ config.lxmf_address_hash }}
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    class="shrink-0 rounded-lg p-1 text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
-                                                    :title="$t('app.show_qr')"
-                                                    @click.stop="openLxmfQr"
-                                                >
-                                                    <MaterialDesignIcon icon-name="qrcode" class="size-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- auto announce -->
-                                <div
-                                    v-if="config"
-                                    class="bg-white border-t border-gray-200 dark:border-zinc-800 dark:bg-zinc-950"
-                                >
-                                    <div
-                                        class="flex text-gray-700 p-3 cursor-pointer dark:text-white"
-                                        data-testid="sidebar-announce-header"
-                                        @click="isShowingAnnounceSection = !isShowingAnnounceSection"
-                                    >
-                                        <button
-                                            type="button"
-                                            class="my-auto mr-2 flex shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0 text-inherit cursor-pointer"
-                                            :title="$t('app.announce_now')"
-                                            data-testid="sidebar-announce-radio"
-                                            @click.stop="sendAnnounce"
-                                        >
-                                            <MaterialDesignIcon icon-name="radio" class="size-6" />
-                                        </button>
-                                        <div v-if="!isSidebarCollapsed" class="my-auto truncate">
-                                            {{ $t("app.announce") }}
-                                        </div>
-                                        <div v-if="!isSidebarCollapsed" class="ml-auto shrink-0">
-                                            <button
-                                                type="button"
-                                                class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-xs hover:bg-gray-400 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700 dark:focus-visible:outline-zinc-500"
-                                                @click.stop="sendAnnounce"
-                                            >
-                                                {{ $t("app.announce_now") }}
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div
-                                        v-if="isShowingAnnounceSection && !isSidebarCollapsed"
-                                        class="divide-y divide-gray-200 text-gray-900 border-t border-gray-200 dark:divide-zinc-800 dark:text-zinc-200 dark:border-zinc-800"
-                                    >
-                                        <div class="p-2 dark:border-zinc-800">
-                                            <select
-                                                v-model="config.auto_announce_interval_seconds"
-                                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-200 dark:focus:ring-blue-400 dark:focus:border-blue-400"
-                                                @change="onAnnounceIntervalSecondsChange"
-                                            >
-                                                <option value="0">{{ $t("app.disabled") }}</option>
-                                                <option value="900">Every 15 Minutes</option>
-                                                <option value="1800">Every 30 Minutes</option>
-                                                <option value="3600">Every 1 Hour</option>
-                                                <option value="10800">Every 3 Hours</option>
-                                                <option value="21600">Every 6 Hours</option>
-                                                <option value="43200">Every 12 Hours</option>
-                                                <option value="86400">Every 24 Hours</option>
-                                            </select>
-                                            <div class="text-[10px] text-gray-700 dark:text-zinc-100 mt-1">
-                                                <span v-if="config.last_announced_at">{{
-                                                    $t("app.last_announced", {
-                                                        time: formatSecondsAgo(config.last_announced_at),
-                                                    })
-                                                }}</span>
-                                                <span v-else>{{ $t("app.last_announced_never") }}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <AppSidebarAccountFooter
+                                    v-if="config && useGroupedAppSidebar"
+                                    :config="config"
+                                    :display-name="displayName"
+                                    :identity-label="identitySidebarLabel"
+                                    :last-announced-label="lastAnnouncedSidebarLabel"
+                                    :is-collapsed="isSidebarCollapsed"
+                                    @update:display-name="displayName = $event"
+                                    @save-identity="saveIdentitySettings"
+                                    @send-announce="sendAnnounce"
+                                    @announce-interval-change="onAnnounceIntervalChange"
+                                    @copy-value="copyValue"
+                                    @open-lxmf-qr="openLxmfQr"
+                                />
+                                <AppSidebarClassicFooter
+                                    v-else-if="config"
+                                    :config="config"
+                                    :display-name="displayName"
+                                    :identity-label="identitySidebarLabel"
+                                    :last-announced-label="lastAnnouncedSidebarLabel"
+                                    :is-collapsed="isSidebarCollapsed"
+                                    @update:display-name="displayName = $event"
+                                    @save-identity="saveIdentitySettings"
+                                    @send-announce="sendAnnounce"
+                                    @announce-interval-change="onAnnounceIntervalChange"
+                                    @copy-value="copyValue"
+                                    @open-lxmf-qr="openLxmfQr"
+                                />
 
                                 <div
                                     v-if="appInfo?.version"
@@ -534,7 +381,7 @@
         <Toast />
         <ConfirmDialog />
         <PromptDialog />
-        <CommandPalette />
+        <CommandPalette ref="commandPalette" />
         <IntegrityWarningModal />
         <ChangelogModal ref="changelogModal" :app-version="appInfo?.version" />
         <TutorialModal ref="tutorialModal" />
@@ -641,6 +488,10 @@ import AndroidStorageChoicePrompt from "./AndroidStorageChoicePrompt.vue";
 import PostInstallPromptHost from "./PostInstallPromptHost.vue";
 import AppShellBanners from "./layout/AppShellBanners.vue";
 import AppIdentitySwitchOverlay from "./layout/AppIdentitySwitchOverlay.vue";
+import AppSidebarAccountFooter from "./layout/AppSidebarAccountFooter.vue";
+import AppSidebarNav from "./layout/AppSidebarNav.vue";
+import AppSidebarClassicNav from "./layout/AppSidebarClassicNav.vue";
+import AppSidebarClassicFooter from "./layout/AppSidebarClassicFooter.vue";
 import KeyboardShortcuts from "../js/KeyboardShortcuts";
 import ElectronUtils from "../js/ElectronUtils";
 import { postRequestPath } from "../js/reticulumPathfinding.js";
@@ -681,6 +532,10 @@ export default {
         PostInstallPromptHost,
         AppShellBanners,
         AppIdentitySwitchOverlay,
+        AppSidebarAccountFooter,
+        AppSidebarNav,
+        AppSidebarClassicNav,
+        AppSidebarClassicFooter,
     },
     setup() {
         const vuetifyTheme = useTheme();
@@ -697,11 +552,9 @@ export default {
             appInfoInterval: null,
             unreadCountInterval: null,
 
-            isShowingMyIdentitySection: true,
-            isShowingAnnounceSection: true,
-
             isSidebarOpen: false,
             isSidebarCollapsed: false,
+            isShowingMoreNav: false,
 
             isSwitchingIdentity: false,
             shellRunning: false,
@@ -710,6 +563,7 @@ export default {
             config: null,
             appInfo: null,
             hasCheckedForModals: false,
+            skipChangelogAfterTutorial: false,
 
             showLxmfQr: false,
             lxmfQrDataUrl: null,
@@ -805,6 +659,28 @@ export default {
         },
         visibleNavItems() {
             return listNavItems().filter((item) => this.isNavItemVisible(item));
+        },
+        primaryNavItems() {
+            return this.visibleNavItems.filter((item) => item.navTier !== "more");
+        },
+        moreNavItems() {
+            return this.visibleNavItems.filter((item) => item.navTier === "more");
+        },
+        primaryNavGroups() {
+            return this.buildNavGroups(this.primaryNavItems);
+        },
+        useGroupedAppSidebar() {
+            const layout = this.config?.app_sidebar_layout;
+            return layout !== "classic";
+        },
+        commandPaletteTitle() {
+            return this.$t("command_palette.open_hint");
+        },
+        lastAnnouncedSidebarLabel() {
+            if (!this.config?.last_announced_at) {
+                return "";
+            }
+            return this.formatSecondsAgo(this.config.last_announced_at);
         },
         isSyncingPropagationNode() {
             // Only treat sync as "running" in the chrome when the user started it.
@@ -1007,28 +883,32 @@ export default {
             }
             return true;
         },
-        getNavBadgeCount(item) {
-            if (!item.badge?.source) {
-                return 0;
+        buildNavGroups(items) {
+            const order = ["communicate", "explore", "app", "network"];
+            const groups = {};
+            for (const item of items) {
+                const groupId = item.group || "app";
+                if (!groups[groupId]) {
+                    groups[groupId] = [];
+                }
+                groups[groupId].push(item);
             }
-            if (item.badge.source === "unreadConversationsCount") {
-                return this.unreadConversationsCount;
-            }
-            if (item.badge.source === "relayChatUnreadCount") {
-                return this.relayChatUnreadCount;
-            }
-            if (item.badge.source === "missedCallsCount") {
-                return this.missedCallsCount;
-            }
-            return 0;
+            return order
+                .filter((groupId) => groups[groupId]?.length)
+                .map((groupId) => ({ id: groupId, items: groups[groupId] }));
         },
-        formatNavBadgeCount(item) {
-            const count = this.getNavBadgeCount(item);
-            const cap = item.badge?.cap;
-            if (cap && count >= cap) {
-                return `${cap - 1}+`;
+        onMoreNavToggle() {
+            if (this.isSidebarCollapsed) {
+                this.$router.push({ name: "about" });
+                return;
             }
-            return count;
+            this.isShowingMoreNav = !this.isShowingMoreNav;
+        },
+        openCommandPalette() {
+            const palette = this.$refs.commandPalette;
+            if (palette && typeof palette.open === "function") {
+                void palette.open();
+            }
         },
         onRingtoneUnlockGesture() {
             NotificationSoundUtils.unlockAutoplay();
@@ -1109,6 +989,7 @@ export default {
             GlobalEmitter.on("block-status-changed", this.onBlockStatusChangedShell);
             GlobalEmitter.on("show-changelog", this.onShowChangelogShell);
             GlobalEmitter.on("show-tutorial", this.onShowTutorialShell);
+            GlobalEmitter.on("tutorial-finished", this.onTutorialFinishedShell);
             GlobalEmitter.on("notifications-changed", this.updateUnreadConversationsCount);
 
             this.getAppInfo();
@@ -1217,6 +1098,7 @@ export default {
             GlobalEmitter.off("block-status-changed", this.onBlockStatusChangedShell);
             GlobalEmitter.off("show-changelog", this.onShowChangelogShell);
             GlobalEmitter.off("show-tutorial", this.onShowTutorialShell);
+            GlobalEmitter.off("tutorial-finished", this.onTutorialFinishedShell);
             GlobalEmitter.off("notifications-changed", this.updateUnreadConversationsCount);
             this.clearWsShellUiTimers();
             this.wsDisconnected = false;
@@ -1572,7 +1454,11 @@ export default {
             this.$refs.changelogModal?.show();
         },
         onShowTutorialShell() {
+            this.skipChangelogAfterTutorial = false;
             this.$refs.tutorialModal?.show();
+        },
+        onTutorialFinishedShell() {
+            this.skipChangelogAfterTutorial = true;
         },
         maybeShowAndroidStorageUpgrade() {
             const prompt = this.$refs.androidStorageUpgradePrompt;
@@ -1911,6 +1797,7 @@ export default {
                         // registry prompts for existing users (bump revision to re-show)
                     } else if (
                         this.appInfo &&
+                        !this.skipChangelogAfterTutorial &&
                         this.appInfo.changelog_seen_version !== "999.999.999" &&
                         this.appInfo.changelog_seen_version !== this.appInfo.version
                     ) {
@@ -2039,6 +1926,13 @@ export default {
                 },
                 "announce_interval"
             );
+        },
+        async onAnnounceIntervalChange(seconds) {
+            if (!this.config) {
+                return;
+            }
+            this.config.auto_announce_interval_seconds = seconds;
+            await this.onAnnounceIntervalSecondsChange();
         },
         async toggleTheme() {
             if (!this.config) {

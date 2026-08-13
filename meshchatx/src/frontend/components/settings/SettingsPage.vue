@@ -986,6 +986,7 @@
                             "
                             @theme-change="onThemeChange"
                             @messages-sidebar-position-change="onMessagesSidebarPositionChange"
+                            @app-sidebar-layout-change="onAppSidebarLayoutChange"
                             @message-font-size-change="onMessageFontSizeChange"
                             @message-icon-size-change="onMessageIconSizeChange"
                             @ui-transparency-change="onUiTransparencyChange"
@@ -4105,6 +4106,16 @@ export default {
                 "messages_sidebar_position"
             );
         },
+        async onAppSidebarLayoutChange() {
+            const v = this.config.app_sidebar_layout === "classic" ? "classic" : "grouped";
+            this.config.app_sidebar_layout = v;
+            await this.updateConfig(
+                {
+                    app_sidebar_layout: v,
+                },
+                "app_sidebar_layout"
+            );
+        },
         async onMessageFontSizeChange() {
             if (this.saveTimeouts.message_font_size) clearTimeout(this.saveTimeouts.message_font_size);
             this.saveTimeouts.message_font_size = setTimeout(async () => {
@@ -4195,6 +4206,7 @@ export default {
         async resetAppearanceDefaults() {
             this.config.theme = "light";
             this.config.messages_sidebar_position = "left";
+            this.config.app_sidebar_layout = "grouped";
             this.config.message_font_size = 14;
             this.config.message_icon_size = 28;
             this.config.ui_transparency = 0;
@@ -4207,6 +4219,7 @@ export default {
                 {
                     theme: "light",
                     messages_sidebar_position: "left",
+                    app_sidebar_layout: "grouped",
                     message_font_size: 14,
                     message_icon_size: 28,
                     ui_transparency: 0,
