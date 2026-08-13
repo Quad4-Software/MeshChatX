@@ -25,6 +25,8 @@ import {
     decideControllerChangeReload,
     isIgnorableServiceWorkerRegistrationError,
     serviceWorkerRegisterOptions,
+    shouldRegisterServiceWorker,
+    unregisterServiceWorkersIfPresent,
 } from "./js/pwa/swClientRegister.js";
 import "./js/HeapMonitor.js";
 
@@ -442,7 +444,13 @@ if (networkReady) {
         if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
             return;
         }
-        if (ElectronUtils.isElectron()) {
+        if (
+            !shouldRegisterServiceWorker({
+                isDev: import.meta.env.DEV,
+                isElectron: ElectronUtils.isElectron(),
+            })
+        ) {
+            void unregisterServiceWorkersIfPresent(navigator.serviceWorker);
             return;
         }
         let refreshing = false;

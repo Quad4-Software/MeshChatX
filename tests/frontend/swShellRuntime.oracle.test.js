@@ -20,6 +20,8 @@ import {
     decideControllerChangeReload,
     isIgnorableServiceWorkerRegistrationError,
     serviceWorkerRegisterOptions,
+    shouldRegisterServiceWorker,
+    unregisterServiceWorkersIfPresent,
 } from "../../meshchatx/src/frontend/js/pwa/swClientRegister.js";
 import { makeRequest, MemoryCacheStorage, okResponse } from "./helpers/memoryCacheStorage.js";
 
@@ -239,6 +241,41 @@ describe("swClientRegister update lifecycle oracle", () => {
 
     it("oracle: register options force updateViaCache none", () => {
         expect(serviceWorkerRegisterOptions()).toEqual({ updateViaCache: "none" });
+    });
+
+    it("oracle: service worker registers only outside Vite DEV and Electron", () => {
+        const cases = [
+            { isDev: false, isElectron: false, expected: true },
+            { isDev: true, isElectron: false, expected: false },
+            { isDev: false, isElectron: true, expected: false },
+            { isDev: true, isElectron: true, expected: false },
+        ];
+        for (const input of cases) {
+            expect(shouldRegisterServiceWorker(input), JSON.stringify(input)).toBe(input.expected);
+        }
+    });
+
+    it("unregisters leftover workers when getRegistrations is present", async () => {
+        const unregistered = [];
+        const serviceWorker = {
+            getRegistrations: async () => [
+                {
+                    unregister: async () => {
+                        unregistered.push("a");
+                        return true;
+                    },
+                },
+                {
+                    unregister: async () => {
+                        unregistered.push("b");
+                        return true;
+                    },
+                },
+            ],
+        };
+        await expect(unregisterServiceWorkersIfPresent(serviceWorker)).resolves.toEqual([true, true]);
+        expect(unregistered).toEqual(["a", "b"]);
+        await expect(unregisterServiceWorkersIfPresent({})).resolves.toEqual([]);
     });
 });
 

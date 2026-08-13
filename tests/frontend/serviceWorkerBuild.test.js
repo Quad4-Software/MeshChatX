@@ -78,5 +78,8 @@ describe("service worker build", () => {
         expect(main).toContain("controllerchange");
         expect(main).toContain("registration.update()");
         expect(main).toContain("visibilitychange");
+        expect(main).toContain("shouldRegisterServiceWorker");
+        expect(main).toContain("unregisterServiceWorkersIfPresent");
+        expect(main).toContain("import.meta.env.DEV");
     });
 });

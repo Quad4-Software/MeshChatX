@@ -175,9 +175,19 @@ tasks:
             - uv run python -m meshchatx.meshchat
 
     dev:
-        desc: Vite HMR + backend (http://localhost:5173)
+        desc: Vite HMR + backend (http://127.0.0.1:5173) with Vue DevTools
         cmds:
             - bash scripts/dev-local.sh
+
+    debug:
+        desc: task dev plus Python debugpy on 127.0.0.1:5678 (debugger attach)
+        cmds:
+            - MESHCHAT_DEBUGPY=1 bash scripts/dev-local.sh
+
+    debug:wait:
+        desc: task debug, pause backend until a debugger attaches
+        cmds:
+            - MESHCHAT_DEBUGPY=1 MESHCHAT_DEBUGPY_WAIT=1 bash scripts/dev-local.sh
 
     dev-fe:
         desc: Vite dev server only (pair with task run)
@@ -394,6 +404,11 @@ tasks:
         cmds:
             - "{{.NPM}} exec vitest run --exclude tests/frontend/LoadTimePerformance.test.js --exclude tests/frontend/i18n.test.js"
             - "{{.NPM}} exec vitest run --config vitest.electron.config.js"
+
+    test:fe:ui:
+        desc: Vitest UI runner for frontend unit tests
+        cmds:
+            - "{{.NPM}} run test:ui"
 
     test:fe:loadtime:
         desc: Optional frontend load-time / sidebar performance tests (not run in CI)

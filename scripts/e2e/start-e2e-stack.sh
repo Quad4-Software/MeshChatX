@@ -62,6 +62,8 @@ if [[ "$ready" -ne 1 ]]; then
 fi
 
 echo "E2E: starting Vite on ${VITE_HOST}:${VITE_PORT}"
+# Vue DevTools overlay intercepts clicks and is not part of the product UI.
+export MESHCHAT_VUE_DEVTOOLS=0
 pnpm exec vite --host "${VITE_HOST}" --port "${VITE_PORT}" &
 VITE_PID=$!
 wait "$VITE_PID"

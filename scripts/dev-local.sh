@@ -6,6 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+export PYTHONUNBUFFERED="${PYTHONUNBUFFERED:-1}"
 export MESHCHAT_PORT="${MESHCHAT_PORT:-8000}"
 export E2E_BACKEND_PORT="$MESHCHAT_PORT"
 
@@ -18,8 +19,30 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-uv run python -m meshchatx.meshchat --headless --host 127.0.0.1 --port "$MESHCHAT_PORT" &
-BE_PID=$!
+start_backend() {
+    local -a cmd
+    if [[ "${MESHCHAT_DEBUGPY:-0}" == "1" ]]; then
+        local dbg_port="${MESHCHAT_DEBUGPY_PORT:-5678}"
+        if ! uv run python -c "import debugpy" >/dev/null 2>&1; then
+            echo "[dev] debugpy is not installed. Run: task deps:backend" >&2
+            exit 1
+        fi
+        cmd=(uv run python -m debugpy --listen "127.0.0.1:${dbg_port}")
+        if [[ "${MESHCHAT_DEBUGPY_WAIT:-0}" == "1" ]]; then
+            cmd+=(--wait-for-client)
+            echo "[dev] debugpy waiting for attach on 127.0.0.1:${dbg_port}"
+        else
+            echo "[dev] debugpy listen 127.0.0.1:${dbg_port} (attach Backend: Attach debugpy)"
+        fi
+        cmd+=(-m meshchatx.meshchat --headless --host 127.0.0.1 --port "$MESHCHAT_PORT")
+        "${cmd[@]}" &
+    else
+        uv run python -m meshchatx.meshchat --headless --host 127.0.0.1 --port "$MESHCHAT_PORT" &
+    fi
+    BE_PID=$!
+}
+
+start_backend
 
 BACKEND_URL="https://127.0.0.1:${MESHCHAT_PORT}/api/v1/status"
 BACKEND_WAIT_SECS="${DEV_BACKEND_WAIT:-120}"
@@ -74,4 +97,7 @@ VITE_HOST="${VITE_DEV_HOST:-127.0.0.1}"
 VITE_PORT="${VITE_DEV_PORT:-5173}"
 
 echo "[dev] Starting Vite at http://${VITE_HOST}:${VITE_PORT} (API proxy -> ${BACKEND_URL%/api/v1/status})"
+if [[ "${MESHCHAT_VUE_DEVTOOLS:-1}" != "0" ]]; then
+    echo "[dev] Vue DevTools overlay is on. MESHCHAT_VUE_DEVTOOLS=0 disables it."
+fi
 pnpm run dev -- --host "$VITE_HOST" --port "$VITE_PORT"
