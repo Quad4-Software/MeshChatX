@@ -235,6 +235,16 @@ class TestPageNodeManagerAnnounceSettings:
         assert reloaded.announce_enabled is False
         assert reloaded.announce_interval_seconds == 200
 
+    def test_load_nodes_restores_executable_page_names(self, storage_dir, mock_rns):
+        mgr = _make_manager(storage_dir)
+        node = mgr.create_node("Scripts", node_id="reload-exec")
+        node.add_page("dyn.mu", "#!/usr/bin/env python3\nprint(1)\n", executable=True)
+
+        mgr2 = _make_manager(storage_dir)
+        mgr2.load_nodes()
+        reloaded = mgr2.nodes["reload-exec"]
+        assert reloaded.is_page_executable("dyn.mu") is True
+
     def test_on_announce_callback_wired_through_manager(self, storage_dir, mock_rns):
         calls = []
         mgr = _make_manager(storage_dir)

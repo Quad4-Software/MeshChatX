@@ -633,6 +633,16 @@ class TestPageNodeConfig:
 
         config = PageNode.load_config(node_dir)
         assert config["executable_pages_enabled"] is True
+        assert config["executable_page_names"] == []
+
+    def test_save_config_persists_executable_page_names(self, node_dir, mock_rns):
+        from meshchatx.src.backend.page_node import PageNode
+
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        node.add_page("dyn.mu", "static", executable=True)
+        config = PageNode.load_config(node_dir)
+        assert config["executable_page_names"] == ["dyn.mu"]
 
 
 class TestPageNodeStatus:
@@ -825,14 +835,22 @@ class TestPageNodeExecutablePages:
         node.add_page("dyn.mu", script, executable=True)
         assert node.serve_page_content("dyn.mu") == script.encode("utf-8")
 
-    def test_executable_enabled_runs_script(self, node_dir, mock_rns):
+    def test_chmod_x_without_config_name_still_runs_on_posix(self, node_dir, mock_rns):
+        if os.name == "nt":
+            pytest.skip("POSIX chmod execute bit is not a Windows marker")
+        import stat
+
         node = _make_node(node_dir, mock_rns)
         node.setup()
         node.set_executable_pages_enabled(True)
-        script = "#!/usr/bin/env python3\nprint('dynamic-output')\n"
-        node.add_page("dyn.mu", script, executable=True)
-        result = node.serve_page_content("dyn.mu")
-        assert result == b"dynamic-output\n"
+        script = "#!/usr/bin/env python3\nprint('chmod-only')\n"
+        node.add_page("dyn.mu", script)
+        page_path = os.path.join(node.pages_dir, "dyn.mu")
+        os.chmod(
+            page_path,
+            os.stat(page_path).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH,
+        )
+        assert node.serve_page_content("dyn.mu") == b"chmod-only\n"
 
     def test_executable_passes_env_vars(self, node_dir, mock_rns):
         node = _make_node(node_dir, mock_rns)
@@ -872,18 +890,45 @@ class TestPageNodeExecutablePages:
         node.add_page("dyn.mu", script, executable=True)
         assert node.get_page_content("dyn.mu") == script
 
-    def test_windows_platform_skips_execution(self, node_dir, mock_rns):
+    def test_windows_platform_runs_via_shebang(self, node_dir, mock_rns):
         node = _make_node(node_dir, mock_rns)
         node.setup()
         node.set_executable_pages_enabled(True)
-        script = "#!/usr/bin/env python3\nprint('dynamic')\n"
+        script = "#!/usr/bin/env python3\nprint('windows-dynamic')\n"
         node.add_page("dyn.mu", script, executable=True)
         with patch(
             "meshchatx.src.backend.page_node._is_windows_platform",
             return_value=True,
         ):
             result = node.serve_page_content("dyn.mu")
+        assert result == b"windows-dynamic\n"
+
+    def test_windows_unmarked_page_stays_static(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        node.set_executable_pages_enabled(True)
+        script = "#!/usr/bin/env python3\nprint('should-not-run')\n"
+        node.add_page("static.mu", script)
+        with patch(
+            "meshchatx.src.backend.page_node._is_windows_platform",
+            return_value=True,
+        ):
+            assert node.is_page_executable("static.mu") is False
+            result = node.serve_page_content("static.mu")
         assert result == script.encode("utf-8")
+
+    def test_windows_missing_shebang_returns_error_page(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        node.set_executable_pages_enabled(True)
+        node.add_page("plain.mu", "Hello static\n", executable=True)
+        with patch(
+            "meshchatx.src.backend.page_node._is_windows_platform",
+            return_value=True,
+        ):
+            result = node.serve_page_content("plain.mu")
+        assert b">Page Generation Failed" in result
+        assert b"shebang" in result.lower()
 
     def test_set_page_executable_round_trip(self, node_dir, mock_rns):
         node = _make_node(node_dir, mock_rns)
@@ -894,6 +939,16 @@ class TestPageNodeExecutablePages:
         assert node.is_page_executable("toggle.mu") is True
         node.set_page_executable("toggle.mu", False)
         assert node.is_page_executable("toggle.mu") is False
+
+    def test_remove_page_clears_executable_name(self, node_dir, mock_rns):
+        from meshchatx.src.backend.page_node import PageNode
+
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        node.add_page("gone.mu", "static", executable=True)
+        assert node.remove_page("gone.mu") is True
+        config = PageNode.load_config(node_dir)
+        assert config["executable_page_names"] == []
 
     def test_page_responder_uses_serve_page_content(self, node_dir, mock_rns):
         node = _make_node(node_dir, mock_rns)
@@ -906,3 +961,51 @@ class TestPageNodeExecutablePages:
             "/page/dyn.mu", {"var_x": "1"}, "req1", b"\xab" * 16, None, 0
         )
         assert result == b"from-responder\n"
+
+
+class TestPageShebangWindows:
+    def test_parse_env_python3(self, tmp_path):
+        from meshchatx.src.backend.page_node import _parse_page_shebang
+
+        page = tmp_path / "dyn.mu"
+        page.write_text("#!/usr/bin/env python3\nprint(1)\n", encoding="utf-8")
+        assert _parse_page_shebang(str(page)) == ("python3", [])
+
+    def test_parse_env_dash_s(self, tmp_path):
+        from meshchatx.src.backend.page_node import _parse_page_shebang
+
+        page = tmp_path / "dyn.mu"
+        page.write_text("#!/usr/bin/env -S python3 -u\nprint(1)\n", encoding="utf-8")
+        assert _parse_page_shebang(str(page)) == ("python3", ["-u"])
+
+    def test_parse_unix_python_path(self, tmp_path):
+        from meshchatx.src.backend.page_node import _parse_page_shebang
+
+        page = tmp_path / "dyn.mu"
+        page.write_text("#!/usr/bin/python3\nprint(1)\n", encoding="utf-8")
+        assert _parse_page_shebang(str(page)) == ("/usr/bin/python3", [])
+
+    def test_parse_missing_shebang(self, tmp_path):
+        from meshchatx.src.backend.page_node import _parse_page_shebang
+
+        page = tmp_path / "dyn.mu"
+        page.write_text("Hello\n", encoding="utf-8")
+        assert _parse_page_shebang(str(page)) is None
+
+    def test_windows_command_resolves_python3(self, tmp_path):
+        from meshchatx.src.backend.page_node import _windows_page_command
+
+        page = tmp_path / "dyn.mu"
+        page.write_text("#!/usr/bin/env python3\nprint(1)\n", encoding="utf-8")
+        command = _windows_page_command(str(page))
+        assert command is not None
+        assert os.path.isfile(command[0])
+        assert command[-1] == str(page)
+
+    def test_normalize_executable_names_rejects_bad_entries(self):
+        from meshchatx.src.backend.page_node import _normalize_executable_page_names
+
+        names = _normalize_executable_page_names(
+            ["dyn.mu", "dyn.mu", "../x.exe", 12, "ok.md", ""],
+        )
+        assert names == ["dyn.mu", "ok.md"]

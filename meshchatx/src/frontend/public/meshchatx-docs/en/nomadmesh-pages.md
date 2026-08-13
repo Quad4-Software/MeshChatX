@@ -39,6 +39,7 @@ Authoring tips:
 ## Mesh Server API
 
 - `POST /api/v1/page-nodes/{node_id}/pages` with `name` and `content` saves a page. Invalid extensions return HTTP 400 with a short message.
+- Optional `executable` marks the page as a shebang script. The node must also have executable pages enabled, or the file is served as static text.
 - Listed pages only include files with allowed extensions in the `pages/` directory.
 
 ## Archives

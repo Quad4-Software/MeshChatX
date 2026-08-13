@@ -299,11 +299,6 @@ def register_page_nodes_routes(routes, app):
         except ValueError as e:
             return web.json_response({"message": str(e)}, status=400)
         except OSError as e:
-            if str(e) == "executable pages are not supported on Windows":
-                return web.json_response(
-                    {"message": f"Failed to set executable flag: {e}"},
-                    status=400,
-                )
             return web.json_response(
                 {"message": f"Failed to write page: {e}"},
                 status=500,

@@ -49,6 +49,7 @@ class PageNodeManager:
                     config.get("announce_interval_seconds"),
                 ),
                 executable_pages_enabled=config.get("executable_pages_enabled", False),
+                executable_page_names=config.get("executable_page_names"),
                 on_announce=self.on_announce,
             )
             self.nodes[node_id] = node

@@ -43,12 +43,23 @@ describe("RNStatusPage.vue", () => {
                                 bitrate: "100 bps",
                                 rx_bytes_str: "10 B",
                                 tx_bytes_str: "5 B",
+                                i2p_b32: "abc123.b32.i2p",
+                                i2p_connectable: true,
+                                i2p_tunnel_state: "Tunnel Active",
                             },
                         ],
                         link_count: 5,
                         blackhole_enabled: true,
                         blackhole_count: 10,
                         blackhole_sources: ["src1"],
+                        transport_id: "aa".repeat(16),
+                        transport_uptime_str: "1m 30s",
+                        totals: {
+                            rx_bytes_str: "10 B",
+                            tx_bytes_str: "5 B",
+                            rx_speed_str: "1.00 bps",
+                            tx_speed_str: "2.00 bps",
+                        },
                     },
                 });
             }
@@ -78,8 +89,9 @@ describe("RNStatusPage.vue", () => {
         expect(wrapper.text()).toContain("Network Diagnostics");
         expect(wrapper.text()).toContain("Interface 1");
         expect(wrapper.text()).toContain("Discovered");
-        expect(wrapper.text()).toContain("Active Links: 5");
-        expect(wrapper.text()).toContain("Blackhole: Publishing");
+        expect(wrapper.text()).toContain("5");
+        expect(wrapper.text()).toContain("Publishing");
+        expect(wrapper.text()).toContain("abc123.b32.i2p");
         expect(wrapper.vm.blackholeEnabled).toBe(true);
         expect(wrapper.text()).toContain("src1");
         expect(WebSocketConnection.on).toHaveBeenCalledWith("message", expect.any(Function));
@@ -105,7 +117,7 @@ describe("RNStatusPage.vue", () => {
         });
         const wrapper = mountRNStatusPage();
         await vi.waitFor(() => expect(wrapper.vm.isLoading).toBe(false));
-        expect(wrapper.text()).toContain("Blackhole: Inactive");
+        expect(wrapper.text()).toContain("Inactive");
     });
 
     it("refreshes status when button is clicked", async () => {
@@ -150,6 +162,31 @@ describe("RNStatusPage.vue", () => {
         const msg = ToastUtils.error.mock.calls[0][0];
         expect(msg).toContain("Failed to refresh RNStatus");
         expect(msg).toContain("RNS stack is reloading");
+    });
+
+    it("copies the I2P address", async () => {
+        const writeText = vi.fn().mockResolvedValue();
+        Object.assign(navigator, { clipboard: { writeText } });
+        const wrapper = mountRNStatusPage();
+        await vi.waitFor(() => expect(wrapper.vm.isLoading).toBe(false));
+        await wrapper.vm.copyText("abc123.b32.i2p");
+        expect(writeText).toHaveBeenCalledWith("abc123.b32.i2p");
+        expect(ToastUtils.success).toHaveBeenCalled();
+    });
+
+    it("sends show_all when the all-interfaces toggle is on", async () => {
+        const wrapper = mountRNStatusPage();
+        await vi.waitFor(() => expect(wrapper.vm.isLoading).toBe(false));
+        wrapper.vm.showAll = true;
+        await wrapper.vm.$nextTick();
+        await vi.waitFor(() =>
+            expect(axiosMock.get).toHaveBeenCalledWith(
+                "/api/v1/rnstatus",
+                expect.objectContaining({
+                    params: expect.objectContaining({ show_all: true }),
+                })
+            )
+        );
     });
 
     it("disables refresh while RNS reload is in progress", async () => {

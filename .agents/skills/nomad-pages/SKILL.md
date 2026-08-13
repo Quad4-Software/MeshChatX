@@ -29,6 +29,8 @@ Generic RNS Link transport for non-Nomad apps is `rns-link-api`, not this skill.
 
 Page-node files are a path jail. Follow `path-jail-local-fs`. The Mesh Server rejects disallowed extensions on upload (see NomadNet page formats).
 
+Executable pages are a per-node opt-in. POSIX uses chmod +x. Windows stores names in the node config.json and runs the page via its shebang interpreter on PATH. Editing always returns file source, never script stdout.
+
 ## Formats
 
 | Extension | Role                                                  |
