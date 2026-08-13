@@ -83,6 +83,7 @@ def test_get_conversations_base(mock_db):
     assert "FROM lxmf_messages\n                WHERE state = 'failed'" not in query
     assert "GROUP BY" not in query
     assert "LEFT JOIN contacts con ON con.id" not in query
+    assert "ORDER BY CASE" not in query
 
 
 def test_get_conversations_with_filters(mock_db):

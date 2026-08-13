@@ -124,22 +124,30 @@ class MessageHandler:
         "(COALESCE(s.has_image, 0) = 1 OR COALESCE(s.has_audio, 0) = 1 "
         "OR COALESCE(s.has_files, 0) = 1)"
     )
-    # Pick one contact from a SELECT subquery. JOIN ON (SELECT ... s.peer_hash)
-    # fails on some SQLite builds with "no such column: s.peer_hash".
-    # Identity hash wins over lxmf then lxst.
+    # EXISTS match across identity / lxmf / lxst. Do not ORDER BY outer
+    # s.peer_hash inside a subquery. SQLite 3.45 (GitHub-hosted Python 3.14)
+    # raises no such column s.peer_hash for that pattern.
     _CONTACT_MATCH_SQL = (
         "(con.remote_identity_hash = s.peer_hash"
         " OR con.lxmf_address = s.peer_hash"
         " OR con.lxst_address = s.peer_hash)"
     )
-    _CONTACT_PICK_ORDER_SQL = """
-            ORDER BY CASE
-                WHEN con.remote_identity_hash = s.peer_hash THEN 0
-                WHEN con.lxmf_address = s.peer_hash THEN 1
-                ELSE 2
-            END
-            LIMIT 1
-    """
+    _CONTACT_HAS_IMAGE_SQL = (
+        "CASE WHEN con.custom_image IS NOT NULL AND con.custom_image != ''"
+        " THEN 1 ELSE 0 END"
+    )
+
+    @staticmethod
+    def _contact_coalesce_sql(select_expr):
+        """Pick one contact field. Identity hash wins over lxmf then lxst."""
+        return f"""COALESCE(
+                (SELECT {select_expr} FROM contacts con
+                 WHERE con.remote_identity_hash = s.peer_hash LIMIT 1),
+                (SELECT {select_expr} FROM contacts con
+                 WHERE con.lxmf_address = s.peer_hash LIMIT 1),
+                (SELECT {select_expr} FROM contacts con
+                 WHERE con.lxst_address = s.peer_hash LIMIT 1)
+            )"""
 
     @classmethod
     def clamp_conversations_limit(cls, limit):
@@ -211,20 +219,8 @@ class MessageHandler:
                 CASE WHEN {self._FIELDS_HAS_ATTACHMENTS_SQL} THEN 1 ELSE 0 END as has_attachments,
                 a.app_data as peer_app_data,
                 c.display_name as custom_display_name,
-                (
-                    SELECT CASE
-                        WHEN con.custom_image IS NOT NULL AND con.custom_image != ''
-                        THEN 1 ELSE 0
-                    END
-                    FROM contacts con
-                    WHERE {self._CONTACT_MATCH_SQL}
-                    {self._CONTACT_PICK_ORDER_SQL}
-                ) as has_contact_image,
-                (
-                    SELECT con.name FROM contacts con
-                    WHERE {self._CONTACT_MATCH_SQL}
-                    {self._CONTACT_PICK_ORDER_SQL}
-                ) as contact_name,
+                {self._contact_coalesce_sql(self._CONTACT_HAS_IMAGE_SQL)} as has_contact_image,
+                {self._contact_coalesce_sql("con.name")} as contact_name,
                 i.icon_name, i.foreground_colour, i.background_colour,
                 r.last_read_at,
                 f.id as folder_id,
