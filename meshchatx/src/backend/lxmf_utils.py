@@ -30,6 +30,23 @@ def _lxmf_dict_key(d: dict, *keys):
     return None
 
 
+def parse_stored_lxmf_fields(raw):
+    """Parse lxmf_messages.fields JSON. Returns a dict or None."""
+    if raw is None or raw == "":
+        return None
+    if isinstance(raw, dict):
+        return raw
+    if not isinstance(raw, (str, bytes, bytearray)):
+        return None
+    try:
+        parsed = json.loads(raw)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return None
+    if not isinstance(parsed, dict):
+        return None
+    return parsed
+
+
 def _bytes_to_message_hash_hex(value) -> str | None:
     if isinstance(value, bytes):
         return value.hex()

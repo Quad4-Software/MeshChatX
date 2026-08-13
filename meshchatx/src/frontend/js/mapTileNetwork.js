@@ -1,6 +1,6 @@
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export const TILE_FETCH_TIMEOUT_MS = 22000;
+export const TILE_FETCH_TIMEOUT_MS = 8000;
 export const TILE_FETCH_RETRIES = 2;
 export const TILE_FETCH_RETRY_BASE_DELAY_MS = 450;
 
@@ -17,6 +17,43 @@ export function buildNominatimSearchUrl(nominatimApiUrl, searchQuery, limit = 10
     const base = normalizeHttpBaseUrl(nominatimApiUrl);
     const enc = encodeURIComponent(searchQuery);
     return `${base}/search?format=json&q=${enc}&limit=${limit}&addressdetails=1`;
+}
+
+export function lonLatToTileXY(lon, lat, zoom) {
+    const z = Math.max(0, Math.floor(Number(zoom) || 0));
+    const n = 2 ** z;
+    const x = Math.floor(((Number(lon) + 180) / 360) * n);
+    const latRad = (Number(lat) * Math.PI) / 180;
+    const y = Math.floor(((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n);
+    return { z, x, y, n };
+}
+
+export function neighborTileCoords(lon, lat, zoom, ring = 1) {
+    const { z, x, y, n } = lonLatToTileXY(lon, lat, zoom);
+    const out = [];
+    const r = Math.max(0, Math.floor(ring));
+    for (let dx = -r; dx <= r; dx++) {
+        for (let dy = -r; dy <= r; dy++) {
+            const xx = (((x + dx) % n) + n) % n;
+            const yy = y + dy;
+            if (yy < 0 || yy >= n) {
+                continue;
+            }
+            out.push({ z, x: xx, y: yy });
+        }
+    }
+    return out;
+}
+
+export function expandTileUrl(template, z, x, y) {
+    if (typeof template !== "string" || !template.includes("{z}")) {
+        return "";
+    }
+    return template
+        .replaceAll("{z}", String(z))
+        .replaceAll("{x}", String(x))
+        .replaceAll("{y}", String(y))
+        .replaceAll("{r}", "");
 }
 
 export async function fetchWithTimeout(resource, init = {}, timeoutMs = TILE_FETCH_TIMEOUT_MS) {

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
+import { camelCaseToSearchWords } from "../settingsSearchUtils.js";
+
 /** @typedef {{ id: string, labelKey: string, descriptionKey: string, sections: string[] }} SettingsTab */
 
 /** @type {SettingsTab[]} */
@@ -93,4 +95,24 @@ export function settingsTabForSection(sectionKey) {
 export function settingsSectionBelongsToTab(sectionKey, tabId) {
     const tab = getSettingsTab(tabId);
     return Boolean(tab && tab.sections.includes(sectionKey));
+}
+
+/**
+ * Extra search texts for a section: parent tab label plus the section id as words.
+ * Tab descriptions are omitted because they are full of generic words (maps, security).
+ *
+ * @param {string} sectionKey
+ * @returns {string[]}
+ */
+export function settingsSectionSearchExtras(sectionKey) {
+    const extras = [];
+    const tab = SETTINGS_TABS.find((entry) => entry.sections.includes(sectionKey));
+    if (tab) {
+        extras.push(tab.labelKey);
+    }
+    const words = camelCaseToSearchWords(sectionKey);
+    if (words) {
+        extras.push(`=${words}`);
+    }
+    return extras;
 }

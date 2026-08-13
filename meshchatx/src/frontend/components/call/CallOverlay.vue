@@ -351,6 +351,7 @@ import LxmfUserIcon from "../LxmfUserIcon.vue";
 import AudioWaveformPlayer from "../messages/AudioWaveformPlayer.vue";
 import Utils from "../../js/Utils";
 import ToastUtils from "../../js/ToastUtils";
+import { promptMicrophoneAccessFromWindow } from "../../js/webAudioMicPermission";
 
 export default {
     name: "CallOverlay",
@@ -465,6 +466,12 @@ export default {
         },
         async answerCall() {
             try {
+                try {
+                    await promptMicrophoneAccessFromWindow();
+                } catch {
+                    // CallPage surfaces mic errors after navigation. Keep answer
+                    // on the click gesture so Brave can still show a prompt.
+                }
                 await window.api.post("/api/v1/telephone/answer");
                 // Native Android audio (and desktop web-audio) only attach from
                 // CallPage. Overlay accept must open the phone tab or the call

@@ -89,6 +89,7 @@ vi.mock("ol/source/Vector", () => ({
             addFeature: vi.fn(),
             addFeatures: vi.fn(),
             getFeatures: vi.fn().mockReturnValue([]),
+            removeFeature: vi.fn(),
             on: vi.fn(),
         };
     }),

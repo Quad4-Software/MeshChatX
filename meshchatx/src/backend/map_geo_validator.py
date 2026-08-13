@@ -145,6 +145,9 @@ def validate_kml_bytes(
         raise GeoValidationError("invalid_encoding") from exc
     if _looks_like_html(text):
         raise GeoValidationError("not_geo_content")
+    head = text[:4096].upper()
+    if "<!DOCTYPE" in head or "<!ENTITY" in head:
+        raise GeoValidationError("dtd_forbidden")
     try:
         root = ET.fromstring(text)
     except ET.ParseError as exc:

@@ -20,6 +20,7 @@ from .debug_logs import DebugLogsDAO
 from .gifs import UserGifsDAO
 from .map_drawings import MapDrawingsDAO
 from .map_overlays import MapOverlaysDAO
+from .map_published import MapPublishedDAO
 from .messages import MessageDAO
 from .misc import MiscDAO
 from .notification_sounds import NotificationSoundDAO
@@ -126,6 +127,7 @@ class Database:
         self.contacts = ContactsDAO(self.provider)
         self.map_drawings = MapDrawingsDAO(self.provider)
         self.map_overlays = MapOverlaysDAO(self.provider)
+        self.map_published = MapPublishedDAO(self.provider)
         self.stickers = UserStickersDAO(self.provider)
         self.sticker_packs = UserStickerPacksDAO(self.provider)
         self.gifs = UserGifsDAO(self.provider)

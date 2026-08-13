@@ -75,6 +75,14 @@ export const CORE_NAV_ENTRIES = [
         group: "explore",
     },
     {
+        id: "network-visualiser",
+        route: { name: "network-visualiser" },
+        icon: "hub",
+        labelKey: "app.network_visualiser",
+        navTier: "primary",
+        group: "explore",
+    },
+    {
         id: "interfaces",
         route: { name: "interfaces" },
         icon: "router",
@@ -105,14 +113,6 @@ export const CORE_NAV_ENTRIES = [
         labelKey: "app.archives",
         navTier: "more",
         group: "explore",
-    },
-    {
-        id: "network-visualiser",
-        route: { name: "network-visualiser" },
-        icon: "hub",
-        labelKey: "app.network_visualiser",
-        navTier: "more",
-        group: "network",
     },
     {
         id: "blocked",

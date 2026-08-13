@@ -51,7 +51,7 @@
         },
         {
             "domain": "Map",
-            "manager_modules": ["map_manager.py", "map_overlay_manager.py"],
+            "manager_modules": ["map_manager.py", "map_overlay_manager.py", "map_data_manager.py"],
             "http_route_module": ["http/routes/map.py"],
             "ws_module": [],
             "primary_tests": [],

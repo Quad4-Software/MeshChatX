@@ -2,6 +2,13 @@
 
 import JSZip from "jszip";
 import { readKmlToFeatures, writeFeaturesToKml } from "./kmlCodec.js";
+import {
+    KmlSanitizeError,
+    isAllowedDataImageHref,
+    isRemoteHref,
+    kmzEntryAllowed,
+    sanitizeKmlText,
+} from "./kmlSanitize.js";
 
 /**
  * @param {Uint8Array} u8
@@ -34,9 +41,6 @@ function guessMimeFromPath(pathInZip) {
     if (ext === "webp") {
         return "image/webp";
     }
-    if (ext === "svg") {
-        return "image/svg+xml";
-    }
     return "application/octet-stream";
 }
 
@@ -58,9 +62,6 @@ function extFromMime(mime) {
     if (m.includes("webp")) {
         return "webp";
     }
-    if (m.includes("svg")) {
-        return "svg";
-    }
     return "bin";
 }
 
@@ -69,9 +70,20 @@ function extFromMime(mime) {
  * @param {string} href
  * @returns {string|null} resolved path inside zip or null if external / invalid
  */
+function isRemoteOrUnsafeHref(raw) {
+    const h = String(raw || "").trim();
+    if (!h) {
+        return true;
+    }
+    if (isAllowedDataImageHref(h)) {
+        return false;
+    }
+    return isRemoteHref(h) || h.toLowerCase().startsWith("data:");
+}
+
 export function resolveHrefToZipPath(kmlPathInZip, href) {
     const h = String(href).trim();
-    if (!h || /^(https?:|data:|file:|\/\/)/i.test(h)) {
+    if (!h || isRemoteHref(h) || h.toLowerCase().startsWith("data:")) {
         return null;
     }
     const base = kmlPathInZip.includes("/") ? kmlPathInZip.slice(0, kmlPathInZip.lastIndexOf("/") + 1) : "";
@@ -142,7 +154,7 @@ async function rewriteKmlLocalHrefsToDataUrls(zip, kmlText, kmlEntryName) {
         if (rawToData.has(raw)) {
             continue;
         }
-        if (/^(https?:|data:)/i.test(raw)) {
+        if (isRemoteOrUnsafeHref(raw)) {
             continue;
         }
         const zipPath = resolveHrefToZipPath(kmlEntryName, raw);
@@ -153,15 +165,24 @@ async function rewriteKmlLocalHrefsToDataUrls(zip, kmlText, kmlEntryName) {
         if (!entry) {
             continue;
         }
+        if (!kmzEntryAllowed(zipPath)) {
+            continue;
+        }
         const ab = await entry.async("arraybuffer");
         const mime = guessMimeFromPath(zipPath);
+        if (!mime.startsWith("image/") || mime.includes("svg")) {
+            continue;
+        }
         const b64 = uint8ToBase64(new Uint8Array(ab));
         rawToData.set(raw, `data:${mime};base64,${b64}`);
     }
     return kmlText.replace(hrefRe, (full, inner) => {
         const raw = inner.trim();
+        if (isAllowedDataImageHref(raw)) {
+            return `<href>${raw}</href>`;
+        }
         const data = rawToData.get(raw);
-        return data ? `<href>${data}</href>` : full;
+        return data ? `<href>${data}</href>` : "";
     });
 }
 
@@ -172,16 +193,27 @@ async function rewriteKmlLocalHrefsToDataUrls(zip, kmlText, kmlEntryName) {
  */
 export async function readKmzToFeatures(arrayBuffer, featureProjection) {
     const zip = await JSZip.loadAsync(arrayBuffer);
+    const names = Object.keys(zip.files).filter((n) => !zip.files[n].dir);
+    for (const n of names) {
+        const name = n.replace(/\\/g, "/");
+        if (name.split("/").includes("..")) {
+            throw new KmlSanitizeError("path_traversal");
+        }
+        if (!kmzEntryAllowed(name)) {
+            throw new KmlSanitizeError("unsafe_kmz_entry");
+        }
+    }
     const kmlName = findKmlEntryName(zip);
     if (!kmlName) {
-        throw new Error("KMZ has no KML document");
+        throw new KmlSanitizeError("kmz_missing_kml");
     }
     const entry = zip.file(kmlName);
     if (!entry) {
-        throw new Error("KMZ KML entry missing");
+        throw new KmlSanitizeError("kmz_missing_kml");
     }
     let kmlText = await entry.async("string");
-    kmlText = await rewriteKmlLocalHrefsToDataUrls(zip, kmlText, kmlName);
+    const sanitized = sanitizeKmlText(kmlText, { zipLocalOk: true });
+    kmlText = await rewriteKmlLocalHrefsToDataUrls(zip, sanitized.text, kmlName);
     return readKmlToFeatures(kmlText, featureProjection);
 }
 
@@ -197,6 +229,9 @@ export async function writeFeaturesToKmzBlob(features, featureProjection) {
     const dataUriRe = /<href>\s*(data:([^;]+);base64,([^<\s]+))\s*<\/href>/gi;
     kml = kml.replace(dataUriRe, (full, _dataUri, mime, b64) => {
         const ext = extFromMime(mime);
+        if (ext === "bin") {
+            return "";
+        }
         const path = `files/mcx-embedded-${n++}.${ext}`;
         let bin;
         try {

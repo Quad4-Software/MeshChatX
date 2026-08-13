@@ -75,6 +75,31 @@ func TestBuildPathGraphFiltersAndBuilds(t *testing.T) {
 	}
 }
 
+func TestBuildPathGraphSeedsPeersAwayFromInterface(t *testing.T) {
+	req := graph.Request{
+		PathTable: []filter.PathEntry{
+			{Hash: "aa", Interface: "eth0", Hops: hops(1)},
+		},
+		Announces: map[string]graph.Announce{
+			"aa": {DestinationHash: "aa", Aspect: "lxmf.delivery", DisplayName: "Alice", LastSeen: "now"},
+		},
+		Positions: map[string]graph.XY{
+			"eth0": {X: 100, Y: 200},
+		},
+		HopMax: hops(4),
+	}
+	res := graph.BuildPathGraph(req)
+	if len(res.Nodes) != 1 {
+		t.Fatalf("expected 1 peer, got %d", len(res.Nodes))
+	}
+	dx := res.Nodes[0].X - 100
+	dy := res.Nodes[0].Y - 200
+	dist := dx*dx + dy*dy
+	if dist < 240*240 {
+		t.Fatalf("peer seeded too close to interface: (%v,%v)", res.Nodes[0].X, res.Nodes[0].Y)
+	}
+}
+
 func TestBuildPathGraphSearchAndIcons(t *testing.T) {
 	req := sampleRequest(20)
 	req.Search = "node0000"
@@ -144,10 +169,10 @@ func FuzzBuildPathGraph(f *testing.F) {
 			Announces: map[string]graph.Announce{
 				hash: {DestinationHash: hash, Aspect: aspect, DisplayName: name, LastSeen: "t"},
 			},
-			HopMax:  &hopMax,
-			Search:  search,
+			HopMax:   &hopMax,
+			Search:   search,
 			DarkMode: true,
-			LOD:     "medium",
+			LOD:      "medium",
 		}
 		res := graph.BuildPathGraph(req)
 		if len(res.Nodes) != len(res.Edges) {

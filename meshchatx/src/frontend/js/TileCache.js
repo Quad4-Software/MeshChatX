@@ -7,10 +7,16 @@ const META_STORE = "tile_meta";
 const MAX_TILES = 5000;
 const MAX_BYTES = 256 * 1024 * 1024;
 const TILE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const MEM_MAX_ENTRIES = 128;
+const ACCESS_FLUSH_HITS = 32;
+const ACCESS_FLUSH_MS = 5000;
 
 class TileCache {
     constructor() {
         this.db = null;
+        this._memCache = new Map();
+        this._pendingAccess = new Map();
+        this._accessFlushTimer = null;
         this.initPromise = this.init();
     }
 
@@ -61,29 +67,96 @@ class TileCache {
         return 0;
     }
 
+    _memGet(key) {
+        const hit = this._memCache.get(key);
+        if (!hit) {
+            return undefined;
+        }
+        this._memCache.delete(key);
+        this._memCache.set(key, hit);
+        return hit.data;
+    }
+
+    _memPut(key, data) {
+        if (this._memCache.has(key)) {
+            this._memCache.delete(key);
+        }
+        this._memCache.set(key, { data, size: this._blobSize(data) });
+        while (this._memCache.size > MEM_MAX_ENTRIES) {
+            const oldest = this._memCache.keys().next().value;
+            this._memCache.delete(oldest);
+        }
+    }
+
+    _queueAccess(key) {
+        this._pendingAccess.set(key, Date.now());
+        if (this._pendingAccess.size >= ACCESS_FLUSH_HITS) {
+            this._flushAccess();
+            return;
+        }
+        if (this._accessFlushTimer == null) {
+            this._accessFlushTimer = setTimeout(() => {
+                this._accessFlushTimer = null;
+                this._flushAccess();
+            }, ACCESS_FLUSH_MS);
+        }
+    }
+
+    async _flushAccess() {
+        if (this._accessFlushTimer != null) {
+            clearTimeout(this._accessFlushTimer);
+            this._accessFlushTimer = null;
+        }
+        const pending = this._pendingAccess;
+        this._pendingAccess = new Map();
+        if (!pending.size || !this.db) {
+            return;
+        }
+        try {
+            await this.initPromise;
+            await new Promise((resolve, reject) => {
+                const transaction = this.db.transaction([META_STORE], "readwrite");
+                const metaStore = transaction.objectStore(META_STORE);
+                for (const [key, ts] of pending.entries()) {
+                    const req = metaStore.get(key);
+                    req.onsuccess = () => {
+                        const prev = req.result || {};
+                        metaStore.put(
+                            {
+                                ...prev,
+                                lastAccess: ts,
+                                size: prev.size ?? 0,
+                            },
+                            key
+                        );
+                    };
+                }
+                transaction.oncomplete = () => resolve();
+                transaction.onerror = () => reject(transaction.error);
+                transaction.onabort = () => reject(transaction.error || new Error("IndexedDB transaction aborted"));
+            });
+        } catch {
+            /* ignore idle flush errors */
+        }
+    }
+
     async getTile(key) {
         await this.initPromise;
+        const mem = this._memGet(key);
+        if (mem !== undefined) {
+            this._queueAccess(key);
+            return mem;
+        }
         return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([STORE_NAME, META_STORE], "readwrite");
+            const transaction = this.db.transaction([STORE_NAME], "readonly");
             const store = transaction.objectStore(STORE_NAME);
-            const metaStore = transaction.objectStore(META_STORE);
             const request = store.get(key);
 
             request.onsuccess = () => {
                 const value = request.result;
                 if (value != null) {
-                    const metaReq = metaStore.get(key);
-                    metaReq.onsuccess = () => {
-                        const prev = metaReq.result || {};
-                        metaStore.put(
-                            {
-                                ...prev,
-                                lastAccess: Date.now(),
-                                size: prev.size ?? this._blobSize(value),
-                            },
-                            key
-                        );
-                    };
+                    this._memPut(key, value);
+                    this._queueAccess(key);
                 }
                 resolve(value);
             };
@@ -106,6 +179,7 @@ class TileCache {
                 },
                 key
             );
+            this._memPut(key, data);
 
             transaction.oncomplete = () => resolve();
             transaction.onerror = () => reject(transaction.error);
@@ -176,6 +250,8 @@ class TileCache {
             for (const key of keys) {
                 store.delete(key);
                 metaStore.delete(key);
+                this._memCache.delete(key);
+                this._pendingAccess.delete(key);
             }
             transaction.oncomplete = () => resolve();
             transaction.onerror = () => reject(transaction.error);
@@ -219,6 +295,8 @@ class TileCache {
             for (const name of stores) {
                 transaction.objectStore(name).clear();
             }
+            this._memCache.clear();
+            this._pendingAccess.clear();
 
             transaction.oncomplete = () => resolve();
             transaction.onerror = () => reject(transaction.error);

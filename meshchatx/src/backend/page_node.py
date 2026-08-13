@@ -90,6 +90,10 @@ def _safe_mesh_file_basename(name: str) -> str:
     return base
 
 
+def _path_is_under_root(resolved: str, root: str) -> bool:
+    return resolved == root or resolved.startswith(root + os.sep)
+
+
 def _is_windows_platform() -> bool:
     if os.name == "nt":
         return True
@@ -366,8 +370,9 @@ class PageNode:
         if not os.path.isdir(self.files_dir):
             return
         for fname in os.listdir(self.files_dir):
-            if os.path.isfile(os.path.join(self.files_dir, fname)):
-                self._register_file_handler(fname)
+            if self._jail_file_path(fname, must_exist=True) is None:
+                continue
+            self._register_file_handler(fname)
 
     def _register_page_handler(self, page_name):
         """Register a request handler for a specific page."""
@@ -524,18 +529,55 @@ class PageNode:
 
         return responder
 
+    def _jail_file_path(self, name, *, must_exist=False):
+        """Resolve a hosted file name under files_dir after realpath.
+
+        Returns None when the name is invalid, the path escapes the jail
+        (including symlink-out), or must_exist is set and the file is missing.
+        """
+        try:
+            safe_name = _safe_mesh_file_basename(name)
+            _reject_name_component_too_long(self.files_dir, safe_name)
+        except ValueError:
+            return None
+        if not os.path.isdir(self.files_dir):
+            return None
+        root = os.path.realpath(self.files_dir)
+        raw = os.path.join(root, safe_name)
+        resolved = os.path.realpath(raw)
+        if not _path_is_under_root(resolved, root):
+            return None
+        if must_exist and not os.path.isfile(resolved):
+            return None
+        return resolved
+
+    def read_hosted_file(self, name):
+        """Read a hosted file from the files jail.
+
+        Returns (file_name, file_bytes), or None.
+        """
+        file_path = self._jail_file_path(name, must_exist=True)
+        if file_path is None:
+            return None
+        try:
+            with open(file_path, "rb") as f:
+                file_bytes = f.read()
+        except OSError:
+            return None
+        self._stats["files_served"] += 1
+        return (os.path.basename(file_path), file_bytes)
+
     def _make_file_responder(self, file_name):
         """Return a closure that serves a specific file."""
 
         def responder(path, data, request_id, link_id, remote_identity, requested_at):
             self._note_remote_identity(remote_identity)
-            safe_name = os.path.basename(file_name)
-            file_path = os.path.join(self.files_dir, safe_name)
-            if not os.path.isfile(file_path):
+            file_path = self._jail_file_path(file_name, must_exist=True)
+            if file_path is None:
                 return None
             try:
                 fh = open(file_path, "rb")
-                metadata = {"name": safe_name.encode("utf-8")}
+                metadata = {"name": os.path.basename(file_path).encode("utf-8")}
                 self._stats["files_served"] += 1
                 return [fh, metadata]
             except Exception:
@@ -613,7 +655,9 @@ class PageNode:
         os.makedirs(self.files_dir, exist_ok=True)
         name = _safe_mesh_file_basename(name)
         _reject_name_component_too_long(self.files_dir, name)
-        file_path = os.path.join(self.files_dir, name)
+        file_path = self._jail_file_path(name, must_exist=False)
+        if file_path is None:
+            raise ValueError("invalid file name")
         if isinstance(data, str):
             data = data.encode("utf-8")
         with open(file_path, "wb") as f:
@@ -624,17 +668,16 @@ class PageNode:
 
     def remove_file(self, name):
         """Remove a file and deregister its request handler."""
-        try:
-            name = _safe_mesh_file_basename(name)
-            _reject_name_component_too_long(self.files_dir, name)
-        except ValueError:
+        file_path = self._jail_file_path(name, must_exist=True)
+        if file_path is None:
             return False
-        file_path = os.path.join(self.files_dir, name)
-        if os.path.isfile(file_path):
+        try:
+            name = os.path.basename(file_path)
             os.remove(file_path)
-            self._deregister_file_handler(name)
-            return True
-        return False
+        except OSError:
+            return False
+        self._deregister_file_handler(name)
+        return True
 
     def list_files(self):
         """Return a list of file dicts with name and size."""
@@ -644,9 +687,10 @@ class PageNode:
             return []
         result = []
         for fname in sorted(os.listdir(self.files_dir)):
-            fpath = os.path.join(self.files_dir, fname)
-            if os.path.isfile(fpath):
-                result.append({"name": fname, "size": os.path.getsize(fpath)})
+            fpath = self._jail_file_path(fname, must_exist=True)
+            if fpath is None:
+                continue
+            result.append({"name": fname, "size": os.path.getsize(fpath)})
         return result
 
     def get_destination_hash(self):

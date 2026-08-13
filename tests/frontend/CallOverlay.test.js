@@ -187,4 +187,49 @@ describe("CallOverlay.vue", () => {
         expect(global.api.post).toHaveBeenCalledWith("/api/v1/telephone/answer");
         expect(push).toHaveBeenCalledWith({ name: "call", query: { tab: "phone" } });
     });
+
+    it("answerCall probes getUserMedia with bare audio before posting", async () => {
+        const stop = vi.fn();
+        const getUserMedia = vi.fn().mockResolvedValue({ getTracks: () => [{ stop }] });
+        const mediaDesc = Object.getOwnPropertyDescriptor(navigator, "mediaDevices");
+        Object.defineProperty(navigator, "mediaDevices", {
+            configurable: true,
+            value: { getUserMedia, enumerateDevices: vi.fn().mockResolvedValue([]) },
+        });
+        global.api = { get: vi.fn().mockResolvedValue({}), post: vi.fn().mockResolvedValue({}) };
+        const wrapper = mount(CallOverlay, {
+            props: {
+                ...defaultProps,
+                activeCall: {
+                    ...defaultProps.activeCall,
+                    is_incoming: true,
+                    status: 4,
+                },
+            },
+            global: {
+                mocks: {
+                    $t: (key) => key,
+                    $router: { push: vi.fn().mockResolvedValue(undefined) },
+                    $route: { name: "call", query: { tab: "phone" } },
+                },
+                stubs: {
+                    MaterialDesignIcon: true,
+                    LxmfUserIcon: true,
+                    AudioWaveformPlayer: true,
+                },
+            },
+        });
+        try {
+            await wrapper.vm.answerCall();
+            expect(getUserMedia).toHaveBeenCalledWith({ audio: true });
+            expect(stop).toHaveBeenCalled();
+            expect(global.api.post).toHaveBeenCalledWith("/api/v1/telephone/answer");
+        } finally {
+            if (mediaDesc) {
+                Object.defineProperty(navigator, "mediaDevices", mediaDesc);
+            } else {
+                Reflect.deleteProperty(navigator, "mediaDevices");
+            }
+        }
+    });
 });

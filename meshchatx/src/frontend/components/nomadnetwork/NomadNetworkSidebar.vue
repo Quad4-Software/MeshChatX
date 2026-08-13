@@ -847,16 +847,20 @@ export default {
         },
         nodesOrderedByLatestAnnounce() {
             const nodes = Object.values(this.nodes);
-            return nodes.sort(function (nodeA, nodeB) {
-                // order by updated_at desc
-                const nodeAUpdatedAt = new Date(nodeA.updated_at).getTime();
-                const nodeBUpdatedAt = new Date(nodeB.updated_at).getTime();
-                return nodeBUpdatedAt - nodeAUpdatedAt;
-            });
+            const timedNodes = nodes.map((node) => ({
+                node,
+                t: node._updated_at_ts || (node._updated_at_ts = new Date(node.updated_at).getTime()),
+            }));
+            timedNodes.sort((a, b) => b.t - a.t);
+            return timedNodes.map((entry) => entry.node);
         },
         searchedNodes() {
-            return this.nodesOrderedByLatestAnnounce.filter((node) => {
-                const search = this.nodesSearchTerm.toLowerCase();
+            const search = (this.nodesSearchTerm || "").toLowerCase();
+            const ordered = this.nodesOrderedByLatestAnnounce;
+            if (!search) {
+                return ordered;
+            }
+            return ordered.filter((node) => {
                 const label = (node.custom_display_name || node.display_name || "").toLowerCase();
                 const matchesDisplayName = label.includes(search);
                 const matchesDestinationHash = node.destination_hash.toLowerCase().includes(search);

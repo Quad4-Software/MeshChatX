@@ -9,6 +9,7 @@ _ASPECT_MAX_STORED_KEYS = {
     "nomadnetwork.node": "announce_max_stored_nomadnetwork_node",
     "lxmf.propagation": "announce_max_stored_lxmf_propagation",
     "lxst.telephony": "announce_max_stored_lxmf_delivery",
+    "map-data-v1": "announce_max_stored_map_data",
 }
 
 _ASPECT_FETCH_LIMIT_KEYS = {
@@ -16,6 +17,7 @@ _ASPECT_FETCH_LIMIT_KEYS = {
     "nomadnetwork.node": "announce_fetch_limit_nomadnetwork_node",
     "lxmf.propagation": "announce_fetch_limit_lxmf_propagation",
     "lxst.telephony": "announce_fetch_limit_lxmf_delivery",
+    "map-data-v1": "announce_fetch_limit_map_data",
 }
 
 _ASPECT_STORE_ENABLE_KEYS = {
@@ -23,7 +25,18 @@ _ASPECT_STORE_ENABLE_KEYS = {
     "lxst.telephony": "announce_store_lxst_telephony",
     "nomadnetwork.node": "announce_store_nomadnetwork_node",
     "lxmf.propagation": "announce_store_lxmf_propagation",
+    "map-data-v1": "announce_store_map_data",
 }
+
+# Scalar lookup so LIMIT on announces runs before any contacts work.
+# An OR JOIN can multiply rows when two contacts match the same announce.
+_CONTACT_IMAGE_SQL = (
+    "(SELECT c.custom_image FROM contacts c "
+    "WHERE c.remote_identity_hash = a.identity_hash "
+    "OR c.lxmf_address = a.destination_hash "
+    "OR c.lxst_address = a.destination_hash "
+    "LIMIT 1)"
+)
 
 
 class AnnounceManager:
@@ -123,14 +136,9 @@ class AnnounceManager:
         if limit is None:
             limit = self._get_fetch_limit_for_aspect(aspect)
 
-        sql = """
-            SELECT a.*, c.custom_image as contact_image 
+        sql = f"""
+            SELECT a.*, {_CONTACT_IMAGE_SQL} as contact_image
             FROM announces a
-            LEFT JOIN contacts c ON (
-                a.identity_hash = c.remote_identity_hash OR 
-                a.destination_hash = c.lxmf_address OR 
-                a.destination_hash = c.lxst_address
-            )
             WHERE 1=1
         """
         params = []
@@ -172,11 +180,6 @@ class AnnounceManager:
         sql = """
             SELECT COUNT(*) as count
             FROM announces a
-            LEFT JOIN contacts c ON (
-                a.identity_hash = c.remote_identity_hash OR 
-                a.destination_hash = c.lxmf_address OR 
-                a.destination_hash = c.lxst_address
-            )
             WHERE 1=1
         """
         params = []
@@ -234,13 +237,8 @@ class AnnounceManager:
                 chunk = hash_list[offset : offset + chunk_size]
                 placeholders = ", ".join(["?"] * len(chunk))
                 sql = f"""
-                    SELECT a.*, c.custom_image as contact_image
+                    SELECT a.*, {_CONTACT_IMAGE_SQL} as contact_image
                     FROM announces a
-                    LEFT JOIN contacts c ON (
-                        a.identity_hash = c.remote_identity_hash OR
-                        a.destination_hash = c.lxmf_address OR
-                        a.destination_hash = c.lxst_address
-                    )
                     WHERE a.aspect = ?
                     AND a.destination_hash IN ({placeholders})
                 """

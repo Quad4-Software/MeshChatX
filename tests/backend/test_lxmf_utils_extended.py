@@ -14,6 +14,7 @@ from meshchatx.src.backend.lxmf_utils import (
     convert_lxmf_state_to_string,
     lxmf_message_solving_stamps,
     lxmf_sidebar_preview_for_conversation_latest_row,
+    parse_stored_lxmf_fields,
 )
 
 
@@ -562,3 +563,18 @@ def test_sidebar_preview_file_attachments_plural():
         peer_display_name="Casey",
     )
     assert out == "You sent 2 files"
+
+
+def test_parse_stored_lxmf_fields_accepts_object_json():
+    assert parse_stored_lxmf_fields('{"image": {"image_bytes": "QQ=="}}') == {
+        "image": {"image_bytes": "QQ=="},
+    }
+    assert parse_stored_lxmf_fields({"audio": {}}) == {"audio": {}}
+
+
+def test_parse_stored_lxmf_fields_rejects_invalid():
+    assert parse_stored_lxmf_fields(None) is None
+    assert parse_stored_lxmf_fields("") is None
+    assert parse_stored_lxmf_fields("not-json") is None
+    assert parse_stored_lxmf_fields("[]") is None
+    assert parse_stored_lxmf_fields(123) is None

@@ -669,6 +669,46 @@
             "path": "/api/v1/maintenance/stickers"
         },
         {
+            "method": "POST",
+            "path": "/api/v1/map/data/add-overlay"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/map/data/announce"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/map/data/catalog"
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/map/data/config"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/map/data/fetch"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/map/data/heard"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/map/data/publish"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/map/data/published"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/map/data/published/{map_id}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/map/data/status"
+        },
+        {
             "method": "GET",
             "path": "/api/v1/map/drawings"
         },

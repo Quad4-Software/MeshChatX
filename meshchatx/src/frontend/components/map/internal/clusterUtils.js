@@ -78,3 +78,36 @@ export function buildClusterItems(feature) {
     }
     return summary;
 }
+
+/**
+ * Group marker candidates into a hash grid. Cell size is in map units
+ * (resolution * pixelDistance). O(n) instead of pairwise distance checks.
+ *
+ * @param {Array<{coord: number[], clusterable?: boolean}>} candidates
+ * @param {number} cellSize
+ * @returns {Array<Array<object>>}
+ */
+export function gridClusterCandidates(candidates, cellSize) {
+    const size = Number.isFinite(cellSize) && cellSize > 0 ? cellSize : 1;
+    const cells = new Map();
+    const singles = [];
+    for (const c of candidates || []) {
+        if (!c || !Array.isArray(c.coord) || c.coord.length < 2) {
+            continue;
+        }
+        if (c.clusterable === false) {
+            singles.push([c]);
+            continue;
+        }
+        const gx = Math.floor(c.coord[0] / size);
+        const gy = Math.floor(c.coord[1] / size);
+        const key = `${gx}:${gy}`;
+        let arr = cells.get(key);
+        if (!arr) {
+            arr = [];
+            cells.set(key, arr);
+        }
+        arr.push(c);
+    }
+    return [...cells.values(), ...singles];
+}

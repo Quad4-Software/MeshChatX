@@ -9,15 +9,47 @@ import (
 	"math"
 )
 
+const (
+	// DefaultRepulsion is 1/r^2 strength when Request.Repulsion is 0.
+	DefaultRepulsion = 5200.0
+	// DefaultSpringK is hooke stiffness when Request.SpringK is 0.
+	DefaultSpringK = 0.028
+	// DefaultSpringLen is rest length when an edge omits Length.
+	DefaultSpringLen = 500.0
+	// DefaultHubSpringLen is rest length for thick hub edges (me to interface).
+	DefaultHubSpringLen = 440.0
+	// DefaultCellSize is the repulsion grid bucket in world units.
+	DefaultCellSize = 400.0
+	// DefaultMinSep is used when a body has no Radius.
+	DefaultMinSep = 96.0
+	// CollisionPad is extra gap beyond the two node radii.
+	CollisionPad = 48.0
+	// CollisionK is extra push when two discs overlap the min gap.
+	CollisionK = 3.0
+	// LiveRepulsion is WebGL live-tick repulsion (softer springs, same spacing).
+	LiveRepulsion = 5600.0
+	// LiveSpringK is WebGL live-tick spring stiffness.
+	LiveSpringK = 0.012
+)
+
+// SpringLength returns rest length from vis-style edge width.
+func SpringLength(width float64) float64 {
+	if width >= 2.5 {
+		return DefaultHubSpringLen
+	}
+	return DefaultSpringLen
+}
+
 // Node is one body in the layout simulation.
 type Node struct {
-	ID    string  `json:"id"`
-	X     float64 `json:"x"`
-	Y     float64 `json:"y"`
-	Vx    float64 `json:"vx"`
-	Vy    float64 `json:"vy"`
-	Mass  float64 `json:"mass"`
-	Fixed bool    `json:"fixed"`
+	ID     string  `json:"id"`
+	X      float64 `json:"x"`
+	Y      float64 `json:"y"`
+	Vx     float64 `json:"vx"`
+	Vy     float64 `json:"vy"`
+	Mass   float64 `json:"mass"`
+	Fixed  bool    `json:"fixed"`
+	Radius float64 `json:"radius"`
 }
 
 // Edge is a spring between two node ids.
@@ -41,8 +73,8 @@ type Request struct {
 
 // Result is settled positions keyed by node id.
 type Result struct {
-	Positions map[string]XY `json:"positions"`
-	Iterations int          `json:"iterations"`
+	Positions  map[string]XY `json:"positions"`
+	Iterations int           `json:"iterations"`
 }
 
 // XY is a 2D point.
@@ -52,11 +84,12 @@ type XY struct {
 }
 
 type body struct {
-	id    string
-	x, y  float64
+	id     string
+	x, y   float64
 	vx, vy float64
-	mass  float64
-	fixed bool
+	mass   float64
+	fixed  bool
+	radius float64
 }
 
 // Settle runs a damped spring + grid-repulsion layout in-place.
@@ -86,11 +119,11 @@ func Settle(req Request) Result {
 	}
 	repulsion := req.Repulsion
 	if repulsion == 0 {
-		repulsion = 1800
+		repulsion = DefaultRepulsion
 	}
 	springK := req.SpringK
 	if springK == 0 {
-		springK = 0.032
+		springK = DefaultSpringK
 	}
 	damping := req.Damping
 	if damping == 0 {
@@ -110,14 +143,19 @@ func Settle(req Request) Result {
 		if mass <= 0 {
 			mass = 1
 		}
+		radius := nd.Radius
+		if radius <= 0 {
+			radius = DefaultMinSep * 0.5
+		}
 		bodies[i] = body{
-			id:    nd.ID,
-			x:     nd.X,
-			y:     nd.Y,
-			vx:    nd.Vx,
-			vy:    nd.Vy,
-			mass:  mass,
-			fixed: nd.Fixed || nd.ID == "me",
+			id:     nd.ID,
+			x:      nd.X,
+			y:      nd.Y,
+			vx:     nd.Vx,
+			vy:     nd.Vy,
+			mass:   mass,
+			fixed:  nd.Fixed || nd.ID == "me",
+			radius: radius,
 		}
 		index[nd.ID] = i
 	}
@@ -136,12 +174,12 @@ func Settle(req Request) Result {
 		}
 		length := e.Length
 		if length <= 0 {
-			length = 280
+			length = DefaultSpringLen
 		}
 		springs = append(springs, spring{a: ai, b: bi, len: length})
 	}
 
-	cellSize := 220.0
+	cellSize := DefaultCellSize
 	for step := 0; step < iters; step++ {
 		fx := make([]float64, n)
 		fy := make([]float64, n)
@@ -164,9 +202,6 @@ func Settle(req Request) Result {
 			buckets[key] = append(buckets[key], i)
 		}
 		for i := range bodies {
-			if bodies[i].fixed {
-				continue
-			}
 			cx := int(math.Floor(bodies[i].x / cellSize))
 			cy := int(math.Floor(bodies[i].y / cellSize))
 			for dx := -1; dx <= 1; dx++ {
@@ -179,13 +214,22 @@ func Settle(req Request) Result {
 						dxp := bodies[i].x - bodies[j].x
 						dyp := bodies[i].y - bodies[j].y
 						dist2 := dxp*dxp + dyp*dyp + 0.01
-						inv := 1.0 / math.Sqrt(dist2)
+						dist := math.Sqrt(dist2)
+						inv := 1.0 / dist
 						force := repulsion * bodies[i].mass * bodies[j].mass * inv * inv
-						fx[i] += dxp * inv * force
-						fy[i] += dyp * inv * force
+						minDist := bodies[i].radius + bodies[j].radius + CollisionPad
+						if dist < minDist {
+							force += (minDist - dist) * CollisionK
+						}
+						fxn := dxp * inv * force
+						fyn := dyp * inv * force
+						if !bodies[i].fixed {
+							fx[i] += fxn
+							fy[i] += fyn
+						}
 						if !bodies[j].fixed {
-							fx[j] -= dxp * inv * force
-							fy[j] -= dyp * inv * force
+							fx[j] -= fxn
+							fy[j] -= fyn
 						}
 					}
 				}

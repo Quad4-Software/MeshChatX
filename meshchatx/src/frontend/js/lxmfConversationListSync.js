@@ -44,6 +44,31 @@ export function countUnreadConversations(conversations) {
 }
 
 /**
+ * Pin selected conversations to the top while keeping relative recency order.
+ *
+ * @param {Array<{ destination_hash?: string }>} conversations
+ * @param {Set<string>} pinnedHashes
+ * @returns {Array<object>}
+ */
+export function sortConversationsPinnedFirst(conversations, pinnedHashes) {
+    if (!Array.isArray(conversations) || conversations.length === 0) {
+        return conversations || [];
+    }
+    if (!pinnedHashes || pinnedHashes.size === 0) {
+        return conversations;
+    }
+    const idx = new Map(conversations.map((conversation, index) => [conversation.destination_hash, index]));
+    return [...conversations].sort((a, b) => {
+        const ap = pinnedHashes.has(a.destination_hash);
+        const bp = pinnedHashes.has(b.destination_hash);
+        if (ap !== bp) {
+            return ap ? -1 : 1;
+        }
+        return idx.get(a.destination_hash) - idx.get(b.destination_hash);
+    });
+}
+
+/**
  * Apply a refreshed conversation page in place, preserving row object identity when possible.
  *
  * @param {Array<object>} existing

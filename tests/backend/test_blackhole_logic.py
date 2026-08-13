@@ -54,9 +54,10 @@ async def test_banish_identity_with_blackhole(mock_rns_minimal, temp_dir):
         # Ensure blackhole integration is enabled
         app_instance.config.blackhole_integration_enabled.set(True)
 
-        # Mock database
         app_instance.database = MagicMock()
         app_instance.database.announces.get_announce_by_hash.return_value = None
+        app_instance.database.announces.get_announces_by_identity_hash.return_value = []
+        app_instance.database.announces.get_filtered_announces.return_value = []
 
         target_hash = "a" * 32
 
@@ -77,7 +78,7 @@ async def test_banish_identity_with_blackhole(mock_rns_minimal, temp_dir):
         assert response.status == 200
 
         # Verify DB call
-        app_instance.database.misc.add_blocked_destination.assert_called_with(
+        app_instance.database.misc.add_blocked_destination.assert_any_call(
             target_hash,
         )
 
@@ -98,14 +99,18 @@ async def test_banish_identity_with_resolution(mock_rns_minimal, temp_dir):
 
         app_instance.config.blackhole_integration_enabled.set(True)
         app_instance.database = MagicMock()
-
         dest_hash = "d" * 32
         ident_hash = "e" * 32
 
         # Mock identity resolution
         app_instance.database.announces.get_announce_by_hash.return_value = {
             "identity_hash": ident_hash,
+            "destination_hash": dest_hash,
         }
+        app_instance.database.announces.get_announces_by_identity_hash.return_value = [
+            {"identity_hash": ident_hash, "destination_hash": dest_hash},
+        ]
+        app_instance.database.announces.get_filtered_announces.return_value = []
 
         request = MagicMock()
         request.json = AsyncMock(return_value={"destination_hash": dest_hash})
@@ -136,6 +141,9 @@ async def test_banish_identity_disabled_integration(mock_rns_minimal, temp_dir):
         # DISABLE blackhole integration
         app_instance.config.blackhole_integration_enabled.set(False)
         app_instance.database = MagicMock()
+        app_instance.database.announces.get_announce_by_hash.return_value = None
+        app_instance.database.announces.get_announces_by_identity_hash.return_value = []
+        app_instance.database.announces.get_filtered_announces.return_value = []
 
         target_hash = "b" * 32
         request = MagicMock()
@@ -171,6 +179,8 @@ async def test_lift_banishment(mock_rns_minimal, temp_dir):
         app_instance.database = MagicMock()
         # Mock identity resolution
         app_instance.database.announces.get_announce_by_hash.return_value = None
+        app_instance.database.announces.get_announces_by_identity_hash.return_value = []
+        app_instance.database.announces.get_filtered_announces.return_value = []
 
         target_hash = "c" * 32
 
@@ -267,9 +277,108 @@ def test_is_destination_blocked_by_identity_hash(mock_rns_minimal, temp_dir):
     app_instance.database.announces.get_announces_by_identity_hash.return_value = [
         {"destination_hash": dest_hash, "identity_hash": ident_hash},
     ]
+    app_instance.database.announces.get_filtered_announces.return_value = []
 
     assert app_instance.is_destination_blocked(ident_hash) is True
 
     # Also verify a non-blocked identity returns False
     app_instance.database.misc.is_destination_blocked.side_effect = lambda h: False
     assert app_instance.is_destination_blocked(ident_hash) is False
+
+
+def _banish_app():
+    """Lightweight app for banishment ACL oracles (no Reticulum boot)."""
+    app = ReticulumMeshChat.__new__(ReticulumMeshChat)
+    ctx = MagicMock()
+    ctx.database.announces.get_announce_by_hash.return_value = None
+    ctx.database.announces.get_announces_by_identity_hash.return_value = []
+    ctx.database.announces.get_filtered_announces.return_value = []
+    ctx.config.blackhole_integration_enabled.get.return_value = True
+    ctx.local_lxmf_destination.hash.hex.return_value = "c" * 32
+    app.current_context = ctx
+    app.reticulum = MagicMock()
+    app.get_lxmf_destination_hash_for_identity_hash = MagicMock(return_value=None)
+    app.get_lxst_telephony_hash_for_identity_hash = MagicMock(return_value=None)
+    app.sync_telephone_call_policy = MagicMock()
+    app._broadcast_blocked_destinations = AsyncMock()
+    return app, ctx
+
+
+def test_oracle_identity_block_matches_lxmf_destination():
+    """Call/Nomad banish stores the identity hash. LXMF dest of that identity must match."""
+    app, ctx = _banish_app()
+    ident = "a" * 32
+    dest = "b" * 32
+    ctx.database.misc.is_destination_blocked.side_effect = lambda h: h == ident
+    ctx.database.announces.get_announce_by_hash.side_effect = lambda h: (
+        {"identity_hash": ident, "destination_hash": dest} if h == dest else None
+    )
+    ctx.database.announces.get_announces_by_identity_hash.side_effect = lambda h: (
+        [{"identity_hash": ident, "destination_hash": dest}] if h == ident else []
+    )
+    assert app.is_destination_blocked(dest) is True
+    assert app.is_destination_blocked(ident) is True
+    assert app.is_destination_blocked("f" * 32) is False
+
+
+def test_oracle_is_destination_blocked_fail_closed_on_db_error():
+    """Broken block-list queries must not fail open for inbound LXMF/LXST."""
+    app, ctx = _banish_app()
+    ctx.database.misc.is_destination_blocked.side_effect = RuntimeError("db down")
+    assert app.is_destination_blocked("a" * 32) is True
+
+
+def test_oracle_banish_identity_hash_persists_related_dest_and_wipes_history():
+    app, ctx = _banish_app()
+    ident = "a" * 32
+    dest = "b" * 32
+    ctx.database.announces.get_announce_by_hash.side_effect = lambda h: (
+        {"identity_hash": ident, "destination_hash": dest} if h == dest else None
+    )
+    ctx.database.announces.get_announces_by_identity_hash.side_effect = lambda h: (
+        [{"identity_hash": ident, "destination_hash": dest}] if h == ident else []
+    )
+    app.get_lxmf_destination_hash_for_identity_hash.return_value = dest
+
+    with patch("meshchatx.meshchat.AsyncUtils") as async_utils:
+        async_utils.run_async = MagicMock()
+        app.banish_lxmf_peer(ident)
+
+    added = [
+        c.args[0] for c in ctx.database.misc.add_blocked_destination.call_args_list
+    ]
+    assert ident in added
+    assert dest in added
+    ctx.message_handler.delete_conversation.assert_any_call("c" * 32, dest)
+    ctx.message_handler.delete_conversation.assert_any_call("c" * 32, ident)
+    app.reticulum.blackhole_identity.assert_called()
+    args, _ = app.reticulum.blackhole_identity.call_args
+    assert args[0] == bytes.fromhex(ident)
+
+
+def test_oracle_lift_identity_unblocks_related_dest():
+    app, ctx = _banish_app()
+    ident = "a" * 32
+    dest = "b" * 32
+    ctx.database.announces.get_announce_by_hash.side_effect = lambda h: (
+        {"identity_hash": ident, "destination_hash": dest} if h == dest else None
+    )
+    ctx.database.announces.get_announces_by_identity_hash.side_effect = lambda h: (
+        [{"identity_hash": ident, "destination_hash": dest}] if h == ident else []
+    )
+    app.get_lxmf_destination_hash_for_identity_hash.return_value = dest
+
+    with patch("meshchatx.meshchat.AsyncUtils") as async_utils:
+        async_utils.run_async = MagicMock()
+        app.lift_lxmf_peer_banishment(ident)
+
+    deleted = [
+        c.args[0] for c in ctx.database.misc.delete_blocked_destination.call_args_list
+    ]
+    assert ident in deleted
+    assert dest in deleted
+    unblackholed = [
+        c.args[0] for c in app.reticulum.unblackhole_identity.call_args_list
+    ]
+    assert bytes.fromhex(ident) in unblackholed
+    assert bytes.fromhex(dest) in unblackholed

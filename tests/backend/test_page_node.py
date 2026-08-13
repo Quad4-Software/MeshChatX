@@ -766,6 +766,28 @@ class TestPageNodeEdgeCases:
         assert name == "passwd.mu"
         assert not os.path.exists(os.path.join(node_dir, "..", "etc"))
 
+    @pytest.mark.skipif(os.name == "nt", reason="symlink jail oracle is POSIX")
+    def test_file_symlink_out_is_not_readable_or_overwritten(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        bait_dir = os.path.join(os.path.dirname(node_dir), "outside-jail")
+        os.makedirs(bait_dir, exist_ok=True)
+        bait = os.path.join(bait_dir, "secret.bin")
+        with open(bait, "wb") as f:
+            f.write(b"keep-me")
+        link_name = os.path.join(node.files_dir, "escape.bin")
+        os.symlink(bait, link_name)
+
+        assert node.read_hosted_file("escape.bin") is None
+        assert node.list_files() == []
+        assert node.remove_file("escape.bin") is False
+        with pytest.raises(ValueError, match="invalid file name"):
+            node.add_file("escape.bin", b"overwrite")
+        with open(bait, "rb") as f:
+            assert f.read() == b"keep-me"
+        responder = node._make_file_responder("escape.bin")
+        assert responder("/file/escape.bin", None, None, None, None, None) is None
+
 
 class TestPageNodeExecutablePages:
     def test_executable_disabled_serves_static_even_when_chmod_x(

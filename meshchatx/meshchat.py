@@ -823,6 +823,15 @@ class ReticulumMeshChat:
             self.current_context.map_overlay_manager = value
 
     @property
+    def map_data_manager(self):
+        return self.current_context.map_data_manager if self.current_context else None
+
+    @map_data_manager.setter
+    def map_data_manager(self, value):
+        if self.current_context:
+            self.current_context.map_data_manager = value
+
+    @property
     def docs_manager(self):
         return self.current_context.docs_manager if self.current_context else None
 
@@ -4800,41 +4809,30 @@ class ReticulumMeshChat:
 
             # Trigger missed call notification if it was an incoming call that ended without being established
             if is_incoming and not ctx.telephone_manager.call_was_established:
-                # Check if we should suppress the notification/websocket message
-                # If DND was on, we still record it but maybe skip the noisy websocket?
-                # Actually, persistent notification is good.
-
-                ctx.database.misc.add_notification(
-                    notification_type="telephone_missed_call",
-                    remote_hash=remote_identity_hash,
-                    title="Missed Call",
-                    content=f"You missed a call from {remote_identity_name or remote_identity_hash}",
-                )
-
-                # Skip websocket broadcast if DND or contacts-only was likely the reason
-                is_filtered = False
-                if ctx.config.do_not_disturb_enabled.get() or (
-                    (
-                        ctx.config.telephone_allow_calls_from_contacts_only.get()
-                        or ctx.config.block_all_from_strangers.get()
+                if not self.is_destination_blocked(remote_identity_hash, context=ctx):
+                    ctx.database.misc.add_notification(
+                        notification_type="telephone_missed_call",
+                        remote_hash=remote_identity_hash,
+                        title="Missed Call",
+                        content=f"You missed a call from {remote_identity_name or remote_identity_hash}",
                     )
-                    and not self._is_contact(remote_identity_hash, context=ctx)
-                ):
-                    is_filtered = True
 
-                if not is_filtered:
-                    AsyncUtils.run_async(
-                        self.websocket_broadcast(
-                            json.dumps(
-                                {
-                                    "type": "telephone_missed_call",
-                                    "remote_identity_hash": remote_identity_hash,
-                                    "remote_identity_name": remote_identity_name,
-                                    "timestamp": time.time(),
-                                },
+                    if not self.incoming_call_is_policy_filtered(
+                        remote_identity_hash,
+                        context=ctx,
+                    ):
+                        AsyncUtils.run_async(
+                            self.websocket_broadcast(
+                                json.dumps(
+                                    {
+                                        "type": "telephone_missed_call",
+                                        "remote_identity_hash": remote_identity_hash,
+                                        "remote_identity_name": remote_identity_name,
+                                        "timestamp": time.time(),
+                                    },
+                                ),
                             ),
-                        ),
-                    )
+                        )
 
         AsyncUtils.run_async(
             self.websocket_broadcast(
@@ -5810,9 +5808,11 @@ class ReticulumMeshChat:
             ("announce_max_stored_lxmf_delivery", 1, 1_000_000),
             ("announce_max_stored_nomadnetwork_node", 1, 1_000_000),
             ("announce_max_stored_lxmf_propagation", 1, 1_000_000),
+            ("announce_max_stored_map_data", 1, 1_000_000),
             ("announce_fetch_limit_lxmf_delivery", 1, 100_000),
             ("announce_fetch_limit_nomadnetwork_node", 1, 100_000),
             ("announce_fetch_limit_lxmf_propagation", 1, 100_000),
+            ("announce_fetch_limit_map_data", 1, 100_000),
             ("announce_search_max_fetch", 100, 10_000),
             ("discovered_interfaces_max_return", 1, 50_000),
         ]
@@ -6396,6 +6396,7 @@ class ReticulumMeshChat:
             "announce_store_lxst_telephony",
             "announce_store_nomadnetwork_node",
             "announce_store_lxmf_propagation",
+            "announce_store_map_data",
         ):
             if _k in data:
                 getattr(self.config, _k).set(self._parse_bool(data[_k]))
@@ -7265,6 +7266,10 @@ class ReticulumMeshChat:
             "map_overlay_max_bytes": ctx.config.map_overlay_max_bytes.get(),
             "map_overlay_max_features": ctx.config.map_overlay_max_features.get(),
             "map_overlay_max_kmz_uncompressed_bytes": ctx.config.map_overlay_max_kmz_uncompressed_bytes.get(),
+            "map_data_max_bytes": ctx.config.map_data_max_bytes.get(),
+            "map_data_announce_enabled": ctx.config.map_data_announce_enabled.get(),
+            "map_data_announce_interval": ctx.config.map_data_announce_interval.get(),
+            "map_data_display_name": ctx.config.map_data_display_name.get(),
             "map_overlay_max_sources": ctx.config.map_overlay_max_sources.get(),
             "map_overlay_max_concurrent_jobs": ctx.config.map_overlay_max_concurrent_jobs.get(),
             "map_overlay_path_timeout_seconds": ctx.config.map_overlay_path_timeout_seconds.get(),
@@ -7313,12 +7318,15 @@ class ReticulumMeshChat:
             "announce_store_lxst_telephony": ctx.config.announce_store_lxst_telephony.get(),
             "announce_store_nomadnetwork_node": ctx.config.announce_store_nomadnetwork_node.get(),
             "announce_store_lxmf_propagation": ctx.config.announce_store_lxmf_propagation.get(),
+            "announce_store_map_data": ctx.config.announce_store_map_data.get(),
             "announce_max_stored_lxmf_delivery": ctx.config.announce_max_stored_lxmf_delivery.get(),
             "announce_max_stored_nomadnetwork_node": ctx.config.announce_max_stored_nomadnetwork_node.get(),
             "announce_max_stored_lxmf_propagation": ctx.config.announce_max_stored_lxmf_propagation.get(),
+            "announce_max_stored_map_data": ctx.config.announce_max_stored_map_data.get(),
             "announce_fetch_limit_lxmf_delivery": ctx.config.announce_fetch_limit_lxmf_delivery.get(),
             "announce_fetch_limit_nomadnetwork_node": ctx.config.announce_fetch_limit_nomadnetwork_node.get(),
             "announce_fetch_limit_lxmf_propagation": ctx.config.announce_fetch_limit_lxmf_propagation.get(),
+            "announce_fetch_limit_map_data": ctx.config.announce_fetch_limit_map_data.get(),
             "announce_search_max_fetch": ctx.config.announce_search_max_fetch.get(),
             "discovered_interfaces_max_return": ctx.config.discovered_interfaces_max_return.get(),
             "csp_extra_connect_src": ctx.config.csp_extra_connect_src.get(),
@@ -7377,15 +7385,14 @@ class ReticulumMeshChat:
 
         # 2. if identity recall failed, or we couldn't find a name for the calculated hash
         # try to look up an lxmf.delivery announce with this identity_hash in the database
-        search = id_norm if len(id_norm) >= 8 else identity_hash
+        lookup_hash = id_norm if id_norm else identity_hash
         announces = self.database.announces.get_filtered_announces(
             aspect="lxmf.delivery",
-            search_term=search,
+            identity_hash=lookup_hash,
+            limit=5,
         )
         if announces:
             for announce in announces:
-                # search_term matches destination_hash OR identity_hash in the DAO.
-                # We want to be sure it's the identity_hash we're looking for.
                 ann_id = announce.get("identity_hash") or ""
                 if ann_id and normalize_hex_identifier(ann_id) == id_norm:
                     lxmf_destination_hash = announce["destination_hash"]
@@ -7417,10 +7424,11 @@ class ReticulumMeshChat:
             return RNS.Destination.hash(identity, "lxmf", "delivery").hex()
 
         # fallback to announces
-        search = id_norm if len(id_norm) >= 8 else identity_hash
+        lookup_hash = id_norm if id_norm else identity_hash
         announces = self.database.announces.get_filtered_announces(
             aspect="lxmf.delivery",
-            search_term=search,
+            identity_hash=lookup_hash,
+            limit=5,
         )
         if announces:
             for announce in announces:
@@ -7432,10 +7440,11 @@ class ReticulumMeshChat:
     def get_lxst_telephony_hash_for_identity_hash(self, identity_hash: str):
         id_norm = normalize_hex_identifier(identity_hash) if identity_hash else ""
         # Primary: use announces table for lxst.telephony aspect
-        search = id_norm if len(id_norm) >= 8 else identity_hash
+        lookup_hash = id_norm if id_norm else identity_hash
         announces = self.database.announces.get_filtered_announces(
             aspect="lxst.telephony",
-            search_term=search,
+            identity_hash=lookup_hash,
+            limit=5,
         )
         if announces:
             for announce in announces:
@@ -8006,69 +8015,104 @@ class ReticulumMeshChat:
             return audio_bytes
         return encoded
 
+    def incoming_call_is_policy_filtered(self, caller_hex, context=None) -> bool:
+        """True when an inbound ring must not surface in the local UI.
+
+        Covers DND, banishment, contacts-only, and block-strangers. Missing
+        caller identity is treated as filtered when a contact gate is on.
+        Unexpected errors fail closed.
+        """
+        ctx = context or self.current_context
+        if not ctx or not getattr(ctx, "config", None):
+            return True
+        try:
+            if ctx.config.do_not_disturb_enabled.get():
+                return True
+            if caller_hex and self.is_destination_blocked(caller_hex, context=ctx):
+                return True
+            if (
+                ctx.config.telephone_allow_calls_from_contacts_only.get()
+                or ctx.config.block_all_from_strangers.get()
+            ) and (not caller_hex or not self._is_contact(caller_hex, context=ctx)):
+                return True
+            return False
+        except Exception as e:
+            print(f"incoming_call_is_policy_filtered: {e}")
+            return True
+
     def is_destination_blocked(self, destination_hash: str, context=None) -> bool:
         """Return whether destination_hash is in the block list.
 
-        Accepts either a destination hash or an identity hash. When an identity
-        hash is passed, any blocked destination belonging to that identity will
-        match.
+        Accepts either a destination hash or an identity hash. A block on the
+        identity matches every known destination of that identity, and a block
+        on any destination matches the identity. Unexpected database errors
+        fail closed so inbound LXMF and LXST do not treat a broken ACL as open.
         """
         ctx = context or self.current_context
         if not ctx or not ctx.database:
             return False
         try:
-            if ctx.database.misc.is_destination_blocked(destination_hash):
-                return True
-
-            # The provided hash might be a destination hash or an identity hash.
-            # Try looking it up as a destination hash first.
-            announce = ctx.database.announces.get_announce_by_hash(destination_hash)
-            if announce and announce.get("identity_hash"):
-                identity_hash = announce["identity_hash"]
-                other_announces = ctx.database.announces.get_announces_by_identity_hash(
-                    identity_hash,
-                )
-                for other in other_announces:
-                    if ctx.database.misc.is_destination_blocked(
-                        other["destination_hash"],
-                    ):
-                        return True
-
-            # If no announce was found by destination_hash, the provided hash
-            # may itself be an identity hash. Look up all announces for that
-            # identity and check whether any of their destinations are blocked.
-            identity_announces = ctx.database.announces.get_announces_by_identity_hash(
+            related = self._related_hashes_for_contact_lookup(
                 destination_hash,
+                context=ctx,
             )
-            for ann in identity_announces:
-                if ctx.database.misc.is_destination_blocked(ann["destination_hash"]):
+            if destination_hash and destination_hash not in related:
+                related = [destination_hash, *related]
+            for peer_hash in related:
+                if ctx.database.misc.is_destination_blocked(peer_hash):
                     return True
-
             return False
         except Exception:
-            return False
+            return True
 
-    def _lxmf_reticulum_enforce_block(self, destination_hash: str) -> None:
+    def _lxmf_reticulum_enforce_block(
+        self,
+        destination_hash: str,
+        context=None,
+    ) -> None:
         """Apply Reticulum blackhole or drop_path after a peer was added to the block list."""
+        ctx = context or self.current_context
         try:
-            if hasattr(self, "reticulum") and self.reticulum:
-                identity_hash = None
-                announce = self.database.announces.get_announce_by_hash(
-                    destination_hash,
-                )
+            if not hasattr(self, "reticulum") or not self.reticulum:
+                return
+            db = getattr(ctx, "database", None) if ctx is not None else None
+            if db is None:
+                db = self.database
+            identity_hash = None
+            if db is not None:
+                announce = db.announces.get_announce_by_hash(destination_hash)
                 if announce and announce.get("identity_hash"):
                     identity_hash = announce["identity_hash"]
-                target_hash = identity_hash or destination_hash
-                dest_bytes = bytes.fromhex(target_hash)
-                if hasattr(self.reticulum, "blackhole_identity"):
-                    reason = (
-                        f"Blocked in MeshChatX (from {destination_hash})"
-                        if identity_hash
-                        else "Blocked in MeshChatX"
-                    )
-                    self.reticulum.blackhole_identity(dest_bytes, reason=reason)
                 else:
-                    self.reticulum.drop_path(dest_bytes)
+                    by_ident = db.announces.get_announces_by_identity_hash(
+                        destination_hash,
+                    )
+                    try:
+                        by_ident = list(by_ident or [])
+                    except TypeError:
+                        by_ident = []
+                    if by_ident:
+                        identity_hash = destination_hash
+            target_hash = identity_hash or destination_hash
+            dest_bytes = bytes.fromhex(target_hash)
+            use_blackhole = True
+            cfg = getattr(ctx, "config", None) if ctx is not None else None
+            if cfg is None:
+                cfg = self.config
+            if cfg is not None:
+                try:
+                    use_blackhole = bool(cfg.blackhole_integration_enabled.get())
+                except Exception:
+                    use_blackhole = True
+            if use_blackhole and hasattr(self.reticulum, "blackhole_identity"):
+                reason = (
+                    f"Blocked in MeshChatX (from {destination_hash})"
+                    if identity_hash
+                    else "Blocked in MeshChatX"
+                )
+                self.reticulum.blackhole_identity(dest_bytes, reason=reason)
+            else:
+                self.reticulum.drop_path(dest_bytes)
         except Exception as e:
             print(f"_lxmf_reticulum_enforce_block: failed: {e}")
 
@@ -8082,10 +8126,7 @@ class ReticulumMeshChat:
         if not ctx or not ctx.database:
             return
         try:
-            # Delete contact if present
-            contact = ctx.database.contacts.get_contact_by_identity_hash(
-                destination_hash,
-            )
+            contact = self._resolve_contact_for_hash(destination_hash, context=ctx)
             if contact and contact.get("id"):
                 ctx.database.contacts.delete_contact(contact["id"])
         except Exception as e:
@@ -8120,33 +8161,85 @@ class ReticulumMeshChat:
         except Exception as e:
             print(f"_delete_contact_and_stamp_ticket: stamp/ticket cleanup failed: {e}")
 
+    def _peer_hashes_for_banishment(self, destination_hash: str, context=None) -> list:
+        """Identity and destination hashes that must be blocked or unblocked together."""
+        destination_hash = normalize_hex_identifier(destination_hash)
+        related = self._related_hashes_for_contact_lookup(
+            destination_hash,
+            context=context,
+        )
+        hashes = []
+        seen = set()
+        for peer_hash in (destination_hash, *related):
+            if not peer_hash or peer_hash in seen:
+                continue
+            if len(peer_hash) != 32:
+                continue
+            seen.add(peer_hash)
+            hashes.append(peer_hash)
+        return hashes
+
     def banish_lxmf_peer(self, destination_hash: str, context=None) -> None:
-        """Banish (block) an LXMF peer: persist block and apply Reticulum blackhole/drop when configured."""
+        """Banish a peer by identity: persist every known dest, blackhole, wipe history."""
         ctx = context or self.current_context
         if not ctx or not ctx.database:
             return
+        destination_hash = normalize_hex_identifier(destination_hash)
         if not destination_hash or len(destination_hash) != 32:
             return
+        hashes = self._peer_hashes_for_banishment(destination_hash, context=ctx)
         try:
-            ctx.database.misc.add_blocked_destination(destination_hash)
-            # Block all known destinations for the same identity
-            announce = ctx.database.announces.get_announce_by_hash(destination_hash)
-            if announce and announce.get("identity_hash"):
-                identity_hash = announce["identity_hash"]
-                other_announces = ctx.database.announces.get_announces_by_identity_hash(
-                    identity_hash,
-                )
-                for other in other_announces:
-                    other_hash = other["destination_hash"]
-                    if other_hash != destination_hash:
-                        ctx.database.misc.add_blocked_destination(other_hash)
-                        self._lxmf_reticulum_enforce_block(other_hash)
-                        self._delete_contact_and_stamp_ticket(other_hash, context=ctx)
+            for peer_hash in hashes:
+                ctx.database.misc.add_blocked_destination(peer_hash)
+                self._delete_contact_and_stamp_ticket(peer_hash, context=ctx)
         except Exception as e:
             print(f"banish_lxmf_peer: failed: {e}")
             return
-        self._lxmf_reticulum_enforce_block(destination_hash)
-        self._delete_contact_and_stamp_ticket(destination_hash, context=ctx)
+        self._lxmf_reticulum_enforce_block(destination_hash, context=ctx)
+        handler = getattr(ctx, "message_handler", None)
+        local_dest = getattr(ctx, "local_lxmf_destination", None)
+        if handler is not None and local_dest is not None:
+            try:
+                local_hash = local_dest.hash.hex()
+                for peer_hash in hashes:
+                    handler.delete_conversation(local_hash, peer_hash)
+            except Exception as e:
+                print(f"banish_lxmf_peer: conversation delete failed: {e}")
+        AsyncUtils.run_async(self._broadcast_blocked_destinations())
+        self.sync_telephone_call_policy(context=ctx)
+
+    def lift_lxmf_peer_banishment(self, destination_hash: str, context=None) -> None:
+        """Lift banishment for an identity and every known destination hash."""
+        ctx = context or self.current_context
+        if not ctx or not ctx.database:
+            return
+        destination_hash = normalize_hex_identifier(destination_hash)
+        if not destination_hash or len(destination_hash) != 32:
+            return
+        hashes = self._peer_hashes_for_banishment(destination_hash, context=ctx)
+        for peer_hash in hashes:
+            try:
+                ctx.database.misc.delete_blocked_destination(peer_hash)
+            except Exception as e:
+                print(f"lift_lxmf_peer_banishment: delete {peer_hash} failed: {e}")
+        try:
+            if (
+                hasattr(self, "reticulum")
+                and self.reticulum
+                and hasattr(self.reticulum, "unblackhole_identity")
+            ):
+                seen = set()
+                for peer_hash in hashes:
+                    raw = hex_identifier_to_bytes(peer_hash)
+                    if not raw or raw in seen:
+                        continue
+                    seen.add(raw)
+                    try:
+                        self.reticulum.unblackhole_identity(raw)
+                    except Exception:
+                        pass
+        except Exception as e:
+            print(f"Failed to unblackhole identity in Reticulum: {e}")
         AsyncUtils.run_async(self._broadcast_blocked_destinations())
         self.sync_telephone_call_policy(context=ctx)
 
@@ -8478,6 +8571,15 @@ class ReticulumMeshChat:
             self._lxmf_incoming_timestamps.append(time.time())
             self._check_lxmf_flood_protection(context=ctx)
 
+            if ctx.config.block_all_from_strangers.get() and not self._is_contact(
+                source_hash,
+                context=ctx,
+            ):
+                print(
+                    f"Blocking entire message from stranger: {source_hash}",
+                )
+                return
+
             is_sideband_telemetry_request = False
             lxmf_fields = lxmf_message.get_fields()
 
@@ -8583,16 +8685,6 @@ class ReticulumMeshChat:
                             },
                         ),
                     ),
-                )
-                return
-
-            # block entire message from strangers if setting is enabled
-            if ctx.config.block_all_from_strangers.get() and not self._is_contact(
-                source_hash,
-                context=ctx,
-            ):
-                print(
-                    f"Blocking entire message from stranger: {source_hash}",
                 )
                 return
 
@@ -10225,6 +10317,56 @@ class ReticulumMeshChat:
             self.config.nomad_default_page_path.get() or "/page/index.mu",
         )
 
+    def on_map_data_announce_received(
+        self,
+        aspect,
+        destination_hash,
+        announced_identity,
+        app_data,
+        announce_packet_hash,
+        context=None,
+    ):
+        """Handle map-data-v1 announces (synchronous Reticulum callback)."""
+        ctx = context or self.current_context
+        if not ctx or not ctx.running or not ctx.announce_manager or not ctx.database:
+            return
+        if not announced_identity or not announced_identity.hash:
+            return
+        identity_hash = announced_identity.hash.hex()
+        if self.is_destination_blocked(identity_hash, context=ctx):
+            if hasattr(self, "reticulum") and self.reticulum:
+                self.reticulum.drop_path(destination_hash)
+            return
+        if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
+            return
+        print(
+            "Received an announce from "
+            + RNS.prettyhexrep(destination_hash)
+            + " for [map-data-v1]",
+        )
+        self.announce_timestamps.append(time.time())
+        ctx.announce_manager.upsert_announce(
+            self.reticulum,
+            announced_identity,
+            destination_hash,
+            aspect,
+            app_data,
+            announce_packet_hash,
+        )
+        announce = ctx.database.announces.get_announce_by_hash(destination_hash.hex())
+        if not announce:
+            return
+        AsyncUtils.run_async(
+            self.websocket_broadcast(
+                json.dumps(
+                    {
+                        "type": "announce",
+                        "announce": self.convert_db_announce_to_dict(announce),
+                    },
+                ),
+            ),
+        )
+
     def _try_serve_local_page_node(
         self,
         destination_hash,
@@ -10266,16 +10408,7 @@ class ReticulumMeshChat:
             if node.destination.hash == destination_hash:
                 file_name = file_path.lstrip("/")
                 file_name = file_name.removeprefix("file/")
-                file_name = os.path.basename(file_name)
-                if not file_name or file_name in (".", ".."):
-                    return None
-                full_path = os.path.join(node.files_dir, file_name)
-                if os.path.isfile(full_path):
-                    with open(full_path, "rb") as f:
-                        file_bytes = f.read()
-                    node._stats["files_served"] += 1
-                    return (file_name, file_bytes)
-                return None
+                return node.read_hosted_file(file_name)
         return None
 
     def _register_local_page_node_announce(self, node):

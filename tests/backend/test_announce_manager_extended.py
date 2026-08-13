@@ -123,6 +123,7 @@ def test_get_filtered_announces_count(mock_db):
     assert "SELECT COUNT(*)" in sql
     assert "a.aspect = ?" in sql
     assert "a.identity_hash NOT IN (?)" in sql
+    assert "JOIN contacts" not in sql
     assert "test" in params
     assert "b1" in params
 

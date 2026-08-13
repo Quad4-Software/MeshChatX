@@ -389,4 +389,16 @@ describe("App.vue sidebar identity label and announce control", () => {
         const nav = wrapper.findComponent({ name: "AppSidebarNav" });
         expect(nav.text()).toContain("Interfaces");
     });
+
+    it("shows Network Visualiser in the Explore group without opening More", async () => {
+        registerCoreContributions();
+        wrapper = makeMountedApp();
+        await readyShell(wrapper.vm.$router);
+        const exploreGroup = wrapper.vm.primaryNavGroups.find((group) => group.id === "explore");
+        expect(exploreGroup?.items.map((item) => item.id)).toEqual(["nomadnetwork", "map", "network-visualiser"]);
+        expect(wrapper.vm.moreNavItems.map((item) => item.id)).not.toContain("network-visualiser");
+        expect(wrapper.vm.isShowingMoreNav).toBe(false);
+        const nav = wrapper.findComponent({ name: "AppSidebarNav" });
+        expect(nav.text()).toContain("Network Visualiser");
+    });
 });

@@ -379,6 +379,26 @@ class ConfigManager:
             "map_overlay_retry_delay_seconds",
             2,
         )
+        self.map_data_max_bytes = self.IntConfig(
+            self,
+            "map_data_max_bytes",
+            512 * 1024,
+        )
+        self.map_data_announce_enabled = self.BoolConfig(
+            self,
+            "map_data_announce_enabled",
+            True,
+        )
+        self.map_data_announce_interval = self.IntConfig(
+            self,
+            "map_data_announce_interval",
+            900,
+        )
+        self.map_data_display_name = self.StringConfig(
+            self,
+            "map_data_display_name",
+            "Maps",
+        )
 
         # telemetry config
         self.telemetry_enabled = self.BoolConfig(self, "telemetry_enabled", False)
@@ -527,6 +547,11 @@ class ConfigManager:
             "announce_store_lxmf_propagation",
             True,
         )
+        self.announce_store_map_data = self.BoolConfig(
+            self,
+            "announce_store_map_data",
+            True,
+        )
         # announce caps: max rows stored per aspect (oldest dropped). Default 2500.
         self.announce_max_stored_lxmf_delivery = self.IntConfig(
             self,
@@ -543,6 +568,11 @@ class ConfigManager:
             "announce_max_stored_lxmf_propagation",
             2500,
         )
+        self.announce_max_stored_map_data = self.IntConfig(
+            self,
+            "announce_max_stored_map_data",
+            2500,
+        )
         # default API page size per aspect when limit query param omitted. Default 2500.
         self.announce_fetch_limit_lxmf_delivery = self.IntConfig(
             self,
@@ -557,6 +587,11 @@ class ConfigManager:
         self.announce_fetch_limit_lxmf_propagation = self.IntConfig(
             self,
             "announce_fetch_limit_lxmf_propagation",
+            2500,
+        )
+        self.announce_fetch_limit_map_data = self.IntConfig(
+            self,
+            "announce_fetch_limit_map_data",
             2500,
         )
         # lxst.telephony shares LXMF caps in announce_manager aspect mapping

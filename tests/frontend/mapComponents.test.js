@@ -12,6 +12,7 @@ import MapExportProgressPanel from "@/components/map/internal/MapExportProgressP
 import MapClusterPanel from "@/components/map/internal/MapClusterPanel.vue";
 import MapMarkerPanel from "@/components/map/internal/MapMarkerPanel.vue";
 import MapVectorExchangePanel from "@/components/map/internal/MapVectorExchangePanel.vue";
+import MapSidePanel from "@/components/map/internal/MapSidePanel.vue";
 
 const DRAWING_TOOLS = [
     { type: "Select", icon: "cursor-default" },
@@ -19,7 +20,6 @@ const DRAWING_TOOLS = [
     { type: "LineString", icon: "vector-line" },
     { type: "Polygon", icon: "vector-polygon" },
     { type: "Circle", icon: "circle-outline" },
-    { type: "Export", icon: "crop-free" },
 ];
 
 function t(key) {
@@ -27,7 +27,7 @@ function t(key) {
 }
 
 describe("MapDrawingToolbar", () => {
-    it("emits toggle-bearing and bearing-from-here", async () => {
+    it("emits toggle-bearing from the single bearing button", async () => {
         const wrapper = mount(MapDrawingToolbar, {
             props: {
                 tools: DRAWING_TOOLS,
@@ -42,8 +42,9 @@ describe("MapDrawingToolbar", () => {
         });
         await wrapper.find('button[title="map.tool_bearing"]').trigger("click");
         expect(wrapper.emitted("toggle-bearing")).toHaveLength(1);
-        await wrapper.find('button[title="map.tool_bearing_from_here"]').trigger("click");
-        expect(wrapper.emitted("bearing-from-here")).toHaveLength(1);
+        expect(wrapper.find('button[title="map.tool_bearing_from_here"]').exists()).toBe(false);
+        expect(wrapper.find('button[title="map.share_view"]').exists()).toBe(false);
+        expect(wrapper.find('button[title="map.ping_here_toolbar"]').exists()).toBe(false);
     });
 
     it("applies bearing highlight classes when bearingMode is true", () => {
@@ -77,6 +78,23 @@ describe("MapDrawingToolbar", () => {
         expect(wrapper.emitted("toggle-measure")).toHaveLength(1);
         await wrapper.find('button[title="map.tool_point"]').trigger("click");
         expect(wrapper.emitted("toggle-draw")).toEqual([["Point"]]);
+    });
+
+    it("shows draw, measure, and files group labels", () => {
+        const wrapper = mount(MapDrawingToolbar, {
+            props: {
+                tools: DRAWING_TOOLS,
+                bearingMode: false,
+                measuring: false,
+                exportMode: false,
+                selectedFeature: null,
+            },
+            global: { mocks: { $t: t } },
+        });
+        expect(wrapper.text()).toContain("map.toolbar_draw");
+        expect(wrapper.text()).toContain("map.toolbar_measure");
+        expect(wrapper.text()).toContain("map.toolbar_files");
+        expect(wrapper.find('button[title="map.export_area"]').exists()).toBe(false);
     });
 });
 
@@ -336,5 +354,32 @@ describe("MapVectorExchangePanel", () => {
         const cb = wrapper.find('input[type="checkbox"]');
         await cb.setValue(false);
         expect(wrapper.vm.mergeImport).toBe(false);
+    });
+});
+
+describe("MapSidePanel", () => {
+    const stubs = {
+        MapDiscoverPanel: { template: '<div class="discover-stub" />' },
+        MapPublishPanel: { template: '<div class="publish-stub" />' },
+        MapLayersPanel: { template: '<div class="layers-stub" />' },
+        MapOfflinePanel: { template: '<div class="offline-stub" />' },
+    };
+
+    it("defaults to Discover and switches to Publish, Layers, and Offline", async () => {
+        const wrapper = mount(MapSidePanel, {
+            global: { mocks: { $t: t }, stubs },
+        });
+        expect(wrapper.text()).toContain("map.tab_discover");
+        expect(wrapper.text()).toContain("map.tab_publish");
+        expect(wrapper.text()).toContain("map.tab_layers");
+        expect(wrapper.text()).toContain("map.tab_offline");
+        expect(wrapper.find(".discover-stub").exists()).toBe(true);
+        const buttons = wrapper.findAll("button");
+        await buttons[1].trigger("click");
+        expect(wrapper.find(".publish-stub").exists()).toBe(true);
+        await buttons[2].trigger("click");
+        expect(wrapper.find(".layers-stub").exists()).toBe(true);
+        await buttons[3].trigger("click");
+        expect(wrapper.find(".offline-stub").exists()).toBe(true);
     });
 });

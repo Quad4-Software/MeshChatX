@@ -9,6 +9,7 @@ import {
     normalizeSettingsTabId,
     SETTINGS_TABS,
     settingsSectionBelongsToTab,
+    settingsSectionSearchExtras,
     settingsTabForSection,
 } from "../../meshchatx/src/frontend/js/settings/settingsTabs.js";
 
@@ -136,5 +137,14 @@ describe("settingsTabs", () => {
             expect(en.settings.tabs[labelTail]).toBeTruthy();
             expect(en.settings.tabs[descTail]).toBeTruthy();
         }
+    });
+
+    it("adds tab label and camelCase section id as search extras", () => {
+        expect(settingsSectionSearchExtras("appearance")).toEqual(["settings.tabs.general", "=appearance"]);
+        expect(settingsSectionSearchExtras("strangerProtection")).toEqual([
+            "settings.tabs.messages",
+            "=stranger protection",
+        ]);
+        expect(settingsSectionSearchExtras("unknown-section")).toEqual(["=unknown-section"]);
     });
 });

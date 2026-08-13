@@ -366,22 +366,32 @@ def register_page_nodes_routes(routes, app):
             return web.json_response({"message": "Node not found"}, status=404)
         try:
             reader = await request.multipart()
-            field = await reader.next()
         except Exception as e:
             return web.json_response(
                 {"message": f"Invalid upload request: {e}"},
                 status=400,
             )
-        if field is None:
-            return web.json_response({"message": "No file uploaded"}, status=400)
-        filename = field.filename or "upload"
+        filename = None
+        file_data = None
         try:
-            file_data = await field.read()
+            while True:
+                field = await reader.next()
+                if field is None:
+                    break
+                name = field.name or ""
+                if name == "file" or field.filename:
+                    filename = field.filename or "upload"
+                    file_data = await field.read()
+                else:
+                    with contextlib.suppress(Exception):
+                        await field.read()
         except Exception as e:
             return web.json_response(
                 {"message": f"Failed to read upload: {e}"},
                 status=400,
             )
+        if file_data is None:
+            return web.json_response({"message": "No file uploaded"}, status=400)
         try:
             saved_name = node.add_file(filename, file_data)
         except ValueError as e:

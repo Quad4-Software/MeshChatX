@@ -693,9 +693,9 @@ class MessageDAO:
         now = datetime.now(UTC).isoformat()
         self.provider.execute(
             """
-            INSERT INTO lxmf_conversation_read_state (destination_hash, last_read_at, created_at, updated_at) 
+            INSERT INTO lxmf_conversation_read_state (destination_hash, last_read_at, created_at, updated_at)
             VALUES (?, ?, ?, ?)
-            ON CONFLICT(destination_hash) DO UPDATE SET 
+            ON CONFLICT(destination_hash) DO UPDATE SET
                 last_read_at = EXCLUDED.last_read_at,
                 updated_at = EXCLUDED.updated_at
             """,
@@ -802,7 +802,7 @@ class MessageDAO:
     def is_conversation_unread(self, destination_hash):
         row = self.provider.fetchone(
             """
-            SELECT m.timestamp, r.last_read_at 
+            SELECT m.timestamp, r.last_read_at
             FROM lxmf_messages m
             LEFT JOIN lxmf_conversation_read_state r ON r.destination_hash = ?
             WHERE m.peer_hash = ? AND m.is_incoming = 1
@@ -1092,9 +1092,9 @@ class MessageDAO:
         now = datetime.now(UTC).isoformat()
         self.provider.execute(
             """
-            INSERT INTO notification_viewed_state (destination_hash, last_viewed_at, created_at, updated_at) 
+            INSERT INTO notification_viewed_state (destination_hash, last_viewed_at, created_at, updated_at)
             VALUES (?, ?, ?, ?)
-            ON CONFLICT(destination_hash) DO UPDATE SET 
+            ON CONFLICT(destination_hash) DO UPDATE SET
                 last_viewed_at = EXCLUDED.last_viewed_at,
                 updated_at = EXCLUDED.updated_at
             """,
@@ -1107,9 +1107,9 @@ class MessageDAO:
             with self.provider:
                 self.provider.executemany(
                     """
-                    INSERT INTO notification_viewed_state (destination_hash, last_viewed_at, created_at, updated_at) 
+                    INSERT INTO notification_viewed_state (destination_hash, last_viewed_at, created_at, updated_at)
                     VALUES (?, ?, ?, ?)
-                    ON CONFLICT(destination_hash) DO UPDATE SET 
+                    ON CONFLICT(destination_hash) DO UPDATE SET
                         last_viewed_at = EXCLUDED.last_viewed_at,
                         updated_at = EXCLUDED.updated_at
                     """,
@@ -1123,12 +1123,21 @@ class MessageDAO:
                 SELECT peer_hash, ?, ?, ? FROM lxmf_messages
                 WHERE peer_hash IS NOT NULL
                 GROUP BY peer_hash
-                ON CONFLICT(destination_hash) DO UPDATE SET 
+                ON CONFLICT(destination_hash) DO UPDATE SET
                     last_viewed_at = EXCLUDED.last_viewed_at,
                     updated_at = EXCLUDED.updated_at
                 """,
                 (now, now, now),
             )
+
+    @staticmethod
+    def notification_viewed_covers(last_viewed_at_str, message_timestamp):
+        if not last_viewed_at_str:
+            return False
+        last_viewed_at = datetime.fromisoformat(last_viewed_at_str)
+        if last_viewed_at.tzinfo is None:
+            last_viewed_at = last_viewed_at.replace(tzinfo=UTC)
+        return message_timestamp <= last_viewed_at.timestamp()
 
     def is_notification_viewed(self, destination_hash, message_timestamp):
         row = self.provider.fetchone(
@@ -1137,12 +1146,31 @@ class MessageDAO:
         )
         if not row or not row["last_viewed_at"]:
             return False
+        return self.notification_viewed_covers(
+            row["last_viewed_at"],
+            message_timestamp,
+        )
 
-        last_viewed_at = datetime.fromisoformat(row["last_viewed_at"])
-        if last_viewed_at.tzinfo is None:
-            last_viewed_at = last_viewed_at.replace(tzinfo=UTC)
-
-        return message_timestamp <= last_viewed_at.timestamp()
+    def get_notification_last_viewed_at_map(self, destination_hashes):
+        unique = []
+        seen = set()
+        for raw in destination_hashes or []:
+            if not isinstance(raw, str):
+                continue
+            key = raw.strip()
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            unique.append(key)
+        if not unique:
+            return {}
+        placeholders = ", ".join(["?"] * len(unique))
+        rows = self.provider.fetchall(
+            "SELECT destination_hash, last_viewed_at FROM notification_viewed_state "
+            f"WHERE destination_hash IN ({placeholders})",
+            unique,
+        )
+        return {row["destination_hash"]: row["last_viewed_at"] for row in rows}
 
     # Folders
     def get_all_folders(self):

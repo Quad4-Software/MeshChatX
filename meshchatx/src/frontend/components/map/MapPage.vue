@@ -55,16 +55,6 @@
                     </button>
                 </div>
 
-                <!-- upload: icon on mobile, full label from sm -->
-                <button
-                    type="button"
-                    class="inline-flex items-center justify-center sm:gap-1 p-2 sm:px-3 sm:py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-xs transition-colors text-sm font-medium shrink-0"
-                    :title="$t('map.upload_mbtiles')"
-                    @click="$refs.fileInput.click()"
-                >
-                    <MaterialDesignIcon icon-name="upload" class="size-[18px] sm:size-4" />
-                    <span class="hidden sm:inline">{{ $t("map.upload_mbtiles") }}</span>
-                </button>
                 <input ref="fileInput" type="file" accept=".mbtiles" class="hidden" @change="onFileSelected" />
 
                 <button
@@ -86,10 +76,18 @@
                 >
                     <MaterialDesignIcon :icon-name="isMobileSearchOpen ? 'close' : 'magnify'" class="size-[18px]" />
                 </button>
-                <!-- settings button -->
                 <button
                     type="button"
                     class="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors shrink-0"
+                    :title="$t('map.side_panel')"
+                    @click="isMapToolsOpen = !isMapToolsOpen"
+                >
+                    <MaterialDesignIcon icon-name="layers-triple" class="size-[18px] sm:size-5" />
+                </button>
+                <button
+                    type="button"
+                    class="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors shrink-0"
+                    :title="$t('map.settings')"
                     @click="isSettingsOpen = !isSettingsOpen"
                 >
                     <MaterialDesignIcon icon-name="cog" class="size-[18px] sm:size-5" />
@@ -109,18 +107,14 @@
                 :export-mode="isExportMode"
                 :selected-feature="selectedFeature"
                 @toggle-draw="toggleDraw"
-                @toggle-export="toggleExportMode"
                 @toggle-measure="toggleMeasure"
                 @toggle-bearing="toggleBearingMode"
-                @bearing-from-here="startBearingFromMyLocation"
                 @clear="clearDrawings"
                 @edit-note="startEditingNote"
                 @delete-feature="deleteSelectedFeature"
                 @save="showSaveDrawingModal = true"
                 @load="openLoadDrawingModal"
                 @locate="goToMyLocation"
-                @share-view="shareMapView"
-                @ping-here="openPingModalFromMapCenter"
             />
 
             <MapBearingInstructions
@@ -542,42 +536,21 @@
                 </div>
 
                 <div class="p-3 space-y-4 overflow-y-auto scrollbar-thin flex-1">
-                    <!-- Quick Actions -->
                     <div class="grid grid-cols-2 gap-2">
                         <button
                             class="flex items-center justify-center space-x-1.5 px-2 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-xs active:scale-95"
                             @click="setAsDefaultView"
                         >
                             <MaterialDesignIcon icon-name="pin" class="size-3" />
-                            <span>Set Default</span>
+                            <span>{{ $t("map.set_as_default") }}</span>
                         </button>
-
-                        <button
-                            class="flex items-center justify-center space-x-1.5 px-2 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-300 rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight active:scale-95"
-                            @click="clearCache"
+                        <label
+                            class="flex items-center justify-center space-x-1.5 px-2 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-300 rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight"
                         >
-                            <MaterialDesignIcon icon-name="trash-can-outline" class="size-3" />
-                            <span>Clear Cache</span>
-                        </button>
+                            <input v-model="clusterMarkersEnabled" type="checkbox" class="rounded-sm" />
+                            <span>{{ $t("map.cluster_markers") }}</span>
+                        </label>
                     </div>
-
-                    <MapVectorExchangePanel
-                        :disabled="!drawSource"
-                        :has-features="hasVectorDrawFeatures"
-                        @import-features="onVectorExchangeImport"
-                        @import-error="onVectorExchangeImportError"
-                        @export-geojson="exportVectorGeoJson"
-                        @export-kml="exportVectorKml"
-                        @export-kmz="exportVectorKmz"
-                    />
-
-                    <MapRemoteOverlayPanel
-                        :disabled="!map"
-                        @overlays-changed="onRemoteOverlaysChanged"
-                        @export-overlay="onRemoteOverlayExport"
-                        @copy-overlay-to-drawings="onRemoteOverlayCopyToDrawings"
-                        @error="onRemoteOverlayError"
-                    />
 
                     <!-- Map Style Presets -->
                     <div v-if="!offlineEnabled" class="space-y-2">
@@ -687,99 +660,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- MBTiles Section -->
-                    <div class="space-y-3 pt-1">
-                        <div class="flex items-center justify-between">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest"
-                                >Offline Maps</label
-                            >
-                            <div class="h-px flex-1 bg-gray-100 dark:bg-zinc-800 ml-3"></div>
-                        </div>
-
-                        <div
-                            class="flex items-center justify-between py-1 px-2 bg-gray-50/50 dark:bg-zinc-800/30 rounded-lg border border-gray-100 dark:border-zinc-800"
-                        >
-                            <span
-                                class="text-[10px] font-bold text-gray-600 dark:text-zinc-400 uppercase tracking-tight"
-                                >Tile Caching</span
-                            >
-                            <Toggle :model-value="cachingEnabled" @update:model-value="toggleCaching" />
-                        </div>
-
-                        <div class="space-y-1">
-                            <label
-                                class="text-[9px] font-bold text-gray-500 dark:text-zinc-500 uppercase flex items-center"
-                            >
-                                <MaterialDesignIcon icon-name="folder-outline" class="size-3 mr-1" />
-                                Storage Path
-                            </label>
-                            <input
-                                v-model="mbtilesDir"
-                                type="text"
-                                class="w-full bg-gray-50/50 dark:bg-zinc-950/50 border border-gray-200 dark:border-zinc-800 rounded-lg px-2 py-1.5 text-[10px] dark:text-zinc-100 font-mono focus:ring-1 focus:ring-blue-500 transition-all outline-hidden"
-                                placeholder="Default storage"
-                                @blur="saveMBTilesDir"
-                            />
-                        </div>
-
-                        <div v-if="mbtilesList.length > 0" class="space-y-1.5">
-                            <div class="flex items-center space-x-2 pb-0.5">
-                                <MaterialDesignIcon icon-name="database-outline" class="size-3 text-blue-500" />
-                                <span
-                                    class="text-[10px] font-bold text-gray-700 dark:text-zinc-300 uppercase tracking-tight"
-                                    >MBTiles Library</span
-                                >
-                            </div>
-                            <div class="space-y-1 max-h-40 overflow-y-auto pr-1 scrollbar-thin">
-                                <div
-                                    v-for="file in mbtilesList"
-                                    :key="file.name"
-                                    class="flex items-center justify-between p-2 rounded-xl"
-                                    :class="
-                                        file.is_active
-                                            ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50'
-                                            : 'bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 shadow-xs'
-                                    "
-                                >
-                                    <div class="flex flex-col min-w-0 flex-1 mr-2">
-                                        <span
-                                            class="text-[10px] font-bold text-gray-900 dark:text-zinc-100 truncate leading-none mb-1"
-                                            :title="file.name"
-                                            >{{ file.name }}</span
-                                        >
-                                        <div class="flex items-center space-x-2">
-                                            <span class="text-[8px] font-black text-gray-400 uppercase tabular-nums"
-                                                >{{ (file.size / 1024 / 1024).toFixed(1) }} MB</span
-                                            >
-                                            <span
-                                                v-if="file.is_active"
-                                                class="text-[8px] font-black text-blue-500 uppercase"
-                                                >Active</span
-                                            >
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center space-x-1">
-                                        <button
-                                            v-if="!file.is_active"
-                                            class="p-1.5 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-all active:scale-90"
-                                            title="Set as active"
-                                            @click="setActiveMBTiles(file.name)"
-                                        >
-                                            <MaterialDesignIcon icon-name="check" class="size-3.5" />
-                                        </button>
-                                        <button
-                                            class="p-1.5 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all active:scale-90"
-                                            title="Delete"
-                                            @click="deleteMBTiles(file.name)"
-                                        >
-                                            <MaterialDesignIcon icon-name="delete-outline" class="size-3.5" />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- Footer Stats -->
@@ -816,6 +696,59 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div
+                v-if="isMapToolsOpen"
+                class="absolute z-20 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xs rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden flex flex-col min-h-0"
+                :class="
+                    isMobileScreen
+                        ? 'left-2 right-2 top-14 bottom-2 w-auto'
+                        : 'top-14 right-4 w-96 max-h-[min(36rem,calc(100%-4rem))]'
+                "
+            >
+                <div
+                    class="p-3 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between shrink-0"
+                >
+                    <h3 class="font-bold text-gray-900 dark:text-zinc-100 text-xs uppercase tracking-widest">
+                        {{ $t("map.side_panel") }}
+                    </h3>
+                    <button
+                        type="button"
+                        class="p-1 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-lg"
+                        @click="isMapToolsOpen = false"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-4" />
+                    </button>
+                </div>
+                <MapSidePanel
+                    class="flex-1 min-h-0"
+                    :draw-source="drawSource"
+                    :has-vector-draw-features="hasVectorDrawFeatures"
+                    :map-ready="Boolean(map)"
+                    :offline-enabled="offlineEnabled"
+                    :caching-enabled="cachingEnabled"
+                    :mbtiles-list="mbtilesList"
+                    :mbtiles-dir="mbtilesDir"
+                    :has-offline-map="hasOfflineMap"
+                    @overlays-changed="onRemoteOverlaysChanged"
+                    @import-features="onVectorExchangeImport"
+                    @import-error="onVectorExchangeImportError"
+                    @export-geojson="exportVectorGeoJson"
+                    @export-kml="exportVectorKml"
+                    @export-kmz="exportVectorKmz"
+                    @export-overlay="onRemoteOverlayExport"
+                    @copy-overlay-to-drawings="onRemoteOverlayCopyToDrawings"
+                    @overlay-error="onRemoteOverlayError"
+                    @toggle-offline="toggleOffline"
+                    @toggle-caching="toggleCaching"
+                    @upload-mbtiles="$refs.fileInput.click()"
+                    @set-active-mbtiles="setActiveMBTiles"
+                    @delete-mbtiles="deleteMBTiles"
+                    @save-mbtiles-dir="onSaveMbtilesDirFromPanel"
+                    @clear-cache="clearCache"
+                    @export-region="toggleExportMode"
+                />
             </div>
 
             <div
@@ -997,6 +930,7 @@ import {
 import {
     extentDiagonal as computeExtentDiagonal,
     buildClusterItems as buildClusterItemsHelper,
+    gridClusterCandidates,
 } from "./internal/clusterUtils.js";
 import { getDiscoveredIconName as getDiscoveredIconNameHelper } from "./internal/discoveredIcons.js";
 import {
@@ -1031,11 +965,12 @@ import {
     fetchTileBlobWithRetry,
     fetchJsonWithRetry,
     buildNominatimSearchUrl,
+    neighborTileCoords,
+    expandTileUrl,
     NOMINATIM_FETCH_TIMEOUT_MS,
     NOMINATIM_FETCH_RETRIES,
     NOMINATIM_FETCH_RETRY_BASE_DELAY_MS,
 } from "../../js/mapTileNetwork";
-import Toggle from "../forms/Toggle.vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import MapClusterPanel from "./internal/MapClusterPanel.vue";
 import MapMarkerPanel from "./internal/MapMarkerPanel.vue";
@@ -1046,8 +981,7 @@ import MapExportInstructions from "./internal/MapExportInstructions.vue";
 import MapExportConfigPanel from "./internal/MapExportConfigPanel.vue";
 import MapExportProgressPanel from "./internal/MapExportProgressPanel.vue";
 import MapLoadingOverlay from "./internal/MapLoadingOverlay.vue";
-import MapVectorExchangePanel from "./internal/MapVectorExchangePanel.vue";
-import MapRemoteOverlayPanel from "./internal/MapRemoteOverlayPanel.vue";
+import MapSidePanel from "./internal/MapSidePanel.vue";
 import MapSaveDrawingModal from "./internal/MapSaveDrawingModal.vue";
 import MapLoadDrawingModal from "./internal/MapLoadDrawingModal.vue";
 import MapMobileNoteModal from "./internal/MapMobileNoteModal.vue";
@@ -1078,7 +1012,6 @@ export default {
         ContextMenuItem,
         ContextMenuPanel,
         MaterialDesignIcon,
-        Toggle,
         MapClusterPanel,
         MapMarkerPanel,
         MapDrawingToolbar,
@@ -1088,8 +1021,7 @@ export default {
         MapExportConfigPanel,
         MapExportProgressPanel,
         MapLoadingOverlay,
-        MapVectorExchangePanel,
-        MapRemoteOverlayPanel,
+        MapSidePanel,
         MapSaveDrawingModal,
         MapLoadDrawingModal,
         MapMobileNoteModal,
@@ -1122,6 +1054,8 @@ export default {
             isUploading: false,
             isMapDropTarget: false,
             isSettingsOpen: false,
+            isMapToolsOpen: false,
+            clusterMarkersEnabled: true,
             settingsPanelPos: null,
             settingsPanelDrag: null,
             currentCenter: [0, 0],
@@ -1208,7 +1142,6 @@ export default {
                 { type: "LineString", icon: "vector-line" },
                 { type: "Polygon", icon: "vector-polygon" },
                 { type: "Circle", icon: "circle-outline" },
-                { type: "Export", icon: "crop-free" },
             ],
 
             // measurement
@@ -1386,6 +1319,17 @@ export default {
             deep: true,
         },
         isActiveTab(active) {
+            if (active) {
+                this.bootMap().then(() => {
+                    if (this.map && typeof this.map.updateSize === "function") {
+                        this.map.updateSize();
+                    }
+                    if (this.embedded) {
+                        this.applyMapViewFromRoute();
+                    }
+                });
+                return;
+            }
             if (!active || !this.map) {
                 return;
             }
@@ -1397,6 +1341,9 @@ export default {
             if (this.embedded) {
                 this.applyMapViewFromRoute();
             }
+        },
+        clusterMarkersEnabled() {
+            this.updateMarkers();
         },
     },
     async mounted() {
@@ -1427,28 +1374,8 @@ export default {
             /* ignore */
         }
 
-        await this.initMap();
+        await this.bootMap();
 
-        if (this.telemetryList.length > 0) {
-            this.updateMarkers();
-        }
-
-        // Restore drawings if any
-        if (this._persistedDrawings && this.drawSource) {
-            try {
-                const format = new GeoJSON();
-                const features = format.readFeatures(this._persistedDrawings, {
-                    dataProjection: "EPSG:4326",
-                    featureProjection: "EPSG:3857",
-                });
-                console.log("Restoring persisted drawings, count:", features.length);
-                this.drawSource.addFeatures(features);
-                this.rebuildMeasurementOverlays();
-            } catch (e) {
-                console.error("Failed to restore persisted drawings", e);
-            }
-            delete this._persistedDrawings;
-        }
         await this.checkOfflineMap();
         await this.loadMBTilesList();
 
@@ -1465,17 +1392,7 @@ export default {
 
         this.applyMapViewFromRoute();
 
-        // Listen for moveend to update coordinates in UI and save state
-        if (this.map) {
-            this.map.on("moveend", () => {
-                const view = this.map.getView();
-                this.currentCenter =
-                    view && typeof view.getCenter === "function" ? toLonLat(view.getCenter()) : this.currentCenter;
-                this.currentZoom = view && typeof view.getZoom === "function" ? view.getZoom() : this.currentZoom;
-                this.saveMapState();
-                this.updateMarkers();
-            });
-        }
+        this.attachMapMoveEndListener();
 
         // Check if onboarding tooltip should be shown
         this.checkOnboardingTooltip();
@@ -1509,6 +1426,10 @@ export default {
             this.saveMapStateImmediate().then(() => pending.forEach((p) => p.resolve()));
         }
         if (this.reloadInterval) clearInterval(this.reloadInterval);
+        if (this._prefetchTimer) {
+            clearTimeout(this._prefetchTimer);
+            this._prefetchTimer = null;
+        }
         if (this.exportInterval) clearInterval(this.exportInterval);
         if (this.searchTimeout) clearTimeout(this.searchTimeout);
         if (this.tileConnectivityBannerTimer) {
@@ -1660,6 +1581,91 @@ export default {
                 this.loadMBTilesList();
             } catch {
                 ToastUtils.error(this.$t("map.failed_save_storage"));
+            }
+        },
+        onSaveMbtilesDirFromPanel(value) {
+            this.mbtilesDir = value;
+            this.saveMBTilesDir();
+        },
+        async bootMap() {
+            if (this._mapBooted) {
+                return;
+            }
+            if (this.embedded && !this.isActiveTab) {
+                return;
+            }
+            this._mapBooted = true;
+            await this.initMap();
+            if (this.telemetryList.length > 0) {
+                this.updateMarkers();
+            }
+            if (this._persistedDrawings && this.drawSource) {
+                try {
+                    const format = new GeoJSON();
+                    const features = format.readFeatures(this._persistedDrawings, {
+                        dataProjection: "EPSG:4326",
+                        featureProjection: "EPSG:3857",
+                    });
+                    this.drawSource.addFeatures(features);
+                    this.rebuildMeasurementOverlays();
+                } catch (e) {
+                    console.error("Failed to restore persisted drawings", e);
+                }
+                delete this._persistedDrawings;
+            }
+            this.attachMapMoveEndListener();
+            this.applyMapViewFromRoute();
+        },
+        attachMapMoveEndListener() {
+            if (!this.map || this._moveEndAttached) {
+                return;
+            }
+            this._moveEndAttached = true;
+            this.map.on("moveend", () => {
+                const view = this.map.getView();
+                this.currentCenter =
+                    view && typeof view.getCenter === "function" ? toLonLat(view.getCenter()) : this.currentCenter;
+                this.currentZoom = view && typeof view.getZoom === "function" ? view.getZoom() : this.currentZoom;
+                this.saveMapState();
+                this.updateMarkers();
+                this.scheduleTilePrefetch();
+            });
+        },
+        scheduleTilePrefetch() {
+            if (this._prefetchTimer) {
+                clearTimeout(this._prefetchTimer);
+            }
+            this._prefetchTimer = setTimeout(() => {
+                this._prefetchTimer = null;
+                this.prefetchViewportRing();
+            }, 400);
+        },
+        async prefetchViewportRing() {
+            if (this.offlineEnabled || !this.cachingEnabled || !this.map) {
+                return;
+            }
+            const url = (this.tileServerUrl || DEFAULT_OSM_RASTER).trim();
+            if (!url.includes("{z}") || this.isOpenFreeMapStyleUrl(url)) {
+                return;
+            }
+            const tiles = neighborTileCoords(this.currentCenter[0], this.currentCenter[1], this.currentZoom, 1);
+            for (const t of tiles) {
+                const src = expandTileUrl(url, t.z, t.x, t.y);
+                if (!src) {
+                    continue;
+                }
+                try {
+                    const cached = await TileCache.getTile(src);
+                    if (cached) {
+                        continue;
+                    }
+                    const result = await fetchTileBlobWithRetry(src, { credentials: "omit" }, {});
+                    if (result.ok) {
+                        await TileCache.setTile(src, result.blob);
+                    }
+                } catch {
+                    /* ignore prefetch failures */
+                }
             }
         },
         async initMap() {
@@ -1837,6 +1843,8 @@ export default {
             this.markerSource = new VectorSource();
             this.markerLayer = new VectorLayer({
                 source: this.markerSource,
+                updateWhileAnimating: false,
+                updateWhileInteracting: false,
                 style: (feature) => {
                     const isHovered = this.hoveredMarker === feature;
 
@@ -2232,13 +2240,13 @@ export default {
                             source: this.getOfflineRasterCacheOnlySource(),
                             preload: 2,
                             transition: 0,
-                            cacheSize: 896,
+                            cacheSize: 2048,
                         }),
                         new TileLayer({
                             source: this.getOfflineMbtilesTopSource(),
                             preload: 2,
                             transition: 0,
-                            cacheSize: 896,
+                            cacheSize: 2048,
                         }),
                     ],
                 });
@@ -2247,7 +2255,7 @@ export default {
                 source: this.getTileSource(),
                 preload: 2,
                 transition: 0,
-                cacheSize: 896,
+                cacheSize: 2048,
             });
         },
         /**
@@ -2411,6 +2419,7 @@ export default {
                 url: OFFLINE_MB_TILES_URL,
                 crossOrigin: "anonymous",
                 transition: 0,
+                cacheSize: 2048,
             });
             source.setTileLoadFunction(async (tile, src) => {
                 if (await this.tryApplyCachedRasterTilesOnly(tile, src)) return;
@@ -2423,6 +2432,7 @@ export default {
                 url: OFFLINE_MB_TILES_URL,
                 crossOrigin: "anonymous",
                 transition: 0,
+                cacheSize: 2048,
             });
             source.setTileLoadFunction(async (tile, src) => {
                 const result = await fetchTileBlobWithRetry(src, { credentials: "omit" }, {});
@@ -2480,6 +2490,7 @@ export default {
                 url: tileUrl,
                 crossOrigin: "anonymous",
                 transition: 0,
+                cacheSize: 2048,
             });
 
             if (!isOffline && source && typeof source.on === "function") {
@@ -4743,28 +4754,62 @@ export default {
         },
         updateMarkers() {
             if (!this.markerSource) return;
-            this.markerSource.clear();
-
+            const byKey = this._markerFeaturesByKey || (this._markerFeaturesByKey = new Map());
+            const seen = new Set();
             const candidates = [];
 
             for (const t of this.dedupeTelemetryMarkersForMap(this.telemetryList)) {
                 const loc = t.telemetry?.location;
                 if (!loc || loc.latitude === undefined || loc.longitude === undefined) continue;
                 const coord = fromLonLat([loc.longitude, loc.latitude]);
-                const feature = new Feature({
-                    geometry: new Point(coord),
-                    telemetry: t,
-                    peer: this.peers[t.destination_hash],
-                    originalCoord: coord,
-                });
-                candidates.push({ feature, coord, clusterable: true });
+                const key = `t:${t.destination_hash}`;
+                let feature = byKey.get(key);
+                if (!feature) {
+                    feature = new Feature({
+                        geometry: new Point(coord),
+                        telemetry: t,
+                        peer: this.peers[t.destination_hash],
+                        originalCoord: coord,
+                    });
+                    byKey.set(key, feature);
+                } else {
+                    feature.set("telemetry", t);
+                    feature.set("peer", this.peers[t.destination_hash]);
+                    feature.set("originalCoord", coord);
+                    const geom = feature.getGeometry();
+                    if (geom && typeof geom.setCoordinates === "function") {
+                        geom.setCoordinates(coord);
+                    } else {
+                        feature.setGeometry(new Point(coord));
+                    }
+                }
+                seen.add(key);
+                candidates.push({ feature, coord, clusterable: true, key });
             }
 
             if (this.discoveredMarkers && this.discoveredMarkers.length > 0) {
                 for (const feature of this.discoveredMarkers) {
                     const coord = feature.get("originalCoord") || feature.getGeometry().getCoordinates();
                     if (!feature.get("originalCoord")) feature.set("originalCoord", coord);
-                    candidates.push({ feature, coord, clusterable: true });
+                    const disc = feature.get("discovered") || {};
+                    const key = `d:${disc.interface || disc.via || disc.name || coord.join(",")}`;
+                    byKey.set(key, feature);
+                    seen.add(key);
+                    candidates.push({ feature, coord, clusterable: true, key });
+                }
+            }
+
+            for (const key of [...byKey.keys()]) {
+                if (!seen.has(key)) {
+                    const stale = byKey.get(key);
+                    if (stale && typeof this.markerSource.removeFeature === "function") {
+                        try {
+                            this.markerSource.removeFeature(stale);
+                        } catch {
+                            /* already gone */
+                        }
+                    }
+                    byKey.delete(key);
                 }
             }
 
@@ -4773,35 +4818,28 @@ export default {
             const safeResolution = Number.isFinite(resolution) && resolution > 0 ? resolution : 1;
             const clusterPixelDistance = 38;
             const clusterCoordDistance = clusterPixelDistance * safeResolution;
-            const sqClusterCoordDistance = clusterCoordDistance * clusterCoordDistance;
+            const groups = this.clusterMarkersEnabled
+                ? gridClusterCandidates(candidates, clusterCoordDistance)
+                : candidates.map((c) => [c]);
 
-            const visited = new Array(candidates.length).fill(false);
-            for (let i = 0; i < candidates.length; i++) {
-                if (visited[i]) continue;
-                visited[i] = true;
-                const seed = candidates[i];
-                const groupItems = [seed];
-
-                if (seed.clusterable) {
-                    for (let j = i + 1; j < candidates.length; j++) {
-                        if (visited[j] || !candidates[j].clusterable) continue;
-                        const dx = candidates[j].coord[0] - seed.coord[0];
-                        const dy = candidates[j].coord[1] - seed.coord[1];
-                        if (dx * dx + dy * dy <= sqClusterCoordDistance) {
-                            visited[j] = true;
-                            groupItems.push(candidates[j]);
-                        }
-                    }
-                }
-
+            const keep = new Set();
+            const toAdd = [];
+            for (const groupItems of groups) {
+                if (!groupItems.length) continue;
                 if (groupItems.length === 1) {
+                    const seed = groupItems[0];
                     const feature = seed.feature;
                     const originalCoord = feature.get("originalCoord") || seed.coord;
-                    feature.setGeometry(new Point(originalCoord));
-                    this.markerSource.addFeature(feature);
+                    const geom = feature.getGeometry();
+                    if (geom && typeof geom.setCoordinates === "function") {
+                        geom.setCoordinates(originalCoord);
+                    } else {
+                        feature.setGeometry(new Point(originalCoord));
+                    }
+                    keep.add(feature);
+                    toAdd.push(feature);
                     continue;
                 }
-
                 let cx = 0;
                 let cy = 0;
                 for (const item of groupItems) {
@@ -4810,7 +4848,6 @@ export default {
                 }
                 cx /= groupItems.length;
                 cy /= groupItems.length;
-
                 const clusterFeature = new Feature({
                     geometry: new Point([cx, cy]),
                     cluster: true,
@@ -4818,14 +4855,29 @@ export default {
                     clusterItems: groupItems.map((g) => g.feature),
                     originalCoord: [cx, cy],
                 });
-                this.markerSource.addFeature(clusterFeature);
+                keep.add(clusterFeature);
+                toAdd.push(clusterFeature);
             }
 
             if (this.queryMarker) {
                 const coord = this.queryMarker.get("originalCoord") || this.queryMarker.getGeometry().getCoordinates();
                 if (!this.queryMarker.get("originalCoord")) this.queryMarker.set("originalCoord", coord);
                 this.queryMarker.setGeometry(new Point(coord));
-                this.markerSource.addFeature(this.queryMarker);
+                keep.add(this.queryMarker);
+                toAdd.push(this.queryMarker);
+            }
+
+            const existing = typeof this.markerSource.getFeatures === "function" ? this.markerSource.getFeatures() : [];
+            for (const f of existing) {
+                if (!keep.has(f) && typeof this.markerSource.removeFeature === "function") {
+                    this.markerSource.removeFeature(f);
+                }
+            }
+            const existingSet = new Set(existing);
+            for (const f of toAdd) {
+                if (!existingSet.has(f)) {
+                    this.markerSource.addFeature(f);
+                }
             }
         },
         createClusterStyle(count, isHovered) {

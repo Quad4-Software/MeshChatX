@@ -21,14 +21,17 @@ def mock_config():
     config.announce_max_stored_lxmf_delivery = MagicMock()
     config.announce_max_stored_nomadnetwork_node = MagicMock()
     config.announce_max_stored_lxmf_propagation = MagicMock()
+    config.announce_max_stored_map_data = MagicMock()
     config.announce_fetch_limit_lxmf_delivery = MagicMock()
     config.announce_fetch_limit_nomadnetwork_node = MagicMock()
     config.announce_fetch_limit_lxmf_propagation = MagicMock()
+    config.announce_fetch_limit_map_data = MagicMock()
     for _k in (
         "announce_store_lxmf_delivery",
         "announce_store_lxst_telephony",
         "announce_store_nomadnetwork_node",
         "announce_store_lxmf_propagation",
+        "announce_store_map_data",
     ):
         _m = MagicMock()
         _m.get.return_value = True

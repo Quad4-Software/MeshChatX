@@ -2396,3 +2396,56 @@ class TestBlockAllFromStrangers:
 
         mock_app.on_lxmf_delivery(mock_msg)
         mock_app.db_upsert_lxmf_message.assert_called_once()
+
+    def test_stranger_telemetry_request_dropped_when_block_all_enabled(self, mock_app):
+        from meshchatx.src.backend.sideband_commands import SidebandCommands
+
+        mock_msg = self._make_mock_message()
+        fields = {LXMF.FIELD_COMMANDS: [{SidebandCommands.TELEMETRY_REQUEST: 0}]}
+        mock_msg.get_fields.return_value = fields
+        mock_msg.fields = fields
+        mock_app.config.block_all_from_strangers.set(True)
+        mock_app._is_contact = MagicMock(return_value=False)
+        mock_app.is_destination_blocked = MagicMock(return_value=False)
+        mock_app.db_upsert_lxmf_message.reset_mock()
+
+        mock_app.on_lxmf_delivery(mock_msg)
+        mock_app.db_upsert_lxmf_message.assert_not_called()
+
+    def test_contact_telemetry_request_stored_when_block_all_enabled(self, mock_app):
+        from meshchatx.src.backend.sideband_commands import SidebandCommands
+
+        mock_msg = self._make_mock_message()
+        fields = {LXMF.FIELD_COMMANDS: [{SidebandCommands.TELEMETRY_REQUEST: 0}]}
+        mock_msg.get_fields.return_value = fields
+        mock_msg.fields = fields
+        mock_app.config.block_all_from_strangers.set(True)
+        mock_app.config.telemetry_enabled = MagicMock()
+        mock_app.config.telemetry_enabled.get.return_value = False
+        mock_app._is_contact = MagicMock(return_value=True)
+        mock_app.is_destination_blocked = MagicMock(return_value=False)
+        mock_app.db_upsert_lxmf_message.reset_mock()
+
+        mock_app.on_lxmf_delivery(mock_msg)
+        mock_app.db_upsert_lxmf_message.assert_called_once()
+
+    def test_stranger_plugin_command_not_dispatched_when_block_all_enabled(
+        self,
+        mock_app,
+    ):
+        from meshchatx.src.backend.sideband_commands import SidebandCommands
+
+        mock_msg = self._make_mock_message()
+        mock_msg.signature_validated = True
+        fields = {LXMF.FIELD_COMMANDS: [{SidebandCommands.PLUGIN_COMMAND: "evil"}]}
+        mock_msg.get_fields.return_value = fields
+        mock_msg.fields = fields
+        mock_app.config.block_all_from_strangers.set(True)
+        mock_app._is_contact = MagicMock(return_value=False)
+        mock_app.is_destination_blocked = MagicMock(return_value=False)
+        mock_app.sideband_plugin_loader = MagicMock()
+        mock_app.db_upsert_lxmf_message.reset_mock()
+
+        mock_app.on_lxmf_delivery(mock_msg)
+        mock_app.db_upsert_lxmf_message.assert_not_called()
+        mock_app.sideband_plugin_loader.handle_plugin_command.assert_not_called()

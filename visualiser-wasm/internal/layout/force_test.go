@@ -9,6 +9,15 @@ import (
 	"github.com/Quad4-Software/MeshChatX/visualiser-wasm/internal/layout"
 )
 
+func TestSpringLength(t *testing.T) {
+	if layout.SpringLength(3) != layout.DefaultHubSpringLen {
+		t.Fatalf("hub spring %v", layout.SpringLength(3))
+	}
+	if layout.SpringLength(1) != layout.DefaultSpringLen {
+		t.Fatalf("peer spring %v", layout.SpringLength(1))
+	}
+}
+
 func TestSettleMovesUnfixedNodes(t *testing.T) {
 	res := layout.Settle(layout.Request{
 		Nodes: []layout.Node{
@@ -46,6 +55,30 @@ func TestSettleNegativeGravityDisablesOriginPull(t *testing.T) {
 	p := res.Positions["lonely"]
 	if math.Hypot(p.X-800, p.Y-600) > 5 {
 		t.Fatalf("negative gravity must not pull toward origin: start=(800,600) got=%#v", p)
+	}
+}
+
+func TestSettleSeparatesOverlappingPeers(t *testing.T) {
+	res := layout.Settle(layout.Request{
+		Nodes: []layout.Node{
+			{ID: "hub", X: 0, Y: 0, Mass: 2.5, Fixed: true, Radius: 24},
+			{ID: "a", X: 6, Y: 0, Mass: 1, Radius: 22},
+			{ID: "b", X: 8, Y: 2, Mass: 1, Radius: 22},
+		},
+		Edges: []layout.Edge{
+			{From: "hub", To: "a", Length: layout.DefaultSpringLen},
+			{From: "hub", To: "b", Length: layout.DefaultSpringLen},
+		},
+		Iterations: 140,
+	})
+	a := res.Positions["a"]
+	b := res.Positions["b"]
+	dist := math.Hypot(a.X-b.X, a.Y-b.Y)
+	if dist < 80 {
+		t.Fatalf("peers still overlapping: dist=%v a=%#v b=%#v", dist, a, b)
+	}
+	if math.Hypot(a.X, a.Y) < 80 {
+		t.Fatalf("peer a should leave the hub disc, got %#v", a)
 	}
 }
 

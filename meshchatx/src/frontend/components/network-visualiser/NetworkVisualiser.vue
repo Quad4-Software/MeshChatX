@@ -959,12 +959,13 @@ export default {
                     y: Number.isFinite(p.y) ? p.y : node?.y || 0,
                     mass: id === "me" ? 4 : node?.group === "interface" ? 2.5 : 1,
                     fixed: id === "me",
+                    radius: Number.isFinite(node?.size) ? node.size : 22,
                 });
             }
             const layoutEdges = this.edges.get().map((e) => ({
                 from: e.from,
                 to: e.to,
-                length: e.width >= 2.5 ? 260 : 300,
+                length: e.width >= 2.5 ? 440 : 500,
             }));
             const settled = settleLayout({ nodes: layoutNodes, edges: layoutEdges, iterations: 0 });
             const positions = settled?.positions || {};
@@ -1609,7 +1610,7 @@ export default {
                     localNodes.push(meNode);
                 }
                 for (const entry of interfacesPayload) {
-                    const pos = this.pickStablePosition(entry.name, posById, () => ({ x: 400, y: 0 }));
+                    const pos = this.pickStablePosition(entry.name, posById, () => ({ x: 520, y: 0 }));
                     let n = {
                         id: entry.name,
                         group: "interface",
@@ -1641,7 +1642,7 @@ export default {
                     });
                 }
                 for (const entry of pathOnlyPayload) {
-                    const pos = this.pickStablePosition(entry.name, posById, () => ({ x: 400, y: 0 }));
+                    const pos = this.pickStablePosition(entry.name, posById, () => ({ x: 520, y: 0 }));
                     let n = {
                         id: entry.name,
                         group: "interface",
@@ -1676,11 +1677,12 @@ export default {
                     y: n.y,
                     mass: n.group === "me" ? 4 : n.group === "interface" ? 2.5 : 1,
                     fixed: n.id === "me",
+                    radius: Number.isFinite(n.size) ? n.size : 22,
                 }));
                 graph.layout_edges = graphEdges.map((e) => ({
                     from: e.from,
                     to: e.to,
-                    length: e.width >= 2.5 ? 260 : 300,
+                    length: e.width >= 2.5 ? 440 : 500,
                 }));
             }
 

@@ -82,6 +82,7 @@ vi.mock("ol/source/Vector", () => ({
             addFeature: vi.fn(),
             addFeatures: vi.fn(),
             getFeatures: vi.fn().mockReturnValue([]),
+            removeFeature: vi.fn(),
             on: vi.fn(),
         };
     }),
@@ -214,6 +215,10 @@ describe("MapPage.vue", () => {
                 if (url.includes("/api/v1/telemetry/peers")) return Promise.resolve({ data: { telemetry: [] } });
                 if (url.includes("/api/v1/telemetry/markers")) return Promise.resolve({ data: { markers: [] } });
                 if (url.includes("/api/v1/map/offline")) return Promise.resolve({ data: {} });
+                if (url.includes("/api/v1/map/data/heard")) return Promise.resolve({ data: { announces: [] } });
+                if (url.includes("/api/v1/map/data/status"))
+                    return Promise.resolve({ data: { running: false, published_count: 0 } });
+                if (url.includes("/api/v1/map/data/published")) return Promise.resolve({ data: { maps: [] } });
                 if (url.includes("nominatim")) return Promise.resolve({ data: [] });
                 return Promise.resolve({ data: defaultData });
             }),
@@ -351,13 +356,43 @@ describe("MapPage.vue", () => {
     it("toggles export mode", async () => {
         const wrapper = mountMapPage();
         await wrapper.vm.$nextTick();
+        wrapper.vm.toggleExportMode();
+        expect(wrapper.vm.isExportMode).toBe(true);
+    });
 
-        const exportButton = wrapper.find('button[title="map.export_area"]');
-        if (exportButton.exists()) {
-            await exportButton.trigger("click");
-            expect(wrapper.vm.isExportMode).toBe(true);
-            expect(wrapper.text()).toContain("map.export_instructions");
-        }
+    it("opens the maps side panel from the header", async () => {
+        const wrapper = mountMapPage();
+        await wrapper.vm.$nextTick();
+        expect(wrapper.find('button[title="map.side_panel"]').exists()).toBe(true);
+        await wrapper.find('button[title="map.side_panel"]').trigger("click");
+        expect(wrapper.vm.isMapToolsOpen).toBe(true);
+        expect(wrapper.text()).toContain("map.tab_discover");
+    });
+
+    it("does not construct OpenLayers when an embedded tab is inactive", async () => {
+        const wrapper = mount(MapPage, {
+            props: { embedded: true, isActiveTab: false },
+            global: {
+                mocks: {
+                    $t: (key) => key,
+                    $route: { query: {} },
+                    $filters: { formatDestinationHash: (h) => h },
+                },
+                stubs: {
+                    MaterialDesignIcon: {
+                        template: '<div class="mdi-stub" :data-icon-name="iconName"></div>',
+                        props: ["iconName"],
+                    },
+                    Toggle: { template: '<div class="toggle-stub"></div>', props: ["modelValue", "id"] },
+                    LoadingSpinner: true,
+                    MapSidePanel: true,
+                },
+            },
+        });
+        await wrapper.vm.$nextTick();
+        await flushPromises();
+        expect(wrapper.vm.map).toBeNull();
+        expect(wrapper.vm._mapBooted).toBeFalsy();
     });
 
     it("serializeFeatures drops bearing preview features", async () => {
