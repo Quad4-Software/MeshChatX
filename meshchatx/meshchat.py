@@ -10382,13 +10382,18 @@ class ReticulumMeshChat:
 
         Returns the page content string, or None.
         """
+        from meshchatx.src.backend.page_node import _safe_mesh_file_basename
+
         for node in self.page_node_manager.nodes.values():
             if not node.running or not node.destination:
                 continue
             if node.destination.hash == destination_hash:
                 page_name = page_path.lstrip("/")
                 page_name = page_name.removeprefix("page/")
-                page_name = os.path.basename(page_name)
+                try:
+                    page_name = _safe_mesh_file_basename(page_name)
+                except ValueError:
+                    return None
                 raw = node.serve_page_content(
                     page_name,
                     data=request_data,
@@ -10405,12 +10410,18 @@ class ReticulumMeshChat:
 
         Returns (file_name, file_bytes), or None.
         """
+        from meshchatx.src.backend.page_node import _safe_mesh_file_basename
+
         for node in self.page_node_manager.nodes.values():
             if not node.running or not node.destination:
                 continue
             if node.destination.hash == destination_hash:
                 file_name = file_path.lstrip("/")
                 file_name = file_name.removeprefix("file/")
+                try:
+                    file_name = _safe_mesh_file_basename(file_name)
+                except ValueError:
+                    return None
                 return node.read_hosted_file(file_name)
         return None
 
