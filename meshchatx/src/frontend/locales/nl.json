@@ -2493,7 +2493,7 @@
             "preferred_cleared": "Voorkeurs-propagatieknooppunt gewist",
             "invalid_hash": "Voer een bestemmings-hash van 32 tekens in",
             "manual_placeholder": "Plak bestemmings-hash, <hash> of lxmf://...",
-            "manual_hint": "Haakjes, spaties en lxmf://-links zijn in orde. Een hash uitzetten schakelt automatische selectie uit.",
+            "manual_hint": "Haakjes, spaties en lxmf://-links zijn in orde. Een hash instellen schakelt automatische selectie uit.",
             "set_preferred": "Instellen",
             "paste_hash": "Plakken",
             "clear_preferred": "Wissen",

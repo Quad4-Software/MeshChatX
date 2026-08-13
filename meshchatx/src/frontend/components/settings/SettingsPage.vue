@@ -4337,6 +4337,7 @@ export default {
             }
             event.preventDefault();
             this.config.lxmf_preferred_propagation_node_destination_hash = parsed;
+            this.savePreferredPropagationNodeHash(true);
         },
         async pastePreferredPropagationNodeHash() {
             const result = await readTextFromClipboard();

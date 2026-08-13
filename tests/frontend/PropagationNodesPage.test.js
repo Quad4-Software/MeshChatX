@@ -24,6 +24,7 @@ describe("PropagationNodesPage", () => {
 
     afterEach(() => {
         vi.useRealTimers();
+        vi.unstubAllGlobals();
     });
 
     it("finds local propagation node from list", () => {
@@ -251,6 +252,24 @@ describe("PropagationNodesPage", () => {
         PropagationNodesPage.methods.onManualHashPaste.call(ctx, event);
         expect(event.preventDefault).toHaveBeenCalled();
         expect(ctx.manualHashDraft).toBe("a39610c89d18bb48c73e429582423c24");
+    });
+
+    it("pastePreferredHash sets the preferred node from clipboard text", async () => {
+        const ctx = {
+            manualHashDraft: "",
+            usePropagationNode: vi.fn().mockResolvedValue(true),
+            $t: (k) => k,
+        };
+        vi.stubGlobal("navigator", {
+            clipboard: {
+                readText: vi.fn().mockResolvedValue("<A39610C89D18BB48C73E429582423C24>"),
+            },
+        });
+        Object.defineProperty(window, "isSecureContext", { value: true, configurable: true });
+        await PropagationNodesPage.methods.pastePreferredHash.call(ctx);
+        expect(ctx.manualHashDraft).toBe("a39610c89d18bb48c73e429582423c24");
+        expect(ctx.usePropagationNode).toHaveBeenCalledWith("a39610c89d18bb48c73e429582423c24");
+        vi.unstubAllGlobals();
     });
 
     it("clears preferred node and draft", async () => {

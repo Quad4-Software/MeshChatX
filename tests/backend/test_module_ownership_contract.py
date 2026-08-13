@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Contract test: docs/agents/module-ownership.md Backend table vs files on disk.
+"""Contract test: .agents/module-ownership.md Backend table vs files on disk.
 
 Parses the Backend table directly from the doc so the checked-in fixture
 drifts loudly (via a failing diff) whenever a row is added, removed, or
@@ -28,7 +28,7 @@ from tests.backend.module_ownership_contract_helpers import (
 )
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_DOC_PATH = _REPO_ROOT / "docs" / "agents" / "module-ownership.md"
+_DOC_PATH = _REPO_ROOT / ".agents" / "module-ownership.md"
 _FIXTURE = (
     Path(__file__).resolve().parent / "fixtures" / "backend_module_ownership.json"
 )
@@ -45,7 +45,7 @@ def test_backend_ownership_table_matches_fixture():
     expected = load_ownership_fixture(_FIXTURE)
     assert parsed == expected, (
         "Backend module ownership table drifted from the checked-in fixture. "
-        "If the docs/agents/module-ownership.md Backend table changed on purpose, run: "
+        "If the .agents/module-ownership.md Backend table changed on purpose, run: "
         "UPDATE_BACKEND_MODULE_OWNERSHIP=1 uv run pytest tests/backend/test_module_ownership_contract.py -k "
         "backend_ownership_table_matches_fixture"
     )

@@ -53,7 +53,7 @@ record_hit() {
 # Do not use a bare /(^|/)android(/|$)/ pattern: LXST ships
 # LXST/Platforms/android for mobile hosts. That path must remain allowed in
 # APKs and must not false-fail Docker scans of site-packages.
-COMMON_DENY_RE='(^|/)\.git(/|$)|(^|/)node_modules(/|$)|(^|/)\.pnpm-store(/|$)|(^|/)\.venv(/|$)|(^|/)vendor/offline(/|$)|(^|/)vendor/lxmfy/tests(/|$)|(^|/)vendor/lxmfy/docs(/|$)|(^|/)vendor/lxmfy/docker(/|$)|(^|/)vendor/rns_filesync/tests(/|$)|(^|/)vendor/rns_filesync/docs(/|$)|(^|/)vendor/rns_filesync/docker(/|$)|(^|/)vendor/rns_filesync/packaging(/|$)|(^|/)vendor/rns_filesync/sideband(/|$)|(^|/)vendor/rns_filesync/man(/|$)|(^|/)vendor/rns_filesync/scripts(/|$)|(^|/)\.github(/|$)|(^|/)docs/agents(/|$)|(^|/)screenshots(/|$)|(^|/)\.pytest_cache(/|$)|(^|/)mutants(/|$)|(^|/)coverage(/|$)'
+COMMON_DENY_RE='(^|/)\.git(/|$)|(^|/)node_modules(/|$)|(^|/)\.pnpm-store(/|$)|(^|/)\.venv(/|$)|(^|/)vendor/offline(/|$)|(^|/)vendor/lxmfy/tests(/|$)|(^|/)vendor/lxmfy/docs(/|$)|(^|/)vendor/lxmfy/docker(/|$)|(^|/)vendor/rns_filesync/tests(/|$)|(^|/)vendor/rns_filesync/docs(/|$)|(^|/)vendor/rns_filesync/docker(/|$)|(^|/)vendor/rns_filesync/packaging(/|$)|(^|/)vendor/rns_filesync/sideband(/|$)|(^|/)vendor/rns_filesync/man(/|$)|(^|/)vendor/rns_filesync/scripts(/|$)|(^|/)\.github(/|$)|(^|/)\.agents(/|$)|(^|/)screenshots(/|$)|(^|/)\.pytest_cache(/|$)|(^|/)mutants(/|$)|(^|/)coverage(/|$)'
 
 BYTECODE_DENY_RE='(^|/)__pycache__(/|$)'
 

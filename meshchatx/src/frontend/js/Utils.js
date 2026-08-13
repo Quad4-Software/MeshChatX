@@ -16,7 +16,12 @@ class Utils {
         if (raw == null) {
             return null;
         }
-        const compact = String(raw).replace(/[^0-9a-fA-F]/g, "");
+        let text = String(raw).trim();
+        if (!text) {
+            return null;
+        }
+        text = text.replace(/^(lxmf|lxma|lxm|rns):\/\//i, "");
+        const compact = text.replace(/[^0-9a-fA-F]/g, "");
         if (compact.length < 32) {
             return null;
         }
