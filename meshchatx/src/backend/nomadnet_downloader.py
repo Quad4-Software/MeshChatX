@@ -10,7 +10,10 @@ from collections.abc import Callable
 import RNS
 
 from meshchatx.src.backend import reticulum_pathfinding
-from meshchatx.src.backend.path_utils import path_response_window
+from meshchatx.src.backend.path_utils import (
+    link_establishment_window,
+    path_response_window,
+)
 from meshchatx.src.backend.reticulum_pathfinding import ReticulumLike
 
 # Global cache for Nomad Network links (reuse instead of reconnecting per request).
@@ -293,14 +296,11 @@ class NomadnetDownloader:
         self.link = link
 
         if link_establishment_timeout is None:
-            rns_timeout = getattr(link, "establishment_timeout", None)
-            if isinstance(rns_timeout, (int, float)) and rns_timeout > 0:
-                link_establishment_timeout = rns_timeout + 5
-            else:
-                link_establishment_timeout = path_response_window(
-                    self.destination_hash,
-                    self._reticulum,
-                )
+            link_establishment_timeout = link_establishment_window(
+                link,
+                self.destination_hash,
+                self._reticulum,
+            )
         timeout_after_seconds = time.time() + link_establishment_timeout
 
         while (

@@ -226,8 +226,11 @@
                         >
                             <!-- toggle button for desktop (h-10 aligns with Messages/Nomad collapse rows) -->
                             <div
-                                class="h-10 shrink-0 items-center justify-end gap-1 border-b border-gray-200 dark:border-zinc-800 px-2"
-                                :class="isSidebarNavEditing && !isSidebarCollapsed ? 'flex' : 'hidden sm:flex'"
+                                class="h-10 shrink-0 items-center gap-1 border-b border-gray-200 dark:border-zinc-800 px-2"
+                                :class="[
+                                    isSidebarNavEditing && !isSidebarCollapsed ? 'flex' : 'hidden sm:flex',
+                                    isSidebarCollapsed ? 'justify-center' : 'justify-end',
+                                ]"
                             >
                                 <button
                                     v-if="isSidebarNavEditing && !isSidebarCollapsed"

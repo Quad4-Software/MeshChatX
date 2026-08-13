@@ -74,8 +74,8 @@ class RNProbeHandler:
 
         timeout_after = time.time() + (
             timeout
-            or self.DEFAULT_TIMEOUT
-            + self.reticulum.get_first_hop_timeout(destination_hash)
+            if timeout is not None
+            else path_response_window(destination_hash, self.reticulum)
         )
         while (
             not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after

@@ -10,8 +10,7 @@
             ]"
         >
             <div
-                class="hidden sm:flex h-10 shrink-0 items-center border-b border-gray-200 dark:border-zinc-800 px-2"
-                :class="collapsedHeaderJustifyClass"
+                class="hidden sm:flex h-10 shrink-0 items-center justify-center border-b border-gray-200 dark:border-zinc-800 px-2"
             >
                 <button
                     type="button"
@@ -1000,9 +999,6 @@ export default {
         },
         selectionEdgeBorderClass() {
             return this.isRightSidebar ? "border-r-2" : "border-l-2";
-        },
-        collapsedHeaderJustifyClass() {
-            return this.isRightSidebar ? "justify-start" : "justify-end";
         },
         collapsedStripChevronIcon() {
             return this.isRightSidebar ? "chevron-left" : "chevron-right";

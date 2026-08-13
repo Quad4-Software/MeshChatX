@@ -55,6 +55,7 @@ Allowed:
 
 - Prefer event/handler and store-and-forward over blocking request/response UIs.
 - Missing path: request path, allow propagate, surface recoverable error. Do not spin forever.
+- Path and first-hop link waits use `path_utils.path_response_window` and `link.establishment_timeout`. Do not pin 15s (or any flat timer) for Nomad pages, RNCP, FileSync, LXST, or map fetches.
 - Keep list APIs and announces slim. Do not ship multi-MB blobs in conversation lists.
 - Large files use RNCP / attachments / explicit transfer tools, not chat text fields.
 

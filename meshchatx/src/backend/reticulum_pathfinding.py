@@ -8,6 +8,8 @@ from typing import Any, Optional, Protocol
 
 import RNS
 
+from meshchatx.src.backend.path_utils import path_response_window
+
 
 @dataclass(frozen=True)
 class OutboundPathOutcome:
@@ -233,7 +235,12 @@ def nudge_path_request(destination_hash: bytes) -> None:
     RNS.Transport.request_path(destination_hash)
 
 
-def lxmf_path_wait_cap_seconds() -> float:
+def lxmf_path_wait_cap_seconds(
+    destination_hash: bytes | None = None,
+    reticulum: Optional["ReticulumLike"] = None,
+) -> float:
+    if destination_hash is not None:
+        return path_response_window(destination_hash, reticulum)
     try:
         base = float(RNS.Transport.PATH_REQUEST_TIMEOUT)
     except Exception:
@@ -245,8 +252,12 @@ async def await_transport_path_for_outbound_lxmf(
     reticulum: Optional["ReticulumLike"],
     destination_hash_bytes: bytes,
 ) -> OutboundPathOutcome:
-    long_w = lxmf_path_wait_cap_seconds()
-    short_w = max(15.0, long_w * 0.5)
+    long_w = lxmf_path_wait_cap_seconds(destination_hash_bytes, reticulum)
+    try:
+        short_floor = float(RNS.Transport.PATH_REQUEST_TIMEOUT)
+    except Exception:
+        short_floor = 15.0
+    short_w = max(long_w * 0.5, short_floor)
 
     measure = prepare_fresh_path_request(reticulum, destination_hash_bytes)
     deadline = time.time() + long_w

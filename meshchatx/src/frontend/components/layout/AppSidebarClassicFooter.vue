@@ -4,10 +4,11 @@
     <div v-if="config">
         <div class="bg-white border-t border-gray-200 dark:border-zinc-800 dark:bg-zinc-950">
             <div
-                class="flex text-gray-700 p-3 cursor-pointer"
+                class="flex text-gray-700 cursor-pointer"
+                :class="isCollapsed ? 'justify-center p-2' : 'p-3'"
                 @click="isShowingMyIdentitySection = !isShowingMyIdentitySection"
             >
-                <div class="my-auto mr-2 shrink-0">
+                <div :class="isCollapsed ? 'shrink-0' : 'my-auto mr-2 shrink-0'">
                     <RouterLink :to="{ name: 'profile.icon' }" @click.stop>
                         <LxmfUserIcon
                             :icon-name="config.lxmf_user_icon_name"
@@ -72,13 +73,15 @@
 
         <div class="bg-white border-t border-gray-200 dark:border-zinc-800 dark:bg-zinc-950">
             <div
-                class="flex text-gray-700 p-3 cursor-pointer dark:text-white"
+                class="flex text-gray-700 cursor-pointer dark:text-white"
+                :class="isCollapsed ? 'justify-center p-2' : 'p-3'"
                 data-testid="sidebar-announce-header"
                 @click="isShowingAnnounceSection = !isShowingAnnounceSection"
             >
                 <button
                     type="button"
-                    class="my-auto mr-2 flex shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0 text-inherit cursor-pointer"
+                    class="flex shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0 text-inherit cursor-pointer"
+                    :class="isCollapsed ? '' : 'my-auto mr-2'"
                     :title="$t('app.announce_now')"
                     data-testid="sidebar-announce-radio"
                     @click.stop="$emit('send-announce')"

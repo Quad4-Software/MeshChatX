@@ -10,7 +10,10 @@ from typing import Optional
 import RNS
 
 from meshchatx.src.backend import reticulum_pathfinding
-from meshchatx.src.backend.path_utils import path_response_window
+from meshchatx.src.backend.path_utils import (
+    link_establishment_window,
+    path_response_window,
+)
 from meshchatx.src.backend.reticulum_pathfinding import ReticulumLike
 
 # Cache of established RNS Links keyed by (aspect_str, destination_hash_bytes).
@@ -38,10 +41,8 @@ LINK_IDLE_TTL_S = 30 * 60
 # Wait granularity while polling for path / link (seconds).
 _POLL_INTERVAL_S = 0.02
 
-# Slow path and link margins
+# Slow path UI phase margin before finding_path_slow
 PATH_MARGIN_S = 5.0
-LINK_MARGIN_S = 5.0
-_FALLBACK_LINK_TIMEOUT_S = 15.0
 
 
 def cached_link_count() -> int:
@@ -368,13 +369,14 @@ class RnsLinkManager:
         )
 
         # Get the link establishment_timeout from RNS if not explicitly pinned
-        rns_timeout = getattr(link, "establishment_timeout", None)
         if link_establishment_timeout is not None:
             deadline = time.time() + link_establishment_timeout
-        elif isinstance(rns_timeout, (int, float)) and rns_timeout > 0:
-            deadline = time.time() + rns_timeout + LINK_MARGIN_S
         else:
-            deadline = time.time() + _FALLBACK_LINK_TIMEOUT_S
+            deadline = time.time() + link_establishment_window(
+                link,
+                destination_hash,
+                self._get_reticulum(),
+            )
         try:
             while (
                 link.status not in (RNS.Link.ACTIVE, RNS.Link.CLOSED)

@@ -57,6 +57,17 @@ describe("SidebarLink UI", () => {
         expect(wrapper.vm.isCollapsed).toBe(true);
     });
 
+    it("centers the icon and hides text when collapsed", () => {
+        const wrapper = mountSidebarLink({ isCollapsed: true });
+        const innerLink = wrapper.find("a.justify-center");
+        expect(innerLink.exists()).toBe(true);
+        expect(innerLink.classes()).toContain("justify-center");
+        expect(innerLink.classes()).not.toContain("mr-2");
+        expect(innerLink.classes()).toContain("rounded-lg");
+        expect(wrapper.text()).not.toContain("Messages");
+        expect(wrapper.find(".icon-slot").exists()).toBe(true);
+    });
+
     it("does not navigate when editMode is on", async () => {
         const wrapper = mountSidebarLink({ editMode: true });
         const innerLink = wrapper.find("a.rounded-r-full");

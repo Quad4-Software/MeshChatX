@@ -14,6 +14,10 @@ import RNS
 
 from meshchatx.src.backend.announce_handler import AnnounceHandler
 from meshchatx.src.backend.log_redaction import redact_diagnostic_text
+from meshchatx.src.backend.path_utils import (
+    link_establishment_window,
+    path_response_window,
+)
 
 BUG_ASPECT = "mcx-bugs-v1"
 REPORT_PATH = "/report"
@@ -440,7 +444,10 @@ class BugReportManager:
         )
         if not RNS.Transport.has_path(dest_hash):
             RNS.Transport.request_path(dest_hash)
-            deadline = time.time() + float(args.get("path_timeout") or 15)
+            path_wait = float(args.get("path_timeout") or 0) or path_response_window(
+                dest_hash,
+            )
+            deadline = time.time() + path_wait
             while time.time() < deadline:
                 if RNS.Transport.has_path(dest_hash):
                     break
@@ -468,7 +475,11 @@ class BugReportManager:
             response_event.set()
 
         link.set_link_established_callback(on_established)
-        if not established.wait(timeout=float(args.get("link_timeout") or 20)):
+        link_wait = float(args.get("link_timeout") or 0) or link_establishment_window(
+            link,
+            dest_hash,
+        )
+        if not established.wait(timeout=link_wait):
             try:
                 link.teardown()
             except Exception:

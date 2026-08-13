@@ -85,6 +85,19 @@ describe("AppSidebarNav edit hold", () => {
         wrapper.unmount();
     });
 
+    it("centers collapsed nav items and the More toggle", () => {
+        const wrapper = mountGrouped({ isCollapsed: true });
+        const more = wrapper.get('[data-testid="sidebar-more-toggle"]');
+        expect(more.classes()).toContain("justify-center");
+        expect(more.classes()).not.toContain("px-4");
+        const item = wrapper.get('[data-nav-item-id="messages"]');
+        expect(item.classes()).toContain("justify-center");
+        const link = item.find("a.w-full");
+        expect(link.classes()).toContain("justify-center");
+        expect(link.classes()).not.toContain("mr-2");
+        wrapper.unmount();
+    });
+
     it("does not emit edit-start when the sidebar is collapsed", async () => {
         vi.useFakeTimers();
         const wrapper = mountGrouped({ isCollapsed: true });
@@ -128,6 +141,27 @@ describe("AppSidebarNav edit hold", () => {
             itemId: "messages",
             delta: -1,
         });
+        wrapper.unmount();
+    });
+
+    it("classic nav centers collapsed items", () => {
+        const wrapper = mount(AppSidebarClassicNav, {
+            props: {
+                navItems: groups[0].items,
+                isCollapsed: true,
+                isEditing: false,
+            },
+            global: {
+                plugins: [i18n],
+                stubs: {
+                    RouterLink: RouterLinkStub,
+                    MaterialDesignIcon: { template: '<span class="md-stub" />' },
+                },
+            },
+        });
+        const item = wrapper.get('[data-nav-item-id="messages"]');
+        expect(item.classes()).toContain("justify-center");
+        expect(item.find("a.w-full").classes()).toContain("justify-center");
         wrapper.unmount();
     });
 

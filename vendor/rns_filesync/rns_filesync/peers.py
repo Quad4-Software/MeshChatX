@@ -75,16 +75,37 @@ def is_local_destination(destination_hash: bytes) -> bool:
     return False
 
 
+def adaptive_path_timeout(
+    destination_hash: bytes,
+    timeout: float | None = None,
+) -> float:
+    if timeout is not None:
+        return float(timeout)
+    try:
+        from meshchatx.src.backend.path_utils import path_response_window
+
+        return path_response_window(destination_hash)
+    except Exception:
+        pass
+    try:
+        reticulum = RNS.Reticulum.get_instance()
+        window = float(reticulum.get_first_hop_timeout(destination_hash))
+        return max(window, float(RNS.Transport.PATH_REQUEST_TIMEOUT))
+    except Exception:
+        return PATH_TIMEOUT_DEFAULT
+
+
 def wait_for_path(
     destination_hash: bytes,
-    timeout: float = PATH_TIMEOUT_DEFAULT,
+    timeout: float | None = None,
 ) -> bool:
+    wait_s = adaptive_path_timeout(destination_hash, timeout)
     if RNS.Transport.has_path(destination_hash) or is_local_destination(
         destination_hash,
     ):
         return True
     RNS.Transport.request_path(destination_hash)
-    deadline = time.time() + timeout
+    deadline = time.time() + wait_s
     while time.time() < deadline:
         if RNS.Transport.has_path(destination_hash) or is_local_destination(
             destination_hash,
@@ -111,13 +132,19 @@ def establish_link(
     *,
     established_callback: Callable | None = None,
     closed_callback: Callable | None = None,
-    timeout: float = LINK_TIMEOUT_DEFAULT,
+    timeout: float | None = None,
 ):
     link = RNS.Link(
         destination,
         established_callback=established_callback,
         closed_callback=closed_callback,
     )
+    if timeout is None:
+        rns_timeout = getattr(link, "establishment_timeout", None)
+        if isinstance(rns_timeout, (int, float)) and rns_timeout > 0:
+            timeout = float(rns_timeout) + 5.0
+        else:
+            timeout = LINK_TIMEOUT_DEFAULT
     deadline = time.time() + timeout
     while link.status not in (RNS.Link.ACTIVE, RNS.Link.CLOSED):
         if time.time() > deadline:

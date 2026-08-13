@@ -161,6 +161,43 @@ async def test_cancel_between_identity_resolved_and_path_request(telephone_manag
 
 
 @pytest.mark.asyncio
+async def test_initiate_path_wait_uses_adaptive_window_not_ten_second_cap(
+    telephone_manager,
+):
+    destination_hash = bytes.fromhex("ab" * 16)
+    captured = {}
+
+    async def fake_await_path(_dest, timeout_seconds=15):
+        captured["timeout"] = timeout_seconds
+        return True
+
+    telephone_manager.telephone.call.side_effect = lambda *_a, **_k: setattr(
+        telephone_manager.telephone,
+        "call_status",
+        0,
+    )
+
+    with (
+        patch(
+            "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+            return_value=False,
+        ),
+        patch(
+            "meshchatx.src.backend.telephone_manager.path_response_window",
+            return_value=86.8,
+        ),
+        patch.object(telephone_manager, "_await_path", side_effect=fake_await_path),
+    ):
+        await telephone_manager.initiate(destination_hash, timeout_seconds=15)
+
+    assert captured["timeout"] == 86.8
+
+
+@pytest.mark.asyncio
 async def test_cancel_after_path_found_before_dialling_stabilizes(telephone_manager):
     destination_hash = bytes.fromhex("ee" * 16)
 
