@@ -7216,6 +7216,7 @@ class ReticulumMeshChat:
                 {
                     "type": "announced",
                     "identity_hash": ctx.identity_hash,
+                    "last_announced_at": ctx.config.last_announced_at.get(),
                 },
             ),
         )

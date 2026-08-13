@@ -321,6 +321,34 @@ describe("App.vue sidebar identity label and announce control", () => {
         expect(radio.element.parentElement).not.toBe(announced.element.parentElement);
     });
 
+    it("last announced relative time updates when the shell tick fires", async () => {
+        wrapper = makeMountedApp();
+        await readyShell(wrapper.vm.$router);
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date("2026-08-13T12:00:00Z"));
+        wrapper.vm.config = {
+            ...wrapper.vm.config,
+            last_announced_at: Math.floor(Date.now() / 1000) - 125,
+        };
+        wrapper.vm.lastAnnouncedTick += 1;
+        await wrapper.vm.$nextTick();
+        const announced = wrapper.find("[data-testid=sidebar-last-announced]");
+        expect(announced.text()).toMatch(/2 minutes/i);
+
+        vi.setSystemTime(new Date("2026-08-13T12:01:00Z"));
+        await wrapper.vm.$nextTick();
+        expect(wrapper.find("[data-testid=sidebar-last-announced]").text()).toMatch(/2 minutes/i);
+
+        wrapper.vm.lastAnnouncedTick += 1;
+        await wrapper.vm.$nextTick();
+        expect(wrapper.find("[data-testid=sidebar-last-announced]").text()).toMatch(/3 minutes/i);
+
+        const tickBefore = wrapper.vm.lastAnnouncedTick;
+        wrapper.vm.startShellPollIntervals();
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(wrapper.vm.lastAnnouncedTick).toBe(tickBefore + 1);
+    });
+
     it("saves display name on Enter without a save button", async () => {
         axiosMock.patch = vi.fn().mockResolvedValue({
             data: { config: makeConfig({ display_name: "Renamed Peer" }) },

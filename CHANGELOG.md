@@ -34,6 +34,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- **Sidebar last announced**: Relative time on the identity footer now recomputes on the 1-second shell poll. Auto-announce WebSocket events include `last_announced_at`, so the stamp updates without a page reload.
 - **Docker frontend build**: Copy `scripts/vite-dx.mjs` into the Node stage. `vite.config.js` imports it for Vue DevTools gates, so `vite build` failed with UNRESOLVED_IMPORT when the file was missing from the image.
 - **Map KMZ import**: ArcGIS KMZ files (including [GhostMaps](https://github.com/s2underground/GhostMaps) ATAK exports) failed in two ways. An unused .xsl balloon stylesheet next to doc.kml was treated as an unsafe zip entry and showed "Could not read vector file." HTML balloon text inside CDATA left a stray CDATA closer after sanitizing, so OpenLayers parsed zero features. Sidecars that are not KML or raster icons are skipped. CDATA HTML is flattened to escaped plain text. Placemarks and zip-local PNG/JPEG/GIF/WebP icons still import.
 - **Collapsed sidebar**: Icons in the 64px app rail (nav, More, collapse chevron, identity chip, announce) and the Messages/Nomad collapse chevrons sit on the vertical center line. Collapsed nav links no longer keep the expanded right-margin offset.

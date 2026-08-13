@@ -99,4 +99,51 @@ describe("App.vue sidebar announce and auto-announce interval", () => {
             auto_announce_interval_seconds: 3600,
         });
     });
+
+    it("applyAnnouncedEvent writes last_announced_at without waiting for config GET", () => {
+        const ctx = {
+            config: { identity_hash: "h1", last_announced_at: 100 },
+            getConfig: vi.fn(),
+        };
+
+        App.methods.applyAnnouncedEvent.call(ctx, {
+            type: "announced",
+            identity_hash: "h1",
+            last_announced_at: 1_700_000_000,
+        });
+
+        expect(ctx.config.last_announced_at).toBe(1_700_000_000);
+        expect(ctx.getConfig).not.toHaveBeenCalled();
+    });
+
+    it("applyAnnouncedEvent ignores a stamp from another identity", () => {
+        const ctx = {
+            config: { identity_hash: "h1", last_announced_at: 100 },
+            getConfig: vi.fn(),
+        };
+
+        App.methods.applyAnnouncedEvent.call(ctx, {
+            type: "announced",
+            identity_hash: "h2",
+            last_announced_at: 1_700_000_000,
+        });
+
+        expect(ctx.config.last_announced_at).toBe(100);
+        expect(ctx.getConfig).not.toHaveBeenCalled();
+    });
+
+    it("applyAnnouncedEvent falls back to getConfig when stamp is missing", () => {
+        const ctx = {
+            config: { identity_hash: "h1", last_announced_at: 100 },
+            getConfig: vi.fn(),
+        };
+
+        App.methods.applyAnnouncedEvent.call(ctx, {
+            type: "announced",
+            identity_hash: "h1",
+        });
+
+        expect(ctx.config.last_announced_at).toBe(100);
+        expect(ctx.getConfig).toHaveBeenCalledTimes(1);
+    });
 });
