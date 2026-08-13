@@ -31,12 +31,12 @@ Page-node files are a path jail. Follow `path-jail-local-fs`. The Mesh Server re
 
 ## Formats
 
-| Extension | Role |
-| --- | --- |
-| `.mu` | Micron markup (NomadNet default) |
-| `.md` | Markdown |
-| `.txt` | Plain text |
-| HTML | Sanitised. Do not widen the sanitiser to run scripts. |
+| Extension | Role                                                  |
+| --------- | ----------------------------------------------------- |
+| `.mu`     | Micron markup (NomadNet default)                      |
+| `.md`     | Markdown                                              |
+| `.txt`    | Plain text                                            |
+| HTML      | Sanitised. Do not widen the sanitiser to run scripts. |
 
 Announce display names parse through `parse_nomadnetwork_node_display_name`. Store toggles: `announce_store_nomadnetwork_node` in `announce_manager.py`.
 

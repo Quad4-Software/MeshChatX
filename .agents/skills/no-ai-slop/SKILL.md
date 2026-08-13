@@ -33,17 +33,17 @@ A sentence that asserts importance without a detail says nothing. End every clai
 Three sections built from the same template read as machine output, even when each fact is true. Vary paragraph count, sentence rhythm, and how each section opens.
 
 - WRONG (three sections, identical shape):
-  ```
-  In [year], [party] did [thing]. This affected [number] people. [Party] responded by [action].
-  In [year], [party] did [thing]. This affected [number] people. [Party] responded by [action].
-  In [year], [party] did [thing]. This affected [number] people. [Party] responded by [action].
-  ```
+    ```
+    In [year], [party] did [thing]. This affected [number] people. [Party] responded by [action].
+    In [year], [party] did [thing]. This affected [number] people. [Party] responded by [action].
+    In [year], [party] did [thing]. This affected [number] people. [Party] responded by [action].
+    ```
 - RIGHT (vary the shape):
-  ```
-  Section one: a detailed narrative with timeline and context across two paragraphs.
-  Section two: a two-sentence summary, because the event is thinly documented.
-  Section three: opens with the party's stated justification, then the contradicting evidence.
-  ```
+    ```
+    Section one: a detailed narrative with timeline and context across two paragraphs.
+    Section two: a two-sentence summary, because the event is thinly documented.
+    Section three: opens with the party's stated justification, then the contradicting evidence.
+    ```
 
 ## Rule 11: No filler phrases
 

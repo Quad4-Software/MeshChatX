@@ -49,7 +49,41 @@ Landlock / Windows AppContainer + SQLite conversation-load failures (temp_store,
 
 - `_collect_read_roots()` includes user-local CLI roots when present (`landlock_sandbox._collect_user_local_cli_roots`)
 - `_collect_rw_roots()` includes `~/.local/share/argos-translate` when present
+- `_collect_read_roots()` includes `/sys` so pyserial can `open()` USB `idVendor`/`product` (stat alone is not enough)
+- `apply_landlock_sandbox(extra_read_roots=...)` covers Sideband `command_plugins_path` when that dir exists at process start
 - New external-tool integrations: add roots and a probe in `tests/backend/test_landlock_integration_surfaces.py`
+
+## Serial ports and RNode (Linux Landlock)
+
+### Symptoms
+
+- Add Interface serial dropdown is empty with an RNode plugged in
+- `/api/v1/comports` returns 500
+- Logs show `TypeError: int() can't convert non-string with explicit base`
+
+### Root cause
+
+pyserial `list_ports_linux.SysFS` stats `/sys/class/tty/<name>/device` (Landlock allows this without a `/sys` rule), then `open()`s `idVendor`. That open fails, `read_line` returns None, and `int(None, 16)` raises. The comports route used to let that exception become HTTP 500.
+
+### Required behavior
+
+- `/sys` is a Landlock read root
+- `list_serial_comports()` catches TypeError/ValueError/OSError and globs USB-like nodes (`ttyUSB`, `ttyACM`, `ttyAMA`, `rfcomm`)
+- Probe: `test_landlock_allows_sysfs_tty_and_pyserial_comports`
+
+## Custom interfaces, executable pages, plugins
+
+In-tree copies already sit on Landlock roots:
+
+- Custom RNS modules: `<reticulum_config_dir>/interfaces` (RW)
+- Mesh Server executable pages: `<storage>/identities/<hash>/page_nodes/.../pages` (RW). Probe: `test_landlock_executable_page_script_spawn`
+- MeshChatX plugins: `<storage>/plugins` (RW). Probe: `test_landlock_loads_python_plugin_from_storage`
+
+These still fail under Landlock, by design:
+
+- `location_cmd` or PipeInterface `command` whose binary is outside `/usr`, `~/.local/bin`, storage, and the Reticulum config dir (example: `~/bin/gps.sh`)
+- Sideband `command_plugins_path` that did not exist yet when the process started (Landlock cannot add roots later). Restart after setting the path.
+- Executable page scripts that write under `$HOME` or exec `/opt/...`
 
 ## Windows counterpart
 
@@ -73,6 +107,8 @@ For live stress, run Landlock in a **subprocess** (sandbox applies once per proc
 - `meshchatx/src/backend/database/__init__.py`
 - `meshchatx/src/backend/memory_pressure.py`
 - `meshchatx/src/backend/landlock_sandbox.py`
+- `meshchatx/src/backend/serial_comports.py`
+- `meshchatx/src/backend/appcontainer_sandbox.py`
 - `meshchatx/src/backend/appcontainer_sandbox.py`
 - `meshchatx/src/backend/appcontainer_launcher.py`
 - `meshchatx/src/backend/seccomp_sandbox.py` (syscall denylist after Landlock)
