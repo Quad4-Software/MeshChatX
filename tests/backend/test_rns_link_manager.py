@@ -225,7 +225,63 @@ async def test_open_link_establishment_timeout(monkeypatch):
     assert link is None
     assert identified is False
     assert failure == "link_establishment_timeout"
-    fake_link.teardown.assert_called()
+    fake_link.teardown.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_open_link_establishment_closed(monkeypatch):
+    dest = bytes.fromhex("c4" * 16)
+    identity = object()
+    monkeypatch.setattr(
+        rlm.reticulum_pathfinding,
+        "prepare_fresh_path_request",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(rlm.RNS.Transport, "has_path", lambda _dh: True)
+    monkeypatch.setattr(rlm.RNS.Identity, "recall", lambda _dh: identity)
+
+    fake_link = MagicMock()
+    fake_link.status = rlm.RNS.Link.CLOSED
+    fake_link.teardown = MagicMock()
+    link_ctor = MagicMock(return_value=fake_link)
+    link_ctor.ACTIVE = rlm.RNS.Link.ACTIVE
+    link_ctor.CLOSED = rlm.RNS.Link.CLOSED
+    monkeypatch.setattr(rlm.RNS, "Destination", MagicMock())
+    monkeypatch.setattr(rlm.RNS, "Link", link_ctor)
+
+    manager = _manager()
+    link, identified, failure = await manager.open_link(dest, "app.aspect")
+    assert link is None
+    assert identified is False
+    assert failure == "link_establishment_failed"
+    fake_link.teardown.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_open_link_emits_finding_path_slow(monkeypatch):
+    dest = bytes.fromhex("c5" * 16)
+    monkeypatch.setattr(rlm, "PATH_MARGIN_S", 0.02)
+    monkeypatch.setattr(rlm.RNS.Reticulum, "DEFAULT_PER_HOP_TIMEOUT", 0.02)
+    monkeypatch.setattr(rlm, "path_response_window", lambda *_a, **_k: 0.12)
+    monkeypatch.setattr(
+        rlm.reticulum_pathfinding,
+        "prepare_fresh_path_request",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(rlm.RNS.Transport, "has_path", lambda _dh: False)
+
+    phases: list[str] = []
+    manager = _manager()
+    link, identified, failure = await manager.open_link(
+        dest,
+        "app.aspect",
+        on_phase=phases.append,
+    )
+    assert link is None
+    assert identified is False
+    assert failure == "no_path_to_destination"
+    assert phases[0] == "finding_path"
+    assert "finding_path_slow" in phases
 
 
 @pytest.mark.asyncio

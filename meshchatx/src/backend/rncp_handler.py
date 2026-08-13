@@ -9,6 +9,8 @@ from collections.abc import Callable
 
 import RNS
 
+from .path_utils import path_response_window
+
 
 class RNCPHandler:
     APP_NAME = "rncp"
@@ -386,7 +388,7 @@ class RNCPHandler:
         self,
         destination_hash: bytes,
         file_path: str,
-        timeout: float = RNS.Transport.PATH_REQUEST_TIMEOUT,
+        timeout: float | None = None,
         on_progress: Callable[[float], None] | None = None,
         no_compress: bool = False,
         on_transfer_started: Callable[[str], None] | None = None,
@@ -396,6 +398,8 @@ class RNCPHandler:
         if not RNS.Transport.has_path(destination_hash):
             RNS.Transport.request_path(destination_hash)
 
+        if timeout is None:
+            timeout = path_response_window(destination_hash, self.reticulum)
         timeout_after = time.time() + timeout
         while (
             not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after
@@ -488,7 +492,7 @@ class RNCPHandler:
         self,
         destination_hash: bytes,
         file_path: str,
-        timeout: float = RNS.Transport.PATH_REQUEST_TIMEOUT,
+        timeout: float | None = None,
         on_progress: Callable[[float], None] | None = None,
         save_path: str | None = None,
         allow_overwrite: bool = False,
@@ -497,6 +501,8 @@ class RNCPHandler:
         if not RNS.Transport.has_path(destination_hash):
             RNS.Transport.request_path(destination_hash)
 
+        if timeout is None:
+            timeout = path_response_window(destination_hash, self.reticulum)
         timeout_after = time.time() + timeout
         while (
             not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after
