@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.8.2] - 2026-07-27
+## [4.8.2] - 2026-08-14
 
 ### Added
 
@@ -21,6 +21,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- **Slow-interface path and link waits**: Cold path requests use `path_response_window` in `meshchatx/src/backend/path_utils.py`. It takes `Reticulum.get_first_hop_timeout` (not `Transport.first_hop_timeout`, which is the local socket timeout on a shared rnsd client) and an airtime floor from the slowest online interface, clamped to `RNS.Reticulum.MINIMUM_BITRATE` (5 bps). New links wait on `link.establishment_timeout` plus 5 seconds. Nomad pages, RNS Link API, RNCP, FileSync, LXMF outbound path prep, LXST dial, map fetches, remote management, bug-report send, path-probe defaults, and Relay Chat hub identity recall use those helpers. A 15 second window cannot finish a 234-byte path exchange at 125 bits per second.
 - **Dependencies**: LXMF 1.1.1. Unanswered path requests during propagation peer sync now apply sync backoff instead of retrying immediately. Requires RNS 1.4.2 (already pinned).
 - **App sidebar**: Network Visualiser is under Explore with Nomad Network and Map, not in More.
 - **Messages empty state**: The no-conversations view tells you to add a mesh interface and announce, or to use the Announces tab, with an Add interface action.
@@ -32,6 +33,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- **Map KMZ import**: ArcGIS KMZ files (including [GhostMaps](https://github.com/s2underground/GhostMaps) ATAK exports) failed in two ways. An unused .xsl balloon stylesheet next to doc.kml was treated as an unsafe zip entry and showed "Could not read vector file." HTML balloon text inside CDATA left a stray CDATA closer after sanitizing, so OpenLayers parsed zero features. Sidecars that are not KML or raster icons are skipped. CDATA HTML is flattened to escaped plain text. Placemarks and zip-local PNG/JPEG/GIF/WebP icons still import.
+- **Collapsed sidebar**: Icons in the 64px app rail (nav, More, collapse chevron, identity chip, announce) and the Messages/Nomad collapse chevrons sit on the vertical center line. Collapsed nav links no longer keep the expanded right-margin offset.
 - **Messages (personal notes)**: Sending to your own LXMF address or identity is stored locally as delivered (method local) without LXMF router outbound, so self-chat no longer hangs in a waiting state.
 - **Messages sidebar**: Conversation list updates optimistically when you press Send, before the server acknowledges the message.
 - **E2E**: Playwright API helpers attach CSRF tokens for direct backend POSTs; `pretest:e2e` installs Chromium before the suite runs.
