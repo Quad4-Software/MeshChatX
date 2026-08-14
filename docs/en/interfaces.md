@@ -27,7 +27,7 @@ The **Add interface** flow includes:
 | HTTPInterface         | HTTP/S tunnel (bundled RNS-over-HTTP)         |
 | Custom external types | Advanced setups                               |
 
-Community-curated suggestions come from `community_interfaces.json`, sourced from [directory.rns.recipes](https://directory.rns.recipes).
+Community-curated suggestions come from bundled `community_interfaces.json`, built from [directory.rns.recipes](https://directory.rns.recipes) at release time. An optional `public/community_interfaces.json` override can replace that list locally. The app does not fetch the directory over the network at runtime.
 
 ## Interface discovery
 
