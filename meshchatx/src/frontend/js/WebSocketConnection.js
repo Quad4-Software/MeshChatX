@@ -22,6 +22,7 @@ class WebSocketConnection {
         this.destroyed = false;
         this._hadSuccessfulOpen = false;
         this._pendingReconnectUi = false;
+        this._sessionReady = false;
         this._lastReceivedTime = Date.now();
         this._hasEventListeners = false;
         this._isForcedReconnect = false;
@@ -161,6 +162,7 @@ class WebSocketConnection {
                 this._reconnectTimeout = null;
             }
             this._reconnectAttempt = 0;
+            this._sessionReady = false;
             this._stopHeartbeat();
             this._startHeartbeat();
             const isReconnect = this._pendingReconnectUi;
@@ -172,6 +174,7 @@ class WebSocketConnection {
 
         this.ws.addEventListener("close", () => {
             this._stopHeartbeat();
+            this._sessionReady = false;
             if (this.destroyed) {
                 return;
             }
@@ -225,14 +228,22 @@ class WebSocketConnection {
 
         this.ws.onmessage = (message) => {
             this._lastReceivedTime = Date.now();
+            let isPong = false;
             try {
                 const data = JSON.parse(message.data);
                 if (data && data.type === "pong") {
                     this._clearPongTimeout();
-                    return;
+                    isPong = true;
                 }
             } catch {
                 // non-json: forward
+            }
+            if (!this._sessionReady) {
+                this._sessionReady = true;
+                this.emit("ready");
+            }
+            if (isPong) {
+                return;
             }
             this.emit("message", message);
         };
@@ -290,6 +301,7 @@ class WebSocketConnection {
         this.initialized = false;
         this._hadSuccessfulOpen = false;
         this._pendingReconnectUi = false;
+        this._sessionReady = false;
         this._stopHeartbeat();
         if (this._reconnectTimeout != null) {
             clearTimeout(this._reconnectTimeout);

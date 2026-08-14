@@ -492,7 +492,7 @@ import { useTheme } from "vuetify";
 import SidebarLink from "./SidebarLink.vue";
 import DialogUtils from "../js/DialogUtils";
 import WebSocketConnection from "../js/WebSocketConnection";
-import { formatDisconnectedDuration } from "../js/wsConnectionSupport";
+import { formatDisconnectedDuration, WS_DISCONNECT_BANNER_GRACE_MS } from "../js/wsConnectionSupport";
 import { applyAuthStatusToGlobalState, fetchAuthStatus } from "../js/authSessionSync.js";
 import GlobalState, { mergeGlobalConfig } from "../js/GlobalState";
 import { countRelayMentions } from "../js/relayMentionCount.js";
@@ -1120,6 +1120,7 @@ export default {
             WebSocketConnection.connect();
             WebSocketConnection.on("disconnected", this.onWsShellDisconnected);
             WebSocketConnection.on("connected", this.onWsShellConnected);
+            WebSocketConnection.on("ready", this.onWsShellReady);
             this.registerShellWsHandlers();
             this.startClientHeapMemoryWatch();
             GlobalEmitter.on("toast-dismissed", this.onToastDismissedShell);
@@ -1232,6 +1233,7 @@ export default {
             GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this.onBatterySaverPrefsChangedShell);
             WebSocketConnection.off("disconnected", this.onWsShellDisconnected);
             WebSocketConnection.off("connected", this.onWsShellConnected);
+            WebSocketConnection.off("ready", this.onWsShellReady);
             this.unregisterShellWsHandlers();
             GlobalEmitter.off("identity-switching-start", this.onIdentitySwitchingStartShell);
             GlobalEmitter.off("identity-switching-abort", this.onIdentitySwitchingAbortShell);
@@ -1430,7 +1432,7 @@ export default {
             this.wsDisconnectGraceTimer = setTimeout(() => {
                 this.wsDisconnectGraceTimer = null;
                 this._showWsDisconnectedBannerNow();
-            }, 2500);
+            }, WS_DISCONNECT_BANNER_GRACE_MS);
         },
         _tickWsDisconnectedLabel() {
             if (!this.wsDisconnectedAt) {
@@ -1439,11 +1441,7 @@ export default {
             }
             this.wsDisconnectedDurationText = formatDisconnectedDuration(Date.now() - this.wsDisconnectedAt);
         },
-        async onWsShellConnected(payload = {}) {
-            if (!this.shellRunning) {
-                return;
-            }
-            const sawDisconnectBanner = this.wsDisconnectBannerShown;
+        _clearWsDisconnectedUi() {
             if (this.wsDisconnectGraceTimer != null) {
                 clearTimeout(this.wsDisconnectGraceTimer);
                 this.wsDisconnectGraceTimer = null;
@@ -1458,20 +1456,36 @@ export default {
                 clearInterval(this.wsDisconnectTickTimer);
                 this.wsDisconnectTickTimer = null;
             }
+        },
+        _celebrateWsReconnected() {
+            this.wsReconnectedBanner = true;
+            if (this.wsReconnectedHideTimer != null) {
+                clearTimeout(this.wsReconnectedHideTimer);
+            }
+            this.wsReconnectedHideTimer = setTimeout(() => {
+                this.wsReconnectedBanner = false;
+                this.wsReconnectedHideTimer = null;
+            }, 4500);
+        },
+        async onWsShellConnected(payload = {}) {
+            if (!this.shellRunning) {
+                return;
+            }
+            // TCP open is not recovery. Vite proxies and restart flaps can OPEN then
+            // CLOSE without a backend frame. Keep the grace timer running until ready.
             const isReconnect = payload.isReconnect === true;
             if (isReconnect) {
                 await this.resyncShellAfterWebsocketReconnect();
-                // Only celebrate when the user actually saw a disconnect banner.
-                if (sawDisconnectBanner) {
-                    this.wsReconnectedBanner = true;
-                    if (this.wsReconnectedHideTimer != null) {
-                        clearTimeout(this.wsReconnectedHideTimer);
-                    }
-                    this.wsReconnectedHideTimer = setTimeout(() => {
-                        this.wsReconnectedBanner = false;
-                        this.wsReconnectedHideTimer = null;
-                    }, 4500);
-                }
+            }
+        },
+        onWsShellReady() {
+            if (!this.shellRunning) {
+                return;
+            }
+            const sawDisconnectBanner = this.wsDisconnectBannerShown;
+            this._clearWsDisconnectedUi();
+            if (sawDisconnectBanner) {
+                this._celebrateWsReconnected();
             }
         },
         async resyncShellAfterWebsocketReconnect() {

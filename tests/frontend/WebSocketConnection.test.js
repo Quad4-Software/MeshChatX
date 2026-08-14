@@ -115,6 +115,50 @@ describe("WebSocketConnection module", () => {
         WebSocketConnection.destroy();
     });
 
+    it("emits ready on the first backend frame, not on TCP open", async () => {
+        const MockWS = makeWsImpl();
+        global.WebSocket = MockWS;
+
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+
+        const connected = vi.fn();
+        const ready = vi.fn();
+        WebSocketConnection.on("connected", connected);
+        WebSocketConnection.on("ready", ready);
+
+        await WebSocketConnection.connect();
+        await vi.waitUntil(() => connected.mock.calls.length >= 1);
+        expect(ready).not.toHaveBeenCalled();
+
+        WebSocketConnection.ws.onmessage({ data: JSON.stringify({ type: "pong" }) });
+        expect(ready).toHaveBeenCalledTimes(1);
+
+        WebSocketConnection.ws.onmessage({ data: JSON.stringify({ type: "config", config: {} }) });
+        expect(ready).toHaveBeenCalledTimes(1);
+
+        WebSocketConnection.destroy();
+    });
+
+    it("does not emit ready when the socket opens but never receives a frame", async () => {
+        const SilentWS = makeSilentWsImpl();
+        global.WebSocket = SilentWS;
+
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+
+        const connected = vi.fn();
+        const ready = vi.fn();
+        WebSocketConnection.on("connected", connected);
+        WebSocketConnection.on("ready", ready);
+
+        await WebSocketConnection.connect();
+        await vi.waitUntil(() => connected.mock.calls.length >= 1);
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(ready).not.toHaveBeenCalled();
+
+        WebSocketConnection.destroy();
+    });
+
     it("strips pong from message stream", async () => {
         const MockWS = makeWsImpl();
         global.WebSocket = MockWS;

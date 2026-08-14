@@ -2,6 +2,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../../meshchatx/src/frontend/components/App.vue";
+import { WS_DISCONNECT_BANNER_GRACE_MS } from "../../meshchatx/src/frontend/js/wsConnectionSupport";
 
 vi.mock("../../meshchatx/src/frontend/js/csrfToken.js", () => ({
     fetchCsrfToken: vi.fn(async () => "refreshed"),
@@ -46,8 +47,11 @@ describe("App websocket reconnect shell resync", () => {
             resyncShellAfterWebsocketReconnect: App.methods.resyncShellAfterWebsocketReconnect,
             onWsShellConnected: App.methods.onWsShellConnected,
             onWsShellDisconnected: App.methods.onWsShellDisconnected,
+            onWsShellReady: App.methods.onWsShellReady,
             _showWsDisconnectedBannerNow: App.methods._showWsDisconnectedBannerNow,
             _tickWsDisconnectedLabel: App.methods._tickWsDisconnectedLabel,
+            _clearWsDisconnectedUi: App.methods._clearWsDisconnectedUi,
+            _celebrateWsReconnected: App.methods._celebrateWsReconnected,
             ...overrides,
         };
     }
@@ -71,12 +75,17 @@ describe("App websocket reconnect shell resync", () => {
 
         await App.methods.onWsShellConnected.call(ctx, { isReconnect: true });
 
-        expect(ctx.wsDisconnected).toBe(false);
+        expect(ctx.wsDisconnected).toBe(true);
         expect(window.api.get).toHaveBeenCalledWith("/api/v1/auth/status", expect.any(Object));
         expect(fetchCsrfToken).toHaveBeenCalledTimes(1);
         expect(ctx.updatePropagationNodeStatus).toHaveBeenCalled();
         expect(ctx.getConfig).toHaveBeenCalled();
         expect(emitSpy).toHaveBeenCalledWith("websocket-reconnected");
+        expect(ctx.wsReconnectedBanner).toBe(false);
+
+        App.methods.onWsShellReady.call(ctx);
+
+        expect(ctx.wsDisconnected).toBe(false);
         expect(ctx.wsReconnectedBanner).toBe(true);
 
         emitSpy.mockRestore();
@@ -96,6 +105,9 @@ describe("App websocket reconnect shell resync", () => {
         expect(ctx.wsReconnectedBanner).toBe(false);
         expect(emitSpy).toHaveBeenCalledWith("websocket-reconnected");
 
+        App.methods.onWsShellReady.call(ctx);
+        expect(ctx.wsReconnectedBanner).toBe(false);
+
         emitSpy.mockRestore();
     });
 
@@ -113,10 +125,33 @@ describe("App websocket reconnect shell resync", () => {
         expect(ctx.wsDisconnected).toBe(false);
         expect(ctx.wsDisconnectGraceTimer).not.toBeNull();
 
-        await vi.advanceTimersByTimeAsync(2499);
+        await vi.advanceTimersByTimeAsync(WS_DISCONNECT_BANNER_GRACE_MS - 1);
         expect(ctx.wsDisconnected).toBe(false);
 
         await vi.advanceTimersByTimeAsync(2);
+        expect(ctx.wsDisconnected).toBe(true);
+        expect(ctx.wsDisconnectBannerShown).toBe(true);
+    });
+
+    it("keeps disconnect grace across a TCP open that never becomes ready", async () => {
+        vi.useFakeTimers();
+        const ctx = makeShellCtx({
+            wsDisconnected: false,
+            wsDisconnectedAt: null,
+            wsDisconnectBannerShown: false,
+            wsDisconnectGraceTimer: null,
+            wsDisconnectTickTimer: null,
+        });
+
+        App.methods.onWsShellDisconnected.call(ctx);
+        await vi.advanceTimersByTimeAsync(1000);
+
+        await App.methods.onWsShellConnected.call(ctx, { isReconnect: true });
+        expect(ctx.wsDisconnected).toBe(false);
+        expect(ctx.wsDisconnectGraceTimer).not.toBeNull();
+
+        App.methods.onWsShellDisconnected.call(ctx);
+        await vi.advanceTimersByTimeAsync(WS_DISCONNECT_BANNER_GRACE_MS - 1000);
         expect(ctx.wsDisconnected).toBe(true);
         expect(ctx.wsDisconnectBannerShown).toBe(true);
     });
@@ -134,6 +169,9 @@ describe("App websocket reconnect shell resync", () => {
         expect(fetchCsrfToken).not.toHaveBeenCalled();
         expect(ctx.updatePropagationNodeStatus).not.toHaveBeenCalled();
         expect(emitSpy).not.toHaveBeenCalledWith("websocket-reconnected");
+
+        App.methods.onWsShellReady.call(ctx);
+        expect(ctx.wsReconnectedBanner).toBe(false);
 
         emitSpy.mockRestore();
     });
