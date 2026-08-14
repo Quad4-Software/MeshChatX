@@ -128,29 +128,7 @@ public class MainActivity extends AppCompatActivity {
         if (uri == null) {
             return false;
         }
-        String scheme = uri.getScheme();
-        if (scheme == null) {
-            return false;
-        }
-        String s = scheme.toLowerCase();
-        if ("about".equals(s)) {
-            String part = uri.getSchemeSpecificPart();
-            return part != null && "blank".equalsIgnoreCase(part);
-        }
-        if ("blob".equals(s) || "data".equals(s)) {
-            return true;
-        }
-        if (!"http".equals(s) && !"https".equals(s)) {
-            return false;
-        }
-        String host = uri.getHost();
-        if (host == null) {
-            return false;
-        }
-        if (RemoteBackendUrl.isLoopbackHost(host)) {
-            return true;
-        }
-        return RemoteBackendUrl.matchesBackend(uri.toString(), resolveBackendUrl());
+        return RemoteBackendUrl.isAllowedShellNavigation(uri.toString(), resolveBackendUrl());
     }
 
     private void openExternalBrowserUri(Uri uri) {

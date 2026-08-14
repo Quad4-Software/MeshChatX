@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import MessagesPage from "../../meshchatx/src/frontend/components/messages/MessagesPage.vue";
 import App from "../../meshchatx/src/frontend/components/App.vue";
 import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
-import { isPrivateOrLocalHostname } from "../../meshchatx/src/frontend/js/mapLocalUrl.js";
+import { isLocalMapServiceUrl, isPrivateOrLocalHostname } from "../../meshchatx/src/frontend/js/mapLocalUrl.js";
 
 vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     default: {
@@ -136,6 +136,11 @@ describe("map local URL oracle", () => {
         expect(isPrivateOrLocalHostname("172.32.0.1")).toBe(false);
         expect(isPrivateOrLocalHostname("8.8.8.8")).toBe(false);
         expect(isPrivateOrLocalHostname("tiles.openstreetmap.org")).toBe(false);
+        expect(isPrivateOrLocalHostname("10.evil.com")).toBe(false);
+        expect(isPrivateOrLocalHostname("192.168.example.com")).toBe(false);
+        expect(isPrivateOrLocalHostname("172.16.evil.com")).toBe(false);
+        expect(isLocalMapServiceUrl("http://10.1.2.3:8080/tiles")).toBe(true);
+        expect(isLocalMapServiceUrl("http://10.0.0.1@example.com/tiles")).toBe(false);
     });
 });
 

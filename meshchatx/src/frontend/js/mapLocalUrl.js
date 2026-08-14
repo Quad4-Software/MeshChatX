@@ -9,6 +9,39 @@
  * @param {string} hostname
  * @returns {boolean}
  */
+/**
+ * True when host is a dotted-quad IPv4 in loopback or RFC1918 space.
+ * Hostname prefixes such as 10.evil.com are not private.
+ * @param {string} host
+ * @returns {boolean}
+ */
+function isPrivateOrLoopbackIPv4(host) {
+    const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+    if (!m) {
+        return false;
+    }
+    const a = Number(m[1]);
+    const b = Number(m[2]);
+    const c = Number(m[3]);
+    const d = Number(m[4]);
+    if (a > 255 || b > 255 || c > 255 || d > 255) {
+        return false;
+    }
+    if (a === 127) {
+        return true;
+    }
+    if (a === 10) {
+        return true;
+    }
+    if (a === 192 && b === 168) {
+        return true;
+    }
+    if (a === 172 && b >= 16 && b <= 31) {
+        return true;
+    }
+    return false;
+}
+
 export function isPrivateOrLocalHostname(hostname) {
     const host = String(hostname || "")
         .trim()
@@ -17,24 +50,13 @@ export function isPrivateOrLocalHostname(hostname) {
     if (!host) {
         return false;
     }
-    if (host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "0:0:0:0:0:0:0:1") {
+    if (host === "localhost" || host === "::1" || host === "0:0:0:0:0:0:0:1") {
         return true;
     }
     if (host.endsWith(".local")) {
         return true;
     }
-    if (host.startsWith("10.")) {
-        return true;
-    }
-    if (host.startsWith("192.168.")) {
-        return true;
-    }
-    const m = /^172\.(\d+)\./.exec(host);
-    if (m) {
-        const second = Number(m[1]);
-        return second >= 16 && second <= 31;
-    }
-    return false;
+    return isPrivateOrLoopbackIPv4(host);
 }
 
 /**

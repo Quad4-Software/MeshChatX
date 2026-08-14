@@ -103,6 +103,8 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
             const util = readSource("android/app/src/main/java/com/meshchatx/RemoteBackendUrl.java");
             expect(util).toContain("normalize");
             expect(util).toContain("LOCAL_BACKEND_URL");
+            expect(util).toContain("isAllowedShellNavigation");
+            expect(src).toContain("isAllowedShellNavigation");
         });
 
         it("SettingsPage deep-scopes shared toggle styles for extracted sections", () => {
@@ -167,8 +169,19 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
 
         it("electron main attaches in-window navigation and popout guards", () => {
             const main = readSource("electron/main.js");
+            expect(main).toContain("web-contents-created");
             expect(main).toContain("attachInWindowNavigationGuard");
+            expect(main).toContain("will-navigate");
+            expect(main).toContain("will-redirect");
+            expect(main).toContain("will-frame-navigate");
+            expect(main).toContain("will-attach-webview");
             expect(main).toContain("setWindowOpenHandler");
+            const preload = readSource("electron/preload.js");
+            expect(preload).toContain("isTrustedShellOrigin");
+            expect(preload).toContain("invokeTrusted");
+            const origin = readSource("electron/shellOrigin.js");
+            expect(origin).not.toMatch(/startsWith\(\s*["']https?:\/\/127/);
+            expect(origin).toContain("parsed.username");
         });
 
         it("Android WebView opens external http(s) in the system browser", () => {

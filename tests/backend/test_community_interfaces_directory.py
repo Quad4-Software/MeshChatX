@@ -44,6 +44,7 @@ def test_validate_directory_fetch_url_accepts_default_host():
         "ftp://directory.rns.recipes/",
         "https://evil.com/https://directory.rns.recipes/",
         "https://user:pass@directory.rns.recipes/",
+        "https://directory.rns.recipes@evil.com/",
         "https://not-directory.rns.recipes.example/api",
     ],
 )
