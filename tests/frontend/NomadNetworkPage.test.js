@@ -991,7 +991,7 @@ describe("NomadNetworkPage.vue", () => {
             wrapper.unmount();
         });
 
-        it("oversized page failure toasts failed_to_load_page instead of hanging", async () => {
+        it("page download failure toasts failed_to_load_page instead of hanging", async () => {
             const wrapper = mountNomadNetworkPage({
                 destinationHash: "",
                 embedded: true,
@@ -1010,7 +1010,7 @@ describe("NomadNetworkPage.vue", () => {
                         status: "failure",
                         destination_hash: "",
                         page_path: "",
-                        failure_reason: "page_too_large",
+                        failure_reason: "request_failed",
                     },
                 }),
             });

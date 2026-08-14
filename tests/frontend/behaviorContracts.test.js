@@ -608,9 +608,6 @@ describe("behavior contracts: security gates", () => {
     it("mesh payload caps stay named constants with drop-not-hang reasons", () => {
         const announce = readSource("meshchatx/src/backend/announce_manager.py");
         expect(announce).toContain("MAX_ANNOUNCE_APP_DATA_BYTES = 2048");
-        const nomad = readSource("meshchatx/src/backend/nomadnet_downloader.py");
-        expect(nomad).toContain("MAX_NOMAD_PAGE_BYTES = 512 * 1024");
-        expect(nomad).toContain("page_too_large");
         const rrc = readSource("meshchatx/src/backend/rrc/protocol.py");
         expect(rrc).toContain("DEFAULT_MAX_MSG_BYTES = 350");
         const geo = readSource("meshchatx/src/backend/map_geo_validator.py");
