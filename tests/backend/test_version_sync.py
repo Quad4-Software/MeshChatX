@@ -53,7 +53,7 @@ def test_android_version_matches_package():
 def test_readme_current_version_lines_match_package():
     version = _package_version()
     checks = (
-        ("README.md", f"Current version in this repo is `{version}`."),
+        ("README.md", f"Current version is {version}."),
         ("lang/README.de.md", f"Aktuelle Version in diesem Repository: `{version}`."),
         ("lang/README.it.md", f"Versione attuale nel repository: `{version}`."),
         ("lang/README.ja.md", f"このリポジトリの現在のバージョンは `{version}` です。"),

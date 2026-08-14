@@ -80,7 +80,7 @@ function patchFile(rel, fn) {
     }
 }
 
-patchFile("README.md", (c) => c.replace(/(Current version in this repo is `)[^`]+(`)/, `$1${version}$2`));
+patchFile("README.md", (c) => c.replace(/(Current version is )\d+\.\d+\.\d+/, `$1${version}`));
 
 patchFile("lang/README.de.md", (c) =>
     c.replace(/(Aktuelle Version in diesem Repository: `)[^`]+(`)/, `$1${version}$2`)
