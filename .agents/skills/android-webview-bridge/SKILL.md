@@ -1,6 +1,6 @@
 ---
 name: android-webview-bridge
-description: Android WebView chooser MIME mapping, storage paths, Chaquopy boot, and external navigation. Use when changing MainActivity bridges, file pickers, or Android Python packaging.
+description: Android WebView chooser MIME mapping, storage paths, Chaquopy boot, and external navigation. Use when changing MainActivity bridges, file pickers, Android Python packaging, or WebView origin allowlists.
 ---
 
 # Skill: android-webview-bridge
@@ -13,6 +13,7 @@ Keep Chaquopy backend boot, WebView file choosers, storage locks, and external n
 - Touching Android Python wrapper / Chaquopy packaging
 - Identity or database restore pickers on Android
 - Debugging empty file pickers or "fresh install" after storage location change
+- Changing WebView navigation allowlists or the `MeshChatXAndroid` JS bridge
 
 ## File chooser
 
@@ -29,6 +30,10 @@ Keep Chaquopy backend boot, WebView file choosers, storage locks, and external n
 ## Navigation and packaging
 
 - External http(s) links open in the system browser. Do not navigate the WebView away from the app.
+- `isAllowedWebViewNavigationUri` must call `RemoteBackendUrl.isAllowedShellNavigation`. Allow the configured backend origin, `about:blank`, and blobs whose inner origin matches the backend.
+- Deny `data:`, `javascript:`, `file:`, and userinfo URLs. The `MeshChatXAndroid` JS bridge is injected into every page the WebView loads.
+- Any loopback host on any port is not an allowlist. Remote-backend mode must not still permit `127.0.0.1:<other-port>`.
+- Parse with `java.net.URI`. Reject `getUserInfo()`. Do not prefix-match `http://127.0.0.1`.
 - Vendored `lxmfy` and `rns_filesync` are synced into Chaquopy `src/main/python/`. Android pip does not install them like desktop setuptools.
 - RNS panic containment matters on Android (see `deferred-network-startup`).
 
@@ -44,6 +49,8 @@ Keep Chaquopy backend boot, WebView file choosers, storage locks, and external n
 ## Key files
 
 - `android/app/src/main/java/com/meshchatx/MainActivity.java`
+- `android/app/src/main/java/com/meshchatx/RemoteBackendUrl.java`
+- `android/app/src/test/java/com/meshchatx/RemoteBackendUrlTest.java`
 - `android/app/src/main/java/com/meshchatx/rnode/RNodeFlasherActivity.java`
 - `android/app/src/main/java/com/meshchatx/rnode/UsbSerialHub.java`
 - `android/app/src/main/java/com/meshchatx/rnode/Esp32SerialFlasher.java`
@@ -60,6 +67,7 @@ Keep Chaquopy backend boot, WebView file choosers, storage locks, and external n
 
 ## Verification
 
-- Unit / bridge-focused tests if present for the change.
+- Unit / bridge-focused tests if present for the change (`RemoteBackendUrlTest` for navigation allowlists).
 - Emulator smoke when file chooser, storage, or boot paths change (CI workflow when available).
 - For identity picker changes, also follow `identity-restore`.
+- URL origin allowlists: `.agents/skills/url-origin-allowlists/SKILL.md`.

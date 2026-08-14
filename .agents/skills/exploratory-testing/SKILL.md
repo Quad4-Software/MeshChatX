@@ -10,7 +10,7 @@ Hunt bugs with explicit hypotheses and oracle-backed confirmation. Use when the 
 ## When to use
 
 - New or recently changed mesh protocols (RNS, LXMF, LXST, RRC)
-- Security-sensitive surfaces (ACL, keys, auth, path handling)
+- Security-sensitive surfaces (ACL, keys, auth, path handling, URL origin allowlists)
 - After a feature lands and needs adversarial review
 - Soft fuzz suites that need real oracles
 
@@ -57,4 +57,5 @@ When reporting to the user:
 - `.agents/skills/test-oracles/SKILL.md`
 - `.agents/skills/rrc-relay-chat/SKILL.md`
 - `.agents/skills/reticulum-design-gates/SKILL.md`
+- `.agents/skills/url-origin-allowlists/SKILL.md`
 - `.agents/conventions/tests.md`
