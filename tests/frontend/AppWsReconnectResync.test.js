@@ -52,6 +52,17 @@ describe("App websocket reconnect shell resync", () => {
         };
     }
 
+    beforeEach(() => {
+        window.api = {
+            get: vi.fn(async (path) => {
+                if (path === "/api/v1/auth/status") {
+                    return { data: { auth_enabled: false, authenticated: false } };
+                }
+                return { data: {} };
+            }),
+        };
+    });
+
     it("refreshes CSRF and shell status on reconnect after background stall recovery", async () => {
         // Oracle: forceReconnect after a backgrounded tab must still run shell
         // resync (isReconnect true) including CSRF refresh so Sync Messages POSTs work.
@@ -61,6 +72,7 @@ describe("App websocket reconnect shell resync", () => {
         await App.methods.onWsShellConnected.call(ctx, { isReconnect: true });
 
         expect(ctx.wsDisconnected).toBe(false);
+        expect(window.api.get).toHaveBeenCalledWith("/api/v1/auth/status", expect.any(Object));
         expect(fetchCsrfToken).toHaveBeenCalledTimes(1);
         expect(ctx.updatePropagationNodeStatus).toHaveBeenCalled();
         expect(ctx.getConfig).toHaveBeenCalled();

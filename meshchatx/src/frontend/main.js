@@ -350,6 +350,7 @@ window.api = createApiClient({
 });
 
 import { waitForMeshReady, waitForNetworkReady } from "./js/networkStartupWait.js";
+import { resolveAuthNavigation } from "./js/authSessionSync.js";
 
 function setBootSplashLine(text) {
     const splash = typeof document !== "undefined" ? document.getElementById("meshchatx-boot-splash") : null;
@@ -403,47 +404,13 @@ if (networkReady) {
         // CSRF token will be retried on the next mutating request if needed.
     }
 
-    router.beforeEach(async (to, from, next) => {
-        try {
-            const response = await window.api.get("/api/v1/auth/status");
-            const status = response.data;
-            GlobalState.authEnabled = !!status.auth_enabled;
-            GlobalState.authenticated = !!status.authenticated;
-            GlobalState.demoMode = !!status.demo_mode;
-            if (typeof status.is_loopback_bind === "boolean") {
-                GlobalState.isLoopbackBind = status.is_loopback_bind;
-            }
-            GlobalState.authSessionResolved = true;
-
-            if (!status.auth_enabled) {
-                next();
-                return;
-            }
-
-            if (status.authenticated) {
-                if (to.name === "auth") {
-                    next("/");
-                } else {
-                    next();
-                }
-                return;
-            }
-
-            if (to.name === "auth") {
-                next();
-                return;
-            }
-
-            next("/auth");
-        } catch (e) {
-            GlobalState.authSessionResolved = true;
-            if (e.response?.status === 401 || e.response?.status === 403) {
-                GlobalState.authenticated = false;
-                next("/auth");
-            } else {
-                next();
-            }
+    router.beforeEach(async (to, _from, next) => {
+        const decision = await resolveAuthNavigation(to, window.api);
+        if (decision.allow) {
+            next();
+            return;
         }
+        next(decision.redirect);
     });
 
     function registerMeshchatServiceWorker() {
