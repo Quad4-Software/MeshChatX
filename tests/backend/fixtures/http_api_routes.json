@@ -121,10 +121,6 @@
             "path": "/api/v1/community-interfaces"
         },
         {
-            "method": "POST",
-            "path": "/api/v1/community-interfaces/refresh"
-        },
-        {
             "method": "GET",
             "path": "/api/v1/comports"
         },
@@ -997,10 +993,6 @@
             "path": "/api/v1/repository-server/list"
         },
         {
-            "method": "POST",
-            "path": "/api/v1/repository-server/refresh-bundled"
-        },
-        {
             "method": "GET",
             "path": "/api/v1/repository-server/status"
         },
@@ -1707,18 +1699,6 @@
         {
             "method": "POST",
             "path": "/api/v1/telephone/voicemails/{id}/read"
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/tools/micron-parser-go-release"
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/tools/rnode/download_firmware"
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/tools/rnode/latest_release"
         },
         {
             "method": "POST",

@@ -391,6 +391,9 @@ if (networkReady) {
     try {
         const statusResponse = await window.api.get("/api/v1/status");
         GlobalState.demoMode = !!statusResponse.data?.demo_mode;
+        if (typeof statusResponse.data?.is_loopback_bind === "boolean") {
+            GlobalState.isLoopbackBind = statusResponse.data.is_loopback_bind;
+        }
     } catch {
         // status optional during early boot
     }
@@ -407,6 +410,9 @@ if (networkReady) {
             GlobalState.authEnabled = !!status.auth_enabled;
             GlobalState.authenticated = !!status.authenticated;
             GlobalState.demoMode = !!status.demo_mode;
+            if (typeof status.is_loopback_bind === "boolean") {
+                GlobalState.isLoopbackBind = status.is_loopback_bind;
+            }
             GlobalState.authSessionResolved = true;
 
             if (!status.auth_enabled) {

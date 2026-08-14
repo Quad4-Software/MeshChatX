@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { readFileSync, readdirSync, statSync } from "fs";
 import { join } from "path";
 import { describe, it, expect } from "vitest";
 
@@ -482,5 +482,138 @@ describe("behavior contracts: locale, theme, and call audio", () => {
         expect(call).toContain("Wide-open { audio: true } is what");
         expect(call).toMatch(/requestAudioPermission[\s\S]*promptMicrophoneAccess/);
         expect(call).toMatch(/requestAudioPermission[\s\S]*promptMicrophoneAccess[\s\S]*refreshAudioDevices/);
+    });
+});
+
+function listVueFiles(dir) {
+    const out = [];
+    for (const name of readdirSync(dir)) {
+        const p = join(dir, name);
+        if (statSync(p).isDirectory()) {
+            out.push(...listVueFiles(p));
+        } else if (name.endsWith(".vue")) {
+            out.push(p);
+        }
+    }
+    return out;
+}
+
+const VHTML_SANITIZER_TOKENS = [
+    "renderMarkdown",
+    "renderMessageHtml",
+    "sanitizeNomadHtml",
+    "renderNomadPageByPath",
+    "renderNomadHtmlPage",
+    "renderNomadMarkdown",
+    "convertMicronToHtml",
+    "sanitizeRenderedMicronHtml",
+    "drawFeatureDescriptionSanitized",
+    "highlightMatch",
+    "changelogHtml",
+    "selectedDocContent.html",
+    "$t(",
+    "MarkdownRenderer",
+];
+
+describe("behavior contracts: security gates", () => {
+    it("WebSocket Origin check is wired on both upgrade paths", () => {
+        const src = readSource("meshchatx/src/backend/http/routes/websocket_upgrade.py");
+        expect(src).toContain("websocket_origin_allowed");
+        expect(src).toContain("_reject_forbidden_ws_origin");
+        expect(src).toContain('{"error": "Forbidden origin"}');
+    });
+
+    it("WebSocket auth fails closed except ping", () => {
+        const src = readSource("meshchatx/src/backend/websocket_config_guard.py");
+        const match = src.match(/WEBSOCKET_PUBLIC_TYPES = frozenset\(\s*\{([^}]+)\}/s);
+        expect(match).toBeTruthy();
+        const members = [...match[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+        expect(members).toEqual(["ping"]);
+        expect(src).toContain("websocket_type_requires_auth");
+        expect(src).toContain("if msg_type in WEBSOCKET_PUBLIC_TYPES:");
+    });
+
+    it("FileSync reserved tops include ssl", () => {
+        const src = readSource("meshchatx/src/backend/rns_filesync_handler.py");
+        const start = src.indexOf("_RESERVED_SYNC_TOP");
+        expect(start).toBeGreaterThan(-1);
+        const block = src.slice(start, src.indexOf(")", start) + 1);
+        expect(block).toContain('"ssl"');
+    });
+
+    it("plugin invoke and hooks re-hash backends and purge pycache", () => {
+        const manager = readSource("meshchatx/src/backend/plugin_manager.py");
+        const invokeStart = manager.indexOf("def invoke(");
+        const invokeBlock = manager.slice(invokeStart, manager.indexOf("def dispatch_hook(", invokeStart));
+        expect(invokeBlock).toContain("self._require_untampered_backend(record)");
+        const hookStart = manager.indexOf("def dispatch_hook(");
+        const hookBlock = manager.slice(hookStart, hookStart + 800);
+        expect(hookBlock).toContain("self._require_untampered_backend(record)");
+        const runtime = readSource("meshchatx/src/backend/plugin_python_runtime.py");
+        expect(runtime).toContain("def _purge_entry_pycache");
+        expect(runtime).toContain("self._purge_entry_pycache(entry_path)");
+    });
+
+    it("plugin network scan parses hostname instead of prefix-matching loopback", () => {
+        const src = readSource("meshchatx/src/backend/plugin_permissions.py");
+        const start = src.indexOf("def _is_external_http_url");
+        const block = src.slice(start, src.indexOf("\ndef ", start + 1));
+        expect(block).toContain("urlparse(value)");
+        expect(block).toContain("parsed.hostname");
+        expect(block).not.toMatch(/"127\.0\.0\.1" in /);
+        expect(block).not.toMatch(/"localhost" in /);
+    });
+
+    it("Electron ipcMain.handle is wrapped by trustedIpcHandle", () => {
+        const main = readSource("electron/main.js");
+        expect(main).toContain("function trustedIpcHandle");
+        expect(main).toContain("isTrustedIpcEvent");
+        expect(main).not.toMatch(/ipcMain\.handle\("/);
+    });
+
+    it("v-html sites name a sanitizer and do not use a bare file-level disable", () => {
+        const vueRoot = join(process.cwd(), "meshchatx/src/frontend/components");
+        const files = listVueFiles(vueRoot);
+        const withVHtml = [];
+        for (const abs of files) {
+            const src = readFileSync(abs, "utf8");
+            if (!src.includes("v-html")) {
+                continue;
+            }
+            withVHtml.push(abs);
+            expect(src, abs).not.toMatch(/eslint-disable\s+vue\/no-v-html\s*-->/);
+            const named = VHTML_SANITIZER_TOKENS.some((token) => src.includes(token));
+            expect(named, abs).toBe(true);
+        }
+        expect(withVHtml.length).toBeGreaterThan(5);
+    });
+
+    it("LAN bind warning is a banner, not a process exit", () => {
+        const app = readSource("meshchatx/src/frontend/components/App.vue");
+        expect(app).toContain("showLanBindNoAuthBanner");
+        expect(app).toContain("shouldShowLanBindNoAuthBanner");
+        expect(app).toContain("lan_bind_no_auth_banner");
+        const banners = readSource("meshchatx/src/frontend/components/layout/AppShellBanners.vue");
+        expect(banners).toContain("showLanBindNoAuth");
+        expect(banners).toContain("lanBindNoAuthLabel");
+        const helper = readSource("meshchatx/src/frontend/js/lanBindWarning.js");
+        expect(helper).toContain("isElectron");
+        expect(helper).toContain("isAndroid");
+        expect(helper).toContain("dismissLanBindNoAuthBanner");
+        expect(helper).toContain("isLanBindNoAuthBannerDismissed");
+        expect(helper).not.toContain("process.exit");
+        expect(helper).not.toContain("sys.exit");
+    });
+
+    it("mesh payload caps stay named constants with drop-not-hang reasons", () => {
+        const announce = readSource("meshchatx/src/backend/announce_manager.py");
+        expect(announce).toContain("MAX_ANNOUNCE_APP_DATA_BYTES = 2048");
+        const nomad = readSource("meshchatx/src/backend/nomadnet_downloader.py");
+        expect(nomad).toContain("MAX_NOMAD_PAGE_BYTES = 512 * 1024");
+        expect(nomad).toContain("page_too_large");
+        const rrc = readSource("meshchatx/src/backend/rrc/protocol.py");
+        expect(rrc).toContain("DEFAULT_MAX_MSG_BYTES = 350");
+        const geo = readSource("meshchatx/src/backend/map_geo_validator.py");
+        expect(geo).toContain('raise GeoValidationError("file_too_large")');
     });
 });

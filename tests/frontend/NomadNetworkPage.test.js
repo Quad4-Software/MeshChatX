@@ -990,5 +990,34 @@ describe("NomadNetworkPage.vue", () => {
             expect(ToastUtils.error).toHaveBeenCalled();
             wrapper.unmount();
         });
+
+        it("oversized page failure toasts failed_to_load_page instead of hanging", async () => {
+            const wrapper = mountNomadNetworkPage({
+                destinationHash: "",
+                embedded: true,
+                isActive: true,
+            });
+            await wrapper.vm.$nextTick();
+            wrapper.vm.isLoadingNodePage = true;
+            wrapper.vm.currentPageDownloadId = 4243;
+            wrapper.vm.nodePagePath = `${"c".repeat(32)}:/page/index.mu`;
+
+            await wrapper.vm.onWebsocketMessage({
+                data: JSON.stringify({
+                    type: "nomadnet.page.download",
+                    download_id: 4243,
+                    nomadnet_page_download: {
+                        status: "failure",
+                        destination_hash: "",
+                        page_path: "",
+                        failure_reason: "page_too_large",
+                    },
+                }),
+            });
+
+            expect(wrapper.vm.isLoadingNodePage).toBe(false);
+            expect(ToastUtils.error).toHaveBeenCalledWith("nomadnet.failed_to_load_page");
+            wrapper.unmount();
+        });
     });
 });

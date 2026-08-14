@@ -4,6 +4,7 @@ import { reactive } from "vue";
 const globalState = reactive({
     authSessionResolved: true,
     authEnabled: false,
+    isLoopbackBind: true,
     authenticated: false,
     pluginsEnabled: true,
     detailedOutboundSendStatus: false,
