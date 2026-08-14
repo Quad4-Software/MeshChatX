@@ -54,6 +54,7 @@ Homepage = "https://github.com/Quad4-Software/MeshChatX"
 [tool.uv]
 constraint-dependencies = [
   "h2>=4.4.1",
+  "setuptools>=83.0.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -69,7 +70,7 @@ meshchatx = ["public/**/*", "public/*", "src/backend/data/community_interfaces.j
 meshchatx = ["public/repository-server-bundled/**"]
 
 [build-system]
-requires = ["setuptools>=65.0", "wheel"]
+requires = ["setuptools>=83.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [dependency-groups]
