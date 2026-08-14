@@ -17,10 +17,14 @@ const outPath = path.join(root, "electron", "preload.bundle.js");
 const shellSource = fs.readFileSync(shellPath, "utf8");
 const preloadSource = fs.readFileSync(preloadPath, "utf8");
 
-const shellBody = shellSource
-    .replace(/^"use strict";\s*/m, "")
-    .replace(/\nmodule\.exports\s*=\s*\{[\s\S]*$/m, "")
-    .trim();
+const shellBody = (() => {
+    let body = shellSource.replace(/^"use strict";\s*/m, "");
+    const preloadOnlyCut = body.indexOf("/**\n * Whether window.open should create");
+    if (preloadOnlyCut >= 0) {
+        return body.slice(0, preloadOnlyCut).trim();
+    }
+    return body.replace(/\nmodule\.exports\s*=\s*\{[\s\S]*$/m, "").trim();
+})();
 
 const preloadBody = preloadSource
     .replace(/const \{ isTrustedShellOrigin \} = require\("\.\/shellOrigin"\);\s*/m, "")
