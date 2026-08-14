@@ -22,6 +22,10 @@ description: Privacy mode blocks backend outbound HTTP/HTTPS and tightens CSP. I
 
 Call `ensure_outbound_http_allowed` at the start of every backend path that would open a clearnet socket. Map `OutboundHttpBlockedError` to HTTP 403 or a structured `{ok: false}` the UI already handles. Do not swallow it and retry.
 
+New `httpx` / `urllib` / `aiohttp.ClientSession` code under `meshchatx/src/backend/` must call `ensure_outbound_http_allowed` or `http_url_guard` (or `MeshChat._require_outbound_http`). Do not rewrite existing translator, map tile, firmware, community-directory, or repository fetches into one mega-guard. The RNS `HTTPInterface` is mesh transport, not app clearnet.
+
+`tests/backend/test_outbound_http_allowlist.py` fails if a new backend file opens a clearnet client without being listed in `KNOWN_CLEARNET_FETCH_FILES`. Add the file to that set only after the privacy-mode or URL guard is wired.
+
 Config key: `privacy_mode_enabled` in `config_manager.py`. Settings copy lives under `app.privacy_mode_*` locale keys.
 
 ## What privacy mode is not
@@ -35,4 +39,8 @@ Optional clearnet helpers (docs fetch, community interface lists) stay behind th
 
 ## Tests
 
-When you add a clearnet call, add a test that enables privacy mode and asserts the call is blocked (`OutboundHttpBlockedError` or the HTTP status the route already uses). Search existing tests for `privacy_mode` and match that pattern.
+When you add a clearnet call, add a test that enables privacy mode and asserts the call is blocked (`OutboundHttpBlockedError` or the HTTP status the route already uses). Search existing tests for `privacy_mode` and match that pattern. Also run:
+
+```bash
+uv run pytest tests/backend/test_outbound_http_allowlist.py -q --tb=short
+```
