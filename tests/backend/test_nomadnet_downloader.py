@@ -6,6 +6,7 @@ import pytest
 import RNS
 
 from meshchatx.src.backend.nomadnet_downloader import (
+    MAX_NOMAD_PAGE_BYTES,
     NomadnetDownloader,
     NomadnetFileDownloader,
     NomadnetPageDownloader,
@@ -137,6 +138,43 @@ def test_page_downloader_empty_response():
     pd.on_download_success(rr)
     on_fail.assert_called_once_with("empty_response")
     on_ok.assert_not_called()
+
+
+def test_page_downloader_rejects_oversized_body():
+    on_ok = MagicMock()
+    on_fail = MagicMock()
+    pd = NomadnetPageDownloader(
+        b"ab" * 8,
+        "/page.mu",
+        None,
+        on_ok,
+        on_fail,
+        MagicMock(),
+    )
+    rr = MagicMock()
+    rr.response = b"x" * (MAX_NOMAD_PAGE_BYTES + 1)
+    pd.on_download_success(rr)
+    on_fail.assert_called_once_with("page_too_large")
+    on_ok.assert_not_called()
+
+
+def test_page_downloader_accepts_body_at_cap():
+    on_ok = MagicMock()
+    on_fail = MagicMock()
+    pd = NomadnetPageDownloader(
+        b"ab" * 8,
+        "/page.mu",
+        None,
+        on_ok,
+        on_fail,
+        MagicMock(),
+    )
+    rr = MagicMock()
+    rr.response = b"y" * MAX_NOMAD_PAGE_BYTES
+    pd.on_download_success(rr)
+    on_ok.assert_called_once()
+    on_fail.assert_not_called()
+    assert on_ok.call_args[0][0] == "y" * MAX_NOMAD_PAGE_BYTES
 
 
 def test_file_downloader_list_response_short_list_no_crash():

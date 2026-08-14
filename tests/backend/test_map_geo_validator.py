@@ -112,6 +112,22 @@ def test_validate_kmz_ok():
     assert result.format == "kmz"
 
 
+def test_validate_kmz_too_large():
+    kml = b"""<?xml version="1.0"?>
+    <kml xmlns="http://www.opengis.net/kml/2.2">
+      <Document><Placemark><Point><coordinates>1,2,0</coordinates></Point></Placemark></Document>
+    </kml>"""
+    data = _kmz_with_kml(kml)
+    with pytest.raises(GeoValidationError) as exc:
+        validate_geo_bytes(
+            data,
+            max_bytes=8,
+            max_features=100,
+            max_kmz_uncompressed_bytes=1024 * 1024,
+        )
+    assert exc.value.code == "file_too_large"
+
+
 def test_validate_kmz_missing_kml():
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w") as zf:
