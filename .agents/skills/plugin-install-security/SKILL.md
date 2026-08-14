@@ -37,6 +37,7 @@ Plugins are powerful. Treat install and enable as security-sensitive.
 - Invalid RSG signatures **hard-block** install. Do not add bypass paths.
 - ZIP extract must use zip-slip safe extraction. WASM must pass `validate_wasm_file`.
 - New hooks go in `KNOWN_HOOKS`. New managers go in `KNOWN_MANAGERS` in `plugin_permissions.py`.
+- Network endpoint scanning parses the URL host. A remote URL is not local because the string contains `127.0.0.1` or `localhost`.
 - Plugin i18n lives in the plugin bundle (`locales/{locale}.json`), not core `en.json`.
 - Disable everything with `--disable-plugins` / `MESHCHAT_DISABLE_PLUGINS=true` when diagnosing.
 
