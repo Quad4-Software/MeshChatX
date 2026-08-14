@@ -86,6 +86,20 @@ describe("electron/mainHelpers", () => {
         expect(isTrustedShellOrigin("file:///tmp/evil.html")).toBe(false);
     });
 
+    it("isTrustedIpcEvent uses senderFrame.url then sender.getURL", () => {
+        const { isTrustedIpcEvent } = require("../../electron/mainHelpers.js");
+        expect(isTrustedIpcEvent({ senderFrame: { url: "https://127.0.0.1:9337/" } })).toBe(true);
+        expect(isTrustedIpcEvent({ senderFrame: { url: "http://127.0.0.1:9337@example.com/" } })).toBe(false);
+        expect(isTrustedIpcEvent({ senderFrame: { url: "https://example.com/" } })).toBe(false);
+        expect(
+            isTrustedIpcEvent({
+                sender: { getURL: () => "file:///opt/meshchatx/electron/loading.html" },
+            }),
+        ).toBe(true);
+        expect(isTrustedIpcEvent({})).toBe(false);
+        expect(isTrustedIpcEvent(null)).toBe(false);
+    });
+
     it("parseArgvFlag reads a value following the flag", () => {
         expect(parseArgvFlag(["--storage-dir", "/mnt/persist"], "--storage-dir")).toBe("/mnt/persist");
     });

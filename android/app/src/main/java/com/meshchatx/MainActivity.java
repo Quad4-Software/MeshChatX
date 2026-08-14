@@ -214,9 +214,11 @@ public class MainActivity extends AppCompatActivity {
         webSettings.setJavaScriptEnabled(true);
         webSettings.setDomStorageEnabled(true);
         webSettings.setDatabaseEnabled(true);
-        webSettings.setAllowFileAccess(true);
+        webSettings.setAllowFileAccess(false);
         webSettings.setAllowContentAccess(true);
-        webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        webSettings.setAllowFileAccessFromFileURLs(false);
+        webSettings.setAllowUniversalAccessFromFileURLs(false);
+        webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         webSettings.setMediaPlaybackRequiresUserGesture(false);
         webSettings.setGeolocationEnabled(true);
 
@@ -2031,4 +2033,3 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 }
-

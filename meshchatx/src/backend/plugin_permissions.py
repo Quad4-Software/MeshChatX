@@ -8,6 +8,7 @@ import json
 import os
 import re
 from typing import Any
+from urllib.parse import urlparse
 
 KNOWN_HOOKS = frozenset(
     {
@@ -42,12 +43,20 @@ KNOWN_MANAGERS = frozenset(
 KNOWN_STORAGE = frozenset({"isolated", "none"})
 KNOWN_NETWORK = frozenset({"none", "fetch"})
 
-_URL_IN_TEXT_RE = re.compile(r"""https?://[^\s"'<>\\)\]]+""")
+_URL_IN_TEXT_RE = re.compile(r"""https?://[^\s"'<>\\)]+""")
 _SCHEME_HOST_RE = re.compile(
     r"https?://([a-z0-9][-a-z0-9.]*(?:\.[a-z0-9][-a-z0-9.]*)+)",
     re.IGNORECASE,
 )
 _SCAN_EXTENSIONS = frozenset({".js", ".mjs", ".json", ".wasm", ".ts", ".go", ".wat"})
+_LOOPBACK_OR_UNSPECIFIED_HOSTS = frozenset(
+    {
+        "localhost",
+        "127.0.0.1",
+        "::1",
+        "0.0.0.0",
+    },
+)
 
 
 def permission_id_for_hook(hook: str) -> str:
@@ -183,13 +192,25 @@ def _is_http_url(value: str) -> bool:
     return lower.startswith("http://") or lower.startswith("https://")
 
 
+def _hostname_is_loopback_or_unspecified(hostname: str | None) -> bool:
+    if not hostname:
+        return False
+    host = hostname.strip().lower().strip("[]")
+    return host in _LOOPBACK_OR_UNSPECIFIED_HOSTS
+
+
 def _is_external_http_url(value: str) -> bool:
     if not _is_http_url(value):
         return False
-    lower = value.lower()
-    if "localhost" in lower or "127.0.0.1" in lower or "0.0.0.0" in lower:
-        return False
-    if "/_plugins/" in lower or "/api/v1/plugins/" in lower:
+    try:
+        parsed = urlparse(value)
+        hostname = parsed.hostname
+    except (ValueError, UnicodeError):
+        return True
+    scheme = (parsed.scheme or "").lower()
+    if scheme not in ("http", "https"):
+        return True
+    if _hostname_is_loopback_or_unspecified(hostname):
         return False
     return True
 
