@@ -1,3 +1,6 @@
+/** Wait this long after a disconnect before showing the banner. Brief reconnects that get a backend frame stay quiet. */
+export const WS_DISCONNECT_BANNER_GRACE_MS = 2500;
+
 /**
  * @param {number} attemptIndex 0 = first retry after disconnect
  * @param {number} baseMs

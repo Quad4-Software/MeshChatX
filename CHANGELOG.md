@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [4.8.4] - 2026-08-14
 
+### Fixed
+
+- **Disconnected banner**: Stopping or restarting the backend no longer hides the red banner. A WebSocket TCP open (Vite proxy flaps, process restart) does not cancel the 2.5s grace window. The banner clears only after the backend sends a frame, usually the heartbeat pong.
+
 ## [4.8.3] - 2026-08-14
 
 ### Fixed
