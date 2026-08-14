@@ -327,8 +327,10 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
     let planetLayoutScale = 400;
     /** @type {{id:string,sx:number,sy:number,size:number}[]} */
     let planetPick = [];
-    /** @type {{sx:number,sy:number,size:number,facing:number,front:boolean}[]} */
+    /** @type {{sx:number,sy:number,size:number,facing:number,front:boolean,kind?:number}[]} */
     let planetProjected = [];
+    /** @type {object[]} */
+    let lastPlanets = [];
 
     function cssPoint(ev) {
         const rect = canvas.getBoundingClientRect();
@@ -525,6 +527,10 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
         let paintNodes = drawNodes;
         const css = renderer.getCssSize();
         if (isPlanet()) {
+            const kindByIndex = [];
+            for (let i = 0; i < sceneCount; i++) {
+                kindByIndex[i] = buf.nodes[i * SCENE_NODE_STRIDE + 7] | 0;
+            }
             const planet = projectPlanetScene({
                 nodes: drawNodes,
                 edges: buf.edges,
@@ -535,6 +541,7 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
                 dist: orbitDist,
                 dark,
                 idByIndex,
+                kindByIndex,
             });
             paintNodes = planet.nodes;
             drawEdges = planet.edges;
@@ -542,9 +549,11 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
             planetPick = planet.pick;
             planetProjected = planet.projected;
             planetLayoutScale = planet.layoutScale;
+            lastPlanets = planet.planets || [];
         } else {
             planetPick = [];
             planetProjected = [];
+            lastPlanets = [];
         }
         const labelZoom = isPlanet() ? planetLodZoom(orbitDist) : camera.zoom;
         let paintLabels;
@@ -558,7 +567,9 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
                     const id = idByIndex[i] != null ? String(idByIndex[i]) : null;
                     const isMe = id === "me";
                     const isHover = hoverId != null && id === hoverId;
-                    if (lod === "medium" && !isMe && !isHover) continue;
+                    const isIface =
+                        rec.kind === KIND_IFACE_ON || rec.kind === KIND_IFACE_OFF || rec.kind === KIND_DISCOVERED;
+                    if (lod === "medium" && !isMe && !isIface && !isHover) continue;
                     const text = truncateWebGLLabel(labelByIndex[i]);
                     if (!text) continue;
                     const draw = screenToDrawWorld(rec.sx, rec.sy, css.width, css.height);
@@ -567,7 +578,7 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
                         y: draw.y,
                         size: rec.size,
                         text,
-                        fontSize: isMe ? 16 : 11,
+                        fontSize: isMe ? 16 : isIface ? 13 : 11,
                     });
                 }
             }
@@ -648,7 +659,7 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
             if (isPlanet()) {
                 const css = renderer.getCssSize();
                 const eye = orbitEye(orbitYaw, orbitPitch, orbitDist);
-                const layout = pointerToLayout(p.x, p.y, css.width, css.height, eye, planetLayoutScale);
+                const layout = pointerToLayout(p.x, p.y, css.width, css.height, eye, planetLayoutScale, lastPlanets);
                 if (layout) {
                     const zoomBuf = callScene("meshchatxVisualiserSceneGetDrawBuffers");
                     const screen = layoutToWasmScreen(layout.x, layout.y, css.width, css.height, {
@@ -780,6 +791,7 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
         idByIndex = [];
         hoverId = null;
         texMeta = [];
+        lastPlanets = [];
     }
 
     return {

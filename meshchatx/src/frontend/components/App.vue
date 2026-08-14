@@ -114,9 +114,28 @@
                                 <MaterialDesignIcon icon-name="magnify" class="w-5 h-5 sm:w-6 sm:h-6" />
                             </button>
                             <button
+                                v-if="rrcEnabled"
                                 type="button"
-                                class="hidden sm:inline-flex rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors relative"
+                                class="relative inline-flex rounded-full p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1.5 items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                :title="$t('app.relay_chat')"
+                                :aria-label="$t('app.relay_chat')"
+                                data-testid="header-relay-chat"
+                                @click="$router.push({ name: 'relay-chat' })"
+                            >
+                                <MaterialDesignIcon icon-name="forum" class="w-5 h-5 sm:w-6 sm:h-6" />
+                                <span
+                                    v-if="relayChatUnreadCount > 0"
+                                    class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
+                                >
+                                    {{ relayChatUnreadCount > 99 ? "99+" : relayChatUnreadCount }}
+                                </span>
+                            </button>
+                            <button
+                                type="button"
+                                class="relative inline-flex rounded-full p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1.5 items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
                                 :title="$t('app.audio_calls')"
+                                :aria-label="$t('app.audio_calls')"
+                                data-testid="header-telephone"
                                 @click="$router.push({ name: 'call' })"
                             >
                                 <MaterialDesignIcon icon-name="phone" class="w-5 h-5 sm:w-6 sm:h-6" />

@@ -2,6 +2,7 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnection";
 import App from "../../meshchatx/src/frontend/components/App.vue";
+import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
 import SettingsPage from "../../meshchatx/src/frontend/components/settings/SettingsPage.vue";
 import Toggle from "../../meshchatx/src/frontend/components/forms/Toggle.vue";
 import ConfirmDialog from "../../meshchatx/src/frontend/components/ConfirmDialog.vue";
@@ -40,6 +41,8 @@ vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => {
         authEnabled: false,
         authenticated: false,
         unreadConversationsCount: 0,
+        relayChatUnreadCount: 0,
+        missedCallsCount: 0,
         activeCallTab: null,
         config: {},
     };
@@ -583,6 +586,74 @@ describe("Conditional Rendering", () => {
             return cls.includes("sm:hidden") && b.attributes("title") === "app.sync_messages";
         });
         expect(mobileRefreshButtons.length).toBe(1);
+    });
+
+    it("App header shows relay chat and telephone icons next to compose and sync", async () => {
+        const wrapper = mount(App, {
+            global: {
+                stubs: {
+                    RouterView: { template: "<div>Router View</div>" },
+                    RouterLink: createRouterLinkStub(),
+                    MaterialDesignIcon: { template: '<div data-icon-name="{{ iconName }}"></div>' },
+                    LanguageSelector: { template: "<div></div>" },
+                    SidebarLink: {
+                        template: '<div><slot name="icon"></slot><slot name="text"></slot></div>',
+                        props: ["to", "isCollapsed"],
+                    },
+                },
+                mocks: {
+                    $route: { name: "messages", meta: {}, query: {} },
+                    $router: { push: vi.fn() },
+                    $t: (key) => key,
+                },
+            },
+        });
+
+        const relay = wrapper.find('[data-testid="header-relay-chat"]');
+        const telephone = wrapper.find('[data-testid="header-telephone"]');
+        const compose = wrapper.find('[data-testid="header-compose"]');
+        expect(relay.exists()).toBe(true);
+        expect(telephone.exists()).toBe(true);
+        expect(compose.exists()).toBe(true);
+        expect(relay.classes().join(" ")).not.toContain("hidden");
+        expect(telephone.classes().join(" ")).not.toContain("hidden");
+        expect(relay.attributes("title")).toBe("app.relay_chat");
+        expect(telephone.attributes("title")).toBe("app.audio_calls");
+
+        await relay.trigger("click");
+        expect(wrapper.vm.$router.push).toHaveBeenCalledWith({ name: "relay-chat" });
+        await telephone.trigger("click");
+        expect(wrapper.vm.$router.push).toHaveBeenCalledWith({ name: "call" });
+    });
+
+    it("App header omits relay chat when RRC is disabled", async () => {
+        GlobalState.config.rrc_enabled = false;
+        try {
+            const wrapper = mount(App, {
+                global: {
+                    stubs: {
+                        RouterView: { template: "<div>Router View</div>" },
+                        RouterLink: createRouterLinkStub(),
+                        MaterialDesignIcon: { template: '<div data-icon-name="{{ iconName }}"></div>' },
+                        LanguageSelector: { template: "<div></div>" },
+                        SidebarLink: {
+                            template: '<div><slot name="icon"></slot><slot name="text"></slot></div>',
+                            props: ["to", "isCollapsed"],
+                        },
+                    },
+                    mocks: {
+                        $route: { name: "messages", meta: {}, query: {} },
+                        $router: { push: vi.fn() },
+                        $t: (key) => key,
+                    },
+                },
+            });
+
+            expect(wrapper.find('[data-testid="header-relay-chat"]').exists()).toBe(false);
+            expect(wrapper.find('[data-testid="header-telephone"]').exists()).toBe(true);
+        } finally {
+            delete GlobalState.config.rrc_enabled;
+        }
     });
 });
 

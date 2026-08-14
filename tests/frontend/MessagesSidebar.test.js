@@ -60,6 +60,11 @@ function mountSidebar(props = {}, options = {}) {
                     props: ["iconName"],
                 },
                 LxmfUserIcon: { template: '<div class="lxmf-icon"></div>' },
+                RouterLink: {
+                    name: "RouterLink",
+                    props: ["to"],
+                    template: '<a class="router-link-stub"><slot /></a>',
+                },
             },
         },
         ...options,
@@ -155,7 +160,24 @@ describe("MessagesSidebar UI", () => {
         const wrapper = mountSidebar({ conversations: [], isLoading: false });
         expect(wrapper.text()).toContain("messages.no_conversations");
         expect(wrapper.text()).toContain("messages.no_conversations_hint");
-        expect(wrapper.text()).toContain("messages.add_interface_cta");
+        expect(wrapper.text()).toContain("messages.see_announces_cta");
+        expect(wrapper.text()).toContain("messages.add_contact_cta");
+        expect(wrapper.text()).not.toContain("messages.add_interface_cta");
+        const empty = wrapper.findComponent({ name: "EmptyState" });
+        expect(empty.exists()).toBe(true);
+        expect(empty.props("plain")).toBe(true);
+        expect(empty.classes().join(" ")).not.toMatch(/\bborder\b/);
+        expect(wrapper.find(".my-auto").exists()).toBe(false);
+        const addContact = wrapper.findComponent({ name: "RouterLink" });
+        expect(addContact.exists()).toBe(true);
+        expect(addContact.props("to")).toEqual({ name: "contacts" });
+    });
+
+    it("see announces switches the sidebar to the announces tab", async () => {
+        const wrapper = mountSidebar({ conversations: [], isLoading: false });
+        expect(wrapper.vm.tab).toBe("conversations");
+        await wrapper.find("[data-testid=messages-see-announces]").trigger("click");
+        expect(wrapper.vm.tab).toBe("announces");
     });
 
     it("toggles selection mode when selection button is clicked", async () => {
