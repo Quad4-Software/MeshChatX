@@ -226,8 +226,10 @@ def test_oracle_ws_handlers_are_classified():
     assert not extra, f"guard lists types with no handler: {sorted(extra)}"
     for msg_type in WEBSOCKET_MUTATOR_TYPES:
         assert websocket_type_requires_auth(msg_type) is True
-    for msg_type in WEBSOCKET_PUBLIC_TYPES | WEBSOCKET_READ_TYPES:
+    for msg_type in WEBSOCKET_PUBLIC_TYPES:
         assert websocket_type_requires_auth(msg_type) is False
+    for msg_type in WEBSOCKET_READ_TYPES:
+        assert websocket_type_requires_auth(msg_type) is True
 
 
 def test_oracle_config_dict_omits_secrets(mock_app):

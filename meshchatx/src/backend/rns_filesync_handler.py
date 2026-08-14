@@ -82,6 +82,7 @@ _RESERVED_SYNC_TOP = frozenset(
         "database-backups",
         "snapshots",
         "database.db",
+        "ssl",
     },
 )
 

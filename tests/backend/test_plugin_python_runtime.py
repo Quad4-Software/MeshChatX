@@ -77,3 +77,54 @@ def test_python_backend_grants_invoke_hooks(tmp_path):
 
     with pytest.raises(PermissionError):
         manager.call_manager("com.example.python", "rnsLink.open", {})
+
+
+def test_python_runtime_purges_pycache_on_load(tmp_path):
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "plugin.json").write_text(
+        json.dumps(
+            {
+                "id": "com.example.python-cache",
+                "version": "1.0.0",
+                "apiVersion": 1,
+                "name": "Python Cache",
+                "backend": {"entry": "backend/main.py", "type": "python"},
+                "permissions": {"storage": "isolated"},
+            },
+        ),
+        encoding="utf-8",
+    )
+    backend = source / "backend"
+    backend.mkdir()
+    (backend / "main.py").write_text(PYTHON_BACKEND, encoding="utf-8")
+    cache = backend / "__pycache__"
+    cache.mkdir()
+    planted = cache / "main.cpython-314.pyc"
+    planted.write_bytes(b"not-real-bytecode")
+
+    class FakeApp:
+        reticulum = object()
+        rnpath_handler = None
+        plugins_enabled = True
+
+    manager = PluginManager(str(tmp_path / "storage"), app=FakeApp())
+    manager.install_from_directory(
+        str(source),
+        granted_permissions=["storage:isolated"],
+    )
+    installed_cache = (
+        tmp_path
+        / "storage"
+        / "plugins"
+        / "installed"
+        / "com.example.python-cache"
+        / "backend"
+        / "__pycache__"
+    )
+    installed_cache.mkdir(parents=True, exist_ok=True)
+    planted_installed = installed_cache / "main.cpython-314.pyc"
+    planted_installed.write_bytes(b"not-real-bytecode")
+    manager.enable("com.example.python-cache")
+    assert not planted_installed.exists()
+    assert not installed_cache.exists()
