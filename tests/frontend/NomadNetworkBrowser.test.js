@@ -138,6 +138,20 @@ describe("NomadNetworkBrowser.vue", () => {
         expect(wrapper.find('[role="tablist"]').exists()).toBe(true);
     });
 
+    it("keeps tab labels inside the strip without clipping the top", async () => {
+        const wrapper = mountBrowser();
+        wrapper.vm.isWideViewport = true;
+        await wrapper.vm.$nextTick();
+        const strip = wrapper.find('[role="tablist"]');
+        expect(strip.classes()).toContain("items-stretch");
+        expect(strip.classes()).toContain("overflow-y-hidden");
+        expect(strip.classes()).toContain("pt-0.5");
+        const tab = wrapper.find('[role="tab"]');
+        expect(tab.classes()).toContain("leading-none");
+        expect(tab.classes()).not.toContain("h-8");
+        expect(tab.classes()).toContain("min-h-0");
+    });
+
     it("selectTab syncs the route to the active tab destination hash", () => {
         const wrapper = mountBrowser();
         const second = wrapper.vm.addTab("e".repeat(32));

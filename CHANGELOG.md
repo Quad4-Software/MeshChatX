@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - **Electron AppImage loading**: Loading screen shows the synced package version (`electron/app-version.json`) instead of `v0.0.0`. Sandboxed preload ships as `preload.bundle.js` with `shellOrigin` inlined so `window.electron` IPC works in packaged builds. Loading probe state is initialized before the first status poll so startup does not throw on `startupFailed`.
 - **Pre-migration database backup**: Identity zip backups clamp file mtimes before 1980, so schema upgrades succeed when identity files have ancient timestamps. Fixes AppImage startup failure `ZIP does not support timestamps before 1980`.
 - **Navigation after backend reconnect**: Router auth checks time out instead of hanging on stale HTTP keep-alive when Docker or the backend restarts. WebSocket reconnect resync refreshes auth session state so sidebar navigation works without a full page reload.
+- **NomadNet tabs on short screens**: Browser tab labels sit in a padded, stretch-aligned strip so they are not clipped at 800x600. The app top bar is 56px (was 64px) with a 44px logo.
 
 ## [4.8.2] - 2026-08-14
 

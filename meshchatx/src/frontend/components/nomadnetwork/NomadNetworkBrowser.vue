@@ -4,7 +4,7 @@
     <div class="flex flex-1 min-w-0 h-full flex-col overflow-hidden bg-sem-canvas text-sem-fg">
         <div
             v-if="showTabStrip"
-            class="nomad-tab-strip flex h-9 shrink-0 flex-nowrap items-end overflow-x-auto overflow-y-hidden border-b border-sem-border bg-sem-surface-muted px-1.5"
+            class="nomad-tab-strip flex h-8 min-[900px]:h-9 shrink-0 flex-nowrap items-stretch overflow-x-auto overflow-y-hidden border-b border-sem-border bg-sem-surface-muted px-1 pt-0.5"
             role="tablist"
         >
             <button
@@ -14,7 +14,7 @@
                 role="tab"
                 draggable="true"
                 :aria-selected="tab.id === activeTabId"
-                class="group flex h-8 min-w-[7rem] max-w-[14rem] shrink-0 cursor-grab items-center gap-1.5 border border-transparent px-3 text-sm transition-[opacity,background-color,border-color] duration-150 rounded-t-[10px] active:cursor-grabbing"
+                class="group flex min-h-0 min-w-[6.5rem] max-w-[12rem] min-[900px]:min-w-[7rem] min-[900px]:max-w-[14rem] shrink-0 cursor-grab items-center gap-1 border border-transparent px-2 min-[900px]:px-3 text-xs min-[900px]:text-sm leading-none transition-[opacity,background-color,border-color] duration-150 rounded-t-lg active:cursor-grabbing"
                 :class="[
                     tab.id === activeTabId
                         ? 'border-sem-border border-b-transparent bg-sem-canvas font-medium text-sem-fg'
@@ -28,23 +28,23 @@
                 @dragend="onTabDragEnd"
                 @contextmenu.prevent="openTabContextMenu($event, tab)"
             >
-                <span class="min-w-0 flex-1 truncate text-left">{{ tabTitle(tab) }}</span>
+                <span class="min-w-0 flex-1 truncate text-left leading-none">{{ tabTitle(tab) }}</span>
                 <span
                     class="shrink-0 rounded p-0.5 text-sem-fg-muted opacity-0 transition-opacity hover:bg-sem-surface hover:text-sem-fg group-hover:opacity-100 group-focus-within:opacity-100"
                     :title="$t('common.cancel')"
                     draggable="false"
                     @click.stop="closeTab(tab.id)"
                 >
-                    <MaterialDesignIcon icon-name="close" class="size-4" />
+                    <MaterialDesignIcon icon-name="close" class="size-3.5 min-[900px]:size-4" />
                 </span>
             </button>
             <button
                 type="button"
-                class="mb-0 flex h-8 w-9 shrink-0 items-center justify-center rounded-[10px] text-sem-fg-muted transition-colors hover:bg-sem-surface/80"
+                class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-sem-fg-muted transition-colors hover:bg-sem-surface/80"
                 :title="$t('nomadnet.new_tab_shortcut')"
                 @click="addTab()"
             >
-                <MaterialDesignIcon icon-name="plus" class="size-5" />
+                <MaterialDesignIcon icon-name="plus" class="size-4 min-[900px]:size-5" />
             </button>
         </div>
 
@@ -744,6 +744,13 @@ export default {
 .nomad-tab-strip {
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;
+}
+
+@media (max-height: 700px) {
+    .nomad-tab-strip {
+        height: 1.875rem;
+        padding-top: 2px;
+    }
 }
 
 .nomad-tab-strip::-webkit-scrollbar {
