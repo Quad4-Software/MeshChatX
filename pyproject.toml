@@ -54,6 +54,8 @@ Homepage = "https://github.com/Quad4-Software/MeshChatX"
 [tool.uv]
 constraint-dependencies = [
   "h2>=4.4.1",
+]
+override-dependencies = [
   "setuptools>=83.0.0",
 ]
 
