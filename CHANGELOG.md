@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file.
 - **Android RNode flasher**: Firmware picker compiles on API 24 (byte stream read instead of `readAllBytes`) and uses an effectively final filename in the background loader lambda.
 - **Android / Electron CI**: RNode flasher lint and compile fixes from the manual firmware upload path. Electron preload tests stub `location` for trusted-origin IPC.
 - **Frontend tests**: `UIThemeAndVisibility.test.js` unmounts App shells after each test so Vitest teardown does not leave shell poll intervals running.
+- **Navigation after backend reconnect**: Router auth checks time out instead of hanging on stale HTTP keep-alive when Docker or the backend restarts. WebSocket reconnect resync refreshes auth session state so sidebar navigation works without a full page reload.
 
 ## [4.8.2] - 2026-08-14
 
