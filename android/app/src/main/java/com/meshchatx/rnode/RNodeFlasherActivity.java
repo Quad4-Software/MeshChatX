@@ -342,10 +342,8 @@ public final class RNodeFlasherActivity extends AppCompatActivity implements Usb
                     }
                     bytes = in.readAllBytes();
                 }
-                String name = uri.getLastPathSegment();
-                if (name == null || name.isEmpty()) {
-                    name = "firmware.zip";
-                }
+                String rawName = uri.getLastPathSegment();
+                final String name = (rawName == null || rawName.isEmpty()) ? "firmware.zip" : rawName;
                 File cache = new File(getCacheDir(), name);
                 try (FileOutputStream fos = new FileOutputStream(cache)) {
                     fos.write(bytes);

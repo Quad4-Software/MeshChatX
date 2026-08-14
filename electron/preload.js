@@ -2,6 +2,9 @@ const { ipcRenderer, contextBridge } = require("electron");
 const { isTrustedShellOrigin } = require("./shellOrigin");
 
 function originAllowed() {
+    if (typeof location === "undefined") {
+        return false;
+    }
     return isTrustedShellOrigin(location.href);
 }
 
