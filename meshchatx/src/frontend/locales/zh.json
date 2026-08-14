@@ -527,6 +527,8 @@
         "network_degraded": "RNS 不可用。应用仍在运行，便于诊断和恢复而无需清除数据。",
         "recover_network": "重试 RNS",
         "open_settings": "打开设置",
+        "lan_bind_no_auth_banner": "此界面可在局域网无密码访问。请在设置中启用身份验证，或绑定 127.0.0.1。",
+        "lan_bind_no_auth_dismiss": "关闭",
         "open_backups": "打开备份",
         "open_interfaces": "打开接口",
         "network_recovered": "RNS 已恢复",

@@ -464,6 +464,8 @@
         "network_degraded": "RNS unavailable. The app is still running so you can diagnose and recover without wiping data.",
         "recover_network": "Retry RNS",
         "open_settings": "Open settings",
+        "lan_bind_no_auth_banner": "This UI is reachable on the LAN without a password. Enable authentication in Settings, or bind 127.0.0.1.",
+        "lan_bind_no_auth_dismiss": "Dismiss",
         "open_backups": "Open backups",
         "open_interfaces": "Open interfaces",
         "network_recovered": "RNS recovered",

@@ -527,6 +527,8 @@
         "network_degraded": "RNS niet beschikbaar. De app blijft draaien zodat je kunt diagnosticeren en herstellen zonder gegevens te wissen.",
         "recover_network": "RNS opnieuw proberen",
         "open_settings": "Instellingen openen",
+        "lan_bind_no_auth_banner": "Deze UI is op het LAN bereikbaar zonder wachtwoord. Schakel authenticatie in bij Instellingen, of bind 127.0.0.1.",
+        "lan_bind_no_auth_dismiss": "Sluiten",
         "open_backups": "Back-ups openen",
         "open_interfaces": "Interfaces openen",
         "network_recovered": "RNS hersteld",

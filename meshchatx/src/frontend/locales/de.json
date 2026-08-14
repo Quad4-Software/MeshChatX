@@ -527,6 +527,8 @@
         "network_degraded": "RNS nicht verfügbar. Die App läuft weiter, damit Sie diagnostizieren und wiederherstellen können, ohne Daten zu löschen.",
         "recover_network": "RNS erneut versuchen",
         "open_settings": "Einstellungen öffnen",
+        "lan_bind_no_auth_banner": "Diese Oberfläche ist im LAN ohne Passwort erreichbar. Aktivieren Sie die Authentifizierung in den Einstellungen, oder binden Sie 127.0.0.1.",
+        "lan_bind_no_auth_dismiss": "Schließen",
         "open_backups": "Backups öffnen",
         "open_interfaces": "Schnittstellen öffnen",
         "network_recovered": "RNS wiederhergestellt",

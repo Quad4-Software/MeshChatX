@@ -527,6 +527,8 @@
         "network_degraded": "RNS indisponible. L'application reste ouverte pour diagnostiquer et récupérer sans effacer les données.",
         "recover_network": "Réessayer RNS",
         "open_settings": "Ouvrir les paramètres",
+        "lan_bind_no_auth_banner": "Cette interface est joignable sur le LAN sans mot de passe. Activez l'authentification dans Paramètres, ou liez 127.0.0.1.",
+        "lan_bind_no_auth_dismiss": "Ignorer",
         "open_backups": "Ouvrir les sauvegardes",
         "open_interfaces": "Ouvrir les interfaces",
         "network_recovered": "RNS rétabli",
