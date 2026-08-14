@@ -254,7 +254,7 @@
                         >
                             {{ drawFeatureInfoPayload.description }}
                         </div>
-                        <!-- eslint-disable vue/no-v-html -->
+                        <!-- eslint-disable vue/no-v-html -- sanitized via drawFeatureDescriptionSanitized -->
                         <div
                             v-else-if="drawFeatureDescriptionSanitized"
                             class="text-[11px] text-gray-600 dark:text-zinc-400 prose prose-sm dark:prose-invert max-w-none leading-snug [&_*]:!bg-transparent [&_*]:!text-inherit"

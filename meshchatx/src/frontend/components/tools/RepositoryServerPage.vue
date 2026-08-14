@@ -7,36 +7,9 @@
             :title="$t('tools.repository_server.title')"
             :description="$t('tools.repository_server.description')"
             accent="sky"
-        >
-            <template #actions>
-                <button
-                    type="button"
-                    class="secondary-chip p-2!"
-                    :title="$t('tools.repository_server.refresh_bundled_tooltip')"
-                    :disabled="refreshing"
-                    @click="refreshBundled"
-                >
-                    <MaterialDesignIcon icon-name="download" class="size-5" />
-                </button>
-            </template>
-        </ToolsPageHeader>
+        />
         <div class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 md:px-5 lg:px-8 py-3 sm:py-4 min-w-0">
             <div class="space-y-0 w-full max-w-6xl xl:max-w-7xl mx-auto min-w-0">
-                <div
-                    v-if="refreshing"
-                    class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6 space-y-2"
-                >
-                    <div class="h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-full overflow-hidden">
-                        <div
-                            class="h-full bg-sky-500 dark:bg-sky-400 rounded-full transition-[width] duration-300 ease-out"
-                            :style="{ width: refreshProgressPct + '%' }"
-                        />
-                    </div>
-                    <p v-if="refreshProgressLabel" class="text-xs text-gray-600 dark:text-zinc-400 truncate font-mono">
-                        {{ refreshProgressLabel }}
-                    </p>
-                </div>
-
                 <div class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6 space-y-3">
                     <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
                         {{ $t("tools.repository_server.http_heading") }}
@@ -213,31 +186,15 @@ export default {
     data() {
         return {
             loading: true,
-            refreshing: false,
             httpBusy: false,
             httpHost: "127.0.0.1",
             httpPort: "8787",
             status: null,
             entries: [],
             lastUploadError: null,
-            refreshPollId: null,
         };
     },
     computed: {
-        refreshProgressPct() {
-            const p = this.status?.refresh_progress;
-            if (!p || !p.total) {
-                return 0;
-            }
-            return Math.min(100, Math.round((100 * p.completed) / p.total));
-        },
-        refreshProgressLabel() {
-            const p = this.status?.refresh_progress;
-            if (!p?.current) {
-                return "";
-            }
-            return this.$t("tools.repository_server.refresh_fetching", { pkg: p.current });
-        },
         httpRunning() {
             return Boolean(this.status?.http?.running);
         },
@@ -260,16 +217,7 @@ export default {
     async mounted() {
         await this.loadAll();
     },
-    beforeUnmount() {
-        this.stopRefreshPoll();
-    },
     methods: {
-        stopRefreshPoll() {
-            if (this.refreshPollId != null) {
-                clearInterval(this.refreshPollId);
-                this.refreshPollId = null;
-            }
-        },
         syncHttpFormFromStatus() {
             const h = this.status?.http;
             if (!h) {
@@ -396,46 +344,6 @@ export default {
                 console.error(e);
             } finally {
                 this.httpBusy = false;
-            }
-        },
-        async refreshBundled() {
-            this.refreshing = true;
-            ToastUtils.info(this.$t("tools.repository_server.refresh_started"));
-            this.stopRefreshPoll();
-            this.refreshPollId = setInterval(() => {
-                window.api
-                    .get("/api/v1/repository-server/status")
-                    .then(({ data }) => {
-                        this.status = data;
-                        this.syncHttpFormFromStatus();
-                    })
-                    .catch(() => {});
-            }, 350);
-            try {
-                const { data } = await window.api.post("/api/v1/repository-server/refresh-bundled");
-                if (data.error === "pip_not_found") {
-                    ToastUtils.error(this.$t("tools.repository_server.refresh_pip_missing"));
-                    await this.loadAll();
-                    return;
-                }
-                const nFail = data.failed ? Object.keys(data.failed).length : 0;
-                const nOk = data.downloaded ? data.downloaded.length : 0;
-                if (nFail > 0 && nOk === 0) {
-                    ToastUtils.error(this.$t("tools.repository_server.refresh_failed"));
-                } else if (nFail > 0) {
-                    ToastUtils.warning(this.$t("tools.repository_server.refresh_partial_toast"));
-                    ToastUtils.success(this.$t("tools.repository_server.refresh_ok_count", { n: nOk }));
-                } else {
-                    ToastUtils.success(this.$t("tools.repository_server.refresh_ok"));
-                }
-                await this.loadAll();
-            } catch (e) {
-                ToastUtils.error(this.$t("tools.repository_server.refresh_failed"));
-                console.error(e);
-                await this.loadAll();
-            } finally {
-                this.stopRefreshPoll();
-                this.refreshing = false;
             }
         },
         async onUpload(ev) {

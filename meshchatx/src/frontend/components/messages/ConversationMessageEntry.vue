@@ -676,7 +676,7 @@
                             {{ $t("messages.oversized_body_copy") }}
                         </button>
                     </div>
-                    <!-- eslint-disable vue/no-v-html -->
+                    <!-- eslint-disable vue/no-v-html -- sanitized via renderMarkdown -->
                     <div
                         v-else-if="
                             chatItem.lxmf_message.content &&

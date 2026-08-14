@@ -159,7 +159,7 @@
                     isMobileView && showEditor ? 'hidden' : '',
                 ]"
             >
-                <!-- eslint-disable vue/no-v-html -->
+                <!-- eslint-disable vue/no-v-html -- sanitized via convertMicronToHtml -->
                 <div
                     ref="previewRef"
                     class="flex-1 overflow-auto text-zinc-100 p-4 font-mono text-sm whitespace-pre-wrap wrap-break-word nodeContainer"

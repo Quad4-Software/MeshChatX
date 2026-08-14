@@ -62,6 +62,23 @@
             {{ networkStartingLabel }}
         </div>
         <div
+            v-if="showLanBindNoAuth"
+            class="relative z-100 bg-amber-700 text-white px-4 py-3 text-center text-sm font-medium shadow-md border-b border-amber-800/80"
+            role="status"
+            aria-live="polite"
+        >
+            <p>{{ lanBindNoAuthLabel }}</p>
+            <div class="mt-2 flex flex-wrap items-center justify-center gap-2">
+                <button
+                    type="button"
+                    class="rounded-md bg-white/15 px-3 py-1 text-xs font-semibold hover:bg-white/25"
+                    @click="$emit('open-settings')"
+                >
+                    {{ openSettingsLabel }}
+                </button>
+            </div>
+        </div>
+        <div
             v-if="showNetworkDegraded"
             class="relative z-100 bg-amber-700 text-white px-4 py-3 text-center text-sm font-medium shadow-md border-b border-amber-800/80"
             role="status"
@@ -174,6 +191,14 @@ export default {
             default: false,
         },
         networkStartingLabel: {
+            type: String,
+            default: "",
+        },
+        showLanBindNoAuth: {
+            type: Boolean,
+            default: false,
+        },
+        lanBindNoAuthLabel: {
             type: String,
             default: "",
         },

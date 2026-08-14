@@ -57,7 +57,7 @@
                     v-else
                     class="changelog-content max-w-none prose dark:prose-invert text-gray-900 dark:text-zinc-100"
                 >
-                    <!-- eslint-disable-next-line vue/no-v-html -->
+                    <!-- eslint-disable-next-line vue/no-v-html -- sanitized via MarkdownRenderer -->
                     <div v-html="changelogHtml"></div>
                 </div>
             </v-card-text>
@@ -126,7 +126,7 @@
                 </div>
 
                 <div v-else class="changelog-content max-w-none prose dark:prose-invert pb-20">
-                    <!-- eslint-disable-next-line vue/no-v-html -->
+                    <!-- eslint-disable-next-line vue/no-v-html -- sanitized via MarkdownRenderer -->
                     <div v-html="changelogHtml"></div>
                 </div>
             </div>

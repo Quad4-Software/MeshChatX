@@ -19,7 +19,9 @@
                     <div class="font-medium">{{ $t("settings.micron_wasm_update_active_label") }}</div>
                     <div>
                         {{
-                            $t("settings.micron_wasm_update_active_source", { source: sourceLabel(currentInfo.source) })
+                            $t("settings.micron_wasm_update_active_source", {
+                                source: $t("settings.micron_wasm_update_source_upload"),
+                            })
                         }}
                     </div>
                     <div class="monospace-field break-all text-xs opacity-90">{{ currentInfo.releaseTag }}</div>
@@ -34,41 +36,6 @@
                 <p class="text-sm text-gray-600 dark:text-zinc-400">
                     {{ $t("settings.micron_wasm_update_isolation_note") }}
                 </p>
-
-                <div class="space-y-2">
-                    <div class="text-sm font-medium">{{ $t("settings.micron_wasm_update_github_heading") }}</div>
-                    <div class="text-xs text-gray-600 dark:text-zinc-400 break-all">
-                        {{ $t("settings.micron_wasm_update_github_url_hint") }}<br />
-                        {{ downloadBase }}/{{ releaseTagInput.trim() || defaultTag }}/{{ wasmFileName }}
-                    </div>
-                    <a
-                        class="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2"
-                        href="https://github.com/Quad4-Software/Micron-Parser-Go/releases"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        >https://github.com/Quad4-Software/Micron-Parser-Go/releases</a
-                    >
-                    <div class="flex flex-wrap items-end gap-2">
-                        <input
-                            v-model="releaseTagInput"
-                            type="text"
-                            class="input-field flex-1 min-w-[8rem] monospace-field"
-                            :placeholder="defaultTag"
-                            :disabled="busy"
-                            autocomplete="off"
-                            spellcheck="false"
-                        />
-                        <v-btn
-                            color="primary"
-                            variant="flat"
-                            :loading="busy"
-                            :disabled="busy"
-                            @click="onFetchFromGitHub"
-                        >
-                            {{ $t("settings.micron_wasm_update_fetch_github") }}
-                        </v-btn>
-                    </div>
-                </div>
 
                 <div class="space-y-2">
                     <div class="text-sm font-medium">{{ $t("settings.micron_wasm_update_upload_heading") }}</div>
@@ -104,9 +71,6 @@
 <script>
 import ToastUtils from "../../js/ToastUtils";
 import {
-    MICRON_PARSER_GO_RELEASE_DOWNLOAD_BASE,
-    WASM_FILENAME,
-    fetchWasmFromGitHubReleaseVerified,
     getMicronWasmRuntimeOverride,
     setMicronWasmRuntimeOverride,
     clearMicronWasmRuntimeOverride,
@@ -130,41 +94,17 @@ export default {
             busy: false,
             formError: "",
             currentInfo: null,
-            releaseTagInput: "",
-            abort: null,
         };
-    },
-    computed: {
-        defaultTag() {
-            const t = import.meta.env.VITE_MICRON_PARSER_GO_RELEASE;
-            return typeof t === "string" && t.trim() ? t.trim() : "v1.0.6";
-        },
-        downloadBase() {
-            return MICRON_PARSER_GO_RELEASE_DOWNLOAD_BASE;
-        },
-        wasmFileName() {
-            return WASM_FILENAME;
-        },
     },
     watch: {
         modelValue(v) {
             if (v) {
                 this.formError = "";
-                this.releaseTagInput = this.defaultTag;
                 this.loadCurrentInfo();
-            } else if (this.abort) {
-                this.abort.abort();
-                this.abort = null;
             }
         },
     },
     methods: {
-        sourceLabel(source) {
-            if (source === "upload") {
-                return this.$t("settings.micron_wasm_update_source_upload");
-            }
-            return this.$t("settings.micron_wasm_update_source_github");
-        },
         close() {
             this.$emit("update:modelValue", false);
         },
@@ -173,7 +113,6 @@ export default {
                 const r = await getMicronWasmRuntimeOverride();
                 if (r && r.wasmBytes) {
                     this.currentInfo = {
-                        source: r.source,
                         releaseTag: r.releaseTag,
                         byteLength: r.wasmBytes.byteLength,
                     };
@@ -183,38 +122,6 @@ export default {
             } catch (e) {
                 console.warn(e);
                 this.currentInfo = null;
-            }
-        },
-        async onFetchFromGitHub() {
-            this.formError = "";
-            const tag = String(this.releaseTagInput || "").trim();
-            if (!tag) {
-                this.formError = this.$t("settings.micron_wasm_update_err_empty_tag");
-                return;
-            }
-            this.busy = true;
-            this.abort = new AbortController();
-            try {
-                const rec = await fetchWasmFromGitHubReleaseVerified(tag, { signal: this.abort.signal });
-                await setMicronWasmRuntimeOverride(rec);
-                refreshMicronWasmRuntimeOverrideCache();
-                invalidateNomadMicronWasmPreload();
-                const ok = await preloadNomadMicronWasm();
-                if (!ok) {
-                    await clearMicronWasmRuntimeOverride();
-                    refreshMicronWasmRuntimeOverrideCache();
-                    invalidateNomadMicronWasmPreload();
-                    this.formError = this.$t("settings.micron_wasm_update_err_activate_failed");
-                    return;
-                }
-                ToastUtils.success(this.$t("settings.micron_wasm_update_toast_installed", { tag: rec.releaseTag }));
-                await this.loadCurrentInfo();
-                this.$emit("saved");
-            } catch (e) {
-                this.formError = (e && e.message) || String(e);
-            } finally {
-                this.busy = false;
-                this.abort = null;
             }
         },
         async onWasmFileSelected(ev) {

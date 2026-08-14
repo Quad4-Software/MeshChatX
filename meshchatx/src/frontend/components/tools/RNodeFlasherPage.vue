@@ -75,12 +75,8 @@
                         <RNodeFirmwareSelector
                             ref="firmwareSelector"
                             :step-number="2"
-                            :recommended-firmware-filename="recommendedFirmwareFilename"
-                            :latest-release="latestRelease"
-                            :is-downloading-firmware="isDownloadingFirmware"
                             :firmware-file="firmwareFile"
                             @update:firmware-file="firmwareFile = $event"
-                            @download-recommended="downloadRecommendedFirmware"
                         />
                         <div class="mt-4">
                             <RNodeFlashAction
@@ -223,10 +219,8 @@ export default {
             isProvisioning: false,
             isSettingFirmwareHash: false,
             isEnteringDfuMode: false,
-            isDownloadingFirmware: false,
             rnodeDisplayImage: null,
             showAdvanced: false,
-            latestRelease: null,
             diagnostics: null,
             connectedTransportLabel: null,
             configFrequency: 917375000,
@@ -237,9 +231,6 @@ export default {
         };
     },
     computed: {
-        recommendedFirmwareFilename() {
-            return this.selectedModel?.firmware_filename ?? this.selectedProduct?.firmware_filename;
-        },
         canFlash() {
             if (this.connectionMethod === TRANSPORT_WIFI) {
                 return Boolean(this.wifiHost && this.firmwareFile);
@@ -279,7 +270,6 @@ export default {
         this.refreshCapabilities();
         this.connectionMethod = pickDefaultTransport(this.capabilities);
         this.loadVendorLibraries();
-        this.fetchLatestRelease();
     },
     beforeUnmount() {
         if (this._onAndroidPermission) {
@@ -376,50 +366,6 @@ export default {
                         error: e?.message || String(e),
                     })
                 );
-            }
-        },
-        async fetchLatestRelease() {
-            try {
-                const response = await fetch("/api/v1/tools/rnode/latest_release");
-                if (response.ok) {
-                    this.latestRelease = await response.json();
-                }
-            } catch {
-                // offline-friendly: silently ignore so the rest of the page still works
-            }
-        },
-        _resolveRecommendedAssetUrl() {
-            const filename = this.recommendedFirmwareFilename;
-            if (!filename) return null;
-            const asset = this.latestRelease?.assets?.find((a) => a.name === filename);
-            if (asset?.browser_download_url) {
-                return asset.browser_download_url;
-            }
-            return `https://github.com/markqvist/RNode_Firmware/releases/latest/download/${filename}`;
-        },
-        async downloadRecommendedFirmware() {
-            const assetUrl = this._resolveRecommendedAssetUrl();
-            if (!assetUrl) {
-                ToastUtils.error(this.$t("tools.rnode_flasher.errors.firmware_not_found_in_release"));
-                return;
-            }
-            this.isDownloadingFirmware = true;
-            try {
-                const downloadUrl = `/api/v1/tools/rnode/download_firmware?url=${encodeURIComponent(assetUrl)}`;
-                const response = await fetch(downloadUrl);
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({ error: response.statusText }));
-                    throw new Error(errorData.error || `Download failed with status ${response.status}`);
-                }
-                const blob = await response.blob();
-                const file = new File([blob], this.recommendedFirmwareFilename, { type: "application/zip" });
-                this.firmwareFile = file;
-                this.$refs.firmwareSelector?.setFile(file);
-                ToastUtils.success(this.$t("tools.rnode_flasher.alerts.firmware_downloaded"));
-            } catch (e) {
-                ToastUtils.error(this.$t("tools.rnode_flasher.errors.failed_download", { error: e.message || e }));
-            } finally {
-                this.isDownloadingFirmware = false;
             }
         },
         async loadVendorLibraries(force = false) {

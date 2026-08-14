@@ -21,7 +21,7 @@
                             {{ $t("rncp.usage_steps") }}
                         </div>
                         <div class="space-y-1.5">
-                            <!-- eslint-disable vue/no-v-html -->
+                            <!-- eslint-disable vue/no-v-html -- sanitized via renderMarkdown -->
                             <p
                                 class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
                                 @click="handleMessageClick"

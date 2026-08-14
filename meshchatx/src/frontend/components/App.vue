@@ -21,6 +21,8 @@
             :ws-reconnected-label="$t('app.backend_reconnected')"
             :show-network-starting="showNetworkStartingBanner"
             :network-starting-label="$t('app.network_starting')"
+            :show-lan-bind-no-auth="showLanBindNoAuthBanner"
+            :lan-bind-no-auth-label="$t('app.lan_bind_no_auth_banner')"
             :show-network-degraded="showNetworkDegradedBanner"
             :network-degraded-label="networkDegradedBannerLabel"
             :network-recovering="networkRecovering"
@@ -534,6 +536,8 @@ import AppSidebarClassicNav from "./layout/AppSidebarClassicNav.vue";
 import AppSidebarClassicFooter from "./layout/AppSidebarClassicFooter.vue";
 import KeyboardShortcuts from "../js/KeyboardShortcuts";
 import ElectronUtils from "../js/ElectronUtils";
+import { shouldShowLanBindNoAuthBanner } from "../js/lanBindWarning.js";
+import { isMeshChatXAndroid } from "../js/webAudioMicPermission.js";
 import { postRequestPath } from "../js/reticulumPathfinding.js";
 import { fetchCsrfToken } from "../js/csrfToken.js";
 import ToneGenerator from "../js/ToneGenerator";
@@ -810,6 +814,15 @@ export default {
                 !GlobalState.networkReady &&
                 this.$route?.name !== "auth"
             );
+        },
+        showLanBindNoAuthBanner() {
+            return shouldShowLanBindNoAuthBanner({
+                isElectron: ElectronUtils.isElectron(),
+                isAndroid: isMeshChatXAndroid(),
+                authEnabled: GlobalState.authEnabled,
+                isLoopbackBind: GlobalState.isLoopbackBind,
+                routeName: this.$route?.name,
+            });
         },
         networkDegradedBannerLabel() {
             const detail = GlobalState.networkDegradedError;

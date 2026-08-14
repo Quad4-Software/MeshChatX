@@ -691,20 +691,6 @@
                                             $t("tutorial.bootstrap_community")
                                         }}</span>
                                     </button>
-                                    <button
-                                        type="button"
-                                        class="shrink-0 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-blue-600 disabled:opacity-50 dark:hover:bg-zinc-800 dark:hover:text-blue-400"
-                                        :disabled="refreshingCommunityPresets"
-                                        :title="$t('interfaces.community_presets_refresh')"
-                                        :aria-label="$t('interfaces.community_presets_refresh')"
-                                        @click.stop="refreshCommunityPresets"
-                                    >
-                                        <v-icon
-                                            icon="mdi-refresh"
-                                            size="20"
-                                            :class="{ 'animate-spin': refreshingCommunityPresets }"
-                                        />
-                                    </button>
                                 </div>
                                 <div v-show="bootstrapCommunitySectionOpen" class="px-4 pb-4">
                                     <p
@@ -1847,20 +1833,6 @@
                                             $t("tutorial.bootstrap_community")
                                         }}</span>
                                     </button>
-                                    <button
-                                        type="button"
-                                        class="shrink-0 rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-blue-600 disabled:opacity-50 dark:hover:bg-zinc-800 dark:hover:text-blue-400"
-                                        :disabled="refreshingCommunityPresets"
-                                        :title="$t('interfaces.community_presets_refresh')"
-                                        :aria-label="$t('interfaces.community_presets_refresh')"
-                                        @click.stop="refreshCommunityPresets"
-                                    >
-                                        <v-icon
-                                            icon="mdi-refresh"
-                                            size="22"
-                                            :class="{ 'animate-spin': refreshingCommunityPresets }"
-                                        />
-                                    </button>
                                 </div>
                                 <div v-show="bootstrapCommunitySectionOpen" class="px-4 pb-5 sm:px-5">
                                     <p
@@ -2424,7 +2396,6 @@ export default {
             markingSeen: false,
             windowWidth: typeof window !== "undefined" ? window.innerWidth : 1024,
             defaultBootstrapOnly: false,
-            refreshingCommunityPresets: false,
             bootstrapListSearch: "",
             bootstrapDiscoveredSectionOpen: true,
             bootstrapCommunitySectionOpen: true,
@@ -2756,21 +2727,6 @@ export default {
                 console.error("Failed to load community interfaces:", e);
             } finally {
                 this.loadingInterfaces = false;
-            }
-        },
-        async refreshCommunityPresets() {
-            if (this.refreshingCommunityPresets) return;
-            this.refreshingCommunityPresets = true;
-            try {
-                const r = await window.api.post("/api/v1/community-interfaces/refresh", {});
-                const n = r.data?.count ?? 0;
-                ToastUtils.success(this.$t("interfaces.community_presets_refreshed", { count: n }));
-                await this.loadCommunityInterfaces();
-            } catch (e) {
-                ToastUtils.error(e.response?.data?.message || this.$t("interfaces.community_presets_refresh_failed"));
-                console.error(e);
-            } finally {
-                this.refreshingCommunityPresets = false;
             }
         },
         async loadDiscoveredInterfaces() {
