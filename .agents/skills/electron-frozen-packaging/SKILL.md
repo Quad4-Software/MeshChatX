@@ -28,6 +28,7 @@ Package and recover the desktop shell correctly: frozen subprocess re-entry, loa
 - Attach `will-navigate`, `will-redirect`, `will-frame-navigate`, and `setWindowOpenHandler` on `web-contents-created` so popouts get the same guards.
 - Deny `will-attach-webview`. Deny `data:` in-window. Allow `blob:` only when the inner origin is the local backend.
 - Preload `window.electron` IPC runs only for `isTrustedShellOrigin` (file loading.html/crash.html, `127.0.0.1`/`localhost` port 9337, trusted blobs).
+- `ipcMain` handlers must call `isTrustedIpcEvent` (sender frame URL, same allowlist). Do not rely on preload alone.
 - `safeExternalUrl` sends remaining http(s)/mailto to the OS browser. Do not replace the app window with external sites.
 - Close behaviour (quit / tray / ask) persists per user choice. Guard re-entrancy on close.
 

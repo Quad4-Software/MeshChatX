@@ -32,6 +32,7 @@ Keep Chaquopy backend boot, WebView file choosers, storage locks, and external n
 - External http(s) links open in the system browser. Do not navigate the WebView away from the app.
 - `isAllowedWebViewNavigationUri` must call `RemoteBackendUrl.isAllowedShellNavigation`. Allow the configured backend origin, `about:blank`, and blobs whose inner origin matches the backend.
 - Deny `data:`, `javascript:`, `file:`, and userinfo URLs. The `MeshChatXAndroid` JS bridge is injected into every page the WebView loads.
+- Keep `setAllowFileAccess(false)`, `setAllowFileAccessFromFileURLs(false)`, `setAllowUniversalAccessFromFileURLs(false)`, and `MIXED_CONTENT_NEVER_ALLOW`. File pickers use Intents, not WebView `file:` URLs.
 - Any loopback host on any port is not an allowlist. Remote-backend mode must not still permit `127.0.0.1:<other-port>`.
 - Parse with `java.net.URI`. Reject `getUserInfo()`. Do not prefix-match `http://127.0.0.1`.
 - Vendored `lxmfy` and `rns_filesync` are synced into Chaquopy `src/main/python/`. Android pip does not install them like desktop setuptools.
