@@ -10,8 +10,8 @@ This project is independent from the original Reticulum MeshChat project and is 
 - Source: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Mirror: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
 - Releases: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
-- Changelog: [`CHANGELOG.md`](CHANGELOG.md)
-- Donate: [`donate.md`](donate.md) ([Donation](#donation))
+- Changelog: [CHANGELOG.md](CHANGELOG.md)
+- Donate: [donate.md](donate.md)
 - LXMF: `f489752fbef161c64d65e385a4e9fc74`
 - Umbrel App Store: [apps.umbrel.com/app/meshchatx](https://apps.umbrel.com/app/meshchatx)
 
@@ -19,64 +19,50 @@ This project is independent from the original Reticulum MeshChat project and is 
 
 rngit NomadNet Node: `132f67e79d9b24aad014e93015fb858f:/page/index.mu`
 
-rngit: `git clone rns://06a54b505bb67b25ef3f8097e8001edc/public/MeshChatX`
+```bash
+git clone rns://06a54b505bb67b25ef3f8097e8001edc/public/MeshChatX
+```
 
-## Important Changes from Reticulum MeshChat
+## Changes from Reticulum MeshChat
 
-- Uses LXST for calls
-- Integrates [RRC](https://rrc.kc1awv.net/0)
-- Expanded tools
-- Map w/ MBTiles support, remote KMZ/KML/GeoJSON overlays (NomadNet `/file/` and RNGit sparse fetch)
-- Panes and Tabs
-- Replaced Peewee ORM with raw SQL.
-- Replaced Axios with native fetch.
-- Uses Electron 41.x (bundled Node 24 runtime).
-- .whls ships with webserver and built-in frontend assets for more deployment options.
+- LXST for calls
+- [RRC](https://rrc.kc1awv.net/0) relay chat
+- More tools, panes, and tabs
+- Map with MBTiles, plus remote KMZ/KML/GeoJSON overlays (NomadNet /file/ and RNGit sparse fetch)
+- Raw SQL instead of Peewee
+- Native fetch instead of Axios
+- Electron 41.x (bundled Node 24)
+- Wheels ship with the web server and built frontend assets
 - i18n
-- PNPM and UV for dependency management.
+- pnpm and UV for dependencies
 
 ## Requirements
 
-- Python `>=3.11` (from `pyproject.toml`)
-- Node.js `>=24` (from `package.json` `engines`)
-- pnpm `11.1.2` (from `package.json` `packageManager`)
-- UV (used by `Taskfile.yml` and CI workflows)
+- Python 3.11 or newer
+- Node.js 24 or newer
+- pnpm 11.1.2
+- UV
 
-**Browser Versions Required:**
+The bundled web UI needs Safari 16.4, Chrome 111, or Firefox 128 or later.
 
-Safari 16.4 or later, Chrome 111 or later, Firefox 128 or later (bundled web UI).
+## Install methods
 
-```bash
-task install
-task format
-task lint
-task test
-task build
-```
+| Method | Frontend assets | Architectures | Best for |
+| --- | --- | --- | --- |
+| Docker image | Yes | linux/amd64, linux/arm64 | Linux servers |
+| Python wheel | Yes | Any Python-supported arch | Headless/web install without a Node build |
+| Linux AppImage | Yes | x64, arm64 | Portable desktop |
+| Debian package | Yes | x64, arm64 | Debian/Ubuntu |
+| RPM package | Yes | CI-runner dependent | Fedora/RHEL/openSUSE |
+| From source | Built locally | Host arch | Development and custom builds |
 
-## Install Methods
-
-Use the method that matches your environment and packaging preference.
-
-| Method                  | Includes frontend assets | Architectures                              | Best for                                       |
-| ----------------------- | ------------------------ | ------------------------------------------ | ---------------------------------------------- |
-| Docker image            | Yes                      | `linux/amd64`, `linux/arm64`               | Fastest setup on Linux servers/hosts           |
-| Python wheel (`.whl`)   | Yes                      | Any Python-supported architecture          | Headless/web-server install without Node build |
-| Linux AppImage          | Yes                      | `x64`, `arm64`                             | Portable desktop use                           |
-| Debian package (`.deb`) | Yes                      | `x64`, `arm64`                             | Debian/Ubuntu installs                         |
-| RPM package (`.rpm`)    | Yes                      | CI-runner dependent for published artifact | Fedora/RHEL/openSUSE style systems             |
-| From source             | Built locally            | Host architecture                          | Development and custom builds                  |
-
-Notes:
-
-- GitHub Actions builds tagged releases (Linux wheel/AppImage/deb/rpm, Windows, macOS, Flatpak, Android APKs when the tag is on `dev` or `master`, SLSA, draft release) in one run via `.github/workflows/build-release.yml`; the container image via `.github/workflows/docker.yml`. Branch and PR Android CI stays in `.github/workflows/android-build.yml`.
-- Linux `x64` and `arm64` AppImage + DEB are built on GitHub; RPM is attempted and uploaded when produced.
+Tagged releases build Linux wheel/AppImage/deb/rpm, Windows, macOS, Flatpak, and Android APKs (when the tag is on dev or master) in [build-release.yml](.github/workflows/build-release.yml). The container image is [docker.yml](.github/workflows/docker.yml). Branch and PR Android CI is [android-build.yml](.github/workflows/android-build.yml). Linux x64 and arm64 AppImage + DEB are built on GitHub. RPM is uploaded when the job produces one.
 
 ## Docker
 
-- **Docker Hub:** `quad4io/meshchatx`
-- **GHCR:** `ghcr.io/quad4-software/meshchatx`
-- **Variants:** default tags (for example `:latest`) are the standard Alpine image. Use `-hardened` for the Chainguard/Wolfi image, or `-extra` for Alpine plus **i2pd** and **yggdrasil** (for example `:latest-extra`, built from the same `Dockerfile` with `VARIANT=extra`).
+- Docker Hub: `quad4io/meshchatx`
+- GHCR: `ghcr.io/quad4-software/meshchatx`
+- Default tags (for example `:latest`) are Alpine. Use `-hardened` for Chainguard/Wolfi, or `-extra` for Alpine plus i2pd and yggdrasil (`:latest-extra`, same Dockerfile with `VARIANT=extra`).
 
 ```bash
 docker compose up -d
@@ -101,57 +87,56 @@ docker run -d --name reticulum-meshchatx \
   ghcr.io/quad4-software/meshchatx:latest
 ```
 
-You can substitute `quad4io/meshchatx:latest` for the image if you prefer Docker Hub.
+Swap in `quad4io/meshchatx:latest` if you prefer Docker Hub.
 
-Default compose file maps:
+Default compose mapping: host 127.0.0.1:8000 to container port 8000, named volume `meshchatx-config` to `/config`. That volume works with the image meshchat user (UID 1000) without bind-mount permission fixes.
 
-- `127.0.0.1:8000` on host -> container port `8000`
-- Docker **named volume** `meshchatx-config` -> `/config` for persistence (works with the image `meshchat` user, UID 1000, without bind-mount permission fixes)
+To bind a host directory instead, use `-v "$(pwd)/meshchat-config:/config"` (or the same path in Compose volumes). The container runs as UID 1000, so that directory must be writable by uid 1000:
 
-**Optional: bind mount a host directory instead**
+```bash
+sudo chown -R 1000:1000 ./meshchat-config
+```
 
-If you want data under a host path (for example `./meshchat-config`), replace the volume line with `-v "$(pwd)/meshchat-config:/config"` (Compose: change the service `volumes` entry to that bind path). The container runs as **UID 1000**; the host directory must be writable by that uid (typical fix: `sudo chown -R 1000:1000 ./meshchat-config`). If the directory is empty on first run, create it first so Docker does not create it as root-only.
+Create the directory first if it is empty. Otherwise Docker may create it as root-only.
 
-**Inspect or reset the named volume**
+Inspect or wipe the named volume:
 
 ```bash
 docker volume inspect meshchatx-config
-# remove container and delete persisted data (destructive)
 docker rm -f reticulum-meshchatx
 docker volume rm meshchatx-config
 ```
 
-## Install from Release Artifacts
+The last two commands destroy persisted data.
 
-### 1) Linux AppImage (x64/arm64)
+## Install from release artifacts
 
-1. Download `ReticulumMeshChatX-v<version>-linux-<arch>.AppImage` from releases.
-2. Make it executable and run:
+### Linux AppImage (x64/arm64)
+
+Download `ReticulumMeshChatX-v<version>-linux-<arch>.AppImage` from releases, then:
 
 ```bash
 chmod +x ./ReticulumMeshChatX-v*-linux-*.AppImage
 ./ReticulumMeshChatX-v*-linux-*.AppImage
 ```
 
-### 2) Debian/Ubuntu `.deb` (x64/arm64)
+### Debian/Ubuntu
 
-1. Download `ReticulumMeshChatX-v<version>-linux-<arch>.deb`.
-2. Install:
+Download the matching `.deb`, then:
 
 ```bash
 sudo apt install ./ReticulumMeshChatX-v*-linux-*.deb
 ```
 
-### 3) RPM-based systems
+### RPM
 
-1. Download `ReticulumMeshChatX-v<version>-linux-<arch>.rpm` if present in the release.
-2. Install with your distro tool:
+Download the `.rpm` if the release has one, then:
 
 ```bash
 sudo rpm -Uvh ./ReticulumMeshChatX-v*-linux-*.rpm
 ```
 
-### 4) Python wheel (`.whl`)
+### Python wheel
 
 Release wheels include the built web assets.
 
@@ -160,15 +145,13 @@ pip install ./reticulum_meshchatx-*-py3-none-any.whl
 meshchatx --headless
 ```
 
-`pipx` is also supported:
+pipx works too:
 
 ```bash
 pipx install ./reticulum_meshchatx-*-py3-none-any.whl
 ```
 
-## Run from Source (Web Server Mode)
-
-Use this when developing or when you need a local custom build.
+## Run from source (web server)
 
 ```bash
 git clone https://github.com/Quad4-Software/MeshChatX.git
@@ -183,160 +166,109 @@ pnpm run build-frontend
 uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 ```
 
-Notes on the install commands above:
+`pnpm install --frozen-lockfile` fails if pnpm-lock.yaml does not match package.json, so an unexpected upstream version cannot land silently. Store integrity is also on in pnpm-workspace.yaml. The extra `pnpm config set` line hardens the user-level config too.
 
-- `pnpm install --frozen-lockfile` refuses to update `pnpm-lock.yaml` and fails if the lockfile does not match `package.json`. This is what blocks an unexpected upstream version from being silently pulled in.
-- `verify-store-integrity=true` is also set in the project `pnpm-workspace.yaml`; the explicit `pnpm config set` line above just hardens the user-level config too.
-- Lifecycle scripts (`preinstall`/`postinstall`) are blocked by default in pnpm v11+. Only the packages listed under `allowBuilds` in `pnpm-workspace.yaml` are allowed to run install scripts (currently `electron`, `electron-winstaller`, `esbuild`).
-- `uv lock --check` fails fast if `uv.lock` is out of sync with `pyproject.toml`; `uv sync` then resolves only from the lockfile.
-- For a strict lockfile-only UV install (no implicit lockfile refresh), pin UV with `pip install "uv==0.11.15"` to match what CI uses.
+pnpm v11+ blocks lifecycle scripts by default. Only packages listed under allowBuilds in pnpm-workspace.yaml may run install scripts (electron, electron-winstaller, esbuild). `uv lock --check` fails if uv.lock is out of date with pyproject.toml. `uv sync` then installs from the lockfile only. Pin UV with `pip install "uv==0.11.15"` to match CI.
 
-If you intentionally want to update dependencies, run `pnpm update` / `uv lock` in a dedicated commit and review the resulting lockfile diff before pushing.
+To update dependencies on purpose, run `pnpm update` or `uv lock` in its own commit and read the lockfile diff before you push.
 
-## Run sandboxed (Linux)
+## Linux sandbox
 
-To run the native `meshchatx` binary (alias: `meshchat`) with extra filesystem isolation, you can use **Firejail** or **Bubblewrap** (`bwrap`) while keeping normal network access for Reticulum and the web UI. Full examples (pip/pipx, Poetry, USB serial notes) are in:
+Firejail or Bubblewrap (bwrap) can isolate the native meshchatx binary (alias: meshchat) while leaving network access for Reticulum and the web UI. Examples, pip/pipx, Poetry, and USB serial notes: [linux-sandbox.md](docs/en/platform-guides/linux-sandbox.md).
 
-- [`docs/en/platform-guides/linux-sandbox.md`](docs/en/platform-guides/linux-sandbox.md)
+That page also shows up in the in-app Documentation list when meshchatx-docs is bundled or synced.
 
-The same page appears in the in-app **Documentation** list (MeshChatX docs) when served from the bundled or synced `meshchatx-docs` files.
+## Linux desktop emoji fonts
 
-## Linux desktop: emoji fonts
+The emoji picker uses system fonts through Electron/Chromium. Empty squares mean a color emoji package is missing. Install one and restart the app.
 
-The emoji picker renders standard Unicode emoji using your system fonts (Electron/Chromium). If emoji show as empty squares (“tofu”), install a color emoji package and restart the app.
+| Distro | Package |
+| --- | --- |
+| Arch, Artix, Manjaro | `sudo pacman -S noto-fonts-emoji` |
+| Debian, Ubuntu | `sudo apt install fonts-noto-color-emoji` |
+| Fedora | google-noto-emoji-color-fonts |
 
-| Family (examples)          | Package                                                              |
-| -------------------------- | -------------------------------------------------------------------- |
-| Arch Linux, Artix, Manjaro | `noto-fonts-emoji` (`sudo pacman -S noto-fonts-emoji`)               |
-| Debian, Ubuntu             | `fonts-noto-color-emoji` (`sudo apt install fonts-noto-color-emoji`) |
-| Fedora                     | `google-noto-emoji-color-fonts`                                      |
+If glyphs still fail, run `fc-cache -fv` or wait until the next login. noto-fonts helps on minimal installs that lack other symbol coverage.
 
-After installing, run `fc-cache -fv` if glyphs still fail until the next login. Optional: `noto-fonts` for broader symbol coverage on minimal installs.
+## Windows microphone (Electron, Windows 10 / 11)
 
-## Windows desktop: microphone (Electron, Windows 10 / 11)
+Calls and voice attachments use the mic through Chromium. If the UI has no access or getUserMedia fails, check Windows privacy first. That is a common miss for Win32 apps, Electron included.
 
-Calls and voice attachments use the microphone through Chromium inside the desktop app. If the UI shows no access or **getUserMedia** fails, check **Windows privacy** first (this is a frequent cause for “classic” Win32 apps, including Electron):
+1. Win+R, paste `ms-settings:privacy-microphone`, Enter.
+2. Turn Microphone access on.
+3. Enable Let desktop apps access your microphone (wording varies by Windows version).
+4. If a per-app list appears, make sure MeshChatX is not denied.
 
-1. Press **Win + R**, paste **`ms-settings:privacy-microphone`**, press Enter.
-2. Turn **Microphone access** on.
-3. Enable **Let desktop apps access your microphone** (wording may vary slightly by Windows version).
-4. Ensure MeshChatX is not denied under **Choose which apps can access your microphone** if that list appears.
+Also check Settings, System, Sound so the app is not muted and a working input device is selected.
 
-Also confirm the app is not muted in **Settings → System → Sound** and that a working input device is selected.
+## Offline builds
 
-## Offline Builds
+Two levels:
 
-MeshChatX supports two levels of offline building:
+1. Cached: you already ran `make install` once, so node_modules, .venv, and local caches exist.
+2. Air-gapped: the build machine has never had internet. Build a bundle on a networked machine and copy it over.
 
-1. **Cached offline builds**: you already ran `make install` once and have `node_modules/`, `.venv/`, and local caches.
-2. **Air-gapped (zero-network) builds**: the machine has _never_ had internet. You create an offline bundle on a networked machine and transfer it.
+### Cached offline builds
 
-### Cached Offline Builds
-
-Set `MESHCHATX_OFFLINE_BUILD=1` before running any build command. This skips all network fetches (micron-parser-go WASM, Reticulum manual, repository wheels) and runs package managers in offline mode. If a required cached asset is missing, the build fails with a clear error instead of hanging.
+Set `MESHCHATX_OFFLINE_BUILD=1` before any build command. That skips micron-parser-go WASM, the Reticulum manual, and repository wheel fetches, and runs package managers offline. Missing cache files fail the build instead of hanging.
 
 ```bash
-# Install dependencies offline (requires populated pnpm store and uv cache)
 MESHCHATX_OFFLINE_BUILD=1 make install
-
-# Build frontend + backend offline
 MESHCHATX_OFFLINE_BUILD=1 pnpm run build:offline
-
-# Build Linux desktop packages offline
 MESHCHATX_OFFLINE_BUILD=1 pnpm run dist:linux:offline
-
-# Android Gradle also respects the flag
 MESHCHATX_OFFLINE_BUILD=1 ./gradlew :app:assembleRelease
 ```
 
-> **Note:** Cached offline mode only skips _build-time_ network access. The first `make install` must be run online (or with pre-populated caches) so that `pnpm` and `uv` have the packages available locally.
+Cached mode only skips build-time network. The first `make install` still needs the network, or pre-populated pnpm and uv caches.
 
-### Air-Gapped Builds (No Cache)
+### Air-gapped builds
 
-For machines with no internet access at all, create an offline bundle on a networked machine and transfer it.
-
-**On the online machine:**
+On the online machine:
 
 ```bash
-# Create the bundle (includes node_modules, Python wheels, and tooling caches)
 pnpm run bundle:offline
-
-# Optional: also pre-download packaging tools (appimagetool, etc.)
 bash scripts/create-offline-bundle.sh --warm-packaging
-
-# Transfer the bundle to your air-gapped machine
 tar czf meshchatx-offline-linux-x64.tar.gz -C vendor/offline meshchatx-offline-bundle-*/
 ```
 
-**On the air-gapped machine:**
+`--warm-packaging` is optional. It pre-downloads tools such as appimagetool.
+
+On the air-gapped machine:
 
 ```bash
-# Extract the bundle into the project
 tar xzf meshchatx-offline-linux-x64.tar.gz
-
-# Install from the bundle (extracts node_modules and sets up caches)
 bash scripts/install-offline.sh
-
-# Build completely offline
 MESHCHATX_OFFLINE_BUILD=1 make build
-
-# Or package offline
 MESHCHATX_OFFLINE_BUILD=1 pnpm run dist:linux
 ```
 
-The bundle is platform-specific because it contains native binaries (Electron, esbuild, etc.). Create it on the same OS/architecture as the air-gapped build host.
+The bundle is platform-specific (Electron, esbuild, and other native binaries). Create it on the same OS and architecture as the air-gapped host. That host still needs node, pnpm, uv, and python3. The bundle is dependencies and caches, not the toolchain.
 
-Prerequisites on the air-gapped machine: `node`, `pnpm`, `uv`, and `python3` must be installed (the bundle provides all dependencies and caches, not the toolchain itself).
+Android is separate. The offline bundle does not include Chaquopy wheels. Build those on an online machine with `bash scripts/build-android-wheels-local.sh`, copy android/vendor/ next to the project, then run Gradle with `MESHCHATX_OFFLINE_BUILD=1`.
 
-> **Android builds:** The offline bundle does **not** include Android Chaquopy wheels. Build those separately on an online machine (`bash scripts/build-android-wheels-local.sh`) and copy `android/vendor/` to the air-gapped host alongside the project. Then run Gradle with `MESHCHATX_OFFLINE_BUILD=1`.
-
-## Build Desktop Packages from Source
-
-These scripts are defined in `package.json` and `Taskfile.yml`.
-
-### Linux x64 AppImage + DEB
+## Desktop packages from source
 
 ```bash
 pnpm run dist:linux-x64
-```
-
-### Linux arm64 AppImage + DEB
-
-```bash
 pnpm run dist:linux-arm64
-```
-
-### RPM
-
-```bash
 pnpm run dist:rpm
-```
-
-Or through Task:
-
-```bash
 task dist:fe:rpm
 ```
 
+Windows (x64 and arm64) and macOS (arm64 and universal) scripts are in package.json for local builds.
+
 ## Container build (wheel, AppImage, deb, rpm)
 
-`Dockerfile.build` runs the same shell-driven steps CI uses (Poetry, pnpm, `task`, packaging APT deps). It is oriented toward **linux/amd64** (NodeSource amd64 tarball, Task amd64 binary). Default target is everything; override with a build arg.
+[Dockerfile.build](Dockerfile.build) runs the same shell steps CI uses (Poetry, pnpm, task, packaging APT deps). It is aimed at linux/amd64 (NodeSource amd64 tarball, Task amd64 binary).
 
-Targets for `MESHCHATX_BUILD_TARGETS`: `all` (default), `wheel`, or `electron` (AppImage + deb for x64 and arm64, best-effort RPM, no wheel).
-
-Build:
+`MESHCHATX_BUILD_TARGETS` defaults to all. Other values: wheel, or electron (AppImage + deb for x64 and arm64, best-effort RPM, no wheel).
 
 ```bash
 docker build -f Dockerfile.build -t meshchatx-build:local .
-```
-
-Build only a wheel:
-
-```bash
 docker build -f Dockerfile.build --build-arg MESHCHATX_BUILD_TARGETS=wheel -t meshchatx-build:wheel .
 ```
 
-Copy `/artifacts` from the finished image to the host:
+Copy artifacts off the image:
 
 ```bash
 cid=$(docker create meshchatx-build:local)
@@ -344,83 +276,60 @@ docker cp "${cid}:/artifacts" ./meshchatx-artifacts
 docker rm "${cid}"
 ```
 
-## Architecture Support Summary
-
-- Docker image: `amd64`, `arm64`
-- Linux AppImage: `x64`, `arm64`
-- Linux DEB: `x64`, `arm64`
-- Windows: `x64`, `arm64` (build scripts available)
-- macOS: build scripts available (`arm64`, `universal`) for local build environments
-- Android: universal APK only (see [`android/README.md`](android/README.md))
-
 ## Android
 
-MeshChatX supports native Android APK builds (not only Termux).
-
-### Build APKs from source
-
-From repo root:
+Native APK builds, not only Termux. From the repo root:
 
 ```bash
-# 1) Build Chaquopy wheels used by android/app/build.gradle
 bash scripts/build-android-wheels-local.sh
-
-# 2) Build universal APKs (one debug + one release per run; see android/README.md)
 cd android
 ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
 ```
 
-Offline Android builds are supported by setting `MESHCHATX_OFFLINE_BUILD=1`:
+Offline:
 
 ```bash
 MESHCHATX_OFFLINE_BUILD=1 ./gradlew --no-daemon :app:assembleRelease
 ```
 
-This skips the repository wheels fetch step. The `android/vendor/` wheels and `meshchatx/public/repository-server-bundled/bundled/` must already be present.
+That skips the repository wheels fetch. android/vendor/ wheels and meshchatx/public/repository-server-bundled/bundled/ must already be present.
 
-There is a **single** Android variant. Gradle syncs the full `meshchatx/` tree into `app/src/main/python/meshchatx/`, including the offline repository wheel bundle. Published and documented builds use **universal** packaging only: one debug APK and one release APK per run, each containing the native ABIs configured in `android/app/build.gradle`.
+There is one Android variant. Gradle syncs the full meshchatx/ tree into app/src/main/python/meshchatx/, including the offline repository wheel bundle. Published builds are universal: one debug APK and one release APK per run, with the native ABIs from android/app/build.gradle.
 
-- Debug: `android/app/build/outputs/apk/debug/app-debug.apk`
-- Release: `android/app/build/outputs/apk/release/app-release-unsigned.apk`
+- Debug: android/app/build/outputs/apk/debug/app-debug.apk
+- Release: android/app/build/outputs/apk/release/app-release-unsigned.apk
 
-Notes:
+Release APKs are unsigned unless you configure signing (scripts/sign-android-apks.sh). Native ABIs follow android/app/build.gradle, including armeabi-v7a when that ABI is enabled. Building those wheels needs an Android SDK on ANDROID_HOME.
 
-- Release outputs are unsigned by default unless you configure signing (`scripts/sign-android-apks.sh`).
-- Native ABIs embedded in the universal APK follow `android/app/build.gradle` (including `armeabi-v7a` when enabled). Building wheels for `armeabi-v7a` needs an Android SDK on `ANDROID_HOME` (see `android/README.md`).
-- If repo root `dist/reticulum_meshchatx-*.whl` exists (for example from `python -m build --wheel -o dist .`), bundled repository refresh prefers that wheel over PyPI for the MeshChatX package. CI builds that wheel before the Android Gradle step.
+If dist/reticulum_meshchatx-*.whl exists (for example from `python -m build --wheel -o dist .`), bundled repository refresh prefers that wheel over PyPI. CI builds that wheel before the Android Gradle step.
 
-Additional docs:
-
-- [`docs/en/platform-guides/android-termux.md`](docs/en/platform-guides/android-termux.md)
-- [`android/README.md`](android/README.md)
+More: [android-termux.md](docs/en/platform-guides/android-termux.md), [android/README.md](android/README.md).
 
 ## Configuration
 
-MeshChatX supports both CLI args and env vars.
+CLI args and matching env vars:
 
-| Argument                   | Environment Variable                     | Default      | Description                                                                                                                                                                |
-| -------------------------- | ---------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--host`                   | `MESHCHAT_HOST`                          | `127.0.0.1`  | Web server bind address                                                                                                                                                    |
-| `--port`                   | `MESHCHAT_PORT`                          | `8000`       | Web server port                                                                                                                                                            |
-| `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`      | Disable HTTPS                                                                                                                                                              |
-| `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | (none)       | PEM certificate and private key paths; both must be set together. Overrides auto-generated certs under the identity `ssl/` directory.                                      |
-| `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | (none)       | Reticulum (RNS) stack log level: `none`, `critical`, `error`, `warning`, `notice`, `verbose`, `debug`, `extreme`, or a numeric level. CLI overrides env when both are set. |
-| `--headless`               | `MESHCHAT_HEADLESS`                      | `false`      | Do not auto-launch browser                                                                                                                                                 |
-| `--auth`                   | `MESHCHAT_AUTH`                          | `false`      | Enable basic auth                                                                                                                                                          |
-| `--reset-password`         | `MESHCHAT_RESET_PASSWORD`                | `false`      | Clear the stored password hash so a new password can be set via the web UI                                                                                                 |
-| `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage`  | Data directory                                                                                                                                                             |
-| `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | auto/bundled | Frontend files directory (needed for source installs without bundled assets)                                                                                               |
+| Argument | Environment variable | Default | Description |
+| --- | --- | --- | --- |
+| `--host` | `MESHCHAT_HOST` | `127.0.0.1` | Web server bind address |
+| `--port` | `MESHCHAT_PORT` | `8000` | Web server port |
+| `--no-https` | `MESHCHAT_NO_HTTPS` | `false` | Disable HTTPS |
+| `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | (none) | PEM cert and key. Both must be set. Overrides auto-generated certs under the identity ssl/ directory. |
+| `--rns-log-level` | `MESHCHAT_RNS_LOG_LEVEL` | (none) | RNS log level: none, critical, error, warning, notice, verbose, debug, extreme, or a number. CLI wins if both are set. |
+| `--headless` | `MESHCHAT_HEADLESS` | `false` | Do not auto-launch a browser |
+| `--auth` | `MESHCHAT_AUTH` | `false` | Enable basic auth |
+| `--reset-password` | `MESHCHAT_RESET_PASSWORD` | `false` | Clear the stored password hash so a new one can be set in the UI |
+| `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | Data directory |
+| `--public-dir` | `MESHCHAT_PUBLIC_DIR` | auto/bundled | Frontend files. Needed for source installs without bundled assets. |
 
 ## Branches
 
-| Branch   | Purpose                                                         |
-| -------- | --------------------------------------------------------------- |
-| `master` | Stable releases. Production-ready code only.                    |
-| `dev`    | Active development. May contain breaking or incomplete changes. |
+| Branch | Purpose |
+| --- | --- |
+| master | Stable releases |
+| dev | Active development. May be incomplete or breaking. |
 
 ## Development
-
-Common tasks from `Taskfile.yml`:
 
 ```bash
 task install
@@ -430,75 +339,70 @@ task test
 task build
 ```
 
-`Makefile` targets are thin shims that delegate to `task` (same commands as above):
+Makefile targets call the same Taskfile commands:
 
-| Command                | Delegates to   | Description                                   |
-| ---------------------- | -------------- | --------------------------------------------- |
-| `make install`         | `task install` | Install pnpm and UV dependencies              |
-| `make run`             | `task run`     | Run MeshChatX via UV                          |
-| `make build`           | `task build`   | Build frontend and backend artifacts          |
-| `make format`          | `task format`  | Format frontend and backend code              |
-| `make lint`            | `task lint`    | ESLint, vue-tsc, knip, Ruff, and basedpyright |
-| `make test`            | `task test`    | Run frontend and backend tests                |
-| `make clean`           | `task clean`   | Remove build artifacts and node_modules       |
-| `make tree-rsm-verify` | (shell)        | Verify `meshchatx.rsm` signature and hashes   |
-| `make tree-rsm-sign`   | (shell)        | Sign tree inventory (requires `RNS_ID_PATH`)  |
-| `make hooks-install`   | (shell)        | Enable tracked pre-commit RSM resign hook     |
+| Command | Delegates to | Description |
+| --- | --- | --- |
+| make install | task install | Install pnpm and UV dependencies |
+| make run | task run | Run MeshChatX via UV |
+| make build | task build | Build frontend and backend artifacts |
+| make format | task format | Format frontend and backend |
+| make lint | task lint | ESLint, vue-tsc, knip, Ruff, basedpyright |
+| make test | task test | Frontend and backend tests |
+| make clean | task clean | Remove build artifacts and node_modules |
+| make tree-rsm-verify | (shell) | Verify meshchatx.rsm signature and hashes |
+| make tree-rsm-sign | (shell) | Sign tree inventory (needs RNS_ID_PATH) |
+| make hooks-install | (shell) | Enable tracked pre-commit RSM resign hook |
 
 ## Versioning
 
-Current version in this repo is `4.8.3`.
+Current version is 4.8.3.
 
-- **`package.json`** `version` is the only value you edit for a release bump.
-- Run **`pnpm run version:sync`** (also run at the start of **`pnpm run build`**) to propagate that version into **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (product line), **README** / **lang/README.\*** “current version” lines, **`docs/en/platform-guides/raspberry-pi.md`** pipx example, and **`packaging/arch/PKGBUILD`** helpers.
-- **`meshchatx.__version__`** is read from **`meshchatx/src/version.py`** without importing **`meshchatx.src`**, so a plain `import meshchatx` stays lightweight.
-- **Changelog** entries stay manual when you cut a release.
+Edit the version field in package.json, then run `pnpm run version:sync` (also the first step of `pnpm run build`). That copies the number into pyproject.toml, the Python version modules, Android Gradle, electron/app-version.json, this README and the translated READMEs, the Raspberry Pi pipx example, Arch PKGBUILD helpers, third-party notices, and GitHub issue-template placeholders.
 
-## Troubleshooting: database corruption and full data reset
+Changelog entries are still written by hand when you cut a release. meshchatx.__version__ is read from meshchatx/src/version.py without importing meshchatx.src, so `import meshchatx` stays lightweight.
 
-If MeshChatX fails to start with errors such as `database disk image is malformed`, `DatabaseError`, or corrupted ratchet data, the desktop crash screen now offers recovery actions:
+## Database corruption and data reset
 
-- **Restore latest backup** from `database-backups/` or `snapshots/` inside your MeshChatX storage folder
-- **Choose backup file** to restore a `.zip` you saved elsewhere
-- **Try auto-repair** to relaunch with `--auto-recover` (SQLite checkpoint / integrity pass)
-- **Emergency mode** to open the app without the database so you can export data from About when possible
-- **Copy reset instructions** with the exact folders to delete for a clean reinstall
+If MeshChatX fails to start with errors such as `database disk image is malformed`, DatabaseError, or corrupted ratchet data, the desktop crash screen offers:
 
-### Where MeshChatX stores data
+- Restore latest backup from database-backups/ or snapshots/ inside the MeshChatX storage folder
+- Choose backup file for a zip you saved elsewhere
+- Try auto-repair (`--auto-recover`: SQLite checkpoint / integrity pass)
+- Emergency mode, which opens the app without the database so you can export from About when possible
+- Copy reset instructions with the folders to delete for a clean reinstall
 
-| Platform         | MeshChatX storage                              | Reticulum network stack              |
-| ---------------- | ---------------------------------------------- | ------------------------------------ |
-| Linux / macOS    | `~/.reticulum-meshchatx/`                      | `~/.reticulum/`                      |
-| Windows          | `%USERPROFILE%\.reticulum-meshchatx\`          | `%USERPROFILE%\.reticulum\`          |
+### Storage locations
+
+| Platform | MeshChatX storage | Reticulum network stack |
+| --- | --- | --- |
+| Linux / macOS | `~/.reticulum-meshchatx/` | `~/.reticulum/` |
+| Windows | `%USERPROFILE%\.reticulum-meshchatx\` | `%USERPROFILE%\.reticulum\` |
 | Windows portable | `<MeshChatX.exe folder>\.reticulum-meshchatx\` | `<MeshChatX.exe folder>\.reticulum\` |
 
-Legacy Reticulum MeshChat data may still exist at `~/.reticulum-meshchat/` (or the Windows equivalent).
+Legacy Reticulum MeshChat data may still exist at `~/.reticulum-meshchat/` (or the Windows equivalent). Automatic database backups go to database-backups/ inside the MeshChatX storage folder after a successful run.
 
-Automatic database backups are written to:
+### Complete removal
 
-`database-backups/` inside the MeshChatX storage folder when the app has run successfully before.
+Quit MeshChatX. On Windows, also end ReticulumMeshChatX.exe in Task Manager if it is still running. Then delete the MeshChatX storage folder and the Reticulum config folder for your install type. That removes the local identity, messages, contacts, path cache, and ratchet state. The next launch creates a new identity unless you restore a backup first.
 
-### Complete removal (start fresh)
-
-Quit MeshChatX completely. On Windows, also end `ReticulumMeshChatX.exe` in Task Manager if it is still running. Then delete the MeshChatX storage folder and the Reticulum config folder for your install type (see table above). This removes your local identity, messages, contacts, path cache, and ratchet state. The next launch creates a new identity unless you restore from a backup first.
-
-**Linux / macOS example:**
+Linux / macOS:
 
 ```bash
 rm -rf ~/.reticulum-meshchatx ~/.reticulum ~/.reticulum-meshchat
 ```
 
-**Windows (PowerShell) example:**
+Windows PowerShell:
 
 ```powershell
 Remove-Item -Recurse -Force "$env:USERPROFILE\.reticulum-meshchatx", "$env:USERPROFILE\.reticulum", "$env:USERPROFILE\.reticulum-meshchat" -ErrorAction SilentlyContinue
 ```
 
-Custom installs: if you pass `--storage-dir` or `--reticulum-config-dir`, remove those directories instead of the defaults.
+If you pass `--storage-dir` or `--reticulum-config-dir`, delete those directories instead.
 
-### Command-line restore (advanced)
+### Command-line restore
 
-When the backend can start briefly or you run from source:
+When the backend can start briefly, or you run from source:
 
 ```bash
 meshchatx --storage-dir /path/to/storage --restore-db /path/to/backup.zip
@@ -506,51 +410,46 @@ meshchatx --storage-dir /path/to/storage --restore-db /path/to/backup.zip
 
 ## Security
 
-Security and integrity details:
+- [SECURITY.md](SECURITY.md)
+- [LEGAL.md](LEGAL.md)
+- Built-in integrity checks and HTTPS/WSS defaults at runtime
+- CI and release builds on GitHub Actions
 
-- [`SECURITY.md`](SECURITY.md)
-- [`LEGAL.md`](LEGAL.md)
-- Built-in integrity checks and HTTPS/WSS defaults in app runtime.
-- CI and release builds on GitHub Actions.
+## Adding a language
 
-## Adding a Language
+My workflow: ArgosTranslate, then a local LLM (Qwen 3 + Gemma 4).
 
-My workflow: ArgosTranslate -> Local LLM (Qwen 3 + Gemma 4)
+People are welcome to send fixes via LXMF (`f489752fbef161c64d65e385a4e9fc74`) or however you can reach me.
 
-People are then welcome to submit fixes to me via LXMF (`f489752fbef161c64d65e385a4e9fc74`) or wherever you can contact me.
+Locale discovery is automatic. Add a file under meshchatx/src/frontend/locales/ (for example xx.json) with the same keys as en.json and a top-level `_languageName` string for the selector label. Copy en.json and translate the values. Machine-assisted generation is optional.
 
-Locale discovery is automatic. Add a new file under `meshchatx/src/frontend/locales/` (for example `xx.json`) with the same keys as `en.json` and a top-level `_languageName` string for the label shown in the language selector. You can copy `en.json` and translate every value by hand; **machine-assisted generation is optional** and never required.
-
-**Optional: Argos Translate bootstrap.** For a machine-generated first draft from `en.json`, use `scripts/argos_translate.py`. It handles formatting, color output, and protects interpolation variables (like `{count}`) from accidental edits.
+For a machine-generated first draft from en.json, use scripts/argos_translate.py. It keeps interpolation variables such as `{count}` intact.
 
 ```bash
-# Install argostranslate if you haven't already
 pipx install argostranslate
-
-# Run the translation script
 python scripts/argos_translate.py --from en --to xx --input meshchatx/src/frontend/locales/en.json --output meshchatx/src/frontend/locales/xx.json --name "Your Language Name"
 ```
 
-After any machine-assisted pass, have an LLM or a human reviewer verify grammar, context, and tone (for example formal vs informal).
+After a machine pass, have an LLM or a human check grammar, context, and tone.
 
-Run `pnpm test -- tests/frontend/i18n.test.js --run` to verify key parity with `en.json`.
+```bash
+pnpm test -- tests/frontend/i18n.test.js --run
+```
 
-No other code changes are required. The app, language selector, and tests all discover locales from the `meshchatx/src/frontend/locales/` directory at build time.
+That checks key parity with en.json. No other code changes. The app, language selector, and tests pick up locales from meshchatx/src/frontend/locales/ at build time.
 
 ## Donation
 
-Donations are voluntary. They help fund time and effort to develop this app.
+Donations are voluntary. They help fund time spent on this app.
 
-**Ways to give:** [`donate.md`](donate.md) (Monero, Ko-Fi, Buy Me a Coffee).
+Ways to give: [donate.md](donate.md) (Monero, Ko-Fi, Buy Me a Coffee).
 
 ## Credits
 
-- [Liam Cottle](https://github.com/liamcottle) - Original Reticulum MeshChat
+- [Liam Cottle](https://github.com/liamcottle) - original Reticulum MeshChat
 - [RFnexus](https://github.com/RFnexus) - micron parser JavaScript work
 - [markqvist](https://github.com/markqvist) - Reticulum, LXMF, LXST
 
 ## License
 
-Project-owned portions are licensed under 0BSD.
-Original upstream portions from Reticulum MeshChat remain under MIT.
-See [`LICENSE`](LICENSE) for full text and notices.
+Project-owned portions are 0BSD. Original upstream portions from Reticulum MeshChat remain MIT. Full text: [LICENSE](LICENSE).
