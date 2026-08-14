@@ -8,6 +8,8 @@ const preloadPath = path.resolve(__dirname, "../../electron/preload.js");
 const rootRequire = createRequire(import.meta.url);
 const nodeModule = rootRequire("module");
 
+const TRUSTED_SHELL_HREF = "https://127.0.0.1:9337/#/messages";
+
 function loadPreloadWithElectronMock(mockElectron) {
     const orig = nodeModule.prototype.require;
     nodeModule.prototype.require = function patchedRequire(id) {
@@ -25,8 +27,20 @@ function loadPreloadWithElectronMock(mockElectron) {
 }
 
 describe("electron/preload", () => {
+    let previousLocation;
+
+    beforeEach(() => {
+        previousLocation = globalThis.location;
+        globalThis.location = { href: TRUSTED_SHELL_HREF };
+    });
+
     afterEach(() => {
         delete rootRequire.cache[preloadPath];
+        if (previousLocation === undefined) {
+            delete globalThis.location;
+        } else {
+            globalThis.location = previousLocation;
+        }
     });
 
     it("registers contextBridge API and forwards invoke to ipcRenderer", async () => {

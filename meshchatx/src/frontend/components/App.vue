@@ -538,7 +538,11 @@ import AppSidebarClassicNav from "./layout/AppSidebarClassicNav.vue";
 import AppSidebarClassicFooter from "./layout/AppSidebarClassicFooter.vue";
 import KeyboardShortcuts from "../js/KeyboardShortcuts";
 import ElectronUtils from "../js/ElectronUtils";
-import { shouldShowLanBindNoAuthBanner, dismissLanBindNoAuthBanner, isLanBindNoAuthBannerDismissed } from "../js/lanBindWarning.js";
+import {
+    shouldShowLanBindNoAuthBanner,
+    dismissLanBindNoAuthBanner,
+    isLanBindNoAuthBannerDismissed,
+} from "../js/lanBindWarning.js";
 import { isMeshChatXAndroid } from "../js/webAudioMicPermission.js";
 import { postRequestPath } from "../js/reticulumPathfinding.js";
 import { fetchCsrfToken } from "../js/csrfToken.js";
