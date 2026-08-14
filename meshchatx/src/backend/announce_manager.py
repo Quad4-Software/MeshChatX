@@ -4,6 +4,8 @@ import base64
 
 from .database import Database
 
+MAX_ANNOUNCE_APP_DATA_BYTES = 2048
+
 _ASPECT_MAX_STORED_KEYS = {
     "lxmf.delivery": "announce_max_stored_lxmf_delivery",
     "nomadnetwork.node": "announce_max_stored_nomadnetwork_node",
@@ -115,7 +117,13 @@ class AnnounceManager:
         }
 
         if app_data is not None:
-            data["app_data"] = base64.b64encode(app_data).decode("utf-8")
+            raw = (
+                bytes(app_data)
+                if isinstance(app_data, (bytes, bytearray, memoryview))
+                else None
+            )
+            if raw is not None and len(raw) <= MAX_ANNOUNCE_APP_DATA_BYTES:
+                data["app_data"] = base64.b64encode(raw).decode("utf-8")
 
         self.db.announces.upsert_announce(data)
 

@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
 import json
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -9,23 +8,16 @@ _BUNDLED = Path(__file__).resolve().parent / "data" / "community_interfaces.json
 
 
 class CommunityInterfacesManager:
-    """Load suggested interface presets from cache, public override, or bundled data."""
+    """Load suggested interface presets from a public override or bundled data."""
 
-    def __init__(
-        self,
-        public_override_path: str | None = None,
-        cache_path: str | Path | None = None,
-    ):
+    def __init__(self, public_override_path: str | None = None):
         self._public_override_path = public_override_path
-        self._cache_path = Path(cache_path) if cache_path else None
         self.interfaces = self._load_raw()
 
     def _candidate_paths(self) -> list[Path]:
         paths: list[Path] = []
         if self._public_override_path:
             paths.append(Path(self._public_override_path))
-        if self._cache_path:
-            paths.append(self._cache_path)
         paths.append(_BUNDLED)
         return paths
 
@@ -79,45 +71,6 @@ class CommunityInterfacesManager:
             if tp is not None and tp != "":
                 out["target_port"] = int(tp)
         return out
-
-    def refresh_from_directory(
-        self,
-        url: str | None = None,
-        timeout: float = 60.0,
-    ) -> dict[str, Any]:
-        from meshchatx.src.backend.community_interfaces_directory import (
-            build_interfaces_from_directory_url,
-        )
-
-        interfaces, resolved_url = build_interfaces_from_directory_url(
-            url,
-            timeout=timeout,
-        )
-        if not interfaces:
-            raise ValueError("Directory returned no usable interface presets")
-        if self._cache_path:
-            self._cache_path.parent.mkdir(parents=True, exist_ok=True)
-            doc = {
-                "_comment": "MeshChatX cache from in-app directory refresh. Load order is public "
-                "community_interfaces.json, then this cache, then bundled presets.",
-                "_source": resolved_url,
-                "_refreshed_at": datetime.now(UTC).replace(microsecond=0).isoformat(),
-                "interfaces": interfaces,
-            }
-            self._cache_path.write_text(
-                json.dumps(doc, indent=2, ensure_ascii=False) + "\n",
-                encoding="utf-8",
-            )
-            self.interfaces = self._load_raw()
-        else:
-            self.interfaces = [
-                self._normalize_entry(dict(x))
-                for x in interfaces
-                if isinstance(x, dict)
-            ]
-        if not self.interfaces:
-            raise ValueError("No interface presets after refresh")
-        return {"count": len(self.interfaces), "source": resolved_url}
 
     async def get_interfaces(self) -> list[dict[str, Any]]:
         return [{**iface, "online": None, "last_check": 0} for iface in self.interfaces]
