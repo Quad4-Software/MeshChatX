@@ -57,10 +57,10 @@
 
             <template v-else>
                 <div
-                    class="z-100 flex shrink-0 bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 border-b min-h-16 shadow-xs transition-colors pt-[env(safe-area-inset-top,0px)]"
+                    class="z-100 flex shrink-0 bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 border-b min-h-12 sm:min-h-14 shadow-xs transition-colors pt-[env(safe-area-inset-top,0px)]"
                 >
                     <div
-                        class="flex w-full min-h-16 items-center gap-0 overflow-x-auto no-scrollbar pl-2 pr-2 sm:ps-0 sm:pe-4"
+                        class="flex w-full min-h-12 sm:min-h-14 items-center gap-0 overflow-x-auto no-scrollbar pl-2 pr-2 sm:ps-0 sm:pe-3"
                     >
                         <button
                             type="button"
@@ -70,13 +70,13 @@
                             <MaterialDesignIcon :icon-name="isSidebarOpen ? 'close' : 'menu'" class="size-6" />
                         </button>
                         <div class="flex min-w-0 flex-1 items-center gap-2 sm:flex-initial sm:gap-3">
-                            <div class="hidden shrink-0 justify-start sm:flex sm:w-14 sm:justify-center">
+                            <div class="hidden shrink-0 justify-start sm:flex sm:w-12 sm:justify-center">
                                 <div
-                                    class="flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-xl sm:h-14 sm:w-14"
+                                    class="flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-xl sm:h-12 sm:w-12"
                                     @click="onAppNameClick"
                                 >
                                     <img
-                                        class="h-9 w-9 max-h-full max-w-full object-contain sm:h-[3.25rem] sm:w-[3.25rem]"
+                                        class="h-9 w-9 max-h-full max-w-full object-contain sm:h-11 sm:w-11"
                                         :src="logoUrl"
                                         alt=""
                                     />
@@ -84,12 +84,12 @@
                             </div>
                             <div class="hidden min-w-0 leading-tight sm:block">
                                 <div
-                                    class="font-semibold cursor-pointer text-gray-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors tracking-tight text-lg"
+                                    class="font-semibold cursor-pointer text-gray-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors tracking-tight text-base"
                                     @click="onAppNameClick"
                                 >
                                     {{ $t("app.name") }}
                                 </div>
-                                <div class="text-sm text-gray-600 dark:text-zinc-300">
+                                <div class="text-xs text-gray-600 dark:text-zinc-300">
                                     {{ $t("app.tagline") }}
                                 </div>
                             </div>
@@ -97,25 +97,25 @@
                         <div class="flex ml-auto shrink-0 items-center mr-0 sm:mr-2 space-x-1 sm:space-x-2">
                             <button
                                 type="button"
-                                class="relative hidden sm:inline-flex rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                class="relative hidden sm:inline-flex rounded-full p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
                                 :title="config?.theme === 'dark' ? $t('app.light_theme') : $t('app.dark_theme')"
                                 @click="toggleTheme"
                             >
                                 <MaterialDesignIcon
                                     :icon-name="config?.theme === 'dark' ? 'brightness-6' : 'brightness-4'"
-                                    class="w-5 h-5 sm:w-6 sm:h-6"
+                                    class="w-5 h-5"
                                 />
                             </button>
                             <LanguageSelector class="hidden sm:block" @language-change="onLanguageChange" />
                             <button
                                 type="button"
-                                class="hidden sm:inline-flex rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                class="hidden sm:inline-flex rounded-full p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
                                 :title="commandPaletteTitle"
                                 :aria-label="commandPaletteTitle"
                                 data-testid="header-command-palette"
                                 @click="openCommandPalette"
                             >
-                                <MaterialDesignIcon icon-name="magnify" class="w-5 h-5 sm:w-6 sm:h-6" />
+                                <MaterialDesignIcon icon-name="magnify" class="w-5 h-5" />
                             </button>
                             <button
                                 v-if="rrcEnabled"
@@ -126,7 +126,7 @@
                                 data-testid="header-relay-chat"
                                 @click="$router.push({ name: 'relay-chat' })"
                             >
-                                <MaterialDesignIcon icon-name="forum" class="w-5 h-5 sm:w-6 sm:h-6" />
+                                <MaterialDesignIcon icon-name="forum" class="w-5 h-5" />
                                 <span
                                     v-if="relayChatUnreadCount > 0"
                                     class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
@@ -142,7 +142,7 @@
                                 data-testid="header-telephone"
                                 @click="$router.push({ name: 'call' })"
                             >
-                                <MaterialDesignIcon icon-name="phone" class="w-5 h-5 sm:w-6 sm:h-6" />
+                                <MaterialDesignIcon icon-name="phone" class="w-5 h-5" />
                                 <span
                                     v-if="missedCallsCount > 0"
                                     class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
@@ -173,11 +173,11 @@
                             </button>
                             <button type="button" class="hidden sm:flex rounded-full" @click="syncPropagationNode">
                                 <span
-                                    class="flex text-gray-800 dark:text-zinc-100 bg-white dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-blue-400/60 px-3 py-1.5 rounded-full shadow-xs transition"
+                                    class="flex text-gray-800 dark:text-zinc-100 bg-white dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-blue-400/60 px-2.5 py-1 rounded-full shadow-xs transition"
                                 >
                                     <MaterialDesignIcon
                                         icon-name="refresh"
-                                        class="size-6"
+                                        class="size-5"
                                         :class="{ 'animate-spin': isSyncingPropagationNode }"
                                     />
                                     <span class="hidden sm:inline-block my-auto mx-1 text-sm font-medium">{{
@@ -192,9 +192,9 @@
                                 @click="cancelInboundDeliveries"
                             >
                                 <span
-                                    class="flex text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-500/60 px-3 py-1.5 rounded-full shadow-xs transition"
+                                    class="flex text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-500/60 px-2.5 py-1 rounded-full shadow-xs transition"
                                 >
-                                    <MaterialDesignIcon icon-name="close-circle-outline" class="size-6" />
+                                    <MaterialDesignIcon icon-name="close-circle-outline" class="size-5" />
                                     <span class="hidden sm:inline-block my-auto mx-1 text-sm font-medium">{{
                                         $t("app.cancel_inbound_deliveries_count", { count: inboundDeliveryCount })
                                     }}</span>
@@ -209,10 +209,10 @@
                                 @click="composeNewMessage"
                             >
                                 <span
-                                    class="flex rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-white shadow-xs transition hover:bg-zinc-800 dark:border-zinc-400 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-white"
+                                    class="flex rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-1 text-white shadow-xs transition hover:bg-zinc-800 dark:border-zinc-400 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-white"
                                 >
                                     <span>
-                                        <MaterialDesignIcon icon-name="email" class="w-5 h-5 sm:w-6 sm:h-6" />
+                                        <MaterialDesignIcon icon-name="email" class="w-5 h-5" />
                                     </span>
                                     <span class="hidden sm:inline-block my-auto mx-1 text-sm font-semibold">{{
                                         $t("app.compose")

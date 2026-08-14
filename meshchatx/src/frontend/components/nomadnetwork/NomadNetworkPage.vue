@@ -53,7 +53,7 @@
 
                 <!-- header -->
                 <div
-                    class="flex min-w-0 items-center gap-1 border-b border-sem-border bg-sem-surface px-2 py-1 sm:px-3"
+                    class="flex min-w-0 items-center gap-1 border-b border-sem-border bg-sem-surface px-2 py-0.5 sm:px-3"
                 >
                     <!-- favourite button -->
                     <div class="my-auto shrink-0">
@@ -322,7 +322,7 @@
 
                 <!-- browser navigation -->
                 <div
-                    class="nomad-browser-chrome flex w-full min-w-0 items-center gap-0.5 overflow-x-auto border-b border-sem-border bg-sem-surface px-2 py-1 sm:gap-1 sm:px-3"
+                    class="nomad-browser-chrome flex w-full min-w-0 items-center gap-0.5 overflow-x-auto border-b border-sem-border bg-sem-surface px-2 py-0.5 sm:gap-1 sm:px-3"
                 >
                     <IconButton
                         class="nomad-icon-btn shrink-0"
@@ -2941,6 +2941,13 @@ export default {
     transition:
         border-color 120ms ease,
         box-shadow 120ms ease;
+}
+
+@media (max-height: 700px) {
+    .nomad-url-input {
+        padding: 0.2rem 0.6rem;
+        font-size: 0.75rem;
+    }
 }
 
 .nomad-url-input:focus {
