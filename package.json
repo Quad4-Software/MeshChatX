@@ -41,7 +41,7 @@
         "test:e2e:install": "playwright install chromium",
         "test:mutation:frontend": "node scripts/mutation/run.mjs",
         "test:mutation:frontend:sample": "node scripts/mutation/run.mjs --source meshchatx/src/frontend/js/rnode/Capabilities.js --max-per-file 20",
-        "electron-postinstall": "electron-builder install-app-deps && node scripts/ensure-micron-parser-package.js && node scripts/patch-electron-builder-fs.cjs && node scripts/patch-electron-installer-common.cjs",
+        "electron-postinstall": "electron-builder install-app-deps && node scripts/ensure-micron-parser-package.js && node scripts/patch-electron-builder-fs.cjs && node scripts/patch-electron-installer-common.cjs && node scripts/bundle-electron-preload.cjs",
         "electron": "pnpm run electron-postinstall && pnpm run build && electron .",
         "dist": "pnpm run electron-postinstall && pnpm run build && electron-builder --publish=never",
         "dist:linux": "pnpm run electron-postinstall && cross-env PLATFORM=linux pnpm run build && electron-builder --linux AppImage deb --publish=never",
@@ -124,6 +124,7 @@
             "appimage": "1.0.2"
         },
         "files": [
+            "package.json",
             "electron/",
             "electron/**"
         ],

@@ -8,6 +8,7 @@
  * meshchatx/src/frontend/public/meshchatx-docs/en/platform-guides/raspberry-pi.md,
  * meshchatx/src/backend/data/licenses_backend.json (reticulum-meshchatx entry),
  * android/app/build.gradle,
+ * electron/app-version.json,
  * pipx example, packaging/arch/PKGBUILD pkgver / printf fallback,
  * then runs scripts/bake_build_meta.js (git commit / channel overlay).
  *
@@ -136,6 +137,9 @@ patchFile("packaging/arch/.SRCINFO", (c) =>
 );
 
 console.log(`Synced version ${version} from package.json`);
+
+const appVersionPath = path.join(root, "electron", "app-version.json");
+writeIfChanged(appVersionPath, `${JSON.stringify({ version }, null, 4)}\n`);
 
 try {
     require("./bake_build_meta.js");

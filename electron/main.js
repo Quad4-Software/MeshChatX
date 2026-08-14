@@ -18,6 +18,7 @@ const fs = require("fs");
 const path = require("node:path");
 
 const { createBackendProcessManager } = require("./backendProcess");
+const { readPackagedAppVersion } = require("./appVersion");
 const { getCrashRecoveryInfo } = require("./offlineRecovery");
 const {
     getUserProvidedArguments,
@@ -47,6 +48,14 @@ const {
 } = require("./desktopPrivacySettings");
 const { getLogsDir } = require("./backendCrashReport");
 const { installBrokenPipeGuards, createMainProcessLogger } = require("./safeConsole");
+
+function resolvePreloadScriptPath() {
+    const bundled = path.join(__dirname, "preload.bundle.js");
+    if (fs.existsSync(bundled)) {
+        return bundled;
+    }
+    return path.join(__dirname, "preload.js");
+}
 
 installBrokenPipeGuards(process);
 
@@ -168,7 +177,7 @@ function trustedIpcHandle(channel, listener) {
 
 // allow fetching app version via ipc
 trustedIpcHandle("app-version", () => {
-    return app.getVersion();
+    return readPackagedAppVersion(app.getVersion());
 });
 
 // allow fetching hardware acceleration status via ipc
@@ -525,7 +534,7 @@ function getChildBrowserWindowOptions() {
     return {
         autoHideMenuBar: true,
         webPreferences: {
-            preload: path.join(__dirname, "preload.js"),
+            preload: resolvePreloadScriptPath(),
             nodeIntegration: false,
             contextIsolation: true,
             sandbox: true,
@@ -1048,7 +1057,7 @@ app.whenReady().then(async () => {
             autoHideMenuBar: true,
             webPreferences: {
                 // used to inject logging over ipc
-                preload: path.join(__dirname, "preload.js"),
+                preload: resolvePreloadScriptPath(),
                 // Security: disable node integration in renderer
                 nodeIntegration: false,
                 // Security: enable context isolation (default in Electron 12+)

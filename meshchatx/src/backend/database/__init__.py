@@ -47,7 +47,29 @@ MIN_SIZE_RATIO = 0.2
 MIN_WIPE_MESSAGE_COUNT = 5
 MESSAGE_DROP_RATIO = 0.5
 MIN_SIZE_COMPARE_BYTES = 100_000
+_MIN_ZIP_DATE_TIME = (1980, 1, 1, 0, 0, 0)
+_EPOCH_1980 = 315532800.0
 _CONTENT_ANOMALY_PREFIX = "Database content anomaly:"
+
+
+def _zip_file_date_time(file_path: str) -> tuple:
+    try:
+        mtime = os.path.getmtime(file_path)
+    except OSError:
+        return _MIN_ZIP_DATE_TIME
+    if mtime < _EPOCH_1980:
+        return _MIN_ZIP_DATE_TIME
+    return time.localtime(mtime)[:6]
+
+
+def _zip_write_file(zf: zipfile.ZipFile, file_path: str, arcname: str | None = None) -> None:
+    name = arcname if arcname is not None else os.path.basename(file_path)
+    with open(file_path, "rb") as handle:
+        data = handle.read()
+    zinfo = zipfile.ZipInfo(filename=name)
+    zinfo.date_time = _zip_file_date_time(file_path)
+    zinfo.compress_type = zipfile.ZIP_DEFLATED
+    zf.writestr(zinfo, data)
 
 _log = logging.getLogger("meshchatx.database")
 
@@ -696,7 +718,7 @@ class Database:
                 rel_path = os.path.relpath(full_path, identity_dir).replace("\\", "/")
                 if rel_path.startswith(".."):
                     continue
-                zf.write(full_path, arcname=rel_path)
+                _zip_write_file(zf, full_path, arcname=rel_path)
                 included.append(rel_path)
         return included
 
@@ -733,11 +755,11 @@ class Database:
         db_basenames = {os.path.basename(p) for p in paths.values()}
         backup_abs = os.path.abspath(backup_path)
         with zipfile.ZipFile(backup_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-            zf.write(paths["main"], arcname=main_filename)
+            _zip_write_file(zf, paths["main"], arcname=main_filename)
             if os.path.exists(paths["wal"]):
-                zf.write(paths["wal"], arcname=f"{main_filename}-wal")
+                _zip_write_file(zf, paths["wal"], arcname=f"{main_filename}-wal")
             if os.path.exists(paths["shm"]):
-                zf.write(paths["shm"], arcname=f"{main_filename}-shm")
+                _zip_write_file(zf, paths["shm"], arcname=f"{main_filename}-shm")
             included = self._add_identity_storage_to_zip(
                 zf,
                 db_basenames,
