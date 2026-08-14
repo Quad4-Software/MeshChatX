@@ -358,7 +358,7 @@ task build
 
 ## 版本管理
 
-本仓库当前版本: `4.8.3`。
+本仓库当前版本: `4.8.4`。
 
 - 发布版本号**只**改 **`package.json` 的 `version`**。
 - 运行 **`pnpm run version:sync`**（在 **`pnpm run build`** 开头也会执行）可将该版本同步到 **`pyproject.toml`**、**`meshchatx/src/version.py`**、**`THIRD_PARTY_NOTICES.txt`**（产品行）、**README** / **lang/README.\*** 中的“当前版本”行、**`docs/en/platform-guides/raspberry-pi.md`** 的 pipx 示例，以及 **`packaging/arch/PKGBUILD`** 的辅助字段。
