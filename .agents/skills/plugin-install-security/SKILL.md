@@ -30,7 +30,8 @@ Plugins are powerful. Treat install and enable as security-sensitive.
 2. User consent on declared permissions / network endpoints
 3. Enable only after grants are stored
 4. Runtime enforces declared + granted hooks / managers / storage / `network:fetch`
-5. Integrity hashing after install. Tampered trees disable, they do not silently run
+5. Integrity hashing after install. Tampered trees disable, they do not silently run. `invoke` and `dispatch_hook` re-hash before backend execution.
+6. Python backends purge `__pycache__` next to the entry file on load so excluded bytecode cannot replace hashed source.
 
 ## Hard rules
 
@@ -55,7 +56,7 @@ Plugins are powerful. Treat install and enable as security-sensitive.
 ## Verification
 
 ```bash
-uv run pytest tests/backend/test_plugin_manager.py tests/backend/test_plugin_permissions.py tests/backend/test_plugin_signature.py tests/backend/test_plugin_integrity.py tests/backend/test_plugin_security.py -q --tb=short
+uv run pytest tests/backend/test_plugin_manager.py tests/backend/test_plugin_permissions.py tests/backend/test_plugin_signature.py tests/backend/test_plugin_integrity.py tests/backend/test_plugin_python_runtime.py tests/backend/test_plugin_security.py -q --tb=short
 ```
 
 Add focused coverage when changing grant normalization, network endpoint scanning, or invoke paths.
