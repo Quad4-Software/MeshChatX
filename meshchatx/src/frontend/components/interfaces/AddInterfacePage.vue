@@ -1958,20 +1958,6 @@
                                 <div class="flex items-center gap-0.5 shrink-0">
                                     <button
                                         type="button"
-                                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 transition-colors p-1 rounded-full"
-                                        :disabled="refreshingCommunityPresets"
-                                        :title="$t('interfaces.community_presets_refresh')"
-                                        :aria-label="$t('interfaces.community_presets_refresh')"
-                                        @click="refreshCommunityPresets"
-                                    >
-                                        <MaterialDesignIcon
-                                            icon-name="refresh"
-                                            class="size-5"
-                                            :class="{ 'animate-spin': refreshingCommunityPresets }"
-                                        />
-                                    </button>
-                                    <button
-                                        type="button"
                                         class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 transition-colors p-1 shrink-0"
                                         :title="$t('interfaces.community_quick_start_hide')"
                                         @click="updateConfig({ show_suggested_community_interfaces: false })"
@@ -2290,8 +2276,6 @@ export default {
             },
 
             savingDiscovery: false,
-            refreshingCommunityPresets: false,
-
             newInterfaceForwardIp: null,
             newInterfaceForwardPort: null,
 
@@ -2748,22 +2732,6 @@ export default {
                 this.communityInterfaces = [];
             } finally {
                 this.communityInterfacesFetchDone = true;
-            }
-        },
-        async refreshCommunityPresets() {
-            if (this.refreshingCommunityPresets) return;
-            this.refreshingCommunityPresets = true;
-            try {
-                const r = await window.api.post("/api/v1/community-interfaces/refresh", {});
-                const n = r.data?.count ?? 0;
-                ToastUtils.success(this.$t("interfaces.community_presets_refreshed", { count: n }));
-                await this.loadCommunityInterfaces();
-            } catch (e) {
-                const msg = e.response?.data?.message || this.$t("interfaces.community_presets_refresh_failed");
-                ToastUtils.error(msg);
-                console.log(e);
-            } finally {
-                this.refreshingCommunityPresets = false;
             }
         },
         async loadInterfaceToEdit(interfaceName) {

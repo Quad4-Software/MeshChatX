@@ -1,7 +1,6 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <!-- eslint-disable vue/no-v-html -->
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
         <ToolsPageHeader
             icon="book-open-variant"
@@ -340,10 +339,12 @@
                                     </div>
                                 </div>
                             </div>
+                            <!-- eslint-disable vue/no-v-html -- sanitized via highlightMatch -->
                             <p
                                 class="mt-1.5 text-xs text-gray-600 dark:text-zinc-400 line-clamp-3 leading-relaxed"
                                 v-html="highlightMatch(result.snippet)"
                             ></p>
+                            <!-- eslint-enable vue/no-v-html -->
                         </div>
                     </div>
                 </div>
@@ -540,12 +541,14 @@
                             class="flex-1 overflow-y-auto scroll-smooth custom-scroll"
                         >
                             <div class="max-w-3xl mx-auto px-5 py-8 md:px-10 md:py-12">
+                                <!-- eslint-disable vue/no-v-html -- sanitized via MarkdownRenderer -->
                                 <article
                                     ref="docsProse"
                                     class="docs-prose max-w-none wrap-break-word"
                                     @click="handleDocClick"
                                     v-html="selectedDocContent.html"
                                 ></article>
+                                <!-- eslint-enable vue/no-v-html -->
                             </div>
                         </div>
                         <div

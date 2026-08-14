@@ -1787,41 +1787,21 @@
                                 </div>
                             </header>
                             <div class="settings-section__body space-y-3">
-                                <div
-                                    class="flex items-start gap-2 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 px-3 py-3"
-                                >
-                                    <label
-                                        class="setting-toggle flex-1 min-w-0 !border-0 !bg-transparent !p-0 !rounded-none"
-                                    >
-                                        <Toggle
-                                            id="show-community-interfaces"
-                                            v-model="config.show_suggested_community_interfaces"
-                                            @update:model-value="onShowSuggestedCommunityInterfacesChangeWrapper"
-                                        />
-                                        <span class="setting-toggle__label">
-                                            <span class="setting-toggle__title">{{
-                                                $t("app.show_community_interfaces")
-                                            }}</span>
-                                            <span class="setting-toggle__description">{{
-                                                $t("app.community_interfaces_description")
-                                            }}</span>
-                                        </span>
-                                    </label>
-                                    <button
-                                        type="button"
-                                        class="shrink-0 inline-flex items-center justify-center rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-2.5 text-gray-700 hover:bg-gray-50 dark:text-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-50"
-                                        :disabled="refreshingCommunityInterfaces"
-                                        :aria-label="$t('app.refresh_community_interfaces')"
-                                        :title="$t('app.refresh_community_interfaces')"
-                                        @click="refreshCommunityInterfacesFromSettings"
-                                    >
-                                        <MaterialDesignIcon
-                                            icon-name="refresh"
-                                            class="w-4 h-4"
-                                            :class="{ 'animate-spin': refreshingCommunityInterfaces }"
-                                        />
-                                    </button>
-                                </div>
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="show-community-interfaces"
+                                        v-model="config.show_suggested_community_interfaces"
+                                        @update:model-value="onShowSuggestedCommunityInterfacesChangeWrapper"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("app.show_community_interfaces")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.community_interfaces_description")
+                                        }}</span>
+                                    </span>
+                                </label>
                             </div>
                         </section>
 
@@ -3157,7 +3137,6 @@ export default {
             selfTestResults: null,
             selfTestExpandedReasons: {},
             rpcKeyVisible: false,
-            refreshingCommunityInterfaces: false,
             desktopCloseSettings: {
                 closeBehavior: "ask",
                 trayEnabled: true,
@@ -3648,23 +3627,6 @@ export default {
                 ...this.selfTestExpandedReasons,
                 [key]: !this.selfTestExpandedReasons?.[key],
             };
-        },
-        async refreshCommunityInterfacesFromSettings() {
-            if (this.refreshingCommunityInterfaces) {
-                return;
-            }
-            this.refreshingCommunityInterfaces = true;
-            try {
-                const r = await window.api.post("/api/v1/community-interfaces/refresh", {});
-                const n = r.data?.count ?? 0;
-                ToastUtils.success(this.$t("interfaces.community_presets_refreshed", { count: n }));
-            } catch (e) {
-                const msg = e.response?.data?.message || this.$t("interfaces.community_presets_refresh_failed");
-                ToastUtils.error(msg);
-                console.error(e);
-            } finally {
-                this.refreshingCommunityInterfaces = false;
-            }
         },
         async loadDesktopCloseSettings() {
             if (!ElectronUtils.isElectron()) {

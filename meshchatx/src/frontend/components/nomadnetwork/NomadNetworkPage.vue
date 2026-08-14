@@ -493,7 +493,7 @@
                             </button>
                         </div>
                     </div>
-                    <!-- eslint-disable vue/no-v-html -->
+                    <!-- eslint-disable vue/no-v-html -- sanitized via renderNomadPageByPath -->
                     <div
                         v-else
                         v-memo="[renderedNodePageHtml, nodePagePath, isShowingNodePageSource]"
@@ -1382,7 +1382,13 @@ export default {
                         this.nodePageLoadPhase = null;
                         this.currentPageDownloadId = null;
                         this.nodePageProgress = 0;
-                        ToastUtils.error(this.$t("nomadnet.failed_to_load_page"));
+                        ToastUtils.error(
+                            this.$t(
+                                nomadnetPageDownload.failure_reason === "page_too_large"
+                                    ? "nomadnet.page_too_large"
+                                    : "nomadnet.failed_to_load_page"
+                            )
+                        );
                         this.nodePageContent = `Failed loading page: ${
                             nomadnetPageDownload.failure_reason || "archive not found"
                         }`;

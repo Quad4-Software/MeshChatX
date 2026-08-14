@@ -1,7 +1,6 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <!-- eslint-disable vue/no-v-html -->
     <div class="flex h-full overflow-hidden bg-sem-canvas text-sem-fg">
         <ArchiveSidebar
             v-if="!isSidebar1Hidden"
@@ -206,6 +205,7 @@
                     <MaterialDesignIcon icon-name="archive-clock-outline" class="size-14 opacity-30" />
                     <div class="text-sm">{{ $t("archives.select_snapshot") }}</div>
                 </div>
+                <!-- eslint-disable vue/no-v-html -- sanitized via renderNomadPageByPath -->
                 <div
                     v-else
                     class="h-full selection:bg-sem-accent/30"
@@ -213,6 +213,7 @@
                     @click.capture="onArchiveContentClick"
                     v-html="renderedContent"
                 ></div>
+                <!-- eslint-enable vue/no-v-html -->
             </div>
         </div>
     </div>

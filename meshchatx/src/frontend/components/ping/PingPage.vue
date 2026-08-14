@@ -1,7 +1,6 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <!-- eslint-disable vue/no-v-html -->
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
         <ToolsPageHeader
             icon="radar"
@@ -15,7 +14,7 @@
             <div class="space-y-4 w-full max-w-4xl mx-auto">
                 <div class="glass-card space-y-5">
                     <div class="text-sm text-gray-600 dark:text-gray-300">
-                        <!-- eslint-disable-next-line vue/no-v-html -->
+                        <!-- eslint-disable vue/no-v-html -- sanitized via $t i18n -->
                         <span
                             v-html="
                                 $t('ping.description', {
@@ -23,6 +22,7 @@
                                 })
                             "
                         ></span>
+                        <!-- eslint-enable vue/no-v-html -->
                     </div>
 
                     <div class="grid md:grid-cols-2 gap-4">

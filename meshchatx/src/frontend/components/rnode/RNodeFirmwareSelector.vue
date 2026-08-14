@@ -13,41 +13,6 @@
             </h2>
         </div>
 
-        <div
-            v-if="recommendedFirmwareFilename"
-            class="p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 bg-blue-50/50 dark:bg-blue-900/10 space-y-3"
-        >
-            <div class="flex items-center justify-between gap-2">
-                <div class="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase">
-                    {{ $t("tools.rnode_flasher.download_recommended") }}
-                </div>
-                <span
-                    v-if="latestRelease?.tag_name"
-                    class="text-[10px] font-mono text-blue-600 dark:text-blue-300 bg-blue-100/60 dark:bg-blue-900/30 px-2 py-0.5 rounded-full"
-                >
-                    {{ latestRelease.tag_name }}
-                </span>
-            </div>
-            <div class="text-sm text-gray-600 dark:text-zinc-400 break-all font-mono">
-                {{ recommendedFirmwareFilename }}
-            </div>
-            <button
-                :disabled="isDownloadingFirmware || !recommendedFirmwareFilename"
-                class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2.5 text-sm font-bold text-white transition-colors disabled:opacity-50"
-                @click="$emit('download-recommended')"
-            >
-                <v-progress-circular v-if="isDownloadingFirmware" indeterminate size="16" width="2" />
-                <MaterialDesignIcon v-else icon-name="cloud-download" class="size-4" />
-                <span>
-                    {{
-                        isDownloadingFirmware
-                            ? $t("tools.rnode_flasher.downloading")
-                            : $t("tools.rnode_flasher.download_recommended")
-                    }}
-                </span>
-            </button>
-        </div>
-
         <div class="space-y-1">
             <label class="rnf-label">{{ $t("tools.rnode_flasher.select_firmware_file") }}</label>
             <input
@@ -92,12 +57,9 @@ export default {
     components: { MaterialDesignIcon },
     props: {
         stepNumber: { type: Number, default: 2 },
-        recommendedFirmwareFilename: { type: String, default: null },
-        latestRelease: { type: Object, default: null },
-        isDownloadingFirmware: { type: Boolean, default: false },
         firmwareFile: { type: Object, default: null },
     },
-    emits: ["download-recommended", "update:firmwareFile"],
+    emits: ["update:firmwareFile"],
     methods: {
         onFileChange(event) {
             const file = event.target.files?.[0] || null;

@@ -71,17 +71,6 @@
                                 <MaterialDesignIcon icon-name="restart" class="w-4 h-4" />
                                 <span>{{ reloadingRns ? $t("app.reloading_rns") : "Restart RNS" }}</span>
                             </button>
-                            <button
-                                type="button"
-                                class="secondary-chip text-sm min-h-[44px] sm:min-h-0 inline-flex items-center justify-center gap-1.5 relative overflow-hidden"
-                                :class="{ 'fill-up': refreshingCommunityInterfaces }"
-                                :disabled="refreshingCommunityInterfaces"
-                                :title="$t('interfaces.community_presets_refresh')"
-                                :aria-label="$t('interfaces.community_presets_refresh')"
-                                @click="refreshCommunityInterfaces"
-                            >
-                                <MaterialDesignIcon icon-name="download" class="w-4 h-4 relative z-10" />
-                            </button>
                         </div>
                     </div>
 
@@ -852,7 +841,6 @@ export default {
             discoveredStatusFilter: "all",
             discoveryInterval: null,
             activeTab: "overview",
-            refreshingCommunityInterfaces: false,
         };
     },
     computed: {
@@ -1708,21 +1696,6 @@ export default {
         },
         filterChipClass(isActive) {
             return isActive ? "primary-chip text-xs" : "secondary-chip text-xs";
-        },
-        async refreshCommunityInterfaces() {
-            if (this.refreshingCommunityInterfaces) return;
-            this.refreshingCommunityInterfaces = true;
-            try {
-                const r = await window.api.post("/api/v1/community-interfaces/refresh", {});
-                const n = r.data?.count ?? 0;
-                ToastUtils.success(this.$t("interfaces.community_presets_refreshed", { count: n }));
-            } catch (e) {
-                const msg = e.response?.data?.message || this.$t("interfaces.community_presets_refresh_failed");
-                ToastUtils.error(msg);
-                console.error(e);
-            } finally {
-                this.refreshingCommunityInterfaces = false;
-            }
         },
         async reloadRns() {
             if (this.reloadingRns) return;
