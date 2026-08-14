@@ -520,11 +520,7 @@ function paletteForId(id, offline, dark) {
     const base = PLANET_PALETTE[Math.abs(h) % PLANET_PALETTE.length];
     const dim = offline ? 0.48 : 1;
     const lift = dark ? 0.0 : 0.12;
-    return [
-        Math.min(1, base[0] * dim + lift),
-        Math.min(1, base[1] * dim + lift),
-        Math.min(1, base[2] * dim + lift),
-    ];
+    return [Math.min(1, base[0] * dim + lift), Math.min(1, base[1] * dim + lift), Math.min(1, base[2] * dim + lift)];
 }
 
 /**
@@ -685,11 +681,7 @@ export function projectPlanetScene(opts) {
             continue;
         }
         const o = i * NODE_STRIDE;
-        const local = layoutToSphere(
-            (srcNodes[o] || 0) - p.originX,
-            (srcNodes[o + 1] || 0) - p.originY,
-            p.layoutScale
-        );
+        const local = layoutToSphere((srcNodes[o] || 0) - p.originX, (srcNodes[o + 1] || 0) - p.originY, p.layoutScale);
         world[i] = {
             x: p.cx + local.x * p.radius,
             y: p.cy + local.y * p.radius,
@@ -749,19 +741,7 @@ export function projectPlanetScene(opts) {
         );
     }
 
-    addSprite(
-        0,
-        0,
-        0,
-        22,
-        dark ? 0.95 : 0.9,
-        dark ? 0.78 : 0.62,
-        dark ? 0.28 : 0.16,
-        0.22,
-        0,
-        0,
-        0
-    );
+    addSprite(0, 0, 0, 22, dark ? 0.95 : 0.9, dark ? 0.78 : 0.62, dark ? 0.28 : 0.16, 0.22, 0, 0, 0);
 
     const projected = new Array(srcCount);
     const pick = [];
@@ -855,12 +835,7 @@ export function projectPlanetScene(opts) {
         const s1 = clipToScreen(clipped.x1, clipped.y1, clipped.w1, width, height);
         const s2 = clipToScreen(clipped.x2, clipped.y2, clipped.w2, width, height);
         if (!s1.ok || !s2.ok) return;
-        if (
-            !Number.isFinite(s1.x) ||
-            !Number.isFinite(s1.y) ||
-            !Number.isFinite(s2.x) ||
-            !Number.isFinite(s2.y)
-        ) {
+        if (!Number.isFinite(s1.x) || !Number.isFinite(s1.y) || !Number.isFinite(s2.x) || !Number.isFinite(s2.y)) {
             return;
         }
         if (Math.hypot(s1.x - s2.x, s1.y - s2.y) > maxSeg) return;
@@ -908,12 +883,7 @@ export function projectPlanetScene(opts) {
 
     for (let p = 0; p < planets.length; p++) {
         const pl = planets[p];
-        const gc = [
-            pl.fill[0] * 0.7 + 0.15,
-            pl.fill[1] * 0.7 + 0.18,
-            pl.fill[2] * 0.75 + 0.22,
-            dark ? 0.42 : 0.48,
-        ];
+        const gc = [pl.fill[0] * 0.7 + 0.15, pl.fill[1] * 0.7 + 0.18, pl.fill[2] * 0.75 + 0.22, dark ? 0.42 : 0.48];
         for (let i = 0; i < grid.length; i++) {
             const ln = grid[i];
             writeWorldSeg(
@@ -934,7 +904,23 @@ export function projectPlanetScene(opts) {
                 pl.radius
             );
         }
-        writeWorldSeg(0, 0, 0, pl.cx, pl.cy, pl.cz, pl.fill[0], pl.fill[1], pl.fill[2], dark ? 0.38 : 0.42, false, 0, 0, 0, 1);
+        writeWorldSeg(
+            0,
+            0,
+            0,
+            pl.cx,
+            pl.cy,
+            pl.cz,
+            pl.fill[0],
+            pl.fill[1],
+            pl.fill[2],
+            dark ? 0.38 : 0.42,
+            false,
+            0,
+            0,
+            0,
+            1
+        );
     }
 
     const EDGE_MATCH = 0.75;
