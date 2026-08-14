@@ -4,19 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [4.8.3] - 2026-08-14
 
-### Changed
-
-- **Runtime clearnet fetches removed**: Micron WASM, RNode firmware, and repository bundled-wheel refresh no longer download from GitHub or other remote URLs at runtime. Build-time bundles and local upload or file pickers remain. Android RNode flasher uses a firmware file picker instead of HTTP download.
-- **LAN bind banner**: Dismissable in the browser UI with persistent dismissal in localStorage. Electron and Android still hide it.
-- **Nomad page size**: Removed the 512 KiB client-side page body cap and `page_too_large` handling. Large page bodies are decoded like before 4.8.2.
-
 ### Fixed
 
 - **Electron AppImage loading**: Loading screen shows the synced package version (`electron/app-version.json`) instead of `v0.0.0`. Sandboxed preload ships as `preload.bundle.js` with `shellOrigin` inlined so `window.electron` IPC works in packaged builds. Loading probe state is initialized before the first status poll so startup does not throw on `startupFailed`.
 - **Pre-migration database backup**: Identity zip backups clamp file mtimes before 1980, so schema upgrades succeed when identity files have ancient timestamps. Fixes AppImage startup failure `ZIP does not support timestamps before 1980`.
-- **Android RNode flasher**: Firmware picker compiles on API 24 (byte stream read instead of `readAllBytes`) and uses an effectively final filename in the background loader lambda.
-- **Android / Electron CI**: RNode flasher lint and compile fixes from the manual firmware upload path. Electron preload tests stub `location` for trusted-origin IPC.
-- **Frontend tests**: `UIThemeAndVisibility.test.js` unmounts App shells after each test so Vitest teardown does not leave shell poll intervals running.
 - **Navigation after backend reconnect**: Router auth checks time out instead of hanging on stale HTTP keep-alive when Docker or the backend restarts. WebSocket reconnect resync refreshes auth session state so sidebar navigation works without a full page reload.
 
 ## [4.8.2] - 2026-08-14
@@ -40,6 +31,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - **Community interface presets**: Runtime no longer fetches directory.rns.recipes. Presets come from bundled `community_interfaces.json` (refreshed at build time via `scripts/build_community_interfaces_json.py`) or an optional `public/community_interfaces.json` override.
+- **Runtime clearnet fetches**: Micron WASM no longer installs from GitHub at runtime (local file upload or the build-time bundle remains). Repository bundled-wheel refresh is build-time only (`POST /api/v1/repository-server/refresh-bundled` is gone).
 - **Slow-interface path and link waits**: Cold path requests use `path_response_window` in `meshchatx/src/backend/path_utils.py`. It takes `Reticulum.get_first_hop_timeout` (not `Transport.first_hop_timeout`, which is the local socket timeout on a shared rnsd client) and an airtime floor from the slowest online interface, clamped to `RNS.Reticulum.MINIMUM_BITRATE` (5 bps). New links wait on `link.establishment_timeout` plus 5 seconds. Nomad pages, RNS Link API, RNCP, FileSync, LXMF outbound path prep, LXST dial, map fetches, remote management, bug-report send, path-probe defaults, and Relay Chat hub identity recall use those helpers. A 15 second window cannot finish a 234-byte path exchange at 125 bits per second.
 - **Dependencies**: LXMF 1.1.1. Unanswered path requests during propagation peer sync now apply sync backoff instead of retrying immediately. Requires RNS 1.4.2 (already pinned).
 - **App sidebar**: Network Visualiser is under Explore with Nomad Network and Map, not in More.
@@ -62,7 +54,7 @@ All notable changes to this project will be documented in this file.
 - **Messages sidebar**: Conversation list updates optimistically when you press Send, before the server acknowledges the message.
 - **E2E**: Playwright API helpers attach CSRF tokens for direct backend POSTs; `pretest:e2e` installs Chromium before the suite runs.
 - **Android LXST / Codec2**: When the Chaquopy pycodec2.so extension is an empty stub, fall back to a ctypes Codec2 binding over the bundled libcodec2.so so LXST Codec2 voice profiles work on device. Still preload jniLibs Codec2 and reload soft-imported LXST bindings after probe.
-- **Android RNode flasher**: Open native flasher returns a real status, keeps USB-serial classes through R8, uses an ActionBar theme, and surfaces startup failures instead of silently doing nothing. Bluetooth Open settings tries GrapheneOS-friendly fallbacks (app details, Bluetooth settings, general Settings) instead of toasting unavailable. In-page Flash/DFU/detect actions reopen the native flasher window and stop instead of failing with a confusing web_serial_unavailable error when Web Serial is not present. Firmware download resolves the configured remote backend origin instead of a hardcoded 127.0.0.1, and only reuses the localhost-only trusted TLS client for the local backend.
+- **Android RNode flasher**: Open native flasher returns a real status, keeps USB-serial classes through R8, uses an ActionBar theme, and surfaces startup failures instead of silently doing nothing. Bluetooth Open settings tries GrapheneOS-friendly fallbacks (app details, Bluetooth settings, general Settings) instead of toasting unavailable. In-page Flash/DFU/detect actions reopen the native flasher window and stop instead of failing with a confusing web_serial_unavailable error when Web Serial is not present. Firmware is chosen with a file picker instead of HTTP download. The picker compiles on API 24 (byte stream read instead of `readAllBytes`) and uses an effectively final filename in the background loader lambda.
 - **Connection banners**: Do not flash disconnected on startup before the first successful WebSocket open. Debounce disconnect UI for 2.5s and only show reconnected when the disconnect banner was actually shown. Foreground recovery prefers a ping for longer before forcing a reconnect.
 - **Android calls**: Clarify that the web audio bridge on Android uses native mic and speaker through the telephone audio bridge, not browser getUserMedia. Toggle label reads "Native Audio Bridge" on Android, and the browser Microphone/Speaker device picker (which does nothing on native audio) is hidden there.
 - **Browser calls (Docker / HTTPS)**: Refresh Devices prompts with bare getUserMedia({ audio: true }) first so Brave and Chromium show the microphone dialog. Constrained requests (echoCancellation and friends) often return NotFoundError before permission is granted and never ask. Clearer toasts for insecure HTTP and pending/denied mic permission.
@@ -76,9 +68,9 @@ All notable changes to this project will be documented in this file.
 - **Plugin integrity at invoke**: `invoke` and `dispatch_hook` re-hash the install tree and refuse tampered backends. Python plugin loads delete `__pycache__` next to the entry file so bytecode excluded from the hash cannot replace source.
 - **Peer HTML sanitizers**: One XSS payload list (`javascript:`, `data:`, `<base>`, SVG, `onerror`, CSS `url()`, nested markdown) runs against MarkdownRenderer, Nomad HTML, MicronParser, and the KML sanitizer. Formatted pages still render. Scriptable nodes fail the oracle.
 - **v-html**: ESLint errors on `v-html` unless the nearby disable comment names a sanitizer (`renderMarkdown`, `renderMessageHtml`, `sanitizeNomadHtml*`, `convertMicronToHtml`, and the other existing sites).
-- **LAN bind**: Browser UI shows a persistent banner when bound off loopback with authentication off. Electron and Android hide it. The process does not exit.
+- **LAN bind**: Browser UI shows a persistent banner when bound off loopback with authentication off. Dismissal is stored in localStorage. Electron and Android hide it. The process does not exit.
 - **Mesh payload caps**: Announce `app_data` above 2048 bytes is omitted from storage (destination and aspect still upsert). Map zip `file_too_large` and RRC 350-byte line caps keep matching oracles.
-- **Outbound HTTP**: New backend `httpx`/`urllib`/`aiohttp` clients must go through `ensure_outbound_http_allowed` or `http_url_guard`. Existing translator, tiles, firmware, community directory, and repository fetches are unchanged.
+- **Outbound HTTP**: New backend `httpx`/`urllib`/`aiohttp` clients must go through `ensure_outbound_http_allowed` or `http_url_guard`. Remaining app fetches are translator and map tiles.
 - **Translator (Landlock)**: On Linux, allow read/execute for user-local pipx CLIs (`~/.local/bin`, `~/.local/share/pipx`) and read-write for Argos Translate data under `~/.local/share/argos-translate`, so argospm language lists and local Argos translation work with the filesystem sandbox enabled.
 - **Tests**: Landlock integration probes for subprocess spawn, translator Argos language listing, user-local CLI execution, and home write denial outside RW roots (tests/backend/test_landlock_integration_surfaces.py).
 - **Windows desktop**: AppContainer sandboxing is opt-in (set `MESHCHAT_APPCONTAINER=1`) instead of on by default, to avoid extra launcher processes and heavy startup until the path is stable.
