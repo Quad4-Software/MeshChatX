@@ -55,6 +55,18 @@ def test_extract_and_collect_network_endpoints(tmp_path):
     text = 'const url = "https://api.example.com/v1"; fetch("http://localhost/ignore");'
     assert extract_urls_from_text(text) == ["https://api.example.com/v1"]
 
+    query = 'fetch("https://api.example.com/?x=127.0.0.1")'
+    assert extract_urls_from_text(query) == ["https://api.example.com/?x=127.0.0.1"]
+    userinfo = 'fetch("http://127.0.0.1:9337@example.com/v1")'
+    assert extract_urls_from_text(userinfo) == ["http://127.0.0.1:9337@example.com/v1"]
+    substring_host = 'fetch("https://notlocalhost.com/a"); fetch("https://127.0.0.1.example.com/")'
+    extracted = extract_urls_from_text(substring_host)
+    assert "https://notlocalhost.com/a" in extracted
+    assert "https://127.0.0.1.example.com/" in extracted
+    assert extract_urls_from_text('fetch("http://localhost/ignore")') == []
+    assert extract_urls_from_text('fetch("http://127.0.0.1:9337/api/v1/plugins/x")') == []
+    assert extract_urls_from_text('fetch("http://[::1]:8000/")') == []
+
     plugin_dir = tmp_path / "plugin"
     plugin_dir.mkdir()
     (plugin_dir / "frontend").mkdir()

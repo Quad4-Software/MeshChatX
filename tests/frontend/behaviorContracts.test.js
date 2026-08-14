@@ -182,12 +182,21 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
             const origin = readSource("electron/shellOrigin.js");
             expect(origin).not.toMatch(/startsWith\(\s*["']https?:\/\/127/);
             expect(origin).toContain("parsed.username");
+            expect(origin).toContain("isTrustedIpcEvent");
+            expect(main).toContain("function trustedIpcHandle");
+            expect(main).toContain("isTrustedIpcEvent");
+            expect(main).not.toMatch(/ipcMain\.handle\("/);
         });
 
         it("Android WebView opens external http(s) in the system browser", () => {
             const src = readSource("android/app/src/main/java/com/meshchatx/MainActivity.java");
             expect(src).toContain("openExternalBrowserUri");
             expect(src).toContain("Intent.ACTION_VIEW");
+            expect(src).toContain("setAllowFileAccess(false)");
+            expect(src).toContain("setAllowFileAccessFromFileURLs(false)");
+            expect(src).toContain("setAllowUniversalAccessFromFileURLs(false)");
+            expect(src).toContain("MIXED_CONTENT_NEVER_ALLOW");
+            expect(src).not.toContain("MIXED_CONTENT_ALWAYS_ALLOW");
         });
     });
 });

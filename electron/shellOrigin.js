@@ -154,11 +154,48 @@ function shouldAllowInWindowNavigation(url) {
     return isLocalBackendUrl(url);
 }
 
+/**
+ * URL of the renderer frame that invoked an ipcMain handler.
+ * Prefers senderFrame.url, then sender.getURL().
+ * @param {unknown} event
+ * @returns {string}
+ */
+function senderUrlFromIpcEvent(event) {
+    if (!event || typeof event !== "object") {
+        return "";
+    }
+    const frame = event.senderFrame;
+    if (frame && typeof frame.url === "string" && frame.url) {
+        return frame.url;
+    }
+    const sender = event.sender;
+    if (sender && typeof sender.getURL === "function") {
+        try {
+            const url = sender.getURL();
+            return typeof url === "string" ? url : "";
+        } catch {
+            return "";
+        }
+    }
+    return "";
+}
+
+/**
+ * Whether ipcMain may run for this invoke. Same allowlist as preload.
+ * @param {unknown} event
+ * @returns {boolean}
+ */
+function isTrustedIpcEvent(event) {
+    return isTrustedShellOrigin(senderUrlFromIpcEvent(event));
+}
+
 module.exports = {
     isLocalBackendUrl,
     isTrustedBlobUrl,
     isTrustedShellFileUrl,
     isTrustedShellOrigin,
+    isTrustedIpcEvent,
+    senderUrlFromIpcEvent,
     shouldOpenInElectronWindow,
     shouldAllowInWindowNavigation,
 };

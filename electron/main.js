@@ -26,6 +26,7 @@ const {
     isLocalBackendUrl,
     shouldOpenInElectronWindow,
     shouldAllowInWindowNavigation,
+    isTrustedIpcEvent,
 } = require("./mainHelpers");
 const { isAllowedShellPath } = require("./shellPathGuard");
 const { normalizeExternalUrlForOpen } = require("./safeExternalUrl");
@@ -156,18 +157,27 @@ app.on("open-url", (event, url) => {
     }
 });
 
+function trustedIpcHandle(channel, listener) {
+    ipcMain.handle(channel, async (event, ...args) => {
+        if (!isTrustedIpcEvent(event)) {
+            throw new Error("MeshChatX IPC blocked for this origin");
+        }
+        return listener(event, ...args);
+    });
+}
+
 // allow fetching app version via ipc
-ipcMain.handle("app-version", () => {
+trustedIpcHandle("app-version", () => {
     return app.getVersion();
 });
 
 // allow fetching hardware acceleration status via ipc
-ipcMain.handle("is-hardware-acceleration-enabled", () => {
+trustedIpcHandle("is-hardware-acceleration-enabled", () => {
     return app.isHardwareAccelerationEnabled();
 });
 
 // allow fetching integrity status
-ipcMain.handle("get-integrity-status", () => {
+trustedIpcHandle("get-integrity-status", () => {
     return integrityStatus;
 });
 
@@ -179,7 +189,7 @@ const {
     closeAllMessageNotifications,
 } = require("./messageNotifications.js");
 
-ipcMain.handle("show-notification", (event, { title, body, silent, destinationHash }) => {
+trustedIpcHandle("show-notification", (event, { title, body, silent, destinationHash }) => {
     const notification = new Notification({
         title: title,
         body: body,
@@ -199,7 +209,7 @@ ipcMain.handle("show-notification", (event, { title, body, silent, destinationHa
     });
 });
 
-ipcMain.handle("close-message-notifications", (_event, destinationHash) => {
+trustedIpcHandle("close-message-notifications", (_event, destinationHash) => {
     if (destinationHash) {
         return closeMessageNotificationsFor(destinationHash);
     }
@@ -207,7 +217,7 @@ ipcMain.handle("close-message-notifications", (_event, destinationHash) => {
 });
 
 // Power Management IPC
-ipcMain.handle("set-power-save-blocker", (event, enabled) => {
+trustedIpcHandle("set-power-save-blocker", (event, enabled) => {
     if (enabled) {
         if (activePowerSaveBlockerId === null) {
             activePowerSaveBlockerId = powerSaveBlocker.start("prevent-app-suspension");
@@ -226,28 +236,28 @@ ipcMain.handle("set-power-save-blocker", (event, enabled) => {
 // ignore ssl errors
 app.commandLine.appendSwitch("ignore-certificate-errors");
 
-ipcMain.handle("backend-http-only", () => {
+trustedIpcHandle("backend-http-only", () => {
     return getUserProvidedArguments(process.argv).includes("--no-https");
 });
 
-ipcMain.handle("backend-runtime-state", () => {
+trustedIpcHandle("backend-runtime-state", () => {
     return getBackendManager().getRuntimeState();
 });
 
-ipcMain.handle("backend-startup-diagnostics", () => {
+trustedIpcHandle("backend-startup-diagnostics", () => {
     return getBackendManager().getStartupDiagnostics();
 });
 
-ipcMain.handle("mark-backend-healthy", () => {
+trustedIpcHandle("mark-backend-healthy", () => {
     getBackendManager().markBackendHealthy();
     return { ok: true };
 });
 
-ipcMain.handle("restart-backend", async () => {
+trustedIpcHandle("restart-backend", async () => {
     return await getBackendManager().restartBackend(integrityStatus);
 });
 
-ipcMain.handle("open-backend-crash-report", async () => {
+trustedIpcHandle("open-backend-crash-report", async () => {
     const lastCrash = getBackendManager().getLastCrash();
     if (!lastCrash) {
         return { ok: false, error: "No backend crash report is available." };
@@ -256,7 +266,7 @@ ipcMain.handle("open-backend-crash-report", async () => {
     return { ok: true };
 });
 
-ipcMain.handle("crash-recovery-info", () => {
+trustedIpcHandle("crash-recovery-info", () => {
     const manager = getBackendManager();
     const lastCrash = manager.getLastCrash() || {};
     const logs = manager.getJoinedLogs();
@@ -271,7 +281,7 @@ ipcMain.handle("crash-recovery-info", () => {
     });
 });
 
-ipcMain.handle("restore-database-backup", async (_event, backupPath) => {
+trustedIpcHandle("restore-database-backup", async (_event, backupPath) => {
     if (!backupPath || typeof backupPath !== "string") {
         return { ok: false, error: "No backup path provided." };
     }
@@ -291,7 +301,7 @@ ipcMain.handle("restore-database-backup", async (_event, backupPath) => {
     return await getBackendManager().runMaintenanceTask(["--restore-db", backupPath]);
 });
 
-ipcMain.handle("pick-database-backup", async () => {
+trustedIpcHandle("pick-database-backup", async () => {
     const win = getDialogParentWindow();
     if (!win) {
         return null;
@@ -307,14 +317,14 @@ ipcMain.handle("pick-database-backup", async () => {
 });
 
 // add support for showing an alert window via ipc
-ipcMain.handle("alert", async (event, message) => {
+trustedIpcHandle("alert", async (event, message) => {
     return await dialog.showMessageBox(mainWindow, {
         message: message,
     });
 });
 
 // add support for showing a confirm window via ipc
-ipcMain.handle("confirm", async (event, message) => {
+trustedIpcHandle("confirm", async (event, message) => {
     // show confirm dialog
     const result = await dialog.showMessageBox(mainWindow, {
         type: "question",
@@ -333,7 +343,7 @@ ipcMain.handle("confirm", async (event, message) => {
 });
 
 // add support for showing a prompt window via ipc
-ipcMain.handle("prompt", async (event, message, defaultValue = "") => {
+trustedIpcHandle("prompt", async (event, message, defaultValue = "") => {
     return await electronPrompt({
         title: message,
         label: "",
@@ -346,7 +356,7 @@ ipcMain.handle("prompt", async (event, message, defaultValue = "") => {
 });
 
 // allow relaunching app via ipc
-ipcMain.handle("relaunch", () => {
+trustedIpcHandle("relaunch", () => {
     const relaunchOptions = {};
     if (!process.defaultApp && process.platform === "linux" && process.env.APPIMAGE) {
         relaunchOptions.execPath = process.env.APPIMAGE;
@@ -356,7 +366,7 @@ ipcMain.handle("relaunch", () => {
     quit();
 });
 
-ipcMain.handle("relaunch-emergency", () => {
+trustedIpcHandle("relaunch-emergency", () => {
     const relaunchOptions = {
         args: process.argv.slice(1).concat(["--emergency"]),
     };
@@ -368,7 +378,7 @@ ipcMain.handle("relaunch-emergency", () => {
     quit();
 });
 
-ipcMain.handle("relaunch-auto-recover", () => {
+trustedIpcHandle("relaunch-auto-recover", () => {
     const relaunchOptions = {
         args: process.argv.slice(1).concat(["--auto-recover"]),
     };
@@ -380,32 +390,32 @@ ipcMain.handle("relaunch-auto-recover", () => {
     quit();
 });
 
-ipcMain.handle("shutdown", () => {
+trustedIpcHandle("shutdown", () => {
     isQuiting = true;
     quit();
 });
 
-ipcMain.handle("get-close-settings", () => {
+trustedIpcHandle("get-close-settings", () => {
     return getCloseSettings();
 });
 
-ipcMain.handle("set-close-settings", (_event, partial) => {
+trustedIpcHandle("set-close-settings", (_event, partial) => {
     return updateCloseSettings(partial || {});
 });
 
-ipcMain.handle("get-screen-security-settings", () => {
+trustedIpcHandle("get-screen-security-settings", () => {
     return getScreenSecuritySettingsPayload();
 });
 
-ipcMain.handle("set-screen-security-enabled", (_event, enabled) => {
+trustedIpcHandle("set-screen-security-enabled", (_event, enabled) => {
     return updateScreenSecurityEnabled(enabled === true);
 });
 
-ipcMain.handle("get-memory-usage", async () => {
+trustedIpcHandle("get-memory-usage", async () => {
     return process.getProcessMemoryInfo();
 });
 
-ipcMain.handle("get-battery-status", async () => {
+trustedIpcHandle("get-battery-status", async () => {
     let onBattery = null;
     try {
         if (typeof powerMonitor?.isOnBatteryPower === "function") {
@@ -455,7 +465,7 @@ ipcMain.handle("get-battery-status", async () => {
 });
 
 // allow showing a file path in os file manager
-ipcMain.handle("showPathInFolder", (event, targetPath) => {
+trustedIpcHandle("showPathInFolder", (event, targetPath) => {
     const ctx = {
         app,
         getDefaultStorageDir,
@@ -469,7 +479,7 @@ ipcMain.handle("showPathInFolder", (event, targetPath) => {
     shell.showItemInFolder(targetPath);
 });
 
-ipcMain.handle("open-path", (event, targetPath) => {
+trustedIpcHandle("open-path", (event, targetPath) => {
     const ctx = {
         app,
         getDefaultStorageDir,
@@ -483,7 +493,7 @@ ipcMain.handle("open-path", (event, targetPath) => {
     return shell.openPath(targetPath);
 });
 
-ipcMain.handle("pick-file", async () => {
+trustedIpcHandle("pick-file", async () => {
     const win = getDialogParentWindow();
     if (!win) {
         return null;
@@ -497,7 +507,7 @@ ipcMain.handle("pick-file", async () => {
     return filePaths[0];
 });
 
-ipcMain.handle("pick-directory", async () => {
+trustedIpcHandle("pick-directory", async () => {
     const win = getDialogParentWindow();
     if (!win) {
         return null;

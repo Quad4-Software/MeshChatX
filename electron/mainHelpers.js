@@ -123,6 +123,8 @@ const {
     isTrustedBlobUrl,
     isTrustedShellFileUrl,
     isTrustedShellOrigin,
+    isTrustedIpcEvent,
+    senderUrlFromIpcEvent,
     shouldOpenInElectronWindow,
     shouldAllowInWindowNavigation,
 } = require("./shellOrigin");
@@ -136,6 +138,8 @@ module.exports = {
     isTrustedBlobUrl,
     isTrustedShellFileUrl,
     isTrustedShellOrigin,
+    isTrustedIpcEvent,
+    senderUrlFromIpcEvent,
     shouldOpenInElectronWindow,
     shouldAllowInWindowNavigation,
 };
