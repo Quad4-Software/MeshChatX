@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [4.8.3] - 2026-08-14
 
+### Changed
+
+- **Runtime clearnet fetches removed**: Micron WASM, RNode firmware, and repository bundled-wheel refresh no longer download from GitHub or other remote URLs at runtime. Build-time bundles and local upload or file pickers remain. Android RNode flasher uses a firmware file picker instead of HTTP download.
+- **LAN bind banner**: Dismissable in the browser UI with persistent dismissal in localStorage. Electron and Android still hide it.
+- **Nomad page size**: Removed the 512 KiB client-side page body cap and `page_too_large` handling. Large page bodies are decoded like before 4.8.2.
+
+### Fixed
+
+- **Electron AppImage loading**: Loading screen shows the synced package version (`electron/app-version.json`) instead of `v0.0.0`. Sandboxed preload ships as `preload.bundle.js` with `shellOrigin` inlined so `window.electron` IPC works in packaged builds. Loading probe state is initialized before the first status poll so startup does not throw on `startupFailed`.
+- **Pre-migration database backup**: Identity zip backups clamp file mtimes before 1980, so schema upgrades succeed when identity files have ancient timestamps. Fixes AppImage startup failure `ZIP does not support timestamps before 1980`.
+- **Android RNode flasher**: Firmware picker compiles on API 24 (byte stream read instead of `readAllBytes`) and uses an effectively final filename in the background loader lambda.
+- **Android / Electron CI**: RNode flasher lint and compile fixes from the manual firmware upload path. Electron preload tests stub `location` for trusted-origin IPC.
+- **Frontend tests**: `UIThemeAndVisibility.test.js` unmounts App shells after each test so Vitest teardown does not leave shell poll intervals running.
+
 ## [4.8.2] - 2026-08-14
 
 ### Added
