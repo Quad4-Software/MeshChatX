@@ -27,15 +27,19 @@ Denylist (must not be set via `config.set` WS):
 - `auth_enabled`
 - `auth_password_hash`
 
-When password auth is enabled, WS mutators require an authenticated session. That includes:
+When password auth is enabled, WS mutators and reads require an authenticated session. That includes:
 
 - `config.set`
 - `rns.link.open|identify|request|send|close`
-- Nomad download / archive mutators
-- LXMF forwarding rule mutators
-- keyboard shortcut set/delete
+- Nomad download / archive mutators and archive reads
+- LXMF forwarding rule mutators and `lxmf.forwarding.rules.get`
+- keyboard shortcut set/delete and `keyboard_shortcuts.get`
 
-Public / read types stay limited. See `WEBSOCKET_PUBLIC_TYPES`, `WEBSOCKET_READ_TYPES`, and `WEBSOCKET_MUTATOR_TYPES` in `websocket_config_guard.py`.
+Only `ping` skips the session check. Unknown types require auth.
+
+`/ws` and `/ws/telephone/audio` upgrades also require a same-authority `Origin` (missing Origin is allowed for non-browser clients). Behind a trusted proxy, `X-Forwarded-Host` is accepted as the public authority.
+
+Public / read / mutator classification lives in `WEBSOCKET_PUBLIC_TYPES`, `WEBSOCKET_READ_TYPES`, and `WEBSOCKET_MUTATOR_TYPES` in `websocket_config_guard.py`.
 
 ## Dangerous knobs
 
@@ -53,6 +57,6 @@ Public / read types stay limited. See `WEBSOCKET_PUBLIC_TYPES`, `WEBSOCKET_READ_
 ## Verification
 
 ```bash
-uv run pytest tests/backend/test_websocket_config_security.py tests/backend/test_websocket_config_guard.py -q --tb=short
+uv run pytest tests/backend/test_websocket_config_security.py tests/backend/test_websocket_config_guard.py tests/backend/test_ws_origin_filesync_oracles.py -q --tb=short
 pnpm exec vitest run tests/frontend/apiFetchGuard.test.js
 ```
