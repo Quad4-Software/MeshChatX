@@ -44,6 +44,28 @@ def test_upsert_announce(mock_db):
     assert data["app_data"] == base64.b64encode(b"app_data").decode("utf-8")
 
 
+def test_upsert_omits_oversized_app_data(mock_db):
+    from meshchatx.src.backend.announce_manager import MAX_ANNOUNCE_APP_DATA_BYTES
+
+    manager = AnnounceManager(mock_db)
+    identity = MagicMock()
+    identity.hash.hex.return_value = "id_hash"
+    identity.get_public_key.return_value = b"pub_key"
+    manager.upsert_announce(
+        None,
+        identity,
+        b"dest_hash",
+        "aspect",
+        b"z" * (MAX_ANNOUNCE_APP_DATA_BYTES + 1),
+        None,
+    )
+    mock_db.announces.upsert_announce.assert_called_once()
+    data = mock_db.announces.upsert_announce.call_args[0][0]
+    assert "app_data" not in data
+    assert data["destination_hash"] == b"dest_hash".hex()
+    assert data["aspect"] == "aspect"
+
+
 def test_upsert_skips_when_store_disabled_for_aspect(mock_db):
     config = MagicMock()
     config.announce_store_lxmf_delivery = MagicMock()

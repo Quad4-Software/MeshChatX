@@ -233,6 +233,32 @@ def test_server_rejects_oversized_message_body():
     assert "large" in out[0][1][proto.K_BODY].lower()
 
 
+def test_server_rejects_oversized_message_body_at_default_cap():
+    server = make_server()
+    assert server.max_msg_body_bytes == proto.DEFAULT_MAX_MSG_BYTES
+    link = FakeLink(FakeIdentity(b"\x01" * 16))
+    sess = add_session(server, link, link._identity.hash, nick="alice")
+    route(
+        server,
+        link,
+        sess,
+        proto.make_envelope(proto.T_JOIN, src=sess.peer, room="lobby"),
+    )
+    out = route(
+        server,
+        link,
+        sess,
+        proto.make_envelope(
+            proto.T_MSG,
+            src=sess.peer,
+            room="lobby",
+            body="x" * (proto.DEFAULT_MAX_MSG_BYTES + 1),
+        ),
+    )
+    assert out[0][1][proto.K_T] == proto.T_ERROR
+    assert "large" in out[0][1][proto.K_BODY].lower()
+
+
 def test_server_rejects_message_to_unknown_room():
     server = make_server()
     link = FakeLink(FakeIdentity(b"\x02" * 16))
