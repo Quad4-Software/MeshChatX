@@ -223,6 +223,8 @@ Sensitive config changes (for example auth enable / password hash) must use CSRF
 
 Local filesystem browse/upload/download/delete APIs must path-jail to a feature or identity root. See `.agents/conventions/path-jail.md` and `.agents/skills/path-jail-local-fs/SKILL.md`.
 
+Electron and Android shells must parse URLs before treating them as the local backend. Do not prefix-match `http://127.0.0.1`. See `.agents/skills/url-origin-allowlists/SKILL.md`.
+
 Password reset: `--reset-password` or `MESHCHAT_RESET_PASSWORD=true` clears the stored hash so a new password can be set in the UI.
 
 ### Plugins
@@ -263,6 +265,7 @@ When identity/network is not ready, prefer **503** with a retryable message over
 - Set multi-select only when the WebView chooser mode requests it.
 - Storage setup (internal vs external) can create a fresh-looking install if the user picks a different location than previous data.
 - External http(s) links should open in the system browser, not navigate the WebView away from the app.
+- WebView navigation is the configured backend origin only (`RemoteBackendUrl.isAllowedShellNavigation`). Deny `data:` and userinfo. The `MeshChatXAndroid` JS bridge is injected into every loaded page.
 
 ## Important environment variables and flags
 

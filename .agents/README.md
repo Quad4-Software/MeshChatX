@@ -87,6 +87,7 @@ Philosophy: [Zen of Reticulum](https://reticulum.network/manual/zen.html). Site:
 | [auth-csrf-ws-security](skills/auth-csrf-ws-security/SKILL.md)     | CSRF, auth, WS mutator denylist             |
 | [path-jail-local-fs](skills/path-jail-local-fs/SKILL.md)           | Local file browse/upload/delete path jails  |
 | [plugin-install-security](skills/plugin-install-security/SKILL.md) | Plugin install, RSG, permissions, integrity |
+| [url-origin-allowlists](skills/url-origin-allowlists/SKILL.md)     | Parse URL origins. Never prefix-match http  |
 
 ### Platforms and boot
 

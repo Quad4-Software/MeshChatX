@@ -21,6 +21,7 @@ An oracle predicts the correct outcome from the input alone (or from a simpler t
 | Oracle type    | Example                                     |
 | -------------- | ------------------------------------------- |
 | Accept/reject  | Empty room name must raise ValueError       |
+| Origin parse   | `http://127.0.0.1:9337@example.com` is not local |
 | Round-trip     | encode(decode(x)) == x when decode succeeds |
 | Jail           | Successful path stays under storage root    |
 | Closed reasons | Error message is one of a fixed set         |
@@ -49,6 +50,7 @@ Do not ship tests that only do:
 - ACL/membership: `tests/backend/test_rrc_oracle_bugs.py`
 - Room keys: `tests/backend/test_rrc_room_keys.py`
 - EECT shared asserts: `tests/backend/eect/asserts.py`
+- URL origin allowlists: `tests/electron/mainHelpers.test.js`, `android/app/src/test/java/com/meshchatx/RemoteBackendUrlTest.java`
 
 ## Commands
 
