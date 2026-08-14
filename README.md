@@ -47,14 +47,14 @@ The bundled web UI needs Safari 16.4, Chrome 111, or Firefox 128 or later.
 
 ## Install methods
 
-| Method | Frontend assets | Architectures | Best for |
-| --- | --- | --- | --- |
-| Docker image | Yes | linux/amd64, linux/arm64 | Linux servers |
-| Python wheel | Yes | Any Python-supported arch | Headless/web install without a Node build |
-| Linux AppImage | Yes | x64, arm64 | Portable desktop |
-| Debian package | Yes | x64, arm64 | Debian/Ubuntu |
-| RPM package | Yes | CI-runner dependent | Fedora/RHEL/openSUSE |
-| From source | Built locally | Host arch | Development and custom builds |
+| Method         | Frontend assets | Architectures             | Best for                                  |
+| -------------- | --------------- | ------------------------- | ----------------------------------------- |
+| Docker image   | Yes             | linux/amd64, linux/arm64  | Linux servers                             |
+| Python wheel   | Yes             | Any Python-supported arch | Headless/web install without a Node build |
+| Linux AppImage | Yes             | x64, arm64                | Portable desktop                          |
+| Debian package | Yes             | x64, arm64                | Debian/Ubuntu                             |
+| RPM package    | Yes             | CI-runner dependent       | Fedora/RHEL/openSUSE                      |
+| From source    | Built locally   | Host arch                 | Development and custom builds             |
 
 Tagged releases build Linux wheel/AppImage/deb/rpm, Windows, macOS, Flatpak, and Android APKs (when the tag is on dev or master) in [build-release.yml](.github/workflows/build-release.yml). The container image is [docker.yml](.github/workflows/docker.yml). Branch and PR Android CI is [android-build.yml](.github/workflows/android-build.yml). Linux x64 and arm64 AppImage + DEB are built on GitHub. RPM is uploaded when the job produces one.
 
@@ -182,11 +182,11 @@ That page also shows up in the in-app Documentation list when meshchatx-docs is 
 
 The emoji picker uses system fonts through Electron/Chromium. Empty squares mean a color emoji package is missing. Install one and restart the app.
 
-| Distro | Package |
-| --- | --- |
-| Arch, Artix, Manjaro | `sudo pacman -S noto-fonts-emoji` |
-| Debian, Ubuntu | `sudo apt install fonts-noto-color-emoji` |
-| Fedora | google-noto-emoji-color-fonts |
+| Distro               | Package                                   |
+| -------------------- | ----------------------------------------- |
+| Arch, Artix, Manjaro | `sudo pacman -S noto-fonts-emoji`         |
+| Debian, Ubuntu       | `sudo apt install fonts-noto-color-emoji` |
+| Fedora               | google-noto-emoji-color-fonts             |
 
 If glyphs still fail, run `fc-cache -fv` or wait until the next login. noto-fonts helps on minimal installs that lack other symbol coverage.
 
@@ -309,25 +309,25 @@ More: [android-termux.md](docs/en/platform-guides/android-termux.md), [android/R
 
 CLI args and matching env vars:
 
-| Argument | Environment variable | Default | Description |
-| --- | --- | --- | --- |
-| `--host` | `MESHCHAT_HOST` | `127.0.0.1` | Web server bind address |
-| `--port` | `MESHCHAT_PORT` | `8000` | Web server port |
-| `--no-https` | `MESHCHAT_NO_HTTPS` | `false` | Disable HTTPS |
-| `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | (none) | PEM cert and key. Both must be set. Overrides auto-generated certs under the identity ssl/ directory. |
-| `--rns-log-level` | `MESHCHAT_RNS_LOG_LEVEL` | (none) | RNS log level: none, critical, error, warning, notice, verbose, debug, extreme, or a number. CLI wins if both are set. |
-| `--headless` | `MESHCHAT_HEADLESS` | `false` | Do not auto-launch a browser |
-| `--auth` | `MESHCHAT_AUTH` | `false` | Enable basic auth |
-| `--reset-password` | `MESHCHAT_RESET_PASSWORD` | `false` | Clear the stored password hash so a new one can be set in the UI |
-| `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | Data directory |
-| `--public-dir` | `MESHCHAT_PUBLIC_DIR` | auto/bundled | Frontend files. Needed for source installs without bundled assets. |
+| Argument                   | Environment variable                     | Default      | Description                                                                                                            |
+| -------------------------- | ---------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `--host`                   | `MESHCHAT_HOST`                          | `127.0.0.1`  | Web server bind address                                                                                                |
+| `--port`                   | `MESHCHAT_PORT`                          | `8000`       | Web server port                                                                                                        |
+| `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`      | Disable HTTPS                                                                                                          |
+| `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | (none)       | PEM cert and key. Both must be set. Overrides auto-generated certs under the identity ssl/ directory.                  |
+| `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | (none)       | RNS log level: none, critical, error, warning, notice, verbose, debug, extreme, or a number. CLI wins if both are set. |
+| `--headless`               | `MESHCHAT_HEADLESS`                      | `false`      | Do not auto-launch a browser                                                                                           |
+| `--auth`                   | `MESHCHAT_AUTH`                          | `false`      | Enable basic auth                                                                                                      |
+| `--reset-password`         | `MESHCHAT_RESET_PASSWORD`                | `false`      | Clear the stored password hash so a new one can be set in the UI                                                       |
+| `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage`  | Data directory                                                                                                         |
+| `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | auto/bundled | Frontend files. Needed for source installs without bundled assets.                                                     |
 
 ## Branches
 
-| Branch | Purpose |
-| --- | --- |
-| master | Stable releases |
-| dev | Active development. May be incomplete or breaking. |
+| Branch | Purpose                                            |
+| ------ | -------------------------------------------------- |
+| master | Stable releases                                    |
+| dev    | Active development. May be incomplete or breaking. |
 
 ## Development
 
@@ -341,18 +341,18 @@ task build
 
 Makefile targets call the same Taskfile commands:
 
-| Command | Delegates to | Description |
-| --- | --- | --- |
-| make install | task install | Install pnpm and UV dependencies |
-| make run | task run | Run MeshChatX via UV |
-| make build | task build | Build frontend and backend artifacts |
-| make format | task format | Format frontend and backend |
-| make lint | task lint | ESLint, vue-tsc, knip, Ruff, basedpyright |
-| make test | task test | Frontend and backend tests |
-| make clean | task clean | Remove build artifacts and node_modules |
-| make tree-rsm-verify | (shell) | Verify meshchatx.rsm signature and hashes |
-| make tree-rsm-sign | (shell) | Sign tree inventory (needs RNS_ID_PATH) |
-| make hooks-install | (shell) | Enable tracked pre-commit RSM resign hook |
+| Command              | Delegates to | Description                               |
+| -------------------- | ------------ | ----------------------------------------- |
+| make install         | task install | Install pnpm and UV dependencies          |
+| make run             | task run     | Run MeshChatX via UV                      |
+| make build           | task build   | Build frontend and backend artifacts      |
+| make format          | task format  | Format frontend and backend               |
+| make lint            | task lint    | ESLint, vue-tsc, knip, Ruff, basedpyright |
+| make test            | task test    | Frontend and backend tests                |
+| make clean           | task clean   | Remove build artifacts and node_modules   |
+| make tree-rsm-verify | (shell)      | Verify meshchatx.rsm signature and hashes |
+| make tree-rsm-sign   | (shell)      | Sign tree inventory (needs RNS_ID_PATH)   |
+| make hooks-install   | (shell)      | Enable tracked pre-commit RSM resign hook |
 
 ## Versioning
 
@@ -360,7 +360,7 @@ Current version is 4.8.3.
 
 Edit the version field in package.json, then run `pnpm run version:sync` (also the first step of `pnpm run build`). That copies the number into pyproject.toml, the Python version modules, Android Gradle, electron/app-version.json, this README and the translated READMEs, the Raspberry Pi pipx example, Arch PKGBUILD helpers, third-party notices, and GitHub issue-template placeholders.
 
-Changelog entries are still written by hand when you cut a release. meshchatx.__version__ is read from meshchatx/src/version.py without importing meshchatx.src, so `import meshchatx` stays lightweight.
+Changelog entries are still written by hand when you cut a release. meshchatx.**version** is read from meshchatx/src/version.py without importing meshchatx.src, so `import meshchatx` stays lightweight.
 
 ## Database corruption and data reset
 
@@ -374,10 +374,10 @@ If MeshChatX fails to start with errors such as `database disk image is malforme
 
 ### Storage locations
 
-| Platform | MeshChatX storage | Reticulum network stack |
-| --- | --- | --- |
-| Linux / macOS | `~/.reticulum-meshchatx/` | `~/.reticulum/` |
-| Windows | `%USERPROFILE%\.reticulum-meshchatx\` | `%USERPROFILE%\.reticulum\` |
+| Platform         | MeshChatX storage                              | Reticulum network stack              |
+| ---------------- | ---------------------------------------------- | ------------------------------------ |
+| Linux / macOS    | `~/.reticulum-meshchatx/`                      | `~/.reticulum/`                      |
+| Windows          | `%USERPROFILE%\.reticulum-meshchatx\`          | `%USERPROFILE%\.reticulum\`          |
 | Windows portable | `<MeshChatX.exe folder>\.reticulum-meshchatx\` | `<MeshChatX.exe folder>\.reticulum\` |
 
 Legacy Reticulum MeshChat data may still exist at `~/.reticulum-meshchat/` (or the Windows equivalent). Automatic database backups go to database-backups/ inside the MeshChatX storage folder after a successful run.
