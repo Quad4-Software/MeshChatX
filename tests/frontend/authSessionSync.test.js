@@ -44,7 +44,10 @@ describe("authSessionSync", () => {
     });
 
     it("routes unauthenticated users to auth", () => {
-        const target = authNavigationTargetForStatus({ name: "messages" }, { auth_enabled: true, authenticated: false });
+        const target = authNavigationTargetForStatus(
+            { name: "messages" },
+            { auth_enabled: true, authenticated: false }
+        );
         expect(target).toEqual({ redirect: "/auth" });
     });
 

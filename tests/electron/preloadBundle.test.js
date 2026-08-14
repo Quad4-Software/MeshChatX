@@ -11,6 +11,6 @@ describe("electron/preload.bundle", () => {
         expect(fs.existsSync(bundlePath)).toBe(true);
         const source = fs.readFileSync(bundlePath, "utf8");
         expect(source).toContain("function isTrustedShellOrigin");
-        expect(source).not.toContain("require(\"./shellOrigin\")");
+        expect(source).not.toContain('require("./shellOrigin")');
     });
 });
