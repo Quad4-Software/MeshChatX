@@ -537,6 +537,70 @@ def test_pre_migration_backup_written_before_schema_upgrade(temp_dir):
     assert any("backup-pre-migrate" in row["name"] for row in backups)
 
 
+def test_pre_migration_backup_handles_pre_1980_identity_file_mtime(temp_dir):
+    from meshchatx.src.backend.database.schema import DatabaseSchema
+
+    legacy = os.path.join(temp_dir, "legacy.dat")
+    with open(legacy, "wb") as handle:
+        handle.write(b"legacy")
+    os.utime(legacy, (0, 0))
+
+    db_path = os.path.join(temp_dir, "test.db")
+    db = Database(db_path)
+    db.initialize()
+    db.close_all()
+
+    prior = DatabaseSchema.LATEST_VERSION - 1
+    if prior < 1:
+        pytest.skip("No prior schema version to simulate")
+
+    provider = DatabaseProvider(db_path)
+    provider.execute(
+        "UPDATE config SET value = ? WHERE key = ?",
+        (str(prior), "database_version"),
+    )
+    provider.close_all()
+
+    upgraded = Database(db_path)
+    upgraded.initialize()
+    backups = upgraded.list_auto_backups(temp_dir)
+    upgraded.close_all()
+
+    assert any("backup-pre-migrate" in row["name"] for row in backups)
+
+
+def test_pre_migration_backup_handles_pre_1980_identity_file_mtime(temp_dir):
+    from meshchatx.src.backend.database.schema import DatabaseSchema
+
+    legacy = os.path.join(temp_dir, "legacy.dat")
+    with open(legacy, "wb") as handle:
+        handle.write(b"legacy")
+    os.utime(legacy, (0, 0))
+
+    db_path = os.path.join(temp_dir, "test.db")
+    db = Database(db_path)
+    db.initialize()
+    db.close_all()
+
+    prior = DatabaseSchema.LATEST_VERSION - 1
+    if prior < 1:
+        pytest.skip("No prior schema version to simulate")
+
+    provider = DatabaseProvider(db_path)
+    provider.execute(
+        "UPDATE config SET value = ? WHERE key = ?",
+        (str(prior), "database_version"),
+    )
+    provider.close_all()
+
+    upgraded = Database(db_path)
+    upgraded.initialize()
+    backups = upgraded.list_auto_backups(temp_dir)
+    upgraded.close_all()
+
+    assert any("backup-pre-migrate" in row["name"] for row in backups)
+
+
 def test_pre_migration_backup_skipped_with_env(temp_dir, monkeypatch):
     from meshchatx.src.backend.database.schema import DatabaseSchema
 

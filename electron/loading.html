@@ -104,9 +104,7 @@
                                 </button>
                             </div>
                         </div>
-                        <p class="mt-4 text-center text-[11px] text-slate-400 dark:text-zinc-600" id="app-version">
-                            v0.0.0
-                        </p>
+                        <p class="mt-4 text-center text-[11px] text-slate-400 dark:text-zinc-600" id="app-version"></p>
                     </div>
                 </div>
             </div>
@@ -137,6 +135,15 @@
             const MAX_FAILURE_HISTORY = 8;
 
             let protocolOrder = ["https", "http"];
+            let detectedProtocol = "http";
+            let attemptCount = 0;
+            let runtimeProbeAttempt = 0;
+            let cachedRuntimeState = null;
+            let cachedDiagnostics = null;
+            let cachedCrash = null;
+            let startupFailed = false;
+            let pollTimer = null;
+            const recentFailures = [];
 
             applyTheme(detectPreferredTheme());
             showAppVersion();
@@ -279,7 +286,9 @@
             async function showAppVersion() {
                 try {
                     const appVersion = await window.electron.appVersion();
-                    document.getElementById("app-version").innerText = "v" + appVersion;
+                    if (appVersion) {
+                        document.getElementById("app-version").innerText = "v" + appVersion;
+                    }
                 } catch (e) {}
             }
 
@@ -311,16 +320,6 @@
                     applyTheme(event.matches ? "dark" : "light");
                 });
             }
-
-            let detectedProtocol = "http";
-            let attemptCount = 0;
-            let runtimeProbeAttempt = 0;
-            let cachedRuntimeState = null;
-            let cachedDiagnostics = null;
-            let cachedCrash = null;
-            let startupFailed = false;
-            let pollTimer = null;
-            const recentFailures = [];
 
             function parseStatusJson(text) {
                 const helper = window.MeshchatLoadingStatusProbe;
