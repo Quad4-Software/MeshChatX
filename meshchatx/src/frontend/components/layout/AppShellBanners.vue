@@ -76,6 +76,13 @@
                 >
                     {{ openSettingsLabel }}
                 </button>
+                <button
+                    type="button"
+                    class="rounded-md bg-white/10 px-3 py-1 text-xs font-semibold hover:bg-white/20"
+                    @click="$emit('dismiss-lan-bind-no-auth')"
+                >
+                    {{ dismissLanBindNoAuthLabel }}
+                </button>
             </div>
         </div>
         <div
@@ -202,6 +209,10 @@ export default {
             type: String,
             default: "",
         },
+        dismissLanBindNoAuthLabel: {
+            type: String,
+            default: "",
+        },
         showNetworkDegraded: {
             type: Boolean,
             default: false,
@@ -248,6 +259,7 @@ export default {
         "view-backend-logs",
         "recover-network",
         "open-settings",
+        "dismiss-lan-bind-no-auth",
         "open-backups",
         "auto-recover-database",
         "open-interfaces",

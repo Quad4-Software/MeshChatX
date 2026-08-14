@@ -23,6 +23,7 @@
             :network-starting-label="$t('app.network_starting')"
             :show-lan-bind-no-auth="showLanBindNoAuthBanner"
             :lan-bind-no-auth-label="$t('app.lan_bind_no_auth_banner')"
+            :dismiss-lan-bind-no-auth-label="$t('app.lan_bind_no_auth_dismiss')"
             :show-network-degraded="showNetworkDegradedBanner"
             :network-degraded-label="networkDegradedBannerLabel"
             :network-recovering="networkRecovering"
@@ -37,6 +38,7 @@
             @view-backend-logs="onViewBackendCrashReport"
             @recover-network="onRecoverNetwork"
             @open-settings="onOpenSettingsForRecovery"
+            @dismiss-lan-bind-no-auth="onDismissLanBindNoAuthBanner"
             @open-backups="onOpenBackupsForRecovery"
             @auto-recover-database="onAutoRecoverDatabase"
             @open-interfaces="onOpenInterfacesForRecovery"
@@ -536,7 +538,7 @@ import AppSidebarClassicNav from "./layout/AppSidebarClassicNav.vue";
 import AppSidebarClassicFooter from "./layout/AppSidebarClassicFooter.vue";
 import KeyboardShortcuts from "../js/KeyboardShortcuts";
 import ElectronUtils from "../js/ElectronUtils";
-import { shouldShowLanBindNoAuthBanner } from "../js/lanBindWarning.js";
+import { shouldShowLanBindNoAuthBanner, dismissLanBindNoAuthBanner, isLanBindNoAuthBannerDismissed } from "../js/lanBindWarning.js";
 import { isMeshChatXAndroid } from "../js/webAudioMicPermission.js";
 import { postRequestPath } from "../js/reticulumPathfinding.js";
 import { fetchCsrfToken } from "../js/csrfToken.js";
@@ -627,6 +629,7 @@ export default {
             appInfo: null,
             hasCheckedForModals: false,
             skipChangelogAfterTutorial: false,
+            lanBindNoAuthBannerDismissed: isLanBindNoAuthBannerDismissed(),
 
             showLxmfQr: false,
             lxmfQrDataUrl: null,
@@ -817,6 +820,7 @@ export default {
         },
         showLanBindNoAuthBanner() {
             return shouldShowLanBindNoAuthBanner({
+                dismissed: this.lanBindNoAuthBannerDismissed,
                 isElectron: ElectronUtils.isElectron(),
                 isAndroid: isMeshChatXAndroid(),
                 authEnabled: GlobalState.authEnabled,
@@ -1292,6 +1296,10 @@ export default {
         },
         onOpenSettingsForRecovery() {
             this.$router.push({ name: "settings" });
+        },
+        onDismissLanBindNoAuthBanner() {
+            dismissLanBindNoAuthBanner();
+            this.lanBindNoAuthBannerDismissed = true;
         },
         onOpenBackupsForRecovery() {
             this.$router.push({ name: "about", hash: "#about-database-backups" });
