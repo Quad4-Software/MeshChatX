@@ -403,10 +403,6 @@ class IdentityContext:
 
         self.community_interfaces_manager = CommunityInterfacesManager(
             public_override_path=self.app.get_public_path("community_interfaces.json"),
-            cache_path=os.path.join(
-                self.storage_path,
-                "community_interfaces_cache.json",
-            ),
         )
 
         self.auto_propagation_manager = AutoPropagationManager(

@@ -186,20 +186,6 @@ def register_repository_server_routes(routes, app):
             return web.json_response({"success": False, "error": err}, status=code)
         return web.json_response({"success": True})
 
-    @routes.post("/api/v1/repository-server/refresh-bundled")
-    async def repository_server_refresh_bundled(_request):
-        mgr = app.repository_server_manager
-        if not mgr:
-            return web.json_response({"error": "Unavailable"}, status=503)
-        try:
-            app._require_outbound_http("repository bundled wheel refresh")
-            result = await asyncio.to_thread(mgr.refresh_bundled_wheels)
-            return web.json_response(result)
-        except OutboundHttpBlockedError as e:
-            return web.json_response({"error": str(e)}, status=403)
-        except Exception as e:
-            return web.json_response({"error": str(e)}, status=500)
-
     @routes.post("/api/v1/repository-server/http/start")
     async def repository_server_http_start(request):
         mgr = app.repository_server_manager

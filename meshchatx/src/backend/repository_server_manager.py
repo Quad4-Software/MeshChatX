@@ -411,16 +411,13 @@ def _safe_any_upload_filename(name: str) -> str | None:
 
 
 class RepositoryServerManager:
-    """Keeps user uploads and a bundled directory of wheels (PyPI over HTTPS, stdlib only)."""
+    """Keeps user uploads and build-staged bundled wheels (offline PyPI fetch is build-time only)."""
 
     def __init__(self, storage_path: str, public_dir: str | None = None) -> None:
         self.root = os.path.join(storage_path, "repository-server")
         self.uploads_dir = os.path.join(self.root, "uploads")
         self.bundled_dir = os.path.join(self.root, "bundled")
         self._public_dir = os.path.abspath(public_dir) if public_dir else None
-        self._last_refresh_error: str | None = None
-        self._last_refresh_ok: list[str] = []
-        self._last_refresh_failed: dict[str, str] = {}
         self._http_lock = threading.RLock()
         self._httpd: socketserver.ThreadingTCPServer | None = None
         self._http_thread: threading.Thread | None = None
@@ -428,13 +425,6 @@ class RepositoryServerManager:
         self._http_listen_port: int | None = None
         self._http_last_host: str | None = None
         self._http_last_port: int | None = None
-        self._refresh_progress: dict[str, Any] = {
-            "running": False,
-            "current": None,
-            "completed": 0,
-            "total": 0,
-        }
-        self._refresh_lock = threading.Lock()
         os.makedirs(self.uploads_dir, exist_ok=True)
         os.makedirs(self.bundled_dir, exist_ok=True)
         self._seed_bundled_from_public()
@@ -510,10 +500,6 @@ class RepositoryServerManager:
             "uploads_dir": os.path.abspath(self.uploads_dir),
             "bundled_dir": os.path.abspath(self.bundled_dir),
             "bundled_targets": list(bundled_pip_targets()),
-            "last_refresh_error": self._last_refresh_error,
-            "last_refresh_ok": list(self._last_refresh_ok),
-            "last_refresh_failed": dict(self._last_refresh_failed),
-            "refresh_progress": dict(self._refresh_progress),
             "buildtime_bundled_wheels_dir": self._buildtime_bundled_source(),
             "http": self._http_status_block(),
         }
@@ -652,124 +638,3 @@ class RepositoryServerManager:
         except OSError as e:
             return False, str(e)
         return True, None
-
-    def _set_refresh_progress(
-        self,
-        *,
-        running: bool,
-        current: str | None,
-        completed: int,
-        total: int,
-    ) -> None:
-        t = max(0, total)
-        c = min(max(0, completed), t)
-        self._refresh_progress = {
-            "running": running,
-            "current": current,
-            "completed": c,
-            "total": t,
-        }
-
-    def refresh_bundled_wheels(self) -> dict[str, Any]:
-        """Download wheels into bundled_dir (PyPI JSON + urllib).
-
-        Downloads into a temporary directory first, then atomically replaces
-        the live bundled directory so a failed refresh cannot wipe existing
-        wheels. Concurrent refreshes are rejected.
-        """
-        if not self._refresh_lock.acquire(blocking=False):
-            return {
-                "ok": False,
-                "downloaded": [],
-                "failed": {},
-                "error": "refresh_already_running",
-            }
-
-        self._last_refresh_error = None
-        self._last_refresh_ok = []
-        self._last_refresh_failed = {}
-
-        dest = Path(self.bundled_dir)
-        dest.mkdir(parents=True, exist_ok=True)
-        staging = (
-            dest.parent / f".bundled-refresh-{os.getpid()}-{threading.get_ident()}"
-        )
-        if staging.exists():
-            shutil.rmtree(staging, ignore_errors=True)
-        staging.mkdir(parents=True, exist_ok=True)
-
-        total = len(bundled_pip_targets())
-        ok: list[str] = []
-        failed: dict[str, str] = {}
-        self._set_refresh_progress(running=True, current=None, completed=0, total=total)
-        try:
-
-            def _on_pkg(i: int, t: int, pkg: str) -> None:
-                self._set_refresh_progress(
-                    running=True,
-                    current=pkg,
-                    completed=i,
-                    total=t,
-                )
-
-            result = download_bundled_wheels_to_directory(staging, on_package=_on_pkg)
-            ok = result["downloaded"]
-            failed = result["failed"]
-            if ok:
-                backup = (
-                    dest.parent
-                    / f".bundled-backup-{os.getpid()}-{threading.get_ident()}"
-                )
-                if backup.exists():
-                    shutil.rmtree(backup, ignore_errors=True)
-                try:
-                    os.replace(dest, backup)
-                except OSError:
-                    shutil.move(str(dest), str(backup))
-                try:
-                    try:
-                        os.replace(staging, dest)
-                    except OSError:
-                        shutil.move(str(staging), str(dest))
-                except Exception:
-                    # Restore previous wheels if the staged swap fails.
-                    if not dest.exists() and backup.exists():
-                        try:
-                            os.replace(backup, dest)
-                        except OSError:
-                            shutil.move(str(backup), str(dest))
-                    raise
-                else:
-                    shutil.rmtree(backup, ignore_errors=True)
-            else:
-                shutil.rmtree(staging, ignore_errors=True)
-        except Exception as exc:
-            shutil.rmtree(staging, ignore_errors=True)
-            failed = {"refresh": str(exc)}
-            self._last_refresh_error = str(exc)
-            ok = []
-        finally:
-            self._set_refresh_progress(
-                running=False,
-                current=None,
-                completed=total,
-                total=total,
-            )
-            self._refresh_lock.release()
-
-        self._last_refresh_ok = ok
-        self._last_refresh_failed = failed
-        if self._last_refresh_error is None:
-            if not ok and failed:
-                self._last_refresh_error = "all_downloads_failed"
-            elif failed:
-                self._last_refresh_error = "partial_failure"
-
-        payload = {
-            "ok": bool(ok),
-            "downloaded": ok,
-            "failed": failed,
-        }
-        if self._last_refresh_error and not ok:
-            payload["error"] = self._last_refresh_error
-        return payload
