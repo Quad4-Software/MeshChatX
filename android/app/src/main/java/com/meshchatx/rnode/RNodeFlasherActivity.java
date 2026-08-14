@@ -26,6 +26,7 @@ import androidx.core.content.ContextCompat;
 import com.meshchatx.AppSettingsLauncher;
 import com.meshchatx.R;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -340,7 +341,13 @@ public final class RNodeFlasherActivity extends AppCompatActivity implements Usb
                     if (in == null) {
                         throw new IllegalStateException("Could not open firmware file");
                     }
-                    bytes = in.readAllBytes();
+                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                    byte[] buf = new byte[8192];
+                    int n;
+                    while ((n = in.read(buf)) != -1) {
+                        out.write(buf, 0, n);
+                    }
+                    bytes = out.toByteArray();
                 }
                 String rawName = uri.getLastPathSegment();
                 final String name = (rawName == null || rawName.isEmpty()) ? "firmware.zip" : rawName;
