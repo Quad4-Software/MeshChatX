@@ -3,7 +3,7 @@
 """Reticulum MeshChatX - A mesh network communications app."""
 
 # Synced from package.json via scripts/sync_version.js (also writes meshchatx/src/version.py).
-__version__ = "4.8.2"
+__version__ = "4.8.3"
 # LXST vendored pyogg can NameError on import when libopus is present but
 # libogg is not. Apply before any meshchatx module imports LXST.
 try:
