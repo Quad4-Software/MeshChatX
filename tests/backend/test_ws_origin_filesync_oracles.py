@@ -45,6 +45,18 @@ async def test_ws_upgrade_rejects_cross_site_origin(mock_app):
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("require_loopback_tcp")
+async def test_telephone_audio_ws_rejects_cross_site_origin(mock_app):
+    """Invariant 1 also covers /ws/telephone/audio."""
+    _patch_ws_broadcasts(mock_app)
+    aio_app = _make_aio_app(mock_app, use_https=False)
+
+    async with TestClient(TestServer(aio_app)) as client:
+        with pytest.raises(WSServerHandshakeError):
+            await client.ws_connect("/ws/telephone/audio", origin=EVIL_ORIGIN)
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
 async def test_cross_origin_ws_mutator_does_not_change_state(mock_app):
     """Invariant 2: no session and hostile Origin means no state mutation."""
     _patch_ws_broadcasts(mock_app)

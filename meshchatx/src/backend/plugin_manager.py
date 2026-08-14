@@ -733,6 +733,41 @@ class PluginManager:
                 )
                 conn.commit()
 
+    def _require_untampered_backend(self, record: PluginRecord) -> None:
+        with self._lock:
+            if record.tampered:
+                raise PluginSecurityError(
+                    "plugin tree was tampered; reinstall the plugin to enable it",
+                )
+            current_hash = compute_dir_integrity_hash(record.install_path)
+            if not record.integrity_hash:
+                record.integrity_hash = current_hash
+                self._write_plugin_state(
+                    record.id,
+                    record.enabled,
+                    record.auto_disabled_reason,
+                    integrity_hash=record.integrity_hash,
+                    tampered=False,
+                )
+                return
+            if current_hash == record.integrity_hash:
+                return
+            record.enabled = False
+            record.tampered = True
+            record.auto_disabled_reason = INTEGRITY_TAMPER_MESSAGE
+            self._write_plugin_state(
+                record.id,
+                False,
+                INTEGRITY_TAMPER_MESSAGE,
+                integrity_hash=record.integrity_hash,
+                tampered=True,
+            )
+            self._python_runtime.unload(record.id)
+            self._unregister_plugin_hooks(record)
+            raise PluginSecurityError(
+                "plugin tree was tampered; reinstall the plugin to enable it",
+            )
+
     def _verify_integrity_on_load(self, record: PluginRecord) -> bool:
         if not record.integrity_hash:
             try:
@@ -1291,6 +1326,7 @@ class PluginManager:
         record = self._require_plugin(plugin_id)
         if not record.enabled:
             raise PermissionError("plugin is disabled")
+        self._require_untampered_backend(record)
         args = args or {}
         try:
             if method == "callManager":
@@ -1414,6 +1450,10 @@ class PluginManager:
     def dispatch_hook(self, plugin_id: str, hook: str, payload: dict[str, Any]) -> None:
         record = self._plugins.get(plugin_id)
         if not record or not record.enabled:
+            return
+        try:
+            self._require_untampered_backend(record)
+        except PluginSecurityError:
             return
         if not self._hook_allowed(record, hook):
             return

@@ -132,11 +132,23 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 )
 
 
+from meshchatx.src.backend.websocket_config_guard import websocket_origin_allowed
+
+
+def _reject_forbidden_ws_origin(app, request):
+    if websocket_origin_allowed(request, get_trusted_proxy_cidrs(app.storage_dir)):
+        return None
+    return web.json_response({"error": "Forbidden origin"}, status=403)
+
+
 def register_websocket_upgrade_routes(routes, app):
 
     # handle websocket clients
     @routes.get("/ws")
     async def ws(request):
+        forbidden = _reject_forbidden_ws_origin(app, request)
+        if forbidden is not None:
+            return forbidden
         # prepare websocket response
         websocket_response = web.WebSocketResponse(
             # set max message size accepted by server to 50 megabytes
@@ -187,6 +199,9 @@ def register_websocket_upgrade_routes(routes, app):
 
     @routes.get("/ws/telephone/audio")
     async def telephone_audio_ws(request):
+        forbidden = _reject_forbidden_ws_origin(app, request)
+        if forbidden is not None:
+            return forbidden
         websocket_response = web.WebSocketResponse(
             # Cap well above a normal PCM frame (tens of KB) but far below prior 5 MiB.
             max_msg_size=256 * 1024,

@@ -22,9 +22,11 @@ def test_websocket_type_requires_auth_classifies_mutators():
         assert websocket_type_requires_auth(msg_type) is True
 
 
-def test_websocket_type_requires_auth_allows_ping_and_reads():
-    for msg_type in WEBSOCKET_PUBLIC_TYPES | WEBSOCKET_READ_TYPES:
+def test_websocket_type_requires_auth_allows_only_public_types():
+    for msg_type in WEBSOCKET_PUBLIC_TYPES:
         assert websocket_type_requires_auth(msg_type) is False
+    for msg_type in WEBSOCKET_READ_TYPES:
+        assert websocket_type_requires_auth(msg_type) is True
 
 
 @pytest.mark.asyncio
@@ -111,7 +113,7 @@ async def test_nomadnet_page_download_not_rejected_when_ws_request_attached(mock
 
 
 @pytest.mark.asyncio
-async def test_websocket_read_allowed_without_session_when_auth_enabled(mock_app):
+async def test_websocket_read_rejected_without_session_when_auth_enabled(mock_app):
     mock_app.config.auth_enabled.set(True)
     client = MagicMock()
     client.request = MagicMock()
@@ -119,11 +121,6 @@ async def test_websocket_read_allowed_without_session_when_auth_enabled(mock_app
 
     with (
         patch.object(mock_app, "_websocket_session_authorized", return_value=False),
-        patch.object(
-            mock_app,
-            "get_archived_page_versions",
-            return_value=[],
-        ),
         patch(
             "meshchatx.meshchat.AsyncUtils.run_async",
             side_effect=_run_async_immediate,
@@ -140,6 +137,8 @@ async def test_websocket_read_allowed_without_session_when_auth_enabled(mock_app
         await asyncio.sleep(0)
 
     client.send_str.assert_awaited()
+    payload = client.send_str.await_args.args[0]
+    assert '"Authentication required"' in payload
 
 
 @pytest.mark.asyncio

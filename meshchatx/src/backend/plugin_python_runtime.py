@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
+import shutil
 import sys
 import threading
 from collections.abc import Callable
@@ -70,11 +72,16 @@ class PluginPythonRuntime:
                 except Exception:
                     pass
 
+    def _purge_entry_pycache(self, entry_path: str) -> None:
+        start = os.path.dirname(os.path.abspath(entry_path))
+        shutil.rmtree(os.path.join(start, "__pycache__"), ignore_errors=True)
+
     def _load_module(self, plugin_id: str, entry_path: str) -> Any:
         with self._lock:
             module = self._modules.get(plugin_id)
             if module is not None:
                 return module
+            self._purge_entry_pycache(entry_path)
             spec = importlib.util.spec_from_file_location(
                 f"meshchatx_plugin_{plugin_id}",
                 entry_path,
@@ -83,7 +90,10 @@ class PluginPythonRuntime:
                 raise ImportError(f"cannot load python backend: {entry_path}")
             module = importlib.util.module_from_spec(spec)
             sys.modules[spec.name] = module
-            spec.loader.exec_module(module)
+            try:
+                spec.loader.exec_module(module)
+            finally:
+                self._purge_entry_pycache(entry_path)
             self._modules[plugin_id] = module
             return module
 
