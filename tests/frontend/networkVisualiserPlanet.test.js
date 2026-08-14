@@ -161,9 +161,9 @@ describe("networkVisualiserPlanet", () => {
         expect(out.pick.some((p) => p.id === "me")).toBe(true);
         expect(out.pick.some((p) => p.id === "eth0")).toBe(true);
         expect(out.projected[1].kind).toBe(PLANET_KIND_IFACE_ON);
-        expect(pickPlanetNode(out.pick, out.pick.find((p) => p.id === "me").sx, out.pick.find((p) => p.id === "me").sy, 24)).toBe(
-            "me"
-        );
+        expect(
+            pickPlanetNode(out.pick, out.pick.find((p) => p.id === "me").sx, out.pick.find((p) => p.id === "me").sy, 24)
+        ).toBe("me");
         expect(pickPlanetNode(out.pick, -400, -400, 8)).toBeNull();
     });
 
@@ -187,7 +187,9 @@ describe("networkVisualiserPlanet", () => {
         expect(out.planets).toHaveLength(2);
         expect(out.planets[0].id).toBe("eth0");
         expect(out.planets[1].id).toBe("wifi");
-        expect(Math.hypot(out.planets[0].cx - out.planets[1].cx, out.planets[0].cz - out.planets[1].cz)).toBeGreaterThan(1);
+        expect(
+            Math.hypot(out.planets[0].cx - out.planets[1].cx, out.planets[0].cz - out.planets[1].cz)
+        ).toBeGreaterThan(1);
     });
 
     it("marks a far-side peer as back-facing on its interface globe", () => {
@@ -283,13 +285,7 @@ describe("networkVisualiserPlanet", () => {
         packNode(nodes, 3, 230, 10, 22);
         packNode(nodes, 4, -230, 10, 22);
         const ids = ["me", "eth0", "wifi", "a", "b"];
-        const kinds = [
-            PLANET_KIND_ME,
-            PLANET_KIND_IFACE_ON,
-            PLANET_KIND_IFACE_ON,
-            PLANET_KIND_PEER,
-            PLANET_KIND_PEER,
-        ];
+        const kinds = [PLANET_KIND_ME, PLANET_KIND_IFACE_ON, PLANET_KIND_IFACE_ON, PLANET_KIND_PEER, PLANET_KIND_PEER];
         const base = {
             nodes,
             width: 800,
