@@ -358,7 +358,7 @@ task build
 
 ## バージョン管理
 
-このリポジトリの現在のバージョンは `4.8.3` です。
+このリポジトリの現在のバージョンは `4.8.4` です。
 
 - リリースのバージョン上げは **`package.json` の `version` のみ**編集します。
 - **`pnpm run version:sync`**（**`pnpm run build`** 開始時にも実行）で、**`pyproject.toml`**、**`meshchatx/src/version.py`**、**`THIRD_PARTY_NOTICES.txt`**（製品行）、**README** / **lang/README.\***（現在のバージョン行）、**`docs/en/platform-guides/raspberry-pi.md`** の pipx 例、**`packaging/arch/PKGBUILD`** の補助フィールドに反映します。
