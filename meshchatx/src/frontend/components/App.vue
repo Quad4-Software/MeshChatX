@@ -493,6 +493,7 @@ import SidebarLink from "./SidebarLink.vue";
 import DialogUtils from "../js/DialogUtils";
 import WebSocketConnection from "../js/WebSocketConnection";
 import { formatDisconnectedDuration } from "../js/wsConnectionSupport";
+import { applyAuthStatusToGlobalState, fetchAuthStatus } from "../js/authSessionSync.js";
 import GlobalState, { mergeGlobalConfig } from "../js/GlobalState";
 import { countRelayMentions } from "../js/relayMentionCount.js";
 import Utils from "../js/Utils";
@@ -1474,6 +1475,12 @@ export default {
             }
         },
         async resyncShellAfterWebsocketReconnect() {
+            try {
+                const status = await fetchAuthStatus(window.api);
+                applyAuthStatusToGlobalState(status);
+            } catch {
+                // ignore
+            }
             try {
                 await fetchCsrfToken(window.api);
             } catch {
