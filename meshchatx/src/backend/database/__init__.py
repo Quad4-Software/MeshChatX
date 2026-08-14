@@ -62,7 +62,9 @@ def _zip_file_date_time(file_path: str) -> tuple:
     return time.localtime(mtime)[:6]
 
 
-def _zip_write_file(zf: zipfile.ZipFile, file_path: str, arcname: str | None = None) -> None:
+def _zip_write_file(
+    zf: zipfile.ZipFile, file_path: str, arcname: str | None = None
+) -> None:
     name = arcname if arcname is not None else os.path.basename(file_path)
     with open(file_path, "rb") as handle:
         data = handle.read()
@@ -70,6 +72,7 @@ def _zip_write_file(zf: zipfile.ZipFile, file_path: str, arcname: str | None = N
     zinfo.date_time = _zip_file_date_time(file_path)
     zinfo.compress_type = zipfile.ZIP_DEFLATED
     zf.writestr(zinfo, data)
+
 
 _log = logging.getLogger("meshchatx.database")
 
