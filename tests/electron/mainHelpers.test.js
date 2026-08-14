@@ -94,7 +94,7 @@ describe("electron/mainHelpers", () => {
         expect(
             isTrustedIpcEvent({
                 sender: { getURL: () => "file:///opt/meshchatx/electron/loading.html" },
-            }),
+            })
         ).toBe(true);
         expect(isTrustedIpcEvent({})).toBe(false);
         expect(isTrustedIpcEvent(null)).toBe(false);
