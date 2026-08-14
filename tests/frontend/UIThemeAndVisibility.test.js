@@ -89,11 +89,55 @@ const createRouterLinkStub = () => ({
     props: ["to", "custom"],
 });
 
+const mountedWrappers = [];
+
+function mountTracked(component, options) {
+    const wrapper = mount(component, options);
+    mountedWrappers.push(wrapper);
+    return wrapper;
+}
+
+function createDefaultApiMock() {
+    return {
+        get: vi.fn().mockResolvedValue({
+            data: {
+                config: {
+                    theme: "light",
+                    display_name: "Test User",
+                },
+                app_info: { is_reticulum_running: true },
+            },
+        }),
+        post: vi.fn().mockResolvedValue({ data: {} }),
+        patch: vi.fn().mockResolvedValue({ data: {} }),
+    };
+}
+
+beforeEach(() => {
+    document.documentElement.classList.remove("dark");
+    window.api = createDefaultApiMock();
+});
+
+afterEach(async () => {
+    await flushPromises();
+    for (const wrapper of mountedWrappers) {
+        try {
+            wrapper.unmount();
+        } catch {
+            // ignore double unmount
+        }
+    }
+    mountedWrappers.length = 0;
+    await flushPromises();
+    document.documentElement.classList.remove("dark");
+    delete window.api;
+    vi.clearAllMocks();
+});
+
 describe("Theme Switching", () => {
     let axiosMock;
 
     beforeEach(() => {
-        document.documentElement.classList.remove("dark");
         axiosMock = {
             get: vi.fn().mockResolvedValue({
                 data: {
@@ -118,17 +162,11 @@ describe("Theme Switching", () => {
         window.api = axiosMock;
     });
 
-    afterEach(() => {
-        document.documentElement.classList.remove("dark");
-        delete window.api;
-        vi.clearAllMocks();
-    });
-
     it("applies dark class to root element when theme is dark", async () => {
         document.documentElement.classList.remove("dark");
         expect(document.documentElement.classList.contains("dark")).toBe(false);
 
-        const wrapper = mount(App, {
+        const wrapper = mountTracked(App, {
             global: {
                 stubs: {
                     RouterView: { template: "<div>Router View</div>" },
@@ -157,7 +195,7 @@ describe("Theme Switching", () => {
     it("removes dark class when theme is light", async () => {
         document.documentElement.classList.add("dark");
 
-        const wrapper = mount(App, {
+        const wrapper = mountTracked(App, {
             global: {
                 stubs: {
                     RouterView: { template: "<div>Router View</div>" },
@@ -184,7 +222,7 @@ describe("Theme Switching", () => {
     });
 
     it("toggles theme from light to dark", async () => {
-        const wrapper = mount(App, {
+        const wrapper = mountTracked(App, {
             global: {
                 stubs: {
                     RouterView: { template: "<div>Router View</div>" },
@@ -214,7 +252,7 @@ describe("Theme Switching", () => {
     });
 
     it("toggles theme from dark to light", async () => {
-        const wrapper = mount(App, {
+        const wrapper = mountTracked(App, {
             global: {
                 stubs: {
                     RouterView: { template: "<div>Router View</div>" },
@@ -248,7 +286,7 @@ describe("Theme Switching", () => {
     });
 
     it("shows correct icon for theme toggle button", async () => {
-        const wrapper = mount(App, {
+        const wrapper = mountTracked(App, {
             global: {
                 stubs: {
                     RouterView: { template: "<div>Router View</div>" },
@@ -281,7 +319,7 @@ describe("Theme Switching", () => {
 
 describe("Visibility Checks", () => {
     it("ConfirmDialog shows when pendingConfirm is set", async () => {
-        const wrapper = mount(ConfirmDialog, {
+        const wrapper = mountTracked(ConfirmDialog, {
             global: {
                 stubs: {
                     MaterialDesignIcon: { template: "<div></div>" },
@@ -302,7 +340,7 @@ describe("Visibility Checks", () => {
     });
 
     it("ConfirmDialog hides when pendingConfirm is null", async () => {
-        const wrapper = mount(ConfirmDialog, {
+        const wrapper = mountTracked(ConfirmDialog, {
             global: {
                 stubs: {
                     MaterialDesignIcon: { template: "<div></div>" },
@@ -321,7 +359,7 @@ describe("Visibility Checks", () => {
     });
 
     it("ChangelogModal component renders correctly", () => {
-        const wrapper = mount(ChangelogModal, {
+        const wrapper = mountTracked(ChangelogModal, {
             global: {
                 stubs: {
                     MaterialDesignIcon: { template: "<div></div>" },
@@ -336,7 +374,7 @@ describe("Visibility Checks", () => {
     });
 
     it("Toggle shows label when provided", () => {
-        const wrapper = mount(Toggle, {
+        const wrapper = mountTracked(Toggle, {
             props: {
                 id: "test-toggle",
                 label: "Show Label",
@@ -348,7 +386,7 @@ describe("Visibility Checks", () => {
     });
 
     it("Toggle hides label when not provided", () => {
-        const wrapper = mount(Toggle, {
+        const wrapper = mountTracked(Toggle, {
             props: {
                 id: "test-toggle",
                 modelValue: false,
@@ -374,7 +412,7 @@ describe("Visibility Checks", () => {
         };
         window.api = axiosMock;
 
-        const wrapper = mount(SettingsPage, {
+        const wrapper = mountTracked(SettingsPage, {
             global: {
                 stubs: {
                     MaterialDesignIcon: { template: "<div></div>" },
@@ -399,8 +437,6 @@ describe("Visibility Checks", () => {
         expect(wrapper.text()).toContain("app.banished_text_label");
         expect(wrapper.text()).toContain("app.banished_color_label");
         expect(wrapper.findAll('input[type="color"]').length).toBeGreaterThanOrEqual(1);
-
-        delete window.api;
     });
 
     it("SettingsPage shows blackhole integration toggle", async () => {
@@ -416,7 +452,7 @@ describe("Visibility Checks", () => {
         };
         window.api = axiosMock;
 
-        const wrapper = mount(SettingsPage, {
+        const wrapper = mountTracked(SettingsPage, {
             global: {
                 stubs: {
                     MaterialDesignIcon: { template: "<div></div>" },
@@ -435,8 +471,6 @@ describe("Visibility Checks", () => {
         await wrapper.vm.$nextTick();
 
         expect(wrapper.text()).toContain("app.blackhole_integration_enabled");
-
-        delete window.api;
     });
 
     it("SettingsPage hides banished config when toggle is disabled", async () => {
@@ -452,7 +486,7 @@ describe("Visibility Checks", () => {
         };
         window.api = axiosMock;
 
-        const wrapper = mount(SettingsPage, {
+        const wrapper = mountTracked(SettingsPage, {
             global: {
                 stubs: {
                     MaterialDesignIcon: { template: "<div></div>" },
@@ -475,14 +509,12 @@ describe("Visibility Checks", () => {
 
         const colorInputs = wrapper.findAll('input[type="color"]');
         expect(colorInputs.length).toBe(3);
-
-        delete window.api;
     });
 });
 
 describe("Conditional Rendering", () => {
     it("App shows emergency banner when emergency mode is active", async () => {
-        const wrapper = mount(App, {
+        const wrapper = mountTracked(App, {
             global: {
                 stubs: {
                     RouterView: { template: "<div>Router View</div>" },
@@ -509,7 +541,7 @@ describe("Conditional Rendering", () => {
     });
 
     it("App hides emergency banner when emergency mode is inactive", async () => {
-        const wrapper = mount(App, {
+        const wrapper = mountTracked(App, {
             global: {
                 stubs: {
                     RouterView: { template: "<div>Router View</div>" },
@@ -536,7 +568,7 @@ describe("Conditional Rendering", () => {
     });
 
     it("App shows sidebar toggle on mobile", async () => {
-        const wrapper = mount(App, {
+        const wrapper = mountTracked(App, {
             global: {
                 stubs: {
                     RouterView: { template: "<div>Router View</div>" },
@@ -561,7 +593,7 @@ describe("Conditional Rendering", () => {
     });
 
     it("App shows propagation sync refresh icon on mobile", async () => {
-        const wrapper = mount(App, {
+        const wrapper = mountTracked(App, {
             global: {
                 stubs: {
                     RouterView: { template: "<div>Router View</div>" },
@@ -589,7 +621,7 @@ describe("Conditional Rendering", () => {
     });
 
     it("App header shows relay chat and telephone icons next to compose and sync", async () => {
-        const wrapper = mount(App, {
+        const wrapper = mountTracked(App, {
             global: {
                 stubs: {
                     RouterView: { template: "<div>Router View</div>" },
@@ -629,7 +661,7 @@ describe("Conditional Rendering", () => {
     it("App header omits relay chat when RRC is disabled", async () => {
         GlobalState.config.rrc_enabled = false;
         try {
-            const wrapper = mount(App, {
+            const wrapper = mountTracked(App, {
                 global: {
                     stubs: {
                         RouterView: { template: "<div>Router View</div>" },
@@ -659,7 +691,7 @@ describe("Conditional Rendering", () => {
 
 describe("Dark Mode Class Application", () => {
     it("App component applies dark class based on theme", async () => {
-        const wrapper = mount(App, {
+        const wrapper = mountTracked(App, {
             global: {
                 stubs: {
                     RouterView: { template: "<div>Router View</div>" },
@@ -698,7 +730,7 @@ describe("Dark Mode Class Application", () => {
         };
         window.api = axiosMock;
 
-        const wrapper = mount(SettingsPage, {
+        const wrapper = mountTracked(SettingsPage, {
             global: {
                 stubs: {
                     MaterialDesignIcon: { template: "<div></div>" },
@@ -718,8 +750,6 @@ describe("Dark Mode Class Application", () => {
 
         const hasDarkClasses = wrapper.html().includes("dark:") || wrapper.html().includes("dark:");
         expect(hasDarkClasses).toBe(true);
-
-        delete window.api;
     });
 });
 
@@ -737,7 +767,7 @@ describe("Theme Persistence", () => {
         };
         window.api = axiosMock;
 
-        const wrapper = mount(SettingsPage, {
+        const wrapper = mountTracked(SettingsPage, {
             global: {
                 stubs: {
                     MaterialDesignIcon: { template: "<div></div>" },
@@ -761,7 +791,5 @@ describe("Theme Persistence", () => {
             await wrapper.vm.$nextTick();
             expect(wrapper.vm.config.theme).toBe("dark");
         }
-
-        delete window.api;
     });
 });
