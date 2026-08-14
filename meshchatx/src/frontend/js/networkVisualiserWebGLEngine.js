@@ -331,6 +331,8 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
     let planetProjected = [];
     /** @type {object[]} */
     let lastPlanets = [];
+    /** @type {Record<string, string>} */
+    let planetHomeById = Object.create(null);
 
     function cssPoint(ev) {
         const rect = canvas.getBoundingClientRect();
@@ -488,7 +490,7 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
     }
 
     function applyPlanetOrbit(nextYaw, nextPitch, nextDist) {
-        const c = clampOrbit(nextYaw, nextPitch, nextDist);
+        const c = clampOrbit(nextYaw, nextPitch, nextDist, lastPlanets.length);
         orbitYaw = c.yaw;
         orbitPitch = c.pitch;
         orbitDist = c.dist;
@@ -499,7 +501,7 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
         if (!running) return;
         rafId = requestAnimationFrame(frame);
         const live = typeof hooks.getLiveLayout === "function" ? hooks.getLiveLayout() : false;
-        if (live && pointerMode !== "drag") {
+        if (live && pointerMode !== "drag" && !isPlanet()) {
             const moved = callScene("meshchatxVisualiserSceneTick", 1);
             // false means the WASM solver is asleep. null/undefined is an older
             // wasm or stub, keep drawing.
@@ -542,6 +544,8 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
                 dark,
                 idByIndex,
                 kindByIndex,
+                prevPlanets: lastPlanets,
+                prevHomeById: planetHomeById,
             });
             paintNodes = planet.nodes;
             drawEdges = planet.edges;
@@ -550,6 +554,12 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
             planetProjected = planet.projected;
             planetLayoutScale = planet.layoutScale;
             lastPlanets = planet.planets || [];
+            planetHomeById = planet.homeById || planetHomeById;
+            if (planet.orbit) {
+                orbitYaw = planet.orbit.yaw;
+                orbitPitch = planet.orbit.pitch;
+                orbitDist = planet.orbit.dist;
+            }
         } else {
             planetPick = [];
             planetProjected = [];
@@ -792,6 +802,7 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
         hoverId = null;
         texMeta = [];
         lastPlanets = [];
+        planetHomeById = Object.create(null);
     }
 
     return {

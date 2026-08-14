@@ -23,6 +23,13 @@ export const DEFAULT_ORBIT_DIST = 6.2;
 export const LAYOUT_SCALE_FLOOR = 160;
 /** Scale above max layout radius so the farthest node stays on the back hemisphere. */
 export const LAYOUT_SCALE_FIT = 1.08;
+/** Per-globe wrap floor. Live maxR below this does not retighten the map. */
+export const PLANET_CLUSTER_SCALE_FLOOR = 240;
+/** Keep a peer on its globe unless another interface is this much closer. */
+export const PLANET_HOME_STICKY = 48;
+const CLIP_W_MIN = 1e-3;
+const SCALE_HOLD_LO = 0.85;
+const SCALE_HOLD_HI = 1.15;
 
 export const PLANET_KIND_ME = 0;
 export const PLANET_KIND_IFACE_ON = 1;
@@ -72,13 +79,18 @@ export function isPlanetInterfaceKind(kind) {
  * @param {number} pitch
  * @param {number} dist
  */
-export function clampOrbit(yaw, pitch, dist) {
+export function orbitDistFloor(planetCount) {
+    return Math.max(PLANET_DIST_MIN, hubRadiusForPlanetCount(planetCount) + 1.6);
+}
+
+export function clampOrbit(yaw, pitch, dist, planetCount) {
     let y = Number.isFinite(yaw) ? yaw : DEFAULT_ORBIT_YAW;
     let p = Number.isFinite(pitch) ? pitch : DEFAULT_ORBIT_PITCH;
     if (p < -PLANET_PITCH_LIMIT) p = -PLANET_PITCH_LIMIT;
     if (p > PLANET_PITCH_LIMIT) p = PLANET_PITCH_LIMIT;
     let d = Number.isFinite(dist) && dist > 0 ? dist : DEFAULT_ORBIT_DIST;
-    if (d < PLANET_DIST_MIN) d = PLANET_DIST_MIN;
+    const minD = planetCount != null ? orbitDistFloor(planetCount) : PLANET_DIST_MIN;
+    if (d < minD) d = minD;
     if (d > PLANET_DIST_MAX) d = PLANET_DIST_MAX;
     return { yaw: y, pitch: p, dist: d };
 }
@@ -257,6 +269,39 @@ export function clipToScreen(clipX, clipY, clipW, width, height) {
     };
 }
 
+/**
+ * Clip a clip-space segment so both ends have w >= wMin.
+ * Drops segments entirely behind the camera.
+ */
+export function clipLineToPositiveW(c1, c2, wMin = CLIP_W_MIN) {
+    if (!c1 || !c2) return null;
+    const minW = wMin > 0 ? wMin : CLIP_W_MIN;
+    const aIn = c1.w >= minW;
+    const bIn = c2.w >= minW;
+    if (aIn && bIn) {
+        return { x1: c1.x, y1: c1.y, w1: c1.w, x2: c2.x, y2: c2.y, w2: c2.w };
+    }
+    if (!aIn && !bIn) return null;
+    const dw = c2.w - c1.w;
+    if (!(Math.abs(dw) > 1e-12)) return null;
+    const t = (minW - c1.w) / dw;
+    if (!Number.isFinite(t) || t < 0 || t > 1) return null;
+    const mx = c1.x + (c2.x - c1.x) * t;
+    const my = c1.y + (c2.y - c1.y) * t;
+    if (!aIn) {
+        return { x1: mx, y1: my, w1: minW, x2: c2.x, y2: c2.y, w2: c2.w };
+    }
+    return { x1: c1.x, y1: c1.y, w1: c1.w, x2: mx, y2: my, w2: minW };
+}
+
+export function stabilizeLayoutScale(computed, prev) {
+    const next = computed > 1e-6 ? computed : PLANET_CLUSTER_SCALE_FLOOR;
+    if (!(prev > 1e-6)) return next;
+    const ratio = next / prev;
+    if (ratio >= SCALE_HOLD_LO && ratio <= SCALE_HOLD_HI) return prev;
+    return next;
+}
+
 export function screenToDrawWorld(sx, sy, width, height) {
     return { x: sx - width * 0.5, y: sy - height * 0.5 };
 }
@@ -364,7 +409,7 @@ export function hubRadiusForPlanetCount(n) {
 
 export function planetRadiusForPeers(n) {
     const c = Math.max(0, n | 0);
-    return Math.min(0.78, 0.4 + 0.075 * Math.sqrt(c));
+    return Math.min(0.7, 0.52 + 0.035 * Math.sqrt(c));
 }
 
 /**
@@ -405,7 +450,7 @@ function kindOf(i, kindByIndex, idByIndex) {
  *   fallback: boolean,
  * }}
  */
-export function assignPlanetHomes(srcCount, kindByIndex, idByIndex, nodes) {
+export function assignPlanetHomes(srcCount, kindByIndex, idByIndex, nodes, prevHomeById) {
     const home = new Int16Array(srcCount);
     const ifaceIndices = [];
     for (let i = 0; i < srcCount; i++) {
@@ -416,13 +461,18 @@ export function assignPlanetHomes(srcCount, kindByIndex, idByIndex, nodes) {
             ifaceIndices.push(i);
         }
     }
+    const homeById = Object.create(null);
     if (ifaceIndices.length === 0) {
         for (let i = 0; i < srcCount; i++) {
             const k = kindOf(i, kindByIndex, idByIndex);
             if (k !== PLANET_KIND_ME) home[i] = 0;
         }
-        return { ifaceIndices, home, fallback: true };
+        return { ifaceIndices, home, fallback: true, homeById };
     }
+    const ifaceIdOf = (planetIndex) => {
+        const ii = ifaceIndices[planetIndex];
+        return ii == null || idByIndex[ii] == null ? "" : String(idByIndex[ii]);
+    };
     for (let i = 0; i < srcCount; i++) {
         const k = kindOf(i, kindByIndex, idByIndex);
         if (k === PLANET_KIND_ME || isPlanetInterfaceKind(k)) continue;
@@ -439,9 +489,28 @@ export function assignPlanetHomes(srcCount, kindByIndex, idByIndex, nodes) {
                 best = p;
             }
         }
+        const id = idByIndex[i] != null ? String(idByIndex[i]) : "";
+        const prevIfaceId = id && prevHomeById ? prevHomeById[id] : "";
+        if (prevIfaceId) {
+            for (let p = 0; p < ifaceIndices.length; p++) {
+                if (ifaceIdOf(p) !== String(prevIfaceId)) continue;
+                const io = ifaceIndices[p] * NODE_STRIDE;
+                const prevD = Math.hypot(x - (nodes[io] || 0), y - (nodes[io + 1] || 0));
+                if (prevD <= bestD + PLANET_HOME_STICKY) {
+                    best = p;
+                }
+                break;
+            }
+        }
         home[i] = best;
+        if (id) homeById[id] = ifaceIdOf(best);
     }
-    return { ifaceIndices, home, fallback: false };
+    for (let p = 0; p < ifaceIndices.length; p++) {
+        const ii = ifaceIndices[p];
+        const id = idByIndex[ii] != null ? String(idByIndex[ii]) : "";
+        if (id) homeById[id] = id;
+    }
+    return { ifaceIndices, home, fallback: false, homeById };
 }
 
 function paletteForId(id, offline, dark) {
@@ -514,7 +583,7 @@ function localScaleForPlanet(nodes, srcCount, home, planetIndex, ifaceIndex, fal
         const r = Math.hypot((nodes[kOff] || 0) - ox, (nodes[kOff + 1] || 0) - oy);
         if (r > maxR) maxR = r;
     }
-    return Math.max(maxR * LAYOUT_SCALE_FIT, 90);
+    return Math.max(maxR * LAYOUT_SCALE_FIT, PLANET_CLUSTER_SCALE_FLOOR);
 }
 
 /**
@@ -531,20 +600,13 @@ function localScaleForPlanet(nodes, srcCount, home, planetIndex, ifaceIndex, fal
  *   dark: boolean,
  *   idByIndex?: (string|null|undefined)[],
  *   kindByIndex?: (number|null|undefined)[],
+ *   prevPlanets?: {id?:string,layoutScale?:number}[],
+ *   prevHomeById?: Record<string, string>,
  * }} opts
  */
 export function projectPlanetScene(opts) {
     const width = Math.max(1, opts?.width || 1);
     const height = Math.max(1, opts?.height || 1);
-    const orbit = clampOrbit(
-        opts?.yaw ?? DEFAULT_ORBIT_YAW,
-        opts?.pitch ?? DEFAULT_ORBIT_PITCH,
-        opts?.dist ?? DEFAULT_ORBIT_DIST
-    );
-    const eye = orbitEye(orbit.yaw, orbit.pitch, orbit.dist);
-    const view = lookAtOrigin(eye);
-    const proj = perspective(PLANET_FOV_Y, width / height, PLANET_NEAR, PLANET_FAR);
-    const viewProj = mat4Multiply(proj, view);
     const srcNodes = opts?.nodes;
     const srcCount = srcNodes && srcNodes.length ? Math.floor(srcNodes.length / NODE_STRIDE) : 0;
     const idByIndex = opts?.idByIndex || [];
@@ -552,9 +614,25 @@ export function projectPlanetScene(opts) {
     const dark = opts?.dark === true;
     const srcEdges = opts?.edges;
     const srcEdgeCount = srcEdges && srcEdges.length ? Math.floor(srcEdges.length / EDGE_STRIDE) : 0;
+    const prevPlanets = Array.isArray(opts?.prevPlanets) ? opts.prevPlanets : [];
+    const prevScaleById = Object.create(null);
+    for (let i = 0; i < prevPlanets.length; i++) {
+        const pl = prevPlanets[i];
+        if (pl?.id) prevScaleById[String(pl.id)] = pl.layoutScale;
+    }
 
-    const assigned = assignPlanetHomes(srcCount, kindByIndex, idByIndex, srcNodes);
+    const assigned = assignPlanetHomes(srcCount, kindByIndex, idByIndex, srcNodes, opts?.prevHomeById);
     const planetCount = assigned.fallback ? (srcCount > 1 ? 1 : 0) : assigned.ifaceIndices.length;
+    const orbit = clampOrbit(
+        opts?.yaw ?? DEFAULT_ORBIT_YAW,
+        opts?.pitch ?? DEFAULT_ORBIT_PITCH,
+        opts?.dist ?? DEFAULT_ORBIT_DIST,
+        planetCount
+    );
+    const eye = orbitEye(orbit.yaw, orbit.pitch, orbit.dist);
+    const view = lookAtOrigin(eye);
+    const proj = perspective(PLANET_FOV_Y, width / height, PLANET_NEAR, PLANET_FAR);
+    const viewProj = mat4Multiply(proj, view);
     const centers = placePlanetCenters(planetCount);
     const memberCounts = new Array(Math.max(planetCount, 1)).fill(0);
     for (let i = 0; i < srcCount; i++) {
@@ -579,7 +657,10 @@ export function projectPlanetScene(opts) {
             radius,
             originX,
             originY,
-            layoutScale: localScaleForPlanet(srcNodes, srcCount, assigned.home, p, ifaceIndex, assigned.fallback),
+            layoutScale: stabilizeLayoutScale(
+                localScaleForPlanet(srcNodes, srcCount, assigned.home, p, ifaceIndex, assigned.fallback),
+                prevScaleById[id]
+            ),
             ifaceIndex,
             id,
             fill: paletteForId(id, offline, dark),
@@ -754,6 +835,7 @@ export function projectPlanetScene(opts) {
         edgeScratch = new Float32Array(Math.max(edgeNeed, 64));
     }
     let w = 0;
+    const maxSeg = 1.5 * Math.hypot(width, height);
     const writeWorldSeg = (x1, y1, z1, x2, y2, z2, r, g, b, a, requireFront, cx, cy, cz, radius) => {
         if (requireFront) {
             const n1x = radius > 1e-6 ? (x1 - cx) / radius : x1;
@@ -764,13 +846,24 @@ export function projectPlanetScene(opts) {
             const n2z = radius > 1e-6 ? (z2 - cz) / radius : z2;
             const f1 = sphereFacingAt(n1x, n1y, n1z, eye, cx, cy, cz, radius);
             const f2 = sphereFacingAt(n2x, n2y, n2z, eye, cx, cy, cz, radius);
-            if (f1 <= 0 && f2 <= 0) return;
+            if (f1 <= 0 || f2 <= 0) return;
         }
         const c1 = transformPoint(viewProj, x1, y1, z1);
         const c2 = transformPoint(viewProj, x2, y2, z2);
-        const s1 = clipToScreen(c1.x, c1.y, c1.w, width, height);
-        const s2 = clipToScreen(c2.x, c2.y, c2.w, width, height);
-        if (!s1.ok && !s2.ok) return;
+        const clipped = clipLineToPositiveW(c1, c2);
+        if (!clipped) return;
+        const s1 = clipToScreen(clipped.x1, clipped.y1, clipped.w1, width, height);
+        const s2 = clipToScreen(clipped.x2, clipped.y2, clipped.w2, width, height);
+        if (!s1.ok || !s2.ok) return;
+        if (
+            !Number.isFinite(s1.x) ||
+            !Number.isFinite(s1.y) ||
+            !Number.isFinite(s2.x) ||
+            !Number.isFinite(s2.y)
+        ) {
+            return;
+        }
+        if (Math.hypot(s1.x - s2.x, s1.y - s2.y) > maxSeg) return;
         const d1 = screenToDrawWorld(s1.x, s1.y, width, height);
         const d2 = screenToDrawWorld(s2.x, s2.y, width, height);
         const o = w * EDGE_STRIDE;
@@ -844,12 +937,13 @@ export function projectPlanetScene(opts) {
         writeWorldSeg(0, 0, 0, pl.cx, pl.cy, pl.cz, pl.fill[0], pl.fill[1], pl.fill[2], dark ? 0.38 : 0.42, false, 0, 0, 0, 1);
     }
 
+    const EDGE_MATCH = 0.75;
     for (let i = 0; i < srcEdgeCount; i++) {
         const o = i * EDGE_STRIDE;
         let ia = -1;
         let ib = -1;
-        let da = Infinity;
-        let db = Infinity;
+        let da = EDGE_MATCH;
+        let db = EDGE_MATCH;
         const x1 = srcEdges[o];
         const y1 = srcEdges[o + 1];
         const x2 = srcEdges[o + 2];
@@ -870,6 +964,11 @@ export function projectPlanetScene(opts) {
         if (ia < 0 || ib < 0 || ia === ib) continue;
         const wa = world[ia];
         const wb = world[ib];
+        if (!wa || !wb) continue;
+        if (wa.planet !== wb.planet || wa.planet < 0) continue;
+        const pa = projected[ia];
+        const pb = projected[ib];
+        if (pa && pb && pa.facing <= 0 && pb.facing <= 0) continue;
         writeWorldSeg(
             wa.x,
             wa.y,
@@ -897,6 +996,8 @@ export function projectPlanetScene(opts) {
         projected,
         planets,
         layoutScale,
+        homeById: assigned.homeById,
+        orbit,
         camera: { x: 0, y: 0, zoom: 1 },
     };
 }

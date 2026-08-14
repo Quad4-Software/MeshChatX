@@ -9,6 +9,7 @@ import {
     PLANET_KIND_PEER,
     assignPlanetHomes,
     clampOrbit,
+    clipLineToPositiveW,
     computeLayoutScale,
     layoutToSphere,
     sphereToLayout,
@@ -19,9 +20,10 @@ import {
     placePlanetCenters,
     projectPlanetScene,
     raySphere,
+    stabilizeLayoutScale,
     normalizeVisualiserViewMode,
 } from "@/js/networkVisualiserPlanet.js";
-import { NODE_STRIDE as DRAW_STRIDE } from "@/js/networkVisualiserWebGL.js";
+import { EDGE_STRIDE, NODE_STRIDE as DRAW_STRIDE } from "@/js/networkVisualiserWebGL.js";
 
 function packNode(arr, i, x, y, size = 24, a = 1) {
     const o = i * DRAW_STRIDE;
@@ -239,5 +241,115 @@ describe("networkVisualiserPlanet", () => {
     it("maps closer orbit to a higher LOD zoom", () => {
         expect(planetLodZoom(DEFAULT_ORBIT_DIST)).toBeCloseTo(1, 5);
         expect(planetLodZoom(DEFAULT_ORBIT_DIST * 2)).toBeCloseTo(0.5, 5);
+    });
+
+    it("clips clip-space segments that cross the camera plane", () => {
+        const kept = clipLineToPositiveW({ x: 0, y: 0, w: 2 }, { x: 4, y: 0, w: 2 }, 0.1);
+        expect(kept.x1).toBe(0);
+        expect(kept.x2).toBe(4);
+        const cut = clipLineToPositiveW({ x: 0, y: 0, w: 2 }, { x: 10, y: 0, w: -2 }, 0.1);
+        expect(cut).not.toBeNull();
+        expect(cut.w2).toBeCloseTo(0.1, 5);
+        expect(cut.x2).toBeGreaterThan(0);
+        expect(clipLineToPositiveW({ x: 0, y: 0, w: -1 }, { x: 1, y: 0, w: -2 }, 0.1)).toBeNull();
+    });
+
+    it("holds layout scale across small cluster size changes", () => {
+        expect(stabilizeLayoutScale(280, 260)).toBe(260);
+        expect(stabilizeLayoutScale(400, 260)).toBe(400);
+        expect(stabilizeLayoutScale(200, null)).toBe(200);
+    });
+
+    it("keeps a peer on its previous interface across a nearby boundary", () => {
+        const nodes = new Float32Array(DRAW_STRIDE * 4);
+        packNode(nodes, 0, 0, 0, 32);
+        packNode(nodes, 1, 200, 0, 24);
+        packNode(nodes, 2, -200, 0, 24);
+        packNode(nodes, 3, -10, 0, 22);
+        const kinds = [PLANET_KIND_ME, PLANET_KIND_IFACE_ON, PLANET_KIND_IFACE_ON, PLANET_KIND_PEER];
+        const ids = ["me", "eth0", "wifi", "peer"];
+        const fresh = assignPlanetHomes(4, kinds, ids, nodes);
+        expect(fresh.home[3]).toBe(1);
+        const stuck = assignPlanetHomes(4, kinds, ids, nodes, { peer: "eth0" });
+        expect(stuck.home[3]).toBe(0);
+        expect(stuck.homeById.peer).toBe("eth0");
+    });
+
+    it("omits cross-planet graph edges and keeps same-planet ones", () => {
+        const nodes = new Float32Array(DRAW_STRIDE * 5);
+        packNode(nodes, 0, 0, 0, 32);
+        packNode(nodes, 1, 200, 0, 24);
+        packNode(nodes, 2, -200, 0, 24);
+        packNode(nodes, 3, 230, 10, 22);
+        packNode(nodes, 4, -230, 10, 22);
+        const ids = ["me", "eth0", "wifi", "a", "b"];
+        const kinds = [
+            PLANET_KIND_ME,
+            PLANET_KIND_IFACE_ON,
+            PLANET_KIND_IFACE_ON,
+            PLANET_KIND_PEER,
+            PLANET_KIND_PEER,
+        ];
+        const base = {
+            nodes,
+            width: 800,
+            height: 600,
+            yaw: 0,
+            pitch: 0,
+            dist: DEFAULT_ORBIT_DIST,
+            dark: true,
+            idByIndex: ids,
+            kindByIndex: kinds,
+        };
+        const none = projectPlanetScene({ ...base, edges: new Float32Array(0) });
+        const cross = new Float32Array(EDGE_STRIDE);
+        cross[0] = 230;
+        cross[1] = 10;
+        cross[2] = -230;
+        cross[3] = 10;
+        cross[7] = 1;
+        const withCross = projectPlanetScene({ ...base, edges: cross });
+        expect(withCross.edges.length).toBe(none.edges.length);
+        const same = new Float32Array(EDGE_STRIDE);
+        same[0] = 200;
+        same[1] = 0;
+        same[2] = 230;
+        same[3] = 10;
+        same[7] = 1;
+        const withSame = projectPlanetScene({ ...base, edges: same });
+        expect(withSame.edges.length).toBe(none.edges.length + EDGE_STRIDE);
+    });
+
+    it("keeps projected edges finite when the camera is close", () => {
+        const nodes = new Float32Array(DRAW_STRIDE * 5);
+        packNode(nodes, 0, 0, 0, 32);
+        packNode(nodes, 1, 200, 0, 24);
+        packNode(nodes, 2, -200, 0, 24);
+        packNode(nodes, 3, 0, 200, 24);
+        packNode(nodes, 4, 0, -200, 24);
+        const out = projectPlanetScene({
+            nodes,
+            edges: new Float32Array(0),
+            width: 800,
+            height: 600,
+            yaw: 0.4,
+            pitch: 0.3,
+            dist: 2.6,
+            dark: true,
+            idByIndex: ["me", "a", "b", "c", "d"],
+            kindByIndex: [
+                PLANET_KIND_ME,
+                PLANET_KIND_IFACE_ON,
+                PLANET_KIND_IFACE_ON,
+                PLANET_KIND_IFACE_ON,
+                PLANET_KIND_IFACE_ON,
+            ],
+        });
+        expect(out.orbit.dist).toBeGreaterThan(2.6);
+        const limit = 1.6 * Math.hypot(800, 600);
+        for (let i = 0; i < out.edges.length; i++) {
+            expect(Number.isFinite(out.edges[i])).toBe(true);
+            expect(Math.abs(out.edges[i])).toBeLessThan(limit);
+        }
     });
 });
