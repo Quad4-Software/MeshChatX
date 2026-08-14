@@ -70,7 +70,7 @@ body:
           label: Steps to reproduce
           description: Numbered steps that reliably trigger the issue.
           placeholder: |
-              1. Open MeshChatX 4.8.0 on Windows 11
+              1. Open MeshChatX on Windows 11
               2. Add an RNode interface with port ble://...
               3. Restart the app
       validations:

@@ -9,6 +9,7 @@
  * meshchatx/src/backend/data/licenses_backend.json (reticulum-meshchatx entry),
  * android/app/build.gradle,
  * electron/app-version.json,
+ * .github/ISSUE_TEMPLATE bug and feature version placeholders,
  * pipx example, packaging/arch/PKGBUILD pkgver / printf fallback,
  * then runs scripts/bake_build_meta.js (git commit / channel overlay).
  *
@@ -140,6 +141,15 @@ console.log(`Synced version ${version} from package.json`);
 
 const appVersionPath = path.join(root, "electron", "app-version.json");
 writeIfChanged(appVersionPath, `${JSON.stringify({ version }, null, 4)}\n`);
+
+patchFile(".github/ISSUE_TEMPLATE/bug_report.yml", (c) => {
+    let x = c.replace(/placeholder: "\d+\.\d+\.\d+"/, `placeholder: "${version}"`);
+    x = x.replace(/\(for example \d+\.\d+\.\d+\)/, `(for example ${version})`);
+    return x;
+});
+patchFile(".github/ISSUE_TEMPLATE/feature_request.yml", (c) =>
+    c.replace(/placeholder: "\d+\.\d+\.\d+"/, `placeholder: "${version}"`)
+);
 
 try {
     require("./bake_build_meta.js");
