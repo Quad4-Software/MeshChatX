@@ -38,7 +38,11 @@
     <string name="rnode_flasher_allow_usb">Allow USB</string>
     <string name="rnode_flasher_product">Product</string>
     <string name="rnode_flasher_model">Model</string>
-    <string name="rnode_flasher_download">Download firmware</string>
+    <string name="rnode_flasher_download">Select firmware file</string>
+    <string name="rnode_flasher_pick_firmware">Choose RNode firmware (.zip)</string>
+    <string name="rnode_flasher_loading_firmware">Loading firmware…</string>
+    <string name="rnode_flasher_firmware_ready">Loaded %1$s (%2$d bytes)</string>
+    <string name="rnode_flasher_pick_failed">Could not load firmware file</string>
     <string name="rnode_flasher_flash">Flash</string>
     <string name="rnode_flasher_allow_bluetooth">Allow Bluetooth</string>
     <string name="rnode_flasher_app_settings">App settings</string>
@@ -46,4 +50,3 @@
     <string name="rnode_flasher_no_usb">No USB serial devices found. Plug in your RNode.</string>
     <string name="rnode_flasher_busy">Working…</string>
 </resources>
-

@@ -10,7 +10,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
-import android.webkit.CookieManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -25,25 +24,16 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.meshchatx.AppSettingsLauncher;
-import com.meshchatx.LocalhostTrustOkHttpClient;
 import com.meshchatx.R;
-import com.meshchatx.RemoteBackendUrl;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
 
 /**
  * Fully native RNode flasher (USB serial + ESP32 ROM protocol).
@@ -51,10 +41,9 @@ import okhttp3.ResponseBody;
  */
 public final class RNodeFlasherActivity extends AppCompatActivity implements UsbSerialHub.Listener {
     private static final int REQ_BT = 4401;
+    private static final int REQ_PICK_FIRMWARE = 4402;
     private static final String PREFS = "rnode_flasher";
     private static final String PREF_BT_PROMPTED = "bt_perm_prompted";
-    private static final String SHELL_PREFS = "meshchatx_shell";
-    private static final String PREF_REMOTE_BACKEND_URL = "remote_backend_url";
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final ExecutorService io = Executors.newSingleThreadExecutor();
@@ -135,7 +124,7 @@ public final class RNodeFlasherActivity extends AppCompatActivity implements Usb
             findViewById(R.id.rnodeRequestUsb).setOnClickListener(v -> requestUsbPermission());
             findViewById(R.id.rnodeRequestBluetooth).setOnClickListener(v -> requestBluetooth());
             findViewById(R.id.rnodeOpenAppSettings).setOnClickListener(v -> openAppSettings());
-            downloadButton.setOnClickListener(v -> downloadFirmware());
+            downloadButton.setOnClickListener(v -> pickFirmwareFile());
             flashButton.setOnClickListener(v -> flashSelected());
 
             usbHub = new UsbSerialHub(this);
@@ -321,40 +310,58 @@ public final class RNodeFlasherActivity extends AppCompatActivity implements Usb
         }
     }
 
-    private void downloadFirmware() {
-        ProductCatalog.Product product = selectedProduct();
-        ProductCatalog.Model model = selectedModel();
-        if (product == null) {
-            Toast.makeText(this, "Select a product", Toast.LENGTH_SHORT).show();
+    private void pickFirmwareFile() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("application/zip");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        startActivityForResult(
+            Intent.createChooser(intent, getString(R.string.rnode_flasher_pick_firmware)),
+            REQ_PICK_FIRMWARE
+        );
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQ_PICK_FIRMWARE || resultCode != RESULT_OK || data == null) {
             return;
         }
-        String filename = product.resolveFirmwareFilename(model);
-        if (filename == null || filename.isEmpty()) {
-            Toast.makeText(this, "No firmware filename for product", Toast.LENGTH_SHORT).show();
+        Uri uri = data.getData();
+        if (uri == null) {
+            Toast.makeText(this, getString(R.string.rnode_flasher_pick_failed), Toast.LENGTH_SHORT).show();
             return;
         }
         setBusy(true);
-        setStatus("Downloading " + filename + "…");
-        appendLog("Downloading " + filename);
+        setStatus(getString(R.string.rnode_flasher_loading_firmware));
         io.execute(() -> {
             try {
-                byte[] bytes = fetchFirmwareZip(filename);
-                File cache = new File(getCacheDir(), filename);
+                byte[] bytes;
+                try (InputStream in = getContentResolver().openInputStream(uri)) {
+                    if (in == null) {
+                        throw new IllegalStateException("Could not open firmware file");
+                    }
+                    bytes = in.readAllBytes();
+                }
+                String name = uri.getLastPathSegment();
+                if (name == null || name.isEmpty()) {
+                    name = "firmware.zip";
+                }
+                File cache = new File(getCacheDir(), name);
                 try (FileOutputStream fos = new FileOutputStream(cache)) {
                     fos.write(bytes);
                 }
                 firmwareBytes = bytes;
-                firmwareName = filename;
+                firmwareName = name;
                 mainHandler.post(() -> {
                     setBusy(false);
-                    setStatus("Downloaded " + filename + " (" + bytes.length + " bytes)");
+                    setStatus(getString(R.string.rnode_flasher_firmware_ready, name, bytes.length));
                     appendLog("Firmware ready: " + cache.getAbsolutePath());
                 });
             } catch (Exception e) {
                 mainHandler.post(() -> {
                     setBusy(false);
-                    setStatus("Download failed");
-                    appendLog("Download error: " + e.getMessage());
+                    setStatus(getString(R.string.rnode_flasher_pick_failed));
+                    appendLog("Firmware load error: " + e.getMessage());
                     Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
                 });
             }
@@ -429,80 +436,6 @@ public final class RNodeFlasherActivity extends AppCompatActivity implements Usb
                 }
             }
         });
-    }
-
-    /**
-     * Resolve the effective backend origin, matching MainActivity so the flasher
-     * still works when the shell is configured against a remote backend instead
-     * of the on-device local API.
-     */
-    private String resolveApiBaseUrl() {
-        SharedPreferences prefs = getSharedPreferences(SHELL_PREFS, MODE_PRIVATE);
-        return RemoteBackendUrl.resolveEffectiveUrl(prefs.getString(PREF_REMOTE_BACKEND_URL, null));
-    }
-
-    /**
-     * The localhost-only client skips certificate validation for the embedded
-     * self-signed 127.0.0.1 server. A configured remote backend must keep normal
-     * system certificate validation, so it gets a plain OkHttpClient instead.
-     */
-    private OkHttpClient httpClientFor(String apiBaseUrl) {
-        if (RemoteBackendUrl.isLocalBackendUrl(apiBaseUrl)) {
-            return LocalhostTrustOkHttpClient.get();
-        }
-        return new OkHttpClient.Builder().connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS).build();
-    }
-
-    private byte[] fetchFirmwareZip(String filename) throws Exception {
-        String apiBaseUrl = resolveApiBaseUrl();
-        OkHttpClient client = httpClientFor(apiBaseUrl);
-        // Resolve latest release asset URL via the backend API, then download through proxy.
-        String releaseUrl = apiBaseUrl + "/api/v1/tools/rnode/latest_release";
-        Request releaseReq = authorizedGet(apiBaseUrl, releaseUrl);
-        String assetUrl;
-        try (Response response = client.newCall(releaseReq).execute()) {
-            if (!response.isSuccessful() || response.body() == null) {
-                throw new IllegalStateException("latest_release HTTP " + response.code());
-            }
-            JSONObject release = new JSONObject(response.body().string());
-            JSONArray assets = release.optJSONArray("assets");
-            assetUrl = null;
-            if (assets != null) {
-                for (int i = 0; i < assets.length(); i++) {
-                    JSONObject asset = assets.getJSONObject(i);
-                    if (filename.equals(asset.optString("name"))) {
-                        assetUrl = asset.optString("browser_download_url");
-                        break;
-                    }
-                }
-            }
-            if (assetUrl == null || assetUrl.isEmpty()) {
-                assetUrl =
-                    "https://github.com/markqvist/RNode_Firmware/releases/latest/download/"
-                        + filename;
-            }
-        }
-        String downloadUrl =
-            apiBaseUrl
-                + "/api/v1/tools/rnode/download_firmware?url="
-                + Uri.encode(assetUrl);
-        Request dlReq = authorizedGet(apiBaseUrl, downloadUrl);
-        try (Response response = client.newCall(dlReq).execute()) {
-            if (!response.isSuccessful() || response.body() == null) {
-                throw new IllegalStateException("download_firmware HTTP " + response.code());
-            }
-            ResponseBody body = response.body();
-            return body.bytes();
-        }
-    }
-
-    private Request authorizedGet(String apiBaseUrl, String url) {
-        Request.Builder builder = new Request.Builder().url(url).get();
-        String cookie = CookieManager.getInstance().getCookie(apiBaseUrl);
-        if (cookie != null && !cookie.isEmpty()) {
-            builder.header("Cookie", cookie);
-        }
-        return builder.build();
     }
 
     @Nullable
