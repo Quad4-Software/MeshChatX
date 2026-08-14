@@ -38,6 +38,7 @@ def test_normalize_loopback_ipv6():
         "ftp://127.0.0.1:1",
         "http://127.0.0.1.evil.com",
         "http://user:pass@127.0.0.1:1",
+        "http://127.0.0.1:5000@example.com",
     ],
 )
 def test_normalize_rejects_non_loopback(bad):
@@ -133,6 +134,7 @@ def test_normalize_libretranslate_allows_decimal_loopback():
     [
         "ftp://example.com/",
         "http://user:pass@192.168.1.1:5000",
+        "http://127.0.0.1:5000@example.com",
     ],
 )
 def test_normalize_libretranslate_rejects_scheme_or_creds(bad):

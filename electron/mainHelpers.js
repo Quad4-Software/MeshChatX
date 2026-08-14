@@ -118,60 +118,14 @@ function formatRenderProcessGoneDetails(details) {
     );
 }
 
-/**
- * Whether the URL is the MeshChatX local backend origin (loading / API checks).
- * @param {unknown} url
- * @returns {boolean}
- */
-function isLocalBackendUrl(url) {
-    if (!url || typeof url !== "string") {
-        return false;
-    }
-    return (
-        url.startsWith("http://127.0.0.1:9337") ||
-        url.startsWith("https://127.0.0.1:9337") ||
-        url.startsWith("http://localhost:9337") ||
-        url.startsWith("https://localhost:9337")
-    );
-}
-
-/**
- * Whether window.open should create a child Electron window instead of the OS browser.
- * Local backend popouts and call.html must stay in Electron so they keep the app session.
- * @param {unknown} url
- * @returns {boolean}
- */
-function shouldOpenInElectronWindow(url) {
-    if (!url || typeof url !== "string") {
-        return false;
-    }
-    if (url.startsWith("blob:")) {
-        return true;
-    }
-    if (!isLocalBackendUrl(url)) {
-        return false;
-    }
-    if (url.includes("/call.html")) {
-        return true;
-    }
-    return url.includes("#/popout/");
-}
-
-/**
- * Whether the main frame may navigate to this URL inside Electron (local app shell).
- * External http(s) links must open in the system browser instead.
- * @param {unknown} url
- * @returns {boolean}
- */
-function shouldAllowInWindowNavigation(url) {
-    if (!url || typeof url !== "string") {
-        return false;
-    }
-    if (url.startsWith("blob:")) {
-        return true;
-    }
-    return isLocalBackendUrl(url);
-}
+const {
+    isLocalBackendUrl,
+    isTrustedBlobUrl,
+    isTrustedShellFileUrl,
+    isTrustedShellOrigin,
+    shouldOpenInElectronWindow,
+    shouldAllowInWindowNavigation,
+} = require("./shellOrigin");
 
 module.exports = {
     getUserProvidedArguments,
@@ -179,6 +133,9 @@ module.exports = {
     resolvePortableStorageRoots,
     formatRenderProcessGoneDetails,
     isLocalBackendUrl,
+    isTrustedBlobUrl,
+    isTrustedShellFileUrl,
+    isTrustedShellOrigin,
     shouldOpenInElectronWindow,
     shouldAllowInWindowNavigation,
 };

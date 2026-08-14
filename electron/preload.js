@@ -1,169 +1,183 @@
 const { ipcRenderer, contextBridge } = require("electron");
+const { isTrustedShellOrigin } = require("./shellOrigin");
 
-// forward logs received from exe to web console
-ipcRenderer.on("log", (event, message) => console.log(message));
+function originAllowed() {
+    return isTrustedShellOrigin(location.href);
+}
+
+function invokeTrusted(channel, ...args) {
+    if (!originAllowed()) {
+        return Promise.reject(new Error("MeshChatX IPC blocked for this origin"));
+    }
+    return ipcRenderer.invoke(channel, ...args);
+}
+
+function onTrusted(channel, listener) {
+    ipcRenderer.on(channel, (event, ...payload) => {
+        if (!originAllowed()) {
+            return;
+        }
+        listener(event, ...payload);
+    });
+}
+
+onTrusted("log", (event, message) => console.log(message));
 
 contextBridge.exposeInMainWorld("electron", {
-    // allow fetching app version in electron browser window
     appVersion: async function () {
-        return await ipcRenderer.invoke("app-version");
+        return await invokeTrusted("app-version");
     },
 
-    // allow fetching electron version
     electronVersion: function () {
+        if (!originAllowed()) {
+            return "";
+        }
         return process.versions.electron;
     },
 
-    // allow fetching chrome version
     chromeVersion: function () {
+        if (!originAllowed()) {
+            return "";
+        }
         return process.versions.chrome;
     },
 
-    // allow fetching node version
     nodeVersion: function () {
+        if (!originAllowed()) {
+            return "";
+        }
         return process.versions.node;
     },
 
-    // show an alert dialog in electron browser window, this fixes a bug where alert breaks input fields on windows
     alert: async function (message) {
-        return await ipcRenderer.invoke("alert", message);
+        return await invokeTrusted("alert", message);
     },
 
-    // show a confirm dialog in electron browser window, this fixes a bug where confirm breaks input fields on windows
     confirm: async function (message) {
-        return await ipcRenderer.invoke("confirm", message);
+        return await invokeTrusted("confirm", message);
     },
 
-    // add support for using "prompt" in electron browser window
     prompt: async function (message, defaultValue = "") {
-        return await ipcRenderer.invoke("prompt", message, defaultValue);
+        return await invokeTrusted("prompt", message, defaultValue);
     },
 
-    // allow relaunching app in electron browser window
     relaunch: async function () {
-        return await ipcRenderer.invoke("relaunch");
+        return await invokeTrusted("relaunch");
     },
 
-    // allow relaunching app in emergency mode
     relaunchEmergency: async function () {
-        return await ipcRenderer.invoke("relaunch-emergency");
+        return await invokeTrusted("relaunch-emergency");
     },
 
     relaunchAutoRecover: async function () {
-        return await ipcRenderer.invoke("relaunch-auto-recover");
+        return await invokeTrusted("relaunch-auto-recover");
     },
 
     getCrashRecoveryInfo: async function () {
-        return await ipcRenderer.invoke("crash-recovery-info");
+        return await invokeTrusted("crash-recovery-info");
     },
 
     restoreDatabaseBackup: async function (backupPath) {
-        return await ipcRenderer.invoke("restore-database-backup", backupPath);
+        return await invokeTrusted("restore-database-backup", backupPath);
     },
 
     pickDatabaseBackup: async function () {
-        return await ipcRenderer.invoke("pick-database-backup");
+        return await invokeTrusted("pick-database-backup");
     },
 
-    // allow shutting down app in electron browser window
     shutdown: async function () {
-        return await ipcRenderer.invoke("shutdown");
+        return await invokeTrusted("shutdown");
     },
 
     getCloseSettings: async function () {
-        return await ipcRenderer.invoke("get-close-settings");
+        return await invokeTrusted("get-close-settings");
     },
 
     setCloseSettings: async function (partial) {
-        return await ipcRenderer.invoke("set-close-settings", partial);
+        return await invokeTrusted("set-close-settings", partial);
     },
 
     getPlatform: function () {
+        if (!originAllowed()) {
+            return "";
+        }
         return process.platform;
     },
 
     getScreenSecuritySettings: async function () {
-        return await ipcRenderer.invoke("get-screen-security-settings");
+        return await invokeTrusted("get-screen-security-settings");
     },
 
     setScreenSecurityEnabled: async function (enabled) {
-        return await ipcRenderer.invoke("set-screen-security-enabled", enabled === true);
+        return await invokeTrusted("set-screen-security-enabled", enabled === true);
     },
 
-    // allow getting memory usage in electron browser window
     getMemoryUsage: async function () {
-        return await ipcRenderer.invoke("get-memory-usage");
+        return await invokeTrusted("get-memory-usage");
     },
 
     getBatteryStatus: async function () {
-        return await ipcRenderer.invoke("get-battery-status");
+        return await invokeTrusted("get-battery-status");
     },
 
-    // allow showing a file path in os file manager
     showPathInFolder: async function (path) {
-        return await ipcRenderer.invoke("showPathInFolder", path);
+        return await invokeTrusted("showPathInFolder", path);
     },
     openPath: async function (path) {
-        return await ipcRenderer.invoke("open-path", path);
+        return await invokeTrusted("open-path", path);
     },
     pickFile: async function () {
-        return await ipcRenderer.invoke("pick-file");
+        return await invokeTrusted("pick-file");
     },
     pickDirectory: async function () {
-        return await ipcRenderer.invoke("pick-directory");
+        return await invokeTrusted("pick-directory");
     },
-    // allow checking hardware acceleration status
     isHardwareAccelerationEnabled: async function () {
-        return await ipcRenderer.invoke("is-hardware-acceleration-enabled");
+        return await invokeTrusted("is-hardware-acceleration-enabled");
     },
-    // allow checking integrity status
     getIntegrityStatus: async function () {
-        return await ipcRenderer.invoke("get-integrity-status");
+        return await invokeTrusted("get-integrity-status");
     },
-    // allow showing a native notification
     showNotification: function (title, body, silent = false, destinationHash = null) {
-        ipcRenderer.invoke("show-notification", { title, body, silent, destinationHash });
+        invokeTrusted("show-notification", { title, body, silent, destinationHash });
     },
     closeMessageNotifications: function (destinationHash = null) {
-        return ipcRenderer.invoke("close-message-notifications", destinationHash);
+        return invokeTrusted("close-message-notifications", destinationHash);
     },
-    // allow controlling power save blocker
     setPowerSaveBlocker: async function (enabled) {
-        return await ipcRenderer.invoke("set-power-save-blocker", enabled);
+        return await invokeTrusted("set-power-save-blocker", enabled);
     },
-    // listen for protocol links
     onProtocolLink: function (callback) {
-        ipcRenderer.on("open-protocol-link", (event, url) => callback(url));
+        onTrusted("open-protocol-link", (event, url) => callback(url));
     },
-    // true when backend was started with --no-https (probe HTTP first in loading.html)
     backendHttpOnly: async function () {
-        return await ipcRenderer.invoke("backend-http-only");
+        return await invokeTrusted("backend-http-only");
     },
     backendRuntimeState: async function () {
-        return await ipcRenderer.invoke("backend-runtime-state");
+        return await invokeTrusted("backend-runtime-state");
     },
     backendStartupDiagnostics: async function () {
-        return await ipcRenderer.invoke("backend-startup-diagnostics");
+        return await invokeTrusted("backend-startup-diagnostics");
     },
     markBackendHealthy: async function () {
-        return await ipcRenderer.invoke("mark-backend-healthy");
+        return await invokeTrusted("mark-backend-healthy");
     },
     restartBackend: async function () {
-        return await ipcRenderer.invoke("restart-backend");
+        return await invokeTrusted("restart-backend");
     },
     openBackendCrashReport: async function () {
-        return await ipcRenderer.invoke("open-backend-crash-report");
+        return await invokeTrusted("open-backend-crash-report");
     },
     onBackendProcessExited: function (callback) {
         if (typeof callback !== "function") {
             return;
         }
-        ipcRenderer.on("backend-process-exited", (_event, payload) => callback(payload));
+        onTrusted("backend-process-exited", (_event, payload) => callback(payload));
     },
     onBackendStartupFailed: function (callback) {
         if (typeof callback !== "function") {
             return;
         }
-        ipcRenderer.on("backend-startup-failed", (_event, payload) => callback(payload));
+        onTrusted("backend-startup-failed", (_event, payload) => callback(payload));
     },
 });

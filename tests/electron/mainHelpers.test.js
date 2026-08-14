@@ -32,8 +32,16 @@ describe("electron/mainHelpers", () => {
     it("isLocalBackendUrl matches localhost backends only", () => {
         expect(isLocalBackendUrl("https://127.0.0.1:9337/api")).toBe(true);
         expect(isLocalBackendUrl("http://localhost:9337/")).toBe(true);
+        expect(isLocalBackendUrl("https://127.0.0.1:9337/#/call")).toBe(true);
         expect(isLocalBackendUrl("https://example.com")).toBe(false);
         expect(isLocalBackendUrl("")).toBe(false);
+        expect(isLocalBackendUrl("http://127.0.0.1:9337@example.com")).toBe(false);
+        expect(isLocalBackendUrl("http://127.0.0.1:9337@example.com/whatever")).toBe(false);
+        expect(isLocalBackendUrl("http://127.0.0.1:9337@example.com/#/popout/map")).toBe(false);
+        expect(isLocalBackendUrl("https://127.0.0.1:9337@example.com/call.html")).toBe(false);
+        expect(isLocalBackendUrl("http://127.0.0.1:80")).toBe(false);
+        expect(isLocalBackendUrl("http://localhost")).toBe(false);
+        expect(isLocalBackendUrl("file:///etc/passwd")).toBe(false);
     });
 
     it("shouldOpenInElectronWindow keeps local popouts and call windows in Electron", () => {
@@ -42,7 +50,12 @@ describe("electron/mainHelpers", () => {
         expect(shouldOpenInElectronWindow("http://localhost:9337/#/popout/messages/abc")).toBe(true);
         expect(shouldOpenInElectronWindow("blob:https://127.0.0.1:9337/print")).toBe(true);
         expect(shouldOpenInElectronWindow("https://127.0.0.1:9337/rnode-flasher/index.html")).toBe(false);
+        expect(shouldOpenInElectronWindow("https://127.0.0.1:9337/?q=/call.html")).toBe(false);
         expect(shouldOpenInElectronWindow("https://example.com/#/popout/map")).toBe(false);
+        expect(shouldOpenInElectronWindow("http://127.0.0.1:9337@example.com/#/popout/map")).toBe(false);
+        expect(shouldOpenInElectronWindow("http://127.0.0.1:9337@example.com/call.html")).toBe(false);
+        expect(shouldOpenInElectronWindow("blob:https://example.com/print")).toBe(false);
+        expect(shouldOpenInElectronWindow("blob:http://127.0.0.1:9337@example.com/uuid")).toBe(false);
         expect(shouldOpenInElectronWindow("")).toBe(false);
     });
 
@@ -52,7 +65,25 @@ describe("electron/mainHelpers", () => {
         expect(shouldAllowInWindowNavigation("http://localhost:9337/")).toBe(true);
         expect(shouldAllowInWindowNavigation("blob:https://127.0.0.1:9337/print")).toBe(true);
         expect(shouldAllowInWindowNavigation("https://example.com/")).toBe(false);
+        expect(shouldAllowInWindowNavigation("http://127.0.0.1:9337@example.com/whatever")).toBe(false);
         expect(shouldAllowInWindowNavigation("file:///etc/passwd")).toBe(false);
+        expect(shouldAllowInWindowNavigation("data:text/html,x")).toBe(false);
+        expect(shouldAllowInWindowNavigation("blob:https://example.com/uuid")).toBe(false);
+        expect(shouldAllowInWindowNavigation("blob:http://127.0.0.1:9337@example.com/uuid")).toBe(false);
+    });
+
+    it("isTrustedShellOrigin allows loading/crash file pages and the local backend only", () => {
+        const { isTrustedShellOrigin, isTrustedShellFileUrl } = require("../../electron/mainHelpers.js");
+        expect(isTrustedShellFileUrl("file:///opt/meshchatx/electron/loading.html")).toBe(true);
+        expect(isTrustedShellFileUrl("file:///C:/Program%20Files/MeshChatX/crash.html")).toBe(true);
+        expect(isTrustedShellFileUrl("file:///etc/passwd")).toBe(false);
+        expect(isTrustedShellOrigin("file:///opt/meshchatx/electron/loading.html")).toBe(true);
+        expect(isTrustedShellOrigin("https://127.0.0.1:9337/#/messages")).toBe(true);
+        expect(isTrustedShellOrigin("blob:https://127.0.0.1:9337/print")).toBe(true);
+        expect(isTrustedShellOrigin("https://example.com/")).toBe(false);
+        expect(isTrustedShellOrigin("http://127.0.0.1:9337@example.com/")).toBe(false);
+        expect(isTrustedShellOrigin("data:text/html,x")).toBe(false);
+        expect(isTrustedShellOrigin("file:///tmp/evil.html")).toBe(false);
     });
 
     it("parseArgvFlag reads a value following the flag", () => {

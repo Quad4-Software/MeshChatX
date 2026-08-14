@@ -541,22 +541,43 @@ function handleWindowOpenRequest(url) {
     };
 }
 
-function attachWindowOpenHandler(browserWindow) {
-    browserWindow.webContents.setWindowOpenHandler(({ url }) => handleWindowOpenRequest(url));
+function attachWindowOpenHandler(webContents) {
+    webContents.setWindowOpenHandler(({ url }) => handleWindowOpenRequest(url));
 }
 
-function attachInWindowNavigationGuard(browserWindow) {
-    browserWindow.webContents.on("will-navigate", (event, url) => {
-        if (shouldAllowInWindowNavigation(url)) {
-            return;
-        }
+function denyUntrustedInWindowNavigation(event, url, openExternalIfHttp) {
+    if (shouldAllowInWindowNavigation(url)) {
+        return;
+    }
+    event.preventDefault();
+    if (!openExternalIfHttp) {
+        return;
+    }
+    const safe = normalizeExternalUrlForOpen(url);
+    if (safe) {
+        shell.openExternal(safe);
+    }
+}
+
+function attachInWindowNavigationGuard(webContents) {
+    webContents.on("will-navigate", (event, url) => {
+        denyUntrustedInWindowNavigation(event, url, true);
+    });
+    webContents.on("will-redirect", (event, url) => {
+        denyUntrustedInWindowNavigation(event, url, true);
+    });
+    webContents.on("will-frame-navigate", (event, url, isMainFrame) => {
+        denyUntrustedInWindowNavigation(event, url, isMainFrame === true);
+    });
+    webContents.on("will-attach-webview", (event) => {
         event.preventDefault();
-        const safe = normalizeExternalUrlForOpen(url);
-        if (safe) {
-            shell.openExternal(safe);
-        }
     });
 }
+
+app.on("web-contents-created", (_event, contents) => {
+    attachWindowOpenHandler(contents);
+    attachInWindowNavigationGuard(contents);
+});
 
 function attachDevToolsF12Shortcut(browserWindow) {
     browserWindow.webContents.on("before-input-event", (event, input) => {
@@ -949,8 +970,6 @@ app.whenReady().then(async () => {
     app.on("browser-window-created", (event, browserWindow) => {
         attachDefaultContextMenu(browserWindow);
         attachDevToolsF12Shortcut(browserWindow);
-        attachWindowOpenHandler(browserWindow);
-        attachInWindowNavigationGuard(browserWindow);
         const privacy = getDesktopPrivacySettings();
         applyScreenSecurityToWindow(browserWindow, privacy.screenSecurityEnabled === true);
     });

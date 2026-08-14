@@ -78,4 +78,58 @@ public class RemoteBackendUrlTest {
         Assert.assertTrue(RemoteBackendUrl.isLoopbackHost("localhost"));
         Assert.assertFalse(RemoteBackendUrl.isLoopbackHost("192.168.1.10"));
     }
+
+    @Test
+    public void matchesBackend_rejectsUserinfoHostConfusion() {
+        Assert.assertFalse(
+            RemoteBackendUrl.matchesBackend(
+                "http://127.0.0.1:8000@example.com",
+                RemoteBackendUrl.LOCAL_BACKEND_URL
+            )
+        );
+        Assert.assertFalse(
+            RemoteBackendUrl.matchesBackend(
+                "https://127.0.0.1:8000@example.com/#/popout/map",
+                RemoteBackendUrl.LOCAL_BACKEND_URL
+            )
+        );
+    }
+
+    @Test
+    public void isAllowedShellNavigation_keepsWebViewOnBackendOrigin() {
+        String backend = RemoteBackendUrl.LOCAL_BACKEND_URL;
+        Assert.assertTrue(
+            RemoteBackendUrl.isAllowedShellNavigation("https://127.0.0.1:8000/#/call", backend)
+        );
+        Assert.assertTrue(
+            RemoteBackendUrl.isAllowedShellNavigation("about:blank", backend)
+        );
+        Assert.assertTrue(
+            RemoteBackendUrl.isAllowedShellNavigation(
+                "blob:https://127.0.0.1:8000/11111111-1111-1111-1111-111111111111",
+                backend
+            )
+        );
+        Assert.assertFalse(
+            RemoteBackendUrl.isAllowedShellNavigation("http://127.0.0.1:9999/", backend)
+        );
+        Assert.assertFalse(
+            RemoteBackendUrl.isAllowedShellNavigation("http://127.0.0.1:8000@example.com", backend)
+        );
+        Assert.assertFalse(
+            RemoteBackendUrl.isAllowedShellNavigation("data:text/html,x", backend)
+        );
+        Assert.assertFalse(
+            RemoteBackendUrl.isAllowedShellNavigation("javascript:alert(1)", backend)
+        );
+        Assert.assertFalse(
+            RemoteBackendUrl.isAllowedShellNavigation("file:///sdcard/x.html", backend)
+        );
+        Assert.assertFalse(
+            RemoteBackendUrl.isAllowedShellNavigation("blob:https://example.com/uuid", backend)
+        );
+        Assert.assertFalse(
+            RemoteBackendUrl.isAllowedShellNavigation("https://example.com/", backend)
+        );
+    }
 }

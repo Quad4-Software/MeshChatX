@@ -23,6 +23,7 @@ describe("remoteBackendUrl", () => {
         expect(normalizeRemoteBackendUrl("javascript:alert(1)")).toBeNull();
         expect(normalizeRemoteBackendUrl("file:///tmp/x")).toBeNull();
         expect(normalizeRemoteBackendUrl("https://user:pass@192.168.1.10:9337")).toBeNull();
+        expect(normalizeRemoteBackendUrl("http://127.0.0.1:8000@example.com")).toBeNull();
         expect(isValidRemoteBackendUrl("not a url")).toBe(false);
     });
 });

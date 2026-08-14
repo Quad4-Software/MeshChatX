@@ -104,6 +104,7 @@ public final class RemoteBackendUrl {
 
     /**
      * True when url is the backend root or a same-origin path under it.
+     * Rejects userinfo so http://127.0.0.1:8000@example.com is not the local backend.
      */
     public static boolean matchesBackend(@Nullable String url, @Nullable String backendUrl) {
         if (url == null || backendUrl == null) {
@@ -118,6 +119,15 @@ public final class RemoteBackendUrl {
             page = new URI(url);
             backend = new URI(backendUrl);
         } catch (URISyntaxException e) {
+            return false;
+        }
+        if (page.getUserInfo() != null && !page.getUserInfo().isEmpty()) {
+            return false;
+        }
+        if (backend.getUserInfo() != null && !backend.getUserInfo().isEmpty()) {
+            return false;
+        }
+        if (authorityHasUserinfo(page) || authorityHasUserinfo(backend)) {
             return false;
         }
         if (page.getScheme() == null || backend.getScheme() == null) {
@@ -149,6 +159,11 @@ public final class RemoteBackendUrl {
             || pagePath.startsWith(backendPath.endsWith("/") ? backendPath : backendPath + "/");
     }
 
+    private static boolean authorityHasUserinfo(URI uri) {
+        String authority = uri.getRawAuthority();
+        return authority != null && authority.indexOf('@') >= 0;
+    }
+
     private static int effectivePort(URI uri) {
         int port = uri.getPort();
         if (port != -1) {
@@ -159,5 +174,51 @@ public final class RemoteBackendUrl {
             return 443;
         }
         return 80;
+    }
+
+    /**
+     * WebView may stay on this URL. The JS bridge (MeshChatXAndroid) follows
+     * every page the WebView loads, so data: and off-backend http(s) are denied.
+     */
+    public static boolean isAllowedShellNavigation(@Nullable String url, @Nullable String backendUrl) {
+        if (url == null) {
+            return false;
+        }
+        String trimmed = url.trim();
+        if (trimmed.isEmpty()) {
+            return false;
+        }
+        if ("about:blank".equalsIgnoreCase(trimmed)) {
+            return true;
+        }
+        URI uri;
+        try {
+            uri = new URI(trimmed);
+        } catch (URISyntaxException e) {
+            return false;
+        }
+        String scheme = uri.getScheme();
+        if (scheme == null) {
+            return false;
+        }
+        String schemeLower = scheme.toLowerCase(Locale.ROOT);
+        if ("about".equals(schemeLower)) {
+            String part = uri.getSchemeSpecificPart();
+            return part != null && "blank".equalsIgnoreCase(part);
+        }
+        if ("data".equals(schemeLower)
+            || "javascript".equals(schemeLower)
+            || "file".equals(schemeLower)
+            || "content".equals(schemeLower)) {
+            return false;
+        }
+        if ("blob".equals(schemeLower)) {
+            String inner = uri.getSchemeSpecificPart();
+            return inner != null && !inner.isEmpty() && matchesBackend(inner, backendUrl);
+        }
+        if (uri.getUserInfo() != null && !uri.getUserInfo().isEmpty()) {
+            return false;
+        }
+        return matchesBackend(trimmed, backendUrl);
     }
 }
