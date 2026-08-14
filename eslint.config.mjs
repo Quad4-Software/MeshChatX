@@ -73,6 +73,7 @@ export default [
         files: ["**/*.{js,mjs,cjs,vue}"],
         rules: {
             "vue/multi-word-component-names": "off",
+            "vue/no-v-html": "error",
             "no-unused-vars": "warn",
             "no-console": "off",
             "security/detect-object-injection": "off",
