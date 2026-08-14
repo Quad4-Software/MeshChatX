@@ -25,12 +25,14 @@ All notable changes to this project will be documented in this file.
 - **Slow-interface path and link waits**: Cold path requests use `path_response_window` in `meshchatx/src/backend/path_utils.py`. It takes `Reticulum.get_first_hop_timeout` (not `Transport.first_hop_timeout`, which is the local socket timeout on a shared rnsd client) and an airtime floor from the slowest online interface, clamped to `RNS.Reticulum.MINIMUM_BITRATE` (5 bps). New links wait on `link.establishment_timeout` plus 5 seconds. Nomad pages, RNS Link API, RNCP, FileSync, LXMF outbound path prep, LXST dial, map fetches, remote management, bug-report send, path-probe defaults, and Relay Chat hub identity recall use those helpers. A 15 second window cannot finish a 234-byte path exchange at 125 bits per second.
 - **Dependencies**: LXMF 1.1.1. Unanswered path requests during propagation peer sync now apply sync backoff instead of retrying immediately. Requires RNS 1.4.2 (already pinned).
 - **App sidebar**: Network Visualiser is under Explore with Nomad Network and Map, not in More.
-- **Messages empty state**: The no-conversations view tells you to add a mesh interface and announce, or to use the Announces tab, with an Add interface action.
+- **Messages empty state**: The no-conversations view sits near the top of the list without a dashed box. Actions are See announces (Announces tab) and Add contact.
 - **Mesh Server UI**: Remaining mesh-server strings (create, start, stop, toasts, empty copy) are translated in the bundled locales. Announce interval 0 is labeled as manual-only (no periodic timer).
 - **Docs**: Getting started lists sidebar More destinations. Linux sandbox guide covers USB serial under Landlock, executable Mesh Server pages, and `location_cmd` / Sideband plugin folders that must already exist on an allowed root at process start.
 - **Map page**: Discover / Publish / Layers / Offline side tabs. Drawing toolbar keeps Select, Point, Line, Polygon, Circle, Measure, one Bearing tool, Save, Load, and Locate. MBTiles export, Share, and Ping left the always-visible row (Ping stays on right-click).
 - **Map tiles and markers**: TileCache keeps a memory LRU and no longer writes IndexedDB metadata on every hit. Marker updates reuse Features by destination hash and cluster on a grid. Inactive MapBrowser tabs wait until first shown before constructing OpenLayers. Online tile fetch timeout is 8s.
 - **Settings search**: Query splits on hyphens and punctuation (`dark-mode`), matches compact forms (`darkmode`), and treats 1-2 character tokens as whole words so `me` does not hit Theme. Tab names and camelCase section ids are searchable. The empty state is translated. Matching tab counts stay visible while searching. `/` focuses the search field.
+- **Network visualiser planet view**: Each interface is its own globe around your node. Peers sit on the interface they use. Drag orbits the system, scroll zooms. WebGL only.
+- **Mobile header**: Relay Chat (`forum`) and Telephone (`phone`) icon buttons sit in the top bar with Compose and propagation sync. Relay Chat is omitted when RRC is disabled.
 
 ### Fixed
 

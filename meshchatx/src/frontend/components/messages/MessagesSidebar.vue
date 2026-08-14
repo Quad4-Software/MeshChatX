@@ -614,19 +614,34 @@
                             <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-gray-400" />
                         </div>
                     </div>
-                    <div v-else class="mx-auto my-auto text-center leading-5 px-4">
+                    <div v-else class="mx-auto mt-3 w-full text-center leading-5 px-3">
                         <LoadingState v-if="isLoading" :message="$t('messages.loading_conversations')" />
 
                         <EmptyState
                             v-else-if="conversations.length === 0 && !isFilterActive"
+                            plain
                             icon="tray-remove"
                             :title="$t('messages.no_conversations')"
                             :description="$t('messages.no_conversations_hint')"
                         >
                             <template #action>
-                                <RouterLink :to="{ name: 'interfaces' }" class="primary-chip text-sm">
-                                    {{ $t("messages.add_interface_cta") }}
-                                </RouterLink>
+                                <div class="flex flex-wrap justify-center gap-2">
+                                    <button
+                                        type="button"
+                                        class="primary-chip text-sm"
+                                        data-testid="messages-see-announces"
+                                        @click="tab = 'announces'"
+                                    >
+                                        {{ $t("messages.see_announces_cta") }}
+                                    </button>
+                                    <RouterLink
+                                        :to="{ name: 'contacts' }"
+                                        class="secondary-chip text-sm"
+                                        data-testid="messages-add-contact"
+                                    >
+                                        {{ $t("messages.add_contact_cta") }}
+                                    </RouterLink>
+                                </div>
                             </template>
                         </EmptyState>
 

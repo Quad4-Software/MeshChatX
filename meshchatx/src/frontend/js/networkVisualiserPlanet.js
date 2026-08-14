@@ -2,8 +2,8 @@
 
 /**
  * Planet view for the WebGL network visualiser.
- * Maps the 2D force layout onto a unit sphere (local node at the front)
- * and projects with an orbit camera. Pixel draw stays in the 2D WebGL path.
+ * Each interface is a globe around the local node. Peers sit on the
+ * interface they use. Pixel draw stays in the 2D WebGL path.
  */
 
 import { EDGE_STRIDE, NODE_STRIDE } from "./networkVisualiserWebGL.js";
@@ -11,29 +11,46 @@ import { EDGE_STRIDE, NODE_STRIDE } from "./networkVisualiserWebGL.js";
 export const PLANET_VIEW = "planet";
 export const FLAT_VIEW = "flat";
 
-export const PLANET_FOV_Y = (50 * Math.PI) / 180;
-export const PLANET_NEAR = 0.12;
-export const PLANET_FAR = 24;
-export const PLANET_DIST_MIN = 1.65;
-export const PLANET_DIST_MAX = 8.5;
+export const PLANET_FOV_Y = (48 * Math.PI) / 180;
+export const PLANET_NEAR = 0.18;
+export const PLANET_FAR = 40;
+export const PLANET_DIST_MIN = 2.6;
+export const PLANET_DIST_MAX = 16;
 export const PLANET_PITCH_LIMIT = 1.18;
-export const DEFAULT_ORBIT_YAW = 0.55;
-export const DEFAULT_ORBIT_PITCH = 0.32;
-export const DEFAULT_ORBIT_DIST = 3.05;
+export const DEFAULT_ORBIT_YAW = 0.62;
+export const DEFAULT_ORBIT_PITCH = 0.38;
+export const DEFAULT_ORBIT_DIST = 6.2;
 export const LAYOUT_SCALE_FLOOR = 160;
 /** Scale above max layout radius so the farthest node stays on the back hemisphere. */
 export const LAYOUT_SCALE_FIT = 1.08;
 
-const meridians = 18;
-const parallels = 8;
-const gridSegs = 24;
+export const PLANET_KIND_ME = 0;
+export const PLANET_KIND_IFACE_ON = 1;
+export const PLANET_KIND_IFACE_OFF = 2;
+export const PLANET_KIND_PEER = 3;
+export const PLANET_KIND_DISCOVERED = 4;
+
+const meridians = 14;
+const parallels = 6;
+const gridSegs = 18;
+const ringSegs = 64;
+
+const PLANET_PALETTE = [
+    [0.2, 0.48, 0.78],
+    [0.14, 0.58, 0.5],
+    [0.48, 0.34, 0.7],
+    [0.7, 0.42, 0.18],
+    [0.22, 0.55, 0.34],
+    [0.66, 0.26, 0.36],
+    [0.22, 0.4, 0.56],
+    [0.55, 0.52, 0.2],
+];
 
 /** @type {{x1:number,y1:number,z1:number,x2:number,y2:number,z2:number}[]|null} */
 let globeGridCache = null;
 
 let nodeScratch = new Float32Array(0);
 let edgeScratch = new Float32Array(0);
-let depthScratch = new Float32Array(0);
 
 /**
  * @param {unknown} raw
@@ -41,6 +58,13 @@ let depthScratch = new Float32Array(0);
  */
 export function normalizeVisualiserViewMode(raw) {
     return raw === PLANET_VIEW ? PLANET_VIEW : FLAT_VIEW;
+}
+
+/**
+ * @param {number} kind
+ */
+export function isPlanetInterfaceKind(kind) {
+    return kind === PLANET_KIND_IFACE_ON || kind === PLANET_KIND_IFACE_OFF || kind === PLANET_KIND_DISCOVERED;
 }
 
 /**
@@ -60,8 +84,8 @@ export function clampOrbit(yaw, pitch, dist) {
 }
 
 /**
- * Max layout radius used to wrap the graph onto the sphere.
- * @param {Float32Array|number[]|null|undefined} nodes NODE_STRIDE or SCENE stride with x,y at 0,1
+ * Max layout radius used to wrap a cluster onto a sphere.
+ * @param {Float32Array|number[]|null|undefined} nodes
  * @param {number} stride
  */
 export function computeLayoutScale(nodes, stride = NODE_STRIDE) {
@@ -77,7 +101,6 @@ export function computeLayoutScale(nodes, stride = NODE_STRIDE) {
 }
 
 /**
- * Local node (origin) sits on the front of the globe. Distance wraps toward the back.
  * @param {number} x
  * @param {number} y
  * @param {number} layoutScale
@@ -102,10 +125,6 @@ export function layoutToSphere(x, y, layoutScale) {
 
 /**
  * Inverse of layoutToSphere. Point should lie on the unit sphere.
- * @param {number} x
- * @param {number} y
- * @param {number} z
- * @param {number} layoutScale
  */
 export function sphereToLayout(x, y, z, layoutScale) {
     const scale = layoutScale > 1e-6 ? layoutScale : LAYOUT_SCALE_FLOOR;
@@ -120,12 +139,6 @@ export function sphereToLayout(x, y, z, layoutScale) {
     return { x: r * Math.cos(theta), y: r * Math.sin(theta) };
 }
 
-/**
- * Camera position looking at the origin.
- * @param {number} yaw
- * @param {number} pitch
- * @param {number} dist
- */
 export function orbitEye(yaw, pitch, dist) {
     const cp = Math.cos(pitch);
     return {
@@ -135,10 +148,6 @@ export function orbitEye(yaw, pitch, dist) {
     };
 }
 
-/**
- * @param {{x:number,y:number,z:number}} eye
- * @returns {{forward:{x:number,y:number,z:number}, right:{x:number,y:number,z:number}, up:{x:number,y:number,z:number}}}
- */
 export function cameraBasis(eye) {
     const fl = Math.hypot(eye.x, eye.y, eye.z) || 1;
     const forward = { x: -eye.x / fl, y: -eye.y / fl, z: -eye.z / fl };
@@ -161,10 +170,6 @@ export function cameraBasis(eye) {
     return { forward, right, up };
 }
 
-/**
- * @param {{x:number,y:number,z:number}} eye
- * @returns {Float32Array} column-major 4x4 view matrix
- */
 export function lookAtOrigin(eye) {
     const { forward, right, up } = cameraBasis(eye);
     const out = new Float32Array(16);
@@ -187,13 +192,6 @@ export function lookAtOrigin(eye) {
     return out;
 }
 
-/**
- * @param {number} fovY
- * @param {number} aspect
- * @param {number} near
- * @param {number} far
- * @returns {Float32Array} column-major 4x4
- */
 export function perspective(fovY, aspect, near, far) {
     const out = new Float32Array(16);
     const f = 1 / Math.tan(fovY * 0.5);
@@ -207,10 +205,6 @@ export function perspective(fovY, aspect, near, far) {
     return out;
 }
 
-/**
- * @param {Float32Array} a
- * @param {Float32Array} b
- */
 export function mat4Multiply(a, b) {
     const out = new Float32Array(16);
     for (let col = 0; col < 4; col++) {
@@ -226,12 +220,6 @@ export function mat4Multiply(a, b) {
     return out;
 }
 
-/**
- * @param {Float32Array} m
- * @param {number} x
- * @param {number} y
- * @param {number} z
- */
 export function transformPoint(m, x, y, z) {
     return {
         x: m[0] * x + m[4] * y + m[8] * z + m[12],
@@ -242,23 +230,20 @@ export function transformPoint(m, x, y, z) {
 }
 
 /**
- * Front of the globe faces the camera when dot(p, eye) > 1 on the unit sphere.
- * @param {number} px
- * @param {number} py
- * @param {number} pz
- * @param {{x:number,y:number,z:number}} eye
+ * Front of a unit sphere at the origin when dot(p, eye) > 1.
  */
 export function sphereFacing(px, py, pz, eye) {
     return px * eye.x + py * eye.y + pz * eye.z - 1;
 }
 
 /**
- * @param {number} clipX
- * @param {number} clipY
- * @param {number} clipW
- * @param {number} width
- * @param {number} height
+ * Front of a sphere at C with radius R. n is the unit local point.
  */
+export function sphereFacingAt(nx, ny, nz, eye, cx, cy, cz, radius) {
+    const r = radius > 1e-6 ? radius : 1;
+    return nx * (eye.x - cx) + ny * (eye.y - cy) + nz * (eye.z - cz) - r;
+}
+
 export function clipToScreen(clipX, clipY, clipW, width, height) {
     if (!(Math.abs(clipW) > 1e-8)) {
         return { x: width * 0.5, y: height * 0.5, ok: false };
@@ -272,23 +257,10 @@ export function clipToScreen(clipX, clipY, clipW, width, height) {
     };
 }
 
-/**
- * World (origin-centered, y-down like the 2D shader) from CSS pixels at zoom 1 cam 0.
- * @param {number} sx
- * @param {number} sy
- * @param {number} width
- * @param {number} height
- */
 export function screenToDrawWorld(sx, sy, width, height) {
     return { x: sx - width * 0.5, y: sy - height * 0.5 };
 }
 
-/**
- * Pixel radius of the unit sphere silhouette.
- * @param {number} dist
- * @param {number} fovY
- * @param {number} height
- */
 export function projectedSphereRadiusPx(dist, fovY, height) {
     const d = Math.max(dist, 1.001);
     const ang = Math.asin(Math.min(0.999, 1 / d));
@@ -297,10 +269,6 @@ export function projectedSphereRadiusPx(dist, fovY, height) {
     return (Math.tan(ang) / half) * (height * 0.5);
 }
 
-/**
- * Zoom stand-in for 2D LOD bands. Default distance maps to zoom 1 (high).
- * @param {number} dist
- */
 export function planetLodZoom(dist) {
     const d = dist > 0.2 ? dist : DEFAULT_ORBIT_DIST;
     return DEFAULT_ORBIT_DIST / d;
@@ -311,9 +279,6 @@ function sph(lon, lat) {
     return { x: cl * Math.cos(lon), y: Math.sin(lat), z: cl * Math.sin(lon) };
 }
 
-/**
- * Lat/lon line segments on the unit sphere (Y up).
- */
 export function buildGlobeGrid() {
     if (globeGridCache) return globeGridCache;
     const lines = [];
@@ -346,14 +311,6 @@ export function buildGlobeGrid() {
     return lines;
 }
 
-/**
- * Camera ray from a CSS pixel.
- * @param {number} cssX
- * @param {number} cssY
- * @param {number} width
- * @param {number} height
- * @param {{x:number,y:number,z:number}} eye
- */
 export function screenRay(cssX, cssY, width, height, eye) {
     const { forward, right, up } = cameraBasis(eye);
     const aspect = height > 0 ? width / height : 1;
@@ -370,12 +327,6 @@ export function screenRay(cssX, cssY, width, height, eye) {
     };
 }
 
-/**
- * Nearest hit of a ray with the unit sphere at the origin, or null.
- * @param {{x:number,y:number,z:number}} origin
- * @param {{x:number,y:number,z:number}} dir
- * @param {number} [radius]
- */
 export function raySphere(origin, dir, radius = 1) {
     const r2 = radius * radius;
     const ox = origin.x;
@@ -397,23 +348,154 @@ export function raySphere(origin, dir, radius = 1) {
 }
 
 /**
- * 2D layout under a planet-mode pointer, or null if the ray misses the globe.
+ * Ray vs sphere at C with radius R.
  */
-export function pointerToLayout(cssX, cssY, width, height, eye, layoutScale) {
+export function raySphereAt(origin, dir, cx, cy, cz, radius) {
+    const hit = raySphere({ x: origin.x - cx, y: origin.y - cy, z: origin.z - cz }, dir, radius);
+    if (!hit) return null;
+    return { x: hit.x + cx, y: hit.y + cy, z: hit.z + cz, t: hit.t };
+}
+
+export function hubRadiusForPlanetCount(n) {
+    const c = Math.max(1, n | 0);
+    if (c <= 1) return 1.72;
+    return 1.5 + 0.28 * Math.min(c, 8);
+}
+
+export function planetRadiusForPeers(n) {
+    const c = Math.max(0, n | 0);
+    return Math.min(0.78, 0.4 + 0.075 * Math.sqrt(c));
+}
+
+/**
+ * Centers for n interface planets on a ring around the origin.
+ * First planet sits on +X so the local node stays visible on camera +Z.
+ */
+export function placePlanetCenters(count) {
+    const n = Math.max(0, count | 0);
+    const R = hubRadiusForPlanetCount(n);
+    const out = [];
+    for (let i = 0; i < n; i++) {
+        const ang = n === 1 ? 0 : (i / n) * Math.PI * 2;
+        out.push({
+            cx: R * Math.cos(ang),
+            cy: n === 1 ? 0.12 : 0.16 * Math.sin(i * 2.15 + 0.35),
+            cz: R * Math.sin(ang),
+        });
+    }
+    return out;
+}
+
+function kindOf(i, kindByIndex, idByIndex) {
+    if (kindByIndex && kindByIndex[i] != null && kindByIndex[i] !== "") {
+        return kindByIndex[i] | 0;
+    }
+    const id = idByIndex && idByIndex[i] != null ? String(idByIndex[i]) : "";
+    if (id === "me") return PLANET_KIND_ME;
+    return PLANET_KIND_PEER;
+}
+
+/**
+ * Map each node to an interface planet. Me is the hub (home -1).
+ * With no interfaces, leftover peers share one fallback planet.
+ *
+ * @returns {{
+ *   ifaceIndices: number[],
+ *   home: Int16Array,
+ *   fallback: boolean,
+ * }}
+ */
+export function assignPlanetHomes(srcCount, kindByIndex, idByIndex, nodes) {
+    const home = new Int16Array(srcCount);
+    const ifaceIndices = [];
+    for (let i = 0; i < srcCount; i++) {
+        home[i] = -1;
+        const k = kindOf(i, kindByIndex, idByIndex);
+        if (isPlanetInterfaceKind(k)) {
+            home[i] = ifaceIndices.length;
+            ifaceIndices.push(i);
+        }
+    }
+    if (ifaceIndices.length === 0) {
+        for (let i = 0; i < srcCount; i++) {
+            const k = kindOf(i, kindByIndex, idByIndex);
+            if (k !== PLANET_KIND_ME) home[i] = 0;
+        }
+        return { ifaceIndices, home, fallback: true };
+    }
+    for (let i = 0; i < srcCount; i++) {
+        const k = kindOf(i, kindByIndex, idByIndex);
+        if (k === PLANET_KIND_ME || isPlanetInterfaceKind(k)) continue;
+        const o = i * NODE_STRIDE;
+        const x = nodes[o] || 0;
+        const y = nodes[o + 1] || 0;
+        let best = 0;
+        let bestD = Infinity;
+        for (let p = 0; p < ifaceIndices.length; p++) {
+            const io = ifaceIndices[p] * NODE_STRIDE;
+            const d = Math.hypot(x - (nodes[io] || 0), y - (nodes[io + 1] || 0));
+            if (d < bestD) {
+                bestD = d;
+                best = p;
+            }
+        }
+        home[i] = best;
+    }
+    return { ifaceIndices, home, fallback: false };
+}
+
+function paletteForId(id, offline, dark) {
+    const s = String(id || "");
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+    const base = PLANET_PALETTE[Math.abs(h) % PLANET_PALETTE.length];
+    const dim = offline ? 0.48 : 1;
+    const lift = dark ? 0.0 : 0.12;
+    return [
+        Math.min(1, base[0] * dim + lift),
+        Math.min(1, base[1] * dim + lift),
+        Math.min(1, base[2] * dim + lift),
+    ];
+}
+
+/**
+ * Nearest planet hit, or null.
+ * @param {{cx:number,cy:number,cz:number,radius:number}[]} planets
+ */
+export function raycastPlanets(cssX, cssY, width, height, eye, planets) {
+    if (!Array.isArray(planets) || !planets.length) return null;
+    const ray = screenRay(cssX, cssY, width, height, eye);
+    let best = null;
+    for (let i = 0; i < planets.length; i++) {
+        const p = planets[i];
+        const hit = raySphereAt(ray.origin, ray.dir, p.cx, p.cy, p.cz, p.radius);
+        if (!hit) continue;
+        if (!best || hit.t < best.t) {
+            best = { ...hit, planetIndex: i };
+        }
+    }
+    return best;
+}
+
+/**
+ * 2D layout under a planet-mode pointer, or null if the ray misses.
+ * With planets, the hit maps onto that interface cluster.
+ */
+export function pointerToLayout(cssX, cssY, width, height, eye, layoutScale, planets) {
+    if (Array.isArray(planets) && planets.length) {
+        const hit = raycastPlanets(cssX, cssY, width, height, eye, planets);
+        if (!hit) return null;
+        const p = planets[hit.planetIndex];
+        const r = p.radius > 1e-6 ? p.radius : 1;
+        const off = sphereToLayout((hit.x - p.cx) / r, (hit.y - p.cy) / r, (hit.z - p.cz) / r, p.layoutScale);
+        return { x: (p.originX || 0) + off.x, y: (p.originY || 0) + off.y, planetIndex: hit.planetIndex };
+    }
     const ray = screenRay(cssX, cssY, width, height, eye);
     const hit = raySphere(ray.origin, ray.dir, 1);
     if (!hit) return null;
     return sphereToLayout(hit.x, hit.y, hit.z, layoutScale);
 }
 
-/**
- * WASM DragTo screen point for a 2D layout coordinate.
- * @param {number} lx
- * @param {number} ly
- * @param {number} width
- * @param {number} height
- * @param {{x?:number,y?:number,zoom?:number}|null} [cam]
- */
 export function layoutToWasmScreen(lx, ly, width, height, cam = null) {
     const zoom = cam?.zoom > 0 ? cam.zoom : 1;
     return {
@@ -422,8 +504,21 @@ export function layoutToWasmScreen(lx, ly, width, height, cam = null) {
     };
 }
 
+function localScaleForPlanet(nodes, srcCount, home, planetIndex, ifaceIndex, fallback) {
+    let maxR = 0;
+    const ox = fallback || ifaceIndex < 0 ? 0 : nodes[ifaceIndex * NODE_STRIDE] || 0;
+    const oy = fallback || ifaceIndex < 0 ? 0 : nodes[ifaceIndex * NODE_STRIDE + 1] || 0;
+    for (let i = 0; i < srcCount; i++) {
+        if (home[i] !== planetIndex) continue;
+        const kOff = i * NODE_STRIDE;
+        const r = Math.hypot((nodes[kOff] || 0) - ox, (nodes[kOff + 1] || 0) - oy);
+        if (r > maxR) maxR = r;
+    }
+    return Math.max(maxR * LAYOUT_SCALE_FIT, 90);
+}
+
 /**
- * Project the 2D graph onto the globe and into the 2D draw buffers.
+ * Project the 2D graph onto per-interface globes.
  *
  * @param {{
  *   nodes: Float32Array,
@@ -435,15 +530,8 @@ export function layoutToWasmScreen(lx, ly, width, height, cam = null) {
  *   dist: number,
  *   dark: boolean,
  *   idByIndex?: (string|null|undefined)[],
+ *   kindByIndex?: (number|null|undefined)[],
  * }} opts
- * @returns {{
- *   nodes: Float32Array,
- *   edges: Float32Array,
- *   pick: {id:string,sx:number,sy:number,size:number}[],
- *   projected: {sx:number,sy:number,size:number,facing:number,front:boolean}[],
- *   layoutScale: number,
- *   camera: {x:number,y:number,zoom:number},
- * }}
  */
 export function projectPlanetScene(opts) {
     const width = Math.max(1, opts?.width || 1);
@@ -459,96 +547,225 @@ export function projectPlanetScene(opts) {
     const viewProj = mat4Multiply(proj, view);
     const srcNodes = opts?.nodes;
     const srcCount = srcNodes && srcNodes.length ? Math.floor(srcNodes.length / NODE_STRIDE) : 0;
-    const layoutScale = computeLayoutScale(srcNodes, NODE_STRIDE);
     const idByIndex = opts?.idByIndex || [];
+    const kindByIndex = opts?.kindByIndex || [];
     const dark = opts?.dark === true;
-
-    const grid = buildGlobeGrid();
     const srcEdges = opts?.edges;
     const srcEdgeCount = srcEdges && srcEdges.length ? Math.floor(srcEdges.length / EDGE_STRIDE) : 0;
 
-    const globeR = projectedSphereRadiusPx(orbit.dist, PLANET_FOV_Y, height);
-    const originClip = transformPoint(viewProj, 0, 0, 0);
-    const originScreen = clipToScreen(originClip.x, originClip.y, originClip.w, width, height);
-    const originDraw = screenToDrawWorld(originScreen.x, originScreen.y, width, height);
+    const assigned = assignPlanetHomes(srcCount, kindByIndex, idByIndex, srcNodes);
+    const planetCount = assigned.fallback ? (srcCount > 1 ? 1 : 0) : assigned.ifaceIndices.length;
+    const centers = placePlanetCenters(planetCount);
+    const memberCounts = new Array(Math.max(planetCount, 1)).fill(0);
+    for (let i = 0; i < srcCount; i++) {
+        const h = assigned.home[i];
+        if (h >= 0 && h < memberCounts.length) memberCounts[h] += 1;
+    }
 
-    const outNodeCount = srcCount + 1;
-    const nodeNeed = outNodeCount * NODE_STRIDE;
+    const planets = [];
+    for (let p = 0; p < planetCount; p++) {
+        const ifaceIndex = assigned.fallback ? -1 : assigned.ifaceIndices[p];
+        const c = centers[p] || { cx: 1.7, cy: 0.1, cz: 0 };
+        const radius = planetRadiusForPeers(Math.max(0, memberCounts[p] - (assigned.fallback ? 0 : 1)));
+        const originX = ifaceIndex >= 0 ? srcNodes[ifaceIndex * NODE_STRIDE] || 0 : 0;
+        const originY = ifaceIndex >= 0 ? srcNodes[ifaceIndex * NODE_STRIDE + 1] || 0 : 0;
+        const id = ifaceIndex >= 0 && idByIndex[ifaceIndex] != null ? String(idByIndex[ifaceIndex]) : `planet-${p}`;
+        const kind = ifaceIndex >= 0 ? kindOf(ifaceIndex, kindByIndex, idByIndex) : PLANET_KIND_IFACE_ON;
+        const offline = kind === PLANET_KIND_IFACE_OFF || kind === PLANET_KIND_DISCOVERED;
+        planets.push({
+            cx: c.cx,
+            cy: c.cy,
+            cz: c.cz,
+            radius,
+            originX,
+            originY,
+            layoutScale: localScaleForPlanet(srcNodes, srcCount, assigned.home, p, ifaceIndex, assigned.fallback),
+            ifaceIndex,
+            id,
+            fill: paletteForId(id, offline, dark),
+            offline,
+        });
+    }
+
+    const world = new Array(srcCount);
+    for (let i = 0; i < srcCount; i++) {
+        const k = kindOf(i, kindByIndex, idByIndex);
+        if (k === PLANET_KIND_ME) {
+            world[i] = { x: 0, y: 0, z: 0, nx: 0, ny: 0, nz: 1, planet: -1 };
+            continue;
+        }
+        const p = planets[assigned.home[i]];
+        if (!p) {
+            world[i] = { x: 0, y: 0, z: 0, nx: 0, ny: 0, nz: 1, planet: -1 };
+            continue;
+        }
+        if (!assigned.fallback && i === p.ifaceIndex) {
+            world[i] = { x: p.cx, y: p.cy, z: p.cz, nx: 0, ny: 0, nz: 1, planet: assigned.home[i] };
+            continue;
+        }
+        const o = i * NODE_STRIDE;
+        const local = layoutToSphere(
+            (srcNodes[o] || 0) - p.originX,
+            (srcNodes[o + 1] || 0) - p.originY,
+            p.layoutScale
+        );
+        world[i] = {
+            x: p.cx + local.x * p.radius,
+            y: p.cy + local.y * p.radius,
+            z: p.cz + local.z * p.radius,
+            nx: local.x,
+            ny: local.y,
+            nz: local.z,
+            planet: assigned.home[i],
+        };
+    }
+
+    const sprites = [];
+    const addSprite = (wx, wy, wz, size, r, g, b, a, useTex, u, v) => {
+        const clip = transformPoint(viewProj, wx, wy, wz);
+        const screen = clipToScreen(clip.x, clip.y, clip.w, width, height);
+        if (!screen.ok && clip.w <= 0) return null;
+        const draw = screenToDrawWorld(screen.x, screen.y, width, height);
+        const viewZ = Math.hypot(wx - eye.x, wy - eye.y, wz - eye.z);
+        sprites.push({
+            x: draw.x,
+            y: draw.y,
+            z: viewZ,
+            size,
+            r,
+            g,
+            b,
+            a,
+            useTex,
+            u,
+            v,
+            sx: screen.x,
+            sy: screen.y,
+            ok: screen.ok,
+        });
+        return sprites[sprites.length - 1];
+    };
+
+    for (let p = 0; p < planets.length; p++) {
+        const pl = planets[p];
+        const dist = Math.hypot(pl.cx - eye.x, pl.cy - eye.y, pl.cz - eye.z);
+        const pxR = Math.max(18, projectedSphereRadiusPx(Math.max(dist, 1.05), PLANET_FOV_Y, height) * pl.radius);
+        const fill = pl.fill;
+        const bodyA = dark ? 0.9 : 0.92;
+        addSprite(pl.cx, pl.cy, pl.cz, pxR * 1.08, fill[0], fill[1], fill[2], 0.14, 0, 0, 0);
+        addSprite(
+            pl.cx,
+            pl.cy,
+            pl.cz,
+            pxR,
+            fill[0] * 0.35 + (dark ? 0.04 : 0.55),
+            fill[1] * 0.4 + (dark ? 0.08 : 0.62),
+            fill[2] * 0.5 + (dark ? 0.14 : 0.7),
+            bodyA,
+            0,
+            0,
+            0
+        );
+    }
+
+    addSprite(
+        0,
+        0,
+        0,
+        22,
+        dark ? 0.95 : 0.9,
+        dark ? 0.78 : 0.62,
+        dark ? 0.28 : 0.16,
+        0.22,
+        0,
+        0,
+        0
+    );
+
+    const projected = new Array(srcCount);
+    const pick = [];
+    for (let i = 0; i < srcCount; i++) {
+        const w = world[i];
+        const o = i * NODE_STRIDE;
+        const k = kindOf(i, kindByIndex, idByIndex);
+        const pl = w.planet >= 0 ? planets[w.planet] : null;
+        let facing = 1;
+        if (pl && k !== PLANET_KIND_ME && i !== pl.ifaceIndex) {
+            facing = sphereFacingAt(w.nx, w.ny, w.nz, eye, pl.cx, pl.cy, pl.cz, pl.radius);
+        }
+        const viewZ = Math.hypot(w.x - eye.x, w.y - eye.y, w.z - eye.z);
+        const persp = Math.max(0.4, Math.min(2.2, 3.2 / Math.max(viewZ, 0.25)));
+        let size = Math.max(7, (srcNodes[o + 2] || 18) * persp);
+        if (k === PLANET_KIND_ME) size = Math.max(size, 20);
+        if (isPlanetInterfaceKind(k)) size = Math.max(size, 16);
+        const front = facing > 0;
+        const a = front ? srcNodes[o + 6] || 1 : Math.max(0.1, (srcNodes[o + 6] || 1) * 0.2);
+        const spr = addSprite(
+            w.x,
+            w.y,
+            w.z,
+            front ? size : size * 0.55,
+            srcNodes[o + 3],
+            srcNodes[o + 4],
+            srcNodes[o + 5],
+            a,
+            front ? srcNodes[o + 7] : 0,
+            srcNodes[o + 8],
+            srcNodes[o + 9]
+        );
+        const rec = {
+            sx: spr ? spr.sx : 0,
+            sy: spr ? spr.sy : 0,
+            size,
+            facing,
+            front: front && (!spr || spr.ok),
+            kind: k,
+        };
+        projected[i] = rec;
+        const id = idByIndex[i];
+        if (rec.front && id) {
+            pick.push({ id: String(id), sx: rec.sx, sy: rec.sy, size: rec.size });
+        }
+    }
+
+    sprites.sort((a, b) => b.z - a.z);
+    const nodeNeed = sprites.length * NODE_STRIDE;
     if (nodeScratch.length < nodeNeed) {
         nodeScratch = new Float32Array(nodeNeed);
     }
-    const fill = dark ? [0.06, 0.14, 0.26, 0.92] : [0.76, 0.88, 0.97, 0.94];
-    nodeScratch[0] = originDraw.x;
-    nodeScratch[1] = originDraw.y;
-    nodeScratch[2] = Math.max(24, globeR);
-    nodeScratch[3] = fill[0];
-    nodeScratch[4] = fill[1];
-    nodeScratch[5] = fill[2];
-    nodeScratch[6] = fill[3];
-    nodeScratch[7] = 0;
-    nodeScratch[8] = 0;
-    nodeScratch[9] = 0;
-
-    const projected = [];
-    const pick = [];
-    const refDist = Math.hypot(eye.x, eye.y, eye.z - 1) || orbit.dist;
-
-    for (let i = 0; i < srcCount; i++) {
-        const o = i * NODE_STRIDE;
-        const sphP = layoutToSphere(srcNodes[o], srcNodes[o + 1], layoutScale);
-        const facing = sphereFacing(sphP.x, sphP.y, sphP.z, eye);
-        const clip = transformPoint(viewProj, sphP.x, sphP.y, sphP.z);
-        const screen = clipToScreen(clip.x, clip.y, clip.w, width, height);
-        const viewZ = Math.hypot(sphP.x - eye.x, sphP.y - eye.y, sphP.z - eye.z);
-        const persp = Math.max(0.35, Math.min(2.4, refDist / Math.max(viewZ, 0.2)));
-        const size = Math.max(6, (srcNodes[o + 2] || 18) * persp);
-        const front = facing > 0 && screen.ok;
-        const draw = screenToDrawWorld(screen.x, screen.y, width, height);
-        const d = (i + 1) * NODE_STRIDE;
-        const a = front ? srcNodes[o + 6] || 1 : Math.max(0.08, (srcNodes[o + 6] || 1) * 0.18);
-        nodeScratch[d] = draw.x;
-        nodeScratch[d + 1] = draw.y;
-        nodeScratch[d + 2] = front ? size : size * 0.55;
-        nodeScratch[d + 3] = srcNodes[o + 3];
-        nodeScratch[d + 4] = srcNodes[o + 4];
-        nodeScratch[d + 5] = srcNodes[o + 5];
-        nodeScratch[d + 6] = a;
-        nodeScratch[d + 7] = front ? srcNodes[o + 7] : 0;
-        nodeScratch[d + 8] = srcNodes[o + 8];
-        nodeScratch[d + 9] = srcNodes[o + 9];
-        const rec = { sx: screen.x, sy: screen.y, size, facing, front };
-        projected.push(rec);
-        const id = idByIndex[i];
-        if (front && id) {
-            pick.push({ id: String(id), sx: screen.x, sy: screen.y, size });
-        }
+    for (let s = 0; s < sprites.length; s++) {
+        const d = s * NODE_STRIDE;
+        const n = sprites[s];
+        nodeScratch[d] = n.x;
+        nodeScratch[d + 1] = n.y;
+        nodeScratch[d + 2] = n.size;
+        nodeScratch[d + 3] = n.r;
+        nodeScratch[d + 4] = n.g;
+        nodeScratch[d + 5] = n.b;
+        nodeScratch[d + 6] = n.a;
+        nodeScratch[d + 7] = n.useTex;
+        nodeScratch[d + 8] = n.u;
+        nodeScratch[d + 9] = n.v;
     }
 
-    if (srcCount > 1) {
-        const order = new Array(srcCount);
-        for (let i = 0; i < srcCount; i++) order[i] = i;
-        order.sort((a, b) => projected[a].facing - projected[b].facing);
-        const bodyNeed = srcCount * NODE_STRIDE;
-        if (depthScratch.length < bodyNeed) {
-            depthScratch = new Float32Array(bodyNeed);
-        }
-        depthScratch.set(nodeScratch.subarray(NODE_STRIDE, NODE_STRIDE + bodyNeed));
-        for (let s = 0; s < srcCount; s++) {
-            const i = order[s];
-            nodeScratch.set(depthScratch.subarray(i * NODE_STRIDE, (i + 1) * NODE_STRIDE), (s + 1) * NODE_STRIDE);
-        }
-    }
-
-    const gridColor = dark ? [0.28, 0.62, 0.82, 0.38] : [0.32, 0.52, 0.72, 0.42];
-    const edgeNeed = (grid.length + srcEdgeCount) * EDGE_STRIDE;
+    const grid = buildGlobeGrid();
+    const edgeNeed = (planets.length * (grid.length + 8) + srcEdgeCount + ringSegs + planetCount) * EDGE_STRIDE;
     if (edgeScratch.length < edgeNeed) {
         edgeScratch = new Float32Array(Math.max(edgeNeed, 64));
     }
     let w = 0;
-    const writeSeg = (x1, y1, z1, x2, y2, z2, r, g, b, a, requireFront) => {
-        const f1 = sphereFacing(x1, y1, z1, eye);
-        const f2 = sphereFacing(x2, y2, z2, eye);
-        if (requireFront && f1 <= 0 && f2 <= 0) return;
+    const writeWorldSeg = (x1, y1, z1, x2, y2, z2, r, g, b, a, requireFront, cx, cy, cz, radius) => {
+        if (requireFront) {
+            const n1x = radius > 1e-6 ? (x1 - cx) / radius : x1;
+            const n1y = radius > 1e-6 ? (y1 - cy) / radius : y1;
+            const n1z = radius > 1e-6 ? (z1 - cz) / radius : z1;
+            const n2x = radius > 1e-6 ? (x2 - cx) / radius : x2;
+            const n2y = radius > 1e-6 ? (y2 - cy) / radius : y2;
+            const n2z = radius > 1e-6 ? (z2 - cz) / radius : z2;
+            const f1 = sphereFacingAt(n1x, n1y, n1z, eye, cx, cy, cz, radius);
+            const f2 = sphereFacingAt(n2x, n2y, n2z, eye, cx, cy, cz, radius);
+            if (f1 <= 0 && f2 <= 0) return;
+        }
         const c1 = transformPoint(viewProj, x1, y1, z1);
         const c2 = transformPoint(viewProj, x2, y2, z2);
         const s1 = clipToScreen(c1.x, c1.y, c1.w, width, height);
@@ -557,7 +774,6 @@ export function projectPlanetScene(opts) {
         const d1 = screenToDrawWorld(s1.x, s1.y, width, height);
         const d2 = screenToDrawWorld(s2.x, s2.y, width, height);
         const o = w * EDGE_STRIDE;
-        const fade = f1 > 0 || f2 > 0 ? 1 : 0.2;
         edgeScratch[o] = d1.x;
         edgeScratch[o + 1] = d1.y;
         edgeScratch[o + 2] = d2.x;
@@ -565,62 +781,126 @@ export function projectPlanetScene(opts) {
         edgeScratch[o + 4] = r;
         edgeScratch[o + 5] = g;
         edgeScratch[o + 6] = b;
-        edgeScratch[o + 7] = a * fade;
+        edgeScratch[o + 7] = a;
         w += 1;
     };
 
-    for (let i = 0; i < grid.length; i++) {
-        const ln = grid[i];
-        writeSeg(
-            ln.x1,
-            ln.y1,
-            ln.z1,
-            ln.x2,
-            ln.y2,
-            ln.z2,
-            gridColor[0],
-            gridColor[1],
-            gridColor[2],
-            gridColor[3],
-            true
-        );
+    const ringR = hubRadiusForPlanetCount(Math.max(planetCount, 1));
+    const ringCol = dark ? [0.28, 0.4, 0.55, 0.22] : [0.45, 0.55, 0.7, 0.28];
+    let prevRing = null;
+    for (let s = 0; s <= ringSegs; s++) {
+        const ang = (s / ringSegs) * Math.PI * 2;
+        const pt = { x: ringR * Math.cos(ang), y: 0, z: ringR * Math.sin(ang) };
+        if (prevRing) {
+            writeWorldSeg(
+                prevRing.x,
+                prevRing.y,
+                prevRing.z,
+                pt.x,
+                pt.y,
+                pt.z,
+                ringCol[0],
+                ringCol[1],
+                ringCol[2],
+                ringCol[3],
+                false,
+                0,
+                0,
+                0,
+                1
+            );
+        }
+        prevRing = pt;
     }
+
+    for (let p = 0; p < planets.length; p++) {
+        const pl = planets[p];
+        const gc = [
+            pl.fill[0] * 0.7 + 0.15,
+            pl.fill[1] * 0.7 + 0.18,
+            pl.fill[2] * 0.75 + 0.22,
+            dark ? 0.42 : 0.48,
+        ];
+        for (let i = 0; i < grid.length; i++) {
+            const ln = grid[i];
+            writeWorldSeg(
+                pl.cx + ln.x1 * pl.radius,
+                pl.cy + ln.y1 * pl.radius,
+                pl.cz + ln.z1 * pl.radius,
+                pl.cx + ln.x2 * pl.radius,
+                pl.cy + ln.y2 * pl.radius,
+                pl.cz + ln.z2 * pl.radius,
+                gc[0],
+                gc[1],
+                gc[2],
+                gc[3],
+                true,
+                pl.cx,
+                pl.cy,
+                pl.cz,
+                pl.radius
+            );
+        }
+        writeWorldSeg(0, 0, 0, pl.cx, pl.cy, pl.cz, pl.fill[0], pl.fill[1], pl.fill[2], dark ? 0.38 : 0.42, false, 0, 0, 0, 1);
+    }
+
     for (let i = 0; i < srcEdgeCount; i++) {
         const o = i * EDGE_STRIDE;
-        const a = layoutToSphere(srcEdges[o], srcEdges[o + 1], layoutScale);
-        const b = layoutToSphere(srcEdges[o + 2], srcEdges[o + 3], layoutScale);
-        writeSeg(
-            a.x,
-            a.y,
-            a.z,
-            b.x,
-            b.y,
-            b.z,
+        let ia = -1;
+        let ib = -1;
+        let da = Infinity;
+        let db = Infinity;
+        const x1 = srcEdges[o];
+        const y1 = srcEdges[o + 1];
+        const x2 = srcEdges[o + 2];
+        const y2 = srcEdges[o + 3];
+        for (let n = 0; n < srcCount; n++) {
+            const no = n * NODE_STRIDE;
+            const a = Math.hypot((srcNodes[no] || 0) - x1, (srcNodes[no + 1] || 0) - y1);
+            const b = Math.hypot((srcNodes[no] || 0) - x2, (srcNodes[no + 1] || 0) - y2);
+            if (a < da) {
+                da = a;
+                ia = n;
+            }
+            if (b < db) {
+                db = b;
+                ib = n;
+            }
+        }
+        if (ia < 0 || ib < 0 || ia === ib) continue;
+        const wa = world[ia];
+        const wb = world[ib];
+        writeWorldSeg(
+            wa.x,
+            wa.y,
+            wa.z,
+            wb.x,
+            wb.y,
+            wb.z,
             srcEdges[o + 4],
             srcEdges[o + 5],
             srcEdges[o + 6],
             srcEdges[o + 7] || 0.45,
-            false
+            false,
+            0,
+            0,
+            0,
+            1
         );
     }
 
+    const layoutScale = planets[0] ? planets[0].layoutScale : LAYOUT_SCALE_FLOOR;
     return {
-        nodes: nodeScratch.subarray(0, nodeNeed),
+        nodes: nodeScratch.subarray(0, Math.max(nodeNeed, 0)),
         edges: edgeScratch.subarray(0, w * EDGE_STRIDE),
         pick,
         projected,
+        planets,
         layoutScale,
         camera: { x: 0, y: 0, zoom: 1 },
     };
 }
 
-/**
- * Nearest front-facing node under a CSS point.
- * @param {{id:string,sx:number,sy:number,size:number}[]} pick
- * @param {number} cssX
- * @param {number} cssY
- * @param {number} [pad]
- */
 export function pickPlanetNode(pick, cssX, cssY, pad = 10) {
     if (!Array.isArray(pick) || !pick.length) return null;
     let best = null;
