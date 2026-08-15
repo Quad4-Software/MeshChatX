@@ -127,6 +127,40 @@ def test_bake_copies_executable_path_basename_from_load_command(
     assert (root / "lib" / "libcodec2.dylib").read_bytes() == b"lib"
 
 
+def test_bake_replaces_symlink_dest_without_writing_through_it(tmp_path: Path) -> None:
+    root = _frozen_pycodec2_tree(tmp_path)
+    pkg = root / "lib" / "pycodec2"
+    (pkg / "libcodec2.dylib").write_bytes(b"canonical")
+
+    cellar = tmp_path / "cellar"
+    cellar.mkdir()
+    cellar_lib = cellar / "libcodec2.dylib"
+    cellar_lib.write_bytes(b"homebrew")
+    cellar_lib.chmod(0o444)
+
+    dest_lib = root / "lib" / "libcodec2.dylib"
+    dest_lib.symlink_to(cellar_lib)
+
+    bake_frozen_pycodec2(root)
+
+    assert dest_lib.is_symlink() is False
+    assert dest_lib.read_bytes() == b"canonical"
+    assert cellar_lib.read_bytes() == b"homebrew"
+
+
+def test_bake_replaces_readonly_dest_libcodec2(tmp_path: Path) -> None:
+    root = _frozen_pycodec2_tree(tmp_path)
+    pkg = root / "lib" / "pycodec2"
+    (pkg / "libcodec2.dylib").write_bytes(b"canonical")
+    dest_lib = root / "lib" / "libcodec2.dylib"
+    dest_lib.write_bytes(b"old")
+    dest_lib.chmod(0o444)
+
+    bake_frozen_pycodec2(root)
+
+    assert dest_lib.read_bytes() == b"canonical"
+
+
 def test_bake_copies_from_build_env_when_freeze_tree_has_no_dylib(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
