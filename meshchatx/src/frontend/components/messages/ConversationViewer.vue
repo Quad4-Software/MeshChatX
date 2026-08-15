@@ -1340,7 +1340,7 @@
                         v-if="!translateTargetSelectOptions.length"
                         class="text-xs text-amber-700/90 dark:text-amber-300/90 -mt-0.5"
                     >
-                        No translation languages available yet. Check the translator tool in Tools.
+                        {{ $t("messages.translate_no_languages") }}
                     </p>
                 </div>
             </div>
@@ -3975,12 +3975,7 @@ export default {
         },
         async onBanishHeaderClick() {
             if (!this.selectedPeer) return;
-            if (
-                !(await DialogUtils.confirm(
-                    this.$t("messages.banish_confirm") ||
-                        "Are you sure you want to banish this user? They will not be able to send you messages or establish links."
-                ))
-            ) {
+            if (!(await DialogUtils.confirm(this.$t("messages.banish_confirm")))) {
                 return;
             }
             try {
@@ -5425,12 +5420,7 @@ export default {
         async deleteChatItem(chatItem, shouldConfirm = true) {
             try {
                 // ask user to confirm deleting message
-                if (
-                    shouldConfirm &&
-                    !(await DialogUtils.confirm(
-                        "Are you sure you want to delete this message? This can not be undone!"
-                    ))
-                ) {
+                if (shouldConfirm && !(await DialogUtils.confirm(this.$t("messages.delete_message_confirm")))) {
                     return;
                 }
 
@@ -5558,7 +5548,7 @@ export default {
             if (totalMessageSize > 1000 * 900) {
                 if (
                     !(await DialogUtils.confirm(
-                        `Your message exceeds 900KB (It's ${this.formatBytes(totalMessageSize)}). It may be rejected by the recipient unless they have increased their delivery limit. Do you want to try sending anyway?`
+                        this.$t("messages.send_oversized_confirm", { size: this.formatBytes(totalMessageSize) })
                     ))
                 ) {
                     return null;
@@ -5884,11 +5874,7 @@ export default {
             );
             if (failedItems.length === 0) return;
 
-            if (
-                !(await DialogUtils.confirm(
-                    `Are you sure you want to retry sending all ${failedItems.length} failed/cancelled messages?`
-                ))
-            ) {
+            if (!(await DialogUtils.confirm(this.$t("messages.retry_failed_confirm", { count: failedItems.length })))) {
                 return;
             }
 
@@ -6197,10 +6183,12 @@ export default {
                     destination_hash: hash,
                     is_tracking: response.data.is_tracking,
                 });
-                ToastUtils.success(response.data.is_tracking ? "Live tracking enabled" : "Live tracking disabled");
+                ToastUtils.success(
+                    response.data.is_tracking ? this.$t("map.tracking_enabled") : this.$t("map.tracking_disabled")
+                );
             } catch (e) {
                 console.error("Failed to toggle tracking", e);
-                ToastUtils.error("Failed to update tracking status");
+                ToastUtils.error(this.$t("map.failed_update_tracking"));
             }
         },
         formatTimeAgo: function (datetimeString) {
@@ -6280,7 +6268,7 @@ export default {
             try {
                 await window.api.post(`/api/v1/telephone/call/${this.selectedPeer.destination_hash}`);
             } catch (e) {
-                const message = e.response?.data?.message ?? "Failed to start call";
+                const message = e.response?.data?.message ?? this.$t("call.failed_to_initiate_call");
                 DialogUtils.alert(message);
             }
         },

@@ -178,6 +178,7 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
+import DialogUtils from "../../js/DialogUtils";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
 
 export default {
@@ -365,7 +366,7 @@ export default {
             }
         },
         async deleteUpload(name) {
-            if (!window.confirm(this.$t("tools.repository_server.delete_confirm", { name }))) {
+            if (!(await DialogUtils.confirm(this.$t("tools.repository_server.delete_confirm", { name })))) {
                 return;
             }
             try {

@@ -7,7 +7,7 @@
                 <input
                     :value="contactsSearch"
                     type="text"
-                    placeholder="Search contacts..."
+                    :placeholder="$t('contacts.search_placeholder')"
                     class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                     @input="onSearchInput"
                 />
@@ -21,7 +21,7 @@
                 @click="$emit('add')"
             >
                 <MaterialDesignIcon icon-name="plus" class="size-5" />
-                Add
+                {{ $t("common.add") }}
             </button>
         </div>
 
@@ -29,8 +29,8 @@
             <div class="bg-gray-200 dark:bg-zinc-800 p-6 rounded-full inline-block mb-4">
                 <MaterialDesignIcon icon-name="account-multiple" class="size-12 text-gray-400" />
             </div>
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white">No Contacts</h3>
-            <p class="text-gray-500 dark:text-zinc-400">Add contacts to quickly call them.</p>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ $t("contacts.no_contacts") }}</h3>
+            <p class="text-gray-500 dark:text-zinc-400">{{ $t("call.no_contacts_hint") }}</p>
         </div>
 
         <div v-else class="space-y-4">
@@ -64,15 +64,21 @@
                                         <span
                                             v-if="contact.preferred_ringtone_id"
                                             class="text-[9px] px-1.5 py-0.5 rounded-sm bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800/50 flex items-center gap-1"
-                                            title="Custom Ringtone Set"
+                                            :title="$t('call.custom_ringtone_set')"
                                         >
                                             <MaterialDesignIcon icon-name="music" class="size-2.5" />
-                                            {{ contact.preferred_ringtone_id === -1 ? "Random" : "Custom" }}
+                                            {{
+                                                contact.preferred_ringtone_id === -1
+                                                    ? $t("call.random")
+                                                    : $t("call.custom")
+                                            }}
                                         </span>
                                         <div class="flex items-center gap-1">
                                             <button
                                                 type="button"
                                                 class="p-1.5 text-gray-400 hover:text-blue-500 transition-colors"
+                                                :aria-label="$t('common.edit')"
+                                                :title="$t('common.edit')"
                                                 @click="$emit('edit', contact)"
                                             >
                                                 <MaterialDesignIcon icon-name="pencil" class="size-4" />
@@ -80,6 +86,8 @@
                                             <button
                                                 type="button"
                                                 class="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                                                :aria-label="$t('common.delete')"
+                                                :title="$t('common.delete')"
                                                 @click="$emit('delete', contact.id)"
                                             >
                                                 <MaterialDesignIcon icon-name="delete" class="size-4" />

@@ -952,6 +952,7 @@ import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
 import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
 import DOMPurify from "dompurify";
 import ToastUtils from "../../js/ToastUtils";
+import DialogUtils from "../../js/DialogUtils";
 import TileCache from "../../js/TileCache";
 import { mapViewStateKey } from "../../js/mapStateKeys.js";
 import GlobalState from "../../js/GlobalState";
@@ -1560,7 +1561,7 @@ export default {
             }
         },
         async deleteMBTiles(filename) {
-            if (!confirm(`Are you sure you want to delete ${filename}?`)) return;
+            if (!(await DialogUtils.confirm(this.$t("map.delete_file_confirm", { name: filename })))) return;
             try {
                 await window.api.delete(`/api/v1/map/mbtiles/${filename}`);
                 await this.loadMBTilesList();
@@ -3837,24 +3838,24 @@ export default {
             this.stopMeasuring();
         },
 
-        clearDrawings() {
-            if (confirm("Clear all drawings from the map?")) {
-                this.drawSource.clear();
-                if (this.select) {
-                    this.select.getFeatures().clear();
-                }
-                this.selectedFeature = null;
-                this.syncDrawFeatureInfoOverlay();
-                // clear tooltips if any
-                const overlays = this.map.getOverlays().getArray();
-                for (let i = overlays.length - 1; i >= 0; i--) {
-                    const overlay = overlays[i];
-                    if (overlay.get("isMeasureTooltip")) {
-                        this.map.removeOverlay(overlay);
-                    }
-                }
-                this.saveMapState();
+        async clearDrawings() {
+            if (!(await DialogUtils.confirm(this.$t("map.clear_drawings_confirm")))) {
+                return;
             }
+            this.drawSource.clear();
+            if (this.select) {
+                this.select.getFeatures().clear();
+            }
+            this.selectedFeature = null;
+            this.syncDrawFeatureInfoOverlay();
+            const overlays = this.map.getOverlays().getArray();
+            for (let i = overlays.length - 1; i >= 0; i--) {
+                const overlay = overlays[i];
+                if (overlay.get("isMeasureTooltip")) {
+                    this.map.removeOverlay(overlay);
+                }
+            }
+            this.saveMapState();
         },
 
         // Measurement methods
@@ -4667,7 +4668,7 @@ export default {
         },
 
         async deleteDrawing(drawing) {
-            if (!confirm(`Delete drawing "${drawing.name}"?`)) return;
+            if (!(await DialogUtils.confirm(this.$t("map.delete_drawing_confirm", { name: drawing.name })))) return;
             try {
                 await window.api.delete(`/api/v1/map/drawings/${drawing.id}`);
                 this.savedDrawings = this.savedDrawings.filter((d) => d.id !== drawing.id);
@@ -5149,10 +5150,12 @@ export default {
                 const t = this.telemetryList.find((t) => t.destination_hash === hash);
                 if (t) t.is_tracking = response.data.is_tracking;
 
-                ToastUtils.success(response.data.is_tracking ? "Live tracking enabled" : "Live tracking disabled");
+                ToastUtils.success(
+                    response.data.is_tracking ? this.$t("map.tracking_enabled") : this.$t("map.tracking_disabled")
+                );
             } catch (e) {
                 console.error("Failed to toggle tracking", e);
-                ToastUtils.error("Failed to update tracking status");
+                ToastUtils.error(this.$t("map.failed_update_tracking"));
             }
         },
         async toggleDiscoveredNodes() {

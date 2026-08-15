@@ -4,7 +4,7 @@
     <section v-show="visible" class="settings-section break-inside-avoid">
         <header class="settings-section__header">
             <div>
-                <div class="settings-section__eyebrow">Personalise</div>
+                <div class="settings-section__eyebrow">{{ $t("app.appearance") }}</div>
                 <h2>{{ $t("app.appearance") }}</h2>
                 <p>{{ $t("app.appearance_description") }}</p>
             </div>
@@ -49,7 +49,9 @@
 
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Message Font Size</div>
+                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {{ $t("app.message_font_size") }}
+                    </div>
                     <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
                         {{ config.message_font_size || 14 }}px
                     </div>
@@ -71,7 +73,9 @@
 
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Icon Size</div>
+                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {{ $t("app.message_icon_size") }}
+                    </div>
                     <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
                         {{ config.message_icon_size || 28 }}px
                     </div>
@@ -257,7 +261,9 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="space-y-2">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Outbound Color</div>
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {{ $t("settings.outbound_bubble_color") }}
+                        </div>
                         <div class="flex gap-2">
                             <input
                                 :value="config.message_outbound_bubble_color"
@@ -275,7 +281,9 @@
                     </div>
 
                     <div class="space-y-2">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Failed Color</div>
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {{ $t("settings.failed_bubble_color") }}
+                        </div>
                         <div class="flex gap-2">
                             <input
                                 :value="config.message_failed_bubble_color"
@@ -293,7 +301,9 @@
                     </div>
 
                     <div class="space-y-2">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Waiting Color</div>
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {{ $t("settings.waiting_bubble_color") }}
+                        </div>
                         <div class="flex gap-2">
                             <input
                                 :value="config.message_waiting_bubble_color"
@@ -313,14 +323,16 @@
 
                 <div class="space-y-2">
                     <div class="flex items-center justify-between">
-                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Inbound Color (Optional)</div>
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {{ $t("settings.inbound_bubble_color") }}
+                        </div>
                         <button
                             v-if="config.message_inbound_bubble_color"
                             type="button"
                             class="text-[10px] text-red-500 font-bold uppercase hover:underline"
                             @click="onInboundBubbleReset"
                         >
-                            Reset to default
+                            {{ $t("settings.inbound_bubble_reset") }}
                         </button>
                     </div>
                     <div class="flex gap-2">
@@ -335,12 +347,13 @@
                             v-if="!config.message_inbound_bubble_color"
                             class="flex-1 flex items-center px-3 text-xs text-gray-400 bg-gray-50 dark:bg-zinc-900 rounded-xl border border-dashed border-gray-200 dark:border-zinc-800 italic"
                         >
-                            Using theme default. Click to customize ->
+                            {{ $t("settings.inbound_bubble_default_hint") }}
                             <button
+                                type="button"
                                 class="ml-2 px-2 py-1 bg-blue-500 text-white rounded-lg not-italic font-bold"
                                 @click="onInboundBubbleCustomize"
                             >
-                                Customize
+                                {{ $t("settings.inbound_bubble_customize") }}
                             </button>
                         </div>
                         <input

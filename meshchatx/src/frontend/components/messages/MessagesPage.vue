@@ -1207,8 +1207,8 @@ export default {
         async onBulkDelete(destination_hashes) {
             try {
                 const confirmed = await DialogUtils.confirm(
-                    "Are you sure you want to delete these conversations? All messages will be lost.",
-                    "Delete Conversations"
+                    this.$t("messages.delete_conversations_confirm"),
+                    this.$t("messages.delete_conversations_title")
                 );
                 if (!confirmed) return;
 
