@@ -749,9 +749,12 @@ export default {
             const duplicates = this.contacts.filter((c) => c.name === contact.name && c.id !== contact.id);
             const confirmMsg =
                 duplicates.length > 0
-                    ? `${this.$t("contacts.remove_contact_confirm")}\n\n(${duplicates.length} additional duplicate${duplicates.length > 1 ? "s" : ""} named "${contact.name}" will also be removed)`
+                    ? this.$t("contacts.remove_duplicates_confirm", {
+                          count: duplicates.length,
+                          name: contact.name,
+                      })
                     : this.$t("contacts.remove_contact_confirm");
-            if (!window.confirm(confirmMsg)) return;
+            if (!(await DialogUtils.confirm(confirmMsg))) return;
             try {
                 const ids = [contact.id, ...duplicates.map((c) => c.id)];
                 for (const id of ids) {

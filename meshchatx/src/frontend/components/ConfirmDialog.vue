@@ -2,12 +2,22 @@
 
 <template>
     <Transition name="confirm-dialog">
-        <div v-if="pendingConfirm" class="fixed inset-0 z-9999 flex items-center justify-center p-4">
+        <div
+            v-if="pendingConfirm"
+            class="fixed inset-0 z-9999 flex items-center justify-center p-4"
+            role="alertdialog"
+            aria-modal="true"
+            :aria-labelledby="titleId"
+            :aria-describedby="messageId"
+        >
             <div class="fixed inset-0 bg-black/50 backdrop-blur-xs shadow-2xl" @click="cancel"></div>
 
             <div
+                ref="dialogPanel"
                 class="relative w-full sm:w-auto sm:min-w-[400px] sm:max-w-md bg-white dark:bg-zinc-900 sm:rounded-3xl rounded-3xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden transform transition-all"
+                tabindex="-1"
                 @click.stop
+                @keydown.esc.prevent="cancel"
             >
                 <div class="p-8">
                     <div class="flex items-start mb-6">
@@ -17,10 +27,13 @@
                             <MaterialDesignIcon icon-name="alert-circle" class="w-6 h-6" />
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-xl font-black text-gray-900 dark:text-white mb-2">
-                                {{ $t("common.confirm_action") }}
+                            <h3 :id="titleId" class="text-xl font-black text-gray-900 dark:text-white mb-2">
+                                {{ pendingConfirm.title || $t("common.confirm_action") }}
                             </h3>
-                            <p class="text-gray-600 dark:text-zinc-300 whitespace-pre-wrap leading-relaxed">
+                            <p
+                                :id="messageId"
+                                class="text-gray-600 dark:text-zinc-300 whitespace-pre-wrap leading-relaxed"
+                            >
                                 {{ pendingConfirm.message }}
                             </p>
                         </div>
@@ -61,21 +74,48 @@ export default {
         return {
             pendingConfirm: null,
             resolvePromise: null,
+            titleId: "confirm-dialog-title",
+            messageId: "confirm-dialog-message",
         };
     },
     mounted() {
         GlobalEmitter.on("confirm", this.show);
+        window.addEventListener("keydown", this.onWindowKeydown);
     },
     beforeUnmount() {
         GlobalEmitter.off("confirm", this.show);
+        window.removeEventListener("keydown", this.onWindowKeydown);
     },
     methods: {
-        show({ message, resolve }) {
+        show({ message, title, resolve }) {
             if (typeof this.resolvePromise === "function") {
                 this.resolvePromise(false);
             }
-            this.pendingConfirm = { message };
+            this.pendingConfirm = {
+                message,
+                title: typeof title === "string" && title.trim() ? title.trim() : "",
+            };
             this.resolvePromise = resolve;
+            this.$nextTick(() => {
+                const panel = this.$refs.dialogPanel;
+                if (panel && typeof panel.focus === "function") {
+                    panel.focus();
+                }
+            });
+        },
+        onWindowKeydown(event) {
+            if (!this.pendingConfirm) {
+                return;
+            }
+            if (event.key === "Escape") {
+                event.preventDefault();
+                this.cancel();
+                return;
+            }
+            if (event.key === "Enter") {
+                event.preventDefault();
+                this.confirm();
+            }
         },
         confirm() {
             if (this.resolvePromise) {

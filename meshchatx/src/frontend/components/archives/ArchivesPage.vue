@@ -23,6 +23,8 @@
                     <button
                         type="button"
                         class="rounded-lg p-1 text-sem-fg-muted hover:bg-sem-surface/60 sm:hidden"
+                        :aria-label="$t('common.back')"
+                        :title="$t('common.back')"
                         @click="selectedNodeHash = null"
                     >
                         <MaterialDesignIcon icon-name="arrow-left" class="size-5" />
@@ -233,6 +235,8 @@ import {
 import { renderNomadPageByPath, isolateNomadLinksInHtml } from "../../js/NomadPageRenderer.js";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import ArchiveSidebar from "./ArchiveSidebar.vue";
+import DialogUtils from "../../js/DialogUtils";
+import ToastUtils from "../../js/ToastUtils";
 
 export default {
     name: "ArchivesPage",
@@ -457,7 +461,11 @@ export default {
         async deleteSelected() {
             if (this.selectedArchives.length === 0) return;
 
-            if (!confirm(`Are you sure you want to delete ${this.selectedArchives.length} selected snapshots?`)) {
+            if (
+                !(await DialogUtils.confirm(
+                    this.$t("archives.delete_selected_confirm", { count: this.selectedArchives.length })
+                ))
+            ) {
                 return;
             }
 
@@ -480,11 +488,11 @@ export default {
                 }
             } catch (e) {
                 console.error("Failed to delete archives:", e);
-                alert("Failed to delete snapshots. Please try again.");
+                ToastUtils.error(this.$t("archives.failed_delete"));
             }
         },
         async deleteArchive(archive) {
-            if (!confirm("Are you sure you want to delete this snapshot?")) {
+            if (!(await DialogUtils.confirm(this.$t("archives.delete_snapshot_confirm")))) {
                 return;
             }
 
@@ -507,7 +515,7 @@ export default {
                 }
             } catch (e) {
                 console.error("Failed to delete archive:", e);
-                alert("Failed to delete snapshot. Please try again.");
+                ToastUtils.error(this.$t("archives.failed_delete"));
             }
         },
         viewArchive(archive) {

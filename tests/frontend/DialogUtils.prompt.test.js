@@ -7,6 +7,53 @@ vi.mock("../../meshchatx/src/frontend/js/GlobalEmitter", () => ({
 import DialogUtils from "../../meshchatx/src/frontend/js/DialogUtils.js";
 import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
 
+describe("DialogUtils.confirm", () => {
+    beforeEach(() => {
+        vi.mocked(GlobalEmitter.emit).mockClear();
+        delete window.electron;
+    });
+
+    it("uses the in-app confirm dialog even when electron is present", async () => {
+        window.electron = {
+            confirm: vi.fn().mockResolvedValue(true),
+        };
+        const pending = DialogUtils.confirm("Delete this?");
+        expect(window.electron.confirm).not.toHaveBeenCalled();
+        expect(GlobalEmitter.emit).toHaveBeenCalledWith(
+            "confirm",
+            expect.objectContaining({
+                message: "Delete this?",
+                resolve: expect.any(Function),
+            })
+        );
+        const payload = GlobalEmitter.emit.mock.calls.find((c) => c[0] === "confirm")[1];
+        payload.resolve(false);
+        await expect(pending).resolves.toBe(false);
+    });
+
+    it("passes an optional title to the in-app dialog", async () => {
+        const pending = DialogUtils.confirm("All messages will be lost.", "Delete conversations");
+        const payload = GlobalEmitter.emit.mock.calls.find((c) => c[0] === "confirm")[1];
+        expect(payload.title).toBe("Delete conversations");
+        payload.resolve(true);
+        await expect(pending).resolves.toBe(true);
+    });
+
+    it("aliases confirmCustom to the same in-app dialog", async () => {
+        const pending = DialogUtils.confirmCustom("Leave room?");
+        expect(GlobalEmitter.emit).toHaveBeenCalledWith(
+            "confirm",
+            expect.objectContaining({
+                message: "Leave room?",
+                resolve: expect.any(Function),
+            })
+        );
+        const payload = GlobalEmitter.emit.mock.calls.find((c) => c[0] === "confirm")[1];
+        payload.resolve(true);
+        await expect(pending).resolves.toBe(true);
+    });
+});
+
 describe("DialogUtils.prompt", () => {
     beforeEach(() => {
         vi.mocked(GlobalEmitter.emit).mockClear();

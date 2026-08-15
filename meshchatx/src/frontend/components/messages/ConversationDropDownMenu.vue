@@ -321,11 +321,7 @@ export default {
             }
         },
         async onBlockDestination() {
-            if (
-                !(await DialogUtils.confirm(
-                    "Are you sure you want to banish this user? They will not be able to send you messages or establish links."
-                ))
-            ) {
+            if (!(await DialogUtils.confirm(this.$t("messages.banish_confirm")))) {
                 return;
             }
 

@@ -143,6 +143,7 @@
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import Toggle from "../forms/Toggle.vue";
 import ToastUtils from "../../js/ToastUtils";
+import DialogUtils from "../../js/DialogUtils";
 import NotificationSoundUtils from "../../js/NotificationSoundUtils";
 
 export default {
@@ -225,7 +226,7 @@ export default {
             }
         },
         async deleteSound(sound) {
-            if (!confirm(this.$t("common.delete_confirm"))) {
+            if (!(await DialogUtils.confirm(this.$t("common.delete_confirm")))) {
                 return;
             }
             try {

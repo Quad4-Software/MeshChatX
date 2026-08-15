@@ -7,7 +7,7 @@
                 <input
                     :value="voicemailSearch"
                     type="text"
-                    placeholder="Search voicemails..."
+                    :placeholder="$t('call.search_voicemails')"
                     class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                     @input="onSearchInput"
                 />
@@ -27,7 +27,7 @@
                 <div class="flex items-center gap-2">
                     <MaterialDesignIcon icon-name="cog" class="size-5 text-blue-500" />
                     <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
-                        Voicemail Settings
+                        {{ $t("call.voicemail_settings") }}
                     </h3>
                 </div>
                 <MaterialDesignIcon
@@ -79,7 +79,7 @@
                         :value="config.voicemail_greeting"
                         rows="3"
                         class="block w-full rounded-lg border-0 py-2 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-zinc-900"
-                        placeholder="Enter greeting text..."
+                        :placeholder="$t('call.enter_greeting_text')"
                         @input="$emit('patch-config', { voicemail_greeting: $event.target.value })"
                     ></textarea>
 

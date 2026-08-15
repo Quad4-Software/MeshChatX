@@ -3818,7 +3818,7 @@ export default {
                 this.getTrustedTelemetryPeers();
                 ToastUtils.success(this.$t("app.telemetry_trust_revoked", { name: peer.name }));
             } catch (e) {
-                ToastUtils.error("Failed to revoke telemetry trust");
+                ToastUtils.error(this.$t("app.telemetry_trust_failed"));
                 console.error(e);
             }
         },
@@ -4900,9 +4900,9 @@ export default {
             try {
                 const newConfig = await patchServerConfig({ telephone_enabled: value }, window.api);
                 this.config = newConfig;
-                ToastUtils.success(value ? "Telephone enabled" : "Telephone disabled");
+                ToastUtils.success(value ? this.$t("call.telephony_enabled") : this.$t("call.telephony_disabled"));
             } catch {
-                ToastUtils.error("Failed to update telephone setting");
+                ToastUtils.error(this.$t("call.failed_to_update_call_settings"));
             }
         },
         async onDesktopOpenCallsInSeparateWindowChange(value) {
@@ -4976,11 +4976,7 @@ export default {
             }, 1000);
         },
         async flushArchivedPages() {
-            if (
-                !(await DialogUtils.confirm(
-                    "Are you sure you want to delete all archived pages? This cannot be undone."
-                ))
-            ) {
+            if (!(await DialogUtils.confirm(this.$t("settings.flush_archived_pages_confirm")))) {
                 return;
             }
             WebSocketConnection.send(

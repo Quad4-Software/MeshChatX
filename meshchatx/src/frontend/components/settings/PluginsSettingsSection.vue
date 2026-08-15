@@ -363,9 +363,9 @@ export default {
             };
             this.sidebandPlugins = response.data?.plugins || [];
         },
-        onSidebandMasterToggle() {
+        async onSidebandMasterToggle() {
             if (this.sidebandConfig.service_plugins_enabled) {
-                const ok = window.confirm(this.$t("plugins.sideband.danger_confirm"));
+                const ok = await DialogUtils.confirm(this.$t("plugins.sideband.danger_confirm"));
                 if (!ok) {
                     this.sidebandConfig.service_plugins_enabled = false;
                 }
@@ -461,9 +461,9 @@ export default {
                 this.busyPluginId = null;
             }
         },
-        confirmRemove(plugin) {
+        async confirmRemove(plugin) {
             const prompt = this.$t("plugins.settings.confirm_remove", { name: plugin.name || plugin.id });
-            if (!window.confirm(prompt)) {
+            if (!(await DialogUtils.confirm(prompt))) {
                 return;
             }
             void this.removePlugin(plugin.id);

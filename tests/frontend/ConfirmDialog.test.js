@@ -42,7 +42,7 @@ describe("ConfirmDialog UI", () => {
         expect(showFn).toBeDefined();
         showFn({ message: "Delete this item?", resolve: vi.fn() });
         await wrapper.vm.$nextTick();
-        expect(wrapper.vm.pendingConfirm).toEqual({ message: "Delete this item?" });
+        expect(wrapper.vm.pendingConfirm).toEqual({ message: "Delete this item?", title: "" });
         expect(wrapper.text()).toContain("common.confirm_action");
         expect(wrapper.text()).toContain("Delete this item?");
     });
@@ -89,7 +89,35 @@ describe("ConfirmDialog UI", () => {
         showFn({ message: "Second?", resolve: second });
         await wrapper.vm.$nextTick();
         expect(first).toHaveBeenCalledWith(false);
-        expect(wrapper.vm.pendingConfirm).toEqual({ message: "Second?" });
+        expect(wrapper.vm.pendingConfirm).toEqual({ message: "Second?", title: "" });
         expect(second).not.toHaveBeenCalled();
+    });
+
+    it("shows an optional title when provided", async () => {
+        const wrapper = mountDialog();
+        const showFn = GlobalEmitter.on.mock.calls.find((c) => c[0] === "confirm")?.[1];
+        showFn({ message: "All messages will be lost.", title: "Delete conversations", resolve: vi.fn() });
+        await wrapper.vm.$nextTick();
+        expect(wrapper.text()).toContain("Delete conversations");
+        expect(wrapper.text()).not.toContain("common.confirm_action");
+        wrapper.unmount();
+    });
+
+    it("cancels on Escape and confirms on Enter", async () => {
+        const resolve = vi.fn();
+        const wrapper = mountDialog();
+        const showFn = GlobalEmitter.on.mock.calls.find((c) => c[0] === "confirm")?.[1];
+        showFn({ message: "Sure?", resolve });
+        await wrapper.vm.$nextTick();
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+        expect(resolve).toHaveBeenCalledWith(false);
+        expect(wrapper.vm.pendingConfirm).toBeNull();
+
+        const resolveEnter = vi.fn();
+        showFn({ message: "Sure again?", resolve: resolveEnter });
+        await wrapper.vm.$nextTick();
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+        expect(resolveEnter).toHaveBeenCalledWith(true);
+        wrapper.unmount();
     });
 });

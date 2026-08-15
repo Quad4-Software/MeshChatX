@@ -183,6 +183,7 @@ import WifiTransport from "../../js/rnode/transports/WifiTransport.js";
 import { diagnose } from "../../js/rnode/Diagnostics.js";
 
 import ToastUtils from "../../js/ToastUtils.js";
+import DialogUtils from "../../js/DialogUtils.js";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
 import { rnodeIntegrityKeyForSrc } from "../../js/rnode/rnodeIntegrityKey.js";
 
@@ -584,7 +585,7 @@ export default {
             }
         },
         async wipeEeprom() {
-            if (!confirm(this.$t("tools.rnode_flasher.alerts.eeprom_wipe_confirm"))) {
+            if (!(await DialogUtils.confirm(this.$t("tools.rnode_flasher.alerts.eeprom_wipe_confirm")))) {
                 return;
             }
             try {

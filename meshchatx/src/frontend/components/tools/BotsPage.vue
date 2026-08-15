@@ -400,6 +400,7 @@
 
 <script>
 import ToastUtils from "../../js/ToastUtils";
+import DialogUtils from "../../js/DialogUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
@@ -521,7 +522,7 @@ export default {
             }
         },
         async deleteBot(botId) {
-            if (!confirm(this.$t("common.delete_confirm"))) return;
+            if (!(await DialogUtils.confirm(this.$t("common.delete_confirm")))) return;
             try {
                 await window.api.post("/api/v1/bots/delete", { bot_id: botId });
                 ToastUtils.success(this.$t("bots.bot_deleted"));

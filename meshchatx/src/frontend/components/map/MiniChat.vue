@@ -9,7 +9,9 @@
             <div v-if="loading" class="flex justify-center py-4">
                 <v-icon icon="mdi-loading" class="animate-spin text-gray-400" size="20"></v-icon>
             </div>
-            <div v-else-if="messages.length === 0" class="text-center py-4 text-xs text-gray-400">No messages yet</div>
+            <div v-else-if="messages.length === 0" class="text-center py-4 text-xs text-gray-400">
+                {{ $t("messages.no_messages_yet") }}
+            </div>
             <div
                 v-for="msg in messages"
                 :key="msg.hash"
@@ -30,9 +32,11 @@
                         class="flex items-center gap-1 mb-1 pb-1 border-b border-white/10 opacity-80"
                     >
                         <v-icon icon="mdi-satellite-variant" size="10"></v-icon>
-                        <span class="text-[8px] font-bold uppercase tracking-wider"
-                            >{{ msg.is_outbound ? "Sent" : "Received" }} Telemetry</span
-                        >
+                        <span class="text-[8px] font-bold uppercase tracking-wider">{{
+                            msg.is_outbound
+                                ? $t("messages.telemetry_label_sent")
+                                : $t("messages.telemetry_label_received")
+                        }}</span>
                     </div>
 
                     <div
@@ -40,7 +44,9 @@
                         class="flex items-center gap-1 mb-1 pb-1 border-b border-white/10 opacity-80"
                     >
                         <v-icon icon="mdi-crosshairs-question" size="10"></v-icon>
-                        <span class="text-[8px] font-bold uppercase tracking-wider">Location Request</span>
+                        <span class="text-[8px] font-bold uppercase tracking-wider">{{
+                            $t("messages.telemetry_location_request")
+                        }}</span>
                     </div>
 
                     <div v-if="msg.content" class="leading-normal">{{ msg.content }}</div>
@@ -82,11 +88,14 @@
                     v-model="newMessage"
                     type="text"
                     class="flex-1 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-md px-2 py-1 text-xs focus:outline-hidden focus:ring-1 focus:ring-blue-500 text-gray-900 dark:text-zinc-100"
-                    placeholder="Type a message..."
+                    :placeholder="$t('messages.send_placeholder')"
                     @keydown.enter="sendMessage"
                 />
                 <button
+                    type="button"
                     :disabled="!newMessage.trim() || sending"
+                    :aria-label="$t('messages.send')"
+                    :title="$t('messages.send')"
                     class="p-1.5 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-zinc-700 text-white rounded-md transition-colors"
                     @click="sendMessage"
                 >

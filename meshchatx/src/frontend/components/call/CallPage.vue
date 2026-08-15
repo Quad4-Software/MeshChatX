@@ -29,9 +29,11 @@
                                         class="size-8 text-red-600 dark:text-red-400"
                                     />
                                 </div>
-                                <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-2">LXST is disabled</h2>
+                                <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                                    {{ $t("call.lxst_disabled_title") }}
+                                </h2>
                                 <p class="text-sm text-gray-500 dark:text-zinc-400 mb-6">
-                                    Telephony is currently disabled. Enable it to make and receive calls.
+                                    {{ $t("call.lxst_disabled_body") }}
                                 </p>
                                 <button
                                     type="button"
@@ -39,7 +41,7 @@
                                     @click="updateConfig({ telephone_enabled: true })"
                                 >
                                     <MaterialDesignIcon icon-name="phone" class="size-5" />
-                                    Enable LXST
+                                    {{ $t("call.enable_lxst") }}
                                 </button>
                             </div>
                         </div>
@@ -598,7 +600,7 @@
                                                     <input
                                                         v-model="destinationHash"
                                                         type="text"
-                                                        placeholder="Identity Hash or Name"
+                                                        :placeholder="$t('call.identity_or_name')"
                                                         class="input-field"
                                                         @keydown.enter.prevent="handleCallInputEnter"
                                                         @keydown.up.prevent="handleCallInputUp"
@@ -1440,7 +1442,7 @@
                                 <input
                                     v-model="recordingSearch"
                                     type="text"
-                                    placeholder="Search recordings..."
+                                    :placeholder="$t('call.search_recordings')"
                                     class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                                     @input="onRecordingSearchInput"
                                 />
@@ -1691,20 +1693,20 @@
                                     v-model="contactForm.lxmf_address"
                                     type="text"
                                     class="input-field font-mono text-xs"
-                                    placeholder="Optional"
+                                    :placeholder="$t('common.optional')"
                                 />
                             </div>
                             <div>
                                 <label
                                     class="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 ml-1"
                                 >
-                                    LXST Address
+                                    {{ $t("identities.lxst_address") }}
                                 </label>
                                 <input
                                     v-model="contactForm.lxst_address"
                                     type="text"
                                     class="input-field font-mono text-xs"
-                                    placeholder="Optional"
+                                    :placeholder="$t('common.optional')"
                                 />
                             </div>
                         </div>
@@ -1757,6 +1759,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import Toggle from "../forms/Toggle.vue";
 import ToastUtils from "../../js/ToastUtils";
+import DialogUtils from "../../js/DialogUtils";
 import {
     WEB_AUDIO_MIC_TOAST_KEY,
     classifyGetUserMediaError,
@@ -3277,13 +3280,13 @@ export default {
                 if (this.config) {
                     this.config.call_recording_enabled = value;
                 }
-                ToastUtils.success(value ? "Call recording enabled" : "Call recording disabled");
+                ToastUtils.success(value ? this.$t("call.recording_enabled") : this.$t("call.recording_disabled"));
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_update_recording_status"));
             }
         },
         async clearHistory() {
-            if (!confirm(this.$t("common.delete_confirm"))) return;
+            if (!(await DialogUtils.confirm(this.$t("common.delete_confirm")))) return;
             try {
                 await window.api.delete("/api/v1/telephone/history");
                 this.callHistory = [];
@@ -3303,7 +3306,7 @@ export default {
             }
         },
         async blockIdentity(hash) {
-            if (!confirm(`Are you sure you want to banish this identity?`)) return;
+            if (!(await DialogUtils.confirm(this.$t("call.banish_identity_confirm")))) return;
             try {
                 await window.api.post("/api/v1/blocked-destinations", {
                     destination_hash: hash,
@@ -3339,7 +3342,7 @@ export default {
             }
         },
         async deleteRingtone(ringtone) {
-            if (!confirm(this.$t("common.delete_confirm"))) return;
+            if (!(await DialogUtils.confirm(this.$t("common.delete_confirm")))) return;
             try {
                 await window.api.delete(`/api/v1/telephone/ringtones/${ringtone.id}`);
                 ToastUtils.success(this.$t("call.ringtone_deleted"));
@@ -3578,11 +3581,11 @@ export default {
                 this.isContactModalOpen = false;
                 this.getContacts();
             } catch (e) {
-                ToastUtils.error(e.response?.data?.message || "Failed to save contact");
+                ToastUtils.error(e.response?.data?.message || this.$t("call.failed_to_save_contact"));
             }
         },
         async deleteContact(contactId) {
-            if (!confirm("Are you sure you want to delete this contact?")) return;
+            if (!(await DialogUtils.confirm(this.$t("call.delete_contact_confirm")))) return;
             try {
                 await window.api.delete(`/api/v1/telephone/contacts/${contactId}`);
                 ToastUtils.success(this.$t("call.contact_deleted"));
@@ -3629,7 +3632,7 @@ export default {
                 ToastUtils.success(this.$t("call.greeting_generated_successfully"));
                 await this.getVoicemailStatus();
             } catch (e) {
-                ToastUtils.error(e.response?.data?.message || "Failed to generate greeting");
+                ToastUtils.error(e.response?.data?.message || this.$t("call.failed_to_generate_greeting"));
             } finally {
                 this.isGeneratingGreeting = false;
             }
@@ -3651,14 +3654,14 @@ export default {
                 ToastUtils.success(this.$t("call.greeting_uploaded_successfully"));
                 await this.getVoicemailStatus();
             } catch (e) {
-                ToastUtils.error(e.response?.data?.message || "Failed to upload greeting");
+                ToastUtils.error(e.response?.data?.message || this.$t("call.failed_to_upload_greeting"));
             } finally {
                 this.isUploadingGreeting = false;
                 event.target.value = "";
             }
         },
         async deleteGreeting() {
-            if (!confirm("Are you sure you want to delete your custom greeting?")) return;
+            if (!(await DialogUtils.confirm(this.$t("call.delete_greeting_confirm")))) return;
 
             try {
                 await window.api.delete("/api/v1/telephone/voicemail/greeting");
@@ -3796,7 +3799,7 @@ export default {
             }
         },
         async deleteRecording(recordingId) {
-            if (!confirm("Are you sure you want to delete this recording?")) return;
+            if (!(await DialogUtils.confirm(this.$t("call.delete_recording_confirm")))) return;
             try {
                 await window.api.delete(`/api/v1/telephone/recordings/${recordingId}`);
                 this.getRecordings();
@@ -3873,7 +3876,7 @@ export default {
                 await window.api.post(`/api/v1/telephone/call/${hashToCall}`);
             } catch (e) {
                 this.initiationStatus = null;
-                ToastUtils.error(e.response?.data?.message || "Failed to initiate call");
+                ToastUtils.error(e.response?.data?.message || this.$t("call.failed_to_initiate_call"));
             }
         },
         handleCallInputUp() {

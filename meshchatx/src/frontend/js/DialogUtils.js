@@ -3,32 +3,24 @@ import GlobalEmitter from "./GlobalEmitter";
 class DialogUtils {
     static alert(message, type = "info") {
         if (window.electron) {
-            // running inside electron, use ipc alert
             window.electron.alert(message);
         }
 
-        // always show toast as well (or instead of browser alert)
         GlobalEmitter.emit("toast", { message, type });
     }
 
-    static confirm(message) {
-        if (window.electron) {
-            // running inside electron, use ipc confirm
-            return window.electron.confirm(message);
-        } else {
-            // running inside normal browser, use custom confirm dialog
-            return new Promise((resolve) => {
-                GlobalEmitter.emit("confirm", { message, resolve });
-            });
-        }
+    static confirm(message, title) {
+        return new Promise((resolve) => {
+            const payload = { message, resolve };
+            if (typeof title === "string" && title.trim()) {
+                payload.title = title.trim();
+            }
+            GlobalEmitter.emit("confirm", payload);
+        });
     }
 
-    // Always use the in-app confirm dialog, even inside electron, for
-    // callers that want a themed dialog instead of the native OS prompt.
-    static confirmCustom(message) {
-        return new Promise((resolve) => {
-            GlobalEmitter.emit("confirm", { message, resolve });
-        });
+    static confirmCustom(message, title) {
+        return DialogUtils.confirm(message, title);
     }
 
     static async prompt(message, defaultValue = "", options = {}) {
