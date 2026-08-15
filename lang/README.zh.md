@@ -300,7 +300,8 @@ cd android
 **单一** Android 变体。Gradle 将完整 `meshchatx/` 树同步到 `app/src/main/python/meshchatx/`，含离线仓库 wheel 包。文档与发布流程仅使用 **universal** 打包：每次运行各生成一个调试 APK 与一个发布 APK，内含 `android/app/build.gradle` 中配置的全部原生 ABI。
 
 - 调试：`android/app/build/outputs/apk/debug/app-debug.apk`
-- 发布：`android/app/build/outputs/apk/release/app-release-unsigned.apk`
+- 发布：`android/app/build/outputs/apk/release/ReticulumMeshChatX-v*-android-universal-unsigned.apk`
+- GitHub 发行版：`ReticulumMeshChatX-v<version>-android-universal.apk`
 
 说明:
 

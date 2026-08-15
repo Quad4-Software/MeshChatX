@@ -41,7 +41,8 @@ Release and debug artifacts are **universal APKs** only: one APK per build type,
 Each build produces:
 
 - Debug: `app/build/outputs/apk/debug/app-debug.apk`
-- Release (unsigned until you sign): `app/build/outputs/apk/release/app-release-unsigned.apk`
+- Release (unsigned until you sign): `app/build/outputs/apk/release/ReticulumMeshChatX-v*-android-universal-unsigned.apk`
+- GitHub release asset (after signing): `ReticulumMeshChatX-v<version>-android-universal.apk`
 
 ### Signing release APKs
 

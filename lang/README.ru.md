@@ -300,7 +300,8 @@ cd android
 **Один** вариант Android. Gradle синхронизирует весь каталог `meshchatx/` в `app/src/main/python/meshchatx/`, включая офлайн-колёса репозитория. Документированные и публикуемые сборки используют только **universal**: за один прогон один debug APK и один release APK, каждый со всеми нативными ABI из `android/app/build.gradle`.
 
 - Debug: `android/app/build/outputs/apk/debug/app-debug.apk`
-- Release: `android/app/build/outputs/apk/release/app-release-unsigned.apk`
+- Release: `android/app/build/outputs/apk/release/ReticulumMeshChatX-v*-android-universal-unsigned.apk`
+- GitHub-релиз: `ReticulumMeshChatX-v<version>-android-universal.apk`
 
 Примечания:
 
