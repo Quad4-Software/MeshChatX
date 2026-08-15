@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import importlib.metadata
 import shutil
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -81,8 +82,13 @@ def _extension_module(pkg: Path) -> Path | None:
 
 def _copy_file(src: Path, dest: Path) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
-    if src.resolve() == dest.resolve():
-        return
+    if dest.is_symlink():
+        dest.unlink()
+    elif dest.exists():
+        if src.resolve() == dest.resolve():
+            return
+        dest.chmod(stat.S_IWRITE | stat.S_IREAD)
+        dest.unlink()
     shutil.copy2(src, dest)
 
 

@@ -2,18 +2,17 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect } from "vitest";
 import SidebarLink from "../../meshchatx/src/frontend/components/SidebarLink.vue";
 
-const RouterLinkStub = {
-    name: "RouterLinkStub",
-    props: ["to"],
-    template: '<a href="#" @click.prevent><slot :href="\'#\'" :navigate="navigate" :isActive="false"/></a>',
-    methods: {
-        navigate(e) {
-            if (e) e.preventDefault();
+function mountSidebarLink(props = {}, slots = {}, { isActive = false } = {}) {
+    const RouterLinkStub = {
+        name: "RouterLinkStub",
+        props: ["to"],
+        template: `<a href="#" @click.prevent><slot :href="'#'" :navigate="navigate" :isActive="${isActive}"/></a>`,
+        methods: {
+            navigate(e) {
+                if (e) e.preventDefault();
+            },
         },
-    },
-};
-
-function mountSidebarLink(props = {}, slots = {}) {
+    };
     return mount(SidebarLink, {
         props: { to: { name: "messages" }, ...props },
         slots: {
@@ -63,9 +62,22 @@ describe("SidebarLink UI", () => {
         expect(innerLink.exists()).toBe(true);
         expect(innerLink.classes()).toContain("justify-center");
         expect(innerLink.classes()).not.toContain("mr-2");
-        expect(innerLink.classes()).toContain("rounded-lg");
+        expect(innerLink.classes()).toContain("rounded-none");
+        expect(innerLink.classes()).not.toContain("rounded-lg");
         expect(wrapper.text()).not.toContain("Messages");
         expect(wrapper.find(".icon-slot").exists()).toBe(true);
+    });
+
+    it("uses a square inset well when collapsed and selected", () => {
+        const wrapper = mountSidebarLink({ isCollapsed: true }, {}, { isActive: true });
+        const innerLink = wrapper.find("a.justify-center");
+        const className = innerLink.attributes("class");
+        expect(innerLink.classes()).toContain("rounded-none");
+        expect(innerLink.classes()).not.toContain("rounded-lg");
+        expect(innerLink.classes()).not.toContain("bg-blue-100");
+        expect(innerLink.classes()).not.toContain("dark:bg-zinc-800");
+        expect(className).toContain("shadow-[inset_");
+        expect(className).toContain("bg-black/[0.04]");
     });
 
     it("does not navigate when editMode is on", async () => {
