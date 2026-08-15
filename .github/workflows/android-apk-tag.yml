@@ -293,17 +293,7 @@ jobs:
 
             - name: Stage APKs for unified draft release
               if: ${{ steps.track.outputs.track == 'dev' || steps.track.outputs.track == 'master' }}
-              run: |
-                  set -euo pipefail
-                  mkdir -p android-apks-for-draft
-                  shopt -s nullglob
-                  signed=(android/app/build/outputs/apk/release/*-signed.apk)
-                  shopt -u nullglob
-                  if [[ ${#signed[@]} -eq 0 ]]; then
-                    echo "::error::Expected *-signed.apk under android/app/build/outputs/apk/release/ (dev and master draft releases use the same release-signed APK)." >&2
-                    exit 1
-                  fi
-                  cp -v "${signed[@]}" android-apks-for-draft/
+              run: bash scripts/ci/stage-android-release-apks.sh android/app/build/outputs/apk/release android-apks-for-draft
 
             - name: Upload Android APK bundle for draft
               if: ${{ steps.track.outputs.track == 'dev' || steps.track.outputs.track == 'master' }}
