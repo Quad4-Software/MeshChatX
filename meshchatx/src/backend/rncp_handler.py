@@ -11,6 +11,26 @@ import RNS
 
 from .path_utils import link_establishment_window, path_response_window
 
+# Identity-storage tops that must not be RNCP-sent or used as fetch save dirs.
+# rncp_received / rncp_shared stay allowed so a received file can be re-sent.
+_RESERVED_RNCP_TOP = frozenset(
+    {
+        "identity",
+        "identity.bak",
+        "ssl",
+        "database.db",
+        "lxmf",
+        "lxmf_router",
+        "plugins",
+        "database-backups",
+        "snapshots",
+        "bots",
+        "telephone",
+        "rrc_history",
+        "rrc_server",
+    },
+)
+
 
 class RNCPHandler:
     APP_NAME = "rncp"
@@ -339,6 +359,15 @@ class RNCPHandler:
 
         return None
 
+    def _is_reserved_storage_path(self, real: str) -> bool:
+        root = os.path.realpath(self.storage_dir)
+        if real == root:
+            return True
+        if not real.startswith(root + os.sep):
+            return False
+        first = os.path.relpath(real, root).split(os.sep, 1)[0]
+        return first in _RESERVED_RNCP_TOP or first.endswith(".db")
+
     def _resolve_fetch_save_dir(self, save_path: str) -> str:
         """Jail fetch downloads under identity storage (or default downloads dir)."""
         if (
@@ -359,6 +388,9 @@ class RNCPHandler:
         parts = {part for part in real.split(os.sep) if part}
         if parts & {".ssh", ".gnupg"}:
             msg = "Refusing to save into credential directories"
+            raise PermissionError(msg)
+        if self._is_reserved_storage_path(real):
+            msg = "Save path is a reserved identity-storage top"
             raise PermissionError(msg)
         os.makedirs(real, exist_ok=True)
         return real
@@ -388,6 +420,9 @@ class RNCPHandler:
         parts = {part for part in real.split(os.sep) if part}
         if parts & {".ssh", ".gnupg"}:
             msg = "Refusing to send credential material"
+            raise PermissionError(msg)
+        if self._is_reserved_storage_path(real):
+            msg = "Refusing to send reserved identity-storage material"
             raise PermissionError(msg)
         if not os.path.isfile(real):
             msg = f"File not found: {file_path}"

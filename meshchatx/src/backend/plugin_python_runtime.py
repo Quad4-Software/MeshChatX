@@ -74,7 +74,11 @@ class PluginPythonRuntime:
 
     def _purge_entry_pycache(self, entry_path: str) -> None:
         start = os.path.dirname(os.path.abspath(entry_path))
-        shutil.rmtree(os.path.join(start, "__pycache__"), ignore_errors=True)
+        if not os.path.isdir(start):
+            return
+        for root, _dirs, _files in os.walk(start, topdown=False):
+            if os.path.basename(root) == "__pycache__":
+                shutil.rmtree(root, ignore_errors=True)
 
     def _load_module(self, plugin_id: str, entry_path: str) -> Any:
         with self._lock:

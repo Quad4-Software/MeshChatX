@@ -244,6 +244,11 @@ describe("LinkUtils.js", () => {
             expect(LinkUtils.httpUrlHrefOrNull("javascript:alert(1)")).toBeNull();
             expect(LinkUtils.httpUrlHrefOrNull("file:///etc/passwd")).toBeNull();
         });
+
+        it("returns null for http(s) URLs with userinfo", () => {
+            expect(LinkUtils.httpUrlHrefOrNull("http://127.0.0.1:9337@example.com/x")).toBeNull();
+            expect(LinkUtils.httpUrlHrefOrNull("https://user:pass@evil.example/phish")).toBeNull();
+        });
     });
 
     describe("fuzzing robustness", () => {

@@ -2,7 +2,14 @@
 
 <template>
     <Transition name="prompt-dialog">
-        <div v-if="pendingPrompt" class="fixed inset-0 z-9999 flex items-center justify-center p-4">
+        <div
+            v-if="pendingPrompt"
+            class="fixed inset-0 z-9999 flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            :aria-labelledby="titleId"
+            :aria-describedby="messageId"
+        >
             <div class="fixed inset-0 bg-black/50 backdrop-blur-xs shadow-2xl" @click="cancel"></div>
 
             <div
@@ -17,10 +24,13 @@
                             <MaterialDesignIcon icon-name="form-textbox" class="w-6 h-6" />
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-xl font-black text-gray-900 dark:text-white mb-2">
+                            <h3 :id="titleId" class="text-xl font-black text-gray-900 dark:text-white mb-2">
                                 {{ $t("common.prompt_title") }}
                             </h3>
-                            <p class="text-gray-600 dark:text-zinc-300 whitespace-pre-wrap leading-relaxed">
+                            <p
+                                :id="messageId"
+                                class="text-gray-600 dark:text-zinc-300 whitespace-pre-wrap leading-relaxed"
+                            >
                                 {{ pendingPrompt.message }}
                             </p>
                         </div>
@@ -32,8 +42,7 @@
                         :type="inputType"
                         class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                         autocomplete="off"
-                        @keydown.enter.prevent="confirm"
-                        @keydown.esc.prevent="cancel"
+                        @keydown="onInputKeydown"
                     />
 
                     <div class="flex flex-col sm:flex-row gap-3 sm:justify-end mt-8">
@@ -62,6 +71,10 @@
 import GlobalEmitter from "../js/GlobalEmitter";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 
+function isComposingKey(event) {
+    return Boolean(event && (event.isComposing || event.keyCode === 229));
+}
+
 export default {
     name: "PromptDialog",
     components: {
@@ -73,23 +86,30 @@ export default {
             resolvePromise: null,
             inputValue: "",
             inputType: "text",
+            titleId: "prompt-dialog-title",
+            messageId: "prompt-dialog-message",
         };
     },
     mounted() {
         GlobalEmitter.on("prompt", this.show);
+        GlobalEmitter.on("confirm", this.dismissForOtherDialog);
+        window.addEventListener("keydown", this.onWindowKeydown, true);
     },
     beforeUnmount() {
+        this.cancel();
         GlobalEmitter.off("prompt", this.show);
+        GlobalEmitter.off("confirm", this.dismissForOtherDialog);
+        window.removeEventListener("keydown", this.onWindowKeydown, true);
     },
     methods: {
-        show({ message, defaultValue, resolve, inputType }) {
+        show({ message, defaultValue, resolve, inputType } = {}) {
             if (typeof this.resolvePromise === "function") {
                 this.resolvePromise(null);
             }
-            this.pendingPrompt = { message };
+            this.pendingPrompt = { message: message == null ? "" : String(message) };
             this.inputValue = defaultValue == null ? "" : String(defaultValue);
             this.inputType = inputType === "password" ? "password" : "text";
-            this.resolvePromise = resolve;
+            this.resolvePromise = typeof resolve === "function" ? resolve : null;
             this.$nextTick(() => {
                 const input = this.$refs.promptInput;
                 if (input && typeof input.focus === "function") {
@@ -97,6 +117,35 @@ export default {
                     input.select();
                 }
             });
+        },
+        dismissForOtherDialog() {
+            this.cancel();
+        },
+        onInputKeydown(event) {
+            if (event.key === "Escape") {
+                event.preventDefault();
+                this.cancel();
+                return;
+            }
+            if (event.key !== "Enter") {
+                return;
+            }
+            if (isComposingKey(event)) {
+                return;
+            }
+            event.preventDefault();
+            this.confirm();
+        },
+        onWindowKeydown(event) {
+            if (!this.pendingPrompt) {
+                return;
+            }
+            if (event.key !== "Escape") {
+                return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            this.cancel();
         },
         confirm() {
             if (this.resolvePromise) {

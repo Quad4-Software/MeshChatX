@@ -44,6 +44,7 @@
 </template>
 
 <script>
+import DialogUtils from "../../js/DialogUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 
@@ -102,10 +103,7 @@ export default {
         },
         async createIdentity() {
             const suggested = this.defaultName || "mgmt";
-            const name =
-                typeof window !== "undefined" && window.prompt
-                    ? window.prompt(this.$t("remote_mgmt.create_identity_prompt"), suggested)
-                    : suggested;
+            const name = await DialogUtils.prompt(this.$t("remote_mgmt.create_identity_prompt"), suggested);
             if (!name || !String(name).trim()) {
                 return;
             }

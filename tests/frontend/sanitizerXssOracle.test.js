@@ -37,6 +37,7 @@ export const XSS_PAYLOADS = [
     { name: "script tag", input: "<script>alert(1)</script><p>ok</p>" },
     { name: "iframe", input: '<iframe src="javascript:alert(1)"></iframe><p>ok</p>' },
     { name: "micron js link", input: "`[click`javascript:alert(1)]`" },
+    { name: "entity javascript href", input: '<a href="&#106;avascript:alert(1)">x</a>' },
 ];
 
 export function assertNoScriptableHtml(html, payloadName) {
@@ -104,6 +105,12 @@ describe("shared XSS sanitizer oracles", () => {
             assertNoScriptableHtml(MicronParser.sanitizeRenderedMicronHtml(input), `sanitize ${name}`);
             assertNoScriptableHtml(parser.convertMicronToHtml(input), `convert ${name}`);
         }
+    });
+
+    it("Micron overlay scrub strips unquoted position:fixed", () => {
+        const html = MicronParser.sanitizeRenderedMicronHtml("<div style=position:fixed;top:0;width:100%>tap</div>");
+        const lower = html.toLowerCase();
+        expect(lower).not.toMatch(/position\s*:\s*fixed/);
     });
 
     it("KML sanitizer never emits a scriptable node", () => {

@@ -563,3 +563,35 @@ def test_init_telephone_creates_when_enabled(mock_tel_class, tmp_path):
     assert tm.telephone is not None
     mock_tel_class.assert_called_once()
     assert mock_tel_class.call_args.kwargs.get("auto_answer") is None
+
+
+@pytest.mark.asyncio
+async def test_initiate_keeps_status_while_ringing_without_active_call(
+    telephone_manager,
+):
+    destination_hash = bytes.fromhex("de" * 16)
+
+    def ringing_call(_identity, *_a, **_k):
+        telephone_manager.telephone.call_status = 4
+        telephone_manager.telephone.active_call = None
+
+    telephone_manager.telephone.call.side_effect = ringing_call
+
+    with (
+        patch(
+            "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+            return_value=True,
+        ),
+    ):
+        result = await asyncio.wait_for(
+            telephone_manager.initiate(destination_hash, timeout_seconds=0.2),
+            timeout=1.5,
+        )
+
+    assert result is None
+    assert telephone_manager.telephone.active_call is None
+    assert telephone_manager.initiation_status == "Ringing..."

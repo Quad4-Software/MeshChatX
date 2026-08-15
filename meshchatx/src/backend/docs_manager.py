@@ -16,6 +16,19 @@ MANIFEST_FILENAME = "manifest.json"
 DOC_FILE_SUFFIXES = (".md", ".txt")
 
 
+def _docs_zip_member_is_safe(name: str) -> bool:
+    if not isinstance(name, str) or "\x00" in name:
+        return False
+    if ".." in name.split("/"):
+        return False
+    normalized = os.path.normpath(name).replace("\\", "/")
+    if normalized.startswith("../") or normalized.startswith("/"):
+        return False
+    if ":" in normalized:
+        return False
+    return True
+
+
 class DocsManager:
     """Manages the bundled Reticulum manual and any user-uploaded overrides.
 
@@ -874,7 +887,7 @@ class DocsManager:
             if has_docs_subfolder:
                 members_to_extract = [m for m in namelist if m.startswith(docs_prefix)]
                 for member in members_to_extract:
-                    if ".." in member.split("/"):
+                    if not _docs_zip_member_is_safe(member):
                         continue
                     zip_ref.extract(member, temp_extract)
 
@@ -887,7 +900,7 @@ class DocsManager:
                     else:
                         self._copy_file_no_metadata(s, d)
             else:
-                safe_members = [m for m in namelist if ".." not in m.split("/")]
+                safe_members = [m for m in namelist if _docs_zip_member_is_safe(m)]
                 zip_ref.extractall(temp_extract, members=safe_members)
                 src_path = os.path.join(temp_extract, root_folder)
                 if os.path.exists(src_path) and os.path.isdir(src_path):
