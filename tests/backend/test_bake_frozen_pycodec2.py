@@ -65,6 +65,7 @@ def test_bake_copies_dylibs_layout_to_canonical_and_executable_path(
     assert (pkg / "libcodec2.dylib").read_bytes() == b"codec2-bytes"
     assert (root / "lib" / "libcodec2.dylib").read_bytes() == b"codec2-bytes"
     assert (root / "lib" / "libcodec2.1.2.dylib").read_bytes() == b"codec2-bytes"
+    assert not (pkg / "libcodec2.1.2.dylib").exists()
     assert not dylibs.exists()
 
 
@@ -125,6 +126,7 @@ def test_bake_copies_executable_path_basename_from_load_command(
 
     assert (root / "lib" / "libcodec2.1.2.dylib").read_bytes() == b"lib"
     assert (root / "lib" / "libcodec2.dylib").read_bytes() == b"lib"
+    assert not (root / "lib" / "pycodec2" / "libcodec2.1.2.dylib").exists()
 
 
 def test_bake_replaces_symlink_dest_without_writing_through_it(tmp_path: Path) -> None:
@@ -159,6 +161,19 @@ def test_bake_replaces_readonly_dest_libcodec2(tmp_path: Path) -> None:
     bake_frozen_pycodec2(root)
 
     assert dest_lib.read_bytes() == b"canonical"
+
+
+def test_bake_prunes_versioned_dylib_next_to_extension(tmp_path: Path) -> None:
+    root = _frozen_pycodec2_tree(tmp_path)
+    pkg = root / "lib" / "pycodec2"
+    (pkg / "libcodec2.dylib").write_bytes(b"canonical")
+    (pkg / "libcodec2.1.2.dylib").write_bytes(b"versioned")
+
+    bake_frozen_pycodec2(root)
+
+    assert (pkg / "libcodec2.dylib").read_bytes() == b"canonical"
+    assert not (pkg / "libcodec2.1.2.dylib").exists()
+    assert (root / "lib" / "libcodec2.1.2.dylib").read_bytes() == b"canonical"
 
 
 def test_bake_copies_from_build_env_when_freeze_tree_has_no_dylib(
