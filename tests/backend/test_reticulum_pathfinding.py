@@ -220,6 +220,21 @@ def test_prepare_fresh_uses_expire_path_without_reticulum():
         req.assert_called_once_with(DEST)
 
 
+def test_lxmf_delivery_hash_bytes_differs_from_identity_hash():
+    ident = RNS.Identity()
+    identity_hash = ident.hash
+    delivery = RNS.Destination.hash(ident, "lxmf", "delivery")
+    assert identity_hash != delivery
+    assert rp.lxmf_delivery_hash_bytes(ident, identity_hash) == delivery
+    assert rp.lxmf_delivery_hash_bytes(ident, delivery) == delivery
+
+
+def test_lxmf_delivery_hash_bytes_falls_back_when_identity_unusable():
+    fallback = bytes(range(16))
+    assert rp.lxmf_delivery_hash_bytes(object(), fallback) == fallback
+    assert rp.lxmf_delivery_hash_bytes(None, fallback) == fallback
+
+
 def test_lxmf_path_wait_cap_uses_rns_default_without_destination():
     v = rp.lxmf_path_wait_cap_seconds()
     assert 30.0 <= v <= 120.0

@@ -208,6 +208,24 @@ def path_metadata_for_api(destination_hash: bytes) -> dict[str, bool]:
     }
 
 
+def lxmf_delivery_hash_bytes(identity, fallback_hash: bytes) -> bytes:
+    """Return the lxmf.delivery destination hash for identity.
+
+    Identity hashes and other-aspect destination hashes are not the
+    LXMF mail address. Outbound path waits must use this dest, not the
+    raw hash the UI pasted.
+    """
+    if identity is None:
+        return fallback_hash
+    try:
+        computed = RNS.Destination.hash(identity, "lxmf", "delivery")
+    except Exception:
+        return fallback_hash
+    if isinstance(computed, (bytes, bytearray)) and len(computed) == 16:
+        return bytes(computed)
+    return fallback_hash
+
+
 def prepare_fresh_path_request(
     reticulum: Optional["ReticulumLike"],
     destination_hash: bytes,

@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import LXMF
 import pytest
+import RNS
 
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend.reticulum_pathfinding import OutboundPathOutcome
@@ -43,7 +44,48 @@ def mock_app():
 
 
 @pytest.mark.asyncio
-async def test_send_message_no_path_identity_recall_fails(mock_app):
+async def test_oracle_path_wait_uses_lxmf_delivery_hash_not_identity_hash(mock_app):
+    """Pasting an identity hash must wait on lxmf.delivery, not the identity hash."""
+    ident = RNS.Identity()
+    identity_hex = ident.hash.hex()
+    delivery = RNS.Destination.hash(ident, "lxmf", "delivery")
+    assert ident.hash != delivery
+    mock_app.recall_identity = MagicMock(return_value=ident)
+    mock_app._await_transport_path = AsyncMock(
+        return_value=OutboundPathOutcome(False, "new_path_requested", True),
+    )
+    mock_app._is_self_lxmf_destination = MagicMock(return_value=False)
+    with pytest.raises(TimeoutError, match="No path to destination"):
+        await mock_app.send_message(
+            destination_hash=identity_hex,
+            content="hi",
+            delivery_method="direct",
+        )
+    mock_app._await_transport_path.assert_awaited_once_with(delivery)
+    mock_app.message_router.handle_outbound.assert_not_called()
+    print("LXMF_IDENTITY_HASH_PATH_WAIT_ORACLE_PROVED")
+
+
+@pytest.mark.asyncio
+async def test_oracle_path_wait_keeps_lxmf_delivery_hash(mock_app):
+    ident = RNS.Identity()
+    delivery = RNS.Destination.hash(ident, "lxmf", "delivery")
+    mock_app.recall_identity = MagicMock(return_value=ident)
+    mock_app._await_transport_path = AsyncMock(
+        return_value=OutboundPathOutcome(False, "new_path_requested", True),
+    )
+    mock_app._is_self_lxmf_destination = MagicMock(return_value=False)
+    with pytest.raises(TimeoutError, match="No path to destination"):
+        await mock_app.send_message(
+            destination_hash=delivery.hex(),
+            content="hi",
+            delivery_method="direct",
+        )
+    mock_app._await_transport_path.assert_awaited_once_with(delivery)
+
+
+@pytest.mark.asyncio
+async def test_send_message_recall_fails_before_path_wait(mock_app):
     destination_hash = "aa" * 16
     mock_app.recall_identity = MagicMock(return_value=None)
     with pytest.raises(LookupError, match="Could not recall destination identity"):
@@ -51,6 +93,7 @@ async def test_send_message_no_path_identity_recall_fails(mock_app):
             destination_hash=destination_hash,
             content="hi",
         )
+    mock_app._await_transport_path.assert_not_awaited()
 
 
 @pytest.mark.asyncio

@@ -9432,6 +9432,21 @@ class ReticulumMeshChat:
             msg = "Propagated delivery is not available for messages to yourself."
             raise ValueError(msg)
 
+        destination_identity = self.recall_identity(destination_hash)
+        if destination_identity is None and is_local_self and ctx.identity:
+            destination_identity = ctx.identity
+        if destination_identity is None:
+            msg = (
+                "Could not recall destination identity. "
+                "Wait for an announce from this peer, then try again."
+            )
+            raise LookupError(msg)
+
+        delivery_hash_bytes = reticulum_pathfinding.lxmf_delivery_hash_bytes(
+            destination_identity,
+            destination_hash_bytes,
+        )
+
         # Direct/opportunistic need a live peer path. Propagated uses the
         # propagation node, so skip the peer path wait (still record outcome).
         if is_local_self:
@@ -9449,17 +9464,8 @@ class ReticulumMeshChat:
         else:
             # Reticulum keeps a live path table, and entries expire when peers move or links drop.
             # We cannot replay "old" paths from the app layer. Transport.request_path refreshes discovery.
-            path_outcome = await self._await_transport_path(destination_hash_bytes)
-
-        destination_identity = self.recall_identity(destination_hash)
-        if destination_identity is None and is_local_self and ctx.identity:
-            destination_identity = ctx.identity
-        if destination_identity is None:
-            msg = (
-                "Could not recall destination identity. "
-                "Wait for an announce from this peer, then try again."
-            )
-            raise LookupError(msg)
+            # Wait on lxmf.delivery, not an identity hash or some other aspect dest.
+            path_outcome = await self._await_transport_path(delivery_hash_bytes)
 
         # Direct/opportunistic delivery needs a live transport path. Propagated
         # delivery can proceed without a peer path (it uses the propagation node).
@@ -9497,8 +9503,8 @@ class ReticulumMeshChat:
             # send messages over a direct link by default
             desired_delivery_method = LXMF.LXMessage.DIRECT
             if (
-                not ctx.message_router.delivery_link_available(destination_hash_bytes)
-                and RNS.Identity.current_ratchet_id(destination_hash_bytes) is not None
+                not ctx.message_router.delivery_link_available(delivery_hash_bytes)
+                and RNS.Identity.current_ratchet_id(delivery_hash_bytes) is not None
             ):
                 # since there's no link established to the destination, it's faster to send opportunistically
                 # this is because it takes several packets to establish a link, and then we still have to send the message over it
@@ -9688,7 +9694,7 @@ class ReticulumMeshChat:
                 path_finding_measure=reticulum_pathfinding.format_outbound_path_finding_measure(
                     path_outcome,
                 ),
-                path_row_hash_hex=destination_hash.lower()
+                path_row_hash_hex=delivery_hash_bytes.hex()
                 if path_outcome.path_available
                 else None,
             )
