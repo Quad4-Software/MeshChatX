@@ -7,6 +7,8 @@
 Этот проект независим от оригинального Reticulum MeshChat и не связан с ним.
 
 - Сайт: [meshchatx.com](https://meshchatx.com)
+- Форум: [forum.meshchatx.com](https://forum.meshchatx.com/)
+- RRC Hub: скоро
 - Исходный код: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Зеркало: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
 - Релизы: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)

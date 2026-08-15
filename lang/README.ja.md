@@ -7,6 +7,8 @@ Liam Cottle 氏による Reticulum MeshChat を大幅に改修・機能拡張し
 本プロジェクトはオリジナルの Reticulum MeshChat とは独立しており、提携関係にありません。
 
 - ウェブサイト: [meshchatx.com](https://meshchatx.com)
+- フォーラム: [forum.meshchatx.com](https://forum.meshchatx.com/)
+- RRC Hub: 近日公開
 - ソースコード: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - ミラー: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
 - リリース: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)

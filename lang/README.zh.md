@@ -7,6 +7,8 @@ Liam Cottle 开发的 Reticulum MeshChat 的一个功能丰富的深度修改分
 本项目独立于原始 Reticulum MeshChat 项目，与其无关联。
 
 - 网站: [meshchatx.com](https://meshchatx.com)
+- 论坛: [forum.meshchatx.com](https://forum.meshchatx.com/)
+- RRC Hub: 即将推出
 - 源码: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - 镜像: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
 - 发行版: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)

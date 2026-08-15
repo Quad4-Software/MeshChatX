@@ -7,6 +7,8 @@ Fork of [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) b
 This project is independent from the original Reticulum MeshChat project and is not affiliated with it.
 
 - Website: [meshchatx.com](https://meshchatx.com)
+- Forum: [forum.meshchatx.com](https://forum.meshchatx.com/)
+- RRC Hub: coming soon
 - Source: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Mirror: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
 - Releases: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
