@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../meshchatx/src/frontend/js/GlobalEmitter", () => ({
-    default: { on: vi.fn(), off: vi.fn(), emit: vi.fn() },
+    default: { on: vi.fn(), off: vi.fn(), emit: vi.fn(), listenerCount: vi.fn(() => 1) },
 }));
 
 import DialogUtils from "../../meshchatx/src/frontend/js/DialogUtils.js";
@@ -10,6 +10,8 @@ import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
 describe("DialogUtils.confirm", () => {
     beforeEach(() => {
         vi.mocked(GlobalEmitter.emit).mockClear();
+        vi.mocked(GlobalEmitter.listenerCount).mockClear();
+        vi.mocked(GlobalEmitter.listenerCount).mockReturnValue(1);
         delete window.electron;
     });
 
@@ -52,11 +54,19 @@ describe("DialogUtils.confirm", () => {
         payload.resolve(true);
         await expect(pending).resolves.toBe(true);
     });
+
+    it("resolves false when no confirm host is mounted", async () => {
+        vi.mocked(GlobalEmitter.listenerCount).mockReturnValue(0);
+        await expect(DialogUtils.confirm("Delete this?")).resolves.toBe(false);
+        expect(GlobalEmitter.emit).not.toHaveBeenCalled();
+    });
 });
 
 describe("DialogUtils.prompt", () => {
     beforeEach(() => {
         vi.mocked(GlobalEmitter.emit).mockClear();
+        vi.mocked(GlobalEmitter.listenerCount).mockClear();
+        vi.mocked(GlobalEmitter.listenerCount).mockReturnValue(1);
         delete window.electron;
     });
 
@@ -75,13 +85,12 @@ describe("DialogUtils.prompt", () => {
         await expect(pending).resolves.toBe("named");
     });
 
-    it("falls back to in-app dialog when electron.prompt throws", async () => {
+    it("uses the in-app prompt even when electron.prompt exists", async () => {
         window.electron = {
-            prompt: vi.fn().mockRejectedValue(new Error("prompt() is not supported.")),
+            prompt: vi.fn().mockResolvedValue("should-not-use"),
         };
         const pending = DialogUtils.prompt("Enter version", "fallback");
-        await Promise.resolve();
-        expect(window.electron.prompt).toHaveBeenCalledWith("Enter version", "fallback");
+        expect(window.electron.prompt).not.toHaveBeenCalled();
         expect(GlobalEmitter.emit).toHaveBeenCalledWith(
             "prompt",
             expect.objectContaining({
@@ -112,5 +121,11 @@ describe("DialogUtils.prompt", () => {
         const payload = GlobalEmitter.emit.mock.calls.find((c) => c[0] === "prompt")[1];
         payload.resolve("secret");
         await expect(pending).resolves.toBe("secret");
+    });
+
+    it("resolves null when no prompt host is mounted", async () => {
+        vi.mocked(GlobalEmitter.listenerCount).mockReturnValue(0);
+        await expect(DialogUtils.prompt("Enter version")).resolves.toBeNull();
+        expect(GlobalEmitter.emit).not.toHaveBeenCalled();
     });
 });

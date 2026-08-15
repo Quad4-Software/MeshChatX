@@ -618,8 +618,14 @@ class RepositoryServerManager:
         if len(data) > 256 * 1024 * 1024:
             return False, "file_too_large"
         dest = os.path.join(self.uploads_dir, safe)
+        if os.path.lexists(dest) and (os.path.islink(dest) or os.path.isdir(dest)):
+            return False, "invalid_destination"
         try:
-            with open(dest, "wb") as f:
+            flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+            if hasattr(os, "O_NOFOLLOW"):
+                flags |= os.O_NOFOLLOW
+            fd = os.open(dest, flags, 0o644)
+            with os.fdopen(fd, "wb") as f:
                 f.write(data)
         except OSError as e:
             logging.exception("repository upload failed: %s", e)

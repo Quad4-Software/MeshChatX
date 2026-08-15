@@ -29,7 +29,7 @@ DEFAULT_DEST_NAME = proto.DEFAULT_DEST_NAME
 SLOW_CHANNEL_BPS = 300
 _slow_connect_gate = threading.Semaphore(1)
 BAD_KEY_MARKERS = ("bad key (+k)", "bad key")
-FORCED_LEAVE_MARKERS = ("kicked from", "banned from")
+FORCED_LEAVE_MARKERS = ("kicked from", "banned from", "banned (kline)")
 
 HISTORY_DIR_NAME = "rrc_history"
 HISTORY_FILENAME_SANITIZE_RE = re.compile(r"[^a-z0-9._-]+")
@@ -410,6 +410,8 @@ class RRCHub:
             with self._lock:
                 cur_link = self.link
             if cur_link is None or cur_link.status != RNS.Link.ACTIVE:
+                if self.status == RRCHub.STATUS_CONNECTING:
+                    self._on_closed(cur_link)
                 return
             try:
                 self._send_hello(cur_link)
@@ -418,10 +420,20 @@ class RRCHub:
             attempts += 1
             self._stop_hello.wait(timeout=3.0)
         if not self.welcomed and not self._stop_hello.is_set():
-            self._set_status(RRCHub.STATUS_FAILED, "WELCOME timeout")
-            with contextlib.suppress(Exception), self._lock:
-                if self.link is not None:
-                    self.link.teardown()
+            self._fail_welcome_timeout()
+
+    def _fail_welcome_timeout(self):
+        self._set_status(RRCHub.STATUS_FAILED, "WELCOME timeout")
+        with self._lock:
+            link = self.link
+        if link is not None:
+            with contextlib.suppress(Exception):
+                link.teardown()
+        with self._lock:
+            if self.link is link:
+                self.link = None
+        if self.status == RRCHub.STATUS_FAILED:
+            self._maybe_schedule_reconnect_after_failed_connect()
 
     def _send_hello(self, link):
         body = {
@@ -614,7 +626,13 @@ class RRCHub:
             self._pending_joins.add(r)
             if silent:
                 self._silent_joins.add(r)
-        self._send_env(env)
+        try:
+            self._send_env(env)
+        except Exception:
+            with self._lock:
+                self._pending_joins.discard(r)
+                self._silent_joins.discard(r)
+            raise
         with self._lock:
             if r not in self.messages:
                 self.messages[r] = []
@@ -628,6 +646,15 @@ class RRCHub:
         if isinstance(room, str) and room.strip():
             r = proto.normalize_room(room)
         nick = self.get_effective_nick()
+        env = proto.make_envelope(
+            proto.T_MSG,
+            src=self.manager.identity.hash,
+            room=r,
+            body=text,
+        )
+        if nick:
+            env[proto.K_NICK] = nick
+        self._send_env(env)
         if record_local:
             history_text = self._redact_command_for_history(text)
             self._record_message(
@@ -641,15 +668,6 @@ class RRCHub:
                 ),
                 local=True,
             )
-        env = proto.make_envelope(
-            proto.T_MSG,
-            src=self.manager.identity.hash,
-            room=r,
-            body=text,
-        )
-        if nick:
-            env[proto.K_NICK] = nick
-        self._send_env(env)
 
     @staticmethod
     def _redact_command_for_history(text):
@@ -717,6 +735,7 @@ class RRCHub:
         mid = env[proto.K_ID]
         if isinstance(mid, (bytes, bytearray)):
             self._sent_ids.append(bytes(mid))
+        self._send_env(env)
         self._record_message(
             proto.RRCMessage(
                 "msg",
@@ -728,7 +747,6 @@ class RRCHub:
             ),
             local=True,
         )
-        self._send_env(env)
         return mid
 
     def send_action(self, room, text):
@@ -751,6 +769,7 @@ class RRCHub:
         mid = env[proto.K_ID]
         if isinstance(mid, (bytes, bytearray)):
             self._sent_ids.append(bytes(mid))
+        self._send_env(env)
         self._record_message(
             proto.RRCMessage(
                 "action",
@@ -762,7 +781,6 @@ class RRCHub:
             ),
             local=True,
         )
-        self._send_env(env)
         return mid
 
     def _per_room_cap(self):
@@ -1286,9 +1304,9 @@ class RRCHub:
         text = body if isinstance(body, str) else "(error)"
         r = room.strip().lower() if isinstance(room, str) else None
         rollback_join = False
-        forced_leave = False
-        if r:
-            with self._lock:
+        leave_rooms = []
+        with self._lock:
+            if r:
                 if r in self._pending_joins:
                     rollback_join = True
                 self._pending_joins.discard(r)
@@ -1299,26 +1317,39 @@ class RRCHub:
                     self.unread_rooms.discard(r)
                     self.mention_rooms.discard(r)
                     self.unread_counts.pop(r, None)
+                    leave_rooms.append(r)
                 elif self.manager.is_forced_leave_error(text) and r in self.rooms:
-                    forced_leave = True
                     self.rooms.discard(r)
                     self.members.pop(r, None)
                     self.unread_rooms.discard(r)
                     self.mention_rooms.discard(r)
                     self.unread_counts.pop(r, None)
-            # Drop a remembered key that the hub rejected so reconnect does not loop.
-            if self.manager.is_bad_key_error(text):
-                with contextlib.suppress(Exception):
-                    self.manager.forget_room_key(self, r)
+                    leave_rooms.append(r)
+            elif self.manager.is_forced_leave_error(text):
+                leave_rooms = list(self.rooms)
+                self._pending_joins.clear()
+                self._silent_joins.clear()
+                self._pending_parts.clear()
+                for room_name in leave_rooms:
+                    self.rooms.discard(room_name)
+                    self.members.pop(room_name, None)
+                    self.unread_rooms.discard(room_name)
+                    self.mention_rooms.discard(room_name)
+                    self.unread_counts.pop(room_name, None)
+        if r and self.manager.is_bad_key_error(text):
+            with contextlib.suppress(Exception):
+                self.manager.forget_room_key(self, r)
         msg = proto.RRCMessage("error", r, None, None, text, proto.now_ms())
         self._record_notice(msg)
-        if r and (rollback_join or forced_leave):
+        if rollback_join or leave_rooms:
             with self._lock:
-                self.messages.pop(r, None)
-                self.members.pop(r, None)
-            self._delete_history(r)
-            if self.manager.active_room_for(self) == r:
-                self.manager.set_active(self, None)
+                for room_name in leave_rooms:
+                    self.messages.pop(room_name, None)
+                    self.members.pop(room_name, None)
+            for room_name in leave_rooms:
+                self._delete_history(room_name)
+                if self.manager.active_room_for(self) == room_name:
+                    self.manager.set_active(self, None)
             self.manager.save()
             self.manager._notify_change(self)
 

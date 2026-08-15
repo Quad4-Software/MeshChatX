@@ -11,6 +11,12 @@ describe("safeExternalUrl", () => {
         expect(normalizeExternalUrlForOpen("mailto:test@example.com")).toBe("mailto:test@example.com");
     });
 
+    it("rejects http(s) URLs with userinfo (host-confusion form)", () => {
+        expect(normalizeExternalUrlForOpen("http://127.0.0.1:9337@example.com/x")).toBeNull();
+        expect(normalizeExternalUrlForOpen("https://user:pass@evil.example/phish")).toBeNull();
+        expect(normalizeExternalUrlForOpen("http://127.0.0.1:8000@example.com/")).toBeNull();
+    });
+
     it("rejects javascript and data URLs", () => {
         expect(normalizeExternalUrlForOpen("javascript:alert(1)")).toBeNull();
         expect(normalizeExternalUrlForOpen("data:text/html,<script>1</script>")).toBeNull();

@@ -1448,6 +1448,8 @@ class PluginManager:
         return wasm_path
 
     def dispatch_hook(self, plugin_id: str, hook: str, payload: dict[str, Any]) -> None:
+        if not self._plugins_runtime_enabled():
+            return
         record = self._plugins.get(plugin_id)
         if not record or not record.enabled:
             return

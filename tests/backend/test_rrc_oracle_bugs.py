@@ -12,7 +12,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from meshchatx.src.backend.rrc import protocol as proto
-from meshchatx.src.backend.rrc.manager import RRCManager
+from meshchatx.src.backend.rrc.manager import RRCHub, RRCManager
 from meshchatx.src.backend.rrc.rooms_toml import (
     dump_rooms_registry,
     load_rooms_registry,
@@ -815,3 +815,74 @@ def test_oracle_rejoin_does_not_consume_fresh_invite():
     part(server, link_guest, sess_guest, "club")
     again = join(server, link_guest, sess_guest, "club")
     assert envs_of_type(again, proto.T_JOINED, to_link=link_guest)
+
+
+def test_oracle_disconnected_send_does_not_keep_local_history(tmp_path):
+    """A failed send must not leave a chat line that never left the node."""
+    manager = RRCManager(
+        identity=FakeIdentity(b"\x11" * 16),
+        storage_dir=str(tmp_path),
+    )
+    hub = manager.add_hub(HUB_HASH, name="Client")
+    with pytest.raises(RuntimeError, match="not connected"):
+        hub.send_message("lobby", "ghost")
+    assert hub.messages.get("lobby", []) == []
+    with pytest.raises(RuntimeError, match="not connected"):
+        hub.send_action("lobby", "waves")
+    assert hub.messages.get("lobby", []) == []
+    with pytest.raises(RuntimeError, match="not connected"):
+        hub.send_command("/who lobby", room="lobby")
+    assert hub.messages.get("lobby", []) == []
+
+
+def test_oracle_disconnected_join_does_not_keep_pending(tmp_path):
+    """A failed JOIN must not treat a later peer JOINED as our own join."""
+    manager = RRCManager(
+        identity=FakeIdentity(b"\x11" * 16),
+        storage_dir=str(tmp_path),
+    )
+    hub = manager.add_hub(HUB_HASH, name="Client")
+    with pytest.raises(RuntimeError, match="not connected"):
+        hub.join_room("lobby")
+    assert "lobby" not in hub._pending_joins
+    hub._handle_joined(
+        proto.make_envelope(
+            proto.T_JOINED,
+            src=HUB_HASH,
+            room="lobby",
+            body=[b"\xaa" * 16],
+            nick="alice",
+        ),
+    )
+    texts = [m.text for m in hub.messages.get("lobby", [])]
+    assert not any(t.startswith("You joined") for t in texts)
+    assert any("joined" in t for t in texts)
+
+
+def test_oracle_welcome_timeout_reconnects_when_teardown_skips_closed(tmp_path):
+    """WELCOME timeout must reconnect even if link.teardown never fires closed."""
+    manager = RRCManager(
+        identity=FakeIdentity(b"\x11" * 16),
+        storage_dir=str(tmp_path),
+    )
+    hub = manager.add_hub(HUB_HASH, name="Client")
+    hub.auto_reconnect = True
+    hub._manual_disconnect = False
+    hub.welcomed = False
+    hub.status = RRCHub.STATUS_CONNECTING
+
+    class DeadLink:
+        status = 2
+
+        def teardown(self):
+            return None
+
+    hub.link = DeadLink()
+    try:
+        hub._fail_welcome_timeout()
+        assert hub.link is None
+        assert hub._reconnect_timer is not None
+    finally:
+        if hub._reconnect_timer is not None:
+            hub._reconnect_timer.cancel()
+            hub._reconnect_timer = None

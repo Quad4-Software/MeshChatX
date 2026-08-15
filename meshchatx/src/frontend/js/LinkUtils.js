@@ -14,6 +14,9 @@ function httpUrlHrefOrNull(core) {
     for (const candidate of tries) {
         try {
             const u = new URL(candidate);
+            if (u.username || u.password) {
+                return null;
+            }
             if (u.protocol === "http:" || u.protocol === "https:") {
                 return u.href;
             }

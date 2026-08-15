@@ -15,7 +15,7 @@ MeshChatX opens as a **2D panel** inside your VR environment. It is not a native
 
 ## Get the APK
 
-Download the latest signed Android APK from the [MeshChatX releases page](https://github.com/Quad4-Software/MeshChatX/releases). Release assets are named like `meshchatx-*-release-signed.apk`.
+Download the latest signed Android APK from the [MeshChatX releases page](https://github.com/Quad4-Software/MeshChatX/releases). Release assets are named like `ReticulumMeshChatX-v*-android-universal.apk`.
 
 You can also build the APK yourself. See [`android/README.md`](../../../android/README.md).
 
@@ -35,7 +35,7 @@ Wired install (typical path):
 2. Put on the headset. Accept **Allow USB debugging** when Meta prompts you.
 3. Open the SideQuest desktop app. Confirm the headset shows as connected (green dot).
 4. Click **Install APK file from folder on computer** (or drag the APK onto SideQuest).
-5. Select the `meshchatx-*-release-signed.apk` file you downloaded.
+5. Select the `ReticulumMeshChatX-v*-android-universal.apk` file you downloaded.
 
 Wireless ADB works when your PC and headset share a network and SideQuest can pair over Wi-Fi. Follow SideQuest's wireless pairing steps if you prefer that over USB.
 

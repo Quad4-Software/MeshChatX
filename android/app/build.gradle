@@ -95,6 +95,19 @@ android {
     }
 }
 
+// Release APKs match desktop GitHub assets: ReticulumMeshChatX-vVERSION-android-universal.apk after signing.
+// Unsigned output keeps the -unsigned suffix so scripts/sign-android-apks.sh can find it.
+android.applicationVariants.all { variant ->
+    if (variant.buildType.name != "release") {
+        return
+    }
+    variant.outputs.all { output ->
+        def abi = output.getFilter(com.android.build.OutputFile.ABI)
+        def abiSuffix = (abi == null || abi.toString().trim().isEmpty()) ? "-universal" : "-${abi}"
+        output.outputFileName = "ReticulumMeshChatX-v${variant.versionName}-android${abiSuffix}-unsigned.apk"
+    }
+}
+
 tasks.register("syncCodec2JniLibs", Exec) {
     workingDir = repoRoot
     def abiArg = selectedAndroidAbis.join(",")

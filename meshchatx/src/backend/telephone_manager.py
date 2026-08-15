@@ -497,6 +497,14 @@ class TelephoneManager:
     def _is_initiation_cancelled(self):
         return not bool(self.initiation_status)
 
+    def _initiation_still_in_flight(self):
+        phone = self.telephone
+        if phone is None:
+            return False
+        if getattr(phone, "active_call", None):
+            return False
+        return phone.call_status in (2, 4, 5)
+
     async def _await_path(self, destination_hash: bytes, timeout_seconds: float):
         # Reuse shared pathfinding behavior so stale/unresponsive routes are
         # refreshed before we wait, mirroring the faster outbound LXMF path prep.
@@ -763,6 +771,10 @@ class TelephoneManager:
         finally:
             if self._is_initiation_cancelled():
                 self._update_initiation_status(None, None)
+            elif self._initiation_still_in_flight():
+                # Keep the dial overlay while LXST is still calling or ringing
+                # without an active_call object the UI can bind to.
+                pass
             else:
                 # Wait for either establishment, failure, or a timeout
                 # to ensure the UI has something to show (either active_call or initiation_status)

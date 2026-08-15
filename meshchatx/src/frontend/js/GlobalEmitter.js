@@ -21,6 +21,11 @@ class GlobalEmitter {
     emit(type, event) {
         this.emitter.emit(type, event);
     }
+
+    listenerCount(event) {
+        const list = this.emitter?.all?.get(event);
+        return Array.isArray(list) ? list.length : 0;
+    }
 }
 
 export default new GlobalEmitter();

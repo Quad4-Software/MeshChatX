@@ -22,6 +22,9 @@ function normalizeExternalUrlForOpen(raw) {
     }
     const p = u.protocol;
     if (p === "http:" || p === "https:") {
+        if (u.username || u.password) {
+            return null;
+        }
         return u.href;
     }
     if (p === "mailto:") {
