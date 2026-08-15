@@ -12,8 +12,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-ARM64_DIR="$ROOT/build/exe/darwin-arm64"
-X64_DIR="$ROOT/build/exe/darwin-x64"
+ARM64_DIR="${MESHCHATX_UNIFY_ARM64_DIR:-$ROOT/build/exe/darwin-arm64}"
+X64_DIR="${MESHCHATX_UNIFY_X64_DIR:-$ROOT/build/exe/darwin-x64}"
 
 if [[ ! -d "$ARM64_DIR" || ! -d "$X64_DIR" ]]; then
     echo "unify-backend: one or both backend dirs missing, skipping"
@@ -36,6 +36,23 @@ required_native_rel() {
     return 1
 }
 
+# Intel NumPy wheels ship OpenBLAS (plus gfortran/quadmath/gcc_s). Apple
+# Silicon NumPy uses Accelerate, so those dylibs are x64-only. Dropping them
+# to equalize the two trees makes numpy._core._multiarray_umath fail to
+# dlopen on the Intel slice. Mirror them into the other tree so
+# @electron/universal sees the same paths. x64ArchFiles keeps the backend
+# from being lipo'd, so the unused copy is never loaded.
+mirror_native_rel() {
+    local base
+    base="$(basename "$1")"
+    case "$base" in
+    libscipy_openblas* | libgfortran* | libquadmath* | libgcc_s*)
+        return 0
+        ;;
+    esac
+    return 1
+}
+
 copy_missing() {
     local src_dir="$1" dst_dir="$2" label="$3"
     while IFS= read -r -d '' rel; do
@@ -52,6 +69,14 @@ copy_missing() {
                     echo "  Run scripts/ci/macos-normalize-pycodec2-dylib.sh on each venv and" >&2
                     echo "  meshchatx.src.backend.bake_frozen_pycodec2 after each cx_Freeze slice." >&2
                     exit 1
+                fi
+                if mirror_native_rel "$rel"; then
+                    mkdir -p "$dst_dir/$(dirname "$rel")"
+                    cp "$src_file" "$dst_dir/$rel"
+                    echo "unify-backend: mirroring arch-only native $rel ($label)" >&2
+                    echo "  source reports: $ft" >&2
+                    synced=$((synced + 1))
+                    continue
                 fi
                 echo "unify-backend: dropping arch-only Mach-O for consistency: $rel" >&2
                 echo "  ($label); source reports: $ft" >&2
