@@ -400,6 +400,32 @@ def test_loopback_nick_command_updates_override(tmp_path):
     assert msgs[-1].text == "nickname set to bob"
 
 
+def test_mesh_command_not_recorded_when_send_fails(tmp_path):
+    _, hub = _loopback_client_hub(tmp_path)
+    hub.messages["general"] = []
+    status = hub.link.status
+
+    class MeshLink:
+        pass
+
+    mesh = MeshLink()
+    mesh.status = status
+    hub.link = mesh
+
+    def boom(_env):
+        raise RuntimeError("link down")
+
+    hub._send_env = boom
+    raised = None
+    try:
+        hub.send_command("/help", room="general")
+    except RuntimeError as exc:
+        raised = exc
+    assert raised is not None
+    assert str(raised) == "link down"
+    assert hub.messages["general"] == []
+
+
 def test_server_members_dict_all_and_per_room(tmp_path):
     server = make_running_server()
     server.register_room("general")

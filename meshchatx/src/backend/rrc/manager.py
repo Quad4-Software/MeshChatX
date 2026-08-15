@@ -606,6 +606,25 @@ class RRCHub:
             raise RuntimeError(msg)
         RNS.Packet(link, payload).send()
 
+    def _send_env_then_maybe_record(self, env, local_msg):
+        """Send on the wire, then record local history if send succeeded.
+
+        Mesh send is async, so the local echo still lands before a remote
+        reply. Loopback delivery is synchronous, so the echo is recorded
+        first or the hub notice would appear above the typed command.
+        """
+        with self._lock:
+            link = self.link
+            loopback = isinstance(link, _LoopbackEndpoint)
+        if link is None or link.status != RNS.Link.ACTIVE:
+            msg = "not connected"
+            raise RuntimeError(msg)
+        if local_msg is not None and loopback:
+            self._record_message(local_msg, local=True)
+        self._send_env(env)
+        if local_msg is not None and not loopback:
+            self._record_message(local_msg, local=True)
+
     def join_room(self, room, key=None, silent=False):
         r = proto.normalize_room(room)
         body = None
@@ -654,20 +673,17 @@ class RRCHub:
         )
         if nick:
             env[proto.K_NICK] = nick
-        self._send_env(env)
+        local_msg = None
         if record_local:
-            history_text = self._redact_command_for_history(text)
-            self._record_message(
-                proto.RRCMessage(
-                    "msg",
-                    r,
-                    self.manager.identity.hash,
-                    nick,
-                    history_text,
-                    proto.now_ms(),
-                ),
-                local=True,
+            local_msg = proto.RRCMessage(
+                "msg",
+                r,
+                self.manager.identity.hash,
+                nick,
+                self._redact_command_for_history(text),
+                proto.now_ms(),
             )
+        self._send_env_then_maybe_record(env, local_msg)
 
     @staticmethod
     def _redact_command_for_history(text):
@@ -735,8 +751,8 @@ class RRCHub:
         mid = env[proto.K_ID]
         if isinstance(mid, (bytes, bytearray)):
             self._sent_ids.append(bytes(mid))
-        self._send_env(env)
-        self._record_message(
+        self._send_env_then_maybe_record(
+            env,
             proto.RRCMessage(
                 "msg",
                 r,
@@ -745,7 +761,6 @@ class RRCHub:
                 text,
                 proto.now_ms(),
             ),
-            local=True,
         )
         return mid
 
@@ -769,8 +784,8 @@ class RRCHub:
         mid = env[proto.K_ID]
         if isinstance(mid, (bytes, bytearray)):
             self._sent_ids.append(bytes(mid))
-        self._send_env(env)
-        self._record_message(
+        self._send_env_then_maybe_record(
+            env,
             proto.RRCMessage(
                 "action",
                 r,
@@ -779,7 +794,6 @@ class RRCHub:
                 text,
                 proto.now_ms(),
             ),
-            local=True,
         )
         return mid
 
