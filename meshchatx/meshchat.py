@@ -176,7 +176,12 @@ from meshchatx.src.backend.map_overlay_manager import (
 )
 from meshchatx.src.backend.map_overlay_sources import OverlaySourceParseError
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
-from meshchatx.src.backend.memory_pressure import MemoryPressureManager, cache_stats
+from meshchatx.src.backend.memory_pressure import (
+    MemoryPressureManager,
+    cache_stats,
+    prune_announce_timestamps,
+    prune_lxmf_incoming_timestamps,
+)
 from meshchatx.src.backend.meshchat_utils import (
     cancel_inbound_deliveries,
     convert_db_favourite_to_dict,
@@ -637,7 +642,7 @@ class ReticulumMeshChat:
         self._rns_recovery_actions: list[str] = []
         self._reticulum_secondary_started = False
 
-        # track announce timestamps for rate calculation
+        # track announce timestamps for rate calculation (pruned to 1 hour / cap)
         self.announce_timestamps = []
 
         # track incoming lxmf message timestamps for flood protection
@@ -3073,10 +3078,14 @@ class ReticulumMeshChat:
         if not canonical:
             return
         ctx = self.contexts.pop(canonical, None)
-        if ctx is None:
-            return
-        with contextlib.suppress(Exception):
-            ctx.teardown()
+        if ctx is not None:
+            with contextlib.suppress(Exception):
+                ctx.teardown()
+        self._propagation_sync_metrics.pop(canonical, None)
+        coord = getattr(self, "_auto_resend_coordinator", None)
+        if coord is not None:
+            with contextlib.suppress(Exception):
+                coord.drop_identity(canonical)
 
     def delete_identity(self, identity_hash):
         current_hash = (
@@ -8351,10 +8360,10 @@ class ReticulumMeshChat:
             return
 
         now = time.time()
-        # Clean old timestamps (> 1 hour)
-        self._lxmf_incoming_timestamps = [
-            t for t in self._lxmf_incoming_timestamps if now - t <= 3600.0
-        ]
+        self._lxmf_incoming_timestamps = prune_lxmf_incoming_timestamps(
+            self._lxmf_incoming_timestamps,
+            now=now,
+        )
         msgs_per_minute = len(
             [t for t in self._lxmf_incoming_timestamps if now - t <= 60.0],
         )
@@ -8630,6 +8639,9 @@ class ReticulumMeshChat:
 
             # track incoming message timestamps for flood protection
             self._lxmf_incoming_timestamps.append(time.time())
+            self._lxmf_incoming_timestamps = prune_lxmf_incoming_timestamps(
+                self._lxmf_incoming_timestamps,
+            )
             self._check_lxmf_flood_protection(context=ctx)
 
             if ctx.config.block_all_from_strangers.get() and not self._is_contact(
@@ -9916,6 +9928,14 @@ class ReticulumMeshChat:
             else:
                 await asyncio.sleep(1)
 
+    def _note_announce_timestamp(self) -> None:
+        now = time.time()
+        self.announce_timestamps.append(now)
+        self.announce_timestamps = prune_announce_timestamps(
+            self.announce_timestamps,
+            now=now,
+        )
+
     def on_telephone_announce_received(
         self,
         aspect,
@@ -9947,7 +9967,7 @@ class ReticulumMeshChat:
         )
 
         # track announce timestamp
-        self.announce_timestamps.append(time.time())
+        self._note_announce_timestamp()
 
         # upsert announce to database
         ctx.announce_manager.upsert_announce(
@@ -10016,7 +10036,7 @@ class ReticulumMeshChat:
         )
 
         # track announce timestamp
-        self.announce_timestamps.append(time.time())
+        self._note_announce_timestamp()
 
         # upsert announce to database
         ctx.announce_manager.upsert_announce(
@@ -10084,7 +10104,7 @@ class ReticulumMeshChat:
         )
 
         # track announce timestamp
-        self.announce_timestamps.append(time.time())
+        self._note_announce_timestamp()
 
         # upsert announce to database
         ctx.announce_manager.upsert_announce(
@@ -10291,7 +10311,7 @@ class ReticulumMeshChat:
             + " for [rrc.hub]",
         )
 
-        self.announce_timestamps.append(time.time())
+        self._note_announce_timestamp()
 
         ctx.announce_manager.upsert_announce(
             self.reticulum,
@@ -10350,7 +10370,7 @@ class ReticulumMeshChat:
         )
 
         # track announce timestamp
-        self.announce_timestamps.append(time.time())
+        self._note_announce_timestamp()
 
         # upsert announce to database
         ctx.announce_manager.upsert_announce(
@@ -10411,7 +10431,7 @@ class ReticulumMeshChat:
             + RNS.prettyhexrep(destination_hash)
             + " for [map-data-v1]",
         )
-        self.announce_timestamps.append(time.time())
+        self._note_announce_timestamp()
         ctx.announce_manager.upsert_announce(
             self.reticulum,
             announced_identity,

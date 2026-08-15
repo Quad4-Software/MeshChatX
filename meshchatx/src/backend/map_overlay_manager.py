@@ -62,6 +62,9 @@ CONFIG_CLAMPS = {
     "map_overlay_retry_delay_seconds": (1, 120),
 }
 
+MAX_FINISHED_JOBS = 32
+FINISHED_JOB_STATUSES = frozenset({"success", "error", "cancelled"})
+
 
 def clamp_overlay_config_value(key: str, value: int) -> int:
     lo, hi = CONFIG_CLAMPS[key]
@@ -353,11 +356,13 @@ class MapOverlayManager:
             self._jobs[job_id]["status"] = "success"
             self._jobs[job_id]["phase"] = "done"
             self._jobs[job_id]["progress"] = 1.0
+            self.prune_finished_jobs()
         except Exception as exc:
             code = getattr(exc, "code", str(exc))
             self._jobs[job_id]["status"] = "error"
             self._jobs[job_id]["error"] = code
             self._mark_error(oid, code)
+            self.prune_finished_jobs()
             raise
         return {
             "job_id": job_id,
@@ -436,6 +441,7 @@ class MapOverlayManager:
                 _log.exception("overlay job %s failed", job_id)
                 self._jobs[job_id]["status"] = "error"
                 self._jobs[job_id]["error"] = str(exc)
+                self.prune_finished_jobs()
 
         try:
             loop = asyncio.get_running_loop()
@@ -504,6 +510,8 @@ class MapOverlayManager:
                     if not self._generation_current(oid, generations[oid]):
                         continue
                     self._mark_error(oid, "fetch_failed")
+            finally:
+                self.prune_finished_jobs()
 
     def _generation_current(self, overlay_id: int, generation: int) -> bool:
         row = self.database.map_overlays.get_by_id(overlay_id)
@@ -835,6 +843,7 @@ class MapOverlayManager:
                 pass
         job["status"] = "cancelled"
         job["error"] = "cancelled"
+        self.prune_finished_jobs()
         for oid in job.get("overlay_ids") or []:
             row = self.database.map_overlays.get_by_id(oid)
             if row and row.get("job_id") == job_id and row.get("status") == "fetching":
@@ -844,6 +853,25 @@ class MapOverlayManager:
                     last_error="cancelled",
                 )
         return True
+
+    def prune_finished_jobs(self) -> int:
+        finished = [
+            job_id
+            for job_id, job in self._jobs.items()
+            if job.get("status") in FINISHED_JOB_STATUSES
+        ]
+        overflow = len(finished) - MAX_FINISHED_JOBS
+        if overflow <= 0:
+            return 0
+        ranked = sorted(
+            finished,
+            key=lambda job_id: str(self._jobs.get(job_id, {}).get("created_at") or ""),
+        )
+        dropped = 0
+        for job_id in ranked[:overflow]:
+            if self._jobs.pop(job_id, None) is not None:
+                dropped += 1
+        return dropped
 
     def patch_overlay(
         self,
@@ -992,6 +1020,7 @@ class MapOverlayManager:
                 self.cancel_job(job_id)
         self._jobs.clear()
         self._active_fetchers.clear()
+        self._source_locks.clear()
         work = os.path.join(self.overlay_root(), ".work")
         if os.path.isdir(work):
             shutil.rmtree(work, ignore_errors=True)

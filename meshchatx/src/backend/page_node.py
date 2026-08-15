@@ -37,6 +37,7 @@ DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900
 MIN_ANNOUNCE_INTERVAL_SECONDS = 60
 MAX_ANNOUNCE_INTERVAL_SECONDS = 86400
 EXECUTABLE_PAGE_TIMEOUT_SECONDS = 15
+MAX_UNIQUE_REMOTE_HASHES = 4096
 
 PAGE_GENERATION_FAILED_MICRON = (
     ">Page Generation Failed\n\nThe page could not be generated.\n"
@@ -443,6 +444,8 @@ class PageNode:
         try:
             h = getattr(remote_identity, "hash", None)
             if h is not None:
+                if len(self._unique_remote_hashes) >= MAX_UNIQUE_REMOTE_HASHES:
+                    return
                 self._unique_remote_hashes.add(h.hex())
         except Exception:
             pass
