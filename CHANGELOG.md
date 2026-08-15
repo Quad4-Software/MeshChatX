@@ -2,20 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.8.4] - 2026-08-14
+## [4.8.4] - 2026-08-16 [unreleased]
 
 ### Fixed
 
-- **Disconnected banner**: Stopping or restarting the backend no longer hides the red banner. A WebSocket TCP open (Vite proxy flaps, process restart) does not cancel the 2.5s grace window. The banner clears only after the backend sends a frame, usually the heartbeat pong.
+- **macOS desktop**: Frozen builds include Codec2 so LXST calls start instead of crashing on a missing libcodec2 dylib.
+- **macOS universal**: The Intel slice of a universal Mac build runs as x86_64 instead of starting as arm64 and failing on zlib.
+- **Disconnected banner**: Stopping or restarting the backend keeps the red banner until the backend answers again.
 
 ## [4.8.3] - 2026-08-14
 
 ### Fixed
 
-- **Electron AppImage loading**: Loading screen shows the synced package version (`electron/app-version.json`) instead of `v0.0.0`. Sandboxed preload ships as `preload.bundle.js` with `shellOrigin` inlined so `window.electron` IPC works in packaged builds. Loading probe state is initialized before the first status poll so startup does not throw on `startupFailed`.
-- **Pre-migration database backup**: Identity zip backups clamp file mtimes before 1980, so schema upgrades succeed when identity files have ancient timestamps. Fixes AppImage startup failure `ZIP does not support timestamps before 1980`.
-- **Navigation after backend reconnect**: Router auth checks time out instead of hanging on stale HTTP keep-alive when Docker or the backend restarts. WebSocket reconnect resync refreshes auth session state so sidebar navigation works without a full page reload.
-- **NomadNet tabs on short screens**: Browser tab labels sit in a padded, stretch-aligned strip so they are not clipped at 800x600. The app top bar is 56px (was 64px) with a 44px logo.
+- **Electron AppImage**: Loading screen shows the real package version instead of v0.0.0, and desktop IPC works in packaged builds.
+- **Database backup**: Identity zip backups no longer fail schema upgrades when files have timestamps before 1980.
+- **Navigation**: Sidebar works after Docker or backend restart without a full page reload.
+- **NomadNet tabs**: Tab labels stay visible on short screens such as 800x600.
 
 ## [4.8.2] - 2026-08-14
 
