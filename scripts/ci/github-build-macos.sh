@@ -11,3 +11,5 @@ pnpm run dist:mac-universal
 
 bash scripts/ci/github-prune-electron-dist-staging.sh
 bash scripts/ci/github-verify-electron-dist.sh mac
+bash scripts/ci/github-verify-frozen-codec2.sh build/exe/darwin-arm64
+bash scripts/ci/github-verify-frozen-codec2.sh build/exe/darwin-x64

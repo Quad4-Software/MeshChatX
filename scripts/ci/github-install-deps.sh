@@ -31,6 +31,7 @@ fi
 uv lock --check
 uv sync --group dev
 uv run python scripts/patch_lxst_pyogg_ogg_ctypes.py
+uv run python scripts/patch_lxst_codec2_optional.py
 
 if [[ "$(uname -s)" == "Darwin" ]]; then
     uv run python -c "
@@ -42,8 +43,7 @@ print('arm64 venv numpy', numpy.__version__, 'ok')
     # it to pycodec2/libcodec2.dylib so this tree's relative layout matches the
     # darwin-x64 slice built in scripts/ci/github-install-macos-x64-python-deps.sh,
     # which scripts/unify-backend-plain-files.sh requires to merge the two trees.
-    bash "$(dirname "$0")/macos-normalize-pycodec2-dylib.sh" "${ROOT}/.venv/bin/python" ||
-        echo "github-install-deps: pycodec2 dylib normalization failed, continuing (unify-backend may drop it later)" >&2
+    bash "$(dirname "$0")/macos-normalize-pycodec2-dylib.sh" "${ROOT}/.venv/bin/python"
 fi
 
 if [[ "$(uname -s)" == "Darwin" ]]; then

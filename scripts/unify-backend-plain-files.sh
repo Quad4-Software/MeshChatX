@@ -25,6 +25,17 @@ synced=0
 dropped=0
 normalized=0
 
+required_native_rel() {
+    local base
+    base="$(basename "$1")"
+    case "$base" in
+    libcodec2* | pycodec2*.so | pycodec2*.dylib | pycodec2*.pyd)
+        return 0
+        ;;
+    esac
+    return 1
+}
+
 copy_missing() {
     local src_dir="$1" dst_dir="$2" label="$3"
     while IFS= read -r -d '' rel; do
@@ -34,6 +45,14 @@ copy_missing() {
             local ft
             ft=$(file --brief --no-pad "$src_file" 2>/dev/null || true)
             if [[ "$ft" == Mach-O* ]]; then
+                if required_native_rel "$rel"; then
+                    echo "unify-backend: ERROR: required native $rel exists only in $label" >&2
+                    echo "  source reports: $ft" >&2
+                    echo "  Both darwin-arm64 and darwin-x64 must ship libcodec2 next to pycodec2." >&2
+                    echo "  Run scripts/ci/macos-normalize-pycodec2-dylib.sh on each venv and" >&2
+                    echo "  meshchatx.src.backend.bake_frozen_pycodec2 after each cx_Freeze slice." >&2
+                    exit 1
+                fi
                 echo "unify-backend: dropping arch-only Mach-O for consistency: $rel" >&2
                 echo "  ($label); source reports: $ft" >&2
                 echo "  Hint: this native library/extension only exists in one arch's" >&2
