@@ -34,13 +34,23 @@
                     :disabled="busyHash === item.destination_hash"
                     @click="openCatalog(item)"
                 >
-                    {{ $t("map.data_fetch_catalog") }}
+                    {{
+                        busyHash === item.destination_hash
+                            ? $t("map.data_catalog_loading")
+                            : $t("map.data_fetch_catalog")
+                    }}
                 </button>
             </div>
             <div
-                v-if="catalogs[item.destination_hash]"
+                v-if="catalogLoaded(item.destination_hash)"
                 class="space-y-1 border-t border-gray-100 dark:border-zinc-800 pt-1"
             >
+                <p
+                    v-if="!(catalogs[item.destination_hash] || []).length"
+                    class="text-[10px] text-gray-500 dark:text-zinc-400"
+                >
+                    {{ $t("map.data_catalog_empty") }}
+                </p>
                 <div
                     v-for="entry in catalogs[item.destination_hash]"
                     :key="entry.id"
@@ -72,8 +82,20 @@ function errorMessage(t, code) {
     if (code === "missing_path") {
         return t("map.data_missing_path");
     }
-    if (code === "unavailable") {
+    if (code === "unavailable" || code === "link_unavailable") {
         return t("map.data_unavailable");
+    }
+    if (code === "request_failed" || code === "empty_response") {
+        return t("map.data_request_failed");
+    }
+    if (code === "job_timeout") {
+        return t("map.data_job_timeout");
+    }
+    if (code === "invalid_catalog" || code === "invalid_response") {
+        return t("map.data_invalid_catalog");
+    }
+    if (code === "link_failed") {
+        return t("map.data_link_failed");
     }
     return t("map.remote_overlays_error");
 }
@@ -109,6 +131,12 @@ export default {
         }
     },
     methods: {
+        catalogLoaded(hash) {
+            return Object.prototype.hasOwnProperty.call(this.catalogs, hash);
+        },
+        catalogToastKey(hash) {
+            return `map-catalog-${hash}`;
+        },
         formatSize(n) {
             const v = Number(n) || 0;
             if (v < 1024) {
@@ -137,17 +165,28 @@ export default {
             }
         },
         async openCatalog(item) {
-            this.busyHash = item.destination_hash;
+            const hash = item.destination_hash;
+            this.busyHash = hash;
             this.error = "";
+            const toastKey = this.catalogToastKey(hash);
+            ToastUtils.loading(this.$t("map.data_catalog_loading"), 0, toastKey);
             try {
                 const response = await window.api.post("/api/v1/map/data/catalog", {
-                    destination_hash: item.destination_hash,
+                    destination_hash: hash,
                 });
+                const maps = response.data.maps || [];
                 this.catalogs = {
                     ...this.catalogs,
-                    [item.destination_hash]: response.data.maps || [],
+                    [hash]: maps,
                 };
+                ToastUtils.dismiss(toastKey);
+                if (maps.length) {
+                    ToastUtils.success(this.$t("map.data_catalog_ok", { count: maps.length }));
+                } else {
+                    ToastUtils.info(this.$t("map.data_catalog_empty"));
+                }
             } catch (e) {
+                ToastUtils.dismiss(toastKey);
                 const code = e.response?.data?.error;
                 this.error = errorMessage(this.$t.bind(this), code);
                 ToastUtils.warning(this.error);

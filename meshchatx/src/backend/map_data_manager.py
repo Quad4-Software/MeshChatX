@@ -45,6 +45,27 @@ class MapDataError(ValueError):
         super().__init__(message or code)
 
 
+def coerce_map_request_body(payload) -> bytes:
+    """Turn an RNS request receipt payload into raw bytes.
+
+    Catalog handlers return bytes. A list of [bytes, metadata] is the file
+    response shape, but RNS only treats index 0 as a file when it is a
+    BufferedReader. Bytes in a list must be unwrapped here.
+    """
+    if payload is None:
+        raise MapDataError("empty_response")
+    if isinstance(payload, (bytes, bytearray, memoryview)):
+        return bytes(payload)
+    if isinstance(payload, str):
+        return payload.encode("utf-8")
+    reader = getattr(payload, "read", None)
+    if callable(reader):
+        return coerce_map_request_body(reader())
+    if isinstance(payload, (list, tuple)) and payload:
+        return coerce_map_request_body(payload[0])
+    raise MapDataError("invalid_response")
+
+
 def parse_map_data_app_data(app_data) -> dict[str, Any]:
     if not app_data:
         return {"v": 1, "n": "", "c": 0}
@@ -132,8 +153,20 @@ class MapDataManager:
     def _announce_enabled(self) -> bool:
         raw = getattr(self.config, "map_data_announce_enabled", None)
         if raw is None:
-            return True
+            return False
         return bool(raw.get())
+
+    def _published_count(self) -> int:
+        return int(
+            self.database.map_published.count_for_identity(self.identity_hash()) or 0
+        )
+
+    def _should_announce(self) -> bool:
+        return self._announce_enabled() and self._published_count() > 0
+
+    def _is_local_hash(self, dest: bytes) -> bool:
+        current = self._destination
+        return current is not None and current.hash == dest
 
     def _announce_interval(self) -> int:
         raw = getattr(self.config, "map_data_announce_interval", None)
@@ -150,53 +183,54 @@ class MapDataManager:
             "announce_enabled": self._announce_enabled(),
             "announce_interval": self._announce_interval(),
             "max_bytes": self._cfg_max_bytes(),
-            "published_count": self.database.map_published.count_for_identity(
-                self.identity_hash(),
-            ),
+            "published_count": self._published_count(),
         }
 
     def start(self) -> dict[str, Any]:
         with self._lock:
-            if self._destination is not None:
-                self._running = True
-                self._register_all_handlers()
-                if self._announce_enabled():
-                    self.announce()
-                self._sync_announce_timer()
-                return self.status()
-            app_name, aspects = RNS.Destination.app_and_aspects_from_name(MAP_ASPECT)
-            destination = RNS.Destination(
-                self.identity,
-                RNS.Destination.IN,
-                RNS.Destination.SINGLE,
-                app_name,
-                *aspects,
-            )
-            destination.set_link_established_callback(self._on_link)
-            self._destination = destination
             self._running = True
-            self._register_all_handlers()
-            if self._announce_enabled():
-                self.announce()
+            if self._published_count() > 0:
+                self._ensure_destination_locked()
+                if self._should_announce():
+                    self._announce_locked()
             self._sync_announce_timer()
             return self.status()
 
     def stop(self) -> None:
         with self._lock:
             self._running = False
-            self._cancel_announce_timer()
-            dest = self._destination
-            self._destination = None
-            if dest is None:
-                return
-            for path in list(self._registered_map_paths):
-                with suppress(Exception):
-                    dest.deregister_request_handler(path)
-            self._registered_map_paths.clear()
+            self._teardown_destination_locked()
+
+    def _ensure_destination_locked(self) -> None:
+        if self._destination is not None:
+            self._register_all_handlers()
+            return
+        app_name, aspects = RNS.Destination.app_and_aspects_from_name(MAP_ASPECT)
+        destination = RNS.Destination(
+            self.identity,
+            RNS.Destination.IN,
+            RNS.Destination.SINGLE,
+            app_name,
+            *aspects,
+        )
+        destination.set_link_established_callback(self._on_link)
+        self._destination = destination
+        self._register_all_handlers()
+
+    def _teardown_destination_locked(self) -> None:
+        self._cancel_announce_timer()
+        dest = self._destination
+        self._destination = None
+        if dest is None:
+            return
+        for path in list(self._registered_map_paths):
             with suppress(Exception):
-                dest.deregister_request_handler(CATALOG_PATH)
-            with suppress(Exception):
-                RNS.Transport.deregister_destination(dest)
+                dest.deregister_request_handler(path)
+        self._registered_map_paths.clear()
+        with suppress(Exception):
+            dest.deregister_request_handler(CATALOG_PATH)
+        with suppress(Exception):
+            RNS.Transport.deregister_destination(dest)
 
     def _on_link(self, _link) -> None:
         return
@@ -259,7 +293,7 @@ class MapDataManager:
         body = json.dumps(self._catalog_payload(), separators=(",", ":")).encode(
             "utf-8"
         )
-        return [body, {"name": b"catalog.json"}]
+        return body
 
     def _make_map_responder(self, map_id: str):
         def responder(path, data, request_id, link_id, remote_identity, requested_at):
@@ -342,9 +376,11 @@ class MapDataManager:
             path=rel,
         )
         with self._lock:
-            self._register_map_handler(map_id)
-            if self._announce_enabled():
-                self.announce()
+            if self._running:
+                self._ensure_destination_locked()
+                self._register_map_handler(map_id)
+                if self._should_announce():
+                    self._announce_locked()
         return {
             "map": self._row_or_raise(map_id),
             "stripped": sanitized.stripped,
@@ -364,8 +400,10 @@ class MapDataManager:
         self.database.map_published.delete(self.identity_hash(), map_id)
         with self._lock:
             self._deregister_map_handler(map_id)
-            if self._announce_enabled():
-                self.announce()
+            if self._published_count() <= 0:
+                self._teardown_destination_locked()
+            elif self._should_announce():
+                self._announce_locked()
         return True
 
     def _row_or_raise(self, map_id: str) -> dict[str, Any]:
@@ -377,16 +415,25 @@ class MapDataManager:
         return item
 
     def announce(self) -> dict[str, Any]:
+        with self._lock:
+            if not self._running:
+                raise MapDataError("not_running")
+            if self._published_count() <= 0:
+                raise MapDataError("nothing_published")
+            self._ensure_destination_locked()
+            self._announce_locked()
+            return self.status()
+
+    def _announce_locked(self) -> None:
         dest = self._destination
-        if dest is None or not self._running:
+        if dest is None:
             raise MapDataError("not_running")
-        count = self.database.map_published.count_for_identity(self.identity_hash())
+        count = self._published_count()
         app_data = json.dumps(
             {"v": 1, "n": self._display_name(), "c": count},
             separators=(",", ":"),
         ).encode("utf-8")
         dest.announce(app_data=app_data)
-        return self.status()
 
     def update_settings(
         self,
@@ -407,8 +454,9 @@ class MapDataManager:
             )
         with self._lock:
             self._sync_announce_timer()
-            if self._announce_enabled() and self._destination is not None:
-                self.announce()
+            if self._should_announce():
+                self._ensure_destination_locked()
+                self._announce_locked()
         return self.status()
 
     def _cancel_announce_timer(self) -> None:
@@ -420,7 +468,7 @@ class MapDataManager:
 
     def _sync_announce_timer(self) -> None:
         self._cancel_announce_timer()
-        if not self._running or not self._announce_enabled():
+        if not self._running or not self._should_announce():
             return
         interval = self._announce_interval()
         if interval <= 0:
@@ -432,11 +480,13 @@ class MapDataManager:
 
     def _announce_timer_fire(self) -> None:
         try:
-            if self._running and self._announce_enabled():
-                self.announce()
+            with self._lock:
+                if self._running and self._should_announce():
+                    self._announce_locked()
         except Exception:
             _log.exception("map-data-v1 periodic announce failed")
-        self._sync_announce_timer()
+        with self._lock:
+            self._sync_announce_timer()
 
     def list_heard(
         self, *, query: str | None = None, limit: int = 250
@@ -474,9 +524,7 @@ class MapDataManager:
             out.append(item)
         return out
 
-    async def fetch_catalog(self, destination_hash: str) -> dict[str, Any]:
-        dest = _require_dest_hash(destination_hash)
-        body = await self._link_request(dest, CATALOG_PATH)
+    def _parse_catalog_body(self, body: bytes, dest_hex: str) -> dict[str, Any]:
         try:
             obj = json.loads(body.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
@@ -502,12 +550,39 @@ class MapDataManager:
                     "updated_at": str(entry.get("updated_at") or ""),
                 },
             )
-        return {"destination_hash": dest.hex(), "maps": maps}
+        return {"destination_hash": dest_hex, "maps": maps}
+
+    def _read_local_map_bytes(self, map_id: str) -> bytes:
+        row = self.database.map_published.get_by_map_id(self.identity_hash(), map_id)
+        if not row:
+            raise MapDataError("not_found")
+        abs_path = os.path.join(self.data_root(), os.path.basename(row["path"] or ""))
+        if not is_path_within_dir(abs_path, self.data_root()) or not os.path.isfile(
+            abs_path
+        ):
+            raise MapDataError("not_found")
+        with open(abs_path, "rb") as fh:
+            body = fh.read()
+        if len(body) > self._cfg_max_bytes():
+            raise MapDataError("file_too_large")
+        return body
+
+    async def fetch_catalog(self, destination_hash: str) -> dict[str, Any]:
+        dest = _require_dest_hash(destination_hash)
+        if self._is_local_hash(dest):
+            body = json.dumps(self._catalog_payload(), separators=(",", ":")).encode(
+                "utf-8"
+            )
+            return self._parse_catalog_body(body, dest.hex())
+        body = await self._link_request(dest, CATALOG_PATH)
+        return self._parse_catalog_body(body, dest.hex())
 
     async def fetch_map_bytes(self, destination_hash: str, map_id: str) -> bytes:
         if not MAP_ID_RE.fullmatch(map_id or ""):
             raise MapDataError("invalid_map_id")
         dest = _require_dest_hash(destination_hash)
+        if self._is_local_hash(dest):
+            return self._read_local_map_bytes(map_id)
         body = await self._link_request(dest, MAP_PATH_PREFIX + map_id)
         if len(body) > self._cfg_max_bytes():
             raise MapDataError("file_too_large")
@@ -572,13 +647,18 @@ class MapDataManager:
         future: asyncio.Future = loop.create_future()
 
         def on_response(receipt):
-            payload = getattr(receipt, "response", None)
-            if isinstance(payload, (bytes, bytearray, memoryview)):
-                body = bytes(payload)
-            elif hasattr(payload, "read"):
-                body = payload.read()
-            else:
-                body = b"" if payload is None else bytes(payload)
+            try:
+                body = coerce_map_request_body(getattr(receipt, "response", None))
+            except MapDataError as exc:
+                loop.call_soon_threadsafe(_fail_future, future, exc)
+                return
+            except Exception:
+                loop.call_soon_threadsafe(
+                    _fail_future,
+                    future,
+                    MapDataError("invalid_response"),
+                )
+                return
             loop.call_soon_threadsafe(_resolve_future, future, body)
 
         def on_failed(_receipt=None):

@@ -12,6 +12,7 @@ from meshchatx.src.backend.map_data_manager import (
     MAP_ASPECT,
     MapDataError,
     MapDataManager,
+    coerce_map_request_body,
     parse_map_data_app_data,
 )
 from meshchatx.src.backend.map_geo_validator import GeoValidationError
@@ -242,3 +243,144 @@ def test_list_heard_parses_slim_app_data(manager, db):
     assert len(heard) == 1
     assert heard[0]["map_name"] == "Camp maps"
     assert heard[0]["map_count"] == 3
+
+
+def _patch_destination(dest):
+    real = RNS.Destination
+    patcher = patch("meshchatx.src.backend.map_data_manager.RNS.Destination")
+    dest_cls = patcher.start()
+    dest_cls.IN = real.IN
+    dest_cls.SINGLE = real.SINGLE
+    dest_cls.ALLOW_ALL = real.ALLOW_ALL
+    dest_cls.app_and_aspects_from_name.return_value = ("map-data-v1", ())
+    dest_cls.return_value = dest
+    return patcher, dest_cls
+
+
+def test_start_without_published_maps_does_not_create_destination(manager):
+    from tests.backend.eect.harness import eect_scenario
+
+    with eect_scenario("map.data.announce_opt_in_until_publish"):
+        with patch(
+            "meshchatx.src.backend.map_data_manager.RNS.Destination",
+            side_effect=AssertionError("destination must stay opt-in"),
+        ):
+            status = manager.start()
+        assert manager._destination is None
+        assert status["running"] is False
+        assert status["published_count"] == 0
+        assert status["announce_enabled"] is False
+
+
+def test_announce_refuses_when_nothing_published(manager):
+    manager.start()
+    with pytest.raises(MapDataError) as exc:
+        manager.announce()
+    assert exc.value.code == "nothing_published"
+    assert manager._destination is None
+
+
+def test_publish_after_start_creates_destination_without_announce(manager):
+    dest = MagicMock()
+    dest.hash.hex.return_value = "cd" * 16
+    patcher, dest_cls = _patch_destination(dest)
+    try:
+        manager.start()
+        dest_cls.assert_not_called()
+        manager.publish_bytes(GEOJSON, name="Camp")
+        dest_cls.assert_called_once()
+        dest.announce.assert_not_called()
+        dest.register_request_handler.assert_called()
+    finally:
+        patcher.stop()
+
+
+def test_publish_announces_when_enabled(manager):
+    dest = MagicMock()
+    dest.hash.hex.return_value = "cd" * 16
+    manager.config.map_data_announce_enabled.set(True)
+    patcher, _dest_cls = _patch_destination(dest)
+    try:
+        manager.start()
+        dest.announce.assert_not_called()
+        manager.publish_bytes(GEOJSON, name="Camp")
+        dest.announce.assert_called()
+    finally:
+        patcher.stop()
+
+
+def test_unpublish_last_map_tears_down_destination(manager):
+    dest = MagicMock()
+    dest.hash.hex.return_value = "cd" * 16
+    patcher, _dest_cls = _patch_destination(dest)
+    try:
+        manager.start()
+        result = manager.publish_bytes(GEOJSON, name="Camp")
+        assert manager._destination is dest
+        with patch.object(RNS.Transport, "deregister_destination") as dereg:
+            manager.unpublish(result["map"]["map_id"])
+        dereg.assert_called_once_with(dest)
+        assert manager._destination is None
+    finally:
+        patcher.stop()
+
+
+def test_catalog_responder_returns_json_bytes(manager):
+    from tests.backend.eect.harness import eect_scenario
+
+    with eect_scenario("map.data.catalog_bytes_over_link"):
+        manager.publish_bytes(GEOJSON, name="Camp")
+        body = manager._catalog_responder("/catalog", None, None, None, None, None)
+        assert isinstance(body, (bytes, bytearray))
+        parsed = json.loads(body)
+        assert parsed["maps"][0]["name"] == "Camp"
+
+
+def test_coerce_request_body_unwraps_list_payload():
+    raw = b'{"maps":[]}'
+    assert coerce_map_request_body(raw) == raw
+    assert coerce_map_request_body([raw, {"name": b"catalog.json"}]) == raw
+    with pytest.raises(MapDataError) as exc:
+        coerce_map_request_body(None)
+    assert exc.value.code == "empty_response"
+
+
+@pytest.mark.asyncio
+async def test_fetch_catalog_local_shortcut(manager):
+    published = manager.publish_bytes(GEOJSON, name="Camp")
+    dest = MagicMock()
+    dest.hash = bytes.fromhex("cd" * 16)
+    manager._destination = dest
+    manager._running = True
+    result = await manager.fetch_catalog("cd" * 16)
+    assert result["maps"][0]["id"] == published["map"]["map_id"]
+    assert result["maps"][0]["name"] == "Camp"
+
+
+@pytest.mark.asyncio
+async def test_link_request_accepts_list_wrapped_bytes(manager):
+    body = json.dumps({"maps": [{"id": "a" * 16, "name": "Camp"}]}).encode()
+
+    class LinkManager:
+        async def open_link(self, *_args, **_kwargs):
+            return object(), False, None
+
+        def request(
+            self,
+            _dest,
+            _aspect,
+            _path,
+            _data,
+            on_response,
+            _on_failed,
+            _on_prog,
+            timeout=None,
+        ):
+            class Receipt:
+                response = [body, {"name": b"catalog.json"}]
+
+            on_response(Receipt())
+
+    manager._link_manager_getter = lambda: LinkManager()
+    result = await manager.fetch_catalog("cd" * 16)
+    assert result["maps"][0]["name"] == "Camp"

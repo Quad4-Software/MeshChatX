@@ -26,6 +26,7 @@ def test_config_manager_get_default(db):
     assert config.display_name.get() == "Anonymous Peer"
     assert config.theme.get() == "light"
     assert config.lxmf_inbound_stamp_cost.get() == 8
+    assert config.map_data_announce_enabled.get() is False
 
 
 def test_config_manager_set_get(db):

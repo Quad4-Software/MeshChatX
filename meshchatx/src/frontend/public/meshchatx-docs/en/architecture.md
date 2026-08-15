@@ -63,7 +63,7 @@ Mesh peers are addressed by destination hash plus aspect. MeshChatX currently us
 | `rrc.hub`           | Relay Chat hub               |
 | `map-data-v1`       | Published map overlay packs  |
 
-`map-data-v1` announce app_data is a short JSON label and file count. Catalog and file bytes travel over an RNS Link, not announce payloads or LXMF.
+`map-data-v1` announce app_data is a short JSON label and file count. Catalog and file bytes travel over an RNS Link, not announce payloads or LXMF. The destination is created and announced only after at least one pack is published. Mesh announce stays a separate opt-in.
 
 ## Manager-centric domain logic
 

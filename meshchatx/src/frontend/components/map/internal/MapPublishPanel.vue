@@ -13,9 +13,12 @@
             />
         </label>
         <label class="flex items-center gap-2 text-[11px] text-gray-600 dark:text-zinc-400">
-            <input v-model="announceEnabled" type="checkbox" @change="saveConfig" />
+            <input v-model="announceEnabled" type="checkbox" :disabled="!published.length" @change="saveConfig" />
             {{ $t("map.data_announce") }}
         </label>
+        <p v-if="!published.length" class="text-[10px] text-gray-500 dark:text-zinc-400">
+            {{ $t("map.data_announce_needs_publish") }}
+        </p>
         <label class="block text-[11px] text-gray-600 dark:text-zinc-400 space-y-1">
             <span>{{ $t("map.data_interval") }}</span>
             <input
@@ -38,7 +41,7 @@
             <button
                 type="button"
                 class="flex-1 py-2 text-[10px] font-semibold uppercase rounded-lg border border-gray-200 dark:border-zinc-700 disabled:opacity-40"
-                :disabled="announcing"
+                :disabled="announcing || !published.length"
                 @click="announceNow"
             >
                 {{ $t("map.data_announce_now") }}
@@ -106,7 +109,7 @@ export default {
     data() {
         return {
             displayName: "Maps",
-            announceEnabled: true,
+            announceEnabled: false,
             announceInterval: 900,
             published: [],
             strippedPreview: [],
@@ -184,12 +187,21 @@ export default {
             }
         },
         async announceNow() {
+            if (!this.published.length) {
+                ToastUtils.warning(this.$t("map.data_announce_needs_publish"));
+                return;
+            }
             this.announcing = true;
             try {
                 await window.api.post("/api/v1/map/data/announce");
                 ToastUtils.success(this.$t("map.data_announce_ok"));
-            } catch {
-                ToastUtils.error(this.$t("map.data_unavailable"));
+            } catch (e) {
+                const code = e.response?.data?.error;
+                if (code === "nothing_published") {
+                    ToastUtils.warning(this.$t("map.data_announce_needs_publish"));
+                } else {
+                    ToastUtils.error(this.$t("map.data_unavailable"));
+                }
             } finally {
                 this.announcing = false;
             }

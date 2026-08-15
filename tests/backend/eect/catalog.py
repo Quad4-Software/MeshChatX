@@ -164,6 +164,27 @@ SCENARIOS: tuple[Scenario, ...] = (
         summary="L3 loopback TCP bind prove-alive",
         ci=False,
     ),
+    Scenario(
+        id="map.data.announce_opt_in_until_publish",
+        pack="MapDataPack",
+        gate="gate4-scarcity",
+        taxonomy="logic",
+        summary="map-data-v1 destination is not created or announced until a pack is published",
+    ),
+    Scenario(
+        id="map.data.catalog_bytes_over_link",
+        pack="MapDataPack",
+        gate="gate4-scarcity",
+        taxonomy="logic",
+        summary="catalog responder returns JSON bytes and peer fetch unwraps list-wrapped payloads",
+    ),
+    Scenario(
+        id="map.data.live_catalog_link",
+        pack="MapDataPack",
+        gate="gate0-intent",
+        taxonomy="live_env",
+        summary="second identity fetches /catalog over a live RNS Link",
+    ),
 )
 
 
