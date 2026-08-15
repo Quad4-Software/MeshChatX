@@ -300,7 +300,8 @@ cd android
 **単一**の Android バリアント。Gradle が `meshchatx/` ツリー全体を `app/src/main/python/meshchatx/` に同期し、オフラインリポジトリ用ホイールも含みます。ドキュメントおよび公開ビルドは **universal** パッケージのみです。実行ごとにデバッグ APK 1 本とリリース APK 1 本が生成され、それぞれ `android/app/build.gradle` で選んだ全ネイティブ ABI を含みます。
 
 - デバッグ: `android/app/build/outputs/apk/debug/app-debug.apk`
-- リリース: `android/app/build/outputs/apk/release/app-release-unsigned.apk`
+- リリース: `android/app/build/outputs/apk/release/ReticulumMeshChatX-v*-android-universal-unsigned.apk`
+- GitHub リリース: `ReticulumMeshChatX-v<version>-android-universal.apk`
 
 備考:
 
