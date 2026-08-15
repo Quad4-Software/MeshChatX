@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
+# Lipo-thin every Mach-O in each per-arch freeze tree, including the
+# ReticulumMeshChatX stub. CPython macOS installs are often universal2.
+# If only .so/.dylib files are thinned, Apple Silicon exec of the x64 tree
+# uses the arm64 slice of the stub and then fails to dlopen x86_64 zlib.
 
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-ARM64_DIR="$ROOT/build/exe/darwin-arm64"
-X64_DIR="$ROOT/build/exe/darwin-x64"
+ARM64_DIR="${MESHCHATX_THIN_ARM64_DIR:-$ROOT/build/exe/darwin-arm64}"
+X64_DIR="${MESHCHATX_THIN_X64_DIR:-$ROOT/build/exe/darwin-x64}"
 
 if [[ ! -d "$ARM64_DIR" || ! -d "$X64_DIR" ]]; then
     echo "thin-backend: one or both backend dirs missing, skipping"
@@ -77,12 +81,15 @@ thin_tree() {
             cat "$tmp" >"$f"
             rm -f "$tmp"
             thinned=$((thinned + 1))
+            if command -v codesign >/dev/null 2>&1; then
+                codesign --force --sign - "$f" >/dev/null 2>&1 || true
+            fi
         else
             rm -f "$tmp"
             echo "thin-backend: WARNING: lipo -thin $want_arch failed on $f" >&2
             skipped=$((skipped + 1))
         fi
-    done < <(find "$tree" -type f \( -name "*.so" -o -name "*.dylib" -o -name "*.bundle" \) -print0)
+    done < <(find "$tree" -type f -print0)
     echo "thin-backend: ${tree#"$ROOT"/} -> $want_arch (thinned=$thinned, already-single=$already, skipped=$skipped)"
 }
 
