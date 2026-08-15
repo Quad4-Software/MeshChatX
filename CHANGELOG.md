@@ -4,11 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [4.8.4] - 2026-08-16 [unreleased]
 
+### Changed
+
+- **Android release APK**: GitHub release assets use ReticulumMeshChatX-vVERSION-android-universal.apk, the same ReticulumMeshChatX-vVERSION-OS-ARCH.* pattern as desktop installers. Gradle writes the unsigned file as ReticulumMeshChatX-vVERSION-android-universal-unsigned.apk.
+- **Confirm and prompt dialogs**: Electron uses the in-app dialogs instead of native OS prompts. Confirm can show a title. Both dialogs use alertdialog or dialog roles with labelled headings. Confirm traps Tab, focuses the confirm button, and ignores the Enter that opened it so that keypress cannot accept. Escape cancels. IME composition does not confirm. Remote management identity create uses the in-app prompt instead of window.prompt.
+- **Collapsed sidebar**: The active rail item uses an inset pressed fill instead of the expanded blue pill. Collapsed buttons are square.
+
 ### Fixed
 
 - **macOS desktop**: Frozen builds include Codec2 so LXST calls start instead of crashing on a missing libcodec2 dylib.
 - **macOS universal**: The Intel slice of a universal Mac build runs as x86_64 instead of starting as arm64 and failing on zlib.
 - **Disconnected banner**: Stopping or restarting the backend keeps the red banner until the backend answers again.
+- **Messages (path wait)**: Direct and opportunistic send wait for a path to the peer `lxmf.delivery` destination. A pasted identity hash no longer waits on the identity hash, which is not a mail address.
+- **Telephone dial overlay**: Initiation status stays while LXST is calling or ringing with no active_call object yet, so the overlay does not close mid-ring.
+- **Relay Chat**: A WELCOME timeout tears the link and reconnects. Outbound chat, notices, and actions go on the wire before local history, so a send failure is not shown as delivered. A kline or ban with no room name leaves every joined room. A failed JOIN send drops the pending-join marker.
+- **RNCP**: Send and fetch-save refuse reserved identity-storage tops (identity, ssl, database.db, plugins, database-backups, snapshots, bots, telephone, rrc_history, rrc_server).
+- **Docs zip import**: Members with NUL bytes, absolute paths, parent directory segments, or a colon are skipped.
+- **Plugins**: Hook dispatch returns immediately when the plugin runtime is disabled. Python plugin load deletes nested pycache directories, not only the one next to the entry file.
+- **Repository upload**: A destination that is already a symlink or directory is rejected. The file is opened without following a symlink when the platform supports that.
 
 ## [4.8.3] - 2026-08-14
 
