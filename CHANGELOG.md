@@ -6,12 +6,17 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- **Map announce**: Off until a pack is published.
 - **Android release APK**: GitHub release assets use ReticulumMeshChatX-vVERSION-android-universal.apk, the same ReticulumMeshChatX-vVERSION-OS-ARCH.* pattern as desktop installers. Gradle writes the unsigned file as ReticulumMeshChatX-vVERSION-android-universal-unsigned.apk.
 - **Confirm and prompt dialogs**: Electron uses the in-app dialogs instead of native OS prompts. Confirm can show a title. Both dialogs use alertdialog or dialog roles with labelled headings. Confirm traps Tab, focuses the confirm button, and ignores the Enter that opened it so that keypress cannot accept. Escape cancels. IME composition does not confirm. Remote management identity create uses the in-app prompt instead of window.prompt.
 - **Collapsed sidebar**: The active rail item uses an inset pressed fill instead of the expanded blue pill. Collapsed buttons are square.
 
 ### Fixed
 
+- **Map catalog**: Catalog on Discover lists packs instead of hanging. Empty catalogs show a message.
+- **In-process memory growth**: Announce-rate and LXMF flood timestamp lists prune on append (1 hour window plus a hard cap), not only when About polls `/api/v1/app/info`. RNCP drops finished Resource objects and keeps 32 terminal transfer records. Auto-resend destination locks cap at 256 and drop on identity eviction. Mesh Server unique-remote tracking stops at 4096 hashes. Map overlay finished jobs cap at 32 and cleanup clears per-overlay locks. Completed map exports keep 8 records. Identity teardown now drops ringtone, notification-sound, translator, and community-interface managers.
+- **macOS universal**: Intel NumPy OpenBLAS dylibs (libscipy_openblas64_.dylib and gfortran helpers) are copied into the arm64 freeze tree instead of being deleted during merge, so the x86_64 slice can load numpy._core._multiarray_umath.
+- **Relay Chat loopback**: Typed `/help` and `/nick` stay above the hub notice when talking to a locally hosted hub. Mesh send still records local history only after the packet goes on the wire.
 - **macOS desktop**: Frozen builds include Codec2 so LXST calls start instead of crashing on a missing libcodec2 dylib.
 - **macOS universal**: The Intel slice of a universal Mac build runs as x86_64 instead of starting as arm64 and failing on zlib.
 - **Disconnected banner**: Stopping or restarting the backend keeps the red banner until the backend answers again.
