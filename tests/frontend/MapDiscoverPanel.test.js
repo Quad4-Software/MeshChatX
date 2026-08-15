@@ -3,12 +3,25 @@
 import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import MapDiscoverPanel from "@/components/map/internal/MapDiscoverPanel.vue";
+import ToastUtils from "@/js/ToastUtils";
 
 const HASH = "ab".repeat(16);
+
+vi.mock("@/js/ToastUtils", () => ({
+    default: {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+        loading: vi.fn(),
+        dismiss: vi.fn(),
+    },
+}));
 
 describe("MapDiscoverPanel", () => {
     beforeEach(() => {
         vi.useFakeTimers();
+        vi.clearAllMocks();
         window.api = {
             get: vi.fn().mockResolvedValue({
                 data: {
@@ -49,5 +62,20 @@ describe("MapDiscoverPanel", () => {
             destination_hash: HASH,
         });
         expect(wrapper.text()).toContain("Camp");
+        expect(ToastUtils.loading).toHaveBeenCalled();
+        expect(ToastUtils.success).toHaveBeenCalled();
+    });
+
+    it("shows empty catalog copy when the node lists no maps", async () => {
+        window.api.post = vi.fn().mockResolvedValue({ data: { maps: [] } });
+        const wrapper = mount(MapDiscoverPanel, {
+            global: { mocks: { $t: (key) => key } },
+        });
+        await vi.advanceTimersByTimeAsync(250);
+        await flushPromises();
+        await wrapper.find("button").trigger("click");
+        await flushPromises();
+        expect(wrapper.text()).toContain("map.data_catalog_empty");
+        expect(ToastUtils.info).toHaveBeenCalled();
     });
 });

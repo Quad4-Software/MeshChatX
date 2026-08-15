@@ -387,7 +387,7 @@ class ConfigManager:
         self.map_data_announce_enabled = self.BoolConfig(
             self,
             "map_data_announce_enabled",
-            True,
+            False,
         )
         self.map_data_announce_interval = self.IntConfig(
             self,

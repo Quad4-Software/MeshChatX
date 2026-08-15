@@ -124,3 +124,16 @@ async def test_map_data_catalog_missing_path_is_recoverable(mock_app):
     assert resp.status == 503
     body = json.loads(resp.text)
     assert body["error"] == "missing_path"
+
+
+@pytest.mark.asyncio
+async def test_map_data_announce_nothing_published(mock_app):
+    mgr = MagicMock()
+    mgr.announce.side_effect = MapDataError("nothing_published")
+    mock_app.map_data_manager = mgr
+    resp = await _find_handler(mock_app, "POST", "/api/v1/map/data/announce")(
+        MagicMock()
+    )
+    assert resp.status == 400
+    body = json.loads(resp.text)
+    assert body["error"] == "nothing_published"

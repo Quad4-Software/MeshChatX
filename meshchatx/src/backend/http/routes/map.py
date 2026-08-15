@@ -724,6 +724,8 @@ def register_map_routes(routes, app):
                 "link_failed",
                 "job_timeout",
                 "request_failed",
+                "empty_response",
+                "invalid_response",
             ):
                 status = 503
             return web.json_response({"error": exc.code}, status=status)
@@ -750,6 +752,8 @@ def register_map_routes(routes, app):
                 "link_failed",
                 "job_timeout",
                 "request_failed",
+                "empty_response",
+                "invalid_response",
             ):
                 status = 503
             return web.json_response({"error": exc.code}, status=status)
@@ -781,6 +785,8 @@ def register_map_routes(routes, app):
                 "link_failed",
                 "job_timeout",
                 "request_failed",
+                "empty_response",
+                "invalid_response",
             ):
                 status = 503
             return web.json_response({"error": exc.code}, status=status)
