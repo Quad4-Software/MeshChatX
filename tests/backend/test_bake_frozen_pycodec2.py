@@ -268,3 +268,5 @@ def test_ci_wires_codec2_freeze_guards() -> None:
     assert "import pycodec2" in probe
     assert "required native" in unify
     assert "libcodec2" in unify
+    assert "libscipy_openblas" in unify
+    assert "MESHCHATX_UNIFY_ARM64_DIR" in unify

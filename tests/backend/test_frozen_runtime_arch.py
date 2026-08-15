@@ -9,6 +9,7 @@ from pathlib import Path
 
 _THIN = Path("scripts/thin-backend-mach-o.sh")
 _VERIFY = Path("scripts/ci/github-verify-frozen-runtime.sh")
+_UNIFY = Path("scripts/unify-backend-plain-files.sh")
 
 
 def _write_exec(path: Path, body: str) -> None:
@@ -193,3 +194,99 @@ def test_verify_frozen_runtime_rejects_arm64_only_stub_in_x64_tree(
     )
     assert result.returncode != 0
     assert "cannot run as x86_64" in result.stderr
+
+
+def _unify_file_stub(bin_dir: Path) -> None:
+    _write_exec(
+        bin_dir / "file",
+        "#!/bin/sh\n"
+        'f=""\n'
+        'while [ "$#" -gt 0 ]; do\n'
+        '  case "$1" in\n'
+        "    --brief|--no-pad) shift; continue ;;\n"
+        '    *) f="$1"; shift ;;\n'
+        "  esac\n"
+        "done\n"
+        'base=$(basename "$f")\n'
+        'case "$base" in\n'
+        "  *.dylib|*.so)\n"
+        '    echo "Mach-O 64-bit dynamically linked shared library x86_64"\n'
+        "    ;;\n"
+        '  *) echo "ASCII text" ;;\n'
+        "esac\n",
+    )
+
+
+def test_unify_mirrors_x64_openblas_and_still_drops_other_arch_only_mach_o(
+    tmp_path: Path,
+) -> None:
+    arm = tmp_path / "arm"
+    x64 = tmp_path / "x64"
+    (arm / "lib" / "numpy" / ".dylibs").mkdir(parents=True)
+    (x64 / "lib" / "numpy" / ".dylibs").mkdir(parents=True)
+    (x64 / "lib" / "wasmtime" / "darwin-x86_64").mkdir(parents=True)
+    (arm / "readme.txt").write_text("same", encoding="utf-8")
+    (x64 / "readme.txt").write_text("same", encoding="utf-8")
+    openblas = b"openblas-x64-bytes"
+    (x64 / "lib" / "libscipy_openblas64_.dylib").write_bytes(openblas)
+    (x64 / "lib" / "numpy" / ".dylibs" / "libscipy_openblas64_.dylib").write_bytes(
+        openblas
+    )
+    (x64 / "lib" / "numpy" / ".dylibs" / "libgfortran.5.dylib").write_bytes(b"gfortran")
+    wasm = x64 / "lib" / "wasmtime" / "darwin-x86_64" / "_libwasmtime.dylib"
+    wasm.write_bytes(b"wasmtime-x64")
+
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    _unify_file_stub(bin_dir)
+    env = os.environ.copy()
+    env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
+    env["MESHCHATX_UNIFY_ARM64_DIR"] = str(arm)
+    env["MESHCHATX_UNIFY_X64_DIR"] = str(x64)
+    result = subprocess.run(
+        ["bash", str(_UNIFY)],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    assert result.returncode == 0, result.stderr + result.stdout
+    assert (x64 / "lib" / "libscipy_openblas64_.dylib").read_bytes() == openblas
+    assert (arm / "lib" / "libscipy_openblas64_.dylib").read_bytes() == openblas
+    assert (
+        arm / "lib" / "numpy" / ".dylibs" / "libscipy_openblas64_.dylib"
+    ).read_bytes() == openblas
+    assert (arm / "lib" / "numpy" / ".dylibs" / "libgfortran.5.dylib").read_bytes() == (
+        b"gfortran"
+    )
+    assert not wasm.exists()
+    assert "mirroring arch-only native" in result.stderr
+    assert "dropping arch-only Mach-O" in result.stderr
+
+
+def test_unify_errors_when_libcodec2_exists_on_only_one_arch(tmp_path: Path) -> None:
+    arm = tmp_path / "arm"
+    x64 = tmp_path / "x64"
+    (arm / "lib").mkdir(parents=True)
+    (x64 / "lib").mkdir(parents=True)
+    (arm / "lib" / "libcodec2.dylib").write_bytes(b"codec2-arm")
+    (arm / "readme.txt").write_text("same", encoding="utf-8")
+    (x64 / "readme.txt").write_text("same", encoding="utf-8")
+
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    _unify_file_stub(bin_dir)
+    env = os.environ.copy()
+    env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
+    env["MESHCHATX_UNIFY_ARM64_DIR"] = str(arm)
+    env["MESHCHATX_UNIFY_X64_DIR"] = str(x64)
+    result = subprocess.run(
+        ["bash", str(_UNIFY)],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    assert result.returncode != 0
+    assert "required native" in result.stderr
+    assert "libcodec2.dylib" in result.stderr
