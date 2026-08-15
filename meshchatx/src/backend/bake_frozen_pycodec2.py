@@ -26,6 +26,10 @@ _CANONICAL_DLL = "libcodec2.dll"
 _LOADER_PATH_DYLIB = "@loader_path/libcodec2.dylib"
 
 
+def _as_path(value: object) -> Path:
+    return Path(str(value))
+
+
 def _pycodec2_dist_dir() -> Path | None:
     """Return the installed pycodec2 package dir without importing the extension."""
     try:
@@ -36,12 +40,12 @@ def _pycodec2_dist_dir() -> Path | None:
         parts = rel.parts
         if not parts or parts[0] != "pycodec2":
             continue
-        located = Path(dist.locate_file(rel))
+        located = _as_path(dist.locate_file(rel))
         if located.parent.name == "pycodec2":
             return located.parent.resolve()
         if located.name == "pycodec2" and located.is_dir():
             return located.resolve()
-    locate = Path(dist.locate_file("pycodec2"))
+    locate = _as_path(dist.locate_file("pycodec2"))
     if locate.is_dir():
         return locate.resolve()
     return None
@@ -132,6 +136,16 @@ def _rewrite_darwin_extension(ext_so: Path, dylib: Path) -> None:
     )
 
 
+def _prune_pkg_extra_codec2(pkg: Path, keep_name: str) -> None:
+    for path in pkg.iterdir():
+        if path.name == keep_name:
+            continue
+        if not (path.is_file() or path.is_symlink()):
+            continue
+        if _is_codec2_lib(path.name):
+            path.unlink()
+
+
 def _pick_source_lib(candidates: list[Path]) -> Path | None:
     if not candidates:
         return None
@@ -186,19 +200,21 @@ def bake_frozen_pycodec2(build_dir: Path) -> None:
     dest_pkg = pkg / canonical_name
     dest_lib = lib_dir / canonical_name
     destinations = {dest_pkg, dest_lib}
+    if canonical_name == _CANONICAL_DYLIB:
+        destinations.add(lib_dir / "libcodec2.1.2.dylib")
     if source.name != canonical_name:
         destinations.add(lib_dir / source.name)
     for ref in _darwin_load_commands(ext_so):
         base = Path(ref).name
         if _is_codec2_lib(base):
             destinations.add(lib_dir / base)
-            destinations.add(pkg / base)
     for dest in destinations:
         _copy_file(source, dest)
 
     dylibs_dir = pkg / ".dylibs"
     if dylibs_dir.is_dir():
         shutil.rmtree(dylibs_dir)
+    _prune_pkg_extra_codec2(pkg, canonical_name)
 
     if sys.platform == "darwin" and dest_pkg.suffix == ".dylib":
         _rewrite_darwin_extension(ext_so, dest_pkg)
