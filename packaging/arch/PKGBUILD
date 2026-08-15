@@ -36,6 +36,7 @@ prepare() {
   uv lock --check
   uv sync --group dev --active
   python scripts/patch_lxst_pyogg_ogg_ctypes.py
+  python scripts/patch_lxst_codec2_optional.py
 }
 
 build() {
@@ -50,14 +51,13 @@ build() {
 
 package() {
   cd "$_pkgname"
-  
+
   install -d "$pkgdir/usr/lib/$_pkgname"
   cp -a dist/linux-unpacked/* "$pkgdir/usr/lib/$_pkgname/"
-  
+
   install -d "$pkgdir/usr/bin"
   ln -s "/usr/lib/$_pkgname/reticulum-meshchatx" "$pkgdir/usr/bin/$_pkgname"
-  
+
   install -Dm644 "$srcdir/reticulum-meshchatx.desktop" "$pkgdir/usr/share/applications/reticulum-meshchatx.desktop"
   install -Dm644 logo/logo.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/reticulum-meshchatx.png"
 }
-

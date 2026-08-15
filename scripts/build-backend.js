@@ -342,6 +342,18 @@ try {
             env: env,
         });
         failOnSpawnResult("LXST filterlib prune", bakeResult);
+        let codec2Args = [...bakeCmdParts.slice(1), "-m", "meshchatx.src.backend.bake_frozen_pycodec2", buildDir];
+        let codec2SpawnCmd = bakeCmd;
+        if (rosettaX64) {
+            codec2SpawnCmd = "arch";
+            codec2Args = ["-x86_64", bakeCmd, ...codec2Args];
+        }
+        const codec2Result = spawnSync(codec2SpawnCmd, codec2Args, {
+            stdio: "inherit",
+            shell: false,
+            env: env,
+        });
+        failOnSpawnResult("pycodec2 libcodec2 bake", codec2Result);
         if (!verifyBinaryArchitecture(buildDir, arch, targetName)) {
             process.exit(1);
         }

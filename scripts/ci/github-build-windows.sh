@@ -30,6 +30,7 @@ bash scripts/ci/github-verify-electron-dist.sh win
 if [[ -d build/exe ]]; then
     bash scripts/ci/github-verify-frozen-sandbox.sh build/exe
     bash scripts/ci/github-verify-frozen-runtime.sh build/exe
+    bash scripts/ci/github-verify-frozen-codec2.sh build/exe
 fi
 
 # Optional packaged smoke (manual / future CI job on a Windows runner):

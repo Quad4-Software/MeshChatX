@@ -61,6 +61,7 @@ packages = [
     "RNS.Interfaces",
     "LXMF",
     "LXST",
+    "pycodec2",
     "lxmfy",
     "rns_filesync",
     "websockets",

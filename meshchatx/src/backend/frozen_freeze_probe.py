@@ -40,10 +40,16 @@ def main() -> None:
     import email.policy  # noqa: F401
 
     import aiohttp  # noqa: F401
+    import LXST  # noqa: F401
 
     native = _lxst_filterlib_path()
     if native is None:
         raise SystemExit("frozen-freeze-probe: LXST filterlib native artifact missing")
+
+    if sys.platform == "darwin":
+        import pycodec2
+
+        pycodec2.Codec2(1600)
 
     print("frozen-freeze-probe ok", flush=True)
 

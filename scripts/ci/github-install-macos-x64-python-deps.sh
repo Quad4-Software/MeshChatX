@@ -145,7 +145,17 @@ uv pip uninstall --python "$_PY" Cython wheel
 # and matches the relative layout scripts/unify-backend-plain-files.sh expects when
 # reconciling this slice against the arm64 wheel's .dylibs/ bundle.
 if [[ -n "${_codec2:-}" ]]; then
-    _pycodec2_dir="$(arch -x86_64 "$_PY" -c 'import pathlib, pycodec2; print(pathlib.Path(pycodec2.__file__).resolve().parent)')"
+    _pycodec2_dir="$(arch -x86_64 "$_PY" -c '
+import importlib.metadata
+from pathlib import Path
+dist = importlib.metadata.distribution("pycodec2")
+for rel in dist.files or ():
+    if rel.parts and rel.parts[0] == "pycodec2":
+        located = Path(dist.locate_file(rel))
+        if located.parent.name == "pycodec2":
+            print(located.parent.resolve())
+            break
+')"
     for _lib in "${_codec2}/lib/libcodec2.dylib" "${_codec2}/lib/libcodec2.so"; do
         if [[ -f "$_lib" ]]; then
             cp -f "$_lib" "${_pycodec2_dir}/libcodec2.dylib"
@@ -153,10 +163,10 @@ if [[ -n "${_codec2:-}" ]]; then
         fi
     done
 fi
-arch -x86_64 bash "$(dirname "$0")/macos-normalize-pycodec2-dylib.sh" "$_PY" ||
-    echo "github-install-macos-x64-python-deps: pycodec2 dylib normalization failed, continuing (unify-backend may drop it later)" >&2
+arch -x86_64 bash "$(dirname "$0")/macos-normalize-pycodec2-dylib.sh" "$_PY"
 
 arch -x86_64 "$_PY" scripts/patch_lxst_pyogg_ogg_ctypes.py
+arch -x86_64 "$_PY" scripts/patch_lxst_codec2_optional.py
 
 arch -x86_64 "$_PY" -c "
 import importlib.metadata

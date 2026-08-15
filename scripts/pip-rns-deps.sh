@@ -188,8 +188,10 @@ done
 if [[ "${DRY_RUN}" -eq 0 ]]; then
     if command -v uv >/dev/null 2>&1; then
         run_cmd uv run python scripts/patch_lxst_pyogg_ogg_ctypes.py
+        run_cmd uv run python scripts/patch_lxst_codec2_optional.py
     else
         run_cmd python3 scripts/patch_lxst_pyogg_ogg_ctypes.py
+        run_cmd python3 scripts/patch_lxst_codec2_optional.py
     fi
 fi
 

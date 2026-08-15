@@ -841,6 +841,11 @@ tasks:
         cmds:
             - bash scripts/ci/verify-package-contents-smoke.sh
 
+    verify:frozen:codec2:
+        desc: Fail if frozen pycodec2 cannot resolve libcodec2
+        cmds:
+            - bash scripts/ci/github-verify-frozen-codec2.sh "{{.CLI_ARGS}}"
+
     # --- Maintenance ---
 
     dist:
