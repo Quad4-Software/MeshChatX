@@ -299,7 +299,8 @@ That skips the repository wheels fetch. android/vendor/ wheels and meshchatx/pub
 There is one Android variant. Gradle syncs the full meshchatx/ tree into app/src/main/python/meshchatx/, including the offline repository wheel bundle. Published builds are universal: one debug APK and one release APK per run, with the native ABIs from android/app/build.gradle.
 
 - Debug: android/app/build/outputs/apk/debug/app-debug.apk
-- Release: android/app/build/outputs/apk/release/app-release-unsigned.apk
+- Release: android/app/build/outputs/apk/release/ReticulumMeshChatX-v*-android-universal-unsigned.apk
+- GitHub release: ReticulumMeshChatX-v<version>-android-universal.apk
 
 Release APKs are unsigned unless you configure signing (scripts/sign-android-apks.sh). Native ABIs follow android/app/build.gradle, including armeabi-v7a when that ABI is enabled. Building those wheels needs an Android SDK on ANDROID_HOME.
 
