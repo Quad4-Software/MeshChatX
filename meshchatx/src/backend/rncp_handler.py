@@ -31,6 +31,10 @@ _RESERVED_RNCP_TOP = frozenset(
     },
 )
 
+TERMINAL_TRANSFER_STATUSES = frozenset({"completed", "failed", "error", "cancelled"})
+MAX_RETAINED_TRANSFERS = 32
+MAX_CANCELLED_TRANSFER_IDS = 128
+
 
 class RNCPHandler:
     APP_NAME = "rncp"
@@ -103,12 +107,59 @@ class RNCPHandler:
             transfer = self.active_transfers.get(transfer_id)
             if transfer is not None:
                 transfer["status"] = "cancelled"
+                self._on_transfer_terminal(transfer_id)
             return {"cancelled": [transfer_id]}
         ids = list(self.active_transfers.keys())
         for tid in ids:
             self._cancelled_transfers.add(tid)
             self.active_transfers[tid]["status"] = "cancelled"
+            self._on_transfer_terminal(tid)
         return {"cancelled": ids}
+
+    def _on_transfer_terminal(self, transfer_id: str | None) -> None:
+        if not transfer_id:
+            return
+        entry = self.active_transfers.get(transfer_id)
+        if entry is not None:
+            entry.pop("resource", None)
+        self.prune_terminal_transfers()
+
+    def prune_terminal_transfers(self) -> int:
+        """Drop Resource objects and cap finished transfer records."""
+        dropped = 0
+        terminal_ids = [
+            tid
+            for tid, entry in self.active_transfers.items()
+            if entry.get("status") in TERMINAL_TRANSFER_STATUSES
+        ]
+        for tid in terminal_ids:
+            entry = self.active_transfers.get(tid)
+            if entry is not None and "resource" in entry:
+                entry.pop("resource", None)
+        overflow = len(terminal_ids) - MAX_RETAINED_TRANSFERS
+        if overflow > 0:
+            ranked = sorted(
+                terminal_ids,
+                key=lambda tid: float(
+                    self.active_transfers.get(tid, {}).get("started_at") or 0.0,
+                ),
+            )
+            for tid in ranked[:overflow]:
+                if self.active_transfers.pop(tid, None) is not None:
+                    dropped += 1
+                self._cancelled_transfers.discard(tid)
+        if len(self._cancelled_transfers) > MAX_CANCELLED_TRANSFER_IDS:
+            live = set(self.active_transfers)
+            stale = [tid for tid in list(self._cancelled_transfers) if tid not in live]
+            for tid in stale:
+                self._cancelled_transfers.discard(tid)
+                if len(self._cancelled_transfers) <= MAX_CANCELLED_TRANSFER_IDS:
+                    break
+            if len(self._cancelled_transfers) > MAX_CANCELLED_TRANSFER_IDS:
+                extra = list(self._cancelled_transfers)[MAX_CANCELLED_TRANSFER_IDS:]
+                for tid in extra:
+                    self._cancelled_transfers.discard(tid)
+        return dropped
 
     def _is_cancelled(self, transfer_id: str | None) -> bool:
         if transfer_id and transfer_id in self._cancelled_transfers:
@@ -307,6 +358,7 @@ class RNCPHandler:
                     "error": None,
                 },
             )
+        self._on_transfer_terminal(transfer_id)
 
     def _fetch_request(
         self,
@@ -514,6 +566,7 @@ class RNCPHandler:
                     link.teardown()
                 if transfer_id in self.active_transfers:
                     self.active_transfers[transfer_id]["status"] = "cancelled"
+                    self._on_transfer_terminal(transfer_id)
                 msg = "Transfer cancelled"
                 raise InterruptedError(msg)
             await asyncio.sleep(0.1)
@@ -524,6 +577,7 @@ class RNCPHandler:
         if resource.status == RNS.Resource.COMPLETE:
             if transfer_id in self.active_transfers:
                 self.active_transfers[transfer_id]["status"] = "completed"
+                self._on_transfer_terminal(transfer_id)
             link.teardown()
             return {
                 "transfer_id": transfer_id,
@@ -532,6 +586,7 @@ class RNCPHandler:
             }
         if transfer_id in self.active_transfers:
             self.active_transfers[transfer_id]["status"] = "failed"
+            self._on_transfer_terminal(transfer_id)
         link.teardown()
         msg = "Transfer failed"
         raise Exception(msg)

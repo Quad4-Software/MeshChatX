@@ -18,6 +18,8 @@ TRANSPARENT_TILE = base64.b64decode(
 
 # Guardrail for MBTiles exports (world + high zoom can explode).
 MAX_EXPORT_TILES = 200_000
+MAX_EXPORT_RECORDS = 8
+TERMINAL_EXPORT_STATUSES = frozenset({"completed", "failed"})
 
 
 def is_path_within_dir(path, directory):
@@ -191,10 +193,31 @@ class MapManager:
             "start_time": time.time(),
         }
         thread.start()
+        self.prune_export_records()
         return export_id
 
     def get_export_status(self, export_id):
         return self._export_progress.get(export_id)
+
+    def prune_export_records(self) -> int:
+        terminal = [
+            export_id
+            for export_id, entry in self._export_progress.items()
+            if entry.get("status") in TERMINAL_EXPORT_STATUSES
+        ]
+        overflow = len(terminal) - MAX_EXPORT_RECORDS
+        if overflow <= 0:
+            return 0
+        ranked = sorted(
+            terminal,
+            key=lambda eid: float(self._export_progress[eid].get("start_time") or 0.0),
+        )
+        dropped = 0
+        for export_id in ranked[:overflow]:
+            if self._export_progress.pop(export_id, None) is not None:
+                dropped += 1
+            self._export_cancelled.discard(export_id)
+        return dropped
 
     def cancel_export(self, export_id):
         if export_id in self._export_progress:
@@ -284,6 +307,7 @@ class MapManager:
             conn.close()
             self._export_progress[export_id]["status"] = "completed"
             self._export_progress[export_id]["file_path"] = dest_path
+            self.prune_export_records()
 
         except Exception as e:
             RNS.log(f"Map export failed: {e}", RNS.LOG_ERROR)
@@ -291,6 +315,7 @@ class MapManager:
             self._export_progress[export_id]["error"] = str(e)
             if os.path.exists(dest_path):
                 os.remove(dest_path)
+            self.prune_export_records()
 
     async def _export_download_tiles(
         self,

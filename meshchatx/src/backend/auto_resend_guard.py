@@ -15,6 +15,8 @@ MAX_AUTO_RESEND_ATTEMPTS = 3
 AUTO_RESEND_COOLDOWN_SECONDS = 120
 # Skip auto-resend when a recent outbound with the same body already exists.
 RECENT_SAME_CONTENT_SECONDS = 300
+# Idle per-destination locks retained after identity/destination churn.
+MAX_AUTO_RESEND_LOCKS = 256
 
 AUTO_RESEND_COUNT_FIELD = "_mcx_auto_resend_count"
 
@@ -61,10 +63,41 @@ class AutoResendCoordinator:
     def lock_for(self, identity_key: str, destination_hash: str) -> asyncio.Lock:
         key = f"{identity_key}:{destination_hash}"
         lock = self._locks.get(key)
-        if lock is None:
-            lock = asyncio.Lock()
+        if lock is not None:
+            self._locks.pop(key, None)
             self._locks[key] = lock
+            return lock
+        self.evict_unlocked_locks(keep=MAX_AUTO_RESEND_LOCKS - 1)
+        lock = asyncio.Lock()
+        self._locks[key] = lock
         return lock
+
+    def evict_unlocked_locks(self, keep: int = MAX_AUTO_RESEND_LOCKS) -> int:
+        """Drop oldest unlocked locks until at most keep remain."""
+        cap = max(0, int(keep))
+        dropped = 0
+        if len(self._locks) <= cap:
+            return 0
+        for key in list(self._locks.keys()):
+            if len(self._locks) <= cap:
+                break
+            lock = self._locks.get(key)
+            if lock is None or lock.locked():
+                continue
+            del self._locks[key]
+            dropped += 1
+        return dropped
+
+    def drop_identity(self, identity_key: str) -> int:
+        prefix = f"{identity_key}:"
+        dropped = 0
+        for key in [k for k in self._locks if k.startswith(prefix)]:
+            lock = self._locks.get(key)
+            if lock is not None and lock.locked():
+                continue
+            self._locks.pop(key, None)
+            dropped += 1
+        return dropped
 
 
 def fields_have_attachments(fields_raw: Any) -> bool:

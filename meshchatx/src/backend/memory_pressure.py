@@ -18,6 +18,53 @@ _log = logging.getLogger("meshchatx.memory_pressure")
 
 HELD_ANNOUNCES_DROP_THRESHOLD = 512
 ANNOUNCE_CACHE_CLEAN_INTERVAL_S = 30 * 60
+ANNOUNCE_RATE_WINDOW_S = 3600.0
+ANNOUNCE_RATE_HARD_CAP = 50_000
+LXMF_INCOMING_RATE_WINDOW_S = 3600.0
+LXMF_INCOMING_RATE_HARD_CAP = 20_000
+
+
+def prune_time_windowed_floats(
+    stamps: list[float],
+    now: float | None = None,
+    *,
+    window_s: float,
+    hard_cap: int,
+) -> list[float]:
+    """Keep timestamps inside window_s, then the newest hard_cap entries."""
+    if not stamps:
+        return stamps
+    current = time.time() if now is None else float(now)
+    cutoff = current - float(window_s)
+    kept = [t for t in stamps if t >= cutoff]
+    cap = max(0, int(hard_cap))
+    if cap and len(kept) > cap:
+        kept = kept[-cap:]
+    return kept
+
+
+def prune_announce_timestamps(
+    stamps: list[float],
+    now: float | None = None,
+) -> list[float]:
+    return prune_time_windowed_floats(
+        stamps,
+        now,
+        window_s=ANNOUNCE_RATE_WINDOW_S,
+        hard_cap=ANNOUNCE_RATE_HARD_CAP,
+    )
+
+
+def prune_lxmf_incoming_timestamps(
+    stamps: list[float],
+    now: float | None = None,
+) -> list[float]:
+    return prune_time_windowed_floats(
+        stamps,
+        now,
+        window_s=LXMF_INCOMING_RATE_WINDOW_S,
+        hard_cap=LXMF_INCOMING_RATE_HARD_CAP,
+    )
 
 
 def _app_flag(app: Any, name: str) -> bool:
@@ -72,6 +119,7 @@ class MemoryPressureManager:
                 self._last_announce_cache_clean = now
 
         held_dropped = self._maybe_drop_held_announce_queues()
+        extra = self._prune_app_runtime_buffers()
 
         self.last_stats = {
             "nomad_links_swept": max(0, before_nomad - after_nomad),
@@ -84,6 +132,7 @@ class MemoryPressureManager:
             "announce_cache_cleaned": announce_cleaned,
             "held_queues_dropped": held_dropped,
             "sqlite_relaxed": self._sqlite_relaxed,
+            **extra,
         }
         if (
             expired_dropped
@@ -154,6 +203,55 @@ class MemoryPressureManager:
         except Exception as exc:
             _log.debug("drop_announce_queues failed: %s", exc)
             return False
+
+    def _prune_app_runtime_buffers(self) -> dict[str, int]:
+        extra = {
+            "announce_timestamps": 0,
+            "lxmf_incoming_timestamps": 0,
+            "auto_resend_locks_dropped": 0,
+            "rncp_transfers_pruned": 0,
+            "overlay_jobs_pruned": 0,
+            "map_exports_pruned": 0,
+        }
+        app = self.app
+        if app is None:
+            return extra
+        stamps = getattr(app, "announce_timestamps", None)
+        if isinstance(stamps, list):
+            pruned = prune_announce_timestamps(stamps)
+            extra["announce_timestamps"] = max(0, len(stamps) - len(pruned))
+            app.announce_timestamps = pruned
+        incoming = getattr(app, "_lxmf_incoming_timestamps", None)
+        if isinstance(incoming, list):
+            pruned_in = prune_lxmf_incoming_timestamps(incoming)
+            extra["lxmf_incoming_timestamps"] = max(0, len(incoming) - len(pruned_in))
+            app._lxmf_incoming_timestamps = pruned_in
+        try:
+            coord = getattr(app, "_auto_resend_coordinator", None)
+            dropped = coord.evict_unlocked_locks()
+            extra["auto_resend_locks_dropped"] = int(dropped or 0)
+        except Exception:
+            pass
+        ctx = getattr(app, "current_context", None)
+        try:
+            extra["rncp_transfers_pruned"] = int(
+                ctx.rncp_handler.prune_terminal_transfers() or 0,
+            )
+        except Exception:
+            pass
+        try:
+            extra["overlay_jobs_pruned"] = int(
+                ctx.map_overlay_manager.prune_finished_jobs() or 0,
+            )
+        except Exception:
+            pass
+        try:
+            extra["map_exports_pruned"] = int(
+                ctx.map_manager.prune_export_records() or 0
+            )
+        except Exception:
+            pass
+        return extra
 
     def _count_held_announces(self) -> int:
         total = 0

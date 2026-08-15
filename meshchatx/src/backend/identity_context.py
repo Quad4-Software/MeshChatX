@@ -1060,6 +1060,11 @@ class IdentityContext:
         if self.nomadnet_manager:
             self.nomadnet_manager = None
 
+        self.ringtone_manager = None
+        self.notification_sound_manager = None
+        self.translator_handler = None
+        self.community_interfaces_manager = None
+
         if self.database:
             try:
                 if not getattr(self.app, "emergency", False):
