@@ -129,9 +129,31 @@ parallel = true
 
 [tool.mutmut]
 paths_to_mutate = ["meshchatx/src/backend/"]
+# mutmut copies only paths_to_mutate into mutants/, then pytest runs from that
+# directory. meshchatx/ then shadows the installed package as a namespace
+# package, so these non-backend modules must be copied too.
+also_copy = [
+    "meshchatx/__init__.py",
+    "meshchatx/android_codec2.py",
+    "meshchatx/android_push_bridge.py",
+    "meshchatx/meshchat.py",
+    "meshchatx/pycodec2_ctypes.py",
+    "meshchatx/repository_http_standalone.py",
+    "meshchatx/src/__init__.py",
+    "meshchatx/src/build_meta.py",
+    "meshchatx/src/env_utils.py",
+    "meshchatx/src/path_utils.py",
+    "meshchatx/src/ssl_self_signed.py",
+    "meshchatx/src/version.py",
+]
+pytest_add_cli_args = [
+    "-m",
+    "not integration and not long_running and not eect and not lxst_real and not live_validation",
+]
 pytest_add_cli_args_test_selection = [
     "tests/backend/",
     "--ignore=tests/backend/test_performance_hotpaths.py",
     "--ignore=tests/backend/test_memory_profiling.py",
     "--ignore=tests/backend/test_performance_bottlenecks.py",
+    "--ignore=tests/backend/eect",
 ]
