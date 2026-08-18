@@ -22,14 +22,18 @@ export const DEFAULT_ORBIT_PITCH = 0.38;
 export const DEFAULT_ORBIT_DIST = 6.2;
 export const LAYOUT_SCALE_FLOOR = 160;
 /** Scale above max layout radius so the farthest node stays on the back hemisphere. */
-export const LAYOUT_SCALE_FIT = 1.08;
-/** Per-globe wrap floor. Live maxR below this does not retighten the map. */
-export const PLANET_CLUSTER_SCALE_FLOOR = 240;
+export const LAYOUT_SCALE_FIT = 1.05;
+/** Minimum wrap scale. A large floor piles a tight cluster onto the front pole. */
+export const PLANET_CLUSTER_SCALE_FLOOR = 48;
+export const PLANET_RADIUS_MIN = 0.5;
+export const PLANET_RADIUS_MAX = 2.65;
+export const PLANET_HUB_GAP = 0.42;
 /** Keep a peer on its globe unless another interface is this much closer. */
 export const PLANET_HOME_STICKY = 48;
 const CLIP_W_MIN = 1e-3;
-const SCALE_HOLD_LO = 0.85;
-const SCALE_HOLD_HI = 1.15;
+const SCALE_HOLD_LO = 0.72;
+const SCALE_HOLD_HI = 1.35;
+const GOLDEN_ANGLE = 2.399963229728653;
 
 export const PLANET_KIND_ME = 0;
 export const PLANET_KIND_IFACE_ON = 1;
@@ -37,9 +41,6 @@ export const PLANET_KIND_IFACE_OFF = 2;
 export const PLANET_KIND_PEER = 3;
 export const PLANET_KIND_DISCOVERED = 4;
 
-const meridians = 14;
-const parallels = 6;
-const gridSegs = 18;
 const ringSegs = 64;
 
 const PLANET_PALETTE = [
@@ -53,11 +54,15 @@ const PLANET_PALETTE = [
     [0.55, 0.52, 0.2],
 ];
 
-/** @type {{x1:number,y1:number,z1:number,x2:number,y2:number,z2:number}[]|null} */
-let globeGridCache = null;
+/** @type {Map<string, {x1:number,y1:number,z1:number,x2:number,y2:number,z2:number}[]>} */
+const globeGridCache = new Map();
 
 let nodeScratch = new Float32Array(0);
 let edgeScratch = new Float32Array(0);
+const clipA = { x: 0, y: 0, z: 0, w: 0 };
+const clipB = { x: 0, y: 0, z: 0, w: 0 };
+let spriteScratch = [];
+let worldScratch = [];
 
 /**
  * @param {unknown} raw
@@ -75,23 +80,34 @@ export function isPlanetInterfaceKind(kind) {
 }
 
 /**
- * @param {number} yaw
- * @param {number} pitch
- * @param {number} dist
+ * @param {number} planetCount
+ * @param {number} [maxPlanetRadius]
  */
-export function orbitDistFloor(planetCount) {
-    return Math.max(PLANET_DIST_MIN, hubRadiusForPlanetCount(planetCount) + 1.6);
+export function orbitDistFloor(planetCount, maxPlanetRadius) {
+    const hub = hubRadiusForPlanetCount(planetCount, maxPlanetRadius);
+    const r = maxPlanetRadius > 0 ? maxPlanetRadius : PLANET_RADIUS_MIN;
+    return Math.max(PLANET_DIST_MIN, hub + r + 1.15);
 }
 
-export function clampOrbit(yaw, pitch, dist, planetCount) {
+/**
+ * @param {number} planetCount
+ * @param {number} [maxPlanetRadius]
+ */
+export function orbitDistCeiling(planetCount, maxPlanetRadius) {
+    const floor = orbitDistFloor(planetCount, maxPlanetRadius);
+    return Math.max(PLANET_DIST_MAX, floor + 8);
+}
+
+export function clampOrbit(yaw, pitch, dist, planetCount, maxPlanetRadius) {
     let y = Number.isFinite(yaw) ? yaw : DEFAULT_ORBIT_YAW;
     let p = Number.isFinite(pitch) ? pitch : DEFAULT_ORBIT_PITCH;
     if (p < -PLANET_PITCH_LIMIT) p = -PLANET_PITCH_LIMIT;
     if (p > PLANET_PITCH_LIMIT) p = PLANET_PITCH_LIMIT;
     let d = Number.isFinite(dist) && dist > 0 ? dist : DEFAULT_ORBIT_DIST;
-    const minD = planetCount != null ? orbitDistFloor(planetCount) : PLANET_DIST_MIN;
+    const minD = planetCount != null ? orbitDistFloor(planetCount, maxPlanetRadius) : PLANET_DIST_MIN;
+    const maxD = planetCount != null ? orbitDistCeiling(planetCount, maxPlanetRadius) : PLANET_DIST_MAX;
     if (d < minD) d = minD;
-    if (d > PLANET_DIST_MAX) d = PLANET_DIST_MAX;
+    if (d > maxD) d = maxD;
     return { yaw: y, pitch: p, dist: d };
 }
 
@@ -232,13 +248,13 @@ export function mat4Multiply(a, b) {
     return out;
 }
 
-export function transformPoint(m, x, y, z) {
-    return {
-        x: m[0] * x + m[4] * y + m[8] * z + m[12],
-        y: m[1] * x + m[5] * y + m[9] * z + m[13],
-        z: m[2] * x + m[6] * y + m[10] * z + m[14],
-        w: m[3] * x + m[7] * y + m[11] * z + m[15],
-    };
+export function transformPoint(m, x, y, z, out) {
+    const dest = out || { x: 0, y: 0, z: 0, w: 0 };
+    dest.x = m[0] * x + m[4] * y + m[8] * z + m[12];
+    dest.y = m[1] * x + m[5] * y + m[9] * z + m[13];
+    dest.z = m[2] * x + m[6] * y + m[10] * z + m[14];
+    dest.w = m[3] * x + m[7] * y + m[11] * z + m[15];
+    return dest;
 }
 
 /**
@@ -299,7 +315,7 @@ export function stabilizeLayoutScale(computed, prev) {
     if (!(prev > 1e-6)) return next;
     const ratio = next / prev;
     if (ratio >= SCALE_HOLD_LO && ratio <= SCALE_HOLD_HI) return prev;
-    return next;
+    return prev * 0.55 + next * 0.45;
 }
 
 export function screenToDrawWorld(sx, sy, width, height) {
@@ -324,35 +340,40 @@ function sph(lon, lat) {
     return { x: cl * Math.cos(lon), y: Math.sin(lat), z: cl * Math.sin(lon) };
 }
 
-export function buildGlobeGrid() {
-    if (globeGridCache) return globeGridCache;
+export function buildGlobeGrid(meridianCount = 12, parallelCount = 5, segs = 12) {
+    const m = Math.max(4, meridianCount | 0);
+    const p = Math.max(2, parallelCount | 0);
+    const g = Math.max(6, segs | 0);
+    const key = `${m}:${p}:${g}`;
+    const cached = globeGridCache.get(key);
+    if (cached) return cached;
     const lines = [];
-    for (let i = 0; i < meridians; i++) {
-        const lon = (i / meridians) * Math.PI * 2;
+    for (let i = 0; i < m; i++) {
+        const lon = (i / m) * Math.PI * 2;
         let prev = null;
-        for (let s = 0; s <= gridSegs; s++) {
-            const lat = Math.PI / 2 - (s / gridSegs) * Math.PI;
-            const p = sph(lon, lat);
+        for (let s = 0; s <= g; s++) {
+            const lat = Math.PI / 2 - (s / g) * Math.PI;
+            const pt = sph(lon, lat);
             if (prev) {
-                lines.push({ x1: prev.x, y1: prev.y, z1: prev.z, x2: p.x, y2: p.y, z2: p.z });
+                lines.push({ x1: prev.x, y1: prev.y, z1: prev.z, x2: pt.x, y2: pt.y, z2: pt.z });
             }
-            prev = p;
+            prev = pt;
         }
     }
-    for (let j = 1; j <= parallels; j++) {
-        const lat = Math.PI / 2 - (j / (parallels + 1)) * Math.PI;
+    for (let j = 1; j <= p; j++) {
+        const lat = Math.PI / 2 - (j / (p + 1)) * Math.PI;
         let prev = null;
         const first = sph(0, lat);
-        for (let s = 1; s <= gridSegs; s++) {
-            const lon = (s / gridSegs) * Math.PI * 2;
-            const p = s === gridSegs ? first : sph(lon, lat);
+        for (let s = 1; s <= g; s++) {
+            const lon = (s / g) * Math.PI * 2;
+            const pt = s === g ? first : sph(lon, lat);
             if (prev) {
-                lines.push({ x1: prev.x, y1: prev.y, z1: prev.z, x2: p.x, y2: p.y, z2: p.z });
+                lines.push({ x1: prev.x, y1: prev.y, z1: prev.z, x2: pt.x, y2: pt.y, z2: pt.z });
             }
-            prev = p;
+            prev = pt;
         }
     }
-    globeGridCache = lines;
+    globeGridCache.set(key, lines);
     return lines;
 }
 
@@ -401,24 +422,27 @@ export function raySphereAt(origin, dir, cx, cy, cz, radius) {
     return { x: hit.x + cx, y: hit.y + cy, z: hit.z + cz, t: hit.t };
 }
 
-export function hubRadiusForPlanetCount(n) {
+export function hubRadiusForPlanetCount(n, maxPlanetRadius) {
     const c = Math.max(1, n | 0);
-    if (c <= 1) return 1.72;
-    return 1.5 + 0.28 * Math.min(c, 8);
+    const r = maxPlanetRadius > 0 ? maxPlanetRadius : PLANET_RADIUS_MIN;
+    if (c <= 1) return 1.35 + r;
+    const minCenterDist = 2 * r + PLANET_HUB_GAP;
+    const ring = minCenterDist / (2 * Math.sin(Math.PI / c));
+    return Math.max(1.35 + r, ring);
 }
 
 export function planetRadiusForPeers(n) {
     const c = Math.max(0, n | 0);
-    return Math.min(0.7, 0.52 + 0.035 * Math.sqrt(c));
+    return Math.min(PLANET_RADIUS_MAX, PLANET_RADIUS_MIN + 0.11 * Math.sqrt(c));
 }
 
 /**
  * Centers for n interface planets on a ring around the origin.
  * First planet sits on +X so the local node stays visible on camera +Z.
  */
-export function placePlanetCenters(count) {
+export function placePlanetCenters(count, maxPlanetRadius) {
     const n = Math.max(0, count | 0);
-    const R = hubRadiusForPlanetCount(n);
+    const R = hubRadiusForPlanetCount(n, maxPlanetRadius);
     const out = [];
     for (let i = 0; i < n; i++) {
         const ang = n === 1 ? 0 : (i / n) * Math.PI * 2;
@@ -429,6 +453,146 @@ export function placePlanetCenters(count) {
         });
     }
     return out;
+}
+
+function tangentBasis(nx, ny, nz) {
+    let rx = 0;
+    let ry = 1;
+    let rz = 0;
+    if (Math.abs(ny) > 0.92) {
+        rx = 1;
+        ry = 0;
+    }
+    let cx = ny * rz - nz * ry;
+    let cy = nz * rx - nx * rz;
+    let cz = nx * ry - ny * rx;
+    let rl = Math.hypot(cx, cy, cz) || 1;
+    cx /= rl;
+    cy /= rl;
+    cz /= rl;
+    return {
+        rx: cx,
+        ry: cy,
+        rz: cz,
+        ux: cy * nz - cz * ny,
+        uy: cz * nx - cx * nz,
+        uz: cx * ny - cy * nx,
+    };
+}
+
+function setUnit(p, x, y, z) {
+    const len = Math.hypot(x, y, z) || 1;
+    p.x = x / len;
+    p.y = y / len;
+    p.z = z / len;
+}
+
+/**
+ * Minimum angular gap for n points on a unit sphere.
+ * @param {number} n
+ */
+export function planetMinAngle(n) {
+    const c = Math.max(1, n | 0);
+    return Math.min(0.52, 1.38 / Math.sqrt(c));
+}
+
+/**
+ * Unstick stacked unit-sphere points and push near neighbors apart.
+ * Deterministic. Uses a golden-angle cap for coincident groups.
+ *
+ * @param {{x:number,y:number,z:number}[]} points
+ * @param {number} minAngle
+ */
+export function spreadSphereLocals(points, minAngle) {
+    const n = points && points.length ? points.length : 0;
+    if (n < 2 || !(minAngle > 1e-4)) return points;
+    const quant = 2500;
+    const groups = new Map();
+    for (let i = 0; i < n; i++) {
+        const p = points[i];
+        const key = `${Math.round(p.x * quant)}:${Math.round(p.y * quant)}:${Math.round(p.z * quant)}`;
+        let g = groups.get(key);
+        if (!g) {
+            g = [];
+            groups.set(key, g);
+        }
+        g.push(i);
+    }
+    for (const g of groups.values()) {
+        if (g.length < 2) return;
+        const mean = points[g[0]];
+        const b = tangentBasis(mean.x, mean.y, mean.z);
+        const cap = Math.min(0.78, minAngle * Math.sqrt(g.length));
+        const m = g.length;
+        for (let k = 0; k < m; k++) {
+            const t = (k + 0.5) / m;
+            const phiOff = cap * Math.sqrt(t);
+            const th = k * GOLDEN_ANGLE;
+            const sp = Math.sin(phiOff);
+            const cp = Math.cos(phiOff);
+            const ca = Math.cos(th);
+            const sa = Math.sin(th);
+            setUnit(
+                points[g[k]],
+                mean.x * cp + (b.rx * ca + b.ux * sa) * sp,
+                mean.y * cp + (b.ry * ca + b.uy * sa) * sp,
+                mean.z * cp + (b.rz * ca + b.uz * sa) * sp
+            );
+        }
+    }
+
+    const minDot = Math.cos(Math.min(minAngle, Math.PI * 0.45));
+    const cell = Math.max(minAngle, 0.14);
+    const iters = n > 220 ? 2 : 3;
+    const push = 0.32;
+    for (let iter = 0; iter < iters; iter++) {
+        const buckets = new Map();
+        for (let i = 0; i < n; i++) {
+            const p = points[i];
+            const theta = Math.atan2(p.y, p.x);
+            const phi = Math.acos(Math.max(-1, Math.min(1, p.z)));
+            const kx = Math.floor(theta / cell);
+            const ky = Math.floor(phi / cell);
+            const key = kx * 100003 + ky;
+            let list = buckets.get(key);
+            if (!list) {
+                list = [];
+                buckets.set(key, list);
+            }
+            list.push(i);
+        }
+        for (let i = 0; i < n; i++) {
+            const a = points[i];
+            const theta = Math.atan2(a.y, a.x);
+            const phi = Math.acos(Math.max(-1, Math.min(1, a.z)));
+            const kx = Math.floor(theta / cell);
+            const ky = Math.floor(phi / cell);
+            let fx = 0;
+            let fy = 0;
+            let fz = 0;
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    const list = buckets.get((kx + dx) * 100003 + (ky + dy));
+                    if (!list) continue;
+                    for (let li = 0; li < list.length; li++) {
+                        const j = list[li];
+                        if (j === i) continue;
+                        const b = points[j];
+                        const dot = a.x * b.x + a.y * b.y + a.z * b.z;
+                        if (dot < minDot) continue;
+                        const overlap = (dot - minDot) / (1 - minDot + 1e-6);
+                        fx += (a.x - b.x) * overlap;
+                        fy += (a.y - b.y) * overlap;
+                        fz += (a.z - b.z) * overlap;
+                    }
+                }
+            }
+            if (fx === 0 && fy === 0 && fz === 0) continue;
+            const tdot = fx * a.x + fy * a.y + fz * a.z;
+            setUnit(a, a.x + (fx - tdot * a.x) * push, a.y + (fy - tdot * a.y) * push, a.z + (fz - tdot * a.z) * push);
+        }
+    }
+    return points;
 }
 
 function kindOf(i, kindByIndex, idByIndex) {
@@ -582,6 +746,93 @@ function localScaleForPlanet(nodes, srcCount, home, planetIndex, ifaceIndex, fal
     return Math.max(maxR * LAYOUT_SCALE_FIT, PLANET_CLUSTER_SCALE_FLOOR);
 }
 
+function posKey(x, y) {
+    return (Math.round(x * 2) + 500000) * 1000003 + (Math.round(y * 2) + 500000);
+}
+
+function buildNodePosIndex(nodes, count) {
+    const map = new Map();
+    for (let n = 0; n < count; n++) {
+        const o = n * NODE_STRIDE;
+        const key = posKey(nodes[o] || 0, nodes[o + 1] || 0);
+        let list = map.get(key);
+        if (!list) {
+            list = [];
+            map.set(key, list);
+        }
+        list.push(n);
+    }
+    return map;
+}
+
+function nearestNodeAt(map, x, y, nodes, maxD) {
+    const kx = Math.round(x * 2);
+    const ky = Math.round(y * 2);
+    let best = -1;
+    let bestD = maxD;
+    for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+            const list = map.get((kx + dx + 500000) * 1000003 + (ky + dy + 500000));
+            if (!list) continue;
+            for (let li = 0; li < list.length; li++) {
+                const n = list[li];
+                const o = n * NODE_STRIDE;
+                const d = Math.hypot((nodes[o] || 0) - x, (nodes[o + 1] || 0) - y);
+                if (d < bestD) {
+                    bestD = d;
+                    best = n;
+                }
+            }
+        }
+    }
+    return best;
+}
+
+function takeWorld(i) {
+    let w = worldScratch[i];
+    if (!w) {
+        w = { x: 0, y: 0, z: 0, nx: 0, ny: 0, nz: 1, planet: -1 };
+        worldScratch[i] = w;
+    }
+    return w;
+}
+
+function setWorld(i, x, y, z, nx, ny, nz, planet) {
+    const w = takeWorld(i);
+    w.x = x;
+    w.y = y;
+    w.z = z;
+    w.nx = nx;
+    w.ny = ny;
+    w.nz = nz;
+    w.planet = planet;
+    return w;
+}
+
+function takeSprite(i) {
+    let s = spriteScratch[i];
+    if (!s) {
+        s = {
+            x: 0,
+            y: 0,
+            z: 0,
+            size: 0,
+            r: 0,
+            g: 0,
+            b: 0,
+            a: 0,
+            useTex: 0,
+            u: 0,
+            v: 0,
+            sx: 0,
+            sy: 0,
+            ok: true,
+        };
+        spriteScratch[i] = s;
+    }
+    return s;
+}
+
 /**
  * Project the 2D graph onto per-interface globes.
  *
@@ -619,28 +870,37 @@ export function projectPlanetScene(opts) {
 
     const assigned = assignPlanetHomes(srcCount, kindByIndex, idByIndex, srcNodes, opts?.prevHomeById);
     const planetCount = assigned.fallback ? (srcCount > 1 ? 1 : 0) : assigned.ifaceIndices.length;
-    const orbit = clampOrbit(
-        opts?.yaw ?? DEFAULT_ORBIT_YAW,
-        opts?.pitch ?? DEFAULT_ORBIT_PITCH,
-        opts?.dist ?? DEFAULT_ORBIT_DIST,
-        planetCount
-    );
-    const eye = orbitEye(orbit.yaw, orbit.pitch, orbit.dist);
-    const view = lookAtOrigin(eye);
-    const proj = perspective(PLANET_FOV_Y, width / height, PLANET_NEAR, PLANET_FAR);
-    const viewProj = mat4Multiply(proj, view);
-    const centers = placePlanetCenters(planetCount);
     const memberCounts = new Array(Math.max(planetCount, 1)).fill(0);
     for (let i = 0; i < srcCount; i++) {
         const h = assigned.home[i];
         if (h >= 0 && h < memberCounts.length) memberCounts[h] += 1;
     }
+    let maxPlanetR = PLANET_RADIUS_MIN;
+    const radii = new Array(planetCount);
+    for (let p = 0; p < planetCount; p++) {
+        radii[p] = planetRadiusForPeers(Math.max(0, memberCounts[p] - (assigned.fallback ? 0 : 1)));
+        if (radii[p] > maxPlanetR) maxPlanetR = radii[p];
+    }
+    const orbit = clampOrbit(
+        opts?.yaw ?? DEFAULT_ORBIT_YAW,
+        opts?.pitch ?? DEFAULT_ORBIT_PITCH,
+        opts?.dist ?? DEFAULT_ORBIT_DIST,
+        planetCount,
+        maxPlanetR
+    );
+    const hub = hubRadiusForPlanetCount(Math.max(planetCount, 1), maxPlanetR);
+    const eye = orbitEye(orbit.yaw, orbit.pitch, orbit.dist);
+    const view = lookAtOrigin(eye);
+    const far = Math.max(PLANET_FAR, orbit.dist + hub + maxPlanetR + 8);
+    const proj = perspective(PLANET_FOV_Y, width / height, PLANET_NEAR, far);
+    const viewProj = mat4Multiply(proj, view);
+    const centers = placePlanetCenters(planetCount, maxPlanetR);
 
     const planets = [];
     for (let p = 0; p < planetCount; p++) {
         const ifaceIndex = assigned.fallback ? -1 : assigned.ifaceIndices[p];
         const c = centers[p] || { cx: 1.7, cy: 0.1, cz: 0 };
-        const radius = planetRadiusForPeers(Math.max(0, memberCounts[p] - (assigned.fallback ? 0 : 1)));
+        const radius = radii[p];
         const originX = ifaceIndex >= 0 ? srcNodes[ifaceIndex * NODE_STRIDE] || 0 : 0;
         const originY = ifaceIndex >= 0 ? srcNodes[ifaceIndex * NODE_STRIDE + 1] || 0 : 0;
         const id = ifaceIndex >= 0 && idByIndex[ifaceIndex] != null ? String(idByIndex[ifaceIndex]) : `planet-${p}`;
@@ -664,59 +924,88 @@ export function projectPlanetScene(opts) {
         });
     }
 
-    const world = new Array(srcCount);
     for (let i = 0; i < srcCount; i++) {
         const k = kindOf(i, kindByIndex, idByIndex);
         if (k === PLANET_KIND_ME) {
-            world[i] = { x: 0, y: 0, z: 0, nx: 0, ny: 0, nz: 1, planet: -1 };
+            setWorld(i, 0, 0, 0, 0, 0, 1, -1);
             continue;
         }
         const p = planets[assigned.home[i]];
         if (!p) {
-            world[i] = { x: 0, y: 0, z: 0, nx: 0, ny: 0, nz: 1, planet: -1 };
+            setWorld(i, 0, 0, 0, 0, 0, 1, -1);
             continue;
         }
         if (!assigned.fallback && i === p.ifaceIndex) {
-            world[i] = { x: p.cx, y: p.cy, z: p.cz, nx: 0, ny: 0, nz: 1, planet: assigned.home[i] };
+            setWorld(i, p.cx, p.cy, p.cz, 0, 0, 1, assigned.home[i]);
             continue;
         }
         const o = i * NODE_STRIDE;
         const local = layoutToSphere((srcNodes[o] || 0) - p.originX, (srcNodes[o + 1] || 0) - p.originY, p.layoutScale);
-        world[i] = {
-            x: p.cx + local.x * p.radius,
-            y: p.cy + local.y * p.radius,
-            z: p.cz + local.z * p.radius,
-            nx: local.x,
-            ny: local.y,
-            nz: local.z,
-            planet: assigned.home[i],
-        };
+        setWorld(
+            i,
+            p.cx + local.x * p.radius,
+            p.cy + local.y * p.radius,
+            p.cz + local.z * p.radius,
+            local.x,
+            local.y,
+            local.z,
+            assigned.home[i]
+        );
     }
 
-    const sprites = [];
+    for (let p = 0; p < planetCount; p++) {
+        const idxs = [];
+        const locals = [];
+        const pl = planets[p];
+        for (let i = 0; i < srcCount; i++) {
+            if (assigned.home[i] !== p) continue;
+            if (!assigned.fallback && i === pl.ifaceIndex) continue;
+            if (kindOf(i, kindByIndex, idByIndex) === PLANET_KIND_ME) continue;
+            idxs.push(i);
+            const w = worldScratch[i];
+            locals.push({ x: w.nx, y: w.ny, z: w.nz });
+        }
+        if (locals.length < 2) continue;
+        spreadSphereLocals(locals, planetMinAngle(locals.length));
+        for (let k = 0; k < idxs.length; k++) {
+            const loc = locals[k];
+            setWorld(
+                idxs[k],
+                pl.cx + loc.x * pl.radius,
+                pl.cy + loc.y * pl.radius,
+                pl.cz + loc.z * pl.radius,
+                loc.x,
+                loc.y,
+                loc.z,
+                p
+            );
+        }
+    }
+
+    let spriteCount = 0;
     const addSprite = (wx, wy, wz, size, r, g, b, a, useTex, u, v) => {
-        const clip = transformPoint(viewProj, wx, wy, wz);
+        const clip = transformPoint(viewProj, wx, wy, wz, clipA);
         const screen = clipToScreen(clip.x, clip.y, clip.w, width, height);
         if (!screen.ok && clip.w <= 0) return null;
         const draw = screenToDrawWorld(screen.x, screen.y, width, height);
         const viewZ = Math.hypot(wx - eye.x, wy - eye.y, wz - eye.z);
-        sprites.push({
-            x: draw.x,
-            y: draw.y,
-            z: viewZ,
-            size,
-            r,
-            g,
-            b,
-            a,
-            useTex,
-            u,
-            v,
-            sx: screen.x,
-            sy: screen.y,
-            ok: screen.ok,
-        });
-        return sprites[sprites.length - 1];
+        const spr = takeSprite(spriteCount);
+        spriteCount += 1;
+        spr.x = draw.x;
+        spr.y = draw.y;
+        spr.z = viewZ;
+        spr.size = size;
+        spr.r = r;
+        spr.g = g;
+        spr.b = b;
+        spr.a = a;
+        spr.useTex = useTex;
+        spr.u = u;
+        spr.v = v;
+        spr.sx = screen.x;
+        spr.sy = screen.y;
+        spr.ok = screen.ok;
+        return spr;
     };
 
     for (let p = 0; p < planets.length; p++) {
@@ -746,7 +1035,7 @@ export function projectPlanetScene(opts) {
     const projected = new Array(srcCount);
     const pick = [];
     for (let i = 0; i < srcCount; i++) {
-        const w = world[i];
+        const w = worldScratch[i];
         const o = i * NODE_STRIDE;
         const k = kindOf(i, kindByIndex, idByIndex);
         const pl = w.planet >= 0 ? planets[w.planet] : null;
@@ -759,6 +1048,10 @@ export function projectPlanetScene(opts) {
         let size = Math.max(7, (srcNodes[o + 2] || 18) * persp);
         if (k === PLANET_KIND_ME) size = Math.max(size, 20);
         if (isPlanetInterfaceKind(k)) size = Math.max(size, 16);
+        else if (pl) {
+            const crowd = Math.max(1, memberCounts[w.planet] - (assigned.fallback ? 0 : 1));
+            if (crowd > 12) size *= Math.max(0.5, Math.sqrt(12 / crowd));
+        }
         const front = facing > 0;
         const a = front ? srcNodes[o + 6] || 1 : Math.max(0.1, (srcNodes[o + 6] || 1) * 0.2);
         const spr = addSprite(
@@ -789,14 +1082,15 @@ export function projectPlanetScene(opts) {
         }
     }
 
-    sprites.sort((a, b) => b.z - a.z);
-    const nodeNeed = sprites.length * NODE_STRIDE;
+    const drawnSprites = spriteScratch.slice(0, spriteCount);
+    drawnSprites.sort((a, b) => b.z - a.z);
+    const nodeNeed = spriteCount * NODE_STRIDE;
     if (nodeScratch.length < nodeNeed) {
         nodeScratch = new Float32Array(nodeNeed);
     }
-    for (let s = 0; s < sprites.length; s++) {
+    for (let s = 0; s < spriteCount; s++) {
         const d = s * NODE_STRIDE;
-        const n = sprites[s];
+        const n = drawnSprites[s];
         nodeScratch[d] = n.x;
         nodeScratch[d + 1] = n.y;
         nodeScratch[d + 2] = n.size;
@@ -809,7 +1103,8 @@ export function projectPlanetScene(opts) {
         nodeScratch[d + 9] = n.v;
     }
 
-    const grid = buildGlobeGrid();
+    const denseGrid = srcCount < 90 && planetCount < 6 && orbit.dist < 8.5;
+    const grid = denseGrid ? buildGlobeGrid(12, 5, 12) : buildGlobeGrid(8, 3, 8);
     const edgeNeed = (planets.length * (grid.length + 8) + srcEdgeCount + ringSegs + planetCount) * EDGE_STRIDE;
     if (edgeScratch.length < edgeNeed) {
         edgeScratch = new Float32Array(Math.max(edgeNeed, 64));
@@ -828,9 +1123,9 @@ export function projectPlanetScene(opts) {
             const f2 = sphereFacingAt(n2x, n2y, n2z, eye, cx, cy, cz, radius);
             if (f1 <= 0 || f2 <= 0) return;
         }
-        const c1 = transformPoint(viewProj, x1, y1, z1);
-        const c2 = transformPoint(viewProj, x2, y2, z2);
-        const clipped = clipLineToPositiveW(c1, c2);
+        transformPoint(viewProj, x1, y1, z1, clipA);
+        transformPoint(viewProj, x2, y2, z2, clipB);
+        const clipped = clipLineToPositiveW(clipA, clipB);
         if (!clipped) return;
         const s1 = clipToScreen(clipped.x1, clipped.y1, clipped.w1, width, height);
         const s2 = clipToScreen(clipped.x2, clipped.y2, clipped.w2, width, height);
@@ -853,7 +1148,7 @@ export function projectPlanetScene(opts) {
         w += 1;
     };
 
-    const ringR = hubRadiusForPlanetCount(Math.max(planetCount, 1));
+    const ringR = hub;
     const ringCol = dark ? [0.28, 0.4, 0.55, 0.22] : [0.45, 0.55, 0.7, 0.28];
     let prevRing = null;
     for (let s = 0; s <= ringSegs; s++) {
@@ -924,32 +1219,18 @@ export function projectPlanetScene(opts) {
     }
 
     const EDGE_MATCH = 0.75;
+    const nodeIndex = srcEdgeCount > 0 ? buildNodePosIndex(srcNodes, srcCount) : null;
     for (let i = 0; i < srcEdgeCount; i++) {
         const o = i * EDGE_STRIDE;
-        let ia = -1;
-        let ib = -1;
-        let da = EDGE_MATCH;
-        let db = EDGE_MATCH;
         const x1 = srcEdges[o];
         const y1 = srcEdges[o + 1];
         const x2 = srcEdges[o + 2];
         const y2 = srcEdges[o + 3];
-        for (let n = 0; n < srcCount; n++) {
-            const no = n * NODE_STRIDE;
-            const a = Math.hypot((srcNodes[no] || 0) - x1, (srcNodes[no + 1] || 0) - y1);
-            const b = Math.hypot((srcNodes[no] || 0) - x2, (srcNodes[no + 1] || 0) - y2);
-            if (a < da) {
-                da = a;
-                ia = n;
-            }
-            if (b < db) {
-                db = b;
-                ib = n;
-            }
-        }
+        const ia = nearestNodeAt(nodeIndex, x1, y1, srcNodes, EDGE_MATCH);
+        const ib = nearestNodeAt(nodeIndex, x2, y2, srcNodes, EDGE_MATCH);
         if (ia < 0 || ib < 0 || ia === ib) continue;
-        const wa = world[ia];
-        const wb = world[ib];
+        const wa = worldScratch[ia];
+        const wb = worldScratch[ib];
         if (!wa || !wb) continue;
         if (wa.planet !== wb.planet || wa.planet < 0) continue;
         const pa = projected[ia];

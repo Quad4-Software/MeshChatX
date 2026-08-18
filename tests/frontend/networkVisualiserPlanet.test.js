@@ -18,8 +18,10 @@ import {
     pickPlanetNode,
     pointerToLayout,
     placePlanetCenters,
+    planetRadiusForPeers,
     projectPlanetScene,
     raySphere,
+    spreadSphereLocals,
     stabilizeLayoutScale,
     normalizeVisualiserViewMode,
 } from "@/js/networkVisualiserPlanet.js";
@@ -258,8 +260,10 @@ describe("networkVisualiserPlanet", () => {
 
     it("holds layout scale across small cluster size changes", () => {
         expect(stabilizeLayoutScale(280, 260)).toBe(260);
-        expect(stabilizeLayoutScale(400, 260)).toBe(400);
         expect(stabilizeLayoutScale(200, null)).toBe(200);
+        const jumped = stabilizeLayoutScale(400, 260);
+        expect(jumped).toBeGreaterThan(260);
+        expect(jumped).toBeLessThan(400);
     });
 
     it("keeps a peer on its previous interface across a nearby boundary", () => {
@@ -314,6 +318,104 @@ describe("networkVisualiserPlanet", () => {
         same[7] = 1;
         const withSame = projectPlanetScene({ ...base, edges: same });
         expect(withSame.edges.length).toBe(none.edges.length + EDGE_STRIDE);
+    });
+
+    it("grows planet radius with peer count instead of capping at 0.7", () => {
+        expect(planetRadiusForPeers(2)).toBeGreaterThan(0.49);
+        expect(planetRadiusForPeers(80)).toBeGreaterThan(planetRadiusForPeers(8));
+        expect(planetRadiusForPeers(80)).toBeGreaterThan(0.7);
+        expect(planetRadiusForPeers(400)).toBeLessThanOrEqual(2.65);
+    });
+
+    it("spaces planet centers so large globes do not overlap", () => {
+        const r = 1.4;
+        const centers = placePlanetCenters(3, r);
+        const d01 = Math.hypot(centers[0].cx - centers[1].cx, centers[0].cz - centers[1].cz);
+        expect(d01).toBeGreaterThanOrEqual(2 * r + 0.4 - 0.02);
+    });
+
+    it("wraps a tight peer cluster using the cluster radius not a 240 floor", () => {
+        const n = 20;
+        const nodes = new Float32Array(DRAW_STRIDE * (2 + n));
+        packNode(nodes, 0, 0, 0, 32);
+        packNode(nodes, 1, 200, 0, 24);
+        const ids = ["me", "eth0"];
+        const kinds = [PLANET_KIND_ME, PLANET_KIND_IFACE_ON];
+        for (let i = 0; i < n; i++) {
+            const ang = (i / n) * Math.PI * 2;
+            packNode(nodes, 2 + i, 200 + 22 * Math.cos(ang), 22 * Math.sin(ang), 18);
+            ids.push(`p${i}`);
+            kinds.push(PLANET_KIND_PEER);
+        }
+        const out = projectPlanetScene({
+            nodes,
+            edges: new Float32Array(0),
+            width: 800,
+            height: 600,
+            yaw: 0,
+            pitch: 0,
+            dist: DEFAULT_ORBIT_DIST,
+            dark: true,
+            idByIndex: ids,
+            kindByIndex: kinds,
+        });
+        expect(out.planets).toHaveLength(1);
+        expect(out.planets[0].radius).toBeGreaterThan(0.7);
+        expect(out.planets[0].layoutScale).toBeLessThan(80);
+        expect(out.planets[0].layoutScale).toBeGreaterThan(20);
+    });
+
+    it("separates stacked peers on a planet so they do not share one pixel", () => {
+        const n = 8;
+        const nodes = new Float32Array(DRAW_STRIDE * (2 + n));
+        packNode(nodes, 0, 0, 0, 32);
+        packNode(nodes, 1, 200, 0, 24);
+        const ids = ["me", "eth0"];
+        const kinds = [PLANET_KIND_ME, PLANET_KIND_IFACE_ON];
+        for (let i = 0; i < n; i++) {
+            packNode(nodes, 2 + i, 210, 0, 18);
+            ids.push(`p${i}`);
+            kinds.push(PLANET_KIND_PEER);
+        }
+        const out = projectPlanetScene({
+            nodes,
+            edges: new Float32Array(0),
+            width: 800,
+            height: 600,
+            yaw: 0,
+            pitch: 0.2,
+            dist: DEFAULT_ORBIT_DIST,
+            dark: true,
+            idByIndex: ids,
+            kindByIndex: kinds,
+        });
+        const picks = out.pick.filter((p) => p.id.startsWith("p"));
+        expect(picks.length).toBeGreaterThan(1);
+        let maxD = 0;
+        for (let i = 0; i < picks.length; i++) {
+            for (let j = i + 1; j < picks.length; j++) {
+                const d = Math.hypot(picks[i].sx - picks[j].sx, picks[i].sy - picks[j].sy);
+                if (d > maxD) maxD = d;
+            }
+        }
+        expect(maxD).toBeGreaterThan(8);
+    });
+
+    it("spreads coincident unit-sphere points off a shared pole", () => {
+        const pts = [
+            { x: 0, y: 0, z: 1 },
+            { x: 0, y: 0, z: 1 },
+            { x: 0, y: 0, z: 1 },
+            { x: 0, y: 0, z: 1 },
+        ];
+        spreadSphereLocals(pts, 0.35);
+        const dots = [];
+        for (let i = 0; i < pts.length; i++) {
+            for (let j = i + 1; j < pts.length; j++) {
+                dots.push(pts[i].x * pts[j].x + pts[i].y * pts[j].y + pts[i].z * pts[j].z);
+            }
+        }
+        expect(Math.min(...dots)).toBeLessThan(0.98);
     });
 
     it("keeps projected edges finite when the camera is close", () => {
