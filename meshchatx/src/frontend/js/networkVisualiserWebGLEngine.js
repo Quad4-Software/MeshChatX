@@ -333,6 +333,8 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
     let lastPlanets = [];
     /** @type {Record<string, string>} */
     let planetHomeById = Object.create(null);
+    /** @type {number[]} */
+    let kindByIndexScratch = [];
 
     function cssPoint(ev) {
         const rect = canvas.getBoundingClientRect();
@@ -490,7 +492,12 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
     }
 
     function applyPlanetOrbit(nextYaw, nextPitch, nextDist) {
-        const c = clampOrbit(nextYaw, nextPitch, nextDist, lastPlanets.length);
+        let maxR = 0;
+        for (let i = 0; i < lastPlanets.length; i++) {
+            const r = lastPlanets[i].radius;
+            if (r > maxR) maxR = r;
+        }
+        const c = clampOrbit(nextYaw, nextPitch, nextDist, lastPlanets.length, maxR);
         orbitYaw = c.yaw;
         orbitPitch = c.pitch;
         orbitDist = c.dist;
@@ -529,9 +536,9 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
         let paintNodes = drawNodes;
         const css = renderer.getCssSize();
         if (isPlanet()) {
-            const kindByIndex = [];
+            if (kindByIndexScratch.length < sceneCount) kindByIndexScratch.length = sceneCount;
             for (let i = 0; i < sceneCount; i++) {
-                kindByIndex[i] = buf.nodes[i * SCENE_NODE_STRIDE + 7] | 0;
+                kindByIndexScratch[i] = buf.nodes[i * SCENE_NODE_STRIDE + 7] | 0;
             }
             const planet = projectPlanetScene({
                 nodes: drawNodes,
@@ -543,7 +550,7 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
                 dist: orbitDist,
                 dark,
                 idByIndex,
-                kindByIndex,
+                kindByIndex: kindByIndexScratch,
                 prevPlanets: lastPlanets,
                 prevHomeById: planetHomeById,
             });
