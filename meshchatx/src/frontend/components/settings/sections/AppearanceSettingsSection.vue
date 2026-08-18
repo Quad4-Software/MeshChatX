@@ -268,7 +268,7 @@
                             <input
                                 :value="config.message_outbound_bubble_color"
                                 type="color"
-                                class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
+                                class="color-fill-input w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 cursor-pointer"
                                 @input="onBubbleColorInput('outbound', $event)"
                             />
                             <input
@@ -288,7 +288,7 @@
                             <input
                                 :value="config.message_failed_bubble_color"
                                 type="color"
-                                class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
+                                class="color-fill-input w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 cursor-pointer"
                                 @input="onBubbleColorInput('failed', $event)"
                             />
                             <input
@@ -308,7 +308,7 @@
                             <input
                                 :value="config.message_waiting_bubble_color"
                                 type="color"
-                                class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
+                                class="color-fill-input w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 cursor-pointer"
                                 @input="onBubbleColorInput('waiting', $event)"
                             />
                             <input
@@ -340,7 +340,7 @@
                             v-if="config.message_inbound_bubble_color"
                             :value="config.message_inbound_bubble_color"
                             type="color"
-                            class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
+                            class="color-fill-input w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 cursor-pointer"
                             @input="onBubbleColorInput('inbound', $event)"
                         />
                         <div

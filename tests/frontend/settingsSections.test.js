@@ -85,6 +85,7 @@ describe("BanishmentSettingsSection", () => {
             },
         });
         expect(wrapper.find("input[type='text']").exists()).toBe(true);
+        expect(wrapper.find('input[type="color"]').classes()).toContain("color-fill-input");
         await wrapper.find("input[type='text']").setValue("banished");
         expect(wrapper.emitted("text-change")?.[0]).toEqual(["banished"]);
     });
@@ -211,6 +212,40 @@ describe("AppearanceSettingsSection", () => {
         expect(wrapper.emitted("update-field")?.at(-1)).toEqual([{ key: "app_sidebar_layout", value: "classic" }]);
         expect(wrapper.emitted("app-sidebar-layout-change")).toHaveLength(1);
         expect(config.app_sidebar_layout).toBe("grouped");
+    });
+
+    it("fills color picker swatches to the rounded box", () => {
+        const config = {
+            theme: "light",
+            messages_sidebar_position: "left",
+            message_font_size: 14,
+            message_icon_size: 28,
+            ui_transparency: 0,
+            ui_glass_enabled: true,
+            messages_multi_pane_enabled: false,
+            nomad_tabs_enabled: false,
+            rrc_enabled: false,
+            rrc_unread_badges_enabled: true,
+            message_outbound_bubble_color: "#4f46e5",
+            message_inbound_bubble_color: "#ffffff",
+            message_failed_bubble_color: "#ef4444",
+            message_waiting_bubble_color: "#e5e7eb",
+        };
+        const wrapper = mount(AppearanceSettingsSection, {
+            props: {
+                visible: true,
+                config,
+                messageIconPreviewStyle: { width: "28px", height: "28px" },
+            },
+            global: {
+                mocks: { $t: (key) => key },
+            },
+        });
+        const swatches = wrapper.findAll('input[type="color"]');
+        expect(swatches.length).toBe(4);
+        swatches.forEach((el) => {
+            expect(el.classes()).toContain("color-fill-input");
+        });
     });
 });
 

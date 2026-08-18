@@ -113,6 +113,30 @@ html[data-ui-glass="0"] .glass-card {
     @apply bg-sem-surface-muted border border-sem-border text-sm rounded-2xl focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border block w-full p-2.5 text-sem-fg transition;
 }
 
+input[type="color"].color-fill-input {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    padding: 0;
+    background: transparent;
+    overflow: hidden;
+}
+
+input[type="color"].color-fill-input::-webkit-color-swatch-wrapper {
+    padding: 0;
+    border: none;
+}
+
+input[type="color"].color-fill-input::-webkit-color-swatch {
+    border: none;
+    border-radius: inherit;
+}
+
+input[type="color"].color-fill-input::-moz-color-swatch {
+    border: none;
+    border-radius: inherit;
+}
+
 select.input-field option {
     @apply bg-sem-surface text-sem-fg;
 }
