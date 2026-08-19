@@ -140,9 +140,7 @@ describe("SieveFiltersPage.vue", () => {
     });
 
     it("toasts API errors on save", async () => {
-        global.api.put = vi.fn(() =>
-            Promise.reject({ response: { data: { message: "Unknown folder_id 9" } } })
-        );
+        global.api.put = vi.fn(() => Promise.reject({ response: { data: { message: "Unknown folder_id 9" } } }));
         const wrapper = mount(SieveFiltersPage, {
             global: {
                 plugins: [router],

@@ -233,9 +233,9 @@ describe("MapBrowser.vue", () => {
         expect(active).toBeTruthy();
         wrapper.vm.isRouteActive = false;
         await wrapper.vm.$nextTick();
-        expect(wrapper.findAllComponents({ name: "MapPage" }).every((page) => page.props("isActiveTab") === false)).toBe(
-            true
-        );
+        expect(
+            wrapper.findAllComponents({ name: "MapPage" }).every((page) => page.props("isActiveTab") === false)
+        ).toBe(true);
         wrapper.vm.isRouteActive = true;
         await wrapper.vm.$nextTick();
         expect(wrapper.findAllComponents({ name: "MapPage" }).some((page) => page.props("isActiveTab") === true)).toBe(
