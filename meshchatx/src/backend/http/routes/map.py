@@ -647,14 +647,12 @@ def register_map_routes(routes, app):
         if not isinstance(raw_b64, str) or not raw_b64.strip():
             return web.json_response({"error": "missing_data"}, status=400)
         max_bytes = 512 * 1024
-        cfg_max = getattr(app.map_data_manager, "_cfg_max_bytes", None)
-        if callable(cfg_max):
-            try:
-                max_bytes = int(cfg_max())
-            except (TypeError, ValueError):
-                max_bytes = 512 * 1024
-        if max_bytes < 1:
-            max_bytes = 512 * 1024
+        try:
+            configured = app.map_data_manager._cfg_max_bytes()
+        except (TypeError, ValueError, AttributeError):
+            configured = None
+        if isinstance(configured, int) and configured >= 1:
+            max_bytes = configured
         if len(raw_b64) > (max_bytes * 4 // 3) + 8:
             return web.json_response({"error": "file_too_large"}, status=400)
         try:
