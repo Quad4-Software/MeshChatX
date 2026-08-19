@@ -228,3 +228,69 @@ def test_set_lxmf_message_path_at_send_if_unset(message_dao, mock_provider):
     assert params[0] == 2
     assert params[1] == "UDP Interface"
     assert params[3] == "deadbeef"
+
+
+def test_upsert_empty_content_does_not_clobber_stored_body(real_db):
+    msg_hash = "a" * 32
+    _insert_message(real_db, msg_hash, is_incoming=1, state="delivered")
+    real_db.messages.upsert_lxmf_message(
+        {
+            "hash": msg_hash,
+            "source_hash": "b" * 32,
+            "destination_hash": "b" * 32,
+            "peer_hash": "b" * 32,
+            "state": "failed",
+            "progress": 0.0,
+            "is_incoming": 1,
+            "method": "direct",
+            "delivery_attempts": 3,
+            "next_delivery_attempt_at": None,
+            "title": "",
+            "content": "",
+            "fields": "{}",
+            "timestamp": time.time(),
+            "rssi": None,
+            "snr": None,
+            "quality": None,
+            "is_spam": 0,
+            "reply_to_hash": None,
+            "attachments_stripped": 0,
+        },
+    )
+    row = real_db.messages.get_lxmf_message_by_hash(msg_hash)
+    assert row["content"] == "c"
+    assert row["title"] == "t"
+    assert row["state"] == "failed"
+    assert row["delivery_attempts"] == 3
+
+
+def test_upsert_nonempty_content_still_replaces(real_db):
+    msg_hash = "c" * 32
+    _insert_message(real_db, msg_hash, is_incoming=1, state="delivered")
+    real_db.messages.upsert_lxmf_message(
+        {
+            "hash": msg_hash,
+            "source_hash": "b" * 32,
+            "destination_hash": "b" * 32,
+            "peer_hash": "b" * 32,
+            "state": "delivered",
+            "progress": 1.0,
+            "is_incoming": 1,
+            "method": "direct",
+            "delivery_attempts": 1,
+            "next_delivery_attempt_at": None,
+            "title": "new-title",
+            "content": "new-body",
+            "fields": '{"k":1}',
+            "timestamp": time.time(),
+            "rssi": None,
+            "snr": None,
+            "quality": None,
+            "is_spam": 0,
+            "reply_to_hash": None,
+            "attachments_stripped": 0,
+        },
+    )
+    row = real_db.messages.get_lxmf_message_by_hash(msg_hash)
+    assert row["content"] == "new-body"
+    assert row["title"] == "new-title"

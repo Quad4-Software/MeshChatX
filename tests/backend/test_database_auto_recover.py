@@ -27,8 +27,23 @@ def test_schema_version_restorable_bounds():
 
 def test_infer_version_hint_from_pre_migrate_name():
     name = f"{PRE_MIGRATE_BACKUP_PREFIX}v52-to-v53-20260101-120000.zip"
-    assert infer_version_hint_from_backup_name(name) == 53
+    assert infer_version_hint_from_backup_name(name) == 52
     assert infer_version_hint_from_backup_name("backup-2026.zip") is None
+
+
+def test_pick_compatible_backup_skips_unprobed_pre_migrate_name(tmp_path):
+    temp_dir = str(tmp_path)
+    backup_dir = os.path.join(temp_dir, "database-backups")
+    os.makedirs(backup_dir)
+    bogus = os.path.join(
+        backup_dir,
+        f"{PRE_MIGRATE_BACKUP_PREFIX}v52-to-v53-20260101-120000.zip",
+    )
+    with open(bogus, "wb") as handle:
+        handle.write(b"not-a-zip")
+
+    picked = pick_compatible_backup(temp_dir, DatabaseSchema.LATEST_VERSION)
+    assert picked is None
 
 
 def test_pick_compatible_backup_skips_too_new_and_suspicious(tmp_path):

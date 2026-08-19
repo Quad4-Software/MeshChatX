@@ -105,6 +105,7 @@ class RRCHub:
         self.clean_last_removed = 0
 
         self.available_rooms = {}
+        self.available_keyed_rooms = []
         self._silent_list_pending = 0
         self._silent_who_rooms = set()
 
@@ -1262,10 +1263,15 @@ class RRCHub:
             if new_nick:
                 self.set_nick_override(new_nick)
 
-        parsed = proto.parse_room_list_notice(body)
+        parsed = proto.parse_room_list_notice_details(body)
         if parsed is not None:
             with self._lock:
-                self.available_rooms = parsed
+                self.available_rooms = {
+                    name: info.get("topic") for name, info in parsed.items()
+                }
+                self.available_keyed_rooms = sorted(
+                    name for name, info in parsed.items() if info.get("has_key")
+                )
                 silent = self._silent_list_pending > 0
                 if silent:
                     self._silent_list_pending -= 1
@@ -1507,6 +1513,7 @@ class RRCHub:
                 "total_unread": total_unread,
                 "mention_rooms": sorted(self.mention_rooms),
                 "available_rooms": dict(self.available_rooms),
+                "available_keyed_rooms": list(self.available_keyed_rooms),
                 "stored_key_rooms": stored_key_rooms,
                 "auto_reconnect": bool(self.auto_reconnect),
                 "auto_list": bool(self.auto_list),

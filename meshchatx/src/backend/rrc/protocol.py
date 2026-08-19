@@ -240,8 +240,31 @@ def parse_who_notice(text):
     return (room, entries)
 
 
-def parse_room_list_notice(text):
-    """Parse a hub /list notice into {room: topic_or_None} or None."""
+# Optional [+k] after the room name in /list. The actual key is never listed.
+_LIST_KEYED_SUFFIX_RE = re.compile(r"^(?P<name>.*?)\s*\[\+k\]\s*$", re.IGNORECASE)
+
+
+def _split_list_room_name(name_part, *, strip_hash):
+    raw = name_part.strip()
+    if strip_hash:
+        raw = raw.lstrip("#")
+    has_key = False
+    matched = _LIST_KEYED_SUFFIX_RE.match(raw)
+    if matched:
+        raw = matched.group("name").strip()
+        if strip_hash:
+            raw = raw.lstrip("#")
+        has_key = True
+    return raw.lower(), has_key
+
+
+def parse_room_list_notice_details(text):
+    """Parse a hub /list notice into room metadata or None.
+
+    Values are dicts with topic (str or None) and has_key (bool). Optional
+    [+k] after the room name marks a keyed room and is stripped from the
+    name. The actual key is never present on the wire.
+    """
     if not isinstance(text, str):
         return None
     stripped = text.strip()
@@ -255,17 +278,29 @@ def parse_room_list_notice(text):
         s = line.strip()
         if not s:
             continue
+        topic = None
+        strip_hash = True
         if s.endswith(" -"):
-            name = s[:-2].strip().lstrip("#").lower()
-            if name:
-                rooms[name] = None
-            continue
-        if " - " in s:
-            name, topic = s.split(" - ", 1)
-            rooms[name.strip().lower()] = topic.strip() or None
+            name_part = s[:-2]
+        elif " - " in s:
+            name_part, topic_part = s.split(" - ", 1)
+            topic = topic_part.strip() or None
+            strip_hash = False
         else:
-            rooms[s.strip().lstrip("#").lower()] = None
+            name_part = s
+        name, has_key = _split_list_room_name(name_part, strip_hash=strip_hash)
+        if not name:
+            continue
+        rooms[name] = {"topic": topic, "has_key": has_key}
     return rooms
+
+
+def parse_room_list_notice(text):
+    """Parse a hub /list notice into {room: topic_or_None} or None."""
+    details = parse_room_list_notice_details(text)
+    if details is None:
+        return None
+    return {name: info.get("topic") for name, info in details.items()}
 
 
 class RRCMessage:

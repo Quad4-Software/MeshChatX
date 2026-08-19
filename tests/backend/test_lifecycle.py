@@ -5,6 +5,7 @@ import os
 import shutil
 import sqlite3
 import tempfile
+import threading
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -119,6 +120,59 @@ def test_identity_context_teardown_completeness():
         assert context.notification_sound_manager is None
         assert context.translator_handler is None
         assert context.community_interfaces_manager is None
+
+
+def test_teardown_timeout_does_not_leave_deferred_manager():
+    mock_identity = MagicMock(spec=RNS.Identity)
+    mock_identity.hash = b"test_hash_32_bytes_long_01234567"
+    mock_identity.get_private_key.return_value = b"mock_pk"
+    mock_app = MagicMock()
+    mock_app.storage_dir = tempfile.mkdtemp()
+    mock_app.emergency = False
+    mock_app.cleanup_rns_state_for_identity = MagicMock()
+
+    started = threading.Event()
+    release = threading.Event()
+    dummy = MagicMock()
+
+    with (
+        patch("meshchatx.src.backend.identity_context.Database"),
+        patch("meshchatx.src.backend.identity_context.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.create_lxmf_router"),
+        patch("meshchatx.src.backend.identity_context.IntegrityManager"),
+        patch("meshchatx.src.backend.identity_context.AutoPropagationManager"),
+        patch("RNS.Transport"),
+    ):
+        context = IdentityContext(mock_identity, mock_app)
+        context.start_background_threads = MagicMock()
+        context.register_announce_handlers = MagicMock()
+
+        def delayed_body():
+            started.set()
+            release.wait(timeout=5)
+            context._set_if_running("rrc_manager", dummy)
+
+        context._run_deferred_services_body = delayed_body
+        context.running = True
+        context.database = MagicMock()
+        context.config = MagicMock()
+
+        worker = threading.Thread(target=context.setup_deferred_services)
+        worker.start()
+        assert started.wait(timeout=5)
+
+        original_wait = context._deferred_setup_finished.wait
+
+        def short_wait(timeout=None):
+            return original_wait(timeout=0.05)
+
+        context._deferred_setup_finished.wait = short_wait
+        context.teardown()
+        release.set()
+        worker.join(timeout=5)
+
+        assert context.rrc_manager is None
+        dummy.shutdown.assert_called()
 
 
 def test_identity_context_memory_leak():

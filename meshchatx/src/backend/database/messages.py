@@ -49,6 +49,14 @@ _LXMF_OPTIONAL_UPSERT_FIELDS = frozenset(
     },
 )
 _LXMF_EXPORT_ONLY_KEYS = frozenset({"id", "lxmf_icon"})
+_LXMF_KEEP_IF_INCOMING_BLANK = frozenset(
+    {
+        "content",
+        "title",
+        "fields",
+        "fields_meta",
+    },
+)
 _LXMF_ATTACHMENT_FLAG_KEYS = (
     "has_image",
     "has_audio",
@@ -224,7 +232,9 @@ class MessageDAO:
                 "path_row_hash_hex",
             )
         ]
-        update_set = ", ".join([f"{f} = EXCLUDED.{f}" for f in update_fields])
+        update_set = ", ".join(
+            [self._lxmf_upsert_update_expr(field) for field in update_fields],
+        )
 
         query = (
             f"INSERT INTO lxmf_messages ({columns}, created_at, updated_at) VALUES ({placeholders}, ?, ?) "
@@ -252,6 +262,21 @@ class MessageDAO:
         peer_hash = data.get("peer_hash")
         if isinstance(peer_hash, str) and peer_hash.strip():
             self.refresh_conversation_summary(peer_hash.strip())
+
+    @staticmethod
+    def _lxmf_upsert_update_expr(field: str) -> str:
+        if field not in _LXMF_KEEP_IF_INCOMING_BLANK:
+            return f"{field} = EXCLUDED.{field}"
+        if field in ("fields", "fields_meta"):
+            return (
+                f"{field} = CASE WHEN EXCLUDED.{field} IS NULL "
+                f"OR EXCLUDED.{field} = '' OR EXCLUDED.{field} = '{{}}' "
+                f"THEN lxmf_messages.{field} ELSE EXCLUDED.{field} END"
+            )
+        return (
+            f"{field} = CASE WHEN EXCLUDED.{field} IS NULL OR EXCLUDED.{field} = '' "
+            f"THEN lxmf_messages.{field} ELSE EXCLUDED.{field} END"
+        )
 
     def refresh_conversation_summary(self, peer_hash):
         """Rebuild the materialized list row for one peer.
