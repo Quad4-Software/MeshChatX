@@ -932,6 +932,7 @@ import {
     buildClusterItems as buildClusterItemsHelper,
     gridClusterCandidates,
 } from "./internal/clusterUtils.js";
+import { shouldPollKeepAliveEmbedded } from "../../js/keepAlivePoll.js";
 import { getDiscoveredIconName as getDiscoveredIconNameHelper } from "./internal/discoveredIcons.js";
 import {
     dedupeDiscoveredMapNodes as dedupeDiscoveredMapNodesHelper,
@@ -1409,7 +1410,9 @@ export default {
 
         // Update info every few seconds
         this.reloadInterval = setInterval(() => {
-            this.fetchTelemetryMarkers();
+            if (this.shouldPollTelemetry()) {
+                this.fetchTelemetryMarkers();
+            }
         }, 30000);
     },
     beforeUnmount() {
@@ -1467,6 +1470,9 @@ export default {
         }
     },
     methods: {
+        shouldPollTelemetry() {
+            return shouldPollKeepAliveEmbedded(this.embedded, this.isActiveTab);
+        },
         syncMapNorthIndicatorFromViewRotation() {
             if (!this.map) {
                 return;

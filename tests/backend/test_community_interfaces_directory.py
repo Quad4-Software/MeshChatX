@@ -5,8 +5,10 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from meshchatx.src.backend.community_interfaces_directory import (
+    DEFAULT_DIRECTORY_URL,
     rows_from_payload,
     transform_directory_rows,
+    validate_directory_fetch_url,
 )
 
 
@@ -20,9 +22,72 @@ def test_rows_from_payload_list():
     assert rows == [{"id": 2}]
 
 
+def test_rows_from_payload_interfaces_key():
+    rows = rows_from_payload({"interfaces": [{"id": 3}]})
+    assert rows == [{"id": 3}]
+
+
 def test_rows_from_payload_invalid():
     with pytest.raises(ValueError, match="Expected list"):
         rows_from_payload({"foo": 1})
+
+
+def test_validate_directory_fetch_url_accepts_mcx():
+    url = DEFAULT_DIRECTORY_URL
+    assert validate_directory_fetch_url(url) == url
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://meshchatx.com/api/mcx-interfaces",
+        "https://directory.rns.recipes/api/directory/submitted?status=online",
+        "https://user:pass@meshchatx.com/api/mcx-interfaces",
+        "https://meshchatx.com.evil.example/api/mcx-interfaces",
+        "https://127.0.0.1:9337@meshchatx.com/api/mcx-interfaces",
+        "https://evil.example/https://meshchatx.com/api/mcx-interfaces",
+        "",
+    ],
+)
+def test_validate_directory_fetch_url_rejects(url):
+    with pytest.raises(ValueError):
+        validate_directory_fetch_url(url)
+
+
+def test_transform_mcx_interfaces_payload():
+    payload = {
+        "source": "https://directory.rns.recipes/",
+        "interfaces": [
+            {
+                "id": 74,
+                "name": "Catz Node TCP",
+                "type": "tcp",
+                "typeName": "TCPClientInterface",
+                "host": "77.37.146.243",
+                "port": 4242,
+                "status": "online",
+                "config": "",
+            },
+            {
+                "id": 48,
+                "name": "Casbah I2P Relay",
+                "type": "i2p",
+                "typeName": "I2PInterface",
+                "host": "nckymqd5qchedbvjqsrlovgwc5iupasu3jjnt7fwws5vd4l552yq.b32.i2p",
+                "port": None,
+                "config": "",
+            },
+        ],
+    }
+    out = transform_directory_rows(rows_from_payload(payload))
+    by_name = {item["name"]: item for item in out}
+    assert by_name["Catz Node TCP"]["type"] == "TCPClientInterface"
+    assert by_name["Catz Node TCP"]["target_host"] == "77.37.146.243"
+    assert by_name["Catz Node TCP"]["target_port"] == 4242
+    assert by_name["Casbah I2P Relay"]["type"] == "I2PInterface"
+    assert by_name["Casbah I2P Relay"]["i2p_peers"] == [
+        "nckymqd5qchedbvjqsrlovgwc5iupasu3jjnt7fwws5vd4l552yq.b32.i2p",
+    ]
 
 
 def test_transform_submitted_backbone_without_identity_becomes_tcp():

@@ -616,6 +616,7 @@ import DropDownMenu from "../DropDownMenu.vue";
 import DropDownMenuItem from "../DropDownMenuItem.vue";
 import GlobalState, { mergeGlobalConfig } from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import { shouldPollKeepAliveEmbedded } from "../../js/keepAlivePoll.js";
 import { patchServerConfig } from "../../js/settings/settingsConfigService";
 import {
     preloadNomadMicronWasm,
@@ -1096,12 +1097,17 @@ export default {
 
         // update info every few seconds
         this.reloadInterval = setInterval(() => {
-            this.getFavourites();
+            if (this.shouldPollFavourites()) {
+                this.getFavourites();
+            }
         }, 5000);
 
         this.$nextTick(() => this.scheduleProcessPartials());
     },
     methods: {
+        shouldPollFavourites() {
+            return shouldPollKeepAliveEmbedded(this.embedded, this.isActive);
+        },
         onIdentitySwitched() {
             this.favourites = [];
             this.nodePageCache = {};

@@ -148,6 +148,39 @@ def test_corrupted_history_file_does_not_crash_load(tmp_path):
     assert hub.get_messages("lobby") == []
 
 
+def test_history_load_keeps_messages_after_corrupt_record(tmp_path):
+    manager = make_client_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub.add_room("lobby")
+    first = proto.RRCMessage(
+        "msg",
+        "lobby",
+        b"\x01" * 16,
+        "n",
+        "first",
+        proto.now_ms(),
+    )
+    second = proto.RRCMessage(
+        "msg",
+        "lobby",
+        b"\x01" * 16,
+        "n",
+        "second",
+        proto.now_ms() + 1,
+    )
+    hub._append_history("lobby", first)
+    hist_path = manager._history_path(hub, "lobby")
+    with open(hist_path, "ab") as handle:
+        handle.write(b"\x1c")
+    hub._append_history("lobby", second)
+    with hub._lock:
+        hub.messages["lobby"] = []
+    hub._load_history()
+    texts = [m.text for m in hub.get_messages("lobby")]
+    assert "first" in texts
+    assert "second" in texts
+
+
 def test_malformed_packet_bytes_ignored(tmp_path):
     manager = make_client_manager(tmp_path)
     hub = manager.add_hub(bytes(range(16)))

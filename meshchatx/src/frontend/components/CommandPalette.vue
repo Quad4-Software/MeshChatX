@@ -268,9 +268,11 @@ export default {
         },
         executeAction() {
             const result = this.filteredResults.find((r) => r.id === this.highlightedId);
-            if (result) this.executeResult(result);
+            if (result) {
+                void this.executeResult(result);
+            }
         },
-        executeResult(result) {
+        async executeResult(result) {
             this.close();
             if (result.type === "navigation") {
                 this.$router.push(result.route);
@@ -282,11 +284,12 @@ export default {
                 if (result.action === "sync") {
                     GlobalEmitter.emit("sync-propagation-node");
                 } else if (result.action === "compose") {
-                    this.$router.push({ name: "messages" });
-                    this.$nextTick(() => {
-                        const input = document.getElementById("compose-input");
-                        input?.focus();
-                    });
+                    try {
+                        await this.$router.push({ name: "messages" });
+                    } catch {
+                        // already on messages, or navigation aborted
+                    }
+                    GlobalEmitter.emit("compose-new-message");
                 } else if (result.action === "show-tutorial") {
                     GlobalEmitter.emit("show-tutorial");
                 } else if (result.action === "show-changelog") {

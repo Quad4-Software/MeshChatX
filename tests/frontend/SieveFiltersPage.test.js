@@ -111,4 +111,53 @@ describe("SieveFiltersPage.vue", () => {
         );
         expect(ToastUtils.success).toHaveBeenCalled();
     });
+
+    it("adds a rule and reorders first-match priority", async () => {
+        const wrapper = mount(SieveFiltersPage, {
+            global: {
+                plugins: [router],
+                mocks: { $t: (k) => k },
+                stubs: {
+                    MaterialDesignIcon: { template: "<span/>", props: ["iconName"] },
+                    SieveFlowNetwork: { template: "<div/>" },
+                    RouterLink: { template: "<a><slot/></a>", props: ["to"] },
+                },
+            },
+        });
+        await Promise.resolve();
+        await wrapper.vm.$nextTick();
+        await Promise.resolve();
+        expect(wrapper.vm.filters.length).toBe(1);
+        wrapper.vm.addRule();
+        expect(wrapper.vm.filters.length).toBe(2);
+        wrapper.vm.filters[1].terms = ["second"];
+        wrapper.vm.moveRule(1, -1);
+        expect(wrapper.vm.filters[0].terms).toEqual(["second"]);
+        expect(wrapper.vm.mapRuleFromApi({ action: "block", terms: ["x"] }).action).toBe("hide");
+        const bothOff = { match_peer_fields: false, match_message: false };
+        wrapper.vm.onMatchTargetsChange(bothOff);
+        expect(bothOff.match_peer_fields).toBe(true);
+    });
+
+    it("toasts API errors on save", async () => {
+        global.api.put = vi.fn(() =>
+            Promise.reject({ response: { data: { message: "Unknown folder_id 9" } } })
+        );
+        const wrapper = mount(SieveFiltersPage, {
+            global: {
+                plugins: [router],
+                mocks: { $t: (k) => k },
+                stubs: {
+                    MaterialDesignIcon: { template: "<span/>", props: ["iconName"] },
+                    SieveFlowNetwork: { template: "<div/>" },
+                    RouterLink: { template: "<a><slot/></a>", props: ["to"] },
+                },
+            },
+        });
+        await Promise.resolve();
+        await wrapper.vm.$nextTick();
+        await Promise.resolve();
+        await wrapper.vm.save();
+        expect(ToastUtils.error).toHaveBeenCalledWith("Unknown folder_id 9");
+    });
 });

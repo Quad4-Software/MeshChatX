@@ -136,4 +136,27 @@ describe("MessageBlocklistPage.vue", () => {
         );
         expect(ToastUtils.success).toHaveBeenCalled();
     });
+
+    it("adds an empty entry that save still posts", async () => {
+        const wrapper = mount(MessageBlocklistPage, {
+            global: {
+                plugins: [router],
+                mocks: { $t: (k) => k },
+                stubs: {
+                    MaterialDesignIcon: { template: "<span/>", props: ["iconName"] },
+                    ToolsPageHeader: { template: "<div/>" },
+                    RouterLink: { template: "<a><slot/></a>", props: ["to"] },
+                },
+            },
+        });
+        await Promise.resolve();
+        await wrapper.vm.$nextTick();
+        await Promise.resolve();
+        const before = wrapper.vm.blocklist.entries.length;
+        wrapper.vm.addEntry();
+        expect(wrapper.vm.blocklist.entries.length).toBe(before + 1);
+        expect(wrapper.vm.blocklist.entries.at(-1).text).toBe("");
+        await wrapper.vm.save();
+        expect(global.api.put).toHaveBeenCalled();
+    });
 });

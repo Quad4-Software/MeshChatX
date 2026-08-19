@@ -2,6 +2,7 @@
 
 """Filesystem and HTTP client helpers used at startup and in the web layer."""
 
+import contextlib
 import os
 import sys
 import tempfile
@@ -55,6 +56,35 @@ def resolve_path_under_dir(directory: str, user_path: str) -> str | None:
     if not is_path_within_dir(joined, directory):
         return None
     return os.path.realpath(joined)
+
+
+def atomic_write_bytes(path: str, data: bytes) -> None:
+    """Write data to path via a sibling tmp file, then os.replace."""
+    path = os.fspath(path)
+    parent = os.path.dirname(path) or "."
+    os.makedirs(parent, exist_ok=True)
+    tmp = path + ".tmp"
+    if os.path.lexists(tmp) and (os.path.islink(tmp) or os.path.isdir(tmp)):
+        raise OSError("invalid overlay cache destination")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    fd = os.open(tmp, flags, 0o644)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+    except Exception:
+        with contextlib.suppress(OSError):
+            os.unlink(tmp)
+        raise
+    os.replace(tmp, path)
+
+
+def atomic_write_text(path: str, text: str, *, encoding: str = "utf-8") -> None:
+    """Write text to path via atomic_write_bytes."""
+    atomic_write_bytes(os.fspath(path), text.encode(encoding))
 
 
 def resolve_log_dir():

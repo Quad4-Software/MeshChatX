@@ -36,6 +36,12 @@ _MUTATING_SAMPLES = (
     ("POST", "/api/v1/filesync/mkdir", {"path": "folder"}),
     ("DELETE", "/api/v1/filesync/entry", {"path": "a.txt"}),
     ("POST", "/api/v1/lxmf/propagation-node/cancel-inbound", {}),
+    ("PUT", "/api/v1/lxmf/sieve-filters", {"filters": []}),
+    (
+        "PUT",
+        "/api/v1/lxmf/message-blocklist",
+        {"blocklist": {"entries": []}},
+    ),
     ("POST", "/api/v1/map/data/announce", {}),
     ("POST", "/api/v1/map/data/catalog", {"destination_hash": "aa" * 16}),
     ("POST", "/api/v1/map/data/publish", {"name": "x", "data_b64": "e30="}),
@@ -115,6 +121,8 @@ async def test_eect_mutating_without_csrf_rejected(mock_app, monkeypatch):
             for method, path, body in samples:
                 if method == "PATCH":
                     resp = await client.patch(path, json=body)
+                elif method == "PUT":
+                    resp = await client.put(path, json=body)
                 elif method == "DELETE":
                     resp = await client.delete(path)
                 else:
@@ -138,6 +146,8 @@ async def test_eect_mutating_with_csrf_accepted(mock_app, monkeypatch):
             for method, path, body in samples:
                 if method == "PATCH":
                     resp = await client.patch(path, json=body, headers=headers)
+                elif method == "PUT":
+                    resp = await client.put(path, json=body, headers=headers)
                 elif method == "DELETE":
                     resp = await client.delete(path, headers=headers)
                 else:

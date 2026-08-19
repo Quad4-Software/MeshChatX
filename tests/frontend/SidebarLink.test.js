@@ -21,6 +21,9 @@ function mountSidebarLink(props = {}, slots = {}, { isActive = false } = {}) {
             ...slots,
         },
         global: {
+            mocks: {
+                $route: { name: "messages" },
+            },
             stubs: { RouterLink: RouterLinkStub },
         },
     });
@@ -86,5 +89,36 @@ describe("SidebarLink UI", () => {
         await innerLink.trigger("click");
         expect(wrapper.emitted("click")).toBeDefined();
         expect(wrapper.vm.editMode).toBe(true);
+    });
+
+    it("treats dotted child routes as active for the parent nav link", () => {
+        const wrapper = mount(SidebarLink, {
+            props: { to: { name: "interfaces" } },
+            slots: {
+                icon: '<span class="icon-slot">I</span>',
+                text: "Interfaces",
+            },
+            global: {
+                mocks: {
+                    $route: { name: "interfaces.add" },
+                },
+                stubs: {
+                    RouterLink: {
+                        name: "RouterLinkStub",
+                        props: ["to"],
+                        template:
+                            '<a href="#" @click.prevent><slot :href="\'#\'" :navigate="navigate" :isActive="false"/></a>',
+                        methods: {
+                            navigate(e) {
+                                if (e) e.preventDefault();
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        const innerLink = wrapper.find("a.rounded-r-full");
+        expect(innerLink.classes()).toContain("bg-blue-100");
+        expect(wrapper.vm.navActive(false)).toBe(true);
     });
 });

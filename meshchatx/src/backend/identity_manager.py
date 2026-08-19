@@ -14,7 +14,7 @@ from meshchatx.src.backend.database.config import ConfigDAO
 from meshchatx.src.backend.database.provider import DatabaseProvider
 from meshchatx.src.backend.database.schema import DatabaseSchema
 from meshchatx.src.backend.meshchat_utils import normalize_identity_storage_hash
-from meshchatx.src.path_utils import is_path_within_dir
+from meshchatx.src.path_utils import atomic_write_text, is_path_within_dir
 
 
 class IdentityManager:
@@ -141,8 +141,7 @@ class IdentityManager:
                     "lxmf_address": lxmf_address,
                     "lxst_address": lxst_address,
                 }
-                with open(metadata_path, "w") as f:
-                    json.dump(metadata, f)
+                atomic_write_text(metadata_path, json.dumps(metadata))
             except Exception as e:
                 print(f"Error reading config for {identity_hash}: {e}")
 
@@ -189,14 +188,10 @@ class IdentityManager:
 
         new_provider.close_all()
 
-        # Preserve icon/address metadata when re-importing an existing identity.
         metadata_path = os.path.join(identity_dir, "metadata.json")
-        existing_metadata = {}
-        if os.path.exists(metadata_path):
-            with contextlib.suppress(Exception), open(metadata_path) as f:
-                loaded = json.load(f)
-                if isinstance(loaded, dict):
-                    existing_metadata = loaded
+        existing_metadata = self._read_metadata_object(metadata_path)
+        if existing_metadata is None:
+            existing_metadata = {}
 
         resolved_name = (
             (display_name or "").strip()
@@ -217,13 +212,25 @@ class IdentityManager:
             if key in existing_metadata:
                 metadata[key] = existing_metadata[key]
 
-        with open(metadata_path, "w") as f:
-            json.dump(metadata, f)
+        atomic_write_text(metadata_path, json.dumps(metadata))
 
         return {
             "hash": identity_hash,
             "display_name": resolved_name,
         }
+
+    @staticmethod
+    def _read_metadata_object(metadata_path: str) -> dict | None:
+        if not os.path.exists(metadata_path):
+            return {}
+        try:
+            with open(metadata_path) as handle:
+                loaded = json.load(handle)
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+            return None
+        if not isinstance(loaded, dict):
+            return None
+        return loaded
 
     def update_metadata_cache(self, identity_hash: str, metadata: dict):
         identity_dir = os.path.join(self.storage_dir, "identities", identity_hash)
@@ -231,17 +238,12 @@ class IdentityManager:
             return
 
         metadata_path = os.path.join(identity_dir, "metadata.json")
-
-        # Merge with existing metadata if it exists
-        existing_metadata = {}
-        if os.path.exists(metadata_path):
-            with contextlib.suppress(Exception), open(metadata_path) as f:
-                existing_metadata = json.load(f)
+        existing_metadata = self._read_metadata_object(metadata_path)
+        if existing_metadata is None:
+            return
 
         existing_metadata.update(metadata)
-
-        with open(metadata_path, "w") as f:
-            json.dump(existing_metadata, f)
+        atomic_write_text(metadata_path, json.dumps(existing_metadata))
 
     def delete_identity(self, identity_hash: str, current_identity_hash: str | None):
         canonical = normalize_identity_storage_hash(identity_hash)

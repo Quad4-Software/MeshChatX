@@ -10,6 +10,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import ClassVar
 
+from meshchatx.src.path_utils import atomic_write_text
+
 
 class CriticalIntegrityError(RuntimeError):
     """Raised when tampering is detected in identity or database files at startup."""
@@ -339,8 +341,7 @@ class IntegrityManager:
                 "metadata": metadata,
             }
 
-            with open(self.manifest_path, "w") as f:
-                json.dump(manifest, f, indent=2)
+            atomic_write_text(self.manifest_path, json.dumps(manifest, indent=2))
             return True
         except Exception as e:
             print(f"Failed to save integrity manifest: {e}")

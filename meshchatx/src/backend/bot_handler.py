@@ -14,6 +14,7 @@ import uuid
 import RNS
 
 from meshchatx.src.backend import bot_process as _bot_process  # noqa: F401
+from meshchatx.src.path_utils import atomic_write_text
 
 logger = logging.getLogger("meshchatx.bots")
 
@@ -55,6 +56,7 @@ class BotHandler:
         self.running_bots = {}
         self.state_file = os.path.join(self.bots_dir, "bots_state.json")
         self.bots_state: list[dict] = []
+        self._state_unreadable = False
         self._load_state()
         self.runner_path = os.path.join(
             os.path.dirname(__file__),
@@ -86,6 +88,7 @@ class BotHandler:
                 loaded = json.load(f)
                 if not isinstance(loaded, list):
                     self.bots_state = []
+                    self._state_unreadable = True
                     return
                 kept = []
                 for entry in loaded:
@@ -113,11 +116,17 @@ class BotHandler:
             self.bots_state = []
         except Exception:
             self.bots_state = []
+            self._state_unreadable = True
 
     def _save_state(self):
+        if self._state_unreadable:
+            logger.error("Refusing to overwrite unreadable bots state file")
+            return
         try:
-            with open(self.state_file, "w", encoding="utf-8") as f:
-                json.dump(self.bots_state, f, indent=2)
+            atomic_write_text(
+                self.state_file,
+                json.dumps(self.bots_state, indent=2),
+            )
         except Exception as exc:
             logger.error("Failed to save bots state: %s", exc)
 

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
+import { readFileSync } from "fs";
+import { join } from "path";
 import { describe, expect, it, beforeEach } from "vitest";
 import { createRegistry } from "../../meshchatx/src/frontend/js/registries/registryCore.js";
 import {
@@ -25,6 +27,7 @@ import {
 } from "../../meshchatx/src/frontend/js/registries/registerCoreContributions.js";
 import { CORE_NAV_ENTRIES } from "../../meshchatx/src/frontend/js/registries/coreNavEntries.js";
 import { CORE_TOOLS_ENTRIES } from "../../meshchatx/src/frontend/js/registries/coreToolsEntries.js";
+import { CORE_COMMAND_ENTRIES } from "../../meshchatx/src/frontend/js/registries/coreCommandEntries.js";
 import {
     postInstallPromptRegistry,
     listPostInstallPrompts,
@@ -153,5 +156,40 @@ describe("registerCoreContributions", () => {
         expect(interfaces).toMatchObject({ navTier: "primary", group: "app" });
         const visualiser = CORE_NAV_ENTRIES.find((entry) => entry.id === "network-visualiser");
         expect(visualiser).toMatchObject({ navTier: "primary", group: "explore" });
+    });
+
+    it("nav, tools, and command route names exist in the hash router", () => {
+        const mainSrc = readFileSync(join(process.cwd(), "meshchatx/src/frontend/main.js"), "utf8");
+        const routeNames = new Set();
+        const pairRe = /name:\s*"([^"]+)",\s*\n\s*path:\s*"/g;
+        let match;
+        while ((match = pairRe.exec(mainSrc)) !== null) {
+            routeNames.add(match[1]);
+        }
+        expect(routeNames.size).toBeGreaterThan(10);
+
+        const missing = [];
+        for (const entry of CORE_NAV_ENTRIES) {
+            if (entry.route?.name && !routeNames.has(entry.route.name)) {
+                missing.push(`nav:${entry.id}->${entry.route.name}`);
+            }
+        }
+        for (const entry of CORE_TOOLS_ENTRIES) {
+            if (entry.comingSoon || !entry.route?.name) {
+                continue;
+            }
+            if (!routeNames.has(entry.route.name)) {
+                missing.push(`tool:${entry.name}->${entry.route.name}`);
+            }
+        }
+        for (const entry of CORE_COMMAND_ENTRIES) {
+            if (entry.type !== "navigation" || !entry.route?.name) {
+                continue;
+            }
+            if (!routeNames.has(entry.route.name)) {
+                missing.push(`cmd:${entry.id}->${entry.route.name}`);
+            }
+        }
+        expect(missing).toEqual([]);
     });
 });

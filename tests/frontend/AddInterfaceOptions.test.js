@@ -507,4 +507,16 @@ describe("AddInterfacePage.vue interface options", () => {
 
         expect(mockAxios.post).not.toHaveBeenCalled();
     });
+
+    it("lists meshchatx.com/interfaces after the rns.recipes suggestion", () => {
+        const wrapper = mountPage();
+        const hrefs = wrapper.findAll("a").map((a) => a.attributes("href"));
+        expect(hrefs).toContain("https://directory.rns.recipes/");
+        expect(hrefs).toContain("https://meshchatx.com/interfaces");
+        const html = wrapper.html();
+        const recipesIdx = html.indexOf("https://directory.rns.recipes/");
+        const mcxIdx = html.indexOf("https://meshchatx.com/interfaces");
+        expect(recipesIdx).toBeGreaterThan(-1);
+        expect(mcxIdx).toBeGreaterThan(recipesIdx);
+    });
 });

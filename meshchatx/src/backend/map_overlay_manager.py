@@ -51,7 +51,7 @@ from meshchatx.src.backend.rngit_sparse_fetcher import (
     RngitFetchError,
     RngitSparseFetcher,
 )
-from meshchatx.src.path_utils import is_path_within_dir
+from meshchatx.src.path_utils import atomic_write_bytes, is_path_within_dir
 
 _log = logging.getLogger("meshchatx.map_overlays")
 
@@ -79,28 +79,6 @@ FINISHED_JOB_STATUSES = frozenset({"success", "error", "cancelled"})
 def clamp_overlay_config_value(key: str, value: int) -> int:
     lo, hi = CONFIG_CLAMPS[key]
     return max(lo, min(hi, int(value)))
-
-
-def atomic_write_bytes(path: str, data: bytes) -> None:
-    parent = os.path.dirname(path)
-    os.makedirs(parent, exist_ok=True)
-    tmp = path + ".tmp"
-    if os.path.lexists(tmp) and (os.path.islink(tmp) or os.path.isdir(tmp)):
-        raise OSError("invalid overlay cache destination")
-    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
-    if hasattr(os, "O_NOFOLLOW"):
-        flags |= os.O_NOFOLLOW
-    fd = os.open(tmp, flags, 0o644)
-    try:
-        with os.fdopen(fd, "wb") as f:
-            f.write(data)
-            f.flush()
-            os.fsync(f.fileno())
-    except Exception:
-        with contextlib.suppress(OSError):
-            os.unlink(tmp)
-        raise
-    os.replace(tmp, path)
 
 
 def read_regular_file_bytes(path: str, *, max_bytes: int | None = None) -> bytes:

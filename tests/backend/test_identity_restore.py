@@ -211,5 +211,33 @@ class TestIdentityRestore(unittest.TestCase):
         self.assertEqual(saved["display_name"], "New Name")
 
 
+def test_update_metadata_cache_refuses_unreadable_file(tmp_path):
+    manager = IdentityManager(str(tmp_path))
+    identity_hash = "ab" * 16
+    identity_dir = tmp_path / "identities" / identity_hash
+    identity_dir.mkdir(parents=True)
+    metadata_path = identity_dir / "metadata.json"
+    original = b"{not-json"
+    metadata_path.write_bytes(original)
+    manager.update_metadata_cache(identity_hash, {"icon_name": "account"})
+    assert metadata_path.read_bytes() == original
+
+
+def test_update_metadata_cache_merges_display_name(tmp_path):
+    manager = IdentityManager(str(tmp_path))
+    identity_hash = "cd" * 16
+    identity_dir = tmp_path / "identities" / identity_hash
+    identity_dir.mkdir(parents=True)
+    metadata_path = identity_dir / "metadata.json"
+    metadata_path.write_text(
+        json.dumps({"display_name": "Keep Me", "icon_name": "old"}),
+        encoding="utf-8",
+    )
+    manager.update_metadata_cache(identity_hash, {"icon_name": "account"})
+    saved = json.loads(metadata_path.read_text(encoding="utf-8"))
+    assert saved["display_name"] == "Keep Me"
+    assert saved["icon_name"] == "account"
+
+
 if __name__ == "__main__":
     unittest.main()

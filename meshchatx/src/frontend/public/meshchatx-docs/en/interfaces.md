@@ -27,7 +27,7 @@ The **Add interface** flow includes:
 | HTTPInterface         | HTTP/S tunnel (bundled RNS-over-HTTP)         |
 | Custom external types | Advanced setups                               |
 
-Community-curated suggestions come from bundled `community_interfaces.json`, built from [directory.rns.recipes](https://directory.rns.recipes) at release time. An optional `public/community_interfaces.json` override can replace that list locally. The app does not fetch the directory over the network at runtime.
+Community-curated suggestions come from bundled `community_interfaces.json`, built from [meshchatx.com/api/mcx-interfaces](https://meshchatx.com/api/mcx-interfaces) at release time. Browse listings at [meshchatx.com/interfaces](https://meshchatx.com/interfaces). An optional `public/community_interfaces.json` override can replace that list locally. The app does not fetch the directory over the network at runtime.
 
 ## Interface discovery
 
