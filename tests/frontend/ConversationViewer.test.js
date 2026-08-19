@@ -1669,6 +1669,65 @@ describe("ConversationViewer.vue", () => {
             expect(wrapper.vm.newMessageText).toBe("from-b");
         });
 
+        it("does not load a legacy flat draft when identity-scoped buckets already exist", async () => {
+            const peer = "p".repeat(32);
+            draftStore["meshchat.drafts"] = JSON.stringify({
+                "identity-a": { [peer]: "from-a" },
+                [peer]: "legacy-flat",
+            });
+
+            const wrapper = mountConversationViewer({
+                selectedPeer: { destination_hash: peer, display_name: "P" },
+                config: { identity_hash: "identity-b" },
+            });
+            await wrapper.vm.$nextTick();
+            expect(wrapper.vm.newMessageText).toBe("");
+        });
+
+        it("keeps in-progress compose under the previous identity when switching", async () => {
+            const peer = "p".repeat(32);
+            draftStore["meshchat.drafts"] = JSON.stringify({
+                "identity-a": {},
+                "identity-b": { [peer]: "from-b" },
+            });
+
+            const wrapper = mountConversationViewer({
+                selectedPeer: { destination_hash: peer, display_name: "P" },
+                config: { identity_hash: "identity-a" },
+            });
+            await wrapper.vm.$nextTick();
+            wrapper.vm.newMessageText = "unsent-from-a";
+            wrapper.vm.lastDraftIdentityKey = "identity-a";
+            wrapper.vm.onIdentitySwitched({ identity_hash: "identity-b" });
+
+            const drafts = JSON.parse(draftStore["meshchat.drafts"] || "{}");
+            expect(drafts["identity-a"][peer]).toBe("unsent-from-a");
+            expect(drafts["identity-b"][peer]).toBe("from-b");
+            expect(wrapper.vm.newMessageText).toBe("from-b");
+        });
+
+        it("does not write the previous identity's compose into the new identity bucket", async () => {
+            const peer = "q".repeat(32);
+            draftStore["meshchat.drafts"] = JSON.stringify({
+                "identity-a": { [peer]: "kept-a" },
+                "identity-b": {},
+            });
+
+            const wrapper = mountConversationViewer({
+                selectedPeer: { destination_hash: peer, display_name: "Q" },
+                config: { identity_hash: "identity-b" },
+            });
+            await wrapper.vm.$nextTick();
+            wrapper.vm.newMessageText = "typed-as-a";
+            wrapper.vm.lastDraftIdentityKey = "identity-a";
+            wrapper.vm.onIdentitySwitched({ identity_hash: "identity-b" });
+
+            const drafts = JSON.parse(draftStore["meshchat.drafts"] || "{}");
+            expect(drafts["identity-a"][peer]).toBe("typed-as-a");
+            expect(drafts["identity-b"][peer]).toBeUndefined();
+            expect(wrapper.vm.newMessageText).toBe("");
+        });
+
         it("round-trips drafts for A then B then back to A", async () => {
             const peerA = { destination_hash: "a".repeat(32), display_name: "A" };
             const peerB = { destination_hash: "b".repeat(32), display_name: "B" };

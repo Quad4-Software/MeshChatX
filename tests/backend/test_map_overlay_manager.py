@@ -72,6 +72,21 @@ def test_atomic_write_bytes(tmp_path):
     assert not (tmp_path / "a" / "b.bin.tmp").exists()
 
 
+@pytest.mark.skipif(os.name == "nt", reason="symlink follow-on-open is a POSIX case")
+def test_atomic_write_bytes_refuses_symlink_tmp(tmp_path):
+    outside = tmp_path / "OUTSIDE"
+    outside.mkdir()
+    bait = outside / "secret.bin"
+    bait.write_bytes(b"keep")
+    dest = tmp_path / "cache" / "overlay.geojson"
+    dest.parent.mkdir()
+    tmp = dest.with_name(dest.name + ".tmp")
+    tmp.symlink_to(bait)
+    with pytest.raises(OSError):
+        atomic_write_bytes(str(dest), b"pwned")
+    assert bait.read_bytes() == b"keep"
+
+
 @pytest.mark.asyncio
 async def test_create_and_fetch_nomadnet_success(manager, monkeypatch):
     identity = "id1"
@@ -527,3 +542,61 @@ def test_get_job_and_cancel_scoped_to_identity_hash(manager):
     assert manager.get_job("job-a", identity_hash="bb" * 16) is None
     assert manager.get_job("job-a", identity_hash="aa" * 16) is not None
     assert manager.cancel_job("job-a", identity_hash="bb" * 16) is False
+
+
+def test_cache_path_for_rejects_traversal_identity(manager):
+    with pytest.raises(OverlaySourceParseError) as exc:
+        manager.cache_path_for("../etc", 1, "geojson")
+    assert exc.value.code == "invalid_identity_hash"
+    with pytest.raises(OverlaySourceParseError) as exc2:
+        manager.cache_path_for("id1", 1, "exe")
+    assert exc2.value.code == "unsupported_format"
+
+
+@pytest.mark.asyncio
+async def test_ingest_rejects_unknown_kind_and_bad_hash(manager):
+    geo = json.dumps({"type": "Point", "coordinates": [0.0, 0.0]}).encode()
+    with pytest.raises(OverlaySourceParseError) as exc:
+        await manager.ingest_local_overlay(
+            "id1",
+            kind="lxmf.delivery",
+            destination_hash=HASH,
+            path_or_repo_path="aaaaaaaaaaaaaaaa",
+            name="x",
+            payload=geo,
+        )
+    assert exc.value.code == "unsupported_kind"
+    with pytest.raises(OverlaySourceParseError) as exc2:
+        await manager.ingest_local_overlay(
+            "id1",
+            kind="map_data",
+            destination_hash="zz",
+            path_or_repo_path="aaaaaaaaaaaaaaaa",
+            name="x",
+            payload=geo,
+        )
+    assert exc2.value.code == "invalid_destination_hash"
+
+
+def test_read_cache_ignores_poisoned_relpath_inside_root(manager, db, tmp_path):
+    identity = "id1"
+    bait_dir = os.path.join(manager.overlay_root(), "otherid")
+    os.makedirs(bait_dir, exist_ok=True)
+    bait = os.path.join(bait_dir, "1.geojson")
+    with open(bait, "wb") as fh:
+        fh.write(b'{"type":"Point","coordinates":[9,9]}')
+    oid = db.map_overlays.insert(
+        identity,
+        kind="nomadnet_file",
+        destination_hash=HASH,
+        path_or_repo_path="/file/x.geojson",
+        ref="",
+        name="x",
+    )
+    db.map_overlays.update_fields(
+        oid,
+        cache_relpath="otherid/1.geojson",
+        format="geojson",
+    )
+    assert manager.read_cache_bytes(identity, oid) is None
+    assert os.path.isfile(bait)

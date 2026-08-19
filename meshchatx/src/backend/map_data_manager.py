@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import re
+import stat
 import threading
 import uuid
 from contextlib import suppress
@@ -19,9 +20,18 @@ import RNS
 
 from meshchatx.src.backend.map_geo_sanitizer import sanitize_geo_bytes
 from meshchatx.src.backend.map_geo_validator import (
+    GeoValidationError,
     validate_geo_bytes,
 )
-from meshchatx.src.backend.map_overlay_manager import atomic_write_bytes
+from meshchatx.src.backend.map_overlay_manager import (
+    atomic_write_bytes,
+    clamp_overlay_config_value,
+    read_regular_file_bytes,
+)
+from meshchatx.src.backend.map_overlay_sources import (
+    ALLOWED_OVERLAY_FORMATS,
+    KIND_MAP_DATA,
+)
 from meshchatx.src.backend.path_utils import path_response_window
 from meshchatx.src.path_utils import is_path_within_dir
 
@@ -31,12 +41,15 @@ MAP_ASPECT = "map-data-v1"
 CATALOG_PATH = "/catalog"
 MAP_PATH_PREFIX = "/map/"
 MAP_ID_RE = re.compile(r"^[0-9a-f]{16}$")
+_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 DISPLAY_NAME_MAX = 32
 DEFAULT_MAX_BYTES = 512 * 1024
 MIN_ANNOUNCE_INTERVAL = 10
 DEFAULT_ANNOUNCE_INTERVAL = 900
 MAX_ANNOUNCE_INTERVAL = 86400
-KIND_MAP_DATA = "map_data"
+MAX_PUBLISHED_MAPS = 64
+MAX_CATALOG_BYTES = 256 * 1024
+MAX_COERCE_DEPTH = 2
 
 
 class MapDataError(ValueError):
@@ -45,13 +58,15 @@ class MapDataError(ValueError):
         super().__init__(message or code)
 
 
-def coerce_map_request_body(payload) -> bytes:
+def coerce_map_request_body(payload, *, _depth: int = 0) -> bytes:
     """Turn an RNS request receipt payload into raw bytes.
 
     Catalog handlers return bytes. A list of [bytes, metadata] is the file
     response shape, but RNS only treats index 0 as a file when it is a
     BufferedReader. Bytes in a list must be unwrapped here.
     """
+    if _depth > MAX_COERCE_DEPTH:
+        raise MapDataError("invalid_response")
     if payload is None:
         raise MapDataError("empty_response")
     if isinstance(payload, (bytes, bytearray, memoryview)):
@@ -60,9 +75,9 @@ def coerce_map_request_body(payload) -> bytes:
         return payload.encode("utf-8")
     reader = getattr(payload, "read", None)
     if callable(reader):
-        return coerce_map_request_body(reader())
+        return coerce_map_request_body(reader(), _depth=_depth + 1)
     if isinstance(payload, (list, tuple)) and payload:
-        return coerce_map_request_body(payload[0])
+        return coerce_map_request_body(payload[0], _depth=_depth + 1)
     raise MapDataError("invalid_response")
 
 
@@ -133,13 +148,51 @@ class MapDataManager:
         return path
 
     def _cfg_max_bytes(self) -> int:
-        overlay_max = int(self.config.map_overlay_max_bytes.get() or (8 * 1024 * 1024))
+        overlay_max = clamp_overlay_config_value(
+            "map_overlay_max_bytes",
+            int(self.config.map_overlay_max_bytes.get() or (8 * 1024 * 1024)),
+        )
         raw = getattr(self.config, "map_data_max_bytes", None)
         if raw is None:
             wanted = DEFAULT_MAX_BYTES
         else:
-            wanted = int(raw.get() or DEFAULT_MAX_BYTES)
+            try:
+                wanted = int(raw.get())
+            except (TypeError, ValueError):
+                wanted = DEFAULT_MAX_BYTES
+            if wanted <= 0:
+                wanted = DEFAULT_MAX_BYTES
         return max(64 * 1024, min(overlay_max, wanted))
+
+    def _cfg_timeout(self, key: str, default: int) -> int:
+        raw = getattr(self.config, key, None)
+        try:
+            value = default if raw is None else int(raw.get() or default)
+        except (TypeError, ValueError):
+            value = default
+        return clamp_overlay_config_value(key, value)
+
+    def _resolve_published_file(self, map_id: str, rel: str | None) -> str | None:
+        if not MAP_ID_RE.fullmatch(map_id or ""):
+            return None
+        base = os.path.basename(str(rel or "").replace("\\", "/"))
+        if not base or "\x00" in base:
+            return None
+        name, ext = os.path.splitext(base)
+        fmt = ext.lstrip(".").lower()
+        if name != map_id or fmt not in ALLOWED_OVERLAY_FORMATS:
+            return None
+        root = self.data_root()
+        abs_path = os.path.join(root, base)
+        try:
+            st = os.lstat(abs_path)
+        except OSError:
+            return None
+        if stat.S_ISLNK(st.st_mode) or not stat.S_ISREG(st.st_mode):
+            return None
+        if not is_path_within_dir(abs_path, root):
+            return None
+        return os.path.realpath(abs_path)
 
     def _display_name(self) -> str:
         raw = getattr(self.config, "map_data_display_name", None)
@@ -302,19 +355,19 @@ class MapDataManager:
             )
             if not row:
                 return None
-            abs_path = os.path.join(
-                self.data_root(), os.path.basename(row["path"] or "")
-            )
-            if not is_path_within_dir(abs_path, self.data_root()) or not os.path.isfile(
-                abs_path
-            ):
+            abs_path = self._resolve_published_file(map_id, row["path"])
+            if not abs_path:
                 return None
+            max_bytes = self._cfg_max_bytes()
             try:
-                fh = open(abs_path, "rb")
-                name = (row["name"] or map_id) + "." + (row["format"] or "bin")
-                return [fh, {"name": name.encode("utf-8")}]
-            except Exception:
+                body = read_regular_file_bytes(abs_path, max_bytes=max_bytes)
+            except OSError:
                 return None
+            expected = str(row["sha256"] or "").lower()
+            if expected and hashlib.sha256(body).hexdigest() != expected:
+                return None
+            name = (row["name"] or map_id) + "." + (row["format"] or "bin")
+            return [body, {"name": name.encode("utf-8")}]
 
         return responder
 
@@ -341,6 +394,8 @@ class MapDataManager:
         max_bytes = self._cfg_max_bytes()
         if len(payload) > max_bytes:
             raise MapDataError("file_too_large")
+        if self._published_count() >= MAX_PUBLISHED_MAPS:
+            raise MapDataError("max_published_exceeded")
         sanitized = sanitize_geo_bytes(payload, hinted_format=hinted_format)
         limits = {
             "max_bytes": max_bytes,
@@ -393,8 +448,8 @@ class MapDataManager:
         if not row:
             return False
         rel = os.path.basename(row["path"] or "")
-        abs_path = os.path.join(self.data_root(), rel)
-        if is_path_within_dir(abs_path, self.data_root()) and os.path.isfile(abs_path):
+        abs_path = self._resolve_published_file(map_id, rel)
+        if abs_path:
             with suppress(Exception):
                 os.remove(abs_path)
         self.database.map_published.delete(self.identity_hash(), map_id)
@@ -525,29 +580,49 @@ class MapDataManager:
         return out
 
     def _parse_catalog_body(self, body: bytes, dest_hex: str) -> dict[str, Any]:
+        if not isinstance(body, (bytes, bytearray)) or len(body) > MAX_CATALOG_BYTES:
+            raise MapDataError("invalid_catalog")
         try:
-            obj = json.loads(body.decode("utf-8"))
+            obj = json.loads(bytes(body).decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise MapDataError("invalid_catalog") from exc
         if not isinstance(obj, dict) or not isinstance(obj.get("maps"), list):
             raise MapDataError("invalid_catalog")
         maps = []
-        for entry in obj["maps"][:256]:
+        for entry in obj["maps"][:MAX_PUBLISHED_MAPS]:
             if not isinstance(entry, dict):
                 continue
             map_id = str(entry.get("id") or "")
             if not MAP_ID_RE.fullmatch(map_id):
                 continue
+            fmt = str(entry.get("format") or "").strip().lower()[:16]
+            if fmt == "json":
+                fmt = "geojson"
+            if fmt and fmt not in ALLOWED_OVERLAY_FORMATS:
+                continue
+            sha = str(entry.get("sha256") or "").strip().lower()
+            if sha and not _SHA256_RE.fullmatch(sha):
+                sha = ""
+            try:
+                size = int(entry.get("size") or 0)
+            except (TypeError, ValueError):
+                size = 0
+            if size < 0 or size > self._cfg_max_bytes():
+                size = 0
+            try:
+                feature_count = int(entry.get("feature_count") or 0)
+            except (TypeError, ValueError):
+                feature_count = 0
             maps.append(
                 {
                     "id": map_id,
                     "name": str(entry.get("name") or map_id)[:200],
-                    "format": str(entry.get("format") or "")[:16],
-                    "size": int(entry.get("size") or 0),
-                    "sha256": str(entry.get("sha256") or "")[:64],
+                    "format": fmt,
+                    "size": size,
+                    "sha256": sha,
                     "bbox": entry.get("bbox"),
-                    "feature_count": int(entry.get("feature_count") or 0),
-                    "updated_at": str(entry.get("updated_at") or ""),
+                    "feature_count": max(0, feature_count),
+                    "updated_at": str(entry.get("updated_at") or "")[:64],
                 },
             )
         return {"destination_hash": dest_hex, "maps": maps}
@@ -556,15 +631,17 @@ class MapDataManager:
         row = self.database.map_published.get_by_map_id(self.identity_hash(), map_id)
         if not row:
             raise MapDataError("not_found")
-        abs_path = os.path.join(self.data_root(), os.path.basename(row["path"] or ""))
-        if not is_path_within_dir(abs_path, self.data_root()) or not os.path.isfile(
-            abs_path
-        ):
+        abs_path = self._resolve_published_file(map_id, row["path"])
+        if not abs_path:
             raise MapDataError("not_found")
-        with open(abs_path, "rb") as fh:
-            body = fh.read()
-        if len(body) > self._cfg_max_bytes():
-            raise MapDataError("file_too_large")
+        max_bytes = self._cfg_max_bytes()
+        try:
+            body = read_regular_file_bytes(abs_path, max_bytes=max_bytes)
+        except OSError as exc:
+            raise MapDataError("not_found") from exc
+        expected = str(row["sha256"] or "").lower()
+        if expected and hashlib.sha256(body).hexdigest() != expected:
+            raise MapDataError("sha256_mismatch")
         return body
 
     async def fetch_catalog(self, destination_hash: str) -> dict[str, Any]:
@@ -577,16 +654,45 @@ class MapDataManager:
         body = await self._link_request(dest, CATALOG_PATH)
         return self._parse_catalog_body(body, dest.hex())
 
-    async def fetch_map_bytes(self, destination_hash: str, map_id: str) -> bytes:
+    async def fetch_map_bytes(
+        self,
+        destination_hash: str,
+        map_id: str,
+        *,
+        expected_sha256: str | None = None,
+        hinted_format: str | None = None,
+    ) -> bytes:
         if not MAP_ID_RE.fullmatch(map_id or ""):
             raise MapDataError("invalid_map_id")
         dest = _require_dest_hash(destination_hash)
         if self._is_local_hash(dest):
-            return self._read_local_map_bytes(map_id)
-        body = await self._link_request(dest, MAP_PATH_PREFIX + map_id)
-        if len(body) > self._cfg_max_bytes():
+            body = self._read_local_map_bytes(map_id)
+        else:
+            body = await self._link_request(dest, MAP_PATH_PREFIX + map_id)
+        max_bytes = self._cfg_max_bytes()
+        if len(body) > max_bytes:
             raise MapDataError("file_too_large")
-        return body
+        want = str(expected_sha256 or "").strip().lower()
+        if want:
+            if not _SHA256_RE.fullmatch(want):
+                raise MapDataError("sha256_mismatch")
+            if hashlib.sha256(body).hexdigest() != want:
+                raise MapDataError("sha256_mismatch")
+        try:
+            sanitized = sanitize_geo_bytes(body, hinted_format=hinted_format)
+            validate_geo_bytes(
+                sanitized.data,
+                hinted_format=sanitized.format,
+                max_bytes=max_bytes,
+                max_features=int(self.config.map_overlay_max_features.get() or 50_000),
+                max_kmz_uncompressed_bytes=int(
+                    self.config.map_overlay_max_kmz_uncompressed_bytes.get()
+                    or (16 * 1024 * 1024)
+                ),
+            )
+        except GeoValidationError as exc:
+            raise MapDataError(exc.code) from exc
+        return sanitized.data
 
     async def add_as_overlay(
         self, destination_hash: str, map_id: str
@@ -595,16 +701,25 @@ class MapDataManager:
         overlay_manager = getter() if getter else None
         if overlay_manager is None:
             raise MapDataError("overlay_unavailable")
-        payload = await self.fetch_map_bytes(destination_hash, map_id)
         dest = _require_dest_hash(destination_hash)
         catalog = await self.fetch_catalog(destination_hash)
         name = map_id
         hinted = None
+        expected_sha = None
         for entry in catalog.get("maps") or []:
             if entry.get("id") == map_id:
                 name = entry.get("name") or map_id
-                hinted = entry.get("format")
+                hinted = entry.get("format") or None
+                expected_sha = entry.get("sha256") or None
                 break
+        else:
+            raise MapDataError("not_found")
+        payload = await self.fetch_map_bytes(
+            destination_hash,
+            map_id,
+            expected_sha256=expected_sha,
+            hinted_format=hinted,
+        )
         return await overlay_manager.ingest_local_overlay(
             self.identity_hash(),
             kind=KIND_MAP_DATA,
@@ -620,7 +735,7 @@ class MapDataManager:
         link_manager = getter() if getter else None
         if link_manager is None:
             raise MapDataError("link_unavailable")
-        path_timeout = int(self.config.map_overlay_path_timeout_seconds.get() or 30)
+        path_timeout = self._cfg_timeout("map_overlay_path_timeout_seconds", 30)
         try:
             path_timeout = max(
                 float(path_timeout),
@@ -628,10 +743,11 @@ class MapDataManager:
             )
         except Exception:
             path_timeout = float(path_timeout)
-        transfer_timeout = int(
-            self.config.map_overlay_transfer_timeout_seconds.get() or 120
+        transfer_timeout = self._cfg_timeout(
+            "map_overlay_transfer_timeout_seconds",
+            120,
         )
-        job_timeout = int(self.config.map_overlay_job_timeout_seconds.get() or 300)
+        job_timeout = self._cfg_timeout("map_overlay_job_timeout_seconds", 300)
         link, _identified, failure = await link_manager.open_link(
             destination_hash,
             MAP_ASPECT,

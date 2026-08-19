@@ -397,9 +397,12 @@ class NomadnetFileDownloader(NomadnetDownloader):
         *,
         on_phase: Callable[[str], None] | None = None,
         reticulum: ReticulumLike | None = None,
+        max_bytes: int | None = None,
     ):
         self.on_file_download_success = on_file_download_success
         self.on_file_download_failure = on_file_download_failure
+        self._max_bytes = int(max_bytes) if max_bytes else None
+        self._oversize = False
         super().__init__(
             destination_hash,
             page_path,
@@ -422,15 +425,32 @@ class NomadnetFileDownloader(NomadnetDownloader):
             return "downloaded_file"
         return base or "downloaded_file"
 
-    @staticmethod
-    def _payload_bytes(payload) -> bytes | None:
+    def _payload_bytes(self, payload) -> bytes | None:
+        cap = self._max_bytes
         if isinstance(payload, io.BufferedReader):
-            return payload.read()
+            if cap is None:
+                return payload.read()
+            data = payload.read(cap + 1)
+            if len(data) > cap:
+                self._oversize = True
+                return None
+            return data
         if isinstance(payload, (bytes, bytearray, memoryview)):
-            return bytes(payload)
+            data = bytes(payload)
+            if cap is not None and len(data) > cap:
+                self._oversize = True
+                return None
+            return data
         return None
 
+    def _fail_payload(self) -> None:
+        if self._oversize:
+            self.on_file_download_failure("file_too_large")
+            return
+        self.on_file_download_failure("unsupported_response")
+
     def on_download_success(self, request_receipt: RNS.RequestReceipt):
+        self._oversize = False
         response = request_receipt.response
 
         if isinstance(response, io.BufferedReader):
@@ -441,7 +461,7 @@ class NomadnetFileDownloader(NomadnetDownloader):
 
             payload = self._payload_bytes(response)
             if payload is None:
-                self.on_file_download_failure("unsupported_response")
+                self._fail_payload()
                 return
 
             self.on_file_download_success(file_name, payload)
@@ -454,7 +474,7 @@ class NomadnetFileDownloader(NomadnetDownloader):
         ):
             payload = self._payload_bytes(response[0])
             if payload is None:
-                self.on_file_download_failure("unsupported_response")
+                self._fail_payload()
                 return
             metadata = response[1]
 
@@ -469,7 +489,7 @@ class NomadnetFileDownloader(NomadnetDownloader):
             file_name = self._safe_file_name(response[0])
             payload = self._payload_bytes(response[1])
             if payload is None:
-                self.on_file_download_failure("unsupported_response")
+                self._fail_payload()
                 return
             self.on_file_download_success(file_name, payload)
         except Exception:

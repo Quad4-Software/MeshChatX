@@ -196,6 +196,10 @@ def test_sync_directory_cannot_escape_identity_storage(handler, tmp_path):
     os.makedirs(bots, exist_ok=True)
     bots_reject = handler.update_settings(sync_directory=bots)
     assert bots_reject["ok"] is False
+    page_nodes = os.path.join(handler.storage_dir, "page_nodes")
+    os.makedirs(page_nodes, exist_ok=True)
+    page_nodes_reject = handler.update_settings(sync_directory=page_nodes)
+    assert page_nodes_reject["ok"] is False
 
 
 def test_start_rejects_escaped_sync_directory(handler, tmp_path):
@@ -476,6 +480,8 @@ def test_manager_upload_rejects_malicious_filenames(handler):
     for name in (
         ".hidden",
         ".rns-filesync.db",
+        "identity",
+        "identity.bak",
         "",
         ".",
         "..",

@@ -5,12 +5,14 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import hashlib
 import logging
 import os
 import random
 import re
 import shutil
+import stat
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -30,12 +32,18 @@ from meshchatx.src.backend.map_overlay_export import (
     to_geojson,
 )
 from meshchatx.src.backend.map_overlay_sources import (
+    ALLOWED_OVERLAY_FORMATS,
+    INGEST_KINDS,
+    KIND_MAP_DATA,
     KIND_NOMADNET_FILE,
     KIND_RNGIT_FILES,
     OverlaySourceParseError,
     OverlaySourceSpec,
     guess_format_from_path,
+    normalize_destination_hash_hex,
     parse_create_payload,
+    _safe_nomadnet_file_path,
+    _safe_repo_relpath,
 )
 from meshchatx.src.backend.nomadnet_downloader import NomadnetFileDownloader
 from meshchatx.src.backend.path_utils import path_response_window
@@ -48,6 +56,8 @@ from meshchatx.src.path_utils import is_path_within_dir
 _log = logging.getLogger("meshchatx.map_overlays")
 
 _SAFE_NAME_RE = re.compile(r"[^A-Za-z0-9._-]+")
+_IDENTITY_DIR_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+_MAP_ID_RE = re.compile(r"^[0-9a-f]{16}$")
 
 CONFIG_CLAMPS = {
     "map_overlay_max_bytes": (64 * 1024, 64 * 1024 * 1024),
@@ -75,11 +85,47 @@ def atomic_write_bytes(path: str, data: bytes) -> None:
     parent = os.path.dirname(path)
     os.makedirs(parent, exist_ok=True)
     tmp = path + ".tmp"
-    with open(tmp, "wb") as f:
-        f.write(data)
-        f.flush()
-        os.fsync(f.fileno())
+    if os.path.lexists(tmp) and (os.path.islink(tmp) or os.path.isdir(tmp)):
+        raise OSError("invalid overlay cache destination")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    fd = os.open(tmp, flags, 0o644)
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+    except Exception:
+        with contextlib.suppress(OSError):
+            os.unlink(tmp)
+        raise
     os.replace(tmp, path)
+
+
+def read_regular_file_bytes(path: str, *, max_bytes: int | None = None) -> bytes:
+    """Read a regular file without following a final symlink."""
+    flags = os.O_RDONLY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    fd = os.open(path, flags)
+    try:
+        mode = os.fstat(fd).st_mode
+        if not stat.S_ISREG(mode):
+            raise OSError("not a regular file")
+        size = os.fstat(fd).st_size
+        if max_bytes is not None and size > max_bytes:
+            raise OSError("file_too_large")
+        with os.fdopen(fd, "rb") as fh:
+            fd = -1
+            data = fh.read() if max_bytes is None else fh.read(max_bytes + 1)
+        if max_bytes is not None and len(data) > max_bytes:
+            raise OSError("file_too_large")
+        return data
+    finally:
+        if fd >= 0:
+            with contextlib.suppress(OSError):
+                os.close(fd)
 
 
 def _safe_filename(name: str, ext: str) -> str:
@@ -146,14 +192,48 @@ class MapOverlayManager:
         overlay_id: int,
         fmt: str,
     ) -> tuple[str, str]:
-        rel = os.path.join(identity_hash, f"{overlay_id}.{fmt}")
-        return os.path.join(self.overlay_root(), rel), rel
+        if not _IDENTITY_DIR_RE.fullmatch(identity_hash or ""):
+            raise OverlaySourceParseError("invalid_identity_hash")
+        try:
+            oid = int(overlay_id)
+        except (TypeError, ValueError) as exc:
+            raise OverlaySourceParseError("not_found") from exc
+        if oid < 1:
+            raise OverlaySourceParseError("not_found")
+        fmt_l = str(fmt or "").strip().lower()
+        if fmt_l not in ALLOWED_OVERLAY_FORMATS:
+            raise OverlaySourceParseError("unsupported_format")
+        rel = os.path.join(identity_hash, f"{oid}.{fmt_l}")
+        abs_path = os.path.join(self.overlay_root(), rel)
+        if not is_path_within_dir(abs_path, self.overlay_root()):
+            raise OverlaySourceParseError("path_traversal")
+        return abs_path, rel
+
+    def _expected_cache_rel(
+        self,
+        identity_hash: str,
+        overlay_id: int,
+        fmt: str,
+    ) -> str | None:
+        try:
+            _abs_path, rel = self.cache_path_for(identity_hash, overlay_id, fmt)
+        except OverlaySourceParseError:
+            return None
+        return rel.replace("\\", "/")
 
     def _cache_abs_under_root(self, rel: str) -> str | None:
         if not isinstance(rel, str) or not rel or "\x00" in rel:
             return None
+        cleaned = rel.replace("\\", "/").lstrip("/")
+        if not cleaned or cleaned.startswith("~"):
+            return None
+        parts = [p for p in cleaned.split("/") if p]
+        if not parts or any(p == ".." or p.startswith(".") for p in parts):
+            return None
         root = self.overlay_root()
-        abs_path = os.path.join(root, rel)
+        abs_path = os.path.join(root, *parts)
+        if os.path.lexists(abs_path) and os.path.islink(abs_path):
+            return None
         if not is_path_within_dir(abs_path, root):
             return None
         return os.path.realpath(abs_path)
@@ -300,6 +380,26 @@ class MapOverlayManager:
         hinted_format: str | None = None,
         ref: str = "HEAD",
     ) -> dict[str, Any]:
+        if kind not in INGEST_KINDS:
+            raise OverlaySourceParseError("unsupported_kind")
+        dest = normalize_destination_hash_hex(destination_hash)
+        if not dest:
+            raise OverlaySourceParseError("invalid_destination_hash")
+        destination_hash = dest
+        if kind == KIND_MAP_DATA:
+            if not _MAP_ID_RE.fullmatch(path_or_repo_path or ""):
+                raise OverlaySourceParseError("invalid_path")
+        elif kind == KIND_NOMADNET_FILE:
+            path_or_repo_path = _safe_nomadnet_file_path(path_or_repo_path)
+        else:
+            path_or_repo_path = _safe_repo_relpath(path_or_repo_path)
+        hinted = (hinted_format or "").strip().lower() or None
+        if hinted == "json":
+            hinted = "geojson"
+        if hinted is not None and hinted not in ALLOWED_OVERLAY_FORMATS:
+            raise OverlaySourceParseError("unsupported_format")
+        hinted_format = hinted
+        name = str(name or "overlay").strip()[:200] or "overlay"
         max_sources = self._cfg_int("map_overlay_max_sources")
         existing = self.database.map_overlays.get_by_unique(
             identity_hash,
@@ -673,6 +773,7 @@ class MapOverlayManager:
             timeout=transfer_timeout,
             on_phase=on_phase,
             reticulum=self.reticulum,
+            max_bytes=self._cfg_int("map_overlay_max_bytes"),
         )
         self._active_fetchers[job_id] = downloader
         try:
@@ -776,6 +877,8 @@ class MapOverlayManager:
         if not self._generation_current(overlay_id, generation):
             return
         limits = self.limits()
+        if len(payload) > limits["map_overlay_max_bytes"]:
+            raise GeoValidationError("file_too_large")
         self._set_phase(job_id, "validating")
         sanitized = sanitize_geo_bytes(payload, hinted_format=hinted_format)
         payload = sanitized.data
@@ -789,7 +892,16 @@ class MapOverlayManager:
         )
         digest = hashlib.sha256(payload).hexdigest()
         row = self.database.map_overlays.get_by_id(overlay_id)
-        if row and row.get("content_sha256") == digest and row.get("cache_relpath"):
+        expected_rel = self._expected_cache_rel(
+            identity_hash, overlay_id, validated.format
+        )
+        if (
+            row
+            and row.get("content_sha256") == digest
+            and row.get("cache_relpath")
+            and expected_rel
+            and str(row["cache_relpath"]).replace("\\", "/") == expected_rel
+        ):
             abs_existing = self._cache_abs_under_root(row["cache_relpath"])
             if abs_existing and os.path.isfile(abs_existing):
                 now = datetime.now(UTC)
@@ -924,7 +1036,9 @@ class MapOverlayManager:
         if not row:
             return False
         rel = row.get("cache_relpath")
-        if rel:
+        fmt = row.get("format")
+        expected_rel = self._expected_cache_rel(identity_hash, overlay_id, fmt or "")
+        if rel and expected_rel and str(rel).replace("\\", "/") == expected_rel:
             abs_path = self._cache_abs_under_root(rel)
             try:
                 if abs_path and os.path.isfile(abs_path):
@@ -941,11 +1055,23 @@ class MapOverlayManager:
         row = self.get_overlay(identity_hash, overlay_id)
         if not row or not row.get("cache_relpath") or not row.get("format"):
             return None
+        expected_rel = self._expected_cache_rel(
+            identity_hash, overlay_id, row["format"]
+        )
+        if not expected_rel:
+            return None
+        if str(row["cache_relpath"]).replace("\\", "/") != expected_rel:
+            return None
         abs_path = self._cache_abs_under_root(row["cache_relpath"])
         if not abs_path or not os.path.isfile(abs_path):
             return None
-        with open(abs_path, "rb") as f:
-            data = f.read()
+        try:
+            data = read_regular_file_bytes(
+                abs_path,
+                max_bytes=self._cfg_int("map_overlay_max_bytes"),
+            )
+        except OSError:
+            return None
         return data, row["format"]
 
     def export_overlay(

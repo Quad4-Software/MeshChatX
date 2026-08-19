@@ -35,6 +35,8 @@ function makeCtx() {
         getAppInfo: vi.fn().mockResolvedValue(undefined),
         getBlockedDestinations: vi.fn().mockResolvedValue(undefined),
         updateTelephoneStatus: vi.fn(),
+        updateUnreadConversationsCount: vi.fn(),
+        updateRelayChatUnreadCount: vi.fn(),
         $t: (key) => key,
     };
 }
@@ -44,12 +46,14 @@ describe("App.vue applyIdentitySwitched", () => {
         vi.clearAllMocks();
         GlobalState.unreadConversationsCount = 3;
         GlobalState.missedCallsCount = 2;
+        GlobalState.relayChatUnreadCount = 7;
         GlobalState.blockedDestinations = [{ destination_hash: "old" }];
     });
 
     afterEach(() => {
         GlobalState.unreadConversationsCount = 0;
         GlobalState.missedCallsCount = 0;
+        GlobalState.relayChatUnreadCount = 0;
         GlobalState.blockedDestinations = [];
         vi.useRealTimers();
     });
@@ -63,11 +67,14 @@ describe("App.vue applyIdentitySwitched", () => {
         expect(ToastUtils.success).toHaveBeenCalledWith("identities.switched");
         expect(GlobalState.unreadConversationsCount).toBe(0);
         expect(GlobalState.missedCallsCount).toBe(0);
+        expect(GlobalState.relayChatUnreadCount).toBe(0);
         expect(ctx.getConfig).toHaveBeenCalledTimes(1);
         expect(ctx.updateRingtonePlayer).toHaveBeenCalledTimes(1);
         expect(ctx.getAppInfo).toHaveBeenCalledTimes(1);
         expect(ctx.getBlockedDestinations).toHaveBeenCalledTimes(1);
         expect(ctx.updateTelephoneStatus).toHaveBeenCalledTimes(1);
+        expect(ctx.updateUnreadConversationsCount).toHaveBeenCalledTimes(1);
+        expect(ctx.updateRelayChatUnreadCount).toHaveBeenCalledTimes(1);
         expect(GlobalState.blockedDestinations).toEqual([]);
         expect(ctx.isSwitchingIdentity).toBe(false);
         expect(GlobalEmitter.emit).toHaveBeenCalledWith(

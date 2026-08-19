@@ -15,9 +15,11 @@ from unittest.mock import MagicMock
 import pytest
 
 from meshchatx.src.backend.docs_manager import DocsManager
+from meshchatx.src.backend.plugin_guard import PluginSecurityError
 from meshchatx.src.backend.plugin_manager import PluginManager
 from meshchatx.src.backend.repository_server_manager import RepositoryServerManager
 from meshchatx.src.backend.rncp_handler import RNCPHandler
+from meshchatx.src.backend.rns_filesync_handler import RnsFilesyncHandler
 from meshchatx.src.backend.rrc import protocol as proto
 from meshchatx.src.backend.rrc.manager import RRCManager
 from meshchatx.src.backend.rrc.server import RRCHubServer, _Session
@@ -340,3 +342,131 @@ def test_oracle_kline_teardown_fans_parted_to_remaining_members():
     assert parted, "remaining members must see PARTED after kline teardown"
     assert link_victim not in server._room_members.get("lobby", set())
     assert link_victim not in server._sessions
+
+
+def test_oracle_filesync_refuses_page_nodes_sync_root(tmp_path):
+    """Mesh Server node dirs hold a nested identity key. FileSync must not share them."""
+    storage = tmp_path / "id"
+    node_dir = storage / "page_nodes" / "node1"
+    node_dir.mkdir(parents=True)
+    (node_dir / "identity").write_bytes(b"page-node-private-key")
+    handler = RnsFilesyncHandler(
+        MagicMock(),
+        type("Ident", (), {"hash": b"\x33" * 16})(),
+        str(storage),
+    )
+    assert handler._resolve_sync_directory(str(storage / "page_nodes")) is None
+    assert handler._resolve_sync_directory(str(node_dir)) is None
+    assert handler._resolve_sync_directory(str(node_dir / "identity")) is None
+    ok = storage / "filesync" / "sync"
+    ok.mkdir(parents=True, exist_ok=True)
+    assert handler._resolve_sync_directory(str(ok)) == str(ok.resolve())
+
+
+def test_oracle_rncp_shared_root_refuses_session_secret_and_sibling_identity(
+    tmp_path,
+):
+    """Production RNCPHandler uses app.storage_dir, not the identity folder.
+
+    Reserved tops must be relative to that shared root. identities/ and
+    session_secret sit next to identities/<hash>/, not inside it.
+    """
+    shared = tmp_path / "storage"
+    ident_a = shared / "identities" / ("a" * 32)
+    ident_b = shared / "identities" / ("b" * 32)
+    ident_a.mkdir(parents=True)
+    ident_b.mkdir(parents=True)
+    (ident_a / "identity").write_bytes(b"key-a")
+    (ident_b / "identity").write_bytes(b"key-b")
+    db_b = ident_b / "database.db"
+    db_b.write_bytes(b"sqlite-b")
+    ssl_b = ident_b / "ssl"
+    ssl_b.mkdir()
+    key_b = ssl_b / "key.pem"
+    key_b.write_text("PRIVATE", encoding="utf-8")
+    secret = shared / "session_secret"
+    secret.write_text("cookie-hmac-key", encoding="utf-8")
+    security = shared / "app_security.json"
+    security.write_text("{}", encoding="utf-8")
+    allowed = shared / "rncp_received"
+    allowed.mkdir()
+    ok = allowed / "note.txt"
+    ok.write_text("hi", encoding="utf-8")
+
+    handler = RNCPHandler(MagicMock(), MagicMock(), str(shared))
+    with pytest.raises(PermissionError):
+        handler._resolve_send_path(str(secret))
+    with pytest.raises(PermissionError):
+        handler._resolve_send_path(str(security))
+    with pytest.raises(PermissionError):
+        handler._resolve_send_path(str(db_b))
+    with pytest.raises(PermissionError):
+        handler._resolve_send_path(str(key_b))
+    with pytest.raises(PermissionError):
+        handler._resolve_fetch_save_dir(str(ident_b))
+    with pytest.raises(PermissionError):
+        handler._resolve_fetch_save_dir("identities")
+    assert handler._resolve_send_path(str(ok)) == str(ok.resolve())
+    assert handler._safe_received_filename("identity") == "downloaded_file"
+    assert handler._safe_received_filename("session_secret") == "downloaded_file"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symlink follow-on-copy is a POSIX case")
+def test_oracle_plugin_install_does_not_copy_symlink_target(tmp_path):
+    """Install must not follow source-tree file symlinks into host identity bytes."""
+    bait_dir = tmp_path / "OUTSIDE"
+    bait_dir.mkdir()
+    bait = bait_dir / "identity"
+    bait.write_bytes(b"HOST-PRIVATE-KEY")
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "plugin.json").write_text(
+        (
+            '{"id":"com.example.symlink","version":"1.0.0","apiVersion":1,'
+            '"name":"Symlink","frontend":{"entry":"frontend/main.js","type":"js"}}'
+        ),
+        encoding="utf-8",
+    )
+    frontend = source / "frontend"
+    frontend.mkdir()
+    (frontend / "main.js").write_text(
+        "export async function activate() {}",
+        encoding="utf-8",
+    )
+    os.symlink(str(bait), str(source / "stolen"))
+
+    manager = PluginManager(str(tmp_path / "storage"))
+    with pytest.raises(PluginSecurityError):
+        manager.install_from_directory(str(source))
+    installed = (
+        tmp_path
+        / "storage"
+        / "plugins"
+        / "installed"
+        / "com.example.symlink"
+        / "stolen"
+    )
+    assert not installed.is_file() or installed.read_bytes() != b"HOST-PRIVATE-KEY"
+    assert bait.read_bytes() == b"HOST-PRIVATE-KEY"
+
+
+def test_oracle_rncp_refuses_page_nodes_send_and_fetch_save(tmp_path):
+    """RNCP must not send or land downloads on Mesh Server identity trees."""
+    storage = tmp_path / "id"
+    node_dir = storage / "page_nodes" / "node1"
+    node_dir.mkdir(parents=True)
+    key = node_dir / "identity"
+    key.write_bytes(b"page-node-private-key")
+    page = node_dir / "pages"
+    page.mkdir()
+    page_file = page / "index.mu"
+    page_file.write_text("Hello\n", encoding="utf-8")
+    handler = RNCPHandler(MagicMock(), MagicMock(), str(storage))
+    with pytest.raises(PermissionError):
+        handler._resolve_send_path(str(key))
+    with pytest.raises(PermissionError):
+        handler._resolve_send_path(str(page_file))
+    with pytest.raises(PermissionError):
+        handler._resolve_fetch_save_dir(str(node_dir))
+    with pytest.raises(PermissionError):
+        handler._resolve_fetch_save_dir("page_nodes")

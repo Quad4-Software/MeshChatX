@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import shutil
 import signal
 from collections.abc import Callable
@@ -13,6 +14,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from meshchatx.src.backend.map_overlay_sources import is_commit_like_ref
+from meshchatx.src.path_utils import is_path_within_dir
+
+_JOB_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 
 
 class RngitFetchError(RuntimeError):
@@ -108,6 +112,27 @@ class RngitSparseFetcher:
             env["RNGIT_CONFIG"] = self.rngit_config_dir
         return env
 
+    def _job_workdir(self, job_id: str) -> str:
+        if not isinstance(job_id, str) or not job_id or "\x00" in job_id:
+            raise RngitFetchError("invalid_job_id")
+        cleaned = job_id.strip()
+        if (
+            not cleaned
+            or cleaned in (".", "..")
+            or ".." in cleaned
+            or "/" in cleaned
+            or "\\" in cleaned
+            or cleaned.startswith(".")
+        ):
+            raise RngitFetchError("invalid_job_id")
+        if not _JOB_ID_RE.fullmatch(cleaned) or cleaned.startswith("."):
+            raise RngitFetchError("invalid_job_id")
+        os.makedirs(self.work_root, exist_ok=True)
+        workdir = os.path.join(self.work_root, cleaned)
+        if not is_path_within_dir(workdir, self.work_root):
+            raise RngitFetchError("path_traversal")
+        return workdir
+
     async def fetch(
         self,
         *,
@@ -127,7 +152,7 @@ class RngitSparseFetcher:
         if not paths:
             raise RngitFetchError("missing_paths")
 
-        workdir = os.path.join(self.work_root, job_id)
+        workdir = self._job_workdir(job_id)
         if os.path.exists(workdir):
             shutil.rmtree(workdir, ignore_errors=True)
         os.makedirs(workdir, exist_ok=True)
@@ -250,14 +275,15 @@ class RngitSparseFetcher:
             resolved = out.decode("utf-8", errors="replace").strip()
 
             files: dict[str, bytes] = {}
-            root = Path(workdir)
+            root = Path(workdir).resolve()
             for rel in paths:
-                abs_path = (root / rel).resolve()
-                try:
-                    abs_path.relative_to(root.resolve())
-                except ValueError as exc:
-                    raise RngitFetchError("path_traversal") from exc
-                if not abs_path.is_file():
+                candidate = root / rel
+                if candidate.is_symlink():
+                    raise RngitFetchError("path_traversal")
+                abs_path = candidate.resolve()
+                if not is_path_within_dir(str(abs_path), str(root)):
+                    raise RngitFetchError("path_traversal")
+                if not abs_path.is_file() or abs_path.is_symlink():
                     raise RngitFetchError("path_missing", rel)
                 files[rel] = abs_path.read_bytes()
 

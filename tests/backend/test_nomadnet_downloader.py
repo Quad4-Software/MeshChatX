@@ -218,3 +218,21 @@ def test_file_downloader_sanitizes_fallback_name():
     fd.on_download_success(rr)
     on_ok.assert_called_once_with("passwd", b"ok")
     on_fail.assert_not_called()
+
+
+def test_file_downloader_caps_payload_bytes():
+    on_ok = MagicMock()
+    on_fail = MagicMock()
+    fd = NomadnetFileDownloader(
+        b"ab" * 8,
+        "/f.bin",
+        on_ok,
+        on_fail,
+        MagicMock(),
+        max_bytes=4,
+    )
+    rr = MagicMock()
+    rr.response = [b"too-big", {"name": b"layer.geojson"}]
+    fd.on_download_success(rr)
+    on_fail.assert_called_once_with("file_too_large")
+    on_ok.assert_not_called()

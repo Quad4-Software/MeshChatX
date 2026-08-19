@@ -17,6 +17,7 @@ from meshchatx.src.backend.plugin_guard import (
     PLUGIN_ERROR_WINDOW_SECONDS,
     PluginSecurityError,
     normalize_asset_path,
+    reject_symlinks_in_tree,
     safe_extract_zip,
     validate_invoke_payload,
     validate_wasm_file,
@@ -522,10 +523,12 @@ class PluginManager:
         plugin_id = manifest["id"]
         declared = declared_permission_ids(manifest)
         granted = normalize_granted_permissions(declared, granted_permissions)
+        reject_symlinks_in_tree(source_dir)
         target_dir = os.path.join(self.installed_dir, plugin_id)
         if os.path.exists(target_dir):
             self._remove_install_tree(target_dir)
         shutil.copytree(source_dir, target_dir)
+        reject_symlinks_in_tree(target_dir)
         self._normalize_install_tree_permissions(target_dir)
         integrity_hash = compute_dir_integrity_hash(target_dir)
         with self._lock:
@@ -848,14 +851,25 @@ class PluginManager:
         record = self._require_plugin(plugin_id)
         i18n = record.manifest.get("i18n") or {}
         directory = i18n.get("directory") or "locales"
+        if not isinstance(directory, str):
+            return None
         default_locale = i18n.get("defaultLocale") or "en"
+        root = os.path.realpath(record.install_path)
         candidates = []
         for code in (locale, default_locale, "en"):
-            if code and code not in candidates:
+            if isinstance(code, str) and code and code not in candidates:
                 candidates.append(code)
         for code in candidates:
-            relative = os.path.join(directory, f"{code}.json").replace("\\", "/")
-            path = os.path.join(record.install_path, relative)
+            if "/" in code or "\\" in code or ".." in code or "\x00" in code:
+                continue
+            joined = f"{directory}/{code}.json".replace("\\", "/")
+            try:
+                normalized = normalize_asset_path(joined)
+            except PluginSecurityError:
+                continue
+            path = os.path.realpath(os.path.join(root, normalized))
+            if path != root and not path.startswith(root + os.sep):
+                continue
             if os.path.isfile(path):
                 return path
         return None

@@ -95,6 +95,20 @@ class TestPluginGuard:
         with pytest.raises(PluginSecurityError):
             safe_extract_zip(str(zip_path), str(extract_dir))
 
+    def test_safe_extract_zip_rejects_unix_symlink_member(self, tmp_path):
+        import stat
+
+        zip_path = tmp_path / "link.zip"
+        extract_dir = tmp_path / "extract"
+        extract_dir.mkdir()
+        with zipfile.ZipFile(zip_path, "w") as archive:
+            info = zipfile.ZipInfo("stolen")
+            info.create_system = 3
+            info.external_attr = (stat.S_IFLNK | 0o777) << 16
+            archive.writestr(info, "/etc/passwd")
+        with pytest.raises(PluginSecurityError):
+            safe_extract_zip(str(zip_path), str(extract_dir))
+
     def test_install_zip_with_traversal_is_rejected(self, tmp_path):
         manager = _make_manager(tmp_path)
         zip_path = tmp_path / "evil.zip"
@@ -118,6 +132,35 @@ class TestPluginGuard:
         manager.install_from_directory(str(source))
         with pytest.raises(PluginSecurityError):
             manager.asset_path("com.example.secure-plugin", "../plugin.json")
+
+    def test_locale_path_stays_under_install_root(self, tmp_path):
+        manager = _make_manager(tmp_path)
+        source = tmp_path / "source"
+        _write_plugin_dir(str(source))
+        manager.install_from_directory(str(source))
+        plugin_id = "com.example.secure-plugin"
+        outside = tmp_path / "OUTSIDE"
+        outside.mkdir()
+        bait = outside / "en.json"
+        bait.write_text('{"leaked": true}', encoding="utf-8")
+        record = manager._plugins[plugin_id]
+        record.manifest["i18n"] = {"directory": str(outside), "defaultLocale": "en"}
+        assert manager.locale_path(plugin_id, "en") is None
+        record.manifest["i18n"] = {"directory": "../OUTSIDE", "defaultLocale": "en"}
+        assert manager.locale_path(plugin_id, "en") is None
+        record.manifest["i18n"] = {"directory": "locales", "defaultLocale": "en"}
+        hostile = manager.locale_path(plugin_id, "../OUTSIDE/en")
+        if hostile is not None:
+            assert os.path.realpath(hostile).startswith(
+                os.path.realpath(record.install_path) + os.sep,
+            )
+            assert os.path.realpath(hostile) != os.path.realpath(bait)
+        allowed = manager.locale_path(plugin_id, "en")
+        assert allowed is not None
+        assert allowed.endswith("locales/en.json")
+        assert os.path.realpath(allowed).startswith(
+            os.path.realpath(record.install_path) + os.sep,
+        )
 
     def test_report_failure_auto_disables_after_budget(self, tmp_path):
         manager = _make_manager(tmp_path)

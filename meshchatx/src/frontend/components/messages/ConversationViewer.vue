@@ -1776,6 +1776,7 @@ export default {
     data() {
         return {
             GlobalState,
+            lastDraftIdentityKey: "",
             peerPathSnapshot: null,
             peerPathLoading: false,
             peerPathWarming: false,
@@ -2331,7 +2332,7 @@ export default {
             handler(newPeer, oldPeer) {
                 this.messageBubbleTranslation = {};
                 if (oldPeer) {
-                    this.saveDraft(oldPeer.destination_hash);
+                    this.saveDraft(oldPeer.destination_hash, this.lastDraftIdentityKey || this._draftIdentityKey());
                     this.clearAudioAttachmentCache();
                 }
                 this.teardownPeerHeaderResizeObserver();
@@ -2392,6 +2393,7 @@ export default {
     created() {
         this._outboundQueue = createOutboundQueue((job) => this._executeOutboundSendJob(job));
         this.sendStatusUiMs = Date.now();
+        this.lastDraftIdentityKey = this._draftIdentityKey();
     },
     mounted() {
         this.updateTimer = setInterval(() => {
@@ -2439,7 +2441,7 @@ export default {
         this.closeReactionPicker();
         this.teardownPeerHeaderResizeObserver();
         if (this.selectedPeer) {
-            this.saveDraft(this.selectedPeer.destination_hash);
+            this.saveDraft(this.selectedPeer.destination_hash, this.lastDraftIdentityKey || this._draftIdentityKey());
         }
         if (this._onWindowResize) {
             window.removeEventListener("resize", this._onWindowResize);
@@ -3086,14 +3088,15 @@ export default {
                 ToastUtils.error(e.response?.data?.message || this.$t("messages.failed_add_contact"));
             }
         },
-        loadDraft(destinationHash) {
+        loadDraft(destinationHash, identityKey) {
             try {
                 const drafts = this._readDraftRoot();
-                const bucket = this._draftBucket(drafts);
+                const key = identityKey || this._draftIdentityKey();
+                const bucket = this._draftBucketFor(drafts, key);
                 let text = "";
                 if (bucket && typeof bucket[destinationHash] === "string") {
                     text = bucket[destinationHash];
-                } else if (typeof drafts[destinationHash] === "string") {
+                } else if (!this._hasNestedDraftBuckets(drafts) && typeof drafts[destinationHash] === "string") {
                     // Legacy flat keys (pre identity-scoped drafts).
                     text = drafts[destinationHash];
                 }
@@ -3105,14 +3108,14 @@ export default {
                 console.error("Failed to load draft:", e);
             }
         },
-        saveDraft(destinationHash) {
+        saveDraft(destinationHash, identityKey) {
             try {
                 const drafts = this._readDraftRoot();
-                const identityKey = this._draftIdentityKey();
-                let bucket = this._draftBucket(drafts);
+                const key = identityKey || this._draftIdentityKey();
+                let bucket = this._draftBucketFor(drafts, key);
                 if (!bucket) {
                     bucket = {};
-                    drafts[identityKey] = bucket;
+                    drafts[key] = bucket;
                     if (typeof drafts[destinationHash] === "string") {
                         delete drafts[destinationHash];
                     }
@@ -3123,6 +3126,7 @@ export default {
                     delete bucket[destinationHash];
                 }
                 localStorage.setItem("meshchat.drafts", JSON.stringify(drafts));
+                this.lastDraftIdentityKey = key;
             } catch (e) {
                 console.error("Failed to save draft:", e);
             }
@@ -3135,24 +3139,33 @@ export default {
             const raw = JSON.parse(localStorage.getItem("meshchat.drafts") || "{}");
             return raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
         },
-        _draftBucket(drafts) {
-            const identityKey = this._draftIdentityKey();
+        _draftBucketFor(drafts, identityKey) {
             const nested = drafts[identityKey];
             if (nested && typeof nested === "object" && !Array.isArray(nested)) {
                 return nested;
             }
             return null;
         },
-        onIdentitySwitched() {
-            if (this.selectedPeer?.destination_hash) {
-                this.saveDraft(this.selectedPeer.destination_hash);
+        _hasNestedDraftBuckets(drafts) {
+            return Object.values(drafts).some((value) => value && typeof value === "object" && !Array.isArray(value));
+        },
+        onIdentitySwitched(json) {
+            const dest = this.selectedPeer?.destination_hash;
+            const previousKey = this.lastDraftIdentityKey || this._draftIdentityKey();
+            const nextKey =
+                typeof json?.identity_hash === "string" && json.identity_hash
+                    ? json.identity_hash
+                    : this._draftIdentityKey();
+            if (dest) {
+                this.saveDraft(dest, previousKey);
             }
             this.lxmfMessagesRequestSequence += 1;
             this.chatItems = [];
             this.messageBubbleTranslation = {};
             this.clearAudioAttachmentCache();
+            this.lastDraftIdentityKey = nextKey;
             if (this.selectedPeer) {
-                this.loadDraft(this.selectedPeer.destination_hash);
+                this.loadDraft(dest, nextKey);
                 this.initialLoad();
             }
         },
@@ -5480,7 +5493,10 @@ export default {
         clearComposeAfterEnqueue() {
             this.newMessageText = "";
             if (this.selectedPeer) {
-                this.saveDraft(this.selectedPeer.destination_hash);
+                this.saveDraft(
+                    this.selectedPeer.destination_hash,
+                    this.lastDraftIdentityKey || this._draftIdentityKey()
+                );
             }
             this.newMessageImages = [];
             this.newMessageImageUrls = [];
