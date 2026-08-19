@@ -19,6 +19,7 @@ Implement or harden Reticulum Relay Chat (RRC) hubs and clients without breaking
 - Aspect: `rrc.hub`. Address hubs by destination hash, not IP.
 - Hub-and-spoke over RNS Links. Rooms are hub-local labels.
 - JOIN body is empty in core wire docs. MeshChatX hubs may put a room key string in the JOIN body for +k.
+- Hosted /list marks keyed public rooms with [+k]. The key is never listed. Clients prompt only for that flag (no stored key) or on ERROR bad key (+k).
 - Local HTTPS UI is not the mesh. Peers are not REST clients of MeshChatX.
 
 ## Key paths
