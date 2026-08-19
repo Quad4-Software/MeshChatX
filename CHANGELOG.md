@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- **Relay Chat room keys**: Hosted /list marks keyed public rooms with [+k] and never sends the key. Clicking an unkeyed listed room joins without a prompt. A stored key or a later bad key (+k) error still supplies or asks for the key.
 - **Map catalog**: Catalog on Discover lists packs instead of hanging. Empty catalogs show a message.
 - **In-process memory growth**: Announce-rate, LXMF flood, RNCP, auto-resend, Mesh Server, and map overlay lists prune on append instead of waiting for About to poll. Identity teardown drops ringtone, notification-sound, translator, and community-interface managers.
 - **macOS universal**: Intel NumPy OpenBLAS dylibs stay in the freeze tree so the x86_64 slice can load numpy.
