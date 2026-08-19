@@ -2,11 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.8.4] - 2026-08-16 [unreleased]
+## [4.8.4] - 2026-08-20 [unreleased]
 
 ### Changed
 
 - **Map announce**: Off until a pack is published.
+- **Community interface presets**: Build-time fetch uses https://meshchatx.com/api/mcx-interfaces instead of directory.rns.recipes.
 - **Android release APK**: GitHub assets use ReticulumMeshChatX-vVERSION-android-universal.apk, matching desktop installer names.
 - **Confirm and prompt dialogs**: Electron uses the in-app dialogs instead of native OS prompts. Remote management identity create uses the in-app prompt instead of window.prompt.
 - **Collapsed sidebar**: The active rail item uses an inset pressed fill instead of the expanded blue pill. Collapsed buttons are square.
