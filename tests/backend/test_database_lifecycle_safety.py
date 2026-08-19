@@ -4,6 +4,7 @@ import os
 import shutil
 import sqlite3
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -49,6 +50,54 @@ def test_provider_path_switch_calls_close_all(temp_dir):
         DatabaseProvider.get_instance(db_path_b)
         mock_close.assert_called_once()
     DatabaseProvider._instance.close_all()
+
+
+def test_provider_close_all_does_not_close_other_providers(temp_dir):
+    live_path = os.path.join(temp_dir, "live.db")
+    other_path = os.path.join(temp_dir, "other.db")
+    live = DatabaseProvider.get_instance(live_path)
+    live.execute("CREATE TABLE keep (id INTEGER PRIMARY KEY, val TEXT)")
+    live.execute("INSERT INTO keep (val) VALUES (?)", ("alive",))
+    live_conn = live.connection
+
+    other = DatabaseProvider(other_path)
+    other.execute("CREATE TABLE tmp (id INTEGER PRIMARY KEY)")
+    other.close_all()
+
+    row = live_conn.execute("SELECT val FROM keep").fetchone()
+    assert row is not None
+    assert row[0] == "alive"
+    assert live.connection is live_conn
+    live.close_all()
+
+
+def test_close_all_closes_worker_thread_connections(temp_dir):
+    db_path = os.path.join(temp_dir, "worker.db")
+    provider = DatabaseProvider(db_path)
+    provider.execute("CREATE TABLE t (id INTEGER PRIMARY KEY, val TEXT)")
+    barrier = threading.Barrier(2)
+    held = {}
+
+    def worker():
+        provider.execute("INSERT INTO t (val) VALUES (?)", ("w",))
+        held["conn"] = provider.connection
+        barrier.wait()
+        barrier.wait()
+        try:
+            held["conn"].execute("SELECT 1")
+            held["still_open"] = True
+        except sqlite3.ProgrammingError:
+            held["still_open"] = False
+
+    thread = threading.Thread(target=worker)
+    thread.start()
+    barrier.wait()
+    provider.close_all()
+    barrier.wait()
+    thread.join(timeout=5)
+    assert held.get("still_open") is False
+    with pytest.raises(sqlite3.ProgrammingError, match="closed"):
+        held["conn"].execute("SELECT 1")
 
 
 def test_restore_invokes_close_all_before_replace(temp_dir):

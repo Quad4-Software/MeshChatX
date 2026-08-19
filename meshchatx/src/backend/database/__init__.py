@@ -651,11 +651,16 @@ class Database:
         actions.append({"step": "wal_checkpoint", "result": self._checkpoint_wal()})
 
         integrity_rows = self.provider.integrity_check()
-        integrity = [row[0] for row in integrity_rows] if integrity_rows else []
+        integrity = self._integrity_labels(integrity_rows)
         actions.append({"step": "integrity_check", "result": integrity})
 
-        self.provider.vacuum()
-        self._tune_sqlite_pragmas()
+        integrity_ok = bool(integrity) and integrity[0] == "ok"
+        if integrity_ok:
+            self.provider.vacuum()
+            actions.append({"step": "vacuum", "result": "ok"})
+            self._tune_sqlite_pragmas()
+        else:
+            actions.append({"step": "vacuum", "result": "skipped"})
 
         actions.append(
             {
@@ -668,6 +673,16 @@ class Database:
             "actions": actions,
             "health": self.get_database_health_snapshot(),
         }
+
+    @staticmethod
+    def _integrity_labels(rows) -> list:
+        labels = []
+        for row in rows or []:
+            if isinstance(row, dict):
+                labels.append(next(iter(row.values())))
+            else:
+                labels.append(row[0])
+        return labels
 
     def _checkpoint_and_close(self):
         try:
@@ -897,6 +912,14 @@ class Database:
             result["current_stats"] = current_stats
             return result
 
+        if current_stats.get("message_count", 0) < 0:
+            _log.warning(
+                "Backup message count unavailable, skipping rotation and baseline update",
+            )
+            result["count_unknown"] = True
+            result["current_stats"] = current_stats
+            return result
+
         if max_count is not None and max_count > 0:
             try:
                 backups = []
@@ -904,6 +927,7 @@ class Database:
                     if (
                         file.endswith(".zip")
                         and file.startswith("backup-")
+                        and not file.startswith(PRE_MIGRATE_BACKUP_PREFIX)
                         and "SUSPICIOUS" not in file
                     ):
                         full_path = os.path.join(default_dir, file)
@@ -1071,25 +1095,6 @@ class Database:
                     if os.path.exists(staged):
                         shutil.move(staged, paths[key])
 
-                # Copy any remaining identity-storage files from the zip staging tree.
-                for root, _dirs, files in os.walk(staging_dir, followlinks=False):
-                    for name in files:
-                        src = os.path.join(root, name)
-                        rel = os.path.relpath(src, staging_dir)
-                        if rel in {main_name, f"{main_name}-wal", f"{main_name}-shm"}:
-                            continue
-                        if name.endswith(("-wal", "-shm")) and name.startswith(
-                            os.path.splitext(main_name)[0],
-                        ):
-                            continue
-                        dest = os.path.join(target_dir, rel)
-                        dest_dir = os.path.dirname(dest)
-                        if dest_dir:
-                            os.makedirs(dest_dir, exist_ok=True)
-                        if os.path.islink(src):
-                            continue
-                        shutil.copy2(src, dest)
-
                 try:
                     self.initialize()
                 except Exception as exc:
@@ -1101,12 +1106,7 @@ class Database:
                     ) from exc
                 self._tune_sqlite_pragmas()
                 integrity_rows = self.provider.integrity_check()
-                integrity = []
-                for row in integrity_rows or []:
-                    if isinstance(row, dict):
-                        integrity.append(next(iter(row.values())))
-                    else:
-                        integrity.append(row[0])
+                integrity = self._integrity_labels(integrity_rows)
                 if integrity and integrity[0] != "ok":
                     self.close_all()
                     self._restore_aside_files(aside_dir, paths)
@@ -1115,6 +1115,20 @@ class Database:
                     raise DatabaseRestoreError(
                         f"Restored backup failed integrity check: {integrity[0]!s}",
                     )
+                try:
+                    self._copy_identity_storage_from_staging(
+                        staging_dir,
+                        target_dir,
+                        main_name,
+                    )
+                except Exception as exc:
+                    self.close_all()
+                    self._restore_aside_files(aside_dir, paths)
+                    with suppress(Exception):
+                        self.initialize()
+                    raise DatabaseRestoreError(
+                        f"Restored database but identity files failed to copy: {exc!s}",
+                    ) from exc
             finally:
                 shutil.rmtree(aside_dir, ignore_errors=True)
         finally:
@@ -1125,6 +1139,70 @@ class Database:
             "integrity_check": integrity_rows,
             "health": self.get_database_health_snapshot(),
         }
+
+    @staticmethod
+    def _copy_identity_storage_from_staging(
+        staging_dir: str,
+        target_dir: str,
+        main_name: str,
+    ) -> None:
+        skip = {main_name, f"{main_name}-wal", f"{main_name}-shm"}
+        main_stem = os.path.splitext(main_name)[0]
+        extras_aside = tempfile.mkdtemp(
+            prefix=".meshchatx-extras-aside-",
+            dir=target_dir,
+        )
+        created: list[str] = []
+        try:
+            for root, _dirs, files in os.walk(staging_dir, followlinks=False):
+                for name in files:
+                    src = os.path.join(root, name)
+                    rel = os.path.relpath(src, staging_dir)
+                    if rel in skip:
+                        continue
+                    if name.endswith(("-wal", "-shm")) and name.startswith(main_stem):
+                        continue
+                    if os.path.islink(src):
+                        continue
+                    dest = os.path.join(target_dir, rel)
+                    dest_dir = os.path.dirname(dest)
+                    if dest_dir:
+                        os.makedirs(dest_dir, exist_ok=True)
+                    if os.path.lexists(dest):
+                        aside = os.path.join(extras_aside, rel)
+                        aside_dir = os.path.dirname(aside)
+                        if aside_dir:
+                            os.makedirs(aside_dir, exist_ok=True)
+                        shutil.move(dest, aside)
+                    shutil.copy2(src, dest)
+                    created.append(dest)
+        except Exception:
+            for dest in reversed(created):
+                with suppress(OSError):
+                    if os.path.lexists(dest) and not os.path.isdir(dest):
+                        os.remove(dest)
+            Database._restore_extras_aside(extras_aside, target_dir)
+            raise
+        finally:
+            shutil.rmtree(extras_aside, ignore_errors=True)
+
+    @staticmethod
+    def _restore_extras_aside(extras_aside: str, target_dir: str) -> None:
+        if not os.path.isdir(extras_aside):
+            return
+        for root, _dirs, files in os.walk(extras_aside, followlinks=False):
+            for name in files:
+                src = os.path.join(root, name)
+                rel = os.path.relpath(src, extras_aside)
+                dest = os.path.join(target_dir, rel)
+                dest_dir = os.path.dirname(dest)
+                if dest_dir:
+                    os.makedirs(dest_dir, exist_ok=True)
+                if os.path.lexists(dest) and not os.path.isdir(dest):
+                    with suppress(OSError):
+                        os.remove(dest)
+                with suppress(OSError):
+                    shutil.move(src, dest)
 
     @staticmethod
     def _restore_aside_files(aside_dir: str, paths: dict) -> None:

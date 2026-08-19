@@ -220,6 +220,36 @@ def test_backup_normal_rotation_and_baseline_update(temp_dir):
     assert os.path.exists(os.path.join(backup_dir, "backup-baseline.json"))
 
 
+def test_backup_rotation_preserves_pre_migrate_zips(temp_dir):
+    import time
+
+    from meshchatx.src.backend.database import PRE_MIGRATE_BACKUP_PREFIX
+
+    db_path = os.path.join(temp_dir, "test.db")
+    db = Database(db_path)
+    db.initialize()
+    backup_dir = os.path.join(temp_dir, "database-backups")
+    os.makedirs(backup_dir, exist_ok=True)
+    pre_migrate_name = f"{PRE_MIGRATE_BACKUP_PREFIX}v1-to-v2-20000101-000000.zip"
+    pre_migrate_path = os.path.join(backup_dir, pre_migrate_name)
+    with open(pre_migrate_path, "wb") as handle:
+        handle.write(b"PK\x03\x04pre-migrate-keep")
+    old = time.time() - 120
+    os.utime(pre_migrate_path, (old, old))
+
+    db.backup_database(temp_dir, max_count=1)
+    time.sleep(1.1)
+    db.backup_database(temp_dir, max_count=1)
+
+    assert os.path.isfile(pre_migrate_path)
+    regular = [
+        name
+        for name in os.listdir(backup_dir)
+        if name.endswith(".zip") and not name.startswith(PRE_MIGRATE_BACKUP_PREFIX)
+    ]
+    assert len(regular) == 1
+
+
 def test_backup_failure_does_not_remove_existing_backups(temp_dir):
     from unittest.mock import patch
 
@@ -235,6 +265,44 @@ def test_backup_failure_does_not_remove_existing_backups(temp_dir):
             db.backup_database(temp_dir, max_count=1)
     still_there = [f for f in os.listdir(backup_dir) if f.endswith(".zip")]
     assert len(still_there) == 1
+
+
+def test_run_database_recovery_skips_vacuum_when_integrity_fails(temp_dir):
+    from unittest.mock import patch
+
+    db_path = os.path.join(temp_dir, "test.db")
+    db = Database(db_path)
+    db.initialize()
+    db.execute_sql("INSERT INTO config (key, value) VALUES (?, ?)", ("keep", "me"))
+
+    with patch.object(
+        db.provider,
+        "integrity_check",
+        return_value=[{"integrity_check": "tree corrupt"}],
+    ):
+        with patch.object(db.provider, "vacuum") as mock_vacuum:
+            result = db.run_database_recovery()
+            mock_vacuum.assert_not_called()
+
+    vacuum_steps = [step for step in result["actions"] if step.get("step") == "vacuum"]
+    assert vacuum_steps
+    assert vacuum_steps[0]["result"] == "skipped"
+    row = db.provider.fetchone("SELECT value FROM config WHERE key = ?", ("keep",))
+    assert row["value"] == "me"
+    db.close_all()
+
+
+def test_run_database_recovery_accepts_dict_integrity_rows(temp_dir):
+    db_path = os.path.join(temp_dir, "test.db")
+    db = Database(db_path)
+    db.initialize()
+    result = db.run_database_recovery()
+    integrity_steps = [
+        step for step in result["actions"] if step.get("step") == "integrity_check"
+    ]
+    assert integrity_steps
+    assert integrity_steps[0]["result"][0] == "ok"
+    db.close_all()
 
 
 def test_check_db_health_at_open_no_baseline_ok(temp_dir):
@@ -508,6 +576,121 @@ def test_restore_includes_identity_rrc_and_history(temp_dir):
     reopened.close_all()
     assert row is not None
     assert row["value"] == "before-backup"
+
+
+def test_failed_restore_does_not_overwrite_identity_sidecars(temp_dir):
+    from unittest.mock import patch
+
+    from meshchatx.src.backend.database import DatabaseRestoreError
+
+    identity_dir = os.path.join(temp_dir, "identities", "abc123")
+    os.makedirs(identity_dir, exist_ok=True)
+    db_path = os.path.join(identity_dir, "database.db")
+    identity_path = os.path.join(identity_dir, "identity")
+    history_dir = os.path.join(identity_dir, "rrc_history", "hub1")
+    os.makedirs(history_dir, exist_ok=True)
+    history_path = os.path.join(history_dir, "lobby.log")
+
+    with open(identity_path, "wb") as handle:
+        handle.write(b"BACKUP-KEY")
+    with open(history_path, "wb") as handle:
+        handle.write(b"backup-history")
+
+    db = Database(db_path)
+    db.initialize()
+    backup = db.backup_database(identity_dir)
+
+    with open(identity_path, "wb") as handle:
+        handle.write(b"LIVE-KEY")
+    with open(history_path, "wb") as handle:
+        handle.write(b"live-history")
+
+    with patch.object(Database, "initialize", side_effect=RuntimeError("open failed")):
+        with pytest.raises(DatabaseRestoreError):
+            db.restore_database(backup["path"])
+
+    with open(identity_path, "rb") as handle:
+        assert handle.read() == b"LIVE-KEY"
+    with open(history_path, "rb") as handle:
+        assert handle.read() == b"live-history"
+    db.close_all()
+
+
+def test_partial_sidecar_copy_failure_restores_live_identity_files(temp_dir):
+    from unittest.mock import patch
+
+    from meshchatx.src.backend.database import DatabaseRestoreError
+
+    identity_dir = os.path.join(temp_dir, "identities", "abc123")
+    os.makedirs(identity_dir, exist_ok=True)
+    db_path = os.path.join(identity_dir, "database.db")
+    identity_path = os.path.join(identity_dir, "identity")
+    hubs_path = os.path.join(identity_dir, "rrc_hubs")
+    history_dir = os.path.join(identity_dir, "rrc_history", "hub1")
+    os.makedirs(history_dir, exist_ok=True)
+    history_path = os.path.join(history_dir, "lobby.log")
+
+    with open(identity_path, "wb") as handle:
+        handle.write(b"BACKUP-KEY")
+    with open(hubs_path, "wb") as handle:
+        handle.write(b"backup-hubs")
+    with open(history_path, "wb") as handle:
+        handle.write(b"backup-history")
+
+    db = Database(db_path)
+    db.initialize()
+    backup = db.backup_database(identity_dir)
+
+    with open(identity_path, "wb") as handle:
+        handle.write(b"LIVE-KEY")
+    with open(hubs_path, "wb") as handle:
+        handle.write(b"live-hubs")
+    with open(history_path, "wb") as handle:
+        handle.write(b"live-history")
+
+    real_copy = shutil.copy2
+
+    def flaky_copy(src, dest, *args, **kwargs):
+        if os.path.basename(src) == "lobby.log":
+            raise OSError("disk full")
+        return real_copy(src, dest, *args, **kwargs)
+
+    with patch("meshchatx.src.backend.database.shutil.copy2", side_effect=flaky_copy):
+        with pytest.raises(DatabaseRestoreError):
+            db.restore_database(backup["path"])
+
+    with open(identity_path, "rb") as handle:
+        assert handle.read() == b"LIVE-KEY"
+    with open(hubs_path, "rb") as handle:
+        assert handle.read() == b"live-hubs"
+    with open(history_path, "rb") as handle:
+        assert handle.read() == b"live-history"
+    db.close_all()
+
+
+def test_backup_count_failure_does_not_rotate_existing_backups(temp_dir):
+    import time
+    from unittest.mock import patch
+
+    db_path = os.path.join(temp_dir, "test.db")
+    db = Database(db_path)
+    db.initialize()
+    first = db.backup_database(temp_dir, max_count=1)
+    first_name = os.path.basename(first["path"])
+    backup_dir = os.path.join(temp_dir, "database-backups")
+    time.sleep(1.1)
+
+    with patch.object(
+        db.messages,
+        "count_lxmf_messages",
+        side_effect=RuntimeError("count failed"),
+    ):
+        db.backup_database(temp_dir, max_count=1)
+
+    names = [name for name in os.listdir(backup_dir) if name.endswith(".zip")]
+    assert first_name in names
+    assert len(names) >= 2
+    db.close_all()
 
 
 def test_pre_migration_backup_written_before_schema_upgrade(temp_dir):

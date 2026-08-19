@@ -78,11 +78,12 @@ def read_schema_version_from_db_path(db_path: str) -> int | None:
 
 
 def infer_version_hint_from_backup_name(name: str) -> int | None:
+    """Return the schema version stored in a pre-migrate zip (the from version)."""
     match = _PRE_MIGRATE_VERSION_RE.search(name)
     if not match:
         return None
     try:
-        return int(match.group(2))
+        return int(match.group(1))
     except ValueError:
         return None
 
@@ -171,15 +172,15 @@ def pick_compatible_backup(
 
     for candidate in ordered:
         probe = probe_backup_zip(candidate.path)
+        if probe.get("error"):
+            continue
         version = probe.get("version")
         if version is None:
             version = infer_version_hint_from_backup_name(candidate.name)
         if not schema_version_restorable(version, latest_schema_version):
             continue
         quick_check = probe.get("quick_check")
-        if quick_check is not None and quick_check != "ok":
-            continue
-        if probe.get("error") and version is None:
+        if quick_check != "ok":
             continue
         return {
             "name": candidate.name,

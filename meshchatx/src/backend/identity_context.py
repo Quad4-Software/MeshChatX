@@ -45,6 +45,8 @@ from meshchatx.src.backend.voicemail_manager import VoicemailManager
 
 
 class IdentityContext:
+    DEFERRED_SETUP_TEARDOWN_WAIT_S = 30
+
     def __init__(self, identity: RNS.Identity, app):
         self.identity = identity
         self.app = app
@@ -471,6 +473,25 @@ class IdentityContext:
     def _deferred_still_active(self) -> bool:
         return bool(self.running)
 
+    @staticmethod
+    def _discard_deferred_value(value) -> None:
+        if value is None:
+            return
+        for method_name in ("shutdown", "teardown", "stop", "cleanup"):
+            method = getattr(value, method_name, None)
+            if callable(method):
+                with contextlib.suppress(Exception):
+                    method()
+                return
+
+    def _set_if_running(self, name: str, value) -> bool:
+        with self._deferred_setup_lock:
+            if not self.running:
+                self._discard_deferred_value(value)
+                return False
+            setattr(self, name, value)
+            return True
+
     def _run_deferred_services_body(self):
         if not self._deferred_still_active():
             return
@@ -478,7 +499,7 @@ class IdentityContext:
         try:
             if not self._deferred_still_active():
                 return
-            self.map_overlay_manager = MapOverlayManager(
+            overlay = MapOverlayManager(
                 self.config,
                 self.database,
                 self.storage_path,
@@ -486,11 +507,13 @@ class IdentityContext:
                 identity=self.identity,
                 reticulum=getattr(self.app, "reticulum", None),
             )
+            if not self._set_if_running("map_overlay_manager", overlay):
+                return
             try:
-                self.map_overlay_manager.start_scheduler()
+                overlay.start_scheduler()
             except Exception:
                 pass
-            self.map_data_manager = MapDataManager(
+            data_mgr = MapDataManager(
                 self.config,
                 self.database,
                 self.storage_path,
@@ -499,8 +522,10 @@ class IdentityContext:
                 link_manager_getter=lambda: getattr(self.app, "rns_link_manager", None),
                 overlay_manager_getter=lambda: self.map_overlay_manager,
             )
+            if not self._set_if_running("map_data_manager", data_mgr):
+                return
             try:
-                self.map_data_manager.start()
+                data_mgr.start()
             except Exception as exc:
                 print(f"Failed to start map data manager: {exc}")
         except Exception as exc:
@@ -516,83 +541,101 @@ class IdentityContext:
             return
 
         try:
-            self.rncp_handler = RNCPHandler(
+            rncp = RNCPHandler(
                 reticulum_instance=getattr(self.app, "reticulum", None),
                 identity=self.identity,
                 storage_dir=self.app.storage_dir,
             )
-            self.rncp_handler.on_receive_completed = self._rncp_emit_receive_completed
+            rncp.on_receive_completed = self._rncp_emit_receive_completed
+            if not self._set_if_running("rncp_handler", rncp):
+                return
             if not self._deferred_still_active():
                 return
-            self.rns_filesync_handler = RnsFilesyncHandler(
+            filesync = RnsFilesyncHandler(
                 reticulum_instance=getattr(self.app, "reticulum", None),
                 identity=self.identity,
                 storage_dir=self.storage_path,
                 emit_callback=self._filesync_emit,
             )
-            self.rnsh_manager = RNSHManager(
+            if not self._set_if_running("rns_filesync_handler", filesync):
+                return
+            rnsh = RNSHManager(
                 storage_dir=self.storage_path,
                 reticulum_config_dir=getattr(self.app, "reticulum_config_dir", None),
             )
-            self.rnsh_manager.set_change_callback(
+            rnsh.set_change_callback(
                 lambda session: self.app.on_rnsh_change(session, context=self),
             )
-            self.rnsh_manager.set_output_callback(
+            rnsh.set_output_callback(
                 lambda session, chunk: self.app.on_rnsh_output(
                     session,
                     chunk,
                     context=self,
                 ),
             )
+            if not self._set_if_running("rnsh_manager", rnsh):
+                return
             try:
-                self.rnsh_manager.load()
+                rnsh.load()
             except Exception as exc:
                 print(f"Failed to load RNSH sessions for {self.identity_hash}: {exc}")
             if not self._deferred_still_active():
                 return
-            self.rnx_manager = RNXManager(
+            rnx = RNXManager(
                 storage_dir=self.storage_path,
                 reticulum_config_dir=getattr(self.app, "reticulum_config_dir", None),
             )
-            self.rnx_manager.set_change_callback(
+            rnx.set_change_callback(
                 lambda session: self.app.on_rnx_change(session, context=self),
             )
-            self.rnx_manager.set_output_callback(
+            rnx.set_output_callback(
                 lambda session, chunk: self.app.on_rnx_output(
                     session,
                     chunk,
                     context=self,
                 ),
             )
+            if not self._set_if_running("rnx_manager", rnx):
+                return
             try:
-                self.rnx_manager.load()
+                rnx.load()
             except Exception as exc:
                 print(f"Failed to load RNX sessions for {self.identity_hash}: {exc}")
-            self.rnstatus_handler = RNStatusHandler(
+            status = RNStatusHandler(
                 reticulum_instance=getattr(self.app, "reticulum", None),
             )
-            self.rnpath_handler = RNPathHandler(
+            if not self._set_if_running("rnstatus_handler", status):
+                return
+            path_handler = RNPathHandler(
                 reticulum_instance=getattr(self.app, "reticulum", None),
             )
-            self.rnpath_trace_handler = RNPathTraceHandler(
+            if not self._set_if_running("rnpath_handler", path_handler):
+                return
+            trace = RNPathTraceHandler(
                 reticulum_instance=getattr(self.app, "reticulum", None),
                 identity=self.identity,
             )
-            self.rnprobe_handler = RNProbeHandler(
+            if not self._set_if_running("rnpath_trace_handler", trace):
+                return
+            probe = RNProbeHandler(
                 reticulum_instance=getattr(self.app, "reticulum", None),
                 identity=self.identity,
             )
+            if not self._set_if_running("rnprobe_handler", probe):
+                return
 
             libretranslate_url = self.config.libretranslate_url.get()
             libretranslate_api_key = self.config.libretranslate_api_key.get()
-            self.translator_handler = TranslatorHandler(
+            translator = TranslatorHandler(
                 libretranslate_url=libretranslate_url,
                 libretranslate_api_key=libretranslate_api_key,
                 translator_argos_enabled=self.config.translator_argos_enabled.get(),
                 translator_libretranslate_enabled=self.config.translator_libretranslate_enabled.get(),
             )
+            if not self._set_if_running("translator_handler", translator):
+                return
 
-            self.bot_handler = BotHandler(
+            bots = BotHandler(
                 identity_path=self.storage_path,
                 config_manager=self.config,
                 default_reticulum_config_dir=getattr(
@@ -601,8 +644,10 @@ class IdentityContext:
                     None,
                 ),
             )
+            if not self._set_if_running("bot_handler", bots):
+                return
             try:
-                self.bot_handler.restore_enabled_bots()
+                bots.restore_enabled_bots()
             except Exception as exc:
                 print(f"Failed to restore bots: {exc}")
         except Exception as exc:
@@ -614,7 +659,7 @@ class IdentityContext:
         try:
             rrc_enabled = self.config.rrc_enabled.get() if self.config else True
             if rrc_enabled:
-                self.rrc_manager = RRCManager(
+                rrc = RRCManager(
                     identity=self.identity,
                     storage_dir=self.storage_path,
                     get_nickname=lambda: (
@@ -623,41 +668,45 @@ class IdentityContext:
                     get_name_for_identity_hash=self._rrc_name_for_identity_hash,
                     database=self.database,
                 )
-                self.rrc_manager.set_change_callback(
+                rrc.set_change_callback(
                     lambda hub: self.app.on_rrc_change(hub, context=self),
                 )
-                self.rrc_manager.set_message_callback(
+                rrc.set_message_callback(
                     lambda hub, msg: self.app.on_rrc_message(hub, msg, context=self),
                 )
+                if not self._set_if_running("rrc_manager", rrc):
+                    return
                 try:
-                    self.rrc_manager.load()
+                    rrc.load()
                 except Exception as exc:
                     print(f"Failed to load RRC hubs for {self.identity_hash}: {exc}")
 
-                self.rrc_server_manager = RRCServerManager(
+                server = RRCServerManager(
                     storage_dir=self.storage_path,
                     owner_identity=self.identity.hash,
                 )
-                self.rrc_server_manager.set_change_callback(
+                server.set_change_callback(
                     lambda hub: self.app.on_rrc_server_change(hub, context=self),
                 )
-                self.rrc_manager.set_server_manager(self.rrc_server_manager)
+                if not self._set_if_running("rrc_server_manager", server):
+                    return
+                rrc.set_server_manager(server)
                 try:
-                    self.rrc_server_manager.load()
+                    server.load()
                 except Exception as exc:
                     print(
                         f"Failed to load RRC hub servers for {self.identity_hash}: {exc}",
                     )
 
                 try:
-                    self.rrc_manager.connect_auto_reconnect_hubs()
+                    rrc.connect_auto_reconnect_hubs()
                 except Exception as exc:
                     print(
                         f"Failed to auto-connect RRC hubs for {self.identity_hash}: {exc}",
                     )
             else:
-                self.rrc_manager = None
-                self.rrc_server_manager = None
+                self._set_if_running("rrc_manager", None)
+                self._set_if_running("rrc_server_manager", None)
         except Exception as exc:
             print(f"Failed deferred RRC setup: {exc}")
 
@@ -860,11 +909,13 @@ class IdentityContext:
 
     def teardown(self):
         print(f"Tearing down Identity Context for {self.identity_hash}...")
-        self.running = False
+        with self._deferred_setup_lock:
+            self.running = False
         # Let an in-flight deferred setup notice running=False and exit before
         # we null managers it may still be assigning.
         finished = getattr(self, "_deferred_setup_finished", None)
-        if finished is not None and not finished.wait(timeout=30):
+        wait_s = getattr(self, "DEFERRED_SETUP_TEARDOWN_WAIT_S", 30)
+        if finished is not None and not finished.wait(timeout=wait_s):
             print(
                 f"Timed out waiting for deferred setup during teardown of {self.identity_hash}",
             )

@@ -3,7 +3,6 @@
 import sqlite3
 import sys
 import threading
-import weakref
 
 _SQLITE_CONNECT_KW = {}
 if sys.version_info >= (3, 14):
@@ -15,12 +14,12 @@ _SQLITE_BUSY_TIMEOUT_MS = 5000
 class DatabaseProvider:
     _instance = None
     _lock = threading.RLock()
-    _all_locals = weakref.WeakSet()
 
     def __init__(self, db_path=None):
         self.db_path = db_path
         self._local = threading.local()
-        self._all_locals.add(self._local)
+        self._connections = set()
+        self._close_generation = 0
         self._memory_connection = None
         # Per-connection default. Worker threads opened via asyncio.to_thread
         # never see Database._tune_sqlite_pragmas(), so this must be set here.
@@ -87,21 +86,33 @@ class DatabaseProvider:
                         self._configure_connection(self._memory_connection)
             return self._memory_connection
 
-        if not hasattr(self._local, "connection"):
+        local_gen = getattr(self._local, "generation", None)
+        if (
+            not hasattr(self._local, "connection")
+            or local_gen != self._close_generation
+        ):
             if self.db_path is None:
                 msg = "db_path is required for database connections"
                 raise ValueError(msg)
-            # isolation_level=None enables autocommit mode, letting us manage transactions manually
-            self._local.connection = sqlite3.connect(
-                self.db_path,
-                timeout=30.0,
-                check_same_thread=False,
-                isolation_level=None,
-                **_SQLITE_CONNECT_KW,
-            )
-            self._local.connection.row_factory = sqlite3.Row
-            if self.db_path != ":memory:":
-                self._configure_connection(self._local.connection)
+            with self._lock:
+                local_gen = getattr(self._local, "generation", None)
+                if (
+                    hasattr(self._local, "connection")
+                    and local_gen == self._close_generation
+                ):
+                    return self._local.connection
+                conn = sqlite3.connect(
+                    self.db_path,
+                    timeout=30.0,
+                    check_same_thread=False,
+                    isolation_level=None,
+                    **_SQLITE_CONNECT_KW,
+                )
+                conn.row_factory = sqlite3.Row
+                self._configure_connection(conn)
+                self._local.connection = conn
+                self._local.generation = self._close_generation
+                self._connections.add(conn)
         return self._local.connection
 
     def execute(self, query, params=None, commit=None):
@@ -194,15 +205,19 @@ class DatabaseProvider:
             self._memory_connection = None
 
         if hasattr(self._local, "connection"):
+            conn = self._local.connection
             try:
-                self.commit()  # Ensure everything is saved
-                self._local.connection.close()
+                self.commit()
+                conn.close()
             except Exception:
                 pass
+            with self._lock:
+                self._connections.discard(conn)
             del self._local.connection
 
     def close_all(self):
         with self._lock:
+            self._close_generation += 1
             if self._memory_connection:
                 try:
                     self._memory_connection.commit()
@@ -211,14 +226,15 @@ class DatabaseProvider:
                     pass
                 self._memory_connection = None
 
-            for loc in self._all_locals:
-                if hasattr(loc, "connection"):
-                    try:
-                        loc.connection.commit()
-                        loc.connection.close()
-                    except Exception:
-                        pass
-                    del loc.connection
+            for conn in list(self._connections):
+                try:
+                    conn.commit()
+                    conn.close()
+                except Exception:
+                    pass
+            self._connections.clear()
+            if hasattr(self._local, "connection"):
+                del self._local.connection
 
     def vacuum(self):
         # VACUUM cannot run inside a transaction
