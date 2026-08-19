@@ -6,16 +6,18 @@
  * Oracle: entries in availableRooms whose names are not in knownRooms,
  * sorted by room name.
  */
-export function unjoinedAvailableRooms(availableRooms, knownRooms) {
+export function unjoinedAvailableRooms(availableRooms, knownRooms, keyedRooms) {
     if (!availableRooms || typeof availableRooms !== "object") {
         return [];
     }
     const known = new Set(Array.isArray(knownRooms) ? knownRooms : []);
+    const keyed = new Set(Array.isArray(keyedRooms) ? keyedRooms : []);
     return Object.entries(availableRooms)
         .filter(([name]) => typeof name === "string" && name && !known.has(name))
         .map(([name, topic]) => ({
             name,
             topic: typeof topic === "string" && topic ? topic : null,
+            has_key: keyed.has(name),
         }))
         .sort((a, b) => a.name.localeCompare(b.name));
 }

@@ -128,12 +128,52 @@ def test_parse_who_notice_shape_oracle(text):
 @settings(max_examples=80, deadline=None)
 def test_parse_room_list_notice_shape_oracle(text):
     result = proto.parse_room_list_notice(text)
-    if result is not None:
-        assert isinstance(result, dict)
-        for key, val in result.items():
-            assert isinstance(key, str)
-            assert key == key.lower()
-            assert val is None or isinstance(val, str)
+    details = proto.parse_room_list_notice_details(text)
+    if result is None:
+        assert details is None
+        return
+    assert details is not None
+    assert isinstance(result, dict)
+    assert set(result) == set(details)
+    for key, val in result.items():
+        assert isinstance(key, str)
+        assert key == key.lower()
+        assert val is None or isinstance(val, str)
+        info = details[key]
+        assert info.get("topic") == val
+        assert info.get("has_key") in (True, False)
+
+
+@given(
+    rooms=st.dictionaries(
+        st.from_regex(r"[a-z0-9_-]{1,12}", fullmatch=True),
+        st.tuples(
+            st.one_of(st.none(), st.from_regex(r"[A-Za-z0-9 _]{1,24}", fullmatch=True)),
+            st.booleans(),
+        ),
+        max_size=8,
+    )
+)
+@settings(max_examples=60, deadline=None)
+def test_parse_room_list_notice_keyed_roundtrip_oracle(rooms):
+    """Independent formatter: [+k] after the name roundtrips as has_key."""
+    if not rooms:
+        body = "No public rooms registered"
+        assert proto.parse_room_list_notice_details(body) == {}
+        return
+    lines = ["Registered public rooms"]
+    expected = {}
+    for name, (topic, has_key) in sorted(rooms.items()):
+        topic_txt = topic.strip() if isinstance(topic, str) else ""
+        line = name
+        if has_key:
+            line += " [+k]"
+        if topic_txt:
+            line += " - " + topic_txt
+        lines.append(line)
+        expected[name] = {"topic": topic_txt or None, "has_key": has_key}
+    parsed = proto.parse_room_list_notice_details("\n".join(lines))
+    assert parsed == expected
 
 
 @given(

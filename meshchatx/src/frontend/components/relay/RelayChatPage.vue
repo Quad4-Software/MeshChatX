@@ -291,13 +291,16 @@
                                         <li
                                             v-for="availableRoom in availableRoomsFor(hub)"
                                             :key="availableRoom.name"
-                                            :title="availableRoom.topic || ''"
+                                            :title="
+                                                availableRoom.topic ||
+                                                (availableRoom.has_key ? $t('relay_chat.host_room_keyed') : '')
+                                            "
                                             class="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-sm cursor-pointer text-sem-fg-muted transition-colors hover:bg-sem-surface/60 dark:hover:bg-sem-surface/30"
                                             @click="joinAvailableRoom(hub, availableRoom.name)"
                                         >
                                             <span class="flex min-w-0 items-center gap-1.5">
                                                 <MaterialDesignIcon
-                                                    icon-name="pound"
+                                                    :icon-name="availableRoom.has_key ? 'lock' : 'pound'"
                                                     class="size-3.5 shrink-0 opacity-40"
                                                 />
                                                 <span class="truncate">{{ availableRoom.name }}</span>
@@ -1801,7 +1804,7 @@ export default {
             return hub.known_rooms;
         },
         availableRoomsFor(hub) {
-            return unjoinedAvailableRooms(hub?.available_rooms, this.orderedRoomsFor(hub));
+            return unjoinedAvailableRooms(hub?.available_rooms, this.orderedRoomsFor(hub), hub?.available_keyed_rooms);
         },
         onCollapsedHubClick(hub) {
             const rooms = this.orderedRoomsFor(hub);
@@ -2759,19 +2762,22 @@ export default {
                 return;
             }
             const stored = Array.isArray(hub.stored_key_rooms) && hub.stored_key_rooms.includes(roomName);
-            if (stored) {
+            const keyed = Array.isArray(hub.available_keyed_rooms) && hub.available_keyed_rooms.includes(roomName);
+            if (stored || !keyed) {
                 await this.joinRoomByName(hub, roomName);
                 return;
             }
-            const entered = await DialogUtils.prompt(
-                this.$t("relay_chat.room_key_optional_prompt", { room: roomName }),
-                "",
-                { inputType: "password" }
-            );
+            const entered = await DialogUtils.prompt(this.$t("relay_chat.room_key_prompt", { room: roomName }), "", {
+                inputType: "password",
+            });
             if (entered == null) {
                 return;
             }
-            const key = String(entered).trim() || null;
+            const key = String(entered).trim();
+            if (!key) {
+                ToastUtils.warning(this.$t("relay_chat.host_room_key_required"));
+                return;
+            }
             await this.joinRoomByName(hub, roomName, { key });
         },
         isBadKeyErrorText(text) {

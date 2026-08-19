@@ -202,6 +202,37 @@ def test_list_command_matches_client_parser():
     text = out[0][1][proto.K_BODY]
     rooms = proto.parse_room_list_notice(text)
     assert rooms == {"general": "General chatter"}
+    details = proto.parse_room_list_notice_details(text)
+    assert details == {
+        "general": {"topic": "General chatter", "has_key": False},
+    }
+    assert "[+k]" not in text
+
+
+def test_list_command_marks_keyed_rooms_without_leaking_key():
+    server = make_server()
+    secret = "hunter2-not-for-list"
+    server.register_room("vault", topic="ops")
+    server.set_room_key("vault", secret)
+    server.register_room("lobby", topic="Main")
+    link = FakeLink(FakeIdentity(b"aaaaaaaaaaaaaaaa"))
+    sess = add_session(server, link, link._identity.hash, nick="alice")
+
+    out = route(
+        server,
+        link,
+        sess,
+        proto.make_envelope(proto.T_MSG, src=sess.peer, room=None, body="/list"),
+    )
+
+    text = out[0][1][proto.K_BODY]
+    details = proto.parse_room_list_notice_details(text)
+    assert details == {
+        "lobby": {"topic": "Main", "has_key": False},
+        "vault": {"topic": "ops", "has_key": True},
+    }
+    assert secret not in text
+    assert "[+k]" in text
 
 
 def test_who_command_matches_client_parser():

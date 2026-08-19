@@ -80,6 +80,14 @@ def test_parse_room_list_notice():
         "Registered public rooms\nlobby - The lobby\nrandom",
     )
     assert parsed == {"lobby": "The lobby", "random": None}
+    keyed = proto.parse_room_list_notice_details(
+        "Registered public rooms\nvault [+k]\nops [+k] - staff\nlobby - Main\n",
+    )
+    assert keyed == {
+        "vault": {"topic": None, "has_key": True},
+        "ops": {"topic": "staff", "has_key": True},
+        "lobby": {"topic": "Main", "has_key": False},
+    }
     assert proto.parse_room_list_notice("No public rooms registered") == {}
     assert proto.parse_room_list_notice("unrelated") is None
     blank_topic = proto.parse_room_list_notice(
@@ -253,6 +261,24 @@ def test_hub_notice_updates_room_list(tmp_path):
     )
     hub._on_packet(proto.encode(env))
     assert hub.available_rooms == {"lobby": "Main", "random": None}
+    assert hub.available_keyed_rooms == []
+
+
+def test_hub_list_notice_records_keyed_rooms(tmp_path):
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    env = proto.make_envelope(
+        proto.T_NOTICE,
+        src=None,
+        body="Registered public rooms\nlobby - Main\nvault [+k]\nops [+k] - staff",
+    )
+    hub._on_packet(proto.encode(env))
+    assert hub.available_rooms == {
+        "lobby": "Main",
+        "vault": None,
+        "ops": "staff",
+    }
+    assert hub.available_keyed_rooms == ["ops", "vault"]
 
 
 def test_welcome_sends_list_when_auto_list_enabled(tmp_path):
@@ -415,6 +441,7 @@ def test_hub_list_notice_replaces_available_rooms(tmp_path):
         "newroom": None,
     }
     assert "gone" not in hub.available_rooms
+    assert hub.available_keyed_rooms == []
 
 
 def test_hub_empty_list_notice_clears_available_rooms(tmp_path):
@@ -431,6 +458,7 @@ def test_hub_empty_list_notice_clears_available_rooms(tmp_path):
     hub._on_packet(proto.encode(env))
 
     assert hub.available_rooms == {}
+    assert hub.available_keyed_rooms == []
     assert hub._silent_list_pending == 0
     for msgs in hub.messages.values():
         assert all(m.text != "No public rooms registered" for m in msgs)

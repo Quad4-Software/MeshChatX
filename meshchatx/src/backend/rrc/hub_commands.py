@@ -15,6 +15,11 @@ from meshchatx.src.backend.rrc.identity_util import (
 from meshchatx.src.backend.rrc.room_key_crypto import normalize_room_key
 from meshchatx.src.backend.rrc.rooms_toml import INVITE_DEFAULT_TTL_S
 
+
+def _room_state_has_key(st):
+    return isinstance(st.get("key"), str) and bool(st.get("key"))
+
+
 HELP_TEXT = (
     "commands: /list, /who [room], /nick <name>, /topic <room> [text], "
     "/kick <room> <nick|hash>, /ban <room> add|del|list [target], "
@@ -83,20 +88,22 @@ class HubCommandHandler:
         public = []
         for room_name, st in server.rooms._state.items():
             if st.get("registered") and not st.get("private"):
-                public.append((room_name, st.get("topic")))
+                public.append((room_name, st.get("topic"), _room_state_has_key(st)))
         for room_name, st in server.rooms._registry.items():
             if room_name not in server.rooms._state and not st.get("private"):
-                public.append((room_name, st.get("topic")))
+                public.append((room_name, st.get("topic"), _room_state_has_key(st)))
         if not public:
             server._queue_notice(outgoing, link, None, "No public rooms registered")
             return True
         lines = ["Registered public rooms:"]
-        for name, topic in sorted(public, key=lambda x: x[0]):
+        for name, topic, has_key in sorted(public, key=lambda x: x[0]):
+            line = "  " + name
+            if has_key:
+                line += " [+k]"
             topic_txt = topic.strip() if isinstance(topic, str) else ""
             if topic_txt:
-                lines.append("  " + name + " - " + topic_txt)
-            else:
-                lines.append("  " + name)
+                line += " - " + topic_txt
+            lines.append(line)
         server._queue_notice(outgoing, link, None, "\n".join(lines))
         return True
 

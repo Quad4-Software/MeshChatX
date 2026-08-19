@@ -10,8 +10,9 @@ import { describe, expect, it } from "vitest";
 import { applyAvailableRoomsSnapshot, diffAvailableRooms, unjoinedAvailableRooms } from "@/js/rrcAvailableRooms.js";
 
 /** Independent oracle for unjoined sidebar rows. */
-function oracleUnjoined(availableRooms, knownRooms) {
+function oracleUnjoined(availableRooms, knownRooms, keyedRooms) {
     const known = new Set(Array.isArray(knownRooms) ? knownRooms : []);
+    const keyed = new Set(Array.isArray(keyedRooms) ? keyedRooms : []);
     if (!availableRooms || typeof availableRooms !== "object") {
         return [];
     }
@@ -23,6 +24,7 @@ function oracleUnjoined(availableRooms, knownRooms) {
             return {
                 name,
                 topic: typeof topic === "string" && topic ? topic : null,
+                has_key: keyed.has(name),
             };
         });
 }
@@ -49,8 +51,21 @@ describe("rrcAvailableRooms oracles", () => {
         const known = ["lobby"];
         expect(unjoinedAvailableRooms(available, known)).toEqual(oracleUnjoined(available, known));
         expect(unjoinedAvailableRooms(available, known)).toEqual([
-            { name: "alpha", topic: "A" },
-            { name: "zebra", topic: null },
+            { name: "alpha", topic: "A", has_key: false },
+            { name: "zebra", topic: null, has_key: false },
+        ]);
+    });
+
+    it("oracle: keyed listed rooms surface has_key without changing join order", () => {
+        const available = { zebra: null, lobby: "Main", vault: "ops" };
+        const known = ["lobby"];
+        const keyed = ["vault", "missing"];
+        expect(unjoinedAvailableRooms(available, known, keyed)).toEqual(
+            oracleUnjoined(available, known, keyed)
+        );
+        expect(unjoinedAvailableRooms(available, known, keyed)).toEqual([
+            { name: "vault", topic: "ops", has_key: true },
+            { name: "zebra", topic: null, has_key: false },
         ]);
     });
 
@@ -91,6 +106,7 @@ describe("rrcAvailableRooms oracles", () => {
             const available = {};
             const known = [];
             const next = {};
+            const keyed = [];
             for (const name of names) {
                 if (Math.random() < 0.5) {
                     available[name] = Math.random() < 0.5 ? `t-${name}` : null;
@@ -98,11 +114,16 @@ describe("rrcAvailableRooms oracles", () => {
                 if (Math.random() < 0.35) {
                     known.push(name);
                 }
+                if (Math.random() < 0.4) {
+                    keyed.push(name);
+                }
                 if (Math.random() < 0.5) {
                     next[name] = Math.random() < 0.5 ? `n-${name}` : null;
                 }
             }
-            expect(unjoinedAvailableRooms(available, known)).toEqual(oracleUnjoined(available, known));
+            expect(unjoinedAvailableRooms(available, known, keyed)).toEqual(
+                oracleUnjoined(available, known, keyed)
+            );
             const applied = applyAvailableRoomsSnapshot(available, next);
             expect(diffAvailableRooms(available, applied)).toEqual(oracleDiff(available, applied));
             for (const name of Object.keys(available)) {
