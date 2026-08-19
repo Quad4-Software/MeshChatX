@@ -8,7 +8,11 @@ import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
-from meshchatx.src.backend.rncp_handler import RNCPHandler
+from meshchatx.src.backend.rncp_handler import (
+    _FORBIDDEN_RECEIVED_NAMES,
+    _RESERVED_RNCP_TOP,
+    RNCPHandler,
+)
 
 
 @pytest.fixture
@@ -491,7 +495,11 @@ def test_resolve_send_path_oracle(rncp_handler, file_path):
         real == home_real or real.startswith(home_real + os.sep)
     )
     assert under_storage or under_home
-    assert os.path.basename(real) not in {"identity", "identity.bak"}
+    assert os.path.basename(real) not in _FORBIDDEN_RECEIVED_NAMES
+    if under_storage and real != storage:
+        first = os.path.relpath(real, storage).split(os.sep, 1)[0]
+        assert first not in _RESERVED_RNCP_TOP
+        assert not first.endswith(".db")
     parts = {part for part in real.split(os.sep) if part}
     assert not (parts & {".ssh", ".gnupg"})
     assert os.path.isfile(real)

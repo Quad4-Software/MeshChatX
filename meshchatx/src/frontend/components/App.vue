@@ -1592,6 +1592,7 @@ export default {
 
                 GlobalState.unreadConversationsCount = 0;
                 GlobalState.missedCallsCount = 0;
+                GlobalState.relayChatUnreadCount = 0;
                 GlobalState.blockedDestinations = [];
 
                 await this.getConfig();
@@ -1599,6 +1600,8 @@ export default {
                 await this.getAppInfo();
                 await this.getBlockedDestinations();
                 this.updateTelephoneStatus();
+                this.updateUnreadConversationsCount();
+                this.updateRelayChatUnreadCount();
 
                 GlobalEmitter.emit("identity-switched", json);
             } catch (e) {

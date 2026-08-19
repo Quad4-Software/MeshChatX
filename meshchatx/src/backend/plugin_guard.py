@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import stat
 import zipfile
 
 MAX_PLUGIN_ZIP_BYTES = 20 * 1024 * 1024
@@ -64,6 +65,24 @@ def _zip_entry_is_safe(name: str) -> bool:
     return True
 
 
+def _zip_info_is_symlink(info: zipfile.ZipInfo) -> bool:
+    mode = info.external_attr >> 16
+    return stat.S_ISLNK(mode)
+
+
+def reject_symlinks_in_tree(root: str) -> None:
+    """Refuse a plugin tree that contains any symbolic link."""
+    for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+        for name in dirnames:
+            path = os.path.join(dirpath, name)
+            if os.path.islink(path):
+                raise PluginSecurityError("plugin tree contains symbolic links")
+        for name in filenames:
+            path = os.path.join(dirpath, name)
+            if os.path.islink(path):
+                raise PluginSecurityError("plugin tree contains symbolic links")
+
+
 def safe_extract_zip(zip_path: str, extract_dir: str) -> str:
     total_bytes = 0
     file_count = 0
@@ -73,6 +92,8 @@ def safe_extract_zip(zip_path: str, extract_dir: str) -> str:
                 continue
             if not _zip_entry_is_safe(info.filename):
                 raise PluginSecurityError("plugin archive contains unsafe paths")
+            if _zip_info_is_symlink(info):
+                raise PluginSecurityError("plugin archive contains symbolic links")
             total_bytes += info.file_size
             file_count += 1
             if file_count > MAX_EXTRACT_FILES:
@@ -80,6 +101,7 @@ def safe_extract_zip(zip_path: str, extract_dir: str) -> str:
             if total_bytes > MAX_EXTRACT_BYTES:
                 raise PluginSecurityError("plugin archive is too large when extracted")
         archive.extractall(extract_dir)
+    reject_symlinks_in_tree(extract_dir)
     return resolve_plugin_root(extract_dir)
 
 

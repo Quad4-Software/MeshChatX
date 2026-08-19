@@ -49,6 +49,8 @@ def _is_forbidden_entry_name(name: str) -> bool:
         return True
     if cleaned.startswith(".rns-xfer"):
         return True
+    if cleaned in {"identity", "identity.bak"}:
+        return True
     return False
 
 
@@ -83,6 +85,11 @@ _RESERVED_SYNC_TOP = frozenset(
         "snapshots",
         "database.db",
         "ssl",
+        "page_nodes",
+        "map_overlays",
+        "reticulum-docs",
+        "meshchatx-docs",
+        "repository-server",
     },
 )
 

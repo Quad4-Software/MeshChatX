@@ -13,6 +13,9 @@ import RNS
 
 KIND_NOMADNET_FILE = "nomadnet_file"
 KIND_RNGIT_FILES = "rngit_files"
+KIND_MAP_DATA = "map_data"
+INGEST_KINDS = frozenset({KIND_NOMADNET_FILE, KIND_RNGIT_FILES, KIND_MAP_DATA})
+ALLOWED_OVERLAY_FORMATS = frozenset({"geojson", "kml", "kmz"})
 
 _HASH_HEX_LEN = RNS.Reticulum.TRUNCATED_HASHLENGTH // 4
 _HASH_RE = re.compile(rf"^[0-9a-fA-F]{{{_HASH_HEX_LEN}}}$")

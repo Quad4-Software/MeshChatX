@@ -77,6 +77,6 @@ export function isLocalMapServiceUrl(url, origin = typeof window !== "undefined"
         const urlObj = new URL(raw, origin || "http://127.0.0.1");
         return isPrivateOrLocalHostname(urlObj.hostname);
     } catch {
-        return !raw.startsWith("http");
+        return false;
     }
 }

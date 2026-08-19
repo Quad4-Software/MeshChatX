@@ -112,6 +112,57 @@ def test_auto_resend_drop_identity_removes_unlocked_locks():
     assert f"{other}:{'22' * 16}" in coord._locks
 
 
+def test_teardown_identity_drops_auto_resend_locks_for_that_identity():
+    app = ReticulumMeshChat.__new__(ReticulumMeshChat)
+    ident = "aa" * 16
+    other = "bb" * 16
+    ctx = MagicMock()
+    ctx.identity_hash = ident
+    app.current_context = ctx
+    app.contexts = {ident: ctx}
+    app.running = True
+    app._auto_resend_coordinator = AutoResendCoordinator()
+    app._auto_resend_coordinator.lock_for(ident, "11" * 16)
+    app._auto_resend_coordinator.lock_for(other, "22" * 16)
+    app._clear_mesh_link_caches = MagicMock()
+
+    app.teardown_identity()
+
+    assert app.current_context is None
+    ctx.teardown.assert_called_once()
+    assert all(
+        not key.startswith(ident + ":") for key in app._auto_resend_coordinator._locks
+    )
+    assert f"{other}:{'22' * 16}" in app._auto_resend_coordinator._locks
+
+
+def test_reload_teardown_drops_auto_resend_locks_for_all_identities():
+    app = ReticulumMeshChat.__new__(ReticulumMeshChat)
+    ident = "aa" * 16
+    other = "bb" * 16
+    ctx_a = MagicMock()
+    ctx_a.identity_hash = ident
+    ctx_a.bot_handler = None
+    ctx_b = MagicMock()
+    ctx_b.identity_hash = other
+    ctx_b.bot_handler = None
+    app.contexts = {ident: ctx_a, other: ctx_b}
+    app.current_context = ctx_a
+    app.running = True
+    app.stop_local_propagation_node = MagicMock()
+    app.page_node_manager = MagicMock()
+    app._clear_mesh_link_caches = MagicMock()
+    app._auto_resend_coordinator = AutoResendCoordinator()
+    app._auto_resend_coordinator.lock_for(ident, "11" * 16)
+    app._auto_resend_coordinator.lock_for(other, "22" * 16)
+
+    app._teardown_all_contexts_for_reload()
+
+    assert app._auto_resend_coordinator._locks == {}
+    assert app.contexts == {}
+    assert app.current_context is None
+
+
 def test_rncp_drops_resource_and_caps_terminal_transfers():
     handler = RNCPHandler(MagicMock(), MagicMock(), "/tmp")
     blob = MagicMock()
@@ -189,6 +240,12 @@ def test_identity_evict_drops_metrics_and_resend_locks():
         contexts={},
         _propagation_sync_metrics={ident: {"attempts": 3}},
         _auto_resend_coordinator=coord,
+    )
+    app._drop_auto_resend_locks = lambda identity_hash: (
+        ReticulumMeshChat._drop_auto_resend_locks(
+            app,
+            identity_hash,
+        )
     )
     ReticulumMeshChat._evict_cached_identity_context(app, ident)
     assert ident not in app._propagation_sync_metrics

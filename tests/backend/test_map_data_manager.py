@@ -2,6 +2,7 @@
 
 import base64
 import json
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -184,7 +185,7 @@ async def test_ingest_overlay_kind_map_data(manager, db, tmp_path):
     published = manager.publish_bytes(GEOJSON, name="Camp")
     map_id = published["map"]["map_id"]
 
-    async def fake_fetch_map_bytes(_dest, _map_id):
+    async def fake_fetch_map_bytes(_dest, _map_id, **_kwargs):
         return GEOJSON
 
     async def fake_catalog(_dest):
@@ -384,3 +385,123 @@ async def test_link_request_accepts_list_wrapped_bytes(manager):
     manager._link_manager_getter = lambda: LinkManager()
     result = await manager.fetch_catalog("cd" * 16)
     assert result["maps"][0]["name"] == "Camp"
+
+
+def test_coerce_request_body_caps_unwrap_depth():
+    nested = [[[[b'{"maps":[]}']]]]
+    with pytest.raises(MapDataError) as exc:
+        coerce_map_request_body(nested)
+    assert exc.value.code == "invalid_response"
+
+
+def test_publish_caps_count(manager, monkeypatch):
+    monkeypatch.setattr(
+        "meshchatx.src.backend.map_data_manager.MAX_PUBLISHED_MAPS",
+        1,
+    )
+    manager.publish_bytes(GEOJSON, name="one")
+    with pytest.raises(MapDataError) as exc:
+        manager.publish_bytes(GEOJSON, name="two")
+    assert exc.value.code == "max_published_exceeded"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symlink follow is a POSIX case")
+def test_published_symlink_is_not_served_or_deleted(manager, tmp_path):
+    result = manager.publish_bytes(GEOJSON, name="Camp")
+    map_id = result["map"]["map_id"]
+    rel = result["map"]["path"]
+    abs_path = os.path.join(manager.data_root(), rel)
+    bait = tmp_path / "secret.bin"
+    bait.write_bytes(b"keep-me")
+    os.remove(abs_path)
+    os.symlink(bait, abs_path)
+    assert manager._resolve_published_file(map_id, rel) is None
+    served = manager._make_map_responder(map_id)(
+        "/map/" + map_id,
+        None,
+        None,
+        None,
+        None,
+        None,
+    )
+    assert served is None
+    assert manager.unpublish(map_id) is True
+    assert bait.read_bytes() == b"keep-me"
+
+
+def test_parse_catalog_drops_unknown_format_and_bad_hash(manager):
+    body = json.dumps(
+        {
+            "maps": [
+                {
+                    "id": "a" * 16,
+                    "name": "Camp",
+                    "format": "exe",
+                    "sha256": "not-a-hash",
+                    "size": -3,
+                },
+                {
+                    "id": "b" * 16,
+                    "name": "Trail",
+                    "format": "geojson",
+                    "sha256": "ab" * 32,
+                    "size": 12,
+                },
+            ],
+        },
+    ).encode()
+    parsed = manager._parse_catalog_body(body, "cd" * 16)
+    assert [m["id"] for m in parsed["maps"]] == ["b" * 16]
+    assert parsed["maps"][0]["sha256"] == "ab" * 32
+
+
+def test_parse_catalog_rejects_oversized_body(manager):
+    from meshchatx.src.backend.map_data_manager import MAX_CATALOG_BYTES
+
+    with pytest.raises(MapDataError) as exc:
+        manager._parse_catalog_body(b"{" + b"x" * (MAX_CATALOG_BYTES + 1), "cd" * 16)
+    assert exc.value.code == "invalid_catalog"
+
+
+@pytest.mark.asyncio
+async def test_fetch_map_bytes_strips_remote_kml(manager):
+    async def fake_link(_dest, _path):
+        return REMOTE_KML
+
+    manager._link_request = fake_link
+    body = await manager.fetch_map_bytes("cd" * 16, "a" * 16, hinted_format="kml")
+    assert b"https://evil.example" not in body
+
+
+@pytest.mark.asyncio
+async def test_fetch_map_bytes_sha256_mismatch(manager):
+    async def fake_link(_dest, _path):
+        return GEOJSON
+
+    manager._link_request = fake_link
+    with pytest.raises(MapDataError) as exc:
+        await manager.fetch_map_bytes(
+            "cd" * 16,
+            "a" * 16,
+            expected_sha256="0" * 64,
+        )
+    assert exc.value.code == "sha256_mismatch"
+
+
+@pytest.mark.asyncio
+async def test_add_as_overlay_requires_catalog_entry(manager, db, tmp_path):
+    overlay = MapOverlayManager(
+        manager.config,
+        db,
+        str(tmp_path / "overlay"),
+        reticulum_config_dir=None,
+    )
+    manager._overlay_manager_getter = lambda: overlay
+
+    async def fake_catalog(_dest):
+        return {"maps": []}
+
+    manager.fetch_catalog = fake_catalog
+    with pytest.raises(MapDataError) as exc:
+        await manager.add_as_overlay(HASH, "a" * 16)
+    assert exc.value.code == "not_found"

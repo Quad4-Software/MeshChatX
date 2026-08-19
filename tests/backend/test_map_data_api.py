@@ -42,6 +42,7 @@ async def test_map_data_routes_with_mock_manager(mock_app):
     mgr.add_as_overlay = AsyncMock(
         return_value={"overlay": {"id": 1, "kind": "map_data"}}
     )
+    mgr._cfg_max_bytes.return_value = 512 * 1024
     app.map_data_manager = mgr
 
     status = await _find_handler(app, "GET", "/api/v1/map/data/status")(MagicMock())

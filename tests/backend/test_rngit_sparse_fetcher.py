@@ -126,3 +126,23 @@ async def test_fetcher_reads_sparse_files(tmp_path, monkeypatch):
     assert b"Point" in result.files["maps/layer.geojson"]
     assert any("sparse-checkout" in c for c in calls)
     assert not (work_root / "jobok").exists()
+
+
+@pytest.mark.asyncio
+async def test_fetcher_rejects_job_id_traversal(tmp_path):
+    fetcher = RngitSparseFetcher(
+        work_root=str(tmp_path / "work"),
+        reticulum_config_dir=None,
+        which=lambda n: f"/bin/{n}",
+    )
+    with pytest.raises(RngitFetchError) as exc:
+        await fetcher.fetch(
+            destination_hash="a" * 32,
+            group="g",
+            repository="r",
+            paths=["a.geojson"],
+            ref="HEAD",
+            job_id="../escape",
+            timeout_seconds=5,
+        )
+    assert exc.value.code == "invalid_job_id"

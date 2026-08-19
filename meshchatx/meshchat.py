@@ -2084,6 +2084,20 @@ class ReticulumMeshChat:
         clear_all_cached_links()
         clear_all_nomadnet_cached_links()
 
+    def _drop_auto_resend_locks(self, identity_hash: str | None) -> None:
+        """Drop idle auto-resend locks for a torn-down identity."""
+        if not identity_hash:
+            return
+        coord = getattr(self, "_auto_resend_coordinator", None)
+        if coord is None:
+            return
+        with contextlib.suppress(Exception):
+            coord.drop_identity(identity_hash)
+        canonical = normalize_identity_storage_hash(identity_hash)
+        if canonical and canonical != identity_hash:
+            with contextlib.suppress(Exception):
+                coord.drop_identity(canonical)
+
     def teardown_identity(self):
         if self.current_context:
             self.running = False
@@ -2094,6 +2108,7 @@ class ReticulumMeshChat:
             self.current_context = None
             # Drop Nomad and RNS links that may have identified as the prior identity.
             self._clear_mesh_link_caches()
+            self._drop_auto_resend_locks(identity_hash)
             gc.collect()
 
     def _teardown_all_contexts_for_reload(self):
@@ -2121,12 +2136,15 @@ class ReticulumMeshChat:
             with contextlib.suppress(Exception):
                 ctx.teardown()
 
+        dropped_identity_hashes = list(self.contexts.keys())
         self.contexts.clear()
         self.current_context = None
         self.running = False
         # Same drop as teardown_identity. Reload and zip restore must not keep
         # Nomad or RNS Link sessions from the torn-down identities.
         self._clear_mesh_link_caches()
+        for identity_hash in dropped_identity_hashes:
+            self._drop_auto_resend_locks(identity_hash)
         gc.collect()
 
     async def _send_rns_reload_status(
@@ -3082,10 +3100,7 @@ class ReticulumMeshChat:
             with contextlib.suppress(Exception):
                 ctx.teardown()
         self._propagation_sync_metrics.pop(canonical, None)
-        coord = getattr(self, "_auto_resend_coordinator", None)
-        if coord is not None:
-            with contextlib.suppress(Exception):
-                coord.drop_identity(canonical)
+        self._drop_auto_resend_locks(canonical)
 
     def delete_identity(self, identity_hash):
         current_hash = (

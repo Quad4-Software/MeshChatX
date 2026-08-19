@@ -141,6 +141,9 @@ describe("map local URL oracle", () => {
         expect(isPrivateOrLocalHostname("172.16.evil.com")).toBe(false);
         expect(isLocalMapServiceUrl("http://10.1.2.3:8080/tiles")).toBe(true);
         expect(isLocalMapServiceUrl("http://10.0.0.1@example.com/tiles")).toBe(false);
+        expect(isLocalMapServiceUrl("http://[")).toBe(false);
+        expect(isLocalMapServiceUrl("https://[::")).toBe(false);
+        expect(isLocalMapServiceUrl("javascript:alert(1)")).toBe(false);
     });
 });
 

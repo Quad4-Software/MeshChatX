@@ -17,6 +17,9 @@ _RESERVED_RNCP_TOP = frozenset(
     {
         "identity",
         "identity.bak",
+        "identities",
+        "session_secret",
+        "app_security.json",
         "ssl",
         "database.db",
         "lxmf",
@@ -28,6 +31,21 @@ _RESERVED_RNCP_TOP = frozenset(
         "telephone",
         "rrc_history",
         "rrc_server",
+        "page_nodes",
+        "map_overlays",
+        "reticulum-docs",
+        "meshchatx-docs",
+        "repository-server",
+    },
+)
+
+_FORBIDDEN_RECEIVED_NAMES = frozenset(
+    {
+        "identity",
+        "identity.bak",
+        "session_secret",
+        "app_security.json",
+        "database.db",
     },
 )
 
@@ -88,6 +106,8 @@ class RNCPHandler:
         except (AttributeError, TypeError, ValueError):
             return "downloaded_file"
         if not base or base in {".", ".."} or "\x00" in base:
+            return "downloaded_file"
+        if base in _FORBIDDEN_RECEIVED_NAMES:
             return "downloaded_file"
         return base
 
@@ -466,7 +486,7 @@ class RNCPHandler:
             msg = "File path is outside the RNCP send jail"
             raise PermissionError(msg)
         base = os.path.basename(real)
-        if base in {"identity", "identity.bak"}:
+        if base in _FORBIDDEN_RECEIVED_NAMES:
             msg = "Refusing to send identity private key material"
             raise PermissionError(msg)
         parts = {part for part in real.split(os.sep) if part}

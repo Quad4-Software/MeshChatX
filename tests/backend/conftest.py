@@ -198,6 +198,7 @@ def _stub_map_data_manager(app):
     )
     mgr.fetch_map_bytes = AsyncMock(return_value=b"{}")
     mgr.add_as_overlay = AsyncMock(return_value={"ok": True})
+    mgr._cfg_max_bytes.return_value = 524288
 
 
 @pytest.fixture
