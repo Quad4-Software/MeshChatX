@@ -185,6 +185,27 @@ SCENARIOS: tuple[Scenario, ...] = (
         taxonomy="live_env",
         summary="second identity fetches /catalog over a live RNS Link",
     ),
+    Scenario(
+        id="messaging.sieve.first_match",
+        pack="MessagingToolsPack",
+        gate="gate3-hostile-medium",
+        taxonomy="logic",
+        summary="first enabled sieve rule wins and hide suppresses notifications",
+    ),
+    Scenario(
+        id="messaging.forwarder.source_filter",
+        pack="MessagingToolsPack",
+        gate="gate3-hostile-medium",
+        taxonomy="logic",
+        summary="forwarding skips source-filter misses and fans out matching rules",
+    ),
+    Scenario(
+        id="messaging.blocklist.non_contacts",
+        pack="MessagingToolsPack",
+        gate="gate3-hostile-medium",
+        taxonomy="security_surface",
+        summary="blocklist non_contacts scope banishes strangers and skips contacts",
+    ),
 )
 
 

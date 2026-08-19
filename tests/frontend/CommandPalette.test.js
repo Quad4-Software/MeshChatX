@@ -309,4 +309,19 @@ describe("CommandPalette.vue", () => {
         const results = wrapper.vm.filteredResults;
         expect(results.length).toBe(0);
     });
+
+    it("compose waits for the messages route then emits compose-new-message", async () => {
+        routerMock.push.mockResolvedValue();
+        const wrapper = mountCommandPalette({ name: "map" });
+        wrapper.vm.isOpen = true;
+        await wrapper.vm.$nextTick();
+
+        const compose = wrapper.vm.filteredResults.find((r) => r.action === "compose");
+        expect(compose).toBeTruthy();
+        const emitSpy = vi.spyOn(GlobalEmitter, "emit");
+        await wrapper.vm.executeResult(compose);
+        expect(routerMock.push).toHaveBeenCalledWith({ name: "messages" });
+        expect(emitSpy).toHaveBeenCalledWith("compose-new-message");
+        expect(wrapper.vm.isOpen).toBe(false);
+    });
 });

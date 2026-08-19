@@ -226,4 +226,28 @@ describe("MapBrowser.vue", () => {
         );
         expect(wrapper.vm.tabs).toHaveLength(before);
     });
+
+    it("marks the active map tab inactive while the keep-alive route is cached", async () => {
+        const wrapper = await mountBrowser();
+        const active = wrapper.findAllComponents({ name: "MapPage" }).find((page) => page.props("isActiveTab"));
+        expect(active).toBeTruthy();
+        wrapper.vm.isRouteActive = false;
+        await wrapper.vm.$nextTick();
+        expect(wrapper.findAllComponents({ name: "MapPage" }).every((page) => page.props("isActiveTab") === false)).toBe(
+            true
+        );
+        wrapper.vm.isRouteActive = true;
+        await wrapper.vm.$nextTick();
+        expect(wrapper.findAllComponents({ name: "MapPage" }).some((page) => page.props("isActiveTab") === true)).toBe(
+            true
+        );
+    });
+
+    it("deactivated and activated toggle isRouteActive", async () => {
+        const wrapper = await mountBrowser();
+        wrapper.vm.$options.deactivated.call(wrapper.vm);
+        expect(wrapper.vm.isRouteActive).toBe(false);
+        wrapper.vm.$options.activated.call(wrapper.vm);
+        expect(wrapper.vm.isRouteActive).toBe(true);
+    });
 });

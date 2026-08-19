@@ -156,6 +156,17 @@ async def handle_lxmf_forwarding_rules_get(app, client, data):
     )
 
 
+def _canonical_forwarding_dest_hash(raw) -> str | None:
+    """32-char dest hash, or None. Empty optional filters become empty string."""
+    if raw is None:
+        return ""
+    text = str(raw).strip()
+    if not text:
+        return ""
+    canonical = normalize_identity_storage_hash(text)
+    return canonical or None
+
+
 async def handle_lxmf_forwarding_rule_add(app, client, data):
     rule_data = data.get("rule")
     if not rule_data or "forward_to_hash" not in rule_data:
@@ -164,10 +175,31 @@ async def handle_lxmf_forwarding_rule_add(app, client, data):
         )
         return
 
+    forward_to_hash = _canonical_forwarding_dest_hash(rule_data.get("forward_to_hash"))
+    if not forward_to_hash:
+        print("Invalid forward_to_hash in lxmf.forwarding.rule.add")
+        return
+
+    identity_raw = rule_data.get("identity_hash")
+    identity_hash = _canonical_forwarding_dest_hash(identity_raw)
+    if identity_raw not in (None, "") and identity_hash is None:
+        print("Invalid identity_hash in lxmf.forwarding.rule.add")
+        return
+    if identity_hash == "":
+        identity_hash = None
+
+    source_raw = rule_data.get("source_filter_hash")
+    source_filter_hash = _canonical_forwarding_dest_hash(source_raw)
+    if source_raw not in (None, "") and source_filter_hash is None:
+        print("Invalid source_filter_hash in lxmf.forwarding.rule.add")
+        return
+    if source_filter_hash == "":
+        source_filter_hash = None
+
     app.database.misc.create_forwarding_rule(
-        identity_hash=rule_data.get("identity_hash"),
-        forward_to_hash=rule_data["forward_to_hash"],
-        source_filter_hash=rule_data.get("source_filter_hash"),
+        identity_hash=identity_hash,
+        forward_to_hash=forward_to_hash,
+        source_filter_hash=source_filter_hash,
         is_active=rule_data.get("is_active", True),
         name=rule_data.get("name"),
     )

@@ -515,6 +515,73 @@ describe("NomadNetworkBrowser.vue", () => {
         expect(wrapper.vm.tabs[0].destinationHash).toBe("");
     });
 
+    it("keep-alive activate opens a nomad hash that arrived without newTab", async () => {
+        const dest = "b".repeat(32);
+        const wrapper = mountBrowser();
+        expect(wrapper.vm.tabs).toHaveLength(1);
+        expect(wrapper.vm.activeTab.destinationHash).toBe("");
+
+        wrapper.vm.isRouteActive = false;
+        expect(wrapper.vm.isRouteActive).toBe(false);
+        wrapper.vm.applyIncomingNomadRoute({
+            name: "nomadnetwork",
+            params: { destinationHash: dest },
+            query: { path: "/page/index.mu" },
+        });
+        wrapper.vm.isRouteActive = true;
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.activeTab.destinationHash).toBe(dest);
+        expect(wrapper.vm.activeTab.initialPath).toBe("/page/index.mu");
+        const pages = wrapper.findAllComponents({ name: "NomadNetworkPage" });
+        const activePage = pages.find((page) => page.props("isActive") === true);
+        expect(activePage?.props("destinationHash")).toBe(dest);
+    });
+
+    it("keep-alive activate does not duplicate the tab already showing that hash", () => {
+        const dest = "c".repeat(32);
+        const wrapper = mountBrowser();
+        wrapper.vm.onOpenNode({ destinationHash: dest, pagePath: "/page/index.mu", activate: true });
+        const tabCount = wrapper.vm.tabs.length;
+        const activeId = wrapper.vm.activeTabId;
+
+        wrapper.vm.applyIncomingNomadRoute({
+            name: "nomadnetwork",
+            params: { destinationHash: dest },
+            query: {},
+        });
+
+        expect(wrapper.vm.tabs).toHaveLength(tabCount);
+        expect(wrapper.vm.activeTabId).toBe(activeId);
+    });
+
+    it("marks the active embedded page inactive while the keep-alive route is cached", async () => {
+        const wrapper = mountBrowser();
+        await wrapper.vm.$nextTick();
+        expect(wrapper.findComponent({ name: "NomadNetworkPage" }).props("isActive")).toBe(true);
+        wrapper.vm.isRouteActive = false;
+        await wrapper.vm.$nextTick();
+        expect(wrapper.findComponent({ name: "NomadNetworkPage" }).props("isActive")).toBe(false);
+        wrapper.vm.isRouteActive = true;
+        await wrapper.vm.$nextTick();
+        expect(wrapper.findComponent({ name: "NomadNetworkPage" }).props("isActive")).toBe(true);
+    });
+
+    it("activated reapplies the current nomad route after keep-alive restore", () => {
+        const dest = "d".repeat(32);
+        const wrapper = mountBrowser();
+        wrapper.vm.$route = {
+            name: "nomadnetwork",
+            params: { destinationHash: dest },
+            query: {},
+        };
+        wrapper.vm.$options.activated.call(wrapper.vm);
+        expect(wrapper.vm.isRouteActive).toBe(true);
+        expect(wrapper.vm.activeTab.destinationHash).toBe(dest);
+        wrapper.vm.$options.deactivated.call(wrapper.vm);
+        expect(wrapper.vm.isRouteActive).toBe(false);
+    });
+
     describe("context menu", () => {
         it("openTabContextMenu selects tab and shows menu", () => {
             const wrapper = mountBrowser();

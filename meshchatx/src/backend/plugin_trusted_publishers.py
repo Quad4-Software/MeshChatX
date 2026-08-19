@@ -9,6 +9,8 @@ import sqlite3
 import threading
 from dataclasses import dataclass
 
+from meshchatx.src.path_utils import atomic_write_text
+
 TRUSTED_PUBLISHERS_DIGEST_KEY = "plugins.trusted_publishers_digest"
 
 _trusted_lock = threading.RLock()
@@ -185,23 +187,21 @@ def add_user_trusted_publisher(
     path = user_trusted_publishers_path(plugins_root)
     publishers: list[dict[str, str]] = []
     if os.path.isfile(path):
-        with open(path, encoding="utf-8") as handle:
-            try:
+        try:
+            with open(path, encoding="utf-8") as handle:
                 data = json.load(handle)
-                if isinstance(data, dict) and isinstance(data.get("publishers"), list):
-                    publishers = [
-                        item for item in data["publishers"] if isinstance(item, dict)
-                    ]
-            except Exception:
-                publishers = []
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise ValueError("trusted publishers file is unreadable") from exc
+        if not isinstance(data, dict) or not isinstance(data.get("publishers"), list):
+            raise ValueError("trusted publishers file is unreadable")
+        publishers = [item for item in data["publishers"] if isinstance(item, dict)]
     for item in publishers:
         if str(item.get("identity") or "").strip().lower() == identity:
             return
     publishers.append({"identity": identity, "name": name})
     os.makedirs(os.path.dirname(path), exist_ok=True)
     raw = json.dumps({"publishers": publishers}, indent=2) + "\n"
-    with open(path, "w", encoding="utf-8") as handle:
-        handle.write(raw)
+    atomic_write_text(path, raw)
     digest = digest_user_trusted_publishers_raw(raw.encode("utf-8"))
     _set_digest(state_db_path, digest)
     with _trusted_lock:
@@ -233,8 +233,7 @@ def remove_user_trusted_publisher(
     if len(kept) == len(publishers):
         return False
     raw = json.dumps({"publishers": kept}, indent=2) + "\n"
-    with open(path, "w", encoding="utf-8") as handle:
-        handle.write(raw)
+    atomic_write_text(path, raw)
     digest = digest_user_trusted_publishers_raw(raw.encode("utf-8"))
     _set_digest(state_db_path, digest)
     with _trusted_lock:

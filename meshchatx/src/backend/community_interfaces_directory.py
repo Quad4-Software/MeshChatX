@@ -1,13 +1,17 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Convert directory.rns.recipes listing rows into MeshChat interface preset dicts."""
+"""Convert mcx-interfaces (and legacy directory listing) rows into MeshChat interface preset dicts."""
 
 from __future__ import annotations
 
 import re
 from typing import Any
+from urllib.parse import urlparse
 
-DESCRIPTION = "directory.rns.recipes (online submitted + discovered)"
+DESCRIPTION = "meshchatx.com/interfaces"
+
+DEFAULT_DIRECTORY_URL = "https://meshchatx.com/api/mcx-interfaces"
+ALLOWED_FETCH_HOST = "meshchatx.com"
 
 _RE_REMOTE = re.compile(r"^\s*remote\s*=\s*(\S+)", re.MULTILINE | re.IGNORECASE)
 _RE_TARGET_HOST = re.compile(
@@ -21,14 +25,34 @@ _RE_TRANSPORT_IDENTITY = re.compile(
 _RE_PEERS_LINE = re.compile(r"^\s*peers\s*=\s*(.+)$", re.MULTILINE | re.IGNORECASE)
 
 
+def validate_directory_fetch_url(url: str) -> str:
+    if not url or not isinstance(url, str):
+        msg = "URL must be a non-empty string"
+        raise ValueError(msg)
+    parsed = urlparse(url.strip())
+    if parsed.scheme != "https":
+        msg = "Community directory URL must use https"
+        raise ValueError(msg)
+    netloc = parsed.netloc or ""
+    if "@" in netloc:
+        msg = "Community directory URL must not contain credentials"
+        raise ValueError(msg)
+    host = (parsed.hostname or "").lower()
+    if host != ALLOWED_FETCH_HOST:
+        msg = "Community directory URL host is not allowed"
+        raise ValueError(msg)
+    return url.strip()
+
+
 def rows_from_payload(payload: object) -> list[Any]:
-    if isinstance(payload, dict):
-        data = payload.get("data", payload)
-        if isinstance(data, list):
-            return data
     if isinstance(payload, list):
         return payload
-    raise ValueError("Expected list or object with 'data' array")
+    if isinstance(payload, dict):
+        for key in ("interfaces", "data"):
+            rows = payload.get(key)
+            if isinstance(rows, list):
+                return rows
+    raise ValueError("Expected list or object with 'interfaces' or 'data' array")
 
 
 def _parse_config_value(pattern: re.Pattern[str], cfg: str) -> str:

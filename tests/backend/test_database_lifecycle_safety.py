@@ -100,6 +100,85 @@ def test_close_all_closes_worker_thread_connections(temp_dir):
         held["conn"].execute("SELECT 1")
 
 
+def test_restore_aside_files_keeps_live_db_when_replace_fails(temp_dir):
+    aside_dir = os.path.join(temp_dir, "aside")
+    os.makedirs(aside_dir)
+    live_path = os.path.join(temp_dir, "database.db")
+    aside_path = os.path.join(aside_dir, "database.db")
+    with open(live_path, "wb") as handle:
+        handle.write(b"NEW-BAD")
+    with open(aside_path, "wb") as handle:
+        handle.write(b"OLD-GOOD")
+
+    def fail_replace(_src, _dst):
+        raise OSError("replace failed")
+
+    with patch("os.replace", side_effect=fail_replace):
+        with patch("shutil.move", side_effect=fail_replace):
+            Database._restore_aside_files(aside_dir, {"main": live_path})
+
+    assert os.path.isfile(live_path)
+    with open(live_path, "rb") as handle:
+        assert handle.read() == b"NEW-BAD"
+    with open(aside_path, "rb") as handle:
+        assert handle.read() == b"OLD-GOOD"
+
+
+def test_restore_aside_files_replaces_live_db(temp_dir):
+    aside_dir = os.path.join(temp_dir, "aside")
+    os.makedirs(aside_dir)
+    live_path = os.path.join(temp_dir, "database.db")
+    aside_path = os.path.join(aside_dir, "database.db")
+    with open(live_path, "wb") as handle:
+        handle.write(b"NEW-BAD")
+    with open(aside_path, "wb") as handle:
+        handle.write(b"OLD-GOOD")
+    Database._restore_aside_files(aside_dir, {"main": live_path})
+    with open(live_path, "rb") as handle:
+        assert handle.read() == b"OLD-GOOD"
+
+
+def test_restore_extras_aside_keeps_live_when_replace_fails(temp_dir):
+    extras = os.path.join(temp_dir, "extras")
+    live_dir = os.path.join(temp_dir, "ident")
+    os.makedirs(os.path.join(extras, "rrc_history"))
+    os.makedirs(os.path.join(live_dir, "rrc_history"))
+    aside = os.path.join(extras, "rrc_history", "lobby.log")
+    live = os.path.join(live_dir, "rrc_history", "lobby.log")
+    with open(live, "wb") as handle:
+        handle.write(b"LIVE")
+    with open(aside, "wb") as handle:
+        handle.write(b"ASIDE")
+
+    def fail_replace(_src, _dst):
+        raise OSError("replace failed")
+
+    with patch("os.replace", side_effect=fail_replace):
+        with patch("shutil.move", side_effect=fail_replace):
+            Database._restore_extras_aside(extras, live_dir)
+
+    with open(live, "rb") as handle:
+        assert handle.read() == b"LIVE"
+    with open(aside, "rb") as handle:
+        assert handle.read() == b"ASIDE"
+
+
+def test_restore_extras_aside_replaces_live_file(temp_dir):
+    extras = os.path.join(temp_dir, "extras")
+    live_dir = os.path.join(temp_dir, "ident")
+    os.makedirs(os.path.join(extras, "rrc_history"))
+    os.makedirs(os.path.join(live_dir, "rrc_history"))
+    aside = os.path.join(extras, "rrc_history", "lobby.log")
+    live = os.path.join(live_dir, "rrc_history", "lobby.log")
+    with open(live, "wb") as handle:
+        handle.write(b"LIVE")
+    with open(aside, "wb") as handle:
+        handle.write(b"ASIDE")
+    Database._restore_extras_aside(extras, live_dir)
+    with open(live, "rb") as handle:
+        assert handle.read() == b"ASIDE"
+
+
 def test_restore_invokes_close_all_before_replace(temp_dir):
     db_path = os.path.join(temp_dir, "live.db")
     db = Database(db_path)

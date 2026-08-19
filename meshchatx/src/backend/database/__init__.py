@@ -423,8 +423,9 @@ class Database:
             }
             if main_bytes is not None:
                 data["main_bytes"] = main_bytes
-            with open(path, "w") as f:
-                json.dump(data, f, indent=2)
+            from meshchatx.src.path_utils import atomic_write_text
+
+            atomic_write_text(path, json.dumps(data, indent=2))
         except OSError as e:
             print(f"Failed to write backup baseline: {e}")
 
@@ -1198,25 +1199,21 @@ class Database:
                 dest_dir = os.path.dirname(dest)
                 if dest_dir:
                     os.makedirs(dest_dir, exist_ok=True)
-                if os.path.lexists(dest) and not os.path.isdir(dest):
-                    with suppress(OSError):
-                        os.remove(dest)
-                with suppress(OSError):
-                    shutil.move(src, dest)
+                if os.path.isdir(dest):
+                    continue
+                Database._replace_from_aside(src, dest)
+
+    @staticmethod
+    def _replace_from_aside(aside: str, live_path: str) -> None:
+        """Move aside onto live_path without deleting live first."""
+        if not os.path.exists(aside):
+            return
+        with suppress(OSError):
+            os.replace(aside, live_path)
 
     @staticmethod
     def _restore_aside_files(aside_dir: str, paths: dict) -> None:
         """Put previously moved live DB files back after a failed restore."""
         for live_path in paths.values():
             aside = os.path.join(aside_dir, os.path.basename(live_path))
-            if not os.path.exists(aside):
-                continue
-            if os.path.exists(live_path):
-                try:
-                    os.remove(live_path)
-                except OSError:
-                    pass
-            try:
-                shutil.move(aside, live_path)
-            except OSError:
-                pass
+            Database._replace_from_aside(aside, live_path)

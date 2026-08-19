@@ -2074,6 +2074,13 @@
                                             >rns.recipes</a
                                         >
                                         <a
+                                            href="https://meshchatx.com/interfaces"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="secondary-chip py-1! px-2! text-[9px]!"
+                                            >meshchatx.com</a
+                                        >
+                                        <a
                                             href="https://rmap.world/"
                                             target="_blank"
                                             rel="noopener noreferrer"

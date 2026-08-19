@@ -7,7 +7,7 @@
             type="button"
             :draggable="false"
             :class="[
-                collapsedActiveClass(isActive),
+                collapsedActiveClass(navActive(isActive)),
                 isCollapsed ? 'overflow-visible justify-center rounded-none' : 'overflow-hidden rounded-r-full mr-2',
             ]"
             class="w-full text-gray-800 dark:text-zinc-200 group flex gap-x-3 p-2 text-sm leading-6 font-semibold focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-zinc-500"
@@ -24,6 +24,8 @@
 </template>
 
 <script>
+import { navRouteIsActive } from "../js/navRouteActive.js";
+
 export default {
     name: "SidebarLink",
     props: {
@@ -42,6 +44,12 @@ export default {
     },
     emits: ["click"],
     methods: {
+        navActive(routerIsActive) {
+            if (navRouteIsActive(this.to?.name, this.$route?.name)) {
+                return true;
+            }
+            return Boolean(routerIsActive);
+        },
         collapsedActiveClass(isActive) {
             if (this.isCollapsed && isActive) {
                 return [

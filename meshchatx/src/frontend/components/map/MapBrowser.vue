@@ -69,7 +69,7 @@
                 embedded
                 :tab-storage-id="tab.storageId"
                 :tab-title="tabTitle(tab)"
-                :is-active-tab="tab.id === activeTabId"
+                :is-active-tab="tab.id === activeTabId && isRouteActive"
                 @update-title="onMapUpdateTitle(tab.id, $event)"
             />
         </div>
@@ -112,6 +112,7 @@ export default {
             renamingTabId: null,
             renameDraft: "",
             lastLabelTap: { tabId: null, time: 0 },
+            isRouteActive: true,
         };
     },
     computed: {
@@ -144,6 +145,12 @@ export default {
             await this.migrateLegacyMapState(storageId);
             await this.addTab(null, true, storageId);
         }
+    },
+    activated() {
+        this.isRouteActive = true;
+    },
+    deactivated() {
+        this.isRouteActive = false;
     },
     beforeUnmount() {
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);

@@ -881,13 +881,19 @@ class RRCHub:
             try:
                 with open(path, "rb") as f:
                     while True:
+                        pos = f.tell()
                         try:
                             window.append(proto.load(f))
                         except EOFError:
                             break
                         except Exception as ex:
                             decode_error = ex
-                            break
+                            try:
+                                f.seek(pos + 1)
+                            except OSError:
+                                break
+                            if f.tell() <= pos:
+                                break
             except OSError as ex:
                 self._log(
                     "history load failed for #" + room + ": " + str(ex),
@@ -898,7 +904,7 @@ class RRCHub:
                 self._log(
                     "history file for #"
                     + room
-                    + " is corrupt, truncating to last "
+                    + " has a corrupt record, kept "
                     + str(len(window))
                     + " valid messages: "
                     + str(decode_error),

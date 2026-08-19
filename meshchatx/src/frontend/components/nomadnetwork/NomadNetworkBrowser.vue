@@ -57,7 +57,7 @@
                     class="absolute inset-0 flex min-h-0 min-w-0"
                     embedded
                     :tabs-enabled="tabsEnabled"
-                    :is-active="tab.id === activeTabId"
+                    :is-active="tab.id === activeTabId && isRouteActive"
                     :destination-hash="tab.destinationHash"
                     :initial-path="tab.initialPath"
                     @navigate="onTabNavigate(tab.id, $event)"
@@ -144,6 +144,7 @@ export default {
                 y: 0,
                 tabId: null,
             },
+            isRouteActive: true,
         };
     },
     computed: {
@@ -200,6 +201,9 @@ export default {
         tabLayoutSignature() {
             this.persistTabs();
         },
+        $route(to) {
+            this.applyIncomingNomadRoute(to);
+        },
     },
     mounted() {
         this.setupViewportWatcher();
@@ -221,9 +225,11 @@ export default {
         this.mountTab(this.activeTabId);
     },
     activated() {
-        if (this.$route?.query?.newTab === "1") {
-            this.consumeNewTabRouteQuery(this.$route);
-        }
+        this.isRouteActive = true;
+        this.applyIncomingNomadRoute(this.$route);
+    },
+    deactivated() {
+        this.isRouteActive = false;
     },
     beforeUnmount() {
         GlobalEmitter.off("nomad-open-node", this.handleNomadOpenNode);
@@ -232,6 +238,28 @@ export default {
         window.removeEventListener("keydown", this.handleKeydown, true);
     },
     methods: {
+        applyIncomingNomadRoute(route) {
+            if (route?.name !== "nomadnetwork") {
+                return;
+            }
+            if (route.query?.newTab === "1") {
+                this.consumeNewTabRouteQuery(route);
+                return;
+            }
+            const destinationHash = (route.params?.destinationHash || this.destinationHash || "").trim();
+            if (!destinationHash) {
+                return;
+            }
+            const activeHash = (this.activeTab?.destinationHash || "").trim();
+            if (destinationHash === activeHash) {
+                return;
+            }
+            this.onOpenNode({
+                destinationHash,
+                pagePath: route.query?.path || null,
+                activate: true,
+            });
+        },
         onIdentitySwitched() {
             this.tabs = [];
             this.activeTabId = null;

@@ -350,6 +350,24 @@ def test_get_bot_identity_path_rejects_escaped_storage(temp_identity_dir, tmp_pa
     assert bait.read_bytes() == b"SECRET_BAIT_BYTES"
 
 
+def test_corrupt_bots_state_does_not_overwrite_file(temp_identity_dir):
+    handler = BotHandler(temp_identity_dir)
+    storage = os.path.join(handler.bots_dir, "bot1")
+    os.makedirs(storage, exist_ok=True)
+    handler.bots_state = [
+        {"id": "bot1", "enabled": True, "storage_dir": storage},
+    ]
+    handler._save_state()
+    original = "{not-json"
+    with open(handler.state_file, "w", encoding="utf-8") as handle:
+        handle.write(original)
+    handler2 = BotHandler(temp_identity_dir)
+    handler2._save_state()
+    with open(handler.state_file, encoding="utf-8") as handle:
+        assert handle.read() == original
+    assert handler2.bots_state == []
+
+
 def test_load_state_drops_escaped_storage(temp_identity_dir, tmp_path):
     handler = BotHandler(temp_identity_dir)
     outside, bait, _log = _outside_bait_identity(tmp_path)

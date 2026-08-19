@@ -2,6 +2,8 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ForwarderPage from "@/components/forwarder/ForwarderPage.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
+import ToastUtils from "@/js/ToastUtils";
+import DialogUtils from "@/js/DialogUtils";
 
 vi.mock("@/js/WebSocketConnection", () => ({
     default: {
@@ -16,6 +18,12 @@ vi.mock("@/js/ToastUtils", () => ({
         success: vi.fn(),
         error: vi.fn(),
         warning: vi.fn(),
+    },
+}));
+
+vi.mock("@/js/DialogUtils", () => ({
+    default: {
+        confirm: vi.fn(() => Promise.resolve(true)),
     },
 }));
 
@@ -114,5 +122,39 @@ describe("ForwarderPage.vue", () => {
                 id: "rule1",
             })
         );
+    });
+
+    it("rejects a non-hex destination hash", async () => {
+        const wrapper = mountForwarderPage();
+        await wrapper.setData({
+            newRule: {
+                name: "bad",
+                forward_to_hash: "not-a-hash",
+                source_filter_hash: "",
+                is_active: true,
+            },
+        });
+        await wrapper.find("button[class*='bg-blue-600']").trigger("click");
+        expect(ToastUtils.warning).toHaveBeenCalled();
+        const addCalls = WebSocketConnection.send.mock.calls.filter((call) =>
+            String(call[0]).includes("lxmf.forwarding.rule.add")
+        );
+        expect(addCalls).toHaveLength(0);
+    });
+
+    it("deletes a rule after confirm", async () => {
+        const wrapper = mountForwarderPage();
+        await wrapper.setData({
+            rules: [{ id: "rule1", name: "Rule 1", forward_to_hash: "a".repeat(32), is_active: true }],
+        });
+        await wrapper.vm.deleteRule("rule1");
+        expect(DialogUtils.confirm).toHaveBeenCalled();
+        expect(WebSocketConnection.send).toHaveBeenCalledWith(
+            JSON.stringify({
+                type: "lxmf.forwarding.rule.delete",
+                id: "rule1",
+            })
+        );
+        expect(ToastUtils.success).toHaveBeenCalled();
     });
 });

@@ -10,6 +10,7 @@ import threading
 from typing import Any
 
 from meshchatx.src.backend.ip_allowlist import normalize_allowlist_text
+from meshchatx.src.path_utils import atomic_write_text
 
 _SETTINGS_FILENAME = "app_security.json"
 _LOCK = threading.RLock()
@@ -62,9 +63,8 @@ def save_app_security_settings(
         current["trusted_proxy_cidrs"] = text
     path = _settings_path(storage_dir)
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    with _LOCK, open(path, "w", encoding="utf-8") as f:
-        json.dump(current, f, indent=2)
-        f.write("\n")
+    with _LOCK:
+        atomic_write_text(path, json.dumps(current, indent=2) + "\n")
     return current
 
 

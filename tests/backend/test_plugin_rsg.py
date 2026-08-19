@@ -63,3 +63,20 @@ def test_verify_rsg_payload_and_trusted_lookup(tmp_path):
     )
     assert trusted is True
     assert name == "Example Publisher"
+
+
+def test_add_trusted_publisher_refuses_unreadable_file(tmp_path):
+    db = tmp_path / "state.db"
+    plugins_root = tmp_path / "plugins"
+    plugins_root.mkdir()
+    path = plugins_root / "trusted_publishers.json"
+    original = b"{not-json"
+    path.write_bytes(original)
+    with pytest.raises(ValueError, match="unreadable"):
+        add_user_trusted_publisher(
+            str(plugins_root),
+            str(db),
+            "bb" * 16,
+            "New Publisher",
+        )
+    assert path.read_bytes() == original
