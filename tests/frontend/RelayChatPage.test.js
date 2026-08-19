@@ -277,7 +277,13 @@ describe("RelayChatPage.vue", () => {
             if (url === "/api/v1/rrc/hubs") {
                 return Promise.resolve({
                     data: {
-                        hubs: [makeHub({ available_rooms: { vault: null }, stored_key_rooms: ["vault"], available_keyed_rooms: ["vault"] })],
+                        hubs: [
+                            makeHub({
+                                available_rooms: { vault: null },
+                                stored_key_rooms: ["vault"],
+                                available_keyed_rooms: ["vault"],
+                            }),
+                        ],
                     },
                 });
             }
