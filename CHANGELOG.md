@@ -7,26 +7,29 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - **Map announce**: Off until a pack is published.
-- **Android release APK**: GitHub release assets use ReticulumMeshChatX-vVERSION-android-universal.apk, the same ReticulumMeshChatX-vVERSION-OS-ARCH.* pattern as desktop installers. Gradle writes the unsigned file as ReticulumMeshChatX-vVERSION-android-universal-unsigned.apk.
-- **Confirm and prompt dialogs**: Electron uses the in-app dialogs instead of native OS prompts. Confirm can show a title. Both dialogs use alertdialog or dialog roles with labelled headings. Confirm traps Tab, focuses the confirm button, and ignores the Enter that opened it so that keypress cannot accept. Escape cancels. IME composition does not confirm. Remote management identity create uses the in-app prompt instead of window.prompt.
+- **Android release APK**: GitHub assets use ReticulumMeshChatX-vVERSION-android-universal.apk, matching desktop installer names.
+- **Confirm and prompt dialogs**: Electron uses the in-app dialogs instead of native OS prompts. Remote management identity create uses the in-app prompt instead of window.prompt.
 - **Collapsed sidebar**: The active rail item uses an inset pressed fill instead of the expanded blue pill. Collapsed buttons are square.
 
 ### Fixed
 
 - **Map catalog**: Catalog on Discover lists packs instead of hanging. Empty catalogs show a message.
-- **In-process memory growth**: Announce-rate and LXMF flood timestamp lists prune on append (1 hour window plus a hard cap), not only when About polls `/api/v1/app/info`. RNCP drops finished Resource objects and keeps 32 terminal transfer records. Auto-resend destination locks cap at 256 and drop on identity eviction. Mesh Server unique-remote tracking stops at 4096 hashes. Map overlay finished jobs cap at 32 and cleanup clears per-overlay locks. Completed map exports keep 8 records. Identity teardown now drops ringtone, notification-sound, translator, and community-interface managers.
-- **macOS universal**: Intel NumPy OpenBLAS dylibs (libscipy_openblas64_.dylib and gfortran helpers) are copied into the arm64 freeze tree instead of being deleted during merge, so the x86_64 slice can load numpy._core._multiarray_umath.
-- **Relay Chat loopback**: Typed `/help` and `/nick` stay above the hub notice when talking to a locally hosted hub. Mesh send still records local history only after the packet goes on the wire.
+- **In-process memory growth**: Announce-rate, LXMF flood, RNCP, auto-resend, Mesh Server, and map overlay lists prune on append instead of waiting for About to poll. Identity teardown drops ringtone, notification-sound, translator, and community-interface managers.
+- **macOS universal**: Intel NumPy OpenBLAS dylibs stay in the freeze tree so the x86_64 slice can load numpy.
+- **Relay Chat loopback**: Typed /help and /nick stay above the hub notice when talking to a locally hosted hub.
 - **macOS desktop**: Frozen builds include Codec2 so LXST calls start instead of crashing on a missing libcodec2 dylib.
 - **macOS universal**: The Intel slice of a universal Mac build runs as x86_64 instead of starting as arm64 and failing on zlib.
 - **Disconnected banner**: Stopping or restarting the backend keeps the red banner until the backend answers again.
-- **Messages (path wait)**: Direct and opportunistic send wait for a path to the peer `lxmf.delivery` destination. A pasted identity hash no longer waits on the identity hash, which is not a mail address.
-- **Telephone dial overlay**: Initiation status stays while LXST is calling or ringing with no active_call object yet, so the overlay does not close mid-ring.
-- **Relay Chat**: A WELCOME timeout tears the link and reconnects. Outbound chat, notices, and actions go on the wire before local history, so a send failure is not shown as delivered. A kline or ban with no room name leaves every joined room. A failed JOIN send drops the pending-join marker.
-- **RNCP**: Send and fetch-save refuse reserved identity-storage tops (identity, ssl, database.db, plugins, database-backups, snapshots, bots, telephone, rrc_history, rrc_server).
-- **Docs zip import**: Members with NUL bytes, absolute paths, parent directory segments, or a colon are skipped.
-- **Plugins**: Hook dispatch returns immediately when the plugin runtime is disabled. Python plugin load deletes nested pycache directories, not only the one next to the entry file.
-- **Repository upload**: A destination that is already a symlink or directory is rejected. The file is opened without following a symlink when the platform supports that.
+- **Messages (path wait)**: Direct and opportunistic send wait for a path to the peer lxmf.delivery destination. A pasted identity hash is not a mail address and is no longer waited on.
+- **Telephone dial overlay**: Initiation status stays while LXST is calling or ringing, so the overlay does not close mid-ring.
+- **Relay Chat**: A WELCOME timeout tears the link and reconnects. Outbound chat is recorded locally only after it goes on the wire. A kline or ban with no room name leaves every joined room.
+- **RNCP and FileSync**: Send, save, and sync-root paths refuse reserved identity-storage tops and files named identity. RNCP also refuses the shared storage identities tree, session_secret, and app_security.json.
+- **Plugins**: Install refuses a source tree or zip that contains symbolic links, so copytree cannot ingest host files.
+- **Docs zip import**: Zip members with NUL bytes, absolute paths, parent directory segments, or a colon are skipped.
+- **Plugins**: Hook dispatch returns immediately when the plugin runtime is disabled. Locale lookup stays inside the plugin install tree.
+- **Map overlays**: Cache writes refuse a .tmp that is already a symlink or directory.
+- **Identity switch**: Relay Chat mention badge and LXMF unread refetch after switch. Compose drafts stay in the previous identity's localStorage bucket. Auto-resend locks drop with the torn-down identity.
+- **Map local URL**: Unparseable tile or nominatim URLs are not treated as local.
 
 ## [4.8.3] - 2026-08-14
 
