@@ -680,6 +680,7 @@ def test_oracle_list_notice_replaces_available_rooms(
         else:
             expected[name] = None
     assert hub.available_rooms == expected
+    assert hub.available_keyed_rooms == []
     added, removed, updated = _oracle_available_rooms_diff(previous, expected)
     for name in added:
         assert name in hub.available_rooms

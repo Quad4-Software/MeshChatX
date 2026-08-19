@@ -152,7 +152,9 @@ describe("RelayChatPage.vue", () => {
         await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
 
         // "lobby" is already joined (known_rooms), so only "random" is unjoined.
-        expect(wrapper.vm.availableRoomsFor(wrapper.vm.hubs[0])).toEqual([{ name: "random", topic: null }]);
+        expect(wrapper.vm.availableRoomsFor(wrapper.vm.hubs[0])).toEqual([
+            { name: "random", topic: null, has_key: false },
+        ]);
         expect(wrapper.text()).toContain("random");
     });
 
@@ -182,14 +184,14 @@ describe("RelayChatPage.vue", () => {
 
         await wrapper.vm.joinAvailableRoom(wrapper.vm.hubs[0], "random");
 
-        expect(DialogUtils.prompt).toHaveBeenCalled();
+        expect(DialogUtils.prompt).not.toHaveBeenCalled();
         expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms`, {
             room: "random",
             remember: true,
         });
     });
 
-    it("sends an available-room key when the optional prompt is filled", async () => {
+    it("prompts for a key when a listed room is marked +k", async () => {
         const DialogUtils = (await import("@/js/DialogUtils")).default;
         const ToastUtils = (await import("@/js/ToastUtils")).default;
         vi.spyOn(DialogUtils, "prompt").mockResolvedValue("hunter2");
@@ -199,7 +201,14 @@ describe("RelayChatPage.vue", () => {
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/rrc/hubs") {
                 return Promise.resolve({
-                    data: { hubs: [makeHub({ available_rooms: { vault: null } })] },
+                    data: {
+                        hubs: [
+                            makeHub({
+                                available_rooms: { vault: null },
+                                available_keyed_rooms: ["vault"],
+                            }),
+                        ],
+                    },
                 });
             }
             if (url === "/api/v1/rrc/servers") {
@@ -215,6 +224,9 @@ describe("RelayChatPage.vue", () => {
 
         await wrapper.vm.joinAvailableRoom(wrapper.vm.hubs[0], "vault");
 
+        expect(DialogUtils.prompt).toHaveBeenCalledWith(expect.stringContaining("vault"), "", {
+            inputType: "password",
+        });
         expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms`, {
             room: "vault",
             remember: true,
@@ -222,13 +234,20 @@ describe("RelayChatPage.vue", () => {
         });
     });
 
-    it("does not join an available room when the key prompt is cancelled", async () => {
+    it("does not join a keyed available room when the key prompt is cancelled", async () => {
         const DialogUtils = (await import("@/js/DialogUtils")).default;
         vi.spyOn(DialogUtils, "prompt").mockResolvedValue(null);
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/rrc/hubs") {
                 return Promise.resolve({
-                    data: { hubs: [makeHub({ available_rooms: { vault: null } })] },
+                    data: {
+                        hubs: [
+                            makeHub({
+                                available_rooms: { vault: null },
+                                available_keyed_rooms: ["vault"],
+                            }),
+                        ],
+                    },
                 });
             }
             if (url === "/api/v1/rrc/servers") {
@@ -258,7 +277,7 @@ describe("RelayChatPage.vue", () => {
             if (url === "/api/v1/rrc/hubs") {
                 return Promise.resolve({
                     data: {
-                        hubs: [makeHub({ available_rooms: { vault: null }, stored_key_rooms: ["vault"] })],
+                        hubs: [makeHub({ available_rooms: { vault: null }, stored_key_rooms: ["vault"], available_keyed_rooms: ["vault"] })],
                     },
                 });
             }
