@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
     classifyGetUserMediaError,
     isBraveBrowser,
+    isMeshChatXAndroid,
     isSecureMediaContext,
     promptMicrophoneAccess,
     queryMicrophonePermissionState,
@@ -14,6 +15,21 @@ describe("webAudioMicPermission", () => {
         expect(isSecureMediaContext({})).toBe(true);
         expect(isSecureMediaContext({ isSecureContext: false })).toBe(false);
         expect(isSecureMediaContext({ isSecureContext: true })).toBe(true);
+    });
+
+    it("detects Android only when MeshChatXAndroid reports android", () => {
+        expect(isMeshChatXAndroid({})).toBe(false);
+        expect(isMeshChatXAndroid(null)).toBe(false);
+        expect(
+            isMeshChatXAndroid({
+                MeshChatXAndroid: { getPlatform: () => "android" },
+            }),
+        ).toBe(true);
+        expect(
+            isMeshChatXAndroid({
+                MeshChatXAndroid: { getPlatform: () => "desktop" },
+            }),
+        ).toBe(false);
     });
 
     it("detects Brave via navigator.brave or UA", () => {
