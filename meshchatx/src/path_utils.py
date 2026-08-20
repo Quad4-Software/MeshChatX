@@ -58,7 +58,7 @@ def resolve_path_under_dir(directory: str, user_path: str) -> str | None:
     return os.path.realpath(joined)
 
 
-def atomic_write_bytes(path: str, data: bytes) -> None:
+def atomic_write_bytes(path: str | os.PathLike[str], data: bytes) -> None:
     """Write data to path via a sibling tmp file, then os.replace."""
     path = os.fspath(path)
     parent = os.path.dirname(path) or "."
@@ -82,7 +82,12 @@ def atomic_write_bytes(path: str, data: bytes) -> None:
     os.replace(tmp, path)
 
 
-def atomic_write_text(path: str, text: str, *, encoding: str = "utf-8") -> None:
+def atomic_write_text(
+    path: str | os.PathLike[str],
+    text: str,
+    *,
+    encoding: str = "utf-8",
+) -> None:
     """Write text to path via atomic_write_bytes."""
     atomic_write_bytes(os.fspath(path), text.encode(encoding))
 

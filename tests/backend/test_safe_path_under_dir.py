@@ -55,3 +55,9 @@ def test_atomic_write_text_replaces_destination(tmp_path):
     dest.write_text("OLD", encoding="utf-8")
     atomic_write_text(str(dest), "NEW")
     assert dest.read_text(encoding="utf-8") == "NEW"
+
+
+def test_atomic_write_text_accepts_path(tmp_path):
+    dest = tmp_path / "meta.json"
+    atomic_write_text(dest, "via-path")
+    assert dest.read_text(encoding="utf-8") == "via-path"
