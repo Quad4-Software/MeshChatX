@@ -3001,11 +3001,7 @@ export default {
                 }
                 this.audioSilentGain = null;
             }
-            if (
-                this.audioCtx &&
-                this.audioCtx.state !== "closed" &&
-                typeof this.audioCtx.close === "function"
-            ) {
+            if (this.audioCtx && this.audioCtx.state !== "closed" && typeof this.audioCtx.close === "function") {
                 this.audioCtx.close().catch(() => {
                     // ignore
                 });
