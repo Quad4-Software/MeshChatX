@@ -89,12 +89,22 @@ describe("CallPage.vue", () => {
         window.api = axiosMock;
     });
 
+    let mountedWrappers = [];
+
     afterEach(() => {
+        for (const wrapper of mountedWrappers) {
+            if (wrapper.vm) {
+                wrapper.vm.audioCtx = null;
+                wrapper.vm.visualizerRafId = null;
+            }
+            wrapper.unmount();
+        }
+        mountedWrappers = [];
         delete window.api;
     });
 
     const mountCallPage = (routeQuery = {}) => {
-        return mount(CallPage, {
+        const wrapper = mount(CallPage, {
             global: {
                 mocks: {
                     $t: (key) => key,
@@ -112,6 +122,8 @@ describe("CallPage.vue", () => {
                 },
             },
         });
+        mountedWrappers.push(wrapper);
+        return wrapper;
     };
 
     it("respects tab query parameter on mount", async () => {

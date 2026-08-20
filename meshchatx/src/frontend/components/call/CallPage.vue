@@ -1764,6 +1764,7 @@ import {
     WEB_AUDIO_MIC_TOAST_KEY,
     classifyGetUserMediaError,
     isBraveBrowser,
+    isMeshChatXAndroid as detectMeshChatXAndroid,
     promptMicrophoneAccess,
     queryMicrophonePermissionState,
 } from "../../js/webAudioMicPermission";
@@ -2288,11 +2289,7 @@ export default {
             this.remoteAudioTarget = 0;
         },
         isMeshChatXAndroid() {
-            return (
-                window.MeshChatXAndroid &&
-                typeof window.MeshChatXAndroid.getPlatform === "function" &&
-                window.MeshChatXAndroid.getPlatform() === "android"
-            );
+            return detectMeshChatXAndroid();
         },
         getMediaDevicesApi() {
             const mediaDevices = navigator?.mediaDevices;
@@ -3004,7 +3001,11 @@ export default {
                 }
                 this.audioSilentGain = null;
             }
-            if (this.audioCtx && this.audioCtx.state !== "closed") {
+            if (
+                this.audioCtx &&
+                this.audioCtx.state !== "closed" &&
+                typeof this.audioCtx.close === "function"
+            ) {
                 this.audioCtx.close().catch(() => {
                     // ignore
                 });
