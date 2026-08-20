@@ -2,15 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.8.4] - 2026-08-20 [unreleased]
+## [4.8.4] - 2026-08-20 [released]
 
 ### Changed
 
-- **Map announce**: Off until a pack is published.
 - **Community interface presets**: Build-time fetch uses https://meshchatx.com/api/mcx-interfaces instead of directory.rns.recipes.
 - **Android release APK**: GitHub assets use ReticulumMeshChatX-vVERSION-android-universal.apk, matching desktop installer names.
-- **Confirm and prompt dialogs**: Electron uses the in-app dialogs instead of native OS prompts. Remote management identity create uses the in-app prompt instead of window.prompt.
+- **Confirm and prompt dialogs**: Electron uses the in-app dialogs instead of native OS prompts.
 - **Collapsed sidebar**: The active rail item uses an inset pressed fill instead of the expanded blue pill. Collapsed buttons are square.
+- **Map announce**: Off until a pack is published.
 
 ### Fixed
 
@@ -30,7 +30,10 @@ All notable changes to this project will be documented in this file.
 - **Docs zip import**: Zip members with NUL bytes, absolute paths, parent directory segments, or a colon are skipped.
 - **Plugins**: Hook dispatch returns immediately when the plugin runtime is disabled. Locale lookup stays inside the plugin install tree.
 - **Map overlays**: Cache writes refuse a .tmp that is already a symlink or directory.
-- **Identity switch**: Relay Chat mention badge and LXMF unread refetch after switch. Compose drafts stay in the previous identity's localStorage bucket. Auto-resend locks drop with the torn-down identity.
+- **Identity switch**: Relay Chat mention badge and LXMF unread refetch after switch. Compose drafts stay in the previous identity's localStorage bucket. Auto-resend locks drop with the torn-down identity. Deferred managers that finish after teardown starts are shut down and discarded. Database close invalidates thread-local connections.
+- **Messages**: An LXMF upsert with blank content, title, or fields keeps the stored values instead of wiping them.
+- **NomadNet**: Keep-alive tabs skip background polls when the Nomad route is not on screen. Opening a destination hash in the URL activates that tab.
+- **Telephone**: AudioContext close is skipped when close() is missing, so Android call teardown does not throw.
 - **Map local URL**: Unparseable tile or nominatim URLs are not treated as local.
 
 ## [4.8.3] - 2026-08-14
