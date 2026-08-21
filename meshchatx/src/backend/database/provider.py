@@ -208,10 +208,7 @@ class DatabaseProvider:
 
         local_gen = getattr(self._local, "generation", None)
         local_conn = getattr(self._local, "connection", None)
-        if (
-            local_conn is not None
-            and local_gen == self._close_generation
-        ):
+        if local_conn is not None and local_gen == self._close_generation:
             with self._lock:
                 if self._connection_usable(local_conn):
                     self._touch_connection(local_conn)
