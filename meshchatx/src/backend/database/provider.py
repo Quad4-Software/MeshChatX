@@ -3,12 +3,19 @@
 import sqlite3
 import sys
 import threading
+import time
 
 _SQLITE_CONNECT_KW = {}
 if sys.version_info >= (3, 14):
     _SQLITE_CONNECT_KW["cached_statements"] = 100
 
 _SQLITE_BUSY_TIMEOUT_MS = 5000
+
+# RNS spawns a Thread per announce handler callback. Each callback that
+# touches the DB used to pin a WAL connection forever after the thread died.
+# Cap retained connections and prune dead-thread owners so FDs cannot grow
+# with announce flood (Errno 24 in Docker).
+_MAX_CONNECTIONS = 32
 
 
 class DatabaseProvider:
@@ -18,7 +25,8 @@ class DatabaseProvider:
     def __init__(self, db_path=None):
         self.db_path = db_path
         self._local = threading.local()
-        self._connections = set()
+        # conn -> {"thread_ident": int | None, "last_used": float}
+        self._connection_meta: dict[sqlite3.Connection, dict] = {}
         self._close_generation = 0
         self._memory_connection = None
         # Per-connection default. Worker threads opened via asyncio.to_thread
@@ -26,6 +34,15 @@ class DatabaseProvider:
         # FILE temp under Landlock often fails with "unable to open database file"
         # when SQLite spills sort/hash work for large conversation queries.
         self.prefer_temp_store_file = False
+
+    @property
+    def _connections(self):
+        """Compatibility alias for older callers and tests."""
+        return self._connection_meta.keys()
+
+    def connection_count(self) -> int:
+        with self._lock:
+            return len(self._connection_meta)
 
     def _configure_connection(self, connection):
         if connection is None:
@@ -53,6 +70,63 @@ class DatabaseProvider:
             connection.execute("PRAGMA synchronous=NORMAL")
         except sqlite3.OperationalError:
             pass
+
+    def _close_tracked_connection(self, conn: sqlite3.Connection) -> None:
+        try:
+            conn.commit()
+        except Exception:
+            pass
+        try:
+            conn.close()
+        except Exception:
+            pass
+        self._connection_meta.pop(conn, None)
+
+    def prune_orphaned_connections(self) -> int:
+        """Close connections whose owning thread is no longer alive."""
+        with self._lock:
+            return self._prune_orphaned_connections_unlocked()
+
+    def _prune_orphaned_connections_unlocked(self) -> int:
+        alive = {t.ident for t in threading.enumerate() if t.ident is not None}
+        dropped = 0
+        for conn, meta in list(self._connection_meta.items()):
+            tid = meta.get("thread_ident")
+            if tid is None:
+                continue
+            if tid not in alive:
+                self._close_tracked_connection(conn)
+                dropped += 1
+        return dropped
+
+    def _evict_until_cap_unlocked(
+        self, *, keep: sqlite3.Connection | None = None
+    ) -> int:
+        dropped = 0
+        while len(self._connection_meta) >= _MAX_CONNECTIONS:
+            candidates = [
+                (meta.get("last_used") or 0.0, conn)
+                for conn, meta in self._connection_meta.items()
+                if conn is not keep
+            ]
+            if not candidates:
+                break
+            candidates.sort(key=lambda item: item[0])
+            self._close_tracked_connection(candidates[0][1])
+            dropped += 1
+        return dropped
+
+    def _track_connection(self, conn: sqlite3.Connection) -> None:
+        self._connection_meta[conn] = {
+            "thread_ident": threading.get_ident(),
+            "last_used": time.monotonic(),
+        }
+
+    def _touch_connection(self, conn: sqlite3.Connection) -> None:
+        meta = self._connection_meta.get(conn)
+        if meta is not None:
+            meta["last_used"] = time.monotonic()
+            meta["thread_ident"] = threading.get_ident()
 
     @classmethod
     def get_instance(cls, db_path=None):
@@ -100,7 +174,10 @@ class DatabaseProvider:
                     hasattr(self._local, "connection")
                     and local_gen == self._close_generation
                 ):
+                    self._touch_connection(self._local.connection)
                     return self._local.connection
+                self._prune_orphaned_connections_unlocked()
+                self._evict_until_cap_unlocked()
                 conn = sqlite3.connect(
                     self.db_path,
                     timeout=30.0,
@@ -112,7 +189,10 @@ class DatabaseProvider:
                 self._configure_connection(conn)
                 self._local.connection = conn
                 self._local.generation = self._close_generation
-                self._connections.add(conn)
+                self._track_connection(conn)
+        else:
+            with self._lock:
+                self._touch_connection(self._local.connection)
         return self._local.connection
 
     def execute(self, query, params=None, commit=None):
@@ -208,11 +288,10 @@ class DatabaseProvider:
             conn = self._local.connection
             try:
                 self.commit()
-                conn.close()
             except Exception:
                 pass
             with self._lock:
-                self._connections.discard(conn)
+                self._close_tracked_connection(conn)
             del self._local.connection
 
     def close_all(self):
@@ -226,13 +305,9 @@ class DatabaseProvider:
                     pass
                 self._memory_connection = None
 
-            for conn in list(self._connections):
-                try:
-                    conn.commit()
-                    conn.close()
-                except Exception:
-                    pass
-            self._connections.clear()
+            for conn in list(self._connection_meta.keys()):
+                self._close_tracked_connection(conn)
+            self._connection_meta.clear()
             if hasattr(self._local, "connection"):
                 del self._local.connection
 

@@ -6,7 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- **Docker open-file limit**: Compose files set `nofile` soft and hard to 65536 so a default 1024 ceiling no longer trips `Errno 24` on `accept()` for port 8000.
+- **Docker open-file limit**: Compose files set `nofile` soft and hard to 65536 so a default 1024 ceiling no longer trips `Errno 24` on `accept()` for port 8000. Process start also raises the soft `RLIMIT_NOFILE` when the hard limit allows it.
+- **SQLite announce-thread leak**: `DatabaseProvider` caps retained connections at 32, tracks the owning thread, and prunes dead-thread connections. RNS starts a Thread per announce handler; those used to leave WAL file descriptors open forever until EMFILE.
+- **RNS ratchet persist**: MeshChatX replaces Identity `_remember_ratchet` Thread-per-write with one bounded worker queue so announce floods cannot reach Thread-4000+ waiting on `ratchet_persist_lock`.
 - **RNS WebsocketClientInterface**: Reconnect closes the previous socket before opening the next one and uses a loop instead of recursion, so reconnect storms cannot accumulate FDs.
 - **RNS WebsocketServerInterface**: Finished client interfaces leave `RNS.Transport.interfaces`, close their sockets, and get a synthetic `target_url` so spawn no longer raises for missing URL.
 - **Log rollover under EMFILE**: `SafeRotatingFileHandler` falls back to stderr once instead of spamming when `/config/logs/meshchatx.log` cannot reopen.
@@ -15,6 +17,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - **About / app info**: `memory_usage` includes `num_fds`, `nofile_soft`, and `nofile_hard` for diagnosing open-file pressure in containers.
+- **Memory pressure**: Periodic cleanup prunes orphaned SQLite connections from finished announce threads.
 
 ## [4.8.4] - 2026-08-20 [released]
 
