@@ -13,7 +13,8 @@ All notable changes to this project will be documented in this file.
 
 - **Docker (too many open files)**: Announce-thread SQLite handles close when the thread exits. RNS ratchet writes share one worker. Websocket reconnects close the previous socket. Finished RNS websocket clients drop their sockets. Log rollover writes to stderr when the log file cannot reopen.
 - **Messages**: Conversation list and thread load keep working while announces arrive. A closed database handle reopens instead of returning HTTP 500.
-- **UI WebSocket**: `/ws` returns 503 after 64 clients.
+- **UI WebSocket**: `/ws` returns 503 after 64 clients. Ready-status broadcasts JSON-encode the payload so aiohttp send_str does not reject a dict.
+- **CSP**: Drop invalid `ws://[::1]:*` connect-src entries. Permissions-Policy is set without a duplicate Feature-Policy header.
 
 ## [4.8.4] - 2026-08-20 [released]
 

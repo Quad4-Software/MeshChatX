@@ -8,6 +8,7 @@ identity and RNS lifecycle stay reviewable outside meshchat.py.
 
 from __future__ import annotations
 
+import json
 import traceback
 
 from meshchatx.src.backend.async_utils import AsyncUtils
@@ -33,12 +34,14 @@ def run_network_setup(app) -> None:
             try:
                 AsyncUtils.run_async(
                     app.websocket_broadcast(
-                        {
-                            "type": "startup_status",
-                            "status": "ok",
-                            "stage": "ready",
-                            "network_ready": True,
-                        },
+                        json.dumps(
+                            {
+                                "type": "startup_status",
+                                "status": "ok",
+                                "stage": "ready",
+                                "network_ready": True,
+                            },
+                        ),
                     ),
                 )
             except Exception:
@@ -50,15 +53,17 @@ def run_network_setup(app) -> None:
             try:
                 AsyncUtils.run_async(
                     app.websocket_broadcast(
-                        {
-                            "type": "startup_status",
-                            "status": "failed",
-                            "stage": "failed",
-                            "network_ready": False,
-                            "network_degraded": True,
-                            "ui_ready": True,
-                            "error": str(exc),
-                        },
+                        json.dumps(
+                            {
+                                "type": "startup_status",
+                                "status": "failed",
+                                "stage": "failed",
+                                "network_ready": False,
+                                "network_degraded": True,
+                                "ui_ready": True,
+                                "error": str(exc),
+                            },
+                        ),
                     ),
                 )
             except Exception:

@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from unittest.mock import AsyncMock
 
 import pytest
@@ -35,6 +36,18 @@ async def test_websocket_broadcast_fanout_many_clients(mock_app):
     for c in clients:
         assert c.send_str.await_count == 1
         assert c.send_str.await_args[0][0] == payload
+
+
+@pytest.mark.asyncio
+async def test_websocket_broadcast_json_dumps_dict_payload(mock_app):
+    mock_app.websocket_clients.clear()
+    client = MagicWs()
+    mock_app.websocket_clients.append(client)
+    real = _bind_real_websocket_broadcast(mock_app)
+    await real({"type": "startup_status", "status": "ok", "stage": "ready"})
+    raw = client.send_str.await_args[0][0]
+    assert isinstance(raw, str)
+    assert json.loads(raw)["type"] == "startup_status"
 
 
 @pytest.mark.asyncio

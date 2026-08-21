@@ -151,7 +151,7 @@ describe("localeTheme adversarial / fuzz", () => {
         expect(mw).toContain("Permissions-Policy");
         expect(mw).toContain("microphone=(self)");
         expect(mw).toContain("autoplay=(self)");
-        expect(mw).toContain("Feature-Policy");
+        expect(mw).not.toContain('["Feature-Policy"]');
         expect(mw).toContain("bluetooth=(self)");
         expect(mw).toContain("serial=(self)");
         expect(mw).toContain("usb=(self)");
