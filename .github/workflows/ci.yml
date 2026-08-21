@@ -384,6 +384,36 @@ jobs:
             - name: Run Playwright smoke E2E
               run: bash scripts/ci/github-e2e.sh
 
+    ui-lighthouse:
+        name: UI Lighthouse (core pages)
+        runs-on: ubuntu-latest
+        timeout-minutes: 45
+        permissions:
+            contents: read
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Set up development environment
+              uses: ./.github/actions/setup-dev-environment
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  uv-version: ${{ env.UV_VERSION }}
+                  node-version: ${{ env.NODE_VERSION }}
+                  pnpm-version: ${{ env.PNPM_VERSION }}
+
+            - name: Run UI page smoke + Lighthouse CI subset
+              run: bash scripts/ci/github-lighthouse.sh
+
+            - name: Upload Lighthouse reports
+              if: always()
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: lighthouse-reports
+                  path: test-results/lighthouse/
+                  if-no-files-found: ignore
+                  retention-days: 14
+
     self-check:
         name: Headless Self-Check (${{ matrix.os }})
         runs-on: ${{ matrix.os }}

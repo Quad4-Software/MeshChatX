@@ -35,6 +35,11 @@ MESHCHAT_LIVE_VALIDATION=1 task test:lv
 # Broader
 task test:backend
 task test:frontend
+
+# UI page smoke / Lighthouse (Playwright + simulated data)
+task test:ui:pages
+MESHCHAT_UI_PAGES=messages,contacts task test:ui:lighthouse
+MESHCHAT_UI_CI=1 MESHCHAT_UI_PROD=1 task test:ui:lighthouse:ci
 ```
 
 ## Anti-hang rules
