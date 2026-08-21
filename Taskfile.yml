@@ -271,6 +271,26 @@ tasks:
         cmds:
             - "{{.NPM}} run test:e2e"
 
+    test:ui:all:
+        desc: UI page smoke + Lighthouse audits with simulated data (Playwright)
+        cmds:
+            - "{{.NPM}} run test:ui:all"
+
+    test:ui:pages:
+        desc: UI page-ready smoke with seeded contacts/messages/favourites
+        cmds:
+            - "{{.NPM}} run test:ui:pages"
+
+    test:ui:lighthouse:
+        desc: Lighthouse scores per UI page (set MESHCHAT_UI_PROD=1 for built assets, MESHCHAT_UI_CI=1 for core subset)
+        cmds:
+            - "{{.NPM}} run test:ui:lighthouse"
+
+    test:ui:lighthouse:ci:
+        desc: CI subset of Lighthouse page budgets with simulated data
+        cmds:
+            - "{{.NPM}} run test:ui:lighthouse:ci"
+
     test:quick:
         desc: Fast dev loop - regression subset (set E2E=1 to include Playwright smoke)
         cmds:

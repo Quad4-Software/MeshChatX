@@ -79,7 +79,8 @@ Critical lifecycle facts:
 | `android/`                    | WebView + Chaquopy Python bridge            |
 | `tests/backend/`              | pytest                                      |
 | `tests/frontend/`             | vitest                                      |
-| `tests/e2e/`                  | Playwright                                  |
+| `tests/e2e/`                  | Playwright functional E2E                   |
+| `tests/ui/`                   | Playwright UI page smoke + Lighthouse CI    |
 | `docs/en/`                    | In-app / shipped English docs               |
 | `vendor/`                     | Vendored deps (LXMFy, RNS FileSync)         |
 | `Taskfile.yml`                | Preferred command entrypoints               |
@@ -108,6 +109,8 @@ task test:lv:l0
 task test:backend
 task test:frontend
 task test:e2e
+task test:ui:pages
+task test:ui:lighthouse
 task run
 task dev
 task debug
