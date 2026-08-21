@@ -2038,7 +2038,7 @@ wheels = [
 
 [[package]]
 name = "reticulum-meshchatx"
-version = "4.8.4"
+version = "4.8.5"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },

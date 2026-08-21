@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.8.5] - 2026-08-21 [unreleased]
+
+### Fixed
+
+- **Docker open-file limit**: Compose files set `nofile` soft and hard to 65536 so a default 1024 ceiling no longer trips `Errno 24` on `accept()` for port 8000.
+- **RNS WebsocketClientInterface**: Reconnect closes the previous socket before opening the next one and uses a loop instead of recursion, so reconnect storms cannot accumulate FDs.
+- **RNS WebsocketServerInterface**: Finished client interfaces leave `RNS.Transport.interfaces`, close their sockets, and get a synthetic `target_url` so spawn no longer raises for missing URL.
+- **Log rollover under EMFILE**: `SafeRotatingFileHandler` falls back to stderr once instead of spamming when `/config/logs/meshchatx.log` cannot reopen.
+- **UI WebSocket cap**: `/ws` rejects new clients with 503 after 64 concurrent connections.
+
+### Changed
+
+- **About / app info**: `memory_usage` includes `num_fds`, `nofile_soft`, and `nofile_hard` for diagnosing open-file pressure in containers.
+
 ## [4.8.4] - 2026-08-20 [released]
 
 ### Changed
