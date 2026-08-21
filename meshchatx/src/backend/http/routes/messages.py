@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 
+from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     GeoValidationError,
     OutboundHttpBlockedError,
@@ -574,16 +575,7 @@ def register_messages_routes(routes, app):
             )
         except Exception as e:
             RNS.log(f"Error in notifications_get: {e}", RNS.LOG_ERROR)
-            detail = str(e).lower()
-            status = (
-                503
-                if (
-                    isinstance(e, sqlite3.OperationalError)
-                    or "unable to open database file" in detail
-                    or "database is locked" in detail
-                )
-                else 500
-            )
+            status = 503 if sqlite_error_is_retryable(e) else 500
             return web.json_response(
                 {
                     "error": (
