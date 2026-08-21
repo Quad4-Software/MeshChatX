@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 
+from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     GeoValidationError,
     OutboundHttpBlockedError,
@@ -811,14 +812,28 @@ def register_lxmf_routes(routes, app):
 
         local_hash = app.local_lxmf_destination.hash.hex()
 
-        results = await asyncio.to_thread(
-            app.message_handler.get_conversation_messages,
-            local_hash,
-            destination_hash,
-            limit=app.message_handler.clamp_conversation_messages_limit(count),
-            after_id=after_id if order == "asc" else None,
-            before_id=after_id if order == "desc" else None,
-        )
+        try:
+            results = await asyncio.to_thread(
+                app.message_handler.get_conversation_messages,
+                local_hash,
+                destination_hash,
+                limit=app.message_handler.clamp_conversation_messages_limit(count),
+                after_id=after_id if order == "asc" else None,
+                before_id=after_id if order == "desc" else None,
+            )
+        except Exception as e:
+            RNS.log(f"Error in lxmf_messages_conversation: {e}", RNS.LOG_ERROR)
+            status = 503 if sqlite_error_is_retryable(e) else 500
+            return web.json_response(
+                {
+                    "message": (
+                        "Database temporarily unavailable. Retry shortly."
+                        if status == 503
+                        else "Failed to load conversation"
+                    ),
+                },
+                status=status,
+            )
 
         # convert to response json
         lxmf_messages = [
@@ -1250,16 +1265,7 @@ def register_lxmf_routes(routes, app):
             )
         except Exception as e:
             RNS.log(f"Error in lxmf_conversations_get: {e}", RNS.LOG_ERROR)
-            detail = str(e).lower()
-            status = (
-                503
-                if (
-                    isinstance(e, sqlite3.OperationalError)
-                    or "unable to open database file" in detail
-                    or "database is locked" in detail
-                )
-                else 500
-            )
+            status = 503 if sqlite_error_is_retryable(e) else 500
             return web.json_response(
                 {
                     "message": (
