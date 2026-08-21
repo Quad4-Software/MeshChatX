@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: 0BSD AND MIT
 
+import contextlib
 import threading
 import time
 
@@ -46,6 +47,15 @@ class WebsocketClientInterface(Interface):
             thread.daemon = True
             thread.start()
 
+    def _close_websocket(self) -> None:
+        """Release the current websocket FD without raising."""
+        websocket = self.websocket
+        self.websocket = None
+        if websocket is None:
+            return
+        with contextlib.suppress(Exception):
+            websocket.close()
+
     # called when a full packet has been received over the websocket
     def process_incoming(self, data):
         # do nothing if offline or detached
@@ -88,27 +98,30 @@ class WebsocketClientInterface(Interface):
 
     # connect to the configured websocket server
     def connect(self):
-        # do nothing if interface is detached
-        if self.detached:
-            return
+        # Loop instead of recurse so reconnect storms cannot grow the stack
+        # and so each attempt closes the previous socket before opening another.
+        while not self.detached:
+            try:
+                self._close_websocket()
+                RNS.log(f"Connecting to Websocket for {self!s}...", RNS.LOG_DEBUG)
+                self.websocket = connect(
+                    f"{self.target_url}",
+                    max_size=None,
+                    compression=None,
+                )
+                RNS.log(f"Connected to Websocket for {self!s}", RNS.LOG_DEBUG)
+                self.read_loop()
+            except Exception as e:
+                RNS.log(f"{self} failed with error: {e}", RNS.LOG_ERROR)
+            finally:
+                self._close_websocket()
+                self.online = False
 
-        # connect to websocket server
-        try:
-            RNS.log(f"Connecting to Websocket for {self!s}...", RNS.LOG_DEBUG)
-            self.websocket = connect(
-                f"{self.target_url}",
-                max_size=None,
-                compression=None,
-            )
-            RNS.log(f"Connected to Websocket for {self!s}", RNS.LOG_DEBUG)
-            self.read_loop()
-        except Exception as e:
-            RNS.log(f"{self} failed with error: {e}", RNS.LOG_ERROR)
+            if self.detached:
+                return
 
-        # auto reconnect after delay
-        RNS.log(f"Websocket disconnected for {self!s}...", RNS.LOG_DEBUG)
-        time.sleep(self.RECONNECT_DELAY_SECONDS)
-        self.connect()
+            RNS.log(f"Websocket disconnected for {self!s}...", RNS.LOG_DEBUG)
+            time.sleep(self.RECONNECT_DELAY_SECONDS)
 
     def read_loop(self):
         self.online = True
@@ -131,8 +144,7 @@ class WebsocketClientInterface(Interface):
         self.online = False
 
         # close websocket
-        if self.websocket is not None:
-            self.websocket.close()
+        self._close_websocket()
 
         # mark as detached
         self.detached = True

@@ -172,6 +172,9 @@ def register_app_info_routes(routes, app):
             usage: dict[str, float | int | None] = {
                 "cpu_percent": None,
                 "num_threads": None,
+                "num_fds": None,
+                "nofile_soft": None,
+                "nofile_hard": None,
                 "create_time": None,
                 "cpu_time_seconds": None,
             }
@@ -183,6 +186,18 @@ def register_app_info_routes(routes, app):
                 pass
             try:
                 usage["num_threads"] = int(process.num_threads())
+            except Exception:
+                pass
+            try:
+                usage["num_fds"] = int(process.num_fds())
+            except Exception:
+                pass
+            try:
+                import resource
+
+                soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+                usage["nofile_soft"] = int(soft)
+                usage["nofile_hard"] = int(hard)
             except Exception:
                 pass
             try:
@@ -457,6 +472,9 @@ def register_app_info_routes(routes, app):
                         "vms": memory_info.vms,
                         "cpu_percent": process_usage.get("cpu_percent"),
                         "num_threads": process_usage.get("num_threads"),
+                        "num_fds": process_usage.get("num_fds"),
+                        "nofile_soft": process_usage.get("nofile_soft"),
+                        "nofile_hard": process_usage.get("nofile_hard"),
                         "create_time": process_usage.get("create_time"),
                         "cpu_time_seconds": process_usage.get("cpu_time_seconds"),
                     },

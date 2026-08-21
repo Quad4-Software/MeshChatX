@@ -32,6 +32,10 @@ services:
             - MESHCHAT_HEADLESS=${MESHCHAT_HEADLESS:-1}
         volumes:
             - meshchatx-config:/config
+        ulimits:
+            nofile:
+                soft: 65536
+                hard: 65536
         healthcheck:
             test:
                 [
