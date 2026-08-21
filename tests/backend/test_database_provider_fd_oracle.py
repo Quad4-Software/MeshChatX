@@ -81,7 +81,9 @@ def test_live_thread_keeps_working_during_announce_burst():
             except BaseException as exc:
                 errors.append(exc)
 
-        threads = [threading.Thread(target=announce_worker, args=(i,)) for i in range(40)]
+        threads = [
+            threading.Thread(target=announce_worker, args=(i,)) for i in range(40)
+        ]
         for thread in threads:
             thread.start()
         started.wait(timeout=10)
