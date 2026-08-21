@@ -289,28 +289,24 @@ def create_security_middleware(app):
         # Explicitly allow mic/camera, autoplay, speaker routing, and hardware
         # transports for this origin. Listing only mic/camera without bluetooth
         # /serial/usb has caused some Chromium and Brave builds to treat
-        # hardware APIs as unavailable. Feature-Policy is the legacy name still
-        # read by older Chromium-based Brave builds.
-        permissions_policy = (
+        # hardware APIs as unavailable. Do not also send the legacy feature
+        # policy header. Chromium ignores unrecognized tokens there and warns
+        # when the same features appear on both headers.
+        response.headers["Permissions-Policy"] = (
             "microphone=(self), camera=(self), autoplay=(self), speaker-selection=(self), "
             "bluetooth=(self), serial=(self), usb=(self)"
-        )
-        response.headers["Permissions-Policy"] = permissions_policy
-        response.headers["Feature-Policy"] = (
-            "microphone 'self'; camera 'self'; autoplay 'self'; speaker-selection 'self'; "
-            "bluetooth 'self'; serial 'self'; usb 'self'"
         )
 
         # CSP base configuration
         privacy_mode = privacy_mode_enabled(app.config)
+        # IPv6 loopback with a port wildcard is not a valid CSP source
+        # (ws://[::1]:* is ignored). Same-origin WS is covered by 'self'.
         connect_sources = [
             "'self'",
             "ws://localhost:*",
             "wss://localhost:*",
             "ws://127.0.0.1:*",
             "wss://127.0.0.1:*",
-            "ws://[::1]:*",
-            "wss://[::1]:*",
             "blob:",
         ]
         img_sources = [

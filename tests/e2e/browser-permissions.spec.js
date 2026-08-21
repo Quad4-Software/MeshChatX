@@ -216,7 +216,6 @@ test.describe("RNode flasher Web Bluetooth chooser path", () => {
         expect(policy).toContain("speaker-selection=(self)");
         expect(policy).toContain("serial=(self)");
         expect(policy).toContain("usb=(self)");
-        const featurePolicy = index.headers()["feature-policy"] || "";
-        expect(featurePolicy).toContain("microphone 'self'");
+        expect(index.headers()["feature-policy"] || "").toBe("");
     });
 });

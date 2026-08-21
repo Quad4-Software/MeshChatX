@@ -1862,12 +1862,14 @@ class ReticulumMeshChat:
                 try:
                     AsyncUtils.run_async(
                         self.websocket_broadcast(
-                            {
-                                "type": "startup_status",
-                                "status": "ok",
-                                "stage": "ready",
-                                "network_ready": True,
-                            },
+                            json.dumps(
+                                {
+                                    "type": "startup_status",
+                                    "status": "ok",
+                                    "stage": "ready",
+                                    "network_ready": True,
+                                },
+                            ),
                         ),
                     )
                 except Exception:
@@ -1879,15 +1881,17 @@ class ReticulumMeshChat:
                 try:
                     AsyncUtils.run_async(
                         self.websocket_broadcast(
-                            {
-                                "type": "startup_status",
-                                "status": "failed",
-                                "stage": "failed",
-                                "network_ready": False,
-                                "network_degraded": True,
-                                "ui_ready": True,
-                                "error": str(exc),
-                            },
+                            json.dumps(
+                                {
+                                    "type": "startup_status",
+                                    "status": "failed",
+                                    "stage": "failed",
+                                    "network_ready": False,
+                                    "network_degraded": True,
+                                    "ui_ready": True,
+                                    "error": str(exc),
+                                },
+                            ),
                         ),
                     )
                 except Exception:
@@ -7165,6 +7169,10 @@ class ReticulumMeshChat:
                 plugin_manager.on_rns_link_event(payload)
 
     async def websocket_broadcast(self, data):
+        if isinstance(data, (dict, list)):
+            data = json.dumps(data)
+        elif not isinstance(data, str):
+            data = json.dumps(data)
         # Serialize: concurrent callers must not interleave. The second snapshot must run
         # only after the first broadcast has finished mutating the live client list.
         sessions_changed = False
