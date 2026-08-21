@@ -273,6 +273,10 @@ from meshchatx.src.backend.rns_startup_recovery import (
     create_reticulum_with_recovery,
     install_rns_panic_containment,
 )
+from meshchatx.src.backend.rns_ratchet_persist import (
+    install_bounded_ratchet_persist,
+    raise_nofile_soft_limit,
+)
 from meshchatx.src.backend.rrc import protocol as rrc_protocol
 from meshchatx.src.backend.sideband_commands import SidebandCommands
 from meshchatx.src.backend.sideband_plugin_loader import SidebandPluginLoader
@@ -10685,7 +10689,9 @@ def main():
     # Initialize crash recovery system early to catch startup errors
     recovery = CrashRecovery()
     recovery.install()
+    raise_nofile_soft_limit()
     install_rns_panic_containment()
+    install_bounded_ratchet_persist()
 
     parser = argparse.ArgumentParser(description="ReticulumMeshChat")
     parser.add_argument(

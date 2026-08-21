@@ -212,6 +212,7 @@ class MemoryPressureManager:
             "rncp_transfers_pruned": 0,
             "overlay_jobs_pruned": 0,
             "map_exports_pruned": 0,
+            "sqlite_orphans_pruned": 0,
         }
         app = self.app
         if app is None:
@@ -249,6 +250,16 @@ class MemoryPressureManager:
             extra["map_exports_pruned"] = int(
                 ctx.map_manager.prune_export_records() or 0
             )
+        except Exception:
+            pass
+        try:
+            from meshchatx.src.backend.database.provider import DatabaseProvider
+
+            provider = DatabaseProvider._instance
+            if provider is not None:
+                extra["sqlite_orphans_pruned"] = int(
+                    provider.prune_orphaned_connections() or 0,
+                )
         except Exception:
             pass
         return extra
