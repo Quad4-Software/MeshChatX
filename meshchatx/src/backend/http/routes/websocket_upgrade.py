@@ -149,6 +149,13 @@ def register_websocket_upgrade_routes(routes, app):
         forbidden = _reject_forbidden_ws_origin(app, request)
         if forbidden is not None:
             return forbidden
+        max_clients = int(getattr(app, "max_websocket_clients", 64) or 64)
+        if len(app.websocket_clients) >= max_clients:
+            return web.json_response(
+                {"error": "Too many websocket clients"},
+                status=503,
+            )
+
         # prepare websocket response
         websocket_response = web.WebSocketResponse(
             # set max message size accepted by server to 50 megabytes

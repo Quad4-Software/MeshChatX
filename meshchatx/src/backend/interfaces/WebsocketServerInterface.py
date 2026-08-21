@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: 0BSD AND MIT
 
+import contextlib
 import threading
 import time
 
@@ -90,6 +91,10 @@ class WebsocketServerInterface(Interface):
                 self.owner,
                 {
                     "name": f"Client on {self.name}",
+                    "target_url": (
+                        f"ws://{websocket.remote_address[0]}:"
+                        f"{websocket.remote_address[1]}"
+                    ),
                     "target_host": websocket.remote_address[0],
                     "target_port": str(websocket.remote_address[1]),
                 },
@@ -122,31 +127,41 @@ class WebsocketServerInterface(Interface):
             self.spawned_interfaces.append(spawned_interface)
 
             # run read loop
-            spawned_interface.read_loop()
-
-            # client must have disconnected as the read loop finished, so forget the spawned interface
-            self.spawned_interfaces.remove(spawned_interface)
+            try:
+                spawned_interface.read_loop()
+            finally:
+                # Drop Transport + child bookkeeping and close the socket so
+                # reconnect storms cannot pin FDs in RNS.Transport.interfaces.
+                with contextlib.suppress(ValueError):
+                    self.spawned_interfaces.remove(spawned_interface)
+                with contextlib.suppress(ValueError):
+                    RNS.Transport.interfaces.remove(spawned_interface)
+                spawned_interface.detach()
 
         # run websocket server
-        try:
-            RNS.log(f"Starting Websocket server for {self!s}...", RNS.LOG_DEBUG)
-            with serve(
-                on_websocket_client_connected,
-                self.listen_ip,
-                self.listen_port,
-                compression=None,
-            ) as server:
-                self.online = True
-                self.server = server
-                server.serve_forever()
-        except Exception as e:
-            RNS.log(f"{self} failed with error: {e}", RNS.LOG_ERROR)
+        while not self.detached:
+            try:
+                RNS.log(f"Starting Websocket server for {self!s}...", RNS.LOG_DEBUG)
+                with serve(
+                    on_websocket_client_connected,
+                    self.listen_ip,
+                    self.listen_port,
+                    compression=None,
+                ) as server:
+                    self.online = True
+                    self.server = server
+                    server.serve_forever()
+            except Exception as e:
+                RNS.log(f"{self} failed with error: {e}", RNS.LOG_ERROR)
+            finally:
+                self.online = False
+                self.server = None
 
-        # websocket server is no longer running, let's restart it
-        self.online = False
-        RNS.log(f"Websocket server stopped for {self!s}...", RNS.LOG_DEBUG)
-        time.sleep(self.RESTART_DELAY_SECONDS)
-        self.serve()
+            if self.detached:
+                return
+
+            RNS.log(f"Websocket server stopped for {self!s}...", RNS.LOG_DEBUG)
+            time.sleep(self.RESTART_DELAY_SECONDS)
 
     def detach(self):
         # mark as offline
@@ -154,7 +169,16 @@ class WebsocketServerInterface(Interface):
 
         # stop websocket server
         if self.server is not None:
-            self.server.shutdown()
+            with contextlib.suppress(Exception):
+                self.server.shutdown()
+            self.server = None
+
+        for child in list(self.spawned_interfaces):
+            with contextlib.suppress(Exception):
+                child.detach()
+            with contextlib.suppress(ValueError):
+                RNS.Transport.interfaces.remove(child)
+        self.spawned_interfaces.clear()
 
         # mark as detached
         self.detached = True

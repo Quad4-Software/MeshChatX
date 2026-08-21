@@ -35,7 +35,6 @@ import traceback
 import webbrowser
 import zipfile
 from datetime import UTC, datetime, timedelta
-from logging.handlers import RotatingFileHandler
 from typing import cast
 from urllib.parse import urlparse
 
@@ -75,6 +74,7 @@ from meshchatx.src.backend.app_security_settings import (
     save_app_security_settings,
 )
 from meshchatx.src.backend.async_utils import AsyncUtils
+from meshchatx.src.backend.safe_rotating_file_handler import SafeRotatingFileHandler
 from meshchatx.src.backend.colour_utils import ColourUtils
 from meshchatx.src.backend.csrf import (
     ensure_session_csrf_token,
@@ -316,7 +316,7 @@ log_dir = resolve_log_dir()
 handlers = [memory_log_handler]
 
 if log_dir:
-    file_handler = RotatingFileHandler(
+    file_handler = SafeRotatingFileHandler(
         os.path.join(log_dir, "meshchatx.log"),
         maxBytes=5 * 1024 * 1024,
         backupCount=3,
@@ -620,6 +620,9 @@ class ReticulumMeshChat:
         self.gitea_base_url_override = gitea_base_url
         self._rns_loglevel_cli = rns_loglevel
         self.websocket_clients: list[web.WebSocketResponse] = []
+        # Cap UI /ws clients so a reconnect storm cannot exhaust process FDs.
+        self.max_websocket_clients = 64
+
         self.active_sessions = ActiveSessionTracker()
         self._websocket_broadcast_lock = asyncio.Lock()
         self._identity_hotswap_lock = asyncio.Lock()

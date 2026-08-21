@@ -23,12 +23,12 @@ describe("webAudioMicPermission", () => {
         expect(
             isMeshChatXAndroid({
                 MeshChatXAndroid: { getPlatform: () => "android" },
-            }),
+            })
         ).toBe(true);
         expect(
             isMeshChatXAndroid({
                 MeshChatXAndroid: { getPlatform: () => "desktop" },
-            }),
+            })
         ).toBe(false);
     });
 
