@@ -173,9 +173,106 @@ def test_should_not_skip_fetch_when_rns_version_changes(tmp_path):
 
 def test_default_docs_source_is_rngit_website():
     fetch = _load_module(_FETCH, "fetch_reticulum_manual_default_test")
-    assert fetch.DEFAULT_SOURCES == (fetch.DEFAULT_RNS_SOURCE,)
+    assert fetch.DEFAULT_SOURCES[0] == fetch.DEFAULT_RNS_SOURCE
+    assert fetch.DEFAULT_HTTPS_FALLBACK in fetch.DEFAULT_SOURCES
     assert fetch.DEFAULT_RNS_SOURCE.startswith("rns://")
     assert fetch.DEFAULT_RNS_SOURCE.endswith("/reticulum/website")
+
+
+def test_should_skip_fetch_accepts_https_fallback_manifest(tmp_path):
+    fetch = _load_module(_FETCH, "fetch_reticulum_manual_https_skip_test")
+    dest = tmp_path / "out"
+    manual = dest / "manual"
+    manual.mkdir(parents=True)
+    (manual / "index.html").write_text("<html>m</html>", encoding="utf-8")
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "source_url": fetch.DEFAULT_HTTPS_FALLBACK,
+                "rns_version": "1.5.0",
+            }
+        ),
+        encoding="utf-8",
+    )
+    skip, reason = fetch.should_skip_fetch(
+        dest=dest,
+        manifest_path=manifest,
+        source_url=fetch.DEFAULT_RNS_SOURCE,
+        pinned_rns="1.5.0",
+        force=False,
+    )
+    assert skip is True
+    assert "match" in reason
+
+
+def test_parse_mcx_tcp_bootstraps_filters_clearnet_online():
+    fetch = _load_module(_FETCH, "fetch_reticulum_manual_mcx_parse_test")
+    payload = {
+        "interfaces": [
+            {
+                "name": "Good TCP",
+                "type": "tcp",
+                "network": "clearnet",
+                "status": "online",
+                "host": "rns.example.test",
+                "port": 4242,
+            },
+            {
+                "name": "Ygg",
+                "type": "tcp",
+                "network": "yggdrasil",
+                "status": "online",
+                "host": "200::1",
+                "port": 4242,
+            },
+            {
+                "name": "Offline",
+                "type": "tcp",
+                "network": "clearnet",
+                "status": "offline",
+                "host": "offline.example.test",
+                "port": 4242,
+            },
+        ],
+    }
+    rows = fetch._parse_mcx_tcp_bootstraps(payload)
+    assert len(rows) == 1
+    assert rows[0].host == "rns.example.test"
+    assert rows[0].port == 4242
+
+
+def test_write_bootstrap_config(tmp_path):
+    fetch = _load_module(_FETCH, "fetch_reticulum_manual_bootstrap_cfg_test")
+    config_path = tmp_path / "config"
+    fetch._write_bootstrap_config(
+        config_path,
+        [
+            fetch.TcpBootstrap(name="Node A", host="a.example.test", port=4242),
+            fetch.TcpBootstrap(name="Node B", host="b.example.test", port=4343),
+        ],
+    )
+    text = config_path.read_text(encoding="utf-8")
+    assert "type = TCPClientInterface" in text
+    assert "target_host = a.example.test" in text
+    assert "bootstrap_only = yes" in text
+    assert "RNS_CONFIG" not in text
+
+
+def test_pick_random_tcp_bootstraps_uses_sample(monkeypatch):
+    fetch = _load_module(_FETCH, "fetch_reticulum_manual_bootstrap_pick_test")
+    pool = [
+        fetch.TcpBootstrap(name=f"Node {i}", host=f"h{i}.test", port=4000 + i)
+        for i in range(6)
+    ]
+    monkeypatch.setattr(fetch, "_fetch_mcx_tcp_bootstraps", lambda **kwargs: pool)
+    picked = fetch._pick_random_tcp_bootstraps(
+        3,
+        timeout=5.0,
+        rng=__import__("random").Random(0),
+    )
+    assert len(picked) == 3
+    assert len({(p.host, p.port) for p in picked}) == 3
 
 
 def test_taskfile_has_pip_rns_targets():
