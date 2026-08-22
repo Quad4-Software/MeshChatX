@@ -58,7 +58,7 @@ const UI_PAGES = [
         id: "propagation-nodes",
         path: "/propagation-nodes",
         readyKind: "text",
-        ready: "Hosted Propagation Node",
+        ready: "Hosted node",
         ci: true,
     },
     {
