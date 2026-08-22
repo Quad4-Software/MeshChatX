@@ -105,6 +105,16 @@ jobs:
             - name: Build frontend (vite)
               run: pnpm run build-frontend
 
+            - name: Restore Reticulum manual bundle cache
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: |
+                      meshchatx/public/reticulum-docs-bundled
+                      scripts/build/reticulum_docs_bundle.json
+                  key: reticulum-docs-${{ hashFiles('uv.lock') }}
+                  restore-keys: |
+                      reticulum-docs-
+
             - name: Bundle Reticulum manual (offline)
               run: pnpm run build-docs
 

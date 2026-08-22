@@ -44,7 +44,7 @@ MeshChatX surfaces them as:
 
 Outbound cancel remains `POST /api/v1/lxmf-messages/{hash}/cancel` via `cancel_outbound`.
 
-Keep minimum versions: `rns>=1.4.2`, `lxmf>=1.1.1`.
+Keep minimum versions: `rns>=1.5.0`, `lxmf>=1.1.1`.
 
 ## Gates
 

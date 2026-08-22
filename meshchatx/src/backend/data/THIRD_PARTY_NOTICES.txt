@@ -100,10 +100,10 @@ pycparser 3.0
 pyserial 3.5
   License: BSD
   Author: Chris Liechti
-reticulum-meshchatx 4.8.5
+reticulum-meshchatx 4.8.6
   License: 0BSD AND MIT
   Author: Quad4
-rns 1.4.2
+rns 1.5.0
   License: Reticulum License
   Author: Mark Qvist
 rns-filesync 1.0.0

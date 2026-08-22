@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [4.8.6] - 2026-08-22 [unreleased]
 
+### Changed
+
+- **Dependencies**: RNS 1.5.0.
+
 ## [4.8.5] - 2026-08-21 [released]
 
 ### Changed
