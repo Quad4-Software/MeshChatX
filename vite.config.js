@@ -160,148 +160,148 @@ export default defineConfig(({ command }) => {
     }
 
     return {
-    define: {
-        __APP_BUILD_TIME__: JSON.stringify(appBuildTimeIso),
-        __VUE_PROD_DEVTOOLS__: "false",
-        "import.meta.env.VITE_MICRON_WASM_BUNDLED": JSON.stringify(micronWasmBundled ? "true" : "false"),
-        "import.meta.env.VITE_MICRON_PARSER_GO_RELEASE": JSON.stringify(MICRON_PARSER_GO_RELEASE_TAG),
-        "import.meta.env.VITE_VISUALISER_WASM_BUNDLED": JSON.stringify(visualiserWasmBundled ? "true" : "false"),
-        __MICRON_WASM_SRI_WASM__: JSON.stringify(micronWasmIntegrity?.wasm || ""),
-        __MICRON_WASM_SRI_EXEC__: JSON.stringify(micronWasmIntegrity?.wasmExec || ""),
-        __VISUALISER_WASM_SRI_WASM__: JSON.stringify(visualiserWasmIntegrity?.wasm || ""),
-        __VISUALISER_WASM_SRI_EXEC__: JSON.stringify(visualiserWasmIntegrity?.wasmExec || ""),
-    },
-    plugins: [
-        tailwindcss(),
-        ...(isVueDevToolsEnabled({ command })
-            ? [
-                  vueDevTools({
-                      launchEditor: detectLaunchEditor(),
-                  }),
-              ]
-            : []),
-        vue({
-            template: {
-                compilerOptions: {
-                    isCustomElement: (tag) => tag === "emoji-picker",
+        define: {
+            __APP_BUILD_TIME__: JSON.stringify(appBuildTimeIso),
+            __VUE_PROD_DEVTOOLS__: "false",
+            "import.meta.env.VITE_MICRON_WASM_BUNDLED": JSON.stringify(micronWasmBundled ? "true" : "false"),
+            "import.meta.env.VITE_MICRON_PARSER_GO_RELEASE": JSON.stringify(MICRON_PARSER_GO_RELEASE_TAG),
+            "import.meta.env.VITE_VISUALISER_WASM_BUNDLED": JSON.stringify(visualiserWasmBundled ? "true" : "false"),
+            __MICRON_WASM_SRI_WASM__: JSON.stringify(micronWasmIntegrity?.wasm || ""),
+            __MICRON_WASM_SRI_EXEC__: JSON.stringify(micronWasmIntegrity?.wasmExec || ""),
+            __VISUALISER_WASM_SRI_WASM__: JSON.stringify(visualiserWasmIntegrity?.wasm || ""),
+            __VISUALISER_WASM_SRI_EXEC__: JSON.stringify(visualiserWasmIntegrity?.wasmExec || ""),
+        },
+        plugins: [
+            tailwindcss(),
+            ...(isVueDevToolsEnabled({ command })
+                ? [
+                      vueDevTools({
+                          launchEditor: detectLaunchEditor(),
+                      }),
+                  ]
+                : []),
+            vue({
+                template: {
+                    compilerOptions: {
+                        isCustomElement: (tag) => tag === "emoji-picker",
+                    },
                 },
-            },
-        }),
-        vuetify(),
-        meshchatxServiceWorkerPlugin({ buildId: appBuildTimeIso }),
-    ],
+            }),
+            vuetify(),
+            meshchatxServiceWorkerPlugin({ buildId: appBuildTimeIso }),
+        ],
 
-    css: {
-        devSourcemap: true,
-    },
-
-    server: {
-        host: "127.0.0.1",
-        port: 5173,
-        strictPort: true,
-        clearScreen: false,
-        warmup: {
-            clientFiles: ["./main.js", "./components/App.vue", "./components/messages/MessagesPage.vue"],
-        },
-        proxy: {
-            "/api": {
-                target: e2eBackendOrigin,
-                changeOrigin: true,
-                configure: configureQuietProxyErrors,
-                ...backendProxyTls,
-            },
-            // More specific WS path before the /ws prefix match.
-            "/ws/telephone/audio": {
-                target: e2eBackendOrigin,
-                ws: true,
-                changeOrigin: true,
-                configure: configureQuietProxyErrors,
-                ...backendProxyTls,
-            },
-            "/ws": {
-                target: e2eBackendOrigin,
-                ws: true,
-                changeOrigin: true,
-                configure: configureQuietProxyErrors,
-                ...backendProxyTls,
-            },
-            "/reticulum-docs": {
-                target: e2eBackendOrigin,
-                changeOrigin: true,
-                configure: configureQuietProxyErrors,
-                ...backendProxyTls,
-            },
-            "/meshchatx-docs": {
-                target: e2eBackendOrigin,
-                changeOrigin: true,
-                configure: configureQuietProxyErrors,
-                ...backendProxyTls,
-            },
-        },
-    },
-
-    // vite app is loaded from /meshchatx/src/frontend
-    root: path.join(__dirname, "meshchatx", "src", "frontend"),
-
-    publicDir: path.join(__dirname, "meshchatx", "src", "frontend", "public"),
-
-    build: {
-        sourcemap: false,
-        // @mdi/js and other vendor chunks exceed 700 kB minified; splitting icons further is a larger refactor.
-        chunkSizeWarningLimit: 3500,
-        minify: "terser",
-        terserOptions: {
-            compress: {
-                drop_console: false,
-                pure_funcs: ["console.debug"],
-            },
+        css: {
+            devSourcemap: true,
         },
 
-        // we want to compile vite app to meshchatx/public which is bundled and served by the python executable
-        outDir: path.join(__dirname, "meshchatx", "public"),
-        emptyOutDir: false,
-
-        rolldownOptions: {
-            checks: {
-                pluginTimings: false,
+        server: {
+            host: "127.0.0.1",
+            port: 5173,
+            strictPort: true,
+            clearScreen: false,
+            warmup: {
+                clientFiles: ["./main.js", "./components/App.vue", "./components/messages/MessagesPage.vue"],
             },
-            treeshake: {
-                moduleSideEffects: (id) => {
-                    if (id.includes("@mdi/js")) {
-                        return false;
-                    }
-                    return null;
+            proxy: {
+                "/api": {
+                    target: e2eBackendOrigin,
+                    changeOrigin: true,
+                    configure: configureQuietProxyErrors,
+                    ...backendProxyTls,
                 },
-            },
-            input: {
-                app: path.join(__dirname, "meshchatx", "src", "frontend", "index.html"),
-            },
-            output: {
-                codeSplitting: {
-                    minSize: 20_000,
-                    groups: [
-                        ...vendorChunkGroups,
-                        {
-                            name: "shared-async",
-                            minShareCount: 2,
-                            minSize: 10_000,
-                            priority: 5,
-                        },
-                    ],
+                // More specific WS path before the /ws prefix match.
+                "/ws/telephone/audio": {
+                    target: e2eBackendOrigin,
+                    ws: true,
+                    changeOrigin: true,
+                    configure: configureQuietProxyErrors,
+                    ...backendProxyTls,
+                },
+                "/ws": {
+                    target: e2eBackendOrigin,
+                    ws: true,
+                    changeOrigin: true,
+                    configure: configureQuietProxyErrors,
+                    ...backendProxyTls,
+                },
+                "/reticulum-docs": {
+                    target: e2eBackendOrigin,
+                    changeOrigin: true,
+                    configure: configureQuietProxyErrors,
+                    ...backendProxyTls,
+                },
+                "/meshchatx-docs": {
+                    target: e2eBackendOrigin,
+                    changeOrigin: true,
+                    configure: configureQuietProxyErrors,
+                    ...backendProxyTls,
                 },
             },
         },
-    },
 
-    optimizeDeps: {
-        include: ["vue", "emoji-picker-element"],
-    },
+        // vite app is loaded from /meshchatx/src/frontend
+        root: path.join(__dirname, "meshchatx", "src", "frontend"),
 
-    resolve: {
-        dedupe: ["vue"],
-        alias: {
-            "micron-parser": path.join(__dirname, "node_modules", "micron-parser", "js", "micron-parser.js"),
+        publicDir: path.join(__dirname, "meshchatx", "src", "frontend", "public"),
+
+        build: {
+            sourcemap: false,
+            // @mdi/js and other vendor chunks exceed 700 kB minified; splitting icons further is a larger refactor.
+            chunkSizeWarningLimit: 3500,
+            minify: "terser",
+            terserOptions: {
+                compress: {
+                    drop_console: false,
+                    pure_funcs: ["console.debug"],
+                },
+            },
+
+            // we want to compile vite app to meshchatx/public which is bundled and served by the python executable
+            outDir: path.join(__dirname, "meshchatx", "public"),
+            emptyOutDir: false,
+
+            rolldownOptions: {
+                checks: {
+                    pluginTimings: false,
+                },
+                treeshake: {
+                    moduleSideEffects: (id) => {
+                        if (id.includes("@mdi/js")) {
+                            return false;
+                        }
+                        return null;
+                    },
+                },
+                input: {
+                    app: path.join(__dirname, "meshchatx", "src", "frontend", "index.html"),
+                },
+                output: {
+                    codeSplitting: {
+                        minSize: 20_000,
+                        groups: [
+                            ...vendorChunkGroups,
+                            {
+                                name: "shared-async",
+                                minShareCount: 2,
+                                minSize: 10_000,
+                                priority: 5,
+                            },
+                        ],
+                    },
+                },
+            },
         },
-    },
+
+        optimizeDeps: {
+            include: ["vue", "emoji-picker-element"],
+        },
+
+        resolve: {
+            dedupe: ["vue"],
+            alias: {
+                "micron-parser": path.join(__dirname, "node_modules", "micron-parser", "js", "micron-parser.js"),
+            },
+        },
     };
 });
