@@ -24,13 +24,7 @@ function buildLhConfig(formFactor) {
             networkQuietThresholdMs: 1000,
             pauseAfterFcpMs: 1000,
             pauseAfterLoadMs: 1000,
-            blockedUrlPatterns: [
-                "*://*/ws",
-                "*://*/ws?*",
-                "ws://*/*",
-                "wss://*/*",
-                "*service-worker.js*",
-            ],
+            blockedUrlPatterns: ["*://*/ws", "*://*/ws?*", "ws://*/*", "wss://*/*", "*service-worker.js*"],
             screenEmulation:
                 formFactor === "mobile"
                     ? undefined
