@@ -1,11 +1,11 @@
 /**
  * UI page catalog for smoke + Lighthouse audits.
  * Paths are Vue hash routes (without the leading #).
+ * Lighthouse always runs against production-built assets (playwright.lighthouse.config.js).
  */
 
 const DEFAULT_BUDGETS = {
-    // SPA + large vendor chunks. Prod scores around mid-40s today; leave CI headroom.
-    performance: process.env.MESHCHAT_UI_PROD === "1" ? 35 : 15,
+    performance: 50,
     accessibility: 75,
     "best-practices": 70,
 };
@@ -29,7 +29,7 @@ const UI_PAGES = [
         readyKind: "placeholder",
         ready: /Search \d+ conversations/i,
         ci: true,
-        budgets: { performance: process.env.MESHCHAT_UI_PROD === "1" ? 30 : 10 },
+        budgets: { performance: 45 },
     },
     {
         id: "contacts",
@@ -52,7 +52,7 @@ const UI_PAGES = [
         readyKind: "text",
         ready: "Profile",
         ci: true,
-        budgets: { performance: process.env.MESHCHAT_UI_PROD === "1" ? 30 : 10 },
+        budgets: { performance: 45 },
     },
     {
         id: "propagation-nodes",
@@ -66,7 +66,7 @@ const UI_PAGES = [
         path: "/map",
         readyKind: "heading",
         ready: "Map",
-        budgets: { performance: process.env.MESHCHAT_UI_PROD === "1" ? 25 : 8 },
+        budgets: { performance: 40 },
     },
     {
         id: "identities",
@@ -103,7 +103,7 @@ const UI_PAGES = [
         path: "/network-visualiser",
         readyKind: "text",
         ready: "Reticulum Mesh",
-        budgets: { performance: process.env.MESHCHAT_UI_PROD === "1" ? 20 : 8 },
+        budgets: { performance: 35 },
     },
     {
         id: "archives",

@@ -23,11 +23,7 @@ const vendorChunkGroups = [
     { test: /[/\\]node_modules[/\\]/, name: "vendor-other", priority: 10 },
 ];
 
-// Purge old assets before build to prevent accumulation
 const assetsDir = path.join(__dirname, "meshchatx", "public", "assets");
-if (fs.existsSync(assetsDir)) {
-    fs.rmSync(assetsDir, { recursive: true, force: true });
-}
 
 const e2eBackendPort = process.env.E2E_BACKEND_PORT || "8000";
 
@@ -155,7 +151,15 @@ function loadVisualiserWasmIntegrity() {
 const micronWasmIntegrity = loadMicronWasmIntegrity();
 const visualiserWasmIntegrity = loadVisualiserWasmIntegrity();
 
-export default defineConfig(({ command }) => ({
+export default defineConfig(({ command }) => {
+    // Only clear hashed assets on production build. Loading this config for
+    // `vite` / `vite preview` must not wipe meshchatx/public/assets used by
+    // the Python static server (Lighthouse, packaged UI).
+    if (command === "build" && fs.existsSync(assetsDir)) {
+        fs.rmSync(assetsDir, { recursive: true, force: true });
+    }
+
+    return {
     define: {
         __APP_BUILD_TIME__: JSON.stringify(appBuildTimeIso),
         __VUE_PROD_DEVTOOLS__: "false",
@@ -299,4 +303,5 @@ export default defineConfig(({ command }) => ({
             "micron-parser": path.join(__dirname, "node_modules", "micron-parser", "js", "micron-parser.js"),
         },
     },
-}));
+    };
+});

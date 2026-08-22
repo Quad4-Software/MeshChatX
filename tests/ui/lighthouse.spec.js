@@ -7,6 +7,7 @@ const {
     LH_DEBUG_PORT,
     runLighthouseAudit,
     scoresFromLhr,
+    vitalsFromLhr,
     assertBudgets,
     writeReports,
 } = require("./lighthouse-helper");
@@ -21,7 +22,7 @@ const pages = resolvePages({
 });
 
 test.describe("Lighthouse page scores (simulated data)", () => {
-    test.describe.configure({ mode: "serial", timeout: 180000 });
+    test.describe.configure({ mode: "serial", timeout: 240000 });
 
     test.beforeAll(async ({ request }) => {
         await seedUiSimulatedData(request);
@@ -37,11 +38,14 @@ test.describe("Lighthouse page scores (simulated data)", () => {
             const url = page.url();
             const runnerResult = await runLighthouseAudit(url, { port: LH_DEBUG_PORT });
             const scores = scoresFromLhr(runnerResult.lhr);
+            const vitals = vitalsFromLhr(runnerResult.lhr);
             const paths = writeReports(entry.id, runnerResult);
 
             // eslint-disable-next-line no-console
             console.log(
-                `LH ${entry.id}: perf=${scores.performance} a11y=${scores.accessibility} bp=${scores["best-practices"]} report=${paths.htmlPath}`
+                `LH ${entry.id}: perf=${scores.performance} a11y=${scores.accessibility} bp=${scores["best-practices"]} ` +
+                    `FCP=${vitals.fcp} LCP=${vitals.lcp} TBT=${vitals.tbt} CLS=${vitals.cls} SI=${vitals.si} ` +
+                    `report=${paths.htmlPath}`
             );
 
             assertBudgets(scores, budgetsFor(entry), entry.id);
