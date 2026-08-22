@@ -124,9 +124,10 @@ jobs:
                   test -d meshchatx/public/assets
                   test -d meshchatx/public/reticulum-docs-bundled/current
 
+            # secrets cannot appear in if: expressions, so import is optional via continue-on-error
             - name: Import Flatpak GPG key
               id: gpg
-              if: ${{ secrets.FLATPAK_GPG_PRIVATE_KEY != '' }}
+              continue-on-error: true
               uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec
               with:
                   gpg_private_key: ${{ secrets.FLATPAK_GPG_PRIVATE_KEY }}
@@ -137,7 +138,7 @@ jobs:
 
             - name: Export ostree repo for Pages
               env:
-                  GPG_FINGERPRINT: ${{ steps.gpg.outputs.fingerprint }}
+                  GPG_FINGERPRINT: ${{ steps.gpg.outcome == 'success' && steps.gpg.outputs.fingerprint || '' }}
               run: |
                   set -euo pipefail
                   shopt -s nullglob
