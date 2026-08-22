@@ -193,13 +193,13 @@
     },
     {
         "name": "reticulum-meshchatx",
-        "version": "4.8.5",
+        "version": "4.8.6",
         "author": "Quad4",
         "license": "0BSD AND MIT"
     },
     {
         "name": "rns",
-        "version": "1.4.2",
+        "version": "1.5.0",
         "author": "Mark Qvist",
         "license": "Reticulum License"
     },

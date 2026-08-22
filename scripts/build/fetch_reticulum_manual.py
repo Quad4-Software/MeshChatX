@@ -12,18 +12,44 @@ Usage::
     python scripts/build/fetch_reticulum_manual.py [--source URL] [--dest DIR]
                                                    [--force] [--include-pdf]
 
-Sources may be HTTPS ZIP URLs, local directories that contain a docs/ tree, or
-rns:// rngit remotes (requires git and git-remote-rns).
+Sources are rns:// rngit remotes (requires git and git-remote-rns). Pass --source
+for a local checkout or an explicit HTTPS ZIP fallback.
 
 By default the upstream PDF/EPUB copies of the manual are excluded from the
 bundle because the in-app viewer only renders the HTML version. Pass
---include-pdf (or set MESHCHATX_DOCS_INCLUDE_PDF=1) to keep them.
+--include-pdf (or set MESHCHATX_DOCS_INCLUDE_PDF=1) to keep any PDF/EPUB files
+that happen to sit in the website docs/ tree. This script does not fetch release
+PDF/EPUB artifacts.
+
+Refresh policy
+--------------
+
+Normal builds skip the network fetch when the bundled HTML tree is present and
+scripts/build/reticulum_docs_bundle.json records the same rns version as
+uv.lock. Pass --force to refetch anyway. CI should restore a docs cache keyed on
+uv.lock so clearnet-free runners reuse the last mesh fetch until rns bumps.
+
+Manual PDF and EPUB outside this script
+---------------------------------------
+
+You can always fetch the latest manual in PDF and EPUB formats directly using
+rngit::
+
+    rngit release rns://7649a50d84610232d1416b41d2896aff/reticulum/reticulum \\
+        fetch "latest:Reticulum Manual.pdf"
+
+Or download from the latest release page in Nomad Network::
+
+    a8d24177d946de4f1f0a0fe1af9a1338:/page/release.mu`g=reticulum|r=reticulum|t=latest
+
+There is also a fully Nomad Network browsable copy on Aleph::
+
+    a8d24177d946de4f1f0a0fe1af9a1338:/page/blob.mu`g=reticulum|r=reticulum|ref=HEAD|path=docs/markdown/index.md
 
 Environment variables::
 
     MESHCHATX_RETICULUM_DOCS_URL   Override the default source URL (single value).
     MESHCHATX_RETICULUM_DOCS_DEST  Override the destination directory.
-    MESHCHATX_RETICULUM_DOCS_VIA_RNS  If set, prefer the default rngit website remote.
     MESHCHATX_RETICULUM_DOCS_REF   Git ref for rns:// clones (default HEAD).
     MESHCHATX_SKIP_DOCS_FETCH      If set to 1/true, exit without fetching.
     MESHCHATX_DOCS_INCLUDE_PDF     If set to 1/true, include PDF/EPUB.
@@ -36,6 +62,7 @@ import io
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -52,10 +79,14 @@ if str(_SCRIPTS_DIR) not in sys.path:
 
 from pip_rns_remotes import DEFAULT_WEBSITE_REMOTE  # noqa: E402
 
-DEFAULT_SOURCES = (
-    "https://codeload.github.com/markqvist/reticulum_website/zip/refs/heads/master",
-)
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+DEFAULT_SOURCES = (DEFAULT_WEBSITE_REMOTE,)
 DEFAULT_RNS_SOURCE = DEFAULT_WEBSITE_REMOTE
+
+_RNS_LOCK_VERSION = re.compile(
+    r'^\[\[package\]\]\s*\nname = "rns"\s*\nversion = "([^"]+)"',
+    re.MULTILINE,
+)
 
 DEFAULT_DEST = (
     Path(__file__).resolve().parent.parent.parent
@@ -79,6 +110,58 @@ def _is_truthy(value: str | None) -> bool:
 
 def _is_rns_source(source: str) -> bool:
     return source.strip().lower().startswith("rns://")
+
+
+def pinned_rns_version(lock_path: Path | None = None) -> str | None:
+    """Return the rns version pinned in uv.lock."""
+    target = lock_path or (REPO_ROOT / "uv.lock")
+    if not target.is_file():
+        return None
+    match = _RNS_LOCK_VERSION.search(target.read_text(encoding="utf-8"))
+    return match.group(1) if match else None
+
+
+def load_bundle_manifest(manifest_path: Path) -> dict | None:
+    if not manifest_path.is_file():
+        return None
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def bundle_looks_valid(dest: Path) -> bool:
+    if not dest.is_dir():
+        return False
+    if not (dest / "manual" / "index.html").is_file():
+        return False
+    return any(dest.rglob("*"))
+
+
+def should_skip_fetch(
+    *,
+    dest: Path,
+    manifest_path: Path,
+    source_url: str,
+    pinned_rns: str | None,
+    force: bool,
+) -> tuple[bool, str]:
+    if force:
+        return False, "forced refresh"
+    if not bundle_looks_valid(dest):
+        return False, "bundled docs missing or incomplete"
+    manifest = load_bundle_manifest(manifest_path)
+    if manifest is None:
+        return False, "bundle manifest missing"
+    if manifest.get("source_url") != source_url:
+        return False, "bundle source changed"
+    if pinned_rns is None:
+        return False, "pinned rns version unknown"
+    recorded = manifest.get("rns_version")
+    if recorded != pinned_rns:
+        return False, f"rns version changed ({recorded} -> {pinned_rns})"
+    return True, "bundled docs match pinned rns version"
 
 
 def _download(url: str, timeout: float) -> bytes:
@@ -211,8 +294,8 @@ def _clone_rns_docs(
     *,
     timeout: float,
     ref: str,
-) -> Path:
-    """Clone an rns:// website repo sparsely and return its docs/ path."""
+) -> tuple[Path, str]:
+    """Clone an rns:// website repo sparsely and return docs/ path and commit."""
     if shutil.which("git") is None:
         raise ValueError("git is required for rns:// docs sources")
     if shutil.which("git-remote-rns") is None:
@@ -250,7 +333,19 @@ def _clone_rns_docs(
             cwd=work,
             timeout=min(120.0, timeout),
         )
-        return _find_docs_dir(work)
+        completed = subprocess.run(
+            ["git", "rev-parse", "FETCH_HEAD"],
+            cwd=work,
+            check=False,
+            capture_output=True,
+            timeout=min(30.0, timeout),
+        )
+        docs_commit = (
+            completed.stdout.decode("utf-8", errors="replace").strip()
+            if completed.returncode == 0
+            else ""
+        )
+        return _find_docs_dir(work), docs_commit
     except Exception:
         shutil.rmtree(work, ignore_errors=True)
         raise
@@ -263,19 +358,22 @@ def _stage_from_local_or_rns(
     timeout: float,
     include_pdf: bool,
     ref: str,
-) -> tuple[int, int, str]:
-    """Return extracted counts and a cleanup workdir path (may be empty)."""
+) -> tuple[int, int, str, str]:
+    """Return extracted counts, cleanup workdir path, and optional docs commit."""
     cleanup = ""
+    docs_commit = ""
     local = Path(source)
     if local.exists() and local.is_dir():
         docs_dir = _find_docs_dir(local)
         extracted, skipped = _extract_from_docs_dir(
             docs_dir, dest, include_pdf=include_pdf
         )
-        return extracted, skipped, cleanup
+        return extracted, skipped, cleanup, docs_commit
 
     if _is_rns_source(source):
-        docs_dir = _clone_rns_docs(source.strip(), timeout=timeout, ref=ref)
+        docs_dir, docs_commit = _clone_rns_docs(
+            source.strip(), timeout=timeout, ref=ref
+        )
         cleanup = str(docs_dir.parent)
         try:
             extracted, skipped = _extract_from_docs_dir(
@@ -284,7 +382,7 @@ def _stage_from_local_or_rns(
         finally:
             shutil.rmtree(cleanup, ignore_errors=True)
             cleanup = ""
-        return extracted, skipped, cleanup
+        return extracted, skipped, cleanup, docs_commit
 
     raise ValueError(f"unsupported local/rns source: {source}")
 
@@ -296,8 +394,10 @@ def _write_bundle_manifest(
     extracted: int,
     skipped_binary: int,
     manifest_path: Path,
+    rns_version: str | None = None,
+    docs_commit: str = "",
 ) -> None:
-    repo_root = Path(__file__).resolve().parent.parent.parent
+    repo_root = REPO_ROOT
     try:
         dest_value = str(dest.resolve().relative_to(repo_root))
     except ValueError:
@@ -317,6 +417,10 @@ def _write_bundle_manifest(
         "html_files": extracted,
         "skipped_binary_files": skipped_binary,
     }
+    if rns_version:
+        payload["rns_version"] = rns_version
+    if docs_commit:
+        payload["docs_commit"] = docs_commit
     manifest_path.write_text(
         json.dumps(payload, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -332,19 +436,34 @@ def fetch_manual(
     include_pdf: bool = False,
     ref: str = "HEAD",
     manifest_path: Path | None = None,
+    pinned_rns: str | None = None,
 ) -> int:
-    if dest.exists() and any(dest.iterdir()) and not force:
+    manifest = manifest_path or BUNDLE_MANIFEST_PATH
+    primary_source = sources[0] if sources else DEFAULT_RNS_SOURCE
+    resolved_pinned = pinned_rns if pinned_rns is not None else pinned_rns_version()
+
+    skip, reason = should_skip_fetch(
+        dest=dest,
+        manifest_path=manifest,
+        source_url=primary_source,
+        pinned_rns=resolved_pinned,
+        force=force,
+    )
+    if skip:
         logging.info(
-            "Reticulum manual already present at %s (%d entries); skipping fetch.",
+            "Reticulum manual up to date at %s (%s); skipping fetch.",
             dest,
-            sum(1 for _ in dest.rglob("*")),
+            reason,
         )
         return 0
+
+    logging.info("Refreshing Reticulum manual (%s).", reason)
 
     last_error: Exception | None = None
     extracted = 0
     skipped_binary = 0
     source_url: str | None = None
+    docs_commit = ""
 
     for url in sources:
         try:
@@ -353,12 +472,14 @@ def fetch_manual(
             dest.mkdir(parents=True, exist_ok=True)
 
             if _is_rns_source(url) or Path(url).exists():
-                extracted, skipped_binary, _cleanup = _stage_from_local_or_rns(
-                    url,
-                    dest,
-                    timeout=timeout,
-                    include_pdf=include_pdf,
-                    ref=ref,
+                extracted, skipped_binary, _cleanup, docs_commit = (
+                    _stage_from_local_or_rns(
+                        url,
+                        dest,
+                        timeout=timeout,
+                        include_pdf=include_pdf,
+                        ref=ref,
+                    )
                 )
                 source_url = url
                 break
@@ -408,7 +529,9 @@ def fetch_manual(
         dest=dest,
         extracted=extracted,
         skipped_binary=skipped_binary,
-        manifest_path=manifest_path or BUNDLE_MANIFEST_PATH,
+        manifest_path=manifest,
+        rns_version=resolved_pinned,
+        docs_commit=docs_commit,
     )
     return extracted
 
@@ -421,7 +544,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         default=None,
         help=(
             "HTTPS ZIP URL, local checkout path, or rns:// remote. May be passed "
-            "multiple times for fallbacks. Defaults to the canonical upstream sources."
+            "multiple times for fallbacks. Defaults to the rngit website remote."
         ),
     )
     parser.add_argument(
@@ -444,15 +567,14 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--force",
         action="store_true",
-        help="Re-fetch even if the destination already exists.",
+        help="Re-fetch even when the bundled docs match the pinned rns version.",
     )
     parser.add_argument(
         "--via-rns",
         action="store_true",
-        default=_is_truthy(os.environ.get("MESHCHATX_RETICULUM_DOCS_VIA_RNS")),
         help=(
-            "Prefer the default rngit website remote "
-            f"({DEFAULT_RNS_SOURCE}). Also set MESHCHATX_RETICULUM_DOCS_VIA_RNS=1."
+            "Deprecated alias kept for scripts. The default source is already "
+            f"{DEFAULT_RNS_SOURCE}."
         ),
     )
     parser.add_argument(
@@ -492,8 +614,6 @@ def main(argv: list[str] | None = None) -> int:
     env_url = os.environ.get("MESHCHATX_RETICULUM_DOCS_URL")
     if env_url:
         sources.append(env_url)
-    if args.via_rns:
-        sources.insert(0, DEFAULT_RNS_SOURCE)
     if not sources:
         sources = list(DEFAULT_SOURCES)
 

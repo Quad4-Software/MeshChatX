@@ -1026,9 +1026,9 @@ pyserial==3.5 \
     # via
     #   reticulum-meshchatx
     #   rns
-rns==1.4.2 \
-    --hash=sha256:275e4369819c99fbbdb8b70a0d4eb3fc9767716fca639fe7206856839fb3867a \
-    --hash=sha256:a3e9be1c178878103284a111be89761f146c44c33a150a7745c15f02b115aa37
+rns==1.5.0 \
+    --hash=sha256:0ec9cd19119dbfdf37e1ecf1608b98cbf6de514af127b29546d976918d1bd769 \
+    --hash=sha256:6c7ded4e78ff6f132814de1c4e032d884a17646a222e98bca80d8d8bc62c5486
     # via
     #   lxmf
     #   lxst

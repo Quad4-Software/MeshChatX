@@ -361,7 +361,7 @@ task build
 
 ## Versionierung
 
-Aktuelle Version in diesem Repository: `4.8.5`.
+Aktuelle Version in diesem Repository: `4.8.6`.
 
 - Fuer Release-Bumps bearbeiten Sie **nur** `version` in **`package.json`**.
 - **`pnpm run version:sync`** (wird auch zu Beginn von **`pnpm run build`** ausgefuehrt) verbreitet diese Version in **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (Produktzeile), **README** / **lang/README.\*** (Zeilen mit aktueller Version), **`docs/en/platform-guides/raspberry-pi.md`** (pipx-Beispiel) und Hilfsfelder in **`packaging/arch/PKGBUILD`**.

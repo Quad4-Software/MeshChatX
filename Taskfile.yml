@@ -151,11 +151,11 @@ tasks:
 
     docs:rns:
         aliases: [build-docs:rns]
-        desc: Fetch Reticulum manual from rngit website remote over RNS
+        desc: Force-refresh Reticulum manual from rngit website remote over RNS
         cmds:
             - >-
                 uv run python scripts/build/fetch_reticulum_manual.py
-                --force --via-rns
+                --force
                 {{.CLI_ARGS}}
 
     setup:be:

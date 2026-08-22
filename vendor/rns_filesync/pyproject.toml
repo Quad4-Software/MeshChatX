@@ -10,7 +10,7 @@ readme = "README.md"
 license = { text = "BSD-2-Clause" }
 requires-python = ">=3.10"
 dependencies = [
-    "rns>=1.4.2",
+    "rns>=1.5.0",
 ]
 
 [project.optional-dependencies]

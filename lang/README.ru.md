@@ -361,7 +361,7 @@ task build
 
 ## Версионирование
 
-Текущая версия в репозитории: `4.8.5`.
+Текущая версия в репозитории: `4.8.6`.
 
 - Редактируйте для релизного бампа **только** поле `version` в **`package.json`**.
 - Команда **`pnpm run version:sync`** (также в начале **`pnpm run build`**) распространяет эту версию в **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (строка продукта), **README** / **lang/README.\*** (строки «текущая версия»), **`docs/en/platform-guides/raspberry-pi.md`** (пример pipx) и вспомогательные поля **`packaging/arch/PKGBUILD`**.

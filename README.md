@@ -359,7 +359,7 @@ Makefile targets call the same Taskfile commands:
 
 ## Versioning
 
-Current version is 4.8.5.
+Current version is 4.8.6.
 
 Edit the version field in package.json, then run `pnpm run version:sync` (also the first step of `pnpm run build`). That copies the number into pyproject.toml, the Python version modules, Android Gradle, electron/app-version.json, this README and the translated READMEs, the Raspberry Pi pipx example, Arch PKGBUILD helpers, third-party notices, and GitHub issue-template placeholders.
 
