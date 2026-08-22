@@ -24,8 +24,16 @@ if [[ "${MESHCHAT_UI_PROD:-0}" == "1" ]]; then
     }
     trap cleanup EXIT INT TERM
 
-    if [[ "${MESHCHAT_LH_SKIP_BUILD:-0}" != "1" ]]; then
-        echo "UI: building frontend for production-style Lighthouse scores"
+    if [[ "${MESHCHAT_LH_SKIP_BUILD:-0}" == "1" ]] \
+        && [[ -f meshchatx/public/index.html ]] \
+        && compgen -G "meshchatx/public/assets/app-*.js" > /dev/null; then
+        echo "UI: reusing existing meshchatx/public assets"
+    else
+        if [[ "${MESHCHAT_LH_SKIP_BUILD:-0}" == "1" ]]; then
+            echo "UI: public assets missing or incomplete, building frontend"
+        else
+            echo "UI: building frontend for production-style Lighthouse scores"
+        fi
         pnpm run build-frontend
     fi
 

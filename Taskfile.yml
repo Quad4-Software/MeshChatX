@@ -282,12 +282,12 @@ tasks:
             - "{{.NPM}} run test:ui:pages"
 
     test:ui:lighthouse:
-        desc: Lighthouse scores per UI page (set MESHCHAT_UI_PROD=1 for built assets, MESHCHAT_UI_CI=1 for core subset)
+        desc: Lighthouse scores on production-built UI (blocks /ws so LCP/TTI are real, set MESHCHAT_UI_CI=1 for core subset)
         cmds:
             - "{{.NPM}} run test:ui:lighthouse"
 
     test:ui:lighthouse:ci:
-        desc: CI subset of Lighthouse page budgets with simulated data
+        desc: CI subset of Lighthouse page budgets on production-built UI with simulated data
         cmds:
             - "{{.NPM}} run test:ui:lighthouse:ci"
 

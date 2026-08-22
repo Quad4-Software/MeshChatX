@@ -38,8 +38,10 @@ task test:frontend
 
 # UI page smoke / Lighthouse (Playwright + simulated data)
 task test:ui:pages
+# Always production-built assets (no Vite). Set MESHCHAT_LH_SKIP_BUILD=1 to reuse public/
+task test:ui:lighthouse
+MESHCHAT_UI_CI=1 task test:ui:lighthouse:ci
 MESHCHAT_UI_PAGES=messages,contacts task test:ui:lighthouse
-MESHCHAT_UI_CI=1 MESHCHAT_UI_PROD=1 task test:ui:lighthouse:ci
 ```
 
 ## Anti-hang rules
