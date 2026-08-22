@@ -208,10 +208,7 @@
                     </div>
                 </div>
 
-                <div
-                    v-if="totalsAnnounces || totalsPathRequests"
-                    class="grid gap-3 lg:grid-cols-2"
-                >
+                <div v-if="totalsAnnounces || totalsPathRequests" class="grid gap-3 lg:grid-cols-2">
                     <div
                         v-if="totalsAnnounces"
                         class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-2"

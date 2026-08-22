@@ -345,10 +345,7 @@ def _iface_is_hidden(name: str, ifstat: dict, show_all: bool) -> bool:
         return False
     if name.startswith(_HIDDEN_IFACE_PREFIXES):
         return True
-    return (
-        name.startswith("I2PInterface[")
-        and ifstat.get("i2p_connectable") is False
-    )
+    return name.startswith("I2PInterface[") and ifstat.get("i2p_connectable") is False
 
 
 def _set_if_present(target: dict[str, Any], key: str, value: Any) -> None:

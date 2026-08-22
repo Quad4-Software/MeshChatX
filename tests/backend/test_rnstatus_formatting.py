@@ -110,8 +110,18 @@ def test_rnstatus_hides_non_connectable_i2p_unless_show_all():
     handler = RNStatusHandler(MagicMock())
     stats = {
         "interfaces": [
-            {"name": "I2PInterface[Hidden]", "status": True, "mode": 0, "i2p_connectable": False},
-            {"name": "I2PInterface[Public]", "status": True, "mode": 0, "i2p_connectable": True},
+            {
+                "name": "I2PInterface[Hidden]",
+                "status": True,
+                "mode": 0,
+                "i2p_connectable": False,
+            },
+            {
+                "name": "I2PInterface[Public]",
+                "status": True,
+                "mode": 0,
+                "i2p_connectable": True,
+            },
         ],
     }
     hidden = handler.get_status(stats=stats, include_local_blackhole=False)
