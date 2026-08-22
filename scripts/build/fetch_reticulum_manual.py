@@ -12,8 +12,11 @@ Usage::
     python scripts/build/fetch_reticulum_manual.py [--source URL] [--dest DIR]
                                                    [--force] [--include-pdf]
 
-Sources are rns:// rngit remotes (requires git and git-remote-rns). Pass --source
-for a local checkout or an explicit HTTPS ZIP fallback.
+Sources are rns:// rngit remotes (requires git and git-remote-rns). Before an
+rns:// clone the script installs rns when needed and writes an ephemeral Reticulum
+config with up to eight random clearnet TCP bootstraps from
+https://meshchatx.com/api/mcx-interfaces. An HTTPS ZIP fallback runs when mesh
+fetch still fails. Pass --source for a local checkout or extra fallbacks.
 
 By default the upstream PDF/EPUB copies of the manual are excluded from the
 bundle because the in-app viewer only renders the HTML version. Pass
@@ -53,25 +56,32 @@ Environment variables::
     MESHCHATX_RETICULUM_DOCS_REF   Git ref for rns:// clones (default HEAD).
     MESHCHATX_SKIP_DOCS_FETCH      If set to 1/true, exit without fetching.
     MESHCHATX_DOCS_INCLUDE_PDF     If set to 1/true, include PDF/EPUB.
+    MESHCHATX_SKIP_RNS_INSTALL     If set to 1/true, do not pip install rns.
+    MESHCHATX_DOCS_BOOTSTRAP_COUNT Max random TCP bootstraps for rns:// fetch (default 8).
 """
 
 from __future__ import annotations
 
 import argparse
+import contextlib
 import io
 import json
 import logging
 import os
+import random
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import urllib.error
+import urllib.parse
 import urllib.request
 import zipfile
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Iterator
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent.parent
 if str(_SCRIPTS_DIR) not in sys.path:
@@ -80,8 +90,14 @@ if str(_SCRIPTS_DIR) not in sys.path:
 from pip_rns_remotes import DEFAULT_WEBSITE_REMOTE  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-DEFAULT_SOURCES = (DEFAULT_WEBSITE_REMOTE,)
+DEFAULT_HTTPS_FALLBACK = (
+    "https://codeload.github.com/markqvist/reticulum_website/zip/refs/heads/master"
+)
 DEFAULT_RNS_SOURCE = DEFAULT_WEBSITE_REMOTE
+DEFAULT_SOURCES = (DEFAULT_RNS_SOURCE, DEFAULT_HTTPS_FALLBACK)
+KNOWN_DOCS_SOURCES = frozenset({DEFAULT_RNS_SOURCE, DEFAULT_HTTPS_FALLBACK})
+MCX_INTERFACES_URL = "https://meshchatx.com/api/mcx-interfaces"
+DEFAULT_BOOTSTRAP_COUNT = 8
 
 _RNS_LOCK_VERSION = re.compile(
     r'^\[\[package\]\]\s*\nname = "rns"\s*\nversion = "([^"]+)"',
@@ -154,7 +170,8 @@ def should_skip_fetch(
     manifest = load_bundle_manifest(manifest_path)
     if manifest is None:
         return False, "bundle manifest missing"
-    if manifest.get("source_url") != source_url:
+    recorded_source = manifest.get("source_url")
+    if recorded_source != source_url and recorded_source not in KNOWN_DOCS_SOURCES:
         return False, "bundle source changed"
     if pinned_rns is None:
         return False, "pinned rns version unknown"
@@ -260,6 +277,225 @@ def _extract_from_docs_dir(
     return extracted, skipped_binary
 
 
+@dataclass(frozen=True)
+class TcpBootstrap:
+    name: str
+    host: str
+    port: int
+
+
+def _validate_mcx_interfaces_url(url: str) -> str:
+    parsed = urllib.parse.urlparse(url.strip())
+    if parsed.scheme != "https":
+        raise ValueError("mcx-interfaces URL must use https")
+    host = (parsed.hostname or "").lower()
+    if host != "meshchatx.com":
+        raise ValueError("mcx-interfaces URL host is not allowed")
+    return url.strip()
+
+
+def _sanitize_interface_name(name: str) -> str:
+    cleaned = str(name or "").strip()
+    if not cleaned:
+        return "bootstrap"
+    cleaned = (
+        cleaned.replace("[", "(")
+        .replace("]", ")")
+        .replace("\n", " ")
+        .replace("\r", " ")
+    )
+    cleaned = " ".join(cleaned.split())
+    return cleaned[:128] or "bootstrap"
+
+
+def _parse_mcx_tcp_bootstraps(payload: object) -> list[TcpBootstrap]:
+    rows: list[object]
+    if isinstance(payload, list):
+        rows = payload
+    elif isinstance(payload, dict):
+        candidate = payload.get("interfaces")
+        rows = candidate if isinstance(candidate, list) else []
+    else:
+        rows = []
+
+    out: list[TcpBootstrap] = []
+    seen: set[tuple[str, int]] = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        if (row.get("type") or "").lower() != "tcp":
+            continue
+        if (row.get("network") or "").lower() != "clearnet":
+            continue
+        if (row.get("status") or "").lower() != "online":
+            continue
+        host = str(row.get("host") or row.get("address") or "").strip()
+        port = row.get("port")
+        if not host or port is None:
+            continue
+        try:
+            port_i = int(port)
+        except (TypeError, ValueError):
+            continue
+        key = (host.lower(), port_i)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(
+            TcpBootstrap(
+                name=_sanitize_interface_name(str(row.get("name") or host)),
+                host=host,
+                port=port_i,
+            ),
+        )
+    return out
+
+
+def _fetch_mcx_tcp_bootstraps(
+    *,
+    url: str = MCX_INTERFACES_URL,
+    timeout: float,
+) -> list[TcpBootstrap]:
+    safe_url = _validate_mcx_interfaces_url(url)
+    logging.info("Fetching community TCP bootstraps from %s", safe_url)
+    req = urllib.request.Request(
+        safe_url,
+        headers={"User-Agent": "meshchatx-build-script"},
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as response:
+        payload = json.load(response)
+    return _parse_mcx_tcp_bootstraps(payload)
+
+
+def _pick_random_tcp_bootstraps(
+    count: int,
+    *,
+    url: str = MCX_INTERFACES_URL,
+    timeout: float,
+    rng: random.Random | None = None,
+) -> list[TcpBootstrap]:
+    pool = _fetch_mcx_tcp_bootstraps(url=url, timeout=timeout)
+    if not pool:
+        return []
+    picker = rng or random.SystemRandom()
+    take = max(1, min(count, len(pool)))
+    return picker.sample(pool, take)
+
+
+def _write_bootstrap_config(config_path: Path, bootstraps: list[TcpBootstrap]) -> None:
+    lines = [
+        "[reticulum]",
+        "  enable_transport = yes",
+        "  share_instance = no",
+        "  panic_on_interface_error = no",
+        "",
+        "[interfaces]",
+    ]
+    used_names: set[str] = set()
+    for item in bootstraps:
+        name = item.name
+        suffix = 2
+        while name in used_names:
+            name = f"{item.name} {suffix}"
+            suffix += 1
+        used_names.add(name)
+        lines.extend(
+            [
+                f"  [[{name}]]",
+                "    type = TCPClientInterface",
+                "    enabled = yes",
+                f"    target_host = {item.host}",
+                f"    target_port = {item.port}",
+                "    bootstrap_only = yes",
+                "",
+            ],
+        )
+    config_path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _git_remote_rns_path() -> str | None:
+    found = shutil.which("git-remote-rns")
+    if found:
+        return found
+    candidate = Path(sys.executable).resolve().parent / "git-remote-rns"
+    if candidate.is_file():
+        return str(candidate)
+    return None
+
+
+def _ensure_rns_tooling(*, pinned_rns: str | None) -> None:
+    if _git_remote_rns_path():
+        return
+    if _is_truthy(os.environ.get("MESHCHATX_SKIP_RNS_INSTALL")):
+        raise ValueError(
+            "git-remote-rns is required for rns:// docs sources "
+            "(set MESHCHATX_SKIP_RNS_INSTALL=0 and install rns, or use HTTPS fallback)",
+        )
+    version = pinned_rns or pinned_rns_version() or "1.5.0"
+    logging.info("Installing rns %s for git-remote-rns", version)
+    completed = subprocess.run(
+        [sys.executable, "-m", "pip", "install", f"rns=={version}"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if completed.returncode != 0:
+        tail = (completed.stderr or completed.stdout or "").strip()[-500:]
+        raise ValueError(f"failed to install rns=={version}: {tail or completed.returncode}")
+    if not _git_remote_rns_path():
+        raise ValueError("git-remote-rns still missing after installing rns")
+
+
+def _build_rns_git_env(config_dir: str | None) -> dict[str, str]:
+    env = os.environ.copy()
+    bindir = str(Path(sys.executable).resolve().parent)
+    env["PATH"] = bindir + os.pathsep + env.get("PATH", "")
+    if config_dir:
+        env["RNS_CONFIG"] = config_dir
+    return env
+
+
+@contextlib.contextmanager
+def _ephemeral_rns_bootstrap(
+    *,
+    count: int,
+    timeout: float,
+    pinned_rns: str | None,
+) -> Iterator[dict[str, str]]:
+    _ensure_rns_tooling(pinned_rns=pinned_rns)
+    work = Path(tempfile.mkdtemp(prefix="meshchatx-rns-bootstrap-"))
+    try:
+        bootstraps = _pick_random_tcp_bootstraps(count, timeout=timeout)
+        if bootstraps:
+            config_path = work / "config"
+            _write_bootstrap_config(config_path, bootstraps)
+            names = ", ".join(f"{b.name} ({b.host}:{b.port})" for b in bootstraps)
+            logging.info(
+                "Using %d ephemeral TCP bootstrap(s) for rns:// docs fetch: %s",
+                len(bootstraps),
+                names,
+            )
+            yield _build_rns_git_env(str(work))
+        else:
+            logging.warning(
+                "No clearnet TCP bootstraps from mcx-interfaces; "
+                "attempting rns:// fetch without ephemeral interfaces",
+            )
+            yield _build_rns_git_env(None)
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def _bootstrap_count() -> int:
+    raw = os.environ.get("MESHCHATX_DOCS_BOOTSTRAP_COUNT", "")
+    if not raw.strip():
+        return DEFAULT_BOOTSTRAP_COUNT
+    try:
+        return max(1, min(DEFAULT_BOOTSTRAP_COUNT, int(raw.strip())))
+    except ValueError:
+        return DEFAULT_BOOTSTRAP_COUNT
+
+
 def _find_docs_dir(root: Path) -> Path:
     direct = root / "docs"
     if direct.is_dir():
@@ -273,7 +509,13 @@ def _find_docs_dir(root: Path) -> Path:
     raise ValueError(f"no docs/ directory found under {root}")
 
 
-def _run_git(args: list[str], *, cwd: Path | None, timeout: float) -> None:
+def _run_git(
+    args: list[str],
+    *,
+    cwd: Path | None,
+    timeout: float,
+    env: dict[str, str] | None = None,
+) -> None:
     try:
         completed = subprocess.run(
             args,
@@ -281,6 +523,7 @@ def _run_git(args: list[str], *, cwd: Path | None, timeout: float) -> None:
             check=False,
             capture_output=True,
             timeout=timeout,
+            env=env,
         )
     except subprocess.TimeoutExpired as exc:
         raise ValueError(f"git timed out: {' '.join(args)}") from exc
@@ -294,52 +537,61 @@ def _clone_rns_docs(
     *,
     timeout: float,
     ref: str,
+    pinned_rns: str | None = None,
 ) -> tuple[Path, str]:
     """Clone an rns:// website repo sparsely and return docs/ path and commit."""
     if shutil.which("git") is None:
         raise ValueError("git is required for rns:// docs sources")
-    if shutil.which("git-remote-rns") is None:
-        raise ValueError("git-remote-rns is required for rns:// docs sources")
 
     work = Path(tempfile.mkdtemp(prefix="meshchatx-rns-docs-"))
     try:
-        logging.info("Cloning Reticulum website from %s (ref=%s)", remote, ref)
-        _run_git(
-            [
-                "git",
-                "clone",
-                "--filter=blob:none",
-                "--sparse",
-                "--no-checkout",
-                remote,
-                str(work),
-            ],
-            cwd=None,
+        with _ephemeral_rns_bootstrap(
+            count=_bootstrap_count(),
             timeout=timeout,
-        )
-        _run_git(
-            ["git", "sparse-checkout", "set", "--no-cone", "--", "docs"],
-            cwd=work,
-            timeout=min(60.0, timeout),
-        )
-        fetch_ref = ref if ref and ref != "HEAD" else "HEAD"
-        _run_git(
-            ["git", "fetch", "--depth", "1", "origin", fetch_ref],
-            cwd=work,
-            timeout=timeout,
-        )
-        _run_git(
-            ["git", "checkout", "FETCH_HEAD", "--", "docs"],
-            cwd=work,
-            timeout=min(120.0, timeout),
-        )
-        completed = subprocess.run(
-            ["git", "rev-parse", "FETCH_HEAD"],
-            cwd=work,
-            check=False,
-            capture_output=True,
-            timeout=min(30.0, timeout),
-        )
+            pinned_rns=pinned_rns,
+        ) as git_env:
+            logging.info("Cloning Reticulum website from %s (ref=%s)", remote, ref)
+            _run_git(
+                [
+                    "git",
+                    "clone",
+                    "--filter=blob:none",
+                    "--sparse",
+                    "--no-checkout",
+                    remote,
+                    str(work),
+                ],
+                cwd=None,
+                timeout=timeout,
+                env=git_env,
+            )
+            _run_git(
+                ["git", "sparse-checkout", "set", "--no-cone", "--", "docs"],
+                cwd=work,
+                timeout=min(60.0, timeout),
+                env=git_env,
+            )
+            fetch_ref = ref if ref and ref != "HEAD" else "HEAD"
+            _run_git(
+                ["git", "fetch", "--depth", "1", "origin", fetch_ref],
+                cwd=work,
+                timeout=timeout,
+                env=git_env,
+            )
+            _run_git(
+                ["git", "checkout", "FETCH_HEAD", "--", "docs"],
+                cwd=work,
+                timeout=min(120.0, timeout),
+                env=git_env,
+            )
+            completed = subprocess.run(
+                ["git", "rev-parse", "FETCH_HEAD"],
+                cwd=work,
+                check=False,
+                capture_output=True,
+                timeout=min(30.0, timeout),
+                env=git_env,
+            )
         docs_commit = (
             completed.stdout.decode("utf-8", errors="replace").strip()
             if completed.returncode == 0
@@ -372,7 +624,10 @@ def _stage_from_local_or_rns(
 
     if _is_rns_source(source):
         docs_dir, docs_commit = _clone_rns_docs(
-            source.strip(), timeout=timeout, ref=ref
+            source.strip(),
+            timeout=timeout,
+            ref=ref,
+            pinned_rns=pinned_rns_version(),
         )
         cleanup = str(docs_dir.parent)
         try:
