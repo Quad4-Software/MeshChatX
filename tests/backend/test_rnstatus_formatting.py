@@ -191,6 +191,8 @@ def test_rnstatus_includes_queue_and_flow_totals():
     assert status["totals"]["announces"]["rx_bytes_str"]
     assert status["totals"]["path_requests"]["tx_bytes_str"]
     assert status["queues"]["queues"][0]["name"] == "total"
+    assert status["totals"]["data_rx_pct"] == 88
+    assert status["totals"]["data_tx_pct"] == 88
 
 
 def test_rnstatus_mode_labels_match_rns_constants():
