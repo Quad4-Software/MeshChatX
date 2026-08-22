@@ -61,7 +61,9 @@
                                 <option value="tx">{{ $t("rnstatus.tx_bytes") }}</option>
                                 <option value="traffic">{{ $t("rnstatus.total_traffic") }}</option>
                                 <option value="announces">{{ $t("rnstatus.announces") }}</option>
+                                <option value="prx">{{ $t("rnstatus.path_requests") }}</option>
                                 <option value="held">{{ $t("rnstatus.held_announces") }}</option>
+                                <option value="gravity">{{ $t("rnstatus.gravity") }}</option>
                             </select>
                         </div>
                     </div>
@@ -129,6 +131,28 @@
                         <div class="mt-1 text-2xl font-semibold tabular-nums text-gray-900 dark:text-white">
                             {{ formatInt(linkCount) }}
                         </div>
+                        <div
+                            v-if="activeLinkCount !== null"
+                            class="text-xs text-gray-500 dark:text-zinc-500 tabular-nums"
+                        >
+                            {{
+                                $t("rnstatus.active_links_detail", {
+                                    active: formatInt(activeLinkCount),
+                                    total: formatInt(linkCount),
+                                })
+                            }}
+                        </div>
+                    </div>
+                    <div
+                        v-if="rnsVersion"
+                        class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4"
+                    >
+                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                            {{ $t("rnstatus.rns_version") }}
+                        </div>
+                        <div class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
+                            {{ rnsVersion }}
+                        </div>
                     </div>
                     <div
                         v-if="transportUptimeStr"
@@ -169,6 +193,78 @@
                         </div>
                         <div class="text-xs text-gray-500 dark:text-zinc-500 tabular-nums">
                             {{ $t("rnstatus.blackhole_identities", { count: formatInt(blackholeCount) }) }}
+                        </div>
+                    </div>
+                    <div
+                        v-if="rssStr"
+                        class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4"
+                    >
+                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                            {{ $t("rnstatus.memory_rss") }}
+                        </div>
+                        <div class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
+                            {{ rssStr }}
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    v-if="totalsAnnounces || totalsPathRequests"
+                    class="grid gap-3 lg:grid-cols-2"
+                >
+                    <div
+                        v-if="totalsAnnounces"
+                        class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-2"
+                    >
+                        <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
+                            {{ $t("rnstatus.transport_announces") }}
+                        </h2>
+                        <div class="text-sm tabular-nums text-gray-900 dark:text-white">
+                            <div>↑ {{ totalsAnnounces.tx_bytes_str }} {{ totalsAnnounces.tx_speed_str }}</div>
+                            <div>↓ {{ totalsAnnounces.rx_bytes_str }} {{ totalsAnnounces.rx_speed_str }}</div>
+                        </div>
+                    </div>
+                    <div
+                        v-if="totalsPathRequests"
+                        class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-2"
+                    >
+                        <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
+                            {{ $t("rnstatus.transport_path_requests") }}
+                        </h2>
+                        <div class="text-sm tabular-nums text-gray-900 dark:text-white">
+                            <div>↑ {{ totalsPathRequests.tx_bytes_str }} {{ totalsPathRequests.tx_speed_str }}</div>
+                            <div>↓ {{ totalsPathRequests.rx_bytes_str }} {{ totalsPathRequests.rx_speed_str }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    v-if="queueRows.length > 0"
+                    class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3"
+                >
+                    <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
+                        {{ $t("rnstatus.queue_pressure") }}
+                    </h2>
+                    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                        <div
+                            v-for="queue in queueRows"
+                            :key="queue.key"
+                            class="rounded-lg border border-gray-100 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 p-3"
+                        >
+                            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                                {{ queue.label }}
+                            </div>
+                            <div class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
+                                {{ queue.pressure || "—" }}
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-zinc-500">
+                                <span v-if="queue.packets">
+                                    {{ $t("rnstatus.queue_packets", { count: queue.packets }) }}
+                                </span>
+                                <span v-if="queue.dropped" class="ml-2">
+                                    {{ $t("rnstatus.queue_dropped", { count: queue.dropped }) }}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -377,6 +473,12 @@ export default {
             probeResponder: "",
             transportUptimeStr: "",
             totals: null,
+            totalsAnnounces: null,
+            totalsPathRequests: null,
+            queues: null,
+            rnsVersion: "",
+            activeLinkCount: null,
+            rssStr: "",
         };
     },
     computed: {
@@ -385,8 +487,30 @@ export default {
                 this.linkCount !== null ||
                 Boolean(this.transportUptimeStr) ||
                 Boolean(this.totals) ||
-                this.blackholeEnabled !== null
+                this.blackholeEnabled !== null ||
+                Boolean(this.rnsVersion) ||
+                Boolean(this.rssStr)
             );
+        },
+        queueRows() {
+            const queues = this.queues?.queues;
+            if (!Array.isArray(queues)) {
+                return [];
+            }
+            const labels = {
+                total: this.$t("rnstatus.queue_total"),
+                data: this.$t("rnstatus.queue_data"),
+                announce: this.$t("rnstatus.queue_announce"),
+                path_request: this.$t("rnstatus.queue_path_request"),
+                ingress_limiter: this.$t("rnstatus.queue_ingress_limiter"),
+            };
+            return queues.map((queue) => ({
+                key: queue.name,
+                label: labels[queue.name] || queue.name,
+                pressure: queue.pressure,
+                packets: queue.packets,
+                dropped: queue.dropped,
+            }));
         },
         i2pInterfaces() {
             return (this.interfaces || []).filter(
@@ -474,6 +598,30 @@ export default {
             }
             add("held_announces", iface.held_announces);
             add("announce_queue", iface.announce_queue);
+            add("announce_totals", iface.announce_totals);
+            add("path_request_totals", iface.path_request_totals);
+            add("announce_rx_bytes", iface.announce_rx_bytes_str);
+            add("announce_tx_bytes", iface.announce_tx_bytes_str);
+            add("path_rx_bytes", iface.path_rx_bytes_str);
+            add("path_tx_bytes", iface.path_tx_bytes_str);
+            if (iface.announce_flow_rx_pct !== undefined) {
+                add("announce_flow_rx", this.$t("rnstatus.flow_share", { pct: iface.announce_flow_rx_pct }));
+            }
+            if (iface.announce_flow_tx_pct !== undefined) {
+                add("announce_flow_tx", this.$t("rnstatus.flow_share", { pct: iface.announce_flow_tx_pct }));
+            }
+            if (iface.path_flow_rx_pct !== undefined) {
+                add("path_flow_rx", this.$t("rnstatus.flow_share", { pct: iface.path_flow_rx_pct }));
+            }
+            if (iface.path_flow_tx_pct !== undefined) {
+                add("path_flow_tx", this.$t("rnstatus.flow_share", { pct: iface.path_flow_tx_pct }));
+            }
+            add("announce_rate_limits", iface.announce_rate_limits);
+            add("violations", iface.violations);
+            add("filter_hits", iface.filter_hits);
+            if (Array.isArray(iface.blocked_ip_list) && iface.blocked_ip_list.length > 0) {
+                add("blocked_ip_list", iface.blocked_ip_list.join(", "));
+            }
             if (iface.airtime) {
                 add("airtime", `${iface.airtime.short}% (15s), ${iface.airtime.long}% (1h)`);
             }
@@ -559,6 +707,15 @@ export default {
                 this.probeResponder = data.probe_responder || "";
                 this.transportUptimeStr = data.transport_uptime_str || "";
                 this.totals = data.totals || null;
+                this.totalsAnnounces = data.totals?.announces || null;
+                this.totalsPathRequests = data.totals?.path_requests || null;
+                this.queues = data.queues || null;
+                this.rnsVersion = data.rns_version || "";
+                this.activeLinkCount =
+                    data.active_link_count === undefined || data.active_link_count === null
+                        ? null
+                        : data.active_link_count;
+                this.rssStr = data.rss_str || "";
             } catch (e) {
                 console.error(e);
                 const detail = e?.response?.data?.message || e?.message || "";

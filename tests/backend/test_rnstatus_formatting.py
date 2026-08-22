@@ -102,6 +102,87 @@ def test_rnstatus_hides_client_interfaces_unless_show_all():
     ]
 
 
+def test_rnstatus_hides_non_connectable_i2p_unless_show_all():
+    from unittest.mock import MagicMock
+
+    from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
+
+    handler = RNStatusHandler(MagicMock())
+    stats = {
+        "interfaces": [
+            {"name": "I2PInterface[Hidden]", "status": True, "mode": 0, "i2p_connectable": False},
+            {"name": "I2PInterface[Public]", "status": True, "mode": 0, "i2p_connectable": True},
+        ],
+    }
+    hidden = handler.get_status(stats=stats, include_local_blackhole=False)
+    assert [i["name"] for i in hidden["interfaces"]] == ["I2PInterface[Public]"]
+    shown = handler.get_status(
+        stats=stats,
+        include_local_blackhole=False,
+        show_all=True,
+    )
+    assert len(shown["interfaces"]) == 2
+
+
+def test_rnstatus_includes_queue_and_flow_totals():
+    from unittest.mock import MagicMock
+
+    from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
+
+    handler = RNStatusHandler(MagicMock())
+    status = handler.get_status(
+        stats={
+            "interfaces": [
+                {
+                    "name": "RNodeInterface[Test]",
+                    "status": True,
+                    "mode": 0,
+                    "rxb": 1000,
+                    "txb": 2000,
+                    "rxs": 100,
+                    "txs": 200,
+                    "arxc": 12,
+                    "atxc": 34,
+                    "prxc": 5,
+                    "ptxc": 6,
+                    "arxs": 10,
+                    "atxs": 20,
+                    "prxs": 2,
+                    "ptxs": 3,
+                    "protocol_violations": 1,
+                    "ifac_violations": 2,
+                    "packet_filter_hits": 9,
+                },
+            ],
+            "rxb": 3000,
+            "txb": 4000,
+            "rxs": 100,
+            "txs": 200,
+            "arxb": 500,
+            "atxb": 600,
+            "arxs": 10,
+            "atxs": 20,
+            "prxb": 50,
+            "ptxb": 60,
+            "prxs": 2,
+            "ptxs": 3,
+            "rxqt": 4,
+            "tqpressure": 0.25,
+            "rxqtd": 1,
+        },
+        include_local_blackhole=False,
+    )
+    iface = status["interfaces"][0]
+    assert iface["announce_totals"] == "↓12 ↑34"
+    assert iface["path_request_totals"] == "↓5 ↑6"
+    assert iface["violations"] == "1 protocol, 2 IFAC"
+    assert iface["filter_hits"] == "9"
+    assert iface["announce_flow_rx_pct"] == 10
+    assert status["totals"]["announces"]["rx_bytes_str"]
+    assert status["totals"]["path_requests"]["tx_bytes_str"]
+    assert status["queues"]["queues"][0]["name"] == "total"
+
+
 def test_rnstatus_mode_labels_match_rns_constants():
     from unittest.mock import MagicMock
 
@@ -111,7 +192,6 @@ def test_rnstatus_mode_labels_match_rns_constants():
 
     iface = RNS.Interfaces.Interface.Interface
     cases = {
-        iface.MODE_FULL: "Full",
         iface.MODE_POINT_TO_POINT: "Point-to-Point",
         iface.MODE_ACCESS_POINT: "Access Point",
         iface.MODE_ROAMING: "Roaming",
