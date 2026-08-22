@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 import subprocess
 import sys
@@ -96,12 +97,85 @@ def test_fetch_manual_from_local_docs_tree(tmp_path):
         force=True,
         include_pdf=False,
         manifest_path=manifest,
+        pinned_rns="9.9.9",
     )
     assert count == 2
     assert (dest / "index.html").is_file()
     assert (dest / "manual" / "index.html").is_file()
     assert not (dest / "manual.pdf").exists()
     assert manifest.is_file()
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    assert payload["rns_version"] == "9.9.9"
+
+
+def test_pinned_rns_version_reads_uv_lock():
+    fetch = _load_module(_FETCH, "fetch_reticulum_manual_pin_test")
+    version = fetch.pinned_rns_version(_REPO / "uv.lock")
+    assert version is not None
+    assert version.count(".") >= 1
+
+
+def test_should_skip_fetch_when_bundle_matches_rns_version(tmp_path):
+    fetch = _load_module(_FETCH, "fetch_reticulum_manual_skip_test")
+    dest = tmp_path / "out"
+    manual = dest / "manual"
+    manual.mkdir(parents=True)
+    (manual / "index.html").write_text("<html>m</html>", encoding="utf-8")
+    manifest = tmp_path / "manifest.json"
+    source = fetch.DEFAULT_RNS_SOURCE
+    manifest.write_text(
+        json.dumps(
+            {
+                "source_url": source,
+                "rns_version": "1.5.0",
+            }
+        ),
+        encoding="utf-8",
+    )
+    skip, reason = fetch.should_skip_fetch(
+        dest=dest,
+        manifest_path=manifest,
+        source_url=source,
+        pinned_rns="1.5.0",
+        force=False,
+    )
+    assert skip is True
+    assert "match" in reason
+
+
+def test_should_not_skip_fetch_when_rns_version_changes(tmp_path):
+    fetch = _load_module(_FETCH, "fetch_reticulum_manual_stale_test")
+    dest = tmp_path / "out"
+    manual = dest / "manual"
+    manual.mkdir(parents=True)
+    (manual / "index.html").write_text("<html>m</html>", encoding="utf-8")
+    manifest = tmp_path / "manifest.json"
+    source = fetch.DEFAULT_RNS_SOURCE
+    manifest.write_text(
+        json.dumps(
+            {
+                "source_url": source,
+                "rns_version": "1.4.0",
+            }
+        ),
+        encoding="utf-8",
+    )
+    skip, reason = fetch.should_skip_fetch(
+        dest=dest,
+        manifest_path=manifest,
+        source_url=source,
+        pinned_rns="1.5.0",
+        force=False,
+    )
+    assert skip is False
+    assert "rns version changed" in reason
+
+
+def test_default_docs_source_is_rngit_website():
+    fetch = _load_module(_FETCH, "fetch_reticulum_manual_default_test")
+    assert fetch.DEFAULT_SOURCES == (fetch.DEFAULT_RNS_SOURCE,)
+    assert fetch.DEFAULT_RNS_SOURCE.startswith("rns://")
+    assert fetch.DEFAULT_RNS_SOURCE.endswith("/reticulum/website")
 
 
 def test_taskfile_has_pip_rns_targets():
