@@ -202,12 +202,14 @@ def _format_traffic_totals(stats: dict) -> dict[str, Any] | None:
     rxs = stats.get("rxs")
     txs = stats.get("txs")
     if rxs and txs:
+        non_data_rx = (stats.get("prxs") or 0) + (stats.get("arxs") or 0)
+        non_data_tx = (stats.get("ptxs") or 0) + (stats.get("atxs") or 0)
         data_rx = _flow_share_percent(
-            (stats.get("prxs") or 0) + (stats.get("arxs") or 0),
+            max(0.0, float(rxs) - float(non_data_rx)),
             rxs,
         )
         data_tx = _flow_share_percent(
-            (stats.get("ptxs") or 0) + (stats.get("atxs") or 0),
+            max(0.0, float(txs) - float(non_data_tx)),
             txs,
         )
         if data_rx is not None:

@@ -308,6 +308,20 @@ def _sanitize_interface_name(name: str) -> str:
     return cleaned[:128] or "bootstrap"
 
 
+def _sanitize_target_host(host: str) -> str | None:
+    cleaned = str(host or "").strip()
+    if not cleaned:
+        return None
+    if any(ch in cleaned for ch in "\r\n\t="):
+        return None
+    cleaned = " ".join(cleaned.split())
+    return cleaned[:253] or None
+
+
+def _valid_tcp_port(port: int) -> bool:
+    return 1 <= port <= 65535
+
+
 def _parse_mcx_tcp_bootstraps(payload: object) -> list[TcpBootstrap]:
     rows: list[object]
     if isinstance(payload, list):
@@ -329,13 +343,15 @@ def _parse_mcx_tcp_bootstraps(payload: object) -> list[TcpBootstrap]:
             continue
         if (row.get("status") or "").lower() != "online":
             continue
-        host = str(row.get("host") or row.get("address") or "").strip()
+        host = _sanitize_target_host(str(row.get("host") or row.get("address") or ""))
         port = row.get("port")
         if not host or port is None:
             continue
         try:
             port_i = int(port)
         except (TypeError, ValueError):
+            continue
+        if not _valid_tcp_port(port_i):
             continue
         key = (host.lower(), port_i)
         if key in seen:
@@ -393,6 +409,14 @@ def _write_bootstrap_config(config_path: Path, bootstraps: list[TcpBootstrap]) -
     ]
     used_names: set[str] = set()
     for item in bootstraps:
+        host = _sanitize_target_host(item.host)
+        if not host or not _valid_tcp_port(item.port):
+            logging.warning(
+                "Skipping bootstrap with invalid target %r:%s",
+                item.host,
+                item.port,
+            )
+            continue
         name = item.name
         suffix = 2
         while name in used_names:
@@ -404,7 +428,7 @@ def _write_bootstrap_config(config_path: Path, bootstraps: list[TcpBootstrap]) -
                 f"  [[{name}]]",
                 "    type = TCPClientInterface",
                 "    enabled = yes",
-                f"    target_host = {item.host}",
+                f"    target_host = {host}",
                 f"    target_port = {item.port}",
                 "    bootstrap_only = yes",
                 "",
