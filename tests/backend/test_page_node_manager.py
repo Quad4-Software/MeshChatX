@@ -325,6 +325,16 @@ class TestPageNodeManagerLoad:
         assert len(mgr.nodes) == 1
 
 
+class TestPageNodeNameLength:
+    def test_add_page_without_pathconf(self, storage_dir, mock_rns):
+        mgr = _make_manager(storage_dir)
+        node = mgr.create_node("Windows Path")
+        with patch.object(os, "pathconf", None):
+            saved_name = node.add_page("index", "hello mesh")
+        assert saved_name == "index.mu"
+        assert node.list_pages() == [{"name": "index.mu", "executable": False}]
+
+
 class TestPageNodeManagerTeardown:
     def test_teardown_stops_and_clears(self, storage_dir, mock_rns):
         mgr = _make_manager(storage_dir)
