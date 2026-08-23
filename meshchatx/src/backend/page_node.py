@@ -267,7 +267,7 @@ def _reject_name_component_too_long(parent_dir: str, component: str) -> None:
             max_bytes = int(os.pathconf(parent_dir, "PC_NAME_MAX"))
         else:
             max_bytes = 255
-    except (OSError, ValueError, TypeError, OverflowError):
+    except (AttributeError, OSError, ValueError, TypeError, OverflowError):
         max_bytes = 255
     if len(os.fsencode(component)) > max_bytes:
         raise ValueError("name too long")
