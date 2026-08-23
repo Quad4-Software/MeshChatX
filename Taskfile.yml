@@ -832,9 +832,19 @@ tasks:
             - sh scripts/ci/verify-tree-rsm.sh
 
     hooks:install:
-        desc: Enable tracked .githooks (pre-commit resigns meshchatx.rsm)
+        desc: Enable tracked git hooks (pre-commit format/lint, commitlint, meshchatx.rsm resign)
         cmds:
             - sh scripts/ci/install-git-hooks.sh
+
+    hooks:run:
+        desc: Run pre-commit on all staged files (same as the pre-commit hook)
+        cmds:
+            - uv run pre-commit run --hook-stage pre-commit
+
+    check:commits:
+        desc: Validate commit messages (COMMITLINT_FROM defaults to origin/master)
+        cmds:
+            - "{{.NPM}} exec commitlint --from ${COMMITLINT_FROM:-origin/master} --to HEAD"
 
     tree-workspace-clean:
         desc: Recheck inventory (warn by default, RNS_TREE_VERIFY_STRICT=1 to fail)

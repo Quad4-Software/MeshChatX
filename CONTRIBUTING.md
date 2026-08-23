@@ -1,8 +1,59 @@
 # Contributing to Reticulum MeshChatX
 
-Patches are the preferred way to contribute. Create your changes locally, export a `.patch` file, and send it over Reticulum.
+Two paths: **GitHub pull requests** (full dev workflow below) and **LXMF patches** over the mesh (format-patch section).
 
-## Generating a patch
+## Development workflow (GitHub)
+
+1. Fork or clone, then install dependencies:
+
+    ```bash
+    task install
+    task hooks:install
+    ```
+
+2. Create a branch and make focused changes. Match nearby style and keep SPDX headers on new files.
+
+3. Before you push, run the same gates CI uses:
+
+    ```bash
+    task check          # format, lint, test (full gate)
+    # or narrower:
+    task format
+    task lint
+    task test:quick
+    ```
+
+4. Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages (`feat:`, `fix:`, `chore:`, etc.). Details: `.agents/conventions/commits.md`. With hooks installed, `commitlint` runs on every commit.
+
+5. Open a pull request against `master` or `dev`. CI runs `task lint`, frontend tests, and localization checks.
+
+### Git hooks
+
+`task hooks:install` enables tracked hooks under `.githooks/`:
+
+| Hook         | What it does                                                                                               |
+| ------------ | ---------------------------------------------------------------------------------------------------------- |
+| `pre-commit` | Ruff format/lint, Prettier, ESLint fix on staged files, whitespace checks, optional `meshchatx.rsm` resign |
+| `commit-msg` | commitlint (conventional commit header)                                                                    |
+
+Skip one hook: `SKIP=ruff-format git commit ...`
+
+Skip all hooks: `git commit --no-verify`
+
+Skip RSM resign only: `SKIP=meshchatx-rsm git commit ...`
+
+### Code style
+
+| Surface  | Tool                            | Task                                         |
+| -------- | ------------------------------- | -------------------------------------------- |
+| Python   | Ruff                            | `task format:backend`, `task lint:backend`   |
+| Frontend | Prettier, ESLint, vue-tsc, knip | `task format:frontend`, `task lint:frontend` |
+
+Editor baseline: `.editorconfig`. Agent conventions: `.agents/conventions/`.
+
+---
+
+## Generating a patch (LXMF)
 
 1. Clone or fork the repository and make your changes on a branch.
 
@@ -40,12 +91,12 @@ You can attach the file using Sideband, Meshchat, MeshchatX, or any LXMF-capable
 
 Lastly, be patient.
 
-## Patch guidelines
+## Patch guidelines (LXMF)
 
 - Keep patches focused on a single change or fix.
 - Test your changes before exporting.
-- No need to run linting or formatting.
-- No need to add a test or run the test suite.
+- Hooks, lint, and tests are optional for mesh patches but strongly recommended when you have the toolchain.
+- GitHub contributors should run `task lint` and add tests when behaviour changes.
 
 ## Licensing of contributions
 

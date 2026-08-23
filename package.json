@@ -28,6 +28,8 @@
         "typecheck": "vue-tsc --noEmit -p tsconfig.json",
         "knip": "knip",
         "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "commitlint": "commitlint --edit",
         "test": "vitest run --exclude tests/frontend/LoadTimePerformance.test.js && vitest run --config vitest.electron.config.js",
         "test:coverage": "vitest run --coverage --exclude tests/frontend/LoadTimePerformance.test.js && vitest run --config vitest.electron.config.js --coverage",
         "test:fuzz": "vitest run -t fuzzing",
@@ -77,6 +79,8 @@
     "packageManager": "pnpm@11.1.2",
     "devDependencies": {
         "@electron/fuses": "^1.8.0",
+        "@commitlint/cli": "^20.4.2",
+        "@commitlint/config-conventional": "^20.4.2",
         "@eslint/js": "^9.39.5",
         "@playwright/test": "^1.61.1",
         "@tailwindcss/vite": "^4.3.3",

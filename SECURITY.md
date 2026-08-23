@@ -49,13 +49,14 @@ export RNS_ID_PATH="$HOME/.local/share/reticulum-go/reticulum-go-release.rid"
 make tree-rsm-sign
 ```
 
-Enable the tracked pre-commit hook so commits that change inventory paths resign `meshchatx.rsm` automatically when that identity is available:
+Enable tracked git hooks (format/lint on staged files, commitlint, optional `meshchatx.rsm` resign):
 
 ```bash
 make hooks-install
+# or: task hooks:install
 ```
 
-Skip one commit with `SKIP_TREE_RSM_HOOK=1`.
+Skip one hook: `SKIP=ruff-format git commit ...`. Skip RSM resign: `SKIP=meshchatx-rsm` or `SKIP_TREE_RSM_HOOK=1`.
 
 ### Practical tips
 

@@ -88,6 +88,10 @@ jobs:
                   case "${{ matrix.task.id }}" in
                     lint)
                       task lint
+                      if [ "${{ github.event_name }}" = "pull_request" ]; then
+                        export COMMITLINT_FROM="origin/${{ github.event.pull_request.base.ref }}"
+                        task check:commits
+                      fi
                       ;;
                     frontend-tests)
                       task test:frontend

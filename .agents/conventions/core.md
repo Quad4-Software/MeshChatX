@@ -3,6 +3,7 @@
 - Read `.agents/overview.md` for layout, commands, and domain traps.
 - Mesh-facing work: read `.agents/conventions/reticulum-zen.md` and run `.agents/skills/reticulum-design-gates/SKILL.md` gates first.
 - Prefer `task` targets (`format`, `lint`, `test:quick`, `test:backend`, `test:frontend`).
+- Commit messages on GitHub: `.agents/conventions/commits.md`. Run `task hooks:install` once per clone.
 - Minimal diffs. Match nearby style. Keep SPDX headers on new project files (`0BSD` unless file already differs).
 - No emojis in repo text. No TODO/FIXME comment noise.
 - No emdashes or semicolons in comments or docs you write.
