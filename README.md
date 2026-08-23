@@ -336,6 +336,7 @@ CLI args and matching env vars:
 
 ```bash
 task install
+task hooks:install   # pre-commit format/lint + commitlint (once per clone)
 task format
 task lint
 task test
@@ -344,18 +345,18 @@ task build
 
 Makefile targets call the same Taskfile commands:
 
-| Command              | Delegates to | Description                               |
-| -------------------- | ------------ | ----------------------------------------- |
-| make install         | task install | Install pnpm and UV dependencies          |
-| make run             | task run     | Run MeshChatX via UV                      |
-| make build           | task build   | Build frontend and backend artifacts      |
-| make format          | task format  | Format frontend and backend               |
-| make lint            | task lint    | ESLint, vue-tsc, knip, Ruff, basedpyright |
-| make test            | task test    | Frontend and backend tests                |
-| make clean           | task clean   | Remove build artifacts and node_modules   |
-| make tree-rsm-verify | (shell)      | Verify meshchatx.rsm signature and hashes |
-| make tree-rsm-sign   | (shell)      | Sign tree inventory (needs RNS_ID_PATH)   |
-| make hooks-install   | (shell)      | Enable tracked pre-commit RSM resign hook |
+| Command              | Delegates to       | Description                                                 |
+| -------------------- | ------------------ | ----------------------------------------------------------- |
+| make install         | task install       | Install pnpm and UV dependencies                            |
+| make run             | task run           | Run MeshChatX via UV                                        |
+| make build           | task build         | Build frontend and backend artifacts                        |
+| make format          | task format        | Format frontend and backend                                 |
+| make lint            | task lint          | ESLint, vue-tsc, knip, Ruff, basedpyright                   |
+| make test            | task test          | Frontend and backend tests                                  |
+| make clean           | task clean         | Remove build artifacts and node_modules                     |
+| make tree-rsm-verify | (shell)            | Verify meshchatx.rsm signature and hashes                   |
+| make tree-rsm-sign   | (shell)            | Sign tree inventory (needs RNS_ID_PATH)                     |
+| make hooks-install   | task hooks:install | Git hooks: format/lint staged files, commitlint, RSM resign |
 
 ## Versioning
 
