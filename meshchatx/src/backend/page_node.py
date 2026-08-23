@@ -262,13 +262,13 @@ def _build_executable_page_env(
 
 def _reject_name_component_too_long(parent_dir: str, component: str) -> None:
     """Raise ValueError if basename exceeds this directory's filename length limit."""
-    try:
-        if parent_dir and os.path.isdir(parent_dir):
-            max_bytes = int(os.pathconf(parent_dir, "PC_NAME_MAX"))
-        else:
-            max_bytes = 255
-    except (AttributeError, OSError, ValueError, TypeError, OverflowError):
-        max_bytes = 255
+    max_bytes = 255
+    pathconf = getattr(os, "pathconf", None)
+    if pathconf is not None and parent_dir and os.path.isdir(parent_dir):
+        try:
+            max_bytes = int(pathconf(parent_dir, "PC_NAME_MAX"))
+        except (OSError, ValueError, TypeError, OverflowError):
+            pass
     if len(os.fsencode(component)) > max_bytes:
         raise ValueError("name too long")
 
