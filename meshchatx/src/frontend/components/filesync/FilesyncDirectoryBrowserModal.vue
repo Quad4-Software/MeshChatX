@@ -36,7 +36,7 @@
                         <MaterialDesignIcon icon-name="arrow-up" class="w-4 h-4" />
                         {{ $t("rns_filesync.browser_up") }}
                     </button>
-                    <div class="input-field flex-1 min-w-0 !py-2 font-mono text-xs truncate" :title="current">
+                    <div class="input-field flex-1 min-w-0 py-2! font-mono text-xs truncate" :title="current">
                         {{ current || "..." }}
                     </div>
                 </div>
@@ -71,7 +71,7 @@
                     <input
                         v-model="newFolderName"
                         type="text"
-                        class="input-field flex-1 min-w-0 !py-2 text-sm"
+                        class="input-field flex-1 min-w-0 py-2! text-sm"
                         :placeholder="$t('rns_filesync.browser_new_placeholder')"
                         :disabled="busy"
                         @keydown.enter.prevent="createFolder"

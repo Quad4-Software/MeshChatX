@@ -57,7 +57,7 @@
         * {{ page.displayName(entry.msg) }}
         <!-- eslint-disable vue/no-v-html -- sanitized via renderMessageHtml -->
         <span
-            class="break-words"
+            class="wrap-break-word"
             @click="page.handleMessageHtmlClick($event)"
             v-html="page.renderMessageHtml(entry.msg.text)"
         ></span>
@@ -74,7 +74,7 @@
         <span class="mr-1.5 font-semibold" :style="page.nameStyle(entry.msg)">{{ page.displayName(entry.msg) }}:</span>
         <!-- eslint-disable vue/no-v-html -- sanitized via renderMessageHtml -->
         <span
-            class="whitespace-pre-wrap break-words"
+            class="whitespace-pre-wrap wrap-break-word"
             @click="page.handleMessageHtmlClick($event)"
             v-html="page.renderMessageHtml(entry.msg.text)"
         ></span>

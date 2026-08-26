@@ -29,7 +29,7 @@
                         v-model="search"
                         type="text"
                         :placeholder="$t('relay_chat.hub_icon_search', { count: iconNames.length })"
-                        class="input-field !py-2.5 pr-10"
+                        class="input-field py-2.5! pr-10"
                     />
                     <MaterialDesignIcon
                         icon-name="magnify"

@@ -178,7 +178,7 @@
                                     <button
                                         v-if="!hub.connected"
                                         type="button"
-                                        :class="[btnPrimary, 'flex-1 !py-1.5 !text-xs']"
+                                        :class="[btnPrimary, 'flex-1 py-1.5! text-xs!']"
                                         @click.stop="connectHub(hub)"
                                     >
                                         <MaterialDesignIcon icon-name="lan-connect" class="size-4" />
@@ -187,7 +187,7 @@
                                     <button
                                         v-else
                                         type="button"
-                                        :class="[btnSecondary, 'flex-1 !py-1.5 !text-xs']"
+                                        :class="[btnSecondary, 'flex-1 py-1.5! text-xs!']"
                                         @click.stop="disconnectHub(hub)"
                                     >
                                         <MaterialDesignIcon icon-name="lan-disconnect" class="size-4" />
@@ -323,7 +323,7 @@
                                             v-model="joinRoomName"
                                             type="text"
                                             :placeholder="$t('relay_chat.join_room_placeholder')"
-                                            class="min-w-0 flex-1 border border-sem-border bg-sem-canvas px-2 py-1 text-xs text-sem-fg outline-none focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/30"
+                                            class="min-w-0 flex-1 border border-sem-border bg-sem-canvas px-2 py-1 text-xs text-sem-fg outline-hidden focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/30"
                                         />
                                         <button
                                             type="submit"
@@ -338,7 +338,7 @@
                                         type="password"
                                         :placeholder="$t('relay_chat.join_room_key_placeholder')"
                                         autocomplete="off"
-                                        class="w-full border border-sem-border bg-sem-canvas px-2 py-1 text-xs text-sem-fg outline-none focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/30"
+                                        class="w-full border border-sem-border bg-sem-canvas px-2 py-1 text-xs text-sem-fg outline-hidden focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/30"
                                     />
                                 </form>
                             </div>
@@ -496,7 +496,7 @@
                                 />
                                 <button
                                     type="submit"
-                                    :class="[btnPrimary, 'shrink-0 !p-2.5']"
+                                    :class="[btnPrimary, 'shrink-0 p-2.5!']"
                                     :title="$t('relay_chat.send')"
                                     :disabled="!composer.trim() || sending"
                                 >
@@ -531,7 +531,7 @@
                                     v-model="membersSearch"
                                     type="search"
                                     :placeholder="$t('relay_chat.members_search_placeholder')"
-                                    class="input-field !py-1.5 !text-xs"
+                                    class="input-field py-1.5! text-xs!"
                                 />
                             </div>
                             <div class="min-h-0 flex-1 overflow-y-auto custom-scrollbar p-2 space-y-3">
@@ -623,7 +623,7 @@
                                     v-model="messageSearch"
                                     type="text"
                                     :placeholder="$t('relay_chat.search_messages_placeholder')"
-                                    class="input-field !py-1.5 !text-xs"
+                                    class="input-field py-1.5! text-xs!"
                                 />
                             </div>
                             <div class="min-h-0 flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
@@ -697,7 +697,7 @@
                             v-model="discoverySearch"
                             type="text"
                             :placeholder="$t('relay_chat.discovery_search', { count: discovered.length })"
-                            class="input-field !pl-9"
+                            class="input-field pl-9!"
                             @input="onDiscoverySearch"
                         />
                     </div>
@@ -850,7 +850,7 @@
                                     <button
                                         v-if="!hub.running"
                                         type="button"
-                                        :class="[btnSecondary, '!px-2.5 !py-1.5 !text-xs']"
+                                        :class="[btnSecondary, 'px-2.5! py-1.5! text-xs!']"
                                         @click="startServerHub(hub)"
                                     >
                                         <MaterialDesignIcon icon-name="play" class="size-4" />
@@ -859,7 +859,7 @@
                                     <button
                                         v-else
                                         type="button"
-                                        :class="[btnSecondary, '!px-2.5 !py-1.5 !text-xs']"
+                                        :class="[btnSecondary, 'px-2.5! py-1.5! text-xs!']"
                                         @click="stopServerHub(hub)"
                                     >
                                         <MaterialDesignIcon icon-name="stop" class="size-4" />
@@ -914,7 +914,7 @@
 
                             <button
                                 type="button"
-                                :class="[btnSecondary, 'w-full !py-2 !text-xs']"
+                                :class="[btnSecondary, 'w-full py-2! text-xs!']"
                                 @click="openHostModeration(hub)"
                             >
                                 <MaterialDesignIcon icon-name="shield-account" class="size-4" />
@@ -1176,7 +1176,7 @@
                                 <div class="flex min-w-0 flex-1 flex-wrap gap-2">
                                     <button
                                         type="button"
-                                        :class="[btnSecondary, '!py-1.5 !text-xs']"
+                                        :class="[btnSecondary, 'py-1.5! text-xs!']"
                                         @click="openIconPicker"
                                     >
                                         <MaterialDesignIcon icon-name="image-edit-outline" class="size-4" />

@@ -71,12 +71,12 @@ export default {
     @apply flex-1 min-w-0 flex flex-col gap-0.5;
 }
 .setting-toggle__title {
-    @apply text-sm font-semibold text-gray-900 dark:text-white break-words leading-snug;
+    @apply text-sm font-semibold text-gray-900 dark:text-white wrap-break-word leading-snug;
 }
 .setting-toggle__description {
-    @apply text-xs sm:text-sm text-gray-600 dark:text-gray-300 break-words leading-snug;
+    @apply text-xs sm:text-sm text-gray-600 dark:text-gray-300 wrap-break-word leading-snug;
 }
 .setting-toggle__hint {
-    @apply text-xs text-gray-500 dark:text-gray-400 break-words;
+    @apply text-xs text-gray-500 dark:text-gray-400 wrap-break-word;
 }
 </style>
