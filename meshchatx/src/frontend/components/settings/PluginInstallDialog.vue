@@ -10,7 +10,7 @@
             @click="onCancel"
         />
         <div
-            class="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl p-5 space-y-4"
+            class="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl border border-sem-border bg-sem-surface shadow-xl p-5 space-y-4"
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="plugin-install-title"
@@ -66,7 +66,7 @@
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
                     {{ $t("plugins.install_dialog.security_findings") }}
                 </h3>
-                <ul class="space-y-1 rounded-md border border-gray-200 dark:border-zinc-700 p-3">
+                <ul class="space-y-1 rounded-md border border-sem-border p-3">
                     <li
                         v-for="finding in preview.security_findings"
                         :key="finding.id"
@@ -82,14 +82,14 @@
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
                     {{ $t("plugins.install_dialog.permissions") }}
                 </h3>
-                <p class="text-xs text-gray-500 dark:text-gray-400">
+                <p class="text-xs text-sem-fg-muted">
                     {{ $t("plugins.install_dialog.permissions_hint") }}
                 </p>
                 <ul class="space-y-2">
                     <li
                         v-for="perm in preview.permissions"
                         :key="perm"
-                        class="flex items-center justify-between gap-3 rounded-md border border-gray-200 dark:border-zinc-700 px-3 py-2"
+                        class="flex items-center justify-between gap-3 rounded-md border border-sem-border px-3 py-2"
                     >
                         <span class="text-sm text-gray-800 dark:text-gray-200">{{ labelFor(perm) }}</span>
                         <label class="inline-flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
@@ -109,7 +109,7 @@
                 </p>
                 <ul
                     v-if="(preview.network_endpoints || []).length"
-                    class="space-y-1 rounded-md border border-gray-200 dark:border-zinc-700 p-3"
+                    class="space-y-1 rounded-md border border-sem-border p-3"
                 >
                     <li
                         v-for="endpoint in preview.network_endpoints"
@@ -119,7 +119,7 @@
                         {{ endpoint }}
                     </li>
                 </ul>
-                <p v-else class="text-xs text-gray-500 dark:text-gray-400">
+                <p v-else class="text-xs text-sem-fg-muted">
                     {{ $t("plugins.install_dialog.network_endpoints_unknown") }}
                 </p>
             </section>

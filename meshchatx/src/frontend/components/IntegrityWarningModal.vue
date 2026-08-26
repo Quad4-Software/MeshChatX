@@ -1,69 +1,77 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <v-dialog v-model="visible" persistent max-width="500">
-        <v-card color="warning" class="pa-4">
-            <v-card-title class="headline text-white">
-                <v-icon start icon="mdi-alert-decagram" class="mr-2"></v-icon>
-                {{ $t("about.security_integrity") }}
-            </v-card-title>
+    <AppModal v-model="visible" :max-width="500" persistent panel-class="bg-amber-500 text-white">
+        <template #header>
+            <MaterialDesignIcon icon-name="alert-decagram" class="size-6 shrink-0" />
+            <h2 class="min-w-0 flex-1 text-lg font-semibold">{{ $t("about.security_integrity") }}</h2>
+        </template>
 
-            <v-card-text class="text-white mt-2">
-                <p v-if="integrity.backend && !integrity.backend.ok">
-                    <strong>{{ $t("about.tampering_detected") }}</strong
-                    ><br />
-                    {{ $t("about.integrity_backend_error") }}
-                </p>
+        <div class="space-y-3 px-4 py-4 sm:px-5">
+            <p v-if="integrity.backend && !integrity.backend.ok">
+                <strong>{{ $t("about.tampering_detected") }}</strong
+                ><br />
+                {{ $t("about.integrity_backend_error") }}
+            </p>
 
-                <p v-if="integrity.data && !integrity.data.ok" class="mt-2">
-                    <strong>{{ $t("about.tampering_detected") }}</strong
-                    ><br />
-                    {{ $t("about.integrity_data_error") }}
-                </p>
+            <p v-if="integrity.data && !integrity.data.ok">
+                <strong>{{ $t("about.tampering_detected") }}</strong
+                ><br />
+                {{ $t("about.integrity_data_error") }}
+            </p>
 
-                <v-expansion-panels v-if="issues.length > 0" variant="inset" class="mt-4">
-                    <v-expansion-panel :title="$t('about.technical_issues')" bg-color="warning-darken-1">
-                        <v-expansion-panel-text>
-                            <ul class="text-caption">
-                                <li v-for="(issue, index) in issues" :key="index">{{ issue }}</li>
-                            </ul>
-                        </v-expansion-panel-text>
-                    </v-expansion-panel>
-                </v-expansion-panels>
+            <details v-if="issues.length > 0" class="rounded-lg bg-amber-600/40 p-3">
+                <summary class="cursor-pointer text-sm font-medium">{{ $t("about.technical_issues") }}</summary>
+                <ul class="mt-2 list-disc pl-5 text-xs">
+                    <li v-for="(issue, index) in issues" :key="index">{{ issue }}</li>
+                </ul>
+            </details>
 
-                <p class="mt-4 text-caption">
-                    {{ $t("about.integrity_warning_footer") }}
-                </p>
-            </v-card-text>
+            <p class="text-xs opacity-90">{{ $t("about.integrity_warning_footer") }}</p>
+        </div>
 
-            <v-card-actions>
-                <v-checkbox
-                    v-model="dontShowAgain"
-                    :label="$t('app.do_not_show_again')"
-                    density="compact"
-                    hide-details
-                    class="text-white"
-                ></v-checkbox>
-                <v-spacer></v-spacer>
-                <v-btn variant="text" color="white" @click="close"> {{ $t("common.continue") }} </v-btn>
-                <v-btn
+        <template #actions>
+            <div class="flex w-full flex-wrap items-center gap-3">
+                <label class="flex items-center gap-2 text-sm">
+                    <input
+                        v-model="dontShowAgain"
+                        type="checkbox"
+                        class="rounded-sm border-white/40 bg-transparent text-white focus:ring-white/50"
+                    />
+                    <span>{{ $t("app.do_not_show_again") }}</span>
+                </label>
+                <div class="flex-1" />
+                <button
+                    type="button"
+                    class="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                    @click="close"
+                >
+                    {{ $t("common.continue") }}
+                </button>
+                <button
                     v-if="integrity.data && !integrity.data.ok"
-                    variant="flat"
-                    color="white"
-                    class="text-warning font-bold"
+                    type="button"
+                    class="rounded-lg bg-white px-4 py-2 text-sm font-bold text-amber-600 transition-colors hover:bg-amber-50"
                     @click="acknowledgeAndReset"
                 >
                     {{ $t("common.acknowledge_reset") }}
-                </v-btn>
-            </v-card-actions>
-        </v-card>
-    </v-dialog>
+                </button>
+            </div>
+        </template>
+    </AppModal>
 </template>
 
 <script>
+import AppModal from "./AppModal.vue";
+import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import ToastUtils from "../js/ToastUtils";
+
 export default {
     name: "IntegrityWarningModal",
+    components: {
+        AppModal,
+        MaterialDesignIcon,
+    },
     data() {
         return {
             visible: false,
@@ -85,7 +93,6 @@ export default {
 
             const isOk = this.integrity.backend.ok && this.integrity.data.ok;
             if (!isOk) {
-                // Check if user has already dismissed this
                 const dismissed = localStorage.getItem("integrity_warning_dismissed");
                 const appVersion = await window.electron.appVersion();
 
@@ -116,9 +123,3 @@ export default {
     },
 };
 </script>
-
-<style scoped>
-.text-white {
-    color: white !important;
-}
-</style>

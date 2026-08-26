@@ -7,7 +7,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createRouter, createWebHashHistory } from "vue-router";
 import { createI18n } from "vue-i18n";
-import { createVuetify } from "vuetify";
 import TutorialModal from "../../meshchatx/src/frontend/components/TutorialModal.vue";
 import en from "../../meshchatx/src/frontend/locales/en.json";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
@@ -36,7 +35,6 @@ vi.mock("../../meshchatx/src/frontend/js/DialogUtils", () => ({
 }));
 
 const axiosMock = { get: vi.fn(), post: vi.fn(), patch: vi.fn() };
-const vuetify = createVuetify();
 const i18n = createI18n({
     legacy: false,
     locale: "en",
@@ -44,12 +42,14 @@ const i18n = createI18n({
 });
 
 const dialogStubs = {
+    AppModal: {
+        template: '<div class="app-modal-stub"><slot /><slot name="header" /><slot name="actions" /></div>',
+        props: ["modelValue"],
+    },
     LanguageSelector: true,
     MaterialDesignIcon: true,
     Toggle: true,
     TutorialPrivacyStep: true,
-    VIcon: { template: '<span class="v-icon-stub"/>' },
-    VProgressCircular: { template: '<span class="progress-stub"/>' },
 };
 
 function tcpCommunity(n) {
@@ -104,7 +104,7 @@ async function mountTutorial(communityInterfaces = tcpCommunity(6)) {
 
     const wrapper = mount(TutorialModal, {
         attachTo: document.body,
-        global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+        global: { plugins: [router, i18n], stubs: dialogStubs },
     });
     await wrapper.vm.show();
     await flushPromises();
@@ -252,7 +252,7 @@ describe("TutorialModal connect/bootstrap adversarial oracles", () => {
         await router.isReady();
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
         await wrapper.vm.show();
         await flushPromises();
@@ -365,7 +365,7 @@ describe("TutorialModal connect/bootstrap adversarial oracles", () => {
         await router.isReady();
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
         await wrapper.vm.show();
         await flushPromises();

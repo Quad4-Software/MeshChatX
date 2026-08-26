@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createRouter, createWebHashHistory } from "vue-router";
 import { createI18n } from "vue-i18n";
-import { createVuetify } from "vuetify";
 import TutorialModal from "../../meshchatx/src/frontend/components/TutorialModal.vue";
 import en from "../../meshchatx/src/frontend/locales/en.json";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
@@ -31,8 +30,6 @@ vi.mock("../../meshchatx/src/frontend/js/DialogUtils", () => ({
 }));
 
 const axiosMock = { get: vi.fn(), post: vi.fn(), patch: vi.fn() };
-
-const vuetify = createVuetify();
 
 const i18n = createI18n({
     legacy: false,
@@ -75,14 +72,16 @@ function discoveryApiHandlers(migrationPayload) {
 }
 
 const dialogStubs = {
+    AppModal: {
+        template: '<div class="app-modal-stub"><slot /><slot name="header" /><slot name="actions" /></div>',
+        props: ["modelValue"],
+    },
     LanguageSelector: true,
     MaterialDesignIcon: true,
     Toggle: true,
-    VIcon: { template: '<span class="v-icon-stub"/>' },
 };
 
 const pageStubs = {
-    VIcon: { template: '<span class="v-icon-stub"/>' },
     LanguageSelector: true,
     MaterialDesignIcon: true,
     Toggle: true,
@@ -117,7 +116,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
 
         await wrapper.vm.show();
@@ -172,7 +171,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
 
         await wrapper.vm.show();
@@ -208,7 +207,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
 
         await wrapper.vm.show();
@@ -245,7 +244,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
 
         await wrapper.vm.show();
@@ -272,7 +271,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
 
         await wrapper.vm.show();
@@ -299,7 +298,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
 
         await wrapper.vm.show();
@@ -334,7 +333,7 @@ describe("TutorialModal getting started migration", () => {
         await router.isReady();
 
         const wrapper = mount(TutorialModal, {
-            global: { plugins: [router, vuetify, i18n], stubs: pageStubs },
+            global: { plugins: [router, i18n], stubs: pageStubs },
         });
 
         await flushPromises();
@@ -377,7 +376,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
 
         await wrapper.vm.refreshMigrationOffer();
@@ -401,7 +400,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
 
         await wrapper.vm.show();
@@ -448,7 +447,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
 
         await wrapper.vm.show();
@@ -484,7 +483,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
 
         await wrapper.vm.show();
@@ -514,7 +513,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
 
         await wrapper.vm.show();
@@ -551,7 +550,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
 
         await wrapper.vm.show();
@@ -590,7 +589,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
 
         await wrapper.vm.show();
@@ -623,7 +622,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
 
         await wrapper.vm.show();
@@ -659,7 +658,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
 
         await wrapper.vm.show();
@@ -716,7 +715,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
 
         await wrapper.vm.show();
@@ -757,7 +756,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
 
         await wrapper.vm.show();
@@ -793,7 +792,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
 
         await wrapper.vm.show();
@@ -831,7 +830,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
 
         await wrapper.vm.show();
@@ -870,7 +869,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
         await wrapper.vm.show();
         await flushPromises();
@@ -903,7 +902,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
         await wrapper.vm.show();
         await flushPromises();
@@ -937,7 +936,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
         await wrapper.vm.show();
         await flushPromises();
@@ -980,7 +979,7 @@ describe("TutorialModal getting started migration", () => {
 
         const wrapper = mount(TutorialModal, {
             attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+            global: { plugins: [router, i18n], stubs: dialogStubs },
         });
         await wrapper.vm.show();
         await flushPromises();
