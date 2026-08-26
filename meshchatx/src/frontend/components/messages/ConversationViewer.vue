@@ -2,7 +2,7 @@
 
 <template>
     <!-- peer selected -->
-    <div v-if="selectedPeer" class="flex flex-col h-full bg-white dark:bg-zinc-950 overflow-hidden relative">
+    <div v-if="selectedPeer" class="flex flex-col h-full bg-sem-surface overflow-hidden relative">
         <!-- banished overlay -->
         <div
             v-if="GlobalState?.config?.banished_effect_enabled && isSelectedPeerBlocked"
@@ -119,7 +119,7 @@
                 <div
                     id="messages"
                     ref="messagesScroll"
-                    class="flex-1 min-h-0 overflow-y-auto bg-white dark:bg-zinc-950"
+                    class="flex-1 min-h-0 overflow-y-auto bg-sem-canvas"
                     style="overflow-anchor: none; overscroll-behavior-y: contain"
                     :data-message-list-mode="useVirtualMessageList ? 'virtual' : 'reverse'"
                     :aria-busy="!messagesViewportReady ? 'true' : undefined"
@@ -144,7 +144,7 @@
                                     v-show="!isLoadingPrevious && hasMorePrevious"
                                     id="load-previous"
                                     type="button"
-                                    class="flex items-center gap-2 mx-auto mt-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-full shadow-xs text-sm font-medium text-gray-700 dark:text-zinc-300 transition-colors"
+                                    class="flex items-center gap-2 mx-auto mt-4 bg-sem-surface border border-sem-border px-4 py-2 hover:bg-sem-surface-muted rounded-full shadow-xs text-sm font-medium text-sem-fg-muted transition-colors"
                                     @click="loadPrevious"
                                 >
                                     <svg
@@ -170,7 +170,7 @@
                                 v-show="!isLoadingPrevious && hasMorePrevious"
                                 id="load-previous"
                                 type="button"
-                                class="absolute top-2 left-1/2 z-20 -translate-x-1/2 flex items-center gap-2 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-sm border border-gray-200 dark:border-zinc-800 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-full shadow-xs text-sm font-medium text-gray-700 dark:text-zinc-300 transition-colors"
+                                class="absolute top-2 left-1/2 z-20 -translate-x-1/2 flex items-center gap-2 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-sm border border-sem-border px-4 py-2 hover:bg-sem-surface-muted rounded-full shadow-xs text-sm font-medium text-sem-fg-muted transition-colors"
                                 @click="loadPrevious"
                             >
                                 <svg
@@ -200,7 +200,7 @@
                 </div>
                 <div
                     v-if="!messagesViewportReady"
-                    class="absolute inset-0 z-20 bg-white dark:bg-zinc-950 pointer-events-none select-none"
+                    class="absolute inset-0 z-20 bg-sem-surface pointer-events-none select-none"
                     aria-hidden="true"
                 />
             </div>
@@ -212,7 +212,7 @@
                 >
                     <button
                         type="button"
-                        class="flex items-center justify-center size-10 min-h-[44px] min-w-[44px] rounded-full bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-gray-200 dark:border-zinc-700 shadow-sm text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 hover:text-gray-700 dark:hover:text-zinc-200 transition-colors"
+                        class="flex items-center justify-center size-10 min-h-[44px] min-w-[44px] rounded-full bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-sem-border shadow-sm text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted hover:text-gray-700 hover:text-sem-fg transition-colors"
                         title="Scroll to bottom"
                         @click="scrollMessagesToBottom()"
                     >
@@ -225,20 +225,18 @@
                 <div v-if="reactionPickerChatItem" class="absolute inset-0 z-40" @click.self="closeReactionPicker">
                     <div
                         ref="reactionPickerPanel"
-                        class="absolute w-[min(24rem,calc(100%-1rem))] rounded-2xl overflow-hidden border border-gray-200 dark:border-zinc-700 shadow-2xl bg-white dark:bg-zinc-900"
+                        class="absolute w-[min(24rem,calc(100%-1rem))] rounded-2xl overflow-hidden border border-sem-border shadow-2xl bg-sem-surface"
                         :style="reactionPickerStyle"
                     >
                         <div
-                            class="flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-zinc-800 cursor-grab active:cursor-grabbing select-none"
+                            class="flex items-center justify-between px-3 py-2 border-b border-sem-border cursor-grab active:cursor-grabbing select-none"
                             @mousedown.prevent="onReactionPickerDragStart"
                             @touchstart.prevent="onReactionPickerDragStart"
                         >
-                            <span class="text-xs font-medium text-gray-500 dark:text-zinc-400">{{
-                                $t("messages.react")
-                            }}</span>
+                            <span class="text-xs font-medium text-sem-fg-muted">{{ $t("messages.react") }}</span>
                             <button
                                 type="button"
-                                class="p-0.5 rounded-sm hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-400 dark:text-zinc-500"
+                                class="p-0.5 rounded-sm hover:bg-sem-surface-muted text-sem-fg-muted"
                                 @click="closeReactionPicker"
                             >
                                 <MaterialDesignIcon icon-name="close" class="size-4" />
@@ -256,7 +254,7 @@
 
             <!-- send message -->
             <div
-                class="w-full border-t border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 sm:px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+                class="w-full border-t border-sem-border bg-sem-surface px-3 sm:px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
                 :style="composerChromeStyle"
             >
                 <div class="w-full">
@@ -306,7 +304,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="absolute top-1.5 right-1.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-600 dark:text-gray-200 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 shadow-md"
+                                        class="absolute top-1.5 right-1.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-sem-surface border border-sem-border text-gray-600 dark:text-gray-200 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 shadow-md"
                                         @click.stop="removeImageAttachment(0)"
                                     >
                                         <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
@@ -443,9 +441,7 @@
                                         <div class="text-sm text-gray-800 dark:text-gray-200 truncate max-w-[160px]">
                                             {{ file.name }}
                                         </div>
-                                        <span class="text-xs text-gray-500 dark:text-gray-400">{{
-                                            formatBytes(file.size)
-                                        }}</span>
+                                        <span class="text-xs text-sem-fg-muted">{{ formatBytes(file.size) }}</span>
                                     </div>
                                     <button
                                         type="button"
@@ -469,7 +465,7 @@
                                     ref="message-input"
                                     v-model="newMessageText"
                                     :readonly="isTranslatingMessage"
-                                    class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full min-w-0 pl-3 sm:pl-4 pr-16 py-2.5 resize-none shadow-xs transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
+                                    class="bg-sem-surface border border-sem-border text-sem-fg text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full min-w-0 pl-3 sm:pl-4 pr-16 py-2.5 resize-none shadow-xs transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
                                     rows="1"
                                     spellcheck="true"
                                     :placeholder="composeInputPlaceholder"
@@ -493,7 +489,7 @@
                                     </AddAudioButton>
                                     <button
                                         type="button"
-                                        class="inline-flex shrink-0 items-center justify-center rounded-lg size-8 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-800 dark:hover:text-zinc-100 transition-colors"
+                                        class="inline-flex shrink-0 items-center justify-center rounded-lg size-8 text-sem-fg-muted hover:bg-sem-surface-muted hover:text-gray-800 dark:hover:text-zinc-100 transition-colors"
                                         :title="$t('stickers.picker_tooltip')"
                                         @click.stop="toggleStickerPicker"
                                     >
@@ -502,7 +498,7 @@
                                 </div>
                                 <div
                                     v-if="isStickerPickerOpen"
-                                    class="absolute bottom-full right-0 mb-2 z-50 w-[min(320px,85vw)] max-h-[min(420px,70vh)] flex flex-col rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl overflow-hidden"
+                                    class="absolute bottom-full right-0 mb-2 z-50 w-[min(320px,85vw)] max-h-[min(420px,70vh)] flex flex-col rounded-2xl border border-sem-border bg-sem-surface shadow-xl overflow-hidden"
                                     :class="{
                                         'ring-2 ring-blue-500/50 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900':
                                             (stickerDropActive && emojiStickerTab === 'stickers') ||
@@ -510,10 +506,7 @@
                                     }"
                                     @click.stop
                                 >
-                                    <div
-                                        class="flex shrink-0 border-b border-gray-200 dark:border-zinc-700 p-1 gap-0.5"
-                                        role="tablist"
-                                    >
+                                    <div class="flex shrink-0 border-b border-sem-border p-1 gap-0.5" role="tablist">
                                         <button
                                             type="button"
                                             role="tab"
@@ -522,7 +515,7 @@
                                             :class="
                                                 emojiStickerTab === 'emoji'
                                                     ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200'
-                                                    : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                                                    : 'text-sem-fg-muted hover:bg-sem-surface-muted'
                                             "
                                             @click="emojiStickerTab = 'emoji'"
                                         >
@@ -536,7 +529,7 @@
                                             :class="
                                                 emojiStickerTab === 'stickers'
                                                     ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200'
-                                                    : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                                                    : 'text-sem-fg-muted hover:bg-sem-surface-muted'
                                             "
                                             @click="emojiStickerTab = 'stickers'"
                                         >
@@ -550,7 +543,7 @@
                                             :class="
                                                 emojiStickerTab === 'gifs'
                                                     ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200'
-                                                    : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                                                    : 'text-sem-fg-muted hover:bg-sem-surface-muted'
                                             "
                                             @click="onGifsTabSelected"
                                         >
@@ -587,7 +580,7 @@
                                         />
                                         <div
                                             v-if="userStickerPacks.length > 0"
-                                            class="flex shrink-0 gap-1 overflow-x-auto pb-2 mb-2 border-b border-gray-200 dark:border-zinc-800"
+                                            class="flex shrink-0 gap-1 overflow-x-auto pb-2 mb-2 border-b border-sem-border"
                                         >
                                             <button
                                                 type="button"
@@ -595,7 +588,7 @@
                                                 :class="
                                                     activeStickerPackId === null
                                                         ? 'bg-blue-100 dark:bg-blue-950/60 border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200'
-                                                        : 'border-transparent text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                                                        : 'border-transparent text-sem-fg-muted hover:bg-sem-surface-muted'
                                                 "
                                                 @click="activeStickerPackId = null"
                                             >
@@ -609,7 +602,7 @@
                                                 :class="
                                                     activeStickerPackId === pack.id
                                                         ? 'bg-blue-100 dark:bg-blue-950/60 border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200'
-                                                        : 'border-transparent text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                                                        : 'border-transparent text-sem-fg-muted hover:bg-sem-surface-muted'
                                                 "
                                                 :title="pack.title"
                                                 @click="activeStickerPackId = pack.id"
@@ -622,7 +615,7 @@
                                                 v-for="s in visibleStickers"
                                                 :key="s.id"
                                                 type="button"
-                                                class="aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700 hover:ring-2 hover:ring-blue-500/50 bg-gray-50 dark:bg-zinc-800"
+                                                class="aspect-square rounded-lg overflow-hidden border border-sem-border hover:ring-2 hover:ring-blue-500/50 bg-gray-50 dark:bg-zinc-800"
                                                 :title="s.name || s.emoji || 'Sticker'"
                                                 @click="addStickerFromLibrary(s)"
                                             >
@@ -631,7 +624,7 @@
                                         </div>
                                         <div
                                             v-if="visibleStickers.length === 0"
-                                            class="text-center text-sm text-gray-500 dark:text-zinc-400 mb-2 px-1"
+                                            class="text-center text-sm text-sem-fg-muted mb-2 px-1"
                                         >
                                             {{ $t("stickers.empty_library") }}
                                         </div>
@@ -673,7 +666,7 @@
                                                 v-for="g in userGifs"
                                                 :key="g.id"
                                                 type="button"
-                                                class="relative aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700 hover:ring-2 hover:ring-blue-500/50 group"
+                                                class="relative aspect-video rounded-lg overflow-hidden border border-sem-border hover:ring-2 hover:ring-blue-500/50 group"
                                                 :title="g.name || 'GIF'"
                                                 @click="addGifFromLibrary(g)"
                                             >
@@ -692,7 +685,7 @@
                                         </div>
                                         <div
                                             v-if="userGifs.length === 0"
-                                            class="text-center text-sm text-gray-500 dark:text-zinc-400 mb-2 px-1"
+                                            class="text-center text-sm text-sem-fg-muted mb-2 px-1"
                                         >
                                             {{ $t("gifs.empty_library") }}
                                         </div>
@@ -711,17 +704,14 @@
                                                     class="size-5 shrink-0 text-blue-500 mt-0.5"
                                                 />
                                                 <div class="min-w-0">
-                                                    <div class="text-xs font-medium text-gray-800 dark:text-zinc-100">
+                                                    <div class="text-xs font-medium text-sem-fg">
                                                         {{
                                                             userGifs.length > 0
                                                                 ? $t("gifs.add_more_hint")
                                                                 : $t("gifs.drop_or_click_hint")
                                                         }}
                                                     </div>
-                                                    <div
-                                                        v-if="isGifUploading"
-                                                        class="text-[11px] text-blue-600 dark:text-blue-400 mt-1"
-                                                    >
+                                                    <div v-if="isGifUploading" class="text-[11px] text-sem-accent mt-1">
                                                         {{ $t("common.loading") }}
                                                     </div>
                                                 </div>
@@ -749,22 +739,20 @@
                         <!-- reply preview -->
                         <div
                             v-if="replyingTo"
-                            class="mt-2 p-2 rounded-xl bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700/50 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200"
+                            class="mt-2 p-2 rounded-xl bg-gray-50 dark:bg-zinc-800/50 border border-sem-border/50 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200"
                         >
                             <div class="flex-1 min-w-0 border-l-2 border-blue-500 pl-3">
-                                <div
-                                    class="flex items-center gap-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 mb-0.5"
-                                >
+                                <div class="flex items-center gap-1 text-[11px] font-medium text-sem-accent mb-0.5">
                                     <MaterialDesignIcon icon-name="reply" class="size-3" />
                                     {{ $t("messages.replying_to") }}
                                 </div>
-                                <div class="text-xs text-gray-600 dark:text-zinc-400 truncate italic">
+                                <div class="text-xs text-sem-fg-muted truncate italic">
                                     {{ replyingTo.lxmf_message.content || $t("messages.attachment_placeholder") }}
                                 </div>
                             </div>
                             <button
                                 type="button"
-                                class="p-1.5 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-lg transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200"
+                                class="p-1.5 hover:bg-gray-200 hover:bg-sem-surface-muted rounded-lg transition-colors text-gray-400 hover:text-gray-600 hover:text-sem-fg"
                                 @click="cancelReply"
                             >
                                 <MaterialDesignIcon icon-name="close" class="w-4 h-4" />
@@ -786,7 +774,7 @@
                             >
                             <select
                                 v-model="translateTargetModalValue"
-                                class="flex-1 min-w-0 min-h-[2.25rem] sm:min-h-0 text-sm rounded-lg border border-gray-200/90 dark:border-zinc-600 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-gray-900 dark:text-zinc-100"
+                                class="flex-1 min-w-0 min-h-[2.25rem] sm:min-h-0 text-sm rounded-lg border border-gray-200/90 dark:border-zinc-600 bg-sem-surface px-2.5 py-1.5 text-sem-fg"
                                 :aria-label="$t('messages.translate_select_target')"
                             >
                                 <option
@@ -849,14 +837,14 @@
                                 >
                                     <button
                                         type="button"
-                                        class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-800"
+                                        class="w-full text-left px-3 py-2 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
                                         @click="selectSendLocation"
                                     >
                                         {{ $t("messages.share_location") }}
                                     </button>
                                     <button
                                         type="button"
-                                        class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-800"
+                                        class="w-full text-left px-3 py-2 text-sm text-sem-fg-secondary hover:bg-sem-surface-muted"
                                         @click="selectRequestLocation"
                                     >
                                         {{ $t("messages.request_location") }}
@@ -908,7 +896,7 @@
                     v-if="messageContextMenu.openedFromBubble && copyableMessagePlainText(messageContextMenu.chatItem)"
                     @click="copyMessageFromContextMenu(messageContextMenu.chatItem)"
                 >
-                    <MaterialDesignIcon icon-name="content-copy" class="size-4 text-gray-500 dark:text-zinc-400" />
+                    <MaterialDesignIcon icon-name="content-copy" class="size-4 text-sem-fg-muted" />
                     {{ $t("messages.copy_message") }}
                 </ContextMenuItem>
                 <ContextMenuItem
@@ -922,9 +910,7 @@
                     v-if="messageContextMenu.chatItem && !messageContextMenu.chatItem.lxmf_message?.is_reaction"
                     class="px-3 py-2 border-t border-gray-100 dark:border-zinc-700"
                 >
-                    <div
-                        class="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1.5"
-                    >
+                    <div class="text-[10px] font-semibold uppercase tracking-wide text-sem-fg-muted mb-1.5">
                         {{ $t("messages.react") }}
                     </div>
                     <div class="flex flex-wrap gap-1">
@@ -932,7 +918,7 @@
                             v-for="(emo, emi) in lxmfReactionEmojis"
                             :key="emi"
                             type="button"
-                            class="text-lg leading-none px-1.5 py-0.5 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                            class="text-lg leading-none px-1.5 py-0.5 rounded-lg hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors"
                             :title="emo"
                             @click="sendReactionEmojiFromMenu(messageContextMenu.chatItem, emo)"
                         >
@@ -940,7 +926,7 @@
                         </button>
                         <button
                             type="button"
-                            class="text-lg leading-none px-1.5 py-0.5 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-gray-400 dark:text-zinc-500"
+                            class="text-lg leading-none px-1.5 py-0.5 rounded-lg hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors text-sem-fg-muted"
                             :title="$t('messages.react')"
                             @click="
                                 openReactionPicker(messageContextMenu.chatItem);
@@ -1038,14 +1024,14 @@
         <div class="max-w-2xl mx-auto w-full px-4 py-8 sm:py-10 flex flex-col items-center">
             <div class="text-center mb-8">
                 <div
-                    class="inline-flex items-center justify-center size-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 mb-4"
+                    class="inline-flex items-center justify-center size-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-sem-accent mb-4"
                 >
                     <MaterialDesignIcon icon-name="message-text-outline" class="size-6" />
                 </div>
-                <h1 class="text-xl font-semibold text-gray-900 dark:text-white mb-1">
+                <h1 class="text-xl font-semibold text-sem-fg mb-1">
                     {{ $t("messages.no_active_chat") }}
                 </h1>
-                <p class="text-sm text-gray-500 dark:text-zinc-400 max-w-sm mx-auto">
+                <p class="text-sm text-sem-fg-muted max-w-sm mx-auto">
                     {{ $t("messages.select_peer_or_enter_address") }}
                 </p>
             </div>
@@ -1053,59 +1039,57 @@
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mb-8">
                 <button
                     type="button"
-                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:border-blue-400/60 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-blue-400/60 hover:bg-sem-surface-muted transition-colors"
                     @click="focusComposeInput"
                 >
-                    <MaterialDesignIcon icon-name="plus" class="size-5 text-blue-600 dark:text-blue-400" />
-                    <span class="text-xs font-medium text-gray-800 dark:text-zinc-200">{{ $t("app.compose") }}</span>
+                    <MaterialDesignIcon icon-name="plus" class="size-5 text-sem-accent" />
+                    <span class="text-xs font-medium text-sem-fg">{{ $t("app.compose") }}</span>
                 </button>
 
                 <button
                     type="button"
-                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:border-blue-400/60 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-blue-400/60 hover:bg-sem-surface-muted transition-colors"
                     @click="syncPropagationNode"
                 >
                     <MaterialDesignIcon
                         icon-name="sync"
-                        class="size-5 text-blue-600 dark:text-blue-400"
+                        class="size-5 text-sem-accent"
                         :class="{ 'animate-spin': isSyncingPropagationNode }"
                         :style="isSyncingPropagationNode ? { animationDirection: 'reverse' } : {}"
                     />
-                    <span class="text-xs font-medium text-gray-800 dark:text-zinc-200">{{
+                    <span class="text-xs font-medium text-sem-fg">{{
                         isSyncingPropagationNode ? $t("app.syncing") : $t("app.sync_now")
                     }}</span>
                 </button>
 
                 <button
                     type="button"
-                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:border-blue-400/60 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-blue-400/60 hover:bg-sem-surface-muted transition-colors"
                     @click="copyMyAddress"
                 >
-                    <MaterialDesignIcon icon-name="content-copy" class="size-5 text-blue-600 dark:text-blue-400" />
-                    <span class="text-xs font-medium text-gray-800 dark:text-zinc-200">{{
-                        $t("messages.my_address")
-                    }}</span>
+                    <MaterialDesignIcon icon-name="content-copy" class="size-5 text-sem-accent" />
+                    <span class="text-xs font-medium text-sem-fg">{{ $t("messages.my_address") }}</span>
                 </button>
 
                 <button
                     type="button"
-                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:border-blue-400/60 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-blue-400/60 hover:bg-sem-surface-muted transition-colors"
                     @click="$router.push({ name: 'identities' })"
                 >
-                    <MaterialDesignIcon icon-name="account-multiple" class="size-5 text-blue-600 dark:text-blue-400" />
-                    <span class="text-xs font-medium text-gray-800 dark:text-zinc-200">{{ $t("app.identities") }}</span>
+                    <MaterialDesignIcon icon-name="account-multiple" class="size-5 text-sem-accent" />
+                    <span class="text-xs font-medium text-sem-fg">{{ $t("app.identities") }}</span>
                 </button>
             </div>
 
             <div v-if="latestConversations.length > 0" class="w-full mb-8">
-                <h2 class="text-xs font-medium text-gray-500 dark:text-zinc-500 mb-2">
+                <h2 class="text-xs font-medium text-sem-fg-muted mb-2">
                     {{ $t("messages.latest_conversations") }}
                 </h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div
                         v-for="chat in latestConversations"
                         :key="chat.destination_hash"
-                        class="group cursor-pointer p-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl hover:border-blue-400/60 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-3"
+                        class="group cursor-pointer p-3 bg-sem-surface border border-sem-border rounded-xl hover:border-blue-400/60 hover:bg-sem-surface-muted transition-colors flex items-center gap-3"
                         @click="$emit('update:selectedPeer', chat)"
                     >
                         <div class="shrink-0">
@@ -1127,14 +1111,14 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between gap-2">
-                                <div class="font-medium text-sm text-gray-900 dark:text-zinc-100 truncate">
+                                <div class="font-medium text-sm text-sem-fg truncate">
                                     {{ chat.custom_display_name ?? chat.display_name }}
                                 </div>
-                                <div class="text-[11px] text-gray-400 dark:text-zinc-500 whitespace-nowrap">
+                                <div class="text-[11px] text-sem-fg-muted whitespace-nowrap">
                                     {{ formatTimeAgo(chat.updated_at) }}
                                 </div>
                             </div>
-                            <div class="text-xs text-gray-500 dark:text-zinc-500 truncate mt-0.5">
+                            <div class="text-xs text-sem-fg-muted truncate mt-0.5">
                                 {{
                                     chat.latest_message_preview ||
                                     chat.latest_message_title ||
@@ -1151,7 +1135,7 @@
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <MaterialDesignIcon
                             icon-name="at"
-                            class="size-5 text-gray-400 group-focus-within:text-blue-500 transition-colors"
+                            class="size-5 text-gray-400 group-focus-within:text-sem-accent transition-colors"
                         />
                     </div>
                     <input
@@ -1160,7 +1144,7 @@
                         v-model="composeAddress"
                         :readonly="isTranslatingMessage"
                         type="text"
-                        class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 pl-10 pr-4 py-2.5 transition-colors placeholder:text-gray-400 dark:placeholder:text-zinc-500"
+                        class="w-full bg-sem-surface border border-sem-border text-sem-fg text-sm rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 pl-10 pr-4 py-2.5 transition-colors placeholder:text-gray-400 dark:placeholder:text-zinc-500"
                         :placeholder="$t('messages.compose_address_placeholder')"
                         @keydown.enter.exact.prevent="onComposeEnterPressed"
                         @keydown.up.prevent="handleComposeInputUp"
@@ -1171,7 +1155,7 @@
 
                     <div
                         v-if="isComposeInputFocused && composeSuggestions.length > 0"
-                        class="absolute z-50 left-0 right-0 bottom-full mb-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-lg overflow-hidden"
+                        class="absolute z-50 left-0 right-0 bottom-full mb-2 bg-sem-surface border border-sem-border rounded-xl shadow-lg overflow-hidden"
                     >
                         <div class="p-1 space-y-0.5">
                             <div
@@ -1181,7 +1165,7 @@
                                 :class="[
                                     index === selectedComposeSuggestionIndex
                                         ? 'bg-blue-600 text-white'
-                                        : 'hover:bg-gray-50 dark:hover:bg-zinc-800/50 text-gray-700 dark:text-zinc-300',
+                                        : 'hover:bg-sem-surface-muted/50 text-sem-fg-muted',
                                 ]"
                                 @mousedown.prevent="selectComposeSuggestion(suggestion)"
                             >
@@ -1192,7 +1176,7 @@
                                             ? 'bg-white/20'
                                             : suggestion.type === 'contact'
                                               ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600'
-                                              : 'bg-gray-100 dark:bg-zinc-800 text-gray-500',
+                                              : 'bg-sem-surface-muted text-gray-500',
                                     ]"
                                 >
                                     <MaterialDesignIcon :icon-name="suggestion.icon" class="size-4" />
@@ -1207,7 +1191,7 @@
                                 </div>
                                 <div
                                     v-if="suggestion.type === 'contact'"
-                                    class="text-[10px] font-medium text-gray-500 dark:text-zinc-400"
+                                    class="text-[10px] font-medium text-sem-fg-muted"
                                 >
                                     {{ $t("messages.contact_badge") }}
                                 </div>
@@ -1301,7 +1285,7 @@
                     <div class="flex flex-wrap sm:flex-nowrap items-stretch gap-2">
                         <select
                             v-model="translateTargetModalValue"
-                            class="flex-1 min-w-0 min-h-[2.5rem] text-sm rounded-lg border border-gray-200/90 dark:border-zinc-600 bg-white dark:bg-zinc-900/90 px-2.5 py-1.5 text-gray-900 dark:text-zinc-100"
+                            class="flex-1 min-w-0 min-h-[2.5rem] text-sm rounded-lg border border-gray-200/90 dark:border-zinc-600 bg-sem-surface/90 px-2.5 py-1.5 text-sem-fg"
                             :aria-label="$t('messages.translate_select_target')"
                         >
                             <option
@@ -1362,12 +1346,10 @@
             @click.self="isRawMessageModalOpen = false"
         >
             <div
-                class="w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[min(90dvh,48rem)]"
+                class="w-full max-w-2xl bg-sem-surface rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[min(90dvh,48rem)]"
             >
-                <div
-                    class="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between shrink-0"
-                >
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Raw LXMF Message</h3>
+                <div class="px-6 py-4 border-b border-sem-border flex items-center justify-between shrink-0">
+                    <h3 class="text-lg font-bold text-sem-fg">Raw LXMF Message</h3>
                     <button
                         type="button"
                         class="text-gray-400 hover:text-gray-500 dark:hover:text-zinc-300 transition-colors"
@@ -1381,17 +1363,15 @@
                         <!-- header / status info -->
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             <div class="space-y-1">
-                                <label
-                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >Message ID</label
                                 >
-                                <div class="text-sm font-mono text-gray-900 dark:text-zinc-200">
+                                <div class="text-sm font-mono text-gray-900 text-sem-fg">
                                     {{ rawMessageData.id }}
                                 </div>
                             </div>
                             <div class="space-y-1">
-                                <label
-                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >State</label
                                 >
                                 <div class="flex items-center gap-2">
@@ -1414,12 +1394,11 @@
                         </div>
 
                         <div class="space-y-1">
-                            <label
-                                class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                            <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                 >Message Hash</label
                             >
                             <div
-                                class="text-sm font-mono break-all text-gray-900 dark:text-zinc-200 bg-white dark:bg-zinc-900 p-2 rounded-sm border border-gray-100 dark:border-zinc-800"
+                                class="text-sm font-mono break-all text-gray-900 text-sem-fg bg-sem-surface p-2 rounded-sm border border-sem-border"
                             >
                                 {{ rawMessageData.hash }}
                             </div>
@@ -1427,20 +1406,18 @@
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             <div class="space-y-1">
-                                <label
-                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >Source Hash</label
                                 >
-                                <div class="text-xs font-mono break-all text-gray-900 dark:text-zinc-200">
+                                <div class="text-xs font-mono break-all text-gray-900 text-sem-fg">
                                     {{ rawMessageData.source_hash }}
                                 </div>
                             </div>
                             <div class="space-y-1">
-                                <label
-                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >Destination Hash</label
                                 >
-                                <div class="text-xs font-mono break-all text-gray-900 dark:text-zinc-200">
+                                <div class="text-xs font-mono break-all text-gray-900 text-sem-fg">
                                     {{ rawMessageData.destination_hash }}
                                 </div>
                             </div>
@@ -1448,11 +1425,10 @@
 
                         <div v-if="rawMessageHasStoredPath" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div class="space-y-1">
-                                <label
-                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
-                                    >{{ $t("messages.raw_path_interface_at_send") }}</label
-                                >
-                                <div class="text-sm text-gray-900 dark:text-zinc-200 wrap-break-word">
+                                <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted">{{
+                                    $t("messages.raw_path_interface_at_send")
+                                }}</label>
+                                <div class="text-sm text-gray-900 text-sem-fg wrap-break-word">
                                     {{
                                         rawMessageData.path_interface_at_send != null &&
                                         rawMessageData.path_interface_at_send !== ""
@@ -1462,11 +1438,10 @@
                                 </div>
                             </div>
                             <div class="space-y-1">
-                                <label
-                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
-                                    >{{ $t("messages.raw_path_hops_at_send") }}</label
-                                >
-                                <div class="text-sm text-gray-900 dark:text-zinc-200">
+                                <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted">{{
+                                    $t("messages.raw_path_hops_at_send")
+                                }}</label>
+                                <div class="text-sm text-gray-900 text-sem-fg">
                                     {{
                                         rawMessageData.path_hops_at_send != null
                                             ? rawMessageData.path_hops_at_send
@@ -1481,33 +1456,31 @@
                             class="grid grid-cols-1 sm:grid-cols-2 gap-4"
                         >
                             <div class="space-y-1">
-                                <label
-                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
-                                    >{{ $t("messages.raw_path_finding_measure") }}</label
-                                >
-                                <div class="text-sm font-mono text-gray-900 dark:text-zinc-200 wrap-break-word">
+                                <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted">{{
+                                    $t("messages.raw_path_finding_measure")
+                                }}</label>
+                                <div class="text-sm font-mono text-gray-900 text-sem-fg wrap-break-word">
                                     {{ rawMessageData.path_finding_measure || $t("messages.raw_path_value_unknown") }}
                                 </div>
                             </div>
                             <div class="space-y-1">
-                                <label
-                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
-                                    >{{ $t("messages.raw_path_row_hash_rnpath") }}</label
-                                >
+                                <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted">{{
+                                    $t("messages.raw_path_row_hash_rnpath")
+                                }}</label>
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <div class="text-xs font-mono break-all text-gray-900 dark:text-zinc-200">
+                                    <div class="text-xs font-mono break-all text-gray-900 text-sem-fg">
                                         {{ rawMessageData.path_row_hash_hex || $t("messages.raw_path_value_unknown") }}
                                     </div>
                                     <button
                                         v-if="rawMessageData.path_row_hash_hex"
                                         type="button"
-                                        class="text-xs text-blue-600 dark:text-blue-400 hover:underline shrink-0"
+                                        class="text-xs text-sem-accent hover:underline shrink-0"
                                         @click="copyHash(rawMessageData.path_row_hash_hex)"
                                     >
                                         {{ $t("messages.copy_hash") }}
                                     </button>
                                 </div>
-                                <div class="text-[10px] text-gray-500 dark:text-zinc-500">
+                                <div class="text-[10px] text-sem-fg-muted">
                                     {{ $t("messages.raw_path_row_hash_rnpath_hint") }}
                                 </div>
                             </div>
@@ -1515,51 +1488,46 @@
 
                         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                             <div class="space-y-1">
-                                <label
-                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >Method</label
                                 >
-                                <div class="text-sm text-gray-900 dark:text-zinc-200 capitalize">
+                                <div class="text-sm text-gray-900 text-sem-fg capitalize">
                                     {{ rawMessageData.method }}
                                 </div>
                             </div>
                             <div class="space-y-1">
-                                <label
-                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >RSSI</label
                                 >
-                                <div class="text-sm text-gray-900 dark:text-zinc-200">
+                                <div class="text-sm text-gray-900 text-sem-fg">
                                     {{ rawMessageData.rssi || "N/A" }}
                                 </div>
                             </div>
                             <div class="space-y-1">
-                                <label
-                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >SNR</label
                                 >
-                                <div class="text-sm text-gray-900 dark:text-zinc-200">
+                                <div class="text-sm text-gray-900 text-sem-fg">
                                     {{ rawMessageData.snr || "N/A" }}
                                 </div>
                             </div>
                             <div class="space-y-1">
-                                <label
-                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >Attempts</label
                                 >
-                                <div class="text-sm text-gray-900 dark:text-zinc-200">
+                                <div class="text-sm text-gray-900 text-sem-fg">
                                     {{ rawMessageData.delivery_attempts }}
                                 </div>
                             </div>
                         </div>
 
                         <div class="space-y-1">
-                            <label
-                                class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                            <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                 >Content / App Data</label
                             >
                             <div
                                 v-if="!isRawMessageBodyOversized"
-                                class="text-xs font-mono bg-white dark:bg-zinc-900 p-3 rounded-sm border border-gray-100 dark:border-zinc-800 whitespace-pre-wrap break-all text-gray-800 dark:text-zinc-300"
+                                class="text-xs font-mono bg-sem-surface p-3 rounded-sm border border-sem-border whitespace-pre-wrap break-all text-gray-800 text-sem-fg-muted"
                             >
                                 {{ rawMessageData.content }}
                             </div>
@@ -1586,12 +1554,11 @@
                         </div>
 
                         <div v-if="rawMessageData.raw_uri" class="space-y-1">
-                            <label
-                                class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                            <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                 >Raw LXMF URI</label
                             >
                             <div
-                                class="text-[10px] font-mono bg-white dark:bg-zinc-900 p-2 rounded-sm border border-gray-100 dark:border-zinc-800 break-all text-gray-600 dark:text-zinc-400"
+                                class="text-[10px] font-mono bg-sem-surface p-2 rounded-sm border border-sem-border break-all text-sem-fg-muted"
                             >
                                 {{ rawMessageData.raw_uri }}
                             </div>
@@ -1600,7 +1567,7 @@
                         <!-- JSON fallback for full detail -->
                         <details class="group">
                             <summary
-                                class="flex items-center gap-2 cursor-pointer text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors"
+                                class="flex items-center gap-2 cursor-pointer text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted hover:text-gray-600 dark:hover:text-zinc-300 transition-colors"
                             >
                                 <MaterialDesignIcon
                                     icon-name="chevron-right"
@@ -1609,14 +1576,14 @@
                                 View Full JSON Object
                             </summary>
                             <div class="mt-2 p-4 bg-black/5 dark:bg-black/20 rounded-lg overflow-x-auto">
-                                <pre class="text-[10px] font-mono text-gray-600 dark:text-zinc-400">{{
+                                <pre class="text-[10px] font-mono text-sem-fg-muted">{{
                                     rawMessageJsonPreviewPretty
                                 }}</pre>
                             </div>
                         </details>
                     </div>
                 </div>
-                <div class="px-6 py-4 border-t border-gray-100 dark:border-zinc-800 flex justify-end shrink-0">
+                <div class="px-6 py-4 border-t border-sem-border flex justify-end shrink-0">
                     <button
                         type="button"
                         class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors"
@@ -1665,6 +1632,11 @@ import ConversationPeerHeader from "./ConversationPeerHeader.vue";
 import ConversationMessageEntry from "./ConversationMessageEntry.vue";
 import ConversationMessageListVirtual from "./ConversationMessageListVirtual.vue";
 import { displayGroupsOldestFirst, MIN_VIRTUAL_DISPLAY_GROUPS } from "./messageListVirtual.js";
+import {
+    buildDisplayGroupsNewestFirst,
+    prependDisplayGroupsNewestFirst,
+    CONVERSATION_MESSAGES_PAGE_SIZE,
+} from "./conversationDisplayGroups.js";
 import DialogUtils from "../../js/DialogUtils";
 import {
     fetchPeerPathSnapshot,
@@ -1787,6 +1759,9 @@ export default {
 
             lxmfMessagesRequestSequence: 0,
             chatItems: [],
+            displayGroupsNewestFirst: null,
+            displayGroupsCachePeerItemCount: -1,
+            displayGroupsCacheSignature: "",
 
             isLoadingPrevious: false,
             loadPreviousInFlight: 0,
@@ -2213,40 +2188,10 @@ export default {
                 .reverse();
         },
         selectedPeerChatDisplayGroups() {
-            const items = this.selectedPeerChatItems;
-            const n = items.length;
-            const groups = [];
-            let r = 0;
-            while (r < n) {
-                const item = items[n - 1 - r];
-                if (this.canMergeImageIntoImageStrip(item)) {
-                    const run = [item];
-                    let j = r + 1;
-                    while (j < n && run.length < 12) {
-                        const next = items[n - 1 - j];
-                        if (next.is_outbound !== item.is_outbound) break;
-                        if (!this.canMergeImageIntoImageStrip(next)) break;
-                        run.push(next);
-                        j++;
-                    }
-                    if (run.length >= 2) {
-                        groups.push({
-                            type: "imageGroup",
-                            items: run,
-                            key: run.map((x) => x.lxmf_message.hash).join("-"),
-                        });
-                        r = j;
-                        continue;
-                    }
-                }
-                groups.push({
-                    type: "single",
-                    chatItem: item,
-                    key: item.lxmf_message.hash,
-                });
-                r++;
+            if (this.displayGroupsNewestFirst !== null) {
+                return this.displayGroupsNewestFirst;
             }
-            return groups;
+            return this._buildDisplayGroupsNewestFirst(this.selectedPeerChatItems);
         },
         selectedPeerChatDisplayGroupsOldestFirst() {
             return displayGroupsOldestFirst(this.selectedPeerChatDisplayGroups);
@@ -2365,6 +2310,9 @@ export default {
                 }
             },
         },
+        showTelemetryInChat() {
+            this._invalidateDisplayGroupsCache();
+        },
         newMessageText() {
             this.$nextTick(() => {
                 this.adjustTextareaHeight();
@@ -2383,7 +2331,13 @@ export default {
             deep: true,
         },
         selectedPeerChatItems: {
-            async handler() {
+            async handler(items) {
+                const signature = this._displayGroupsCacheSignature(items);
+                if (this.displayGroupsNewestFirst === null || this.displayGroupsCacheSignature !== signature) {
+                    this.displayGroupsNewestFirst = this._buildDisplayGroupsNewestFirst(items);
+                    this.displayGroupsCacheSignature = signature;
+                    this.displayGroupsCachePeerItemCount = items.length;
+                }
                 await this.processAudioForSelectedPeerChatItems();
                 this.$nextTick(() => this._scheduleOutboundSendStatusTick());
             },
@@ -3161,6 +3115,7 @@ export default {
             }
             this.lxmfMessagesRequestSequence += 1;
             this.chatItems = [];
+            this.displayGroupsNewestFirst = null;
             this.messageBubbleTranslation = {};
             this.clearAudioAttachmentCache();
             this.lastDraftIdentityKey = nextKey;
@@ -3171,6 +3126,35 @@ export default {
         },
         close() {
             this.$emit("close");
+        },
+        _buildDisplayGroupsNewestFirst(items) {
+            return buildDisplayGroupsNewestFirst(items, (item) => this.canMergeImageIntoImageStrip(item));
+        },
+        _displayGroupsCacheSignature(items) {
+            if (!items?.length) {
+                return "";
+            }
+            return items
+                .map((item) => {
+                    const m = item?.lxmf_message;
+                    const hash = m?.hash || "";
+                    const state = m?.state || "";
+                    const outbound = item?.is_outbound ? "1" : "0";
+                    const image = m?.fields?.image ? "1" : "0";
+                    return `${hash}\u241f${state}\u241f${outbound}\u241f${image}`;
+                })
+                .join("\u241e");
+        },
+        _invalidateDisplayGroupsCache() {
+            this.displayGroupsNewestFirst = null;
+            this.displayGroupsCachePeerItemCount = -1;
+            this.displayGroupsCacheSignature = "";
+        },
+        _rebuildDisplayGroupsCache() {
+            const items = this.selectedPeerChatItems;
+            this.displayGroupsNewestFirst = this._buildDisplayGroupsNewestFirst(items);
+            this.displayGroupsCacheSignature = this._displayGroupsCacheSignature(items);
+            this.displayGroupsCachePeerItemCount = items.length;
         },
         getMessagesScrollElement() {
             return this.$refs.messagesScroll ?? null;
@@ -3194,6 +3178,7 @@ export default {
             this.initialLoadActive = true;
             this.messagesViewportReady = false;
             this.chatItems = [];
+            this.displayGroupsNewestFirst = null;
             this.hasMorePrevious = true;
             this.peerPathSnapshot = null;
             this.peerPathLoading = false;
@@ -3227,13 +3212,16 @@ export default {
             this.initialLoadActive = false;
             this.scrollMessagesToBottom({ pinAfter: true });
 
-            this.autoLoadAudioAttachments();
+            this.autoLoadAudioAttachments(this.chatItems);
         },
         async loadPrevious() {
             // Pagination requests must not overlap. Initial page loads (empty thread) must still run
             // if a previous peer's fetch or a scroll load left isLoadingPrevious true, otherwise
             // initialLoad clears chatItems and loadPrevious returns without fetching (empty UI).
             if (this.isLoadingPrevious && this.oldestMessageId != null) {
+                return;
+            }
+            if (!this.hasMorePrevious && this.chatItems.length > 0) {
                 return;
             }
 
@@ -3243,8 +3231,7 @@ export default {
             try {
                 const seq = ++this.lxmfMessagesRequestSequence;
 
-                // fetch lxmf messages from "us to destination" and from "destination to us"
-                const pageSize = 30;
+                const pageSize = CONVERSATION_MESSAGES_PAGE_SIZE;
                 const response = await window.api.get(
                     `/api/v1/lxmf-messages/conversation/${this.selectedPeer.destination_hash}`,
                     {
@@ -3260,7 +3247,6 @@ export default {
                     return;
                 }
 
-                // convert lxmf messages to chat items
                 const chatItems = [];
                 const rawList = response.data?.lxmf_messages;
                 const lxmfMessages = mergeLxmfReactionRowsIntoMessages(Array.isArray(rawList) ? rawList : []);
@@ -3287,6 +3273,7 @@ export default {
                 const seenHashes = new Set(
                     this.chatItems.map((c) => c.lxmf_message?.hash).filter((h) => h != null && h !== "")
                 );
+                const toPrepend = [];
                 for (const chatItem of chatItems) {
                     const h = chatItem.lxmf_message?.hash;
                     if (h && seenHashes.has(h)) {
@@ -3295,7 +3282,26 @@ export default {
                     if (h) {
                         seenHashes.add(h);
                     }
-                    this.chatItems.unshift(chatItem);
+                    toPrepend.push(chatItem);
+                }
+
+                if (toPrepend.length > 0) {
+                    toPrepend.reverse();
+                    const prevPeerItems = this.selectedPeerChatItems.slice();
+                    this.chatItems = toPrepend.concat(this.chatItems);
+                    const allPeerItems = this.selectedPeerChatItems;
+                    const newPeerItems = allPeerItems.slice(0, allPeerItems.length - prevPeerItems.length);
+                    if (this.displayGroupsNewestFirst !== null && prevPeerItems.length > 0) {
+                        this.displayGroupsNewestFirst = prependDisplayGroupsNewestFirst(
+                            this.displayGroupsNewestFirst,
+                            newPeerItems,
+                            (item) => this.canMergeImageIntoImageStrip(item)
+                        );
+                        this.displayGroupsCachePeerItemCount = allPeerItems.length;
+                        this.displayGroupsCacheSignature = this._displayGroupsCacheSignature(allPeerItems);
+                    } else {
+                        this._rebuildDisplayGroupsCache();
+                    }
                 }
 
                 if (needsAnchor) {
@@ -3309,10 +3315,13 @@ export default {
 
                 if (chatItems.length < pageSize) {
                     this.hasMorePrevious = false;
+                } else if (toPrepend.length === 0 && chatItems.length > 0) {
+                    // API returned a full page but every row was already in the UI (hash dedupe).
+                    // Continuing would repeat the same request forever.
+                    this.hasMorePrevious = false;
                 }
 
-                // auto load audio
-                this.autoLoadAudioAttachments();
+                this.autoLoadAudioAttachments(toPrepend);
             } catch {
                 this.hasMorePrevious = false;
             } finally {
@@ -3591,6 +3600,7 @@ export default {
                 is_outbound: false,
                 lxmf_message: this.normalizeLxmfMessage(lxmfMessage, false),
             });
+            this._invalidateDisplayGroupsCache();
 
             const conversation = this.findConversation(this.selectedPeer.destination_hash);
             const target = conversation || this.selectedPeer;
@@ -3625,6 +3635,7 @@ export default {
                     lxmf_message: this.normalizeLxmfMessage(lxmfMessage, true),
                     is_outbound: true,
                 });
+                this._invalidateDisplayGroupsCache();
             }
 
             this.autoLoadAudioAttachments();
@@ -3648,12 +3659,14 @@ export default {
                 ...chatItem,
                 lxmf_message: merged,
             };
+            this._invalidateDisplayGroupsCache();
         },
         onLxmfMessageDeleted(hash) {
             if (hash) {
                 this.chatItems = this.chatItems.filter((item) => {
                     return !this._hexEqual(item.lxmf_message?.hash, hash);
                 });
+                this._invalidateDisplayGroupsCache();
             }
         },
         applyPeerPathSnapshot(snapshot, hash) {
@@ -4455,8 +4468,9 @@ export default {
                 this.isDownloadingAudio[chatItem.lxmf_message.hash] = false;
             }
         },
-        autoLoadAudioAttachments() {
-            for (const chatItem of this.chatItems) {
+        autoLoadAudioAttachments(items = null) {
+            const scanItems = Array.isArray(items) ? items : this.chatItems;
+            for (const chatItem of scanItems) {
                 if (
                     chatItem.lxmf_message.fields?.audio &&
                     !this.lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash] &&
@@ -4710,12 +4724,14 @@ export default {
                 const key = this._outboundPendingMatchKey(item.lxmf_message);
                 return !key || !realKeys.has(key);
             });
+            this._invalidateDisplayGroupsCache();
         },
         removePendingOutboundPlaceholder(hash) {
             if (!hash) {
                 return;
             }
             this.chatItems = this.chatItems.filter((item) => !this._hexEqual(item.lxmf_message?.hash, hash));
+            this._invalidateDisplayGroupsCache();
         },
         removeAllPendingOutboundPlaceholdersForPeer(destinationHash) {
             if (!destinationHash) {
@@ -4732,6 +4748,7 @@ export default {
                 }
                 return true;
             });
+            this._invalidateDisplayGroupsCache();
         },
         removeFirstPendingOutboundPlaceholderForPeer(destinationHash) {
             this.removeAllPendingOutboundPlaceholdersForPeer(destinationHash);
@@ -4748,6 +4765,7 @@ export default {
                     lxmf_message: this.normalizeLxmfMessage(lxmfMessage, true),
                     is_outbound: true,
                 });
+                this._invalidateDisplayGroupsCache();
             }
         },
         showOutboundTransferProgress(lxmfMessage) {
@@ -5009,10 +5027,10 @@ export default {
         },
         outboundBubbleFooterTimeClass(chatItem) {
             if (!chatItem.is_outbound) {
-                return "text-gray-500 dark:text-zinc-400";
+                return "text-sem-fg-muted";
             }
             if (this.isOutboundWaitingBubble(chatItem)) {
-                return "text-gray-600 dark:text-zinc-400";
+                return "text-sem-fg-muted";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
                 return "text-sky-700/90 dark:text-sky-200/85";
@@ -5021,7 +5039,7 @@ export default {
         },
         outboundSendingStatusIconClass(chatItem) {
             if (this.isOutboundWaitingBubble(chatItem)) {
-                return "text-gray-600 dark:text-zinc-400";
+                return "text-sem-fg-muted";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
                 return "text-sky-700 dark:text-sky-300";
@@ -5042,10 +5060,10 @@ export default {
         },
         outboundAttachmentCaptionClass(chatItem) {
             if (!chatItem.is_outbound) {
-                return "text-gray-500 dark:text-zinc-400";
+                return "text-sem-fg-muted";
             }
             if (this.isOutboundWaitingBubble(chatItem)) {
-                return "text-gray-600 dark:text-zinc-400";
+                return "text-sem-fg-muted";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
                 return "text-sky-800 dark:text-sky-200";
@@ -5090,7 +5108,7 @@ export default {
         },
         outboundExpandedActionsShellClass(chatItem) {
             if (!chatItem?.is_outbound) {
-                return "border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900";
+                return "border-sem-border bg-sem-surface-muted";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
                 return "border-sky-200/70 dark:border-sky-800/50 bg-sky-50/40 dark:bg-sky-950/35";
@@ -5099,7 +5117,7 @@ export default {
         },
         outboundMessageMenuButtonClass(chatItem) {
             if (!chatItem?.is_outbound) {
-                return "text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 dark:text-zinc-500";
+                return "text-sem-fg-muted hover:text-sem-fg";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
                 return "text-sky-700/90 dark:text-sky-200/85";
@@ -5108,7 +5126,7 @@ export default {
         },
         outboundMessageMenuButtonHoverClass(chatItem) {
             if (!chatItem?.is_outbound) {
-                return "hover:bg-gray-200 dark:hover:bg-zinc-700";
+                return "hover:bg-gray-200 hover:bg-sem-surface-muted";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
                 return "hover:bg-sky-900/10 dark:hover:bg-white/10";
@@ -5452,6 +5470,7 @@ export default {
                 this.chatItems = this.chatItems.filter((item) => {
                     return !this._hexEqual(item.lxmf_message?.hash, hash);
                 });
+                this._invalidateDisplayGroupsCache();
             } catch {
                 // do nothing if failed to delete message
             }
@@ -5683,6 +5702,7 @@ export default {
                             lxmf_message: pendingMessage,
                             is_outbound: true,
                         });
+                        this._invalidateDisplayGroupsCache();
                     }
                     this.$nextTick(() => {
                         this.scrollMessagesToBottom();
@@ -5772,6 +5792,7 @@ export default {
                                     lxmf_message: this.normalizeLxmfMessage(subResponse.data.lxmf_message, true),
                                     is_outbound: true,
                                 });
+                                this._invalidateDisplayGroupsCache();
                             }
                         } catch (subError) {
                             console.error(`Failed to send image ${i + 1}:`, subError);
@@ -5875,6 +5896,7 @@ export default {
                         lxmf_message: this.normalizeLxmfMessage(response.data.lxmf_message, true),
                         is_outbound: true,
                     });
+                    this._invalidateDisplayGroupsCache();
                 }
 
                 this.scrollMessagesToBottom();
@@ -7247,14 +7269,14 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .attachment-card {
-    @apply relative flex gap-3 border border-gray-200 dark:border-zinc-800 rounded-2xl p-3 shadow-sm;
+    @apply relative flex gap-3 border border-sem-border rounded-2xl p-3 shadow-sm;
     background-color: white;
 }
 .dark .attachment-card {
     background-color: rgb(24 24 27);
 }
 .attachment-card__preview {
-    @apply w-24 h-24 overflow-hidden rounded-xl bg-gray-100 dark:bg-zinc-800 cursor-pointer;
+    @apply w-24 h-24 overflow-hidden rounded-xl bg-sem-surface-muted cursor-pointer;
 }
 .attachment-card__body {
     @apply flex-1;
@@ -7263,13 +7285,13 @@ export default {
     @apply text-sm font-semibold text-gray-800 dark:text-gray-100;
 }
 .attachment-card__meta {
-    @apply text-xs text-gray-500 dark:text-gray-400;
+    @apply text-xs text-sem-fg-muted;
 }
 .attachment-card__remove {
     @apply absolute top-2 right-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-gray-200 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40;
 }
 .attachment-chip {
-    @apply flex items-center justify-between gap-2 border border-gray-200 dark:border-zinc-800 rounded-full px-3 py-1 text-xs shadow-sm;
+    @apply flex items-center justify-between gap-2 border border-sem-border rounded-full px-3 py-1 text-xs shadow-sm;
     background-color: white;
 }
 .dark .attachment-chip {
@@ -7279,10 +7301,10 @@ export default {
     @apply inline-flex items-center justify-center text-gray-500 dark:text-gray-300 hover:text-red-500;
 }
 .attachment-action-button {
-    @apply inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors;
+    @apply inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-sem-fg-muted hover:bg-sem-surface-muted transition-colors;
 }
 .attachment-action-button:hover {
-    @apply text-gray-900 dark:text-white;
+    @apply text-sem-fg;
 }
 .dark .attachment-action-button {
     @apply text-zinc-300;

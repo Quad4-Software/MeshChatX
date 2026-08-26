@@ -2,6 +2,12 @@
 
 import { calendarDayKeyFromDate } from "./messageTimestampGrouping.js";
 
+/** Initial room history page size (newest messages). */
+export const RELAY_MESSAGES_INITIAL_PAGE_SIZE = 150;
+
+/** Older history page size when scrolling up. */
+export const RELAY_MESSAGES_PREVIOUS_PAGE_SIZE = 100;
+
 /**
  * @param {object} msg
  * @returns {string}
@@ -177,4 +183,99 @@ export function buildRelayMessageTimeline(messages) {
     }
     flushPresence();
     return out;
+}
+
+/**
+ * @param {object[]} messages
+ * @returns {string}
+ */
+export function relayMessageTimelineSignature(messages) {
+    if (!Array.isArray(messages) || messages.length === 0) {
+        return "";
+    }
+    let minSeq = null;
+    let maxSeq = null;
+    for (const msg of messages) {
+        if (typeof msg?.seq !== "number") {
+            continue;
+        }
+        if (minSeq === null || msg.seq < minSeq) {
+            minSeq = msg.seq;
+        }
+        if (maxSeq === null || msg.seq > maxSeq) {
+            maxSeq = msg.seq;
+        }
+    }
+    return `${messages.length}\u241f${minSeq ?? ""}\u241f${maxSeq ?? ""}`;
+}
+
+/**
+ * Keep only older rows not already present. Uses seq Set for O(n) dedupe.
+ *
+ * @param {object[]} older
+ * @param {object[]} existingMessages
+ * @returns {object[]}
+ */
+export function filterUniqueOlderRelayMessages(older, existingMessages) {
+    if (!Array.isArray(older) || older.length === 0) {
+        return [];
+    }
+    const existingSeqs = new Set();
+    if (Array.isArray(existingMessages)) {
+        for (const msg of existingMessages) {
+            if (msg && msg.seq != null) {
+                existingSeqs.add(msg.seq);
+            }
+        }
+    }
+    const out = [];
+    for (const msg of older) {
+        if (!msg) {
+            continue;
+        }
+        if (msg.seq != null) {
+            if (existingSeqs.has(msg.seq)) {
+                continue;
+            }
+            existingSeqs.add(msg.seq);
+            out.push(msg);
+            continue;
+        }
+        if (!relayMessageAlreadyPresent(existingMessages, msg) && !relayMessageAlreadyPresent(out, msg)) {
+            out.push(msg);
+        }
+    }
+    return out;
+}
+
+/**
+ * Extend a cached timeline after prepending older messages (oldest-first).
+ *
+ * @param {object[]} existingTimeline
+ * @param {object[]} prependedMessagesOldestFirst
+ * @returns {object[]}
+ */
+export function prependRelayMessageTimeline(existingTimeline, prependedMessagesOldestFirst) {
+    const prepended = prependedMessagesOldestFirst || [];
+    const existing = existingTimeline || [];
+    if (prepended.length === 0) {
+        return existing;
+    }
+    if (existing.length === 0) {
+        return buildRelayMessageTimeline(prepended);
+    }
+    const prefixTimeline = buildRelayMessageTimeline(prepended);
+    if (prefixTimeline.length === 0) {
+        return existing;
+    }
+    const lastPrefix = prefixTimeline[prefixTimeline.length - 1];
+    const firstExisting = existing[0];
+    if (
+        lastPrefix?.type === "dateDivider" &&
+        firstExisting?.type === "dateDivider" &&
+        lastPrefix.dayKey === firstExisting.dayKey
+    ) {
+        return prefixTimeline.slice(0, -1).concat(existing);
+    }
+    return prefixTimeline.concat(existing);
 }

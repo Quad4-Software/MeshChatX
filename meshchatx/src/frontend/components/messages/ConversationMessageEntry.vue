@@ -263,7 +263,7 @@
                         ? 'shadow-xs'
                         : entry.items[0].is_outbound
                           ? cv.outboundBubbleSurfaceClass(entry.items[0])
-                          : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-200/60 dark:border-zinc-800/60 shadow-xs',
+                          : 'bg-sem-surface text-sem-fg border border-sem-border shadow-xs',
             ]"
             :style="cv.bubbleStyles(entry.items[0])"
             @contextmenu.prevent.stop="cv.onMessageContextMenu($event, entry.items[0], true)"
@@ -409,7 +409,7 @@
         </div>
         <div
             v-if="cv.expandedMessageInfo === entry.items[0].lxmf_message.hash"
-            class="mt-2 px-1 text-xs text-gray-500 dark:text-zinc-400 space-y-0.5"
+            class="mt-2 px-1 text-xs text-sem-fg-muted space-y-0.5"
             :class="entry.items[0].is_outbound ? 'self-end' : 'self-start'"
         >
             <div
@@ -429,7 +429,7 @@
     >
         <span class="h-px w-10 shrink-0 bg-gray-300/85 sm:w-14 dark:bg-zinc-600/70" aria-hidden="true" />
         <span
-            class="max-w-[min(100%,18rem)] text-center text-[11px] font-medium leading-snug tracking-wide text-gray-500/95 dark:text-zinc-400/95"
+            class="max-w-[min(100%,18rem)] text-center text-[11px] font-medium leading-snug tracking-wide text-gray-500/95 text-sem-fg-muted/95"
         >
             {{ cv.formatDateDividerLabel(entry.dayKey) }}
         </span>
@@ -583,7 +583,7 @@
                             ? 'shadow-xs'
                             : chatItem.is_outbound
                               ? cv.outboundBubbleSurfaceClass(chatItem)
-                              : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-200/60 dark:border-zinc-800/60 shadow-xs',
+                              : 'bg-sem-surface text-sem-fg border border-sem-border shadow-xs',
                 ]"
                 :style="cv.bubbleStyles(chatItem)"
                 @click="cv.onChatItemClick(chatItem)"
@@ -714,7 +714,7 @@
                             ></div>
                             <div
                                 v-if="cv.bubbleViewModel(chatItem).showFooter"
-                                class="mt-1.5 pt-1.5 border-t border-black/5 dark:border-white/5 text-xs text-gray-500 dark:text-zinc-500"
+                                class="mt-1.5 pt-1.5 border-t border-black/5 dark:border-white/5 text-xs text-sem-fg-muted"
                             >
                                 <div v-if="cv.bubbleViewModel(chatItem).showOriginalLink" class="wrap-break-word">
                                     <span>{{
@@ -803,7 +803,7 @@
                                     ? cv.isThemeOutboundBubble(chatItem)
                                         ? 'bg-white/10 border-white/20'
                                         : 'bg-black/5 border-black/10'
-                                    : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800/30'
+                                    : 'bg-sem-surface-muted border-blue-100 dark:border-blue-800/30'
                             "
                         >
                             <div
@@ -812,7 +812,7 @@
                                     chatItem.is_outbound
                                         ? cv.isThemeOutboundBubble(chatItem)
                                             ? 'text-white'
-                                            : 'text-gray-800 dark:text-zinc-200'
+                                            : 'text-sem-fg'
                                         : 'text-blue-700 dark:text-blue-300'
                                 "
                             >
@@ -827,8 +827,8 @@
                                             chatItem.is_outbound
                                                 ? cv.isThemeOutboundBubble(chatItem)
                                                     ? 'text-white'
-                                                    : 'text-gray-900 dark:text-white'
-                                                : 'text-gray-900 dark:text-white'
+                                                    : 'text-sem-fg'
+                                                : 'text-sem-fg'
                                         "
                                     >
                                         {{ cv.getParsedItems(chatItem).contact.name }}
@@ -839,8 +839,8 @@
                                             chatItem.is_outbound
                                                 ? cv.isThemeOutboundBubble(chatItem)
                                                     ? 'text-white/70'
-                                                    : 'text-gray-500 dark:text-zinc-400'
-                                                : 'text-gray-500 dark:text-zinc-400'
+                                                    : 'text-sem-fg-muted'
+                                                : 'text-sem-fg-muted'
                                         "
                                     >
                                         {{ cv.getParsedItems(chatItem).contact.hash }}
@@ -852,8 +852,8 @@
                                             chatItem.is_outbound
                                                 ? cv.isThemeOutboundBubble(chatItem)
                                                     ? 'text-white/60'
-                                                    : 'text-gray-400 dark:text-zinc-500'
-                                                : 'text-gray-400 dark:text-zinc-500'
+                                                    : 'text-sem-fg-muted'
+                                                : 'text-sem-fg-muted'
                                         "
                                     >
                                         LXMF: {{ cv.getParsedItems(chatItem).contact.lxmf_address }}
@@ -865,8 +865,8 @@
                                             chatItem.is_outbound
                                                 ? cv.isThemeOutboundBubble(chatItem)
                                                     ? 'text-white/60'
-                                                    : 'text-gray-400 dark:text-zinc-500'
-                                                : 'text-gray-400 dark:text-zinc-500'
+                                                    : 'text-sem-fg-muted'
+                                                : 'text-sem-fg-muted'
                                         "
                                     >
                                         LXST: {{ cv.getParsedItems(chatItem).contact.lxst_address }}
@@ -908,7 +908,7 @@
                                     chatItem.is_outbound
                                         ? cv.isThemeOutboundBubble(chatItem)
                                             ? 'text-white'
-                                            : 'text-gray-800 dark:text-zinc-200'
+                                            : 'text-sem-fg'
                                         : 'text-emerald-700 dark:text-emerald-400'
                                 "
                             >
@@ -921,8 +921,8 @@
                                     chatItem.is_outbound
                                         ? cv.isThemeOutboundBubble(chatItem)
                                             ? 'text-white/80'
-                                            : 'text-gray-600 dark:text-zinc-400'
-                                        : 'text-emerald-600/80 dark:text-zinc-400'
+                                            : 'text-sem-fg-muted'
+                                        : 'text-emerald-600/80 text-sem-fg-muted'
                                 "
                             >
                                 This message contains a signed LXMF URI that can be ingested into your conversations.
@@ -963,7 +963,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="w-full py-2 bg-white dark:bg-zinc-900 border border-sky-200 dark:border-sky-800 text-sky-800 dark:text-sky-200 rounded-lg text-xs font-bold"
+                                class="w-full py-2 bg-sem-surface border border-sky-200 dark:border-sky-800 text-sky-800 dark:text-sky-200 rounded-lg text-xs font-bold"
                                 @click="cv.copyMapShareUri(cv.getParsedItems(chatItem).mapLink.uri)"
                             >
                                 {{ $t("messages.map_link_copy_uri") }}
@@ -1006,7 +1006,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="w-full py-2 bg-white dark:bg-zinc-900 border border-violet-200 dark:border-violet-800 text-violet-800 dark:text-violet-200 rounded-lg text-xs font-bold"
+                                class="w-full py-2 bg-sem-surface border border-violet-200 dark:border-violet-800 text-violet-800 dark:text-violet-200 rounded-lg text-xs font-bold"
                                 @click="cv.copyRelayShareUri(cv.getParsedItems(chatItem).relayLink.uri)"
                             >
                                 {{ $t("messages.relay_link_copy_uri") }}
@@ -1026,7 +1026,7 @@
                         <!-- audio is not yet loaded -->
                         <div
                             v-else
-                            class="flex items-center justify-center p-2 rounded-xl bg-gray-50/50 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-800 min-h-[54px]"
+                            class="flex items-center justify-center p-2 rounded-xl bg-gray-50/50 dark:bg-zinc-800/50 border border-sem-border min-h-[54px]"
                         >
                             <div class="flex items-center gap-2">
                                 <div
@@ -1057,7 +1057,7 @@
                             :class="
                                 chatItem.is_outbound
                                     ? cv.outboundEmbeddedCardClass(chatItem)
-                                    : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300 border-gray-200/60 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                                    : 'bg-gray-50 dark:bg-zinc-800/50 text-sem-fg-muted border-gray-200/60 dark:border-zinc-700 hover:bg-sem-surface-muted'
                             "
                             @click.stop="cv.downloadLxmfFileAttachment(chatItem, index)"
                         >
@@ -1073,7 +1073,7 @@
                                     :class="
                                         chatItem.is_outbound
                                             ? cv.outboundEmbeddedSecondaryTextClass(chatItem)
-                                            : 'text-gray-500 dark:text-zinc-400'
+                                            : 'text-sem-fg-muted'
                                     "
                                 >
                                     {{ cv.formatAttachmentSize(file_attachment, "file") }}
@@ -1090,11 +1090,11 @@
                         <div v-for="(command, index) in chatItem.lxmf_message.fields.commands" :key="index">
                             <div
                                 v-if="command['0x01'] || command['1'] || command['0x1']"
-                                class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-sem-surface-muted rounded-lg px-3 py-2 text-sm font-medium transition-colors"
                                 :class="
                                     chatItem.is_outbound
                                         ? cv.outboundEmbeddedCardClass(chatItem)
-                                        : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
+                                        : 'bg-gray-50 dark:bg-zinc-800/50 text-sem-fg-muted'
                                 "
                             >
                                 <MaterialDesignIcon icon-name="crosshairs-question" class="size-5" />
@@ -1116,11 +1116,11 @@
                             <button
                                 v-if="chatItem.lxmf_message.fields.telemetry.location"
                                 type="button"
-                                class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-sem-surface-muted rounded-lg px-3 py-2 text-sm font-medium transition-colors"
                                 :class="
                                     chatItem.is_outbound
                                         ? cv.outboundEmbeddedCardClass(chatItem)
-                                        : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
+                                        : 'bg-gray-50 dark:bg-zinc-800/50 text-sem-fg-muted'
                                 "
                                 @click="cv.viewLocationOnMap(chatItem.lxmf_message.fields.telemetry.location)"
                             >
@@ -1140,11 +1140,11 @@
                             <button
                                 v-if="!chatItem.is_outbound"
                                 type="button"
-                                class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-sem-surface-muted rounded-lg px-3 py-2 text-sm font-medium transition-colors"
                                 :class="[
                                     cv.selectedPeer?.is_tracking
-                                        ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30 shadow-inner'
-                                        : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300',
+                                        ? 'bg-blue-500/20 text-sem-accent border-blue-500/30 shadow-inner'
+                                        : 'bg-gray-50 dark:bg-zinc-800/50 text-sem-fg-muted',
                                 ]"
                                 @click="cv.toggleTracking()"
                             >
@@ -1374,7 +1374,7 @@
         <!-- expanded message details -->
         <div
             v-if="cv.expandedMessageInfo === chatItem.lxmf_message.hash"
-            class="mt-2 px-1 text-xs text-gray-500 dark:text-zinc-400 space-y-0.5"
+            class="mt-2 px-1 text-xs text-sem-fg-muted space-y-0.5"
         >
             <div
                 v-for="(line, index) in cv.getMessageInfoLines(chatItem.lxmf_message, chatItem.is_outbound)"
