@@ -4,30 +4,25 @@
     <div :class="sidebarRootClass">
         <div
             v-if="effectiveCollapsed"
-            :class="[
-                'flex flex-col h-full min-h-0 bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800',
-                edgeBorderClass,
-            ]"
+            :class="['flex flex-col h-full min-h-0 bg-sem-surface border-sem-border', edgeBorderClass]"
         >
-            <div
-                class="hidden sm:flex h-10 shrink-0 items-center justify-center border-b border-gray-200 dark:border-zinc-800 px-2"
-            >
+            <div class="hidden sm:flex h-10 shrink-0 items-center justify-center border-b border-sem-border px-2">
                 <button
                     type="button"
-                    class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
+                    class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 text-sem-fg-muted dark:hover:bg-zinc-800 transition-colors"
                     @click="$emit('toggle-collapse')"
                 >
                     <MaterialDesignIcon :icon-name="collapsedStripChevronIcon" class="size-5" />
                 </button>
             </div>
-            <div class="flex flex-col items-center gap-1 py-2 px-1 border-b border-gray-200 dark:border-zinc-800">
+            <div class="flex flex-col items-center gap-1 py-2 px-1 border-b border-sem-border">
                 <button
                     type="button"
                     class="p-2 rounded-xl transition-colors"
                     :class="
                         tab === 'conversations'
                             ? 'bg-blue-600 text-white dark:bg-blue-500'
-                            : 'text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                            : 'text-gray-500 hover:bg-gray-100 text-sem-fg-muted dark:hover:bg-zinc-800'
                     "
                     @click="tab = 'conversations'"
                 >
@@ -39,7 +34,7 @@
                     :class="
                         tab === 'announces'
                             ? 'bg-blue-600 text-white dark:bg-blue-500'
-                            : 'text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                            : 'text-gray-500 hover:bg-gray-100 text-sem-fg-muted dark:hover:bg-zinc-800'
                     "
                     @click="tab = 'announces'"
                 >
@@ -76,7 +71,7 @@
         </div>
         <template v-else>
             <!-- tabs (h-10 matches sidebar collapse row height) -->
-            <div :class="['bg-white dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-800', edgeBorderClass]">
+            <div :class="['bg-sem-surface border-b border-sem-border', edgeBorderClass]">
                 <div class="-mb-px flex h-10 min-w-0 items-stretch" :class="{ 'flex-row-reverse': isRightSidebar }">
                     <div class="flex min-w-0 flex-1">
                         <div
@@ -84,7 +79,7 @@
                             :class="[
                                 tab === 'conversations'
                                     ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300'
-                                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-gray-200',
+                                    : 'border-transparent text-sem-fg-muted hover:border-gray-300 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-gray-200',
                             ]"
                             @click="tab = 'conversations'"
                         >
@@ -95,7 +90,7 @@
                             :class="[
                                 tab === 'announces'
                                     ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300'
-                                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-gray-200',
+                                    : 'border-transparent text-sem-fg-muted hover:border-gray-300 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-gray-200',
                             ]"
                             @click="tab = 'announces'"
                         >
@@ -104,7 +99,7 @@
                     </div>
                     <button
                         type="button"
-                        class="hidden sm:flex shrink-0 items-center border-b-2 border-transparent px-1.5 text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
+                        class="hidden sm:flex shrink-0 items-center border-b-2 border-transparent px-1.5 text-gray-500 hover:bg-gray-100 text-sem-fg-muted dark:hover:bg-zinc-800 transition-colors"
                         @click="$emit('toggle-collapse')"
                     >
                         <MaterialDesignIcon :icon-name="expandedTabBarChevronIcon" class="size-5" />
@@ -116,7 +111,7 @@
             <div
                 v-if="tab === 'conversations'"
                 :class="[
-                    'relative flex-1 flex flex-col bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 overflow-hidden min-h-0',
+                    'relative flex-1 flex flex-col bg-sem-surface border-sem-border overflow-hidden min-h-0',
                     edgeBorderClass,
                 ]"
                 @dragenter.prevent="onMessagesImportDragEnter"
@@ -125,9 +120,9 @@
                 @drop.prevent="onMessagesImportDrop"
             >
                 <!-- Folders Section -->
-                <div class="border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+                <div class="border-b border-sem-border bg-sem-surface">
                     <div
-                        class="flex cursor-pointer items-center justify-between px-3 py-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800/80"
+                        class="flex cursor-pointer items-center justify-between px-3 py-2 transition-colors hover:bg-sem-surface-muted"
                         @click="foldersExpanded = !foldersExpanded"
                     >
                         <div class="flex items-center gap-2">
@@ -135,7 +130,7 @@
                                 :icon-name="foldersExpanded ? 'chevron-down' : 'chevron-right'"
                                 class="size-4 text-gray-400"
                             />
-                            <span class="text-xs font-medium text-gray-500 dark:text-zinc-500">
+                            <span class="text-xs font-medium text-sem-fg-muted">
                                 {{ $t("messages.folders") }}
                             </span>
                         </div>
@@ -151,7 +146,7 @@
                             <div class="relative">
                                 <button
                                     type="button"
-                                    class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 hover:bg-gray-200/50 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                                    class="p-1 text-sem-fg-muted hover:text-sem-fg hover:bg-gray-200/50 dark:hover:bg-zinc-800 rounded-lg transition-colors"
                                     @click="folderMenu.show = !folderMenu.show"
                                 >
                                     <MaterialDesignIcon icon-name="dots-vertical" class="size-4" />
@@ -159,11 +154,11 @@
                                 <div
                                     v-if="folderMenu.show"
                                     v-click-outside="{ handler: () => (folderMenu.show = false), capture: true }"
-                                    class="absolute right-0 top-full mt-1 z-60 min-w-[160px] bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700 py-1 overflow-hidden animate-in fade-in zoom-in duration-100"
+                                    class="absolute right-0 top-full mt-1 z-60 min-w-[160px] bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-sem-border py-1 overflow-hidden animate-in fade-in zoom-in duration-100"
                                 >
                                     <button
                                         type="button"
-                                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors"
                                         @click="
                                             $emit('export-folders');
                                             folderMenu.show = false;
@@ -174,7 +169,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors"
                                         @click="
                                             $emit('import-folders');
                                             folderMenu.show = false;
@@ -196,9 +191,9 @@
                             :class="[
                                 selectedFolderId === null
                                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 font-semibold'
-                                    : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800',
+                                    : 'text-sem-fg-muted hover:bg-sem-surface-muted',
                                 dragOverFolderId === 'all'
-                                    ? 'ring-2 ring-blue-500 ring-inset bg-blue-50 dark:bg-blue-900/20'
+                                    ? 'ring-2 ring-blue-500 ring-inset bg-sem-surface-muted'
                                     : '',
                             ]"
                             @click="$emit('folder-click', null)"
@@ -214,10 +209,8 @@
                             :class="[
                                 selectedFolderId === 0
                                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 font-semibold'
-                                    : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800',
-                                dragOverFolderId === 0
-                                    ? 'ring-2 ring-blue-500 ring-inset bg-blue-50 dark:bg-blue-900/20'
-                                    : '',
+                                    : 'text-sem-fg-muted hover:bg-sem-surface-muted',
+                                dragOverFolderId === 0 ? 'ring-2 ring-blue-500 ring-inset bg-sem-surface-muted' : '',
                             ]"
                             @click="$emit('folder-click', 0)"
                             @dragover="onDragOver($event, 0)"
@@ -234,9 +227,9 @@
                             :class="[
                                 selectedFolderId === folder.id
                                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 font-semibold'
-                                    : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800',
+                                    : 'text-sem-fg-muted hover:bg-sem-surface-muted',
                                 dragOverFolderId === folder.id
-                                    ? 'ring-2 ring-blue-500 ring-inset bg-blue-50 dark:bg-blue-900/20'
+                                    ? 'ring-2 ring-blue-500 ring-inset bg-sem-surface-muted'
                                     : '',
                             ]"
                             @click="$emit('folder-click', folder.id)"
@@ -249,14 +242,14 @@
                             <div class="hidden group-hover:flex items-center gap-0.5">
                                 <button
                                     type="button"
-                                    class="p-1 hover:text-blue-500 hover:bg-white dark:hover:bg-zinc-700 rounded-lg transition-colors"
+                                    class="p-1 hover:text-blue-500 hover:bg-white hover:bg-sem-surface-muted rounded-lg transition-colors"
                                     @click.stop="renameFolder(folder)"
                                 >
                                     <MaterialDesignIcon icon-name="pencil-outline" class="size-3.5" />
                                 </button>
                                 <button
                                     type="button"
-                                    class="p-1 hover:text-red-500 hover:bg-white dark:hover:bg-zinc-700 rounded-lg transition-colors"
+                                    class="p-1 hover:text-red-500 hover:bg-white hover:bg-sem-surface-muted rounded-lg transition-colors"
                                     @click.stop="deleteFolder(folder)"
                                 >
                                     <MaterialDesignIcon icon-name="trash-can-outline" class="size-3.5" />
@@ -330,7 +323,7 @@
                         <div class="flex gap-2">
                             <button
                                 type="button"
-                                class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                                class="text-xs font-bold text-sem-accent hover:underline"
                                 @click="bulkMarkAsRead"
                             >
                                 {{ $t("messages.mark_as_read") }}
@@ -345,7 +338,7 @@
                             <div class="relative">
                                 <button
                                     type="button"
-                                    class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                                    class="text-xs font-bold text-sem-accent hover:underline"
                                     @click="moveMenu.show = !moveMenu.show"
                                 >
                                     {{ $t("messages.move_to") }}
@@ -353,11 +346,11 @@
                                 <div
                                     v-if="moveMenu.show"
                                     v-click-outside="{ handler: () => (moveMenu.show = false), capture: true }"
-                                    class="absolute right-0 top-full mt-1 z-60 min-w-[160px] bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700 py-1 overflow-hidden animate-in fade-in zoom-in duration-100"
+                                    class="absolute right-0 top-full mt-1 z-60 min-w-[160px] bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-sem-border py-1 overflow-hidden animate-in fade-in zoom-in duration-100"
                                 >
                                     <button
                                         type="button"
-                                        class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                                        class="w-full text-left px-3 py-2 text-sm text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors"
                                         @click="moveSelectedToFolder(null)"
                                     >
                                         {{ $t("messages.uncategorized") }}
@@ -366,7 +359,7 @@
                                         v-for="folder in folders"
                                         :key="folder.id"
                                         type="button"
-                                        class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                                        class="w-full text-left px-3 py-2 text-sm text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors"
                                         @click="moveSelectedToFolder(folder.id)"
                                     >
                                         {{ folder.name }}
@@ -378,145 +371,310 @@
                 </div>
 
                 <!-- conversations -->
-                <div class="flex h-full overflow-y-auto" @scroll="onConversationsScroll">
+                <div class="flex h-full min-h-0">
                     <LoadingState v-if="isLoading" class="w-full" :message="$t('messages.loading_conversations')" />
-                    <div v-else-if="displayedConversations.length > 0" class="w-full">
-                        <div
-                            v-for="conversation of displayedConversations"
-                            :key="conversation.destination_hash"
-                            v-memo="[
-                                conversation.destination_hash,
-                                conversation.updated_at,
-                                conversation.is_unread,
-                                conversation.failed_messages_count,
-                                selectedDestinationHash === conversation.destination_hash,
-                                GlobalState.config.banished_effect_enabled && isBlocked(conversation.destination_hash),
-                                selectionMode,
-                                selectedHashes.has(conversation.destination_hash),
-                                pinnedSet.has(conversation.destination_hash),
-                                timeAgoTick,
-                                isRightSidebar,
-                            ]"
-                            :class="[
-                                'flex cursor-pointer px-2 py-2 relative group conversation-item',
-                                selectionEdgeBorderClass,
-                                conversation.destination_hash === selectedDestinationHash
-                                    ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-500 dark:border-blue-400'
-                                    : 'bg-white dark:bg-zinc-950 border-transparent hover:bg-gray-50 dark:hover:bg-zinc-800/80',
-                                selectedHashes.has(conversation.destination_hash)
-                                    ? 'bg-blue-50/50 dark:bg-blue-900/10'
-                                    : '',
-                            ]"
-                            draggable="true"
-                            @click="onConversationRowActivate(conversation)"
-                            @touchstart.passive="onConversationTouchStart($event, conversation)"
-                            @touchmove="onConversationTouchMove"
-                            @touchend="onConversationTouchEnd"
-                            @touchcancel="onConversationTouchEnd"
-                            @contextmenu="onRightClick($event, conversation.destination_hash)"
-                            @dragstart="onDragStart($event, conversation.destination_hash)"
+                    <div v-else-if="displayedConversations.length > 0" class="w-full h-full min-h-0">
+                        <SidebarVirtualList
+                            v-if="displayedConversations.length >= MIN_VIRTUAL_SIDEBAR_ITEMS"
+                            class="h-full"
+                            :items="displayedConversations"
+                            :item-key="(item) => item.destination_hash"
+                            @scroll="onConversationsScroll"
                         >
-                            <!-- Selection Checkbox -->
-                            <div v-if="selectionMode" class="my-auto mr-3 px-1">
-                                <input
-                                    type="checkbox"
-                                    :checked="selectedHashes.has(conversation.destination_hash)"
-                                    class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
-                                    @click.stop
-                                    @change="toggleSelectConversation(conversation.destination_hash)"
-                                />
-                            </div>
-
-                            <!-- banished overlay -->
-                            <div
-                                v-if="
-                                    GlobalState.config.banished_effect_enabled &&
-                                    isBlocked(conversation.destination_hash)
-                                "
-                                class="banished-overlay"
-                                :style="{ background: GlobalState.config.banished_color + '33' }"
-                            >
-                                <span
-                                    class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
-                                    :style="{ 'background-color': GlobalState.config.banished_color }"
-                                    >{{ GlobalState.config.banished_text }}</span
+                            <template #item="{ item: conversation }">
+                                <div
+                                    v-memo="[
+                                        conversation.destination_hash,
+                                        conversation.updated_at,
+                                        conversation.is_unread,
+                                        conversation.failed_messages_count,
+                                        selectedDestinationHash === conversation.destination_hash,
+                                        GlobalState.config.banished_effect_enabled &&
+                                            isBlocked(conversation.destination_hash),
+                                        selectionMode,
+                                        selectedHashes.has(conversation.destination_hash),
+                                        pinnedSet.has(conversation.destination_hash),
+                                        timeAgoTick,
+                                        isRightSidebar,
+                                    ]"
+                                    :class="[
+                                        'flex cursor-pointer px-2 py-2 relative group conversation-item',
+                                        selectionEdgeBorderClass,
+                                        conversation.destination_hash === selectedDestinationHash
+                                            ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-500 dark:border-blue-400'
+                                            : 'bg-sem-surface border-transparent hover:bg-sem-surface-muted/80',
+                                        selectedHashes.has(conversation.destination_hash)
+                                            ? 'bg-blue-50/50 dark:bg-blue-900/10'
+                                            : '',
+                                    ]"
+                                    draggable="true"
+                                    @click="onConversationRowActivate(conversation)"
+                                    @touchstart.passive="onConversationTouchStart($event, conversation)"
+                                    @touchmove="onConversationTouchMove"
+                                    @touchend="onConversationTouchEnd"
+                                    @touchcancel="onConversationTouchEnd"
+                                    @contextmenu="onRightClick($event, conversation.destination_hash)"
+                                    @dragstart="onDragStart($event, conversation.destination_hash)"
                                 >
-                            </div>
+                                    <!-- Selection Checkbox -->
+                                    <div v-if="selectionMode" class="my-auto mr-3 px-1">
+                                        <input
+                                            type="checkbox"
+                                            :checked="selectedHashes.has(conversation.destination_hash)"
+                                            class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            @click.stop
+                                            @change="toggleSelectConversation(conversation.destination_hash)"
+                                        />
+                                    </div>
 
-                            <div class="my-auto mr-2">
-                                <LxmfUserIcon
-                                    :custom-image="conversation.contact_image"
-                                    :icon-name="
-                                        conversation.lxmf_user_icon ? conversation.lxmf_user_icon.icon_name : ''
-                                    "
-                                    :icon-foreground-colour="
-                                        conversation.lxmf_user_icon ? conversation.lxmf_user_icon.foreground_colour : ''
-                                    "
-                                    :icon-background-colour="
-                                        conversation.lxmf_user_icon ? conversation.lxmf_user_icon.background_colour : ''
-                                    "
-                                    icon-class="shrink-0"
-                                    :icon-style="messageIconStyle"
-                                />
-                            </div>
-                            <div class="mr-auto w-full pr-2 min-w-0">
-                                <div class="flex justify-between gap-2 min-w-0">
-                                    <div
-                                        class="text-gray-900 dark:text-gray-100 truncate min-w-0"
-                                        :title="conversation.custom_display_name ?? conversation.display_name"
-                                        :class="{
-                                            'font-semibold':
-                                                (conversation.is_unread &&
-                                                    conversation.destination_hash !== selectedDestinationHash) ||
-                                                conversation.failed_messages_count > 0,
-                                        }"
-                                    >
-                                        {{ conversation.custom_display_name ?? conversation.display_name }}
-                                    </div>
-                                    <div class="text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap shrink-0">
-                                        {{ formatTimeAgo(conversation.updated_at) }}
-                                    </div>
-                                </div>
-                                <div class="text-gray-600 dark:text-gray-400 text-xs mt-0.5 truncate">
-                                    {{
-                                        stripMarkdown(
-                                            conversation.latest_message_preview ?? conversation.latest_message_title
-                                        ) ?? $t("messages.no_messages_yet")
-                                    }}
-                                </div>
-                            </div>
-                            <div class="flex flex-col items-center justify-between ml-1 py-1 shrink-0">
-                                <div class="flex items-center space-x-1">
-                                    <div
-                                        v-if="pinnedSet.has(conversation.destination_hash)"
-                                        class="text-blue-500 dark:text-blue-400"
-                                        :title="$t('messages.pinned')"
-                                    >
-                                        <MaterialDesignIcon icon-name="pin" class="w-4 h-4" />
-                                    </div>
-                                    <div v-if="conversation.has_attachments" class="text-gray-500 dark:text-gray-300">
-                                        <MaterialDesignIcon icon-name="paperclip" class="w-4 h-4" />
-                                    </div>
+                                    <!-- banished overlay -->
                                     <div
                                         v-if="
-                                            conversation.is_unread &&
-                                            conversation.destination_hash !== selectedDestinationHash
+                                            GlobalState.config.banished_effect_enabled &&
+                                            isBlocked(conversation.destination_hash)
                                         "
-                                        class="my-auto ml-1"
+                                        class="banished-overlay"
+                                        :style="{ background: GlobalState.config.banished_color + '33' }"
                                     >
-                                        <div class="bg-blue-500 dark:bg-blue-400 rounded-full p-1"></div>
+                                        <span
+                                            class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
+                                            :style="{ 'background-color': GlobalState.config.banished_color }"
+                                            >{{ GlobalState.config.banished_text }}</span
+                                        >
                                     </div>
-                                    <div v-else-if="conversation.failed_messages_count" class="my-auto ml-1">
-                                        <div class="bg-red-500 dark:bg-red-400 rounded-full p-1"></div>
+
+                                    <div class="my-auto mr-2">
+                                        <LxmfUserIcon
+                                            :custom-image="conversation.contact_image"
+                                            :icon-name="
+                                                conversation.lxmf_user_icon ? conversation.lxmf_user_icon.icon_name : ''
+                                            "
+                                            :icon-foreground-colour="
+                                                conversation.lxmf_user_icon
+                                                    ? conversation.lxmf_user_icon.foreground_colour
+                                                    : ''
+                                            "
+                                            :icon-background-colour="
+                                                conversation.lxmf_user_icon
+                                                    ? conversation.lxmf_user_icon.background_colour
+                                                    : ''
+                                            "
+                                            icon-class="shrink-0"
+                                            :icon-style="messageIconStyle"
+                                        />
+                                    </div>
+                                    <div class="mr-auto w-full pr-2 min-w-0">
+                                        <div class="flex justify-between gap-2 min-w-0">
+                                            <div
+                                                class="text-gray-900 dark:text-gray-100 truncate min-w-0"
+                                                :title="conversation.custom_display_name ?? conversation.display_name"
+                                                :class="{
+                                                    'font-semibold':
+                                                        (conversation.is_unread &&
+                                                            conversation.destination_hash !==
+                                                                selectedDestinationHash) ||
+                                                        conversation.failed_messages_count > 0,
+                                                }"
+                                            >
+                                                {{ conversation.custom_display_name ?? conversation.display_name }}
+                                            </div>
+                                            <div class="text-sem-fg-muted text-xs whitespace-nowrap shrink-0">
+                                                {{ formatTimeAgo(conversation.updated_at) }}
+                                            </div>
+                                        </div>
+                                        <div class="text-gray-600 dark:text-gray-400 text-xs mt-0.5 truncate">
+                                            {{
+                                                stripMarkdown(
+                                                    conversation.latest_message_preview ??
+                                                        conversation.latest_message_title
+                                                ) ?? $t("messages.no_messages_yet")
+                                            }}
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col items-center justify-between ml-1 py-1 shrink-0">
+                                        <div class="flex items-center space-x-1">
+                                            <div
+                                                v-if="pinnedSet.has(conversation.destination_hash)"
+                                                class="text-blue-500 dark:text-blue-400"
+                                                :title="$t('messages.pinned')"
+                                            >
+                                                <MaterialDesignIcon icon-name="pin" class="w-4 h-4" />
+                                            </div>
+                                            <div
+                                                v-if="conversation.has_attachments"
+                                                class="text-gray-500 dark:text-gray-300"
+                                            >
+                                                <MaterialDesignIcon icon-name="paperclip" class="w-4 h-4" />
+                                            </div>
+                                            <div
+                                                v-if="
+                                                    conversation.is_unread &&
+                                                    conversation.destination_hash !== selectedDestinationHash
+                                                "
+                                                class="my-auto ml-1"
+                                            >
+                                                <div class="bg-blue-500 dark:bg-blue-400 rounded-full p-1"></div>
+                                            </div>
+                                            <div v-else-if="conversation.failed_messages_count" class="my-auto ml-1">
+                                                <div class="bg-red-500 dark:bg-red-400 rounded-full p-1"></div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            class="p-1 opacity-0 group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg transition-all"
+                                            @click.stop="onRightClick($event, conversation.destination_hash)"
+                                        >
+                                            <MaterialDesignIcon
+                                                icon-name="dots-vertical"
+                                                class="size-4 text-gray-400"
+                                            />
+                                        </button>
                                     </div>
                                 </div>
-                                <button
-                                    type="button"
-                                    class="p-1 opacity-0 group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg transition-all"
-                                    @click.stop="onRightClick($event, conversation.destination_hash)"
+                            </template>
+                        </SidebarVirtualList>
+                        <div v-else class="h-full overflow-y-auto" @scroll="onConversationsScroll">
+                            <div
+                                v-for="conversation of displayedConversations"
+                                :key="conversation.destination_hash"
+                                v-memo="[
+                                    conversation.destination_hash,
+                                    conversation.updated_at,
+                                    conversation.is_unread,
+                                    conversation.failed_messages_count,
+                                    selectedDestinationHash === conversation.destination_hash,
+                                    GlobalState.config.banished_effect_enabled &&
+                                        isBlocked(conversation.destination_hash),
+                                    selectionMode,
+                                    selectedHashes.has(conversation.destination_hash),
+                                    pinnedSet.has(conversation.destination_hash),
+                                    timeAgoTick,
+                                    isRightSidebar,
+                                ]"
+                                :class="[
+                                    'flex cursor-pointer px-2 py-2 relative group conversation-item',
+                                    selectionEdgeBorderClass,
+                                    conversation.destination_hash === selectedDestinationHash
+                                        ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-500 dark:border-blue-400'
+                                        : 'bg-sem-surface border-transparent hover:bg-sem-surface-muted/80',
+                                    selectedHashes.has(conversation.destination_hash)
+                                        ? 'bg-blue-50/50 dark:bg-blue-900/10'
+                                        : '',
+                                ]"
+                                draggable="true"
+                                @click="onConversationRowActivate(conversation)"
+                                @touchstart.passive="onConversationTouchStart($event, conversation)"
+                                @touchmove="onConversationTouchMove"
+                                @touchend="onConversationTouchEnd"
+                                @touchcancel="onConversationTouchEnd"
+                                @contextmenu="onRightClick($event, conversation.destination_hash)"
+                                @dragstart="onDragStart($event, conversation.destination_hash)"
+                            >
+                                <div v-if="selectionMode" class="my-auto mr-3 px-1">
+                                    <input
+                                        type="checkbox"
+                                        :checked="selectedHashes.has(conversation.destination_hash)"
+                                        class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        @click.stop
+                                        @change="toggleSelectConversation(conversation.destination_hash)"
+                                    />
+                                </div>
+                                <div
+                                    v-if="
+                                        GlobalState.config.banished_effect_enabled &&
+                                        isBlocked(conversation.destination_hash)
+                                    "
+                                    class="banished-overlay"
+                                    :style="{ background: GlobalState.config.banished_color + '33' }"
                                 >
-                                    <MaterialDesignIcon icon-name="dots-vertical" class="size-4 text-gray-400" />
-                                </button>
+                                    <span
+                                        class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
+                                        :style="{ 'background-color': GlobalState.config.banished_color }"
+                                        >{{ GlobalState.config.banished_text }}</span
+                                    >
+                                </div>
+                                <div class="my-auto mr-2">
+                                    <LxmfUserIcon
+                                        :custom-image="conversation.contact_image"
+                                        :icon-name="
+                                            conversation.lxmf_user_icon ? conversation.lxmf_user_icon.icon_name : ''
+                                        "
+                                        :icon-foreground-colour="
+                                            conversation.lxmf_user_icon
+                                                ? conversation.lxmf_user_icon.foreground_colour
+                                                : ''
+                                        "
+                                        :icon-background-colour="
+                                            conversation.lxmf_user_icon
+                                                ? conversation.lxmf_user_icon.background_colour
+                                                : ''
+                                        "
+                                        icon-class="shrink-0"
+                                        :icon-style="messageIconStyle"
+                                    />
+                                </div>
+                                <div class="mr-auto w-full pr-2 min-w-0">
+                                    <div class="flex justify-between gap-2 min-w-0">
+                                        <div
+                                            class="text-gray-900 dark:text-gray-100 truncate min-w-0"
+                                            :title="conversation.custom_display_name ?? conversation.display_name"
+                                            :class="{
+                                                'font-semibold':
+                                                    (conversation.is_unread &&
+                                                        conversation.destination_hash !== selectedDestinationHash) ||
+                                                    conversation.failed_messages_count > 0,
+                                            }"
+                                        >
+                                            {{ conversation.custom_display_name ?? conversation.display_name }}
+                                        </div>
+                                        <div class="text-sem-fg-muted text-xs whitespace-nowrap shrink-0">
+                                            {{ formatTimeAgo(conversation.updated_at) }}
+                                        </div>
+                                    </div>
+                                    <div class="text-gray-600 dark:text-gray-400 text-xs mt-0.5 truncate">
+                                        {{
+                                            stripMarkdown(
+                                                conversation.latest_message_preview ?? conversation.latest_message_title
+                                            ) ?? $t("messages.no_messages_yet")
+                                        }}
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-center justify-between ml-1 py-1 shrink-0">
+                                    <div class="flex items-center space-x-1">
+                                        <div
+                                            v-if="pinnedSet.has(conversation.destination_hash)"
+                                            class="text-blue-500 dark:text-blue-400"
+                                            :title="$t('messages.pinned')"
+                                        >
+                                            <MaterialDesignIcon icon-name="pin" class="w-4 h-4" />
+                                        </div>
+                                        <div
+                                            v-if="conversation.has_attachments"
+                                            class="text-gray-500 dark:text-gray-300"
+                                        >
+                                            <MaterialDesignIcon icon-name="paperclip" class="w-4 h-4" />
+                                        </div>
+                                        <div
+                                            v-if="
+                                                conversation.is_unread &&
+                                                conversation.destination_hash !== selectedDestinationHash
+                                            "
+                                            class="my-auto ml-1"
+                                        >
+                                            <div class="bg-blue-500 dark:bg-blue-400 rounded-full p-1"></div>
+                                        </div>
+                                        <div v-else-if="conversation.failed_messages_count" class="my-auto ml-1">
+                                            <div class="bg-red-500 dark:bg-red-400 rounded-full p-1"></div>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="p-1 opacity-0 group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg transition-all"
+                                        @click.stop="onRightClick($event, conversation.destination_hash)"
+                                    >
+                                        <MaterialDesignIcon icon-name="dots-vertical" class="size-4 text-gray-400" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -659,10 +817,7 @@
                     class="pointer-events-none absolute inset-0 z-50 flex items-center justify-center border-2 border-dashed border-blue-500 bg-blue-500/10"
                 >
                     <div class="px-4 text-center">
-                        <MaterialDesignIcon
-                            icon-name="import"
-                            class="mx-auto size-8 text-blue-600 dark:text-blue-400"
-                        />
+                        <MaterialDesignIcon icon-name="import" class="mx-auto size-8 text-sem-accent" />
                         <p class="mt-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
                             {{ $t("maintenance.import_messages") }}
                         </p>
@@ -677,12 +832,12 @@
             <div
                 v-if="tab === 'announces'"
                 :class="[
-                    'flex-1 flex flex-col bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 overflow-hidden min-h-0',
+                    'flex-1 flex flex-col bg-sem-surface border-sem-border overflow-hidden min-h-0',
                     edgeBorderClass,
                 ]"
             >
                 <!-- search -->
-                <div class="p-1 border-b border-gray-200 dark:border-zinc-800">
+                <div class="p-1 border-b border-sem-border">
                     <div class="relative">
                         <input
                             :value="peersSearchTerm"
@@ -723,7 +878,7 @@
                                 selectionEdgeBorderClass,
                                 peer.destination_hash === selectedDestinationHash
                                     ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-500 dark:border-blue-400'
-                                    : 'bg-white dark:bg-zinc-950 border-transparent hover:bg-gray-50 dark:hover:bg-zinc-800/80',
+                                    : 'bg-sem-surface border-transparent hover:bg-sem-surface-muted/80',
                             ]"
                             @click="onPeerClick(peer)"
                         >
@@ -757,7 +912,7 @@
                                 >
                                     {{ peer.custom_display_name ?? peer.display_name }}
                                 </div>
-                                <div class="flex space-x-1 text-gray-500 dark:text-gray-400 text-sm">
+                                <div class="flex space-x-1 text-sem-fg-muted text-sm">
                                     <!-- time ago -->
                                     <span class="flex my-auto space-x-1">
                                         {{ formatTimeAgo(peer.updated_at) }}
@@ -841,6 +996,8 @@ import MarkdownRenderer from "../../js/MarkdownRenderer";
 import ToastUtils from "../../js/ToastUtils";
 import { importMessagesFromFile } from "../../js/messageImport";
 import { sortConversationsPinnedFirst } from "../../js/lxmfConversationListSync";
+import { MIN_VIRTUAL_SIDEBAR_ITEMS } from "../../js/sidebarListVirtual.js";
+import SidebarVirtualList from "../SidebarVirtualList.vue";
 
 export default {
     name: "MessagesSidebar",
@@ -849,6 +1006,7 @@ export default {
         LoadingState,
         MaterialDesignIcon,
         LxmfUserIcon,
+        SidebarVirtualList,
         ContextMenuDivider,
         ContextMenuItem,
         ContextMenuPanel,
@@ -961,6 +1119,9 @@ export default {
         "toggle-conversation-pin",
         "toggle-collapse",
     ],
+    setup() {
+        return { MIN_VIRTUAL_SIDEBAR_ITEMS };
+    },
     data() {
         let foldersExpanded = true;
         try {
@@ -1478,7 +1639,7 @@ export default {
             if (isActive) {
                 return `${base} bg-blue-600 text-white dark:bg-blue-500`;
             }
-            return `${base} bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-zinc-200`;
+            return `${base} bg-gray-100 text-gray-700 dark:bg-zinc-800 text-sem-fg`;
         },
         async copyConversationHash(hash) {
             if (!hash) {

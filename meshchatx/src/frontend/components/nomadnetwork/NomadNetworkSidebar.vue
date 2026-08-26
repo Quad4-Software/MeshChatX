@@ -2,29 +2,24 @@
 
 <template>
     <div :class="sidebarRootClass">
-        <div
-            v-if="effectiveCollapsed"
-            class="flex flex-col h-full min-h-0 bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-800"
-        >
-            <div
-                class="hidden sm:flex h-10 shrink-0 items-center justify-center border-b border-gray-200 dark:border-zinc-800 px-2"
-            >
+        <div v-if="effectiveCollapsed" class="flex flex-col h-full min-h-0 bg-sem-surface border-r border-sem-border">
+            <div class="hidden sm:flex h-10 shrink-0 items-center justify-center border-b border-sem-border px-2">
                 <button
                     type="button"
-                    class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
+                    class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 text-sem-fg-muted dark:hover:bg-zinc-800 transition-colors"
                     @click="$emit('toggle-collapse')"
                 >
                     <MaterialDesignIcon icon-name="chevron-right" class="size-5" />
                 </button>
             </div>
-            <div class="flex flex-col items-center gap-1 py-2 px-1 border-b border-gray-200 dark:border-zinc-800">
+            <div class="flex flex-col items-center gap-1 py-2 px-1 border-b border-sem-border">
                 <button
                     type="button"
                     class="p-2 rounded-xl transition-colors"
                     :class="
                         tab === 'favourites'
                             ? 'bg-blue-600 text-white dark:bg-blue-500'
-                            : 'text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                            : 'text-gray-500 hover:bg-gray-100 text-sem-fg-muted dark:hover:bg-zinc-800'
                     "
                     @click="tab = 'favourites'"
                 >
@@ -36,7 +31,7 @@
                     :class="
                         tab === 'announces'
                             ? 'bg-blue-600 text-white dark:bg-blue-500'
-                            : 'text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                            : 'text-gray-500 hover:bg-gray-100 text-sem-fg-muted dark:hover:bg-zinc-800'
                     "
                     @click="tab = 'announces'"
                 >
@@ -60,7 +55,7 @@
                     :title="favouriteDisplayName(fav)"
                     @click="onFavouriteClick(fav)"
                 >
-                    <MaterialDesignIcon icon-name="server-network" class="size-6 text-gray-600 dark:text-gray-300" />
+                    <MaterialDesignIcon icon-name="server-network" class="size-6 text-sem-fg-muted" />
                 </button>
             </div>
             <div
@@ -80,14 +75,12 @@
                     :title="node.custom_display_name || node.display_name"
                     @click="onNodeClick(node)"
                 >
-                    <MaterialDesignIcon icon-name="satellite-uplink" class="size-6 text-gray-600 dark:text-gray-300" />
+                    <MaterialDesignIcon icon-name="satellite-uplink" class="size-6 text-sem-fg-muted" />
                 </button>
             </div>
         </div>
         <template v-else>
-            <div
-                class="-mb-px flex h-10 min-w-0 items-stretch border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
-            >
+            <div class="-mb-px flex h-10 min-w-0 items-stretch border-b border-sem-border bg-sem-surface">
                 <div class="flex min-w-0 flex-1">
                     <button
                         type="button"
@@ -108,7 +101,7 @@
                 </div>
                 <button
                     type="button"
-                    class="hidden sm:flex shrink-0 items-center border-b-2 border-transparent px-1.5 text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
+                    class="hidden sm:flex shrink-0 items-center border-b-2 border-transparent px-1.5 text-gray-500 hover:bg-gray-100 text-sem-fg-muted dark:hover:bg-zinc-800 transition-colors"
                     @click="$emit('toggle-collapse')"
                 >
                     <MaterialDesignIcon icon-name="chevron-left" class="size-5" />
@@ -116,7 +109,7 @@
             </div>
 
             <div v-if="tab === 'favourites'" class="flex-1 flex flex-col min-h-0">
-                <div class="p-3 border-b border-gray-200 dark:border-zinc-800 space-y-2">
+                <div class="p-3 border-b border-sem-border space-y-2">
                     <input
                         v-model="favouritesSearchTerm"
                         type="text"
@@ -145,7 +138,7 @@
                                 <div class="relative inline-flex items-center">
                                     <button
                                         type="button"
-                                        class="inline-flex items-center whitespace-nowrap rounded px-0 py-0.5 text-xs font-bold leading-none text-blue-600 dark:text-blue-400 hover:underline disabled:pointer-events-none disabled:opacity-40"
+                                        class="inline-flex items-center whitespace-nowrap rounded px-0 py-0.5 text-xs font-bold leading-none text-sem-accent hover:underline disabled:pointer-events-none disabled:opacity-40"
                                         :disabled="selectedFavouriteHashes.length === 0"
                                         @click="favouriteBulkMoveMenuOpen = !favouriteBulkMoveMenuOpen"
                                     >
@@ -154,13 +147,13 @@
                                     <div
                                         v-if="favouriteBulkMoveMenuOpen"
                                         v-click-outside="{ handler: closeFavouriteBulkMoveMenu, capture: true }"
-                                        class="absolute right-0 top-full mt-1 z-60 min-w-[10rem] max-h-56 overflow-y-auto bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700 py-1"
+                                        class="absolute right-0 top-full mt-1 z-60 min-w-[10rem] max-h-56 overflow-y-auto bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-sem-border py-1"
                                     >
                                         <button
                                             v-for="section in orderedSections"
                                             :key="'bulk-move-' + section.id"
                                             type="button"
-                                            class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700"
+                                            class="w-full text-left px-3 py-2 text-sm text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted"
                                             @click="bulkMoveSelectedFavouritesToSection(section.id)"
                                         >
                                             {{ section.name }}
@@ -179,7 +172,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center justify-between px-3 pt-2 text-xs text-gray-500 dark:text-gray-400">
+                <div class="flex items-center justify-between px-3 pt-2 text-xs text-sem-fg-muted">
                     <div class="flex items-center gap-1 min-w-0">
                         <button
                             type="button"
@@ -196,7 +189,7 @@
                     </div>
                     <button
                         type="button"
-                        class="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                        class="inline-flex items-center gap-1 text-xs font-medium text-sem-accent hover:text-blue-700 dark:hover:text-blue-300"
                         @click="createSection"
                     >
                         <MaterialDesignIcon icon-name="plus" class="size-4" />
@@ -207,18 +200,18 @@
                     <div v-if="favouritesSearchNoResults" class="empty-state empty-state--panel">
                         <MaterialDesignIcon icon-name="star-outline" class="w-8 h-8" />
                         <div class="font-semibold">{{ $t("nomadnet.favourites_search_no_results") }}</div>
-                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                        <div class="text-sm text-sem-fg-muted">
                             {{ $t("nomadnet.favourites_search_try_other") }}
                         </div>
                     </div>
                     <div v-else class="space-y-3 pt-2">
                         <div
                             v-if="favourites.length === 0"
-                            class="empty-state empty-state--compact border border-dashed border-gray-200 dark:border-zinc-800 rounded-xl py-4 mb-1"
+                            class="empty-state empty-state--compact border border-dashed border-sem-border rounded-xl py-4 mb-1"
                         >
                             <MaterialDesignIcon icon-name="star-outline" class="w-8 h-8" />
                             <div class="font-semibold">{{ $t("nomadnet.no_favourites") }}</div>
-                            <div class="text-sm text-gray-500 dark:text-gray-400">
+                            <div class="text-sm text-sem-fg-muted">
                                 {{ $t("nomadnet.add_nodes_from_announces") }}
                             </div>
                         </div>
@@ -258,7 +251,7 @@
                                             :ref="`sectionInput-${section.id}`"
                                             v-model="editingSectionName"
                                             type="text"
-                                            class="flex-1 bg-transparent border-b border-blue-500 text-xs font-medium text-gray-900 dark:text-white focus:outline-hidden min-w-0"
+                                            class="flex-1 bg-transparent border-b border-blue-500 text-xs font-medium text-sem-fg focus:outline-hidden min-w-0"
                                             @click.stop
                                             @keydown.enter="saveSectionName"
                                             @keydown.esc="cancelEditingSection"
@@ -274,14 +267,14 @@
                                     </template>
                                     <span
                                         v-else
-                                        class="text-xs font-medium text-gray-600 dark:text-gray-300 truncate"
+                                        class="text-xs font-medium text-sem-fg-muted truncate"
                                         @click.stop="startEditingSection(section)"
                                     >
                                         {{ section.name }}
                                     </span>
                                     <span
                                         v-if="section.collapsed"
-                                        class="text-[10px] font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full shrink-0"
+                                        class="text-[10px] font-semibold text-sem-fg-muted bg-sem-surface-muted px-2 py-0.5 rounded-full shrink-0"
                                     >
                                         {{ section.favourites.length }}
                                     </span>
@@ -345,13 +338,13 @@
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <div
-                                            class="text-sm font-semibold text-gray-900 dark:text-white truncate"
+                                            class="text-sm font-semibold text-sem-fg truncate"
                                             :title="favouriteDisplayName(favourite)"
                                         >
                                             {{ favouriteDisplayName(favourite) }}
                                         </div>
                                         <div
-                                            class="text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 cursor-pointer inline-flex items-center"
+                                            class="text-xs text-sem-fg-muted hover:text-blue-500 dark:hover:text-blue-400 cursor-pointer inline-flex items-center"
                                             :title="$t('common.copy_to_clipboard')"
                                             @click.stop="copyToClipboard(favourite.destination_hash, 'Address')"
                                         >
@@ -367,7 +360,7 @@
                                 </div>
                                 <div
                                     v-if="section.favourites.length === 0"
-                                    class="text-xs text-gray-500 dark:text-gray-400 px-3 pb-2 italic"
+                                    class="text-xs text-sem-fg-muted px-3 pb-2 italic"
                                 >
                                     {{ $t("nomadnet.no_favourites_in_section") }}
                                 </div>
@@ -467,7 +460,7 @@
             </div>
 
             <div v-else class="flex-1 flex flex-col min-h-0">
-                <div class="p-3 border-b border-gray-200 dark:border-zinc-800 space-y-2">
+                <div class="p-3 border-b border-sem-border space-y-2">
                     <div class="flex gap-1.5 items-center">
                         <div class="relative flex-1 min-w-0">
                             <input
@@ -537,8 +530,115 @@
                         </div>
                     </div>
                 </div>
-                <div class="flex-1 overflow-y-auto px-2 pb-4" @scroll="onNodesScroll">
-                    <div v-if="searchedNodes.length > 0" class="space-y-2 pt-2">
+                <div class="flex-1 min-h-0 px-2 pb-4">
+                    <SidebarVirtualList
+                        v-if="searchedNodes.length >= MIN_VIRTUAL_SIDEBAR_ITEMS"
+                        class="h-full pt-2"
+                        :items="searchedNodes"
+                        :item-key="(item) => item.destination_hash"
+                        @scroll="onNodesScroll"
+                    >
+                        <template #item="{ item: node }">
+                            <div
+                                class="announce-card relative mb-2"
+                                :class="[
+                                    node.destination_hash === selectedDestinationHash ? 'announce-card--active' : '',
+                                    announcesSelectionMode && selectedAnnounceHashes.includes(node.destination_hash)
+                                        ? 'ring-1 ring-blue-400/60 dark:ring-blue-500/50'
+                                        : '',
+                                ]"
+                                @contextmenu.prevent="openAnnounceContextMenu($event, node)"
+                            >
+                                <!-- banished overlay -->
+                                <div
+                                    v-if="GlobalState.config.banished_effect_enabled && isBlocked(node.identity_hash)"
+                                    class="banished-overlay"
+                                    :style="{ background: GlobalState.config.banished_color + '33' }"
+                                >
+                                    <span
+                                        class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
+                                        :style="{ 'background-color': GlobalState.config.banished_color }"
+                                        >{{ GlobalState.config.banished_text }}</span
+                                    >
+                                </div>
+
+                                <div
+                                    class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
+                                    @click="onAnnounceRowActivate(node)"
+                                >
+                                    <div v-if="announcesSelectionMode" class="my-auto shrink-0 px-0.5" @click.stop>
+                                        <input
+                                            type="checkbox"
+                                            :checked="selectedAnnounceHashes.includes(node.destination_hash)"
+                                            class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            @change="toggleSelectAnnounce(node.destination_hash)"
+                                        />
+                                    </div>
+                                    <div class="announce-card__icon shrink-0">
+                                        <MaterialDesignIcon icon-name="satellite-uplink" class="w-5 h-5" />
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div
+                                            class="text-sm font-semibold text-sem-fg truncate"
+                                            :title="node.custom_display_name || node.display_name"
+                                        >
+                                            {{ node.custom_display_name || node.display_name }}
+                                        </div>
+                                        <div class="text-xs text-sem-fg-muted flex flex-col gap-0.5">
+                                            <span class="truncate">{{
+                                                $t("nomadnet.announced_time_ago", {
+                                                    time: formatTimeAgoForI18n(node.updated_at),
+                                                })
+                                            }}</span>
+                                            <span
+                                                class="cursor-pointer hover:text-blue-500 dark:hover:text-blue-400 inline-flex items-center"
+                                                :title="$t('common.copy_to_clipboard')"
+                                                @click.stop="copyToClipboard(node.destination_hash, 'Address')"
+                                            >
+                                                {{ formatDestinationHash(node.destination_hash) }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="shrink-0">
+                                    <DropDownMenu>
+                                        <template #button>
+                                            <IconButton>
+                                                <MaterialDesignIcon icon-name="dots-vertical" class="w-5 h-5" />
+                                            </IconButton>
+                                        </template>
+                                        <template #items>
+                                            <DropDownMenuItem
+                                                v-if="!isBlocked(node.identity_hash)"
+                                                @click.stop="onBlockNode(node)"
+                                            >
+                                                <MaterialDesignIcon icon-name="gavel" class="w-5 h-5 text-red-500" />
+                                                <span class="text-red-500">{{ $t("nomadnet.block_node") }}</span>
+                                            </DropDownMenuItem>
+                                            <DropDownMenuItem v-else @click.stop="onUnblockNode(node.identity_hash)">
+                                                <MaterialDesignIcon
+                                                    icon-name="check-circle"
+                                                    class="w-5 h-5 text-green-500"
+                                                />
+                                                <span class="text-green-500">{{ $t("nomadnet.lift_banishment") }}</span>
+                                            </DropDownMenuItem>
+                                        </template>
+                                    </DropDownMenu>
+                                </div>
+                            </div>
+                        </template>
+                    </SidebarVirtualList>
+                    <div
+                        v-if="isLoadingMoreNodes && searchedNodes.length >= MIN_VIRTUAL_SIDEBAR_ITEMS"
+                        class="p-4 text-center"
+                    >
+                        <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-gray-400" />
+                    </div>
+                    <div
+                        v-else-if="searchedNodes.length > 0"
+                        class="h-full overflow-y-auto space-y-2 pt-2"
+                        @scroll="onNodesScroll"
+                    >
                         <div
                             v-for="node of searchedNodes"
                             :key="node.destination_hash"
@@ -551,7 +651,6 @@
                             ]"
                             @contextmenu.prevent="openAnnounceContextMenu($event, node)"
                         >
-                            <!-- banished overlay -->
                             <div
                                 v-if="GlobalState.config.banished_effect_enabled && isBlocked(node.identity_hash)"
                                 class="banished-overlay"
@@ -563,7 +662,6 @@
                                     >{{ GlobalState.config.banished_text }}</span
                                 >
                             </div>
-
                             <div
                                 class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
                                 @click="onAnnounceRowActivate(node)"
@@ -581,12 +679,12 @@
                                 </div>
                                 <div class="min-w-0 flex-1">
                                     <div
-                                        class="text-sm font-semibold text-gray-900 dark:text-white truncate"
+                                        class="text-sm font-semibold text-sem-fg truncate"
                                         :title="node.custom_display_name || node.display_name"
                                     >
                                         {{ node.custom_display_name || node.display_name }}
                                     </div>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400 flex flex-col gap-0.5">
+                                    <div class="text-xs text-sem-fg-muted flex flex-col gap-0.5">
                                         <span class="truncate">{{
                                             $t("nomadnet.announced_time_ago", {
                                                 time: formatTimeAgoForI18n(node.updated_at),
@@ -648,7 +746,7 @@
                     <div v-else class="empty-state empty-state--panel">
                         <MaterialDesignIcon icon-name="radar" class="w-8 h-8" />
                         <div class="font-semibold">{{ $t("nomadnet.no_announces_yet") }}</div>
-                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                        <div class="text-sm text-sem-fg-muted">
                             {{ $t("nomadnet.listening_for_peers") }}
                         </div>
                     </div>
@@ -720,10 +818,13 @@ import {
     readLocalNomadFavouritesLayout,
     saveNomadFavouritesLayout,
 } from "../../js/nomadFavouritesLayoutStore.js";
+import { MIN_VIRTUAL_SIDEBAR_ITEMS } from "../../js/sidebarListVirtual.js";
+import SidebarVirtualList from "../SidebarVirtualList.vue";
 
 export default {
     name: "NomadNetworkSidebar",
     components: {
+        SidebarVirtualList,
         ContextMenuDivider,
         ContextMenuItem,
         ContextMenuPanel,
@@ -782,6 +883,9 @@ export default {
         "bulk-remove-favourites",
         "bulk-add-favourites",
     ],
+    setup() {
+        return { MIN_VIRTUAL_SIDEBAR_ITEMS };
+    },
     data() {
         return {
             GlobalState,
@@ -835,9 +939,9 @@ export default {
         },
         sidebarRootClass() {
             if (this.effectiveCollapsed) {
-                return "flex flex-col w-16 min-w-16 max-w-16 h-full min-h-0 bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-800";
+                return "flex flex-col w-16 min-w-16 max-w-16 h-full min-h-0 bg-sem-surface border-r border-sem-border";
             }
-            return "flex flex-col w-full sm:w-80 sm:min-w-80 md:max-lg:w-64 md:max-lg:min-w-64 lg:w-80 lg:min-w-80 min-h-0 bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-800";
+            return "flex flex-col w-full sm:w-80 sm:min-w-80 md:max-lg:w-64 md:max-lg:min-w-64 lg:w-80 lg:min-w-80 min-h-0 bg-sem-surface border-r border-sem-border";
         },
         blockedDestinations() {
             return GlobalState.blockedDestinations;
@@ -1778,32 +1882,32 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .sidebar-tab {
-    @apply flex h-full w-1/2 items-center justify-center text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent transition;
+    @apply flex h-full w-1/2 items-center justify-center text-sm font-medium text-sem-fg-muted border-b-2 border-transparent transition;
 }
 .sidebar-tab--active {
     @apply text-blue-600 border-blue-500 dark:text-blue-300 dark:border-blue-400;
 }
 .favourite-card {
-    @apply flex items-center gap-3 rounded-lg px-2 py-1.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-800/80 hover:z-10;
+    @apply flex items-center gap-3 rounded-lg px-2 py-1.5 cursor-pointer hover:bg-sem-surface-muted/80 hover:z-10;
 }
 .favourite-card--active {
     @apply bg-blue-50/80 dark:bg-blue-900/25;
 }
 .favourite-card__icon,
 .announce-card__icon {
-    @apply w-9 h-9 rounded-lg bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-gray-500 dark:text-gray-300;
+    @apply w-9 h-9 rounded-lg bg-sem-surface-muted flex items-center justify-center text-gray-500 dark:text-gray-300;
 }
 .favourite-card--dragging {
     @apply opacity-60 ring-1 ring-blue-300 dark:ring-blue-600;
 }
 .announce-card {
-    @apply flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-zinc-800/80 hover:z-10;
+    @apply flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-sem-surface-muted/80 hover:z-10;
 }
 .announce-card--active {
     @apply bg-blue-50/80 dark:bg-blue-900/25;
 }
 .empty-state {
-    @apply flex flex-col items-center justify-center text-center gap-2 text-gray-500 dark:text-gray-400;
+    @apply flex flex-col items-center justify-center text-center gap-2 text-sem-fg-muted;
 }
 .empty-state--compact {
     @apply justify-center py-3;
