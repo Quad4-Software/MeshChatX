@@ -303,3 +303,47 @@ select.input-field option {
     @apply px-3 py-1.5 text-[10px] font-black uppercase tracking-widest;
     color: var(--mc-context-section);
 }
+
+.page-canvas {
+    @apply bg-sem-canvas;
+}
+
+.page-surface {
+    @apply bg-sem-surface;
+}
+
+.page-header-bar {
+    @apply shrink-0 border-b border-sem-border bg-sem-canvas;
+}
+
+.icon-btn-muted {
+    @apply inline-flex items-center justify-center text-sem-fg-muted transition-colors hover:bg-sem-surface-muted hover:text-sem-fg;
+}
+
+.dropdown-panel {
+    @apply overflow-hidden rounded-lg border border-sem-border bg-sem-surface shadow-lg;
+}
+
+.modal-panel {
+    @apply overflow-hidden rounded-2xl border border-sem-border-card bg-sem-surface shadow-2xl;
+}
+
+.modal-panel__header {
+    @apply flex shrink-0 items-center gap-3 border-b border-sem-border px-4 py-3 sm:px-5;
+}
+
+.modal-panel__footer {
+    @apply shrink-0 border-t border-sem-border bg-sem-surface-muted px-4 py-3 sm:px-5;
+}
+
+.sidebar-nav-link {
+    @apply w-full text-sem-fg flex gap-x-3 p-2 text-sm leading-6 font-semibold focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sem-focus;
+}
+
+.sidebar-nav-link--active {
+    @apply bg-sem-surface-muted text-sem-accent;
+}
+
+.sidebar-nav-link--hover {
+    @apply hover:bg-sem-surface-muted;
+}

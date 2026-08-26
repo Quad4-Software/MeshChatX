@@ -5816,6 +5816,20 @@ class ReticulumMeshChat:
         except (TypeError, ValueError):
             return None
 
+    @staticmethod
+    def _normalize_optional_hex_color(value):
+        if value is None or value == "":
+            return None
+        if isinstance(value, str):
+            trimmed = value.strip()
+            if len(trimmed) == 7 and trimmed.startswith("#"):
+                try:
+                    int(trimmed[1:], 16)
+                    return trimmed
+                except ValueError:
+                    return None
+        return None
+
     async def update_config(self, data):
         # update display name in config
         if "display_name" in data and data["display_name"] != "":
@@ -5825,7 +5839,50 @@ class ReticulumMeshChat:
 
         # update theme in config
         if "theme" in data and data["theme"] != "":
-            self.config.theme.set(data["theme"])
+            theme = data["theme"]
+            if theme not in ("light", "dark", "system"):
+                theme = "light"
+            self.config.theme.set(theme)
+
+        if "theme_preset" in data:
+            preset = data["theme_preset"]
+            if preset == "hister":
+                preset = "neo_brutalist"
+            if preset not in (
+                "default",
+                "high_contrast",
+                "oled",
+                "solarized",
+                "nord",
+                "gruvbox",
+                "catppuccin",
+                "dracula",
+                "rose_pine",
+                "forest",
+                "midnight",
+                "warm_paper",
+                "tokyo",
+                "atom_one",
+                "neo_brutalist",
+                "custom",
+            ):
+                preset = "default"
+            self.config.theme_preset.set(preset)
+
+        if "accent_color" in data:
+            self.config.accent_color.set(
+                self._normalize_optional_hex_color(data["accent_color"])
+            )
+
+        if "custom_canvas_color" in data:
+            self.config.custom_canvas_color.set(
+                self._normalize_optional_hex_color(data["custom_canvas_color"])
+            )
+
+        if "custom_surface_color" in data:
+            self.config.custom_surface_color.set(
+                self._normalize_optional_hex_color(data["custom_surface_color"])
+            )
 
         # update language in config
         if "language" in data and data["language"] != "":
@@ -7303,6 +7360,10 @@ class ReticulumMeshChat:
             "auto_announce_interval_seconds": ctx.config.auto_announce_interval_seconds.get(),
             "last_announced_at": ctx.config.last_announced_at.get(),
             "theme": ctx.config.theme.get(),
+            "theme_preset": ctx.config.theme_preset.get(),
+            "accent_color": ctx.config.accent_color.get(),
+            "custom_canvas_color": ctx.config.custom_canvas_color.get(),
+            "custom_surface_color": ctx.config.custom_surface_color.get(),
             "language": ctx.config.language.get(),
             "auto_resend_failed_messages_when_announce_received": ctx.config.auto_resend_failed_messages_when_announce_received.get(),
             "allow_auto_resending_failed_messages_with_attachments": ctx.config.allow_auto_resending_failed_messages_with_attachments.get(),

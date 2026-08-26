@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
     injectMeshchatThemeVariables,
-    vuetifyThemesFromTokens,
     MESHCHAT_THEME_VARIABLES_LIGHT,
     MESHCHAT_THEME_VARIABLES_DARK,
     tailwindSemanticColorExtend,
@@ -34,18 +33,6 @@ describe("design tokens", () => {
         expect(MESHCHAT_THEME_VARIABLES_DARK["--mc-info"]).toBe("#38bdf8");
         expect(MESHCHAT_THEME_VARIABLES_DARK["--mc-success"]).toBe("#34d399");
         expect(MESHCHAT_THEME_VARIABLES_DARK["--mc-warning"]).toBe("#fb923c");
-    });
-
-    it("vuetifyThemesFromTokens tracks CSS canvas/surface/accent and status colors", () => {
-        const t = vuetifyThemesFromTokens();
-        expect(t.light.colors.background).toBe(MESHCHAT_THEME_VARIABLES_LIGHT["--mc-canvas"]);
-        expect(t.light.colors.surface).toBe(MESHCHAT_THEME_VARIABLES_LIGHT["--mc-surface"]);
-        expect(t.light.colors.primary).toBe(MESHCHAT_THEME_VARIABLES_LIGHT["--mc-action-primary"]);
-        expect(t.light.colors.error).toBe(MESHCHAT_THEME_VARIABLES_LIGHT["--mc-error"]);
-        expect(t.dark.colors.background).toBe(MESHCHAT_THEME_VARIABLES_DARK["--mc-canvas"]);
-        expect(t.dark.colors.surface).toBe(MESHCHAT_THEME_VARIABLES_DARK["--mc-surface"]);
-        expect(t.dark.colors.primary).toBe(MESHCHAT_THEME_VARIABLES_DARK["--mc-action-primary"]);
-        expect(t.dark.colors.error).toBe(MESHCHAT_THEME_VARIABLES_DARK["--mc-error"]);
     });
 
     it("tailwindSemanticColorExtend uses var() for every semantic color", () => {

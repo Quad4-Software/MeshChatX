@@ -10,8 +10,12 @@
                 theme = window.localStorage.getItem("meshchatx_ui_theme");
             } catch (e) {}
         }
+        if (theme === "system") {
+            theme =
+                window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
         if (theme !== "light" && theme !== "dark") {
-            theme = "dark";
+            theme = "light";
         }
         if (theme === "dark") {
             document.documentElement.classList.add("dark");
@@ -22,5 +26,7 @@
             document.documentElement.dataset.bootTheme = "light";
             document.documentElement.style.colorScheme = "light";
         }
+        document.documentElement.dataset.themePreference =
+            theme === "dark" || theme === "light" ? theme : "light";
     } catch (e) {}
 })();
