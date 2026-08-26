@@ -80,7 +80,7 @@ describe("SidebarLink UI", () => {
         expect(innerLink.classes()).not.toContain("bg-blue-100");
         expect(innerLink.classes()).not.toContain("dark:bg-zinc-800");
         expect(className).toContain("shadow-[inset_");
-        expect(className).toContain("bg-black/[0.04]");
+        expect(innerLink.classes()).toContain("bg-sem-surface-muted");
     });
 
     it("does not navigate when editMode is on", async () => {
@@ -118,7 +118,7 @@ describe("SidebarLink UI", () => {
             },
         });
         const innerLink = wrapper.find("a.rounded-r-full");
-        expect(innerLink.classes()).toContain("bg-blue-100");
+        expect(innerLink.classes()).toContain("sidebar-nav-link--active");
         expect(wrapper.vm.navActive(false)).toBe(true);
     });
 });

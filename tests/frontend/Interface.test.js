@@ -64,7 +64,7 @@ describe("Interface.vue", () => {
             target_host: "amsterdam.connect.reticulum.network",
             target_port: 4965,
         });
-        const desc = wrapper.find(".text-sm.text-gray-600");
+        const desc = wrapper.find(".text-sm.text-sem-fg-muted");
         expect(desc.classes()).toContain("wrap-break-word");
         expect(desc.classes()).toContain("min-w-0");
     });

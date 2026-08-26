@@ -58,10 +58,11 @@ describe("boot and load smoothness", () => {
 
     it("App.vue fades non-keepAlive route swaps on canvas background", () => {
         const app = readFileSync(resolve(ROOT, "meshchatx/src/frontend/components/App.vue"), "utf8");
+        const themeEngine = readFileSync(resolve(ROOT, "meshchatx/src/frontend/theme/themeEngine.js"), "utf8");
         expect(app).toContain('name="route-view-fade"');
         expect(app).toContain("bg-sem-canvas");
-        expect(app).toContain("setUiTheme");
-        expect(app).toContain("meshchatx_ui_theme");
+        expect(themeEngine).toContain("setUiTheme");
+        expect(themeEngine).toContain("meshchatx_ui_theme");
     });
 
     it("Android theme and WebView use meshchat canvas color", () => {
