@@ -19,6 +19,7 @@ from meshchatx.src.backend.bot_lxmf_config import (
     merge_bot_lxmf_overrides,
     normalize_bot_lxmf_overrides,
     resolve_effective_bot_lxmf_settings,
+    validate_bot_lxmf_patch,
     write_bot_lxmf_config_sidecar,
 )
 from meshchatx.src.path_utils import atomic_write_text
@@ -405,6 +406,7 @@ class BotHandler:
             entry["enabled"] = True
 
         if lxmf_config is not None:
+            validate_bot_lxmf_patch(lxmf_config)
             entry["lxmf_config"] = merge_bot_lxmf_overrides(
                 entry.get("lxmf_config"),
                 lxmf_config,
@@ -567,6 +569,7 @@ class BotHandler:
             raise ValueError(f"Unknown bot: {bot_id}")
         if lxmf_config is None or not isinstance(lxmf_config, dict):
             raise ValueError("lxmf_config is required")
+        validate_bot_lxmf_patch(lxmf_config)
         entry["lxmf_config"] = merge_bot_lxmf_overrides(
             entry.get("lxmf_config"),
             lxmf_config,

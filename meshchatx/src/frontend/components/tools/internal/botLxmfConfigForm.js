@@ -39,16 +39,21 @@ export function draftFromBotLxmfConfig(lxmfConfig) {
     return draft;
 }
 
-export function buildLxmfConfigPatch(draft) {
+export function buildLxmfConfigPatch(draft, options = {}) {
+    const clearEmpty = Boolean(options.clearEmpty);
     const patch = {};
     const mode = (draft.propagation_mode || "inherit").trim();
     if (mode && mode !== "inherit") {
         patch.propagation_mode = mode;
+    } else if (clearEmpty && mode === "inherit") {
+        patch.propagation_mode = "inherit";
     }
 
     const node = (draft.propagation_node || "").trim().toLowerCase();
     if (mode === "manual" && node) {
         patch.propagation_node = node;
+    } else if (clearEmpty && mode !== "manual") {
+        patch.propagation_node = null;
     }
 
     const fallback = draft.propagation_fallback_enabled;
@@ -56,11 +61,15 @@ export function buildLxmfConfigPatch(draft) {
         patch.propagation_fallback_enabled = true;
     } else if (fallback === "false") {
         patch.propagation_fallback_enabled = false;
+    } else if (clearEmpty && fallback === "inherit") {
+        patch.propagation_fallback_enabled = null;
     }
 
     const retries = String(draft.direct_delivery_retries ?? "").trim();
     if (retries) {
         patch.direct_delivery_retries = Number(retries);
+    } else if (clearEmpty) {
+        patch.direct_delivery_retries = null;
     }
 
     const opportunistic = draft.opportunistic_sending;
@@ -68,16 +77,22 @@ export function buildLxmfConfigPatch(draft) {
         patch.opportunistic_sending = true;
     } else if (opportunistic === "false") {
         patch.opportunistic_sending = false;
+    } else if (clearEmpty && opportunistic === "inherit") {
+        patch.opportunistic_sending = null;
     }
 
     const announce = String(draft.announce_interval_seconds ?? "").trim();
     if (announce) {
         patch.announce_interval_seconds = Number(announce);
+    } else if (clearEmpty) {
+        patch.announce_interval_seconds = null;
     }
 
     const stamp = String(draft.stamp_cost ?? "").trim();
     if (stamp) {
         patch.stamp_cost = Number(stamp);
+    } else if (clearEmpty) {
+        patch.stamp_cost = null;
     }
 
     return patch;
