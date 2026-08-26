@@ -24,20 +24,48 @@
             leave-from-class="transform opacity-100 scale-100"
             leave-to-class="transform opacity-0 scale-95"
         >
-            <div v-if="isShowingMenu" class="absolute left-0 z-100 mt-2">
-                <v-color-picker
-                    v-model="colourPickerValue"
-                    :modes="['hex']"
-                    hide-inputs
-                    hide-sliders
-                    show-swatches
-                ></v-color-picker>
+            <div
+                v-if="isShowingMenu"
+                class="absolute left-0 z-100 mt-2 rounded-xl border border-gray-200 bg-white p-3 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
+            >
+                <input
+                    :value="normalizedColour"
+                    type="color"
+                    class="block h-10 w-full cursor-pointer rounded-lg border border-gray-200 bg-transparent p-0 dark:border-zinc-700"
+                    @input="onNativeColorInput"
+                />
+                <div class="mt-2 grid grid-cols-6 gap-1.5">
+                    <button
+                        v-for="swatch in swatches"
+                        :key="swatch"
+                        type="button"
+                        class="size-6 rounded-md border border-sem-border"
+                        :style="{ backgroundColor: swatch }"
+                        :title="swatch"
+                        @click="selectSwatch(swatch)"
+                    ></button>
+                </div>
             </div>
         </Transition>
     </div>
 </template>
 
 <script>
+const DEFAULT_SWATCHES = [
+    "#ef4444",
+    "#f97316",
+    "#eab308",
+    "#22c55e",
+    "#3b82f6",
+    "#8b5cf6",
+    "#ec4899",
+    "#64748b",
+    "#ffffff",
+    "#18181b",
+    "#0ea5e9",
+    "#14b8a6",
+];
+
 export default {
     name: "ColourPickerDropdown",
     props: {
@@ -50,25 +78,12 @@ export default {
     data() {
         return {
             isShowingMenu: false,
-            colourPickerValue: null,
+            swatches: DEFAULT_SWATCHES,
         };
     },
-    watch: {
-        colour() {
-            // update internal colour picker value when parent changes value of v-model:colour
-            this.colourPickerValue = this.colour;
-        },
-        colourPickerValue() {
-            // get current colour picker value
-            var value = this.colourPickerValue;
-
-            // remove alpha channel from hex colour if present
-            if (value.length === 9) {
-                value = value.substring(0, 7);
-            }
-
-            // fire v-model:colour update event
-            this.$emit("update:colour", value);
+    computed: {
+        normalizedColour() {
+            return normalizeHexColour(this.colour) || "#3b82f6";
         },
     },
     methods: {
@@ -91,6 +106,29 @@ export default {
                 this.hideMenu();
             }
         },
+        onNativeColorInput(event) {
+            const value = event?.target?.value;
+            if (typeof value === "string" && value) {
+                this.$emit("update:colour", normalizeHexColour(value));
+            }
+        },
+        selectSwatch(value) {
+            this.$emit("update:colour", normalizeHexColour(value));
+        },
     },
 };
+
+function normalizeHexColour(value) {
+    if (typeof value !== "string") {
+        return "";
+    }
+    let hex = value.trim();
+    if (hex.length === 9) {
+        hex = hex.substring(0, 7);
+    }
+    if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
+        return hex.toLowerCase();
+    }
+    return "";
+}
 </script>

@@ -1,131 +1,105 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <v-dialog
+    <AppModal
         v-if="!isPage"
         v-model="visible"
         :fullscreen="dialogFullscreen"
-        max-width="800"
-        scrollable
-        transition="dialog-bottom-transition"
-        class="changelog-dialog"
-        @update:model-value="onVisibleUpdate"
+        :max-width="800"
+        :show-close="true"
+        panel-class="border-0"
+        body-class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 sm:px-6 sm:py-8"
+        @close="close"
     >
-        <v-card
-            class="flex min-h-0 flex-1 flex-col bg-white dark:bg-zinc-900 border-0 overflow-hidden h-full max-h-dvh"
-        >
-            <!-- Header -->
-            <v-toolbar flat color="transparent" class="px-3 sm:px-4 border-b dark:border-zinc-800 shrink-0">
-                <div class="flex items-center">
-                    <div class="p-1 mr-3">
-                        <img src="../public/favicons/favicon-512x512.png" class="w-8 h-8 object-contain" alt="Logo" />
-                    </div>
-                    <v-toolbar-title class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-                        {{ $t("app.changelog_title", "What's New") }}
-                    </v-toolbar-title>
-                    <span
-                        v-if="version"
-                        class="ml-3 font-black text-[10px] px-2 h-5 tracking-tighter uppercase rounded-xs bg-blue-600 text-white inline-flex items-center"
-                    >
-                        v{{ version }}
-                    </span>
-                </div>
-                <v-spacer></v-spacer>
-                <button
-                    type="button"
-                    class="v-btn text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 p-2 transition-colors"
-                    @click="close"
+        <template #header>
+            <div class="flex min-w-0 flex-1 items-center">
+                <img src="../public/favicons/favicon-512x512.png" class="mr-3 size-8 object-contain" alt="Logo" />
+                <h2 class="text-xl font-bold tracking-tight text-sem-fg">
+                    {{ $t("app.changelog_title", "What's New") }}
+                </h2>
+                <span
+                    v-if="version"
+                    class="ml-3 inline-flex h-5 items-center rounded-xs bg-blue-600 px-2 text-[10px] font-black uppercase tracking-tighter text-white"
                 >
-                    <v-icon>mdi-close</v-icon>
-                </button>
-            </v-toolbar>
+                    v{{ version }}
+                </span>
+            </div>
+        </template>
 
-            <!-- Content -->
-            <v-card-text class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-6 sm:px-6 sm:py-8">
-                <div v-if="loading" class="flex flex-col items-center justify-center h-full space-y-4">
-                    <v-progress-circular indeterminate color="blue" size="64"></v-progress-circular>
-                    <div class="text-gray-500 dark:text-zinc-400 font-medium">Loading changelog...</div>
-                </div>
+        <div v-if="loading">
+            <LoadingState message="Loading changelog..." />
+        </div>
 
-                <div v-else-if="error" class="flex flex-col items-center justify-center h-full text-center space-y-4">
-                    <v-icon icon="mdi-alert-circle-outline" size="64" color="red"></v-icon>
-                    <div class="text-red-500 font-bold text-lg">{{ error }}</div>
-                    <button type="button" class="primary-chip px-6!" @click="fetchChangelog">Retry</button>
-                </div>
+        <div v-else-if="error" class="flex flex-col items-center justify-center space-y-4 py-10 text-center">
+            <MaterialDesignIcon icon-name="alert-circle-outline" class="size-16 text-red-500" />
+            <div class="text-lg font-bold text-red-500">{{ error }}</div>
+            <button type="button" class="primary-chip px-6!" @click="fetchChangelog">Retry</button>
+        </div>
 
-                <div
-                    v-else
-                    class="changelog-content max-w-none prose dark:prose-invert text-gray-900 dark:text-zinc-100"
-                >
-                    <!-- eslint-disable-next-line vue/no-v-html -- sanitized via MarkdownRenderer -->
-                    <div v-html="changelogHtml"></div>
-                </div>
-            </v-card-text>
+        <div v-else class="changelog-content prose max-w-none dark:prose-invert text-sem-fg">
+            <!-- eslint-disable-next-line vue/no-v-html -- sanitized via MarkdownRenderer -->
+            <div v-html="changelogHtml"></div>
+        </div>
 
-            <!-- Footer -->
-            <v-divider class="dark:border-zinc-800"></v-divider>
-            <v-card-actions
-                class="px-4 py-3 sm:px-6 sm:py-4 bg-gray-50 dark:bg-zinc-950/50 flex-wrap gap-y-2 shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-            >
-                <div class="flex flex-col">
-                    <v-checkbox
-                        v-model="dontShowAgain"
-                        :label="$t('app.do_not_show_again', 'Do not show again for this version')"
-                        density="compact"
-                        hide-details
-                        color="blue"
-                        class="my-0 text-gray-700 dark:text-zinc-300 font-medium"
-                    ></v-checkbox>
-                    <v-checkbox
-                        v-model="dontShowEver"
-                        :label="$t('app.do_not_show_ever', 'Do not show ever again')"
-                        density="compact"
-                        hide-details
-                        color="red"
-                        class="my-0 text-gray-700 dark:text-zinc-300 font-medium"
-                    ></v-checkbox>
+        <template #actions>
+            <div class="flex w-full flex-wrap items-center gap-y-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                <div class="flex flex-col gap-1">
+                    <label class="flex items-center gap-2 text-sm font-medium text-sem-fg-muted">
+                        <input
+                            v-model="dontShowAgain"
+                            type="checkbox"
+                            class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        {{ $t("app.do_not_show_again", "Do not show again for this version") }}
+                    </label>
+                    <label class="flex items-center gap-2 text-sm font-medium text-sem-fg-muted">
+                        <input
+                            v-model="dontShowEver"
+                            type="checkbox"
+                            class="rounded-sm border-gray-300 text-red-600 focus:ring-red-500"
+                        />
+                        {{ $t("app.do_not_show_ever", "Do not show ever again") }}
+                    </label>
                 </div>
-                <v-spacer></v-spacer>
-                <button type="button" class="primary-chip px-8! h-10! rounded-xl!" @click="close">
+                <div class="flex-1" />
+                <button type="button" class="primary-chip h-10! rounded-xl! px-8!" @click="close">
                     {{ $t("common.close", "Close") }}
                 </button>
-            </v-card-actions>
-        </v-card>
-    </v-dialog>
+            </div>
+        </template>
+    </AppModal>
 
-    <div v-else class="flex flex-col h-full bg-white dark:bg-zinc-950 overflow-hidden">
-        <div class="flex-1 overflow-y-auto px-6 md:px-12 py-10">
-            <div class="max-w-4xl mx-auto">
-                <div class="flex items-center gap-4 mb-8">
-                    <div class="p-2">
-                        <img src="../public/favicons/favicon-512x512.png" class="w-16 h-16 object-contain" alt="Logo" />
-                    </div>
+    <div v-else class="flex h-full flex-col overflow-hidden bg-sem-surface">
+        <div class="flex-1 overflow-y-auto px-6 py-10 md:px-12">
+            <div class="mx-auto max-w-4xl">
+                <div class="mb-8 flex items-center gap-4">
+                    <img src="../public/favicons/favicon-512x512.png" class="size-16 object-contain" alt="Logo" />
                     <div>
-                        <h1 class="text-4xl font-black text-gray-900 dark:text-white tracking-tighter uppercase mb-1">
+                        <h1 class="mb-1 text-4xl font-black uppercase tracking-tighter text-sem-fg">
                             {{ $t("app.changelog_title", "What's New") }}
                         </h1>
                         <div class="flex items-center gap-2">
                             <span
-                                class="font-black text-[10px] px-2 h-5 rounded-xs bg-blue-600 text-white inline-flex items-center"
+                                class="inline-flex h-5 items-center rounded-xs bg-blue-600 px-2 text-[10px] font-black text-white"
                             >
                                 v{{ version }}
                             </span>
-                            <span class="text-sm text-gray-500 font-medium">Full release history</span>
+                            <span class="text-sm font-medium text-gray-500">Full release history</span>
                         </div>
                     </div>
                 </div>
 
-                <div v-if="loading" class="flex flex-col items-center justify-center py-20 space-y-4">
-                    <v-progress-circular indeterminate color="blue" size="64"></v-progress-circular>
+                <div v-if="loading" class="py-20">
+                    <LoadingState />
                 </div>
 
-                <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center space-y-4">
-                    <v-icon icon="mdi-alert-circle-outline" size="64" color="red"></v-icon>
-                    <div class="text-red-500 font-bold text-lg">{{ error }}</div>
+                <div v-else-if="error" class="flex flex-col items-center justify-center space-y-4 py-20 text-center">
+                    <MaterialDesignIcon icon-name="alert-circle-outline" class="size-16 text-red-500" />
+                    <div class="text-lg font-bold text-red-500">{{ error }}</div>
                     <button type="button" class="primary-chip px-6!" @click="fetchChangelog">Retry</button>
                 </div>
 
-                <div v-else class="changelog-content max-w-none prose dark:prose-invert pb-20">
+                <div v-else class="changelog-content prose max-w-none pb-20 dark:prose-invert">
                     <!-- eslint-disable-next-line vue/no-v-html -- sanitized via MarkdownRenderer -->
                     <div v-html="changelogHtml"></div>
                 </div>
@@ -135,8 +109,17 @@
 </template>
 
 <script>
+import AppModal from "./AppModal.vue";
+import LoadingState from "./LoadingState.vue";
+import MaterialDesignIcon from "./MaterialDesignIcon.vue";
+
 export default {
     name: "ChangelogModal",
+    components: {
+        AppModal,
+        LoadingState,
+        MaterialDesignIcon,
+    },
     props: {
         appVersion: {
             type: String,
@@ -166,6 +149,13 @@ export default {
             return this.windowWidth < 768;
         },
     },
+    watch: {
+        visible(value) {
+            if (!value) {
+                this.onVisibleUpdate(false);
+            }
+        },
+    },
     mounted() {
         this.onWindowResize = () => {
             this.windowWidth = window.innerWidth;
@@ -192,8 +182,6 @@ export default {
                 const response = await window.api.get("/api/v1/app/changelog");
                 this.version = response.data.version;
 
-                // Process HTML to make version headers look better
-                // Find [x.x.x] and wrap in a styled span
                 let html = response.data.html;
                 html = html.replace(/\[(\d+\.\d+\.\d+)\]/g, '<span class="version-tag">$1</span>');
 
@@ -206,7 +194,6 @@ export default {
             }
         },
         async close() {
-            // mark as seen for current version automatically on close if not already marked
             if (!this.dontShowEver && !this.dontShowAgain) {
                 try {
                     await window.api.post("/api/v1/app/changelog/seen", {
@@ -241,7 +228,6 @@ export default {
         },
         async onVisibleUpdate(val) {
             if (!val) {
-                // handle case where dialog is closed by clicking outside or ESC
                 await this.markAsSeen();
             }
         },
@@ -251,40 +237,25 @@ export default {
 
 <style>
 @reference "../style.css";
-.changelog-dialog .v-overlay__content {
-    border-radius: 0.5rem !important;
-    overflow: hidden;
-}
-
-@media (max-width: 767px) {
-    .changelog-dialog .v-overlay__content {
-        border-radius: 0 !important;
-        max-height: 100dvh !important;
-        margin: 0 !important;
-        width: 100% !important;
-    }
-}
-
 .changelog-content {
     @apply leading-relaxed;
 }
 
 .changelog-content h1 {
-    @apply text-3xl font-black mt-2 mb-6 text-gray-900 dark:text-white tracking-tight uppercase border-b-2 border-gray-100 dark:border-zinc-800 pb-2;
+    @apply text-3xl font-black mt-2 mb-6 text-sem-fg tracking-tight uppercase border-b-2 border-sem-border pb-2;
 }
 
 .changelog-content h2 {
-    @apply flex items-center gap-3 text-xl font-bold mt-8 mb-4 text-gray-900 dark:text-white;
+    @apply flex items-center gap-3 text-xl font-bold mt-8 mb-4 text-sem-fg;
 }
 
-/* Style for [v4.0.0] style headers in markdown */
 .changelog-content h2::before {
     content: "VERSION";
     @apply text-[10px] font-black bg-blue-500 text-white px-1.5 py-0.5 rounded-xs tracking-tighter;
 }
 
 .changelog-content h3 {
-    @apply text-lg font-bold mt-6 mb-3 text-blue-600 dark:text-blue-400 flex items-center gap-2;
+    @apply text-lg font-bold mt-6 mb-3 text-sem-accent flex items-center gap-2;
 }
 
 .changelog-content h3::before {
@@ -293,7 +264,7 @@ export default {
 }
 
 .changelog-content p {
-    @apply my-4 text-gray-700 dark:text-zinc-300 leading-relaxed;
+    @apply my-4 text-sem-fg-muted leading-relaxed;
 }
 
 .changelog-content ul {
@@ -301,28 +272,27 @@ export default {
 }
 
 .changelog-content li {
-    @apply text-gray-600 dark:text-zinc-400 transition-colors hover:text-gray-900 dark:hover:text-white;
+    @apply text-sem-fg-muted transition-colors hover:text-gray-900 dark:hover:text-white;
 }
 
 .changelog-content strong {
-    @apply font-bold text-gray-900 dark:text-zinc-100;
+    @apply font-bold text-sem-fg;
 }
 
 .changelog-content code {
-    @apply bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded-xs text-blue-700 dark:text-blue-300 font-mono text-[0.85em] border border-blue-100 dark:border-blue-800/30;
+    @apply bg-sem-surface-muted px-1.5 py-0.5 rounded-xs text-blue-700 dark:text-blue-300 font-mono text-[0.85em] border border-blue-100 dark:border-blue-800/30;
 }
 
 .changelog-content hr {
-    @apply my-10 border-gray-100 dark:border-zinc-800;
+    @apply my-10 border-sem-border;
 }
 
-/* Highlight tags like [4.0.0] if they are inside the text */
 .changelog-content h2 {
     counter-increment: version-counter;
 }
 
 .changelog-content h2 {
-    @apply py-2 px-4 bg-gray-50 dark:bg-zinc-800/50 rounded-md border border-gray-100 dark:border-zinc-800;
+    @apply py-2 px-4 bg-gray-50 dark:bg-zinc-800/50 rounded-md border border-sem-border;
 }
 
 .changelog-content .version-tag {

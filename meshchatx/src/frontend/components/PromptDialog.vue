@@ -13,24 +13,21 @@
             <div class="fixed inset-0 bg-black/50 backdrop-blur-xs shadow-2xl" @click="cancel"></div>
 
             <div
-                class="relative w-full sm:w-auto sm:min-w-[400px] sm:max-w-md bg-white dark:bg-zinc-900 sm:rounded-3xl rounded-3xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden transform transition-all"
+                class="relative w-full sm:w-auto sm:min-w-[400px] sm:max-w-md bg-sem-surface sm:rounded-3xl rounded-3xl shadow-2xl border border-sem-border overflow-hidden transform transition-all"
                 @click.stop
             >
                 <div class="p-8">
                     <div class="flex items-start mb-6">
                         <div
-                            class="shrink-0 flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 mr-4"
+                            class="shrink-0 flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-900/30 text-sem-accent mr-4"
                         >
                             <MaterialDesignIcon icon-name="form-textbox" class="w-6 h-6" />
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h3 :id="titleId" class="text-xl font-black text-gray-900 dark:text-white mb-2">
+                            <h3 :id="titleId" class="text-xl font-black text-sem-fg mb-2">
                                 {{ $t("common.prompt_title") }}
                             </h3>
-                            <p
-                                :id="messageId"
-                                class="text-gray-600 dark:text-zinc-300 whitespace-pre-wrap leading-relaxed"
-                            >
+                            <p :id="messageId" class="text-sem-fg-muted whitespace-pre-wrap leading-relaxed">
                                 {{ pendingPrompt.message }}
                             </p>
                         </div>
@@ -40,7 +37,7 @@
                         ref="promptInput"
                         v-model="inputValue"
                         :type="inputType"
-                        class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                        class="w-full px-4 py-3 rounded-xl border border-sem-border bg-gray-50 dark:bg-zinc-800 text-sem-fg text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                         autocomplete="off"
                         @keydown="onInputKeydown"
                     />
@@ -48,7 +45,7 @@
                     <div class="flex flex-col sm:flex-row gap-3 sm:justify-end mt-8">
                         <button
                             type="button"
-                            class="px-6 py-3 text-sm font-bold text-gray-700 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 rounded-xl hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                            class="px-6 py-3 text-sm font-bold text-sem-fg-muted bg-sem-surface-muted rounded-xl hover:bg-gray-200 hover:bg-sem-surface-muted transition-all active:scale-95"
                             @click="cancel"
                         >
                             {{ $t("common.cancel") }}

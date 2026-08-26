@@ -4,7 +4,6 @@ import App from "../../meshchatx/src/frontend/components/App.vue";
 import { appPackageVersion } from "./fixtures/repoPackageVersion.js";
 import { createRouter, createWebHashHistory } from "vue-router";
 import { createI18n } from "vue-i18n";
-import { createVuetify } from "vuetify";
 import { clearPromptSeenState } from "../../meshchatx/src/frontend/js/postInstallPromptState.js";
 import {
     postInstallPromptRegistry,
@@ -18,8 +17,6 @@ const axiosMock = {
     patch: vi.fn(),
 };
 window.api = axiosMock;
-
-const vuetify = createVuetify();
 
 const i18n = createI18n({
     legacy: false,
@@ -121,7 +118,7 @@ describe("App.vue Modals", () => {
 
         const wrapper = mount(App, {
             global: {
-                plugins: [router, vuetify, i18n],
+                plugins: [router, i18n],
                 stubs: {
                     MaterialDesignIcon: true,
                     LxmfUserIcon: true,
@@ -130,19 +127,6 @@ describe("App.vue Modals", () => {
                     CommandPalette: true,
                     IntegrityWarningModal: true,
                     PostInstallPromptHost: true,
-                    // Stub all Vuetify components
-                    VDialog: true,
-                    VCard: true,
-                    VCardText: true,
-                    VCardActions: true,
-                    VBtn: true,
-                    VIcon: true,
-                    VToolbar: true,
-                    VToolbarTitle: true,
-                    VSpacer: true,
-                    VProgressCircular: true,
-                    VCheckbox: true,
-                    VDivider: true,
                 },
             },
         });
@@ -182,7 +166,7 @@ describe("App.vue Modals", () => {
 
         const wrapper = mount(App, {
             global: {
-                plugins: [router, vuetify, i18n],
+                plugins: [router, i18n],
                 stubs: {
                     MaterialDesignIcon: true,
                     LxmfUserIcon: true,
@@ -191,19 +175,6 @@ describe("App.vue Modals", () => {
                     CommandPalette: true,
                     IntegrityWarningModal: true,
                     PostInstallPromptHost: true,
-                    // Stub all Vuetify components
-                    VDialog: true,
-                    VCard: true,
-                    VCardText: true,
-                    VCardActions: true,
-                    VBtn: true,
-                    VIcon: true,
-                    VToolbar: true,
-                    VToolbarTitle: true,
-                    VSpacer: true,
-                    VProgressCircular: true,
-                    VCheckbox: true,
-                    VDivider: true,
                 },
             },
         });
@@ -253,7 +224,7 @@ describe("App.vue Modals", () => {
 
         const wrapper = mount(App, {
             global: {
-                plugins: [router, vuetify, i18n],
+                plugins: [router, i18n],
                 stubs: {
                     MaterialDesignIcon: true,
                     LxmfUserIcon: true,
@@ -292,7 +263,7 @@ describe("App.vue Modals", () => {
     it("playRingtone marks autoplay blocked on NotAllowedError", async () => {
         const wrapper = mount(App, {
             global: {
-                plugins: [router, vuetify, i18n],
+                plugins: [router, i18n],
                 stubs: {
                     MaterialDesignIcon: true,
                     LxmfUserIcon: true,
@@ -337,7 +308,7 @@ describe("App.vue Modals", () => {
     it("onRingtoneUnlockGesture retries ringtone when incoming call still ringing", async () => {
         const wrapper = mount(App, {
             global: {
-                plugins: [router, vuetify, i18n],
+                plugins: [router, i18n],
                 stubs: {
                     MaterialDesignIcon: true,
                     LxmfUserIcon: true,

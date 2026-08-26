@@ -1,25 +1,26 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <v-dialog
+    <AppModal
         :model-value="modelValue"
-        persistent
         :max-width="maxWidth"
-        scrollable
+        persistent
         @update:model-value="$emit('update:modelValue', $event)"
     >
-        <v-card class="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800">
-            <v-card-title class="text-lg font-semibold text-gray-900 dark:text-zinc-100 pt-5 px-5 pb-2">
-                {{ title }}
-            </v-card-title>
-            <v-card-text class="px-5 pb-2 text-sm text-gray-600 dark:text-zinc-400 space-y-3">
-                <p v-if="description">{{ description }}</p>
-                <slot />
-                <p v-if="busy && busyText" class="text-xs text-center text-gray-500 dark:text-zinc-500">
-                    {{ busyText }}
-                </p>
-            </v-card-text>
-            <v-card-actions class="px-5 pb-5 pt-2 flex flex-col sm:flex-row gap-2 sm:justify-end">
+        <template #header>
+            <h2 class="min-w-0 flex-1 text-lg font-semibold text-sem-fg">{{ title }}</h2>
+        </template>
+
+        <div class="space-y-3 px-4 py-4 text-sm text-sem-fg-muted sm:px-5">
+            <p v-if="description">{{ description }}</p>
+            <slot />
+            <p v-if="busy && busyText" class="text-center text-xs text-sem-fg-muted">
+                {{ busyText }}
+            </p>
+        </div>
+
+        <template #actions>
+            <div class="flex w-full flex-col gap-2 sm:flex-row sm:justify-end">
                 <button
                     v-if="secondaryLabel"
                     type="button"
@@ -38,14 +39,19 @@
                 >
                     {{ primaryLabel }}
                 </button>
-            </v-card-actions>
-        </v-card>
-    </v-dialog>
+            </div>
+        </template>
+    </AppModal>
 </template>
 
 <script>
+import AppModal from "./AppModal.vue";
+
 export default {
     name: "AppUpdatePrompt",
+    components: {
+        AppModal,
+    },
     props: {
         modelValue: { type: Boolean, default: false },
         title: { type: String, required: true },

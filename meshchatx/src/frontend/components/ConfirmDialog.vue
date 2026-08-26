@@ -14,7 +14,7 @@
 
             <div
                 ref="dialogPanel"
-                class="relative w-full sm:w-auto sm:min-w-[400px] sm:max-w-md bg-white dark:bg-zinc-900 sm:rounded-3xl rounded-3xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden transform transition-all"
+                class="relative w-full sm:w-auto sm:min-w-[400px] sm:max-w-md bg-sem-surface sm:rounded-3xl rounded-3xl shadow-2xl border border-sem-border overflow-hidden transform transition-all"
                 tabindex="-1"
                 @click.stop
                 @keydown.esc.prevent="cancel"
@@ -27,13 +27,10 @@
                             <MaterialDesignIcon icon-name="alert-circle" class="w-6 h-6" />
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h3 :id="titleId" class="text-xl font-black text-gray-900 dark:text-white mb-2">
+                            <h3 :id="titleId" class="text-xl font-black text-sem-fg mb-2">
                                 {{ pendingConfirm.title || $t("common.confirm_action") }}
                             </h3>
-                            <p
-                                :id="messageId"
-                                class="text-gray-600 dark:text-zinc-300 whitespace-pre-wrap leading-relaxed"
-                            >
+                            <p :id="messageId" class="text-sem-fg-muted whitespace-pre-wrap leading-relaxed">
                                 {{ pendingConfirm.message }}
                             </p>
                         </div>
@@ -44,7 +41,7 @@
                             ref="cancelButton"
                             type="button"
                             data-confirm-cancel
-                            class="px-6 py-3 text-sm font-bold text-gray-700 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 rounded-xl hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                            class="px-6 py-3 text-sm font-bold text-sem-fg-muted bg-sem-surface-muted rounded-xl hover:bg-gray-200 hover:bg-sem-surface-muted transition-all active:scale-95"
                             @click="cancel"
                         >
                             {{ $t("common.cancel") }}
