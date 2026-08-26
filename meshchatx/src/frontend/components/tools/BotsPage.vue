@@ -260,7 +260,7 @@
                                                 {{ $t("bots.last_error_heading") }}
                                             </div>
                                             <pre
-                                                class="mt-1.5 m-0 whitespace-pre-wrap break-words font-mono text-[10px] leading-relaxed text-red-800/95 dark:text-red-100/90"
+                                                class="mt-1.5 m-0 whitespace-pre-wrap wrap-break-word font-mono text-[10px] leading-relaxed text-red-800/95 dark:text-red-100/90"
                                                 >{{ botLastError(bot) }}</pre>
                                         </div>
                                         <div class="text-[10px] text-gray-400 pt-0.5">

@@ -24,7 +24,7 @@
                             <input
                                 v-model="searchQuery"
                                 type="text"
-                                class="w-full rounded-full border-0 bg-sem-surface-muted py-2 pl-9 pr-3 text-sm text-sem-fg outline-none ring-1 ring-sem-border/50 focus:ring-sem-accent/40"
+                                class="w-full rounded-full border-0 bg-sem-surface-muted py-2 pl-9 pr-3 text-sm text-sem-fg outline-hidden ring-1 ring-sem-border/50 focus:ring-sem-accent/40"
                                 :placeholder="$t('banishment.search_placeholder')"
                                 @input="onSearchInput"
                             />
@@ -84,7 +84,7 @@
                 >
                     <select
                         v-model="typeFilter"
-                        class="rounded-full border-0 bg-sem-surface-muted px-3 py-1.5 text-xs text-sem-fg outline-none ring-1 ring-sem-border/50 focus:ring-sem-accent/40"
+                        class="rounded-full border-0 bg-sem-surface-muted px-3 py-1.5 text-xs text-sem-fg outline-hidden ring-1 ring-sem-border/50 focus:ring-sem-accent/40"
                     >
                         <option value="all">{{ $t("banishment.filter_all_types") }}</option>
                         <option value="user">{{ $t("banishment.user") }}</option>
@@ -93,7 +93,7 @@
                     </select>
                     <select
                         v-model="dateSort"
-                        class="rounded-full border-0 bg-sem-surface-muted px-3 py-1.5 text-xs text-sem-fg outline-none ring-1 ring-sem-border/50 focus:ring-sem-accent/40"
+                        class="rounded-full border-0 bg-sem-surface-muted px-3 py-1.5 text-xs text-sem-fg outline-hidden ring-1 ring-sem-border/50 focus:ring-sem-accent/40"
                     >
                         <option value="newest">{{ $t("banishment.sort_newest") }}</option>
                         <option value="oldest">{{ $t("banishment.sort_oldest") }}</option>

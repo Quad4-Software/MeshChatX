@@ -72,7 +72,7 @@
                             v-model="roomsSearch"
                             type="search"
                             :placeholder="$t('relay_chat.host_rooms_search')"
-                            class="input-field !py-2 !pl-9 !pr-3"
+                            class="input-field py-2! pl-9! pr-3!"
                         />
                     </div>
                     <button
@@ -93,26 +93,26 @@
                             v-model="newRoom.name"
                             type="text"
                             :placeholder="$t('relay_chat.host_room_name')"
-                            class="input-field w-full !py-2.5 !text-sm"
+                            class="input-field w-full py-2.5! text-sm!"
                             autofocus
                         />
                         <input
                             v-model="newRoom.topic"
                             type="text"
                             :placeholder="$t('relay_chat.host_room_topic')"
-                            class="input-field w-full !py-2.5 !text-sm"
+                            class="input-field w-full py-2.5! text-sm!"
                         />
                         <input
                             v-model="newRoom.key"
                             type="password"
                             :placeholder="$t('relay_chat.host_room_key_placeholder')"
                             autocomplete="off"
-                            class="input-field w-full !py-2.5 !text-sm"
+                            class="input-field w-full py-2.5! text-sm!"
                         />
                         <div class="flex gap-2 pt-0.5">
                             <button
                                 type="submit"
-                                :class="[btnPrimary, 'flex-1 !py-2.5 !text-sm']"
+                                :class="[btnPrimary, 'flex-1 py-2.5! text-sm!']"
                                 :disabled="creatingRoom"
                             >
                                 <MaterialDesignIcon icon-name="plus" class="size-4" />
@@ -120,7 +120,7 @@
                             </button>
                             <button
                                 type="button"
-                                :class="[btnSecondary, '!py-2.5 !text-sm']"
+                                :class="[btnSecondary, 'py-2.5! text-sm!']"
                                 :disabled="creatingRoom"
                                 @click="cancelAddRoom"
                             >
@@ -251,7 +251,7 @@
                                     }}</span>
                                     <span>{{ formatTime(msg.ts) }}</span>
                                 </div>
-                                <div class="mt-1 whitespace-pre-wrap break-words">{{ msg.text }}</div>
+                                <div class="mt-1 whitespace-pre-wrap wrap-break-word">{{ msg.text }}</div>
                             </li>
                         </ul>
                         <div v-else class="py-8 text-center text-sm text-sem-fg-muted">
@@ -274,7 +274,7 @@
                             v-model="membersSearch"
                             type="search"
                             :placeholder="$t('relay_chat.host_members_search')"
-                            class="input-field !py-2 !pl-9 !pr-3"
+                            class="input-field py-2! pl-9! pr-3!"
                         />
                     </div>
                 </div>
@@ -384,7 +384,7 @@
                                     <span>{{ formatTime(msg.ts) }}</span>
                                     <span v-if="msg.kind === 'action'" class="italic">action</span>
                                 </div>
-                                <div class="mt-1 whitespace-pre-wrap break-words">{{ msg.text }}</div>
+                                <div class="mt-1 whitespace-pre-wrap wrap-break-word">{{ msg.text }}</div>
                             </li>
                         </ul>
                     </div>

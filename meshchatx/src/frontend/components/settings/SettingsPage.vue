@@ -707,7 +707,7 @@
                                         </div>
                                         <div
                                             v-if="!check.passed && check.reason && isSelfTestReasonExpanded(check.key)"
-                                            class="text-xs text-red-600 dark:text-red-400 mt-2 pl-6 whitespace-pre-wrap break-words"
+                                            class="text-xs text-red-600 dark:text-red-400 mt-2 pl-6 whitespace-pre-wrap wrap-break-word"
                                         >
                                             <span class="font-semibold">{{ $t("selftest.reason_label") }}:</span>
                                             {{ check.reason }}
@@ -5513,13 +5513,13 @@ export default {
     @apply flex-1 min-w-0 flex flex-col gap-0.5;
 }
 :deep(.setting-toggle__title) {
-    @apply text-sm font-semibold text-gray-900 dark:text-white break-words leading-snug;
+    @apply text-sm font-semibold text-gray-900 dark:text-white wrap-break-word leading-snug;
 }
 :deep(.setting-toggle__description) {
-    @apply text-xs sm:text-sm text-gray-600 dark:text-gray-300 break-words leading-snug;
+    @apply text-xs sm:text-sm text-gray-600 dark:text-gray-300 wrap-break-word leading-snug;
 }
 :deep(.setting-toggle__hint) {
-    @apply text-xs text-gray-500 dark:text-gray-400 break-words;
+    @apply text-xs text-gray-500 dark:text-gray-400 wrap-break-word;
 }
 :deep(.info-callout) {
     @apply rounded-2xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/60 dark:bg-blue-900/20 px-3 py-3 text-blue-900 dark:text-blue-100;

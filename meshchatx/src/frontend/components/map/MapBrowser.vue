@@ -27,7 +27,7 @@
                     ref="renameInput"
                     v-model="renameDraft"
                     type="text"
-                    class="min-w-0 flex-1 border-b border-sem-accent bg-transparent text-sm text-sem-fg outline-none"
+                    class="min-w-0 flex-1 border-b border-sem-accent bg-transparent text-sm text-sem-fg outline-hidden"
                     :maxlength="64"
                     @click.stop
                     @keydown.enter.prevent="commitRename"

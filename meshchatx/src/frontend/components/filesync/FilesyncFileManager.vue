@@ -34,7 +34,7 @@
             <input ref="fileInput" type="file" class="hidden" @change="onUploadSelected" />
         </div>
 
-        <div class="input-field !py-2 font-mono text-xs truncate" :title="breadcrumbLabel">
+        <div class="input-field py-2! font-mono text-xs truncate" :title="breadcrumbLabel">
             {{ breadcrumbLabel }}
         </div>
 

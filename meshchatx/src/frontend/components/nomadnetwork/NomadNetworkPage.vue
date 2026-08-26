@@ -101,12 +101,12 @@
                             :open-on-click="true"
                             :interactive="true"
                             max-width="320"
-                            content-class="!bg-transparent !p-0 shadow-none"
+                            content-class="bg-transparent! p-0! shadow-none"
                         >
                             <template #activator="{ props: tooltipActivatorProps }">
                                 <span
                                     v-bind="tooltipActivatorProps"
-                                    class="shrink-0 hidden sm:inline-flex sm:items-center max-w-[7.5rem] md:max-w-[9rem] truncate rounded px-1 py-0.5 text-[11px] font-medium leading-tight text-sem-fg-muted cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400"
+                                    class="shrink-0 hidden sm:inline-flex sm:items-center max-w-[7.5rem] md:max-w-[9rem] truncate rounded px-1 py-0.5 text-[11px] font-medium leading-tight text-sem-fg-muted cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400"
                                     tabindex="0"
                                     role="button"
                                     >{{ nomadBrowserRendererChip.label }}</span

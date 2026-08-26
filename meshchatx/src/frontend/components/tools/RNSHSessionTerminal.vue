@@ -115,7 +115,7 @@
 
         <div
             ref="outputBox"
-            class="flex-1 min-h-0 bg-zinc-950 dark:bg-black text-zinc-100 font-mono whitespace-pre-wrap break-words overflow-auto custom-scrollbar"
+            class="flex-1 min-h-0 bg-zinc-950 dark:bg-black text-zinc-100 font-mono whitespace-pre-wrap wrap-break-word overflow-auto custom-scrollbar"
             :class="fullscreen ? 'text-[11px] leading-relaxed px-2 py-2' : 'text-xs px-2 sm:px-3 md:px-4 py-2 sm:py-3'"
         >
             {{ output }}

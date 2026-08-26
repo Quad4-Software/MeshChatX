@@ -615,7 +615,7 @@
                             <MaterialDesignIcon icon-name="reply" class="size-3" />
                             {{ $t("messages.replying_to") }}
                         </div>
-                        <div class="text-xs opacity-70 break-words italic">
+                        <div class="text-xs opacity-70 wrap-break-word italic">
                             {{
                                 chatItem.lxmf_message.fields?.reply_quoted_content ||
                                 cv.getRepliedMessage(chatItem.lxmf_message.reply_to_hash)?.content ||
@@ -695,7 +695,7 @@
                         </div>
                         <div v-else>
                             <div
-                                class="leading-relaxed break-words min-w-0 markdown-content"
+                                class="leading-relaxed wrap-break-word min-w-0 markdown-content"
                                 :class="{
                                     'markdown-content--outbound-theme':
                                         chatItem.is_outbound && cv.isThemeOutboundBubble(chatItem),
