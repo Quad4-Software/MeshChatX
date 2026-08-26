@@ -118,7 +118,21 @@ def normalize_bot_lxmf_overrides(raw) -> dict:
     if out.get("propagation_mode") == "manual" and "propagation_node" not in out:
         out.pop("propagation_mode", None)
 
+    if out.get("propagation_mode") in ("autopeer", "none"):
+        out.pop("propagation_node", None)
+
     return out
+
+
+def validate_bot_lxmf_patch(patch: dict | None) -> None:
+    if not patch:
+        return
+    mode = patch.get("propagation_mode")
+    if mode == "manual" and not normalize_lxmf_destination_hash(
+        patch.get("propagation_node"),
+    ):
+        msg = "propagation_node is required for manual propagation mode"
+        raise ValueError(msg)
 
 
 def merge_bot_lxmf_overrides(stored: dict | None, patch: dict | None) -> dict:
@@ -128,6 +142,10 @@ def merge_bot_lxmf_overrides(stored: dict | None, patch: dict | None) -> dict:
 
     if patch.get("propagation_mode") == "inherit":
         base.pop("propagation_mode", None)
+        base.pop("propagation_node", None)
+
+    mode = patch.get("propagation_mode")
+    if mode in ("autopeer", "none"):
         base.pop("propagation_node", None)
 
     clear_keys = (
