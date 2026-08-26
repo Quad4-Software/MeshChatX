@@ -12,6 +12,7 @@
         "skipLibCheck": true,
         "isolatedModules": true,
         "resolveJsonModule": true,
+        "ignoreDeprecations": "6.0",
         "baseUrl": ".",
         "paths": {
             "@/*": ["./meshchatx/src/frontend/*"],
