@@ -247,7 +247,7 @@ export default defineConfig(({ command }) => {
 
         build: {
             sourcemap: false,
-            chunkImportMap: true,
+            chunkImportMap: false,
             // @mdi/js and other vendor chunks exceed 700 kB minified; splitting icons further is a larger refactor.
             chunkSizeWarningLimit: 3500,
             minify: "terser",

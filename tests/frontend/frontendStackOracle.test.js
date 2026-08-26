@@ -39,7 +39,7 @@ describe("frontend stack migration oracle", () => {
     it("vite.config.js uses Vite 8 features and excludes Vuetify bundling", () => {
         const vite = readRepo("vite.config.js");
         expect(vite).toContain("rolldownOptions");
-        expect(vite).toContain("chunkImportMap: true");
+        expect(vite).toContain("chunkImportMap: false");
         expect(vite).toContain("tsconfigPaths: true");
         expect(vite).toContain("MESHCHAT_VITE_BUNDLED_DEV");
         expect(vite).not.toContain("vite-plugin-vuetify");
