@@ -93,6 +93,10 @@
             "path": "/api/v1/bots/export"
         },
         {
+            "method": "PATCH",
+            "path": "/api/v1/bots/lxmf-config"
+        },
+        {
             "method": "POST",
             "path": "/api/v1/bots/restart"
         },

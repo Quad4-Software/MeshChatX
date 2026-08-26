@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             icon="robot"
             :title="$t('tools.bots.title')"
@@ -14,18 +14,18 @@
             <div class="space-y-8 w-full max-w-4xl mx-auto">
                 <div class="space-y-6">
                     <div class="space-y-4">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        <h3 class="text-lg font-semibold text-sem-fg">
                             {{ $t("bots.create_new_bot") }}
                         </h3>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                             <div
                                 v-for="template in templates"
                                 :key="template.id"
-                                class="relative rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 hover:border-blue-400 dark:hover:border-blue-600 transition cursor-pointer flex flex-col justify-between min-h-[140px] pr-12"
+                                class="relative rounded-lg border border-sem-border bg-sem-surface p-4 hover:border-blue-400 dark:hover:border-blue-600 transition cursor-pointer flex flex-col justify-between min-h-[140px] pr-12"
                                 @click="selectTemplate(template)"
                             >
                                 <div class="min-w-0">
-                                    <div class="font-bold text-gray-900 dark:text-white">{{ template.name }}</div>
+                                    <div class="font-bold text-sem-fg">{{ template.name }}</div>
                                     <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                         {{ template.description }}
                                     </div>
@@ -40,13 +40,10 @@
                             <div
                                 class="rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-900/50 p-4 flex flex-col items-center justify-center min-h-[140px] opacity-70"
                             >
-                                <div class="p-2 bg-gray-100 dark:bg-zinc-800 rounded-lg mb-2">
-                                    <MaterialDesignIcon
-                                        icon-name="plus"
-                                        class="size-6 text-gray-400 dark:text-gray-500"
-                                    />
+                                <div class="p-2 bg-sem-surface-muted rounded-lg mb-2">
+                                    <MaterialDesignIcon icon-name="plus" class="size-6 text-sem-fg-muted" />
                                 </div>
-                                <div class="text-sm font-medium text-gray-500 dark:text-gray-400 text-center">
+                                <div class="text-sm font-medium text-sem-fg-muted text-center">
                                     {{ $t("bots.more_bots_coming") }}
                                 </div>
                             </div>
@@ -54,7 +51,7 @@
                     </div>
 
                     <div class="space-y-4">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        <h3 class="text-lg font-semibold text-sem-fg">
                             {{ $t("bots.saved_bots") }}
                         </h3>
                         <div v-if="bots.length === 0" class="text-sm text-gray-500 italic">
@@ -65,7 +62,7 @@
                                 v-for="bot in bots"
                                 :key="bot.id"
                                 :class="[
-                                    'relative rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-3 sm:p-4',
+                                    'relative rounded-lg border border-sem-border bg-sem-surface p-3 sm:p-4',
                                     editingBotId === bot.id ? 'pr-28 sm:pr-40' : 'pr-10 sm:pr-12',
                                 ]"
                             >
@@ -75,7 +72,7 @@
                                     <button
                                         v-if="lxmfAddressFor(bot)"
                                         type="button"
-                                        class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
                                         :title="$t('bots.chat_with_bot')"
                                         @click="openChatWithBot(bot)"
                                     >
@@ -84,7 +81,7 @@
                                     <button
                                         v-if="bot.running"
                                         type="button"
-                                        class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-amber-600 dark:hover:text-amber-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
                                         :title="$t('bots.force_announce')"
                                         @click="forceAnnounce(bot)"
                                     >
@@ -93,7 +90,7 @@
                                     <button
                                         v-if="bot.running"
                                         type="button"
-                                        class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
                                         :title="$t('bots.restart_bot')"
                                         @click="restartExisting(bot)"
                                     >
@@ -102,7 +99,7 @@
                                     <button
                                         v-if="bot.running"
                                         type="button"
-                                        class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
                                         :title="$t('bots.stop_bot')"
                                         @click="stopBot(bot.id)"
                                     >
@@ -111,7 +108,7 @@
                                     <button
                                         v-if="!bot.running"
                                         type="button"
-                                        class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
                                         :title="$t('bots.start_bot')"
                                         @click="startExisting(bot)"
                                     >
@@ -119,7 +116,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-violet-600 dark:hover:text-violet-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
                                         :title="$t('bots.view_process_log')"
                                         @click="openProcessLog(bot)"
                                     >
@@ -127,7 +124,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
                                         :title="$t('bots.edit_lxmf_config')"
                                         @click="openLxmfConfig(bot)"
                                     >
@@ -135,7 +132,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
                                         :title="$t('bots.export_identity')"
                                         @click="exportIdentity(bot.id)"
                                     >
@@ -143,7 +140,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        class="p-2 rounded-lg text-sem-fg-muted hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
                                         :title="$t('bots.delete_bot')"
                                         @click="deleteBot(bot.id)"
                                     >
@@ -153,10 +150,7 @@
 
                                 <div class="flex items-start gap-3 min-w-0">
                                     <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg shrink-0">
-                                        <MaterialDesignIcon
-                                            icon-name="robot"
-                                            class="size-6 text-blue-600 dark:text-blue-400"
-                                        />
+                                        <MaterialDesignIcon icon-name="robot" class="size-6 text-sem-accent" />
                                     </div>
                                     <div class="min-w-0 flex-1 space-y-1.5 sm:pr-2">
                                         <div
@@ -194,9 +188,7 @@
                                                 </button>
                                             </template>
                                             <template v-else>
-                                                <span class="font-bold text-gray-900 dark:text-white truncate">{{
-                                                    bot.name
-                                                }}</span>
+                                                <span class="font-bold text-sem-fg truncate">{{ bot.name }}</span>
                                                 <button
                                                     type="button"
                                                     class="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 shrink-0"
@@ -207,9 +199,7 @@
                                                 </button>
                                             </template>
                                         </div>
-                                        <div
-                                            class="flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-300"
-                                        >
+                                        <div class="flex items-center gap-2 text-[11px] text-sem-fg-muted">
                                             <span
                                                 class="inline-block size-2 rounded-full shrink-0"
                                                 :class="bot.running ? 'bg-emerald-500' : 'bg-gray-400 dark:bg-gray-500'"
@@ -218,10 +208,10 @@
                                                 bot.running ? $t("bots.status_running") : $t("bots.status_stopped")
                                             }}</span>
                                         </div>
-                                        <dl class="space-y-2.5 text-[11px] text-gray-600 dark:text-gray-300 min-w-0">
+                                        <dl class="space-y-2.5 text-[11px] text-sem-fg-muted min-w-0">
                                             <div class="min-w-0">
                                                 <dt
-                                                    class="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1"
+                                                    class="text-[10px] font-semibold uppercase tracking-wide text-sem-fg-muted mb-1"
                                                 >
                                                     {{ $t("bots.lxmf_address") }}
                                                 </dt>
@@ -234,14 +224,14 @@
                                                     >
                                                         {{ lxmfAddressFor(bot) }}
                                                     </button>
-                                                    <span v-else class="text-gray-500 dark:text-gray-400">{{
+                                                    <span v-else class="text-sem-fg-muted">{{
                                                         $t("bots.address_pending")
                                                     }}</span>
                                                 </dd>
                                             </div>
                                             <div class="min-w-0">
                                                 <dt
-                                                    class="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1"
+                                                    class="text-[10px] font-semibold uppercase tracking-wide text-sem-fg-muted mb-1"
                                                 >
                                                     {{ $t("bots.last_announce") }}
                                                 </dt>
@@ -289,13 +279,11 @@
             @click.self="closeProcessLog"
         >
             <div
-                class="w-full sm:max-w-3xl flex flex-col max-sm:h-[92dvh] max-sm:max-h-[92dvh] sm:max-h-[90vh] rounded-t-2xl sm:rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-xl touch-pan-y min-h-0"
+                class="w-full sm:max-w-3xl flex flex-col max-sm:h-[92dvh] max-sm:max-h-[92dvh] sm:max-h-[90vh] rounded-t-2xl sm:rounded-lg border border-sem-border bg-sem-surface shadow-xl touch-pan-y min-h-0"
             >
-                <div
-                    class="flex justify-between items-start gap-2 p-3 sm:p-5 border-b border-gray-200 dark:border-zinc-800 shrink-0"
-                >
+                <div class="flex justify-between items-start gap-2 p-3 sm:p-5 border-b border-sem-border shrink-0">
                     <div class="min-w-0 pr-2">
-                        <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                        <h3 class="text-lg sm:text-xl font-bold text-sem-fg">
                             {{ $t("bots.process_log_title") }}
                         </h3>
                         <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5 truncate">
@@ -327,13 +315,13 @@
                 <div class="flex-1 min-h-0 flex flex-col p-2 sm:p-5 pt-2 sm:pt-2">
                     <div
                         v-if="processLogLoading"
-                        class="flex items-center justify-center py-16 text-gray-500 dark:text-gray-400 text-sm"
+                        class="flex items-center justify-center py-16 text-sem-fg-muted text-sm"
                     >
                         {{ $t("bots.process_log_loading") }}
                     </div>
                     <div
                         v-else
-                        class="flex-1 min-h-0 max-sm:min-h-[55dvh] sm:min-h-[12rem] overflow-auto rounded-lg border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 touch-pan-x"
+                        class="flex-1 min-h-0 max-sm:min-h-[55dvh] sm:min-h-[12rem] overflow-auto rounded-lg border border-sem-border bg-sem-surface-muted touch-pan-x"
                     >
                         <pre
                             class="bots-process-log-text m-0 min-h-full w-max min-w-full p-2 sm:p-3 font-mono text-gray-800 dark:text-gray-200 whitespace-pre select-text"
@@ -349,10 +337,10 @@
             @click.self="selectedTemplate = null"
         >
             <div
-                class="w-full sm:max-w-md rounded-t-2xl sm:rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+                class="w-full sm:max-w-md rounded-t-2xl sm:rounded-lg border border-sem-border bg-sem-surface p-4 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto"
             >
                 <div class="flex justify-between items-start gap-2">
-                    <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white pr-2">
+                    <h3 class="text-lg sm:text-xl font-bold text-sem-fg pr-2">
                         {{ $t("bots.start_bot") }}: {{ selectedTemplate.name }}
                     </h3>
                     <button
@@ -379,7 +367,7 @@
                         {{ selectedTemplate.description }}
                     </div>
 
-                    <details class="rounded-lg border border-gray-200 dark:border-zinc-800 p-3">
+                    <details class="rounded-lg border border-sem-border p-3">
                         <summary class="cursor-pointer text-sm font-semibold text-gray-800 dark:text-gray-200">
                             {{ $t("bots.advanced_lxmf_settings") }}
                         </summary>
@@ -419,11 +407,11 @@
             @click.self="closeLxmfConfig"
         >
             <div
-                class="w-full sm:max-w-lg rounded-t-2xl sm:rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+                class="w-full sm:max-w-lg rounded-t-2xl sm:rounded-lg border border-sem-border bg-sem-surface p-4 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto"
             >
                 <div class="flex justify-between items-start gap-2">
                     <div class="min-w-0 pr-2">
-                        <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                        <h3 class="text-lg sm:text-xl font-bold text-sem-fg">
                             {{ $t("bots.lxmf_config_title") }}
                         </h3>
                         <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5 truncate">
@@ -443,7 +431,7 @@
 
                 <div
                     v-if="lxmfConfigModalBot.effective_lxmf_config"
-                    class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 p-3 text-[11px] text-gray-700 dark:text-gray-300"
+                    class="rounded-lg border border-sem-border bg-sem-surface-muted p-3 text-[11px] text-gray-700 dark:text-gray-300"
                 >
                     <div class="font-semibold mb-1">{{ $t("bots.effective_settings_heading") }}</div>
                     <pre class="m-0 whitespace-pre-wrap wrap-break-word font-mono">{{
@@ -488,11 +476,7 @@ import DownloadUtils from "../../js/DownloadUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
 import LxmfConfigFields from "./internal/BotLxmfConfigFields.vue";
-import {
-    buildLxmfConfigPatch,
-    defaultLxmfConfigDraft,
-    draftFromBotLxmfConfig,
-} from "./internal/botLxmfConfigForm.js";
+import { buildLxmfConfigPatch, defaultLxmfConfigDraft, draftFromBotLxmfConfig } from "./internal/botLxmfConfigForm.js";
 
 export default {
     name: "BotsPage",
@@ -808,9 +792,16 @@ export default {
             if (!this.lxmfConfigModalBot || this.lxmfConfigSaving) {
                 return;
             }
+            if (this.lxmfConfigDraft.propagation_mode === "manual") {
+                const node = (this.lxmfConfigDraft.propagation_node || "").trim().toLowerCase();
+                if (!/^[0-9a-f]{32}$/.test(node)) {
+                    ToastUtils.error(this.$t("bots.lxmf_config_manual_node_required"));
+                    return;
+                }
+            }
             this.lxmfConfigSaving = true;
             try {
-                const patch = buildLxmfConfigPatch(this.lxmfConfigDraft);
+                const patch = buildLxmfConfigPatch(this.lxmfConfigDraft, { clearEmpty: true });
                 await window.api.patch("/api/v1/bots/lxmf-config", {
                     bot_id: this.lxmfConfigModalBot.id,
                     lxmf_config: patch,
