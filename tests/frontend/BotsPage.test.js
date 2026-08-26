@@ -14,6 +14,7 @@ vi.mock("@/js/ToastUtils", () => ({
     default: {
         success: vi.fn(),
         error: vi.fn(),
+        info: vi.fn(),
     },
 }));
 
@@ -164,5 +165,32 @@ describe("BotsPage.vue", () => {
         await vi.waitFor(() => expect(wrapper.vm.loading).toBe(false));
         await wrapper.vm.exportIdentity("bot1");
         expect(ToastUtils.error).toHaveBeenCalledWith("nope");
+    });
+
+    it("opens lxmf config modal and saves patch", async () => {
+        axiosMock.patch.mockResolvedValue({ data: { success: true, lxmf_config: {} } });
+        const wrapper = mountBotsPage();
+        await vi.waitFor(() => expect(wrapper.vm.loading).toBe(false));
+
+        const bot = wrapper.vm.bots[0];
+        await wrapper.vm.openLxmfConfig(bot);
+        expect(wrapper.vm.lxmfConfigModalBot).toEqual(bot);
+
+        wrapper.vm.lxmfConfigDraft.propagation_mode = "autopeer";
+        await wrapper.vm.saveLxmfConfig();
+
+        expect(axiosMock.patch).toHaveBeenCalledWith("/api/v1/bots/lxmf-config", {
+            bot_id: "bot1",
+            lxmf_config: {
+                propagation_mode: "autopeer",
+                propagation_node: null,
+                propagation_fallback_enabled: null,
+                direct_delivery_retries: null,
+                opportunistic_sending: null,
+                announce_interval_seconds: null,
+                stamp_cost: null,
+            },
+        });
+        expect(ToastUtils.success).toHaveBeenCalledWith("bots.lxmf_config_saved");
     });
 });

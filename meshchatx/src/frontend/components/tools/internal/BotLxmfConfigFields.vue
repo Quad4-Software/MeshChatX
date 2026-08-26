@@ -34,14 +34,8 @@
 
         <div>
             <label class="glass-label">{{ $t("bots.direct_delivery_retries") }}</label>
-            <input
-                v-model="localDraft.direct_delivery_retries"
-                type="number"
-                min="0"
-                max="32"
-                class="input-field"
-            />
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <input v-model="localDraft.direct_delivery_retries" type="number" min="0" max="32" class="input-field" />
+            <p class="text-xs text-sem-fg-muted mt-1">
                 {{ $t("bots.direct_delivery_retries_hint") }}
             </p>
         </div>
@@ -64,7 +58,7 @@
                 max="86400"
                 class="input-field"
             />
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p class="text-xs text-sem-fg-muted mt-1">
                 {{ $t("bots.announce_interval_hint") }}
             </p>
         </div>
@@ -72,7 +66,7 @@
         <div>
             <label class="glass-label">{{ $t("bots.stamp_cost") }}</label>
             <input v-model="localDraft.stamp_cost" type="number" min="0" class="input-field" />
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p class="text-xs text-sem-fg-muted mt-1">
                 {{ $t("bots.stamp_cost_hint") }}
             </p>
         </div>
