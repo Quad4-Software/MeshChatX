@@ -11,13 +11,25 @@ from .meshchat_utils import create_lxmf_router
 
 
 class ForwardingManager:
-    def __init__(self, db: Database, storage_path: str, delivery_callback, config=None):
+    def __init__(
+        self,
+        db: Database,
+        storage_path: str,
+        delivery_callback,
+        config=None,
+        inbound_policy_installer=None,
+    ):
         self.db = db
         self.storage_path = storage_path
         self.delivery_callback = delivery_callback
         self.config = config
+        self.inbound_policy_installer = inbound_policy_installer
         self.forwarding_destinations = {}
         self.forwarding_routers = {}
+
+    def _install_inbound_policy(self, router):
+        if self.inbound_policy_installer is not None:
+            self.inbound_policy_installer(router)
 
     def load_aliases(self):
         mappings = self.db.messages.get_all_forwarding_mappings()
@@ -48,6 +60,7 @@ class ForwardingManager:
                     )
 
                 router.register_delivery_callback(self.delivery_callback)
+                self._install_inbound_policy(router)
 
                 alias_destination = router.register_delivery_identity(
                     identity=alias_identity,
@@ -93,6 +106,7 @@ class ForwardingManager:
                 )
 
             router.register_delivery_callback(self.delivery_callback)
+            self._install_inbound_policy(router)
 
             alias_destination = router.register_delivery_identity(
                 identity=alias_identity,

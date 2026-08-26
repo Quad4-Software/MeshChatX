@@ -17,6 +17,9 @@ from meshchatx.src.backend.config_manager import ConfigManager
 from meshchatx.src.backend.database import Database, merge_health_issues
 from meshchatx.src.backend.docs_manager import DocsManager
 from meshchatx.src.backend.forwarding_manager import ForwardingManager
+from meshchatx.src.backend.lxmf_inbound_policy import (
+    install_lxmf_inbound_delivery_policy,
+)
 from meshchatx.src.backend.integrity_manager import (
     CriticalIntegrityError,
     IntegrityManager,
@@ -314,8 +317,21 @@ class IdentityContext:
             self.lxmf_router_path,
             lambda msg: self.app.on_lxmf_delivery(msg, context=self),
             config=self.config,
+            inbound_policy_installer=lambda router: (
+                install_lxmf_inbound_delivery_policy(
+                    router,
+                    self.app,
+                    lambda: self,
+                )
+            ),
         )
         self.forwarding_manager.load_aliases()
+
+        install_lxmf_inbound_delivery_policy(
+            self.message_router,
+            self.app,
+            lambda: self,
+        )
 
         self.message_router.register_delivery_callback(
             lambda msg: self.app.on_lxmf_delivery(msg, context=self),
