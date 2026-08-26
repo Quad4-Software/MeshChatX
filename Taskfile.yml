@@ -241,6 +241,7 @@ tasks:
         cmds:
             - "{{.NPM}} run lint"
             - "{{.NPM}} run typecheck"
+            - "{{.NPM}} exec vue-tsc --noEmit -p tsconfig.libs.json"
             - "{{.NPM}} exec knip"
             - task: check:format-tokens
             - task: deps:git-pins
@@ -420,10 +421,10 @@ tasks:
 
     test:frontend:
         aliases: [test:fe]
-        desc: Run frontend + Electron shell unit tests (vitest, excludes i18n, see test:lang, excludes LoadTimePerformance, use test:fe:loadtime locally)
+        desc: Run frontend + Electron shell unit tests (vitest with coverage, excludes i18n, see test:lang, excludes LoadTimePerformance, use test:fe:loadtime locally)
         cmds:
-            - "{{.NPM}} exec vitest run --exclude tests/frontend/LoadTimePerformance.test.js --exclude tests/frontend/i18n.test.js"
-            - "{{.NPM}} exec vitest run --config vitest.electron.config.js"
+            - "{{.NPM}} exec vitest run --coverage --exclude tests/frontend/LoadTimePerformance.test.js --exclude tests/frontend/i18n.test.js"
+            - "{{.NPM}} exec vitest run --config vitest.electron.config.js --coverage"
 
     test:fe:ui:
         desc: Vitest UI runner for frontend unit tests

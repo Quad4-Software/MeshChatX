@@ -1,0 +1,9 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "checkJs": true,
+        "strict": false,
+        "ignoreDeprecations": "6.0"
+    },
+    "include": ["meshchatx/src/frontend/libs/**/*.js"]
+}
