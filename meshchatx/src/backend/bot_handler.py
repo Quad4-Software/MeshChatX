@@ -14,6 +14,13 @@ import uuid
 import RNS
 
 from meshchatx.src.backend import bot_process as _bot_process  # noqa: F401
+from meshchatx.src.backend.bot_lxmf_config import (
+    describe_bot_lxmf_config,
+    merge_bot_lxmf_overrides,
+    normalize_bot_lxmf_overrides,
+    resolve_effective_bot_lxmf_settings,
+    write_bot_lxmf_config_sidecar,
+)
 from meshchatx.src.path_utils import atomic_write_text
 
 logger = logging.getLogger("meshchatx.bots")
@@ -319,6 +326,7 @@ class BotHandler:
 
             storage_dir = entry.get("storage_dir")
             last_err = self._read_bot_last_error(storage_dir)
+            lxmf_meta = describe_bot_lxmf_config(self.config_manager, entry)
 
             bots.append(
                 {
@@ -333,6 +341,9 @@ class BotHandler:
                     "pid": pid,
                     "storage_dir": storage_dir,
                     "last_error": last_err,
+                    "lxmf_config": lxmf_meta["lxmf_config"],
+                    "effective_lxmf_config": lxmf_meta["effective_lxmf_config"],
+                    "host_lxmf_propagation": lxmf_meta["host_lxmf_propagation"],
                 },
             )
 
@@ -343,7 +354,14 @@ class BotHandler:
             "bots": bots,
         }
 
-    def start_bot(self, template_id, name=None, bot_id=None, storage_dir=None):
+    def start_bot(
+        self,
+        template_id,
+        name=None,
+        bot_id=None,
+        storage_dir=None,
+        lxmf_config=None,
+    ):
         # Reuse existing entry or create new
         entry = None
         if bot_id:
@@ -386,11 +404,26 @@ class BotHandler:
                 entry["reticulum_config_dir"] = self.bot_reticulum_config_dir
             entry["enabled"] = True
 
+        if lxmf_config is not None:
+            entry["lxmf_config"] = merge_bot_lxmf_overrides(
+                entry.get("lxmf_config"),
+                lxmf_config,
+            )
+
         os.makedirs(bot_storage_dir, exist_ok=True)
 
         err_file = os.path.join(bot_storage_dir, "meshchatx_bot_last_error.txt")
         with contextlib.suppress(OSError):
             os.unlink(err_file)
+
+        effective_lxmf = resolve_effective_bot_lxmf_settings(
+            self.config_manager,
+            entry,
+        )
+        lxmf_sidecar = write_bot_lxmf_config_sidecar(
+            bot_storage_dir,
+            effective_lxmf,
+        )
 
         cmd = [
             *self._resolve_bot_launcher(),
@@ -404,6 +437,8 @@ class BotHandler:
             entry["bot_config_dir"],
             "--reticulum-config-dir",
             entry["reticulum_config_dir"],
+            "--lxmf-config-file",
+            lxmf_sidecar,
         ]
 
         subprocess_log = os.path.join(bot_storage_dir, "meshchatx_bot_subprocess.log")
@@ -521,6 +556,23 @@ class BotHandler:
             bot_id=bot_id,
             storage_dir=entry["storage_dir"],
         )
+
+    def update_bot_lxmf_config(self, bot_id, lxmf_config):
+        entry = None
+        for e in self.bots_state:
+            if e.get("id") == bot_id:
+                entry = e
+                break
+        if entry is None:
+            raise ValueError(f"Unknown bot: {bot_id}")
+        if lxmf_config is None or not isinstance(lxmf_config, dict):
+            raise ValueError("lxmf_config is required")
+        entry["lxmf_config"] = merge_bot_lxmf_overrides(
+            entry.get("lxmf_config"),
+            lxmf_config,
+        )
+        self._save_state()
+        return normalize_bot_lxmf_overrides(entry["lxmf_config"])
 
     def update_bot_name(self, bot_id, name):
         raw = (name or "").strip()

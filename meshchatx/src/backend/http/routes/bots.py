@@ -188,6 +188,8 @@ def register_bots_routes(routes, app):
                 template_id,
                 name,
                 bot_id,
+                None,
+                data.get("lxmf_config"),
             )
             return web.json_response({"bot_id": bot_id, "success": True})
         except Exception as e:
@@ -291,6 +293,7 @@ def register_bots_routes(routes, app):
         data = await request.json()
         bot_id = data.get("bot_id")
         name = data.get("name")
+        lxmf_config = data.get("lxmf_config")
 
         if not bot_id:
             return web.json_response(
@@ -299,12 +302,55 @@ def register_bots_routes(routes, app):
             )
 
         try:
-            await asyncio.to_thread(
-                app.bot_handler.update_bot_name,
-                bot_id,
-                name,
-            )
+            if name is not None:
+                await asyncio.to_thread(
+                    app.bot_handler.update_bot_name,
+                    bot_id,
+                    name,
+                )
+            if lxmf_config is not None:
+                saved = await asyncio.to_thread(
+                    app.bot_handler.update_bot_lxmf_config,
+                    bot_id,
+                    lxmf_config,
+                )
+                return web.json_response({"success": True, "lxmf_config": saved})
             return web.json_response({"success": True})
+        except ValueError as e:
+            return web.json_response(
+                {"message": str(e)},
+                status=400,
+            )
+        except Exception as e:
+            return web.json_response(
+                {"message": str(e)},
+                status=500,
+            )
+
+    @routes.patch("/api/v1/bots/lxmf-config")
+    async def bots_lxmf_config(request):
+        data = await request.json()
+        bot_id = data.get("bot_id")
+        lxmf_config = data.get("lxmf_config")
+
+        if not bot_id:
+            return web.json_response(
+                {"message": "bot_id is required"},
+                status=400,
+            )
+        if lxmf_config is None:
+            return web.json_response(
+                {"message": "lxmf_config is required"},
+                status=400,
+            )
+
+        try:
+            saved = await asyncio.to_thread(
+                app.bot_handler.update_bot_lxmf_config,
+                bot_id,
+                lxmf_config,
+            )
+            return web.json_response({"success": True, "lxmf_config": saved})
         except ValueError as e:
             return web.json_response(
                 {"message": str(e)},

@@ -128,6 +128,14 @@
                                     <button
                                         type="button"
                                         class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        :title="$t('bots.edit_lxmf_config')"
+                                        @click="openLxmfConfig(bot)"
+                                    >
+                                        <MaterialDesignIcon icon-name="cog" class="size-5" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
                                         :title="$t('bots.export_identity')"
                                         @click="exportIdentity(bot.id)"
                                     >
@@ -371,6 +379,15 @@
                         {{ selectedTemplate.description }}
                     </div>
 
+                    <details class="rounded-lg border border-gray-200 dark:border-zinc-800 p-3">
+                        <summary class="cursor-pointer text-sm font-semibold text-gray-800 dark:text-gray-200">
+                            {{ $t("bots.advanced_lxmf_settings") }}
+                        </summary>
+                        <div class="mt-3 space-y-3">
+                            <LxmfConfigFields v-model="newBotLxmfDraft" />
+                        </div>
+                    </details>
+
                     <div class="flex justify-end gap-2 pt-2">
                         <button
                             type="button"
@@ -395,6 +412,72 @@
                 </div>
             </div>
         </div>
+
+        <div
+            v-if="lxmfConfigModalBot"
+            class="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50"
+            @click.self="closeLxmfConfig"
+        >
+            <div
+                class="w-full sm:max-w-lg rounded-t-2xl sm:rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+            >
+                <div class="flex justify-between items-start gap-2">
+                    <div class="min-w-0 pr-2">
+                        <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                            {{ $t("bots.lxmf_config_title") }}
+                        </h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5 truncate">
+                            {{ lxmfConfigModalBot.name }}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                        @click="closeLxmfConfig"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-5" />
+                    </button>
+                </div>
+
+                <LxmfConfigFields v-model="lxmfConfigDraft" />
+
+                <div
+                    v-if="lxmfConfigModalBot.effective_lxmf_config"
+                    class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 p-3 text-[11px] text-gray-700 dark:text-gray-300"
+                >
+                    <div class="font-semibold mb-1">{{ $t("bots.effective_settings_heading") }}</div>
+                    <pre class="m-0 whitespace-pre-wrap wrap-break-word font-mono">{{
+                        formatEffectiveLxmfConfig(lxmfConfigModalBot.effective_lxmf_config)
+                    }}</pre>
+                </div>
+
+                <p v-if="lxmfConfigModalBot.running" class="text-xs text-amber-700 dark:text-amber-400">
+                    {{ $t("bots.lxmf_config_restart_hint") }}
+                </p>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button
+                        type="button"
+                        class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                        @click="closeLxmfConfig"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-6" />
+                    </button>
+                    <button
+                        type="button"
+                        class="p-2 rounded-lg text-gray-500 hover:text-emerald-600 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 disabled:opacity-40"
+                        :disabled="lxmfConfigSaving"
+                        @click="saveLxmfConfig"
+                    >
+                        <span
+                            v-if="lxmfConfigSaving"
+                            class="inline-block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"
+                        ></span>
+                        <MaterialDesignIcon v-else icon-name="check" class="size-6" />
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -404,12 +487,19 @@ import DialogUtils from "../../js/DialogUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
+import LxmfConfigFields from "./internal/BotLxmfConfigFields.vue";
+import {
+    buildLxmfConfigPatch,
+    defaultLxmfConfigDraft,
+    draftFromBotLxmfConfig,
+} from "./internal/botLxmfConfigForm.js";
 
 export default {
     name: "BotsPage",
     components: {
         MaterialDesignIcon,
         ToolsPageHeader,
+        LxmfConfigFields,
     },
     data() {
         return {
@@ -417,6 +507,7 @@ export default {
             templates: [],
             selectedTemplate: null,
             newBotName: "",
+            newBotLxmfDraft: defaultLxmfConfigDraft(),
             isStarting: false,
             loading: true,
             refreshInterval: null,
@@ -428,6 +519,9 @@ export default {
             processLogText: "",
             processLogTruncated: false,
             processLogLoading: false,
+            lxmfConfigModalBot: null,
+            lxmfConfigDraft: defaultLxmfConfigDraft(),
+            lxmfConfigSaving: false,
         };
     },
     computed: {
@@ -468,15 +562,21 @@ export default {
         selectTemplate(template) {
             this.selectedTemplate = template;
             this.newBotName = template.name;
+            this.newBotLxmfDraft = defaultLxmfConfigDraft();
         },
         async startBot() {
             if (this.isStarting) return;
             this.isStarting = true;
             try {
-                await window.api.post("/api/v1/bots/start", {
+                const payload = {
                     template_id: this.selectedTemplate.id,
                     name: this.newBotName,
-                });
+                };
+                const lxmfPatch = buildLxmfConfigPatch(this.newBotLxmfDraft);
+                if (Object.keys(lxmfPatch).length > 0) {
+                    payload.lxmf_config = lxmfPatch;
+                }
+                await window.api.post("/api/v1/bots/start", payload);
                 ToastUtils.success(this.$t("bots.bot_started"));
                 this.selectedTemplate = null;
                 this.getStatus();
@@ -688,6 +788,45 @@ export default {
             }
             const y = Math.floor(d / 365);
             return y === 1 ? "1 year" : `${y} years`;
+        },
+        openLxmfConfig(bot) {
+            this.lxmfConfigModalBot = bot;
+            this.lxmfConfigDraft = draftFromBotLxmfConfig(bot.lxmf_config);
+        },
+        closeLxmfConfig() {
+            this.lxmfConfigModalBot = null;
+            this.lxmfConfigDraft = defaultLxmfConfigDraft();
+            this.lxmfConfigSaving = false;
+        },
+        formatEffectiveLxmfConfig(effective) {
+            if (!effective || typeof effective !== "object") {
+                return "";
+            }
+            return JSON.stringify(effective, null, 2);
+        },
+        async saveLxmfConfig() {
+            if (!this.lxmfConfigModalBot || this.lxmfConfigSaving) {
+                return;
+            }
+            this.lxmfConfigSaving = true;
+            try {
+                const patch = buildLxmfConfigPatch(this.lxmfConfigDraft);
+                await window.api.patch("/api/v1/bots/lxmf-config", {
+                    bot_id: this.lxmfConfigModalBot.id,
+                    lxmf_config: patch,
+                });
+                ToastUtils.success(this.$t("bots.lxmf_config_saved"));
+                if (this.lxmfConfigModalBot.running) {
+                    ToastUtils.info(this.$t("bots.lxmf_config_restart_hint"));
+                }
+                this.closeLxmfConfig();
+                this.getStatus();
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(e.response?.data?.message || this.$t("bots.lxmf_config_failed"));
+            } finally {
+                this.lxmfConfigSaving = false;
+            }
         },
     },
 };

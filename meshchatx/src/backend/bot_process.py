@@ -7,6 +7,7 @@ import threading
 import time
 import traceback
 
+from meshchatx.src.backend.bot_lxmf_config import load_bot_lxmf_config_sidecar
 from meshchatx.src.backend.bot_templates import (
     EchoBotTemplate,
     NoteBotTemplate,
@@ -51,6 +52,7 @@ def main():
             os.path.expanduser("~/.reticulum"),
         ),
     )
+    parser.add_argument("--lxmf-config-file", default=None)
     args = parser.parse_args()
 
     storage_abs = os.path.abspath(args.storage)
@@ -71,6 +73,8 @@ def main():
     )
     os.makedirs(reticulum_config_dir, exist_ok=True)
 
+    lxmf_settings = load_bot_lxmf_config_sidecar(args.lxmf_config_file)
+
     try:
         BotCls = TEMPLATE_MAP[args.template]
         bot_instance = BotCls(
@@ -79,6 +83,7 @@ def main():
             test_mode=False,
             config_path=config_path,
             reticulum_config_dir=reticulum_config_dir,
+            lxmf_settings=lxmf_settings,
         )
     except BaseException:
         try:
