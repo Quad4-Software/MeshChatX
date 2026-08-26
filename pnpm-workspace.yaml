@@ -10,6 +10,7 @@ minimumReleaseAgeStrict: false
 blockExoticSubDeps: true
 
 allowBuilds:
+    "@parcel/watcher": true
     electron: true
     electron-winstaller: true
     esbuild: true
