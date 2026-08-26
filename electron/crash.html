@@ -8,7 +8,7 @@
         />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <title>MeshChatX - Crash Report</title>
-        <script src="./assets/js/tailwindcss/tailwind-v3.4.3-forms-v0.5.7.js"></script>
+        <link rel="stylesheet" href="./assets/css/electron-shell.css" />
     </head>
     <body
         class="min-h-screen antialiased bg-gradient-to-b from-slate-100 to-slate-200 text-slate-800 dark:from-zinc-950 dark:to-zinc-900 dark:text-zinc-100 transition-colors"
@@ -279,7 +279,14 @@
             function detectPreferredTheme() {
                 try {
                     const storedTheme =
-                        localStorage.getItem("meshchat.theme") || localStorage.getItem("meshchatx.theme");
+                        localStorage.getItem("meshchatx_ui_theme") ||
+                        localStorage.getItem("meshchat.theme") ||
+                        localStorage.getItem("meshchatx.theme");
+                    if (storedTheme === "system") {
+                        return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                            ? "dark"
+                            : "light";
+                    }
                     if (storedTheme === "dark" || storedTheme === "light") {
                         return storedTheme;
                     }

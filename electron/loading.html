@@ -9,7 +9,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <meta name="color-scheme" content="light dark" />
         <title>MeshChatX</title>
-        <script src="./assets/js/tailwindcss/tailwind-v3.4.3-forms-v0.5.7.js"></script>
+        <link rel="stylesheet" href="./assets/css/electron-shell.css" />
         <style>
             @keyframes meshchatx-indeterminate {
                 0% {
@@ -295,7 +295,14 @@
             function detectPreferredTheme() {
                 try {
                     const storedTheme =
-                        localStorage.getItem("meshchat.theme") || localStorage.getItem("meshchatx.theme");
+                        localStorage.getItem("meshchatx_ui_theme") ||
+                        localStorage.getItem("meshchat.theme") ||
+                        localStorage.getItem("meshchatx.theme");
+                    if (storedTheme === "system") {
+                        return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                            ? "dark"
+                            : "light";
+                    }
                     if (storedTheme === "dark" || storedTheme === "light") {
                         return storedTheme;
                     }
@@ -521,6 +528,7 @@
                     if (theme === "dark" || theme === "light") {
                         applyTheme(theme);
                         try {
+                            localStorage.setItem("meshchatx_ui_theme", theme);
                             localStorage.setItem("meshchat.theme", theme);
                         } catch (e) {}
                     }
