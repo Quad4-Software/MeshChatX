@@ -1,0 +1,11 @@
+/* SPDX-License-Identifier: 0BSD */
+
+@import "tailwindcss";
+
+@plugin '@tailwindcss/forms';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@source "../../loading.html";
+@source "../../crash.html";
+@source "../../../meshchatx/src/frontend/public/rnode-flasher/index.html";
