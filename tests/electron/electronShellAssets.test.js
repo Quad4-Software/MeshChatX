@@ -46,6 +46,16 @@ describe("electron shell static assets", () => {
         expect(css).toContain("rnode-flasher/index.html");
     });
 
+    it("Dockerfile frontend stage copies electron shell CSS build inputs", () => {
+        for (const dockerfile of ["Dockerfile", "Dockerfile.hardened"]) {
+            const docker = readRepo(dockerfile);
+            expect(docker, dockerfile).toContain("scripts/build-electron-shell-css.mjs");
+            expect(docker, dockerfile).toContain("electron/assets/css/electron-shell.src.css");
+            expect(docker, dockerfile).toContain("electron/loading.html");
+            expect(docker, dockerfile).toContain("electron/crash.html");
+        }
+    });
+
     it("compiled electron-shell.css includes utilities used by loading.html", () => {
         const css = readRepo("electron/assets/css/electron-shell.css");
         expect(css.length).toBeGreaterThan(1024);

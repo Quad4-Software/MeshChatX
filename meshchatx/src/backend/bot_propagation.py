@@ -2,6 +2,8 @@
 
 """Backward-compatible re-exports for bot LXMF propagation helpers."""
 
+from typing import Any
+
 from meshchatx.src.backend.bot_lxmf_config import (
     load_bot_lxmf_config_sidecar,
     normalize_lxmf_destination_hash,
@@ -9,6 +11,17 @@ from meshchatx.src.backend.bot_lxmf_config import (
     resolve_host_lxmf_propagation_settings,
     write_bot_lxmf_config_sidecar,
 )
+
+__all__ = [
+    "load_bot_lxmf_config_sidecar",
+    "normalize_lxmf_destination_hash",
+    "resolve_effective_bot_lxmf_settings",
+    "resolve_host_lxmf_propagation_settings",
+    "write_bot_lxmf_config_sidecar",
+    "resolve_bot_lxmf_propagation_settings",
+    "propagation_settings_to_cli_args",
+    "propagation_settings_from_cli",
+]
 
 resolve_bot_lxmf_propagation_settings = resolve_host_lxmf_propagation_settings
 
@@ -30,7 +43,7 @@ def propagation_settings_from_cli(
     autopeer_propagation=False,
     propagation_fallback_enabled=True,
 ) -> dict:
-    settings = {
+    settings: dict[str, Any] = {
         "propagation_fallback_enabled": bool(propagation_fallback_enabled),
         "autopeer_propagation": bool(autopeer_propagation),
     }

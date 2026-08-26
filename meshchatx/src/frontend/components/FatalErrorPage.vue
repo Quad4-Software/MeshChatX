@@ -117,7 +117,7 @@ export default {
                     this.copyLabel = this.$t("app.error_copy_details");
                 }, 1800);
             } else {
-                ToastUtils.error(this.$t("common.copy_failed"));
+                ToastUtils.error(this.$t("common.failed_to_copy"));
             }
         },
     },

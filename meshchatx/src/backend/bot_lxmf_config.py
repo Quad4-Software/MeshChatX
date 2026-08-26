@@ -54,7 +54,7 @@ def resolve_host_lxmf_propagation_settings(config_manager) -> dict:
                     config_manager.lxmf_preferred_propagation_node_auto_select.get(),
                 )
 
-    settings = {
+    settings: dict[str, Any] = {
         "propagation_fallback_enabled": fallback_enabled,
         "autopeer_propagation": autopeer_propagation,
     }
@@ -227,8 +227,6 @@ def describe_bot_lxmf_config(
 
 
 def write_bot_lxmf_config_sidecar(storage_dir: str, settings: dict) -> str:
-    import os
-
     from meshchatx.src.path_utils import atomic_write_text
 
     path = bot_lxmf_config_sidecar_path(storage_dir)

@@ -21,7 +21,11 @@ COPY scripts/micron-wasm-resolve-bundled.mjs scripts/micron-wasm-resolve-bundled
 COPY scripts/micron-parser-go-version.mjs scripts/micron-parser-go-version.mjs
 COPY scripts/vite-dx.mjs scripts/vite-dx.mjs
 COPY scripts/build-visualiser-wasm.mjs scripts/build-visualiser-wasm.mjs
+COPY scripts/build-electron-shell-css.mjs scripts/build-electron-shell-css.mjs
 COPY scripts/sync-meshchatx-docs.js scripts/sync-meshchatx-docs.js
+COPY electron/loading.html electron/loading.html
+COPY electron/crash.html electron/crash.html
+COPY electron/assets/css/electron-shell.src.css electron/assets/css/electron-shell.src.css
 COPY scripts/pip_rns_remotes.py scripts/pip_rns_remotes.py
 COPY scripts/build/fetch_reticulum_manual.py scripts/build/fetch_reticulum_manual.py
 COPY scripts/build/generate_service_worker.mjs scripts/build/generate_service_worker.mjs
