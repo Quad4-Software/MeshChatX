@@ -13,6 +13,7 @@ PNPM_VERSION="${MESHCHATX_PNPM_VERSION:-11.1.2}"
 npm install -g "pnpm@${PNPM_VERSION}"
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
+node scripts/ensure-micron-parser-package.js
 MESHCHATX_REQUIRE_VISUALISER_WASM=1 pnpm run build-frontend
 
 test -s meshchatx/src/frontend/public/vendor/visualiser-wasm/visualiser.wasm
