@@ -53,6 +53,7 @@ describe("electron shell static assets", () => {
             expect(docker, dockerfile).toContain("electron/assets/css/electron-shell.src.css");
             expect(docker, dockerfile).toContain("electron/loading.html");
             expect(docker, dockerfile).toContain("electron/crash.html");
+            expect(docker, dockerfile).toContain("scripts/ensure-micron-parser-package.js");
         }
     });
 
