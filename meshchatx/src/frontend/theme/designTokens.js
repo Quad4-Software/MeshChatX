@@ -1,7 +1,7 @@
 /**
  * Semantic design tokens for MeshChatX. CSS custom properties (--mc-*) are the
  * single source of truth for colors shared by Tailwind (`sem-*`), global CSS in
- * style.css, and the Vuetify theme (see vuetifyThemesFromTokens).
+ * style.css, and Tailwind semantic colors.
  */
 
 const MESHCHAT_THEME_STYLE_ID = "meshchat-design-tokens";
@@ -182,40 +182,4 @@ export function injectMeshchatThemeVariables(doc = typeof document !== "undefine
         "}",
     ].join("\n");
     doc.head.appendChild(el);
-}
-
-/**
- * Vuetify 3 theme definition derived from the same hexes as CSS light/dark tokens.
- */
-export function vuetifyThemesFromTokens() {
-    const L = MESHCHAT_THEME_VARIABLES_LIGHT;
-    const D = MESHCHAT_THEME_VARIABLES_DARK;
-    return {
-        light: {
-            dark: false,
-            colors: {
-                background: L["--mc-canvas"],
-                surface: L["--mc-surface"],
-                primary: L["--mc-action-primary"],
-                secondary: "#475569",
-                error: L["--mc-error"],
-                info: L["--mc-info"],
-                success: L["--mc-success"],
-                warning: L["--mc-warning"],
-            },
-        },
-        dark: {
-            dark: true,
-            colors: {
-                background: D["--mc-canvas"],
-                surface: D["--mc-surface"],
-                primary: D["--mc-action-primary"],
-                secondary: "#94a3b8",
-                error: D["--mc-error"],
-                info: D["--mc-info"],
-                success: D["--mc-success"],
-                warning: D["--mc-warning"],
-            },
-        },
-    };
 }
