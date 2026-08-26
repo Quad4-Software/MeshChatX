@@ -7,9 +7,8 @@ export const MIN_VIRTUAL_SIDEBAR_ITEMS = 32;
 export const SIDEBAR_ROW_ESTIMATE_PX = 72;
 
 /**
- * @param {unknown} _item
  * @returns {number}
  */
-export function estimateSidebarRowHeight(_item) {
+export function estimateSidebarRowHeight() {
     return SIDEBAR_ROW_ESTIMATE_PX;
 }
