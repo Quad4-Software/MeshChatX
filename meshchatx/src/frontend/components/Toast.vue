@@ -43,14 +43,14 @@
                 </div>
 
                 <!-- content -->
-                <div class="flex-1 mr-2 text-sm font-medium text-gray-900 dark:text-zinc-100">
+                <div class="flex-1 mr-2 text-sm font-medium text-sem-fg">
                     {{ toastMessage(toast.message) }}
                 </div>
 
                 <!-- close button -->
                 <button
                     type="button"
-                    class="ml-auto inline-flex min-h-[44px] min-w-[44px] items-center justify-center -my-2 -mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
+                    class="ml-auto inline-flex min-h-[44px] min-w-[44px] items-center justify-center -my-2 -mr-2 text-sem-fg-muted hover:text-sem-fg"
                     :aria-label="$t('common.close')"
                     @click="remove(toast.id)"
                 >

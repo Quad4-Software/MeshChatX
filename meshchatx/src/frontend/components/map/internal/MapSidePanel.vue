@@ -2,7 +2,7 @@
 
 <template>
     <div class="flex flex-col h-full min-h-0">
-        <div class="flex border-b border-gray-200 dark:border-zinc-800 shrink-0">
+        <div class="flex border-b border-sem-border shrink-0">
             <button
                 v-for="tab in tabs"
                 :key="tab.id"
@@ -10,8 +10,8 @@
                 class="flex-1 px-2 py-2 text-[11px] font-semibold transition-colors"
                 :class="
                     activeTab === tab.id
-                        ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500'
-                        : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-200'
+                        ? 'text-sem-accent border-b-2 border-blue-500'
+                        : 'text-sem-fg-muted hover:text-gray-800 hover:text-sem-fg'
                 "
                 @click="activeTab = tab.id"
             >

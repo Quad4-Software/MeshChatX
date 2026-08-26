@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             icon="translate"
             :title="$t('tools.translator.title')"
@@ -24,10 +24,8 @@
                                 @update:model-value="onArgosEnabledChange"
                             />
                             <span>
-                                <span class="block text-sm font-medium text-gray-900 dark:text-white"
-                                    >Argos Translate (local)</span
-                                >
-                                <span class="text-xs text-gray-500 dark:text-gray-400"
+                                <span class="block text-sm font-medium text-sem-fg">Argos Translate (local)</span>
+                                <span class="text-xs text-sem-fg-muted"
                                     >Local packages when Argos is installed. Load languages to refresh this list.</span
                                 >
                             </span>
@@ -41,10 +39,8 @@
                                 @update:model-value="onLibreEnabledChange"
                             />
                             <span>
-                                <span class="block text-sm font-medium text-gray-900 dark:text-white"
-                                    >LibreTranslate (HTTP)</span
-                                >
-                                <span class="text-xs text-gray-500 dark:text-gray-400"
+                                <span class="block text-sm font-medium text-sem-fg">LibreTranslate (HTTP)</span>
+                                <span class="text-xs text-sem-fg-muted"
                                     >Set the base URL below, then enable. Use Refresh languages after the server is
                                     up.</span
                                 >
@@ -59,7 +55,7 @@
                         </p>
                     </div>
 
-                    <div class="border-b border-gray-200 dark:border-zinc-700">
+                    <div class="border-b border-sem-border">
                         <div v-if="hasArgos || libreClientAvailable" class="flex -mb-px">
                             <button
                                 v-if="hasArgos"
@@ -68,7 +64,7 @@
                                 :class="
                                     translationMode === 'argos'
                                         ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300'
-                                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                                        : 'border-transparent text-sem-fg-muted hover:text-gray-700 dark:hover:text-gray-300'
                                 "
                                 @click="translationMode = 'argos'"
                             >
@@ -81,7 +77,7 @@
                                 :class="
                                     translationMode === 'libretranslate'
                                         ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300'
-                                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                                        : 'border-transparent text-sem-fg-muted hover:text-gray-700 dark:hover:text-gray-300'
                                 "
                                 @click="translationMode = 'libretranslate'"
                             >
@@ -102,7 +98,7 @@
                                 placeholder="http://localhost:5000"
                                 class="input-field"
                             />
-                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <div class="text-xs text-sem-fg-muted mt-1">
                                 {{ $t("translator.api_server_description") }}
                             </div>
                         </div>
@@ -115,7 +111,7 @@
                                 class="input-field"
                                 :placeholder="$t('translator.api_key_placeholder')"
                             />
-                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <div class="text-xs text-sem-fg-muted mt-1">
                                 {{ $t("translator.api_key_description") }}
                             </div>
                         </div>
@@ -213,10 +209,7 @@
                     >
                         <div class="flex items-start gap-3">
                             <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                                <MaterialDesignIcon
-                                    icon-name="information-outline"
-                                    class="size-5 text-blue-600 dark:text-blue-400"
-                                />
+                                <MaterialDesignIcon icon-name="information-outline" class="size-5 text-sem-accent" />
                             </div>
                             <div class="flex-1 text-sm text-blue-800 dark:text-blue-200">
                                 <p class="font-bold mb-1">No language packages detected</p>
@@ -233,7 +226,7 @@
                                             >
                                             <div class="flex gap-2">
                                                 <button
-                                                    class="text-blue-600 dark:text-blue-400 hover:scale-110 transition-transform"
+                                                    class="text-sem-accent hover:scale-110 transition-transform"
                                                     @click="copyToClipboard('argospm install translate')"
                                                 >
                                                     <MaterialDesignIcon icon-name="content-copy" class="size-4" />
@@ -268,7 +261,7 @@
                                                 >Install specific language pair (example: English to German)</span
                                             >
                                             <button
-                                                class="text-blue-600 dark:text-blue-400 hover:scale-110 transition-transform"
+                                                class="text-sem-accent hover:scale-110 transition-transform"
                                                 @click="copyToClipboard('argospm install translate-en_de')"
                                             >
                                                 <MaterialDesignIcon icon-name="content-copy" class="size-4" />
@@ -331,19 +324,15 @@
 
                     <div v-if="translationResult" class="space-y-2">
                         <div class="flex items-center justify-between">
-                            <div class="text-sm font-semibold text-gray-900 dark:text-white">Translation</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">
-                                Source: {{ translationResult.source }}
-                            </div>
+                            <div class="text-sm font-semibold text-sem-fg">Translation</div>
+                            <div class="text-xs text-sem-fg-muted">Source: {{ translationResult.source }}</div>
                         </div>
-                        <div
-                            class="p-4 rounded-lg bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700"
-                        >
-                            <div class="text-gray-900 dark:text-white whitespace-pre-wrap">
+                        <div class="p-4 rounded-lg bg-gray-50 dark:bg-zinc-800 border border-sem-border">
+                            <div class="text-sem-fg whitespace-pre-wrap">
                                 {{ translationResult.translated_text }}
                             </div>
                         </div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                        <div class="text-xs text-sem-fg-muted">
                             Detected: {{ translationResult.source_lang }} → {{ translationResult.target_lang }}
                         </div>
                     </div>
@@ -357,15 +346,15 @@
                 </div>
 
                 <div class="glass-card space-y-3">
-                    <div class="text-sm font-semibold text-gray-900 dark:text-white">Available Languages</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    <div class="text-sm font-semibold text-sem-fg">Available Languages</div>
+                    <div class="text-xs text-sem-fg-muted mb-2">
                         Languages are loaded from LibreTranslate API or Argos Translate packages.
                     </div>
                     <div class="flex flex-wrap gap-2">
                         <span
                             v-for="lang in filteredLanguages"
                             :key="lang.code"
-                            class="px-2 py-1 rounded-sm text-xs bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300"
+                            class="px-2 py-1 rounded-sm text-xs bg-sem-surface-muted text-gray-700 dark:text-gray-300"
                         >
                             {{ lang.name }} ({{ lang.code }})
                             <span class="text-gray-500 dark:text-gray-500">- {{ lang.source }}</span>

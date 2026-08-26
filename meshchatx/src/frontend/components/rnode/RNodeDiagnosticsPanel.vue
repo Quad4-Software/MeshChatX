@@ -1,13 +1,10 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div
-        v-if="diagnostics"
-        class="border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg overflow-hidden"
-    >
-        <div class="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center gap-2">
+    <div v-if="diagnostics" class="border border-sem-border bg-sem-surface rounded-lg overflow-hidden">
+        <div class="px-4 sm:px-6 py-4 border-b border-sem-border flex items-center gap-2">
             <MaterialDesignIcon icon-name="stethoscope" class="size-5 text-emerald-500" />
-            <h3 class="font-bold text-gray-900 dark:text-zinc-100">
+            <h3 class="font-bold text-sem-fg">
                 {{ $t("tools.rnode_flasher.diagnostics.title") }}
             </h3>
             <span
@@ -26,10 +23,10 @@
 
         <dl class="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3 p-4 sm:p-6 text-xs">
             <div v-for="row in summaryRows" :key="row.key" class="space-y-0.5 min-w-0">
-                <dt class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500">
+                <dt class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted">
                     {{ $t(row.labelKey) }}
                 </dt>
-                <dd class="font-mono text-gray-800 dark:text-zinc-200 break-all">
+                <dd class="font-mono text-sem-fg break-all">
                     {{ row.value || "-" }}
                 </dd>
             </div>
@@ -37,7 +34,7 @@
 
         <div
             v-if="hasIssues"
-            class="border-t border-gray-100 dark:border-zinc-800 bg-amber-50/40 dark:bg-amber-900/10 px-4 sm:px-6 py-4 space-y-2"
+            class="border-t border-sem-border bg-amber-50/40 dark:bg-amber-900/10 px-4 sm:px-6 py-4 space-y-2"
         >
             <div class="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
                 {{ $t("tools.rnode_flasher.diagnostics.issues_detected") }}

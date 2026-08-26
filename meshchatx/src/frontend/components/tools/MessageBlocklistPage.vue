@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             icon="shield-alert"
             :title="$t('tools.message_blocklist.title')"
@@ -27,9 +27,7 @@
                     </div>
                 </div>
 
-                <div
-                    class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 space-y-4"
-                >
+                <div class="rounded-xl border border-sem-border bg-sem-surface p-4 space-y-4">
                     <label class="inline-flex items-center gap-3 cursor-pointer">
                         <input
                             v-model="enabled"
@@ -37,27 +35,27 @@
                             class="rounded-sm border-gray-300 size-4"
                             @change="onEnabledChange"
                         />
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">
+                        <span class="text-sm font-medium text-sem-fg">
                             {{ $t("tools.message_blocklist.enable_label") }}
                         </span>
                     </label>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                    <p class="text-xs text-sem-fg-muted">
                         {{ $t("tools.message_blocklist.enable_hint") }}
                     </p>
                 </div>
 
                 <div
-                    class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 space-y-4"
+                    class="rounded-xl border border-sem-border bg-sem-surface p-4 space-y-4"
                     :class="enabled ? '' : 'opacity-60'"
                 >
                     <div class="flex flex-wrap items-center justify-between gap-2">
-                        <h2 class="text-base font-semibold text-gray-900 dark:text-white">
+                        <h2 class="text-base font-semibold text-sem-fg">
                             {{ $t("tools.message_blocklist.entries_heading") }}
                         </h2>
                         <div class="flex flex-wrap items-center gap-2">
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-sem-border text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors"
                                 @click="exportList"
                             >
                                 <MaterialDesignIcon icon-name="export" class="size-4" />
@@ -65,7 +63,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-sem-border text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors"
                                 @click="triggerImport"
                             >
                                 <MaterialDesignIcon icon-name="import" class="size-4" />
@@ -92,12 +90,12 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label
-                                class="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1"
+                                class="block text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest mb-1"
                                 >{{ $t("tools.message_blocklist.scope_label") }}</label
                             >
                             <select
                                 v-model="blocklist.scope"
-                                class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-gray-900 dark:text-white"
+                                class="w-full px-3 py-2 rounded-lg border border-sem-border bg-sem-surface text-sm text-sem-fg"
                             >
                                 <option value="everyone">
                                     {{ $t("tools.message_blocklist.scope_everyone") }}
@@ -111,9 +109,7 @@
                             </select>
                         </div>
                         <div class="space-y-2">
-                            <div
-                                class="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest"
-                            >
+                            <div class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest">
                                 {{ $t("tools.message_blocklist.match_in_label") }}
                             </div>
                             <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
@@ -135,10 +131,7 @@
                         </div>
                     </div>
 
-                    <div
-                        v-if="blocklist.entries.length === 0"
-                        class="text-sm text-gray-500 dark:text-gray-400 py-6 text-center"
-                    >
+                    <div v-if="blocklist.entries.length === 0" class="text-sm text-sem-fg-muted py-6 text-center">
                         {{ $t("tools.message_blocklist.empty_entries") }}
                     </div>
 
@@ -146,7 +139,7 @@
                         <div
                             v-for="(entry, index) in blocklist.entries"
                             :key="entry.id"
-                            class="rounded-lg border border-gray-200 dark:border-zinc-800 p-3 space-y-3 bg-gray-50/80 dark:bg-zinc-900/40"
+                            class="rounded-lg border border-sem-border p-3 space-y-3 bg-gray-50/80 dark:bg-zinc-900/40"
                         >
                             <div class="flex flex-wrap items-center justify-between gap-2">
                                 <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
@@ -168,12 +161,12 @@
                                 <input
                                     v-model="entry.text"
                                     type="text"
-                                    class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-gray-900 dark:text-white font-mono"
+                                    class="w-full px-3 py-2 rounded-lg border border-sem-border bg-sem-surface text-sm text-sem-fg font-mono"
                                     :placeholder="$t('tools.message_blocklist.entry_placeholder')"
                                 />
                                 <select
                                     v-model="entry.match_mode"
-                                    class="px-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-gray-900 dark:text-white"
+                                    class="px-3 py-2 rounded-lg border border-sem-border bg-sem-surface text-sm text-sem-fg"
                                 >
                                     <option value="substring">
                                         {{ $t("tools.message_blocklist.match_mode_substring") }}
@@ -199,7 +192,7 @@
                         </button>
                         <button
                             type="button"
-                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-sem-border text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors"
                             @click="reload"
                         >
                             <MaterialDesignIcon icon-name="refresh" class="size-4" />

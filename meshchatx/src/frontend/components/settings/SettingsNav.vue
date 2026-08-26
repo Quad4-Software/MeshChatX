@@ -76,11 +76,11 @@ export default {
 
 .settings-nav__tab {
     @apply flex flex-col items-start gap-0.5 rounded-xl border border-transparent px-3 py-2.5 text-left transition-colors shrink-0 lg:w-full;
-    @apply text-gray-600 dark:text-zinc-400 hover:bg-white/70 dark:hover:bg-zinc-900/70;
+    @apply text-sem-fg-muted hover:bg-sem-surface-muted;
 }
 
 .settings-nav__tab--active {
-    @apply border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white shadow-xs;
+    @apply border-sem-border bg-sem-surface text-sem-fg shadow-xs;
 }
 
 .settings-nav__tab--empty {
@@ -96,10 +96,10 @@ export default {
 }
 
 .settings-nav__count {
-    @apply ml-auto text-[10px] font-semibold tabular-nums rounded-md px-1.5 py-0.5 bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-300;
+    @apply ml-auto text-[10px] font-semibold tabular-nums rounded-md px-1.5 py-0.5 bg-sem-surface-muted text-sem-fg-muted;
 }
 
 .settings-nav__description {
-    @apply hidden text-xs text-gray-500 dark:text-zinc-500 lg:block;
+    @apply hidden text-xs text-sem-fg-muted lg:block;
 }
 </style>

@@ -105,45 +105,43 @@
             <div
                 v-if="isShowingMenu"
                 v-click-outside="hideMenu"
-                class="absolute bottom-full right-0 mb-1 z-10 rounded-xl bg-white dark:bg-zinc-900 shadow-lg ring-1 ring-gray-200 dark:ring-zinc-800 focus:outline-hidden overflow-hidden min-w-[200px]"
+                class="absolute bottom-full right-0 mb-1 z-10 rounded-xl bg-sem-surface shadow-lg ring-1 ring-gray-200 dark:ring-zinc-800 focus:outline-hidden overflow-hidden min-w-[200px]"
             >
                 <div class="py-1">
                     <button
                         type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap border-b border-gray-100 dark:border-zinc-800"
+                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-sem-surface-muted whitespace-nowrap border-b border-sem-border"
                         @click="setDeliveryMethod(null)"
                     >
                         {{ $t("messages.send_automatically") }}
                     </button>
                     <button
                         type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
+                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-sem-surface-muted whitespace-nowrap"
                         @click="setDeliveryMethod('direct')"
                     >
                         {{ $t("messages.send_over_direct_link") }}
                     </button>
                     <button
                         type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
+                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-sem-surface-muted whitespace-nowrap"
                         @click="setDeliveryMethod('opportunistic')"
                     >
                         {{ $t("messages.send_opportunistically") }}
                     </button>
                     <button
                         type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
+                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-sem-surface-muted whitespace-nowrap"
                         @click="setDeliveryMethod('propagated')"
                     >
                         {{ $t("messages.send_to_propagation_node") }}
                     </button>
-                    <div
-                        class="border-t border-gray-100 dark:border-zinc-800 text-[11px] font-medium text-gray-500 dark:text-zinc-500 px-4 pt-2 pb-1"
-                    >
+                    <div class="border-t border-sem-border text-[11px] font-medium text-sem-fg-muted px-4 pt-2 pb-1">
                         {{ $t("messages.send_menu_more_label") }}
                     </div>
                     <button
                         type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
+                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-sem-surface-muted whitespace-nowrap"
                         :disabled="!canOpenSendMenu"
                         @click="emitCommandOrRequest"
                     >
@@ -151,7 +149,7 @@
                     </button>
                     <button
                         type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
+                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-sem-surface-muted whitespace-nowrap"
                         :disabled="!canSendMessage"
                         @click="emitPaperCompose"
                     >

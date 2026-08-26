@@ -8,7 +8,7 @@
                     :value="contactsSearch"
                     type="text"
                     :placeholder="$t('contacts.search_placeholder')"
-                    class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                    class="block w-full rounded-lg border-0 py-2 pl-10 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                     @input="onSearchInput"
                 />
                 <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -29,17 +29,17 @@
             <div class="bg-gray-200 dark:bg-zinc-800 p-6 rounded-full inline-block mb-4">
                 <MaterialDesignIcon icon-name="account-multiple" class="size-12 text-gray-400" />
             </div>
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ $t("contacts.no_contacts") }}</h3>
-            <p class="text-gray-500 dark:text-zinc-400">{{ $t("call.no_contacts_hint") }}</p>
+            <h3 class="text-lg font-medium text-sem-fg">{{ $t("contacts.no_contacts") }}</h3>
+            <p class="text-sem-fg-muted">{{ $t("call.no_contacts_hint") }}</p>
         </div>
 
         <div v-else class="space-y-4">
-            <div class="border-b border-gray-200 dark:border-zinc-800 overflow-hidden">
+            <div class="border-b border-sem-border overflow-hidden">
                 <ul class="divide-y divide-gray-100 dark:divide-zinc-800">
                     <li
                         v-for="contact in contacts"
                         :key="contact.id"
-                        class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
+                        class="px-4 py-3 hover:bg-sem-surface-muted/50 transition-colors"
                     >
                         <div class="flex items-center space-x-3">
                             <div class="shrink-0">
@@ -57,7 +57,7 @@
                             </div>
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center justify-between">
-                                    <p class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                    <p class="text-sm font-bold text-sem-fg truncate">
                                         {{ contact.name }}
                                     </p>
                                     <div class="flex items-center gap-2">
@@ -98,7 +98,7 @@
                                 <div class="flex items-center justify-between mt-1">
                                     <div class="flex flex-col min-w-0">
                                         <span
-                                            class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono truncate cursor-pointer hover:text-blue-500 transition-colors"
+                                            class="text-[10px] text-sem-fg-muted font-mono truncate cursor-pointer hover:text-blue-500 transition-colors"
                                             :title="contact.remote_identity_hash"
                                             @click.stop="$emit('copy-hash', contact.remote_identity_hash)"
                                         >
@@ -107,7 +107,7 @@
                                         </span>
                                         <span
                                             v-if="contact.lxmf_address"
-                                            class="text-[9px] text-gray-400 dark:text-zinc-500 font-mono truncate cursor-pointer hover:text-blue-500 transition-colors"
+                                            class="text-[9px] text-sem-fg-muted font-mono truncate cursor-pointer hover:text-blue-500 transition-colors"
                                             :title="contact.lxmf_address"
                                             @click.stop="$emit('copy-hash', contact.lxmf_address)"
                                         >
@@ -115,7 +115,7 @@
                                         </span>
                                         <span
                                             v-if="contact.lxst_address"
-                                            class="text-[9px] text-gray-400 dark:text-zinc-500 font-mono truncate cursor-pointer hover:text-blue-500 transition-colors"
+                                            class="text-[9px] text-sem-fg-muted font-mono truncate cursor-pointer hover:text-blue-500 transition-colors"
                                             :title="contact.lxst_address"
                                             @click.stop="$emit('copy-hash', contact.lxst_address)"
                                         >

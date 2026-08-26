@@ -55,7 +55,7 @@ export function createEmitter(all = new Map()) {
             const list = all.get(type);
             if (list) {
                 for (const handler of list.slice()) {
-                    handler(event);
+                    /** @type {EmitterHandler} */ (handler)(event);
                 }
             }
             const wild = all.get("*");

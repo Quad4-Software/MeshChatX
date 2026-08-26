@@ -17,13 +17,13 @@
                     >
                         <img :src="logoUrl" alt="" class="h-9 w-9 object-contain p-1" />
                     </div>
-                    <p class="text-xs font-medium text-gray-500 dark:text-zinc-500">
+                    <p class="text-xs font-medium text-sem-fg-muted">
                         {{ $t("app.loading_overlay_kicker") }}
                     </p>
-                    <h2 class="mt-1.5 text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
+                    <h2 class="mt-1.5 text-lg font-semibold tracking-tight text-sem-fg">
                         {{ $t("app.switching_identity") }}
                     </h2>
-                    <p class="mt-3 text-sm leading-relaxed text-gray-600 dark:text-zinc-400">
+                    <p class="mt-3 text-sm leading-relaxed text-sem-fg-muted">
                         {{ $t("app.loading_overlay_subtitle") }}
                     </p>
                 </div>

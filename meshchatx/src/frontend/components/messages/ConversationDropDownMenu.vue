@@ -72,7 +72,7 @@
                 </DropDownMenuItem>
             </div>
 
-            <div class="border-t border-gray-100 dark:border-zinc-800" />
+            <div class="border-t border-sem-border" />
 
             <DropDownMenuItem @click="onSetCustomDisplayName">
                 <MaterialDesignIcon icon-name="account-edit" class="size-5" />

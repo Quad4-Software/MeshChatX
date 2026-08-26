@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             icon="file-cog"
             :title="$t('tools.reticulum_config_editor.title')"
@@ -49,11 +49,7 @@
             class="flex-1 min-h-0 overflow-hidden w-full px-3 sm:px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-col"
         >
             <div class="space-y-4 w-full min-w-0 max-w-6xl mx-auto flex-1 min-h-0 flex flex-col">
-                <p
-                    v-if="configPath"
-                    class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate shrink-0"
-                    :title="configPath"
-                >
+                <p v-if="configPath" class="text-xs text-sem-fg-muted font-mono truncate shrink-0" :title="configPath">
                     {{ configPath }}
                 </p>
                 <div
@@ -84,10 +80,10 @@
                 </div>
 
                 <div
-                    class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden flex-1 min-h-0 flex flex-col"
+                    class="rounded-xl border border-sem-border bg-sem-surface overflow-hidden flex-1 min-h-0 flex flex-col"
                 >
                     <div
-                        class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/60 text-xs text-gray-600 dark:text-gray-300 shrink-0"
+                        class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-sem-border bg-sem-surface-muted/60 text-xs text-sem-fg-muted shrink-0"
                     >
                         <span class="flex items-center gap-1.5">
                             <MaterialDesignIcon icon-name="information-outline" class="w-3.5 h-3.5" />
@@ -106,7 +102,7 @@
                             autocomplete="off"
                             autocorrect="off"
                             :placeholder="loading ? $t('tools.reticulum_config_editor.loading') : ''"
-                            class="absolute inset-0 w-full h-full bg-white dark:bg-zinc-900 text-gray-900 dark:text-white p-4 font-mono text-xs sm:text-sm resize-none focus:outline-hidden"
+                            class="absolute inset-0 w-full h-full bg-sem-surface text-sem-fg p-4 font-mono text-xs sm:text-sm resize-none focus:outline-hidden"
                             @keydown.tab.prevent="insertTab"
                         ></textarea>
                     </div>

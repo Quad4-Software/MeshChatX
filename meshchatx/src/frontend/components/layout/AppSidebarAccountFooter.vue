@@ -1,9 +1,9 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div v-if="config" class="bg-white border-t border-gray-200 dark:border-zinc-800 dark:bg-zinc-950">
+    <div v-if="config" class="bg-white border-t border-sem-border dark:bg-zinc-950">
         <div
-            class="cursor-pointer text-gray-700 dark:text-white"
+            class="cursor-pointer text-sem-fg-secondary"
             data-testid="sidebar-account-chip"
             @click="onAccountChipClick"
         >
@@ -24,7 +24,7 @@
                 <div v-if="!isCollapsed" class="flex shrink-0 items-center gap-1">
                     <button
                         type="button"
-                        class="inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-blue-400 transition-colors"
+                        class="inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-blue-600 text-sem-fg-muted dark:hover:bg-zinc-800 dark:hover:text-blue-400 transition-colors"
                         :title="$t('app.announce_now')"
                         data-testid="sidebar-announce-radio"
                         @click.stop="$emit('send-announce')"
@@ -33,7 +33,7 @@
                     </button>
                     <button
                         type="button"
-                        class="inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-blue-400 transition-colors"
+                        class="inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-blue-600 text-sem-fg-muted dark:hover:bg-zinc-800 dark:hover:text-blue-400 transition-colors"
                         :title="$t('app.show_qr')"
                         @click.stop="$emit('open-lxmf-qr')"
                     >
@@ -47,7 +47,7 @@
             </div>
             <div
                 v-if="!isCollapsed"
-                class="px-3 pb-2 text-[11px] leading-snug text-gray-500 dark:text-zinc-400"
+                class="px-3 pb-2 text-[11px] leading-snug text-sem-fg-muted"
                 data-testid="sidebar-last-announced"
             >
                 <span v-if="config.last_announced_at">
@@ -59,7 +59,7 @@
 
         <div
             v-if="isExpanded && !isCollapsed"
-            class="divide-y divide-gray-200 border-t border-gray-200 text-gray-900 dark:divide-zinc-800 dark:border-zinc-800 dark:text-zinc-200"
+            class="divide-y divide-gray-200 border-t border-gray-200 text-gray-900 dark:divide-zinc-800 dark:border-zinc-800 text-sem-fg"
         >
             <div class="p-2">
                 <input
@@ -67,7 +67,7 @@
                     type="text"
                     data-testid="sidebar-display-name"
                     :placeholder="$t('app.display_name_placeholder')"
-                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full min-w-0 p-2.5 dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-200 dark:focus:ring-blue-400 dark:focus:border-blue-400"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full min-w-0 p-2.5 dark:bg-zinc-800 dark:border-zinc-600 text-sem-fg dark:focus:ring-blue-400 dark:focus:border-blue-400"
                     @input="$emit('update:displayName', $event.target.value)"
                     @keydown.enter.prevent="$emit('save-identity')"
                     @blur="$emit('save-identity')"
@@ -76,10 +76,10 @@
 
             <div class="p-2 space-y-2 text-xs">
                 <div>
-                    <div class="text-gray-500 dark:text-zinc-400">{{ $t("app.identity_hash") }}</div>
+                    <div class="text-sem-fg-muted">{{ $t("app.identity_hash") }}</div>
                     <button
                         type="button"
-                        class="mt-0.5 block w-full truncate text-left font-mono text-[11px] text-gray-700 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400"
+                        class="mt-0.5 block w-full truncate text-left font-mono text-[11px] text-sem-fg-muted hover:text-blue-600 dark:hover:text-blue-400"
                         :title="config.identity_hash"
                         @click="$emit('copy-value', config.identity_hash, $t('app.identity_hash'))"
                     >
@@ -87,10 +87,10 @@
                     </button>
                 </div>
                 <div>
-                    <div class="text-gray-500 dark:text-zinc-400">{{ $t("app.lxmf_address") }}</div>
+                    <div class="text-sem-fg-muted">{{ $t("app.lxmf_address") }}</div>
                     <button
                         type="button"
-                        class="mt-0.5 block w-full truncate text-left font-mono text-[11px] text-gray-700 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400"
+                        class="mt-0.5 block w-full truncate text-left font-mono text-[11px] text-sem-fg-muted hover:text-blue-600 dark:hover:text-blue-400"
                         :title="config.lxmf_address_hash"
                         @click="$emit('copy-value', config.lxmf_address_hash, $t('app.lxmf_address'))"
                     >
@@ -100,12 +100,12 @@
             </div>
 
             <div class="p-2">
-                <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1">
+                <label class="block text-xs text-sem-fg-muted mb-1">
                     {{ $t("app.announce_interval") }}
                 </label>
                 <select
                     :value="config.auto_announce_interval_seconds"
-                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-200 dark:focus:ring-blue-400 dark:focus:border-blue-400"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-800 dark:border-zinc-600 text-sem-fg dark:focus:ring-blue-400 dark:focus:border-blue-400"
                     @change="$emit('announce-interval-change', Number($event.target.value))"
                 >
                     <option :value="0">{{ $t("app.disabled") }}</option>

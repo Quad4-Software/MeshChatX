@@ -17,7 +17,7 @@
         <button
             v-else
             type="button"
-            class="my-auto inline-flex items-center justify-center rounded-lg size-8 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-800 dark:hover:text-zinc-100 transition-colors"
+            class="my-auto inline-flex items-center justify-center rounded-lg size-8 text-sem-fg-muted hover:bg-sem-surface-muted hover:text-gray-800 dark:hover:text-zinc-100 transition-colors"
             @click="showMenu"
         >
             <MaterialDesignIcon icon-name="microphone-plus" class="w-5 h-5" />
@@ -34,26 +34,26 @@
             <div
                 v-if="isShowingMenu"
                 v-click-outside="hideMenu"
-                class="absolute bottom-full right-0 z-10 mb-2 max-w-[min(20rem,calc(100vw-1.5rem))] rounded-xl bg-white dark:bg-zinc-900 shadow-lg ring-1 ring-gray-200 dark:ring-zinc-800 focus:outline-hidden"
+                class="absolute bottom-full right-0 z-10 mb-2 max-w-[min(20rem,calc(100vw-1.5rem))] rounded-xl bg-sem-surface shadow-lg ring-1 ring-gray-200 dark:ring-zinc-800 focus:outline-hidden"
             >
                 <div class="py-1">
                     <button
                         type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
+                        class="w-full block text-left px-4 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted whitespace-nowrap"
                         @click="startRecordingCodec2('1200')"
                     >
                         Low Quality - Codec2 (1200)
                     </button>
                     <button
                         type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
+                        class="w-full block text-left px-4 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted whitespace-nowrap"
                         @click="startRecordingCodec2('3200')"
                     >
                         Medium Quality - Codec2 (3200)
                     </button>
                     <button
                         type="button"
-                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
+                        class="w-full block text-left px-4 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted whitespace-nowrap"
                         @click="startRecordingOpus()"
                     >
                         High Quality - OPUS

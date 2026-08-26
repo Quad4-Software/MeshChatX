@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             icon="filter-variant"
             :title="$t('tools.sieve_filters.title')"
@@ -12,11 +12,9 @@
             <div class="p-3 sm:p-4 md:p-6 max-w-6xl mx-auto w-full space-y-4 min-w-0">
                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
                     <div class="space-y-4 min-w-0 order-2 xl:order-1">
-                        <div
-                            class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 space-y-3"
-                        >
+                        <div class="rounded-xl border border-sem-border bg-sem-surface p-4 space-y-3">
                             <div class="flex items-center justify-between gap-2">
-                                <h2 class="text-base font-semibold text-gray-900 dark:text-white">
+                                <h2 class="text-base font-semibold text-sem-fg">
                                     {{ $t("tools.sieve_filters.rules_heading") }}
                                 </h2>
                                 <button
@@ -28,14 +26,11 @@
                                     {{ $t("tools.sieve_filters.add_rule") }}
                                 </button>
                             </div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                            <p class="text-xs text-sem-fg-muted">
                                 {{ $t("tools.sieve_filters.order_hint") }}
                             </p>
 
-                            <div
-                                v-if="filters.length === 0"
-                                class="text-sm text-gray-500 dark:text-gray-400 py-6 text-center"
-                            >
+                            <div v-if="filters.length === 0" class="text-sm text-sem-fg-muted py-6 text-center">
                                 {{ $t("tools.sieve_filters.empty_rules") }}
                             </div>
 
@@ -43,7 +38,7 @@
                                 <div
                                     v-for="(rule, index) in filters"
                                     :key="rule.id"
-                                    class="rounded-lg border border-gray-200 dark:border-zinc-800 p-3 space-y-3 bg-gray-50/80 dark:bg-zinc-900/40"
+                                    class="rounded-lg border border-sem-border p-3 space-y-3 bg-gray-50/80 dark:bg-zinc-900/40"
                                 >
                                     <div class="flex flex-wrap items-center justify-between gap-2">
                                         <label
@@ -87,25 +82,25 @@
                                     </div>
                                     <div>
                                         <label
-                                            class="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1"
+                                            class="block text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest mb-1"
                                             >{{ $t("tools.sieve_filters.terms_label") }}</label
                                         >
                                         <textarea
                                             :value="termsText(rule)"
                                             rows="3"
-                                            class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-gray-900 dark:text-white font-mono"
+                                            class="w-full px-3 py-2 rounded-lg border border-sem-border bg-sem-surface text-sm text-sem-fg font-mono"
                                             :placeholder="$t('tools.sieve_filters.terms_placeholder')"
                                             @input="onTermsInput(rule, $event)"
                                         />
                                     </div>
                                     <div>
                                         <label
-                                            class="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1"
+                                            class="block text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest mb-1"
                                             >{{ $t("tools.sieve_filters.scope_label") }}</label
                                         >
                                         <select
                                             v-model="rule.scope"
-                                            class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-gray-900 dark:text-white"
+                                            class="w-full px-3 py-2 rounded-lg border border-sem-border bg-sem-surface text-sm text-sem-fg"
                                         >
                                             <option value="everyone">
                                                 {{ $t("tools.sieve_filters.scope_everyone") }}
@@ -119,9 +114,7 @@
                                         </select>
                                     </div>
                                     <div class="space-y-2">
-                                        <div
-                                            class="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest"
-                                        >
+                                        <div class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest">
                                             {{ $t("tools.sieve_filters.match_targets_label") }}
                                         </div>
                                         <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
@@ -142,18 +135,18 @@
                                             />
                                             {{ $t("tools.sieve_filters.match_message") }}
                                         </label>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                                        <p class="text-xs text-sem-fg-muted">
                                             {{ $t("tools.sieve_filters.match_targets_hint") }}
                                         </p>
                                     </div>
                                     <div>
                                         <label
-                                            class="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1"
+                                            class="block text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest mb-1"
                                             >{{ $t("tools.sieve_filters.match_mode_label") }}</label
                                         >
                                         <select
                                             v-model="rule.match_mode"
-                                            class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-gray-900 dark:text-white"
+                                            class="w-full px-3 py-2 rounded-lg border border-sem-border bg-sem-surface text-sm text-sem-fg"
                                         >
                                             <option value="substring">
                                                 {{ $t("tools.sieve_filters.match_mode_substring") }}
@@ -166,12 +159,12 @@
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
                                             <label
-                                                class="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1"
+                                                class="block text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest mb-1"
                                                 >{{ $t("tools.sieve_filters.action_label") }}</label
                                             >
                                             <select
                                                 v-model="rule.action"
-                                                class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-gray-900 dark:text-white"
+                                                class="w-full px-3 py-2 rounded-lg border border-sem-border bg-sem-surface text-sm text-sem-fg"
                                                 @change="onActionChange(rule)"
                                             >
                                                 <option value="hide">
@@ -190,12 +183,12 @@
                                         </div>
                                         <div v-if="rule.action === 'folder'">
                                             <label
-                                                class="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1"
+                                                class="block text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest mb-1"
                                                 >{{ $t("tools.sieve_filters.folder_label") }}</label
                                             >
                                             <select
                                                 v-model.number="rule.folder_id"
-                                                class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-gray-900 dark:text-white"
+                                                class="w-full px-3 py-2 rounded-lg border border-sem-border bg-sem-surface text-sm text-sem-fg"
                                             >
                                                 <option v-for="f in folders" :key="f.id" :value="f.id">
                                                     {{ f.name }}
@@ -223,7 +216,7 @@
                                 </button>
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 dark:border-zinc-600 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800"
+                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 dark:border-zinc-600 text-gray-800 dark:text-gray-200 hover:bg-sem-surface-muted"
                                     :disabled="isSaving"
                                     @click="reload"
                                 >
@@ -235,7 +228,7 @@
                     </div>
 
                     <div class="min-w-0 order-1 xl:order-2 space-y-2">
-                        <h2 class="text-base font-semibold text-gray-900 dark:text-white px-1">
+                        <h2 class="text-base font-semibold text-sem-fg px-1">
                             {{ $t("tools.sieve_filters.flow_heading") }}
                         </h2>
                         <SieveFlowNetwork :filters="filters" :folders="folders" :labels="flowLabels" />

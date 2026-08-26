@@ -8,12 +8,12 @@
             @click.self="close"
         >
             <div
-                class="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+                class="w-full max-w-lg bg-sem-surface rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
             >
-                <div class="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                <div class="px-6 py-4 border-b border-sem-border flex items-center justify-between">
                     <div class="flex items-center gap-2 min-w-0">
                         <MaterialDesignIcon icon-name="satellite-variant" class="size-6 text-blue-500 shrink-0" />
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white truncate">
+                        <h3 class="text-lg font-bold text-sem-fg truncate">
                             {{ $t("messages.telemetry_history_modal_title") }}
                         </h3>
                     </div>
@@ -26,7 +26,7 @@
                     </button>
                 </div>
                 <div class="flex-1 overflow-y-auto p-4 space-y-3">
-                    <div v-if="telemetryItems.length === 0" class="text-center py-8 text-gray-400 dark:text-zinc-500">
+                    <div v-if="telemetryItems.length === 0" class="text-center py-8 text-sem-fg-muted">
                         {{ $t("messages.telemetry_history_empty") }}
                     </div>
                     <TelemetryHistoryListItem
@@ -60,7 +60,7 @@
                                 @change="onShowTelemetryChange"
                             />
                             <span
-                                class="text-xs font-medium text-gray-600 dark:text-zinc-400 group-hover:text-gray-900 dark:group-hover:text-zinc-200"
+                                class="text-xs font-medium text-sem-fg-muted group-hover:text-gray-900 dark:group-hover:text-zinc-200"
                                 >{{ $t("messages.telemetry_show_in_chat") }}</span
                             >
                         </label>

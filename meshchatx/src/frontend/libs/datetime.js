@@ -218,14 +218,14 @@ export function relativeLabel(absSec, isFuture) {
         if (sec > row.limitSec) {
             continue;
         }
-        if (row.unit) {
+        if ("unit" in row && row.unit) {
             const n = Math.max(1, Math.round(sec / row.unitSec));
             return pluralUnitLabel(row.unit, n, isFuture);
         }
         if (sec === 0) {
-            return row.past;
+            return "past" in row ? row.past : "";
         }
-        return isFuture ? row.future : row.past;
+        return isFuture ? ("future" in row ? row.future : "") : "past" in row ? row.past : "";
     }
     // FROM_NOW_THRESHOLDS always ends at Infinity. Kept as a safety net.
     return isFuture ? "in a few seconds" : "a few seconds ago";

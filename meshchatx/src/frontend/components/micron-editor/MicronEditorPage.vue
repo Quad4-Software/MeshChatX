@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             icon="code-tags"
             :title="$t('tools.micron_editor.title')"
@@ -29,14 +29,12 @@
                     <div
                         v-if="showPublishMenu"
                         v-click-outside="() => (showPublishMenu = false)"
-                        class="absolute right-0 top-full mt-1 w-64 bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700 z-50 py-2"
+                        class="absolute right-0 top-full mt-1 w-64 bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-sem-border z-50 py-2"
                     >
-                        <div
-                            class="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400"
-                        >
+                        <div class="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-sem-fg-muted">
                             Publish to Mesh Server
                         </div>
-                        <div v-if="pageNodes.length === 0" class="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
+                        <div v-if="pageNodes.length === 0" class="px-3 py-2 text-xs text-sem-fg-muted">
                             No mesh servers available.
                             <router-link to="/mesh-server" class="text-blue-500 hover:underline"
                                 >Create one</router-link
@@ -45,18 +43,18 @@
                         <button
                             v-for="pn in pageNodes"
                             :key="pn.node_id"
-                            class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-zinc-700 flex items-center gap-2 transition-colors"
+                            class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 hover:bg-sem-surface-muted flex items-center gap-2 transition-colors"
                             @click="publishToNode(pn)"
                         >
                             <div
                                 class="w-2 h-2 rounded-full shrink-0"
                                 :class="pn.running ? 'bg-green-500' : 'bg-gray-400'"
                             ></div>
-                            <span class="truncate text-gray-900 dark:text-white">{{ pn.name }}</span>
+                            <span class="truncate text-sem-fg">{{ pn.name }}</span>
                         </button>
-                        <div class="border-t border-gray-200 dark:border-zinc-700 mt-1 pt-1">
+                        <div class="border-t border-sem-border mt-1 pt-1">
                             <button
-                                class="w-full text-left px-3 py-2 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                                class="w-full text-left px-3 py-2 text-xs text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors"
                                 @click="publishAllToNode"
                             >
                                 Publish all tabs to server...
@@ -93,7 +91,7 @@
 
         <!-- Tab Bar -->
         <div
-            class="flex items-center px-3 sm:px-4 py-1 gap-1 border-b border-gray-200 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-900 overflow-x-auto no-scrollbar shrink-0"
+            class="flex items-center px-3 sm:px-4 py-1 gap-1 border-b border-sem-border bg-slate-100 dark:bg-zinc-900 overflow-x-auto no-scrollbar shrink-0"
         >
             <div
                 v-for="(tab, index) in tabs"
@@ -140,13 +138,13 @@
                 :class="[
                     'flex-1 overflow-hidden flex flex-col',
                     isMobileView && !showEditor ? 'hidden' : '',
-                    !isMobileView ? 'border-r border-gray-200 dark:border-zinc-800' : '',
+                    !isMobileView ? 'border-r border-sem-border' : '',
                 ]"
             >
                 <textarea
                     ref="editorRef"
                     v-model="tabs[activeTabIndex].content"
-                    class="flex-1 w-full bg-white dark:bg-zinc-900 text-gray-900 dark:text-white p-4 font-mono text-sm resize-none focus:outline-hidden"
+                    class="flex-1 w-full bg-sem-surface text-sem-fg p-4 font-mono text-sm resize-none focus:outline-hidden"
                     :placeholder="$t('tools.micron_editor.placeholder')"
                     @input="handleInput"
                 ></textarea>

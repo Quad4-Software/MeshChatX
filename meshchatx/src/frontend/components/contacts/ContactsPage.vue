@@ -1,13 +1,13 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-1 min-w-0 h-full overflow-hidden bg-slate-50 dark:bg-zinc-950">
-        <div class="flex-1 overflow-y-auto p-4 md:p-6">
-            <div class="max-w-5xl mx-auto space-y-0 border-b border-gray-200 dark:border-zinc-800 pb-6">
+    <div class="flex flex-1 min-w-0 h-full overflow-hidden bg-sem-canvas">
+        <div class="flex-1 flex flex-col min-h-0 overflow-hidden p-4 md:p-6">
+            <div class="max-w-5xl mx-auto w-full shrink-0 space-y-0 border-b border-sem-border pb-6">
                 <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                        <h1 class="text-2xl font-bold text-gray-900 dark:text-zinc-100">{{ $t("contacts.title") }}</h1>
-                        <p class="text-sm text-gray-600 dark:text-zinc-400">
+                        <h1 class="text-2xl font-bold text-sem-fg">{{ $t("contacts.title") }}</h1>
+                        <p class="text-sm text-sem-fg-muted">
                             {{ $t("contacts.description") }}
                         </p>
                     </div>
@@ -43,12 +43,12 @@
                 </div>
             </div>
 
-            <div class="max-w-5xl mx-auto space-y-0 pt-4">
-                <div class="border-b border-gray-200 dark:border-zinc-800 pb-3">
+            <div class="max-w-5xl mx-auto w-full flex flex-col flex-1 min-h-0 space-y-0 pt-4">
+                <div class="shrink-0 border-b border-sem-border pb-3">
                     <div class="relative group">
                         <MaterialDesignIcon
                             icon-name="magnify"
-                            class="absolute left-3 top-1/2 -translate-y-1/2 size-5 shrink-0 text-gray-400 group-focus-within:text-blue-500 transition-colors pointer-events-none z-10"
+                            class="absolute left-3 top-1/2 -translate-y-1/2 size-5 shrink-0 text-gray-400 group-focus-within:text-sem-accent transition-colors pointer-events-none z-10"
                         />
                         <input
                             v-model="contactsSearch"
@@ -60,7 +60,7 @@
                     </div>
                 </div>
 
-                <div class="min-w-0">
+                <div class="min-w-0 flex-1 min-h-0 flex flex-col">
                     <template v-if="isLoading && contacts.length === 0">
                         <LoadingState :message="$t('contacts.loading')" />
                     </template>
@@ -69,7 +69,100 @@
                         icon="account-multiple-outline"
                         :title="$t('contacts.no_contacts')"
                     />
-                    <div v-else class="divide-y divide-gray-100 dark:divide-zinc-800">
+                    <SidebarVirtualList
+                        v-else-if="mergedContacts.length >= MIN_VIRTUAL_SIDEBAR_ITEMS"
+                        class="flex-1 min-h-0 divide-y divide-gray-100 dark:divide-zinc-800"
+                        :items="mergedContacts"
+                        :item-key="(item) => item.id"
+                    >
+                        <template #item="{ item: contact }">
+                            <div
+                                class="group flex cursor-default items-center gap-3 px-1 py-3 transition-colors hover:bg-gray-50/80 dark:hover:bg-zinc-900/70"
+                                @contextmenu.prevent="openContextMenu($event, contact)"
+                            >
+                                <div class="shrink-0">
+                                    <LxmfUserIcon
+                                        :custom-image="contact.custom_image"
+                                        :icon-name="contact.remote_icon ? contact.remote_icon.icon_name : ''"
+                                        :icon-foreground-colour="
+                                            contact.remote_icon ? contact.remote_icon.foreground_colour : ''
+                                        "
+                                        :icon-background-colour="
+                                            contact.remote_icon ? contact.remote_icon.background_colour : ''
+                                        "
+                                        icon-class="size-10 sm:size-12"
+                                    />
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="font-semibold text-sem-fg truncate">
+                                        {{ contact.name }}
+                                    </div>
+                                    <div class="flex flex-col gap-0.5">
+                                        <div
+                                            v-if="contact.remote_destination_hash"
+                                            class="flex items-center gap-1.5 min-w-0"
+                                        >
+                                            <MaterialDesignIcon
+                                                icon-name="message-text-outline"
+                                                class="size-4 text-blue-500 dark:text-blue-400 shrink-0"
+                                            />
+                                            <button
+                                                type="button"
+                                                class="text-xs font-mono text-sem-fg-muted truncate hover:text-blue-600 dark:hover:text-blue-400 text-left"
+                                                :title="contact.remote_destination_hash"
+                                                @click.stop="copyContactHash(contact.remote_destination_hash)"
+                                            >
+                                                {{ formatContactHash(contact.remote_destination_hash) }}
+                                            </button>
+                                        </div>
+                                        <div v-if="contact.remote_telephony_hash" class="flex items-center gap-1.5">
+                                            <MaterialDesignIcon
+                                                icon-name="phone-outline"
+                                                class="size-4 text-green-600 dark:text-green-400 shrink-0"
+                                            />
+                                            <span class="text-xs font-mono text-sem-fg-muted break-all">{{
+                                                contact.remote_telephony_hash
+                                            }}</span>
+                                        </div>
+                                        <span
+                                            v-if="!contact.remote_destination_hash && !contact.remote_telephony_hash"
+                                            class="text-xs font-mono text-sem-fg-muted break-all"
+                                            >{{ contact.lxmf_address || contact.remote_identity_hash }}</span
+                                        >
+                                    </div>
+                                </div>
+                                <div
+                                    class="flex items-center gap-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100"
+                                >
+                                    <button
+                                        type="button"
+                                        class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                        :title="$t('contacts.send_message')"
+                                        @click.stop="openConversation(contact)"
+                                    >
+                                        <MaterialDesignIcon icon-name="message-text-outline" class="size-5" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-green-100 dark:hover:bg-green-900/40 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                                        :title="$t('contacts.call_contact')"
+                                        @click.stop="callContact(contact)"
+                                    >
+                                        <MaterialDesignIcon icon-name="phone-outline" class="size-5" />
+                                    </button>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-gray-700 hover:text-sem-fg transition-colors"
+                                    :title="$t('contacts.actions')"
+                                    @click.stop="openContextMenu($event, contact)"
+                                >
+                                    <MaterialDesignIcon icon-name="dots-vertical" class="size-5" />
+                                </button>
+                            </div>
+                        </template>
+                    </SidebarVirtualList>
+                    <div v-else class="divide-y divide-gray-100 dark:divide-zinc-800 overflow-y-auto flex-1 min-h-0">
                         <div
                             v-for="contact in mergedContacts"
                             :key="contact.id"
@@ -90,7 +183,7 @@
                                 />
                             </div>
                             <div class="min-w-0 flex-1">
-                                <div class="font-semibold text-gray-900 dark:text-zinc-100 truncate">
+                                <div class="font-semibold text-sem-fg truncate">
                                     {{ contact.name }}
                                 </div>
                                 <div class="flex flex-col gap-0.5">
@@ -104,7 +197,7 @@
                                         />
                                         <button
                                             type="button"
-                                            class="text-xs font-mono text-gray-500 dark:text-zinc-400 truncate hover:text-blue-600 dark:hover:text-blue-400 text-left"
+                                            class="text-xs font-mono text-sem-fg-muted truncate hover:text-blue-600 dark:hover:text-blue-400 text-left"
                                             :title="contact.remote_destination_hash"
                                             @click.stop="copyContactHash(contact.remote_destination_hash)"
                                         >
@@ -116,13 +209,13 @@
                                             icon-name="phone-outline"
                                             class="size-4 text-green-600 dark:text-green-400 shrink-0"
                                         />
-                                        <span class="text-xs font-mono text-gray-500 dark:text-zinc-400 break-all">{{
+                                        <span class="text-xs font-mono text-sem-fg-muted break-all">{{
                                             contact.remote_telephony_hash
                                         }}</span>
                                     </div>
                                     <span
                                         v-if="!contact.remote_destination_hash && !contact.remote_telephony_hash"
-                                        class="text-xs font-mono text-gray-500 dark:text-zinc-400 break-all"
+                                        class="text-xs font-mono text-sem-fg-muted break-all"
                                         >{{ contact.lxmf_address || contact.remote_identity_hash }}</span
                                     >
                                 </div>
@@ -132,7 +225,7 @@
                             >
                                 <button
                                     type="button"
-                                    class="p-1.5 rounded-lg text-gray-500 dark:text-zinc-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                    class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                                     :title="$t('contacts.send_message')"
                                     @click.stop="openConversation(contact)"
                                 >
@@ -140,7 +233,7 @@
                                 </button>
                                 <button
                                     type="button"
-                                    class="p-1.5 rounded-lg text-gray-500 dark:text-zinc-400 hover:bg-green-100 dark:hover:bg-green-900/40 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                                    class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-green-100 dark:hover:bg-green-900/40 hover:text-green-600 dark:hover:text-green-400 transition-colors"
                                     :title="$t('contacts.call_contact')"
                                     @click.stop="callContact(contact)"
                                 >
@@ -149,7 +242,7 @@
                             </div>
                             <button
                                 type="button"
-                                class="p-1.5 rounded-lg text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-700 dark:hover:text-zinc-200 transition-colors"
+                                class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-gray-700 hover:text-sem-fg transition-colors"
                                 :title="$t('contacts.actions')"
                                 @click.stop="openContextMenu($event, contact)"
                             >
@@ -216,14 +309,10 @@
             class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="closeAddDialog"
         >
-            <div class="w-full max-w-lg rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-zinc-100">{{ $t("contacts.add_contact") }}</h3>
-                    <button
-                        type="button"
-                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
-                        @click="closeAddDialog"
-                    >
+            <div class="w-full max-w-lg rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+                <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-sem-fg">{{ $t("contacts.add_contact") }}</h3>
+                    <button type="button" class="text-sem-fg-muted hover:text-sem-fg" @click="closeAddDialog">
                         <MaterialDesignIcon icon-name="close" class="size-5" />
                     </button>
                 </div>
@@ -274,7 +363,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="px-5 py-4 border-t border-gray-100 dark:border-zinc-800 flex justify-end gap-2">
+                <div class="px-5 py-4 border-t border-sem-border flex justify-end gap-2">
                     <button type="button" class="secondary-chip" @click="closeAddDialog">
                         {{ $t("common.cancel") }}
                     </button>
@@ -301,14 +390,10 @@
             class="fixed inset-0 z-220 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs"
             @click.self="closeScannerDialog"
         >
-            <div class="w-full max-w-xl rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-zinc-100">{{ $t("contacts.scan_qr") }}</h3>
-                    <button
-                        type="button"
-                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
-                        @click="closeScannerDialog"
-                    >
+            <div class="w-full max-w-xl rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+                <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-sem-fg">{{ $t("contacts.scan_qr") }}</h3>
+                    <button type="button" class="text-sem-fg-muted hover:text-sem-fg" @click="closeScannerDialog">
                         <MaterialDesignIcon icon-name="close" class="size-5" />
                     </button>
                 </div>
@@ -320,7 +405,7 @@
                         playsinline
                         muted
                     ></video>
-                    <div class="text-sm text-gray-500 dark:text-zinc-400">
+                    <div class="text-sm text-sem-fg-muted">
                         {{ scannerError || $t("contacts.scanner_hint") }}
                     </div>
                 </div>
@@ -333,21 +418,17 @@
             class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="closeImportDialog"
         >
-            <div class="w-full max-w-lg rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-zinc-100">
+            <div class="w-full max-w-lg rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+                <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-sem-fg">
                         {{ $t("contacts.import_modal_title") }}
                     </h3>
-                    <button
-                        type="button"
-                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
-                        @click="closeImportDialog"
-                    >
+                    <button type="button" class="text-sem-fg-muted hover:text-sem-fg" @click="closeImportDialog">
                         <MaterialDesignIcon icon-name="close" class="size-5" />
                     </button>
                 </div>
                 <div class="p-5 space-y-4">
-                    <p class="text-sm text-gray-600 dark:text-zinc-400">
+                    <p class="text-sm text-sem-fg-muted">
                         {{ $t("contacts.import_file_hint") }}
                     </p>
                     <input
@@ -376,14 +457,14 @@
             class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="isMyIdentityDialogOpen = false"
         >
-            <div class="w-full max-w-md rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-zinc-100">
+            <div class="w-full max-w-md rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+                <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-sem-fg">
                         {{ $t("contacts.share_my_identity") }}
                     </h3>
                     <button
                         type="button"
-                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
+                        class="text-sem-fg-muted hover:text-sem-fg"
                         @click="isMyIdentityDialogOpen = false"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-5" />
@@ -395,10 +476,10 @@
                             v-if="myQrDataUrl"
                             :src="myQrDataUrl"
                             alt="Identity QR"
-                            class="w-52 h-52 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white"
+                            class="w-52 h-52 rounded-xl border border-sem-border bg-white"
                         />
                     </div>
-                    <div class="text-xs font-mono break-all text-center text-gray-600 dark:text-zinc-300">
+                    <div class="text-xs font-mono break-all text-center text-sem-fg-muted">
                         {{ myIdentityUri }}
                     </div>
                     <div class="flex justify-center gap-2">
@@ -443,6 +524,8 @@ import LxmfUserIcon from "../LxmfUserIcon.vue";
 import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
 import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
 import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
+import { MIN_VIRTUAL_SIDEBAR_ITEMS } from "../../js/sidebarListVirtual.js";
+import SidebarVirtualList from "../SidebarVirtualList.vue";
 
 export default {
     name: "ContactsPage",
@@ -451,9 +534,13 @@ export default {
         LoadingState,
         MaterialDesignIcon,
         LxmfUserIcon,
+        SidebarVirtualList,
         ContextMenuDivider,
         ContextMenuItem,
         ContextMenuPanel,
+    },
+    setup() {
+        return { MIN_VIRTUAL_SIDEBAR_ITEMS };
     },
     data() {
         return {
@@ -981,11 +1068,11 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .glass-card {
-    @apply bg-white/95 dark:bg-zinc-900/85 backdrop-blur-sm border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs p-4;
+    @apply bg-white/95 dark:bg-zinc-900/85 backdrop-blur-sm border border-sem-border rounded-2xl shadow-xs p-4;
 }
 
 .input-field {
-    @apply bg-gray-50/90 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-700 text-sm rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-500 dark:focus:border-blue-500 block w-full p-2.5 text-gray-900 dark:text-gray-100 transition;
+    @apply bg-gray-50/90 dark:bg-zinc-900/80 border border-sem-border text-sm rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-500 dark:focus:border-blue-500 block w-full p-2.5 text-gray-900 dark:text-gray-100 transition;
 }
 
 .primary-chip {
@@ -993,6 +1080,6 @@ export default {
 }
 
 .secondary-chip {
-    @apply inline-flex items-center gap-1 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-200 px-3 py-2 text-xs font-semibold transition;
+    @apply inline-flex items-center gap-1 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 hover:bg-sem-surface-muted text-sem-fg-secondary px-3 py-2 text-xs font-semibold transition;
 }
 </style>

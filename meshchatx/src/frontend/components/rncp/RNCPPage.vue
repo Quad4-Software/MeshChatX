@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             icon="swap-horizontal"
             :title="$t('rncp.title')"
@@ -17,7 +17,7 @@
                     <div
                         class="p-4 rounded-lg bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20"
                     >
-                        <div class="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-2">
+                        <div class="text-xs font-bold uppercase tracking-wider text-sem-accent mb-2">
                             {{ $t("rncp.usage_steps") }}
                         </div>
                         <div class="space-y-1.5">
@@ -42,14 +42,14 @@
                     </div>
 
                     <div
-                        class="border-b border-gray-200 dark:border-zinc-700 overflow-x-auto overscroll-x-contain -mx-4 px-4 sm:mx-0 sm:px-0"
+                        class="border-b border-sem-border overflow-x-auto overscroll-x-contain -mx-4 px-4 sm:mx-0 sm:px-0"
                     >
                         <div class="flex w-max min-w-full sm:w-auto gap-1 sm:gap-2">
                             <button
                                 type="button"
                                 :class="[
                                     activeTab === 'send'
-                                        ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+                                        ? 'border-b-2 border-blue-500 text-sem-accent'
                                         : 'text-gray-600 dark:text-gray-400',
                                     'shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold transition',
                                 ]"
@@ -61,7 +61,7 @@
                                 type="button"
                                 :class="[
                                     activeTab === 'fetch'
-                                        ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+                                        ? 'border-b-2 border-blue-500 text-sem-accent'
                                         : 'text-gray-600 dark:text-gray-400',
                                     'shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold transition',
                                 ]"
@@ -73,7 +73,7 @@
                                 type="button"
                                 :class="[
                                     activeTab === 'listen'
-                                        ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+                                        ? 'border-b-2 border-blue-500 text-sem-accent'
                                         : 'text-gray-600 dark:text-gray-400',
                                     'shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold transition',
                                 ]"
@@ -347,17 +347,17 @@
                                 </label>
                             </div>
                         </div>
-                        <p class="text-xs text-gray-500 dark:text-zinc-400">
+                        <p class="text-xs text-sem-fg-muted">
                             {{ $t("rncp.listening_active_background") }}
                         </p>
                         <div
                             v-if="receiveDirectory"
-                            class="p-3 rounded-lg bg-slate-50 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 space-y-2"
+                            class="p-3 rounded-lg bg-slate-50 dark:bg-zinc-800/80 border border-sem-border space-y-2"
                         >
-                            <div class="text-xs font-semibold text-gray-600 dark:text-zinc-300">
+                            <div class="text-xs font-semibold text-sem-fg-muted">
                                 {{ $t("rncp.receive_folder") }}
                             </div>
-                            <div class="font-mono text-xs break-all text-gray-800 dark:text-zinc-200">
+                            <div class="font-mono text-xs break-all text-sem-fg">
                                 {{ receiveDirectory }}
                             </div>
                             <button
@@ -378,7 +378,7 @@
                                     : 'bg-amber-50/80 dark:bg-amber-900/15 border-amber-200 dark:border-amber-800'
                             "
                         >
-                            <div class="text-sm font-semibold text-gray-800 dark:text-zinc-100">
+                            <div class="text-sm font-semibold text-sem-fg">
                                 {{
                                     lastReceiveEvent.status === "completed"
                                         ? $t("rncp.received_file")
@@ -422,7 +422,7 @@
                         </div>
                         <div
                             v-if="listenDestinationHash"
-                            class="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                            class="p-3 rounded-lg bg-sem-surface-muted text-blue-700 dark:text-blue-300"
                         >
                             <div class="font-semibold mb-1">{{ $t("rncp.listening_on") }}</div>
                             <div class="font-mono text-sm">{{ listenDestinationHash }}</div>

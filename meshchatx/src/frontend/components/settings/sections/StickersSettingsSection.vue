@@ -45,11 +45,11 @@
                 @change="onImportChange"
             />
         </div>
-        <div class="border-t border-gray-200 dark:border-zinc-700 pt-4">
-            <h3 class="text-sm font-semibold mb-2 text-gray-800 dark:text-zinc-100">
+        <div class="border-t border-sem-border pt-4">
+            <h3 class="text-sm font-semibold mb-2 text-sem-fg">
                 {{ $t("sticker_packs.section_title") }}
             </h3>
-            <p class="text-xs text-gray-500 dark:text-zinc-400 mb-3">
+            <p class="text-xs text-sem-fg-muted mb-3">
                 {{ $t("sticker_packs.section_description") }}
             </p>
             <StickerPacksManager />

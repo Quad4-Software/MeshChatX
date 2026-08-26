@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             icon="book-open-variant"
             :title="$t('docs.title')"
@@ -9,18 +9,16 @@
             accent="cyan"
         />
         <!-- Toolbar -->
-        <div
-            class="p-2 md:p-3 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center gap-4 z-30 shrink-0"
-        >
+        <div class="p-2 md:p-3 border-b border-sem-border bg-sem-surface flex items-center gap-4 z-30 shrink-0">
             <!-- Search & Navigation (Desktop) -->
             <div class="hidden lg:flex flex-1 items-center gap-4 max-w-3xl">
                 <!-- Tabs -->
-                <div class="flex bg-gray-100 dark:bg-zinc-800 p-0.5 rounded-lg shrink-0">
+                <div class="flex bg-sem-surface-muted p-0.5 rounded-lg shrink-0">
                     <button
                         class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all"
                         :class="
                             activeTab === 'meshchatx'
-                                ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-xs'
+                                ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
                                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
                         "
                         @click="activeTab = 'meshchatx'"
@@ -31,7 +29,7 @@
                         class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all"
                         :class="
                             activeTab === 'reticulum'
-                                ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-xs'
+                                ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
                                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
                         "
                         @click="activeTab = 'reticulum'"
@@ -48,7 +46,7 @@
                     <input
                         v-model="searchQuery"
                         type="text"
-                        class="block w-full pl-8 pr-8 py-1.5 border border-gray-200 dark:border-zinc-700 rounded-lg bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 text-[11px] focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        class="block w-full pl-8 pr-8 py-1.5 border border-sem-border rounded-lg bg-gray-50 dark:bg-zinc-800 text-sem-fg text-[11px] focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                         :placeholder="$t('docs.search_placeholder')"
                         @input="debounceSearch"
                     />
@@ -62,7 +60,7 @@
                     >
                         <MaterialDesignIcon
                             icon-name="close"
-                            class="h-3 w-3 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 cursor-pointer"
+                            class="h-3 w-3 text-gray-400 hover:text-gray-600 hover:text-sem-fg cursor-pointer"
                         />
                     </button>
                 </div>
@@ -77,8 +75,8 @@
                 >
                     <button
                         v-click-outside="() => (showVersions = false)"
-                        class="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-1.5"
-                        :class="{ 'bg-gray-100 dark:bg-zinc-800': showVersions }"
+                        class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors flex items-center gap-1.5"
+                        :class="{ 'bg-sem-surface-muted': showVersions }"
                         @click="showVersions = !showVersions"
                     >
                         <MaterialDesignIcon icon-name="history" class="w-4 h-4 md:w-5 md:h-5" />
@@ -88,7 +86,7 @@
                     </button>
                     <div
                         v-if="showVersions"
-                        class="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl shadow-xl z-50 overflow-hidden"
+                        class="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 border border-sem-border rounded-xl shadow-xl z-50 overflow-hidden"
                     >
                         <div
                             class="p-2 border-b border-gray-100 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-800/50"
@@ -104,8 +102,8 @@
                                 class="w-full px-4 py-2 text-left text-[11px] hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between group"
                                 :class="
                                     status.current_version === version
-                                        ? 'text-blue-600 dark:text-blue-400 font-bold'
-                                        : 'text-gray-700 dark:text-zinc-300'
+                                        ? 'text-sem-accent font-bold'
+                                        : 'text-sem-fg-muted'
                                 "
                                 @click="switchVersion(version)"
                             >
@@ -152,8 +150,8 @@
                 <div v-if="activeTab === 'reticulum' && status.has_docs" class="relative">
                     <button
                         v-click-outside="() => (showLanguages = false)"
-                        class="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-1.5"
-                        :class="{ 'bg-gray-100 dark:bg-zinc-800': showLanguages }"
+                        class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors flex items-center gap-1.5"
+                        :class="{ 'bg-sem-surface-muted': showLanguages }"
                         @click="showLanguages = !showLanguages"
                     >
                         <MaterialDesignIcon icon-name="translate" class="w-4 h-4 md:w-5 md:h-5" />
@@ -161,13 +159,13 @@
                     </button>
                     <div
                         v-if="showLanguages"
-                        class="absolute right-0 top-full mt-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg shadow-xl p-1 min-w-[120px] z-20"
+                        class="absolute right-0 top-full mt-1 bg-sem-surface border border-sem-border rounded-lg shadow-xl p-1 min-w-[120px] z-20"
                     >
                         <button
                             v-for="lang in allLanguages"
                             :key="lang.code"
-                            class="flex items-center w-full px-3 py-2 text-[10px] font-bold uppercase hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-md transition-colors"
-                            :class="lang.code === currentLang ? 'text-blue-500' : 'text-gray-600 dark:text-zinc-400'"
+                            class="flex items-center w-full px-3 py-2 text-[10px] font-bold uppercase hover:bg-sem-surface-muted rounded-md transition-colors"
+                            :class="lang.code === currentLang ? 'text-blue-500' : 'text-sem-fg-muted'"
                             @click="setLanguage(lang.code)"
                         >
                             {{ lang.name }} ({{ lang.code }})
@@ -178,7 +176,7 @@
                 <!-- Export Button -->
                 <button
                     v-if="status.has_docs || status.has_meshchatx_docs"
-                    class="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                    class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors"
                     title="Export all documentation as ZIP"
                     @click="exportDocs"
                 >
@@ -188,7 +186,7 @@
                 <!-- Share Reticulum Manual (re-uploadable ZIP) -->
                 <button
                     v-if="status.has_docs"
-                    class="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                    class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors"
                     :title="$t('docs.btn_share')"
                     @click="exportReticulumDocs"
                 >
@@ -198,7 +196,7 @@
                 <!-- Upload Custom Manual -->
                 <label
                     :class="{ 'opacity-50 pointer-events-none': status.status === 'extracting' }"
-                    class="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer"
+                    class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors cursor-pointer"
                     :title="$t('docs.btn_upload')"
                 >
                     <MaterialDesignIcon
@@ -231,16 +229,16 @@
         <!-- Secondary Navigation (Mobile/Tablet) -->
         <div
             v-if="(status.has_docs || status.has_meshchatx_docs) && !isSearching"
-            class="lg:hidden px-3 py-2 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 z-10"
+            class="lg:hidden px-3 py-2 bg-sem-surface border-b border-sem-border z-10"
         >
             <div class="flex flex-col lg:flex-row items-center gap-2 w-full">
                 <!-- Tabs -->
-                <div class="flex bg-gray-100 dark:bg-zinc-800 p-0.5 rounded-lg w-full md:w-auto">
+                <div class="flex bg-sem-surface-muted p-0.5 rounded-lg w-full md:w-auto">
                     <button
                         class="flex-1 md:flex-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all"
                         :class="
                             activeTab === 'meshchatx'
-                                ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-xs'
+                                ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
                                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
                         "
                         @click="activeTab = 'meshchatx'"
@@ -251,7 +249,7 @@
                         class="flex-1 md:flex-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all"
                         :class="
                             activeTab === 'reticulum'
-                                ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-xs'
+                                ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
                                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
                         "
                         @click="activeTab = 'reticulum'"
@@ -268,7 +266,7 @@
                     <input
                         v-model="searchQuery"
                         type="text"
-                        class="block w-full pl-9 pr-9 py-2 border border-gray-200 dark:border-zinc-700 rounded-lg bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        class="block w-full pl-9 pr-9 py-2 border border-sem-border rounded-lg bg-gray-50 dark:bg-zinc-800 text-sem-fg text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                         :placeholder="$t('docs.search_placeholder_mobile')"
                         @input="debounceSearch"
                     />
@@ -282,7 +280,7 @@
                     >
                         <MaterialDesignIcon
                             icon-name="close"
-                            class="h-3 w-3 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 cursor-pointer"
+                            class="h-3 w-3 text-gray-400 hover:text-gray-600 hover:text-sem-fg cursor-pointer"
                         />
                     </button>
                 </div>
@@ -299,11 +297,11 @@
         </div>
 
         <!-- Main Content (Iframe or Search Results) -->
-        <div class="flex-1 relative bg-white dark:bg-zinc-900 overflow-hidden">
+        <div class="flex-1 relative bg-sem-surface overflow-hidden">
             <!-- Search Results Overlay -->
             <div
                 v-if="searchResults.length > 0 && searchQuery"
-                class="absolute inset-0 z-20 bg-white dark:bg-zinc-900 overflow-y-auto"
+                class="absolute inset-0 z-20 bg-sem-surface overflow-y-auto"
             >
                 <div class="max-w-2xl mx-auto p-6 space-y-6">
                     <div class="flex items-center justify-between px-2">
@@ -311,7 +309,7 @@
                             {{ $t("docs.search_results") }}
                         </h2>
                         <span
-                            class="text-[10px] font-bold text-blue-500 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 rounded-full"
+                            class="text-[10px] font-bold text-blue-500 px-2 py-0.5 bg-sem-surface-muted rounded-full"
                             >{{ $t("docs.matches_count", { count: searchResults.length }) }}</span
                         >
                     </div>
@@ -319,18 +317,18 @@
                         <div
                             v-for="result in searchResults"
                             :key="result.path"
-                            class="group p-4 hover:bg-gray-50 dark:hover:bg-zinc-800/50 rounded-2xl cursor-pointer transition-colors border border-gray-100 dark:border-zinc-800/50 hover:border-blue-200 dark:hover:border-blue-900/30"
+                            class="group p-4 hover:bg-sem-surface-muted/50 rounded-2xl cursor-pointer transition-colors border border-sem-border/50 hover:border-blue-200 dark:hover:border-blue-900/30"
                             @click="navigateTo(result.path)"
                         >
                             <div class="flex items-start justify-between gap-4">
                                 <div
-                                    class="font-bold text-sm text-gray-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                                    class="font-bold text-sm text-sem-fg group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
                                 >
                                     {{ result.title }}
                                 </div>
                                 <div class="flex items-center space-x-2">
                                     <span
-                                        class="px-1.5 py-0.5 rounded-sm bg-gray-100 dark:bg-zinc-800 text-[8px] font-bold text-gray-500 uppercase tracking-tighter"
+                                        class="px-1.5 py-0.5 rounded-sm bg-sem-surface-muted text-[8px] font-bold text-gray-500 uppercase tracking-tighter"
                                     >
                                         {{ result.source }}
                                     </span>
@@ -341,7 +339,7 @@
                             </div>
                             <!-- eslint-disable vue/no-v-html -- sanitized via highlightMatch -->
                             <p
-                                class="mt-1.5 text-xs text-gray-600 dark:text-zinc-400 line-clamp-3 leading-relaxed"
+                                class="mt-1.5 text-xs text-sem-fg-muted line-clamp-3 leading-relaxed"
                                 v-html="highlightMatch(result.snippet)"
                             ></p>
                             <!-- eslint-enable vue/no-v-html -->
@@ -353,15 +351,15 @@
             <!-- No Results State -->
             <div
                 v-if="searchQuery && !isSearching && searchResults.length === 0 && !searchError"
-                class="absolute inset-0 z-20 bg-white dark:bg-zinc-900 flex flex-col items-center justify-center p-8 text-center"
+                class="absolute inset-0 z-20 bg-sem-surface flex flex-col items-center justify-center p-8 text-center"
             >
                 <div
                     class="w-16 h-16 bg-gray-50 dark:bg-zinc-800/50 rounded-full flex items-center justify-center mb-4"
                 >
                     <MaterialDesignIcon icon-name="text-search" class="w-8 h-8 text-gray-300 dark:text-zinc-600" />
                 </div>
-                <h3 class="text-sm font-medium text-gray-900 dark:text-zinc-100">{{ $t("docs.no_results") }}</h3>
-                <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1">{{ $t("docs.no_results_hint") }}</p>
+                <h3 class="text-sm font-medium text-sem-fg">{{ $t("docs.no_results") }}</h3>
+                <p class="text-xs text-sem-fg-muted mt-1">{{ $t("docs.no_results_hint") }}</p>
                 <button
                     class="mt-4 text-xs font-bold text-blue-500 hover:text-blue-600 transition-colors"
                     @click="clearSearch"
@@ -372,13 +370,13 @@
 
             <div
                 v-if="searchError && searchQuery"
-                class="absolute inset-0 z-20 bg-white dark:bg-zinc-900 flex flex-col items-center justify-center p-8 text-center"
+                class="absolute inset-0 z-20 bg-sem-surface flex flex-col items-center justify-center p-8 text-center"
             >
                 <div class="w-16 h-16 bg-red-50 dark:bg-red-950/30 rounded-full flex items-center justify-center mb-4">
                     <MaterialDesignIcon icon-name="alert-circle-outline" class="w-8 h-8 text-red-400" />
                 </div>
-                <h3 class="text-sm font-medium text-gray-900 dark:text-zinc-100">{{ $t("docs.search_failed") }}</h3>
-                <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1 max-w-sm">{{ searchError }}</p>
+                <h3 class="text-sm font-medium text-sem-fg">{{ $t("docs.search_failed") }}</h3>
+                <p class="text-xs text-sem-fg-muted mt-1 max-w-sm">{{ searchError }}</p>
                 <button
                     class="mt-4 text-xs font-bold text-blue-500 hover:text-blue-600 transition-colors"
                     @click="clearSearch"
@@ -433,10 +431,10 @@
                         />
                     </div>
                 </div>
-                <h3 class="text-lg font-bold text-gray-900 dark:text-zinc-100 mb-1">
+                <h3 class="text-lg font-bold text-sem-fg mb-1">
                     {{ $t("docs.status_extracting") }}
                 </h3>
-                <p class="text-sm text-gray-500 dark:text-zinc-400">
+                <p class="text-sm text-sem-fg-muted">
                     {{ $t("docs.complete_percent", { percent: status.progress }) }}
                 </p>
             </div>
@@ -622,10 +620,10 @@
                     <MaterialDesignIcon icon-name="book-outline" class="w-8 h-8 text-gray-300 dark:text-zinc-600" />
                 </div>
                 <div>
-                    <h3 class="text-sm font-medium text-gray-900 dark:text-zinc-100">
+                    <h3 class="text-sm font-medium text-sem-fg">
                         {{ $t("docs.reticulum_manual") }}
                     </h3>
-                    <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1 max-w-[260px]">
+                    <p class="text-xs text-sem-fg-muted mt-1 max-w-[260px]">
                         {{ $t("docs.empty_state_hint") }}
                     </p>
                 </div>

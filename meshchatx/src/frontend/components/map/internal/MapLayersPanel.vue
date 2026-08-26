@@ -11,8 +11,8 @@
             @export-kml="$emit('export-kml')"
             @export-kmz="$emit('export-kmz')"
         />
-        <details class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/40 p-3">
-            <summary class="cursor-pointer text-[11px] font-semibold text-gray-700 dark:text-zinc-300">
+        <details class="rounded-xl border border-sem-border bg-gray-50/50 dark:bg-zinc-900/40 p-3">
+            <summary class="cursor-pointer text-[11px] font-semibold text-sem-fg-muted">
                 {{ $t("map.data_advanced_source") }}
             </summary>
             <div class="mt-3">

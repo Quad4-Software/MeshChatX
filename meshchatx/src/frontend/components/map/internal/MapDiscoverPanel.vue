@@ -5,22 +5,22 @@
         <input
             v-model="search"
             type="search"
-            class="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-1.5 text-[12px]"
+            class="w-full rounded-lg border border-sem-border bg-sem-surface px-2 py-1.5 text-[12px]"
             :placeholder="$t('map.data_search')"
             @input="reload"
         />
         <p v-if="error" class="text-[11px] text-amber-600 dark:text-amber-400">{{ error }}</p>
-        <div v-if="!announces.length && !loading" class="text-[11px] text-gray-500 dark:text-zinc-400">
+        <div v-if="!announces.length && !loading" class="text-[11px] text-sem-fg-muted">
             {{ $t("map.data_empty") }}
         </div>
         <div
             v-for="item in announces"
             :key="item.destination_hash"
-            class="rounded-lg border border-gray-200 dark:border-zinc-800 p-2 space-y-1.5"
+            class="rounded-lg border border-sem-border p-2 space-y-1.5"
         >
             <div class="flex items-start justify-between gap-2">
                 <div class="min-w-0">
-                    <div class="text-[12px] font-semibold text-gray-900 dark:text-zinc-100 truncate">
+                    <div class="text-[12px] font-semibold text-sem-fg truncate">
                         {{ item.map_name || $t("map.data_heard_hash") }}
                     </div>
                     <div class="text-[10px] font-mono text-gray-500 truncate">{{ item.destination_hash }}</div>
@@ -30,7 +30,7 @@
                 </div>
                 <button
                     type="button"
-                    class="text-[10px] font-semibold text-blue-600 dark:text-blue-400 shrink-0 disabled:opacity-40"
+                    class="text-[10px] font-semibold text-sem-accent shrink-0 disabled:opacity-40"
                     :disabled="busyHash === item.destination_hash"
                     @click="openCatalog(item)"
                 >
@@ -41,14 +41,8 @@
                     }}
                 </button>
             </div>
-            <div
-                v-if="catalogLoaded(item.destination_hash)"
-                class="space-y-1 border-t border-gray-100 dark:border-zinc-800 pt-1"
-            >
-                <p
-                    v-if="!(catalogs[item.destination_hash] || []).length"
-                    class="text-[10px] text-gray-500 dark:text-zinc-400"
-                >
+            <div v-if="catalogLoaded(item.destination_hash)" class="space-y-1 border-t border-sem-border pt-1">
+                <p v-if="!(catalogs[item.destination_hash] || []).length" class="text-[10px] text-sem-fg-muted">
                     {{ $t("map.data_catalog_empty") }}
                 </p>
                 <div

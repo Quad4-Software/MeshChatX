@@ -19,7 +19,7 @@
     </div>
     <div
         v-else
-        class="bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 p-[10%] rounded-full shrink-0 flex items-center justify-center border border-gray-200 dark:border-zinc-700"
+        class="bg-sem-surface-muted text-sem-fg-muted p-[10%] rounded-full shrink-0 flex items-center justify-center border border-sem-border"
         :class="resolvedShellClass"
         :style="[iconStyle, { 'background-color': fallbackBackgroundColor }]"
     >

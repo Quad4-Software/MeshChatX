@@ -42,7 +42,7 @@
                 </div>
                 <div class="flex-1 min-w-0 space-y-2 overflow-hidden">
                     <div class="flex items-center gap-2 flex-wrap">
-                        <div class="text-lg font-semibold text-gray-900 dark:text-white truncate min-w-0">
+                        <div class="text-lg font-semibold text-sem-fg truncate min-w-0">
                             {{ iface._name }}
                         </div>
                         <span class="type-chip shrink-0">{{ iface.type }}</span>
@@ -57,10 +57,10 @@
                         >
                         <span v-if="isDiscoverable()" class="discoverable-chip shrink-0">Discoverable</span>
                     </div>
-                    <div class="text-sm text-gray-600 dark:text-gray-300 wrap-break-word min-w-0">
+                    <div class="text-sm text-sem-fg-muted wrap-break-word min-w-0">
                         {{ description }}
                     </div>
-                    <div class="flex flex-wrap gap-2 text-xs text-gray-600 dark:text-gray-300">
+                    <div class="flex flex-wrap gap-2 text-xs text-sem-fg-muted">
                         <span v-if="iface._stats?.bitrate" class="stat-chip"
                             >{{ $t("interface.bitrate") }} {{ formatBitsPerSecond(iface._stats?.bitrate ?? 0) }}</span
                         >
@@ -101,7 +101,7 @@
                 <button
                     v-if="isInterfaceEnabled(iface)"
                     type="button"
-                    class="inline-flex items-center justify-center rounded-full p-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 shrink-0 border-0 bg-transparent text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                    class="inline-flex items-center justify-center rounded-full p-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 shrink-0 border-0 bg-transparent text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
                     :title="$t('interface.disable')"
                     @click="disableInterface"
                 >
@@ -111,7 +111,7 @@
                 <button
                     v-else
                     type="button"
-                    class="inline-flex items-center justify-center rounded-full p-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 shrink-0 border-0 bg-transparent text-green-600 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                    class="inline-flex items-center justify-center rounded-full p-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 shrink-0 border-0 bg-transparent text-green-600 dark:text-green-400 hover:bg-sem-surface-muted transition-colors"
                     :title="$t('interface.enable')"
                     @click="enableInterface"
                 >
@@ -315,7 +315,7 @@ export default {
             if (key === "down") {
                 return "inline-flex items-center rounded-full bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100 px-2 py-0.5 text-xs font-semibold";
             }
-            return "inline-flex items-center rounded-full bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-zinc-300 px-2 py-0.5 text-xs font-semibold";
+            return "inline-flex items-center rounded-full bg-gray-100 text-gray-700 dark:bg-zinc-800 text-sem-fg-muted px-2 py-0.5 text-xs font-semibold";
         },
         normalizedIfaceLinkUp() {
             if (!this.isReticulumRunning || !this.isInterfaceEnabled(this.iface)) {
@@ -407,17 +407,17 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .interface-card {
-    @apply relative bg-white/95 dark:bg-zinc-900/85 backdrop-blur-sm border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-lg p-4 space-y-3 hover:z-10 min-w-0;
+    @apply relative bg-white/95 dark:bg-zinc-900/85 backdrop-blur-sm border border-sem-border rounded-3xl shadow-lg p-4 space-y-3 hover:z-10 min-w-0;
     overflow: visible;
 }
 .interface-card__icon {
     @apply w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-200 flex items-center justify-center;
 }
 .type-chip {
-    @apply inline-flex items-center rounded-full bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 text-xs font-semibold text-gray-600 dark:text-gray-200;
+    @apply inline-flex items-center rounded-full bg-sem-surface-muted px-2 py-0.5 text-xs font-semibold text-gray-600 dark:text-gray-200;
 }
 .stat-chip {
-    @apply inline-flex items-center rounded-full border border-gray-200 dark:border-zinc-700 px-2 py-0.5;
+    @apply inline-flex items-center rounded-full border border-sem-border px-2 py-0.5;
 }
 .stat-chip--zero-traffic {
     @apply border-red-400 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-950/50 dark:text-red-200 font-semibold;
@@ -432,9 +432,9 @@ export default {
     @apply grid gap-3 sm:grid-cols-2;
 }
 .detail-label {
-    @apply text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400;
+    @apply text-xs uppercase tracking-wide text-sem-fg-muted;
 }
 .detail-value {
-    @apply text-sm font-medium text-gray-900 dark:text-white min-w-0 break-all;
+    @apply text-sm font-medium text-sem-fg min-w-0 break-all;
 }
 </style>

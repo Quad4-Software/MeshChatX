@@ -12,13 +12,12 @@
                 @click="$emit('update:isShowingControls', !isShowingControls)"
             >
                 <div class="flex-1 flex flex-col min-w-0 mr-2">
-                    <span class="font-bold text-gray-900 dark:text-zinc-100 tracking-tight truncate">{{
+                    <span class="font-bold text-sem-fg tracking-tight truncate">{{
                         $t("visualiser.reticulum_mesh")
                     }}</span>
-                    <span
-                        class="text-[10px] uppercase font-bold text-gray-500 dark:text-zinc-500 tracking-widest truncate"
-                        >{{ $t("visualiser.network_visualizer") }}</span
-                    >
+                    <span class="text-[10px] uppercase font-bold text-sem-fg-muted tracking-widest truncate">{{
+                        $t("visualiser.network_visualizer")
+                    }}</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <button
@@ -55,9 +54,7 @@
                         class="relative min-w-0 rounded-xl px-3 py-2 border border-gray-100 dark:border-zinc-700/50 bg-gray-50/60 dark:bg-zinc-800/40"
                         :title="engineSelectTitle"
                     >
-                        <div
-                            class="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-0.5"
-                        >
+                        <div class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-wider mb-0.5">
                             {{ $t("visualiser.engine") }}
                         </div>
                         <button
@@ -92,11 +89,11 @@
                                     :key="opt.value"
                                     type="button"
                                     role="option"
-                                    class="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-xs font-semibold transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
+                                    class="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-xs font-semibold transition-colors hover:bg-sem-surface-muted"
                                     :class="
                                         preferredRenderer === opt.value
                                             ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300'
-                                            : 'text-gray-800 dark:text-zinc-100'
+                                            : 'text-sem-fg'
                                     "
                                     :aria-selected="preferredRenderer === opt.value ? 'true' : 'false'"
                                     @click.stop="selectEngine(opt.value)"
@@ -114,23 +111,19 @@
                     <div
                         class="min-w-0 rounded-xl px-3 py-2 border border-gray-100 dark:border-zinc-700/50 bg-gray-50/60 dark:bg-zinc-800/40"
                     >
-                        <div
-                            class="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-0.5"
-                        >
+                        <div class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-wider mb-0.5">
                             {{ $t("visualiser.fps") }}
                         </div>
-                        <div class="text-xs font-bold text-gray-800 dark:text-zinc-100 tabular-nums">
+                        <div class="text-xs font-bold text-sem-fg tabular-nums">
                             {{ fpsDisplay }}
                         </div>
                     </div>
                 </div>
 
                 <div class="flex items-center justify-between">
-                    <label
-                        for="auto-reload"
-                        class="text-sm font-semibold text-gray-700 dark:text-zinc-300 cursor-pointer"
-                        >{{ $t("visualiser.auto_update") }}</label
-                    >
+                    <label for="auto-reload" class="text-sm font-semibold text-sem-fg-muted cursor-pointer">{{
+                        $t("visualiser.auto_update")
+                    }}</label>
                     <Toggle
                         id="auto-reload"
                         :model-value="autoReload"
@@ -139,11 +132,9 @@
                 </div>
 
                 <div class="flex items-center justify-between">
-                    <label
-                        for="enable-physics"
-                        class="text-sm font-semibold text-gray-700 dark:text-zinc-300 cursor-pointer"
-                        >{{ $t("visualiser.live_layout") }}</label
-                    >
+                    <label for="enable-physics" class="text-sm font-semibold text-sem-fg-muted cursor-pointer">{{
+                        $t("visualiser.live_layout")
+                    }}</label>
                     <Toggle
                         id="enable-physics"
                         :model-value="enablePhysics"
@@ -152,9 +143,7 @@
                 </div>
 
                 <div v-if="engineMode === 'webgl'" class="flex items-center justify-between gap-2">
-                    <span class="text-sm font-semibold text-gray-700 dark:text-zinc-300">{{
-                        $t("visualiser.view_mode")
-                    }}</span>
+                    <span class="text-sm font-semibold text-sem-fg-muted">{{ $t("visualiser.view_mode") }}</span>
                     <div
                         class="inline-flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5 dark:border-zinc-700 dark:bg-zinc-800"
                         role="group"
@@ -167,7 +156,7 @@
                             :class="
                                 viewMode === 'flat'
                                     ? 'bg-white text-blue-600 shadow-xs dark:bg-zinc-700 dark:text-blue-300'
-                                    : 'text-gray-500 dark:text-zinc-400'
+                                    : 'text-sem-fg-muted'
                             "
                             :aria-pressed="viewMode === 'flat' ? 'true' : 'false'"
                             @click="$emit('update:viewMode', 'flat')"
@@ -181,7 +170,7 @@
                             :class="
                                 viewMode === 'planet'
                                     ? 'bg-white text-blue-600 shadow-xs dark:bg-zinc-700 dark:text-blue-300'
-                                    : 'text-gray-500 dark:text-zinc-400'
+                                    : 'text-sem-fg-muted'
                             "
                             :aria-pressed="viewMode === 'planet' ? 'true' : 'false'"
                             @click="$emit('update:viewMode', 'planet')"
@@ -193,11 +182,9 @@
 
                 <div class="space-y-2">
                     <div class="flex items-center justify-between gap-2">
-                        <label
-                            for="hop-filter-slider"
-                            class="text-sm font-semibold text-gray-700 dark:text-zinc-300 cursor-pointer"
-                            >{{ $t("visualiser.max_hops_filter") }}</label
-                        >
+                        <label for="hop-filter-slider" class="text-sm font-semibold text-sem-fg-muted cursor-pointer">{{
+                            $t("visualiser.max_hops_filter")
+                        }}</label>
                         <input
                             id="hop-max-hops-input"
                             type="text"
@@ -230,19 +217,15 @@
                     <div
                         class="bg-gray-50/50 dark:bg-zinc-800/50 rounded-xl p-3 border border-gray-100 dark:border-zinc-700/50"
                     >
-                        <div
-                            class="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-1"
-                        >
+                        <div class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-wider mb-1">
                             {{ $t("visualiser.nodes") }}
                         </div>
-                        <div class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ nodeCount }}</div>
+                        <div class="text-lg font-bold text-sem-accent">{{ nodeCount }}</div>
                     </div>
                     <div
                         class="bg-gray-50/50 dark:bg-zinc-800/50 rounded-xl p-3 border border-gray-100 dark:border-zinc-700/50"
                     >
-                        <div
-                            class="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-1"
-                        >
+                        <div class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-wider mb-1">
                             {{ $t("visualiser.links") }}
                         </div>
                         <div class="text-lg font-bold text-emerald-600 dark:text-emerald-400">{{ edgeCount }}</div>
@@ -252,19 +235,19 @@
                 <div
                     class="bg-zinc-950/5 dark:bg-white/5 rounded-xl p-3 border border-gray-100 dark:border-zinc-700/50"
                 >
-                    <div class="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-2">
+                    <div class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-wider mb-2">
                         {{ $t("visualiser.interfaces") }}
                     </div>
                     <div class="flex items-center gap-4">
                         <div class="flex items-center gap-1.5">
                             <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-                            <span class="text-xs font-bold text-gray-700 dark:text-zinc-300"
+                            <span class="text-xs font-bold text-sem-fg-muted"
                                 >{{ onlineInterfaceCount }} {{ $t("visualiser.online") }}</span
                             >
                         </div>
                         <div class="flex items-center gap-1.5">
                             <div class="w-2 h-2 rounded-full bg-red-500"></div>
-                            <span class="text-xs font-bold text-gray-700 dark:text-zinc-300"
+                            <span class="text-xs font-bold text-sem-fg-muted"
                                 >{{ offlineInterfaceCount }} {{ $t("visualiser.offline") }}</span
                             >
                         </div>
@@ -276,7 +259,7 @@
         <div class="sm:ml-auto w-full sm:w-auto pointer-events-auto">
             <div class="relative group">
                 <div
-                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors"
+                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-sem-accent transition-colors"
                 >
                     <MaterialDesignIcon icon-name="magnify" class="w-4 h-4" />
                 </div>
@@ -284,13 +267,13 @@
                     :value="searchQuery"
                     type="text"
                     :placeholder="$t('visualiser.search_nodes_placeholder', { count: nodeCount })"
-                    class="block w-full sm:w-64 pl-9 pr-10 py-2.5 sm:py-3 bg-white/90 dark:bg-zinc-900/90 border border-gray-200/50 dark:border-zinc-800/50 rounded-2xl text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 sm:focus:w-80 md:max-lg:focus:w-72 lg:focus:w-80 transition-all dark:text-zinc-100 shadow-xs"
+                    class="block w-full sm:w-64 pl-9 pr-10 py-2.5 sm:py-3 bg-white/90 dark:bg-zinc-900/90 border border-gray-200/50 dark:border-zinc-800/50 rounded-2xl text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 sm:focus:w-80 md:max-lg:focus:w-72 lg:focus:w-80 transition-all text-sem-fg shadow-xs"
                     @input="$emit('update:searchQuery', $event.target.value)"
                 />
                 <button
                     v-if="searchQuery"
                     type="button"
-                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 transition-colors"
+                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 hover:text-sem-fg transition-colors"
                     :aria-label="$t('visualiser.clear_search')"
                     @click="$emit('update:searchQuery', '')"
                 >
@@ -407,7 +390,7 @@ export default {
             if (this.engineMode === "webgl") return "text-sky-600 dark:text-sky-400";
             if (this.engineMode === "wasm") return "text-emerald-600 dark:text-emerald-400";
             if (this.engineMode === "fallback") return "text-amber-600 dark:text-amber-400";
-            return "text-gray-800 dark:text-zinc-100";
+            return "text-sem-fg";
         },
         fpsDisplay() {
             const n = Number(this.fps);

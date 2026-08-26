@@ -27,13 +27,13 @@
         />
 
         <div
-            class="flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950"
+            class="flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas"
             :class="selectedNode ? 'flex' : 'hidden sm:flex'"
         >
             <!-- node -->
             <div
                 v-if="selectedNode"
-                class="flex flex-col h-full min-h-0 bg-white dark:bg-zinc-950 overflow-hidden sm:m-0 sm:border-0 relative"
+                class="flex flex-col h-full min-h-0 bg-sem-surface overflow-hidden sm:m-0 sm:border-0 relative"
             >
                 <!-- banished overlay -->
                 <div
@@ -76,7 +76,7 @@
                     </div>
 
                     <!-- node info -->
-                    <div class="my-auto dark:text-gray-100 flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
+                    <div class="my-auto text-sem-fg flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
                         <span
                             class="font-medium truncate inline-block min-w-0 max-w-[min(100%,12rem)] sm:max-w-xs md:max-w-sm"
                             :title="selectedNode.custom_display_name || selectedNode.display_name"
@@ -93,19 +93,9 @@
                                 · {{ navbarPageStats.duration }} · {{ navbarPageStats.sizeLabel }}
                             </template>
                         </span>
-                        <v-tooltip
-                            v-if="nomadBrowserRendererChip && !isLoadingNodePage"
-                            location="bottom"
-                            :open-on-hover="false"
-                            :open-on-focus="false"
-                            :open-on-click="true"
-                            :interactive="true"
-                            max-width="320"
-                            content-class="bg-transparent! p-0! shadow-none"
-                        >
-                            <template #activator="{ props: tooltipActivatorProps }">
+                        <ClickPopover v-if="nomadBrowserRendererChip && !isLoadingNodePage">
+                            <template #activator>
                                 <span
-                                    v-bind="tooltipActivatorProps"
                                     class="shrink-0 hidden sm:inline-flex sm:items-center max-w-[7.5rem] md:max-w-[9rem] truncate rounded px-1 py-0.5 text-[11px] font-medium leading-tight text-sem-fg-muted cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400"
                                     tabindex="0"
                                     role="button"
@@ -113,7 +103,7 @@
                                 >
                             </template>
                             <div
-                                class="max-w-[min(20rem,85vw)] rounded-lg border border-[var(--mc-border-strong)] bg-[var(--mc-surface)] px-3 py-2 text-xs leading-snug text-[var(--mc-text-secondary)] shadow-lg"
+                                class="rounded-lg border border-[var(--mc-border-strong)] bg-[var(--mc-surface)] px-3 py-2 text-xs leading-snug text-[var(--mc-text-secondary)] shadow-lg"
                             >
                                 <template v-if="nomadBrowserRendererChip.popoverVariant === 'wasm_active'">
                                     <span>{{ $t("nomadnet.renderer_popover_micron_wasm_powered") }}</span>
@@ -193,7 +183,7 @@
                                     </div>
                                 </div>
                             </div>
-                        </v-tooltip>
+                        </ClickPopover>
                     </div>
 
                     <!-- archive button -->
@@ -209,39 +199,36 @@
                         <!-- archive dropdown -->
                         <div
                             v-if="isArchiveDropdownOpen"
-                            class="absolute right-0 mt-2 w-64 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg shadow-lg z-50 overflow-hidden"
+                            class="absolute right-0 mt-2 w-64 bg-sem-surface border border-sem-border rounded-lg shadow-lg z-50 overflow-hidden"
                         >
                             <div
-                                class="p-2 border-b border-gray-100 dark:border-zinc-800 font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider flex justify-between items-center"
+                                class="p-2 border-b border-sem-border font-semibold text-xs text-sem-fg-muted uppercase tracking-wider flex justify-between items-center"
                             >
                                 <span>{{ $t("nomadnet.page_archives") }}</span>
                                 <button
                                     v-if="nodePageContent"
                                     :title="$t('nomadnet.archive_current_version')"
-                                    class="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+                                    class="text-blue-500 hover:text-sem-accent dark:hover:text-blue-300"
                                     @click.stop="manualArchive"
                                 >
                                     <MaterialDesignIcon icon-name="plus" class="size-5" />
                                 </button>
                             </div>
                             <div class="max-h-64 overflow-y-auto">
-                                <div
-                                    v-if="pageArchives.length === 0"
-                                    class="p-3 text-sm text-gray-500 dark:text-gray-400 text-center"
-                                >
+                                <div v-if="pageArchives.length === 0" class="p-3 text-sm text-sem-fg-muted text-center">
                                     {{ $t("nomadnet.no_archives_for_this_page") }}
                                 </div>
                                 <div
                                     v-for="archive in pageArchives"
                                     v-else
                                     :key="archive.id"
-                                    class="p-2 hover:bg-gray-50 dark:hover:bg-zinc-800 cursor-pointer border-b last:border-b-0 border-gray-100 dark:border-zinc-800"
+                                    class="p-2 hover:bg-sem-surface-muted cursor-pointer border-b last:border-b-0 border-sem-border"
                                     @click="loadArchivedPage(archive.id)"
                                 >
                                     <div class="text-sm font-medium dark:text-gray-200">
                                         {{ formatDate(archive.created_at) }}
                                     </div>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                    <div class="text-xs text-sem-fg-muted truncate">
                                         {{ archive.hash.substring(0, 16) }}...
                                     </div>
                                 </div>
@@ -512,10 +499,7 @@
                 </div>
 
                 <!-- file download bottom bar -->
-                <div
-                    v-if="isDownloadingNodeFile"
-                    class="flex w-full border-gray-300 dark:border-zinc-800 border-t p-2 dark:text-gray-100"
-                >
+                <div v-if="isDownloadingNodeFile" class="flex w-full border-sem-border border-t p-2 dark:text-gray-100">
                     <div class="my-auto mr-2">
                         <svg
                             class="animate-spin h-5 w-5"
@@ -623,7 +607,7 @@ import {
     invalidateNomadMicronWasmPreload,
     isMicronWasmBundled,
 } from "../../js/MicronWasmLoader";
-import { VTooltip } from "vuetify/components/VTooltip";
+import ClickPopover from "../ClickPopover.vue";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../js/browserLayoutStore";
 import { isUnknownNodeDisplayName, resolveFavouriteUpsertDisplayName } from "../../js/nomadUnknownNodeName.js";
 
@@ -632,11 +616,11 @@ export default {
     components: {
         NomadNetworkSidebar,
         NomadBrowserContextMenu,
+        ClickPopover,
         MaterialDesignIcon,
         IconButton,
         DropDownMenu,
         DropDownMenuItem,
-        VTooltip,
     },
     inject: {
         nomadBrowserTabActions: {

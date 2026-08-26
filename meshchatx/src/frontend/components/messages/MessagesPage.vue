@@ -60,7 +60,7 @@
 
         <div
             ref="panesContainer"
-            class="flex flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950"
+            class="flex flex-1 overflow-hidden min-w-0 bg-sem-canvas"
             :class="destinationHash ? 'flex' : 'hidden sm:flex'"
         >
             <template v-for="(pane, paneIndex) in visiblePanes" :key="pane.id">
@@ -145,13 +145,11 @@
             @click.self="isMobileComposeModalOpen = false"
         >
             <div
-                class="w-full sm:max-w-md bg-white dark:bg-zinc-900 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[90dvh] flex flex-col"
+                class="w-full sm:max-w-md bg-sem-surface rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[90dvh] flex flex-col"
                 @click.stop
             >
-                <div
-                    class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between shrink-0"
-                >
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between shrink-0">
+                    <h3 class="text-lg font-bold text-sem-fg">
                         {{ $t("messages.mobile_compose_title") }}
                     </h3>
                     <button
@@ -163,12 +161,12 @@
                     </button>
                 </div>
                 <div class="p-5 overflow-y-auto space-y-4">
-                    <p class="text-sm text-gray-600 dark:text-zinc-400">
+                    <p class="text-sm text-sem-fg-muted">
                         {{ $t("messages.select_peer_or_enter_address") }}
                     </p>
                     <div>
                         <label
-                            class="block text-xs font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-1"
+                            class="block text-xs font-medium text-sem-fg-muted uppercase tracking-wider mb-1"
                             for="mobile-compose-destination"
                         >
                             {{ $t("app.lxmf_address_hash") }}
@@ -181,7 +179,7 @@
                             autocorrect="off"
                             spellcheck="false"
                             :placeholder="$t('messages.mobile_compose_destination_placeholder')"
-                            class="block w-full rounded-xl border-0 py-2.5 px-3 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                            class="block w-full rounded-xl border-0 py-2.5 px-3 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                             @keydown.enter="submitMobileCompose"
                         />
                     </div>
@@ -196,7 +194,7 @@
                         </button>
                         <button
                             type="button"
-                            class="w-full flex justify-center items-center gap-2 py-2.5 px-4 rounded-xl border border-gray-200 dark:border-zinc-700 text-sm font-semibold text-gray-800 dark:text-zinc-200 bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                            class="w-full flex justify-center items-center gap-2 py-2.5 px-4 rounded-xl border border-sem-border text-sm font-semibold text-sem-fg bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors"
                             @click="openIngestFromMobileCompose"
                         >
                             <MaterialDesignIcon icon-name="qrcode" class="size-5 shrink-0" />
@@ -213,9 +211,9 @@
             class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="isIngestModalOpen = false"
         >
-            <div class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Ingest Paper Message</h3>
+            <div class="w-full max-w-md bg-sem-surface rounded-2xl shadow-2xl overflow-hidden">
+                <div class="px-6 py-4 border-b border-sem-border flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-sem-fg">Ingest Paper Message</h3>
                     <button
                         type="button"
                         class="text-gray-400 hover:text-gray-500 dark:hover:text-zinc-300 transition-colors"
@@ -225,16 +223,14 @@
                     </button>
                 </div>
                 <div class="p-6">
-                    <p class="text-sm text-gray-600 dark:text-zinc-400 mb-4">
+                    <p class="text-sm text-sem-fg-muted mb-4">
                         You can read LXMF paper messages by scanning a QR code or pasting an <strong>lxmf://</strong> or
                         <strong>lxm://</strong> link. Contact-sharing links using <strong>lxma://</strong> are also
                         supported.
                     </p>
                     <div class="space-y-4">
                         <div>
-                            <label
-                                class="block text-xs font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-1"
-                            >
+                            <label class="block text-xs font-medium text-sem-fg-muted uppercase tracking-wider mb-1">
                                 LXMF URI
                             </label>
                             <div class="flex gap-2">
@@ -242,12 +238,12 @@
                                     v-model="ingestUri"
                                     type="text"
                                     placeholder="lxmf://... or lxma://..."
-                                    class="block w-full rounded-lg border-0 py-2 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                                    class="block w-full rounded-lg border-0 py-2 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                                     @keydown.enter="ingestPaperMessage"
                                 />
                                 <button
                                     type="button"
-                                    class="px-3 py-2 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                                    class="px-3 py-2 bg-sem-surface-muted text-sem-fg-muted rounded-lg hover:bg-gray-200 hover:bg-sem-surface-muted transition-colors"
                                     title="Paste from Clipboard"
                                     @click="pasteFromClipboard"
                                 >
@@ -256,7 +252,7 @@
                                 <button
                                     v-if="cameraSupported"
                                     type="button"
-                                    class="px-3 py-2 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                                    class="px-3 py-2 bg-sem-surface-muted text-sem-fg-muted rounded-lg hover:bg-gray-200 hover:bg-sem-surface-muted transition-colors"
                                     :title="$t('messages.scan_qr')"
                                     @click="openIngestScannerModal"
                                 >
@@ -272,7 +268,7 @@
                         >
                             Read LXM
                         </button>
-                        <p v-if="!cameraSupported" class="text-xs text-gray-500 dark:text-zinc-400">
+                        <p v-if="!cameraSupported" class="text-xs text-sem-fg-muted">
                             {{ $t("messages.camera_not_supported") }}
                         </p>
                     </div>
@@ -285,14 +281,10 @@
             class="fixed inset-0 z-120 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs"
             @click.self="closeIngestScannerModal"
         >
-            <div class="w-full max-w-xl rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-zinc-100">{{ $t("messages.scan_qr") }}</h3>
-                    <button
-                        type="button"
-                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
-                        @click="closeIngestScannerModal"
-                    >
+            <div class="w-full max-w-xl rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+                <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-sem-fg">{{ $t("messages.scan_qr") }}</h3>
+                    <button type="button" class="text-sem-fg-muted hover:text-sem-fg" @click="closeIngestScannerModal">
                         <MaterialDesignIcon icon-name="close" class="size-5" />
                     </button>
                 </div>
@@ -304,7 +296,7 @@
                         playsinline
                         muted
                     ></video>
-                    <div class="text-sm text-gray-500 dark:text-zinc-400">
+                    <div class="text-sm text-sem-fg-muted">
                         {{ ingestScannerError || $t("messages.scanner_hint") }}
                     </div>
                 </div>

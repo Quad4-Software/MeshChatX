@@ -5,10 +5,10 @@
         <template v-for="group in primaryNavGroups" :key="group.id">
             <div
                 v-if="!isCollapsed"
-                class="px-4 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-zinc-500"
+                class="px-4 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-sem-fg-muted"
                 :class="[
                     isEditing ? 'flex cursor-grab items-center gap-1' : '',
-                    dragOverKey === `group:${group.id}` ? 'bg-blue-50 dark:bg-blue-900/20' : '',
+                    dragOverKey === `group:${group.id}` ? 'bg-sem-surface-muted' : '',
                 ]"
                 data-testid="sidebar-nav-group"
                 :data-group-id="group.id"
@@ -29,7 +29,7 @@
                 <template v-if="isEditing">
                     <button
                         type="button"
-                        class="p-0.5 text-gray-400 hover:text-gray-700 dark:hover:text-zinc-200"
+                        class="p-0.5 text-gray-400 hover:text-gray-700 hover:text-sem-fg"
                         :title="$t('app.nav_move_up')"
                         :aria-label="$t('app.nav_move_up')"
                         @click.stop="$emit('nav-reorder', { kind: 'group-offset', groupId: group.id, delta: -1 })"
@@ -38,7 +38,7 @@
                     </button>
                     <button
                         type="button"
-                        class="p-0.5 text-gray-400 hover:text-gray-700 dark:hover:text-zinc-200"
+                        class="p-0.5 text-gray-400 hover:text-gray-700 hover:text-sem-fg"
                         :title="$t('app.nav_move_down')"
                         :aria-label="$t('app.nav_move_down')"
                         @click.stop="$emit('nav-reorder', { kind: 'group-offset', groupId: group.id, delta: 1 })"
@@ -60,9 +60,7 @@
                     :class="[
                         isCollapsed ? 'justify-center' : '',
                         isEditing && draggingId === item.id && draggingKind === 'item' ? 'opacity-50' : '',
-                        isEditing && dragOverKey === `item:${item.id}`
-                            ? 'ring-1 ring-blue-400 dark:ring-blue-500 rounded-r-full'
-                            : '',
+                        isEditing && dragOverKey === `item:${item.id}` ? 'ring-1 ring-sem-accent rounded-r-full' : '',
                     ]"
                     data-testid="sidebar-nav-item"
                     :data-nav-item-id="item.id"
@@ -91,10 +89,7 @@
                     >
                         <template #icon>
                             <span class="relative inline-flex shrink-0">
-                                <MaterialDesignIcon
-                                    :icon-name="item.icon"
-                                    class="w-6 h-6 text-gray-700 dark:text-white"
-                                />
+                                <MaterialDesignIcon :icon-name="item.icon" class="w-6 h-6 text-sem-fg-secondary" />
                                 <span
                                     v-if="isCollapsed && getNavBadgeCount(item) > 0 && item.badge?.pill"
                                     class="absolute -right-2 -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
@@ -119,7 +114,7 @@
                     <div v-if="isEditing && !isCollapsed" class="flex shrink-0 flex-col pr-1">
                         <button
                             type="button"
-                            class="p-0.5 text-gray-400 hover:text-gray-700 dark:hover:text-zinc-200"
+                            class="p-0.5 text-gray-400 hover:text-gray-700 hover:text-sem-fg"
                             :title="$t('app.nav_move_up')"
                             :aria-label="$t('app.nav_move_up')"
                             @click.stop="$emit('nav-reorder', { kind: 'item-offset', itemId: item.id, delta: -1 })"
@@ -128,7 +123,7 @@
                         </button>
                         <button
                             type="button"
-                            class="p-0.5 text-gray-400 hover:text-gray-700 dark:hover:text-zinc-200"
+                            class="p-0.5 text-gray-400 hover:text-gray-700 hover:text-sem-fg"
                             :title="$t('app.nav_move_down')"
                             :aria-label="$t('app.nav_move_down')"
                             @click.stop="$emit('nav-reorder', { kind: 'item-offset', itemId: item.id, delta: 1 })"
@@ -142,12 +137,12 @@
 
         <div
             v-if="moreNavItems.length > 0 || isEditing"
-            class="mt-1 border-t border-gray-200 dark:border-zinc-800"
-            :class="dragOverKey === 'more' ? 'bg-blue-50 dark:bg-blue-900/20' : ''"
+            class="mt-1 border-t border-sem-border"
+            :class="dragOverKey === 'more' ? 'bg-sem-surface-muted' : ''"
         >
             <button
                 type="button"
-                class="flex w-full items-center gap-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 dark:text-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+                class="flex w-full items-center gap-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 text-sem-fg dark:hover:bg-zinc-800 transition-colors"
                 :class="isCollapsed ? 'justify-center px-0' : 'px-4'"
                 data-testid="sidebar-more-toggle"
                 @pointerdown="onNavHoldPointerDown"
@@ -175,9 +170,7 @@
                     class="flex items-center"
                     :class="[
                         isEditing && draggingId === item.id && draggingKind === 'item' ? 'opacity-50' : '',
-                        isEditing && dragOverKey === `item:${item.id}`
-                            ? 'ring-1 ring-blue-400 dark:ring-blue-500 rounded-r-full'
-                            : '',
+                        isEditing && dragOverKey === `item:${item.id}` ? 'ring-1 ring-sem-accent rounded-r-full' : '',
                     ]"
                     data-testid="sidebar-nav-item"
                     :data-nav-item-id="item.id"
@@ -200,7 +193,7 @@
                     />
                     <SidebarLink class="min-w-0 flex-1" :to="item.route" :is-collapsed="false" :edit-mode="isEditing">
                         <template #icon>
-                            <MaterialDesignIcon :icon-name="item.icon" class="w-6 h-6 text-gray-700 dark:text-white" />
+                            <MaterialDesignIcon :icon-name="item.icon" class="w-6 h-6 text-sem-fg-secondary" />
                         </template>
                         <template #text>
                             <span>{{ item.label || $t(item.labelKey) }}</span>
@@ -209,7 +202,7 @@
                     <div v-if="isEditing" class="flex shrink-0 flex-col pr-1">
                         <button
                             type="button"
-                            class="p-0.5 text-gray-400 hover:text-gray-700 dark:hover:text-zinc-200"
+                            class="p-0.5 text-gray-400 hover:text-gray-700 hover:text-sem-fg"
                             :title="$t('app.nav_move_up')"
                             :aria-label="$t('app.nav_move_up')"
                             @click.stop="$emit('nav-reorder', { kind: 'item-offset', itemId: item.id, delta: -1 })"
@@ -218,7 +211,7 @@
                         </button>
                         <button
                             type="button"
-                            class="p-0.5 text-gray-400 hover:text-gray-700 dark:hover:text-zinc-200"
+                            class="p-0.5 text-gray-400 hover:text-gray-700 hover:text-sem-fg"
                             :title="$t('app.nav_move_down')"
                             :aria-label="$t('app.nav_move_down')"
                             @click.stop="$emit('nav-reorder', { kind: 'item-offset', itemId: item.id, delta: 1 })"

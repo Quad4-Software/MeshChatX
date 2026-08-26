@@ -1,15 +1,15 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <div class="flex-1 overflow-y-auto w-full pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <div class="border-b border-gray-200 dark:border-zinc-800 px-4 py-4 md:px-6 md:py-5">
+            <div class="border-b border-sem-border px-4 py-4 md:px-6 md:py-5">
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
                     <div class="space-y-2 min-w-0 flex-1">
-                        <div class="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                        <div class="text-2xl md:text-3xl font-black text-sem-fg tracking-tight">
                             {{ $t("tools.power_tools") }}
                         </div>
-                        <div class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed max-w-xl">
+                        <div class="text-sm text-sem-fg-muted leading-relaxed max-w-xl">
                             {{ $t("tools.diagnostics_description") }}
                         </div>
                     </div>
@@ -19,18 +19,18 @@
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <MaterialDesignIcon
                                     icon-name="magnify"
-                                    class="size-5 text-gray-400 group-focus-within:text-blue-500 transition-colors"
+                                    class="size-5 text-gray-400 group-focus-within:text-sem-accent transition-colors"
                                 />
                             </div>
                             <input
                                 v-model="searchQuery"
                                 type="text"
                                 :placeholder="$t('common.search')"
-                                class="w-full pl-10 pr-10 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-sm"
+                                class="w-full pl-10 pr-10 py-3 bg-sem-surface-muted border border-sem-border rounded-lg focus:outline-hidden focus:ring-2 focus:ring-sem-focus/40 focus:border-sem-focus-border text-sem-fg placeholder:text-sem-fg-muted text-sm"
                             />
                             <button
                                 v-if="searchQuery"
-                                class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                class="absolute inset-y-0 right-0 pr-3 flex items-center text-sem-fg-muted hover:text-sem-fg"
                                 type="button"
                                 @click="searchQuery = ''"
                             >
@@ -46,10 +46,10 @@
                     <div
                         v-for="section in groupedToolSections"
                         :key="section.id"
-                        class="mb-6 rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
+                        class="mb-6 rounded-lg overflow-hidden border border-sem-border bg-sem-surface"
                     >
                         <div
-                            class="px-4 py-3 border-b border-gray-200 dark:border-zinc-800 text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-zinc-400"
+                            class="px-4 py-3 border-b border-sem-border text-xs font-bold uppercase tracking-widest text-sem-fg-muted"
                         >
                             {{ $t(`tools.group.${section.id}`) }}
                         </div>
@@ -71,7 +71,7 @@
 
                 <div
                     v-else-if="filteredTools.length > 0"
-                    class="rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
+                    class="rounded-lg overflow-hidden border border-sem-border bg-sem-surface"
                 >
                     <div
                         class="grid grid-cols-1 lg:grid-cols-2 divide-y divide-gray-200 dark:divide-zinc-800 divide-x-0 lg:divide-x lg:divide-y"

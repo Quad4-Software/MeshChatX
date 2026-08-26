@@ -40,7 +40,7 @@
                     <input
                         :value="config.banished_color"
                         type="color"
-                        class="color-fill-input w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 cursor-pointer"
+                        class="color-fill-input w-12 h-10 rounded-xl border border-sem-border cursor-pointer"
                         @input="$emit('color-change', $event.target.value)"
                     />
                     <input

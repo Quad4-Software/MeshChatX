@@ -19,7 +19,7 @@
                             class="flex-1 flex flex-col items-center justify-center py-12 px-4"
                         >
                             <div
-                                class="w-full max-w-md bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-8 flex flex-col items-center text-center shadow-xl"
+                                class="w-full max-w-md bg-sem-surface border border-sem-border rounded-2xl p-8 flex flex-col items-center text-center shadow-xl"
                             >
                                 <div
                                     class="size-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4"
@@ -29,10 +29,10 @@
                                         class="size-8 text-red-600 dark:text-red-400"
                                     />
                                 </div>
-                                <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                                <h2 class="text-xl font-bold text-sem-fg mb-2">
                                     {{ $t("call.lxst_disabled_title") }}
                                 </h2>
-                                <p class="text-sm text-gray-500 dark:text-zinc-400 mb-6">
+                                <p class="text-sm text-sem-fg-muted mb-6">
                                     {{ $t("call.lxst_disabled_body") }}
                                 </p>
                                 <button
@@ -50,14 +50,14 @@
                             <!-- Minimized call bar -->
                             <div
                                 v-if="callMinimized && activeCall"
-                                class="w-full flex-shrink-0 border-b border-gray-200 dark:border-zinc-800"
+                                class="w-full flex-shrink-0 border-b border-sem-border"
                             >
                                 <div
                                     class="flex items-center gap-3 px-4 py-2 bg-blue-50/80 dark:bg-blue-900/20 backdrop-blur-sm"
                                 >
                                     <div class="relative">
                                         <div
-                                            class="size-8 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden"
+                                            class="size-8 rounded-full bg-sem-surface-muted flex items-center justify-center overflow-hidden"
                                         >
                                             <LxmfUserIcon
                                                 :custom-image="activeCall?.custom_image"
@@ -72,12 +72,10 @@
                                         ></div>
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                        <div class="text-sm font-bold text-sem-fg truncate">
                                             {{ activeCall?.remote_identity_name || $t("call.unknown") }}
                                         </div>
-                                        <div
-                                            class="text-[10px] text-gray-500 dark:text-zinc-400 flex items-center gap-2"
-                                        >
+                                        <div class="text-[10px] text-sem-fg-muted flex items-center gap-2">
                                             <span class="size-1.5 bg-green-500 rounded-full animate-pulse"></span>
                                             <span>{{ $t("call.active") }}</span>
                                             <span v-if="elapsedTime" class="font-mono">· {{ elapsedTime }}</span>
@@ -86,7 +84,7 @@
                                     <div class="flex items-center gap-1 shrink-0">
                                         <button
                                             type="button"
-                                            class="size-8 flex items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-gray-600 dark:text-zinc-400"
+                                            class="size-8 flex items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-sem-fg-muted"
                                             title="Expand call"
                                             @click="callMinimized = false"
                                         >
@@ -110,7 +108,7 @@
                                 class="flex-1 flex flex-col items-center justify-center py-12 px-4"
                             >
                                 <div
-                                    class="w-full max-w-md border-b border-gray-200 dark:border-zinc-800 p-8! flex flex-col items-center text-center relative overflow-hidden"
+                                    class="w-full max-w-md border-b border-sem-border p-8! flex flex-col items-center text-center relative overflow-hidden"
                                 >
                                     <!-- Recording indicator -->
                                     <div
@@ -125,7 +123,7 @@
 
                                     <div class="relative mb-8">
                                         <div
-                                            class="size-32 mx-auto bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center border-4 border-white dark:border-zinc-900 shadow-2xl relative z-10"
+                                            class="size-32 mx-auto bg-sem-surface-muted rounded-full flex items-center justify-center border-4 border-white dark:border-zinc-900 shadow-2xl relative z-10"
                                             :class="{
                                                 'ring-4 ring-blue-500/20 animate-pulse':
                                                     activeCall && activeCall.status === 4,
@@ -161,9 +159,7 @@
                                     </div>
 
                                     <div class="relative z-10 space-y-1 mb-8 flex flex-col items-center text-center">
-                                        <h2
-                                            class="text-2xl font-bold text-gray-900 dark:text-white truncate max-w-[280px]"
-                                        >
+                                        <h2 class="text-2xl font-bold text-sem-fg truncate max-w-[280px]">
                                             {{
                                                 (activeCall || lastCall)?.remote_identity_name ||
                                                 initiationTargetName ||
@@ -174,7 +170,7 @@
                                             v-if="
                                                 (activeCall || lastCall)?.remote_identity_hash || initiationTargetHash
                                             "
-                                            class="text-xs font-mono text-gray-400 dark:text-zinc-500 tracking-wider"
+                                            class="text-xs font-mono text-sem-fg-muted tracking-wider"
                                         >
                                             {{
                                                 formatDestinationHash(
@@ -185,18 +181,18 @@
                                         </div>
                                         <div
                                             v-if="activeCall"
-                                            class="mt-1 flex items-center justify-center gap-2 text-[11px] text-gray-500 dark:text-zinc-400"
+                                            class="mt-1 flex items-center justify-center gap-2 text-[11px] text-sem-fg-muted"
                                         >
                                             <span
                                                 v-if="activeCall.path_hops != null"
-                                                class="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-zinc-800 px-2 py-0.5"
+                                                class="inline-flex items-center gap-1 rounded-full bg-sem-surface-muted px-2 py-0.5"
                                             >
                                                 <MaterialDesignIcon icon-name="sitemap-outline" class="size-4" />
                                                 {{ activeCall.path_hops }} hops
                                             </span>
                                             <span
                                                 v-if="activeCall.path_interface"
-                                                class="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 max-w-[16rem]"
+                                                class="inline-flex items-center gap-1 rounded-full bg-sem-surface-muted px-2 py-0.5 max-w-[16rem]"
                                             >
                                                 <MaterialDesignIcon icon-name="access-point-network" class="size-4" />
                                                 <span class="truncate">{{ activeCall.path_interface }}</span>
@@ -204,7 +200,7 @@
                                         </div>
                                         <div
                                             v-if="(activeCall || lastCall)?.is_contact || !!initiationTargetName"
-                                            class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-full uppercase tracking-wider"
+                                            class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-sem-accent text-[10px] font-bold rounded-full uppercase tracking-wider"
                                         >
                                             <MaterialDesignIcon icon-name="check-decagram" class="size-3" />
                                             Contact
@@ -214,7 +210,7 @@
                                     <!-- call status -->
                                     <div class="relative z-10 mb-8">
                                         <div
-                                            class="px-4 py-2 bg-gray-50 dark:bg-zinc-800/50 rounded-2xl inline-block border border-gray-100 dark:border-zinc-800"
+                                            class="px-4 py-2 bg-gray-50 dark:bg-zinc-800/50 rounded-2xl inline-block border border-sem-border"
                                         >
                                             <template v-if="wasDeclined">
                                                 <span class="text-red-500 font-bold text-sm">{{
@@ -222,7 +218,7 @@
                                                 }}</span>
                                             </template>
                                             <template v-else-if="isCallEnded">
-                                                <span class="text-gray-500 dark:text-zinc-400 font-bold text-sm">{{
+                                                <span class="text-sem-fg-muted font-bold text-sm">{{
                                                     $t("call.call_ended")
                                                 }}</span>
                                             </template>
@@ -241,12 +237,12 @@
                                                             activeCall.is_incoming &&
                                                             activeCall.status === 4
                                                         "
-                                                        class="text-blue-600 dark:text-blue-400 font-bold text-sm"
+                                                        class="text-sem-accent font-bold text-sm"
                                                         >{{ $t("call.incoming_call") }}</span
                                                     >
                                                     <span
                                                         v-else
-                                                        class="text-gray-700 dark:text-zinc-300 font-bold text-sm flex items-center gap-2"
+                                                        class="text-sem-fg-muted font-bold text-sm flex items-center gap-2"
                                                     >
                                                         <span v-if="activeCall && activeCall.status === 0"
                                                             >Busy...</span
@@ -289,7 +285,7 @@
                                                     <!-- Duration -->
                                                     <div
                                                         v-if="activeCall && activeCall.status === 6 && elapsedTime"
-                                                        class="text-xs font-mono text-gray-400 dark:text-zinc-500 mt-1"
+                                                        class="text-xs font-mono text-sem-fg-muted mt-1"
                                                     >
                                                         {{ elapsedTime }}
                                                     </div>
@@ -300,67 +296,67 @@
                                                         <div
                                                             class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
                                                         >
-                                                            <div class="text-[10px] text-gray-500 dark:text-zinc-400">
+                                                            <div class="text-[10px] text-sem-fg-muted">
                                                                 {{ $t("call.tx_packets") }}
                                                             </div>
-                                                            <div class="font-semibold text-gray-800 dark:text-zinc-100">
+                                                            <div class="font-semibold text-sem-fg">
                                                                 {{ formatNumber(activeCall.tx_packets) }}
                                                             </div>
                                                         </div>
                                                         <div
                                                             class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
                                                         >
-                                                            <div class="text-[10px] text-gray-500 dark:text-zinc-400">
+                                                            <div class="text-[10px] text-sem-fg-muted">
                                                                 {{ $t("call.rx_packets") }}
                                                             </div>
-                                                            <div class="font-semibold text-gray-800 dark:text-zinc-100">
+                                                            <div class="font-semibold text-sem-fg">
                                                                 {{ formatNumber(activeCall.rx_packets) }}
                                                             </div>
                                                         </div>
                                                         <div
                                                             class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
                                                         >
-                                                            <div class="text-[10px] text-gray-500 dark:text-zinc-400">
+                                                            <div class="text-[10px] text-sem-fg-muted">
                                                                 {{ $t("call.tx_data") }}
                                                             </div>
-                                                            <div class="font-semibold text-gray-800 dark:text-zinc-100">
+                                                            <div class="font-semibold text-sem-fg">
                                                                 {{ formatBytes(activeCall.tx_bytes) }}
                                                             </div>
                                                         </div>
                                                         <div
                                                             class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
                                                         >
-                                                            <div class="text-[10px] text-gray-500 dark:text-zinc-400">
+                                                            <div class="text-[10px] text-sem-fg-muted">
                                                                 {{ $t("call.rx_data") }}
                                                             </div>
-                                                            <div class="font-semibold text-gray-800 dark:text-zinc-100">
+                                                            <div class="font-semibold text-sem-fg">
                                                                 {{ formatBytes(activeCall.rx_bytes) }}
                                                             </div>
                                                         </div>
                                                         <div
                                                             class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
                                                         >
-                                                            <div class="text-[10px] text-gray-500 dark:text-zinc-400">
+                                                            <div class="text-[10px] text-sem-fg-muted">
                                                                 {{ $t("call.tx_rate") }}
                                                             </div>
-                                                            <div class="font-semibold text-gray-800 dark:text-zinc-100">
+                                                            <div class="font-semibold text-sem-fg">
                                                                 {{ formatBitrate(activeCall.tx_bps) }}
                                                             </div>
                                                         </div>
                                                         <div
                                                             class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
                                                         >
-                                                            <div class="text-[10px] text-gray-500 dark:text-zinc-400">
+                                                            <div class="text-[10px] text-sem-fg-muted">
                                                                 {{ $t("call.rx_rate") }}
                                                             </div>
-                                                            <div class="font-semibold text-gray-800 dark:text-zinc-100">
+                                                            <div class="font-semibold text-sem-fg">
                                                                 {{ formatBitrate(activeCall.rx_bps) }}
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <div
                                                         v-if="activeCall && activeCall.status === 6"
-                                                        class="mt-2 text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400"
+                                                        class="mt-2 text-[10px] font-semibold uppercase tracking-wider text-sem-fg-muted"
                                                     >
                                                         {{
                                                             activeCall.is_half_duplex
@@ -380,9 +376,7 @@
                                             </template>
                                             <template v-else-if="initiationStatus">
                                                 <div class="flex flex-col items-center">
-                                                    <span
-                                                        class="text-blue-600 dark:text-blue-400 font-bold text-sm animate-pulse"
-                                                    >
+                                                    <span class="text-sem-accent font-bold text-sm animate-pulse">
                                                         {{ initiationStatus }}
                                                     </span>
                                                 </div>
@@ -390,7 +384,7 @@
                                         </div>
                                         <div
                                             v-if="isCallEnded && callDuration"
-                                            class="text-xs font-mono text-gray-400 dark:text-zinc-500 mt-2"
+                                            class="text-xs font-mono text-sem-fg-muted mt-2"
                                         >
                                             Duration: {{ callDuration }}
                                         </div>
@@ -450,7 +444,7 @@
                                                     :class="[
                                                         isMicMuted
                                                             ? 'bg-red-500 text-white shadow-red-500/20'
-                                                            : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-gray-200/20 dark:shadow-black/20',
+                                                            : 'bg-sem-surface-muted text-sem-fg-secondary hover:bg-gray-200 hover:bg-sem-surface-muted shadow-gray-200/20 dark:shadow-black/20',
                                                     ]"
                                                     class="p-4 rounded-full shadow-lg transition-all duration-200"
                                                     @click="toggleMicrophone"
@@ -472,7 +466,7 @@
                                                     :class="[
                                                         isSpeakerMuted
                                                             ? 'bg-red-500 text-white shadow-red-500/20'
-                                                            : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-gray-200/20 dark:shadow-black/20',
+                                                            : 'bg-sem-surface-muted text-sem-fg-secondary hover:bg-gray-200 hover:bg-sem-surface-muted shadow-gray-200/20 dark:shadow-black/20',
                                                     ]"
                                                     class="p-4 rounded-full shadow-lg transition-all duration-200"
                                                     @click="toggleSpeaker"
@@ -511,7 +505,7 @@
                                             </button>
                                             <div
                                                 v-if="isHalfDuplexCall"
-                                                class="text-center text-[11px] text-gray-500 dark:text-zinc-400"
+                                                class="text-center text-[11px] text-sem-fg-muted"
                                             >
                                                 {{ $t("call.ptt_spacebar_hint") }}
                                             </div>
@@ -547,7 +541,7 @@
                                         <!-- minimize call -->
                                         <button
                                             type="button"
-                                            class="flex items-center justify-center gap-2 rounded-2xl bg-gray-100 dark:bg-zinc-800 py-3 px-4 text-sm font-bold text-gray-700 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all duration-200"
+                                            class="flex items-center justify-center gap-2 rounded-2xl bg-sem-surface-muted py-3 px-4 text-sm font-bold text-sem-fg-muted hover:bg-gray-200 hover:bg-sem-surface-muted transition-all duration-200"
                                             @click="callMinimized = true"
                                         >
                                             <MaterialDesignIcon icon-name="chevron-down" class="size-5" />
@@ -575,21 +569,14 @@
                                 v-if="!((activeCall || isCallEnded || initiationStatus) && !callMinimized)"
                                 class="space-y-6 my-6 max-w-3xl mx-auto w-full"
                             >
-                                <div class="w-full border-b border-gray-200 dark:border-zinc-800 py-2">
+                                <div class="w-full border-b border-sem-border py-2">
                                     <div class="flex items-center gap-3 mb-6">
                                         <div class="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-2xl">
-                                            <MaterialDesignIcon
-                                                icon-name="phone-plus"
-                                                class="size-6 text-blue-600 dark:text-blue-400"
-                                            />
+                                            <MaterialDesignIcon icon-name="phone-plus" class="size-6 text-sem-accent" />
                                         </div>
                                         <div>
-                                            <h2 class="text-lg font-bold text-gray-900 dark:text-white leading-tight">
-                                                New Call
-                                            </h2>
-                                            <p class="text-xs text-gray-500 dark:text-zinc-400">
-                                                Enter an identity to call.
-                                            </p>
+                                            <h2 class="text-lg font-bold text-sem-fg leading-tight">New Call</h2>
+                                            <p class="text-xs text-sem-fg-muted">Enter an identity to call.</p>
                                         </div>
                                     </div>
 
@@ -611,7 +598,7 @@
                                                     <!-- Suggestions Dropdown -->
                                                     <div
                                                         v-if="isCallInputFocused && newCallSuggestions.length > 0"
-                                                        class="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+                                                        class="absolute z-50 left-0 right-0 mt-1 bg-sem-surface border border-sem-border rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
                                                     >
                                                         <div
                                                             v-for="(suggestion, index) in newCallSuggestions"
@@ -619,8 +606,8 @@
                                                             class="px-4 py-2.5 flex items-center gap-3 cursor-pointer transition-colors"
                                                             :class="[
                                                                 index === selectedSuggestionIndex
-                                                                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                                                                    : 'hover:bg-gray-50 dark:hover:bg-zinc-800/50 text-gray-700 dark:text-zinc-300',
+                                                                    ? 'bg-blue-50 dark:bg-blue-900/30 text-sem-accent'
+                                                                    : 'hover:bg-sem-surface-muted/50 text-sem-fg-muted',
                                                             ]"
                                                             @mousedown.prevent="selectSuggestion(suggestion)"
                                                         >
@@ -629,7 +616,7 @@
                                                                 :class="
                                                                     suggestion.type === 'contact'
                                                                         ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600'
-                                                                        : 'bg-gray-100 dark:bg-zinc-800 text-gray-500'
+                                                                        : 'bg-sem-surface-muted text-gray-500'
                                                                 "
                                                             >
                                                                 <MaterialDesignIcon
@@ -704,7 +691,7 @@
                                                             "
                                                             @update:model-value="onToggleWebAudio"
                                                         />
-                                                        <div class="text-xs text-gray-500 dark:text-zinc-400 px-1">
+                                                        <div class="text-xs text-sem-fg-muted px-1">
                                                             <template v-if="isMeshChatXAndroid()">
                                                                 Always on for Android calls. Audio goes through the
                                                                 phone's native mic and speaker (AudioRecord and
@@ -825,7 +812,7 @@
                                                         </select>
                                                     </div>
                                                     <button
-                                                        class="text-[10px] bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-zinc-400 py-1 rounded-lg font-bold uppercase tracking-wider hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                                                        class="text-[10px] bg-gray-100 text-gray-600 dark:bg-zinc-800 text-sem-fg-muted py-1 rounded-lg font-bold uppercase tracking-wider hover:bg-gray-200 hover:bg-sem-surface-muted transition-colors"
                                                         type="button"
                                                         @click="onRefreshAudioDevices"
                                                     >
@@ -843,27 +830,27 @@
                                 v-if="callHistory.length > 0 && !activeCall && !isCallEnded"
                                 class="space-y-4 max-w-3xl mx-auto w-full"
                             >
-                                <div class="w-full border-b border-gray-200 dark:border-zinc-800 p-0! overflow-hidden">
+                                <div class="w-full border-b border-sem-border p-0! overflow-hidden">
                                     <div
-                                        class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex flex-col gap-4 bg-transparent"
+                                        class="px-5 py-4 border-b border-sem-border flex flex-col gap-4 bg-transparent"
                                     >
                                         <div class="flex justify-between items-center">
                                             <div class="flex items-center gap-2">
                                                 <div class="p-1.5 bg-gray-200/50 dark:bg-zinc-800 rounded-lg">
                                                     <MaterialDesignIcon
                                                         icon-name="history"
-                                                        class="size-4 text-gray-600 dark:text-zinc-400"
+                                                        class="size-4 text-sem-fg-muted"
                                                     />
                                                 </div>
                                                 <h3
-                                                    class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-widest"
+                                                    class="text-xs font-bold text-sem-fg-muted uppercase tracking-widest"
                                                 >
                                                     Call History
                                                 </h3>
                                             </div>
                                             <button
                                                 type="button"
-                                                class="text-[10px] text-gray-400 hover:text-red-500 font-bold uppercase tracking-wider transition-colors bg-white dark:bg-zinc-900 px-2 py-1 rounded-md border border-gray-200 dark:border-zinc-800"
+                                                class="text-[10px] text-gray-400 hover:text-red-500 font-bold uppercase tracking-wider transition-colors bg-sem-surface px-2 py-1 rounded-md border border-sem-border"
                                                 @click="clearHistory"
                                             >
                                                 {{ $t("app.clear_history") }}
@@ -908,7 +895,7 @@
                                                         icon-class="size-10"
                                                     />
                                                     <div
-                                                        class="absolute -bottom-1 -right-1 bg-white dark:bg-zinc-900 rounded-full p-0.5 shadow-xs border border-gray-100 dark:border-zinc-800 shrink-0 flex items-center justify-center size-5"
+                                                        class="absolute -bottom-1 -right-1 bg-sem-surface rounded-full p-0.5 shadow-xs border border-sem-border shrink-0 flex items-center justify-center size-5"
                                                     >
                                                         <MaterialDesignIcon
                                                             :icon-name="
@@ -924,14 +911,10 @@
 
                                                 <div class="flex-1 min-w-0">
                                                     <div class="flex items-center justify-between">
-                                                        <div
-                                                            class="text-sm font-bold text-gray-900 dark:text-white truncate"
-                                                        >
+                                                        <div class="text-sm font-bold text-sem-fg truncate">
                                                             {{ entry.remote_identity_name || $t("call.unknown") }}
                                                         </div>
-                                                        <div
-                                                            class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono shrink-0"
-                                                        >
+                                                        <div class="text-[10px] text-sem-fg-muted font-mono shrink-0">
                                                             {{
                                                                 entry.timestamp
                                                                     ? formatDateTime(entry.timestamp * 1000)
@@ -943,7 +926,7 @@
                                                     <div class="flex items-center justify-between mt-0.5">
                                                         <div class="min-w-0">
                                                             <div
-                                                                class="flex items-center gap-2 text-[10px] text-gray-500 dark:text-zinc-400"
+                                                                class="flex items-center gap-2 text-[10px] text-sem-fg-muted"
                                                             >
                                                                 <span class="capitalize">{{ entry.status }}</span>
                                                                 <span
@@ -1040,11 +1023,11 @@
                                     </ul>
                                     <div
                                         v-if="hasMoreCallHistory"
-                                        class="p-4 border-t border-gray-100 dark:border-zinc-800 text-center bg-gray-50/30 dark:bg-zinc-800/10"
+                                        class="p-4 border-t border-sem-border text-center bg-gray-50/30 dark:bg-zinc-800/10"
                                     >
                                         <button
                                             type="button"
-                                            class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline uppercase tracking-wider"
+                                            class="text-xs font-bold text-sem-accent hover:underline uppercase tracking-wider"
                                             @click="loadMoreCallHistory"
                                         >
                                             {{ $t("call.load_more") }}
@@ -1117,7 +1100,7 @@
 
                     <!-- Ringtone Tab -->
                     <div v-if="activeTab === 'ringtone' && config" class="flex-1 space-y-6 max-w-3xl mx-auto w-full">
-                        <div class="w-full border-b border-gray-200 dark:border-zinc-800 py-6">
+                        <div class="w-full border-b border-sem-border py-6">
                             <template v-if="isRingtoneEditorOpen">
                                 <RingtoneEditor
                                     :ringtone="editingRingtoneForAudio"
@@ -1127,7 +1110,7 @@
                             </template>
                             <template v-else>
                                 <h3
-                                    class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-6 flex items-center gap-2"
+                                    class="text-sm font-bold text-sem-fg uppercase tracking-wider mb-6 flex items-center gap-2"
                                 >
                                     <MaterialDesignIcon icon-name="music" class="size-5 text-blue-500" />
                                     {{ $t("call.ringtone_settings") }}
@@ -1138,7 +1121,7 @@
                                     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                                         <div class="flex-1">
                                             <div class="flex items-center justify-between mb-1">
-                                                <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                                                <div class="text-sm font-semibold text-sem-fg">
                                                     {{ $t("call.enable_custom_ringtone") }}
                                                 </div>
                                                 <button
@@ -1166,7 +1149,7 @@
                                                     ></span>
                                                 </button>
                                             </div>
-                                            <div class="text-xs text-gray-500 dark:text-zinc-400">
+                                            <div class="text-xs text-sem-fg-muted">
                                                 {{ $t("call.enable_custom_ringtone_description") }}
                                             </div>
                                         </div>
@@ -1174,7 +1157,7 @@
                                         <div class="flex-1 md:max-w-xs">
                                             <div class="flex items-center justify-between mb-2">
                                                 <label
-                                                    class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider"
+                                                    class="text-xs font-bold text-sem-fg-muted uppercase tracking-wider"
                                                 >
                                                     {{ $t("call.ringtone_volume") }}
                                                 </label>
@@ -1195,13 +1178,11 @@
 
                                     <!-- Tone Generator Settings -->
                                     <div
-                                        class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pt-4 border-t border-gray-100 dark:border-zinc-800/50"
+                                        class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pt-4 border-t border-sem-border/50"
                                     >
                                         <div class="flex-1">
                                             <div class="flex items-center justify-between mb-1">
-                                                <div class="text-sm font-semibold text-gray-900 dark:text-white">
-                                                    Tone Generator
-                                                </div>
+                                                <div class="text-sm font-semibold text-sem-fg">Tone Generator</div>
                                                 <button
                                                     class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden"
                                                     :class="
@@ -1228,7 +1209,7 @@
                                                     ></span>
                                                 </button>
                                             </div>
-                                            <div class="text-xs text-gray-500 dark:text-zinc-400">
+                                            <div class="text-xs text-sem-fg-muted">
                                                 Play audio feedback during call dialing and disconnection.
                                             </div>
                                         </div>
@@ -1236,7 +1217,7 @@
                                         <div v-if="config.telephone_tone_generator_enabled" class="flex-1 md:max-w-xs">
                                             <div class="flex items-center justify-between mb-2">
                                                 <label
-                                                    class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider"
+                                                    class="text-xs font-bold text-sem-fg-muted uppercase tracking-wider"
                                                 >
                                                     Tone Volume
                                                 </label>
@@ -1266,10 +1247,10 @@
                                     >
                                         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                                             <div>
-                                                <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                                                <div class="text-sm font-semibold text-sem-fg">
                                                     {{ $t("call.default_ringtone") }}
                                                 </div>
-                                                <div class="text-xs text-gray-500 dark:text-zinc-400">
+                                                <div class="text-xs text-sem-fg-muted">
                                                     {{ $t("call.ringtone_for_non_contacts") }}
                                                 </div>
                                             </div>
@@ -1296,12 +1277,12 @@
                                     <!-- Ringtone List -->
                                     <div class="space-y-4">
                                         <div class="flex items-center justify-between">
-                                            <label class="text-sm font-semibold text-gray-700 dark:text-zinc-300">
+                                            <label class="text-sm font-semibold text-sem-fg-muted">
                                                 My Ringtones
                                             </label>
                                             <button
                                                 type="button"
-                                                class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                                                class="text-xs font-bold text-sem-accent hover:underline flex items-center gap-1"
                                                 @click="$refs.ringtoneUpload.click()"
                                             >
                                                 <MaterialDesignIcon icon-name="plus" class="size-4" />
@@ -1320,7 +1301,7 @@
                                             <div
                                                 v-for="ringtone in ringtones"
                                                 :key="ringtone.id"
-                                                class="group p-4 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/30 flex items-center gap-4 transition-all hover:shadow-md overflow-hidden"
+                                                class="group p-4 rounded-xl border border-sem-border bg-gray-50/50 dark:bg-zinc-800/30 flex items-center gap-4 transition-all hover:shadow-md overflow-hidden"
                                                 :class="{
                                                     'ring-2 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-900/10':
                                                         ringtone.is_primary,
@@ -1333,21 +1314,21 @@
                                                     >
                                                         <input
                                                             v-model="editingRingtoneName"
-                                                            class="text-sm bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-sm px-2 py-1 flex-1 min-w-0"
+                                                            class="text-sm bg-sem-surface border border-sem-border rounded-sm px-2 py-1 flex-1 min-w-0"
                                                             @keyup.enter="saveRingtoneName"
                                                             @blur="saveRingtoneName"
                                                         />
                                                     </div>
                                                     <div v-else class="flex items-center gap-2 min-w-0">
                                                         <span
-                                                            class="text-sm font-medium text-gray-900 dark:text-white truncate"
+                                                            class="text-sm font-medium text-sem-fg truncate"
                                                             :title="ringtone.display_name"
                                                         >
                                                             {{ ringtone.display_name }}
                                                         </span>
                                                         <span
                                                             v-if="ringtone.is_primary"
-                                                            class="shrink-0 text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded-sm"
+                                                            class="shrink-0 text-[10px] uppercase font-bold text-sem-accent bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded-sm"
                                                         >
                                                             Primary
                                                         </span>
@@ -1359,7 +1340,7 @@
                                                         </button>
                                                     </div>
                                                     <div
-                                                        class="text-[10px] text-gray-500 dark:text-zinc-500 truncate"
+                                                        class="text-[10px] text-sem-fg-muted truncate"
                                                         :title="ringtone.filename"
                                                     >
                                                         {{ ringtone.filename }}
@@ -1369,13 +1350,13 @@
                                                 <div class="flex items-center gap-1">
                                                     <a
                                                         :href="`/api/v1/telephone/ringtones/${ringtone.id}/audio?download=1`"
-                                                        class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-gray-500 dark:text-gray-400 hover:text-blue-500 transition-colors"
+                                                        class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-sem-fg-muted hover:text-blue-500 transition-colors"
                                                         title="Download"
                                                     >
                                                         <MaterialDesignIcon icon-name="download" class="size-5" />
                                                     </a>
                                                     <button
-                                                        class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-gray-500 dark:text-gray-400 transition-colors"
+                                                        class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-sem-fg-muted transition-colors"
                                                         :title="
                                                             isPlayingRingtone && playingRingtoneId === ringtone.id
                                                                 ? 'Stop'
@@ -1393,7 +1374,7 @@
                                                         />
                                                     </button>
                                                     <button
-                                                        class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-gray-500 dark:text-gray-400 hover:text-blue-500 transition-colors"
+                                                        class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-sem-fg-muted hover:text-blue-500 transition-colors"
                                                         title="Edit Audio"
                                                         @click="openRingtoneEditor(ringtone)"
                                                     >
@@ -1401,14 +1382,14 @@
                                                     </button>
                                                     <button
                                                         v-if="!ringtone.is_primary"
-                                                        class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-gray-500 dark:text-gray-400 hover:text-blue-500 transition-colors"
+                                                        class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-sem-fg-muted hover:text-blue-500 transition-colors"
                                                         title="Set as Primary"
                                                         @click="setPrimaryRingtone(ringtone)"
                                                     >
                                                         <MaterialDesignIcon icon-name="star-outline" class="size-5" />
                                                     </button>
                                                     <button
-                                                        class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors"
+                                                        class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-sem-fg-muted hover:text-red-500 transition-colors"
                                                         title="Delete"
                                                         @click="deleteRingtone(ringtone)"
                                                     >
@@ -1419,13 +1400,13 @@
                                         </div>
                                         <div
                                             v-else
-                                            class="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-100 dark:border-zinc-800 rounded-2xl bg-gray-50/30 dark:bg-zinc-900/20"
+                                            class="flex flex-col items-center justify-center p-8 border-2 border-dashed border-sem-border rounded-2xl bg-gray-50/30 dark:bg-zinc-900/20"
                                         >
                                             <MaterialDesignIcon
                                                 icon-name="music-off"
                                                 class="size-8 text-gray-300 dark:text-zinc-700 mb-2"
                                             />
-                                            <div class="text-xs text-gray-500 dark:text-zinc-500">
+                                            <div class="text-xs text-sem-fg-muted">
                                                 {{ $t("call.no_custom_ringtone_uploaded") }}
                                             </div>
                                         </div>
@@ -1443,7 +1424,7 @@
                                     v-model="recordingSearch"
                                     type="text"
                                     :placeholder="$t('call.search_recordings')"
-                                    class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                                    class="block w-full rounded-lg border-0 py-2 pl-10 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                                     @input="onRecordingSearchInput"
                                 />
                                 <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -1453,13 +1434,13 @@
                         </div>
 
                         <div class="flex-1 overflow-y-auto min-h-0">
-                            <div class="border-b border-gray-200 dark:border-zinc-800 overflow-hidden">
+                            <div class="border-b border-sem-border overflow-hidden">
                                 <div v-if="recordings.length === 0" class="py-12 text-center">
                                     <MaterialDesignIcon
                                         icon-name="microphone-off"
                                         class="size-12 text-gray-300 dark:text-zinc-700 mx-auto mb-2"
                                     />
-                                    <p class="text-gray-500 dark:text-zinc-500 text-sm">
+                                    <p class="text-sem-fg-muted text-sm">
                                         {{ $t("call.no_recordings") }}
                                     </p>
                                 </div>
@@ -1467,7 +1448,7 @@
                                     <li
                                         v-for="recording in recordings"
                                         :key="recording.id"
-                                        class="px-4 py-4 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
+                                        class="px-4 py-4 hover:bg-sem-surface-muted/50 transition-colors"
                                     >
                                         <div class="flex items-start space-x-4">
                                             <div class="shrink-0">
@@ -1480,25 +1461,21 @@
                                                 />
                                                 <div
                                                     v-else
-                                                    class="size-10 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-gray-400"
+                                                    class="size-10 rounded-full bg-sem-surface-muted flex items-center justify-center text-gray-400"
                                                 >
                                                     <MaterialDesignIcon icon-name="account" class="size-6" />
                                                 </div>
                                             </div>
                                             <div class="flex-1 min-w-0">
                                                 <div class="flex items-center justify-between mb-1">
-                                                    <p class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                                    <p class="text-sm font-bold text-sem-fg truncate">
                                                         {{ recording.remote_identity_name || $t("call.unknown") }}
                                                     </p>
-                                                    <span
-                                                        class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono"
-                                                    >
+                                                    <span class="text-[10px] text-sem-fg-muted font-mono">
                                                         {{ formatDateTime(recording.timestamp * 1000) }}
                                                     </span>
                                                 </div>
-                                                <div
-                                                    class="flex items-center text-xs text-gray-500 dark:text-zinc-400 space-x-3 mb-3"
-                                                >
+                                                <div class="flex items-center text-xs text-sem-fg-muted space-x-3 mb-3">
                                                     <span class="flex items-center gap-1">
                                                         <MaterialDesignIcon icon-name="clock-outline" class="size-3" />
                                                         {{ formatDuration(recording.duration_seconds) }}
@@ -1515,7 +1492,7 @@
                                                     <!-- RX Play -->
                                                     <button
                                                         type="button"
-                                                        class="px-2 py-1 rounded-md bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1"
+                                                        class="px-2 py-1 rounded-md bg-blue-500/10 hover:bg-blue-500/20 text-sem-accent text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1"
                                                         @click="playRecording(recording, 'rx')"
                                                     >
                                                         <MaterialDesignIcon
@@ -1591,22 +1568,22 @@
             @click.self="isContactModalOpen = false"
         >
             <div
-                class="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl overflow-hidden transform transition-all scale-100"
+                class="w-full max-w-lg bg-sem-surface rounded-3xl shadow-2xl overflow-hidden transform transition-all scale-100"
             >
                 <div
-                    class="px-6 py-5 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between bg-gray-50/50 dark:bg-zinc-900/50"
+                    class="px-6 py-5 border-b border-sem-border flex items-center justify-between bg-gray-50/50 dark:bg-zinc-900/50"
                 >
                     <div class="flex items-center gap-3">
-                        <div class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
+                        <div class="p-2 bg-blue-100 dark:bg-blue-900/30 text-sem-accent rounded-xl">
                             <MaterialDesignIcon icon-name="account-plus" class="size-6" />
                         </div>
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+                        <h3 class="text-xl font-bold text-sem-fg tracking-tight">
                             {{ editingContact ? $t("call.edit_contact") : $t("call.add_contact") }}
                         </h3>
                     </div>
                     <button
                         type="button"
-                        class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-all"
+                        class="p-2 text-gray-400 hover:text-gray-600 hover:text-sem-fg hover:bg-sem-surface-muted rounded-full transition-all"
                         @click="isContactModalOpen = false"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-6" />
@@ -1618,7 +1595,7 @@
                         <div class="flex flex-col items-center justify-center pb-4">
                             <div class="relative group">
                                 <div
-                                    class="size-24 rounded-full overflow-hidden bg-gray-100 dark:bg-zinc-800 border-2 border-dashed border-gray-300 dark:border-zinc-700 flex items-center justify-center"
+                                    class="size-24 rounded-full overflow-hidden bg-sem-surface-muted border-2 border-dashed border-gray-300 dark:border-zinc-700 flex items-center justify-center"
                                 >
                                     <img
                                         v-if="contactForm.custom_image"
@@ -1658,7 +1635,7 @@
                         </div>
                         <div>
                             <label
-                                class="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 ml-1"
+                                class="block text-xs font-bold text-sem-fg-muted uppercase tracking-wider mb-1.5 ml-1"
                             >
                                 {{ $t("call.contact_name") }}
                             </label>
@@ -1671,7 +1648,7 @@
                         </div>
                         <div>
                             <label
-                                class="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 ml-1"
+                                class="block text-xs font-bold text-sem-fg-muted uppercase tracking-wider mb-1.5 ml-1"
                             >
                                 {{ $t("call.identity_hash") }}
                             </label>
@@ -1685,7 +1662,7 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label
-                                    class="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 ml-1"
+                                    class="block text-xs font-bold text-sem-fg-muted uppercase tracking-wider mb-1.5 ml-1"
                                 >
                                     {{ $t("app.lxmf_address") }}
                                 </label>
@@ -1698,7 +1675,7 @@
                             </div>
                             <div>
                                 <label
-                                    class="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 ml-1"
+                                    class="block text-xs font-bold text-sem-fg-muted uppercase tracking-wider mb-1.5 ml-1"
                                 >
                                     {{ $t("identities.lxst_address") }}
                                 </label>
@@ -1712,7 +1689,7 @@
                         </div>
                         <div>
                             <label
-                                class="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 ml-1"
+                                class="block text-xs font-bold text-sem-fg-muted uppercase tracking-wider mb-1.5 ml-1"
                             >
                                 {{ $t("call.preferred_ringtone") }}
                             </label>
@@ -1731,7 +1708,7 @@
                     <div class="flex gap-3 mt-8">
                         <button
                             type="button"
-                            class="flex-1 px-6 py-3 rounded-2xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-bold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                            class="flex-1 px-6 py-3 rounded-2xl bg-sem-surface-muted text-sem-fg-muted font-bold hover:bg-gray-200 hover:bg-sem-surface-muted transition-all active:scale-95"
                             @click="isContactModalOpen = false"
                         >
                             {{ $t("common.cancel") }}

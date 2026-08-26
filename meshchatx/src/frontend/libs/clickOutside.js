@@ -84,7 +84,11 @@ export function execHandler({ event, handler, middleware }) {
  */
 export function isClickOutsideElement({ el, event }) {
     const path =
-        typeof event.composedPath === "function" ? event.composedPath() : Array.isArray(event.path) ? event.path : null;
+        typeof event.composedPath === "function"
+            ? event.composedPath()
+            : "path" in event && Array.isArray(event.path)
+              ? event.path
+              : null;
     if (path) {
         return path.indexOf(el) < 0;
     }

@@ -4,7 +4,7 @@
     <div class="inline-flex">
         <button
             type="button"
-            class="my-auto inline-flex items-center gap-x-1 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-900 dark:hover:text-white transition-colors"
+            class="my-auto inline-flex items-center gap-x-1 rounded-lg px-2 py-1.5 text-xs font-medium text-sem-fg-muted hover:bg-sem-surface-muted hover:text-gray-900 dark:hover:text-white transition-colors"
             @click="showMenu"
         >
             <MaterialDesignIcon icon-name="image-plus" class="w-4 h-4" />
@@ -23,33 +23,33 @@
                 <div
                     v-if="isShowingMenu"
                     v-click-outside="hideMenu"
-                    class="absolute bottom-0 -ml-11 sm:right-0 sm:ml-0 z-10 mb-10 rounded-xl bg-white dark:bg-zinc-900 shadow-lg ring-1 ring-gray-200 dark:ring-zinc-800 focus:outline-hidden"
+                    class="absolute bottom-0 -ml-11 sm:right-0 sm:ml-0 z-10 mb-10 rounded-xl bg-sem-surface shadow-lg ring-1 ring-gray-200 dark:ring-zinc-800 focus:outline-hidden"
                 >
                     <div class="py-1">
                         <button
                             type="button"
-                            class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
+                            class="w-full block text-left px-4 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted whitespace-nowrap"
                             @click="addImage('low')"
                         >
                             {{ $t("messages.image_quality_low") }}
                         </button>
                         <button
                             type="button"
-                            class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
+                            class="w-full block text-left px-4 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted whitespace-nowrap"
                             @click="addImage('medium')"
                         >
                             {{ $t("messages.image_quality_medium") }}
                         </button>
                         <button
                             type="button"
-                            class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
+                            class="w-full block text-left px-4 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted whitespace-nowrap"
                             @click="addImage('high')"
                         >
                             {{ $t("messages.image_quality_high") }}
                         </button>
                         <button
                             type="button"
-                            class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
+                            class="w-full block text-left px-4 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted whitespace-nowrap"
                             @click="addImage('original')"
                         >
                             {{ $t("messages.image_quality_original") }}

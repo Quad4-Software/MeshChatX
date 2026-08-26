@@ -1,20 +1,20 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="space-y-3 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/40 p-3">
+    <div class="space-y-3 rounded-xl border border-sem-border bg-gray-50/50 dark:bg-zinc-900/40 p-3">
         <div class="flex items-center justify-between gap-2">
-            <span class="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-widest">{{
+            <span class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest">{{
                 $t("map.vector_exchange_title")
             }}</span>
         </div>
-        <label class="flex items-center gap-2 text-[10px] text-gray-600 dark:text-zinc-400 cursor-pointer select-none">
+        <label class="flex items-center gap-2 text-[10px] text-sem-fg-muted cursor-pointer select-none">
             <input v-model="mergeImport" type="checkbox" class="rounded-sm border-gray-300 dark:border-zinc-600" />
             {{ $t("map.vector_exchange_merge") }}
         </label>
         <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
             <button
                 type="button"
-                class="py-2 px-2 text-[10px] font-bold uppercase rounded-lg bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-gray-800 dark:text-zinc-100 hover:bg-gray-50 dark:hover:bg-zinc-800 disabled:opacity-40"
+                class="py-2 px-2 text-[10px] font-bold uppercase rounded-lg bg-sem-surface border border-sem-border text-sem-fg hover:bg-sem-surface-muted disabled:opacity-40"
                 :disabled="disabled"
                 @click="triggerGeoJsonPick"
             >
@@ -22,7 +22,7 @@
             </button>
             <button
                 type="button"
-                class="py-2 px-2 text-[10px] font-bold uppercase rounded-lg bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-gray-800 dark:text-zinc-100 hover:bg-gray-50 dark:hover:bg-zinc-800 disabled:opacity-40"
+                class="py-2 px-2 text-[10px] font-bold uppercase rounded-lg bg-sem-surface border border-sem-border text-sem-fg hover:bg-sem-surface-muted disabled:opacity-40"
                 :disabled="disabled"
                 @click="triggerKmlPick"
             >
@@ -30,7 +30,7 @@
             </button>
             <button
                 type="button"
-                class="py-2 px-2 text-[10px] font-bold uppercase rounded-lg bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-gray-800 dark:text-zinc-100 hover:bg-gray-50 dark:hover:bg-zinc-800 disabled:opacity-40"
+                class="py-2 px-2 text-[10px] font-bold uppercase rounded-lg bg-sem-surface border border-sem-border text-sem-fg hover:bg-sem-surface-muted disabled:opacity-40"
                 :disabled="disabled"
                 @click="triggerKmzPick"
             >
@@ -61,7 +61,7 @@
                 {{ $t("map.vector_export_kmz") }}
             </button>
         </div>
-        <p class="text-[9px] text-gray-500 dark:text-zinc-500 leading-snug">
+        <p class="text-[9px] text-sem-fg-muted leading-snug">
             {{ $t("map.vector_exchange_hint") }}
         </p>
         <input

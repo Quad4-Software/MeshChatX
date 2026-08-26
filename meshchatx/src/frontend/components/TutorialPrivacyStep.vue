@@ -258,10 +258,10 @@ export default {
     @apply space-y-1 text-center sm:text-left;
 }
 .tutorial-privacy__title {
-    @apply text-xl sm:text-2xl font-black text-gray-900 dark:text-white;
+    @apply text-xl sm:text-2xl font-black text-sem-fg;
 }
 .tutorial-privacy__desc {
-    @apply text-sm text-gray-600 dark:text-zinc-400 max-w-xl mx-auto sm:mx-0;
+    @apply text-sm text-sem-fg-muted max-w-xl mx-auto sm:mx-0;
 }
 .tutorial-privacy__list {
     @apply space-y-2 w-full max-w-xl mx-auto sm:mx-0;
@@ -276,10 +276,10 @@ export default {
     @apply text-xs text-amber-950/90 dark:text-amber-100/90;
 }
 .tutorial-privacy__hint {
-    @apply text-xs text-center sm:text-left text-gray-500 dark:text-zinc-500 max-w-xl mx-auto sm:mx-0;
+    @apply text-xs text-center sm:text-left text-sem-fg-muted max-w-xl mx-auto sm:mx-0;
 }
 .tutorial-privacy :deep(.setting-toggle) {
-    @apply relative flex flex-row-reverse items-start gap-3 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 px-3 py-2.5;
+    @apply relative flex flex-row-reverse items-start gap-3 rounded-2xl border border-sem-border bg-white/70 dark:bg-zinc-900/70 px-3 py-2.5;
 }
 .tutorial-privacy :deep(.setting-toggle > label) {
     @apply shrink-0 self-start mt-0.5;
@@ -291,9 +291,9 @@ export default {
     @apply flex-1 min-w-0 flex flex-col gap-0.5;
 }
 .tutorial-privacy :deep(.setting-toggle__title) {
-    @apply text-sm font-semibold text-gray-900 dark:text-white wrap-break-word leading-snug;
+    @apply text-sm font-semibold text-sem-fg wrap-break-word leading-snug;
 }
 .tutorial-privacy :deep(.setting-toggle__description) {
-    @apply text-xs text-gray-600 dark:text-gray-300 wrap-break-word leading-snug;
+    @apply text-xs text-sem-fg-muted wrap-break-word leading-snug;
 }
 </style>

@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             icon="map-marker-path"
             :title="$t('tools.rnpath_trace.title')"
@@ -15,7 +15,7 @@
                     title="Refresh Trace"
                     @click="runTrace"
                 >
-                    <MaterialDesignIcon icon-name="refresh" class="size-5" :class="{ 'animate-spin': isLoading }" />
+                    <MaterialDesignIcon icon-name="refresh" :class="['size-5', { 'animate-spin': isLoading }]" />
                 </button>
             </template>
         </ToolsPageHeader>
@@ -25,20 +25,18 @@
                 class="p-3 sm:p-4 md:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6 pb-[max(1rem,env(safe-area-inset-bottom))]"
             >
                 <!-- main input card -->
-                <div
-                    class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-3 sm:p-4 md:p-6"
-                >
+                <div class="rounded-lg border border-sem-border bg-sem-surface p-3 sm:p-4 md:p-6">
                     <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                         <div class="relative flex-1 min-w-0">
                             <input
                                 v-model="destinationHash"
                                 type="text"
                                 placeholder="input destination hash"
-                                class="w-full pl-4 pr-12 py-3 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm md:text-base font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-hidden transition-all dark:text-white"
+                                class="w-full pl-4 pr-12 py-3 bg-gray-50 dark:bg-zinc-800 border border-sem-border rounded-lg text-sm md:text-base font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-hidden transition-all dark:text-white"
                                 @keyup.enter="runTrace"
                             />
                             <div
-                                class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400 dark:text-zinc-500"
+                                class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-sem-fg-muted"
                             >
                                 <MaterialDesignIcon icon-name="identifier" class="size-5" />
                             </div>
@@ -66,7 +64,7 @@
                     <!-- loading state -->
                     <div
                         v-if="isLoading"
-                        class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-8 sm:p-12 flex flex-col items-center justify-center gap-4"
+                        class="rounded-lg border border-sem-border bg-sem-surface p-8 sm:p-12 flex flex-col items-center justify-center gap-4"
                     >
                         <div class="relative">
                             <div
@@ -81,7 +79,7 @@
                     <!-- error state -->
                     <div
                         v-else-if="error"
-                        class="rounded-lg border border-gray-200 dark:border-zinc-800 border-l-4 border-l-red-500 p-4 sm:p-6 bg-red-50/50 dark:bg-red-900/10"
+                        class="rounded-lg border border-sem-border border-l-4 border-l-red-500 p-4 sm:p-6 bg-red-50/50 dark:bg-red-900/10"
                     >
                         <div class="flex items-start gap-3 text-red-600 dark:text-red-400">
                             <MaterialDesignIcon icon-name="alert-circle" class="size-5 md:size-6 shrink-0 mt-0.5" />
@@ -100,9 +98,7 @@
                         class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500"
                     >
                         <!-- compact summary bar -->
-                        <div
-                            class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-1 overflow-hidden"
-                        >
+                        <div class="rounded-lg border border-sem-border bg-sem-surface p-1 overflow-hidden">
                             <div class="flex flex-wrap items-center divide-x divide-gray-100 dark:divide-zinc-800">
                                 <div class="flex-1 min-w-[120px] p-3 md:p-4 flex flex-col items-center text-center">
                                     <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
@@ -116,9 +112,7 @@
                                     <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
                                         {{ $t("tools.rnpath_trace.interface") }}
                                     </div>
-                                    <div
-                                        class="text-xs md:text-sm font-bold text-gray-700 dark:text-zinc-200 truncate max-w-full"
-                                    >
+                                    <div class="text-xs md:text-sm font-bold text-sem-fg-secondary truncate max-w-full">
                                         {{ traceResult.interface || "None" }}
                                     </div>
                                 </div>
@@ -129,7 +123,7 @@
                                         {{ $t("tools.rnpath_trace.next_hop") }}
                                     </div>
                                     <div
-                                        class="text-[10px] md:text-xs font-mono font-bold text-gray-700 dark:text-zinc-300 truncate max-w-full"
+                                        class="text-[10px] md:text-xs font-mono font-bold text-sem-fg-muted truncate max-w-full"
                                     >
                                         {{ traceResult.next_hop || "N/A" }}
                                     </div>
@@ -138,9 +132,7 @@
                         </div>
 
                         <!-- path visualization -->
-                        <div
-                            class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 md:p-10 lg:p-16"
-                        >
+                        <div class="rounded-lg border border-sem-border bg-sem-surface p-4 sm:p-6 md:p-10 lg:p-16">
                             <!-- Desktop View (Horizontal) -->
                             <div class="hidden md:flex items-start justify-center min-w-fit py-4">
                                 <template v-for="(node, idx) in traceResult.path" :key="'d-' + idx">
@@ -153,7 +145,7 @@
                                             <MaterialDesignIcon :icon-name="getNodeIcon(node)" class="size-7" />
                                         </div>
                                         <div class="mt-4 text-center px-2 w-full">
-                                            <div class="text-[11px] font-bold text-gray-900 dark:text-white truncate">
+                                            <div class="text-[11px] font-bold text-sem-fg truncate">
                                                 {{
                                                     node.name ||
                                                     formatHash(node.hash) ||
@@ -228,7 +220,7 @@
 
                                         <!-- content -->
                                         <div class="flex-1 pb-6 pt-1 min-w-0">
-                                            <div class="font-bold text-sm text-gray-900 dark:text-white truncate">
+                                            <div class="font-bold text-sm text-sem-fg truncate">
                                                 {{
                                                     node.name ||
                                                     (node.type === "unknown"
@@ -238,7 +230,7 @@
                                             </div>
                                             <div
                                                 v-if="node.hash"
-                                                class="text-[10px] font-mono text-gray-500 dark:text-gray-400 mt-0.5 truncate"
+                                                class="text-[10px] font-mono text-sem-fg-muted mt-0.5 truncate"
                                             >
                                                 {{ node.hash }}
                                             </div>
@@ -265,7 +257,7 @@
                                 {{ $t("tools.rnpath_trace.ping_test") }}
                             </button>
                             <button
-                                class="w-full sm:w-auto px-6 py-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-300 rounded-2xl font-bold transition flex items-center justify-center gap-2 text-sm"
+                                class="w-full sm:w-auto px-6 py-3 bg-sem-surface border border-sem-border hover:bg-sem-surface-muted text-sem-fg-muted rounded-2xl font-bold transition flex items-center justify-center gap-2 text-sm"
                                 @click="copyDestinationHash"
                             >
                                 <MaterialDesignIcon icon-name="content-copy" class="size-5" />
@@ -340,7 +332,7 @@ export default {
             if (node.type === "local") return "bg-blue-600 text-white";
             if (node.type === "destination") return "bg-emerald-600 text-white";
             if (node.type === "unknown")
-                return "bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-gray-600 border-2 border-dashed border-gray-200 dark:border-zinc-700 shadow-none";
+                return "bg-sem-surface-muted text-gray-400 dark:text-gray-600 border-2 border-dashed border-sem-border shadow-none";
             return "bg-indigo-600 text-white";
         },
         getNodeIcon(node) {

@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             icon="route"
             :title="$t('tools.rnpath.title')"
@@ -27,7 +27,7 @@
             class="flex-1 overflow-y-auto min-w-0 p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 pb-[max(1rem,env(safe-area-inset-bottom))]"
         >
             <!-- tabs -->
-            <div class="-mx-3 sm:mx-0 overflow-x-auto border-b border-gray-200 dark:border-zinc-800">
+            <div class="-mx-3 sm:mx-0 overflow-x-auto border-b border-sem-border">
                 <div class="flex min-w-0 px-3 sm:px-0">
                     <button
                         v-for="t in ['table', 'rates', 'actions']"
@@ -48,9 +48,7 @@
 
             <!-- path table -->
             <div v-if="tab === 'table'" class="space-y-4">
-                <div
-                    class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-3 sm:p-4 space-y-3"
-                >
+                <div class="rounded-lg border border-sem-border bg-sem-surface p-3 sm:p-4 space-y-3">
                     <div class="text-sm font-semibold">{{ $t("rnstatus.remote_query") }}</div>
                     <p class="text-xs text-gray-500">{{ $t("rnstatus.remote_query_hint") }}</p>
                     <div class="grid gap-3 lg:grid-cols-2">
@@ -80,7 +78,7 @@
                 </div>
                 <!-- filters -->
                 <div
-                    class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
+                    class="rounded-lg border border-sem-border bg-sem-surface p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
                 >
                     <div class="relative">
                         <input
@@ -137,7 +135,7 @@
 
                 <div
                     v-if="pathTable.length === 0"
-                    class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-8 sm:p-12 text-center text-gray-500"
+                    class="rounded-lg border border-sem-border bg-sem-surface p-8 sm:p-12 text-center text-gray-500"
                 >
                     No paths found matching your criteria.
                 </div>
@@ -145,7 +143,7 @@
                     <div
                         v-for="path in pathTable"
                         :key="path.hash"
-                        class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-l-4"
+                        class="rounded-lg border border-sem-border bg-sem-surface p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-l-4"
                         :class="[
                             path.state === 2
                                 ? 'border-l-green-500'
@@ -171,7 +169,7 @@
                                     {{ getStateText(path.state) }}
                                 </span>
                             </div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">
+                            <div class="text-xs text-sem-fg-muted font-mono truncate">
                                 via {{ path.via }} on {{ path.interface }}
                             </div>
                             <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[10px]">
@@ -199,11 +197,11 @@
                 <!-- pagination -->
                 <div
                     v-if="totalPages > 1"
-                    class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-3 sm:p-4"
+                    class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-sem-border bg-sem-surface p-3 sm:p-4"
                 >
                     <div class="flex items-center gap-2">
                         <button
-                            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 disabled:opacity-50 transition-colors"
+                            class="p-2 rounded-lg hover:bg-sem-surface-muted disabled:opacity-50 transition-colors"
                             :disabled="currentPage === 1"
                             @click="currentPage--"
                         >
@@ -211,7 +209,7 @@
                         </button>
                         <span class="text-sm font-medium"> Page {{ currentPage }} of {{ totalPages }} </span>
                         <button
-                            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 disabled:opacity-50 transition-colors"
+                            class="p-2 rounded-lg hover:bg-sem-surface-muted disabled:opacity-50 transition-colors"
                             :disabled="currentPage === totalPages"
                             @click="currentPage++"
                         >
@@ -237,7 +235,7 @@
             <div v-if="tab === 'rates'" class="space-y-4">
                 <div
                     v-if="rateTable.length === 0"
-                    class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-8 sm:p-12 text-center text-gray-500"
+                    class="rounded-lg border border-sem-border bg-sem-surface p-8 sm:p-12 text-center text-gray-500"
                 >
                     No announce rate data available.
                 </div>
@@ -245,7 +243,7 @@
                     <div
                         v-for="rate in rateTable"
                         :key="rate.hash"
-                        class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-3 sm:p-4"
+                        class="rounded-lg border border-sem-border bg-sem-surface p-3 sm:p-4"
                     >
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                             <span class="font-mono text-sm font-bold text-indigo-600 dark:text-indigo-400 truncate">
@@ -288,9 +286,7 @@
             <!-- manual actions -->
             <div v-if="tab === 'actions'" class="max-w-2xl mx-auto space-y-6">
                 <!-- request path -->
-                <section
-                    class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 space-y-4"
-                >
+                <section class="rounded-lg border border-sem-border bg-sem-surface p-4 sm:p-6 space-y-4">
                     <h2 class="text-lg font-bold">Request Path</h2>
                     <p class="text-sm text-gray-500">Broadcast a path request for a destination hash.</p>
                     <div class="flex flex-col sm:flex-row gap-2">
@@ -312,9 +308,7 @@
                 </section>
 
                 <!-- drop all via -->
-                <section
-                    class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 space-y-4"
-                >
+                <section class="rounded-lg border border-sem-border bg-sem-surface p-4 sm:p-6 space-y-4">
                     <h2 class="text-lg font-bold">Drop All Via</h2>
                     <p class="text-sm text-gray-500">
                         Remove all known paths routed through a specific transport instance.
@@ -338,9 +332,7 @@
                 </section>
 
                 <!-- drop queues -->
-                <section
-                    class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 space-y-4"
-                >
+                <section class="rounded-lg border border-sem-border bg-sem-surface p-4 sm:p-6 space-y-4">
                     <h2 class="text-lg font-bold">Drop Announce Queues</h2>
                     <p class="text-sm text-gray-500">
                         Clear all outbound announce packets currently queued on all interfaces.
@@ -606,6 +598,6 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .input-field {
-    @apply bg-gray-50/90 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 dark:focus:ring-indigo-500 dark:focus:border-indigo-500 block w-full p-3 text-gray-900 dark:text-gray-100 transition;
+    @apply bg-gray-50/90 dark:bg-zinc-800/80 border border-sem-border text-sm rounded-xl focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 dark:focus:ring-indigo-500 dark:focus:border-indigo-500 block w-full p-3 text-gray-900 dark:text-gray-100 transition;
 }
 </style>

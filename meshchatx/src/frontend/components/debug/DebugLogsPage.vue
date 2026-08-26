@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader icon="console" :title="$t('debug.title')" :description="$t('debug.description')" accent="zinc">
             <template #actions>
                 <button type="button" class="secondary-chip px-4 py-2 text-sm" @click="refreshActive">
@@ -19,7 +19,7 @@
         >
             <div class="flex flex-col mb-4 w-full max-w-6xl mx-auto space-y-4 min-w-0">
                 <div
-                    class="flex flex-nowrap sm:flex-wrap gap-2 border-b border-gray-200 dark:border-zinc-700 pb-2 overflow-x-auto overscroll-x-contain -mx-4 px-4 sm:mx-0 sm:px-0 no-scrollbar"
+                    class="flex flex-nowrap sm:flex-wrap gap-2 border-b border-sem-border pb-2 overflow-x-auto overscroll-x-contain -mx-4 px-4 sm:mx-0 sm:px-0 no-scrollbar"
                 >
                     <button
                         type="button"
@@ -27,7 +27,7 @@
                         :class="
                             activeTab === 'logs'
                                 ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-700'
+                                : 'bg-sem-surface-muted text-gray-700 dark:text-gray-300 hover:bg-gray-200 hover:bg-sem-surface-muted'
                         "
                         @click="switchTab('logs')"
                     >
@@ -39,7 +39,7 @@
                         :class="
                             activeTab === 'access'
                                 ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-700'
+                                : 'bg-sem-surface-muted text-gray-700 dark:text-gray-300 hover:bg-gray-200 hover:bg-sem-surface-muted'
                         "
                         @click="switchTab('access')"
                     >
@@ -49,7 +49,7 @@
 
                 <div
                     v-if="activeTab === 'logs'"
-                    class="flex flex-wrap gap-3 items-center bg-white/50 dark:bg-zinc-800/50 p-3 rounded-lg border border-gray-200 dark:border-zinc-700"
+                    class="flex flex-wrap gap-3 items-center bg-white/50 dark:bg-zinc-800/50 p-3 rounded-lg border border-sem-border"
                 >
                     <div class="relative flex-1 min-w-[200px]">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -58,7 +58,7 @@
                         <input
                             v-model="search"
                             type="text"
-                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-md leading-5 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-hidden focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-md leading-5 bg-sem-surface text-sem-fg placeholder-gray-500 focus:outline-hidden focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             :placeholder="$t('debug.search_logs_placeholder')"
                             @input="debouncedSearch"
                         />
@@ -66,7 +66,7 @@
 
                     <select
                         v-model="level"
-                        class="block pl-3 pr-10 py-2 text-base border-gray-300 dark:border-zinc-600 focus:outline-hidden focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white dark:bg-zinc-900 text-gray-900 dark:text-white"
+                        class="block pl-3 pr-10 py-2 text-base border-gray-300 dark:border-zinc-600 focus:outline-hidden focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-sem-surface text-sem-fg"
                         @change="refreshLogs"
                     >
                         <option value="">{{ $t("debug.level_all") }}</option>
@@ -92,7 +92,7 @@
 
                 <div
                     v-else
-                    class="flex flex-wrap gap-3 items-center bg-white/50 dark:bg-zinc-800/50 p-3 rounded-lg border border-gray-200 dark:border-zinc-700"
+                    class="flex flex-wrap gap-3 items-center bg-white/50 dark:bg-zinc-800/50 p-3 rounded-lg border border-sem-border"
                 >
                     <div class="relative flex-1 min-w-[200px]">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -101,14 +101,14 @@
                         <input
                             v-model="accessSearch"
                             type="text"
-                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-md leading-5 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-hidden focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-md leading-5 bg-sem-surface text-sem-fg placeholder-gray-500 focus:outline-hidden focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             :placeholder="$t('debug.search_access_placeholder')"
                             @input="debouncedAccessSearch"
                         />
                     </div>
                     <select
                         v-model="accessOutcome"
-                        class="block pl-3 pr-10 py-2 text-base border-gray-300 dark:border-zinc-600 focus:outline-hidden focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white dark:bg-zinc-900 text-gray-900 dark:text-white"
+                        class="block pl-3 pr-10 py-2 text-base border-gray-300 dark:border-zinc-600 focus:outline-hidden focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-sem-surface text-sem-fg"
                         @change="refreshAccessAttempts"
                     >
                         <option value="">{{ $t("debug.outcome_all") }}</option>
@@ -130,7 +130,7 @@
             >
                 <div
                     v-if="activeTab === 'logs'"
-                    class="debug-log-scroll flex-1 overflow-auto p-2 sm:p-4 font-mono text-[9px] sm:text-[10px] md:text-xs max-sm:leading-snug sm:leading-snug md:leading-relaxed select-text touch-pan-x bg-white dark:bg-zinc-950 min-h-0"
+                    class="debug-log-scroll flex-1 overflow-auto p-2 sm:p-4 font-mono text-[9px] sm:text-[10px] md:text-xs max-sm:leading-snug sm:leading-snug md:leading-relaxed select-text touch-pan-x bg-sem-surface min-h-0"
                 >
                     <div v-if="logs.length === 0" class="text-gray-500 italic text-center py-10 text-sm sm:text-base">
                         {{ loading ? $t("debug.loading_logs") : $t("debug.no_logs") }}
@@ -170,7 +170,7 @@
 
                 <div
                     v-else
-                    class="debug-log-scroll flex-1 overflow-auto p-2 sm:p-4 font-mono text-[9px] sm:text-[10px] md:text-xs max-sm:leading-snug sm:leading-snug md:leading-relaxed select-text touch-pan-x bg-white dark:bg-zinc-950 min-h-0"
+                    class="debug-log-scroll flex-1 overflow-auto p-2 sm:p-4 font-mono text-[9px] sm:text-[10px] md:text-xs max-sm:leading-snug sm:leading-snug md:leading-relaxed select-text touch-pan-x bg-sem-surface min-h-0"
                 >
                     <div
                         v-if="accessAttempts.length === 0"
@@ -207,7 +207,7 @@
                 </div>
 
                 <div
-                    class="px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/50"
+                    class="px-4 py-3 flex items-center justify-between border-t border-sem-border bg-sem-surface-muted/50"
                 >
                     <div class="flex-1 flex justify-between sm:hidden">
                         <button

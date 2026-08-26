@@ -7,10 +7,10 @@
         @click.self="$emit('close')"
     >
         <div
-            class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden max-h-[min(90dvh,40rem)] flex flex-col"
+            class="w-full max-w-md bg-sem-surface rounded-2xl shadow-2xl overflow-hidden max-h-[min(90dvh,40rem)] flex flex-col"
         >
-            <div class="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+            <div class="px-6 py-4 border-b border-sem-border flex items-center justify-between">
+                <h3 class="text-lg font-bold text-sem-fg">
                     {{ $t("messages.share_contact_modal_title") }}
                 </h3>
                 <button
@@ -28,7 +28,7 @@
                             :value="search"
                             type="text"
                             :placeholder="$t('messages.share_contact_search_placeholder')"
-                            class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                            class="block w-full rounded-lg border-0 py-2 pl-10 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                             @input="$emit('update:search', $event.target.value)"
                         />
                         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -41,7 +41,7 @@
                         v-for="contact in contacts"
                         :key="contact.id"
                         type="button"
-                        class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors text-left"
+                        class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-sem-surface-muted transition-colors text-left"
                         @click="$emit('share', contact)"
                     >
                         <div class="shrink-0">
@@ -54,22 +54,16 @@
                             />
                         </div>
                         <div class="min-w-0">
-                            <div class="font-bold text-gray-900 dark:text-white truncate">
+                            <div class="font-bold text-sem-fg truncate">
                                 {{ contact.name }}
                             </div>
-                            <div class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono truncate">
+                            <div class="text-[10px] text-sem-fg-muted font-mono truncate">
                                 {{ destinationHex(contact) || contact.remote_identity_hash }}
                             </div>
-                            <div
-                                v-if="contact.lxmf_address"
-                                class="text-[9px] text-gray-400 dark:text-zinc-500 font-mono truncate"
-                            >
+                            <div v-if="contact.lxmf_address" class="text-[9px] text-sem-fg-muted font-mono truncate">
                                 LXMF: {{ contact.lxmf_address }}
                             </div>
-                            <div
-                                v-if="contact.lxst_address"
-                                class="text-[9px] text-gray-400 dark:text-zinc-500 font-mono truncate"
-                            >
+                            <div v-if="contact.lxst_address" class="text-[9px] text-sem-fg-muted font-mono truncate">
                                 LXST: {{ contact.lxst_address }}
                             </div>
                         </div>

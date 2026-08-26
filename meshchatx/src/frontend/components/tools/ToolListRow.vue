@@ -22,7 +22,7 @@
             </span>
             <span
                 v-if="tool.comingSoon"
-                class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 rounded-sm border border-gray-200 dark:border-zinc-700"
+                class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-sem-surface-muted text-sem-fg-muted rounded-sm border border-sem-border"
             >
                 {{ $t("tools.coming_soon_badge") }}
             </span>
@@ -34,7 +34,7 @@
             <a
                 :href="tool.extraAction.href"
                 :target="tool.extraAction.target"
-                class="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-gray-400 hover:text-blue-500"
+                class="p-2 hover:bg-sem-surface-muted rounded-lg transition-colors text-gray-400 hover:text-blue-500"
                 @click.stop
             >
                 <MaterialDesignIcon :icon-name="tool.extraAction.icon" class="size-5" />
@@ -68,10 +68,10 @@ export default {
     @apply w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0;
 }
 .tool-card__title {
-    @apply text-base sm:text-lg font-semibold text-gray-900 dark:text-white;
+    @apply text-base sm:text-lg font-semibold text-sem-fg;
 }
 .tool-card__description {
-    @apply text-sm text-gray-600 dark:text-gray-300 mt-0.5 line-clamp-2 sm:line-clamp-none;
+    @apply text-sm text-sem-fg-muted mt-0.5 line-clamp-2 sm:line-clamp-none;
 }
 .tool-card__chevron {
     @apply w-5 h-5 text-gray-400 shrink-0;

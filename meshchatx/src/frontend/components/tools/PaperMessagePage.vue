@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             icon="qrcode"
             :title="$t('tools.paper_message.title')"
@@ -13,15 +13,9 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <!-- composer -->
                     <div class="space-y-4 min-w-0">
-                        <section
-                            class="rounded-lg border border-gray-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-950"
-                        >
-                            <div
-                                class="px-4 py-3 border-b border-gray-200 dark:border-zinc-800 bg-gray-50/80 dark:bg-zinc-900/50"
-                            >
-                                <h2
-                                    class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-white"
-                                >
+                        <section class="rounded-lg border border-sem-border overflow-hidden bg-sem-surface">
+                            <div class="px-4 py-3 border-b border-sem-border bg-gray-50/80 dark:bg-zinc-900/50">
+                                <h2 class="flex items-center gap-2 text-base font-semibold text-sem-fg">
                                     <MaterialDesignIcon
                                         icon-name="pencil-outline"
                                         class="size-5 text-gray-400 shrink-0"
@@ -32,7 +26,7 @@
                             <div class="px-4 py-4 space-y-3 text-gray-900 dark:text-gray-100">
                                 <div>
                                     <label
-                                        class="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5"
+                                        class="block text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest mb-1.5"
                                     >
                                         Recipient Address
                                     </label>
@@ -46,7 +40,7 @@
                                 </div>
                                 <div>
                                     <label
-                                        class="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5"
+                                        class="block text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest mb-1.5"
                                     >
                                         Subject (Optional)
                                     </label>
@@ -59,7 +53,7 @@
                                 </div>
                                 <div>
                                     <label
-                                        class="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5"
+                                        class="block text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest mb-1.5"
                                     >
                                         Message Content
                                     </label>
@@ -91,15 +85,9 @@
                         </section>
 
                         <!-- read / ingest section -->
-                        <section
-                            class="rounded-lg border border-gray-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-950"
-                        >
-                            <div
-                                class="px-4 py-3 border-b border-gray-200 dark:border-zinc-800 bg-gray-50/80 dark:bg-zinc-900/50"
-                            >
-                                <h2
-                                    class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-white"
-                                >
+                        <section class="rounded-lg border border-sem-border overflow-hidden bg-sem-surface">
+                            <div class="px-4 py-3 border-b border-sem-border bg-gray-50/80 dark:bg-zinc-900/50">
+                                <h2 class="flex items-center gap-2 text-base font-semibold text-sem-fg">
                                     <MaterialDesignIcon icon-name="qrcode-scan" class="size-5 text-gray-400 shrink-0" />
                                     Ingest Paper Message
                                 </h2>
@@ -118,7 +106,7 @@
                                     />
                                     <button
                                         type="button"
-                                        class="inline-flex items-center justify-center gap-2 px-3 py-2.5 sm:py-2 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors shrink-0"
+                                        class="inline-flex items-center justify-center gap-2 px-3 py-2.5 sm:py-2 bg-sem-surface-muted text-sem-fg-muted rounded-lg hover:bg-gray-200 hover:bg-sem-surface-muted transition-colors shrink-0"
                                         @click="pasteFromClipboard"
                                     >
                                         <MaterialDesignIcon icon-name="content-paste" class="size-5" />
@@ -127,7 +115,7 @@
                                     <button
                                         v-if="cameraSupported"
                                         type="button"
-                                        class="inline-flex items-center justify-center gap-2 px-3 py-2.5 sm:py-2 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors shrink-0"
+                                        class="inline-flex items-center justify-center gap-2 px-3 py-2.5 sm:py-2 bg-sem-surface-muted text-sem-fg-muted rounded-lg hover:bg-gray-200 hover:bg-sem-surface-muted transition-colors shrink-0"
                                         @click="openIngestScannerModal"
                                     >
                                         <MaterialDesignIcon icon-name="qrcode-scan" class="size-5" />
@@ -136,13 +124,13 @@
                                 </div>
                                 <button
                                     type="button"
-                                    class="w-full py-2.5 px-4 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all active:scale-[0.98] text-sm"
+                                    class="w-full py-2.5 px-4 bg-sem-surface-muted text-sem-fg-secondary rounded-xl font-bold hover:bg-gray-200 hover:bg-sem-surface-muted transition-all active:scale-[0.98] text-sm"
                                     :disabled="!ingestUri"
                                     @click="ingestPaperMessage"
                                 >
                                     Read LXM
                                 </button>
-                                <p v-if="!cameraSupported" class="text-xs text-gray-500 dark:text-zinc-400">
+                                <p v-if="!cameraSupported" class="text-xs text-sem-fg-muted">
                                     {{ $t("messages.camera_not_supported") }}
                                 </p>
                             </div>
@@ -153,14 +141,10 @@
                     <div class="space-y-4 min-w-0">
                         <section
                             v-if="generatedUri"
-                            class="rounded-lg border border-gray-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-950"
+                            class="rounded-lg border border-sem-border overflow-hidden bg-sem-surface"
                         >
-                            <div
-                                class="px-4 py-3 border-b border-gray-200 dark:border-zinc-800 bg-blue-50/80 dark:bg-blue-900/20"
-                            >
-                                <h2 class="text-base font-semibold text-blue-600 dark:text-blue-400">
-                                    Generated QR Code
-                                </h2>
+                            <div class="px-4 py-3 border-b border-sem-border bg-blue-50/80 dark:bg-blue-900/20">
+                                <h2 class="text-base font-semibold text-sem-accent">Generated QR Code</h2>
                             </div>
                             <div class="px-4 py-4 sm:p-6 flex flex-col items-center text-gray-900 dark:text-gray-100">
                                 <div class="p-3 bg-white rounded-2xl shadow-inner border border-gray-100 mb-6">
@@ -174,19 +158,19 @@
                                         class="bg-gray-50 dark:bg-zinc-800/50 rounded-2xl p-3 border border-gray-100 dark:border-zinc-700/50"
                                     >
                                         <label
-                                            class="block text-[9px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5"
+                                            class="block text-[9px] font-bold text-sem-fg-muted uppercase tracking-widest mb-1.5"
                                         >
                                             LXMF URI
                                         </label>
                                         <div class="flex gap-2">
                                             <div
-                                                class="flex-1 font-mono text-[10px] break-all text-gray-600 dark:text-zinc-300 bg-white dark:bg-zinc-900 p-2 rounded-lg border border-gray-200 dark:border-zinc-700 max-h-20 overflow-y-auto"
+                                                class="flex-1 font-mono text-[10px] break-all text-sem-fg-muted bg-sem-surface p-2 rounded-lg border border-sem-border max-h-20 overflow-y-auto"
                                             >
                                                 {{ generatedUri }}
                                             </div>
                                             <button
                                                 type="button"
-                                                class="size-9 flex items-center justify-center bg-white dark:bg-zinc-900 text-gray-500 dark:text-zinc-400 rounded-lg border border-gray-200 dark:border-zinc-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-xs"
+                                                class="size-9 flex items-center justify-center bg-sem-surface text-sem-fg-muted rounded-lg border border-sem-border hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-xs"
                                                 title="Copy URI"
                                                 @click="copyUri"
                                             >
@@ -230,11 +214,11 @@
                             v-else
                             class="rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-900/30 flex flex-col items-center justify-center p-6 sm:p-8 text-center min-h-[240px] sm:min-h-[280px] sm:h-[320px]"
                         >
-                            <div class="p-3 bg-gray-100 dark:bg-zinc-800 text-gray-400 rounded-full mb-3">
+                            <div class="p-3 bg-sem-surface-muted text-gray-400 rounded-full mb-3">
                                 <MaterialDesignIcon icon-name="qrcode" class="size-10" />
                             </div>
-                            <h3 class="text-base font-bold text-gray-900 dark:text-white mb-1">No QR Code Generated</h3>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 max-w-[200px]">
+                            <h3 class="text-base font-bold text-sem-fg mb-1">No QR Code Generated</h3>
+                            <p class="text-xs text-sem-fg-muted max-w-[200px]">
                                 Fill out the message details and click generate to create a signed paper message.
                             </p>
                         </div>
@@ -248,14 +232,10 @@
             class="fixed inset-0 z-210 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs"
             @click.self="closeIngestScannerModal"
         >
-            <div class="w-full max-w-xl rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-zinc-100">{{ $t("messages.scan_qr") }}</h3>
-                    <button
-                        type="button"
-                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
-                        @click="closeIngestScannerModal"
-                    >
+            <div class="w-full max-w-xl rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+                <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-sem-fg">{{ $t("messages.scan_qr") }}</h3>
+                    <button type="button" class="text-sem-fg-muted hover:text-sem-fg" @click="closeIngestScannerModal">
                         <MaterialDesignIcon icon-name="close" class="size-5" />
                     </button>
                 </div>
@@ -267,7 +247,7 @@
                         playsinline
                         muted
                     ></video>
-                    <div class="text-sm text-gray-500 dark:text-zinc-400">
+                    <div class="text-sm text-sem-fg-muted">
                         {{ ingestScannerError || $t("messages.scanner_hint") }}
                     </div>
                 </div>
@@ -581,6 +561,6 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .input-field {
-    @apply bg-gray-50/90 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 text-sm rounded-2xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-50 dark:focus:border-blue-500 block w-full p-2.5 text-gray-900 dark:text-gray-100 transition;
+    @apply bg-gray-50/90 dark:bg-zinc-800/80 border border-sem-border text-sm rounded-2xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-50 dark:focus:border-blue-500 block w-full p-2.5 text-gray-900 dark:text-gray-100 transition;
 }
 </style>

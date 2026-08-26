@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             icon="radar"
             :title="$t('rnprobe.title')"
@@ -75,10 +75,7 @@
                         </button>
                     </div>
 
-                    <div
-                        v-if="summary"
-                        class="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                    >
+                    <div v-if="summary" class="p-3 rounded-lg bg-sem-surface-muted text-blue-700 dark:text-blue-300">
                         <div class="font-semibold">{{ $t("rnprobe.summary") }}:</div>
                         <div class="text-sm mt-1">
                             {{ $t("rnprobe.sent") }}: {{ summary.sent }}, {{ $t("rnprobe.delivered") }}:
@@ -92,10 +89,10 @@
                 <div class="glass-card flex flex-col min-h-[320px] space-y-3">
                     <div class="flex items-center justify-between gap-4">
                         <div>
-                            <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                            <div class="text-sm font-semibold text-sem-fg">
                                 {{ $t("rnprobe.probe_results") }}
                             </div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                            <div class="text-xs text-sem-fg-muted">
                                 {{ $t("rnprobe.probe_responses_realtime") }}
                             </div>
                         </div>

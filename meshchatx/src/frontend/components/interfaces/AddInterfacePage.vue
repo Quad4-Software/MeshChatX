@@ -1,20 +1,20 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <div class="overflow-y-auto flex-1 min-h-0">
             <div class="w-full max-w-[1920px] mx-auto px-4 md:px-5 lg:px-8 py-4 md:py-6 lg:py-8 space-y-6">
                 <!-- Header Section -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div class="min-w-0">
-                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <h1 class="text-2xl font-bold text-sem-fg flex items-center gap-2">
                             <MaterialDesignIcon
                                 :icon-name="isEditingInterface ? 'pencil' : 'plus-circle-outline'"
                                 class="size-7 text-blue-500"
                             />
                             {{ isEditingInterface ? $t("interfaces.edit_interface") : $t("interfaces.add_interface") }}
                         </h1>
-                        <p class="text-sm text-gray-600 dark:text-zinc-400 mt-1">
+                        <p class="text-sm text-sem-fg-muted mt-1">
                             {{
                                 isEditingInterface
                                     ? "Update existing connection settings."
@@ -37,14 +37,12 @@
                             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 <!-- Basic Info Column -->
                                 <div class="space-y-6">
-                                    <div
-                                        class="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-zinc-800"
-                                    >
+                                    <div class="flex items-center gap-2 pb-2 border-b border-sem-border">
                                         <MaterialDesignIcon
                                             icon-name="information-outline"
                                             class="size-5 text-gray-400"
                                         />
-                                        <h3 class="font-bold text-gray-900 dark:text-white">Basic Configuration</h3>
+                                        <h3 class="font-bold text-sem-fg">Basic Configuration</h3>
                                     </div>
 
                                     <div>
@@ -133,7 +131,7 @@
                                                 :class="[
                                                     newInterfaceType === type.id
                                                         ? 'bg-blue-500/10 border-blue-500 ring-1 ring-blue-500/50'
-                                                        : 'bg-gray-50/50 dark:bg-zinc-800/30 border-gray-100 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-600',
+                                                        : 'bg-gray-50/50 dark:bg-zinc-800/30 border-sem-border hover:border-gray-300 dark:hover:border-zinc-600',
                                                 ]"
                                                 @click="newInterfaceType = type.id"
                                             >
@@ -149,7 +147,7 @@
                                                     :class="[
                                                         newInterfaceType === type.id
                                                             ? 'text-blue-700 dark:text-blue-400'
-                                                            : 'text-gray-600 dark:text-zinc-400',
+                                                            : 'text-sem-fg-muted',
                                                     ]"
                                                 >
                                                     {{ type.name }}
@@ -179,17 +177,15 @@
 
                                 <!-- Dynamic Interface Specific Settings Column -->
                                 <div class="space-y-6">
-                                    <div
-                                        class="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-zinc-800"
-                                    >
+                                    <div class="flex items-center gap-2 pb-2 border-b border-sem-border">
                                         <MaterialDesignIcon icon-name="cog-outline" class="size-5 text-gray-400" />
-                                        <h3 class="font-bold text-gray-900 dark:text-white">Connection Details</h3>
+                                        <h3 class="font-bold text-sem-fg">Connection Details</h3>
                                     </div>
 
                                     <!-- No selection placeholder -->
                                     <div
                                         v-if="!newInterfaceType"
-                                        class="h-48 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-gray-100 dark:border-zinc-800 rounded-3xl"
+                                        class="h-48 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-sem-border rounded-3xl"
                                     >
                                         <MaterialDesignIcon
                                             icon-name="arrow-left-bold"
@@ -251,7 +247,7 @@
                                                         }}</FormLabel
                                                     >
                                                     <BundledDocsHint
-                                                        paragraph-class="text-xs text-gray-500 dark:text-gray-400 mt-0.5"
+                                                        paragraph-class="text-xs text-sem-fg-muted mt-0.5"
                                                     />
                                                 </div>
                                             </div>
@@ -285,7 +281,7 @@
                                                         placeholder="auto"
                                                         class="input-field"
                                                     />
-                                                    <p class="mt-1 text-xs text-gray-500 dark:text-zinc-400">
+                                                    <p class="mt-1 text-xs text-sem-fg-muted">
                                                         {{
                                                             $t("interfaces.fixed_mtu_hint", {
                                                                 min: reticulumMinFixedMtu,
@@ -339,7 +335,7 @@
                                                         "
                                                         class="input-field font-mono text-xs"
                                                     />
-                                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                    <p class="text-xs text-sem-fg-muted mt-1">
                                                         {{ $t("interfaces.backbone_transport_identity_hint") }}
                                                     </p>
                                                 </div>
@@ -357,7 +353,7 @@
                                                             }}</FormLabel
                                                         >
                                                         <BundledDocsHint
-                                                            paragraph-class="text-xs text-gray-500 dark:text-gray-400 mt-0.5"
+                                                            paragraph-class="text-xs text-sem-fg-muted mt-0.5"
                                                         />
                                                     </div>
                                                 </div>
@@ -398,9 +394,9 @@
                                                         hostKernelInterfaces.length ||
                                                         hostKernelInterfacesUnavailable
                                                     "
-                                                    class="rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/30 p-3 space-y-2"
+                                                    class="rounded-xl border border-sem-border bg-gray-50/50 dark:bg-zinc-900/30 p-3 space-y-2"
                                                 >
-                                                    <p class="text-xs text-gray-600 dark:text-zinc-400">
+                                                    <p class="text-xs text-sem-fg-muted">
                                                         {{ $t("interfaces.kernel_iface_picker_title") }}
                                                     </p>
                                                     <div
@@ -414,16 +410,15 @@
                                                             v-for="iface in hostKernelInterfaces"
                                                             :key="'bb-' + iface.name"
                                                             type="button"
-                                                            class="px-2.5 py-1.5 text-left text-xs rounded-lg border border-gray-200 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/90 hover:border-blue-400 dark:hover:border-blue-500 transition-colors max-w-full"
+                                                            class="px-2.5 py-1.5 text-left text-xs rounded-lg border border-sem-border bg-white/90 dark:bg-zinc-900/90 hover:border-blue-400 dark:hover:border-blue-500 transition-colors max-w-full"
                                                             @click="newInterfaceBackboneListenDevice = iface.name"
                                                         >
-                                                            <span
-                                                                class="font-mono font-medium text-gray-900 dark:text-zinc-100"
-                                                                >{{ iface.name }}</span
-                                                            >
+                                                            <span class="font-mono font-medium text-sem-fg">{{
+                                                                iface.name
+                                                            }}</span>
                                                             <span
                                                                 v-if="iface.addresses && iface.addresses.length"
-                                                                class="block text-[10px] text-gray-500 dark:text-zinc-500 truncate max-w-[20rem]"
+                                                                class="block text-[10px] text-sem-fg-muted truncate max-w-[20rem]"
                                                                 >{{
                                                                     iface.addresses.slice(0, 3).join(" \u00b7 ")
                                                                 }}</span
@@ -436,7 +431,7 @@
                                                     >
                                                         {{ hostKernelInterfacesUnavailable }}
                                                     </p>
-                                                    <p class="text-xs text-gray-500 dark:text-zinc-500">
+                                                    <p class="text-xs text-sem-fg-muted">
                                                         {{ $t("interfaces.kernel_iface_picker_help") }}
                                                     </p>
                                                 </div>
@@ -452,14 +447,14 @@
                                                     >
                                                 </div>
                                                 <div
-                                                    class="rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/30 p-3 space-y-3"
+                                                    class="rounded-xl border border-sem-border bg-gray-50/50 dark:bg-zinc-900/30 p-3 space-y-3"
                                                 >
                                                     <div class="flex items-start justify-between gap-4">
                                                         <div class="min-w-0">
                                                             <FormLabel class="glass-label mb-0!">{{
                                                                 $t("interfaces.block_fast_flapping_label")
                                                             }}</FormLabel>
-                                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                            <p class="text-xs text-sem-fg-muted mt-1">
                                                                 {{ $t("interfaces.block_fast_flapping_hint") }}
                                                             </p>
                                                         </div>
@@ -544,9 +539,9 @@
                                                     hostKernelInterfaces.length ||
                                                     hostKernelInterfacesUnavailable
                                                 "
-                                                class="rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/30 p-3 space-y-2"
+                                                class="rounded-xl border border-sem-border bg-gray-50/50 dark:bg-zinc-900/30 p-3 space-y-2"
                                             >
-                                                <p class="text-xs text-gray-600 dark:text-zinc-400">
+                                                <p class="text-xs text-sem-fg-muted">
                                                     {{ $t("interfaces.kernel_iface_picker_title") }}
                                                 </p>
                                                 <div v-if="hostKernelInterfacesLoading" class="text-xs text-gray-400">
@@ -557,16 +552,15 @@
                                                         v-for="iface in hostKernelInterfaces"
                                                         :key="'srv-' + iface.name"
                                                         type="button"
-                                                        class="px-2.5 py-1.5 text-left text-xs rounded-lg border border-gray-200 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/90 hover:border-blue-400 dark:hover:border-blue-500 transition-colors max-w-full"
+                                                        class="px-2.5 py-1.5 text-left text-xs rounded-lg border border-sem-border bg-white/90 dark:bg-zinc-900/90 hover:border-blue-400 dark:hover:border-blue-500 transition-colors max-w-full"
                                                         @click="newInterfaceNetworkDevice = iface.name"
                                                     >
-                                                        <span
-                                                            class="font-mono font-medium text-gray-900 dark:text-zinc-100"
-                                                            >{{ iface.name }}</span
-                                                        >
+                                                        <span class="font-mono font-medium text-sem-fg">{{
+                                                            iface.name
+                                                        }}</span>
                                                         <span
                                                             v-if="iface.addresses && iface.addresses.length"
-                                                            class="block text-[10px] text-gray-500 dark:text-zinc-500 truncate max-w-[20rem]"
+                                                            class="block text-[10px] text-sem-fg-muted truncate max-w-[20rem]"
                                                             >{{ iface.addresses.slice(0, 3).join(" \u00b7 ") }}</span
                                                         >
                                                     </button>
@@ -577,7 +571,7 @@
                                                 >
                                                     {{ hostKernelInterfacesUnavailable }}
                                                 </p>
-                                                <p class="text-xs text-gray-500 dark:text-zinc-500">
+                                                <p class="text-xs text-sem-fg-muted">
                                                     {{ $t("interfaces.kernel_iface_picker_help") }}
                                                 </p>
                                             </div>
@@ -660,7 +654,7 @@
                                                     $t("interfaces.i2p_connectable_label")
                                                 }}</FormLabel>
                                             </div>
-                                            <p class="text-xs text-gray-600 dark:text-zinc-400">
+                                            <p class="text-xs text-sem-fg-muted">
                                                 {{ $t("interfaces.i2p_connectable_hint") }}
                                             </p>
                                             <div
@@ -764,7 +758,7 @@
                                                         class="input-field"
                                                     />
                                                 </div>
-                                                <p class="text-xs text-gray-500 dark:text-zinc-500 leading-relaxed">
+                                                <p class="text-xs text-sem-fg-muted leading-relaxed">
                                                     {{ $t("interfaces.rnode_tcp_port_fixed_hint") }}
                                                 </p>
                                             </div>
@@ -786,7 +780,7 @@
                                                     autocomplete="off"
                                                     spellcheck="false"
                                                 />
-                                                <p class="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                                                <p class="text-[11px] leading-relaxed text-sem-fg-muted">
                                                     {{ $t("interfaces.rnode_ble_hint") }}
                                                 </p>
                                             </div>
@@ -827,7 +821,7 @@
                                         <!-- RNode Radio Parameters -->
                                         <div
                                             v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)"
-                                            class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800"
+                                            class="space-y-4 pt-4 border-t border-sem-border"
                                         >
                                             <div>
                                                 <FormLabel class="glass-label">Frequency (Hz)</FormLabel>
@@ -986,7 +980,7 @@
                                                     newInterfaceType
                                                 )
                                             "
-                                            class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800"
+                                            class="space-y-4 pt-4 border-t border-sem-border"
                                         >
                                             <div class="grid grid-cols-2 gap-4">
                                                 <div>
@@ -1034,7 +1028,7 @@
                                         <!-- KISS framing parameters (KISS/AX25KISS) -->
                                         <div
                                             v-if="['KISSInterface', 'AX25KISSInterface'].includes(newInterfaceType)"
-                                            class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800"
+                                            class="space-y-4 pt-4 border-t border-sem-border"
                                         >
                                             <div class="grid grid-cols-2 gap-4">
                                                 <div>
@@ -1111,7 +1105,7 @@
                                         <!-- AX.25 KISS extras -->
                                         <div
                                             v-if="newInterfaceType === 'AX25KISSInterface'"
-                                            class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800"
+                                            class="space-y-4 pt-4 border-t border-sem-border"
                                         >
                                             <div class="grid grid-cols-2 gap-4">
                                                 <div>
@@ -1223,7 +1217,7 @@
                                                     "
                                                     class="mt-1.5 space-y-1"
                                                 >
-                                                    <p class="text-[10px] text-gray-500 dark:text-zinc-500">
+                                                    <p class="text-[10px] text-sem-fg-muted">
                                                         {{ $t("interfaces.auto_iface_ifname_chips_hint") }}
                                                     </p>
                                                     <div
@@ -1244,7 +1238,7 @@
                                                                     iface.name
                                                                 )
                                                                     ? 'border-blue-400 bg-blue-50/90 text-blue-900 dark:border-blue-500 dark:bg-blue-950/40 dark:text-blue-200'
-                                                                    : 'border-gray-200 bg-white/80 text-gray-800 hover:border-blue-300 dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-200 dark:hover:border-blue-500'
+                                                                    : 'border-gray-200 bg-white/80 text-gray-800 hover:border-blue-300 dark:border-zinc-700 dark:bg-zinc-900/80 text-sem-fg dark:hover:border-blue-500'
                                                             "
                                                             @click="
                                                                 toggleAutoInterfaceCommaToken(
@@ -1276,7 +1270,7 @@
                                                     "
                                                     class="mt-1.5 space-y-1"
                                                 >
-                                                    <p class="text-[10px] text-gray-500 dark:text-zinc-500">
+                                                    <p class="text-[10px] text-sem-fg-muted">
                                                         {{ $t("interfaces.auto_iface_ifname_chips_hint") }}
                                                     </p>
                                                     <div
@@ -1297,7 +1291,7 @@
                                                                     iface.name
                                                                 )
                                                                     ? 'border-amber-400 bg-amber-50/90 text-amber-950 dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-100'
-                                                                    : 'border-gray-200 bg-white/80 text-gray-800 hover:border-amber-300 dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-200 dark:hover:border-amber-600'
+                                                                    : 'border-gray-200 bg-white/80 text-gray-800 hover:border-amber-300 dark:border-zinc-700 dark:bg-zinc-900/80 text-sem-fg dark:hover:border-amber-600'
                                                             "
                                                             @click="
                                                                 toggleAutoInterfaceCommaToken(
@@ -1326,7 +1320,7 @@
                                         <!-- Pipe Interface -->
                                         <div v-if="newInterfaceType === 'PipeInterface'" class="space-y-4">
                                             <div
-                                                class="bg-gray-50/50 dark:bg-zinc-800/30 p-3 rounded-2xl border border-gray-100 dark:border-zinc-800 text-xs text-gray-600 dark:text-zinc-400"
+                                                class="bg-gray-50/50 dark:bg-zinc-800/30 p-3 rounded-2xl border border-sem-border text-xs text-sem-fg-muted"
                                             >
                                                 ⓘ Interface with external programs via stdin/stdout.
                                             </div>
@@ -1352,7 +1346,7 @@
 
                                         <!-- HTTP tunnel (bundled RNS-over-HTTP) -->
                                         <div v-if="newInterfaceType === 'HTTPInterface'" class="space-y-4">
-                                            <p class="text-xs text-gray-600 dark:text-zinc-400 leading-relaxed">
+                                            <p class="text-xs text-sem-fg-muted leading-relaxed">
                                                 {{ $t("interfaces.http_tunnel_intro") }}
                                             </p>
                                             <div class="flex items-center gap-2">
@@ -1362,7 +1356,7 @@
                                                     :class="
                                                         newInterfaceHttpTunnelMode === 'client'
                                                             ? 'bg-teal-500/10 border-teal-500 text-teal-700 dark:text-teal-300'
-                                                            : 'bg-gray-50/50 dark:bg-zinc-800/30 border-gray-100 dark:border-zinc-800 text-gray-600 dark:text-zinc-400'
+                                                            : 'bg-gray-50/50 dark:bg-zinc-800/30 border-sem-border text-sem-fg-muted'
                                                     "
                                                     @click="newInterfaceHttpTunnelMode = 'client'"
                                                 >
@@ -1374,7 +1368,7 @@
                                                     :class="
                                                         newInterfaceHttpTunnelMode === 'server'
                                                             ? 'bg-teal-500/10 border-teal-500 text-teal-700 dark:text-teal-300'
-                                                            : 'bg-gray-50/50 dark:bg-zinc-800/30 border-gray-100 dark:border-zinc-800 text-gray-600 dark:text-zinc-400'
+                                                            : 'bg-gray-50/50 dark:bg-zinc-800/30 border-sem-border text-sem-fg-muted'
                                                     "
                                                     @click="newInterfaceHttpTunnelMode = 'server'"
                                                 >
@@ -1458,7 +1452,7 @@
                                                         <option :value="2">HTTP/2</option>
                                                         <option :value="3">HTTP/3</option>
                                                     </select>
-                                                    <p class="mt-1 text-xs text-gray-500 dark:text-zinc-400">
+                                                    <p class="mt-1 text-xs text-sem-fg-muted">
                                                         {{ $t("interfaces.http_tunnel_http_version_hint") }}
                                                     </p>
                                                 </div>
@@ -1490,9 +1484,9 @@
                                             </div>
                                             <div
                                                 v-if="newInterfaceHttpVersion >= 2"
-                                                class="space-y-4 rounded-2xl border border-gray-100 dark:border-zinc-800 p-3"
+                                                class="space-y-4 rounded-2xl border border-sem-border p-3"
                                             >
-                                                <p class="text-xs text-gray-500 dark:text-zinc-400">
+                                                <p class="text-xs text-sem-fg-muted">
                                                     {{ $t("interfaces.http_tunnel_tls_hint") }}
                                                 </p>
                                                 <div
@@ -1532,29 +1526,29 @@
                                                 hint-i18n-key="interfaces.http_tunnel_docs_hint"
                                                 link-i18n-key="interfaces.http_tunnel_docs_link"
                                                 :docs-rel-path="docsReticulumInterfacesOverview"
-                                                paragraph-class="text-xs text-gray-500 dark:text-gray-400"
+                                                paragraph-class="text-xs text-sem-fg-muted"
                                             />
                                         </div>
 
                                         <!-- LocalInterface: IPC path used internally by RNS. Optional external module -->
                                         <div v-if="newInterfaceType === 'LocalInterface'" class="space-y-4">
-                                            <div class="text-sm text-gray-800 dark:text-zinc-200 leading-snug">
+                                            <div class="text-sm text-sem-fg leading-snug">
                                                 {{ $t("interfaces.loopback_local_title") }}
                                             </div>
-                                            <p class="text-xs text-gray-600 dark:text-zinc-400 leading-relaxed">
+                                            <p class="text-xs text-sem-fg-muted leading-relaxed">
                                                 {{ $t("interfaces.loopback_local_body") }}
                                             </p>
                                             <BundledDocsHint
                                                 hint-i18n-key="interfaces.loopback_local_docs_hint"
                                                 link-i18n-key="interfaces.loopback_local_docs_link"
                                                 :docs-rel-path="docsReticulumInterfacesOverview"
-                                                paragraph-class="text-xs text-gray-500 dark:text-gray-400"
+                                                paragraph-class="text-xs text-sem-fg-muted"
                                             />
                                         </div>
 
                                         <!-- External interface module (TypeName.py under Reticulum interfacepath) -->
                                         <div v-if="newInterfaceType === '__external__'" class="space-y-4">
-                                            <p class="text-xs text-gray-600 dark:text-zinc-400 leading-relaxed">
+                                            <p class="text-xs text-sem-fg-muted leading-relaxed">
                                                 {{ $t("interfaces.custom_external_intro") }}
                                             </p>
                                             <div
@@ -1589,7 +1583,7 @@
                                                         {{ $t("interfaces.custom_external_install_button") }}
                                                     </button>
                                                     <label
-                                                        class="flex items-center gap-1.5 text-[10px] text-gray-600 dark:text-zinc-400"
+                                                        class="flex items-center gap-1.5 text-[10px] text-sem-fg-muted"
                                                     >
                                                         <input
                                                             v-model="interfaceModuleOverwrite"
@@ -1601,7 +1595,7 @@
                                                 </div>
                                                 <ul
                                                     v-if="installedInterfaceModules.length"
-                                                    class="text-[10px] font-mono text-gray-600 dark:text-zinc-400 space-y-1"
+                                                    class="text-[10px] font-mono text-sem-fg-muted space-y-1"
                                                 >
                                                     <li
                                                         v-for="mod in installedInterfaceModules"
@@ -1626,7 +1620,7 @@
                                                         </button>
                                                     </li>
                                                 </ul>
-                                                <p v-else class="text-[10px] text-gray-500 dark:text-zinc-500">
+                                                <p v-else class="text-[10px] text-sem-fg-muted">
                                                     {{ $t("interfaces.custom_external_modules_empty") }}
                                                 </p>
                                             </div>
@@ -1658,7 +1652,7 @@
                                                 hint-i18n-key="interfaces.custom_external_docs_hint"
                                                 link-i18n-key="interfaces.custom_external_docs_link"
                                                 :docs-rel-path="docsReticulumInterfacesOverview"
-                                                paragraph-class="text-xs text-gray-500 dark:text-gray-400"
+                                                paragraph-class="text-xs text-sem-fg-muted"
                                             />
                                         </div>
                                     </div>
@@ -1755,7 +1749,7 @@
                                             </div>
                                             <div
                                                 v-if="reticulumDiscovery.discover_interfaces"
-                                                class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2"
+                                                class="space-y-4 pt-4 border-t border-sem-border animate-in fade-in slide-in-from-top-2"
                                             >
                                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <input
@@ -1822,7 +1816,7 @@
                                                     </select>
                                                 </div>
                                                 <div v-else class="col-span-2">
-                                                    <p class="text-xs text-gray-500 dark:text-zinc-400">
+                                                    <p class="text-xs text-sem-fg-muted">
                                                         {{ $t("interfaces.http_tunnel_mode_note") }}
                                                     </p>
                                                 </div>
@@ -1885,7 +1879,7 @@
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800">
+                                            <div class="space-y-4 pt-4 border-t border-sem-border">
                                                 <FormLabel class="glass-label">Interface Access Code (IFAC)</FormLabel>
                                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <input
@@ -1908,9 +1902,7 @@
                             </div>
 
                             <!-- Footer Save Action -->
-                            <div
-                                class="pt-8 flex items-center justify-between gap-4 border-t border-gray-200 dark:border-zinc-800"
-                            >
+                            <div class="pt-8 flex items-center justify-between gap-4 border-t border-sem-border">
                                 <button
                                     type="button"
                                     class="secondary-chip px-10! py-3! text-sm!"
@@ -1944,21 +1936,21 @@
                             class="glass-card p-0! overflow-hidden"
                         >
                             <div
-                                class="bg-gray-50/50 dark:bg-zinc-800/50 p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between gap-2"
+                                class="bg-gray-50/50 dark:bg-zinc-800/50 p-4 border-b border-sem-border flex items-center justify-between gap-2"
                             >
                                 <div class="min-w-0">
-                                    <h2 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 text-sm">
+                                    <h2 class="font-bold text-sem-fg flex items-center gap-2 text-sm">
                                         <MaterialDesignIcon icon-name="lightning-bolt" class="size-5 text-yellow-500" />
                                         {{ $t("interfaces.community_quick_start") }}
                                     </h2>
-                                    <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                                    <p class="text-xs text-sem-fg-muted mt-0.5">
                                         {{ $t("interfaces.community_quick_start_hint") }}
                                     </p>
                                 </div>
                                 <div class="flex items-center gap-0.5 shrink-0">
                                     <button
                                         type="button"
-                                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 transition-colors p-1 shrink-0"
+                                        class="text-gray-400 hover:text-gray-600 hover:text-sem-fg transition-colors p-1 shrink-0"
                                         :title="$t('interfaces.community_quick_start_hide')"
                                         @click="updateConfig({ show_suggested_community_interfaces: false })"
                                     >
@@ -1980,11 +1972,11 @@
                                     class="flex p-3 sm:p-4 items-center gap-2 hover:bg-gray-50/30 dark:hover:bg-zinc-800/20 transition-colors"
                                 >
                                     <div class="min-w-0 flex-1">
-                                        <div class="font-bold text-sm text-gray-900 dark:text-zinc-100">
+                                        <div class="font-bold text-sm text-sem-fg">
                                             {{ communityIface.name }}
                                         </div>
                                         <div
-                                            class="text-[10px] font-mono text-gray-500 dark:text-zinc-400 mt-0.5 flex flex-wrap items-center gap-2"
+                                            class="text-[10px] font-mono text-sem-fg-muted mt-0.5 flex flex-wrap items-center gap-2"
                                         >
                                             <MaterialDesignIcon icon-name="server-network" class="size-3 shrink-0" />
                                             <template v-if="communityIface.type === 'I2PInterface'">
@@ -2006,7 +1998,7 @@
                                         </div>
                                         <div
                                             v-if="communityIface.description"
-                                            class="text-[10px] text-gray-400 dark:text-zinc-500 mt-1 italic line-clamp-2"
+                                            class="text-[10px] text-sem-fg-muted mt-1 italic line-clamp-2"
                                         >
                                             {{ communityIface.description }}
                                         </div>
@@ -2028,7 +2020,7 @@
                             "
                             class="glass-card p-4 space-y-3"
                         >
-                            <p class="text-sm text-gray-600 dark:text-zinc-400">
+                            <p class="text-sm text-sem-fg-muted">
                                 {{ $t("interfaces.community_presets_hidden_hint") }}
                             </p>
                             <button
@@ -2047,7 +2039,7 @@
                                 communityInterfacesFetchDone &&
                                 communityInterfaces.length === 0
                             "
-                            class="glass-card p-4 text-sm text-gray-500 dark:text-zinc-400"
+                            class="glass-card p-4 text-sm text-sem-fg-muted"
                         >
                             {{ $t("interfaces.community_presets_empty") }}
                         </div>
@@ -2062,7 +2054,7 @@
                                     <MaterialDesignIcon icon-name="map-search-outline" class="size-6" />
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <h3 class="text-sm font-bold text-gray-900 dark:text-white">
+                                    <h3 class="text-sm font-bold text-sem-fg">
                                         {{ $t("interfaces.find_more_nodes") }}
                                     </h3>
                                     <div class="flex flex-wrap gap-2 mt-1">
@@ -3789,13 +3781,13 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .glass-card {
-    @apply bg-white/95 dark:bg-zinc-900/85 backdrop-blur-sm border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-xl p-6;
+    @apply bg-white/95 dark:bg-zinc-900/85 backdrop-blur-sm border border-sem-border rounded-3xl shadow-xl p-6;
 }
 .input-field {
-    @apply bg-gray-50/90 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-700 text-sm rounded-2xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-500 dark:focus:border-blue-500 block w-full p-2.5 text-gray-900 dark:text-gray-100 transition;
+    @apply bg-gray-50/90 dark:bg-zinc-900/80 border border-sem-border text-sm rounded-2xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-500 dark:focus:border-blue-500 block w-full p-2.5 text-gray-900 dark:text-gray-100 transition;
 }
 .glass-label {
-    @apply mb-1.5 block text-xs uppercase font-bold text-gray-500 dark:text-zinc-400 tracking-wider;
+    @apply mb-1.5 block text-xs uppercase font-bold text-sem-fg-muted tracking-wider;
 }
 .glass-field {
     @apply space-y-1;

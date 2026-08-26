@@ -13,7 +13,7 @@
             :icon-name="icon"
             :class="plain ? 'w-8 h-8 mx-auto mb-2 text-gray-400' : 'w-12 h-12 mx-auto mb-4 text-gray-400'"
         />
-        <div v-if="title" class="text-base font-semibold text-gray-800 dark:text-zinc-200">{{ title }}</div>
+        <div v-if="title" class="text-base font-semibold text-sem-fg">{{ title }}</div>
         <p v-if="description" class="mt-2 text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto">
             {{ description }}
         </p>

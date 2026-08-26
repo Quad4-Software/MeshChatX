@@ -1,10 +1,10 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div class="p-3 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/30">
+    <div class="p-3 rounded-xl border border-sem-border bg-gray-50/50 dark:bg-zinc-900/30">
         <div class="flex justify-between items-start mb-2">
             <span
-                class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400"
+                class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm bg-gray-200 dark:bg-zinc-800 text-sem-fg-muted"
             >
                 {{ item.is_outbound ? $t("messages.telemetry_label_sent") : $t("messages.telemetry_label_received") }}
             </span>
@@ -14,7 +14,7 @@
         <div v-if="item.lxmf_message.fields?.telemetry?.location" class="flex items-center gap-2 mb-2">
             <button
                 type="button"
-                class="flex items-center gap-2 text-xs font-mono text-blue-600 dark:text-blue-400 hover:underline"
+                class="flex items-center gap-2 text-xs font-mono text-sem-accent hover:underline"
                 @click="$emit('location-click', item.lxmf_message.fields.telemetry.location)"
             >
                 <MaterialDesignIcon icon-name="map-marker" class="size-4" />
@@ -23,10 +23,7 @@
             </button>
         </div>
 
-        <div
-            v-if="item.lxmf_message.fields?.telemetry"
-            class="flex flex-wrap gap-3 text-[10px] text-gray-500 dark:text-zinc-400"
-        >
+        <div v-if="item.lxmf_message.fields?.telemetry" class="flex flex-wrap gap-3 text-[10px] text-sem-fg-muted">
             <span v-if="item.lxmf_message.fields.telemetry.battery" class="flex items-center gap-1">
                 <MaterialDesignIcon icon-name="battery" class="size-3" />
                 {{

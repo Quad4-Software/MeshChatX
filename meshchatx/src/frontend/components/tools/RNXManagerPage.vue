@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             v-show="!sessionFullscreen"
             icon="console"
@@ -12,7 +12,7 @@
         />
         <div
             v-show="!sessionFullscreen"
-            class="flex items-stretch h-9 shrink-0 border-b border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 overflow-x-auto"
+            class="flex items-stretch h-9 shrink-0 border-b border-sem-border bg-sem-surface-muted overflow-x-auto"
             role="tablist"
         >
             <button
@@ -21,11 +21,11 @@
                 type="button"
                 role="tab"
                 :aria-selected="activeTab === tab.id"
-                class="inline-flex items-center gap-1 px-2.5 sm:px-4 border-r border-gray-200 dark:border-zinc-800 text-xs sm:text-sm transition-colors shrink-0"
+                class="inline-flex items-center gap-1 px-2.5 sm:px-4 border-r border-sem-border text-xs sm:text-sm transition-colors shrink-0"
                 :class="
                     activeTab === tab.id
-                        ? 'bg-white dark:bg-zinc-950 text-gray-900 dark:text-gray-100 font-medium'
-                        : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                        ? 'bg-sem-surface text-gray-900 dark:text-gray-100 font-medium'
+                        : 'text-sem-fg-muted hover:bg-sem-surface-muted'
                 "
                 @click="activeTab = tab.id"
             >
@@ -38,11 +38,11 @@
         <div v-show="!sessionFullscreen" class="flex-1 flex flex-col min-h-0 overflow-hidden">
             <div v-show="activeTab === 'sessions'" class="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
                 <aside
-                    class="flex flex-col min-h-0 shrink-0 border-gray-200 dark:border-zinc-800 px-2 sm:px-3 md:px-4 py-2 sm:py-3 gap-2 sm:gap-3"
+                    class="flex flex-col min-h-0 shrink-0 border-sem-border px-2 sm:px-3 md:px-4 py-2 sm:py-3 gap-2 sm:gap-3"
                     :class="sessionsAsideClass"
                 >
                     <div class="flex items-center justify-between gap-2">
-                        <div class="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">
+                        <div class="text-xs sm:text-sm font-semibold text-sem-fg">
                             {{ $t("rnx.sessions") }}
                         </div>
                         <button type="button" class="secondary-chip text-xs px-2 py-1.5" @click="loadSessions">
@@ -60,12 +60,12 @@
                             :class="
                                 session.id === selectedSessionId
                                     ? 'bg-indigo-100 dark:bg-indigo-900/35 text-indigo-950 dark:text-indigo-100'
-                                    : 'text-gray-900 dark:text-zinc-100 hover:bg-gray-100 dark:hover:bg-zinc-800/70'
+                                    : 'text-sem-fg hover:bg-sem-surface-muted/70'
                             "
                             @click="selectSession(session.id)"
                         >
                             <div class="flex items-center justify-between gap-2">
-                                <div class="font-medium text-xs sm:text-sm text-gray-900 dark:text-zinc-100 truncate">
+                                <div class="font-medium text-xs sm:text-sm text-sem-fg truncate">
                                     {{ session.name || $t("rnx.unnamed_session") }}
                                 </div>
                                 <span
@@ -75,13 +75,11 @@
                                     {{ statusLabel(session) }}
                                 </span>
                             </div>
-                            <div
-                                class="font-mono text-[10px] sm:text-xs text-gray-500 dark:text-zinc-400 truncate mt-0.5"
-                            >
+                            <div class="font-mono text-[10px] sm:text-xs text-sem-fg-muted truncate mt-0.5">
                                 {{ sessionSubtitle(session) }}
                             </div>
                         </button>
-                        <div v-if="sessions.length === 0" class="text-xs text-gray-500 dark:text-zinc-400 px-1">
+                        <div v-if="sessions.length === 0" class="text-xs text-sem-fg-muted px-1">
                             {{ $t("rnx.no_sessions") }}
                         </div>
                     </div>
@@ -115,7 +113,7 @@
                 v-show="activeTab === 'execute'"
                 class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 sm:px-4 md:px-5 lg:px-8 py-3 sm:py-4 space-y-3 sm:space-y-4"
             >
-                <p class="text-xs text-gray-500 dark:text-zinc-500 leading-relaxed">
+                <p class="text-xs text-sem-fg-muted leading-relaxed">
                     {{ $t("rnx.usage_hint") }}
                 </p>
                 <div class="grid gap-3 sm:gap-4 lg:grid-cols-2">
@@ -155,7 +153,7 @@
                         class="input-field font-mono text-xs"
                         :placeholder="$t('rnx.config_dir_placeholder')"
                     />
-                    <p class="mt-1 text-[10px] sm:text-xs text-gray-500 dark:text-zinc-500">
+                    <p class="mt-1 text-[10px] sm:text-xs text-sem-fg-muted">
                         {{ $t("rnx.config_dir_hint") }}
                     </p>
                 </div>
@@ -233,7 +231,7 @@
                 v-show="activeTab === 'listen'"
                 class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 sm:px-4 md:px-5 lg:px-8 py-3 sm:py-4 space-y-3 sm:space-y-4"
             >
-                <p class="text-xs text-gray-500 dark:text-zinc-500 leading-relaxed">
+                <p class="text-xs text-sem-fg-muted leading-relaxed">
                     {{ $t("rnx.usage_hint") }}
                 </p>
                 <div>
@@ -262,7 +260,7 @@
                         class="input-field font-mono text-xs"
                         :placeholder="$t('rnx.config_dir_placeholder')"
                     />
-                    <p class="mt-1 text-[10px] sm:text-xs text-gray-500 dark:text-zinc-500">
+                    <p class="mt-1 text-[10px] sm:text-xs text-sem-fg-muted">
                         {{ $t("rnx.config_dir_hint") }}
                     </p>
                 </div>
@@ -484,7 +482,7 @@ export default {
             if (!session) return "text-gray-500";
             if (session.status === "running") return "text-emerald-600 dark:text-emerald-400";
             if (session.status === "failed") return "text-red-600 dark:text-red-400";
-            return "text-gray-500 dark:text-zinc-400";
+            return "text-sem-fg-muted";
         },
         statusLabel(session) {
             if (!session) return "-";

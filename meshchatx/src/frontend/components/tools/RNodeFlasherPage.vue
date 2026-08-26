@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             icon="lightning-bolt"
             :title="$t('tools.rnode_flasher.title')"
@@ -17,7 +17,7 @@
                     {{ connectedTransportLabel }}
                 </span>
                 <button
-                    class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                    class="p-2 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
                     @click="showAdvanced = !showAdvanced"
                 >
                     <MaterialDesignIcon :icon-name="showAdvanced ? 'cog' : 'cog-outline'" class="size-5" />
@@ -28,7 +28,7 @@
                 <a
                     href="/rnode-flasher/index.html"
                     target="_blank"
-                    class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                    class="p-2 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
                     :title="$t('tools.rnode_flasher.open_original_tab')"
                 >
                     <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
@@ -50,11 +50,9 @@
             <RNodeDiagnosticsPanel :diagnostics="diagnostics" />
 
             <!-- setup card -->
-            <div
-                class="border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg overflow-hidden"
-            >
+            <div class="border border-sem-border bg-sem-surface rounded-lg overflow-hidden">
                 <div class="grid grid-cols-1 md:grid-cols-2">
-                    <div class="p-4 sm:p-6 border-b md:border-b-0 md:border-r border-gray-100 dark:border-zinc-800">
+                    <div class="p-4 sm:p-6 border-b md:border-b-0 md:border-r border-sem-border">
                         <RNodeDeviceSelector
                             :step-number="1"
                             :connection-method="connectionMethod"
@@ -95,7 +93,7 @@
             <!-- provision/finalize -->
             <div
                 v-if="showAdvanced || isProvisioning || isSettingFirmwareHash"
-                class="border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg p-4 sm:p-6 space-y-6"
+                class="border border-sem-border bg-sem-surface rounded-lg p-4 sm:p-6 space-y-6"
             >
                 <RNodeProvisionPanel
                     :provision-step-number="3"
@@ -106,7 +104,7 @@
                     @set-hash="setFirmwareHash"
                 />
 
-                <div v-if="showAdvanced" class="pt-6 border-t border-gray-100 dark:border-zinc-800 space-y-4">
+                <div v-if="showAdvanced" class="pt-6 border-t border-sem-border space-y-4">
                     <RNodeAdvancedTools :disabled-actions="disabledAdvancedActions" @action="onAdvancedAction" />
                     <RNodeDeviceDisplay :image="rnodeDisplayImage" @clear="rnodeDisplayImage = null" />
                 </div>
