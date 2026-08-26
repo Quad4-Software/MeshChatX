@@ -3,6 +3,8 @@
 /**
  * Vite-serve developer experience gates (Vue DevTools, open-in-editor).
  * Production vite build must not load these plugins.
+ *
+ * Set MESHCHAT_VITE_BUNDLED_DEV=1 to enable Vite experimental bundledDev mode.
  */
 
 /**

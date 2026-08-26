@@ -7,10 +7,7 @@ import { detectLaunchEditor, isVueDevToolsEnabled } from "./scripts/vite-dx.mjs"
 import tailwindcss from "@tailwindcss/vite";
 import vue from "@vitejs/plugin-vue";
 import vueDevTools from "vite-plugin-vue-devtools";
-import vuetify from "vite-plugin-vuetify";
-
 const vendorChunkGroups = [
-    { test: /[/\\]node_modules[/\\]vuetify/, name: "vendor-vuetify", priority: 100 },
     { test: /[/\\]node_modules[/\\](vis-network|vis-data)/, name: "vendor-vis", priority: 95 },
     { test: /[/\\]node_modules[/\\]vue-router/, name: "vendor-vue-router", priority: 90 },
     { test: /[/\\]node_modules[/\\](protobufjs|@protobufjs)/, name: "vendor-protobuf", priority: 85 },
@@ -152,6 +149,8 @@ const micronWasmIntegrity = loadMicronWasmIntegrity();
 const visualiserWasmIntegrity = loadVisualiserWasmIntegrity();
 
 export default defineConfig(({ command }) => {
+    const bundledDev = envBool(process.env.MESHCHAT_VITE_BUNDLED_DEV);
+
     // Only clear hashed assets on production build. Loading this config for
     // `vite` / `vite preview` must not wipe meshchatx/public/assets used by
     // the Python static server (Lighthouse, packaged UI).
@@ -160,6 +159,7 @@ export default defineConfig(({ command }) => {
     }
 
     return {
+        experimental: bundledDev ? { bundledDev: true } : undefined,
         define: {
             __APP_BUILD_TIME__: JSON.stringify(appBuildTimeIso),
             __VUE_PROD_DEVTOOLS__: "false",
@@ -187,7 +187,6 @@ export default defineConfig(({ command }) => {
                     },
                 },
             }),
-            vuetify(),
             meshchatxServiceWorkerPlugin({ buildId: appBuildTimeIso }),
         ],
 
