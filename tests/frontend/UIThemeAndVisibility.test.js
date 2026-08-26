@@ -9,14 +9,6 @@ import ConfirmDialog from "../../meshchatx/src/frontend/components/ConfirmDialog
 import ChangelogModal from "../../meshchatx/src/frontend/components/ChangelogModal.vue";
 import LanguageSelector from "../../meshchatx/src/frontend/components/LanguageSelector.vue";
 
-vi.mock("vuetify", () => ({
-    useTheme: vi.fn(() => ({
-        global: {
-            name: { value: "light" },
-        },
-    })),
-}));
-
 vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
     default: {
         on: vi.fn(),

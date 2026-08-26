@@ -1,13 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-vi.mock("vuetify/components/VTooltip", () => ({
-    VTooltip: {
-        name: "VTooltip",
-        template: '<div class="v-tooltip-stub"><slot /></div>',
-    },
-}));
-
 vi.mock("@/js/WebSocketConnection", () => ({
     default: {
         send: vi.fn(),

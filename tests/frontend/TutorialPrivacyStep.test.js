@@ -3,7 +3,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createI18n } from "vue-i18n";
-import { createVuetify } from "vuetify";
 import TutorialPrivacyStep from "../../meshchatx/src/frontend/components/TutorialPrivacyStep.vue";
 import en from "../../meshchatx/src/frontend/locales/en.json";
 import ElectronUtils from "../../meshchatx/src/frontend/js/ElectronUtils.js";
@@ -19,7 +18,6 @@ vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     },
 }));
 
-const vuetify = createVuetify();
 const i18n = createI18n({
     legacy: false,
     locale: "en",
@@ -29,7 +27,7 @@ const i18n = createI18n({
 function mountPrivacyStep() {
     return mount(TutorialPrivacyStep, {
         global: {
-            plugins: [i18n, vuetify],
+            plugins: [i18n],
             stubs: { Toggle: true },
         },
     });

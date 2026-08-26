@@ -10,12 +10,10 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createRouter, createWebHashHistory } from "vue-router";
 import { createI18n } from "vue-i18n";
-import { createVuetify } from "vuetify";
 import CallPage from "@/components/call/CallPage.vue";
 import App from "../../meshchatx/src/frontend/components/App.vue";
 import { appPackageVersion } from "./fixtures/repoPackageVersion.js";
 
-const vuetify = createVuetify();
 const i18n = createI18n({
     legacy: false,
     locale: "en",
@@ -230,7 +228,7 @@ describe("App telephone_ringing policy regressions", () => {
     async function mountApp() {
         const wrapper = mount(App, {
             global: {
-                plugins: [router, vuetify, i18n],
+                plugins: [router, i18n],
                 stubs: {
                     MaterialDesignIcon: true,
                     LxmfUserIcon: true,
