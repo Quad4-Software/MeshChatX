@@ -7,6 +7,29 @@ from datetime import UTC, datetime, timedelta
 from lxmfy import IconAppearance, LXMFBot, pack_icon_appearance_field
 
 
+def _lxmf_bot_kwargs(
+    *,
+    name,
+    storage_path,
+    test_mode,
+    config_path,
+    reticulum_config_dir,
+    lxmf_settings=None,
+    **extra,
+):
+    kwargs = {
+        "name": name,
+        "test_mode": test_mode,
+        "storage_path": storage_path,
+        "config_path": config_path,
+        "reticulum_config_dir": reticulum_config_dir,
+        **extra,
+    }
+    if lxmf_settings:
+        kwargs.update(lxmf_settings)
+    return kwargs
+
+
 class StoppableBot:
     def __init__(self):
         self._stop_event = None
@@ -26,18 +49,25 @@ class EchoBotTemplate(StoppableBot):
         test_mode=False,
         config_path=None,
         reticulum_config_dir=None,
+        propagation_settings=None,
+        lxmf_settings=None,
     ):
         super().__init__()
 
+        merged = lxmf_settings if lxmf_settings is not None else propagation_settings
+
         self.bot = LXMFBot(
-            name=name,
-            announce=600,
-            command_prefix="",
-            first_message_enabled=True,
-            test_mode=test_mode,
-            storage_path=storage_path,
-            config_path=config_path,
-            reticulum_config_dir=reticulum_config_dir,
+            **_lxmf_bot_kwargs(
+                name=name,
+                storage_path=storage_path,
+                test_mode=test_mode,
+                config_path=config_path,
+                reticulum_config_dir=reticulum_config_dir,
+                lxmf_settings=merged,
+                announce=600,
+                command_prefix="",
+                first_message_enabled=True,
+            ),
         )
         self.setup_commands()
         self.setup_message_handlers()
@@ -113,18 +143,25 @@ class NoteBotTemplate(StoppableBot):
         test_mode=False,
         config_path=None,
         reticulum_config_dir=None,
+        propagation_settings=None,
+        lxmf_settings=None,
     ):
         super().__init__()
 
+        merged = lxmf_settings if lxmf_settings is not None else propagation_settings
+
         self.bot = LXMFBot(
-            name=name,
-            announce=600,
-            command_prefix="/",
-            storage_type="json",
-            storage_path=storage_path or "data/notes",
-            test_mode=test_mode,
-            config_path=config_path,
-            reticulum_config_dir=reticulum_config_dir,
+            **_lxmf_bot_kwargs(
+                name=name,
+                storage_path=storage_path or "data/notes",
+                test_mode=test_mode,
+                config_path=config_path,
+                reticulum_config_dir=reticulum_config_dir,
+                lxmf_settings=merged,
+                announce=600,
+                command_prefix="/",
+                storage_type="json",
+            ),
         )
         self.setup_commands()
 
@@ -201,18 +238,25 @@ class ReminderBotTemplate(StoppableBot):
         test_mode=False,
         config_path=None,
         reticulum_config_dir=None,
+        propagation_settings=None,
+        lxmf_settings=None,
     ):
         super().__init__()
 
+        merged = lxmf_settings if lxmf_settings is not None else propagation_settings
+
         self.bot = LXMFBot(
-            name=name,
-            announce=600,
-            command_prefix="/",
-            storage_type="sqlite",
-            storage_path=storage_path or "data/reminders.db",
-            test_mode=test_mode,
-            config_path=config_path,
-            reticulum_config_dir=reticulum_config_dir,
+            **_lxmf_bot_kwargs(
+                name=name,
+                storage_path=storage_path or "data/reminders.db",
+                test_mode=test_mode,
+                config_path=config_path,
+                reticulum_config_dir=reticulum_config_dir,
+                lxmf_settings=merged,
+                announce=600,
+                command_prefix="/",
+                storage_type="sqlite",
+            ),
         )
         self.setup_commands()
         self.bot.scheduler.add_task(
