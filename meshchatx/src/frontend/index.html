@@ -4,6 +4,7 @@
         <meta charset="UTF-8" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <meta name="theme-color" content="#f8fafc" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" type="image/png" href="favicons/favicon-512x512.png" />
         <title>Reticulum MeshChatX</title>
@@ -66,6 +67,58 @@
                 opacity: 0.85;
                 font-size: 0.875rem;
             }
+            #meshchatx-boot-splash .meshchatx-boot-error-title {
+                font-weight: 700;
+                font-size: 1.15rem;
+                letter-spacing: -0.02em;
+                text-align: center;
+            }
+            #meshchatx-boot-splash .meshchatx-boot-details {
+                max-width: 28rem;
+                width: 100%;
+                margin: 0;
+                padding: 0.75rem 1rem;
+                border-radius: 0.75rem;
+                background: rgba(0, 0, 0, 0.18);
+                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+                font-size: 0.75rem;
+                line-height: 1.45;
+                white-space: pre-wrap;
+                word-break: break-word;
+                max-height: 9rem;
+                overflow: auto;
+            }
+            html[data-boot-theme="light"] #meshchatx-boot-splash .meshchatx-boot-details {
+                background: rgba(255, 255, 255, 0.55);
+            }
+            #meshchatx-boot-splash .meshchatx-boot-actions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                justify-content: center;
+                margin-top: 0.25rem;
+            }
+            #meshchatx-boot-splash .meshchatx-boot-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+                border: 1px solid rgba(255, 255, 255, 0.24);
+                border-radius: 999px;
+                background: rgba(255, 255, 255, 0.12);
+                color: inherit;
+                cursor: pointer;
+                font: inherit;
+                font-size: 0.875rem;
+                font-weight: 600;
+                padding: 0.55rem 1rem;
+            }
+            #meshchatx-boot-splash .meshchatx-boot-btn:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+            html[data-boot-theme="light"] #meshchatx-boot-splash .meshchatx-boot-btn {
+                border-color: rgba(15, 23, 42, 0.12);
+                background: rgba(255, 255, 255, 0.72);
+            }
             html,
             body {
                 margin: 0;
@@ -111,7 +164,15 @@
                 <img class="meshchatx-boot-logo" src="favicons/favicon-512x512.png" alt="" width="52" height="52" />
             </div>
             <div class="meshchatx-boot-title">MeshChatX</div>
+            <div class="meshchatx-boot-error-title" data-boot-title hidden>Startup failed</div>
             <div class="meshchatx-boot-line" data-boot-line>Getting things ready…</div>
+            <pre class="meshchatx-boot-details" data-boot-details hidden></pre>
+            <div class="meshchatx-boot-actions" data-boot-actions hidden>
+                <button type="button" class="meshchatx-boot-btn" data-boot-reload>Reload page</button>
+                <button type="button" class="meshchatx-boot-btn" data-boot-copy>
+                    <span data-boot-copy-label data-copied-label="Copied">Copy error details</span>
+                </button>
+            </div>
         </div>
         <div id="app"></div>
         <script type="module" src="main.js"></script>

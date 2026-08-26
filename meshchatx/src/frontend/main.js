@@ -4,13 +4,12 @@ import { createI18n } from "vue-i18n";
 import vClickOutside from "./libs/clickOutside.js";
 import DOMPurify from "dompurify";
 import "./style.css";
-import { injectMeshchatThemeVariables, vuetifyThemesFromTokens } from "./theme/designTokens.js";
+import { injectMeshchatThemeVariables } from "./theme/designTokens.js";
 import { registerUiI18n } from "./js/localeLoader.js";
 
 injectMeshchatThemeVariables();
 
 window.DOMPurify = DOMPurify;
-import "@mdi/font/css/materialdesignicons.css";
 import "./fonts/RobotoMonoNerdFont/font.css";
 import { startCodec2ScriptsBackgroundLoad } from "./js/Codec2Loader";
 import { createApiClient } from "./js/apiClient.js";
@@ -47,15 +46,6 @@ const i18n = createI18n({
     },
 });
 registerUiI18n(i18n);
-
-// init vuetify
-import { createVuetify } from "vuetify";
-const vuetify = createVuetify({
-    theme: {
-        defaultTheme: "light",
-        themes: vuetifyThemesFromTokens(),
-    },
-});
 
 if (!window.location.hash || window.location.hash === "#") {
     history.replaceState(null, "", "#/messages");
@@ -351,6 +341,8 @@ window.api = createApiClient({
 
 import { waitForMeshReady, waitForNetworkReady } from "./js/networkStartupWait.js";
 import { resolveAuthNavigation } from "./js/authSessionSync.js";
+import { reportFatalError } from "./js/fatalErrorState.js";
+import { showBootSplashFatalError } from "./js/bootSplashError.js";
 
 function setBootSplashLine(text) {
     const splash = typeof document !== "undefined" ? document.getElementById("meshchatx-boot-splash") : null;
@@ -483,17 +475,36 @@ if (networkReady) {
     function bootstrap() {
         registerMeshchatServiceWorker();
         const splash = typeof document !== "undefined" ? document.getElementById("meshchatx-boot-splash") : null;
+        const app = createApp(App);
+        app.config.errorHandler = (err, _instance, info) => {
+            console.error("MeshChatX render error:", err, info);
+            reportFatalError({
+                kind: "frontend",
+                message: err?.message || String(err),
+                stack: err?.stack,
+                context: typeof info === "string" ? info : "",
+            });
+        };
+        router.onError((error) => {
+            console.error("MeshChatX router error:", error);
+            reportFatalError({
+                kind: "frontend",
+                message: error?.message || String(error),
+                stack: error?.stack,
+                context: "router",
+            });
+        });
         try {
-            createApp(App).use(router).use(vuetify).use(i18n).use(vClickOutside).mount("#app");
+            app.use(router).use(i18n).use(vClickOutside).mount("#app");
         } catch (e) {
             console.error("MeshChatX bootstrap failed:", e);
-            if (splash) {
-                splash.setAttribute("data-state", "error");
-                const line = splash.querySelector("[data-boot-line]");
-                if (line) {
-                    line.textContent = "Failed to start. Try closing and reopening the app.";
-                }
-            }
+            showBootSplashFatalError({
+                kind: "frontend",
+                title: "Failed to start",
+                message: "Failed to start. Try reloading the page.",
+                details: e?.message ? String(e.message) : "",
+                stack: e?.stack,
+            });
             return;
         }
         // Keep splash until the first painted frame so WebView does not flash white.
@@ -563,4 +574,13 @@ if (networkReady) {
     }
 
     bootstrap();
+} else {
+    const splash = typeof document !== "undefined" ? document.getElementById("meshchatx-boot-splash") : null;
+    const line = splash?.querySelector("[data-boot-line]")?.textContent || "Network startup timed out. Try reloading.";
+    showBootSplashFatalError({
+        kind: "backend",
+        title: "Backend unreachable",
+        message: line,
+        details: "The local MeshChatX backend did not become ready during startup.\nStatus endpoint: /api/v1/status",
+    });
 }
