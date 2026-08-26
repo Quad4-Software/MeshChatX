@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createRouter, createWebHashHistory } from "vue-router";
 import { createI18n } from "vue-i18n";
-import { createVuetify } from "vuetify";
 import App from "../../meshchatx/src/frontend/components/App.vue";
 import { appPackageVersion } from "./fixtures/repoPackageVersion.js";
 import en from "../../meshchatx/src/frontend/locales/en.json";
@@ -27,7 +26,6 @@ vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
 }));
 
 const axiosMock = { get: vi.fn() };
-const vuetify = createVuetify();
 const i18n = createI18n({
     legacy: false,
     locale: "en",
@@ -132,7 +130,7 @@ function makeMountedApp() {
     });
     return mount(App, {
         global: {
-            plugins: [router, vuetify, i18n],
+            plugins: [router, i18n],
             stubs: appStubs,
         },
     });

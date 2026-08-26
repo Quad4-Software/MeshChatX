@@ -3,7 +3,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createI18n } from "vue-i18n";
-import { createVuetify } from "vuetify";
 import PostInstallPromptHost from "../../meshchatx/src/frontend/components/PostInstallPromptHost.vue";
 import {
     POST_INSTALL_PROMPTS_STORAGE_KEY,
@@ -37,11 +36,9 @@ const i18n = createI18n({
         },
     },
 });
-const vuetify = createVuetify();
-
 function mountHost() {
     return mount(PostInstallPromptHost, {
-        global: { plugins: [i18n, vuetify] },
+        global: { plugins: [i18n] },
     });
 }
 

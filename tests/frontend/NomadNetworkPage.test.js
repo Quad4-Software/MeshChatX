@@ -2,14 +2,6 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import MicronParser from "@/js/MicronParser.js";
 
-// Mock vuetify components before importing the component under test
-vi.mock("vuetify/components/VTooltip", () => ({
-    VTooltip: {
-        name: "VTooltip",
-        template: '<div class="v-tooltip-stub"><slot /></div>',
-    },
-}));
-
 import NomadNetworkPage from "@/components/nomadnetwork/NomadNetworkPage.vue";
 import ToastUtils from "@/js/ToastUtils";
 

@@ -50,9 +50,11 @@ describe("vite-dx Vue DevTools gate", () => {
         expect(vite).toContain('host: "127.0.0.1"');
         expect(vite).toContain("strictPort: true");
         expect(vite).toContain("clearScreen: false");
-        expect(vite).toContain("forwardConsole: command === \"serve\"");
+        expect(vite).toContain('forwardConsole: command === "serve"');
         expect(vite).toContain("chunkImportMap: true");
         expect(vite).toContain("tsconfigPaths: true");
+        expect(vite).toContain("MESHCHAT_VITE_BUNDLED_DEV");
+        expect(vite).toContain("bundledDev: true");
     });
 
     it("Docker frontend stages copy every vite.config.js scripts/ import", () => {

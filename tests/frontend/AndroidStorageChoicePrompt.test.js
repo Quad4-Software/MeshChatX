@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createI18n } from "vue-i18n";
-import { createVuetify } from "vuetify";
 import AndroidStorageChoicePrompt from "../../meshchatx/src/frontend/components/AndroidStorageChoicePrompt.vue";
 import en from "../../meshchatx/src/frontend/locales/en.json";
 
@@ -38,8 +37,6 @@ vi.mock("../../meshchatx/src/frontend/js/AndroidStorageBridge.js", () => ({
 }));
 
 const i18n = createI18n({ legacy: false, locale: "en", messages: { en } });
-const vuetify = createVuetify();
-
 describe("AndroidStorageChoicePrompt", () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -48,7 +45,7 @@ describe("AndroidStorageChoicePrompt", () => {
     it("showUpgrade opens dialog when status requires prompt", async () => {
         const wrapper = mount(AndroidStorageChoicePrompt, {
             props: { variant: "upgrade" },
-            global: { plugins: [i18n, vuetify] },
+            global: { plugins: [i18n] },
         });
         expect(wrapper.vm.showUpgrade()).toBe(true);
         await wrapper.vm.$nextTick();
@@ -58,7 +55,7 @@ describe("AndroidStorageChoicePrompt", () => {
     it("primary action schedules copy and restarts", async () => {
         const wrapper = mount(AndroidStorageChoicePrompt, {
             props: { variant: "upgrade" },
-            global: { plugins: [i18n, vuetify] },
+            global: { plugins: [i18n] },
         });
         wrapper.vm.showUpgrade();
         await wrapper.vm.onPrimary();
