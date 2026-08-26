@@ -109,6 +109,18 @@ describe("UI Performance and Memory Tests", () => {
                     LxmfUserIcon: { template: '<div class="lxmf-icon"></div>' },
                 },
                 mocks: { $t: (key) => key },
+                stubs: {
+                    SidebarVirtualList: {
+                        props: ["items", "itemKey"],
+                        template: `
+                            <div class="sidebar-virtual-stub">
+                                <div v-for="(item, index) in items" :key="typeof itemKey === 'function' ? itemKey(item) : index">
+                                    <slot name="item" :item="item" :index="index" />
+                                </div>
+                            </div>
+                        `,
+                    },
+                },
             },
         });
 
@@ -121,6 +133,7 @@ describe("UI Performance and Memory Tests", () => {
             `Rendered ${numConvs} conversations in ${renderTime.toFixed(2)}ms, Memory growth: ${memGrowth.toFixed(2)}MB`
         );
 
+        expect(wrapper.find(".sidebar-virtual-stub").exists()).toBe(true);
         expect(wrapper.findAll(".conversation-item").length).toBe(numConvs);
         expect(renderTime).toBeLessThan(12000);
         expect(memGrowth).toBeLessThan(200); // Adjusted for JSDOM/Node.js overhead with 2000 items

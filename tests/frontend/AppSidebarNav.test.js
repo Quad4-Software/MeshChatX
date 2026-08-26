@@ -92,7 +92,8 @@ describe("AppSidebarNav edit hold", () => {
         expect(more.classes()).not.toContain("px-4");
         const item = wrapper.get('[data-nav-item-id="messages"]');
         expect(item.classes()).toContain("justify-center");
-        const link = item.find("a.w-full");
+        const link = item.find(".sidebar-nav-link");
+        expect(link.exists()).toBe(true);
         expect(link.classes()).toContain("justify-center");
         expect(link.classes()).not.toContain("mr-2");
         wrapper.unmount();
@@ -161,7 +162,9 @@ describe("AppSidebarNav edit hold", () => {
         });
         const item = wrapper.get('[data-nav-item-id="messages"]');
         expect(item.classes()).toContain("justify-center");
-        expect(item.find("a.w-full").classes()).toContain("justify-center");
+        const link = item.find(".sidebar-nav-link");
+        expect(link.exists()).toBe(true);
+        expect(link.classes()).toContain("justify-center");
         wrapper.unmount();
     });
 

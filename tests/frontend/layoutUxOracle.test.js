@@ -22,7 +22,7 @@ describe("layout UX oracle-light", () => {
 
     it("ConversationViewer message list uses overflow-y-auto and composer safe-area", () => {
         const cv = src("components/messages/ConversationViewer.vue");
-        expect(cv).toContain("overflow-y-auto bg-white dark:bg-zinc-950");
+        expect(cv).toContain("overflow-y-auto bg-sem-canvas");
         expect(cv).not.toMatch(/id="messages"[\s\S]{0,200}overflow-y-scroll/);
         expect(cv).toContain("composerChromeStyle");
         expect(cv).toContain("updateKeyboardInset");
