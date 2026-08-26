@@ -49,9 +49,9 @@ describe("localeTheme oracles", () => {
         });
 
         it.each([
-            [null, "dark"],
-            ["", "dark"],
-            ["bogus", "dark"],
+            [null, "light"],
+            ["", "light"],
+            ["bogus", "light"],
             ["light", "light"],
             ["dark", "dark"],
         ])("stored %j resolves to mode %s", (stored, expectedMode) => {
@@ -60,6 +60,21 @@ describe("localeTheme oracles", () => {
             runBootTheme(stored);
             expect(document.documentElement.dataset.bootTheme).toBe(expectedMode);
             expect(document.documentElement.classList.contains("dark")).toBe(oracle.htmlDark);
+        });
+
+        it("system theme follows prefers-color-scheme oracle", () => {
+            Object.defineProperty(window, "matchMedia", {
+                writable: true,
+                value: (query) => ({
+                    matches: query.includes("dark"),
+                    addEventListener: () => {},
+                    removeEventListener: () => {},
+                }),
+            });
+            const oracle = bootThemeOracle("system", true);
+            expect(oracle.mode).toBe("dark");
+            runBootTheme("system");
+            expect(document.documentElement.dataset.bootTheme).toBe("dark");
         });
 
         it("light oracle requires html.dark removed even when pre-seeded", () => {

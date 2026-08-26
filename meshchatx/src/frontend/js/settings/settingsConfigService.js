@@ -1,6 +1,12 @@
 /**
  * Pure helpers and HTTP-backed config load/patch for settings UI.
- *
+ */
+
+import { mergeGlobalConfig } from "../GlobalState.js";
+import GlobalEmitter from "../GlobalEmitter.js";
+import { sanitizeThemeConfigFields } from "../../theme/themeEngine.js";
+
+/**
  * @param {unknown} v
  * @returns {number|null}
  */
@@ -19,6 +25,7 @@ export function numOrNull(v) {
  */
 export function sanitizeColorConfigFields(config) {
     if (!config) return;
+    sanitizeThemeConfigFields(config);
     const hex6 = (value, fallback) => {
         if (value == null || value === "") {
             return fallback;
@@ -62,4 +69,17 @@ export async function fetchMergedConfig(api, baseConfig) {
 export async function patchServerConfig(partial, api) {
     const response = await api.patch("/api/v1/config", partial);
     return response.data.config;
+}
+
+/**
+ * Merge a server config snapshot into global state and notify the app shell.
+ *
+ * @param {object | null | undefined} newConfig
+ */
+export function publishPatchedConfig(newConfig) {
+    if (!newConfig || typeof newConfig !== "object") {
+        return;
+    }
+    mergeGlobalConfig(newConfig);
+    GlobalEmitter.emit("config-updated", newConfig);
 }

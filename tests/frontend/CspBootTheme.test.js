@@ -56,13 +56,30 @@ describe("main app CSP and boot theme", () => {
         }
     });
 
-    it("boot-theme.js applies dark theme by default", () => {
+    it("boot-theme.js applies light theme by default", () => {
+        const code = readFileSync(BOOT_THEME_JS, "utf8");
+        // eslint-disable-next-line no-new-func
+        Function(code)();
+        expect(document.documentElement.classList.contains("dark")).toBe(false);
+        expect(document.documentElement.dataset.bootTheme).toBe("light");
+        expect(document.documentElement.style.colorScheme).toBe("light");
+    });
+
+    it("boot-theme.js resolves system theme from prefers-color-scheme", () => {
+        window.localStorage.setItem("meshchatx_ui_theme", "system");
+        Object.defineProperty(window, "matchMedia", {
+            writable: true,
+            value: (query) => ({
+                matches: query.includes("dark"),
+                addEventListener: () => {},
+                removeEventListener: () => {},
+            }),
+        });
         const code = readFileSync(BOOT_THEME_JS, "utf8");
         // eslint-disable-next-line no-new-func
         Function(code)();
         expect(document.documentElement.classList.contains("dark")).toBe(true);
         expect(document.documentElement.dataset.bootTheme).toBe("dark");
-        expect(document.documentElement.style.colorScheme).toBe("dark");
     });
 
     it("boot-theme.js respects localStorage light theme", () => {

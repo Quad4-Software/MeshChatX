@@ -119,7 +119,7 @@
         "client_only": "Nur Client",
         "copy": "Kopieren",
         "appearance": "Erscheinungsbild",
-        "appearance_description": "Wechseln Sie jederzeit zwischen hellen und dunklen Voreinstellungen.",
+        "appearance_description": "Designmodus, Farbvorlagen, Akzentfarbe und Layout anpassen.",
         "messages_sidebar_position": "Nachrichten-Seitenleiste",
         "messages_sidebar_position_left": "Links",
         "messages_sidebar_position_right": "Rechts",
@@ -557,7 +557,38 @@
         "seccomp_inactive": "Nicht aktiv",
         "seccomp_auto_enabled": "Automatisch aktiviert, wenn libseccomp verfügbar ist",
         "seccomp_kernel_unsupported": "Seccomp-BPF nicht verfügbar (libseccomp installieren oder Plattform nicht unterstützt)",
-        "seccomp_disabled_by_env": "Deaktiviert über MESHCHAT_SECCOMP=0"
+        "seccomp_disabled_by_env": "Deaktiviert über MESHCHAT_SECCOMP=0",
+        "system_theme": "Systemdesign",
+        "theme_preset": "Farbvorlage",
+        "theme_preset_default": "Standard",
+        "theme_preset_high_contrast": "Hoher Kontrast",
+        "theme_preset_oled": "OLED-Schwarz",
+        "theme_preset_solarized": "Solarized",
+        "theme_preset_custom": "Eigene Farben",
+        "theme_preset_description": "Passt die Basispalette an. Bei Benutzerdefiniert wählst du Canvas- und Flächenfarben für den aktiven Hell- oder Dunkelmodus. Streifen zeigen Canvas, Fläche, Akzent und Rand.",
+        "accent_color": "Akzentfarbe",
+        "accent_color_description": "Überschreibt Schaltflächen, Links und Fokusringe in der App.",
+        "accent_color_reset": "Vorgabe der Vorlage",
+        "accent_color_placeholder": "Leer lassen für Vorlagenstandard",
+        "custom_canvas_color": "Canvas-Farbe",
+        "custom_surface_color": "Oberflächenfarbe",
+        "custom_colors_description": "Gilt bei der Vorlage Eigene Farben für den aktiven Hell- oder Dunkelmodus.",
+        "theme_preset_nord": "Nord",
+        "theme_preset_gruvbox": "Gruvbox",
+        "theme_preset_catppuccin": "Catppuccin",
+        "theme_preset_dracula": "Dracula",
+        "theme_preset_rose_pine": "Rosé Pine",
+        "theme_preset_forest": "Wald",
+        "theme_preset_midnight": "Mitternacht",
+        "theme_preset_warm_paper": "Warmes Papier",
+        "theme_preset_tokyo": "Tokyo Night",
+        "theme_preset_atom_one": "Atom One",
+        "theme_preset_neo_brutalist": "Neo-brutalistisch",
+        "error_frontend_title": "Etwas ist schiefgelaufen",
+        "error_backend_title": "Backend nicht erreichbar",
+        "error_reload_page": "Seite neu laden",
+        "error_copy_details": "Fehlerdetails kopieren",
+        "error_details_heading": "Technische Details"
     },
     "common": {
         "open": "Öffnen",
@@ -842,25 +873,50 @@
         },
         "permissions": {
             "none": "Keine erhöhten Berechtigungen",
-            "hooks.announce.received": "Mesh-Ankündigungsereignisse empfangen",
-            "hooks.rns.link.event": "RNS-Link-Paket- und Schließereignisse empfangen",
-            "managers.destinationPath.read": "Reticulum-Pfadtabelle lesen",
-            "managers.rnsLink.open": "RNS-Links zu Zielen öffnen",
-            "managers.rnsLink.identify": "Auf RNS-Links identifizieren",
-            "managers.rnsLink.request": "Anfrage/Antwort über RNS-Links senden",
-            "managers.rnsLink.send": "Pakete über RNS-Links senden",
-            "managers.rnsLink.close": "RNS-Links schließen",
-            "storage.isolated": "Isolierten Plugin-Speicher verwenden",
-            "network.fetch": "Ausgehende Internet-HTTP-Anfragen stellen",
-            "managers.debugLog.read": "Anwendungs-Debug-Logs lesen",
-            "managers.bugReport.status": "Status des Bug-Report-Collectors lesen",
-            "managers.bugReport.listCollectors": "Gehörte mcx-bugs-v1-Collector auflisten",
-            "managers.bugReport.listReports": "Empfangene Bug-Reports auflisten",
-            "managers.bugReport.preview": "Geschwärzte Debug-Logs für Bug-Reports Vorschau",
-            "managers.bugReport.send": "Bug-Reports über das Mesh senden",
-            "managers.bugReport.startCollector": "Einen mcx-bugs-v1-Collector starten",
-            "managers.bugReport.stopCollector": "Den Bug-Report-Collector stoppen",
-            "managers.bugReport.announce": "Den Bug-Report-Collector announcen"
+            "hooks": {
+                "announce": {
+                    "received": "Mesh-Ankündigungsereignisse empfangen"
+                },
+                "rns": {
+                    "link": {
+                        "event": "RNS-Link-Paket- und Schließereignisse empfangen"
+                    }
+                }
+            },
+            "managers": {
+                "destinationPath": {
+                    "read": "Reticulum-Pfadtabelle lesen"
+                },
+                "debugLog": {
+                    "read": "Anwendungs-Debug-Logs lesen"
+                },
+                "bugReport": {
+                    "status": "Status des Bug-Report-Collectors lesen",
+                    "listCollectors": "Gehörte mcx-bugs-v1-Collector auflisten",
+                    "listReports": "Empfangene Bug-Reports auflisten",
+                    "deleteReport": "Gespeicherten Bug-Report löschen",
+                    "clearReports": "Alle gespeicherten Bug-Reports löschen",
+                    "preview": "Geschwärzte Debug-Logs für Bug-Reports Vorschau",
+                    "send": "Bug-Reports über das Mesh senden",
+                    "startCollector": "Einen mcx-bugs-v1-Collector starten",
+                    "stopCollector": "Den Bug-Report-Collector stoppen",
+                    "announce": "Den Bug-Report-Collector announcen",
+                    "setCollectorName": "Anzeigenamen des Bug-Report-Collectors festlegen"
+                },
+                "rnsLink": {
+                    "open": "RNS-Links zu Zielen öffnen",
+                    "identify": "Auf RNS-Links identifizieren",
+                    "request": "Anfrage/Antwort über RNS-Links senden",
+                    "send": "Pakete über RNS-Links senden",
+                    "close": "RNS-Links schließen"
+                }
+            },
+            "storage": {
+                "isolated": "Isolierten Plugin-Speicher verwenden"
+            },
+            "network": {
+                "fetch": "Ausgehende Internet-HTTP-Anfragen stellen"
+            }
         },
         "install_dialog": {
             "title": "Plugin installieren",

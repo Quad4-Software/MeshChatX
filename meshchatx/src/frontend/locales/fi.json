@@ -146,7 +146,7 @@
         "client_only": "Vain asiakas",
         "copy": "Kopioi",
         "appearance": "Ulkoasu",
-        "appearance_description": "Vaihda vaaleaa ja tummaa esiasetusta milloin tahansa.",
+        "appearance_description": "Muokkaa teematilaa, väriesiasetuksia, korostusväriä ja asettelua.",
         "messages_sidebar_position": "Viestipalkki",
         "messages_sidebar_position_left": "Vasen",
         "messages_sidebar_position_right": "Oikea",
@@ -557,7 +557,38 @@
         "seccomp_inactive": "Ei aktiivinen",
         "seccomp_auto_enabled": "Käytössä automaattisesti, kun libseccomp on saatavilla",
         "seccomp_kernel_unsupported": "Seccomp-BPF ei ole käytettävissä (asenna libseccomp tai alusta ei tuettu)",
-        "seccomp_disabled_by_env": "Pois käytöstä MESHCHAT_SECCOMP=0"
+        "seccomp_disabled_by_env": "Pois käytöstä MESHCHAT_SECCOMP=0",
+        "system_theme": "Järjestelmän teema",
+        "theme_preset": "Väriesiasetus",
+        "theme_preset_default": "Oletus",
+        "theme_preset_high_contrast": "Suuri kontrasti",
+        "theme_preset_oled": "OLED-musta",
+        "theme_preset_solarized": "Solarized",
+        "theme_preset_custom": "Omat värit",
+        "theme_preset_description": "Säädä peruspalettia. Mukautettu antaa valita pohjan ja pinnan värit aktiiviselle vaalealle tai tummalle tilalle. Raidat esikatselevat pohjaa, pintaa, korostusta ja reunaa.",
+        "accent_color": "Korostusväri",
+        "accent_color_description": "Korvaa painikkeet, linkit ja kohderenkaat koko sovelluksessa.",
+        "accent_color_reset": "Käytä esiasetuksen oletusta",
+        "accent_color_placeholder": "Jätä tyhjäksi esiasetuksen oletusta varten",
+        "custom_canvas_color": "Taustaväri",
+        "custom_surface_color": "Pintaväri",
+        "custom_colors_description": "Käytössä kun Omat värit -esiasetus on valittu. Koskee aktiivista vaaleaa tai tummaa tilaa.",
+        "theme_preset_nord": "Nord",
+        "theme_preset_gruvbox": "Gruvbox",
+        "theme_preset_catppuccin": "Catppuccin",
+        "theme_preset_dracula": "Dracula",
+        "theme_preset_rose_pine": "Rosé Pine",
+        "theme_preset_forest": "Metsä",
+        "theme_preset_midnight": "Keskiyö",
+        "theme_preset_warm_paper": "Lämmin paperi",
+        "theme_preset_tokyo": "Tokyo Night",
+        "theme_preset_atom_one": "Atom One",
+        "theme_preset_neo_brutalist": "Neo-brutalismi",
+        "error_frontend_title": "Jokin meni pieleen",
+        "error_backend_title": "Taustapalvelu ei tavoitettavissa",
+        "error_reload_page": "Lataa sivu uudelleen",
+        "error_copy_details": "Kopioi virhetiedot",
+        "error_details_heading": "Tekniset tiedot"
     },
     "common": {
         "open": "Avaa",
@@ -842,25 +873,50 @@
         },
         "permissions": {
             "none": "Ei korotettuja käyttöoikeuksia",
-            "hooks.announce.received": "Vastaanota mesh-ilmoitustapahtumia",
-            "hooks.rns.link.event": "Vastaanota RNS-linkkipaketti- ja sulkemistapahtumia",
-            "managers.destinationPath.read": "Lue Reticulum-reittitaulukko",
-            "managers.rnsLink.open": "Avaa RNS-linkkejä kohteisiin",
-            "managers.rnsLink.identify": "Tunnistaudu RNS-linkeillä",
-            "managers.rnsLink.request": "Lähetä pyyntö/vastaus RNS-linkkien yli",
-            "managers.rnsLink.send": "Lähetä paketteja RNS-linkkien yli",
-            "managers.rnsLink.close": "Sulje RNS-linkkejä",
-            "storage.isolated": "Käytä eristettyä liitännäistallennustilaa",
-            "network.fetch": "Tee ulospäin suuntautuvia internet-HTTP-pyyntöjä",
-            "managers.debugLog.read": "Lue sovelluksen vianetsintälokit",
-            "managers.bugReport.status": "Lue bugiraporttikeräimen tila",
-            "managers.bugReport.listCollectors": "Listaa kuullut mcx-bugs-v1-keräimet",
-            "managers.bugReport.listReports": "Listaa vastaanotetut bugiraportit",
-            "managers.bugReport.preview": "Esikatsele redaktoituja vianetsintälokeja",
-            "managers.bugReport.send": "Lähetä bugiraportteja verkon yli",
-            "managers.bugReport.startCollector": "Käynnistä mcx-bugs-v1-keräin",
-            "managers.bugReport.stopCollector": "Pysäytä bugiraporttikeräin",
-            "managers.bugReport.announce": "Ilmoita bugiraporttikeräin"
+            "hooks": {
+                "announce": {
+                    "received": "Vastaanota mesh-ilmoitustapahtumia"
+                },
+                "rns": {
+                    "link": {
+                        "event": "Vastaanota RNS-linkkipaketti- ja sulkemistapahtumia"
+                    }
+                }
+            },
+            "managers": {
+                "destinationPath": {
+                    "read": "Lue Reticulum-reittitaulukko"
+                },
+                "debugLog": {
+                    "read": "Lue sovelluksen vianetsintälokit"
+                },
+                "bugReport": {
+                    "status": "Lue bugiraporttikeräimen tila",
+                    "listCollectors": "Listaa kuullut mcx-bugs-v1-keräimet",
+                    "listReports": "Listaa vastaanotetut bugiraportit",
+                    "deleteReport": "Poista tallennettu bugiraportti",
+                    "clearReports": "Tyhjennä kaikki tallennetut bugiraportit",
+                    "preview": "Esikatsele redaktoituja vianetsintälokeja",
+                    "send": "Lähetä bugiraportteja verkon yli",
+                    "startCollector": "Käynnistä mcx-bugs-v1-keräin",
+                    "stopCollector": "Pysäytä bugiraporttikeräin",
+                    "announce": "Ilmoita bugiraporttikeräin",
+                    "setCollectorName": "Aseta bugiraporttikeräimen näyttönimi"
+                },
+                "rnsLink": {
+                    "open": "Avaa RNS-linkkejä kohteisiin",
+                    "identify": "Tunnistaudu RNS-linkeillä",
+                    "request": "Lähetä pyyntö/vastaus RNS-linkkien yli",
+                    "send": "Lähetä paketteja RNS-linkkien yli",
+                    "close": "Sulje RNS-linkkejä"
+                }
+            },
+            "storage": {
+                "isolated": "Käytä eristettyä liitännäistallennustilaa"
+            },
+            "network": {
+                "fetch": "Tee ulospäin suuntautuvia internet-HTTP-pyyntöjä"
+            }
         },
         "install_dialog": {
             "title": "Asenna liitännäinen",

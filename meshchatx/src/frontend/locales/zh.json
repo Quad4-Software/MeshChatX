@@ -145,7 +145,7 @@
         "client_only": "仅客户端",
         "copy": "复制",
         "appearance": "外观",
-        "appearance_description": "随时在浅色和深色预设之间切换。",
+        "appearance_description": "自定义主题模式、颜色预设、强调色和布局。",
         "messages_sidebar_position": "消息侧边栏",
         "messages_sidebar_position_left": "左侧",
         "messages_sidebar_position_right": "右侧",
@@ -557,7 +557,38 @@
         "seccomp_inactive": "未启用",
         "seccomp_auto_enabled": "在提供 libseccomp 时自动启用",
         "seccomp_kernel_unsupported": "Seccomp-BPF 不可用（请安装 libseccomp，或平台不支持）",
-        "seccomp_disabled_by_env": "已通过 MESHCHAT_SECCOMP=0 禁用"
+        "seccomp_disabled_by_env": "已通过 MESHCHAT_SECCOMP=0 禁用",
+        "system_theme": "跟随系统",
+        "theme_preset": "颜色预设",
+        "theme_preset_default": "默认",
+        "theme_preset_high_contrast": "高对比度",
+        "theme_preset_oled": "OLED 纯黑",
+        "theme_preset_solarized": "Solarized",
+        "theme_preset_custom": "自定义颜色",
+        "theme_preset_description": "调整基础调色板。自定义可为当前浅色或深色模式选择画布和表面颜色。色带预览画布、表面、强调色和边框。",
+        "accent_color": "强调色",
+        "accent_color_description": "覆盖整个应用中的按钮、链接和焦点环。",
+        "accent_color_reset": "使用预设默认值",
+        "accent_color_placeholder": "留空则使用预设默认值",
+        "custom_canvas_color": "画布颜色",
+        "custom_surface_color": "表面颜色",
+        "custom_colors_description": "在选择自定义预设时使用。适用于当前浅色或深色模式。",
+        "theme_preset_nord": "Nord",
+        "theme_preset_gruvbox": "Gruvbox",
+        "theme_preset_catppuccin": "Catppuccin",
+        "theme_preset_dracula": "Dracula",
+        "theme_preset_rose_pine": "Rosé Pine",
+        "theme_preset_forest": "森林",
+        "theme_preset_midnight": "午夜",
+        "theme_preset_warm_paper": "暖纸色",
+        "theme_preset_tokyo": "Tokyo Night",
+        "theme_preset_atom_one": "Atom One",
+        "theme_preset_neo_brutalist": "新粗野主义",
+        "error_frontend_title": "出现问题",
+        "error_backend_title": "无法连接后端",
+        "error_reload_page": "重新加载页面",
+        "error_copy_details": "复制错误详情",
+        "error_details_heading": "技术详情"
     },
     "common": {
         "open": "打开",
@@ -842,25 +873,50 @@
         },
         "permissions": {
             "none": "无提升权限",
-            "hooks.announce.received": "接收 Mesh 公告事件",
-            "hooks.rns.link.event": "接收 RNS 链路数据包和关闭事件",
-            "managers.destinationPath.read": "读取 Reticulum 路径表",
-            "managers.rnsLink.open": "打开到目的地的RNS链接",
-            "managers.rnsLink.identify": "在RNS链路上识别",
-            "managers.rnsLink.request": "通过RNS链路发送请求/响应",
-            "managers.rnsLink.send": "通过RNS链路发送数据包",
-            "managers.rnsLink.close": "关闭 RNS 链路",
-            "storage.isolated": "使用隔离的插件存储",
-            "network.fetch": "发起出站互联网HTTP请求",
-            "managers.debugLog.read": "读取应用调试日志",
-            "managers.bugReport.status": "读取错误报告收集器状态",
-            "managers.bugReport.listCollectors": "列出已发现的 mcx-bugs-v1 收集器",
-            "managers.bugReport.listReports": "列出已收到的错误报告",
-            "managers.bugReport.preview": "预览经脱敏的调试日志",
-            "managers.bugReport.send": "通过 mesh 发送错误报告",
-            "managers.bugReport.startCollector": "启动 mcx-bugs-v1 收集器",
-            "managers.bugReport.stopCollector": "停止错误报告收集器",
-            "managers.bugReport.announce": "通告错误报告收集器"
+            "hooks": {
+                "announce": {
+                    "received": "接收 Mesh 公告事件"
+                },
+                "rns": {
+                    "link": {
+                        "event": "接收 RNS 链路数据包和关闭事件"
+                    }
+                }
+            },
+            "managers": {
+                "destinationPath": {
+                    "read": "读取 Reticulum 路径表"
+                },
+                "debugLog": {
+                    "read": "读取应用调试日志"
+                },
+                "bugReport": {
+                    "status": "读取错误报告收集器状态",
+                    "listCollectors": "列出已发现的 mcx-bugs-v1 收集器",
+                    "listReports": "列出已收到的错误报告",
+                    "deleteReport": "删除已存储的错误报告",
+                    "clearReports": "清除所有已存储的错误报告",
+                    "preview": "预览经脱敏的调试日志",
+                    "send": "通过 mesh 发送错误报告",
+                    "startCollector": "启动 mcx-bugs-v1 收集器",
+                    "stopCollector": "停止错误报告收集器",
+                    "announce": "通告错误报告收集器",
+                    "setCollectorName": "设置错误报告收集器显示名称"
+                },
+                "rnsLink": {
+                    "open": "打开到目的地的RNS链接",
+                    "identify": "在RNS链路上识别",
+                    "request": "通过RNS链路发送请求/响应",
+                    "send": "通过RNS链路发送数据包",
+                    "close": "关闭 RNS 链路"
+                }
+            },
+            "storage": {
+                "isolated": "使用隔离的插件存储"
+            },
+            "network": {
+                "fetch": "发起出站互联网HTTP请求"
+            }
         },
         "install_dialog": {
             "title": "安装插件",

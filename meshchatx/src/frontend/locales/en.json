@@ -53,7 +53,32 @@
         "process_log_loading": "Loading log…",
         "process_log_failed": "Could not load process log",
         "process_log_copied": "Log copied to clipboard",
-        "copy_process_log": "Copy log"
+        "copy_process_log": "Copy log",
+        "edit_lxmf_config": "LXMF settings",
+        "lxmf_config_title": "Bot LXMF settings",
+        "lxmf_config_saved": "LXMF settings saved",
+        "lxmf_config_failed": "Could not save LXMF settings",
+        "lxmf_config_manual_node_required": "Enter a valid 32-character propagation node hash for manual mode",
+        "lxmf_config_restart_hint": "Restart the bot for delivery changes to apply.",
+        "propagation_mode": "Propagation mode",
+        "propagation_mode_inherit": "Use identity settings",
+        "propagation_mode_manual": "Manual propagation node",
+        "propagation_mode_autopeer": "Auto-peer propagation nodes",
+        "propagation_mode_none": "No propagation node",
+        "propagation_node_hash": "Propagation node hash",
+        "propagation_fallback": "Propagation fallback",
+        "inherit_host_default": "Use identity default",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "direct_delivery_retries": "Direct delivery retries",
+        "direct_delivery_retries_hint": "Leave blank for LXMFy default (3).",
+        "opportunistic_sending": "Opportunistic sending",
+        "announce_interval_seconds": "Announce interval (seconds)",
+        "announce_interval_hint": "Leave blank for default (600).",
+        "stamp_cost": "Stamp cost",
+        "stamp_cost_hint": "Leave blank for no stamp requirement.",
+        "effective_settings_heading": "Effective at next start",
+        "advanced_lxmf_settings": "Advanced LXMF settings"
     },
     "app": {
         "name": "Reticulum MeshChatX",
@@ -147,7 +172,7 @@
         "client_only": "Client-only",
         "copy": "Copy",
         "appearance": "Appearance",
-        "appearance_description": "Switch between light and dark presets anytime.",
+        "appearance_description": "Customize theme mode, color presets, accent color, and layout.",
         "messages_sidebar_position": "Messages sidebar",
         "messages_sidebar_position_left": "Left",
         "messages_sidebar_position_right": "Right",
@@ -170,6 +195,37 @@
         "reset_appearance_defaults": "Reset appearance to defaults",
         "light_theme": "Light Theme",
         "dark_theme": "Dark Theme",
+        "system_theme": "System theme",
+        "theme_preset": "Color preset",
+        "theme_preset_default": "Default",
+        "theme_preset_high_contrast": "High contrast",
+        "theme_preset_oled": "OLED black",
+        "theme_preset_solarized": "Solarized",
+        "theme_preset_nord": "Nord",
+        "theme_preset_gruvbox": "Gruvbox",
+        "theme_preset_catppuccin": "Catppuccin",
+        "theme_preset_dracula": "Dracula",
+        "theme_preset_rose_pine": "Rosé Pine",
+        "theme_preset_forest": "Forest",
+        "theme_preset_midnight": "Midnight",
+        "theme_preset_warm_paper": "Warm paper",
+        "theme_preset_tokyo": "Tokyo Night",
+        "theme_preset_atom_one": "Atom One",
+        "theme_preset_neo_brutalist": "Neo-brutalist",
+        "theme_preset_custom": "Custom colors",
+        "theme_preset_description": "Adjust base palette colors. Custom lets you pick canvas and surface colors for the active light or dark mode. Stripes preview canvas, surface, accent, and border. Pick from the menu or the grid below.",
+        "error_frontend_title": "Something went wrong",
+        "error_backend_title": "Backend unreachable",
+        "error_reload_page": "Reload page",
+        "error_copy_details": "Copy error details",
+        "error_details_heading": "Technical details",
+        "accent_color": "Accent color",
+        "accent_color_description": "Overrides buttons, links, and focus rings across the app.",
+        "accent_color_reset": "Use preset default",
+        "accent_color_placeholder": "Leave empty for preset default",
+        "custom_canvas_color": "Canvas color",
+        "custom_surface_color": "Surface color",
+        "custom_colors_description": "Used when the Custom preset is selected. Applies to the active light or dark mode.",
         "live_preview": "Live preview updates instantly.",
         "realtime": "Realtime",
         "transport_mode": "Transport Mode",
@@ -842,25 +898,50 @@
         },
         "permissions": {
             "none": "No elevated permissions",
-            "hooks.announce.received": "Receive mesh announce events",
-            "hooks.rns.link.event": "Receive RNS link packet and close events",
-            "managers.destinationPath.read": "Read the Reticulum path table",
-            "managers.debugLog.read": "Read application debug logs",
-            "managers.bugReport.status": "Read bug report collector status",
-            "managers.bugReport.listCollectors": "List heard mcx-bugs-v1 collectors",
-            "managers.bugReport.listReports": "List received bug reports",
-            "managers.bugReport.preview": "Preview redacted debug logs for bug reports",
-            "managers.bugReport.send": "Send bug reports over the mesh",
-            "managers.bugReport.startCollector": "Start an mcx-bugs-v1 collector",
-            "managers.bugReport.stopCollector": "Stop the bug report collector",
-            "managers.bugReport.announce": "Announce the bug report collector",
-            "managers.rnsLink.open": "Open RNS links to destinations",
-            "managers.rnsLink.identify": "Identify on RNS links",
-            "managers.rnsLink.request": "Send request/response over RNS links",
-            "managers.rnsLink.send": "Send packets over RNS links",
-            "managers.rnsLink.close": "Close RNS links",
-            "storage.isolated": "Use isolated plugin storage",
-            "network.fetch": "Make outbound internet HTTP requests"
+            "hooks": {
+                "announce": {
+                    "received": "Receive mesh announce events"
+                },
+                "rns": {
+                    "link": {
+                        "event": "Receive RNS link packet and close events"
+                    }
+                }
+            },
+            "managers": {
+                "destinationPath": {
+                    "read": "Read the Reticulum path table"
+                },
+                "debugLog": {
+                    "read": "Read application debug logs"
+                },
+                "bugReport": {
+                    "status": "Read bug report collector status",
+                    "listCollectors": "List heard mcx-bugs-v1 collectors",
+                    "listReports": "List received bug reports",
+                    "deleteReport": "Delete a stored bug report",
+                    "clearReports": "Clear all stored bug reports",
+                    "preview": "Preview redacted debug logs for bug reports",
+                    "send": "Send bug reports over the mesh",
+                    "startCollector": "Start an mcx-bugs-v1 collector",
+                    "stopCollector": "Stop the bug report collector",
+                    "announce": "Announce the bug report collector",
+                    "setCollectorName": "Set the bug report collector display name"
+                },
+                "rnsLink": {
+                    "open": "Open RNS links to destinations",
+                    "identify": "Identify on RNS links",
+                    "request": "Send request/response over RNS links",
+                    "send": "Send packets over RNS links",
+                    "close": "Close RNS links"
+                }
+            },
+            "storage": {
+                "isolated": "Use isolated plugin storage"
+            },
+            "network": {
+                "fetch": "Make outbound internet HTTP requests"
+            }
         },
         "install_dialog": {
             "title": "Install plugin",

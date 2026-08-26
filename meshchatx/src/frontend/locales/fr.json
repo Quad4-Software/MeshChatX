@@ -145,7 +145,7 @@
         "client_only": "Client seul",
         "copy": "Copier",
         "appearance": "Apparence",
-        "appearance_description": "Interruptez entre les préréglages lumineux et sombres à tout moment.",
+        "appearance_description": "Personnalisez le mode de thème, les préréglages de couleur, la couleur d accent et la disposition.",
         "messages_sidebar_position": "Barre latérale des messages",
         "messages_sidebar_position_left": "Gauche",
         "messages_sidebar_position_right": "Droite",
@@ -557,7 +557,38 @@
         "seccomp_inactive": "Inactif",
         "seccomp_auto_enabled": "Activé automatiquement lorsque libseccomp est disponible",
         "seccomp_kernel_unsupported": "Seccomp-BPF indisponible (installez libseccomp, ou plateforme non prise en charge)",
-        "seccomp_disabled_by_env": "Désactivé via MESHCHAT_SECCOMP=0"
+        "seccomp_disabled_by_env": "Désactivé via MESHCHAT_SECCOMP=0",
+        "system_theme": "Thème système",
+        "theme_preset": "Préréglage de couleur",
+        "theme_preset_default": "Par défaut",
+        "theme_preset_high_contrast": "Contraste élevé",
+        "theme_preset_oled": "Noir OLED",
+        "theme_preset_solarized": "Solarized",
+        "theme_preset_custom": "Couleurs personnalisées",
+        "theme_preset_description": "Ajuste la palette de base. Personnalisé permet de choisir les couleurs de toile et de surface pour le mode clair ou sombre actif. Les bandes prévisualisent toile, surface, accent et bordure.",
+        "accent_color": "Couleur d accent",
+        "accent_color_description": "Remplace les boutons, liens et anneaux de focus dans l application.",
+        "accent_color_reset": "Utiliser la valeur du préréglage",
+        "accent_color_placeholder": "Laisser vide pour la valeur par défaut du préréglage",
+        "custom_canvas_color": "Couleur de canevas",
+        "custom_surface_color": "Couleur de surface",
+        "custom_colors_description": "Utilisé lorsque le préréglage Personnalisé est sélectionné. S applique au mode clair ou sombre actif.",
+        "theme_preset_nord": "Nord",
+        "theme_preset_gruvbox": "Gruvbox",
+        "theme_preset_catppuccin": "Catppuccin",
+        "theme_preset_dracula": "Dracula",
+        "theme_preset_rose_pine": "Rosé Pine",
+        "theme_preset_forest": "Forêt",
+        "theme_preset_midnight": "Minuit",
+        "theme_preset_warm_paper": "Papier chaud",
+        "theme_preset_tokyo": "Tokyo Night",
+        "theme_preset_atom_one": "Atom One",
+        "theme_preset_neo_brutalist": "Néo-brutaliste",
+        "error_frontend_title": "Une erreur s'est produite",
+        "error_backend_title": "Backend inaccessible",
+        "error_reload_page": "Recharger la page",
+        "error_copy_details": "Copier les détails de l'erreur",
+        "error_details_heading": "Détails techniques"
     },
     "common": {
         "open": "Ouvrir",
@@ -842,25 +873,50 @@
         },
         "permissions": {
             "none": "Aucune autorisation élevée",
-            "hooks.announce.received": "Recevoir les événements d'annonce mesh",
-            "hooks.rns.link.event": "Recevoir les événements de paquet et de fermeture de lien RNS",
-            "managers.destinationPath.read": "Lire la table de routage Reticulum",
-            "managers.rnsLink.open": "Ouvrir des liens RNS vers des destinations",
-            "managers.rnsLink.identify": "S'identifier sur les liens RNS",
-            "managers.rnsLink.request": "Envoyer des requêtes/réponses via les liens RNS",
-            "managers.rnsLink.send": "Envoyer des paquets via les liens RNS",
-            "managers.rnsLink.close": "Fermer les liens RNS",
-            "storage.isolated": "Utiliser un stockage isolé pour le plugin",
-            "network.fetch": "Effectuer des requêtes HTTP sortantes sur Internet",
-            "managers.debugLog.read": "Lire les journaux de débogage de l'application",
-            "managers.bugReport.status": "Lire le statut du collecteur de rapports de bogues",
-            "managers.bugReport.listCollectors": "Lister les collecteurs mcx-bugs-v1 entendus",
-            "managers.bugReport.listReports": "Lister les rapports de bogues reçus",
-            "managers.bugReport.preview": "Prévisualiser les journaux expurgés pour les rapports",
-            "managers.bugReport.send": "Envoyer des rapports de bogues sur le mesh",
-            "managers.bugReport.startCollector": "Démarrer un collecteur mcx-bugs-v1",
-            "managers.bugReport.stopCollector": "Arrêter le collecteur de rapports de bogues",
-            "managers.bugReport.announce": "Annoncer le collecteur de rapports de bogues"
+            "hooks": {
+                "announce": {
+                    "received": "Recevoir les événements d'annonce mesh"
+                },
+                "rns": {
+                    "link": {
+                        "event": "Recevoir les événements de paquet et de fermeture de lien RNS"
+                    }
+                }
+            },
+            "managers": {
+                "destinationPath": {
+                    "read": "Lire la table de routage Reticulum"
+                },
+                "debugLog": {
+                    "read": "Lire les journaux de débogage de l'application"
+                },
+                "bugReport": {
+                    "status": "Lire le statut du collecteur de rapports de bogues",
+                    "listCollectors": "Lister les collecteurs mcx-bugs-v1 entendus",
+                    "listReports": "Lister les rapports de bogues reçus",
+                    "deleteReport": "Supprimer un rapport de bogue stocké",
+                    "clearReports": "Effacer tous les rapports de bogues stockés",
+                    "preview": "Prévisualiser les journaux expurgés pour les rapports",
+                    "send": "Envoyer des rapports de bogues sur le mesh",
+                    "startCollector": "Démarrer un collecteur mcx-bugs-v1",
+                    "stopCollector": "Arrêter le collecteur de rapports de bogues",
+                    "announce": "Annoncer le collecteur de rapports de bogues",
+                    "setCollectorName": "Définir le nom affiché du collecteur de rapports"
+                },
+                "rnsLink": {
+                    "open": "Ouvrir des liens RNS vers des destinations",
+                    "identify": "S'identifier sur les liens RNS",
+                    "request": "Envoyer des requêtes/réponses via les liens RNS",
+                    "send": "Envoyer des paquets via les liens RNS",
+                    "close": "Fermer les liens RNS"
+                }
+            },
+            "storage": {
+                "isolated": "Utiliser un stockage isolé pour le plugin"
+            },
+            "network": {
+                "fetch": "Effectuer des requêtes HTTP sortantes sur Internet"
+            }
         },
         "install_dialog": {
             "title": "Installer le plugin",

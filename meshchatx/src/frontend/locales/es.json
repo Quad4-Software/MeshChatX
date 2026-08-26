@@ -145,7 +145,7 @@
         "client_only": "Solo cliente",
         "copy": "Copiar",
         "appearance": "Apariencia",
-        "appearance_description": "Cambiar entre presets ligeros y oscuros en cualquier momento.",
+        "appearance_description": "Personalice el modo de tema, presets de color, color de acento y diseño.",
         "messages_sidebar_position": "Mensajes laterales",
         "messages_sidebar_position_left": "Izquierda",
         "messages_sidebar_position_right": "Derecha",
@@ -557,7 +557,38 @@
         "seccomp_inactive": "Inactivo",
         "seccomp_auto_enabled": "Activado automáticamente cuando libseccomp está disponible",
         "seccomp_kernel_unsupported": "Seccomp-BPF no disponible (instala libseccomp o plataforma no compatible)",
-        "seccomp_disabled_by_env": "Desactivado con MESHCHAT_SECCOMP=0"
+        "seccomp_disabled_by_env": "Desactivado con MESHCHAT_SECCOMP=0",
+        "system_theme": "Tema del sistema",
+        "theme_preset": "Preset de color",
+        "theme_preset_default": "Predeterminado",
+        "theme_preset_high_contrast": "Alto contraste",
+        "theme_preset_oled": "Negro OLED",
+        "theme_preset_solarized": "Solarized",
+        "theme_preset_custom": "Colores personalizados",
+        "theme_preset_description": "Ajusta la paleta base. Personalizado permite elegir colores de lienzo y superficie para el modo claro u oscuro activo. Las franjas muestran lienzo, superficie, acento y borde.",
+        "accent_color": "Color de acento",
+        "accent_color_description": "Sustituye botones, enlaces y anillos de foco en toda la app.",
+        "accent_color_reset": "Usar predeterminado del preset",
+        "accent_color_placeholder": "Dejar vacío para el predeterminado del preset",
+        "custom_canvas_color": "Color del lienzo",
+        "custom_surface_color": "Color de superficie",
+        "custom_colors_description": "Se usa cuando el preset Personalizado está seleccionado. Aplica al modo claro u oscuro activo.",
+        "theme_preset_nord": "Nord",
+        "theme_preset_gruvbox": "Gruvbox",
+        "theme_preset_catppuccin": "Catppuccin",
+        "theme_preset_dracula": "Dracula",
+        "theme_preset_rose_pine": "Rosé Pine",
+        "theme_preset_forest": "Bosque",
+        "theme_preset_midnight": "Medianoche",
+        "theme_preset_warm_paper": "Papel cálido",
+        "theme_preset_tokyo": "Tokyo Night",
+        "theme_preset_atom_one": "Atom One",
+        "theme_preset_neo_brutalist": "Neo-brutalista",
+        "error_frontend_title": "Algo salió mal",
+        "error_backend_title": "Backend no disponible",
+        "error_reload_page": "Recargar página",
+        "error_copy_details": "Copiar detalles del error",
+        "error_details_heading": "Detalles técnicos"
     },
     "common": {
         "open": "Abierto",
@@ -842,25 +873,50 @@
         },
         "permissions": {
             "none": "Sin permisos elevados",
-            "hooks.announce.received": "Recibir eventos de anuncio de malla",
-            "hooks.rns.link.event": "Recibir eventos de paquete y cierre de enlace RNS",
-            "managers.destinationPath.read": "Leer la tabla de rutas de Reticulum",
-            "managers.rnsLink.open": "Abrir enlaces RNS a destinos",
-            "managers.rnsLink.identify": "Identificarse en enlaces RNS",
-            "managers.rnsLink.request": "Enviar solicitud/respuesta a través de enlaces RNS",
-            "managers.rnsLink.send": "Enviar paquetes a través de enlaces RNS",
-            "managers.rnsLink.close": "Cerrar enlaces RNS",
-            "storage.isolated": "Usar almacenamiento aislado del complemento",
-            "network.fetch": "Realizar solicitudes HTTP salientes a Internet",
-            "managers.debugLog.read": "Leer registros de depuración de la aplicación",
-            "managers.bugReport.status": "Leer el estado del recolector de informes de errores",
-            "managers.bugReport.listCollectors": "Listar recolectores mcx-bugs-v1 escuchados",
-            "managers.bugReport.listReports": "Listar informes de errores recibidos",
-            "managers.bugReport.preview": "Vista previa de registros depurados para informes",
-            "managers.bugReport.send": "Enviar informes de errores por la malla",
-            "managers.bugReport.startCollector": "Iniciar un recolector mcx-bugs-v1",
-            "managers.bugReport.stopCollector": "Detener el recolector de informes de errores",
-            "managers.bugReport.announce": "Anunciar el recolector de informes de errores"
+            "hooks": {
+                "announce": {
+                    "received": "Recibir eventos de anuncio de malla"
+                },
+                "rns": {
+                    "link": {
+                        "event": "Recibir eventos de paquete y cierre de enlace RNS"
+                    }
+                }
+            },
+            "managers": {
+                "destinationPath": {
+                    "read": "Leer la tabla de rutas de Reticulum"
+                },
+                "debugLog": {
+                    "read": "Leer registros de depuración de la aplicación"
+                },
+                "bugReport": {
+                    "status": "Leer el estado del recolector de informes de errores",
+                    "listCollectors": "Listar recolectores mcx-bugs-v1 escuchados",
+                    "listReports": "Listar informes de errores recibidos",
+                    "deleteReport": "Eliminar un informe de errores almacenado",
+                    "clearReports": "Borrar todos los informes de errores almacenados",
+                    "preview": "Vista previa de registros depurados para informes",
+                    "send": "Enviar informes de errores por la malla",
+                    "startCollector": "Iniciar un recolector mcx-bugs-v1",
+                    "stopCollector": "Detener el recolector de informes de errores",
+                    "announce": "Anunciar el recolector de informes de errores",
+                    "setCollectorName": "Establecer el nombre visible del recolector de informes"
+                },
+                "rnsLink": {
+                    "open": "Abrir enlaces RNS a destinos",
+                    "identify": "Identificarse en enlaces RNS",
+                    "request": "Enviar solicitud/respuesta a través de enlaces RNS",
+                    "send": "Enviar paquetes a través de enlaces RNS",
+                    "close": "Cerrar enlaces RNS"
+                }
+            },
+            "storage": {
+                "isolated": "Usar almacenamiento aislado del complemento"
+            },
+            "network": {
+                "fetch": "Realizar solicitudes HTTP salientes a Internet"
+            }
         },
         "install_dialog": {
             "title": "Instalar complemento",

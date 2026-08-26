@@ -98,6 +98,16 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { theme: "light" });
     });
 
+    it("updateConfig publishes config-updated for live shell sync", async () => {
+        const emitSpy = vi.spyOn(GlobalEmitter, "emit");
+        const w = await mountSettingsPage(api);
+        w.vm.config.theme = "dark";
+        await w.vm.onThemeChange();
+        expect(emitSpy).toHaveBeenCalledWith("config-updated", expect.objectContaining({ theme: "dark" }));
+        expect(GlobalState.config.theme).toBe("dark");
+        emitSpy.mockRestore();
+    });
+
     it("onAnnounceStoreToggle PATCHes a single announce_store flag", async () => {
         const w = await mountSettingsPage(api);
         w.vm.config.announce_store_lxmf_delivery = true;
@@ -184,6 +194,10 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
             "/api/v1/config",
             expect.objectContaining({
                 theme: "light",
+                theme_preset: "default",
+                accent_color: null,
+                custom_canvas_color: null,
+                custom_surface_color: null,
                 messages_sidebar_position: "left",
                 app_sidebar_layout: "grouped",
                 message_font_size: 14,
