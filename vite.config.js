@@ -200,6 +200,7 @@ export default defineConfig(({ command }) => {
             port: 5173,
             strictPort: true,
             clearScreen: false,
+            forwardConsole: command === "serve",
             warmup: {
                 clientFiles: ["./main.js", "./components/App.vue", "./components/messages/MessagesPage.vue"],
             },
@@ -247,6 +248,7 @@ export default defineConfig(({ command }) => {
 
         build: {
             sourcemap: false,
+            chunkImportMap: true,
             // @mdi/js and other vendor chunks exceed 700 kB minified; splitting icons further is a larger refactor.
             chunkSizeWarningLimit: 3500,
             minify: "terser",
@@ -299,9 +301,7 @@ export default defineConfig(({ command }) => {
 
         resolve: {
             dedupe: ["vue"],
-            alias: {
-                "micron-parser": path.join(__dirname, "node_modules", "micron-parser", "js", "micron-parser.js"),
-            },
+            tsconfigPaths: true,
         },
     };
 });

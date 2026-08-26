@@ -12,7 +12,9 @@
         "skipLibCheck": true,
         "isolatedModules": true,
         "resolveJsonModule": true,
+        "baseUrl": ".",
         "paths": {
+            "@/*": ["./meshchatx/src/frontend/*"],
             "micron-parser": ["./node_modules/micron-parser/js/micron-parser.js"]
         }
     },
