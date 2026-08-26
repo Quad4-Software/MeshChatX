@@ -177,6 +177,10 @@ describe("AppearanceSettingsSection", () => {
         expect(wrapper.emitted("update-field")?.at(-1)).toEqual([{ key: "theme", value: "dark" }]);
         expect(wrapper.emitted("theme-change")).toHaveLength(1);
         expect(config.theme).toBe("light");
+        await themeSelect.setValue("system");
+        expect(wrapper.emitted("update-field")?.at(-1)).toEqual([{ key: "theme", value: "system" }]);
+        expect(wrapper.emitted("theme-change")).toHaveLength(2);
+        expect(config.theme).toBe("light");
         await wrapper.findComponent({ name: "Toggle" }).vm.$emit("update:modelValue", false);
         expect(wrapper.emitted("update-field")?.at(-1)).toEqual([{ key: "ui_glass_enabled", value: false }]);
         expect(wrapper.emitted("ui-glass-enabled-change")).toHaveLength(1);
@@ -208,7 +212,7 @@ describe("AppearanceSettingsSection", () => {
             },
         });
         const selects = wrapper.findAll("select");
-        await selects[2].setValue("classic");
+        await selects[3].setValue("classic");
         expect(wrapper.emitted("update-field")?.at(-1)).toEqual([{ key: "app_sidebar_layout", value: "classic" }]);
         expect(wrapper.emitted("app-sidebar-layout-change")).toHaveLength(1);
         expect(config.app_sidebar_layout).toBe("grouped");
@@ -242,7 +246,7 @@ describe("AppearanceSettingsSection", () => {
             },
         });
         const swatches = wrapper.findAll('input[type="color"]');
-        expect(swatches.length).toBe(4);
+        expect(swatches.length).toBe(5);
         swatches.forEach((el) => {
             expect(el.classes()).toContain("color-fill-input");
         });

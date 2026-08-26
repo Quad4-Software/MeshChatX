@@ -119,7 +119,7 @@
         "client_only": "Только клиент",
         "copy": "Копировать",
         "appearance": "Внешний вид",
-        "appearance_description": "Переключайтесь между светлой и темной темами в любое время.",
+        "appearance_description": "Настройте режим темы, цветовые пресеты, акцентный цвет и макет.",
         "messages_sidebar_position": "Боковая панель сообщений",
         "messages_sidebar_position_left": "Слева",
         "messages_sidebar_position_right": "Справа",
@@ -557,7 +557,38 @@
         "seccomp_inactive": "Не активна",
         "seccomp_auto_enabled": "Включается автоматически при наличии libseccomp",
         "seccomp_kernel_unsupported": "Seccomp-BPF недоступен (установите libseccomp или платформа не поддерживается)",
-        "seccomp_disabled_by_env": "Отключено через MESHCHAT_SECCOMP=0"
+        "seccomp_disabled_by_env": "Отключено через MESHCHAT_SECCOMP=0",
+        "system_theme": "Системная тема",
+        "theme_preset": "Цветовой пресет",
+        "theme_preset_default": "По умолчанию",
+        "theme_preset_high_contrast": "Высокий контраст",
+        "theme_preset_oled": "OLED чёрный",
+        "theme_preset_solarized": "Solarized",
+        "theme_preset_custom": "Свои цвета",
+        "theme_preset_description": "Настройка базовой палитры. Пользовательский режим задаёт цвета холста и поверхности для активной светлой или тёмной темы. Полоски показывают холст, поверхность, акцент и границу.",
+        "accent_color": "Акцентный цвет",
+        "accent_color_description": "Переопределяет кнопки, ссылки и кольца фокуса во всём приложении.",
+        "accent_color_reset": "Значение пресета по умолчанию",
+        "accent_color_placeholder": "Оставьте пустым для значения пресета",
+        "custom_canvas_color": "Цвет холста",
+        "custom_surface_color": "Цвет поверхности",
+        "custom_colors_description": "Используется при выборе пресета Свои цвета. Применяется к активному светлому или тёмному режиму.",
+        "theme_preset_nord": "Nord",
+        "theme_preset_gruvbox": "Gruvbox",
+        "theme_preset_catppuccin": "Catppuccin",
+        "theme_preset_dracula": "Dracula",
+        "theme_preset_rose_pine": "Rosé Pine",
+        "theme_preset_forest": "Лес",
+        "theme_preset_midnight": "Полночь",
+        "theme_preset_warm_paper": "Тёплая бумага",
+        "theme_preset_tokyo": "Tokyo Night",
+        "theme_preset_atom_one": "Atom One",
+        "theme_preset_neo_brutalist": "Нео-брутализм",
+        "error_frontend_title": "Что-то пошло не так",
+        "error_backend_title": "Бэкенд недоступен",
+        "error_reload_page": "Перезагрузить страницу",
+        "error_copy_details": "Копировать сведения об ошибке",
+        "error_details_heading": "Технические сведения"
     },
     "common": {
         "open": "Открыть",
@@ -842,25 +873,50 @@
         },
         "permissions": {
             "none": "Нет повышенных разрешений",
-            "hooks.announce.received": "Получать события объявлений Mesh",
-            "hooks.rns.link.event": "Получать события пакетов и закрытия ссылок RNS",
-            "managers.destinationPath.read": "Читать таблицу путей Reticulum",
-            "managers.rnsLink.open": "Открывать ссылки RNS к назначениям",
-            "managers.rnsLink.identify": "Идентифицироваться на ссылках RNS",
-            "managers.rnsLink.request": "Отправлять запросы/ответы по ссылкам RNS",
-            "managers.rnsLink.send": "Отправлять пакеты по ссылкам RNS",
-            "managers.rnsLink.close": "Закрывать ссылки RNS",
-            "storage.isolated": "Использовать изолированное хранилище плагина",
-            "network.fetch": "Выполнять исходящие HTTP-запросы в интернет",
-            "managers.debugLog.read": "Читать отладочные журналы приложения",
-            "managers.bugReport.status": "Читать статус сборщика отчётов об ошибках",
-            "managers.bugReport.listCollectors": "Список услышанных сборщиков mcx-bugs-v1",
-            "managers.bugReport.listReports": "Список полученных отчётов об ошибках",
-            "managers.bugReport.preview": "Предпросмотр обезличенных логов для отчётов",
-            "managers.bugReport.send": "Отправлять отчёты об ошибках по сети",
-            "managers.bugReport.startCollector": "Запустить сборщик mcx-bugs-v1",
-            "managers.bugReport.stopCollector": "Остановить сборщик отчётов об ошибках",
-            "managers.bugReport.announce": "Анонсировать сборщик отчётов об ошибках"
+            "hooks": {
+                "announce": {
+                    "received": "Получать события объявлений Mesh"
+                },
+                "rns": {
+                    "link": {
+                        "event": "Получать события пакетов и закрытия ссылок RNS"
+                    }
+                }
+            },
+            "managers": {
+                "destinationPath": {
+                    "read": "Читать таблицу путей Reticulum"
+                },
+                "debugLog": {
+                    "read": "Читать отладочные журналы приложения"
+                },
+                "bugReport": {
+                    "status": "Читать статус сборщика отчётов об ошибках",
+                    "listCollectors": "Список услышанных сборщиков mcx-bugs-v1",
+                    "listReports": "Список полученных отчётов об ошибках",
+                    "deleteReport": "Удалить сохранённый отчёт об ошибке",
+                    "clearReports": "Очистить все сохранённые отчёты об ошибках",
+                    "preview": "Предпросмотр обезличенных логов для отчётов",
+                    "send": "Отправлять отчёты об ошибках по сети",
+                    "startCollector": "Запустить сборщик mcx-bugs-v1",
+                    "stopCollector": "Остановить сборщик отчётов об ошибках",
+                    "announce": "Анонсировать сборщик отчётов об ошибках",
+                    "setCollectorName": "Задать отображаемое имя сборщика отчётов"
+                },
+                "rnsLink": {
+                    "open": "Открывать ссылки RNS к назначениям",
+                    "identify": "Идентифицироваться на ссылках RNS",
+                    "request": "Отправлять запросы/ответы по ссылкам RNS",
+                    "send": "Отправлять пакеты по ссылкам RNS",
+                    "close": "Закрывать ссылки RNS"
+                }
+            },
+            "storage": {
+                "isolated": "Использовать изолированное хранилище плагина"
+            },
+            "network": {
+                "fetch": "Выполнять исходящие HTTP-запросы в интернет"
+            }
         },
         "install_dialog": {
             "title": "Установить плагин",

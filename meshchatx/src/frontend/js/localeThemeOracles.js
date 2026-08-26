@@ -11,10 +11,18 @@ import { listLocaleCodes, normalizeUiLocaleCode } from "./localeLoader.js";
  * Expected boot theme after boot-theme.js runs.
  *
  * @param {string | null | undefined} storedTheme from localStorage or Android bridge
+ * @param {boolean} [prefersDark]
  * @returns {{ mode: "light" | "dark", htmlDark: boolean }}
  */
-export function bootThemeOracle(storedTheme) {
-    const mode = storedTheme === "light" || storedTheme === "dark" ? storedTheme : "dark";
+export function bootThemeOracle(storedTheme, prefersDark = false) {
+    if (storedTheme === "system") {
+        const mode = prefersDark ? "dark" : "light";
+        return {
+            mode,
+            htmlDark: mode === "dark",
+        };
+    }
+    const mode = storedTheme === "dark" ? "dark" : "light";
     return {
         mode,
         htmlDark: mode === "dark",

@@ -145,7 +145,7 @@
         "client_only": "Alleen client",
         "copy": "Kopiëren",
         "appearance": "Uiterlijk",
-        "appearance_description": "Schakel altijd tussen licht en donker.",
+        "appearance_description": "Pas themamodus, kleurpresets, accentkleur en lay-out aan.",
         "messages_sidebar_position": "Berichten zijbalk",
         "messages_sidebar_position_left": "Links",
         "messages_sidebar_position_right": "Rechts",
@@ -557,7 +557,38 @@
         "seccomp_inactive": "Niet actief",
         "seccomp_auto_enabled": "Automatisch ingeschakeld wanneer libseccomp beschikbaar is",
         "seccomp_kernel_unsupported": "Seccomp-BPF niet beschikbaar (installeer libseccomp of platform niet ondersteund)",
-        "seccomp_disabled_by_env": "Uitgeschakeld via MESHCHAT_SECCOMP=0"
+        "seccomp_disabled_by_env": "Uitgeschakeld via MESHCHAT_SECCOMP=0",
+        "system_theme": "Systeemthema",
+        "theme_preset": "Kleurpreset",
+        "theme_preset_default": "Standaard",
+        "theme_preset_high_contrast": "Hoog contrast",
+        "theme_preset_oled": "OLED-zwart",
+        "theme_preset_solarized": "Solarized",
+        "theme_preset_custom": "Aangepaste kleuren",
+        "theme_preset_description": "Pas het basispalet aan. Aangepast laat je canvas- en oppervlaktekleuren kiezen voor de actieve lichte of donkere modus. Strepen tonen canvas, oppervlak, accent en rand.",
+        "accent_color": "Accentkleur",
+        "accent_color_description": "Overschrijft knoppen, links en focusringen in de app.",
+        "accent_color_reset": "Presetstandaard gebruiken",
+        "accent_color_placeholder": "Leeg laten voor presetstandaard",
+        "custom_canvas_color": "Canvaskleur",
+        "custom_surface_color": "Oppervlaktekleur",
+        "custom_colors_description": "Gebruikt wanneer de preset Aangepast is geselecteerd. Geldt voor de actieve lichte of donkere modus.",
+        "theme_preset_nord": "Nord",
+        "theme_preset_gruvbox": "Gruvbox",
+        "theme_preset_catppuccin": "Catppuccin",
+        "theme_preset_dracula": "Dracula",
+        "theme_preset_rose_pine": "Rosé Pine",
+        "theme_preset_forest": "Bos",
+        "theme_preset_midnight": "Middernacht",
+        "theme_preset_warm_paper": "Warm papier",
+        "theme_preset_tokyo": "Tokyo Night",
+        "theme_preset_atom_one": "Atom One",
+        "theme_preset_neo_brutalist": "Neo-brutalistisch",
+        "error_frontend_title": "Er ging iets mis",
+        "error_backend_title": "Backend niet bereikbaar",
+        "error_reload_page": "Pagina herladen",
+        "error_copy_details": "Foutdetails kopiëren",
+        "error_details_heading": "Technische details"
     },
     "common": {
         "open": "Openen",
@@ -842,25 +873,50 @@
         },
         "permissions": {
             "none": "Geen verhoogde machtigingen",
-            "hooks.announce.received": "Mesh-aankondigingsgebeurtenissen ontvangen",
-            "hooks.rns.link.event": "RNS-linkpakket- en sluitgebeurtenissen ontvangen",
-            "managers.destinationPath.read": "Het Reticulum-padtabel lezen",
-            "managers.rnsLink.open": "RNS-links openen naar bestemmingen",
-            "managers.rnsLink.identify": "Identificeren op RNS-links",
-            "managers.rnsLink.request": "Verzoek/antwoord verzenden via RNS-links",
-            "managers.rnsLink.send": "Pakketten verzenden via RNS-links",
-            "managers.rnsLink.close": "RNS-links sluiten",
-            "storage.isolated": "Geïsoleerde pluginopslag gebruiken",
-            "network.fetch": "Uitgaande internet-HTTP-verzoeken doen",
-            "managers.debugLog.read": "Applicatie-debuglogs lezen",
-            "managers.bugReport.status": "Status van bugrapport-collector lezen",
-            "managers.bugReport.listCollectors": "Gehoorde mcx-bugs-v1-collectors tonen",
-            "managers.bugReport.listReports": "Ontvangen bugrapporten tonen",
-            "managers.bugReport.preview": "Voorbeeld van geredigeerde debuglogs voor bugrapporten",
-            "managers.bugReport.send": "Bugrapporten via het mesh versturen",
-            "managers.bugReport.startCollector": "Een mcx-bugs-v1-collector starten",
-            "managers.bugReport.stopCollector": "De bugrapport-collector stoppen",
-            "managers.bugReport.announce": "De bugrapport-collector announcen"
+            "hooks": {
+                "announce": {
+                    "received": "Mesh-aankondigingsgebeurtenissen ontvangen"
+                },
+                "rns": {
+                    "link": {
+                        "event": "RNS-linkpakket- en sluitgebeurtenissen ontvangen"
+                    }
+                }
+            },
+            "managers": {
+                "destinationPath": {
+                    "read": "Het Reticulum-padtabel lezen"
+                },
+                "debugLog": {
+                    "read": "Applicatie-debuglogs lezen"
+                },
+                "bugReport": {
+                    "status": "Status van bugrapport-collector lezen",
+                    "listCollectors": "Gehoorde mcx-bugs-v1-collectors tonen",
+                    "listReports": "Ontvangen bugrapporten tonen",
+                    "deleteReport": "Een opgeslagen bugrapport verwijderen",
+                    "clearReports": "Alle opgeslagen bugrapporten wissen",
+                    "preview": "Voorbeeld van geredigeerde debuglogs voor bugrapporten",
+                    "send": "Bugrapporten via het mesh versturen",
+                    "startCollector": "Een mcx-bugs-v1-collector starten",
+                    "stopCollector": "De bugrapport-collector stoppen",
+                    "announce": "De bugrapport-collector announcen",
+                    "setCollectorName": "Weergavenaam van de bugrapport-collector instellen"
+                },
+                "rnsLink": {
+                    "open": "RNS-links openen naar bestemmingen",
+                    "identify": "Identificeren op RNS-links",
+                    "request": "Verzoek/antwoord verzenden via RNS-links",
+                    "send": "Pakketten verzenden via RNS-links",
+                    "close": "RNS-links sluiten"
+                }
+            },
+            "storage": {
+                "isolated": "Geïsoleerde pluginopslag gebruiken"
+            },
+            "network": {
+                "fetch": "Uitgaande internet-HTTP-verzoeken doen"
+            }
         },
         "install_dialog": {
             "title": "Plugin installeren",

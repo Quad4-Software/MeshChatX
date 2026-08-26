@@ -11,17 +11,106 @@
         </header>
         <div class="settings-section__body space-y-4">
             <div class="space-y-2">
-                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <div class="text-sm font-medium text-sem-fg">
                     {{ $t("app.theme") }}
                 </div>
                 <select :value="config.theme" class="input-field" @change="onThemeSelect">
                     <option value="light">{{ $t("app.light_theme") }}</option>
                     <option value="dark">{{ $t("app.dark_theme") }}</option>
+                    <option value="system">{{ $t("app.system_theme") }}</option>
                 </select>
             </div>
 
             <div class="space-y-2">
-                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <div class="text-sm font-medium text-sem-fg">
+                    {{ $t("app.theme_preset") }}
+                </div>
+                <ThemePresetPicker :value="themePresetValue" :config="config" @change="onThemePresetPickerChange" />
+                <p class="text-xs text-sem-fg-muted">
+                    {{ $t("app.theme_preset_description") }}
+                </p>
+            </div>
+
+            <div class="space-y-2">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="text-sm font-medium text-sem-fg">
+                        {{ $t("app.accent_color") }}
+                    </div>
+                    <button
+                        v-if="config.accent_color"
+                        type="button"
+                        class="text-[10px] font-bold uppercase text-sem-accent hover:underline"
+                        @click="onAccentColorReset"
+                    >
+                        {{ $t("app.accent_color_reset") }}
+                    </button>
+                </div>
+                <div class="flex gap-2">
+                    <input
+                        :value="accentColorInput"
+                        type="color"
+                        class="color-fill-input w-12 h-10 rounded-xl border border-sem-border cursor-pointer"
+                        @input="onAccentColorInput"
+                    />
+                    <input
+                        :value="config.accent_color || ''"
+                        type="text"
+                        class="input-field monospace-field flex-1"
+                        :placeholder="$t('app.accent_color_placeholder')"
+                        @input="onAccentColorInput"
+                    />
+                </div>
+                <p class="text-xs text-sem-fg-muted">
+                    {{ $t("app.accent_color_description") }}
+                </p>
+            </div>
+
+            <div v-if="themePresetValue === 'custom'" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <div class="text-sm font-medium text-sem-fg">
+                        {{ $t("app.custom_canvas_color") }}
+                    </div>
+                    <div class="flex gap-2">
+                        <input
+                            :value="customCanvasInput"
+                            type="color"
+                            class="color-fill-input w-12 h-10 rounded-xl border border-sem-border cursor-pointer"
+                            @input="onCustomCanvasInput"
+                        />
+                        <input
+                            :value="config.custom_canvas_color || ''"
+                            type="text"
+                            class="input-field monospace-field flex-1"
+                            @input="onCustomCanvasInput"
+                        />
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <div class="text-sm font-medium text-sem-fg">
+                        {{ $t("app.custom_surface_color") }}
+                    </div>
+                    <div class="flex gap-2">
+                        <input
+                            :value="customSurfaceInput"
+                            type="color"
+                            class="color-fill-input w-12 h-10 rounded-xl border border-sem-border cursor-pointer"
+                            @input="onCustomSurfaceInput"
+                        />
+                        <input
+                            :value="config.custom_surface_color || ''"
+                            type="text"
+                            class="input-field monospace-field flex-1"
+                            @input="onCustomSurfaceInput"
+                        />
+                    </div>
+                </div>
+                <p class="text-xs text-sem-fg-muted sm:col-span-2">
+                    {{ $t("app.custom_colors_description") }}
+                </p>
+            </div>
+
+            <div class="space-y-2">
+                <div class="text-sm font-medium text-sem-fg">
                     {{ $t("app.messages_sidebar_position") }}
                 </div>
                 <select
@@ -193,7 +282,7 @@
             <div class="pt-1">
                 <button
                     type="button"
-                    class="p-0 border-0 bg-transparent text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                    class="p-0 border-0 bg-transparent text-sm font-medium text-sem-accent hover:underline cursor-pointer"
                     @click="$emit('reset-appearance-defaults')"
                 >
                     {{ $t("app.reset_appearance_defaults") }}
@@ -201,11 +290,9 @@
             </div>
 
             <div class="space-y-4 pt-2">
-                <div class="text-sm font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">
-                    Message Bubbles
-                </div>
+                <div class="text-sm font-bold text-sem-fg-muted uppercase tracking-wider">Message Bubbles</div>
 
-                <div class="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 px-3 py-2.5">
+                <div class="flex items-start gap-3 rounded-xl border border-sem-border px-3 py-2.5">
                     <input
                         id="detailed-outbound-send-status"
                         type="checkbox"
@@ -217,13 +304,13 @@
                         <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {{ $t("app.detailed_outbound_send_status") }}
                         </div>
-                        <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                        <div class="text-xs text-sem-fg-muted mt-0.5">
                             {{ $t("app.detailed_outbound_send_status_description") }}
                         </div>
                     </label>
                 </div>
 
-                <div class="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 px-3 py-2.5">
+                <div class="flex items-start gap-3 rounded-xl border border-sem-border px-3 py-2.5">
                     <input
                         id="outbound-transfer-progress-enabled"
                         type="checkbox"
@@ -235,13 +322,13 @@
                         <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {{ $t("app.outbound_transfer_progress_enabled") }}
                         </div>
-                        <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                        <div class="text-xs text-sem-fg-muted mt-0.5">
                             {{ $t("app.outbound_transfer_progress_enabled_description") }}
                         </div>
                     </label>
                 </div>
 
-                <div class="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 px-3 py-2.5">
+                <div class="flex items-start gap-3 rounded-xl border border-sem-border px-3 py-2.5">
                     <input
                         id="message-timestamp-grouping"
                         type="checkbox"
@@ -253,7 +340,7 @@
                         <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {{ $t("app.message_timestamp_grouping") }}
                         </div>
-                        <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                        <div class="text-xs text-sem-fg-muted mt-0.5">
                             {{ $t("app.message_timestamp_grouping_description") }}
                         </div>
                     </label>
@@ -268,7 +355,7 @@
                             <input
                                 :value="config.message_outbound_bubble_color"
                                 type="color"
-                                class="color-fill-input w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 cursor-pointer"
+                                class="color-fill-input w-12 h-10 rounded-xl border border-sem-border cursor-pointer"
                                 @input="onBubbleColorInput('outbound', $event)"
                             />
                             <input
@@ -288,7 +375,7 @@
                             <input
                                 :value="config.message_failed_bubble_color"
                                 type="color"
-                                class="color-fill-input w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 cursor-pointer"
+                                class="color-fill-input w-12 h-10 rounded-xl border border-sem-border cursor-pointer"
                                 @input="onBubbleColorInput('failed', $event)"
                             />
                             <input
@@ -308,7 +395,7 @@
                             <input
                                 :value="config.message_waiting_bubble_color"
                                 type="color"
-                                class="color-fill-input w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 cursor-pointer"
+                                class="color-fill-input w-12 h-10 rounded-xl border border-sem-border cursor-pointer"
                                 @input="onBubbleColorInput('waiting', $event)"
                             />
                             <input
@@ -340,12 +427,12 @@
                             v-if="config.message_inbound_bubble_color"
                             :value="config.message_inbound_bubble_color"
                             type="color"
-                            class="color-fill-input w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 cursor-pointer"
+                            class="color-fill-input w-12 h-10 rounded-xl border border-sem-border cursor-pointer"
                             @input="onBubbleColorInput('inbound', $event)"
                         />
                         <div
                             v-if="!config.message_inbound_bubble_color"
-                            class="flex-1 flex items-center px-3 text-xs text-gray-400 bg-gray-50 dark:bg-zinc-900 rounded-xl border border-dashed border-gray-200 dark:border-zinc-800 italic"
+                            class="flex-1 flex items-center px-3 text-xs text-gray-400 bg-sem-surface-muted rounded-xl border border-dashed border-sem-border italic"
                         >
                             {{ $t("settings.inbound_bubble_default_hint") }}
                             <button
@@ -373,12 +460,15 @@
 <script>
 import Toggle from "../../forms/Toggle.vue";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
+import ThemePresetPicker from "../ThemePresetPicker.vue";
+import { THEME_PRESET_CATALOG, normalizeThemePreset } from "../../../theme/themeEngine.js";
 
 export default {
     name: "AppearanceSettingsSection",
     components: {
         Toggle,
         MaterialDesignIcon,
+        ThemePresetPicker,
     },
     props: {
         visible: {
@@ -409,6 +499,10 @@ export default {
     emits: [
         "update-field",
         "theme-change",
+        "theme-preset-change",
+        "accent-color-change",
+        "custom-canvas-color-change",
+        "custom-surface-color-change",
         "messages-sidebar-position-change",
         "app-sidebar-layout-change",
         "message-font-size-change",
@@ -426,9 +520,24 @@ export default {
         "bubble-color-change",
     ],
     computed: {
+        themePresetCatalog() {
+            return THEME_PRESET_CATALOG;
+        },
         sidebarLayoutValue() {
             const layout = this.config?.app_sidebar_layout;
             return layout === "classic" ? "classic" : "grouped";
+        },
+        themePresetValue() {
+            return normalizeThemePreset(this.config?.theme_preset);
+        },
+        accentColorInput() {
+            return this.config?.accent_color || "#2563eb";
+        },
+        customCanvasInput() {
+            return this.config?.custom_canvas_color || "#f8fafc";
+        },
+        customSurfaceInput() {
+            return this.config?.custom_surface_color || "#ffffff";
         },
     },
     methods: {
@@ -444,6 +553,25 @@ export default {
         },
         onThemeSelect(event) {
             this.emitField("theme", event.target.value, "theme-change");
+        },
+        onThemePresetSelect(event) {
+            this.emitField("theme_preset", event.target.value, "theme-preset-change");
+        },
+        onThemePresetPickerChange(presetId) {
+            this.emitField("theme_preset", presetId, "theme-preset-change");
+        },
+        onAccentColorInput(event) {
+            const value = event.target.value || null;
+            this.emitField("accent_color", value, "accent-color-change");
+        },
+        onAccentColorReset() {
+            this.emitField("accent_color", null, "accent-color-change");
+        },
+        onCustomCanvasInput(event) {
+            this.emitField("custom_canvas_color", event.target.value || null, "custom-canvas-color-change");
+        },
+        onCustomSurfaceInput(event) {
+            this.emitField("custom_surface_color", event.target.value || null, "custom-surface-color-change");
         },
         onMessagesSidebarPositionSelect(event) {
             this.emitField("messages_sidebar_position", event.target.value, "messages-sidebar-position-change");

@@ -12,7 +12,7 @@
                 <div class="settings-section settings-section--hero">
                     <div class="flex flex-col lg:flex-row lg:items-center gap-4">
                         <div class="flex-1 space-y-1">
-                            <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            <div class="text-xs uppercase tracking-wide text-sem-fg-muted">
                                 {{ $t("app.profile") }}
                             </div>
                             <div class="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -21,24 +21,22 @@
                                         v-model="config.display_name"
                                         type="text"
                                         :placeholder="$t('app.display_name_placeholder')"
-                                        class="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-base font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500 outline-hidden transition"
+                                        class="w-full rounded-xl border border-sem-border bg-white dark:bg-zinc-800 px-3 py-2 text-base font-semibold text-sem-fg focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500 outline-hidden transition"
                                         @input="onDisplayNameChange"
                                     />
                                 </div>
-                                <div class="text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                                <div class="text-sm text-sem-fg-muted whitespace-nowrap">
                                     {{ $t("app.manage_identity") }}
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div
-                        class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mt-4 text-sm text-gray-600 dark:text-gray-300"
-                    >
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mt-4 text-sm text-sem-fg-muted">
                         <div
                             class="border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/2 dark:sm:bg-white/2"
                         >
                             <div class="text-xs uppercase tracking-wide">{{ $t("app.theme") }}</div>
-                            <div class="font-semibold text-gray-900 dark:text-white capitalize">
+                            <div class="font-semibold text-sem-fg capitalize">
                                 {{ $t("app.theme_mode", { mode: config.theme }) }}
                             </div>
                         </div>
@@ -46,7 +44,7 @@
                             class="border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/2 dark:sm:bg-white/2"
                         >
                             <div class="text-xs uppercase tracking-wide">{{ $t("app.transport") }}</div>
-                            <div class="font-semibold text-gray-900 dark:text-white">
+                            <div class="font-semibold text-sem-fg">
                                 {{ config.is_transport_enabled ? $t("app.enabled") : $t("app.disabled") }}
                             </div>
                         </div>
@@ -54,7 +52,7 @@
                             class="border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/2 dark:sm:bg-white/2"
                         >
                             <div class="text-xs uppercase tracking-wide">{{ $t("app.propagation") }}</div>
-                            <div class="font-semibold text-gray-900 dark:text-white">
+                            <div class="font-semibold text-sem-fg">
                                 {{
                                     config.lxmf_local_propagation_node_enabled
                                         ? $t("app.local_node_running")
@@ -111,7 +109,7 @@
                             spellcheck="false"
                             :aria-label="$t('settings.search_label')"
                             :class="[
-                                'w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl py-3 pl-12 text-sm focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-hidden transition-all shadow-xs',
+                                'w-full bg-sem-surface border border-sem-border rounded-2xl py-3 pl-12 text-sm focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-hidden transition-all shadow-xs',
                                 settingsSearchActive ? 'pr-12' : 'pr-4',
                             ]"
                             :placeholder="$t('app.search_settings')"
@@ -123,7 +121,7 @@
                         <button
                             v-if="settingsSearchActive"
                             type="button"
-                            class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                            class="absolute inset-y-0 right-0 pr-4 flex items-center text-sem-fg-muted hover:text-sem-fg"
                             :aria-label="$t('settings.search_clear')"
                             @click="clearSettingsSearch"
                         >
@@ -132,7 +130,7 @@
                     </div>
                     <p
                         v-if="settingsSearchActive && hasSearchResults"
-                        class="w-full max-w-6xl xl:max-w-7xl 2xl:max-w-360 mx-auto mt-2 px-1 text-xs text-gray-500 dark:text-zinc-500"
+                        class="w-full max-w-6xl xl:max-w-7xl 2xl:max-w-360 mx-auto mt-2 px-1 text-xs text-sem-fg-muted"
                     >
                         {{ $t("settings.search_match_count", { n: settingsSearchMatchTotal }) }}
                     </p>
@@ -143,15 +141,13 @@
                     v-if="settingsSearchActive && !hasSearchResults"
                     class="flex flex-col items-center justify-center py-12 text-center"
                 >
-                    <div
-                        class="p-4 bg-white/50 dark:bg-zinc-800/50 rounded-full mb-4 border border-gray-100 dark:border-zinc-800"
-                    >
+                    <div class="p-4 bg-white/50 dark:bg-zinc-800/50 rounded-full mb-4 border border-sem-border">
                         <MaterialDesignIcon icon-name="magnify-close" class="size-8 text-gray-400" />
                     </div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <h3 class="text-lg font-semibold text-sem-fg">
                         {{ $t("settings.search_no_results") }}
                     </h3>
-                    <p class="text-gray-500 dark:text-gray-400">
+                    <p class="text-sem-fg-muted">
                         {{ $t("settings.search_no_match", { query: settingsSearchDisplay }) }}
                     </p>
                     <button
@@ -221,7 +217,7 @@
                                         <div class="text-sm font-bold text-gray-900 dark:text-gray-100">
                                             {{ $t("maintenance.purge_old_title") }}
                                         </div>
-                                        <div class="text-xs text-gray-600 dark:text-zinc-400 mt-1">
+                                        <div class="text-xs text-sem-fg-muted mt-1">
                                             {{ $t("maintenance.purge_old_desc") }}
                                         </div>
                                     </div>
@@ -232,7 +228,7 @@
                                             :class="
                                                 messageAgePurgeMode === 'days'
                                                     ? 'border-amber-500 bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100'
-                                                    : 'border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300'
+                                                    : 'border-sem-border text-sem-fg-muted'
                                             "
                                             @click="messageAgePurgeMode = 'days'"
                                         >
@@ -244,7 +240,7 @@
                                             :class="
                                                 messageAgePurgeMode === 'date'
                                                     ? 'border-amber-500 bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100'
-                                                    : 'border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300'
+                                                    : 'border-sem-border text-sem-fg-muted'
                                             "
                                             @click="messageAgePurgeMode = 'date'"
                                         >
@@ -255,7 +251,7 @@
                                         v-if="messageAgePurgeMode === 'days'"
                                         class="flex flex-wrap items-center gap-2"
                                     >
-                                        <label class="text-sm text-gray-800 dark:text-zinc-200" for="purge-older-days">
+                                        <label class="text-sm text-sem-fg" for="purge-older-days">
                                             {{ $t("maintenance.purge_older_than_days") }}
                                         </label>
                                         <input
@@ -270,7 +266,7 @@
                                         />
                                     </div>
                                     <div v-else class="flex flex-wrap items-center gap-2">
-                                        <label class="text-sm text-gray-800 dark:text-zinc-200" for="purge-before-date">
+                                        <label class="text-sm text-sem-fg" for="purge-before-date">
                                             {{ $t("maintenance.purge_before_date") }}
                                         </label>
                                         <input
@@ -282,7 +278,7 @@
                                             @change="refreshMessageAgePurgePreview"
                                         />
                                     </div>
-                                    <div class="text-xs text-gray-600 dark:text-zinc-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         <span v-if="messageAgePurgePreviewLoading">{{
                                             $t("maintenance.purge_preview_loading")
                                         }}</span>
@@ -296,7 +292,7 @@
                                     <div class="flex flex-wrap gap-2">
                                         <button
                                             type="button"
-                                            class="px-3 py-2 rounded-xl text-sm font-semibold border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-700 disabled:opacity-60"
+                                            class="px-3 py-2 rounded-xl text-sm font-semibold border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 hover:bg-gray-50 hover:bg-sem-surface-muted disabled:opacity-60"
                                             :disabled="messageAgePurgeBusy"
                                             @click="refreshMessageAgePurgePreview"
                                         >
@@ -483,7 +479,7 @@
                                     </button>
                                 </div>
 
-                                <div class="space-y-2 pt-2 border-t border-gray-100 dark:border-zinc-800">
+                                <div class="space-y-2 pt-2 border-t border-sem-border">
                                     <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                         Automatic Backup Limit
                                     </div>
@@ -539,9 +535,7 @@
                                     />
                                 </div>
 
-                                <div
-                                    class="grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-gray-100 dark:border-zinc-800"
-                                >
+                                <div class="grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-sem-border">
                                     <button
                                         type="button"
                                         class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-purple-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-purple-500 transition group"
@@ -574,9 +568,7 @@
                                     />
                                 </div>
 
-                                <div
-                                    class="grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-gray-100 dark:border-zinc-800"
-                                >
+                                <div class="grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-sem-border">
                                     <button
                                         type="button"
                                         class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-teal-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-teal-500 transition group"
@@ -641,14 +633,11 @@
                                     </button>
                                 </div>
 
-                                <div
-                                    v-if="selfTestResults"
-                                    class="space-y-3 mt-4 border-t border-gray-100 dark:border-zinc-800 pt-4"
-                                >
+                                <div v-if="selfTestResults" class="space-y-3 mt-4 border-t border-sem-border pt-4">
                                     <div
                                         v-for="check in selfTestChecks"
                                         :key="check.key"
-                                        class="flex flex-col p-3 rounded-xl border bg-white dark:bg-zinc-900"
+                                        class="flex flex-col p-3 rounded-xl border bg-sem-surface"
                                         :class="
                                             check.passed
                                                 ? 'border-emerald-200/60 dark:border-emerald-900/30'
@@ -1002,6 +991,10 @@
                                 }
                             "
                             @theme-change="onThemeChange"
+                            @theme-preset-change="onThemePresetChange"
+                            @accent-color-change="onAccentColorChange"
+                            @custom-canvas-color-change="onCustomCanvasColorChange"
+                            @custom-surface-color-change="onCustomSurfaceColorChange"
                             @messages-sidebar-position-change="onMessagesSidebarPositionChange"
                             @app-sidebar-layout-change="onAppSidebarLayoutChange"
                             @message-font-size-change="onMessageFontSizeChange"
@@ -1155,7 +1148,7 @@
                                     </div>
                                 </div>
 
-                                <div class="space-y-2 border-t border-gray-200 dark:border-zinc-800 pt-4">
+                                <div class="space-y-2 border-t border-sem-border pt-4">
                                     <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                         {{ $t("app.map_defaults_heading") }}
                                     </div>
@@ -1211,7 +1204,7 @@
                                     </div>
                                 </div>
 
-                                <div class="space-y-2 border-t border-gray-200 dark:border-zinc-800 pt-4">
+                                <div class="space-y-2 border-t border-sem-border pt-4">
                                     <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                         {{ $t("app.map_tiles_heading") }}
                                     </div>
@@ -1281,7 +1274,7 @@
                                     </label>
                                 </div>
 
-                                <div class="space-y-3 border-t border-gray-200 dark:border-zinc-800 pt-4">
+                                <div class="space-y-3 border-t border-sem-border pt-4">
                                     <div>
                                         <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                             {{ $t("app.map_overlay_limits_heading") }}
@@ -1430,9 +1423,7 @@
                                             </span>
                                         </label>
                                     </div>
-                                    <div
-                                        class="text-xs font-semibold text-gray-700 dark:text-zinc-300 uppercase tracking-wide"
-                                    >
+                                    <div class="text-xs font-semibold text-sem-fg-muted uppercase tracking-wide">
                                         {{ $t("app.announce_max_stored_heading") }}
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1485,9 +1476,7 @@
                                             />
                                         </div>
                                     </div>
-                                    <div
-                                        class="text-xs font-semibold text-gray-700 dark:text-zinc-300 uppercase tracking-wide"
-                                    >
+                                    <div class="text-xs font-semibold text-sem-fg-muted uppercase tracking-wide">
                                         {{ $t("app.announce_fetch_limit_heading") }}
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1552,7 +1541,7 @@
                                                 class="input-field"
                                                 @change="onAnnounceLimitsChange"
                                             />
-                                            <p class="text-[10px] text-gray-500 dark:text-zinc-500">
+                                            <p class="text-[10px] text-sem-fg-muted">
                                                 {{ $t("app.announce_search_max_fetch_hint") }}
                                             </p>
                                         </div>
@@ -1567,7 +1556,7 @@
                                                 class="input-field"
                                                 @change="onAnnounceLimitsChange"
                                             />
-                                            <p class="text-[10px] text-gray-500 dark:text-zinc-500">
+                                            <p class="text-[10px] text-sem-fg-muted">
                                                 {{ $t("app.discovered_interfaces_max_return_hint") }}
                                             </p>
                                         </div>
@@ -1651,20 +1640,20 @@
 
                                 <div
                                     v-if="reticulumInstance.enable_remote_management"
-                                    class="space-y-2 rounded-xl border border-gray-200 dark:border-zinc-700 bg-black/2 dark:bg-white/2 p-3"
+                                    class="space-y-2 rounded-xl border border-sem-border bg-black/2 dark:bg-white/2 p-3"
                                 >
                                     <label class="block space-y-1">
-                                        <span class="text-sm font-medium text-gray-800 dark:text-zinc-200">{{
+                                        <span class="text-sm font-medium text-sem-fg">{{
                                             $t("app.remote_management_allowed")
                                         }}</span>
                                         <textarea
                                             v-model="remoteManagementAllowedText"
                                             rows="3"
-                                            class="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 font-mono text-xs text-gray-900 dark:text-white"
+                                            class="w-full rounded-xl border border-sem-border bg-white dark:bg-zinc-800 px-3 py-2 font-mono text-xs text-sem-fg"
                                             :disabled="reticulumInstanceSaving"
                                             :placeholder="$t('app.remote_management_allowed_placeholder')"
                                         ></textarea>
-                                        <span class="text-xs text-gray-500 dark:text-zinc-400">{{
+                                        <span class="text-xs text-sem-fg-muted">{{
                                             $t("app.remote_management_allowed_description")
                                         }}</span>
                                     </label>
@@ -1684,7 +1673,7 @@
                                             @update:identity-hash="onSettingsMgmtIdentityHash"
                                         />
                                     </div>
-                                    <p v-if="settingsMgmtIdentityHash" class="text-xs text-gray-600 dark:text-zinc-400">
+                                    <p v-if="settingsMgmtIdentityHash" class="text-xs text-sem-fg-muted">
                                         {{ $t("remote_mgmt.management_identity") }}:
                                         <span class="font-mono">{{ settingsMgmtIdentityHash }}</span>
                                     </p>
@@ -1692,12 +1681,12 @@
 
                                 <div class="grid gap-3 sm:grid-cols-2">
                                     <label class="block space-y-1">
-                                        <span class="text-sm font-medium text-gray-800 dark:text-zinc-200">{{
+                                        <span class="text-sm font-medium text-sem-fg">{{
                                             $t("app.shared_instance_type")
                                         }}</span>
                                         <select
                                             v-model="reticulumInstance.shared_instance_type"
-                                            class="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                                            class="w-full rounded-xl border border-sem-border bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-sem-fg"
                                             :disabled="reticulumInstanceSaving"
                                             @change="onSharedInstanceTypeChange"
                                         >
@@ -1705,35 +1694,35 @@
                                             <option value="unix">unix</option>
                                             <option value="tcp">tcp</option>
                                         </select>
-                                        <span class="text-xs text-gray-500 dark:text-zinc-400">{{
+                                        <span class="text-xs text-sem-fg-muted">{{
                                             $t("app.shared_instance_type_description")
                                         }}</span>
                                     </label>
                                     <label class="block space-y-1">
-                                        <span class="text-sm font-medium text-gray-800 dark:text-zinc-200">{{
+                                        <span class="text-sm font-medium text-sem-fg">{{
                                             $t("app.instance_name")
                                         }}</span>
                                         <input
                                             v-model="reticulumInstance.instance_name"
                                             type="text"
                                             maxlength="64"
-                                            class="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                                            class="w-full rounded-xl border border-sem-border bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-sem-fg"
                                             :disabled="reticulumInstanceSaving"
                                             @change="onInstanceNameChange"
                                         />
-                                        <span class="text-xs text-gray-500 dark:text-zinc-400">{{
+                                        <span class="text-xs text-sem-fg-muted">{{
                                             $t("app.instance_name_description")
                                         }}</span>
                                     </label>
                                 </div>
 
                                 <div
-                                    class="rounded-xl border border-gray-200 dark:border-zinc-700 bg-black/2 dark:bg-white/2 p-3 space-y-2"
+                                    class="rounded-xl border border-sem-border bg-black/2 dark:bg-white/2 p-3 space-y-2"
                                 >
-                                    <div class="text-sm font-medium text-gray-900 dark:text-zinc-100">
+                                    <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("app.rpc_config") }}
                                     </div>
-                                    <p class="text-xs text-gray-600 dark:text-zinc-400">
+                                    <p class="text-xs text-sem-fg-muted">
                                         {{ $t("app.rpc_config_description") }}
                                     </p>
                                     <p
@@ -1746,12 +1735,12 @@
                                         class="relative rounded-lg border border-gray-200/70 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60"
                                     >
                                         <pre
-                                            class="text-xs font-mono whitespace-pre-wrap break-all text-gray-800 dark:text-zinc-200 p-2 pr-12"
+                                            class="text-xs font-mono whitespace-pre-wrap break-all text-sem-fg p-2 pr-12"
                                             >{{ displayedRpcConfigSnippet }}</pre>
                                         <button
                                             v-if="reticulumInstance.rpc_config_snippet"
                                             type="button"
-                                            class="absolute top-1.5 right-1.5 inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800"
+                                            class="absolute top-1.5 right-1.5 inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 text-sem-fg-muted dark:hover:text-zinc-100 dark:hover:bg-zinc-800"
                                             :aria-label="
                                                 rpcKeyVisible ? $t('app.rpc_key_hide') : $t('app.rpc_key_show')
                                             "
@@ -1815,9 +1804,7 @@
                             body-class="space-y-4"
                         >
                             <div class="space-y-3">
-                                <div
-                                    class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400"
-                                >
+                                <div class="text-[11px] font-semibold uppercase tracking-wider text-sem-fg-muted">
                                     {{ $t("app.privacy_subsection_device") }}
                                 </div>
                                 <label class="setting-toggle">
@@ -1874,10 +1861,8 @@
                                 </div>
                             </div>
 
-                            <div class="border-t border-gray-200 dark:border-zinc-800 pt-4 space-y-3">
-                                <div
-                                    class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400"
-                                >
+                            <div class="border-t border-sem-border pt-4 space-y-3">
+                                <div class="text-[11px] font-semibold uppercase tracking-wider text-sem-fg-muted">
                                     {{ $t("app.privacy_eyebrow") }}
                                 </div>
                                 <div
@@ -1955,10 +1940,8 @@
                                 </label>
                             </div>
 
-                            <div class="border-t border-gray-200 dark:border-zinc-800 pt-4 space-y-4">
-                                <div
-                                    class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400"
-                                >
+                            <div class="border-t border-sem-border pt-4 space-y-4">
+                                <div class="text-[11px] font-semibold uppercase tracking-wider text-sem-fg-muted">
                                     {{ $t("app.privacy_subsection_telemetry") }}
                                 </div>
                                 <label class="setting-toggle">
@@ -1994,14 +1977,12 @@
                                         >
                                             <div class="flex items-center gap-3">
                                                 <div
-                                                    class="size-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center"
+                                                    class="size-8 rounded-full bg-sem-surface-muted text-blue-500 flex items-center justify-center"
                                                 >
                                                     <MaterialDesignIcon icon-name="account" class="size-5" />
                                                 </div>
                                                 <div class="min-w-0">
-                                                    <div
-                                                        class="text-sm font-bold text-gray-900 dark:text-white truncate"
-                                                    >
+                                                    <div class="text-sm font-bold text-sem-fg truncate">
                                                         {{ peer.name }}
                                                     </div>
                                                     <div class="text-[10px] text-gray-500 font-mono truncate">
@@ -2065,7 +2046,7 @@
                             <div class="settings-section__body space-y-4">
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                                     <div>
-                                        <div class="text-gray-500 dark:text-zinc-400">
+                                        <div class="text-sem-fg-muted">
                                             {{ $t("app.web_listen_address") }}
                                         </div>
                                         <div class="font-mono text-gray-900 dark:text-gray-100">
@@ -2075,7 +2056,7 @@
                                         </div>
                                     </div>
                                     <div>
-                                        <div class="text-gray-500 dark:text-zinc-400">
+                                        <div class="text-sem-fg-muted">
                                             {{ $t("app.web_listen_https") }}
                                         </div>
                                         <div class="text-gray-900 dark:text-gray-100">
@@ -2792,11 +2773,7 @@
                                     <p
                                         v-if="reloadRnsStatusMessage"
                                         class="text-xs"
-                                        :class="
-                                            reloadingRns
-                                                ? 'text-blue-600 dark:text-blue-400'
-                                                : 'text-gray-500 dark:text-gray-400'
-                                        "
+                                        :class="reloadingRns ? 'text-sem-accent' : 'text-sem-fg-muted'"
                                     >
                                         {{ reloadRnsStatusMessage }}
                                     </p>
@@ -2815,7 +2792,7 @@
                                 >
                                     <div class="flex items-center gap-3 w-full min-w-0">
                                         <div
-                                            class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl shrink-0"
+                                            class="p-2 bg-blue-100 dark:bg-blue-900/30 text-sem-accent rounded-xl shrink-0"
                                         >
                                             <MaterialDesignIcon icon-name="keyboard-outline" class="size-6" />
                                         </div>
@@ -2825,7 +2802,7 @@
                                         </div>
                                         <MaterialDesignIcon
                                             :icon-name="shortcutsExpanded ? 'chevron-up' : 'chevron-down'"
-                                            class="size-6 shrink-0 text-gray-500 dark:text-zinc-400"
+                                            class="size-6 shrink-0 text-sem-fg-muted"
                                         />
                                     </div>
                                 </button>
@@ -2834,12 +2811,10 @@
                                         <div
                                             v-for="shortcut in KeyboardShortcuts.getDefaultShortcuts()"
                                             :key="shortcut.action"
-                                            class="bg-gray-50/50 dark:bg-zinc-800/30 rounded-2xl p-4 sm:p-5 border border-gray-100 dark:border-zinc-800"
+                                            class="bg-gray-50/50 dark:bg-zinc-800/30 rounded-2xl p-4 sm:p-5 border border-sem-border"
                                         >
                                             <div class="flex items-center justify-between mb-3">
-                                                <span
-                                                    class="text-sm font-bold text-gray-900 dark:text-zinc-100 uppercase tracking-wide"
-                                                >
+                                                <span class="text-sm font-bold text-sem-fg uppercase tracking-wide">
                                                     {{ shortcut.description }}
                                                 </span>
                                             </div>
@@ -2899,7 +2874,9 @@ import {
     sanitizeColorConfigFields as normalizeConfigColors,
     fetchMergedConfig,
     patchServerConfig,
+    publishPatchedConfig,
 } from "../../js/settings/settingsConfigService";
+import { applyAppearanceTheme } from "../../theme/themeEngine.js";
 import { setLocale } from "../../js/localeLoader.js";
 import {
     applyTransportMode,
@@ -2982,6 +2959,10 @@ export default {
                 identity_hash: "",
                 lxmf_address_hash: "",
                 theme: "dark",
+                theme_preset: "default",
+                accent_color: null,
+                custom_canvas_color: null,
+                custom_surface_color: null,
                 is_transport_enabled: false,
                 auto_resend_failed_messages_when_announce_received: null,
                 allow_auto_resending_failed_messages_with_attachments: null,
@@ -4101,6 +4082,7 @@ export default {
         async updateConfig(config, label = null) {
             try {
                 const newConfig = await patchServerConfig(config, window.api);
+                publishPatchedConfig(newConfig);
                 this.config = newConfig;
                 normalizeConfigColors(this.config);
                 this.syncLxmfTransferLimitInputs();
@@ -4195,12 +4177,58 @@ export default {
             }
         },
         async onThemeChange() {
+            applyAppearanceTheme(this.config);
             await this.updateConfig(
                 {
                     theme: this.config.theme,
                 },
                 "theme"
             );
+        },
+        async onThemePresetChange() {
+            applyAppearanceTheme(this.config);
+            await this.updateConfig(
+                {
+                    theme_preset: this.config.theme_preset,
+                },
+                "theme_preset"
+            );
+        },
+        onAccentColorChange() {
+            if (this.saveTimeouts.accent_color) clearTimeout(this.saveTimeouts.accent_color);
+            this.saveTimeouts.accent_color = setTimeout(async () => {
+                applyAppearanceTheme(this.config);
+                await this.updateConfig(
+                    {
+                        accent_color: this.config.accent_color,
+                    },
+                    "accent_color"
+                );
+            }, 600);
+        },
+        onCustomCanvasColorChange() {
+            if (this.saveTimeouts.custom_canvas_color) clearTimeout(this.saveTimeouts.custom_canvas_color);
+            this.saveTimeouts.custom_canvas_color = setTimeout(async () => {
+                applyAppearanceTheme(this.config);
+                await this.updateConfig(
+                    {
+                        custom_canvas_color: this.config.custom_canvas_color,
+                    },
+                    "custom_canvas_color"
+                );
+            }, 600);
+        },
+        onCustomSurfaceColorChange() {
+            if (this.saveTimeouts.custom_surface_color) clearTimeout(this.saveTimeouts.custom_surface_color);
+            this.saveTimeouts.custom_surface_color = setTimeout(async () => {
+                applyAppearanceTheme(this.config);
+                await this.updateConfig(
+                    {
+                        custom_surface_color: this.config.custom_surface_color,
+                    },
+                    "custom_surface_color"
+                );
+            }, 600);
         },
         async onMessagesSidebarPositionChange() {
             const v = this.config.messages_sidebar_position === "right" ? "right" : "left";
@@ -4311,6 +4339,10 @@ export default {
         },
         async resetAppearanceDefaults() {
             this.config.theme = "light";
+            this.config.theme_preset = "default";
+            this.config.accent_color = null;
+            this.config.custom_canvas_color = null;
+            this.config.custom_surface_color = null;
             this.config.messages_sidebar_position = "left";
             this.config.app_sidebar_layout = "grouped";
             this.config.message_font_size = 14;
@@ -4321,9 +4353,14 @@ export default {
             this.config.message_inbound_bubble_color = null;
             this.config.message_failed_bubble_color = "#ef4444";
             this.config.message_waiting_bubble_color = "#e5e7eb";
+            applyAppearanceTheme(this.config);
             await this.updateConfig(
                 {
                     theme: "light",
+                    theme_preset: "default",
+                    accent_color: null,
+                    custom_canvas_color: null,
+                    custom_surface_color: null,
                     messages_sidebar_position: "left",
                     app_sidebar_layout: "grouped",
                     message_font_size: 14,
@@ -5483,25 +5520,25 @@ export default {
     @apply flex items-center justify-between gap-3 pb-4 border-b border-gray-100/60 dark:border-zinc-800/60;
 }
 :deep(.settings-section__header h2) {
-    @apply text-lg font-semibold text-gray-900 dark:text-white;
+    @apply text-lg font-semibold text-sem-fg;
 }
 :deep(.settings-section__header p) {
     @apply text-sm text-gray-600 dark:text-gray-400;
 }
 :deep(.settings-section__eyebrow) {
-    @apply text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400;
+    @apply text-xs uppercase tracking-wide text-sem-fg-muted;
 }
 :deep(.settings-section__body) {
     @apply pt-4 text-gray-900 dark:text-gray-100;
 }
 :deep(.input-field) {
-    @apply bg-gray-50/90 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 text-sm rounded-2xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-500 dark:focus:border-blue-500 block w-full p-2.5 text-gray-900 dark:text-gray-100 transition;
+    @apply bg-gray-50/90 dark:bg-zinc-800/80 border border-sem-border text-sm rounded-2xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-500 dark:focus:border-blue-500 block w-full p-2.5 text-gray-900 dark:text-gray-100 transition;
 }
 :deep(.btn-maintenance) {
     @apply w-full px-4 py-3 rounded-2xl border transition flex items-center justify-between;
 }
 :deep(.setting-toggle) {
-    @apply relative flex flex-row-reverse items-start gap-3 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 px-3 py-3;
+    @apply relative flex flex-row-reverse items-start gap-3 rounded-2xl border border-sem-border bg-white/70 dark:bg-zinc-900/70 px-3 py-3;
 }
 :deep(.setting-toggle > label) {
     @apply shrink-0 self-center;
@@ -5513,13 +5550,13 @@ export default {
     @apply flex-1 min-w-0 flex flex-col gap-0.5;
 }
 :deep(.setting-toggle__title) {
-    @apply text-sm font-semibold text-gray-900 dark:text-white wrap-break-word leading-snug;
+    @apply text-sm font-semibold text-sem-fg wrap-break-word leading-snug;
 }
 :deep(.setting-toggle__description) {
-    @apply text-xs sm:text-sm text-gray-600 dark:text-gray-300 wrap-break-word leading-snug;
+    @apply text-xs sm:text-sm text-sem-fg-muted wrap-break-word leading-snug;
 }
 :deep(.setting-toggle__hint) {
-    @apply text-xs text-gray-500 dark:text-gray-400 wrap-break-word;
+    @apply text-xs text-sem-fg-muted wrap-break-word;
 }
 :deep(.info-callout) {
     @apply rounded-2xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/60 dark:bg-blue-900/20 px-3 py-3 text-blue-900 dark:text-blue-100;
@@ -5531,13 +5568,13 @@ export default {
     @apply relative border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/2 dark:sm:bg-white/2 space-y-2;
 }
 :deep(.address-card__label) {
-    @apply text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400;
+    @apply text-xs uppercase tracking-wide text-sem-fg-muted;
 }
 :deep(.address-card__value) {
-    @apply text-sm text-gray-900 dark:text-white wrap-break-word pr-16;
+    @apply text-sm text-sem-fg wrap-break-word pr-16;
 }
 :deep(.address-card__action) {
-    @apply absolute top-3 right-3 inline-flex items-center gap-1 rounded-full border border-gray-200 dark:border-zinc-700 px-3 py-1 text-xs font-semibold text-gray-700 dark:text-gray-100 bg-white/70 dark:bg-zinc-900/60 hover:border-blue-400 dark:hover:border-blue-500 transition;
+    @apply absolute top-3 right-3 inline-flex items-center gap-1 rounded-full border border-sem-border px-3 py-1 text-xs font-semibold text-gray-700 dark:text-gray-100 bg-white/70 dark:bg-zinc-900/60 hover:border-blue-400 dark:hover:border-blue-500 transition;
 }
 .fade-enter-active,
 .fade-leave-active {

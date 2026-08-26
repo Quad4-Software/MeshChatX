@@ -145,7 +145,7 @@
         "client_only": "Solo client",
         "copy": "Copia",
         "appearance": "Aspetto",
-        "appearance_description": "Passa tra i temi chiaro e scuro in qualsiasi momento.",
+        "appearance_description": "Personalizza modalità tema, preset colore, colore accento e layout.",
         "messages_sidebar_position": "Barra laterale messaggi",
         "messages_sidebar_position_left": "Sinistra",
         "messages_sidebar_position_right": "Destra",
@@ -557,7 +557,38 @@
         "seccomp_inactive": "Non attivo",
         "seccomp_auto_enabled": "Abilitato automaticamente quando libseccomp è disponibile",
         "seccomp_kernel_unsupported": "Seccomp-BPF non disponibile (installa libseccomp o piattaforma non supportata)",
-        "seccomp_disabled_by_env": "Disabilitato tramite MESHCHAT_SECCOMP=0"
+        "seccomp_disabled_by_env": "Disabilitato tramite MESHCHAT_SECCOMP=0",
+        "system_theme": "Tema di sistema",
+        "theme_preset": "Preset colore",
+        "theme_preset_default": "Predefinito",
+        "theme_preset_high_contrast": "Alto contrasto",
+        "theme_preset_oled": "Nero OLED",
+        "theme_preset_solarized": "Solarized",
+        "theme_preset_custom": "Colori personalizzati",
+        "theme_preset_description": "Regola la palette base. Personalizzato consente di scegliere i colori di canvas e superficie per la modalità chiara o scura attiva. Le strisce mostrano canvas, superficie, accento e bordo.",
+        "accent_color": "Colore accento",
+        "accent_color_description": "Sostituisce pulsanti, link e anelli di focus in tutta l app.",
+        "accent_color_reset": "Usa predefinito del preset",
+        "accent_color_placeholder": "Lascia vuoto per il predefinito del preset",
+        "custom_canvas_color": "Colore canvas",
+        "custom_surface_color": "Colore superficie",
+        "custom_colors_description": "Usato quando il preset Personalizzato è selezionato. Si applica alla modalità chiara o scura attiva.",
+        "theme_preset_nord": "Nord",
+        "theme_preset_gruvbox": "Gruvbox",
+        "theme_preset_catppuccin": "Catppuccin",
+        "theme_preset_dracula": "Dracula",
+        "theme_preset_rose_pine": "Rosé Pine",
+        "theme_preset_forest": "Foresta",
+        "theme_preset_midnight": "Mezzanotte",
+        "theme_preset_warm_paper": "Carta calda",
+        "theme_preset_tokyo": "Tokyo Night",
+        "theme_preset_atom_one": "Atom One",
+        "theme_preset_neo_brutalist": "Neo-brutalista",
+        "error_frontend_title": "Qualcosa è andato storto",
+        "error_backend_title": "Backend non raggiungibile",
+        "error_reload_page": "Ricarica pagina",
+        "error_copy_details": "Copia dettagli errore",
+        "error_details_heading": "Dettagli tecnici"
     },
     "common": {
         "open": "Apri",
@@ -842,25 +873,50 @@
         },
         "permissions": {
             "none": "Nessun permesso elevato",
-            "hooks.announce.received": "Ricevi eventi di annuncio mesh",
-            "hooks.rns.link.event": "Ricevi eventi di pacchetto e chiusura collegamento RNS",
-            "managers.destinationPath.read": "Leggi la tabella dei percorsi Reticulum",
-            "managers.rnsLink.open": "Apri collegamenti RNS verso destinazioni",
-            "managers.rnsLink.identify": "Identifica sui collegamenti RNS",
-            "managers.rnsLink.request": "Invia richiesta/risposta tramite collegamenti RNS",
-            "managers.rnsLink.send": "Invia pacchetti tramite collegamenti RNS",
-            "managers.rnsLink.close": "Chiudi collegamenti RNS",
-            "storage.isolated": "Usa archiviazione isolata per plugin",
-            "network.fetch": "Effettua richieste HTTP internet in uscita",
-            "managers.debugLog.read": "Leggi i log di debug dell'applicazione",
-            "managers.bugReport.status": "Leggi lo stato del collector dei bug report",
-            "managers.bugReport.listCollectors": "Elenca i collector mcx-bugs-v1 rilevati",
-            "managers.bugReport.listReports": "Elenca i bug report ricevuti",
-            "managers.bugReport.preview": "Anteprima dei log di debug redatti per i bug report",
-            "managers.bugReport.send": "Invia bug report sulla mesh",
-            "managers.bugReport.startCollector": "Avvia un collector mcx-bugs-v1",
-            "managers.bugReport.stopCollector": "Ferma il collector dei bug report",
-            "managers.bugReport.announce": "Annuncia il collector dei bug report"
+            "hooks": {
+                "announce": {
+                    "received": "Ricevi eventi di annuncio mesh"
+                },
+                "rns": {
+                    "link": {
+                        "event": "Ricevi eventi di pacchetto e chiusura collegamento RNS"
+                    }
+                }
+            },
+            "managers": {
+                "destinationPath": {
+                    "read": "Leggi la tabella dei percorsi Reticulum"
+                },
+                "debugLog": {
+                    "read": "Leggi i log di debug dell'applicazione"
+                },
+                "bugReport": {
+                    "status": "Leggi lo stato del collector dei bug report",
+                    "listCollectors": "Elenca i collector mcx-bugs-v1 rilevati",
+                    "listReports": "Elenca i bug report ricevuti",
+                    "deleteReport": "Elimina un bug report memorizzato",
+                    "clearReports": "Cancella tutti i bug report memorizzati",
+                    "preview": "Anteprima dei log di debug redatti per i bug report",
+                    "send": "Invia bug report sulla mesh",
+                    "startCollector": "Avvia un collector mcx-bugs-v1",
+                    "stopCollector": "Ferma il collector dei bug report",
+                    "announce": "Annuncia il collector dei bug report",
+                    "setCollectorName": "Imposta il nome visualizzato del collector dei bug report"
+                },
+                "rnsLink": {
+                    "open": "Apri collegamenti RNS verso destinazioni",
+                    "identify": "Identifica sui collegamenti RNS",
+                    "request": "Invia richiesta/risposta tramite collegamenti RNS",
+                    "send": "Invia pacchetti tramite collegamenti RNS",
+                    "close": "Chiudi collegamenti RNS"
+                }
+            },
+            "storage": {
+                "isolated": "Usa archiviazione isolata per plugin"
+            },
+            "network": {
+                "fetch": "Effettua richieste HTTP internet in uscita"
+            }
         },
         "install_dialog": {
             "title": "Installa plugin",
