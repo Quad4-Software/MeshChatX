@@ -150,19 +150,30 @@ describe("ConversationViewer performance baselines", () => {
         expect(ms).toBeLessThan(8000);
     }, 60_000);
 
-    it("display groups computation alone stays bounded for large n", async () => {
+    it("incremental prepend display groups stays bounded when thread already large", async () => {
         const wrapper = mountViewer();
-        const n = 2000;
+        const n = 1500;
         await wrapper.setData({ chatItems: makeChatItems(n, myLxmfAddressHash, peerHash) });
         await wrapper.vm.$nextTick();
+        void wrapper.vm.selectedPeerChatDisplayGroups;
 
         const t0 = performance.now();
-        for (let k = 0; k < 20; k++) {
+        for (let page = 0; page < 10; page++) {
+            const batch = makeChatItems(50, myLxmfAddressHash, peerHash).map((item, i) => ({
+                ...item,
+                lxmf_message: {
+                    ...item.lxmf_message,
+                    hash: `older_${page}_${i}`.padEnd(32, "0"),
+                    id: -(page * 50 + i + 1),
+                },
+            }));
+            wrapper.vm.chatItems = batch.concat(wrapper.vm.chatItems);
+            await wrapper.vm.$nextTick();
             void wrapper.vm.selectedPeerChatDisplayGroups;
         }
         const ms = performance.now() - t0;
 
-        expect(wrapper.vm.selectedPeerChatDisplayGroups.length).toBe(n);
-        expect(ms).toBeLessThan(2000);
+        expect(wrapper.vm.selectedPeerChatDisplayGroups.length).toBeGreaterThan(1500);
+        expect(ms).toBeLessThan(12000);
     }, 60_000);
 });

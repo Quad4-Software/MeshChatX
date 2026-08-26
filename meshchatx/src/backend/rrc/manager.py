@@ -7,6 +7,7 @@ single hub, and RRCManager, which tracks the set of configured hubs,
 persists them, and relays change and message notifications to the application.
 """
 
+import bisect
 import contextlib
 import hashlib
 import os
@@ -1538,7 +1539,9 @@ class RRCHub:
         """
         msgs = self.get_messages(proto.normalize_room(room))
         if before_seq is not None:
-            msgs = [m for m in msgs if (m.seq or 0) < before_seq]
+            seqs = [m.seq or 0 for m in msgs]
+            cut = bisect.bisect_left(seqs, before_seq)
+            msgs = msgs[:cut]
         has_more = False
         if limit is not None and len(msgs) > limit:
             has_more = True

@@ -1529,6 +1529,35 @@ describe("ConversationViewer.vue", () => {
             expect(conversationGets().length).toBe(countBefore);
         });
 
+        it("does not fetch when hasMorePrevious is already false", async () => {
+            const wrapper = mountConversationViewer();
+            await vi.waitFor(() => expect(wrapper.vm.chatItems.length).toBeGreaterThanOrEqual(0));
+
+            const conversationGets = () =>
+                axiosMock.get.mock.calls.filter((c) => String(c[0]).includes("/lxmf-messages/conversation/"));
+            const countBefore = conversationGets().length;
+
+            wrapper.vm.hasMorePrevious = false;
+            wrapper.vm.chatItems = [
+                {
+                    type: "lxmf_message",
+                    is_outbound: false,
+                    lxmf_message: {
+                        id: 10,
+                        hash: "only-msg".padEnd(32, "0"),
+                        source_hash: "test-hash",
+                        destination_hash: "my-hash",
+                        content: "hello",
+                        state: "delivered",
+                        timestamp: 1700000000,
+                        fields: {},
+                    },
+                },
+            ];
+            await wrapper.vm.loadPrevious();
+            expect(conversationGets().length).toBe(countBefore);
+        });
+
         it("uses min loaded peer message id for pagination when telemetry-only rows are hidden from the list", async () => {
             const deferredResolvers = deferredConversationGet();
             const peerHash = "a".repeat(32);

@@ -1352,6 +1352,11 @@ import {
     mergeRelayMessages,
     relayMessageAlreadyPresent,
     relayMessageKey,
+    filterUniqueOlderRelayMessages,
+    prependRelayMessageTimeline,
+    relayMessageTimelineSignature,
+    RELAY_MESSAGES_INITIAL_PAGE_SIZE,
+    RELAY_MESSAGES_PREVIOUS_PAGE_SIZE,
 } from "../../js/relayMessageTimeline.js";
 import { MIN_VIRTUAL_RELAY_ENTRIES } from "./relayMessageListVirtual.js";
 import { loadRelayLayout, saveRelayLayout } from "../../js/relayLayoutStore.js";
@@ -1389,8 +1394,6 @@ const BTN_DANGER_SM =
     "inline-flex items-center justify-center rounded-lg border border-sem-border bg-sem-canvas p-1.5 text-sem-fg transition hover:border-sem-danger hover:text-sem-danger hover:bg-sem-danger/10";
 
 const NAME_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899"];
-const RELAY_MESSAGES_INITIAL_PAGE_SIZE = 150;
-const RELAY_MESSAGES_PREVIOUS_PAGE_SIZE = 100;
 const LOAD_PREVIOUS_SCROLL_EDGE_PX = 200;
 const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900;
 const ANNOUNCE_INTERVAL_MIN_MINUTES = 1;
@@ -1523,6 +1526,8 @@ export default {
                 msg: null,
             },
             messages: [],
+            messageTimelineCache: null,
+            messageTimelineCacheSignature: "",
             members: [],
             hasMorePrevious: false,
             isLoadingPrevious: false,
@@ -1620,6 +1625,9 @@ export default {
             return String(this.hostAnnounceIntervalMinutes);
         },
         messageTimeline() {
+            if (this.messageTimelineCache !== null) {
+                return this.messageTimelineCache;
+            }
             return buildRelayMessageTimeline(this.messages);
         },
         relayChatPageSelf() {
@@ -1668,6 +1676,17 @@ export default {
         },
     },
     watch: {
+        messages: {
+            handler(msgs) {
+                const sig = relayMessageTimelineSignature(msgs);
+                if (this.messageTimelineCache === null || this.messageTimelineCacheSignature !== sig) {
+                    this.messageTimelineCache = buildRelayMessageTimeline(msgs);
+                    this.messageTimelineCacheSignature = sig;
+                }
+            },
+            deep: true,
+            immediate: true,
+        },
         relaySidebarCollapsed(collapsed) {
             saveFeatureSidebarCollapsed("relayChat", collapsed);
             this.persistRelayLayout();
@@ -1722,11 +1741,31 @@ export default {
         window.api.post("/api/v1/rrc/active/clear").catch(() => {});
     },
     methods: {
+        _invalidateMessageTimelineCache() {
+            this.messageTimelineCache = null;
+            this.messageTimelineCacheSignature = "";
+        },
+        _rebuildMessageTimelineCache() {
+            this.messageTimelineCache = buildRelayMessageTimeline(this.messages);
+            this.messageTimelineCacheSignature = relayMessageTimelineSignature(this.messages);
+        },
+        _prependMessageTimelineCache(prependedMessages) {
+            if (!prependedMessages?.length) {
+                return;
+            }
+            if (this.messageTimelineCache !== null) {
+                this.messageTimelineCache = prependRelayMessageTimeline(this.messageTimelineCache, prependedMessages);
+                this.messageTimelineCacheSignature = relayMessageTimelineSignature(this.messages);
+            } else {
+                this._rebuildMessageTimelineCache();
+            }
+        },
         onIdentitySwitched() {
             this.hubs = [];
             this.serverHubs = [];
             this.discovered = [];
             this.messages = [];
+            this._invalidateMessageTimelineCache();
             this.members = [];
             this.selectedHubHash = null;
             this.selectedRoom = null;
@@ -2562,6 +2601,7 @@ export default {
             this.expandedHubs[hubHash] = true;
             this.hasMorePrevious = false;
             this.expandedPresenceGroups = {};
+            this._invalidateMessageTimelineCache();
             // Clear before fetch so only websocket arrivals during the request are merged back.
             this.messages = [];
             this.members = [];
@@ -2576,6 +2616,7 @@ export default {
                 }
                 const loaded = response.data?.messages || [];
                 this.messages = mergeRelayMessages(loaded, this.messages);
+                this._rebuildMessageTimelineCache();
                 this.members = response.data?.members || [];
                 this.hasMorePrevious = Boolean(response.data?.has_more);
                 this.scrollToBottom();
@@ -2656,23 +2697,18 @@ export default {
                 if (older.length === 0) {
                     return;
                 }
-                const existingSeqs = new Set(this.messages.filter((m) => m && m.seq != null).map((m) => m.seq));
-                const uniqueOlder = older.filter((m) => {
-                    if (!m) {
-                        return false;
-                    }
-                    if (m.seq != null && existingSeqs.has(m.seq)) {
-                        return false;
-                    }
-                    return !relayMessageAlreadyPresent(this.messages, m);
-                });
+                const uniqueOlder = filterUniqueOlderRelayMessages(older, this.messages);
                 if (uniqueOlder.length === 0) {
+                    if (older.length > 0) {
+                        this.hasMorePrevious = false;
+                    }
                     return;
                 }
-                const scrollEl = this.useVirtualMessageList ? null : this.$refs.messageList;
+                const scrollEl = this.getMessagesScrollElement();
                 const prevScrollHeight = scrollEl ? scrollEl.scrollHeight : 0;
                 const prevScrollTop = scrollEl ? scrollEl.scrollTop : 0;
                 this.messages = [...uniqueOlder, ...this.messages];
+                this._prependMessageTimelineCache(uniqueOlder);
                 if (scrollEl) {
                     nextTick(() => {
                         const delta = scrollEl.scrollHeight - prevScrollHeight;
@@ -2868,6 +2904,7 @@ export default {
                 await window.api.delete(`/api/v1/rrc/hubs/${this.selectedHubHash}/rooms/${this.encodeRoom(room)}`);
                 this.selectedRoom = null;
                 this.messages = [];
+                this._invalidateMessageTimelineCache();
                 this.members = [];
                 ToastUtils.success(this.$t("relay_chat.left_room"));
                 await this.fetchHubs();
@@ -2888,6 +2925,7 @@ export default {
                     `/api/v1/rrc/hubs/${this.selectedHubHash}/rooms/${this.encodeRoom(this.selectedRoom)}/messages`
                 );
                 this.messages = [];
+                this._invalidateMessageTimelineCache();
                 ToastUtils.success(this.$t("relay_chat.messages_cleared"));
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
@@ -2950,6 +2988,7 @@ export default {
                     this.selectedHubHash = null;
                     this.selectedRoom = null;
                     this.messages = [];
+                    this._invalidateMessageTimelineCache();
                     this.members = [];
                 }
                 ToastUtils.success(this.$t("relay_chat.hub_removed"));
@@ -3304,6 +3343,7 @@ export default {
                 if (json.hub_hash === this.selectedHubHash && json.room === this.selectedRoom && json.message) {
                     if (!relayMessageAlreadyPresent(this.messages, json.message)) {
                         this.messages.push(json.message);
+                        this._invalidateMessageTimelineCache();
                         this.scrollToBottom();
                     }
                     if (json.message.kind === "system" || json.message.kind === "notice") {
