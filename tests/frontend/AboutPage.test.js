@@ -69,10 +69,21 @@ describe("AboutPage.vue", () => {
             version: "1.0.0",
             rns_version: "0.1.0",
             lxmf_version: "0.2.0",
+            lxst_version: "0.3.0",
             python_version: "3.11.0",
             reticulum_config_path: "/path/to/config",
             database_path: "/path/to/db",
             database_file_size: 1024,
+            integrity_issues: [],
+            landlock_requested: true,
+            landlock_active: true,
+            landlock_auto_enabled: true,
+            appcontainer_requested: false,
+            appcontainer_active: false,
+            appcontainer_supported: false,
+            seccomp_requested: true,
+            seccomp_active: false,
+            seccomp_kernel_supported: true,
             dependencies: {
                 aiohttp: "3.8.1",
                 cryptography: "3.4.8",
@@ -123,7 +134,13 @@ describe("AboutPage.vue", () => {
         expect(wrapper.text()).toContain("about.dependency_chain");
         expect(wrapper.text()).toContain("LXMFy");
         expect(wrapper.text()).toContain("LXMF");
+        expect(wrapper.text()).toContain("LXST");
+        expect(wrapper.text()).toContain("0.3.0");
         expect(wrapper.text()).toContain("RNS");
+
+        expect(wrapper.text()).toContain("about.sandbox_title");
+        expect(wrapper.text()).toContain("app.landlock_status");
+        expect(wrapper.text()).toContain("app.seccomp_status");
 
         expect(wrapper.text()).toContain("about.backend_stack");
         expect(wrapper.text()).toContain("aiohttp");

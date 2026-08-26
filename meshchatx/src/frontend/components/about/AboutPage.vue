@@ -339,6 +339,60 @@
                             {{ $t("about.security_integrity_description") }}
                         </p>
 
+                        <div class="mb-6 pb-6 border-b border-gray-200/60 dark:border-zinc-800/80 space-y-4">
+                            <div>
+                                <div
+                                    class="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-[0.2em] mb-2"
+                                >
+                                    {{ $t("about.sandbox_title") }}
+                                </div>
+                                <p class="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                                    {{ $t("about.sandbox_description") }}
+                                </p>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm min-w-0">
+                                <div
+                                    v-if="appInfo.landlock_requested !== undefined"
+                                    class="rounded-xl border border-gray-200/60 dark:border-zinc-800/80 p-3 min-w-0"
+                                >
+                                    <div
+                                        class="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500 mb-1"
+                                    >
+                                        {{ $t("app.landlock_status") }}
+                                    </div>
+                                    <div class="text-xs font-bold text-gray-900 dark:text-white">
+                                        {{ sandboxLandlockLabel }}
+                                    </div>
+                                </div>
+                                <div
+                                    v-if="appInfo.appcontainer_requested !== undefined"
+                                    class="rounded-xl border border-gray-200/60 dark:border-zinc-800/80 p-3 min-w-0"
+                                >
+                                    <div
+                                        class="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500 mb-1"
+                                    >
+                                        {{ $t("app.appcontainer_status") }}
+                                    </div>
+                                    <div class="text-xs font-bold text-gray-900 dark:text-white">
+                                        {{ sandboxAppcontainerLabel }}
+                                    </div>
+                                </div>
+                                <div
+                                    v-if="appInfo.seccomp_requested !== undefined"
+                                    class="rounded-xl border border-gray-200/60 dark:border-zinc-800/80 p-3 min-w-0"
+                                >
+                                    <div
+                                        class="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500 mb-1"
+                                    >
+                                        {{ $t("app.seccomp_status") }}
+                                    </div>
+                                    <div class="text-xs font-bold text-gray-900 dark:text-white">
+                                        {{ sandboxSeccompLabel }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div
                             v-if="appInfo.integrity_issues && appInfo.integrity_issues.length > 0"
                             class="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-xl"
@@ -719,10 +773,31 @@
                                     </div>
                                 </div>
                                 <div
+                                    v-if="appInfo.lxst_version"
                                     class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 dark:border-zinc-800 ml-6 relative"
                                 >
                                     <div
-                                        class="absolute left-[-2px] top-0 bottom-0 w-[2px] bg-linear-to-b from-purple-500 to-indigo-500"
+                                        class="absolute left-[-2px] top-0 bottom-0 w-[2px] bg-linear-to-b from-purple-500 to-rose-500"
+                                    ></div>
+                                    <div
+                                        class="w-12 h-12 rounded-2xl bg-rose-500/10 flex items-center justify-center border border-rose-500/20 text-rose-600 font-black text-[10px] tracking-tighter shadow-xs"
+                                    >
+                                        LXST
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-black text-gray-900 dark:text-white leading-tight">
+                                            LXST
+                                        </div>
+                                        <div class="text-xs font-mono font-bold text-gray-400 mt-1">
+                                            v{{ appInfo.lxst_version }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div
+                                    class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 dark:border-zinc-800 ml-6 relative"
+                                >
+                                    <div
+                                        class="absolute left-[-2px] top-0 bottom-0 w-[2px] bg-linear-to-b from-rose-500 to-indigo-500"
                                     ></div>
                                     <div
                                         class="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 text-indigo-600 font-black text-[10px] tracking-tighter shadow-xs"
@@ -770,16 +845,6 @@
                                         {{ $t("about.core_runtime") }}
                                     </div>
                                     <div class="grid grid-cols-2 gap-x-6 gap-y-4">
-                                        <div v-if="appInfo.lxst_version" class="flex flex-col">
-                                            <span
-                                                class="text-[9px] font-black text-black dark:text-white uppercase leading-none"
-                                                >{{ $t("about.lxst_engine") }}</span
-                                            >
-                                            <span
-                                                class="text-[11px] font-mono font-bold mt-1.5 text-black dark:text-white tracking-tight"
-                                                >v{{ appInfo.lxst_version }}</span
-                                            >
-                                        </div>
                                         <div v-if="electronVersion" class="flex flex-col">
                                             <span
                                                 class="text-[9px] font-black text-black dark:text-white uppercase leading-none"
@@ -1409,6 +1474,49 @@ export default {
                 return this.$t("about.env_battery_on_battery", { percent: level });
             }
             return level;
+        },
+        sandboxLandlockLabel() {
+            const info = this.appInfo || {};
+            if (info.landlock_active) {
+                return info.landlock_auto_enabled
+                    ? this.$t("app.landlock_auto_enabled")
+                    : this.$t("app.landlock_active");
+            }
+            if (info.landlock_kernel_supported === false) {
+                return this.$t("app.landlock_kernel_unsupported");
+            }
+            if (info.landlock_disabled_by_env) {
+                return this.$t("app.landlock_disabled_by_env");
+            }
+            return this.$t("app.landlock_inactive");
+        },
+        sandboxAppcontainerLabel() {
+            const info = this.appInfo || {};
+            if (info.appcontainer_active) {
+                return info.appcontainer_auto_enabled
+                    ? this.$t("app.appcontainer_auto_enabled")
+                    : this.$t("app.appcontainer_active");
+            }
+            if (info.appcontainer_supported === false) {
+                return this.$t("app.appcontainer_unsupported");
+            }
+            if (info.appcontainer_disabled_by_env) {
+                return this.$t("app.appcontainer_disabled_by_env");
+            }
+            return this.$t("app.appcontainer_inactive");
+        },
+        sandboxSeccompLabel() {
+            const info = this.appInfo || {};
+            if (info.seccomp_active) {
+                return info.seccomp_auto_enabled ? this.$t("app.seccomp_auto_enabled") : this.$t("app.seccomp_active");
+            }
+            if (info.seccomp_kernel_supported === false) {
+                return this.$t("app.seccomp_kernel_unsupported");
+            }
+            if (info.seccomp_disabled_by_env) {
+                return this.$t("app.seccomp_disabled_by_env");
+            }
+            return this.$t("app.seccomp_inactive");
         },
         batteryStatusToneClass() {
             if (!this.batteryStatus || !this.batteryStatus.supported) {
