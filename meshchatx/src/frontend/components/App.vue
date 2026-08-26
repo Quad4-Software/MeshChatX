@@ -2,10 +2,11 @@
 
 <template>
     <div
-        :class="{ dark: config?.theme === 'dark' }"
+        :class="{ dark: isDarkTheme }"
         class="h-dvh min-h-0 w-full flex flex-col transition-colors"
         :style="shellCanvasStyle"
     >
+        <FatalErrorPage v-if="fatalError" :error="fatalError" />
         <AppShellBanners
             :show-emergency="Boolean(appInfo?.emergency)"
             :emergency-label="$t('app.emergency_mode_active')"
@@ -57,14 +58,14 @@
 
             <template v-else>
                 <div
-                    class="z-100 flex shrink-0 bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 border-b min-h-12 sm:min-h-14 shadow-xs transition-colors pt-[env(safe-area-inset-top,0px)]"
+                    class="z-100 flex shrink-0 bg-sem-surface border-sem-border border-b min-h-12 sm:min-h-14 shadow-xs transition-colors pt-[env(safe-area-inset-top,0px)]"
                 >
                     <div
                         class="flex w-full min-h-12 sm:min-h-14 items-center gap-0 overflow-x-auto no-scrollbar pl-2 pr-2 sm:ps-0 sm:pe-3"
                     >
                         <button
                             type="button"
-                            class="sm:hidden shrink-0 mr-2 inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300"
+                            class="sm:hidden shrink-0 mr-2 inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-sem-fg-muted hover:text-sem-fg"
                             @click="isSidebarOpen = !isSidebarOpen"
                         >
                             <MaterialDesignIcon :icon-name="isSidebarOpen ? 'close' : 'menu'" class="size-6" />
@@ -84,12 +85,12 @@
                             </div>
                             <div class="hidden min-w-0 leading-tight sm:block">
                                 <div
-                                    class="font-semibold cursor-pointer text-gray-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors tracking-tight text-base"
+                                    class="font-semibold cursor-pointer text-sem-fg hover:text-sem-accent transition-colors tracking-tight text-base"
                                     @click="onAppNameClick"
                                 >
                                     {{ $t("app.name") }}
                                 </div>
-                                <div class="text-xs text-gray-600 dark:text-zinc-300">
+                                <div class="text-xs text-sem-fg-muted">
                                     {{ $t("app.tagline") }}
                                 </div>
                             </div>
@@ -97,19 +98,16 @@
                         <div class="flex ml-auto shrink-0 items-center mr-0 sm:mr-2 space-x-1 sm:space-x-2">
                             <button
                                 type="button"
-                                class="relative hidden sm:inline-flex rounded-full p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-                                :title="config?.theme === 'dark' ? $t('app.light_theme') : $t('app.dark_theme')"
+                                class="relative hidden sm:inline-flex rounded-full p-1.5 text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
+                                :title="themeToggleTitle"
                                 @click="toggleTheme"
                             >
-                                <MaterialDesignIcon
-                                    :icon-name="config?.theme === 'dark' ? 'brightness-6' : 'brightness-4'"
-                                    class="w-5 h-5"
-                                />
+                                <MaterialDesignIcon :icon-name="themeToggleIcon" class="w-5 h-5" />
                             </button>
                             <LanguageSelector class="hidden sm:block" @language-change="onLanguageChange" />
                             <button
                                 type="button"
-                                class="hidden sm:inline-flex rounded-full p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                class="hidden sm:inline-flex rounded-full p-1.5 text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
                                 :title="commandPaletteTitle"
                                 :aria-label="commandPaletteTitle"
                                 data-testid="header-command-palette"
@@ -120,7 +118,7 @@
                             <button
                                 v-if="rrcEnabled"
                                 type="button"
-                                class="relative inline-flex rounded-full p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1.5 items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                class="relative inline-flex rounded-full p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1.5 items-center justify-center text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
                                 :title="$t('app.relay_chat')"
                                 :aria-label="$t('app.relay_chat')"
                                 data-testid="header-relay-chat"
@@ -136,7 +134,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="relative inline-flex rounded-full p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1.5 items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                class="relative inline-flex rounded-full p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1.5 items-center justify-center text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
                                 :title="$t('app.audio_calls')"
                                 :aria-label="$t('app.audio_calls')"
                                 data-testid="header-telephone"
@@ -152,7 +150,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="sm:hidden rounded-full p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                class="sm:hidden rounded-full p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
                                 :title="isSyncingPropagationNode ? $t('app.syncing') : $t('app.sync_messages')"
                                 @click="syncPropagationNode"
                             >
@@ -173,7 +171,7 @@
                             </button>
                             <button type="button" class="hidden sm:flex rounded-full" @click="syncPropagationNode">
                                 <span
-                                    class="flex text-gray-800 dark:text-zinc-100 bg-white dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-blue-400/60 px-2.5 py-1 rounded-full shadow-xs transition"
+                                    class="flex text-sem-fg bg-sem-surface-raised border border-sem-border hover:border-sem-accent px-2.5 py-1 rounded-full shadow-xs transition"
                                 >
                                     <MaterialDesignIcon
                                         icon-name="refresh"
@@ -209,7 +207,7 @@
                                 @click="composeNewMessage"
                             >
                                 <span
-                                    class="flex rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-1 text-white shadow-xs transition hover:bg-zinc-800 dark:border-zinc-400 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-white"
+                                    class="flex rounded-full border border-sem-action-primary bg-sem-action-primary px-2.5 py-1 text-white shadow-xs transition hover:bg-sem-action-primary-hover"
                                 >
                                     <span>
                                         <MaterialDesignIcon icon-name="email" class="w-5 h-5" />
@@ -245,11 +243,11 @@
                         ]"
                     >
                         <div
-                            class="flex h-full w-full flex-col overflow-y-auto border-r border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
+                            class="flex h-full w-full flex-col overflow-y-auto border-r border-sem-border bg-sem-canvas"
                         >
                             <!-- toggle button for desktop (h-10 aligns with Messages/Nomad collapse rows) -->
                             <div
-                                class="h-10 shrink-0 items-center gap-1 border-b border-gray-200 dark:border-zinc-800 px-2"
+                                class="h-10 shrink-0 items-center gap-1 border-b border-sem-border px-2"
                                 :class="[
                                     isSidebarNavEditing && !isSidebarCollapsed ? 'flex' : 'hidden sm:flex',
                                     isSidebarCollapsed ? 'justify-center' : 'justify-end',
@@ -258,7 +256,7 @@
                                 <button
                                     v-if="isSidebarNavEditing && !isSidebarCollapsed"
                                     type="button"
-                                    class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
+                                    class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
                                     data-testid="sidebar-nav-layout-save"
                                     :title="$t('common.save')"
                                     :aria-label="$t('common.save')"
@@ -268,7 +266,7 @@
                                 </button>
                                 <button
                                     type="button"
-                                    class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors hidden sm:inline-flex"
+                                    class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted transition-colors hidden sm:inline-flex"
                                     @click="isSidebarCollapsed = !isSidebarCollapsed"
                                 >
                                     <MaterialDesignIcon
@@ -280,21 +278,16 @@
 
                             <!-- mobile-only quick settings row (theme + language) -->
                             <div
-                                class="sm:hidden flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 dark:border-zinc-800"
+                                class="sm:hidden flex items-center justify-between gap-2 px-3 py-2 border-b border-sem-border"
                             >
                                 <button
                                     type="button"
-                                    class="flex items-center gap-2 flex-1 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-                                    :title="config?.theme === 'dark' ? $t('app.light_theme') : $t('app.dark_theme')"
+                                    class="flex items-center gap-2 flex-1 rounded-lg px-2 py-1.5 text-sm font-medium text-sem-fg hover:bg-sem-surface-muted transition-colors"
+                                    :title="themeToggleTitle"
                                     @click="toggleTheme"
                                 >
-                                    <MaterialDesignIcon
-                                        :icon-name="config?.theme === 'dark' ? 'brightness-6' : 'brightness-4'"
-                                        class="w-5 h-5 shrink-0"
-                                    />
-                                    <span class="truncate">{{
-                                        config?.theme === "dark" ? $t("app.light_theme") : $t("app.dark_theme")
-                                    }}</span>
+                                    <MaterialDesignIcon :icon-name="themeToggleIcon" class="w-5 h-5 shrink-0" />
+                                    <span class="truncate">{{ themeToggleTitle }}</span>
                                 </button>
                                 <LanguageSelector @language-change="onLanguageChange" />
                             </div>
@@ -356,13 +349,10 @@
                                     @open-lxmf-qr="openLxmfQr"
                                 />
 
-                                <div
-                                    v-if="appInfo?.version"
-                                    class="shrink-0 border-t border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
-                                >
+                                <div v-if="appInfo?.version" class="shrink-0 border-t border-sem-border bg-sem-canvas">
                                     <RouterLink
                                         :to="{ name: 'about' }"
-                                        class="flex items-center py-2 text-[10px] font-mono text-gray-500 transition-colors hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
+                                        class="flex items-center py-2 text-[10px] font-mono text-gray-500 transition-colors hover:text-gray-700 text-sem-fg-muted dark:hover:text-zinc-300"
                                         :class="isSidebarCollapsed ? 'justify-center px-0' : 'justify-start px-3'"
                                         data-testid="sidebar-app-version"
                                         :title="sidebarVersionTitle"
@@ -442,12 +432,12 @@
             class="fixed inset-0 z-190 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
             @click.self="showLxmfQr = false"
         >
-            <div class="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden">
-                <div class="px-4 py-3 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Identity QR (LXMA)</h3>
+            <div class="w-full max-w-sm bg-sem-surface rounded-2xl shadow-2xl overflow-hidden">
+                <div class="px-4 py-3 border-b border-sem-border flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-sem-fg">Identity QR (LXMA)</h3>
                     <button
                         type="button"
-                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors"
+                        class="text-sem-fg-muted hover:text-sem-fg transition-colors"
                         @click="showLxmfQr = false"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-5" />
@@ -459,19 +449,19 @@
                             v-if="lxmfQrDataUrl"
                             :src="lxmfQrDataUrl"
                             alt="LXMF QR"
-                            class="w-48 h-48 bg-white rounded-xl border border-gray-200 dark:border-zinc-800"
+                            class="w-48 h-48 bg-white rounded-xl border border-sem-border"
                         />
                     </div>
                     <div
                         v-if="config?.lxmf_address_hash"
-                        class="text-xs font-mono text-gray-700 dark:text-zinc-200 text-center wrap-break-word"
+                        class="text-xs font-mono text-sem-fg-secondary text-center wrap-break-word"
                     >
                         {{ getMyIdentityUri() }}
                     </div>
                     <div class="flex justify-center">
                         <button
                             type="button"
-                            class="px-3 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                            class="px-3 py-1.5 text-xs font-semibold text-sem-accent hover:underline"
                             @click="copyIdentityUri"
                         >
                             {{ $t("common.copy") }}
@@ -488,7 +478,6 @@
 
 <script>
 import { watch } from "vue";
-import { useTheme } from "vuetify";
 import SidebarLink from "./SidebarLink.vue";
 import DialogUtils from "../js/DialogUtils";
 import WebSocketConnection from "../js/WebSocketConnection";
@@ -537,6 +526,8 @@ import AppSidebarAccountFooter from "./layout/AppSidebarAccountFooter.vue";
 import AppSidebarNav from "./layout/AppSidebarNav.vue";
 import AppSidebarClassicNav from "./layout/AppSidebarClassicNav.vue";
 import AppSidebarClassicFooter from "./layout/AppSidebarClassicFooter.vue";
+import FatalErrorPage from "./FatalErrorPage.vue";
+import fatalErrorState from "../js/fatalErrorState.js";
 import KeyboardShortcuts from "../js/KeyboardShortcuts";
 import ElectronUtils from "../js/ElectronUtils";
 import {
@@ -575,6 +566,13 @@ import {
 } from "../js/settings/batterySaverPrefs.js";
 import { normalizeUiLocaleCode, setLocale } from "../js/localeLoader.js";
 import { patchServerConfig } from "../js/settings/settingsConfigService.js";
+import {
+    applyAppearanceTheme,
+    resolveEffectiveTheme,
+    shellCanvasBackgroundStyle,
+    subscribeSystemTheme,
+    systemPrefersDark,
+} from "../theme/themeEngine.js";
 
 const IDENTITY_SAVE_DEBOUNCE_MS = 500;
 
@@ -601,11 +599,10 @@ export default {
         AppSidebarNav,
         AppSidebarClassicNav,
         AppSidebarClassicFooter,
+        FatalErrorPage,
     },
     setup() {
-        const vuetifyTheme = useTheme();
         return {
-            vuetifyTheme,
             GlobalState,
         };
     },
@@ -676,9 +673,14 @@ export default {
             identitySwitchDedupeAt: 0,
             shellWsHandlerCleanups: [],
             multiSessionWarningActive: false,
+            systemPrefersDark: systemPrefersDark(),
+            unsubscribeSystemTheme: null,
         };
     },
     computed: {
+        fatalError() {
+            return fatalErrorState.active;
+        },
         currentPopoutType() {
             if (this.$route?.meta?.popoutType) {
                 return this.$route.meta.popoutType;
@@ -849,15 +851,30 @@ export default {
             return name || this.$t("app.my_identity");
         },
         shellCanvasStyle() {
-            const raw = Number(this.config?.ui_transparency ?? 0);
-            const t = Number.isFinite(raw) ? Math.max(0, Math.min(100, raw)) : 0;
-            const factor = t / 100;
-            const alpha = 1 - factor * 0.42;
-            const isDark = this.config?.theme === "dark";
-            if (isDark) {
-                return { backgroundColor: `rgba(9, 9, 11, ${alpha})` };
+            if (!this.config) {
+                return {};
             }
-            return { backgroundColor: `rgba(248, 250, 252, ${alpha})` };
+            return {
+                backgroundColor: shellCanvasBackgroundStyle(this.config, this.effectiveThemeMode),
+            };
+        },
+        effectiveThemeMode() {
+            return resolveEffectiveTheme(this.config?.theme, this.systemPrefersDark);
+        },
+        isDarkTheme() {
+            return this.effectiveThemeMode === "dark";
+        },
+        themeToggleIcon() {
+            if (this.config?.theme === "system") {
+                return "theme-light-dark";
+            }
+            return this.isDarkTheme ? "brightness-6" : "brightness-4";
+        },
+        themeToggleTitle() {
+            if (this.config?.theme === "system") {
+                return this.$t("app.system_theme");
+            }
+            return this.isDarkTheme ? this.$t("app.light_theme") : this.$t("app.dark_theme");
         },
     },
     watch: {
@@ -876,8 +893,8 @@ export default {
                 if (newConfig && newConfig.custom_ringtone_enabled !== undefined) {
                     this.updateRingtonePlayer();
                 }
-                if (newConfig && "theme" in newConfig) {
-                    this.applyThemePreference(newConfig.theme ?? "light");
+                if (newConfig) {
+                    this.applyAppearanceThemeFromConfig(newConfig);
                 }
                 this.applyShellAppearance();
                 NotificationUtils.syncAndroidNotificationContext(
@@ -925,6 +942,10 @@ export default {
             this._networkDegradedRecoveryWatchStop();
             this._networkDegradedRecoveryWatchStop = null;
         }
+        if (typeof this.unsubscribeSystemTheme === "function") {
+            this.unsubscribeSystemTheme();
+            this.unsubscribeSystemTheme = null;
+        }
     },
     mounted() {
         try {
@@ -956,6 +977,12 @@ export default {
             }
         );
         this.maybeNavigateNetworkRecovery();
+        this.unsubscribeSystemTheme = subscribeSystemTheme(window, (prefersDark) => {
+            this.systemPrefersDark = prefersDark;
+            if (this.config?.theme === "system") {
+                this.applyAppearanceThemeFromConfig(this.config);
+            }
+        });
         this.applyShellAppearance();
         if (ElectronUtils.isElectron()) {
             if (typeof window.electron.onBackendProcessExited === "function") {
@@ -1689,30 +1716,10 @@ export default {
             this.config = newConfig;
             this.displayName = newConfig.display_name;
         },
-        applyThemePreference(theme) {
-            const mode = theme === "dark" ? "dark" : "light";
-            if (typeof document !== "undefined") {
-                document.documentElement.classList.toggle("dark", mode === "dark");
-                document.documentElement.dataset.bootTheme = mode;
-                document.documentElement.style.colorScheme = mode;
-            }
-            try {
-                window.localStorage.setItem("meshchatx_ui_theme", mode);
-            } catch {
-                // ignore quota / private mode
-            }
-            try {
-                const bridge = window.MeshChatXAndroid;
-                if (bridge && typeof bridge.setUiTheme === "function") {
-                    bridge.setUiTheme(mode);
-                }
-            } catch {
-                // ignore missing bridge
-            }
-            if (typeof this.vuetifyTheme?.change === "function") {
-                this.vuetifyTheme.change(mode);
-            }
-            this.applyShellAppearance();
+        applyAppearanceThemeFromConfig(config) {
+            applyAppearanceTheme(config, {
+                prefersDark: this.systemPrefersDark,
+            });
         },
         applyShellAppearance() {
             if (typeof document === "undefined") {
@@ -2150,10 +2157,11 @@ export default {
             if (!this.config) {
                 return;
             }
-            const newTheme = this.config.theme === "dark" ? "light" : "dark";
+            const nextTheme = this.isDarkTheme ? "light" : "dark";
+            this.config.theme = nextTheme;
             await this.updateConfig(
                 {
-                    theme: newTheme,
+                    theme: nextTheme,
                 },
                 "theme"
             );

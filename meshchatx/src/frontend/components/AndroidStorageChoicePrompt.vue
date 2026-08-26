@@ -20,15 +20,15 @@
                 :class="
                     selectedSetupMode === 'external'
                         ? 'border-blue-500 bg-blue-50/80 dark:bg-blue-950/30'
-                        : 'border-gray-200 dark:border-zinc-800'
+                        : 'border-sem-border'
                 "
             >
                 <input v-model="selectedSetupMode" type="radio" class="mt-1" value="external" />
                 <span>
-                    <span class="font-medium text-gray-900 dark:text-zinc-100 block">
+                    <span class="font-medium text-sem-fg block">
                         {{ $t("android_storage.setup_external_title") }}
                     </span>
-                    <span class="text-xs text-gray-600 dark:text-zinc-400">
+                    <span class="text-xs text-sem-fg-muted">
                         {{ $t("android_storage.setup_external_desc") }}
                     </span>
                 </span>
@@ -38,21 +38,21 @@
                 :class="
                     selectedSetupMode === 'internal'
                         ? 'border-blue-500 bg-blue-50/80 dark:bg-blue-950/30'
-                        : 'border-gray-200 dark:border-zinc-800'
+                        : 'border-sem-border'
                 "
             >
                 <input v-model="selectedSetupMode" type="radio" class="mt-1" value="internal" />
                 <span>
-                    <span class="font-medium text-gray-900 dark:text-zinc-100 block">
+                    <span class="font-medium text-sem-fg block">
                         {{ $t("android_storage.setup_internal_title") }}
                     </span>
-                    <span class="text-xs text-gray-600 dark:text-zinc-400">
+                    <span class="text-xs text-sem-fg-muted">
                         {{ $t("android_storage.setup_internal_desc") }}
                     </span>
                 </span>
             </label>
         </div>
-        <p v-if="status?.active_path" class="text-[10px] font-mono text-gray-500 dark:text-zinc-500 break-all">
+        <p v-if="status?.active_path" class="text-[10px] font-mono text-sem-fg-muted break-all">
             {{ status.active_path }}
         </p>
     </AppUpdatePrompt>

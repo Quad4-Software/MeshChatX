@@ -10,9 +10,7 @@
                 :class="[
                     isCollapsed ? 'justify-center' : '',
                     isEditing && draggingId === item.id && draggingKind === 'item' ? 'opacity-50' : '',
-                    isEditing && dragOverKey === `item:${item.id}`
-                        ? 'ring-1 ring-blue-400 dark:ring-blue-500 rounded-r-full'
-                        : '',
+                    isEditing && dragOverKey === `item:${item.id}` ? 'ring-1 ring-sem-accent rounded-r-full' : '',
                 ]"
                 data-testid="sidebar-nav-item"
                 :data-nav-item-id="item.id"
@@ -36,7 +34,7 @@
                 <SidebarLink class="min-w-0 flex-1" :to="item.route" :is-collapsed="isCollapsed" :edit-mode="isEditing">
                     <template #icon>
                         <span class="relative inline-flex shrink-0">
-                            <MaterialDesignIcon :icon-name="item.icon" class="w-6 h-6 text-gray-700 dark:text-white" />
+                            <MaterialDesignIcon :icon-name="item.icon" class="w-6 h-6 text-sem-fg-secondary" />
                             <span
                                 v-if="isCollapsed && getNavBadgeCount(item) > 0 && item.badge?.pill"
                                 class="absolute -right-2 -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
@@ -61,7 +59,7 @@
                 <div v-if="isEditing && !isCollapsed" class="flex shrink-0 flex-col pr-1">
                     <button
                         type="button"
-                        class="p-0.5 text-gray-400 hover:text-gray-700 dark:hover:text-zinc-200"
+                        class="p-0.5 text-gray-400 hover:text-gray-700 hover:text-sem-fg"
                         :title="$t('app.nav_move_up')"
                         :aria-label="$t('app.nav_move_up')"
                         @click.stop="$emit('nav-reorder', { kind: 'item-offset', itemId: item.id, delta: -1 })"
@@ -70,7 +68,7 @@
                     </button>
                     <button
                         type="button"
-                        class="p-0.5 text-gray-400 hover:text-gray-700 dark:hover:text-zinc-200"
+                        class="p-0.5 text-gray-400 hover:text-gray-700 hover:text-sem-fg"
                         :title="$t('app.nav_move_down')"
                         :aria-label="$t('app.nav_move_down')"
                         @click.stop="$emit('nav-reorder', { kind: 'item-offset', itemId: item.id, delta: 1 })"

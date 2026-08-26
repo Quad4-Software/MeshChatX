@@ -1,14 +1,14 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col h-full w-full bg-white dark:bg-zinc-950 overflow-hidden">
+    <div class="flex flex-col h-full w-full bg-sem-surface overflow-hidden">
         <!-- header -->
         <div
-            class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-0 px-3 py-2 sm:px-4 border-b border-gray-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10 relative"
+            class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-0 px-3 py-2 sm:px-4 border-b border-sem-border bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10 relative"
         >
             <div class="hidden sm:flex items-center min-w-0 gap-2">
-                <v-icon icon="mdi-map" class="text-blue-500 dark:text-blue-400 shrink-0" size="24"></v-icon>
-                <h1 class="text-lg sm:text-xl font-black text-gray-900 dark:text-white truncate">
+                <MaterialDesignIcon icon-name="map" class="size-6 text-blue-500 dark:text-blue-400 shrink-0" />
+                <h1 class="text-lg sm:text-xl font-black text-sem-fg truncate">
                     {{ embedded && tabTitle ? tabTitle : $t("map.title") }}
                 </h1>
             </div>
@@ -17,12 +17,12 @@
                 class="flex flex-wrap items-center gap-x-1.5 gap-y-2 sm:ml-auto sm:flex-nowrap sm:gap-2 sm:justify-end min-w-0"
             >
                 <!-- offline/online toggle -->
-                <div class="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-0.5 sm:p-1 min-w-0 max-w-full">
+                <div class="flex items-center bg-sem-surface-muted rounded-lg p-0.5 sm:p-1 min-w-0 max-w-full">
                     <button
                         :class="
                             discoveredVisible
                                 ? 'bg-white dark:bg-zinc-700 shadow-xs text-emerald-600 dark:text-emerald-400'
-                                : 'text-gray-500 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-700'
+                                : 'text-gray-500 dark:text-gray-300 hover:bg-gray-200 hover:bg-sem-surface-muted'
                         "
                         class="p-1.5 sm:p-2 rounded-lg transition-colors shrink-0"
                         :title="discoveredVisible ? 'Hide Discovered Interfaces' : 'Show Discovered Interfaces'"
@@ -34,7 +34,7 @@
                     <button
                         :class="
                             !offlineEnabled
-                                ? 'bg-white dark:bg-zinc-700 shadow-xs text-blue-600 dark:text-blue-400'
+                                ? 'bg-white dark:bg-zinc-700 shadow-xs text-sem-accent'
                                 : 'text-gray-500 dark:text-gray-300'
                         "
                         class="px-2 py-1 text-xs sm:px-3 sm:text-sm font-medium rounded-md transition-all shrink-0"
@@ -45,7 +45,7 @@
                     <button
                         :class="
                             offlineEnabled
-                                ? 'bg-white dark:bg-zinc-700 shadow-xs text-blue-600 dark:text-blue-400'
+                                ? 'bg-white dark:bg-zinc-700 shadow-xs text-sem-accent'
                                 : 'text-gray-500 dark:text-gray-300'
                         "
                         class="px-2 py-1 text-xs sm:px-3 sm:text-sm font-medium rounded-md transition-all shrink-0"
@@ -60,7 +60,7 @@
                 <button
                     v-if="!isPopoutMode"
                     type="button"
-                    class="hidden sm:flex p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors shrink-0"
+                    class="hidden sm:flex p-2 text-sem-fg-muted hover:bg-sem-surface-muted rounded-full transition-colors shrink-0"
                     :title="$t('map.pop_out')"
                     @click="openMapPopout"
                 >
@@ -70,7 +70,7 @@
                 <button
                     v-if="!offlineEnabled"
                     type="button"
-                    class="sm:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors shrink-0"
+                    class="sm:hidden p-2 text-sem-fg-muted hover:bg-sem-surface-muted rounded-full transition-colors shrink-0"
                     :title="$t('map.search_placeholder')"
                     @click="toggleMobileSearch"
                 >
@@ -78,7 +78,7 @@
                 </button>
                 <button
                     type="button"
-                    class="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors shrink-0"
+                    class="p-2 text-sem-fg-muted hover:bg-sem-surface-muted rounded-full transition-colors shrink-0"
                     :title="$t('map.side_panel')"
                     @click="isMapToolsOpen = !isMapToolsOpen"
                 >
@@ -86,7 +86,7 @@
                 </button>
                 <button
                     type="button"
-                    class="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors shrink-0"
+                    class="p-2 text-sem-fg-muted hover:bg-sem-surface-muted rounded-full transition-colors shrink-0"
                     :title="$t('map.settings')"
                     @click="isSettingsOpen = !isSettingsOpen"
                 >
@@ -158,9 +158,9 @@
                 v-if="isMapDropTarget"
                 class="absolute inset-0 z-40 flex flex-col items-center justify-center bg-blue-500/20 backdrop-blur-sm border-4 border-blue-500 border-dashed m-4 rounded-2xl pointer-events-none transition-opacity"
             >
-                <MaterialDesignIcon icon-name="map-plus" class="w-16 h-16 text-blue-600 dark:text-blue-400 mb-4" />
+                <MaterialDesignIcon icon-name="map-plus" class="w-16 h-16 text-sem-accent mb-4" />
                 <h3 class="text-lg font-bold text-blue-700 dark:text-blue-300">{{ $t("map.drop_geo_files") }}</h3>
-                <p class="text-sm text-blue-600 dark:text-blue-400 mt-1">{{ $t("map.drop_map_files_hint") }}</p>
+                <p class="text-sm text-sem-accent mt-1">{{ $t("map.drop_map_files_hint") }}</p>
             </div>
 
             <!-- note hover tooltip -->
@@ -171,7 +171,7 @@
                         (hoveredFeature.get('telemetry') && hoveredFeature.get('telemetry').note)) &&
                     !editingFeature
                 "
-                class="absolute pointer-events-none z-50 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm border border-gray-200 dark:border-zinc-700 rounded-lg shadow-xl p-2 text-sm text-gray-900 dark:text-zinc-100 max-w-xs transform -translate-x-1/2 -translate-y-full mb-4"
+                class="absolute pointer-events-none z-50 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm border border-sem-border rounded-lg shadow-xl p-2 text-sm text-sem-fg max-w-xs transform -translate-x-1/2 -translate-y-full mb-4"
                 :style="{
                     left: map.getPixelFromCoordinate(hoveredFeature.getGeometry().getCoordinates())[0] + 'px',
                     top: map.getPixelFromCoordinate(hoveredFeature.getGeometry().getCoordinates())[1] + 'px',
@@ -192,23 +192,20 @@
             <div ref="noteOverlayElement" class="absolute z-40">
                 <div
                     v-if="editingFeature && !isMobileScreen"
-                    class="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-700 p-4 w-64 transform -translate-x-1/2 -translate-y-full mb-6"
+                    class="bg-sem-surface rounded-xl shadow-2xl border border-sem-border p-4 w-64 transform -translate-x-1/2 -translate-y-full mb-6"
                 >
                     <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1">
+                        <span class="text-sm font-bold text-sem-fg flex items-center gap-1">
                             <MaterialDesignIcon icon-name="note-edit" class="size-4 text-amber-500" />
                             Edit Note
                         </span>
-                        <button
-                            class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
-                            @click="closeNoteEditor"
-                        >
+                        <button class="text-sem-fg-muted hover:text-sem-fg" @click="closeNoteEditor">
                             <MaterialDesignIcon icon-name="close" class="size-4" />
                         </button>
                     </div>
                     <textarea
                         v-model="noteText"
-                        class="w-full h-24 p-2 text-sm bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-hidden resize-none text-gray-900 dark:text-zinc-100"
+                        class="w-full h-24 p-2 text-sm bg-gray-50 dark:bg-zinc-800 border border-sem-border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-hidden resize-none text-sem-fg"
                         placeholder="Type your note here..."
                     ></textarea>
                     <div class="flex justify-between mt-3">
@@ -232,48 +229,42 @@
             <div ref="drawFeatureInfoElement" class="absolute z-45 pointer-events-none">
                 <div
                     v-show="drawFeatureInfoPayload"
-                    class="info-popup pointer-events-auto min-w-44 max-w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-gray-200 dark:border-zinc-700 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm shadow-xl px-3 py-2.5 transform -translate-x-1/2 -translate-y-full mb-2 overflow-x-hidden"
+                    class="info-popup pointer-events-auto min-w-44 max-w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-sem-border bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm shadow-xl px-3 py-2.5 transform -translate-x-1/2 -translate-y-full mb-2 overflow-x-hidden"
                 >
                     <template v-if="drawFeatureInfoPayload">
                         <div v-if="drawFeatureInfoPayload.iconSrc" class="flex justify-center mb-2">
                             <img
                                 :src="drawFeatureInfoPayload.iconSrc"
                                 alt=""
-                                class="max-h-12 max-w-18 object-contain rounded-sm border border-gray-100 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-800/50"
+                                class="max-h-12 max-w-18 object-contain rounded-sm border border-sem-border bg-gray-50 dark:bg-zinc-800/50"
                             />
                         </div>
-                        <div
-                            v-if="drawFeatureInfoPayload.name"
-                            class="text-xs font-bold text-gray-900 dark:text-zinc-100 leading-snug mb-1"
-                        >
+                        <div v-if="drawFeatureInfoPayload.name" class="text-xs font-bold text-sem-fg leading-snug mb-1">
                             {{ drawFeatureInfoPayload.name }}
                         </div>
                         <div
                             v-if="drawFeatureInfoPayload.description && !drawFeatureInfoPayload.descriptionIsHtml"
-                            class="text-[11px] text-gray-600 dark:text-zinc-400 whitespace-pre-wrap wrap-break-word leading-snug"
+                            class="text-[11px] text-sem-fg-muted whitespace-pre-wrap wrap-break-word leading-snug"
                         >
                             {{ drawFeatureInfoPayload.description }}
                         </div>
                         <!-- eslint-disable vue/no-v-html -- sanitized via drawFeatureDescriptionSanitized -->
                         <div
                             v-else-if="drawFeatureDescriptionSanitized"
-                            class="text-[11px] text-gray-600 dark:text-zinc-400 prose prose-sm dark:prose-invert max-w-none leading-snug [&_*]:bg-transparent! [&_*]:text-inherit!"
+                            class="text-[11px] text-sem-fg-muted prose prose-sm dark:prose-invert max-w-none leading-snug [&_*]:bg-transparent! [&_*]:text-inherit!"
                             v-html="drawFeatureDescriptionSanitized"
                         ></div>
                         <!-- eslint-enable vue/no-v-html -->
                         <dl
                             v-if="drawFeatureInfoPayload.extended.length"
-                            class="mt-2 space-y-1 border-t border-gray-100 dark:border-zinc-800 pt-2 overflow-hidden"
+                            class="mt-2 space-y-1 border-t border-sem-border pt-2 overflow-hidden"
                         >
                             <template v-for="row in drawFeatureInfoPayload.extended" :key="row.key">
                                 <div class="grid grid-cols-[minmax(0,40%)_1fr] gap-x-2 gap-y-0.5 text-[10px] min-w-0">
-                                    <dt
-                                        class="font-semibold text-gray-500 dark:text-zinc-500 truncate"
-                                        :title="row.key"
-                                    >
+                                    <dt class="font-semibold text-sem-fg-muted truncate" :title="row.key">
                                         {{ row.key }}
                                     </dt>
-                                    <dd class="text-gray-800 dark:text-zinc-200 truncate m-0" :title="row.value">
+                                    <dd class="text-sem-fg truncate m-0" :title="row.value">
                                         {{ row.value }}
                                     </dd>
                                 </div>
@@ -291,9 +282,7 @@
                 panel-class="z-120 overflow-hidden text-sm"
             >
                 <template #header>
-                    <div
-                        class="px-3 py-2 font-semibold border-b border-gray-100 dark:border-zinc-800 text-gray-700 dark:text-zinc-200"
-                    >
+                    <div class="px-3 py-2 font-semibold border-b border-sem-border text-sem-fg-secondary">
                         {{ contextMenuFeature ? "Feature actions" : "Map actions" }}
                     </div>
                 </template>
@@ -386,19 +375,19 @@
                 @click.self="showMapPingModal = false"
             >
                 <div
-                    class="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl max-w-md w-full p-4 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100"
+                    class="bg-sem-surface rounded-xl shadow-2xl max-w-md w-full p-4 border border-sem-border text-sem-fg"
                 >
                     <div class="flex items-center justify-between mb-3">
                         <h3 class="font-bold text-lg">{{ $t("map.ping_modal_title") }}</h3>
                         <button
                             type="button"
-                            class="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800"
+                            class="p-1 rounded-lg hover:bg-sem-surface-muted"
                             @click="showMapPingModal = false"
                         >
                             <MaterialDesignIcon icon-name="close" class="size-5" />
                         </button>
                     </div>
-                    <p class="text-xs text-gray-500 dark:text-zinc-400 mb-2">
+                    <p class="text-xs text-sem-fg-muted mb-2">
                         {{ mapPingSummary }}
                     </p>
                     <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">{{
@@ -406,7 +395,7 @@
                     }}</label>
                     <select
                         v-model="pingDestinationHash"
-                        class="w-full mb-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm"
+                        class="w-full mb-2 bg-gray-50 dark:bg-zinc-800 border border-sem-border rounded-lg px-3 py-2 text-sm"
                     >
                         <option value="">{{ $t("map.ping_pick_conversation") }}</option>
                         <option v-for="p in conversationOptions" :key="p.hash" :value="p.hash">
@@ -423,7 +412,7 @@
                     </button>
                     <button
                         type="button"
-                        class="w-full py-2 text-sm font-semibold bg-gray-100 dark:bg-zinc-800 rounded-lg"
+                        class="w-full py-2 text-sm font-semibold bg-sem-surface-muted rounded-lg"
                         @click="showMapPingModal = false"
                     >
                         {{ $t("common.cancel") }}
@@ -444,7 +433,7 @@
                 class="absolute bottom-4 left-4 z-10 flex flex-col gap-2 pointer-events-none max-w-[min(100vw-2rem,22rem)]"
             >
                 <div
-                    class="flex flex-col items-center justify-end text-gray-800 dark:text-zinc-100 bg-white/80 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 rounded-lg px-2 py-1 shadow-xs pointer-events-auto w-fit"
+                    class="flex flex-col items-center justify-end text-sem-fg bg-white/80 dark:bg-zinc-900/80 border border-sem-border rounded-lg px-2 py-1 shadow-xs pointer-events-auto w-fit"
                     :title="$t('map.north_up')"
                 >
                     <div
@@ -452,17 +441,14 @@
                         :style="northIndicatorRotateStyle"
                     >
                         <span class="text-[10px] font-black leading-none">N</span>
-                        <MaterialDesignIcon
-                            icon-name="navigation"
-                            class="size-5 text-blue-600 dark:text-blue-400 -mb-0.5"
-                        />
+                        <MaterialDesignIcon icon-name="navigation" class="size-5 text-sem-accent -mb-0.5" />
                     </div>
                 </div>
                 <div
                     v-if="metadata && metadata.name && !metadata.name.startsWith('Map Export')"
-                    class="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-gray-200 dark:border-zinc-800 p-2 rounded-lg text-xs text-gray-600 dark:text-zinc-400 pointer-events-auto shadow-xs"
+                    class="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-sem-border p-2 rounded-lg text-xs text-sem-fg-muted pointer-events-auto shadow-xs"
                 >
-                    <div class="font-semibold text-gray-900 dark:text-zinc-100 mb-1">
+                    <div class="font-semibold text-sem-fg mb-1">
                         {{ metadata.name }}
                     </div>
                     <div
@@ -476,19 +462,15 @@
 
                 <!-- Lat/Lon Box -->
                 <div
-                    class="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-gray-200 dark:border-zinc-800 p-2 rounded-lg text-[10px] text-gray-600 dark:text-zinc-400 pointer-events-auto shadow-xs flex flex-col space-y-0.5"
+                    class="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-sem-border p-2 rounded-lg text-[10px] text-sem-fg-muted pointer-events-auto shadow-xs flex flex-col space-y-0.5"
                 >
                     <div class="flex justify-between space-x-4">
                         <span class="opacity-50 uppercase tracking-tighter">Lat</span>
-                        <span class="text-gray-900 dark:text-zinc-100 tabular-nums">{{
-                            displayCoords[1].toFixed(6)
-                        }}</span>
+                        <span class="text-sem-fg tabular-nums">{{ displayCoords[1].toFixed(6) }}</span>
                     </div>
                     <div class="flex justify-between space-x-4">
                         <span class="opacity-50 uppercase tracking-tighter">Lon</span>
-                        <span class="text-gray-900 dark:text-zinc-100 tabular-nums">{{
-                            displayCoords[0].toFixed(6)
-                        }}</span>
+                        <span class="text-sem-fg tabular-nums">{{ displayCoords[0].toFixed(6) }}</span>
                     </div>
                 </div>
             </div>
@@ -497,7 +479,7 @@
             <div
                 v-if="isSettingsOpen"
                 ref="settingsPanel"
-                class="absolute z-20 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xs rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden flex flex-col min-h-0 animate-in fade-in zoom-in-95 duration-200"
+                class="absolute z-20 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xs rounded-xl shadow-2xl border border-sem-border overflow-hidden flex flex-col min-h-0 animate-in fade-in zoom-in-95 duration-200"
                 :class="
                     settingsPanelPos
                         ? 'w-96 max-w-[min(100vw-2rem,28rem)] max-h-full'
@@ -513,7 +495,7 @@
             >
                 <div
                     ref="settingsPanelHeader"
-                    class="p-3 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between shrink-0 bg-gray-50/50 dark:bg-zinc-800/50 touch-none select-none cursor-grab active:cursor-grabbing"
+                    class="p-3 border-b border-sem-border flex items-center justify-between shrink-0 bg-gray-50/50 dark:bg-zinc-800/50 touch-none select-none cursor-grab active:cursor-grabbing"
                     @pointerdown="onSettingsPanelPointerDown"
                     @pointermove="onSettingsPanelPointerMove"
                     @pointerup="onSettingsPanelPointerUp"
@@ -521,13 +503,13 @@
                 >
                     <div class="flex items-center space-x-2">
                         <MaterialDesignIcon icon-name="cog" class="size-4 text-gray-500 dark:text-gray-300" />
-                        <h3 class="font-bold text-gray-900 dark:text-zinc-100 text-xs uppercase tracking-widest">
+                        <h3 class="font-bold text-sem-fg text-xs uppercase tracking-widest">
                             {{ $t("app.settings") }}
                         </h3>
                     </div>
                     <button
                         type="button"
-                        class="p-1 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-lg transition-colors text-gray-500 dark:text-gray-300 cursor-pointer"
+                        class="p-1 hover:bg-gray-200 hover:bg-sem-surface-muted rounded-lg transition-colors text-gray-500 dark:text-gray-300 cursor-pointer"
                         @pointerdown.stop
                         @click="isSettingsOpen = false"
                     >
@@ -545,7 +527,7 @@
                             <span>{{ $t("map.set_as_default") }}</span>
                         </button>
                         <label
-                            class="flex items-center justify-center space-x-1.5 px-2 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-300 rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight"
+                            class="flex items-center justify-center space-x-1.5 px-2 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 hover:bg-sem-surface-muted text-sem-fg-muted rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight"
                         >
                             <input v-model="clusterMarkersEnabled" type="checkbox" class="rounded-sm" />
                             <span>{{ $t("map.cluster_markers") }}</span>
@@ -558,7 +540,7 @@
                             <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest"
                                 >Map Styles</label
                             >
-                            <div class="h-px flex-1 bg-gray-100 dark:bg-zinc-800 ml-3"></div>
+                            <div class="h-px flex-1 bg-sem-surface-muted ml-3"></div>
                         </div>
                         <div class="grid grid-cols-5 gap-1">
                             <button
@@ -581,7 +563,7 @@
                                     (style.id === 'carto-light' &&
                                         tileServerUrl.includes('basemaps.cartocdn.com/light_all'))
                                         ? 'bg-blue-500 border-blue-600 text-white shadow-xs ring-2 ring-blue-500/20'
-                                        : 'bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-800 text-gray-500 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800'
+                                        : 'bg-sem-surface border-sem-border text-sem-fg-muted hover:bg-sem-surface-muted'
                                 "
                                 @click="setTileServer(style.id)"
                             >
@@ -590,32 +572,28 @@
                         </div>
 
                         <div class="space-y-1">
-                            <label
-                                class="text-[9px] font-bold text-gray-500 dark:text-zinc-500 uppercase flex items-center"
-                            >
+                            <label class="text-[9px] font-bold text-sem-fg-muted uppercase flex items-center">
                                 <MaterialDesignIcon icon-name="link-variant" class="size-3 mr-1" />
                                 Tile Server URL
                             </label>
                             <input
                                 v-model="tileServerUrl"
                                 type="text"
-                                class="w-full bg-gray-50/50 dark:bg-zinc-950/50 border border-gray-200 dark:border-zinc-800 rounded-lg px-2 py-1.5 text-[10px] dark:text-zinc-100 font-mono focus:ring-1 focus:ring-blue-500 transition-all outline-hidden"
+                                class="w-full bg-gray-50/50 dark:bg-zinc-950/50 border border-sem-border rounded-lg px-2 py-1.5 text-[10px] text-sem-fg font-mono focus:ring-1 focus:ring-blue-500 transition-all outline-hidden"
                                 :placeholder="$t('map.tile_server_url_placeholder')"
                                 @blur="saveTileServerUrl"
                             />
                         </div>
 
                         <div class="space-y-1">
-                            <label
-                                class="text-[9px] font-bold text-gray-500 dark:text-zinc-500 uppercase flex items-center"
-                            >
+                            <label class="text-[9px] font-bold text-sem-fg-muted uppercase flex items-center">
                                 <MaterialDesignIcon icon-name="magnify" class="size-3 mr-1" />
                                 Geocoder API
                             </label>
                             <input
                                 v-model="nominatimApiUrl"
                                 type="text"
-                                class="w-full bg-gray-50/50 dark:bg-zinc-950/50 border border-gray-200 dark:border-zinc-800 rounded-lg px-2 py-1.5 text-[10px] dark:text-zinc-100 font-mono focus:ring-1 focus:ring-blue-500 transition-all outline-hidden"
+                                class="w-full bg-gray-50/50 dark:bg-zinc-950/50 border border-sem-border rounded-lg px-2 py-1.5 text-[10px] text-sem-fg font-mono focus:ring-1 focus:ring-blue-500 transition-all outline-hidden"
                                 :placeholder="$t('map.nominatim_api_url_placeholder')"
                                 @blur="saveNominatimApiUrl"
                             />
@@ -628,7 +606,7 @@
                             <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest"
                                 >Live Tracking</label
                             >
-                            <div class="h-px flex-1 bg-gray-100 dark:bg-zinc-800 ml-3"></div>
+                            <div class="h-px flex-1 bg-sem-surface-muted ml-3"></div>
                         </div>
                         <div v-if="trackedPeers.length === 0" class="text-[10px] text-gray-500 italic px-2">
                             No peers currently being tracked.
@@ -640,7 +618,7 @@
                                 class="flex items-center justify-between p-2 bg-gray-50 dark:bg-zinc-800/50 rounded-lg group"
                             >
                                 <div class="flex flex-col min-w-0">
-                                    <span class="text-[10px] font-bold text-gray-900 dark:text-zinc-100 truncate">
+                                    <span class="text-[10px] font-bold text-sem-fg truncate">
                                         {{
                                             peers[peer.destination_hash]?.display_name ||
                                             peer.destination_hash.substring(0, 8)
@@ -663,36 +641,31 @@
                 </div>
 
                 <!-- Footer Stats -->
-                <div
-                    class="p-2.5 bg-gray-50 dark:bg-zinc-800/50 border-t border-gray-200 dark:border-zinc-800 shrink-0"
-                >
+                <div class="p-2.5 bg-gray-50 dark:bg-zinc-800/50 border-t border-sem-border shrink-0">
                     <div class="grid grid-cols-3 gap-2">
                         <div class="flex flex-col items-center">
                             <span class="text-[8px] font-black text-gray-400 uppercase tracking-tighter mb-0.5"
                                 >Zoom</span
                             >
-                            <span
-                                class="text-[10px] font-bold text-gray-700 dark:text-zinc-300 leading-none tabular-nums"
-                                >{{ currentZoom.toFixed(1) }}</span
-                            >
+                            <span class="text-[10px] font-bold text-sem-fg-muted leading-none tabular-nums">{{
+                                currentZoom.toFixed(1)
+                            }}</span>
                         </div>
-                        <div class="flex flex-col items-center border-x border-gray-200 dark:border-zinc-700">
+                        <div class="flex flex-col items-center border-x border-sem-border">
                             <span class="text-[8px] font-black text-gray-400 uppercase tracking-tighter mb-0.5"
                                 >Lat</span
                             >
-                            <span
-                                class="text-[10px] font-bold text-gray-700 dark:text-zinc-300 leading-none tabular-nums"
-                                >{{ displayCoords[1].toFixed(4) }}</span
-                            >
+                            <span class="text-[10px] font-bold text-sem-fg-muted leading-none tabular-nums">{{
+                                displayCoords[1].toFixed(4)
+                            }}</span>
                         </div>
                         <div class="flex flex-col items-center">
                             <span class="text-[8px] font-black text-gray-400 uppercase tracking-tighter mb-0.5"
                                 >Lon</span
                             >
-                            <span
-                                class="text-[10px] font-bold text-gray-700 dark:text-zinc-300 leading-none tabular-nums"
-                                >{{ displayCoords[0].toFixed(4) }}</span
-                            >
+                            <span class="text-[10px] font-bold text-sem-fg-muted leading-none tabular-nums">{{
+                                displayCoords[0].toFixed(4)
+                            }}</span>
                         </div>
                     </div>
                 </div>
@@ -700,22 +673,20 @@
 
             <div
                 v-if="isMapToolsOpen"
-                class="absolute z-20 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xs rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden flex flex-col min-h-0"
+                class="absolute z-20 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xs rounded-xl shadow-2xl border border-sem-border overflow-hidden flex flex-col min-h-0"
                 :class="
                     isMobileScreen
                         ? 'left-2 right-2 top-14 bottom-2 w-auto'
                         : 'top-14 right-4 w-96 max-h-[min(36rem,calc(100%-4rem))]'
                 "
             >
-                <div
-                    class="p-3 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between shrink-0"
-                >
-                    <h3 class="font-bold text-gray-900 dark:text-zinc-100 text-xs uppercase tracking-widest">
+                <div class="p-3 border-b border-sem-border flex items-center justify-between shrink-0">
+                    <h3 class="font-bold text-sem-fg text-xs uppercase tracking-widest">
                         {{ $t("map.side_panel") }}
                     </h3>
                     <button
                         type="button"
-                        class="p-1 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-lg"
+                        class="p-1 hover:bg-gray-200 hover:bg-sem-surface-muted rounded-lg"
                         @click="isMapToolsOpen = false"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-4" />
@@ -813,21 +784,18 @@
                 <div class="absolute inset-0 bg-black/50 pointer-events-auto"></div>
                 <div
                     ref="tooltipElement"
-                    class="absolute bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 p-4 pointer-events-auto max-w-xs sm:max-w-sm"
+                    class="absolute bg-sem-surface rounded-xl shadow-2xl border border-sem-border p-4 pointer-events-auto max-w-xs sm:max-w-sm"
                     :style="tooltipStyle"
                 >
                     <div class="flex items-start justify-between mb-2">
-                        <h3 class="font-semibold text-gray-900 dark:text-zinc-100 text-sm">
+                        <h3 class="font-semibold text-sem-fg text-sm">
                             {{ $t("map.onboarding_title") }}
                         </h3>
-                        <button
-                            class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
-                            @click="dismissOnboardingTooltip"
-                        >
+                        <button class="text-sem-fg-muted hover:text-sem-fg" @click="dismissOnboardingTooltip">
                             <MaterialDesignIcon icon-name="close" class="size-4" />
                         </button>
                     </div>
-                    <p class="text-sm text-gray-600 dark:text-zinc-400 mb-3">
+                    <p class="text-sm text-sem-fg-muted mb-3">
                         {{ $t("map.onboarding_text") }}
                     </p>
                     <button

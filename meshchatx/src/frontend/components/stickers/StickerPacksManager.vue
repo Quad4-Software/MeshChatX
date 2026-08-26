@@ -26,7 +26,7 @@
             />
         </div>
 
-        <div v-if="packs.length === 0" class="text-sm text-gray-500 dark:text-zinc-400">
+        <div v-if="packs.length === 0" class="text-sm text-sem-fg-muted">
             {{ $t("sticker_packs.empty") }}
         </div>
 
@@ -34,14 +34,14 @@
             <div
                 v-for="pack in packs"
                 :key="pack.id"
-                class="rounded-xl border border-gray-200 dark:border-zinc-700 p-3 bg-white/60 dark:bg-zinc-800/60 flex flex-col gap-2"
+                class="rounded-xl border border-sem-border p-3 bg-white/60 dark:bg-zinc-800/60 flex flex-col gap-2"
             >
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
-                        <div class="font-semibold text-gray-800 dark:text-zinc-100 truncate">
+                        <div class="font-semibold text-sem-fg truncate">
                             {{ pack.title }}
                         </div>
-                        <div class="text-xs text-gray-500 dark:text-zinc-400">
+                        <div class="text-xs text-sem-fg-muted">
                             {{
                                 $t("sticker_packs.count_label", {
                                     count: pack.sticker_count,
@@ -54,7 +54,7 @@
                     <div class="flex items-center gap-1 shrink-0">
                         <button
                             type="button"
-                            class="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-600 dark:text-zinc-300"
+                            class="rounded-lg p-1.5 hover:bg-gray-100 hover:bg-sem-surface-muted text-sem-fg-muted"
                             :title="$t('sticker_packs.export')"
                             @click="exportPack(pack)"
                         >
@@ -77,10 +77,10 @@
                         :src="stickerImageUrl(s.id)"
                         :image-type="s.image_type"
                         size="xs"
-                        class="rounded-sm border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900"
+                        class="rounded-sm border border-sem-border bg-sem-surface-muted"
                     />
                 </div>
-                <div v-else class="text-xs text-gray-500 dark:text-zinc-400 italic mt-1">
+                <div v-else class="text-xs text-sem-fg-muted italic mt-1">
                     {{ $t("sticker_packs.empty_pack") }}
                 </div>
             </div>
@@ -91,10 +91,8 @@
             class="fixed inset-0 z-150 flex items-center justify-center bg-black/60 p-4"
             @click.self="createOpen = false"
         >
-            <div
-                class="w-full max-w-md rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl border border-gray-200 dark:border-zinc-700"
-            >
-                <header class="px-4 py-3 border-b border-gray-200 dark:border-zinc-700 font-semibold">
+            <div class="w-full max-w-md rounded-2xl bg-sem-surface shadow-2xl border border-sem-border">
+                <header class="px-4 py-3 border-b border-sem-border font-semibold">
                     {{ $t("sticker_packs.create_title") }}
                 </header>
                 <div class="p-4 flex flex-col gap-3">
@@ -134,7 +132,7 @@
                     </label>
                 </div>
                 <footer
-                    class="flex items-center justify-end gap-2 px-4 py-3 border-t border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900/50"
+                    class="flex items-center justify-end gap-2 px-4 py-3 border-t border-sem-border bg-sem-surface-muted/50"
                 >
                     <button
                         type="button"

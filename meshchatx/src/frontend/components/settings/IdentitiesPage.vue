@@ -9,13 +9,13 @@
                 <div class="identities-section identities-section--hero">
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                         <div class="space-y-2 flex-1 min-w-0">
-                            <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            <div class="text-xs uppercase tracking-wide text-sem-fg-muted">
                                 {{ $t("identities.eyebrow") }}
                             </div>
-                            <h1 class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                            <h1 class="text-2xl sm:text-3xl font-black text-sem-fg tracking-tight">
                                 {{ $t("identities.title") }}
                             </h1>
-                            <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed max-w-xl">
+                            <p class="text-sm text-sem-fg-muted leading-relaxed max-w-xl">
                                 {{ $t("identities.manage") }}
                             </p>
                         </div>
@@ -61,7 +61,7 @@
                             />
                             <div class="flex-1 min-w-0 space-y-2">
                                 <div class="h-4 w-32 bg-gray-200 dark:bg-zinc-700 rounded-sm animate-pulse" />
-                                <div class="h-3 w-48 bg-gray-100 dark:bg-zinc-800 rounded-sm animate-pulse" />
+                                <div class="h-3 w-48 bg-sem-surface-muted rounded-sm animate-pulse" />
                             </div>
                         </div>
                     </div>
@@ -69,7 +69,7 @@
 
                 <template v-else-if="currentIdentity">
                     <div class="identities-section space-y-4">
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        <div class="text-xs uppercase tracking-wide text-sem-fg-muted">
                             {{ $t("identities.active_identity") }}
                         </div>
                         <div class="flex items-center gap-3 sm:gap-4">
@@ -83,7 +83,7 @@
                             </div>
                             <div class="min-w-0 flex-1">
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <h2 class="text-lg font-bold text-gray-900 dark:text-white truncate">
+                                    <h2 class="text-lg font-bold text-sem-fg truncate">
                                         {{ currentIdentity.display_name }}
                                     </h2>
                                     <span
@@ -94,7 +94,7 @@
                                 </div>
                                 <p
                                     v-if="currentIdentity.message_count != null"
-                                    class="text-sm text-gray-500 dark:text-zinc-400 mt-0.5"
+                                    class="text-sm text-sem-fg-muted mt-0.5"
                                 >
                                     {{ $t("identities.message_count", { count: currentIdentity.message_count }) }}
                                 </p>
@@ -158,7 +158,7 @@
                 </template>
 
                 <div v-if="!isLoading && otherIdentities.length > 0" class="identities-section">
-                    <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">
+                    <div class="text-xs uppercase tracking-wide text-sem-fg-muted mb-3">
                         {{ $t("identities.other_identities") }}
                     </div>
                     <div class="divide-y divide-gray-100 dark:divide-zinc-800">
@@ -188,13 +188,10 @@
                                     />
                                 </div>
                                 <div class="min-w-0 flex-1">
-                                    <div class="font-semibold text-gray-900 dark:text-zinc-100 truncate">
+                                    <div class="font-semibold text-sem-fg truncate">
                                         {{ identity.display_name }}
                                     </div>
-                                    <p
-                                        v-if="identity.message_count != null"
-                                        class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5"
-                                    >
+                                    <p v-if="identity.message_count != null" class="text-xs text-sem-fg-muted mt-0.5">
                                         {{ $t("identities.message_count", { count: identity.message_count }) }}
                                     </p>
                                 </div>
@@ -224,7 +221,7 @@
                             >
                                 <button
                                     type="button"
-                                    class="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                                    class="text-xs font-semibold text-sem-accent hover:underline"
                                     @click="toggleAddresses(identity.hash)"
                                 >
                                     {{
@@ -284,10 +281,10 @@
 
                 <div
                     v-if="!isLoading && identities.length === 0"
-                    class="identities-section py-12 text-center text-gray-500 dark:text-zinc-400"
+                    class="identities-section py-12 text-center text-sem-fg-muted"
                 >
                     <MaterialDesignIcon icon-name="account-group" class="size-12 mx-auto mb-3 opacity-40" />
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <h3 class="text-lg font-semibold text-sem-fg">
                         {{ $t("identities.no_identities") }}
                     </h3>
                     <p class="mt-1 text-sm">{{ $t("identities.create_first") }}</p>
@@ -304,21 +301,17 @@
             class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="showCreateModal = false"
         >
-            <div class="w-full max-w-md rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-                    <h2 class="text-lg font-bold text-gray-900 dark:text-white">
+            <div class="w-full max-w-md rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+                <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
+                    <h2 class="text-lg font-bold text-sem-fg">
                         {{ $t("identities.new_identity") }}
                     </h2>
-                    <button
-                        type="button"
-                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
-                        @click="showCreateModal = false"
-                    >
+                    <button type="button" class="text-sem-fg-muted hover:text-sem-fg" @click="showCreateModal = false">
                         <MaterialDesignIcon icon-name="close" class="size-5" />
                     </button>
                 </div>
                 <div class="p-5 space-y-4">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t("identities.generate_fresh") }}</p>
+                    <p class="text-sm text-sem-fg-muted">{{ $t("identities.generate_fresh") }}</p>
                     <div>
                         <label class="block text-xs uppercase tracking-wider font-semibold text-gray-500 mb-1">
                             {{ $t("identities.display_name") }}
@@ -333,7 +326,7 @@
                         />
                     </div>
                 </div>
-                <div class="px-5 py-4 border-t border-gray-100 dark:border-zinc-800 flex justify-end gap-2">
+                <div class="px-5 py-4 border-t border-sem-border flex justify-end gap-2">
                     <button type="button" class="secondary-chip" @click="showCreateModal = false">
                         {{ $t("common.cancel") }}
                     </button>
@@ -354,22 +347,18 @@
             class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="showImportModal = false"
         >
-            <div class="w-full max-w-md rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-                    <h2 class="text-lg font-bold text-gray-900 dark:text-white">
+            <div class="w-full max-w-md rounded-2xl bg-sem-surface shadow-2xl overflow-hidden">
+                <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
+                    <h2 class="text-lg font-bold text-sem-fg">
                         {{ $t("identities.import") }}
                     </h2>
-                    <button
-                        type="button"
-                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
-                        @click="showImportModal = false"
-                    >
+                    <button type="button" class="text-sem-fg-muted hover:text-sem-fg" @click="showImportModal = false">
                         <MaterialDesignIcon icon-name="close" class="size-5" />
                     </button>
                 </div>
                 <div class="p-5 space-y-4">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t("identities.import_hint") }}</p>
-                    <p class="text-xs text-gray-500 dark:text-zinc-400">
+                    <p class="text-sm text-sem-fg-muted">{{ $t("identities.import_hint") }}</p>
+                    <p class="text-xs text-sem-fg-muted">
                         {{ $t("identities.import_key_only_hint") }}
                     </p>
                     <button
@@ -386,7 +375,7 @@
                         <MaterialDesignIcon v-else icon-name="upload" class="size-4" />
                         {{ $t("identities.upload_key_file") }}
                     </button>
-                    <div class="border-t border-gray-200 dark:border-zinc-700 pt-4 space-y-3">
+                    <div class="border-t border-sem-border pt-4 space-y-3">
                         <label class="block text-xs uppercase tracking-wider font-semibold text-gray-500">
                             {{ $t("identities.paste_base32") }}
                         </label>
@@ -422,7 +411,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="px-5 py-4 border-t border-gray-100 dark:border-zinc-800">
+                <div class="px-5 py-4 border-t border-sem-border">
                     <button type="button" class="w-full secondary-chip justify-center" @click="showImportModal = false">
                         {{ $t("common.cancel") }}
                     </button>

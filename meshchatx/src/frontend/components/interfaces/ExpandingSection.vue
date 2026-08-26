@@ -5,20 +5,20 @@
         class="bg-white rounded-sm shadow-sm divide-y divide-gray-300 dark:divide-zinc-700 dark:bg-zinc-900 overflow-hidden"
     >
         <div
-            class="flex p-2 justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-800"
+            class="flex p-2 justify-between cursor-pointer hover:bg-sem-surface-muted"
             @click="isExpanded = !isExpanded"
         >
             <div class="my-auto mr-auto">
                 <div class="font-bold dark:text-white">
                     <slot name="title" />
                 </div>
-                <div class="text-sm text-gray-600 dark:text-gray-300">
+                <div class="text-sm text-sem-fg-muted">
                     <slot name="subtitle" />
                 </div>
             </div>
             <div class="my-auto ml-2">
                 <div
-                    class="w-5 h-5 text-gray-600 dark:text-gray-300 transform transition-transform duration-200"
+                    class="w-5 h-5 text-sem-fg-muted transform transition-transform duration-200"
                     :class="{ 'rotate-90': isExpanded }"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="size-5">

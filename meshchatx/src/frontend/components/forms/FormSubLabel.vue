@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div class="text-xs text-gray-600 dark:text-zinc-300">
+    <div class="text-xs text-sem-fg-muted">
         <slot />
     </div>
 </template>

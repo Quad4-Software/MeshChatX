@@ -59,10 +59,10 @@ export default {
             return this.variant === "image" ? "bg-white" : "bg-blue-500 dark:bg-blue-400";
         },
         percentClass() {
-            return this.variant === "image" ? "text-white/95" : "text-gray-500 dark:text-zinc-400";
+            return this.variant === "image" ? "text-white/95" : "text-sem-fg-muted";
         },
         statsClass() {
-            return this.variant === "image" ? "text-white/75" : "text-gray-400 dark:text-zinc-500";
+            return this.variant === "image" ? "text-white/75" : "text-sem-fg-muted";
         },
     },
 };

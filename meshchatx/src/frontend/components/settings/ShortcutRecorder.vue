@@ -3,19 +3,19 @@
 <template>
     <div class="flex items-center gap-2">
         <div
-            class="flex-1 flex flex-wrap gap-1.5 p-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl min-h-[44px]"
+            class="flex-1 flex flex-wrap gap-1.5 p-2 bg-sem-surface border border-sem-border rounded-xl min-h-[44px]"
             :class="{ 'ring-2 ring-blue-500 border-blue-500': isRecording }"
         >
             <template v-if="keys.length > 0">
                 <kbd
                     v-for="key in keys"
                     :key="key"
-                    class="px-2 py-1 bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs font-bold text-gray-600 dark:text-zinc-300 shadow-xs uppercase"
+                    class="px-2 py-1 bg-sem-surface-muted border border-sem-border rounded-lg text-xs font-bold text-sem-fg-muted shadow-xs uppercase"
                 >
                     {{ formatKey(key) }}
                 </kbd>
             </template>
-            <span v-else class="text-gray-400 dark:text-zinc-500 text-sm my-auto px-1">
+            <span v-else class="text-sem-fg-muted text-sm my-auto px-1">
                 {{ isRecording ? "Press keys..." : "No shortcut" }}
             </span>
         </div>
@@ -26,7 +26,7 @@
             :class="[
                 isRecording
                     ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700',
+                    : 'bg-sem-surface-muted text-sem-fg-muted hover:bg-gray-200 hover:bg-sem-surface-muted',
             ]"
             @click="toggleRecording"
         >

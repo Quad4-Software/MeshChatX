@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             icon="email-send-outline"
             :title="$t('tools.forwarder.title')"
@@ -12,44 +12,41 @@
             <div class="space-y-4 p-4 md:p-6 max-w-5xl mx-auto w-full">
                 <!-- Add New Rule -->
                 <div class="glass-card space-y-4">
-                    <div class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <div class="text-lg font-semibold text-sem-fg">
                         {{ $t("forwarder.add_rule") }}
                     </div>
                     <div class="grid gap-4 md:grid-cols-3">
                         <div class="space-y-1">
-                            <label
-                                class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                                >{{ $t("forwarder.name") }}</label
-                            >
+                            <label class="text-xs font-medium text-sem-fg-muted uppercase tracking-wider">{{
+                                $t("forwarder.name")
+                            }}</label>
                             <input
                                 v-model="newRule.name"
                                 type="text"
                                 :placeholder="$t('forwarder.name_placeholder')"
-                                class="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all outline-hidden"
+                                class="w-full px-4 py-2 rounded-xl border border-sem-border bg-sem-surface text-sem-fg focus:ring-2 focus:ring-blue-500 transition-all outline-hidden"
                             />
                         </div>
                         <div class="space-y-1">
-                            <label
-                                class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                                >{{ $t("forwarder.forward_to_hash") }}</label
-                            >
+                            <label class="text-xs font-medium text-sem-fg-muted uppercase tracking-wider">{{
+                                $t("forwarder.forward_to_hash")
+                            }}</label>
                             <input
                                 v-model="newRule.forward_to_hash"
                                 type="text"
                                 :placeholder="$t('forwarder.destination_placeholder')"
-                                class="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all outline-hidden"
+                                class="w-full px-4 py-2 rounded-xl border border-sem-border bg-sem-surface text-sem-fg focus:ring-2 focus:ring-blue-500 transition-all outline-hidden"
                             />
                         </div>
                         <div class="space-y-1">
-                            <label
-                                class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                                >{{ $t("forwarder.source_filter") }}</label
-                            >
+                            <label class="text-xs font-medium text-sem-fg-muted uppercase tracking-wider">{{
+                                $t("forwarder.source_filter")
+                            }}</label>
                             <input
                                 v-model="newRule.source_filter_hash"
                                 type="text"
                                 :placeholder="$t('forwarder.source_filter_placeholder')"
-                                class="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all outline-hidden"
+                                class="w-full px-4 py-2 rounded-xl border border-sem-border bg-sem-surface text-sem-fg focus:ring-2 focus:ring-blue-500 transition-all outline-hidden"
                             />
                         </div>
                     </div>
@@ -66,13 +63,10 @@
 
                 <!-- Rules List -->
                 <div class="space-y-4">
-                    <div class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <div class="text-lg font-semibold text-sem-fg">
                         {{ $t("forwarder.active_rules") }}
                     </div>
-                    <div
-                        v-if="rules.length === 0"
-                        class="glass-card text-center py-12 text-gray-500 dark:text-zinc-400"
-                    >
+                    <div v-if="rules.length === 0" class="glass-card text-center py-12 text-sem-fg-muted">
                         {{ $t("forwarder.no_rules") }}
                     </div>
                     <div
@@ -87,14 +81,14 @@
                                     :class="
                                         rule.is_active
                                             ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                            : 'bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-zinc-400'
+                                            : 'bg-gray-100 text-gray-700 dark:bg-zinc-800 text-sem-fg-muted'
                                     "
                                 >
                                     {{ rule.is_active ? $t("forwarder.active") : $t("forwarder.disabled") }}
                                 </div>
-                                <span class="text-xs text-gray-500 dark:text-zinc-400">ID: {{ rule.id }}</span>
+                                <span class="text-xs text-sem-fg-muted">ID: {{ rule.id }}</span>
                             </div>
-                            <div v-if="rule.name" class="text-base font-semibold text-gray-900 dark:text-white mb-1">
+                            <div v-if="rule.name" class="text-base font-semibold text-sem-fg mb-1">
                                 {{ rule.name }}
                             </div>
                             <div class="space-y-1">
@@ -103,7 +97,7 @@
                                         icon-name="arrow-right"
                                         class="w-4 h-4 text-blue-500 shrink-0"
                                     />
-                                    <span class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                    <span class="text-sm font-medium text-sem-fg truncate">
                                         {{ $t("forwarder.forwarding_to", { hash: rule.forward_to_hash }) }}
                                     </span>
                                 </div>
@@ -112,7 +106,7 @@
                                         icon-name="filter-variant"
                                         class="w-4 h-4 text-purple-500 shrink-0"
                                     />
-                                    <span class="text-sm text-gray-600 dark:text-zinc-300 truncate">
+                                    <span class="text-sm text-sem-fg-muted truncate">
                                         {{ $t("forwarder.source_filter_display", { hash: rule.source_filter_hash }) }}
                                     </span>
                                 </div>
@@ -120,7 +114,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <button
-                                class="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                                class="p-2 hover:bg-sem-surface-muted rounded-lg transition-colors"
                                 :title="rule.is_active ? $t('forwarder.disabled') : $t('forwarder.active')"
                                 @click="toggleRule(rule.id)"
                             >

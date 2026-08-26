@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             icon="chart-line"
             :title="$t('tools.rnstatus.title')"
@@ -29,12 +29,10 @@
         </ToolsPageHeader>
         <div class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 md:px-5 lg:px-8 py-3 sm:py-4 min-w-0">
             <div class="space-y-4 w-full max-w-6xl xl:max-w-7xl mx-auto min-w-0">
-                <div
-                    class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3"
-                >
+                <div class="rounded-xl border border-sem-border bg-sem-surface p-4 space-y-3">
                     <div class="flex flex-wrap items-center gap-3">
                         <label
-                            class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-800 dark:text-zinc-200"
+                            class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-sem-border bg-sem-canvas px-3 py-2 text-sm text-sem-fg"
                         >
                             <input
                                 v-model="includeLinkStats"
@@ -45,7 +43,7 @@
                             <span>{{ $t("rnstatus.include_link_stats") }}</span>
                         </label>
                         <label
-                            class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-800 dark:text-zinc-200"
+                            class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-sem-border bg-sem-canvas px-3 py-2 text-sm text-sem-fg"
                         >
                             <input v-model="showAll" type="checkbox" class="rounded-sm" :disabled="reloadingRns" />
                             <span>{{ $t("rnstatus.show_all_interfaces") }}</span>
@@ -69,18 +67,16 @@
                     </div>
                 </div>
 
-                <div
-                    class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3"
-                >
-                    <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
+                <div class="rounded-xl border border-sem-border bg-sem-surface p-4 space-y-3">
+                    <h2 class="text-sm font-semibold text-sem-fg">
                         {{ $t("rnstatus.remote_query") }}
                     </h2>
-                    <p class="text-xs text-gray-500 dark:text-zinc-500">
+                    <p class="text-xs text-sem-fg-muted">
                         {{ $t("rnstatus.remote_query_hint") }}
                     </p>
                     <div class="grid gap-3 lg:grid-cols-2">
                         <label class="block space-y-1">
-                            <span class="text-xs font-medium text-gray-700 dark:text-zinc-300">{{
+                            <span class="text-xs font-medium text-sem-fg-muted">{{
                                 $t("rnstatus.remote_transport_hash")
                             }}</span>
                             <input
@@ -92,7 +88,7 @@
                             />
                         </label>
                         <label class="block space-y-1">
-                            <span class="text-xs font-medium text-gray-700 dark:text-zinc-300">{{
+                            <span class="text-xs font-medium text-sem-fg-muted">{{
                                 $t("rnstatus.remote_timeout")
                             }}</span>
                             <input
@@ -112,7 +108,7 @@
                         }}</span>
                         <button
                             type="button"
-                            class="inline-flex items-center px-2 py-1 rounded-lg border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-xs font-medium text-gray-800 dark:text-zinc-200 hover:bg-gray-50 dark:hover:bg-zinc-800"
+                            class="inline-flex items-center px-2 py-1 rounded-lg border border-gray-300 dark:border-zinc-600 bg-sem-surface text-xs font-medium text-sem-fg hover:bg-sem-surface-muted"
                             @click="clearRemote"
                         >
                             {{ $t("rnstatus.use_local") }}
@@ -121,20 +117,14 @@
                 </div>
 
                 <div v-if="hasSummary" class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                    <div
-                        v-if="linkCount !== null"
-                        class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4"
-                    >
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                    <div v-if="linkCount !== null" class="rounded-xl border border-sem-border bg-sem-surface p-4">
+                        <div class="text-xs uppercase tracking-wide text-sem-fg-muted">
                             {{ $t("rnstatus.active_links_label") }}
                         </div>
-                        <div class="mt-1 text-2xl font-semibold tabular-nums text-gray-900 dark:text-white">
+                        <div class="mt-1 text-2xl font-semibold tabular-nums text-sem-fg">
                             {{ formatInt(linkCount) }}
                         </div>
-                        <div
-                            v-if="activeLinkCount !== null"
-                            class="text-xs text-gray-500 dark:text-zinc-500 tabular-nums"
-                        >
+                        <div v-if="activeLinkCount !== null" class="text-xs text-sem-fg-muted tabular-nums">
                             {{
                                 $t("rnstatus.active_links_detail", {
                                     active: formatInt(activeLinkCount),
@@ -143,66 +133,54 @@
                             }}
                         </div>
                     </div>
-                    <div
-                        v-if="rnsVersion"
-                        class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4"
-                    >
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                    <div v-if="rnsVersion" class="rounded-xl border border-sem-border bg-sem-surface p-4">
+                        <div class="text-xs uppercase tracking-wide text-sem-fg-muted">
                             {{ $t("rnstatus.rns_version") }}
                         </div>
-                        <div class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
+                        <div class="mt-1 text-lg font-semibold text-sem-fg">
                             {{ rnsVersion }}
                         </div>
                     </div>
-                    <div
-                        v-if="transportUptimeStr"
-                        class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4"
-                    >
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                    <div v-if="transportUptimeStr" class="rounded-xl border border-sem-border bg-sem-surface p-4">
+                        <div class="text-xs uppercase tracking-wide text-sem-fg-muted">
                             {{ $t("rnstatus.uptime") }}
                         </div>
-                        <div class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
+                        <div class="mt-1 text-lg font-semibold text-sem-fg">
                             {{ transportUptimeStr }}
                         </div>
                     </div>
-                    <div
-                        v-if="totals"
-                        class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4"
-                    >
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                    <div v-if="totals" class="rounded-xl border border-sem-border bg-sem-surface p-4">
+                        <div class="text-xs uppercase tracking-wide text-sem-fg-muted">
                             {{ $t("rnstatus.totals") }}
                         </div>
-                        <div class="mt-1 text-sm font-semibold tabular-nums text-gray-900 dark:text-white">
+                        <div class="mt-1 text-sm font-semibold tabular-nums text-sem-fg">
                             <div>↑ {{ totals.tx_bytes_str }} {{ totals.tx_speed_str }}</div>
                             <div>↓ {{ totals.rx_bytes_str }} {{ totals.rx_speed_str }}</div>
                         </div>
                     </div>
                     <div
                         v-if="blackholeEnabled !== null"
-                        class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4"
+                        class="rounded-xl border border-sem-border bg-sem-surface p-4"
                     >
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                        <div class="text-xs uppercase tracking-wide text-sem-fg-muted">
                             {{ $t("rnstatus.blackhole_heading") }}
                         </div>
-                        <div class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
+                        <div class="mt-1 text-lg font-semibold text-sem-fg">
                             {{
                                 blackholeEnabled
                                     ? $t("rnstatus.blackhole_publishing")
                                     : $t("rnstatus.blackhole_inactive")
                             }}
                         </div>
-                        <div class="text-xs text-gray-500 dark:text-zinc-500 tabular-nums">
+                        <div class="text-xs text-sem-fg-muted tabular-nums">
                             {{ $t("rnstatus.blackhole_identities", { count: formatInt(blackholeCount) }) }}
                         </div>
                     </div>
-                    <div
-                        v-if="rssStr"
-                        class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4"
-                    >
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                    <div v-if="rssStr" class="rounded-xl border border-sem-border bg-sem-surface p-4">
+                        <div class="text-xs uppercase tracking-wide text-sem-fg-muted">
                             {{ $t("rnstatus.memory_rss") }}
                         </div>
-                        <div class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
+                        <div class="mt-1 text-lg font-semibold text-sem-fg">
                             {{ rssStr }}
                         </div>
                     </div>
@@ -211,24 +189,24 @@
                 <div v-if="totalsAnnounces || totalsPathRequests" class="grid gap-3 lg:grid-cols-2">
                     <div
                         v-if="totalsAnnounces"
-                        class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-2"
+                        class="rounded-xl border border-sem-border bg-sem-surface p-4 space-y-2"
                     >
-                        <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
+                        <h2 class="text-sm font-semibold text-sem-fg">
                             {{ $t("rnstatus.transport_announces") }}
                         </h2>
-                        <div class="text-sm tabular-nums text-gray-900 dark:text-white">
+                        <div class="text-sm tabular-nums text-sem-fg">
                             <div>↑ {{ totalsAnnounces.tx_bytes_str }} {{ totalsAnnounces.tx_speed_str }}</div>
                             <div>↓ {{ totalsAnnounces.rx_bytes_str }} {{ totalsAnnounces.rx_speed_str }}</div>
                         </div>
                     </div>
                     <div
                         v-if="totalsPathRequests"
-                        class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-2"
+                        class="rounded-xl border border-sem-border bg-sem-surface p-4 space-y-2"
                     >
-                        <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
+                        <h2 class="text-sm font-semibold text-sem-fg">
                             {{ $t("rnstatus.transport_path_requests") }}
                         </h2>
-                        <div class="text-sm tabular-nums text-gray-900 dark:text-white">
+                        <div class="text-sm tabular-nums text-sem-fg">
                             <div>↑ {{ totalsPathRequests.tx_bytes_str }} {{ totalsPathRequests.tx_speed_str }}</div>
                             <div>↓ {{ totalsPathRequests.rx_bytes_str }} {{ totalsPathRequests.rx_speed_str }}</div>
                         </div>
@@ -237,24 +215,24 @@
 
                 <div
                     v-if="queueRows.length > 0"
-                    class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3"
+                    class="rounded-xl border border-sem-border bg-sem-surface p-4 space-y-3"
                 >
-                    <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
+                    <h2 class="text-sm font-semibold text-sem-fg">
                         {{ $t("rnstatus.queue_pressure") }}
                     </h2>
                     <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                         <div
                             v-for="queue in queueRows"
                             :key="queue.key"
-                            class="rounded-lg border border-gray-100 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 p-3"
+                            class="rounded-lg border border-sem-border bg-sem-canvas p-3"
                         >
-                            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-sem-fg-muted">
                                 {{ queue.label }}
                             </div>
-                            <div class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
+                            <div class="mt-1 text-sm font-semibold text-sem-fg">
                                 {{ queue.pressure || "—" }}
                             </div>
-                            <div class="text-xs text-gray-500 dark:text-zinc-500">
+                            <div class="text-xs text-sem-fg-muted">
                                 <span v-if="queue.packets">
                                     {{ $t("rnstatus.queue_packets", { count: queue.packets }) }}
                                 </span>
@@ -268,9 +246,9 @@
 
                 <div
                     v-if="transportId || networkId || probeResponder"
-                    class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3"
+                    class="rounded-xl border border-sem-border bg-sem-surface p-4 space-y-3"
                 >
-                    <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
+                    <h2 class="text-sm font-semibold text-sem-fg">
                         {{ $t("rnstatus.transport_instance") }}
                     </h2>
                     <div class="grid gap-3 md:grid-cols-2">
@@ -330,7 +308,7 @@
                                 :class="
                                     iface.i2p_connectable
                                         ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-100'
-                                        : 'bg-gray-200 text-gray-700 dark:bg-zinc-800 dark:text-zinc-200'
+                                        : 'bg-gray-200 text-gray-700 dark:bg-zinc-800 text-sem-fg'
                                 "
                             >
                                 {{
@@ -351,16 +329,16 @@
 
                 <div
                     v-if="blackholeSources.length > 0"
-                    class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3"
+                    class="rounded-xl border border-sem-border bg-sem-surface p-4 space-y-3"
                 >
-                    <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
+                    <h2 class="text-sm font-semibold text-sem-fg">
                         {{ $t("rnstatus.blackhole_sources") }}
                     </h2>
                     <div class="divide-y divide-gray-100 dark:divide-zinc-800/50">
                         <div
                             v-for="source in blackholeSources"
                             :key="source"
-                            class="py-2 text-sm font-mono text-gray-800 dark:text-zinc-200 truncate"
+                            class="py-2 text-sm font-mono text-sem-fg truncate"
                         >
                             {{ source }}
                         </div>
@@ -369,7 +347,7 @@
 
                 <div
                     v-if="interfaces.length === 0 && !isLoading && !reloadingRns"
-                    class="rounded-xl border border-dashed border-gray-300 dark:border-zinc-700 py-12 text-center text-sm text-gray-500 dark:text-gray-400"
+                    class="rounded-xl border border-dashed border-gray-300 dark:border-zinc-700 py-12 text-center text-sm text-sem-fg-muted"
                 >
                     {{ $t("rnstatus.no_interfaces_found") }}
                 </div>
@@ -378,14 +356,12 @@
                     <div
                         v-for="iface in interfaces"
                         :key="iface.name"
-                        class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 sm:p-5 space-y-4"
+                        class="rounded-xl border border-sem-border bg-sem-surface p-4 sm:p-5 space-y-4"
                     >
                         <div class="flex flex-wrap items-start justify-between gap-3">
                             <div class="min-w-0 flex-1 space-y-1">
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <h3
-                                        class="wrap-break-word text-base font-semibold leading-snug text-gray-900 dark:text-white"
-                                    >
+                                    <h3 class="wrap-break-word text-base font-semibold leading-snug text-sem-fg">
                                         {{ iface.name }}
                                     </h3>
                                     <span
@@ -395,7 +371,7 @@
                                         {{ $t("rnstatus.discovered") }}
                                     </span>
                                 </div>
-                                <div v-if="iface.type" class="text-xs text-gray-500 dark:text-zinc-400">
+                                <div v-if="iface.type" class="text-xs text-sem-fg-muted">
                                     {{ iface.type }}
                                 </div>
                             </div>
@@ -422,8 +398,8 @@
 
                         <div class="grid gap-x-6 gap-y-3 text-sm md:grid-cols-2 lg:grid-cols-3">
                             <div v-for="row in ifaceStatRows(iface)" :key="iface.name + '-' + row.key">
-                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ row.label }}</div>
-                                <div class="font-semibold tabular-nums text-gray-900 dark:text-white wrap-break-word">
+                                <div class="text-xs text-sem-fg-muted">{{ row.label }}</div>
+                                <div class="font-semibold tabular-nums text-sem-fg wrap-break-word">
                                     {{ row.value }}
                                 </div>
                             </div>

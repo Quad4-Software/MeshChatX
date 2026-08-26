@@ -2,9 +2,9 @@
 
 <template>
     <div
-        class="absolute bottom-4 left-4 right-4 sm:left-4 sm:right-auto sm:w-80 md:max-lg:w-72 lg:w-80 z-20 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden text-gray-900 dark:text-zinc-100"
+        class="absolute bottom-4 left-4 right-4 sm:left-4 sm:right-auto sm:w-80 md:max-lg:w-72 lg:w-80 z-20 bg-sem-surface rounded-xl shadow-2xl border border-sem-border overflow-hidden text-sem-fg"
     >
-        <div class="p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
+        <div class="p-4 border-b border-sem-border flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div
                     v-if="marker.telemetry || marker.peer"
@@ -15,7 +15,10 @@
                         backgroundColor: marker.peer?.lxmf_user_icon?.background_colour || '#ffffff',
                     }"
                 >
-                    <v-icon :icon="'mdi-' + (marker.peer?.lxmf_user_icon?.icon_name || 'account')" size="18"></v-icon>
+                    <MaterialDesignIcon
+                        :icon-name="marker.peer?.lxmf_user_icon?.icon_name || 'account'"
+                        class="size-[18px]"
+                    />
                 </div>
                 <div
                     v-else-if="marker.discovered"
@@ -24,7 +27,7 @@
                     <MaterialDesignIcon :icon-name="getDiscoveredIconName(marker.discovered)" class="size-[18px]" />
                 </div>
                 <div>
-                    <h3 class="font-bold text-gray-900 dark:text-zinc-100 truncate w-40">
+                    <h3 class="font-bold text-sem-fg truncate w-40">
                         {{
                             marker.discovered?.name ||
                             marker.peer?.display_name ||
@@ -48,16 +51,19 @@
                     class="p-2 rounded-full transition-colors"
                     :class="
                         marker.telemetry.is_tracking
-                            ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                            : 'text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300'
+                            ? 'text-blue-500 bg-sem-surface-muted'
+                            : 'text-sem-fg-muted hover:text-sem-fg'
                     "
                     :title="marker.telemetry.is_tracking ? 'Stop Tracking' : 'Live Track Peer'"
                     @click="$emit('toggle-tracking', marker.telemetry.destination_hash)"
                 >
-                    <v-icon :icon="marker.telemetry.is_tracking ? 'mdi-radar' : 'mdi-crosshairs'" size="20"></v-icon>
+                    <MaterialDesignIcon
+                        :icon-name="marker.telemetry.is_tracking ? 'radar' : 'crosshairs'"
+                        class="size-5"
+                    />
                 </button>
                 <button class="text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300 p-1" @click="$emit('close')">
-                    <v-icon icon="mdi-close" size="20"></v-icon>
+                    <MaterialDesignIcon icon-name="close" class="size-5" />
                 </button>
             </div>
         </div>
@@ -74,7 +80,7 @@
                     </div>
                 </div>
 
-                <div class="pt-2 border-t border-gray-100 dark:border-zinc-800 space-y-2">
+                <div class="pt-2 border-t border-sem-border space-y-2">
                     <div v-if="marker.discovered.interface" class="flex justify-between items-center">
                         <span class="text-[10px] font-bold text-gray-400 uppercase">Interface</span>
                         <span class="text-xs font-mono">{{ marker.discovered.interface }}</span>
@@ -114,7 +120,7 @@
                     </div>
                 </div>
 
-                <div v-if="marker.telemetry.physical_link" class="pt-2 border-t border-gray-100 dark:border-zinc-800">
+                <div v-if="marker.telemetry.physical_link" class="pt-2 border-t border-sem-border">
                     <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Signal</div>
                     <div class="flex gap-4 text-xs font-mono">
                         <span>RSSI: {{ marker.telemetry.physical_link.rssi }}</span>
@@ -124,16 +130,16 @@
                 </div>
 
                 <div class="pt-2 text-[10px] text-gray-400 flex items-center gap-1">
-                    <v-icon icon="mdi-clock-outline" size="12"></v-icon>
+                    <MaterialDesignIcon icon-name="clock-outline" class="size-3" />
                     Updated: {{ formatTimestamp(marker.telemetry.timestamp) }}
                 </div>
 
-                <div class="border-t border-gray-100 dark:border-zinc-800 pt-3">
+                <div class="border-t border-sem-border pt-3">
                     <button
-                        class="w-full py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-300 rounded-lg font-bold transition-all text-sm flex items-center justify-center gap-2 mb-2"
+                        class="w-full py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 hover:bg-sem-surface-muted text-sem-fg-muted rounded-lg font-bold transition-all text-sm flex items-center justify-center gap-2 mb-2"
                         @click="$emit('toggle-mini-chat')"
                     >
-                        <v-icon :icon="miniChatOpen ? 'mdi-chevron-up' : 'mdi-message-text'" size="16"></v-icon>
+                        <MaterialDesignIcon :icon-name="miniChatOpen ? 'chevron-up' : 'message-text'" class="size-4" />
                         {{ miniChatOpen ? "Hide Mini-Chat" : "Show Mini-Chat" }}
                     </button>
                     <div v-if="miniChatOpen">

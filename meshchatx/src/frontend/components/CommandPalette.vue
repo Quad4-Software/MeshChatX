@@ -8,16 +8,16 @@
         >
             <div
                 v-click-outside="close"
-                class="w-full max-w-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[min(70dvh,70vh)] pointer-events-auto mt-2 sm:mt-8"
+                class="w-full max-w-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-sem-border overflow-hidden flex flex-col max-h-[min(70dvh,70vh)] pointer-events-auto mt-2 sm:mt-8"
             >
                 <!-- search input -->
-                <div class="relative flex items-center p-4 border-b border-gray-100 dark:border-zinc-800">
+                <div class="relative flex items-center p-4 border-b border-sem-border">
                     <MaterialDesignIcon icon-name="magnify" class="size-6 text-gray-400 mr-3" />
                     <input
                         ref="input"
                         v-model="query"
                         type="text"
-                        class="w-full bg-transparent border-none focus:ring-0 text-gray-900 dark:text-white placeholder-gray-400 text-lg"
+                        class="w-full bg-transparent border-none focus:ring-0 text-sem-fg placeholder-gray-400 text-lg"
                         :placeholder="$t('command_palette.search_placeholder')"
                         @keydown.down.prevent="moveHighlight(1)"
                         @keydown.up.prevent="moveHighlight(-1)"
@@ -26,7 +26,7 @@
                     />
                     <div class="flex items-center gap-1 ml-2">
                         <kbd
-                            class="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg shadow-xs"
+                            class="px-2 py-1 text-xs font-semibold text-gray-500 bg-sem-surface-muted border border-sem-border rounded-lg shadow-xs"
                             >ESC</kbd
                         >
                     </div>
@@ -34,7 +34,7 @@
 
                 <!-- results -->
                 <div class="flex-1 overflow-y-auto p-2 min-h-0">
-                    <div v-if="filteredResults.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
+                    <div v-if="filteredResults.length === 0" class="p-8 text-center text-sem-fg-muted">
                         {{ $t("command_palette.no_results", { query: query }) }}
                     </div>
                     <div v-else class="space-y-1">
@@ -49,8 +49,8 @@
                                 class="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left group"
                                 :class="[
                                     highlightedId === result.id
-                                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                                        : 'hover:bg-gray-50 dark:hover:bg-zinc-800/50 text-gray-700 dark:text-zinc-300',
+                                        ? 'bg-sem-surface-muted text-sem-accent'
+                                        : 'hover:bg-sem-surface-muted/50 text-sem-fg-muted',
                                 ]"
                                 @click="executeResult(result)"
                                 @mousemove="highlightedId = result.id"
@@ -60,7 +60,7 @@
                                     :class="[
                                         highlightedId === result.id
                                             ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-200 dark:border-blue-800'
-                                            : 'bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700',
+                                            : 'bg-sem-surface-muted border-sem-border',
                                     ]"
                                 >
                                     <LxmfUserIcon
@@ -89,18 +89,18 @@
 
                 <!-- footer -->
                 <div
-                    class="p-3 bg-gray-50/50 dark:bg-zinc-900/50 border-t border-gray-100 dark:border-zinc-800 flex justify-center gap-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest"
+                    class="p-3 bg-gray-50/50 dark:bg-zinc-900/50 border-t border-sem-border flex justify-center gap-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest"
                 >
                     <div class="flex items-center gap-1.5">
                         <kbd
-                            class="px-1.5 py-0.5 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-sm shadow-xs"
+                            class="px-1.5 py-0.5 bg-white dark:bg-zinc-800 border border-sem-border rounded-sm shadow-xs"
                             >↑↓</kbd
                         >
                         <span>{{ $t("command_palette.footer_navigate") }}</span>
                     </div>
                     <div class="flex items-center gap-1.5">
                         <kbd
-                            class="px-1.5 py-0.5 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-sm shadow-xs"
+                            class="px-1.5 py-0.5 bg-white dark:bg-zinc-800 border border-sem-border rounded-sm shadow-xs"
                             >Enter</kbd
                         >
                         <span>{{ $t("command_palette.footer_select") }}</span>

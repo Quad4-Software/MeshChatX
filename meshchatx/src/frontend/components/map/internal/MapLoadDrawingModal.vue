@@ -3,11 +3,11 @@
 <template>
     <div v-if="show" class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
         <div
-            class="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200"
+            class="bg-sem-surface w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200"
         >
             <div class="p-6">
                 <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <h2 class="text-xl font-bold text-sem-fg flex items-center gap-2">
                         <MaterialDesignIcon icon-name="folder-open-outline" class="size-6 text-blue-500" />
                         {{ $t("map.load_drawing_title") }}
                     </h2>
@@ -25,13 +25,11 @@
                     v-else-if="drawings.length === 0"
                     class="py-12 flex flex-col items-center justify-center text-center"
                 >
-                    <div
-                        class="size-16 bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4"
-                    >
+                    <div class="size-16 bg-sem-surface-muted rounded-full flex items-center justify-center mb-4">
                         <MaterialDesignIcon icon-name="folder-outline" class="size-8 text-gray-400" />
                     </div>
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ $t("map.no_drawings") }}</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ $t("map.no_drawings_desc") }}</p>
+                    <h3 class="text-lg font-bold text-sem-fg">{{ $t("map.no_drawings") }}</h3>
+                    <p class="text-sm text-sem-fg-muted mt-1">{{ $t("map.no_drawings_desc") }}</p>
                 </div>
 
                 <div v-else class="max-h-[400px] overflow-y-auto space-y-2 pr-2">
@@ -42,8 +40,8 @@
                         @click="$emit('load', drawing)"
                     >
                         <div class="flex-1 min-w-0 mr-4">
-                            <div class="font-bold text-gray-900 dark:text-white truncate">{{ drawing.name }}</div>
-                            <div class="text-xs text-gray-500 dark:text-zinc-500 mt-0.5">
+                            <div class="font-bold text-sem-fg truncate">{{ drawing.name }}</div>
+                            <div class="text-xs text-sem-fg-muted mt-0.5">
                                 {{ $t("map.saved_on") }} {{ new Date(drawing.updated_at).toLocaleString() }}
                             </div>
                         </div>
@@ -60,7 +58,7 @@
                 <div class="mt-8 flex justify-end">
                     <button
                         type="button"
-                        class="px-6 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800 transition"
+                        class="px-6 py-2.5 rounded-xl border border-sem-border text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-sem-surface-muted transition"
                         @click="$emit('close')"
                     >
                         {{ $t("common.close") }}

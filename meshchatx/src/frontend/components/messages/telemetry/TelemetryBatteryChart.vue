@@ -5,19 +5,17 @@
         <div class="flex items-start justify-between gap-2 border-b border-gray-200/70 pb-2 dark:border-zinc-700/70">
             <div class="flex items-center gap-2 min-w-0">
                 <MaterialDesignIcon icon-name="battery-high" class="size-4 shrink-0 text-sky-600 dark:text-sky-400" />
-                <span
-                    class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 truncate"
-                >
+                <span class="text-[11px] font-semibold uppercase tracking-wide text-sem-fg-muted truncate">
                     {{ $t("messages.telemetry_battery_trend") }}
                 </span>
             </div>
-            <span class="text-[11px] tabular-nums font-medium text-gray-600 dark:text-zinc-300 shrink-0">
+            <span class="text-[11px] tabular-nums font-medium text-sem-fg-muted shrink-0">
                 {{ $t("messages.telemetry_battery_range", { from: firstPct, to: lastPct }) }}
             </span>
         </div>
         <div class="flex gap-1.5">
             <div
-                class="flex flex-col justify-between text-[9px] font-medium text-gray-400 dark:text-zinc-500 pr-0.5 pt-0.5 pb-6 w-5 text-right tabular-nums select-none"
+                class="flex flex-col justify-between text-[9px] font-medium text-sem-fg-muted pr-0.5 pt-0.5 pb-6 w-5 text-right tabular-nums select-none"
             >
                 <span>100</span>
                 <span>75</span>
@@ -124,10 +122,10 @@
                     :style="hoverTipStyle"
                 >
                     <div>{{ hover.pct }}%</div>
-                    <div class="font-normal text-gray-500 dark:text-zinc-400">{{ hover.timeLabel }}</div>
+                    <div class="font-normal text-sem-fg-muted">{{ hover.timeLabel }}</div>
                 </div>
                 <div
-                    class="pointer-events-none absolute inset-x-0 bottom-0 flex h-6 justify-between px-0.5 text-[9px] tabular-nums text-gray-400 dark:text-zinc-500"
+                    class="pointer-events-none absolute inset-x-0 bottom-0 flex h-6 justify-between px-0.5 text-[9px] tabular-nums text-sem-fg-muted"
                 >
                     <span class="truncate max-w-[45%]">{{ startLabel }}</span>
                     <span class="truncate max-w-[45%] text-right">{{ endLabel }}</span>

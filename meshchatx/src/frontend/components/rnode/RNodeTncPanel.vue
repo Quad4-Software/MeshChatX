@@ -1,12 +1,10 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div
-        class="border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-2xl shadow-xl overflow-hidden"
-    >
-        <div class="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center gap-2">
+    <div class="border border-sem-border bg-sem-surface rounded-2xl shadow-xl overflow-hidden">
+        <div class="px-4 sm:px-6 py-4 border-b border-sem-border flex items-center gap-2">
             <MaterialDesignIcon icon-name="radio-tower" class="size-5 text-green-500" />
-            <h3 class="font-bold text-gray-900 dark:text-zinc-100">
+            <h3 class="font-bold text-sem-fg">
                 {{ $t("tools.rnode_flasher.configure_tnc") }}
             </h3>
         </div>
@@ -99,9 +97,9 @@ export default {
     @apply text-[10px] font-bold text-zinc-400 uppercase tracking-widest;
 }
 .rnf-config-input {
-    @apply w-full bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-[12px] rounded-lg focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500 px-3 py-2 transition-all;
+    @apply w-full bg-gray-50 dark:bg-zinc-800 border border-sem-border text-sem-fg text-[12px] rounded-lg focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500 px-3 py-2 transition-all;
 }
 .rnf-action-btn {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 px-3 py-2.5 text-[11px] font-bold text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-700 transition-all active:scale-95;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-sem-surface-muted hover:bg-gray-200 hover:bg-sem-surface-muted px-3 py-2.5 text-[11px] font-bold text-sem-fg-muted border border-sem-border transition-all active:scale-95;
 }
 </style>

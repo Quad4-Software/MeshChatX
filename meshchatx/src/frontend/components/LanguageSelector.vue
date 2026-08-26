@@ -4,7 +4,7 @@
     <div class="relative">
         <button
             type="button"
-            class="relative rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+            class="relative rounded-full p-1.5 sm:p-2 text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
             :title="$t('app.language')"
             @click.stop="toggleDropdown"
         >
@@ -16,7 +16,7 @@
                 v-if="isDropdownOpen"
                 ref="languageDropdown"
                 v-click-outside="closeDropdown"
-                class="fixed w-48 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl z-9999 overflow-x-hidden"
+                class="fixed w-48 bg-sem-surface border border-sem-border rounded-2xl shadow-xl z-9999 overflow-x-hidden"
                 :style="dropdownStyle"
             >
                 <div class="p-2">
@@ -24,11 +24,10 @@
                         v-for="lang in languages"
                         :key="lang.code"
                         type="button"
-                        class="w-full px-4 py-2 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors flex items-center justify-between"
+                        class="w-full px-4 py-2 text-left rounded-lg hover:bg-sem-surface-muted transition-colors flex items-center justify-between"
                         :class="{
-                            'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400':
-                                currentLanguage === lang.code,
-                            'text-gray-900 dark:text-zinc-100': currentLanguage !== lang.code,
+                            'bg-sem-surface-muted text-sem-accent': currentLanguage === lang.code,
+                            'text-sem-fg': currentLanguage !== lang.code,
                         }"
                         @click.stop="selectLanguage(lang.code)"
                     >

@@ -2,10 +2,10 @@
 
 <template>
     <div
-        class="absolute top-0 mt-14 left-1/2 -translate-x-1/2 z-20 w-80 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden text-gray-900 dark:text-zinc-100"
+        class="absolute top-0 mt-14 left-1/2 -translate-x-1/2 z-20 w-80 bg-sem-surface rounded-xl shadow-2xl border border-sem-border overflow-hidden text-sem-fg"
     >
-        <div class="p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
-            <h3 class="font-semibold text-gray-900 dark:text-zinc-100">{{ $t("map.export_area") }}</h3>
+        <div class="p-4 border-b border-sem-border flex items-center justify-between">
+            <h3 class="font-semibold text-sem-fg">{{ $t("map.export_area") }}</h3>
             <button class="text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300" @click="$emit('cancel')">
                 <MaterialDesignIcon icon-name="close" class="size-5" />
             </button>
@@ -19,7 +19,7 @@
                         type="number"
                         min="0"
                         max="20"
-                        class="w-full bg-gray-50 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm dark:text-zinc-100"
+                        class="w-full bg-gray-50 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm text-sem-fg"
                         @input="$emit('update:minZoom', Number($event.target.value))"
                     />
                 </div>
@@ -30,13 +30,13 @@
                         type="number"
                         min="0"
                         max="20"
-                        class="w-full bg-gray-50 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm dark:text-zinc-100"
+                        class="w-full bg-gray-50 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm text-sem-fg"
                         @input="$emit('update:maxZoom', Number($event.target.value))"
                     />
                 </div>
             </div>
             <div class="flex justify-between items-center text-sm">
-                <span class="text-gray-600 dark:text-zinc-400">{{ $t("map.tile_count") }}:</span>
+                <span class="text-sem-fg-muted">{{ $t("map.tile_count") }}:</span>
                 <span class="font-bold text-blue-600">{{ estimatedTiles }}</span>
             </div>
             <p v-if="tileLimitExceeded" class="text-xs text-red-600 dark:text-red-400 font-semibold">
@@ -45,7 +45,7 @@
             <div class="flex gap-2">
                 <button
                     :disabled="exporting"
-                    class="flex-1 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 disabled:bg-gray-100 dark:disabled:bg-zinc-800 text-gray-900 dark:text-zinc-100 rounded-lg font-bold transition-colors"
+                    class="flex-1 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 disabled:bg-gray-100 dark:disabled:bg-zinc-800 text-sem-fg rounded-lg font-bold transition-colors"
                     @click="$emit('cancel')"
                 >
                     {{ $t("common.cancel") }}

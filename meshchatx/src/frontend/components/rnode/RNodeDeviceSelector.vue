@@ -3,12 +3,10 @@
 <template>
     <div class="space-y-4">
         <div class="flex items-center gap-2">
-            <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400 shrink-0">
+            <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-sem-accent shrink-0">
                 <MaterialDesignIcon icon-name="usb-port" class="size-5" />
             </div>
-            <h2 class="font-bold text-gray-900 dark:text-zinc-100">
-                {{ stepNumber }}. {{ $t("tools.rnode_flasher.select_device") }}
-            </h2>
+            <h2 class="font-bold text-sem-fg">{{ stepNumber }}. {{ $t("tools.rnode_flasher.select_device") }}</h2>
         </div>
 
         <div class="space-y-1">
@@ -25,8 +23,8 @@
                         connectionMethod === option.id
                             ? 'bg-blue-600 text-white border-blue-600'
                             : option.available
-                              ? 'bg-gray-50 dark:bg-zinc-800/50 border-gray-200 dark:border-zinc-800 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800'
-                              : 'bg-gray-100 dark:bg-zinc-900 border-gray-200 dark:border-zinc-800 text-gray-400 dark:text-zinc-600 cursor-not-allowed'
+                              ? 'bg-gray-50 dark:bg-zinc-800/50 border-sem-border text-sem-fg-muted hover:bg-sem-surface-muted'
+                              : 'bg-sem-surface-muted border-sem-border text-gray-400 dark:text-zinc-600 cursor-not-allowed'
                     "
                     @click="option.available && $emit('update:connectionMethod', option.id)"
                 >
@@ -48,7 +46,7 @@
                 :placeholder="$t('tools.rnode_flasher.ip_address_placeholder')"
                 @input="$emit('update:wifiHost', $event.target.value)"
             />
-            <p class="text-[10px] text-gray-500 dark:text-zinc-500">
+            <p class="text-[10px] text-sem-fg-muted">
                 {{ $t("tools.rnode_flasher.wifi_help") }}
             </p>
         </div>
@@ -86,7 +84,11 @@
             class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/40 px-4 py-2.5 text-sm font-bold text-amber-700 dark:text-amber-400 transition-colors disabled:opacity-50"
             @click="$emit('enter-dfu')"
         >
-            <v-progress-circular v-if="isEnteringDfuMode" indeterminate size="16" width="2" />
+            <MaterialDesignIcon
+                v-if="isEnteringDfuMode"
+                icon-name="loading"
+                class="size-4 animate-spin text-amber-700 dark:text-amber-400"
+            />
             <MaterialDesignIcon v-else icon-name="restart-alert" class="size-4" />
             <span>
                 {{
@@ -166,10 +168,10 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .rnf-label {
-    @apply text-xs font-semibold text-gray-500 dark:text-zinc-500 uppercase tracking-wider;
+    @apply text-xs font-semibold text-sem-fg-muted uppercase tracking-wider;
 }
 .rnf-input {
-    @apply w-full bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 px-4 py-2.5 transition-all;
+    @apply w-full bg-gray-50 dark:bg-zinc-800/50 border border-sem-border text-sem-fg text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 px-4 py-2.5 transition-all;
 }
 select.rnf-input {
     appearance: none;

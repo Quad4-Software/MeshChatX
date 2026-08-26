@@ -3,19 +3,17 @@
 <template>
     <div v-if="show" class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
         <div
-            class="bg-white dark:bg-zinc-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200"
+            class="bg-sem-surface w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200"
         >
             <div class="p-6">
-                <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <h2 class="text-xl font-bold text-sem-fg flex items-center gap-2">
                     <MaterialDesignIcon icon-name="content-save-outline" class="size-6 text-blue-500" />
                     {{ $t("map.save_drawing_title") }}
                 </h2>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ $t("map.save_drawing_desc") }}</p>
+                <p class="text-sm text-sem-fg-muted mt-1">{{ $t("map.save_drawing_desc") }}</p>
 
                 <div class="mt-6">
-                    <label
-                        class="block text-xs font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-widest mb-2"
-                    >
+                    <label class="block text-xs font-bold text-sem-fg-muted uppercase tracking-widest mb-2">
                         {{ $t("map.drawing_name") }}
                     </label>
                     <input
@@ -32,7 +30,7 @@
                 <div class="mt-8 flex gap-3">
                     <button
                         type="button"
-                        class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800 transition"
+                        class="flex-1 px-4 py-2.5 rounded-xl border border-sem-border text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-sem-surface-muted transition"
                         @click="$emit('close')"
                     >
                         {{ $t("common.close") }}

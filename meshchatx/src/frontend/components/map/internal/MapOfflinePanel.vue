@@ -2,7 +2,7 @@
 
 <template>
     <div class="space-y-3">
-        <div class="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-0.5">
+        <div class="flex items-center bg-sem-surface-muted rounded-lg p-0.5">
             <button
                 type="button"
                 class="flex-1 px-2 py-1.5 text-[11px] font-medium rounded-md"
@@ -20,7 +20,7 @@
                 {{ $t("map.offline_mode") }}
             </button>
         </div>
-        <label class="flex items-center justify-between text-[11px] text-gray-600 dark:text-zinc-400">
+        <label class="flex items-center justify-between text-[11px] text-sem-fg-muted">
             <span>{{ $t("map.caching_enabled") }}</span>
             <input :checked="cachingEnabled" type="checkbox" @change="$emit('toggle-caching', $event.target.checked)" />
         </label>
@@ -33,31 +33,31 @@
         </button>
         <button
             type="button"
-            class="w-full py-2 text-[10px] font-semibold uppercase rounded-lg border border-gray-200 dark:border-zinc-700"
+            class="w-full py-2 text-[10px] font-semibold uppercase rounded-lg border border-sem-border"
             @click="$emit('export-region')"
         >
             {{ $t("map.data_export_region") }}
         </button>
         <button
             type="button"
-            class="w-full py-2 text-[10px] font-semibold uppercase rounded-lg border border-gray-200 dark:border-zinc-700"
+            class="w-full py-2 text-[10px] font-semibold uppercase rounded-lg border border-sem-border"
             @click="$emit('clear-cache')"
         >
             {{ $t("map.clear_cache") }}
         </button>
-        <label class="block text-[11px] text-gray-600 dark:text-zinc-400 space-y-1">
+        <label class="block text-[11px] text-sem-fg-muted space-y-1">
             <span>{{ $t("map.storage_path") }}</span>
             <input
                 :value="mbtilesDir"
                 type="text"
-                class="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-1.5 text-[11px] font-mono"
+                class="w-full rounded-lg border border-sem-border bg-sem-surface px-2 py-1.5 text-[11px] font-mono"
                 @blur="$emit('save-dir', $event.target.value)"
             />
         </label>
         <div
             v-for="file in mbtilesList"
             :key="file.name"
-            class="flex items-center justify-between rounded-lg border border-gray-200 dark:border-zinc-800 p-2"
+            class="flex items-center justify-between rounded-lg border border-sem-border p-2"
         >
             <div class="min-w-0">
                 <div class="text-[11px] font-semibold truncate">{{ file.name }}</div>

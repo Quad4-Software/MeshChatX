@@ -58,7 +58,7 @@
                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {{ $t("settings.battery.max_visualiser_interfaces") }}
                 </div>
-                <p class="text-xs text-gray-500 dark:text-zinc-400">
+                <p class="text-xs text-sem-fg-muted">
                     {{ $t("settings.battery.max_visualiser_interfaces_desc") }}
                 </p>
                 <input
@@ -79,7 +79,7 @@
                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {{ $t("settings.battery.visualiser_reload_seconds") }}
                 </div>
-                <p class="text-xs text-gray-500 dark:text-zinc-400">
+                <p class="text-xs text-sem-fg-muted">
                     {{ $t("settings.battery.visualiser_reload_seconds_desc") }}
                 </p>
                 <input
@@ -130,7 +130,7 @@
                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {{ $t("settings.battery.background_poll_multiplier") }}
                 </div>
-                <p class="text-xs text-gray-500 dark:text-zinc-400">
+                <p class="text-xs text-sem-fg-muted">
                     {{ $t("settings.battery.background_poll_multiplier_desc") }}
                 </p>
                 <input
@@ -215,10 +215,10 @@
             </label>
 
             <div v-if="batterySaver.applyInterfaceBitrateLimits" class="space-y-3">
-                <p class="text-xs text-gray-500 dark:text-zinc-400">
+                <p class="text-xs text-sem-fg-muted">
                     {{ $t("settings.battery.interface_bitrate_limits_help") }}
                 </p>
-                <div v-if="batteryInterfaceRows.length === 0" class="text-xs text-gray-500 dark:text-zinc-400">
+                <div v-if="batteryInterfaceRows.length === 0" class="text-xs text-sem-fg-muted">
                     {{ $t("settings.battery.interface_bitrate_limits_empty") }}
                 </div>
                 <div
@@ -228,7 +228,7 @@
                 >
                     <div class="text-sm text-gray-900 dark:text-gray-100 truncate" :title="row.name">
                         {{ row.name }}
-                        <span class="text-xs text-gray-500 dark:text-zinc-400"> ({{ row.type || "?" }}) </span>
+                        <span class="text-xs text-sem-fg-muted"> ({{ row.type || "?" }}) </span>
                     </div>
                     <input
                         :value="batterySaver.interfaceBitrateLimits[row.name]"

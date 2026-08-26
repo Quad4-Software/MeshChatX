@@ -2,9 +2,9 @@
 
 <template>
     <div
-        class="absolute bottom-4 left-4 right-4 sm:left-4 sm:right-auto sm:w-80 md:max-lg:w-72 lg:w-80 z-20 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden text-gray-900 dark:text-zinc-100"
+        class="absolute bottom-4 left-4 right-4 sm:left-4 sm:right-auto sm:w-80 md:max-lg:w-72 lg:w-80 z-20 bg-sem-surface rounded-xl shadow-2xl border border-sem-border overflow-hidden text-sem-fg"
     >
-        <div class="p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
+        <div class="p-4 border-b border-sem-border flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div
                     class="size-8 rounded-full flex items-center justify-center bg-blue-600 text-white text-sm font-bold"
@@ -12,7 +12,7 @@
                     {{ cluster.count }}
                 </div>
                 <div>
-                    <h3 class="font-bold text-gray-900 dark:text-zinc-100">{{ cluster.count }} interfaces here</h3>
+                    <h3 class="font-bold text-sem-fg">{{ cluster.count }} interfaces here</h3>
                     <div class="text-[10px] font-mono text-gray-500 uppercase tracking-tighter">
                         Tap an item to focus
                     </div>
@@ -23,14 +23,14 @@
                 title="Close"
                 @click="$emit('close')"
             >
-                <v-icon icon="mdi-close" size="20"></v-icon>
+                <MaterialDesignIcon icon-name="close" class="size-5" />
             </button>
         </div>
         <div class="max-h-72 overflow-y-auto divide-y divide-gray-100 dark:divide-zinc-800">
             <button
                 v-for="(item, idx) in cluster.items"
                 :key="idx"
-                class="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+                class="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-sem-surface-muted transition-colors"
                 @click="$emit('select', item)"
             >
                 <div
@@ -43,13 +43,16 @@
                     v-else-if="item.kind === 'telemetry'"
                     class="size-7 rounded-full flex items-center justify-center border-2 border-blue-500 bg-blue-50 text-blue-600 shrink-0"
                 >
-                    <v-icon :icon="'mdi-' + (item.peer?.lxmf_user_icon?.icon_name || 'account')" size="14"></v-icon>
+                    <MaterialDesignIcon
+                        :icon-name="item.peer?.lxmf_user_icon?.icon_name || 'account'"
+                        class="size-3.5"
+                    />
                 </div>
                 <div
                     v-else
                     class="size-7 rounded-full flex items-center justify-center border-2 border-gray-400 bg-gray-50 text-gray-500 shrink-0"
                 >
-                    <v-icon icon="mdi-help" size="14"></v-icon>
+                    <MaterialDesignIcon icon-name="help" class="size-3.5" />
                 </div>
                 <div class="min-w-0 flex-1">
                     <div class="text-sm font-medium truncate">{{ item.label }}</div>
@@ -57,7 +60,7 @@
                         {{ item.identifier }}
                     </div>
                 </div>
-                <v-icon icon="mdi-chevron-right" size="16" class="text-gray-400 shrink-0"></v-icon>
+                <MaterialDesignIcon icon-name="chevron-right" class="size-4 text-gray-400 shrink-0" />
             </button>
         </div>
     </div>

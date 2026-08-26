@@ -20,7 +20,7 @@
             class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 hover:bg-green-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-green-600/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             @click="$emit('flash')"
         >
-            <v-progress-circular v-if="isFlashing" indeterminate size="16" width="2" />
+            <MaterialDesignIcon v-if="isFlashing" icon-name="loading" class="size-4 animate-spin text-white" />
             <MaterialDesignIcon v-else icon-name="flash" class="size-5" />
             <span>
                 {{
@@ -32,10 +32,15 @@
         </button>
 
         <div v-if="isFlashing" class="space-y-1.5 pt-1" role="status" aria-live="polite">
-            <v-progress-linear :model-value="flashingProgress" color="green" height="8" rounded />
+            <div class="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-zinc-800">
+                <div
+                    class="h-full rounded-full bg-green-600 transition-[width]"
+                    :style="{ width: `${flashingProgress}%` }"
+                />
+            </div>
             <div class="flex items-center justify-between text-[10px] font-mono">
-                <span class="text-gray-500 dark:text-zinc-500 truncate">{{ flashingStatus }}</span>
-                <span class="text-gray-700 dark:text-zinc-300 font-bold">{{ flashingProgress }}%</span>
+                <span class="text-sem-fg-muted truncate">{{ flashingStatus }}</span>
+                <span class="text-sem-fg-muted font-bold">{{ flashingProgress }}%</span>
             </div>
         </div>
     </div>

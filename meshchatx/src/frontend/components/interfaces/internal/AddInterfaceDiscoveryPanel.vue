@@ -17,7 +17,7 @@
                 </div>
                 <div
                     v-if="discovery.discoverable"
-                    class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2"
+                    class="space-y-4 pt-4 border-t border-sem-border animate-in fade-in slide-in-from-top-2"
                 >
                     <div>
                         <FormLabel class="glass-label">Discovery Name</FormLabel>
@@ -101,7 +101,7 @@
                             autocomplete="off"
                             @input="patchField('location_cmd', $event.target.value)"
                         />
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <p class="text-xs text-sem-fg-muted mt-1">
                             {{ $t("interfaces.location_cmd_hint") }}
                         </p>
                     </div>

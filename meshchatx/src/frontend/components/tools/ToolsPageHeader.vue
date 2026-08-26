@@ -2,11 +2,11 @@
 
 <template>
     <div
-        class="flex flex-wrap items-center gap-x-2 gap-y-2 pl-1.5 pr-3 sm:pl-2 sm:pr-4 md:pl-4 md:pr-6 py-3 sm:py-4 border-b border-gray-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 shrink-0 min-w-0"
+        class="flex flex-wrap items-center gap-x-2 gap-y-2 pl-1.5 pr-3 sm:pl-2 sm:pr-4 md:pl-4 md:pr-6 py-3 sm:py-4 border-b border-sem-border bg-sem-canvas shrink-0 min-w-0"
     >
         <RouterLink
             :to="backTo"
-            class="inline-flex items-center justify-center gap-0.5 sm:gap-1 rounded-lg pl-0 pr-1.5 sm:pr-2 py-2 min-h-9 min-w-9 sm:min-w-0 text-sm font-medium text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800/80 transition-colors shrink-0 order-first"
+            class="inline-flex items-center justify-center gap-0.5 sm:gap-1 rounded-lg pl-0 pr-1.5 sm:pr-2 py-2 min-h-9 min-w-9 sm:min-w-0 text-sm font-medium text-sem-fg-muted hover:bg-sem-surface-muted transition-colors shrink-0 order-first"
             :aria-label="$t('tools.back_to_tools')"
         >
             <MaterialDesignIcon icon-name="chevron-left" class="size-6 sm:size-5 shrink-0" />
@@ -18,16 +18,13 @@
                 <MaterialDesignIcon :icon-name="icon" class="size-5 sm:size-6" :class="iconClass" />
             </div>
             <div class="min-w-0">
-                <p v-if="eyebrow" class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">
+                <p v-if="eyebrow" class="text-xs uppercase tracking-wide text-sem-fg-muted truncate">
                     {{ eyebrow }}
                 </p>
-                <h1 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white truncate">
+                <h1 class="text-lg sm:text-xl font-bold text-sem-fg truncate">
                     {{ title }}
                 </h1>
-                <p
-                    v-if="description"
-                    class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 line-clamp-2 sm:line-clamp-none"
-                >
+                <p v-if="description" class="text-xs sm:text-sm text-sem-fg-muted line-clamp-2 sm:line-clamp-none">
                     {{ description }}
                 </p>
             </div>
@@ -45,7 +42,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 const ACCENT = {
     blue: {
         wrap: "bg-blue-100 dark:bg-blue-900/30",
-        icon: "text-blue-600 dark:text-blue-400",
+        icon: "text-sem-accent",
     },
     indigo: {
         wrap: "bg-indigo-100 dark:bg-indigo-900/30",
@@ -89,7 +86,7 @@ const ACCENT = {
     },
     zinc: {
         wrap: "bg-zinc-100 dark:bg-zinc-800",
-        icon: "text-zinc-600 dark:text-zinc-400",
+        icon: "text-zinc-600 text-sem-fg-muted",
     },
 };
 

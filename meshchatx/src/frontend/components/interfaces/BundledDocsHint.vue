@@ -6,7 +6,7 @@
         {{ " " }}
         <button
             type="button"
-            class="text-blue-600 dark:text-blue-400 hover:underline font-medium cursor-pointer inline p-0 border-0 bg-transparent text-left align-baseline text-[inherit]"
+            class="text-sem-accent hover:underline font-medium cursor-pointer inline p-0 border-0 bg-transparent text-left align-baseline text-[inherit]"
             @click="openDocs"
         >
             {{ $t(linkI18nKey) }}
@@ -23,7 +23,7 @@ export default {
     props: {
         paragraphClass: {
             type: String,
-            default: "text-xs text-gray-500 dark:text-gray-400 mt-0.5",
+            default: "text-xs text-sem-fg-muted mt-0.5",
         },
         hintI18nKey: {
             type: String,

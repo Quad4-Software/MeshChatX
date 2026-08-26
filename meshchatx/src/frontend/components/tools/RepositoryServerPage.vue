@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             icon="package-variant"
             :title="$t('tools.repository_server.title')"
@@ -11,32 +11,28 @@
         <div class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 md:px-5 lg:px-8 py-3 sm:py-4 min-w-0">
             <div class="space-y-0 w-full max-w-6xl xl:max-w-7xl mx-auto min-w-0">
                 <div class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6 space-y-3">
-                    <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
+                    <h2 class="text-sm font-semibold text-sem-fg">
                         {{ $t("tools.repository_server.http_heading") }}
                     </h2>
                     <div class="flex flex-wrap gap-3 items-end">
                         <label class="flex flex-col gap-1 text-xs min-w-40">
-                            <span class="text-gray-500 dark:text-zinc-500">{{
-                                $t("tools.repository_server.host_label")
-                            }}</span>
+                            <span class="text-sem-fg-muted">{{ $t("tools.repository_server.host_label") }}</span>
                             <input
                                 v-model="httpHost"
                                 type="text"
                                 autocomplete="off"
-                                class="rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-1.5 text-sm text-gray-900 dark:text-white"
+                                class="rounded-lg border border-sem-border bg-sem-surface px-2 py-1.5 text-sm text-sem-fg"
                                 :disabled="httpBusy || loading || httpRunning"
                             />
                         </label>
                         <label class="flex flex-col gap-1 text-xs w-24">
-                            <span class="text-gray-500 dark:text-zinc-500">{{
-                                $t("tools.repository_server.port_label")
-                            }}</span>
+                            <span class="text-sem-fg-muted">{{ $t("tools.repository_server.port_label") }}</span>
                             <input
                                 v-model="httpPort"
                                 type="text"
                                 inputmode="numeric"
                                 autocomplete="off"
-                                class="rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-1.5 text-sm text-gray-900 dark:text-white"
+                                class="rounded-lg border border-sem-border bg-sem-surface px-2 py-1.5 text-sm text-sem-fg"
                                 :disabled="httpBusy || loading || httpRunning"
                             />
                         </label>
@@ -52,7 +48,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-gray-800 dark:text-zinc-200 text-sm font-medium hover:bg-gray-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:pointer-events-none"
+                                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 dark:border-zinc-600 bg-sem-surface text-sem-fg text-sm font-medium hover:bg-sem-surface-muted disabled:opacity-50 disabled:pointer-events-none"
                                 :disabled="httpBusy || loading || !httpRunning"
                                 @click="stopHttp"
                             >
@@ -61,7 +57,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-gray-800 dark:text-zinc-200 text-sm font-medium hover:bg-gray-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:pointer-events-none"
+                                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 dark:border-zinc-600 bg-sem-surface text-sem-fg text-sm font-medium hover:bg-sem-surface-muted disabled:opacity-50 disabled:pointer-events-none"
                                 :disabled="httpBusy || loading"
                                 @click="restartHttp"
                             >
@@ -71,9 +67,9 @@
                         </div>
                     </div>
                     <div v-if="httpRunning && status?.http?.url" class="text-xs space-y-1">
-                        <div class="text-gray-600 dark:text-zinc-400">
+                        <div class="text-sem-fg-muted">
                             {{ $t("tools.repository_server.http_listen_label") }}
-                            <span class="font-mono text-gray-900 dark:text-zinc-200">{{ status.http.url }}</span>
+                            <span class="font-mono text-gray-900 text-sem-fg">{{ status.http.url }}</span>
                         </div>
                         <a
                             v-if="browserRepoUrl"
@@ -89,7 +85,7 @@
                 </div>
 
                 <div class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6 space-y-3">
-                    <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
+                    <h2 class="text-sm font-semibold text-sem-fg">
                         {{ $t("tools.repository_server.upload_heading") }}
                     </h2>
                     <div class="flex flex-wrap items-center gap-3">
@@ -125,7 +121,7 @@
 
                 <div class="w-full py-4 sm:py-6 space-y-3">
                     <div class="flex items-center justify-between">
-                        <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
+                        <h2 class="text-sm font-semibold text-sem-fg">
                             {{ $t("tools.repository_server.files_heading") }}
                         </h2>
                         <span class="text-xs text-gray-500">{{ entries.length }}</span>
@@ -149,9 +145,7 @@
                                 <th class="px-4 py-2 font-semibold w-24"></th>
                             </tr>
                         </thead>
-                        <tbody
-                            class="divide-y divide-gray-100 dark:divide-zinc-800/50 text-gray-800 dark:text-zinc-200"
-                        >
+                        <tbody class="divide-y divide-gray-100 dark:divide-zinc-800/50 text-sem-fg">
                             <tr v-for="row in entries" :key="row.name + row.source">
                                 <td class="px-4 py-2 font-mono break-all">{{ row.name }}</td>
                                 <td class="px-4 py-2">{{ row.source }}</td>

@@ -4,12 +4,12 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="space-y-3">
             <div class="flex items-center gap-2">
-                <h3 class="font-bold text-gray-900 dark:text-zinc-100">
+                <h3 class="font-bold text-sem-fg">
                     {{ provisionStepNumber }}. {{ $t("tools.rnode_flasher.step_provision") }}
                 </h3>
                 <MaterialDesignIcon icon-name="key-variant" class="size-4 text-zinc-400" />
             </div>
-            <p class="text-xs text-gray-500 dark:text-zinc-500">
+            <p class="text-xs text-sem-fg-muted">
                 {{ $t("tools.rnode_flasher.provision_description") }}
             </p>
             <button
@@ -21,19 +21,19 @@
                 {{ $t("tools.rnode_flasher.provision") }}
             </button>
             <div v-else class="flex items-center justify-center gap-2 text-sm text-blue-600 p-2">
-                <v-progress-circular indeterminate size="18" width="2" />
+                <MaterialDesignIcon icon-name="loading" class="size-[18px] animate-spin text-blue-600" />
                 <span class="font-bold">{{ $t("tools.rnode_flasher.provisioning_wait") }}</span>
             </div>
         </div>
 
         <div class="space-y-3">
             <div class="flex items-center gap-2">
-                <h3 class="font-bold text-gray-900 dark:text-zinc-100">
+                <h3 class="font-bold text-sem-fg">
                     {{ provisionStepNumber + 1 }}. {{ $t("tools.rnode_flasher.step_set_hash") }}
                 </h3>
                 <MaterialDesignIcon icon-name="shield-check" class="size-4 text-zinc-400" />
             </div>
-            <p class="text-xs text-gray-500 dark:text-zinc-500">
+            <p class="text-xs text-sem-fg-muted">
                 {{ $t("tools.rnode_flasher.set_hash_description") }}
             </p>
             <button
@@ -44,7 +44,7 @@
                 {{ $t("tools.rnode_flasher.set_firmware_hash") }}
             </button>
             <div v-else class="flex items-center justify-center gap-2 text-sm text-blue-600 p-2">
-                <v-progress-circular indeterminate size="18" width="2" />
+                <MaterialDesignIcon icon-name="loading" class="size-[18px] animate-spin text-blue-600" />
                 <span class="font-bold">{{ $t("tools.rnode_flasher.setting_hash_wait") }}</span>
             </div>
         </div>

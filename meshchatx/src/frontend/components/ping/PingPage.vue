@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             icon="radar"
             :title="$t('ping.title')"
@@ -13,7 +13,7 @@
         >
             <div class="space-y-4 w-full max-w-4xl mx-auto">
                 <div class="glass-card space-y-5">
-                    <div class="text-sm text-gray-600 dark:text-gray-300">
+                    <div class="text-sm text-sem-fg-muted">
                         <!-- eslint-disable vue/no-v-html -- sanitized via $t i18n -->
                         <span
                             v-html="
@@ -94,14 +94,14 @@
                 <div class="glass-card flex flex-col min-h-[320px] space-y-3">
                     <div class="flex items-center justify-between gap-4">
                         <div>
-                            <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                            <div class="text-sm font-semibold text-sem-fg">
                                 {{ $t("ping.console_output") }}
                             </div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                            <div class="text-xs text-sem-fg-muted">
                                 {{ $t("ping.streaming_responses") }}
                             </div>
                         </div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">seq #{{ seq }}</div>
+                        <div class="text-xs text-sem-fg-muted">seq #{{ seq }}</div>
                     </div>
 
                     <div

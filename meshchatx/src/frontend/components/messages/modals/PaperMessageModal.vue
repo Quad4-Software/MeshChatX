@@ -6,21 +6,21 @@
         @click.self="close"
     >
         <div
-            class="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl overflow-hidden transform transition-all scale-100"
+            class="w-full max-w-lg bg-sem-surface rounded-3xl shadow-2xl overflow-hidden transform transition-all scale-100"
         >
             <!-- header -->
             <div
-                class="px-6 py-5 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between bg-gray-50/50 dark:bg-zinc-900/50"
+                class="px-6 py-5 border-b border-sem-border flex items-center justify-between bg-gray-50/50 dark:bg-zinc-900/50"
             >
                 <div class="flex items-center gap-3">
-                    <div class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
+                    <div class="p-2 bg-blue-100 dark:bg-blue-900/30 text-sem-accent rounded-xl">
                         <MaterialDesignIcon icon-name="qrcode" class="size-6" />
                     </div>
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Paper Message</h3>
+                    <h3 class="text-xl font-bold text-sem-fg tracking-tight">Paper Message</h3>
                 </div>
                 <button
                     type="button"
-                    class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-all"
+                    class="p-2 text-gray-400 hover:text-gray-600 hover:text-sem-fg hover:bg-sem-surface-muted rounded-full transition-all"
                     @click="close"
                 >
                     <MaterialDesignIcon icon-name="close" class="size-6" />
@@ -30,7 +30,7 @@
             <div class="p-4 sm:p-6 flex flex-col items-center">
                 <div v-if="isLoading" class="flex flex-col items-center py-8">
                     <div class="size-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
-                    <p class="mt-4 text-xs text-gray-500 dark:text-gray-400 font-medium">Generating Paper Message...</p>
+                    <p class="mt-4 text-xs text-sem-fg-muted font-medium">Generating Paper Message...</p>
                 </div>
                 <template v-else-if="uri">
                     <!-- QR code container -->
@@ -42,7 +42,7 @@
                             class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/10 backdrop-blur-[2px] rounded-2xl pointer-events-none"
                         >
                             <div
-                                class="p-2 bg-white/90 dark:bg-zinc-900/90 rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700"
+                                class="p-2 bg-white/90 dark:bg-zinc-900/90 rounded-xl shadow-xl border border-sem-border"
                             >
                                 <MaterialDesignIcon icon-name="magnify-plus-outline" class="size-6 text-blue-500" />
                             </div>
@@ -54,19 +54,19 @@
                             class="bg-gray-50 dark:bg-zinc-800/50 rounded-2xl p-3 border border-gray-100 dark:border-zinc-700/50"
                         >
                             <label
-                                class="block text-[9px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5"
+                                class="block text-[9px] font-bold text-sem-fg-muted uppercase tracking-widest mb-1.5"
                             >
                                 LXMF URI
                             </label>
                             <div class="flex gap-2">
                                 <div
-                                    class="flex-1 font-mono text-[10px] break-all text-gray-600 dark:text-zinc-300 bg-white dark:bg-zinc-900 p-2 rounded-lg border border-gray-200 dark:border-zinc-700 max-h-20 overflow-y-auto"
+                                    class="flex-1 font-mono text-[10px] break-all text-sem-fg-muted bg-sem-surface p-2 rounded-lg border border-sem-border max-h-20 overflow-y-auto"
                                 >
                                     {{ uri }}
                                 </div>
                                 <button
                                     type="button"
-                                    class="size-9 flex items-center justify-center bg-white dark:bg-zinc-900 text-gray-500 dark:text-zinc-400 rounded-lg border border-gray-200 dark:border-zinc-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-xs"
+                                    class="size-9 flex items-center justify-center bg-sem-surface text-sem-fg-muted rounded-lg border border-sem-border hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-xs"
                                     title="Copy URI"
                                     @click="copyUri"
                                 >
@@ -108,19 +108,19 @@
                             class="bg-gray-50 dark:bg-zinc-800/50 rounded-2xl p-3 border border-gray-100 dark:border-zinc-700/50"
                         >
                             <label
-                                class="block text-[9px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5"
+                                class="block text-[9px] font-bold text-sem-fg-muted uppercase tracking-widest mb-1.5"
                             >
                                 LXMF URI
                             </label>
                             <div class="flex gap-2">
                                 <div
-                                    class="flex-1 font-mono text-[10px] break-all text-gray-600 dark:text-zinc-300 bg-white dark:bg-zinc-900 p-2 rounded-lg border border-gray-200 dark:border-zinc-700 max-h-20 overflow-y-auto"
+                                    class="flex-1 font-mono text-[10px] break-all text-sem-fg-muted bg-sem-surface p-2 rounded-lg border border-sem-border max-h-20 overflow-y-auto"
                                 >
                                     {{ uri }}
                                 </div>
                                 <button
                                     type="button"
-                                    class="size-9 flex items-center justify-center bg-white dark:bg-zinc-900 text-gray-500 dark:text-zinc-400 rounded-lg border border-gray-200 dark:border-zinc-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-xs"
+                                    class="size-9 flex items-center justify-center bg-sem-surface text-sem-fg-muted rounded-lg border border-sem-border hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-xs"
                                     title="Copy URI"
                                     @click="copyUri"
                                 >
@@ -140,7 +140,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-200 rounded-xl font-bold transition-all active:scale-[0.98] text-sm"
+                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-sem-surface-muted hover:bg-gray-200 hover:bg-sem-surface-muted text-sem-fg-secondary rounded-xl font-bold transition-all active:scale-[0.98] text-sm"
                                 @click="downloadQRCode"
                             >
                                 <MaterialDesignIcon icon-name="download" class="size-4" />
@@ -153,14 +153,14 @@
                     <div class="p-4 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full mb-4">
                         <MaterialDesignIcon icon-name="alert-circle-outline" class="size-12" />
                     </div>
-                    <h4 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Message Not Available</h4>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
+                    <h4 class="text-lg font-bold text-sem-fg mb-2">Message Not Available</h4>
+                    <p class="text-sm text-sem-fg-muted max-w-xs">
                         The original message bytes are no longer available in the router queue to generate a signed
                         paper message.
                     </p>
                     <button
                         type="button"
-                        class="mt-6 py-2.5 px-6 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all"
+                        class="mt-6 py-2.5 px-6 bg-sem-surface-muted text-sem-fg-secondary rounded-xl font-bold hover:bg-gray-200 hover:bg-sem-surface-muted transition-all"
                         @click="close"
                     >
                         Close

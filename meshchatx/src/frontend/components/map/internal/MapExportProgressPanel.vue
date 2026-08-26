@@ -2,10 +2,10 @@
 
 <template>
     <div
-        class="absolute bottom-4 right-4 z-20 w-72 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 p-4 space-y-3 animate-in slide-in-from-bottom-4"
+        class="absolute bottom-4 right-4 z-20 w-72 bg-sem-surface rounded-xl shadow-2xl border border-sem-border p-4 space-y-3 animate-in slide-in-from-bottom-4"
     >
         <div class="flex justify-between items-center">
-            <span class="font-bold text-sm text-gray-900 dark:text-zinc-100">{{
+            <span class="font-bold text-sm text-sem-fg">{{
                 status.status === "completed" ? $t("map.download_ready") : $t("map.exporting")
             }}</span>
             <button
@@ -25,7 +25,7 @@
         </div>
 
         <div v-if="status.status !== 'completed' && status.status !== 'failed'">
-            <div class="w-full h-2 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+            <div class="w-full h-2 bg-sem-surface-muted rounded-full overflow-hidden">
                 <div
                     class="h-full bg-blue-500 transition-all duration-300"
                     :style="{ width: status.progress + '%' }"

@@ -8,15 +8,15 @@
             @click.self="$emit('close')"
         >
             <div
-                class="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-slide-up sm:animate-fade-in"
+                class="bg-sem-surface w-full max-w-lg rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-slide-up sm:animate-fade-in"
             >
-                <div class="p-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <div class="p-4 border-b border-sem-border flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-sem-fg flex items-center gap-2">
                         <MaterialDesignIcon icon-name="note-edit" class="size-5 text-amber-500" />
                         Edit Note
                     </h3>
                     <button
-                        class="p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+                        class="p-2 text-gray-400 hover:bg-sem-surface-muted rounded-full transition-colors"
                         @click="$emit('close')"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-5" />
@@ -25,7 +25,7 @@
                 <div class="p-4">
                     <textarea
                         :value="text"
-                        class="w-full h-40 p-4 text-base bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-hidden resize-none text-gray-900 dark:text-zinc-100"
+                        class="w-full h-40 p-4 text-base bg-gray-50 dark:bg-zinc-800 border border-sem-border rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-hidden resize-none text-sem-fg"
                         placeholder="Type your note here..."
                         autofocus
                         @input="$emit('update:text', $event.target.value)"

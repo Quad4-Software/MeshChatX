@@ -6,10 +6,7 @@
         class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity flex items-center justify-center"
     >
         <div class="flex w-full h-full p-4 overflow-y-auto">
-            <div
-                v-click-outside="dismiss"
-                class="my-auto mx-auto w-full bg-white dark:bg-zinc-900 rounded-lg shadow-xl max-w-2xl"
-            >
+            <div v-click-outside="dismiss" class="my-auto mx-auto w-full bg-sem-surface rounded-lg shadow-xl max-w-2xl">
                 <!-- title -->
                 <div class="p-4 border-b dark:border-zinc-700">
                     <h3 class="text-lg font-semibold dark:text-white">Import Interfaces</h3>
@@ -24,11 +21,11 @@
                                 ref="import-interfaces-file-input"
                                 type="file"
                                 accept="*"
-                                class="w-full text-sm text-gray-500 dark:text-zinc-400"
+                                class="w-full text-sm text-sem-fg-muted"
                                 @change="onFileSelected"
                             />
                         </div>
-                        <div v-if="!selectedFile" class="mt-2 text-sm text-gray-700 dark:text-zinc-200">
+                        <div v-if="!selectedFile" class="mt-2 text-sm text-sem-fg-secondary">
                             <ul class="list-disc list-inside">
                                 <li>You can import interfaces from a ~/.reticulum/config file.</li>
                                 <li>You can import interfaces from an exported interfaces file.</li>
@@ -40,7 +37,7 @@
                     <!-- select interfaces -->
                     <div v-if="importableInterfaces.length > 0" class="divide-y dark:divide-zinc-700">
                         <div class="flex p-2">
-                            <div class="my-auto mr-auto text-sm font-medium text-gray-700 dark:text-zinc-200">
+                            <div class="my-auto mr-auto text-sm font-medium text-sem-fg-secondary">
                                 Select Interfaces to Import
                             </div>
                             <div class="my-auto space-x-2">
@@ -59,8 +56,8 @@
                                 class="bg-white cursor-pointer flex items-center p-2 border rounded-sm shadow-sm dark:bg-zinc-900 dark:border-zinc-700"
                             >
                                 <div class="mr-auto text-sm flex-1" @click="toggleSelectedInterface(iface.name)">
-                                    <div class="font-semibold text-gray-700 dark:text-zinc-100">{{ iface.name }}</div>
-                                    <div class="text-sm text-gray-500 dark:text-zinc-100">
+                                    <div class="font-semibold text-gray-700 text-sem-fg">{{ iface.name }}</div>
+                                    <div class="text-sm text-gray-500 text-sem-fg">
                                         <!-- auto interface -->
                                         <div v-if="iface.type === 'AutoInterface'">
                                             <div>{{ iface.type }}</div>
@@ -123,7 +120,7 @@
                 <!-- actions -->
                 <div class="p-4 border-t dark:border-zinc-700 flex justify-end space-x-2">
                     <button
-                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-600 dark:hover:bg-zinc-700"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-zinc-800 text-sem-fg dark:border-zinc-600 hover:bg-sem-surface-muted"
                         @click="dismiss"
                     >
                         Cancel

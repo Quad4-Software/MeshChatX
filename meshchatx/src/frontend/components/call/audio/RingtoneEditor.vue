@@ -5,24 +5,21 @@
         <!-- Header -->
         <div class="flex items-center justify-between">
             <div>
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Edit Ringtone</h3>
-                <p class="text-xs text-gray-500 dark:text-zinc-500">{{ ringtone.display_name }}</p>
+                <h3 class="text-lg font-bold text-sem-fg">Edit Ringtone</h3>
+                <p class="text-xs text-sem-fg-muted">{{ ringtone.display_name }}</p>
             </div>
-            <button
-                class="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
-                @click="$emit('close')"
-            >
+            <button class="p-2 hover:bg-sem-surface-muted rounded-full transition-colors" @click="$emit('close')">
                 <MaterialDesignIcon icon-name="close" class="size-6 text-gray-500" />
             </button>
         </div>
 
         <!-- Waveform Container -->
         <div
-            class="relative bg-gray-50 dark:bg-zinc-800/50 rounded-2xl p-4 border border-gray-100 dark:border-zinc-800 min-h-[200px] flex flex-col justify-center"
+            class="relative bg-gray-50 dark:bg-zinc-800/50 rounded-2xl p-4 border border-sem-border min-h-[200px] flex flex-col justify-center"
         >
             <div v-if="loading" class="flex flex-col items-center justify-center space-y-3">
                 <div class="size-8 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
-                <p class="text-sm text-gray-500 dark:text-zinc-400 font-medium">Loading audio...</p>
+                <p class="text-sm text-sem-fg-muted font-medium">Loading audio...</p>
             </div>
 
             <div v-show="!loading" class="relative">
@@ -60,7 +57,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-4">
                 <div class="flex items-center justify-between">
-                    <span class="text-sm font-bold text-gray-700 dark:text-zinc-300">Time Range</span>
+                    <span class="text-sm font-bold text-sem-fg-muted">Time Range</span>
                     <span class="text-[10px] font-mono text-gray-500"
                         >{{ formatTime(startTime) }} - {{ formatTime(endTime) }} ({{
                             formatTime(endTime - startTime)
@@ -76,7 +73,7 @@
                             step="0.01"
                             min="0"
                             :max="endTime"
-                            class="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg text-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                            class="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg text-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 text-sem-fg"
                         />
                     </div>
                     <div class="flex-1">
@@ -87,7 +84,7 @@
                             step="0.01"
                             :min="startTime"
                             :max="totalDuration"
-                            class="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg text-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                            class="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg text-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 text-sem-fg"
                         />
                     </div>
                 </div>
@@ -110,7 +107,7 @@
         </div>
 
         <!-- Footer Actions -->
-        <div class="pt-6 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+        <div class="pt-6 border-t border-sem-border flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <input
                     id="saveAsNew"
@@ -118,9 +115,7 @@
                     type="checkbox"
                     class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                <label for="saveAsNew" class="text-sm text-gray-600 dark:text-zinc-400 cursor-pointer"
-                    >Save as new ringtone</label
-                >
+                <label for="saveAsNew" class="text-sm text-sem-fg-muted cursor-pointer">Save as new ringtone</label>
             </div>
             <div class="flex items-center gap-3">
                 <button

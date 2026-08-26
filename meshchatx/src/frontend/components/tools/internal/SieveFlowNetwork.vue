@@ -1,10 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div
-        ref="host"
-        class="sieve-flow-host rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
-    />
+    <div ref="host" class="sieve-flow-host rounded-xl border border-sem-border bg-sem-surface" />
 </template>
 
 <script>

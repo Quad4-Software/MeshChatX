@@ -1,23 +1,21 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-white dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-surface">
         <div class="flex-1 flex flex-col min-h-0 overflow-y-auto overscroll-y-contain w-full">
-            <div class="shrink-0 border-b border-gray-200 dark:border-zinc-800 px-3 sm:px-4 md:px-6 py-4 md:py-5">
+            <div class="shrink-0 border-b border-sem-border px-3 sm:px-4 md:px-6 py-4 md:py-5">
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
                     <div class="space-y-2 min-w-0 flex-1">
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        <div class="text-xs uppercase tracking-wide text-sem-fg-muted">
                             {{ $t("licenses.section_label") }}
                         </div>
-                        <div
-                            class="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight"
-                        >
+                        <div class="text-xl sm:text-2xl md:text-3xl font-black text-sem-fg tracking-tight">
                             {{ $t("licenses.title") }}
                         </div>
-                        <div class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed max-w-2xl">
+                        <div class="text-sm text-sem-fg-muted leading-relaxed max-w-2xl">
                             {{ $t("licenses.description") }}
                         </div>
-                        <p v-if="meta?.generated_at" class="text-xs text-gray-500 dark:text-zinc-500 wrap-break-word">
+                        <p v-if="meta?.generated_at" class="text-xs text-sem-fg-muted wrap-break-word">
                             {{ $t("licenses.generated_at", { time: meta.generated_at }) }}
                             <span v-if="meta.frontend_source" class="ml-2 inline-block sm:inline">
                                 ({{ $t("licenses.frontend_source", { source: meta.frontend_source }) }})
@@ -30,7 +28,7 @@
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <MaterialDesignIcon
                                     icon-name="magnify"
-                                    class="size-5 text-gray-400 group-focus-within:text-blue-500 transition-colors"
+                                    class="size-5 text-gray-400 group-focus-within:text-sem-accent transition-colors"
                                 />
                             </div>
                             <input
@@ -39,11 +37,11 @@
                                 enterkeyhint="search"
                                 autocomplete="off"
                                 :placeholder="$t('licenses.search_placeholder')"
-                                class="w-full min-h-[44px] sm:min-h-0 pl-10 pr-10 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-sm"
+                                class="w-full min-h-[44px] sm:min-h-0 pl-10 pr-10 py-3 bg-sem-surface-muted border border-sem-border rounded-lg focus:outline-hidden focus:ring-2 focus:ring-sem-focus/40 focus:border-sem-focus-border text-sem-fg placeholder:text-sem-fg-muted text-base sm:text-sm"
                             />
                             <button
                                 v-if="searchQuery"
-                                class="absolute inset-y-0 right-0 pr-3 flex items-center min-w-[44px] justify-end text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                class="absolute inset-y-0 right-0 pr-3 flex items-center min-w-[44px] justify-end text-sem-fg-muted hover:text-sem-fg"
                                 type="button"
                                 aria-label="Clear search"
                                 @click="searchQuery = ''"
@@ -65,10 +63,7 @@
                     {{ loadError }}
                 </div>
 
-                <div
-                    v-if="loading"
-                    class="flex flex-col items-center justify-center py-16 gap-3 text-gray-500 dark:text-zinc-400"
-                >
+                <div v-if="loading" class="flex flex-col items-center justify-center py-16 gap-3 text-sem-fg-muted">
                     <MaterialDesignIcon icon-name="loading" class="size-10 animate-spin" />
                     <span>{{ $t("common.loading") }}</span>
                 </div>
@@ -76,11 +71,11 @@
                 <template v-else>
                     <div class="license-grid grid grid-cols-1 gap-4 xl:grid-cols-2 xl:gap-6 xl:items-start">
                         <details
-                            class="license-details rounded-lg border border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/40 open:bg-white dark:open:bg-zinc-950 overflow-hidden"
+                            class="license-details rounded-lg border border-sem-border bg-gray-50/50 dark:bg-zinc-900/40 open:bg-white dark:open:bg-zinc-950 overflow-hidden"
                             open
                         >
                             <summary
-                                class="cursor-pointer select-none px-3 sm:px-4 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 font-semibold text-sm sm:text-base text-gray-900 dark:text-white flex items-center justify-between gap-2 list-none touch-manipulation"
+                                class="cursor-pointer select-none px-3 sm:px-4 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 font-semibold text-sm sm:text-base text-sem-fg flex items-center justify-between gap-2 list-none touch-manipulation"
                             >
                                 <span class="min-w-0 wrap-break-word pr-2"
                                     >{{ $t("licenses.backend_section") }} ({{ filteredBackend.length }})</span
@@ -96,7 +91,7 @@
                                 <table class="min-w-full text-left border-collapse text-xs sm:text-sm">
                                     <thead>
                                         <tr
-                                            class="sticky top-0 z-1 border-b border-gray-200 dark:border-zinc-800 bg-gray-50/95 dark:bg-zinc-900/95 backdrop-blur-xs text-gray-600 dark:text-zinc-400"
+                                            class="sticky top-0 z-1 border-b border-sem-border bg-gray-50/95 dark:bg-zinc-900/95 backdrop-blur-xs text-sem-fg-muted"
                                         >
                                             <th class="py-2 px-2 sm:px-3 font-medium">
                                                 {{ $t("licenses.col_package") }}
@@ -116,26 +111,24 @@
                                         <tr
                                             v-for="row in filteredBackend"
                                             :key="'b-' + row.name + row.version"
-                                            class="border-b border-gray-100 dark:border-zinc-800/80 hover:bg-gray-50/80 dark:hover:bg-zinc-900/60"
+                                            class="border-b border-sem-border/80 hover:bg-gray-50/80 dark:hover:bg-zinc-900/60"
                                         >
                                             <td
-                                                class="py-2 px-2 sm:px-3 font-mono text-[11px] sm:text-xs text-gray-900 dark:text-zinc-100 align-top"
+                                                class="py-2 px-2 sm:px-3 font-mono text-[11px] sm:text-xs text-sem-fg align-top"
                                             >
                                                 {{ row.name }}
                                             </td>
-                                            <td
-                                                class="py-2 px-2 sm:px-3 text-gray-700 dark:text-zinc-300 align-top whitespace-nowrap"
-                                            >
+                                            <td class="py-2 px-2 sm:px-3 text-sem-fg-muted align-top whitespace-nowrap">
                                                 {{ row.version }}
                                             </td>
                                             <td
-                                                class="py-2 px-2 sm:px-3 text-gray-700 dark:text-zinc-300 max-w-40 sm:max-w-56 truncate align-top"
+                                                class="py-2 px-2 sm:px-3 text-sem-fg-muted max-w-40 sm:max-w-56 truncate align-top"
                                                 :title="row.author"
                                             >
                                                 {{ row.author }}
                                             </td>
                                             <td
-                                                class="py-2 px-2 sm:px-3 text-gray-700 dark:text-zinc-300 max-w-32 sm:max-w-xs align-top wrap-break-word"
+                                                class="py-2 px-2 sm:px-3 text-sem-fg-muted max-w-32 sm:max-w-xs align-top wrap-break-word"
                                             >
                                                 {{ row.license }}
                                             </td>
@@ -144,7 +137,7 @@
                                 </table>
                                 <p
                                     v-if="filteredBackend.length === 0"
-                                    class="text-center py-8 text-gray-500 dark:text-zinc-500 text-sm"
+                                    class="text-center py-8 text-sem-fg-muted text-sm"
                                 >
                                     {{ $t("common.no_results") }}
                                 </p>
@@ -152,11 +145,11 @@
                         </details>
 
                         <details
-                            class="license-details rounded-lg border border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/40 open:bg-white dark:open:bg-zinc-950 overflow-hidden"
+                            class="license-details rounded-lg border border-sem-border bg-gray-50/50 dark:bg-zinc-900/40 open:bg-white dark:open:bg-zinc-950 overflow-hidden"
                             open
                         >
                             <summary
-                                class="cursor-pointer select-none px-3 sm:px-4 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 font-semibold text-sm sm:text-base text-gray-900 dark:text-white flex items-center justify-between gap-2 list-none touch-manipulation"
+                                class="cursor-pointer select-none px-3 sm:px-4 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 font-semibold text-sm sm:text-base text-sem-fg flex items-center justify-between gap-2 list-none touch-manipulation"
                             >
                                 <span class="min-w-0 wrap-break-word pr-2"
                                     >{{ $t("licenses.frontend_section") }} ({{ filteredFrontend.length }})</span
@@ -172,7 +165,7 @@
                                 <table class="min-w-full text-left border-collapse text-xs sm:text-sm">
                                     <thead>
                                         <tr
-                                            class="sticky top-0 z-1 border-b border-gray-200 dark:border-zinc-800 bg-gray-50/95 dark:bg-zinc-900/95 backdrop-blur-xs text-gray-600 dark:text-zinc-400"
+                                            class="sticky top-0 z-1 border-b border-sem-border bg-gray-50/95 dark:bg-zinc-900/95 backdrop-blur-xs text-sem-fg-muted"
                                         >
                                             <th class="py-2 px-2 sm:px-3 font-medium">
                                                 {{ $t("licenses.col_package") }}
@@ -192,26 +185,24 @@
                                         <tr
                                             v-for="row in filteredFrontend"
                                             :key="'f-' + row.name + row.version"
-                                            class="border-b border-gray-100 dark:border-zinc-800/80 hover:bg-gray-50/80 dark:hover:bg-zinc-900/60"
+                                            class="border-b border-sem-border/80 hover:bg-gray-50/80 dark:hover:bg-zinc-900/60"
                                         >
                                             <td
-                                                class="py-2 px-2 sm:px-3 font-mono text-[11px] sm:text-xs text-gray-900 dark:text-zinc-100 align-top"
+                                                class="py-2 px-2 sm:px-3 font-mono text-[11px] sm:text-xs text-sem-fg align-top"
                                             >
                                                 {{ row.name }}
                                             </td>
-                                            <td
-                                                class="py-2 px-2 sm:px-3 text-gray-700 dark:text-zinc-300 align-top whitespace-nowrap"
-                                            >
+                                            <td class="py-2 px-2 sm:px-3 text-sem-fg-muted align-top whitespace-nowrap">
                                                 {{ row.version }}
                                             </td>
                                             <td
-                                                class="py-2 px-2 sm:px-3 text-gray-700 dark:text-zinc-300 max-w-40 sm:max-w-56 truncate align-top"
+                                                class="py-2 px-2 sm:px-3 text-sem-fg-muted max-w-40 sm:max-w-56 truncate align-top"
                                                 :title="row.author"
                                             >
                                                 {{ row.author }}
                                             </td>
                                             <td
-                                                class="py-2 px-2 sm:px-3 text-gray-700 dark:text-zinc-300 max-w-32 sm:max-w-xs align-top wrap-break-word"
+                                                class="py-2 px-2 sm:px-3 text-sem-fg-muted max-w-32 sm:max-w-xs align-top wrap-break-word"
                                             >
                                                 {{ row.license }}
                                             </td>
@@ -220,7 +211,7 @@
                                 </table>
                                 <p
                                     v-if="filteredFrontend.length === 0"
-                                    class="text-center py-8 text-gray-500 dark:text-zinc-500 text-sm"
+                                    class="text-center py-8 text-sem-fg-muted text-sm"
                                 >
                                     {{ $t("common.no_results") }}
                                 </p>

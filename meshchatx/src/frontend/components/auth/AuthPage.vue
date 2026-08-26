@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="h-dvh min-h-0 w-full flex flex-col bg-slate-50 dark:bg-zinc-950">
+    <div class="h-dvh min-h-0 w-full flex flex-col bg-sem-canvas">
         <div
             v-if="demoMode"
             class="relative z-100 shrink-0 bg-amber-600 text-white px-4 py-2 text-center text-sm font-medium shadow-md border-b border-amber-700/80"
@@ -12,35 +12,27 @@
 
         <div class="flex-1 min-h-0 flex items-center justify-center">
             <div class="w-full max-w-md p-8">
-                <div
-                    class="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg border border-gray-200 dark:border-zinc-800 p-8"
-                >
+                <div class="bg-sem-surface rounded-2xl shadow-lg border border-sem-border p-8">
                     <div class="text-center mb-8">
                         <div
-                            class="w-16 h-16 mx-auto mb-4 rounded-2xl overflow-hidden bg-white/70 dark:bg-white/10 border border-gray-200 dark:border-zinc-700 shadow-inner flex items-center justify-center"
+                            class="w-16 h-16 mx-auto mb-4 rounded-2xl overflow-hidden bg-white/70 dark:bg-white/10 border border-sem-border shadow-inner flex items-center justify-center"
                         >
                             <img class="w-16 h-16 object-contain p-2" :src="logoUrl" alt="" />
                         </div>
-                        <h1 class="text-2xl font-bold text-gray-900 dark:text-zinc-100 mb-2">
+                        <h1 class="text-2xl font-bold text-sem-fg mb-2">
                             {{ isSetup ? $t("auth.setup_title") : $t("auth.login_title") }}
                         </h1>
-                        <p class="text-sm text-gray-600 dark:text-zinc-400">
+                        <p class="text-sm text-sem-fg-muted">
                             {{ isSetup ? $t("auth.setup_subtitle") : $t("auth.login_subtitle") }}
                         </p>
-                        <p
-                            v-if="authPageHint"
-                            class="mt-3 text-xs text-gray-600 dark:text-zinc-400 whitespace-pre-line"
-                        >
+                        <p v-if="authPageHint" class="mt-3 text-xs text-sem-fg-muted whitespace-pre-line">
                             {{ authPageHint }}
                         </p>
                     </div>
 
                     <form class="space-y-6" @submit.prevent="handleSubmit">
                         <div>
-                            <label
-                                for="password"
-                                class="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2"
-                            >
+                            <label for="password" class="block text-sm font-medium text-sem-fg-muted mb-2">
                                 {{ $t("auth.password_label") }}
                             </label>
                             <input
@@ -49,20 +41,17 @@
                                 type="password"
                                 required
                                 :minlength="isSetup ? 8 : 1"
-                                class="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                class="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-sem-fg focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 :placeholder="$t('auth.password_placeholder')"
                                 autocomplete="current-password"
                             />
-                            <p v-if="isSetup" class="mt-2 text-xs text-gray-500 dark:text-zinc-500">
+                            <p v-if="isSetup" class="mt-2 text-xs text-sem-fg-muted">
                                 {{ $t("auth.password_min_length") }}
                             </p>
                         </div>
 
                         <div v-if="isSetup">
-                            <label
-                                for="confirmPassword"
-                                class="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2"
-                            >
+                            <label for="confirmPassword" class="block text-sm font-medium text-sem-fg-muted mb-2">
                                 {{ $t("auth.confirm_password_label") }}
                             </label>
                             <input
@@ -71,7 +60,7 @@
                                 type="password"
                                 required
                                 minlength="8"
-                                class="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                class="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-sem-fg focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 :placeholder="$t('auth.confirm_password_placeholder')"
                                 autocomplete="new-password"
                             />

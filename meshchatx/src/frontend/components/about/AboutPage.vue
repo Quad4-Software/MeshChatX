@@ -1,9 +1,9 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <div
-            class="flex-1 overflow-y-auto overflow-x-hidden w-full min-w-0 px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6 text-gray-900 dark:text-zinc-100"
+            class="flex-1 overflow-y-auto overflow-x-hidden w-full min-w-0 px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6 text-sem-fg"
         >
             <div class="space-y-0 w-full max-w-4xl mx-auto pb-16 sm:pb-24 min-w-0">
                 <div v-if="appInfo" class="about-section">
@@ -16,9 +16,7 @@
                                 alt=""
                             />
                             <div class="space-y-1">
-                                <div
-                                    class="text-4xl font-black text-gray-900 dark:text-white leading-none tracking-tight"
-                                >
+                                <div class="text-4xl font-black text-sem-fg leading-none tracking-tight">
                                     {{ $t("about.app_name") }}
                                 </div>
                                 <div
@@ -29,7 +27,7 @@
                                     </div>
                                     <div
                                         v-if="appInfo.git_commit_short || appInfo.git_commit"
-                                        class="text-xs font-medium normal-case tracking-normal font-mono text-gray-500 dark:text-zinc-500"
+                                        class="text-xs font-medium normal-case tracking-normal font-mono text-sem-fg-muted"
                                         :title="appInfo.git_commit || appInfo.git_commit_short"
                                     >
                                         {{
@@ -40,7 +38,7 @@
                                     </div>
                                     <div
                                         v-if="formattedUiBuildDate"
-                                        class="text-xs font-medium normal-case tracking-normal text-gray-500 dark:text-zinc-500"
+                                        class="text-xs font-medium normal-case tracking-normal text-sem-fg-muted"
                                     >
                                         {{ $t("about.ui_build", { date: formattedUiBuildDate }) }}
                                     </div>
@@ -52,18 +50,18 @@
                             class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-1 sm:flex-wrap sm:justify-end sm:gap-3"
                         >
                             <button type="button" class="about-action-btn secondary-chip" @click="showTutorial">
-                                <v-icon icon="mdi-help-circle" size="20" class="mr-2 shrink-0"></v-icon>
+                                <MaterialDesignIcon icon-name="help-circle" class="size-5 mr-2 shrink-0" />
                                 <span class="truncate">{{ $t("app.tutorial_title") }}</span>
                             </button>
                             <button type="button" class="about-action-btn secondary-chip" @click="showChangelog">
-                                <v-icon icon="mdi-history" size="20" class="mr-2 shrink-0"></v-icon>
+                                <MaterialDesignIcon icon-name="history" class="size-5 mr-2 shrink-0" />
                                 <span class="truncate">{{ $t("app.changelog_title") }}</span>
                             </button>
                             <router-link
                                 :to="{ name: 'licenses' }"
                                 class="about-action-btn secondary-chip inline-flex items-center no-underline"
                             >
-                                <v-icon icon="mdi-license" size="20" class="mr-2 shrink-0"></v-icon>
+                                <MaterialDesignIcon icon-name="license" class="size-5 mr-2 shrink-0" />
                                 <span class="truncate">{{ $t("about.third_party_licenses") }}</span>
                             </router-link>
                             <button
@@ -72,7 +70,7 @@
                                 class="about-action-btn primary-chip"
                                 @click="relaunch"
                             >
-                                <v-icon icon="mdi-restart" size="20" class="mr-2 shrink-0"></v-icon>
+                                <MaterialDesignIcon icon-name="restart" class="size-5 mr-2 shrink-0" />
                                 <span class="truncate">{{ $t("common.restart_app") }}</span>
                             </button>
                             <button
@@ -81,20 +79,20 @@
                                 :disabled="reloadingRns"
                                 @click="restartRns"
                             >
-                                <v-icon icon="mdi-restart-alert" size="20" class="mr-2 shrink-0"></v-icon>
+                                <MaterialDesignIcon icon-name="restart-alert" class="size-5 mr-2 shrink-0" />
                                 <span class="truncate">{{
                                     reloadingRns ? $t("app.reloading_rns") : $t("app.restart_rns")
                                 }}</span>
                             </button>
                             <button type="button" class="about-action-btn danger-chip" @click="shutdown">
-                                <v-icon icon="mdi-power" size="20" class="mr-2 shrink-0"></v-icon>
+                                <MaterialDesignIcon icon-name="power" class="size-5 mr-2 shrink-0" />
                                 <span class="truncate">{{ $t("common.shutdown") }}</span>
                             </button>
                         </div>
                     </div>
 
-                    <div class="mt-10 pt-8 border-t border-gray-100 dark:border-zinc-800 flex flex-col gap-6">
-                        <div class="text-gray-600 dark:text-zinc-400 max-w-xl text-lg leading-relaxed">
+                    <div class="mt-10 pt-8 border-t border-sem-border flex flex-col gap-6">
+                        <div class="text-sem-fg-muted max-w-xl text-lg leading-relaxed">
                             {{ $t("about.tagline_lead") }}
                             <a
                                 href="https://reticulum.network"
@@ -113,123 +111,122 @@
                             >
                                 <div class="flex items-center gap-3 min-w-0">
                                     <span
-                                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-300"
+                                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sem-surface-muted text-sem-fg-muted"
                                     >
-                                        <v-icon icon="mdi-card-account-details-outline" size="22"></v-icon>
+                                        <MaterialDesignIcon
+                                            icon-name="card-account-details-outline"
+                                            class="size-[22px]"
+                                        />
                                     </span>
-                                    <span
-                                        class="text-xs font-semibold uppercase tracking-wide text-gray-800 dark:text-zinc-100 truncate"
-                                    >
+                                    <span class="text-xs font-semibold uppercase tracking-wide text-sem-fg truncate">
                                         {{ $t("about.contact_support_title") }}
                                     </span>
                                 </div>
-                                <v-icon
-                                    :icon="showContactSupport ? 'mdi-chevron-up' : 'mdi-chevron-down'"
-                                    size="22"
-                                    class="shrink-0 text-gray-500 dark:text-zinc-400 group-hover:text-gray-700 dark:group-hover:text-zinc-200 transition-colors"
-                                ></v-icon>
+                                <MaterialDesignIcon
+                                    :icon-name="showContactSupport ? 'chevron-up' : 'chevron-down'"
+                                    class="size-[22px] shrink-0 text-sem-fg-muted group-hover:text-gray-700 dark:group-hover:text-zinc-200 transition-colors"
+                                />
                             </button>
 
                             <transition name="fade">
                                 <div v-if="showContactSupport" class="mt-6 flex flex-col gap-6">
                                     <div class="flex flex-col gap-3">
                                         <div
-                                            class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wide flex items-center gap-2"
+                                            class="text-xs font-semibold text-sem-fg-muted uppercase tracking-wide flex items-center gap-2"
                                         >
-                                            <v-icon icon="mdi-account-circle-outline" size="16"></v-icon>
+                                            <MaterialDesignIcon icon-name="account-circle-outline" class="size-4" />
                                             {{ $t("about.contact_developer") }}
                                         </div>
                                         <div class="flex flex-col gap-2">
                                             <div
-                                                class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gray-50 dark:bg-zinc-900/40 border border-gray-100 dark:border-zinc-800"
+                                                class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-sem-surface-muted/40 border border-sem-border"
                                             >
                                                 <router-link
                                                     :to="{
                                                         name: 'messages',
                                                         params: { destinationHash: developerLxmfPrimary },
                                                     }"
-                                                    class="flex-1 min-w-0 text-sm font-mono text-gray-700 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 break-all leading-snug text-left"
+                                                    class="flex-1 min-w-0 text-sm font-mono text-sem-fg-muted hover:text-blue-600 dark:hover:text-blue-400 break-all leading-snug text-left"
                                                     :title="$t('about.contact_open_messages')"
                                                 >
                                                     {{ developerLxmfPrimary }}
                                                 </router-link>
                                                 <button
                                                     type="button"
-                                                    class="shrink-0 rounded-lg p-1.5 text-gray-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-zinc-800/80 transition-colors"
+                                                    class="shrink-0 rounded-lg p-1.5 text-gray-500 hover:text-blue-600 text-sem-fg-muted dark:hover:text-blue-400 hover:bg-sem-surface-muted transition-colors"
                                                     :aria-label="$t('about.contact_copy_address')"
                                                     @click="
                                                         copyValue(developerLxmfPrimary, 'about.contact_lxmf_address')
                                                     "
                                                 >
-                                                    <v-icon icon="mdi-content-copy" size="16"></v-icon>
+                                                    <MaterialDesignIcon icon-name="content-copy" class="size-4" />
                                                 </button>
                                             </div>
                                             <div
-                                                class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gray-50 dark:bg-zinc-900/40 border border-gray-100 dark:border-zinc-800"
+                                                class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-sem-surface-muted/40 border border-sem-border"
                                             >
                                                 <router-link
                                                     :to="{
                                                         name: 'messages',
                                                         params: { destinationHash: developerLxmfAlternate },
                                                     }"
-                                                    class="flex-1 min-w-0 text-sm font-mono text-gray-700 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 break-all leading-snug text-left"
+                                                    class="flex-1 min-w-0 text-sm font-mono text-sem-fg-muted hover:text-blue-600 dark:hover:text-blue-400 break-all leading-snug text-left"
                                                     :title="$t('about.contact_open_messages')"
                                                 >
                                                     {{ developerLxmfAlternate }}
                                                 </router-link>
                                                 <button
                                                     type="button"
-                                                    class="shrink-0 rounded-lg p-1.5 text-gray-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-zinc-800/80 transition-colors"
+                                                    class="shrink-0 rounded-lg p-1.5 text-gray-500 hover:text-blue-600 text-sem-fg-muted dark:hover:text-blue-400 hover:bg-sem-surface-muted transition-colors"
                                                     :aria-label="$t('about.contact_copy_address')"
                                                     @click="
                                                         copyValue(developerLxmfAlternate, 'about.contact_alternate')
                                                     "
                                                 >
-                                                    <v-icon icon="mdi-content-copy" size="16"></v-icon>
+                                                    <MaterialDesignIcon icon-name="content-copy" class="size-4" />
                                                 </button>
                                             </div>
                                         </div>
                                         <div
-                                            class="text-xs text-gray-500 dark:text-zinc-400 bg-gray-50 dark:bg-zinc-900/40 p-3 rounded-xl border border-gray-100 dark:border-zinc-800 flex items-start gap-2"
+                                            class="text-xs text-sem-fg-muted bg-sem-surface-muted/40 p-3 rounded-xl border border-sem-border flex items-start gap-2"
                                         >
-                                            <v-icon
-                                                icon="mdi-information-outline"
-                                                size="16"
-                                                class="shrink-0 mt-0.5"
-                                            ></v-icon>
+                                            <MaterialDesignIcon
+                                                icon-name="information-outline"
+                                                class="size-4 shrink-0 mt-0.5"
+                                            />
                                             <span>{{ $t("about.contact_propagation_hint") }}</span>
                                         </div>
                                     </div>
 
-                                    <div class="border-t border-gray-100 dark:border-zinc-800/90"></div>
+                                    <div class="border-t border-sem-border/90"></div>
 
                                     <div class="flex flex-col gap-3">
                                         <div
-                                            class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wide flex items-center gap-2"
+                                            class="text-xs font-semibold text-sem-fg-muted uppercase tracking-wide flex items-center gap-2"
                                         >
-                                            <v-icon icon="mdi-hand-heart" size="16"></v-icon>
+                                            <MaterialDesignIcon icon-name="hand-heart" class="size-4" />
                                             {{ $t("about.donate_label") }}
                                         </div>
                                         <div>
                                             <div
-                                                class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5"
+                                                class="text-xs font-semibold text-sem-fg-muted uppercase tracking-wide mb-1.5"
                                             >
                                                 {{ $t("about.donate_monero_label") }}
                                             </div>
                                             <div
-                                                class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gray-50 dark:bg-zinc-900/40 border border-gray-100 dark:border-zinc-800"
+                                                class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-sem-surface-muted/40 border border-sem-border"
                                             >
                                                 <span
-                                                    class="flex-1 min-w-0 text-sm font-mono text-gray-700 dark:text-zinc-300 break-all leading-snug select-all"
+                                                    class="flex-1 min-w-0 text-sm font-mono text-sem-fg-muted break-all leading-snug select-all"
                                                     >{{ moneroDonateAddress }}</span
                                                 >
                                                 <button
                                                     type="button"
-                                                    class="shrink-0 rounded-lg p-1.5 text-gray-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-zinc-800/80 transition-colors"
+                                                    class="shrink-0 rounded-lg p-1.5 text-gray-500 hover:text-blue-600 text-sem-fg-muted dark:hover:text-blue-400 hover:bg-sem-surface-muted transition-colors"
                                                     :aria-label="$t('about.donate_copy_monero')"
                                                     @click="copyValue(moneroDonateAddress, 'about.donate_monero_label')"
                                                 >
-                                                    <v-icon icon="mdi-content-copy" size="16"></v-icon>
+                                                    <MaterialDesignIcon icon-name="content-copy" class="size-4" />
                                                 </button>
                                             </div>
                                         </div>
@@ -239,26 +236,24 @@
                                                 href="https://ko-fi.com/quad4"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                class="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900/40 hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-800 dark:text-zinc-100 text-xs font-semibold transition-colors"
+                                                class="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-sem-border bg-sem-surface-muted/40 hover:bg-sem-surface-muted text-sem-fg text-xs font-semibold transition-colors"
                                             >
-                                                <v-icon
-                                                    icon="mdi-coffee"
-                                                    size="18"
-                                                    class="text-gray-500 dark:text-zinc-400"
-                                                ></v-icon>
+                                                <MaterialDesignIcon
+                                                    icon-name="coffee"
+                                                    class="size-[18px] text-sem-fg-muted"
+                                                />
                                                 {{ $t("about.donate_kofi") }}
                                             </a>
                                             <a
                                                 href="https://buymeacoffee.com/quad4"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                class="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900/40 hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-800 dark:text-zinc-100 text-xs font-semibold transition-colors"
+                                                class="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-sem-border bg-sem-surface-muted/40 hover:bg-sem-surface-muted text-sem-fg text-xs font-semibold transition-colors"
                                             >
-                                                <v-icon
-                                                    icon="mdi-cup"
-                                                    size="18"
-                                                    class="text-gray-500 dark:text-zinc-400"
-                                                ></v-icon>
+                                                <MaterialDesignIcon
+                                                    icon-name="cup"
+                                                    class="size-[18px] text-sem-fg-muted"
+                                                />
                                                 {{ $t("about.donate_buymeacoffee") }}
                                             </a>
                                         </div>
@@ -270,11 +265,11 @@
                         <div class="flex items-center gap-6 shrink-0">
                             <div class="text-right">
                                 <div
-                                    class="text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-[0.2em] leading-none mb-1"
+                                    class="text-[10px] font-black text-sem-fg-muted uppercase tracking-[0.2em] leading-none mb-1"
                                 >
                                     {{ $t("about.database_size") }}
                                 </div>
-                                <div class="text-2xl font-black text-gray-900 dark:text-white tabular-nums">
+                                <div class="text-2xl font-black text-sem-fg tabular-nums">
                                     {{
                                         formatBytes(
                                             (appInfo.database_files
@@ -295,7 +290,7 @@
                             <div
                                 class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2"
                             >
-                                <v-icon icon="mdi-shield-search" size="14"></v-icon>
+                                <MaterialDesignIcon icon-name="shield-search" class="size-3.5" />
                                 {{ $t("about.security_integrity") }}
                             </div>
                             <div v-if="appInfo.integrity_issues" class="flex flex-wrap gap-2">
@@ -303,20 +298,12 @@
                                     :class="statusPillClass(appInfo.integrity_issues.length === 0)"
                                     class="font-black px-3 py-1 text-[11px]"
                                 >
-                                    <v-icon
-                                        :icon="
-                                            appInfo.integrity_issues.length === 0
-                                                ? 'mdi-shield-check'
-                                                : 'mdi-shield-alert'
+                                    <MaterialDesignIcon
+                                        :icon-name="
+                                            appInfo.integrity_issues.length === 0 ? 'shield-check' : 'shield-alert'
                                         "
-                                        size="14"
-                                        start
-                                        :class="
-                                            appInfo.integrity_issues.length === 0
-                                                ? 'text-emerald-600 dark:text-emerald-400'
-                                                : ''
-                                        "
-                                    ></v-icon>
+                                        class="size-3.5 appInfo.integrity_issues.length === 0 ? 'text-emerald-600 dark:text-emerald-400' : '' shrink-0"
+                                    />
                                     {{
                                         appInfo.integrity_issues.length === 0
                                             ? $t("about.secured")
@@ -329,24 +316,22 @@
                                     class="secondary-chip px-3 py-1 text-[11px] font-black"
                                     @click="acknowledgeIntegrity"
                                 >
-                                    <v-icon icon="mdi-check-circle" size="14" start></v-icon>
+                                    <MaterialDesignIcon icon-name="check-circle" class="size-3.5 shrink-0" />
                                     {{ $t("common.acknowledge_reset") }}
                                 </button>
                             </div>
                         </div>
 
-                        <p class="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400 mb-4">
+                        <p class="text-[11px] leading-relaxed text-sem-fg-muted mb-4">
                             {{ $t("about.security_integrity_description") }}
                         </p>
 
                         <div class="mb-6 pb-6 border-b border-gray-200/60 dark:border-zinc-800/80 space-y-4">
                             <div>
-                                <div
-                                    class="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-[0.2em] mb-2"
-                                >
+                                <div class="text-[10px] font-black text-sem-fg uppercase tracking-[0.2em] mb-2">
                                     {{ $t("about.sandbox_title") }}
                                 </div>
-                                <p class="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                                <p class="text-[11px] leading-relaxed text-sem-fg-muted">
                                     {{ $t("about.sandbox_description") }}
                                 </p>
                             </div>
@@ -355,12 +340,10 @@
                                     v-if="appInfo.landlock_requested !== undefined"
                                     class="rounded-xl border border-gray-200/60 dark:border-zinc-800/80 p-3 min-w-0"
                                 >
-                                    <div
-                                        class="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500 mb-1"
-                                    >
+                                    <div class="text-[10px] font-black uppercase tracking-wider text-sem-fg-muted mb-1">
                                         {{ $t("app.landlock_status") }}
                                     </div>
-                                    <div class="text-xs font-bold text-gray-900 dark:text-white">
+                                    <div class="text-xs font-bold text-sem-fg">
                                         {{ sandboxLandlockLabel }}
                                     </div>
                                 </div>
@@ -368,12 +351,10 @@
                                     v-if="appInfo.appcontainer_requested !== undefined"
                                     class="rounded-xl border border-gray-200/60 dark:border-zinc-800/80 p-3 min-w-0"
                                 >
-                                    <div
-                                        class="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500 mb-1"
-                                    >
+                                    <div class="text-[10px] font-black uppercase tracking-wider text-sem-fg-muted mb-1">
                                         {{ $t("app.appcontainer_status") }}
                                     </div>
-                                    <div class="text-xs font-bold text-gray-900 dark:text-white">
+                                    <div class="text-xs font-bold text-sem-fg">
                                         {{ sandboxAppcontainerLabel }}
                                     </div>
                                 </div>
@@ -381,12 +362,10 @@
                                     v-if="appInfo.seccomp_requested !== undefined"
                                     class="rounded-xl border border-gray-200/60 dark:border-zinc-800/80 p-3 min-w-0"
                                 >
-                                    <div
-                                        class="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500 mb-1"
-                                    >
+                                    <div class="text-[10px] font-black uppercase tracking-wider text-sem-fg-muted mb-1">
                                         {{ $t("app.seccomp_status") }}
                                     </div>
-                                    <div class="text-xs font-bold text-gray-900 dark:text-white">
+                                    <div class="text-xs font-bold text-sem-fg">
                                         {{ sandboxSeccompLabel }}
                                     </div>
                                 </div>
@@ -400,7 +379,7 @@
                             <div
                                 class="text-xs font-black text-amber-700 dark:text-amber-400 mb-3 uppercase tracking-wider flex items-center gap-2"
                             >
-                                <v-icon icon="mdi-alert" size="16"></v-icon>
+                                <MaterialDesignIcon icon-name="alert" class="size-4" />
                                 {{ $t("about.technical_issues_detected") }}
                             </div>
                             <ul class="text-[11px] text-amber-700 dark:text-amber-300 space-y-2 list-none font-mono">
@@ -414,11 +393,10 @@
                             v-else
                             class="text-sm text-gray-700 dark:text-emerald-200 flex items-center gap-3 bg-emerald-500/10 dark:bg-emerald-900/30 p-4 rounded-xl border border-emerald-500/20 dark:border-emerald-500/30"
                         >
-                            <v-icon
-                                icon="mdi-check-decagram"
-                                size="20"
-                                class="text-emerald-600 dark:text-emerald-400 shrink-0"
-                            ></v-icon>
+                            <MaterialDesignIcon
+                                icon-name="check-decagram"
+                                class="size-5 text-emerald-600 dark:text-emerald-400 shrink-0"
+                            />
                             <span class="font-bold tracking-tight">{{ $t("about.no_integrity_violations") }}</span>
                         </div>
                     </div>
@@ -429,55 +407,53 @@
                             <div
                                 class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2"
                             >
-                                <v-icon icon="mdi-monitor-multiple" size="14"></v-icon>
+                                <MaterialDesignIcon icon-name="monitor-multiple" class="size-3.5" />
                                 {{ $t("about.active_sessions") }}
                             </div>
-                            <span
-                                class="text-[11px] font-black uppercase tracking-wider text-gray-500 dark:text-zinc-400"
-                            >
+                            <span class="text-[11px] font-black uppercase tracking-wider text-sem-fg-muted">
                                 {{ $t("about.active_sessions_count", { count: activeSessionCount }) }}
                             </span>
                         </div>
-                        <p class="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400 mb-4">
+                        <p class="text-[11px] leading-relaxed text-sem-fg-muted mb-4">
                             {{ $t("about.active_sessions_description") }}
                         </p>
-                        <div v-if="!activeSessions.length" class="text-sm text-gray-600 dark:text-zinc-300">
+                        <div v-if="!activeSessions.length" class="text-sm text-sem-fg-muted">
                             {{ $t("about.active_sessions_empty") }}
                         </div>
                         <ul v-else class="space-y-3 list-none">
                             <li
                                 v-for="session in activeSessions"
                                 :key="session.id"
-                                class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50/70 dark:bg-zinc-900/40 p-3 min-w-0"
+                                class="rounded-xl border border-sem-border bg-gray-50/70 dark:bg-zinc-900/40 p-3 min-w-0"
                             >
                                 <div class="grid gap-2 text-[11px] sm:grid-cols-2">
                                     <div class="min-w-0">
                                         <div
-                                            class="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500 mb-1"
+                                            class="text-[10px] font-black uppercase tracking-wider text-sem-fg-muted mb-1"
                                         >
                                             {{ $t("about.active_session_ip") }}
                                         </div>
-                                        <div class="font-mono text-gray-900 dark:text-white break-all">
+                                        <div class="font-mono text-sem-fg break-all">
                                             {{ session.ip || "unknown" }}
                                         </div>
                                     </div>
                                     <div class="min-w-0">
                                         <div
-                                            class="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500 mb-1"
+                                            class="text-[10px] font-black uppercase tracking-wider text-sem-fg-muted mb-1"
                                         >
                                             {{ $t("about.active_session_connected") }}
                                         </div>
-                                        <div class="text-gray-900 dark:text-white">
+                                        <div class="text-sem-fg">
                                             {{ formatSessionConnectedAt(session.connected_at) }}
                                         </div>
                                     </div>
                                     <div class="min-w-0 sm:col-span-2">
                                         <div
-                                            class="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500 mb-1"
+                                            class="text-[10px] font-black uppercase tracking-wider text-sem-fg-muted mb-1"
                                         >
                                             {{ $t("about.active_session_user_agent") }}
                                         </div>
-                                        <div class="font-mono text-gray-700 dark:text-zinc-200 break-all">
+                                        <div class="font-mono text-sem-fg-secondary break-all">
                                             {{ session.user_agent || "unknown" }}
                                         </div>
                                     </div>
@@ -491,7 +467,7 @@
                         <div
                             class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2"
                         >
-                            <v-icon icon="mdi-server" size="14"></v-icon>
+                            <MaterialDesignIcon icon-name="server" class="size-3.5" />
                             {{ $t("about.environment_information") }}
                         </div>
                         <div class="grid gap-8 sm:grid-cols-2 text-sm min-w-0">
@@ -510,7 +486,7 @@
                                     class="secondary-chip mt-3 px-3! py-1! text-[10px]!"
                                     @click="showReticulumConfigFile"
                                 >
-                                    <v-icon icon="mdi-folder-open" start size="14"></v-icon>
+                                    <MaterialDesignIcon icon-name="folder-open" class="size-3.5 shrink-0" />
                                     {{ $t("about.reveal_config_file") }}
                                 </button>
                             </div>
@@ -529,7 +505,7 @@
                                     class="secondary-chip mt-3 px-3! py-1! text-[10px]!"
                                     @click="showDatabaseFile"
                                 >
-                                    <v-icon icon="mdi-database-search" start size="14"></v-icon>
+                                    <MaterialDesignIcon icon-name="database-search" class="size-3.5 shrink-0" />
                                     {{ $t("about.reveal_database_file") }}
                                 </button>
                             </div>
@@ -547,7 +523,7 @@
                         <div
                             class="text-xs font-black text-cyan-600 uppercase tracking-[0.2em] mb-6 flex items-center gap-2"
                         >
-                            <v-icon icon="mdi-gauge" size="14"></v-icon>
+                            <MaterialDesignIcon icon-name="gauge" class="size-3.5" />
                             {{ $t("about.usage_insights") }}
                         </div>
                         <div
@@ -697,7 +673,7 @@
                                     class="font-mono text-xs font-bold shrink-0 inline-flex items-center gap-1"
                                     :class="batteryStatusToneClass"
                                 >
-                                    <v-icon v-if="batteryStatus" :icon="'mdi-' + batteryStatusIcon" size="14"></v-icon>
+                                    <MaterialDesignIcon :icon-name="batteryStatusIcon" class="size-3.5" />
                                     {{ batteryStatusLabel }}
                                 </span>
                             </div>
@@ -709,7 +685,7 @@
                         <div
                             class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] mb-8 flex items-center gap-2"
                         >
-                            <v-icon icon="mdi-link-variant" size="14"></v-icon>
+                            <MaterialDesignIcon icon-name="link-variant" class="size-3.5" />
                             {{ $t("about.dependency_chain") }}
                         </div>
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 relative min-w-0">
@@ -724,7 +700,7 @@
                                         />
                                     </div>
                                     <div>
-                                        <div class="text-sm font-black text-gray-900 dark:text-white">
+                                        <div class="text-sm font-black text-sem-fg">
                                             {{ $t("about.app_name") }}
                                         </div>
                                         <div class="text-xs font-mono font-bold text-gray-400">
@@ -744,9 +720,7 @@
                                         LXMFy
                                     </div>
                                     <div>
-                                        <div class="text-sm font-black text-gray-900 dark:text-white leading-tight">
-                                            LXMFy
-                                        </div>
+                                        <div class="text-sm font-black text-sem-fg leading-tight">LXMFy</div>
                                         <div class="text-xs font-mono font-bold text-gray-400 mt-1">
                                             v{{ (appInfo.dependencies && appInfo.dependencies.lxmfy) || "unknown" }}
                                         </div>
@@ -764,9 +738,7 @@
                                         LXMF
                                     </div>
                                     <div>
-                                        <div class="text-sm font-black text-gray-900 dark:text-white leading-tight">
-                                            LXMF
-                                        </div>
+                                        <div class="text-sm font-black text-sem-fg leading-tight">LXMF</div>
                                         <div class="text-xs font-mono font-bold text-gray-400 mt-1">
                                             v{{ appInfo.lxmf_version }}
                                         </div>
@@ -785,9 +757,7 @@
                                         LXST
                                     </div>
                                     <div>
-                                        <div class="text-sm font-black text-gray-900 dark:text-white leading-tight">
-                                            LXST
-                                        </div>
+                                        <div class="text-sm font-black text-sem-fg leading-tight">LXST</div>
                                         <div class="text-xs font-mono font-bold text-gray-400 mt-1">
                                             v{{ appInfo.lxst_version }}
                                         </div>
@@ -805,9 +775,7 @@
                                         RNS
                                     </div>
                                     <div>
-                                        <div class="text-sm font-black text-gray-900 dark:text-white leading-tight">
-                                            RNS
-                                        </div>
+                                        <div class="text-sm font-black text-sem-fg leading-tight">RNS</div>
                                         <div class="flex flex-wrap items-center gap-2 mt-1 min-w-0">
                                             <div class="text-xs font-mono font-bold text-gray-400 shrink-0">
                                                 v{{ appInfo.rns_version }}
@@ -911,7 +879,7 @@
                             <div
                                 class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2"
                             >
-                                <v-icon icon="mdi-database-cog" size="14"></v-icon>
+                                <MaterialDesignIcon icon-name="database-cog" class="size-3.5" />
                                 {{ $t("about.database_health_maintenance") }}
                             </div>
                             <div class="flex flex-wrap gap-2 w-full md:w-auto">
@@ -921,7 +889,7 @@
                                     :disabled="databaseActionInProgress || healthLoading"
                                     @click="getDatabaseHealth(true)"
                                 >
-                                    <v-icon icon="mdi-refresh" start size="14"></v-icon>
+                                    <MaterialDesignIcon icon-name="refresh" class="size-3.5 shrink-0" />
                                     <span v-if="healthLoading">{{ $t("common.loading") }}</span>
                                     <span v-else>{{ $t("common.refresh") }}</span>
                                 </button>
@@ -931,7 +899,8 @@
                                     :disabled="databaseActionInProgress"
                                     @click="vacuumDatabase"
                                 >
-                                    <v-icon icon="mdi-broom" start size="14"></v-icon> {{ $t("common.vacuum") }}
+                                    <MaterialDesignIcon icon-name="broom" class="size-3.5 shrink-0" />
+                                    {{ $t("common.vacuum") }}
                                 </button>
                                 <button
                                     type="button"
@@ -939,7 +908,7 @@
                                     :disabled="databaseActionInProgress"
                                     @click="runAutoRecover"
                                 >
-                                    <v-icon icon="mdi-auto-fix" start size="14"></v-icon>
+                                    <MaterialDesignIcon icon-name="auto-fix" class="size-3.5 shrink-0" />
                                     {{ $t("common.auto_recover") }}
                                 </button>
                                 <button
@@ -948,7 +917,7 @@
                                     :disabled="databaseActionInProgress"
                                     @click="runRecovery"
                                 >
-                                    <v-icon icon="mdi-medical-bag" start size="14"></v-icon>
+                                    <MaterialDesignIcon icon-name="medical-bag" class="size-3.5 shrink-0" />
                                     {{ $t("about.recovery") }}
                                 </button>
                             </div>
@@ -1015,10 +984,8 @@
                             <!-- Backups -->
                             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                                 <div class="space-y-1">
-                                    <div
-                                        class="font-black text-gray-900 dark:text-white text-sm tracking-tight flex items-center gap-2"
-                                    >
-                                        <v-icon icon="mdi-content-save-all" size="16" class="text-blue-500"></v-icon>
+                                    <div class="font-black text-sem-fg text-sm tracking-tight flex items-center gap-2">
+                                        <MaterialDesignIcon icon-name="content-save-all" class="size-4 text-blue-500" />
                                         {{ $t("about.database_backups_title") }}
                                     </div>
                                     <div class="text-xs text-gray-500">
@@ -1032,7 +999,7 @@
                                         :disabled="backupInProgress"
                                         @click="backupDatabase"
                                     >
-                                        <v-icon icon="mdi-download" start></v-icon>
+                                        <MaterialDesignIcon icon-name="download" class="shrink-0" />
                                         <span v-if="backupInProgress">{{ $t("about.downloading") }}</span>
                                         <span v-else>{{ $t("about.download_backup") }}</span>
                                     </button>
@@ -1042,7 +1009,7 @@
                                         :disabled="restoreInProgress"
                                         @click="$refs.restoreFileInput?.click()"
                                     >
-                                        <v-icon icon="mdi-upload" start></v-icon>
+                                        <MaterialDesignIcon icon-name="upload" class="shrink-0" />
                                         <span v-if="restoreInProgress">{{ $t("about.restoring") }}</span>
                                         <span v-else>{{ $t("about.restore_from_file") }}</span>
                                     </button>
@@ -1061,9 +1028,9 @@
                                 <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                                     <div class="space-y-1">
                                         <div
-                                            class="font-black text-gray-900 dark:text-white text-sm tracking-tight flex items-center gap-2"
+                                            class="font-black text-sem-fg text-sm tracking-tight flex items-center gap-2"
                                         >
-                                            <v-icon icon="mdi-camera" size="16" class="text-purple-500"></v-icon>
+                                            <MaterialDesignIcon icon-name="camera" class="size-4 text-purple-500" />
                                             {{ $t("about.local_snapshots_title") }}
                                         </div>
                                         <div class="text-xs text-gray-500">
@@ -1097,10 +1064,9 @@
                                             class="flex items-center justify-between gap-2 py-3 sm:p-4 border-b border-gray-200/60 dark:border-zinc-800/80 last:border-0 sm:border sm:rounded-lg sm:bg-black/2 dark:sm:bg-white/2 transition-colors"
                                         >
                                             <div class="flex flex-col min-w-0">
-                                                <span
-                                                    class="font-black text-gray-900 dark:text-white text-xs truncate"
-                                                    >{{ snapshot.name }}</span
-                                                >
+                                                <span class="font-black text-sem-fg text-xs truncate">{{
+                                                    snapshot.name
+                                                }}</span>
                                                 <span class="text-[10px] font-bold text-gray-400 mt-1 tabular-nums"
                                                     >{{ formatBytes(snapshot.size) }} •
                                                     {{ Utils.formatTimeAgo(snapshot.created_at) }}</span
@@ -1112,7 +1078,7 @@
                                                     class="primary-chip px-3! py-1! text-[10px]!"
                                                     @click="downloadSnapshot(snapshot.name)"
                                                 >
-                                                    <v-icon icon="mdi-download" size="12" start></v-icon>
+                                                    <MaterialDesignIcon icon-name="download" class="size-3 shrink-0" />
                                                     {{ $t("about.snapshot_download") }}
                                                 </button>
                                                 <button
@@ -1127,7 +1093,7 @@
                                                     class="danger-chip px-3! py-1! text-[10px]!"
                                                     @click="deleteSnapshot(snapshot.name)"
                                                 >
-                                                    <v-icon icon="mdi-delete" size="12"></v-icon>
+                                                    <MaterialDesignIcon icon-name="delete" class="size-3" />
                                                 </button>
                                             </div>
                                         </div>
@@ -1152,14 +1118,14 @@
                                                 :disabled="snapshotsOffset === 0"
                                                 @click="prevSnapshots"
                                             >
-                                                <v-icon icon="mdi-chevron-left"></v-icon>
+                                                <MaterialDesignIcon icon-name="chevron-left" />
                                             </button>
                                             <button
                                                 class="secondary-chip p-1! disabled:opacity-30"
                                                 :disabled="snapshotsOffset + snapshotsLimit >= snapshotsTotal"
                                                 @click="nextSnapshots"
                                             >
-                                                <v-icon icon="mdi-chevron-right"></v-icon>
+                                                <MaterialDesignIcon icon-name="chevron-right" />
                                             </button>
                                         </div>
                                     </div>
@@ -1171,9 +1137,9 @@
                                 <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                                     <div class="space-y-1">
                                         <div
-                                            class="font-black text-gray-900 dark:text-white text-sm tracking-tight flex items-center gap-2"
+                                            class="font-black text-sem-fg text-sm tracking-tight flex items-center gap-2"
                                         >
-                                            <v-icon icon="mdi-history" size="16" class="text-blue-500"></v-icon>
+                                            <MaterialDesignIcon icon-name="history" class="size-4 text-blue-500" />
                                             {{ $t("about.automatic_backups_title") }}
                                         </div>
                                         <div class="text-xs text-gray-500">
@@ -1190,10 +1156,9 @@
                                             class="flex items-center justify-between gap-2 py-3 sm:p-4 border-b border-gray-200/60 dark:border-zinc-800/80 last:border-0 sm:border sm:rounded-lg sm:bg-black/2 dark:sm:bg-white/2 transition-colors"
                                         >
                                             <div class="flex flex-col min-w-0">
-                                                <span
-                                                    class="font-black text-gray-900 dark:text-white text-xs truncate"
-                                                    >{{ backup.name }}</span
-                                                >
+                                                <span class="font-black text-sem-fg text-xs truncate">{{
+                                                    backup.name
+                                                }}</span>
                                                 <span class="text-[10px] font-bold text-gray-400 mt-1 tabular-nums"
                                                     >{{ formatBytes(backup.size) }} •
                                                     {{ Utils.formatTimeAgo(backup.created_at) }}</span
@@ -1207,7 +1172,7 @@
                                                     :title="$t('about.snapshot_download')"
                                                     @click="downloadBackupFile(backup.name)"
                                                 >
-                                                    <v-icon icon="mdi-download" size="16"></v-icon>
+                                                    <MaterialDesignIcon icon-name="download" class="size-4" />
                                                 </button>
                                                 <button
                                                     type="button"
@@ -1221,7 +1186,7 @@
                                                     class="danger-chip px-3! py-1! text-[10px]!"
                                                     @click="deleteBackup(backup.name)"
                                                 >
-                                                    <v-icon icon="mdi-delete" size="12"></v-icon>
+                                                    <MaterialDesignIcon icon-name="delete" class="size-3" />
                                                 </button>
                                             </div>
                                         </div>
@@ -1231,7 +1196,7 @@
                                         v-if="autoBackups.some((b) => b.name.includes('SUSPICIOUS'))"
                                         class="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-xs text-amber-700 dark:text-amber-300 flex items-start gap-2"
                                     >
-                                        <v-icon icon="mdi-alert" size="16" class="shrink-0 mt-0.5"></v-icon>
+                                        <MaterialDesignIcon icon-name="alert" class="size-4 shrink-0 mt-0.5" />
                                         <span
                                             >Suspicious backups are created when the database size or message count
                                             drops unexpectedly compared to the last known baseline, usually after a
@@ -1259,14 +1224,14 @@
                                                 :disabled="autoBackupsOffset === 0"
                                                 @click="prevBackups"
                                             >
-                                                <v-icon icon="mdi-chevron-left"></v-icon>
+                                                <MaterialDesignIcon icon-name="chevron-left" />
                                             </button>
                                             <button
                                                 class="secondary-chip p-1! disabled:opacity-30"
                                                 :disabled="autoBackupsOffset + autoBackupsLimit >= autoBackupsTotal"
                                                 @click="nextBackups"
                                             >
-                                                <v-icon icon="mdi-chevron-right"></v-icon>
+                                                <MaterialDesignIcon icon-name="chevron-right" />
                                             </button>
                                         </div>
                                     </div>
@@ -1310,9 +1275,13 @@ import {
     loadBatterySaverPrefs,
 } from "../../js/settings/batterySaverPrefs.js";
 import { mergeResourceBreakdown, topResourceByCpu, topResourceByRss } from "../../js/resourceBreakdown.js";
+import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+
 export default {
     name: "AboutPage",
-    components: {},
+    components: {
+        MaterialDesignIcon,
+    },
     data() {
         return {
             Utils,

@@ -8,7 +8,7 @@
     >
         <div class="space-y-4">
             <div
-                class="rounded-xl border-2 border-dashed border-gray-300 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900/40 p-6 text-center transition-colors"
+                class="rounded-xl border-2 border-dashed border-gray-300 dark:border-zinc-700 bg-sem-surface-muted/40 p-6 text-center transition-colors"
                 :class="dragActive ? 'border-blue-500 bg-blue-50/60 dark:bg-blue-950/20' : ''"
                 @dragenter.prevent="dragActive = true"
                 @dragover.prevent="dragActive = true"
@@ -18,7 +18,7 @@
                 <p class="text-sm font-medium text-gray-800 dark:text-gray-200">
                     {{ $t("plugins.settings.drag_drop") }}
                 </p>
-                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                <p class="mt-1 text-xs text-sem-fg-muted">
                     {{ $t("plugins.settings.install_zip") }}
                 </p>
                 <label class="mt-4 inline-flex">
@@ -45,16 +45,12 @@
 
             <div
                 v-if="!plugins.length"
-                class="rounded-lg border border-gray-200 dark:border-zinc-800 px-4 py-8 text-center text-sm text-gray-600 dark:text-gray-400"
+                class="rounded-lg border border-sem-border px-4 py-8 text-center text-sm text-gray-600 dark:text-gray-400"
             >
                 {{ $t("plugins.settings.empty_state") }}
             </div>
 
-            <div
-                v-for="plugin in plugins"
-                :key="plugin.id"
-                class="rounded-lg border border-gray-200 dark:border-zinc-800 p-4 space-y-3"
-            >
+            <div v-for="plugin in plugins" :key="plugin.id" class="rounded-lg border border-sem-border p-4 space-y-3">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div class="min-w-0 space-y-2">
                         <div class="flex flex-wrap items-center gap-2">
@@ -64,7 +60,7 @@
                                 :class="
                                     plugin.enabled
                                         ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200'
-                                        : 'bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+                                        : 'bg-zinc-200 text-zinc-700 dark:bg-zinc-800 text-sem-fg-muted'
                                 "
                             >
                                 {{
@@ -213,7 +209,7 @@
                         <input
                             v-model="sidebandConfig.command_plugins_path"
                             type="text"
-                            class="w-full rounded-md border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-sm min-w-0"
+                            class="w-full rounded-md border border-gray-300 dark:border-zinc-700 bg-sem-surface px-3 py-1.5 text-sm min-w-0"
                             :disabled="!sidebandConfig.service_plugins_enabled"
                         />
                         <button
@@ -253,7 +249,7 @@
                         <li
                             v-for="item in sidebandPlugins"
                             :key="item.path"
-                            class="rounded-md border border-gray-200 dark:border-zinc-700 px-3 py-2 text-xs space-y-1"
+                            class="rounded-md border border-sem-border px-3 py-2 text-xs space-y-1"
                         >
                             <p class="font-medium text-gray-800 dark:text-gray-200">
                                 {{ item.name }}

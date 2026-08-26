@@ -4,9 +4,7 @@
     <div class="space-y-2">
         <div class="flex flex-wrap items-end gap-2">
             <label class="block min-w-0 flex-1 space-y-1">
-                <span class="text-xs font-medium text-gray-700 dark:text-zinc-300">{{
-                    $t("remote_mgmt.management_identity")
-                }}</span>
+                <span class="text-xs font-medium text-sem-fg-muted">{{ $t("remote_mgmt.management_identity") }}</span>
                 <select
                     :value="modelValue"
                     class="input-field w-full font-mono text-xs"
@@ -37,7 +35,7 @@
                 {{ $t("remote_mgmt.create_identity") }}
             </button>
         </div>
-        <p v-if="selectedHash" class="font-mono text-[10px] text-gray-500 dark:text-zinc-500 break-all">
+        <p v-if="selectedHash" class="font-mono text-[10px] text-sem-fg-muted break-all">
             {{ selectedHash }}
         </p>
     </div>

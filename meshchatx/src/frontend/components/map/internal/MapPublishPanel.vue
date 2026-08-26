@@ -2,30 +2,30 @@
 
 <template>
     <div class="space-y-3">
-        <label class="block text-[11px] text-gray-600 dark:text-zinc-400 space-y-1">
+        <label class="block text-[11px] text-sem-fg-muted space-y-1">
             <span>{{ $t("map.data_display_name") }}</span>
             <input
                 v-model="displayName"
                 type="text"
                 maxlength="32"
-                class="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-1.5 text-[12px]"
+                class="w-full rounded-lg border border-sem-border bg-sem-surface px-2 py-1.5 text-[12px]"
                 @blur="saveConfig"
             />
         </label>
-        <label class="flex items-center gap-2 text-[11px] text-gray-600 dark:text-zinc-400">
+        <label class="flex items-center gap-2 text-[11px] text-sem-fg-muted">
             <input v-model="announceEnabled" type="checkbox" :disabled="!published.length" @change="saveConfig" />
             {{ $t("map.data_announce") }}
         </label>
-        <p v-if="!published.length" class="text-[10px] text-gray-500 dark:text-zinc-400">
+        <p v-if="!published.length" class="text-[10px] text-sem-fg-muted">
             {{ $t("map.data_announce_needs_publish") }}
         </p>
-        <label class="block text-[11px] text-gray-600 dark:text-zinc-400 space-y-1">
+        <label class="block text-[11px] text-sem-fg-muted space-y-1">
             <span>{{ $t("map.data_interval") }}</span>
             <input
                 v-model.number="announceInterval"
                 type="number"
                 min="10"
-                class="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-1.5 text-[12px]"
+                class="w-full rounded-lg border border-sem-border bg-sem-surface px-2 py-1.5 text-[12px]"
                 @blur="saveConfig"
             />
         </label>
@@ -40,7 +40,7 @@
             </button>
             <button
                 type="button"
-                class="flex-1 py-2 text-[10px] font-semibold uppercase rounded-lg border border-gray-200 dark:border-zinc-700 disabled:opacity-40"
+                class="flex-1 py-2 text-[10px] font-semibold uppercase rounded-lg border border-sem-border disabled:opacity-40"
                 :disabled="announcing || !published.length"
                 @click="announceNow"
             >
@@ -55,7 +55,7 @@
         <div
             v-for="row in published"
             :key="row.map_id"
-            class="rounded-lg border border-gray-200 dark:border-zinc-800 p-2 flex items-center justify-between gap-2"
+            class="rounded-lg border border-sem-border p-2 flex items-center justify-between gap-2"
         >
             <div class="min-w-0">
                 <div class="text-[12px] font-semibold truncate">{{ row.name }}</div>

@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
         <ToolsPageHeader
             icon="server-network"
             :title="$t('tools.mesh_server.title')"
@@ -21,7 +21,7 @@
                     v-if="loading"
                     class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-8 sm:py-12 text-center"
                 >
-                    <div class="text-gray-500 dark:text-gray-400">{{ $t("tools.mesh_server.loading") }}</div>
+                    <div class="text-sem-fg-muted">{{ $t("tools.mesh_server.loading") }}</div>
                 </div>
 
                 <div
@@ -50,7 +50,7 @@
                                 ></div>
                                 <div class="min-w-0">
                                     <div class="flex items-center gap-2">
-                                        <div class="font-semibold text-gray-900 dark:text-white truncate">
+                                        <div class="font-semibold text-sem-fg truncate">
                                             {{ node.name }}
                                         </div>
                                         <span
@@ -62,14 +62,14 @@
                                     </div>
                                     <div
                                         v-if="node.destination_hash"
-                                        class="text-xs font-mono text-gray-500 dark:text-gray-400 truncate"
+                                        class="text-xs font-mono text-sem-fg-muted truncate"
                                     >
                                         {{ node.destination_hash }}
                                     </div>
                                 </div>
                             </div>
                             <div class="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                                <span class="text-xs text-gray-500 dark:text-gray-400 mr-1">
+                                <span class="text-xs text-sem-fg-muted mr-1">
                                     {{
                                         $t("tools.mesh_server.stats_pages_files", {
                                             pages: node.pages.length,
@@ -117,7 +117,7 @@
 
                         <div
                             v-if="node.stats || node.running"
-                            class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400 pl-6"
+                            class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-sem-fg-muted pl-6"
                         >
                             <span v-if="node.running">
                                 {{
@@ -165,7 +165,7 @@
                     class="w-full py-4 sm:py-6 space-y-4 border-t border-gray-200/60 dark:border-zinc-800/60"
                 >
                     <div class="flex items-center justify-between">
-                        <div class="text-lg font-semibold text-gray-900 dark:text-white">
+                        <div class="text-lg font-semibold text-sem-fg">
                             {{ selectedNode.name }}
                         </div>
                         <div class="flex items-center gap-2">
@@ -180,7 +180,7 @@
 
                     <div
                         v-if="selectedNode.destination_hash"
-                        class="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                        class="p-3 rounded-lg bg-sem-surface-muted text-blue-700 dark:text-blue-300"
                     >
                         <div class="flex items-center justify-between mb-1">
                             <div class="text-xs font-bold uppercase tracking-wider">
@@ -199,10 +199,8 @@
                     </div>
 
                     <!-- Announce settings -->
-                    <div
-                        class="p-3 rounded-lg bg-slate-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 space-y-3"
-                    >
-                        <div class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    <div class="p-3 rounded-lg bg-slate-50 dark:bg-zinc-800/50 border border-sem-border space-y-3">
+                        <div class="text-xs font-bold uppercase tracking-wider text-sem-fg-muted">
                             {{ $t("tools.mesh_server.announce_settings") }}
                         </div>
                         <div class="flex items-center justify-between gap-3">
@@ -212,7 +210,7 @@
                                 :label="$t('tools.mesh_server.executable_pages_enabled_label')"
                             />
                         </div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                        <div class="text-xs text-sem-fg-muted">
                             {{ $t("tools.mesh_server.executable_pages_warning") }}
                         </div>
                         <div class="flex items-center justify-between gap-3">
@@ -236,12 +234,12 @@
                                     class="input-field w-24"
                                 />
                             </div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                            <div class="text-xs text-sem-fg-muted">
                                 {{ $t("tools.mesh_server.announce_interval_manual_hint") }}
                             </div>
                         </div>
                         <div class="flex items-center justify-between gap-3">
-                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                            <span class="text-xs text-sem-fg-muted">
                                 {{ formatLastAnnounced(selectedNode.last_announced_at) }}
                             </span>
                             <button class="primary-chip py-1! px-3! text-xs!" @click="saveAnnounceSettings">
@@ -255,7 +253,7 @@
                         <button
                             :class="[
                                 detailTab === 'pages'
-                                    ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+                                    ? 'border-b-2 border-blue-500 text-sem-accent'
                                     : 'text-gray-600 dark:text-gray-400',
                                 'px-4 py-2 font-semibold transition text-sm -mb-px',
                             ]"
@@ -270,7 +268,7 @@
                         <button
                             :class="[
                                 detailTab === 'files'
-                                    ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+                                    ? 'border-b-2 border-blue-500 text-sem-accent'
                                     : 'text-gray-600 dark:text-gray-400',
                                 'px-4 py-2 font-semibold transition text-sm -mb-px',
                             ]"
@@ -300,21 +298,18 @@
                             </button>
                         </div>
 
-                        <div
-                            v-if="selectedNode.pages.length === 0"
-                            class="text-sm text-gray-500 dark:text-gray-400 py-4 text-center"
-                        >
+                        <div v-if="selectedNode.pages.length === 0" class="text-sm text-sem-fg-muted py-4 text-center">
                             {{ $t("tools.mesh_server.no_pages") }}
                         </div>
 
                         <div
                             v-for="page in selectedNode.pages"
                             :key="page.name"
-                            class="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700"
+                            class="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-zinc-800/50 border border-sem-border"
                         >
                             <div class="flex items-center gap-2">
                                 <MaterialDesignIcon icon-name="file-document-outline" class="w-4 h-4 text-teal-500" />
-                                <span class="text-sm font-mono text-gray-900 dark:text-white">{{ page.name }}</span>
+                                <span class="text-sm font-mono text-sem-fg">{{ page.name }}</span>
                                 <span
                                     v-if="page.executable"
                                     class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300"
@@ -338,7 +333,7 @@
                         <!-- Page editor -->
                         <div v-if="editingPage" class="space-y-2">
                             <div class="flex items-center justify-between">
-                                <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                                <div class="text-sm font-semibold text-sem-fg">
                                     {{
                                         $t("tools.mesh_server.editing_page", {
                                             name: editingPage,
@@ -363,7 +358,7 @@
                             </div>
                             <textarea
                                 v-model="editingPageContent"
-                                class="w-full h-64 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white p-3 font-mono text-sm rounded-lg border border-gray-200 dark:border-zinc-700 resize-y focus:outline-hidden focus:ring-2 focus:ring-blue-500/50"
+                                class="w-full h-64 bg-sem-surface text-sem-fg p-3 font-mono text-sm rounded-lg border border-sem-border resize-y focus:outline-hidden focus:ring-2 focus:ring-blue-500/50"
                             ></textarea>
                         </div>
                     </div>
@@ -378,24 +373,19 @@
                             </button>
                         </div>
 
-                        <div
-                            v-if="selectedNode.files.length === 0"
-                            class="text-sm text-gray-500 dark:text-gray-400 py-4 text-center"
-                        >
+                        <div v-if="selectedNode.files.length === 0" class="text-sm text-sem-fg-muted py-4 text-center">
                             {{ $t("tools.mesh_server.no_files") }}
                         </div>
 
                         <div
                             v-for="file in selectedNode.files"
                             :key="file.name"
-                            class="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700"
+                            class="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-zinc-800/50 border border-sem-border"
                         >
                             <div class="flex items-center gap-2">
                                 <MaterialDesignIcon icon-name="file-outline" class="w-4 h-4 text-blue-500" />
-                                <span class="text-sm font-mono text-gray-900 dark:text-white">{{ file.name }}</span>
-                                <span class="text-xs text-gray-500 dark:text-gray-400">{{
-                                    formatFileSize(file.size)
-                                }}</span>
+                                <span class="text-sm font-mono text-sem-fg">{{ file.name }}</span>
+                                <span class="text-xs text-sem-fg-muted">{{ formatFileSize(file.size) }}</span>
                             </div>
                             <button
                                 class="secondary-chip py-0.5! px-2! text-xs! text-red-500!"
@@ -415,8 +405,8 @@
             class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
             @click.self="showCreateDialog = false"
         >
-            <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl space-y-4">
-                <div class="text-lg font-semibold text-gray-900 dark:text-white">
+            <div class="bg-sem-surface rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl space-y-4">
+                <div class="text-lg font-semibold text-sem-fg">
                     {{ $t("tools.mesh_server.create_dialog_title") }}
                 </div>
                 <div>
@@ -446,8 +436,8 @@
             class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
             @click.self="showRenameDialog = false"
         >
-            <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl space-y-4">
-                <div class="text-lg font-semibold text-gray-900 dark:text-white">
+            <div class="bg-sem-surface rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl space-y-4">
+                <div class="text-lg font-semibold text-sem-fg">
                     {{ $t("tools.mesh_server.rename_dialog_title") }}
                 </div>
                 <div>

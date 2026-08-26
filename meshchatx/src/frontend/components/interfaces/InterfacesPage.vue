@@ -32,13 +32,13 @@
                     class="interfaces-section interfaces-section--hero flex flex-col lg:flex-row lg:items-center justify-between gap-4"
                 >
                     <div class="space-y-3 flex-1 min-w-0">
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        <div class="text-xs uppercase tracking-wide text-sem-fg-muted">
                             {{ $t("interfaces.manage") }}
                         </div>
-                        <div class="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                        <div class="text-3xl font-black text-sem-fg tracking-tight">
                             {{ $t("interfaces.title") }}
                         </div>
-                        <div class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed max-w-xl">
+                        <div class="text-sm text-sem-fg-muted leading-relaxed max-w-xl">
                             {{ $t("interfaces.description") }}
                         </div>
                         <div class="flex flex-wrap gap-2 pt-2">
@@ -78,17 +78,17 @@
                         <div class="relative group">
                             <MaterialDesignIcon
                                 icon-name="magnify"
-                                class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors"
+                                class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-sem-accent transition-colors"
                             />
                             <input
                                 v-model="searchTerm"
                                 type="text"
                                 :placeholder="$t('interfaces.search_placeholder')"
-                                class="w-full pl-12 pr-4 py-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 shadow-xs"
+                                class="w-full pl-12 pr-4 py-3 bg-sem-surface border border-sem-border rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sem-fg placeholder:text-sem-fg-muted shadow-xs"
                             />
                             <button
                                 v-if="searchTerm"
-                                class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                class="absolute inset-y-0 right-0 pr-4 flex items-center text-sem-fg-muted hover:text-sem-fg"
                                 @click="searchTerm = ''"
                             >
                                 <MaterialDesignIcon icon-name="close-circle" class="size-5" />
@@ -97,7 +97,7 @@
                         <div>
                             <select
                                 v-model="typeFilter"
-                                class="w-full px-4 py-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 text-gray-900 dark:text-white"
+                                class="w-full px-4 py-2.5 bg-sem-surface border border-sem-border rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 text-sem-fg"
                             >
                                 <option value="all">{{ $t("interfaces.all_types") }}</option>
                                 <option v-for="type in sortedInterfaceTypes" :key="type" :value="type">
@@ -126,10 +126,8 @@
                         <div class="interfaces-subpanel space-y-3">
                             <div class="flex flex-wrap items-center justify-between gap-4">
                                 <div class="space-y-1">
-                                    <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                        Configured
-                                    </div>
-                                    <div class="text-xl font-semibold text-gray-900 dark:text-white">
+                                    <div class="text-xs uppercase tracking-wide text-sem-fg-muted">Configured</div>
+                                    <div class="text-xl font-semibold text-sem-fg">
                                         Interfaces
                                         <span
                                             v-if="filteredInterfaces.length > 0"
@@ -183,7 +181,7 @@
                             </div>
                             <div
                                 v-else
-                                class="text-center py-10 px-4 text-gray-500 dark:text-gray-300 border border-dashed border-gray-200 dark:border-zinc-800 rounded-xl"
+                                class="text-center py-10 px-4 text-gray-500 dark:text-gray-300 border border-dashed border-sem-border rounded-xl"
                             >
                                 <MaterialDesignIcon icon-name="lan-disconnect" class="w-10 h-10 mx-auto mb-3" />
                                 <div class="text-lg font-semibold">{{ $t("interfaces.no_interfaces_found") }}</div>
@@ -194,10 +192,10 @@
                         <div class="interfaces-subpanel space-y-3">
                             <div class="flex flex-col gap-3 min-w-0 lg:flex-row lg:items-start lg:justify-between">
                                 <div class="min-w-0 flex-1">
-                                    <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                    <div class="text-xs uppercase tracking-wide text-sem-fg-muted">
                                         Discovered Interfaces
                                     </div>
-                                    <div class="text-xl font-semibold text-gray-900 dark:text-white">
+                                    <div class="text-xl font-semibold text-sem-fg">
                                         Recently Heard Announces
                                         <span
                                             v-if="sortedDiscoveredInterfaces.length > 0"
@@ -205,7 +203,7 @@
                                             >({{ sortedDiscoveredInterfaces.length }})</span
                                         >
                                     </div>
-                                    <div class="text-sm text-gray-600 dark:text-gray-300">
+                                    <div class="text-sm text-sem-fg-muted">
                                         Discovery runs continually. Heard announces stay listed. Connected entries show
                                         a green pill. Disconnected entries are dimmed with a red label.
                                     </div>
@@ -232,7 +230,7 @@
                                     <button
                                         v-if="interfacesWithLocation.length > 0"
                                         type="button"
-                                        class="secondary-chip text-xs bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30"
+                                        class="secondary-chip text-xs bg-blue-500/10 hover:bg-blue-500/20 text-sem-accent border-blue-500/30"
                                         @click="mapAllDiscovered"
                                     >
                                         <MaterialDesignIcon icon-name="map-marker-multiple" class="w-4 h-4" />
@@ -298,7 +296,7 @@
                                         <div class="flex-1 min-w-0 space-y-2">
                                             <div class="flex items-center gap-2 flex-nowrap min-w-0">
                                                 <div
-                                                    class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate min-w-0"
+                                                    class="text-base sm:text-lg font-semibold text-sem-fg truncate min-w-0"
                                                 >
                                                     {{ iface.name }}
                                                 </div>
@@ -306,10 +304,7 @@
                                             </div>
 
                                             <div class="flex items-center gap-2 flex-wrap">
-                                                <span
-                                                    v-if="iface.value"
-                                                    class="text-[10px] font-bold text-blue-600 dark:text-blue-400"
-                                                >
+                                                <span v-if="iface.value" class="text-[10px] font-bold text-sem-accent">
                                                     Stamps: {{ iface.value }}
                                                 </span>
                                                 <span
@@ -481,7 +476,7 @@
                                                 </button>
                                                 <div
                                                     v-if="openDiscoveryActionKey === discoveryKey(iface)"
-                                                    class="absolute right-0 mt-1 z-20 min-w-44 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg p-1"
+                                                    class="absolute right-0 mt-1 z-20 min-w-44 rounded-xl border border-sem-border bg-sem-surface shadow-lg p-1"
                                                 >
                                                     <button
                                                         type="button"
@@ -494,7 +489,7 @@
                                                     <button
                                                         v-if="iface.config_entry"
                                                         type="button"
-                                                        class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 text-gray-700 dark:text-gray-200"
+                                                        class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-sem-surface-muted text-gray-700 dark:text-gray-200"
                                                         data-testid="copy-discovered-config"
                                                         @click="copyDiscoveredConfigEntry(iface)"
                                                     >
@@ -538,13 +533,9 @@
                         <div class="interfaces-subpanel space-y-4">
                             <div class="flex flex-wrap gap-3 items-center">
                                 <div class="flex-1">
-                                    <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                        Discovery
-                                    </div>
-                                    <div class="text-xl font-semibold text-gray-900 dark:text-white">
-                                        Interface Discovery
-                                    </div>
-                                    <div class="text-sm text-gray-600 dark:text-gray-300">
+                                    <div class="text-xs uppercase tracking-wide text-sem-fg-muted">Discovery</div>
+                                    <div class="text-xl font-semibold text-sem-fg">Interface Discovery</div>
+                                    <div class="text-sm text-sem-fg-muted">
                                         Publish your interfaces for others to find, or listen for announced entrypoints
                                         and auto-connect to them.
                                     </div>
@@ -556,12 +547,12 @@
                             </div>
                             <div class="grid gap-4 min-w-0 lg:grid-cols-2">
                                 <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300 min-w-0">
-                                    <div class="font-semibold text-gray-900 dark:text-white">Publish (Server)</div>
+                                    <div class="font-semibold text-sem-fg">Publish (Server)</div>
                                     <div>
                                         Enable discovery while adding or editing an interface to broadcast reachable
                                         details. Reticulum will sign and stamp announces automatically.
                                     </div>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         Requires LXMF in the Python environment. Transport is optional for publishing,
                                         but usually recommended so peers can connect back.
                                     </div>
@@ -569,10 +560,10 @@
                                 <div class="space-y-3 min-w-0">
                                     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                         <div class="flex flex-col min-w-0 pr-0 sm:pr-4">
-                                            <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                                            <div class="text-sm font-semibold text-sem-fg">
                                                 Discover Interfaces (Peer)
                                             </div>
-                                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                            <div class="text-xs text-sem-fg-muted">
                                                 Listen for discovery announces and optionally auto-connect to available
                                                 interfaces.
                                             </div>
@@ -637,9 +628,7 @@
                                                 min="0"
                                                 class="input-field"
                                             />
-                                            <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                0 disables auto-connect.
-                                            </div>
+                                            <div class="text-xs text-sem-fg-muted">0 disables auto-connect.</div>
                                         </div>
                                         <div>
                                             <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
@@ -650,7 +639,7 @@
                                                 type="number"
                                                 class="input-field"
                                             />
-                                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                            <div class="text-xs text-sem-fg-muted">
                                                 {{ $t("interfaces.default_gravity_hint") }}
                                             </div>
                                         </div>
@@ -684,7 +673,7 @@
                                                     {{ $t("interfaces.mode_internal") }}
                                                 </option>
                                             </select>
-                                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                            <div class="text-xs text-sem-fg-muted">
                                                 {{ $t("interfaces.autoconnect_interface_mode_hint") }}
                                             </div>
                                         </div>
@@ -697,7 +686,7 @@
                                                 type="number"
                                                 class="input-field"
                                             />
-                                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                            <div class="text-xs text-sem-fg-muted">
                                                 {{ $t("interfaces.autoconnect_interface_gravity_hint") }}
                                             </div>
                                         </div>
@@ -706,10 +695,10 @@
                                                 class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
                                             >
                                                 <div class="min-w-0 pr-0 sm:pr-4">
-                                                    <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                                                    <div class="text-sm font-semibold text-sem-fg">
                                                         {{ $t("interfaces.autoconnect_announces_to_internal_label") }}
                                                     </div>
-                                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                    <div class="text-xs text-sem-fg-muted">
                                                         {{ $t("interfaces.autoconnect_announces_to_internal_hint") }}
                                                     </div>
                                                 </div>
@@ -724,13 +713,11 @@
                                                 class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
                                             >
                                                 <div class="min-w-0 pr-0 sm:pr-4">
-                                                    <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                                                    <div class="text-sm font-semibold text-sem-fg">
                                                         {{ $t("interfaces.discovery_default_bootstrap_only") }}
                                                     </div>
-                                                    <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                        <BundledDocsHint
-                                                            paragraph-class="text-xs text-gray-500 dark:text-gray-400"
-                                                        />
+                                                    <div class="text-xs text-sem-fg-muted">
+                                                        <BundledDocsHint paragraph-class="text-xs text-sem-fg-muted" />
                                                     </div>
                                                 </div>
                                                 <Toggle

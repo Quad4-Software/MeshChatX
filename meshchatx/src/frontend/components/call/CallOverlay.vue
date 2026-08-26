@@ -3,11 +3,11 @@
 <template>
     <div
         v-if="activeCall || initiationStatus || isEnded || wasDeclined"
-        class="fixed z-90 w-[min(20rem,calc(100%-1.5rem))] max-sm:left-1/2 max-sm:-translate-x-1/2 max-sm:right-auto sm:right-4 bottom-[max(1rem,env(safe-area-inset-bottom,0px))] max-sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden transition-all duration-300"
+        class="fixed z-90 w-[min(20rem,calc(100%-1.5rem))] max-sm:left-1/2 max-sm:-translate-x-1/2 max-sm:right-auto sm:right-4 bottom-[max(1rem,env(safe-area-inset-bottom,0px))] max-sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] bg-sem-surface rounded-2xl shadow-2xl border border-sem-border overflow-hidden transition-all duration-300"
         :class="{ 'ring-2 ring-red-500 ring-opacity-50': isEnded || wasDeclined }"
     >
         <!-- Header -->
-        <div class="p-3 flex items-center bg-gray-50 dark:bg-zinc-800/50 border-b border-gray-100 dark:border-zinc-800">
+        <div class="p-3 flex items-center bg-gray-50 dark:bg-zinc-800/50 border-b border-sem-border">
             <div class="flex-1 flex items-center space-x-2">
                 <div
                     class="size-2 rounded-full"
@@ -20,7 +20,7 @@
                     @click="goToPhonePage"
                 >
                     <span
-                        class="text-[10px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider group-hover:text-gray-700 dark:group-hover:text-zinc-200"
+                        class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-wider group-hover:text-gray-700 dark:group-hover:text-zinc-200"
                     >
                         {{
                             wasDeclined
@@ -47,7 +47,7 @@
                     </span>
                     <MaterialDesignIcon
                         icon-name="open-in-new"
-                        class="size-3 text-gray-400 dark:text-zinc-500 group-hover:text-gray-600 dark:group-hover:text-zinc-300"
+                        class="size-3 text-sem-fg-muted group-hover:text-gray-600 dark:group-hover:text-zinc-300"
                     />
                 </button>
                 <div v-if="activeCall && activeCall.is_recording && !isEnded" class="flex items-center gap-1 ml-2">
@@ -58,7 +58,7 @@
             <button
                 v-if="!isEnded"
                 type="button"
-                class="p-1 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-lg transition-colors"
+                class="p-1 hover:bg-gray-200 hover:bg-sem-surface-muted rounded-lg transition-colors"
                 @click="isMinimized = !isMinimized"
             >
                 <MaterialDesignIcon
@@ -90,18 +90,18 @@
                     />
                 </div>
                 <div class="text-center w-full min-w-0">
-                    <div class="font-bold text-gray-900 dark:text-white truncate px-2">
+                    <div class="font-bold text-sem-fg truncate px-2">
                         {{
                             (activeCall ? activeCall.remote_identity_name : initiationTargetName) || $t("call.unknown")
                         }}
                     </div>
                     <div
                         v-if="activeCall ? activeCall.is_contact : !!initiationTargetName"
-                        class="text-[10px] text-blue-600 dark:text-blue-400 font-medium mt-0.5"
+                        class="text-[10px] text-sem-accent font-medium mt-0.5"
                     >
                         In contacts
                     </div>
-                    <div class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono truncate px-4">
+                    <div class="text-[10px] text-sem-fg-muted font-mono truncate px-4">
                         {{
                             (activeCall ? activeCall.remote_identity_hash : initiationTargetHash)
                                 ? formatDestinationHash(
@@ -125,7 +125,7 @@
                               ? 'text-red-600 dark:text-red-400 animate-pulse'
                               : activeCall && activeCall.status === 6
                                 ? 'text-green-600 dark:text-green-400'
-                                : 'text-gray-600 dark:text-zinc-400',
+                                : 'text-sem-fg-muted',
                     ]"
                 >
                     <span v-if="wasDeclined">{{ $t("call.call_declined") }}</span>
@@ -146,19 +146,16 @@
                     <span v-else-if="activeCall && activeCall.status === 6">{{ $t("call.connected") }}</span>
                     <span v-else-if="activeCall">{{ $t("call.status") }}: {{ activeCall.status }}</span>
                 </div>
-                <div
-                    v-else-if="initiationStatus"
-                    class="text-sm font-medium text-blue-600 dark:text-blue-400 animate-pulse"
-                >
+                <div v-else-if="initiationStatus" class="text-sm font-medium text-sem-accent animate-pulse">
                     {{ initiationStatus }}
                 </div>
                 <div
                     v-if="activeCall && activeCall.status === 6 && !isEnded && elapsedTime"
-                    class="text-xs text-gray-500 dark:text-zinc-400 mt-1 font-mono"
+                    class="text-xs text-sem-fg-muted mt-1 font-mono"
                 >
                     {{ elapsedTime }}
                 </div>
-                <div v-if="isEnded && callDuration" class="text-xs text-gray-500 dark:text-zinc-400 mt-1 font-mono">
+                <div v-if="isEnded && callDuration" class="text-xs text-sem-fg-muted mt-1 font-mono">
                     {{ callDuration }}
                 </div>
             </div>
@@ -166,7 +163,7 @@
             <!-- Stats (only when connected and not minimized) -->
             <div
                 v-if="activeCall && activeCall.status === 6 && !isEnded"
-                class="mb-4 p-2 bg-gray-50 dark:bg-zinc-800/50 rounded-lg text-[10px] text-gray-500 dark:text-zinc-400 grid grid-cols-2 gap-1"
+                class="mb-4 p-2 bg-gray-50 dark:bg-zinc-800/50 rounded-lg text-[10px] text-sem-fg-muted grid grid-cols-2 gap-1"
             >
                 <div class="flex items-center space-x-1">
                     <MaterialDesignIcon icon-name="arrow-up" class="size-3" />
@@ -191,7 +188,7 @@
                     v-if="activeCall && activeCall.status === 6"
                     type="button"
                     :title="localHalfDuplex ? $t('call.switch_to_full_duplex') : $t('call.switch_to_half_duplex')"
-                    class="p-2.5 rounded-full transition-all duration-200 bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700"
+                    class="p-2.5 rounded-full transition-all duration-200 bg-sem-surface-muted text-sem-fg-muted hover:bg-gray-200 hover:bg-sem-surface-muted"
                     @click="toggleDuplexMode"
                 >
                     <MaterialDesignIcon
@@ -208,7 +205,7 @@
                     :class="
                         isMicMuted
                             ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
-                            : 'bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700'
+                            : 'bg-sem-surface-muted text-sem-fg-muted hover:bg-gray-200 hover:bg-sem-surface-muted'
                     "
                     @click="toggleMicrophone"
                 >
@@ -223,7 +220,7 @@
                     :class="
                         isSpeakerMuted
                             ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
-                            : 'bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700'
+                            : 'bg-sem-surface-muted text-sem-fg-muted hover:bg-gray-200 hover:bg-sem-surface-muted'
                     "
                     @click="toggleSpeaker"
                 >
@@ -291,10 +288,7 @@
         </div>
 
         <!-- Minimized State -->
-        <div
-            v-show="isMinimized && !isEnded"
-            class="px-4 py-2 flex items-center justify-between bg-white dark:bg-zinc-900"
-        >
+        <div v-show="isMinimized && !isEnded" class="px-4 py-2 flex items-center justify-between bg-sem-surface">
             <div class="flex items-center space-x-2 overflow-hidden mr-2 min-w-0">
                 <LxmfUserIcon
                     :custom-image="activeCall ? activeCall.custom_image : null"
@@ -308,14 +302,14 @@
                     icon-class="size-6 shrink-0"
                 />
                 <div class="flex flex-col min-w-0">
-                    <span class="text-sm font-medium text-gray-700 dark:text-zinc-200 truncate block">
+                    <span class="text-sm font-medium text-sem-fg-secondary truncate block">
                         {{
                             (activeCall ? activeCall.remote_identity_name : initiationTargetName) || $t("call.unknown")
                         }}
                     </span>
                     <span
                         v-if="activeCall && activeCall.status === 6 && elapsedTime"
-                        class="text-[10px] text-gray-500 dark:text-zinc-400 font-mono"
+                        class="text-[10px] text-sem-fg-muted font-mono"
                     >
                         {{ elapsedTime }}
                     </span>
@@ -324,7 +318,7 @@
             <div class="flex items-center space-x-1">
                 <button
                     type="button"
-                    class="p-1.5 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-sm transition-colors"
+                    class="p-1.5 hover:bg-sem-surface-muted rounded-sm transition-colors"
                     @click="toggleMicrophone"
                 >
                     <MaterialDesignIcon

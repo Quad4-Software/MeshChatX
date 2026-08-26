@@ -8,7 +8,7 @@
                     :value="discoverySearch"
                     type="text"
                     :placeholder="`Search phonebook (${totalDiscoveryCount})...`"
-                    class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                    class="block w-full rounded-lg border-0 py-2 pl-10 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                     @input="onSearchInput"
                 />
                 <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -21,17 +21,17 @@
             <div class="bg-gray-200 dark:bg-zinc-800 p-6 rounded-full inline-block mb-4">
                 <MaterialDesignIcon icon-name="satellite-uplink" class="size-12 text-gray-400" />
             </div>
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white">No Telephony Peers</h3>
-            <p class="text-gray-500 dark:text-zinc-400">Waiting for announces on the mesh.</p>
+            <h3 class="text-lg font-medium text-sem-fg">No Telephony Peers</h3>
+            <p class="text-sem-fg-muted">Waiting for announces on the mesh.</p>
         </div>
 
         <div v-else class="space-y-4">
-            <div class="border-b border-gray-200 dark:border-zinc-800 overflow-hidden">
+            <div class="border-b border-sem-border overflow-hidden">
                 <ul class="divide-y divide-gray-100 dark:divide-zinc-800">
                     <li
                         v-for="announce in discoveryAnnounces"
                         :key="announce.destination_hash"
-                        class="px-4 py-4 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
+                        class="px-4 py-4 hover:bg-sem-surface-muted/50 transition-colors"
                     >
                         <div class="flex items-center space-x-4">
                             <div class="shrink-0">
@@ -46,7 +46,7 @@
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center min-w-0">
-                                        <p class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                        <p class="text-sm font-bold text-sem-fg truncate">
                                             {{ announce.display_name || "Anonymous Peer" }}
                                         </p>
                                         <a
@@ -59,14 +59,14 @@
                                             <MaterialDesignIcon icon-name="message-text-outline" class="size-4" />
                                         </a>
                                     </div>
-                                    <span class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono ml-2 shrink-0">
+                                    <span class="text-[10px] text-sem-fg-muted font-mono ml-2 shrink-0">
                                         {{ formatTimeAgo(announce.updated_at) }}
                                     </span>
                                 </div>
                                 <div class="flex items-center justify-between mt-1">
                                     <div class="flex items-center space-x-2 min-w-0">
                                         <span
-                                            class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono truncate cursor-pointer hover:text-blue-500 transition-colors"
+                                            class="text-[10px] text-sem-fg-muted font-mono truncate cursor-pointer hover:text-blue-500 transition-colors"
                                             :title="announce.destination_hash"
                                             @click.stop="$emit('copy-hash', announce.destination_hash)"
                                         >
@@ -91,7 +91,7 @@
                         </div>
                     </li>
                 </ul>
-                <div v-if="hasMoreDiscovery" class="p-3 border-t border-gray-100 dark:border-zinc-800 text-center">
+                <div v-if="hasMoreDiscovery" class="p-3 border-t border-sem-border text-center">
                     <button
                         type="button"
                         class="text-xs text-blue-500 hover:text-blue-600 font-bold uppercase tracking-widest"

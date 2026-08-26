@@ -1,9 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div
-        class="relative z-20 flex items-center gap-2 px-3 sm:px-4 py-2 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
-    >
+    <div class="relative z-20 flex items-center gap-2 px-3 sm:px-4 py-2 border-b border-sem-border bg-sem-surface">
         <div class="shrink-0 mr-3">
             <LxmfUserIcon
                 :custom-image="selectedPeer.contact_image"
@@ -23,19 +21,19 @@
             <div class="flex items-center cursor-pointer min-w-0 group" @click="$emit('edit-display-name')">
                 <div
                     v-if="selectedPeer.custom_display_name != null"
-                    class="mr-1.5 text-gray-500 dark:text-zinc-400 group-hover:text-gray-700 dark:group-hover:text-zinc-200 transition-colors"
+                    class="mr-1.5 text-sem-fg-muted group-hover:text-gray-700 dark:group-hover:text-zinc-200 transition-colors"
                     :title="$t('messages.custom_display_name')"
                 >
                     <MaterialDesignIcon icon-name="tag-outline" class="size-4" />
                 </div>
                 <div
-                    class="font-semibold text-gray-900 dark:text-zinc-100 truncate max-w-[min(40vw,12rem)] sm:max-w-sm text-base"
+                    class="font-semibold text-sem-fg truncate max-w-[min(40vw,12rem)] sm:max-w-sm text-base"
                     :title="selectedPeer.custom_display_name ?? selectedPeer.display_name"
                 >
                     {{ selectedPeer.custom_display_name ?? selectedPeer.display_name }}
                 </div>
             </div>
-            <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5 flex items-center gap-2 min-w-0">
+            <div class="text-xs text-sem-fg-muted mt-0.5 flex items-center gap-2 min-w-0">
                 <div
                     class="cursor-pointer hover:text-blue-500 transition-colors truncate max-w-[min(40vw,12rem)] sm:max-w-none shrink-0"
                     :title="selectedPeer.destination_hash"
@@ -74,7 +72,7 @@
                         <span v-if="selectedPeerSignalMetrics?.snr != null" class="flex items-center gap-2 shrink-0">
                             <span class="text-gray-300 dark:text-zinc-700 opacity-50">•</span>
                             <span
-                                class="cursor-pointer hover:text-gray-700 dark:hover:text-zinc-200"
+                                class="cursor-pointer hover:text-gray-700 hover:text-sem-fg"
                                 title="Signal quality"
                                 @click="$emit('signal-metrics-click', selectedPeerSignalMetrics)"
                                 >{{ $t("messages.snr", { snr: selectedPeerSignalMetrics.snr }) }}</span
@@ -105,7 +103,7 @@
                             />
                             <span
                                 v-if="selectedPeerLxmfStampInfo?.stamp_cost"
-                                class="cursor-pointer hover:text-gray-700 dark:hover:text-zinc-200"
+                                class="cursor-pointer hover:text-gray-700 hover:text-sem-fg"
                                 title="LXMF stamp requirement"
                                 @click="$emit('stamp-info-click', selectedPeerLxmfStampInfo)"
                                 >{{ $t("messages.stamp_cost", { cost: selectedPeerLxmfStampInfo.stamp_cost }) }}</span
@@ -292,9 +290,9 @@ export default {
             return this.$t("messages.path_no_route");
         },
         peerPathRowClass() {
-            const base = "cursor-pointer hover:text-gray-700 dark:hover:text-zinc-200";
+            const base = "cursor-pointer hover:text-gray-700 hover:text-sem-fg";
             if (this.peerPathBusy) {
-                return `${base} text-blue-600 dark:text-blue-400`;
+                return `${base} text-sem-accent`;
             }
             if (!this.selectedPeerPath) {
                 return `${base} text-amber-700 dark:text-amber-400`;

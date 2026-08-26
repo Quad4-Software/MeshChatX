@@ -1,13 +1,11 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div
-        class="flex flex-col h-64 bg-gray-50 dark:bg-zinc-950 rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-800"
-    >
+    <div class="flex flex-col h-64 bg-gray-50 dark:bg-zinc-950 rounded-lg overflow-hidden border border-sem-border">
         <!-- message list -->
         <div ref="messageList" class="flex-1 overflow-y-auto p-2 space-y-2 scrollbar-thin">
             <div v-if="loading" class="flex justify-center py-4">
-                <v-icon icon="mdi-loading" class="animate-spin text-gray-400" size="20"></v-icon>
+                <MaterialDesignIcon icon-name="loading" class="size-5 animate-spin text-gray-400" />
             </div>
             <div v-else-if="messages.length === 0" class="text-center py-4 text-xs text-gray-400">
                 {{ $t("messages.no_messages_yet") }}
@@ -20,18 +18,14 @@
             >
                 <div
                     class="px-2 py-1 rounded-lg text-xs wrap-break-word shadow-xs"
-                    :class="
-                        msg.is_outbound
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white dark:bg-zinc-900 text-gray-800 dark:text-zinc-200'
-                    "
+                    :class="msg.is_outbound ? 'bg-blue-600 text-white' : 'bg-sem-surface text-sem-fg'"
                 >
                     <!-- Telemetry Header if no content -->
                     <div
                         v-if="!msg.content && msg.fields?.telemetry"
                         class="flex items-center gap-1 mb-1 pb-1 border-b border-white/10 opacity-80"
                     >
-                        <v-icon icon="mdi-satellite-variant" size="10"></v-icon>
+                        <MaterialDesignIcon icon-name="satellite-variant" class="size-2.5" />
                         <span class="text-[8px] font-bold uppercase tracking-wider">{{
                             msg.is_outbound
                                 ? $t("messages.telemetry_label_sent")
@@ -43,7 +37,7 @@
                         v-if="!msg.content && msg.fields?.commands?.some((c) => c['0x01'] || c['1'] || c['0x1'])"
                         class="flex items-center gap-1 mb-1 pb-1 border-b border-white/10 opacity-80"
                     >
-                        <v-icon icon="mdi-crosshairs-question" size="10"></v-icon>
+                        <MaterialDesignIcon icon-name="crosshairs-question" class="size-2.5" />
                         <span class="text-[8px] font-bold uppercase tracking-wider">{{
                             $t("messages.telemetry_location_request")
                         }}</span>
@@ -57,7 +51,7 @@
                             v-if="msg.fields.telemetry.location"
                             class="flex items-center gap-1 text-[9px] font-mono opacity-90"
                         >
-                            <v-icon icon="mdi-map-marker" size="10"></v-icon>
+                            <MaterialDesignIcon icon-name="map-marker" class="size-2.5" />
                             <span
                                 >{{ msg.fields.telemetry.location.latitude.toFixed(4) }},
                                 {{ msg.fields.telemetry.location.longitude.toFixed(4) }}</span
@@ -65,11 +59,12 @@
                         </div>
                         <div class="flex gap-2 opacity-70 text-[8px]">
                             <span v-if="msg.fields.telemetry.battery" class="flex items-center gap-0.5">
-                                <v-icon icon="mdi-battery" size="8"></v-icon
-                                >{{ msg.fields.telemetry.battery.charge_percent }}%
+                                <MaterialDesignIcon icon-name="battery" class="size-2" />{{
+                                    msg.fields.telemetry.battery.charge_percent
+                                }}%
                             </span>
                             <span v-if="msg.fields.telemetry.physical_link" class="flex items-center gap-0.5">
-                                <v-icon icon="mdi-antenna" size="8"></v-icon>SNR:
+                                <MaterialDesignIcon icon-name="antenna" class="size-2" />SNR:
                                 {{ msg.fields.telemetry.physical_link.snr }}dB
                             </span>
                         </div>
@@ -82,12 +77,12 @@
         </div>
 
         <!-- input -->
-        <div class="p-2 bg-white dark:bg-zinc-900 border-t border-gray-200 dark:border-zinc-800">
+        <div class="p-2 bg-sem-surface border-t border-sem-border">
             <div class="flex gap-1">
                 <input
                     v-model="newMessage"
                     type="text"
-                    class="flex-1 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-md px-2 py-1 text-xs focus:outline-hidden focus:ring-1 focus:ring-blue-500 text-gray-900 dark:text-zinc-100"
+                    class="flex-1 bg-gray-50 dark:bg-zinc-800 border border-sem-border rounded-md px-2 py-1 text-xs focus:outline-hidden focus:ring-1 focus:ring-blue-500 text-sem-fg"
                     :placeholder="$t('messages.send_placeholder')"
                     @keydown.enter="sendMessage"
                 />
@@ -99,11 +94,10 @@
                     class="p-1.5 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-zinc-700 text-white rounded-md transition-colors"
                     @click="sendMessage"
                 >
-                    <v-icon
-                        :icon="sending ? 'mdi-loading' : 'mdi-send'"
-                        :class="{ 'animate-spin': sending }"
-                        size="14"
-                    ></v-icon>
+                    <MaterialDesignIcon
+                        :icon-name="sending ? 'loading' : 'send'"
+                        :class="['size-3.5', { 'animate-spin': sending }]"
+                    />
                 </button>
             </div>
         </div>
@@ -111,8 +105,13 @@
 </template>
 
 <script>
+import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+
 export default {
     name: "MiniChat",
+    components: {
+        MaterialDesignIcon,
+    },
     props: {
         destinationHash: {
             type: String,

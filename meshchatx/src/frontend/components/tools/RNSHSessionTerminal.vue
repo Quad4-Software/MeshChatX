@@ -3,7 +3,7 @@
 <template>
     <div class="flex flex-col min-h-0 flex-1 min-w-0" :class="fullscreen ? 'h-dvh max-h-dvh' : ''">
         <div
-            class="shrink-0 flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 border-b border-gray-200 dark:border-zinc-800"
+            class="shrink-0 flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 border-b border-sem-border"
             :class="fullscreen ? 'px-2 py-2 bg-zinc-900 safe-top' : 'px-2 sm:px-3 md:px-4 py-2 sm:py-2.5'"
         >
             <div class="min-w-0 flex-1 flex items-center gap-1.5">
@@ -20,13 +20,10 @@
                     }}</span>
                 </button>
                 <div class="min-w-0">
-                    <div class="text-xs sm:text-sm font-semibold text-gray-900 dark:text-zinc-100 truncate">
+                    <div class="text-xs sm:text-sm font-semibold text-sem-fg truncate">
                         {{ session?.name || tKey("session_output") }}
                     </div>
-                    <div
-                        v-if="!compactHeader"
-                        class="text-[10px] sm:text-xs text-gray-500 dark:text-zinc-400 font-mono truncate"
-                    >
+                    <div v-if="!compactHeader" class="text-[10px] sm:text-xs text-sem-fg-muted font-mono truncate">
                         {{ session?.last_command || tKey("no_command_yet") }}
                     </div>
                 </div>
@@ -90,14 +87,14 @@
 
         <div
             v-if="session && session.mode === 'listen'"
-            class="shrink-0 flex items-center gap-2 px-2 sm:px-3 md:px-4 py-1.5 border-b border-gray-200 dark:border-zinc-800 bg-indigo-50 dark:bg-indigo-950/40"
+            class="shrink-0 flex items-center gap-2 px-2 sm:px-3 md:px-4 py-1.5 border-b border-sem-border bg-indigo-50 dark:bg-indigo-950/40"
         >
             <span
                 class="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300 shrink-0"
             >
                 {{ tKey("listening_on") }}
             </span>
-            <span class="min-w-0 flex-1 font-mono text-[11px] sm:text-xs text-gray-900 dark:text-zinc-100 truncate">
+            <span class="min-w-0 flex-1 font-mono text-[11px] sm:text-xs text-sem-fg truncate">
                 {{ listenAddress || tKey("waiting_for_address") }}
             </span>
             <button
@@ -122,7 +119,7 @@
         </div>
 
         <form
-            class="shrink-0 flex gap-1.5 sm:gap-2 border-t border-gray-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950"
+            class="shrink-0 flex gap-1.5 sm:gap-2 border-t border-sem-border bg-sem-canvas"
             :class="
                 fullscreen
                     ? 'px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] safe-bottom'
