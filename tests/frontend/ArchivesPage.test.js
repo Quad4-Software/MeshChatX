@@ -28,7 +28,6 @@ describe("ArchivesPage.vue", () => {
                 },
                 stubs: {
                     MaterialDesignIcon: true,
-                    ArchiveSidebar: true,
                 },
             },
         });

@@ -20,12 +20,14 @@ test.describe("Deep-linked routes", () => {
         await expect(page.getByText("Online Mode", { exact: true })).toBeVisible();
     });
 
-    test("archives page shows sidebar search", async ({ page }) => {
+    test("archives page shows search field", async ({ page }) => {
         await page.goto("/#/archives");
         await expect(page).toHaveURL(/#\/archives/);
-        await expect(page.getByPlaceholder("Search nodes or content...", { exact: true })).toBeVisible({
-            timeout: 20000,
-        });
+        await expect(page.getByPlaceholder("Search content, node name, hash, or path...", { exact: true })).toBeVisible(
+            {
+                timeout: 20000,
+            }
+        );
     });
 
     test("interfaces page lists add interface action", async ({ page }) => {
