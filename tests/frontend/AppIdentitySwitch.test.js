@@ -3,9 +3,27 @@ import App from "../../meshchatx/src/frontend/components/App.vue";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
 import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
 import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
+import { clearMessagePanes } from "../../meshchatx/src/frontend/js/browserLayoutStore";
+import { micronStorage } from "../../meshchatx/src/frontend/js/MicronStorage";
 
 vi.mock("../../meshchatx/src/frontend/js/csrfToken.js", () => ({
     fetchCsrfToken: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("../../meshchatx/src/frontend/js/browserLayoutStore.js", async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+        ...actual,
+        clearMessagePanes: vi.fn(),
+    };
+});
+
+vi.mock("../../meshchatx/src/frontend/js/MicronStorage", () => ({
+    micronStorage: {
+        clearAll: vi.fn().mockResolvedValue(undefined),
+        loadTabs: vi.fn().mockResolvedValue([]),
+        saveTabs: vi.fn().mockResolvedValue(undefined),
+    },
 }));
 
 vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
@@ -77,6 +95,8 @@ describe("App.vue applyIdentitySwitched", () => {
         expect(ctx.updateRelayChatUnreadCount).toHaveBeenCalledTimes(1);
         expect(GlobalState.blockedDestinations).toEqual([]);
         expect(ctx.isSwitchingIdentity).toBe(false);
+        expect(clearMessagePanes).toHaveBeenCalled();
+        expect(micronStorage.clearAll).toHaveBeenCalled();
         expect(GlobalEmitter.emit).toHaveBeenCalledWith(
             "identity-switched",
             expect.objectContaining({

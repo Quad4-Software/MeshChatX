@@ -179,6 +179,7 @@ import DialogUtils from "../../js/DialogUtils";
 import LinkUtils from "../../js/LinkUtils.js";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
+import GlobalEmitter from "../../js/GlobalEmitter";
 
 const NOMAD_DESTINATION_HASH = /^[a-fA-F0-9]{32}$/;
 const PAGE_EXTENSIONS = [".mu", ".html", ".md", ".txt"];
@@ -217,15 +218,37 @@ export default {
         },
     },
     async mounted() {
+        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
         await this.loadContent();
         this.handleResize();
         window.addEventListener("resize", this.handleResize);
         this.renderActiveTab();
     },
     beforeUnmount() {
+        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
         window.removeEventListener("resize", this.handleResize);
     },
     methods: {
+        async onIdentitySwitched() {
+            try {
+                localStorage.removeItem(this.storageKey);
+            } catch {
+                // ignore
+            }
+            try {
+                await micronStorage.clearAll();
+            } catch {
+                // ignore
+            }
+            this.tabs = [this.createDefaultTab(), this.createGuideTab(Date.now() + 1)];
+            this.activeTabIndex = 0;
+            try {
+                await micronStorage.saveTabs(this.tabs);
+            } catch {
+                // ignore
+            }
+            this.renderActiveTab();
+        },
         handleResize() {
             this.isMobileView = window.innerWidth < 768;
             if (!this.isMobileView) {

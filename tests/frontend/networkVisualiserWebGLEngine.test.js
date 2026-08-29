@@ -325,6 +325,12 @@ describe("networkVisualiserWebGL textures", () => {
         expect(resolveVisualiserAssetUrl("https://example.com/a.png")).toBe("https://example.com/a.png");
     });
 
+    it("resolveVisualiserAssetUrl rejects file and script schemes", () => {
+        expect(resolveVisualiserAssetUrl("file:///etc/passwd")).toBe("");
+        expect(resolveVisualiserAssetUrl("javascript:alert(1)")).toBe("");
+        expect(resolveVisualiserAssetUrl("vbscript:msgbox(1)")).toBe("");
+    });
+
     it("resolveVisualiserAssetUrl absolutizes root paths", () => {
         const origin = window.location.origin;
         expect(resolveVisualiserAssetUrl("/assets/images/reticulum_logo_512.png")).toBe(

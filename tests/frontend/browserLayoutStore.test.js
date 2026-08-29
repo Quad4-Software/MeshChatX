@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "@/js/browserLayoutStore";
+import {
+    clearMessagePanes,
+    loadFeatureSidebarCollapsed,
+    loadMessagePanes,
+    saveFeatureSidebarCollapsed,
+    saveMessagePanes,
+} from "@/js/browserLayoutStore";
 
 describe("browserLayoutStore sidebar collapse", () => {
     afterEach(() => {
@@ -34,5 +40,17 @@ describe("browserLayoutStore sidebar collapse", () => {
 
         expect(localStorage.getItem("relayChatSidebarCollapsed")).toBe("0");
         expect(loadFeatureSidebarCollapsed("relayChat")).toBe(false);
+    });
+
+    it("clearMessagePanes wipes persisted pane peers", () => {
+        saveMessagePanes({
+            panes: [{ destination_hash: "a".repeat(32), display_name: "A" }],
+            focusedIndex: 0,
+            sizes: [1],
+        });
+        clearMessagePanes();
+        const loaded = loadMessagePanes();
+        expect(loaded.panes).toEqual([]);
+        expect(loaded.focusedIndex).toBe(0);
     });
 });

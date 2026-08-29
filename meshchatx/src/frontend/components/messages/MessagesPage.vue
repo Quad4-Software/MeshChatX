@@ -621,6 +621,7 @@ export default {
                     pane.peer = null;
                 }
             }
+            this.persistPanes();
             this.getConfig();
             this.getConversations();
             this.getFolders();

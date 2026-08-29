@@ -212,7 +212,9 @@ export function resolveVisualiserAssetUrl(url) {
     if (!url || typeof url !== "string") return "";
     const trimmed = url.trim();
     if (!trimmed) return "";
-    if (/^(?:blob:|data:|https?:|file:)/i.test(trimmed)) return trimmed;
+    // Reject file: and other non-web schemes. Icons are same-origin paths or http(s)/blob/data.
+    if (/^(?:file:|javascript:|vbscript:)/i.test(trimmed)) return "";
+    if (/^(?:blob:|data:|https?:)/i.test(trimmed)) return trimmed;
     if (typeof window !== "undefined" && window.location?.origin && trimmed.startsWith("/")) {
         const base = typeof import.meta !== "undefined" && import.meta.env?.BASE_URL ? import.meta.env.BASE_URL : "/";
         const root = String(base || "/").replace(/\/?$/, "/");

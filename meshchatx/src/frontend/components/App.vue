@@ -546,7 +546,8 @@ import { isDatabaseRecoveryError, recoveryLocationForNetworkError } from "../js/
 import { handleLxmIngestUriResult } from "../js/ingestUriResultNavigation.js";
 import { applyRelayShareLink, parseMeshchatRelayUri } from "../js/relayLinkUtils.js";
 import logoUrl from "../assets/images/logo.png";
-import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../js/browserLayoutStore";
+import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed, clearMessagePanes } from "../js/browserLayoutStore";
+import { micronStorage } from "../js/MicronStorage";
 import {
     applyNavLayout,
     captureNavLayout,
@@ -1621,6 +1622,21 @@ export default {
                 GlobalState.missedCallsCount = 0;
                 GlobalState.relayChatUnreadCount = 0;
                 GlobalState.blockedDestinations = [];
+
+                // Drop device-global UI caches that must not follow the new identity.
+                clearMessagePanes();
+                try {
+                    if (typeof window !== "undefined" && window.localStorage) {
+                        window.localStorage.removeItem("micron_editor_content");
+                    }
+                } catch {
+                    // ignore
+                }
+                try {
+                    await micronStorage.clearAll();
+                } catch {
+                    // ignore
+                }
 
                 await this.getConfig();
                 await this.updateRingtonePlayer();
