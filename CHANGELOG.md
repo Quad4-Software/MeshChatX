@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [4.8.6] - 2026-08-22 [unreleased]
 
+### Fixed
+
+- **Map**: Discovered interfaces and telemetry markers update again. OpenLayers Map no longer shadows the JS Map (#73).
+- **Map search**: MapSearchBar registers MaterialDesignIcon.
+
 ### Changed
 
 - **Dependencies**: RNS 1.5.0.
