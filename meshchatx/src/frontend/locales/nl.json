@@ -2548,13 +2548,13 @@
         "tab_restore_failed": "Kon de pagina van dit tabblad niet herstellen",
         "open_node_failed": "Kon het NomadNet-knooppunt niet openen",
         "hide_source": "Bron verbergen",
-        "view_source": "View source",
-        "crash_tab_title": "Page renderer stopped responding",
-        "crash_tab_body": "The Nomad page sandbox hung or crashed. The rest of MeshChatX stays usable. Reload the page renderer, view source, or cancel.",
-        "crash_tab_reload": "Reload renderer",
-        "crash_tab_hung_toast": "Nomad page renderer stopped responding",
-        "crash_tab_rendering": "Rendering page…",
-        "crash_tab_render_cancelled": "Page render cancelled"
+        "view_source": "Bron tonen",
+        "crash_tab_title": "Paginarenderer reageert niet meer",
+        "crash_tab_body": "De Nomad-paginasandbox hing of crashte. De rest van MeshChatX blijft bruikbaar. Laad de paginarenderer opnieuw, bekijk de bron of annuleer.",
+        "crash_tab_reload": "Renderer opnieuw laden",
+        "crash_tab_hung_toast": "Nomad-paginarenderer reageert niet meer",
+        "crash_tab_rendering": "Pagina wordt gerenderd…",
+        "crash_tab_render_cancelled": "Paginarender geannuleerd"
     },
     "forwarder": {
         "title": "LXMF-doorstuurder",

@@ -2602,13 +2602,13 @@
         "tab_restore_failed": "Impossibile ripristinare la pagina di questa scheda",
         "open_node_failed": "Impossibile aprire il nodo NomadNet",
         "hide_source": "Nascondi sorgente",
-        "view_source": "View source",
-        "crash_tab_title": "Page renderer stopped responding",
-        "crash_tab_body": "The Nomad page sandbox hung or crashed. The rest of MeshChatX stays usable. Reload the page renderer, view source, or cancel.",
-        "crash_tab_reload": "Reload renderer",
-        "crash_tab_hung_toast": "Nomad page renderer stopped responding",
-        "crash_tab_rendering": "Rendering page…",
-        "crash_tab_render_cancelled": "Page render cancelled"
+        "view_source": "Mostra sorgente",
+        "crash_tab_title": "Il renderer della pagina non risponde",
+        "crash_tab_body": "La sandbox della pagina Nomad si è bloccata o è andata in crash. Il resto di MeshChatX resta utilizzabile. Ricarica il renderer, mostra il codice sorgente o annulla.",
+        "crash_tab_reload": "Ricarica renderer",
+        "crash_tab_hung_toast": "Il renderer della pagina Nomad non risponde",
+        "crash_tab_rendering": "Rendering della pagina…",
+        "crash_tab_render_cancelled": "Rendering della pagina annullato"
     },
     "forwarder": {
         "title": "Inoltro LXMF",
