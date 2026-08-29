@@ -7,35 +7,36 @@
 - 网站: [meshchatx.com](https://meshchatx.com)
 - 论坛: [forum.meshchatx.com](https://forum.meshchatx.com/)
 - 源码: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
-- 镜像: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
+- PyPI: [reticulum-meshchatx](https://pypi.org/project/reticulum-meshchatx/)
 - Changelog: [CHANGELOG.md](../CHANGELOG.md)
 - 捐赠: [donate.md](../donate.md)
 - LXMF: `f489752fbef161c64d65e385a4e9fc74`
 
-完整指南见 [`docs/en/`](../docs/en/)（英文）及应用内 Documentation：
+## 安装
 
-| 指南                                                           | 内容                                  |
-| -------------------------------------------------------------- | ------------------------------------- |
-| [Getting started](../docs/en/getting-started.md)               | 入门                                  |
-| [Installation](../docs/en/installation.md)                     | Docker、wheel、AppImage、deb/rpm、CLI |
-| [Building](../docs/en/building.md)                             | 离线构建、打包、Android APK           |
-| [Development](../docs/en/development.md)                       | task/make、版本、语言包               |
-| [Identities and security](../docs/en/identity-and-security.md) | 备份、数据库损坏、清除数据            |
-| [Platform guides](../docs/en/platform-guides/)                 | Pi、Termux、Quest、Linux 沙箱         |
-
-## 快速开始
-
-需要：Python 3.11+、Node.js 24+、pnpm 11.1.2、UV。
+Docker:
 
 ```bash
-docker compose up -d
+docker run -d --name reticulum-meshchatx \
+  -p 127.0.0.1:8000:8000 \
+  -v meshchatx-config:/config \
+  ghcr.io/quad4-software/meshchatx:latest
 ```
 
+PyPI（`pip` / `pipx` / `uv tool install reticulum-meshchatx`），然后 `meshchatx --headless --host 127.0.0.1`。
+
+从源码:
+
 ```bash
-task install
-pnpm run build-frontend
-uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
+git clone https://github.com/Quad4-Software/MeshChatX.git
+# 或 rngit:
+git clone rns://06a54b505bb67b25ef3f8097e8001edc/public/MeshChatX
+cd MeshChatX
+make install && make build && make run
+# 或: task install && task build && task run
 ```
+
+详情见 [`docs/en/installation.md`](../docs/en/installation.md)。
 
 本仓库当前版本: `4.8.6`。
 

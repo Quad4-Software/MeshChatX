@@ -15,16 +15,17 @@ MeshChatX can be installed in several ways. All release artifacts that ship the 
 
 ## Choose an install method
 
-| Method           | Frontend included | Best for                                 |
-| ---------------- | ----------------- | ---------------------------------------- |
-| Docker image     | Yes               | Fast server setup on Linux               |
-| Python wheel     | Yes               | Headless install without building the UI |
-| Linux AppImage   | Yes               | Portable desktop on x64 or arm64         |
-| Debian `.deb`    | Yes               | Debian and Ubuntu systems                |
-| RPM package      | Yes               | Fedora, RHEL, openSUSE style systems     |
-| Electron desktop | Yes               | Integrated desktop with bundled backend  |
-| Android APK      | Yes               | Phones, tablets, Meta Quest sideload     |
-| From source      | Built locally     | Development and custom builds            |
+| Method                       | Frontend included | Best for                                 |
+| ---------------------------- | ----------------- | ---------------------------------------- |
+| Docker image                 | Yes               | Fast server setup on Linux               |
+| PyPI (`reticulum-meshchatx`) | Yes               | Headless install without building the UI |
+| Release wheel                | Yes               | Same as PyPI from a GitHub artifact      |
+| Linux AppImage               | Yes               | Portable desktop on x64 or arm64         |
+| Debian `.deb`                | Yes               | Debian and Ubuntu systems                |
+| RPM package                  | Yes               | Fedora, RHEL, openSUSE style systems     |
+| Electron desktop             | Yes               | Integrated desktop with bundled backend  |
+| Android APK                  | Yes               | Phones, tablets, Meta Quest sideload     |
+| From source                  | Built locally     | Development and custom builds            |
 
 Release images are published to Docker Hub (`quad4io/meshchatx`) and GHCR (`ghcr.io/quad4-software/meshchatx`). Tag suffixes: none for the standard Alpine image, `-hardened` for Chainguard/Wolfi, `-extra` for Alpine plus i2pd and yggdrasil (`VARIANT=extra` on the same Dockerfile).
 
@@ -36,7 +37,16 @@ Quick start with Compose:
 docker compose up -d
 ```
 
-Manual run with a named volume for persistence:
+Basic run:
+
+```bash
+docker run -d --name reticulum-meshchatx \
+  -p 127.0.0.1:8000:8000 \
+  -v meshchatx-config:/config \
+  ghcr.io/quad4-software/meshchatx:latest
+```
+
+Hardened example with a named volume for persistence:
 
 ```bash
 docker run -d --name reticulum-meshchatx \
@@ -74,16 +84,17 @@ For a read-only mesh showcase on [Coolify](https://coolify.io/docs/knowledge-bas
 - Assign a domain with container port **8000**, for example `https://meshchatx.example.com:8000`.
 - Do not set `MESHCHAT_AUTH_BYPASS=1` on a public host.
 
-## Python wheel
+## Python package (PyPI or release wheel)
 
-1. Download `reticulum_meshchatx-*-py3-none-any.whl` from [releases](https://github.com/Quad4-Software/MeshChatX/releases).
-2. Install with pip, pipx, or uv:
+Published on PyPI as [`reticulum-meshchatx`](https://pypi.org/project/reticulum-meshchatx/). Wheels include the built web assets. No Node.js on the runtime host.
 
 ```bash
-pip install reticulum_meshchatx-*.whl
+pip install reticulum-meshchatx
+# or
+pipx install reticulum-meshchatx
+# or
+uv tool install reticulum-meshchatx
 ```
-
-3. Start the server:
 
 ```bash
 meshchatx --headless --host 127.0.0.1
@@ -91,7 +102,43 @@ meshchatx --headless --host 127.0.0.1
 
 The `meshchat` command is a compatibility alias for the same entry point.
 
+From a GitHub release artifact instead of PyPI:
+
+```bash
+pip install ./reticulum_meshchatx-*-py3-none-any.whl
+```
+
 On hosts where `libopus` is installed but `libogg` is not, LXST's vendored pyogg can raise `NameError: c_int_p` on import. MeshChatX applies a ctypes compatibility fix at startup (the same patch Docker runs after install). Optional telephony audio still needs the usual Opus/Ogg system libraries when you use those codecs.
+
+## From source (git clone)
+
+HTTPS:
+
+```bash
+git clone https://github.com/Quad4-Software/MeshChatX.git
+cd MeshChatX
+```
+
+Over Reticulum with rngit (`git-remote-rns`):
+
+```bash
+git clone rns://06a54b505bb67b25ef3f8097e8001edc/public/MeshChatX
+cd MeshChatX
+```
+
+Then use Make or Task (equivalent targets):
+
+```bash
+make install
+make build
+make run
+```
+
+```bash
+task install
+task build
+task run
+```
 
 ## Linux AppImage and packages
 
@@ -122,11 +169,11 @@ Download the `.rpm` only when the release includes one. CI uploads RPM when the 
 
 The emoji picker uses system fonts through Electron/Chromium. Empty squares mean a color emoji package is missing. Install one and restart the app.
 
-| Distro | Package |
-| ------ | ------- |
-| Arch, Artix, Manjaro | `sudo pacman -S noto-fonts-emoji` |
-| Debian, Ubuntu | `sudo apt install fonts-noto-color-emoji` |
-| Fedora | `google-noto-emoji-color-fonts` |
+| Distro               | Package                                   |
+| -------------------- | ----------------------------------------- |
+| Arch, Artix, Manjaro | `sudo pacman -S noto-fonts-emoji`         |
+| Debian, Ubuntu       | `sudo apt install fonts-noto-color-emoji` |
+| Fedora               | `google-noto-emoji-color-fonts`           |
 
 If glyphs still fail, run `fc-cache -fv` or wait until the next login. `noto-fonts` helps on minimal installs that lack other symbol coverage.
 

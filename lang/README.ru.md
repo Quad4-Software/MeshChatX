@@ -7,35 +7,36 @@
 - Сайт: [meshchatx.com](https://meshchatx.com)
 - Форум: [forum.meshchatx.com](https://forum.meshchatx.com/)
 - Исходники: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
-- Зеркало: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
+- PyPI: [reticulum-meshchatx](https://pypi.org/project/reticulum-meshchatx/)
 - Changelog: [CHANGELOG.md](../CHANGELOG.md)
 - Донаты: [donate.md](../donate.md)
 - LXMF: `f489752fbef161c64d65e385a4e9fc74`
 
-Подробные руководства: [`docs/en/`](../docs/en/) (на английском) и встроенная Documentation:
+## Установка
 
-| Руководство                                                    | О чём                                 |
-| -------------------------------------------------------------- | ------------------------------------- |
-| [Getting started](../docs/en/getting-started.md)               | Первый запуск                         |
-| [Installation](../docs/en/installation.md)                     | Docker, wheel, AppImage, deb/rpm, CLI |
-| [Building](../docs/en/building.md)                             | Офлайн-сборки, packaging, Android APK |
-| [Development](../docs/en/development.md)                       | task/make, версии, локали             |
-| [Identities and security](../docs/en/identity-and-security.md) | Бэкапы, повреждение БД, сброс         |
-| [Platform guides](../docs/en/platform-guides/)                 | Pi, Termux, Quest, Linux sandbox      |
-
-## Быстрый старт
-
-Нужны: Python 3.11+, Node.js 24+, pnpm 11.1.2, UV.
+Docker:
 
 ```bash
-docker compose up -d
+docker run -d --name reticulum-meshchatx \
+  -p 127.0.0.1:8000:8000 \
+  -v meshchatx-config:/config \
+  ghcr.io/quad4-software/meshchatx:latest
 ```
 
+PyPI (`pip` / `pipx` / `uv tool install reticulum-meshchatx`), затем `meshchatx --headless --host 127.0.0.1`.
+
+Из исходников:
+
 ```bash
-task install
-pnpm run build-frontend
-uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
+git clone https://github.com/Quad4-Software/MeshChatX.git
+# или rngit:
+git clone rns://06a54b505bb67b25ef3f8097e8001edc/public/MeshChatX
+cd MeshChatX
+make install && make build && make run
+# или: task install && task build && task run
 ```
+
+Подробнее: [`docs/en/installation.md`](../docs/en/installation.md).
 
 Текущая версия в репозитории: `4.8.6`.
 
