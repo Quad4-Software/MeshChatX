@@ -22,7 +22,7 @@
                 <div
                     v-if="isShowingMenu && dropdownPosition"
                     ref="dropdownPanel"
-                    class="overflow-x-hidden fixed z-200 w-56 rounded-md bg-white dark:bg-zinc-800 shadow-lg border border-sem-border focus:outline-hidden"
+                    class="dropdown-panel overflow-x-hidden fixed z-200 w-56 focus:outline-hidden"
                     :style="dropdownPanelStyle"
                     @click.stop="hideMenu"
                 >

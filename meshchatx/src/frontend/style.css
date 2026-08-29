@@ -137,8 +137,10 @@ input[type="color"].color-fill-input::-moz-color-swatch {
     border-radius: inherit;
 }
 
-select.input-field option {
-    @apply bg-sem-surface text-sem-fg;
+/* Native option popups ignore most select utilities. Theme every option. */
+select option {
+    background-color: var(--mc-surface);
+    color: var(--mc-text);
 }
 
 .primary-chip {
