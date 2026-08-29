@@ -5,6 +5,8 @@ import ConversationViewer from "@/components/messages/ConversationViewer.vue";
 vi.mock("@/js/DialogUtils", () => ({
     default: {
         confirm: vi.fn(() => Promise.resolve(true)),
+        alert: vi.fn(),
+        prompt: vi.fn(() => Promise.resolve(null)),
     },
 }));
 

@@ -11,14 +11,45 @@ vi.mock("@/js/DialogUtils", () => ({
     default: {
         confirm: vi.fn(() => Promise.resolve(true)),
         alert: vi.fn(),
+        prompt: vi.fn(() => Promise.resolve(null)),
     },
 }));
 
 describe("conversation incremental load smoke", () => {
     let axiosMock;
+    let wrappers;
     const peerHash = "ab".repeat(16);
 
+    const viewerStubs = {
+        MaterialDesignIcon: true,
+        AddImageButton: true,
+        AddAudioButton: true,
+        SendMessageButton: true,
+        ConversationDropDownMenu: true,
+        PaperMessageModal: true,
+        AudioWaveformPlayer: true,
+        LxmfUserIcon: true,
+    };
+
+    function mountViewer() {
+        const wrapper = mount(ConversationViewer, {
+            props: {
+                selectedPeer: { destination_hash: peerHash, display_name: "Peer" },
+                myLxmfAddressHash: "my-hash",
+                conversations: [],
+            },
+            global: {
+                directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
+                mocks: { $t: (k) => k, $route: { meta: {} }, $router: { push: vi.fn() } },
+                stubs: viewerStubs,
+            },
+        });
+        wrappers.push(wrapper);
+        return wrapper;
+    }
+
     beforeEach(() => {
+        wrappers = [];
         GlobalState.config.theme = "light";
         GlobalState.config.message_list_virtualization = false;
         WebSocketConnection.connect();
@@ -35,7 +66,15 @@ describe("conversation incremental load smoke", () => {
         });
     });
 
-    afterEach(() => {
+    afterEach(async () => {
+        for (const wrapper of wrappers.splice(0)) {
+            try {
+                wrapper.unmount();
+            } catch {
+                /* ignore teardown races */
+            }
+        }
+        await flushPromises();
         delete window.api;
         vi.unstubAllGlobals();
         WebSocketConnection.destroy();
@@ -78,30 +117,7 @@ describe("conversation incremental load smoke", () => {
             return Promise.resolve({ data: {} });
         });
 
-        mount(ConversationViewer, {
-            props: {
-                selectedPeer: { destination_hash: peerHash, display_name: "Peer" },
-                myLxmfAddressHash: "my-hash",
-                conversations: [],
-            },
-            global: {
-                directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
-                mocks: { $t: (k) => k, $route: { meta: {} }, $router: { push: vi.fn() } },
-                stubs: {
-                    MaterialDesignIcon: true,
-                    AddImageButton: true,
-                    AddAudioButton: true,
-                    SendMessageButton: true,
-                    ConversationDropDownMenu: true,
-                    PaperMessageModal: true,
-                    AudioWaveformPlayer: true,
-                    LxmfUserIcon: true,
-                    ConversationMessageEntry: true,
-                    ConversationMessageListVirtual: true,
-                    ConversationPeerHeader: true,
-                },
-            },
-        });
+        mountViewer();
         await flushPromises();
 
         expect(conversationGet).toHaveBeenCalledTimes(1);
@@ -124,30 +140,7 @@ describe("conversation incremental load smoke", () => {
             return Promise.resolve({ data: {} });
         });
 
-        const wrapper = mount(ConversationViewer, {
-            props: {
-                selectedPeer: { destination_hash: peerHash, display_name: "Peer" },
-                myLxmfAddressHash: "my-hash",
-                conversations: [],
-            },
-            global: {
-                directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
-                mocks: { $t: (k) => k, $route: { meta: {} }, $router: { push: vi.fn() } },
-                stubs: {
-                    MaterialDesignIcon: true,
-                    AddImageButton: true,
-                    AddAudioButton: true,
-                    SendMessageButton: true,
-                    ConversationDropDownMenu: true,
-                    PaperMessageModal: true,
-                    AudioWaveformPlayer: true,
-                    LxmfUserIcon: true,
-                    ConversationMessageEntry: true,
-                    ConversationMessageListVirtual: true,
-                    ConversationPeerHeader: true,
-                },
-            },
-        });
+        const wrapper = mountViewer();
         await flushPromises();
 
         wrapper.vm.chatItems = page2OldestFirst.map((row) => ({
@@ -197,30 +190,7 @@ describe("conversation incremental load smoke", () => {
             return Promise.resolve({ data: {} });
         });
 
-        const wrapper = mount(ConversationViewer, {
-            props: {
-                selectedPeer: { destination_hash: peerHash, display_name: "Peer" },
-                myLxmfAddressHash: "my-hash",
-                conversations: [],
-            },
-            global: {
-                directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
-                mocks: { $t: (k) => k, $route: { meta: {} }, $router: { push: vi.fn() } },
-                stubs: {
-                    MaterialDesignIcon: true,
-                    AddImageButton: true,
-                    AddAudioButton: true,
-                    SendMessageButton: true,
-                    ConversationDropDownMenu: true,
-                    PaperMessageModal: true,
-                    AudioWaveformPlayer: true,
-                    LxmfUserIcon: true,
-                    ConversationMessageEntry: true,
-                    ConversationMessageListVirtual: true,
-                    ConversationPeerHeader: true,
-                },
-            },
-        });
+        const wrapper = mountViewer();
         await flushPromises();
         expect(fetches).toBe(1);
 
