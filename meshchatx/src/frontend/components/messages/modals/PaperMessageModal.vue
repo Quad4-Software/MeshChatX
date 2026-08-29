@@ -175,6 +175,7 @@
 import QRCode from "qrcode";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import ToastUtils from "../../../js/ToastUtils";
+import Utils from "../../../js/Utils";
 
 export default {
     name: "PaperMessageModal",
@@ -348,8 +349,8 @@ export default {
                     </head>
                     <body>
                         <h1>LXMF Paper Message</h1>
-                        <img src="${dataUrl}" />
-                        <div class="hash">Message Hash: ${this.messageHash}</div>
+                        <img src="${Utils.escapeHtml(dataUrl)}" />
+                        <div class="hash">Message Hash: ${Utils.escapeHtml(this.messageHash || "")}</div>
                         <p>Scan this code with an LXMF-compatible app to read the message.</p>
                         <script>window.onload = () => { window.print(); window.close(); }</scr' + 'ipt>
                     </body>

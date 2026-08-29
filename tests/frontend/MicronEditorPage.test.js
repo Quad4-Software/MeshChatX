@@ -27,6 +27,14 @@ vi.mock("@/js/MicronStorage", () => ({
     },
 }));
 
+vi.mock("@/js/GlobalEmitter", () => ({
+    default: {
+        on: vi.fn(),
+        off: vi.fn(),
+        emit: vi.fn(),
+    },
+}));
+
 vi.mock("@/js/DialogUtils", () => ({
     default: {
         confirm: vi.fn(),
@@ -177,4 +185,19 @@ describe("MicronEditorPage.vue", () => {
         expect(micronStorage.clearAll).toHaveBeenCalled();
         expect(wrapper.vm.tabs.length).toBe(2); // main and guide
     }, 20_000);
+
+    it("onIdentitySwitched clears storage and resets tabs", async () => {
+        const wrapper = mountMicronEditorPage();
+        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
+        await wrapper.setData({
+            tabs: [{ id: 1, name: "Secret", content: "from-identity-a" }],
+            activeTabIndex: 0,
+        });
+        await wrapper.vm.onIdentitySwitched();
+        expect(micronStorage.clearAll).toHaveBeenCalled();
+        expect(micronStorage.saveTabs).toHaveBeenCalled();
+        expect(wrapper.vm.tabs.length).toBe(2);
+        expect(wrapper.vm.tabs[0].content).not.toContain("from-identity-a");
+        expect(wrapper.vm.activeTabIndex).toBe(0);
+    });
 });

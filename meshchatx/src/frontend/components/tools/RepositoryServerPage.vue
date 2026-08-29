@@ -173,6 +173,7 @@
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
+import LinkUtils from "../../js/LinkUtils.js";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
 
 export default {
@@ -198,15 +199,17 @@ export default {
             if (!raw) {
                 return null;
             }
+            let candidate = String(raw).trim();
             try {
-                const parsed = new URL(raw);
+                const parsed = new URL(candidate);
                 if (parsed.hostname === "0.0.0.0" && typeof window !== "undefined" && window.location?.hostname) {
                     parsed.hostname = window.location.hostname;
                 }
-                return parsed.toString();
+                candidate = parsed.toString();
             } catch {
-                return raw;
+                // Fall through to http(s) allowlist below.
             }
+            return LinkUtils.httpUrlHrefOrNull(candidate);
         },
     },
     async mounted() {

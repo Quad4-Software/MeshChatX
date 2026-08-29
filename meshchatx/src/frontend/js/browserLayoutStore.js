@@ -116,6 +116,13 @@ export function saveMessagePanes(state) {
 }
 
 /**
+ * Clear persisted Messages pane layout (used on identity switch).
+ */
+export function clearMessagePanes() {
+    writeJson(MESSAGE_PANES_KEY, { panes: [], focusedIndex: 0, sizes: [] });
+}
+
+/**
  * Load persisted RNSH manager UI layout.
  *
  * @returns {{selectedSessionId: string|null}|null} saved layout or null
