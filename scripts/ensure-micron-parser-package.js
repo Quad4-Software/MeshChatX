@@ -11,9 +11,7 @@ const packageJsonPath = path.join(packageDir, "package.json");
 const entryPath = path.join(packageDir, "js", "micron-parser.js");
 
 if (!fs.existsSync(packageDir) || !fs.existsSync(entryPath)) {
-    console.error(
-        "micron-parser is missing under node_modules. Run pnpm install, then retry."
-    );
+    console.error("micron-parser is missing under node_modules. Run pnpm install, then retry.");
     process.exit(1);
 }
 
