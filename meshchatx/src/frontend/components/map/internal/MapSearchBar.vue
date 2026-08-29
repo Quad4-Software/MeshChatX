@@ -56,8 +56,11 @@
 </template>
 
 <script>
+import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
+
 export default {
     name: "MapSearchBar",
+    components: { MaterialDesignIcon },
     props: {
         modelValue: { type: String, default: "" },
         results: { type: Array, default: () => [] },

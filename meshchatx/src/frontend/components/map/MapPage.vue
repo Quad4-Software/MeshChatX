@@ -861,7 +861,7 @@ import { markRaw } from "vue";
 import "ol/ol.css";
 import "../../js/mapVectorWebFonts.js";
 import { apply as applyMapboxStyle } from "ol-mapbox-style";
-import Map from "ol/Map";
+import OlMap from "ol/Map";
 import View from "ol/View";
 import LayerGroup from "ol/layer/Group";
 import TileLayer from "ol/layer/Tile";
@@ -1657,7 +1657,7 @@ export default {
 
             const baseLayer = await this.buildBaseMapLayer();
             const mapPixelRatio = Math.min(typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1, 2);
-            this.map = new Map({
+            this.map = new OlMap({
                 target: this.$refs.mapContainer,
                 layers: [baseLayer],
                 view: new View({
