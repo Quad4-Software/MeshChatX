@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- **CI**: Register HTTP JSON contracts for archive detail and crawl opt-outs GETs. Narrow `link_rtt_ms` float conversion for basedpyright.
 - **UI**: Native select options and dropdown panels use theme text and background colors.
 - **NomadNet**: Page paint runs in a sandboxed crash-tab iframe so a hung Micron/HTML page does not freeze the shell. Cancel aborts download and tears down the renderer. No page-size refuse caps. Crash-tab and view-source strings translated in de, es, fi, fr, it, nl, ru, zh.
 - **Map**: Discovered interfaces and telemetry markers update again. OpenLayers Map no longer shadows the JS Map (#73).
@@ -22,6 +23,7 @@ All notable changes to this project will be documented in this file.
 
 - **Dependencies**: RNS 1.5.2.
 - **Smart Crawler**: Completed tasks stay completed until refresh. Retry backoff is enforced. Concurrent crawls capped at 2.
+- **Docs**: Root README and translated READMEs trimmed to under 100 lines. Long install, build, recovery, and contributor content moved under `docs/en/` (`building.md`, `development.md`, plus expansions in installation, audio-calls, and identity-and-security).
 
 ## [4.8.5] - 2026-08-21 [released]
 

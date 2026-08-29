@@ -81,6 +81,17 @@ LXST Telephone session over Reticulum
 Callee UI: ring, answer, or decline
 ```
 
+## Windows microphone (Electron, Windows 10 / 11)
+
+Calls and voice attachments use the mic through Chromium. If the UI has no access or `getUserMedia` fails, check Windows privacy first. That is a common miss for Win32 apps, Electron included.
+
+1. Win+R, paste `ms-settings:privacy-microphone`, Enter.
+2. Turn Microphone access on.
+3. Enable Let desktop apps access your microphone (wording varies by Windows version).
+4. If a per-app list appears, make sure MeshChatX is not denied.
+
+Also check Settings, System, Sound so the app is not muted and a working input device is selected.
+
 ## Tips
 
 - Verify **Interfaces** and paths before troubleshooting audio quality. Packet loss on the mesh affects voice.

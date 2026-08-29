@@ -105,10 +105,30 @@ chmod +x ./ReticulumMeshChatX-v*-linux-*.AppImage
 **Debian package**
 
 ```bash
-sudo dpkg -i reticulum-meshchatx_*_amd64.deb
+sudo apt install ./ReticulumMeshChatX-v*-linux-*.deb
 ```
 
 Adjust the filename for your architecture.
+
+**RPM**
+
+```bash
+sudo rpm -Uvh ./ReticulumMeshChatX-v*-linux-*.rpm
+```
+
+Download the `.rpm` only when the release includes one. CI uploads RPM when the packaging job produces it.
+
+## Linux desktop emoji fonts
+
+The emoji picker uses system fonts through Electron/Chromium. Empty squares mean a color emoji package is missing. Install one and restart the app.
+
+| Distro | Package |
+| ------ | ------- |
+| Arch, Artix, Manjaro | `sudo pacman -S noto-fonts-emoji` |
+| Debian, Ubuntu | `sudo apt install fonts-noto-color-emoji` |
+| Fedora | `google-noto-emoji-color-fonts` |
+
+If glyphs still fail, run `fc-cache -fv` or wait until the next login. `noto-fonts` helps on minimal installs that lack other symbol coverage.
 
 ## From source (development)
 
@@ -149,7 +169,9 @@ Common flags and environment variables:
 | `--ssl-key`              | `MESHCHAT_SSL_KEY`              | auto           | TLS private key path                                                                |
 | `--headless`             | `MESHCHAT_HEADLESS`             | false          | Do not open a browser                                                               |
 | `--auth`                 | `MESHCHAT_AUTH`                 | false          | Require HTTP basic auth for the UI                                                  |
+| `--reset-password`       | `MESHCHAT_RESET_PASSWORD`       | false          | Clear the stored password hash so a new one can be set in the UI                    |
 | `--storage-dir`          | `MESHCHAT_STORAGE_DIR`          | `./storage`    | Application data directory                                                          |
+| `--public-dir`           | `MESHCHAT_PUBLIC_DIR`           | auto/bundled   | Frontend files. Needed for source installs without bundled assets.                  |
 | `--reticulum-config-dir` | `MESHCHAT_RETICULUM_CONFIG_DIR` | `~/.reticulum` | Reticulum configuration                                                             |
 | `--data-dir`             | `MESHCHAT_DATA_DIR`             | none           | Portable root (`storage` + `.reticulum` subdirs when the two paths above are unset) |
 | `--identity-file`        | `MESHCHAT_IDENTITY_FILE`        | none           | Load identity from file                                                             |
@@ -256,4 +278,4 @@ Otherwise MeshChatX generates one and saves it under `<storage>/identity`. Addit
 3. Enable **telephone** in settings if you plan to use audio calls.
 4. Open **Documentation** for MeshChatX guides and the Reticulum manual offline.
 
-Platform-specific notes live under **Platform guides** in this documentation bundle.
+Platform-specific notes live under **Platform guides** in this documentation bundle, including **Linux sandboxing** (Firejail and Bubblewrap). Offline packaging, Android APK builds, and `Dockerfile.build` are in **Building from source and packaging**. Contributor `task` targets and locales are in **Development**.
