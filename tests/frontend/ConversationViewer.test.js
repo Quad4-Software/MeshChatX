@@ -13,6 +13,8 @@ import NotificationUtils from "@/js/NotificationUtils";
 vi.mock("@/js/DialogUtils", () => ({
     default: {
         confirm: vi.fn(() => Promise.resolve(true)),
+        alert: vi.fn(),
+        prompt: vi.fn(() => Promise.resolve(null)),
     },
 }));
 
