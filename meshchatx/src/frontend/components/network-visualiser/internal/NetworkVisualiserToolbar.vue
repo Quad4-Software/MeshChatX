@@ -79,7 +79,7 @@
                                 v-if="engineMenuOpen"
                                 ref="engineMenuPanel"
                                 v-click-outside="closeEngineMenu"
-                                class="fixed z-200 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+                                class="fixed z-200 w-56 overflow-hidden rounded-xl border border-sem-border bg-sem-surface shadow-lg"
                                 :style="engineMenuStyle"
                                 role="listbox"
                                 :aria-label="$t('visualiser.engine')"

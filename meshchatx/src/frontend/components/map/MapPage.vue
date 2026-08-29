@@ -395,7 +395,7 @@
                     }}</label>
                     <select
                         v-model="pingDestinationHash"
-                        class="w-full mb-2 bg-gray-50 dark:bg-zinc-800 border border-sem-border rounded-lg px-3 py-2 text-sm"
+                        class="w-full mb-2 bg-gray-50 dark:bg-zinc-800 border border-sem-border rounded-lg px-3 py-2 text-sm text-sem-fg"
                     >
                         <option value="">{{ $t("map.ping_pick_conversation") }}</option>
                         <option v-for="p in conversationOptions" :key="p.hash" :value="p.hash">

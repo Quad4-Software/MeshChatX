@@ -119,7 +119,7 @@
                     />
                     <select
                         v-model="newPackType"
-                        class="rounded-lg border border-gray-300 dark:border-zinc-600 px-2 py-1.5 bg-white dark:bg-zinc-800"
+                        class="rounded-lg border border-gray-300 dark:border-zinc-600 px-2 py-1.5 bg-white dark:bg-zinc-800 text-sem-fg"
                     >
                         <option value="static">{{ $t("sticker_packs.type_static") }}</option>
                         <option value="animated">{{ $t("sticker_packs.type_animated") }}</option>

@@ -21,7 +21,7 @@
                 <span>{{ $t("map.remote_overlays_kind") }}</span>
                 <select
                     v-model="kind"
-                    class="w-full rounded-lg border border-sem-border bg-sem-surface px-2 py-1.5 text-[11px]"
+                    class="w-full rounded-lg border border-sem-border bg-sem-surface px-2 py-1.5 text-[11px] text-sem-fg"
                 >
                     <option value="nomadnet_file">NomadNet /file/</option>
                     <option value="rngit_files">RNGit sparse</option>

@@ -220,7 +220,7 @@
                         <span class="text-xs text-gray-500 uppercase font-semibold">Show:</span>
                         <select
                             v-model="itemsPerPage"
-                            class="bg-transparent border-none text-sm font-bold focus:ring-0 cursor-pointer"
+                            class="bg-transparent border-none text-sm font-bold text-sem-fg focus:ring-0 cursor-pointer"
                         >
                             <option :value="20">20</option>
                             <option :value="50">50</option>
