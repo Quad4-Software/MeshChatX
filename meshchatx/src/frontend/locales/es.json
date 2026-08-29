@@ -2580,6 +2580,7 @@
         "rule_deleted": "Regla de reenvío eliminada"
     },
     "archives": {
+        "title": "Archivos",
         "description": "Busca páginas de Nomad Network guardadas en tu archivo local.",
         "search_placeholder": "Buscar contenido, nombre de nodo, hash o ruta...",
         "loading": "Cargando archivos...",
@@ -2625,7 +2626,13 @@
         "never_crawl_failed": "No se pudo guardar la exclusión del crawler",
         "prev_page": "Anterior",
         "next_page": "Siguiente",
-        "retry": "Reintentar"
+        "retry": "Reintentar",
+        "back_to_list": "Volver a la lista",
+        "recrawl": "Volver a rastrear",
+        "recrawl_pending": "Obteniendo página en vivo...",
+        "recrawl_done": "Página rastreada de nuevo",
+        "recrawl_failed": "Falló el rastreo. Inténtalo de nuevo.",
+        "rendering": "Renderizando..."
     },
     "docs": {
         "title": "Documentación",

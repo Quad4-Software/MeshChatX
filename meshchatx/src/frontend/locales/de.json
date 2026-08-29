@@ -2356,6 +2356,7 @@
         "rule_deleted": "Weiterleitungsregel gelöscht"
     },
     "archives": {
+        "title": "Archive",
         "description": "Durchsuche Nomad-Seiten in deinem lokalen Archiv.",
         "search_placeholder": "Inhalt, Knotenname, Hash oder Pfad suchen...",
         "loading": "Archive werden geladen...",
@@ -2401,7 +2402,13 @@
         "never_crawl_failed": "Crawl-Opt-out konnte nicht gespeichert werden",
         "prev_page": "Zurück",
         "next_page": "Weiter",
-        "retry": "Erneut versuchen"
+        "retry": "Erneut versuchen",
+        "back_to_list": "Zurück zur Liste",
+        "recrawl": "Seite erneut abrufen",
+        "recrawl_pending": "Live-Seite wird geladen...",
+        "recrawl_done": "Seite erneut archiviert",
+        "recrawl_failed": "Erneutes Abrufen fehlgeschlagen. Bitte erneut versuchen.",
+        "rendering": "Wird gerendert..."
     },
     "docs": {
         "title": "Dokumentation",

@@ -6,11 +6,12 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- **Archives**: Search with snippets, node filter, and pagination. Full page loads when opened. Crawl opt-out from the viewer.
+- **Archives**: Search with snippets and pagination. Card Micron/Markdown/HTML previews. Recrawl from the viewer. Stacked layout under 1024px.
 - **Smart Crawler**: Hop and RTT caps, one request per node per day, depth up to 2, max 20 pages per node, `# nocrawl` and Archives opt-out. Schema v56.
 
 ### Fixed
 
+- **UI**: Native select options and dropdown panels use theme text and background colors.
 - **NomadNet**: Page paint runs in a sandboxed crash-tab iframe so a hung Micron/HTML page does not freeze the shell. Cancel aborts download and tears down the renderer. No page-size refuse caps. Crash-tab and view-source strings translated in de, es, fi, fr, it, nl, ru, zh.
 - **Map**: Discovered interfaces and telemetry markers update again. OpenLayers Map no longer shadows the JS Map (#73).
 - **Map search**: MapSearchBar registers MaterialDesignIcon.

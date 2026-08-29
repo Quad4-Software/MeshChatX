@@ -2580,6 +2580,7 @@
         "rule_deleted": "Edelleenlähetyssääntö poistettu"
     },
     "archives": {
+        "title": "Arkisto",
         "description": "Etsi Nomad Network -sivuja paikallisesta arkistosta.",
         "search_placeholder": "Hae sisältöä, solmun nimeä, tiivistettä tai polkua...",
         "loading": "Ladataan arkistoa...",
@@ -2625,7 +2626,13 @@
         "never_crawl_failed": "Ryömijän kieltoa ei voitu tallentaa",
         "prev_page": "Edellinen",
         "next_page": "Seuraava",
-        "retry": "Yritä uudelleen"
+        "retry": "Yritä uudelleen",
+        "back_to_list": "Takaisin listaan",
+        "recrawl": "Hae sivu uudelleen",
+        "recrawl_pending": "Haetaan live-sivua...",
+        "recrawl_done": "Sivu haettu uudelleen",
+        "recrawl_failed": "Uudelleenhaku epäonnistui. Yritä uudelleen.",
+        "rendering": "Hahmonnetaan..."
     },
     "docs": {
         "title": "Dokumentaatio",

@@ -2580,6 +2580,7 @@
         "rule_deleted": "转发规则已删除"
     },
     "archives": {
+        "title": "存档",
         "description": "搜索本地存档中的 Nomad Network 页面。",
         "search_placeholder": "搜索内容、节点名、哈希或路径...",
         "loading": "正在加载存档...",
@@ -2625,7 +2626,13 @@
         "never_crawl_failed": "无法保存爬虫排除项",
         "prev_page": "上一页",
         "next_page": "下一页",
-        "retry": "重试"
+        "retry": "重试",
+        "back_to_list": "返回列表",
+        "recrawl": "重新抓取",
+        "recrawl_pending": "正在获取实时页面...",
+        "recrawl_done": "页面已重新抓取",
+        "recrawl_failed": "重新抓取失败。请重试。",
+        "rendering": "正在渲染..."
     },
     "docs": {
         "title": "文档",

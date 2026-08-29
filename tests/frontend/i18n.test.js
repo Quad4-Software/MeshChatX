@@ -113,6 +113,36 @@ describe("i18n Localization Tests", () => {
         expect(nonDynamicMissing.length).toBe(0);
     });
 
+    it("keeps archives page keys present in every locale", () => {
+        const required = [
+            "archives.title",
+            "archives.description",
+            "archives.search_placeholder",
+            "archives.recrawl",
+            "archives.recrawl_pending",
+            "archives.recrawl_done",
+            "archives.recrawl_failed",
+            "archives.never_crawl",
+            "archives.back_to_list",
+            "archives.rendering",
+            "archives.view",
+            "archives.clear_search",
+            "archives.matches_count",
+        ];
+        for (const key of required) {
+            const parts = key.split(".");
+            for (const [code, data] of Object.entries(allLocales)) {
+                let current = data;
+                for (const part of parts) {
+                    expect(current?.[part], `${code} missing ${key}`).toBeDefined();
+                    current = current[part];
+                }
+                expect(typeof current, `${code} ${key} type`).toBe("string");
+                expect(String(current).trim().length, `${code} ${key} empty`).toBeGreaterThan(0);
+            }
+        }
+    });
+
     it("keeps docs upload/share keys present in every locale", () => {
         const required = [
             "docs.btn_share",
