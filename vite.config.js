@@ -276,6 +276,7 @@ export default defineConfig(({ command }) => {
                 },
                 input: {
                     app: path.join(__dirname, "meshchatx", "src", "frontend", "index.html"),
+                    "nomad-crash-tab": path.join(__dirname, "meshchatx", "src", "frontend", "nomad-crash-tab.html"),
                 },
                 output: {
                     codeSplitting: {

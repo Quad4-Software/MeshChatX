@@ -480,14 +480,37 @@
                             </button>
                         </div>
                     </div>
-                    <!-- eslint-disable vue/no-v-html -- sanitized via renderNomadPageByPath -->
-                    <div
-                        v-else
-                        v-memo="[renderedNodePageHtml, nodePagePath, isShowingNodePageSource]"
-                        :class="nomadPageContentClasses"
-                        v-html="renderedNodePageHtml"
-                    ></div>
-                    <!-- eslint-enable vue/no-v-html -->
+                    <div v-else class="relative h-full min-h-0 w-full">
+                        <NomadCrashTab
+                            ref="crashTab"
+                            class="h-full min-h-0 w-full"
+                            :path="nodePagePath || ''"
+                            :content="nodePageContent || ''"
+                            :show-source="isShowingNodePageSource"
+                            :page-partials="pagePartials"
+                            :render-options="nomadRenderOptions"
+                            :content-class="nomadCrashTabContentClass"
+                            :color="nomadCrashTabColor"
+                            :background="nomadCrashTabBackground"
+                            :active="isActive"
+                            @navigate="onCrashTabNavigate"
+                            @partials="onCrashTabPartials"
+                            @view-source="showPageSource"
+                            @hung="onCrashTabHung"
+                            @render-started="isCrashTabRendering = true"
+                            @render-done="isCrashTabRendering = false"
+                            @aborted="onCrashTabAborted"
+                        />
+                        <div v-if="isCrashTabRendering" class="absolute bottom-3 right-3 z-20 flex items-center gap-2">
+                            <button
+                                type="button"
+                                class="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-semibold text-white shadow hover:bg-red-500"
+                                @click="cancelCrashTabRender"
+                            >
+                                {{ $t("common.cancel") }}
+                            </button>
+                        </div>
+                    </div>
                     <Teleport to="body">
                         <div
                             v-if="multilineHintVisible"
@@ -590,6 +613,7 @@ import DialogUtils from "../../js/DialogUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import NomadNetworkSidebar from "./NomadNetworkSidebar.vue";
 import NomadBrowserContextMenu from "./NomadBrowserContextMenu.vue";
+import NomadCrashTab from "./NomadCrashTab.vue";
 import Utils from "../../js/Utils";
 import DownloadUtils from "../../js/DownloadUtils";
 import ToastUtils from "../../js/ToastUtils";
@@ -616,6 +640,7 @@ export default {
     components: {
         NomadNetworkSidebar,
         NomadBrowserContextMenu,
+        NomadCrashTab,
         ClickPopover,
         MaterialDesignIcon,
         IconButton,
@@ -715,6 +740,8 @@ export default {
             partialRefreshByKey: {},
             partialRefreshTimers: {},
             processPartialsRaf: null,
+            crashTabPartials: [],
+            isCrashTabRendering: false,
             multilineCleanup: null,
             multilineHintVisible: false,
 
@@ -879,11 +906,27 @@ export default {
             }
             return base;
         },
-        renderedNodePageHtml() {
+        crashTabContentKey() {
+            // Change detector only. Do not Micron-parse on the shell thread.
             if (!this.nodePagePath || this.nodePageContent == null) {
                 return "";
             }
-            return this.renderPageContent(this.nodePagePath, this.nodePageContent);
+            return `${this.isShowingNodePageSource ? "src" : "page"}:${this.nodePagePath}:${this.nodePageContent.length}`;
+        },
+        nomadCrashTabContentClass() {
+            return (this.nomadPageContentClasses || []).join(" ");
+        },
+        nomadCrashTabColor() {
+            if (this.nomadRenderedShellFullBleed) {
+                return this.nomadShellDark ? "#f3f4f6" : "#111827";
+            }
+            return "#ffffff";
+        },
+        nomadCrashTabBackground() {
+            if (this.nomadRenderedShellFullBleed && this.pageShellBackground) {
+                return this.pageShellBackground;
+            }
+            return "transparent";
         },
         hasPageLoadFailed() {
             if (this.isLoadingNodePage) {
@@ -973,15 +1016,9 @@ export default {
         nomadNetworkSidebarCollapsed(collapsed) {
             saveFeatureSidebarCollapsed("nomadnetwork", collapsed);
         },
-        renderedNodePageHtml(newVal, oldVal) {
-            if (newVal !== oldVal) {
-                this.loadedPartialIds = {};
-            }
-            this.scheduleProcessPartials();
-            this.$nextTick(() => {
-                this.refreshMultilineExpansion();
-                this.syncPageShellBackground();
-            });
+        crashTabContentKey() {
+            this.loadedPartialIds = {};
+            this.crashTabPartials = [];
         },
         nomadRenderedShellFullBleed() {
             this.syncPageShellBackground();
@@ -1994,10 +2031,7 @@ export default {
                 return;
             }
 
-            const container = this.$el.querySelector(".nodeContainer");
-            if (!container) return;
-
-            const placeholders = container.querySelectorAll(".mu-partial");
+            const placeholders = this.crashTabPartials || [];
             if (placeholders.length === 0) return;
 
             // Hostile pages can emit many partials / 1s refresh loops. Cap fan-out
@@ -2017,17 +2051,17 @@ export default {
                     return;
                 }
                 seenPlaceholders += 1;
-                const id = el.getAttribute("data-partial-id");
-                const dest = el.getAttribute("data-dest");
-                const path = el.getAttribute("data-path");
-                const refreshAttr = el.getAttribute("data-refresh");
+                const id = el.id;
+                const dest = el.dest;
+                const path = el.path;
+                const refreshAttr = el.refresh;
                 let refresh = refreshAttr ? parseInt(refreshAttr, 10) : null;
                 if (Number.isFinite(refresh) && refresh > 0) {
                     refresh = Math.max(refresh, MIN_PARTIAL_REFRESH_SEC);
                 } else {
                     refresh = null;
                 }
-                const fieldsStr = el.getAttribute("data-fields");
+                const fieldsStr = el.fields;
                 const key = dest + ":" + path;
                 if (!idsByKey[key]) idsByKey[key] = [];
                 idsByKey[key].push({ id, refresh });
@@ -2058,12 +2092,13 @@ export default {
 
             const muParser = new MicronParser();
             const updatePartialDom = (html, ids) => {
-                const container = this.$el.querySelector(".nodeContainer");
-                if (!container) return;
+                const crashTab = this.$refs.crashTab;
+                if (!crashTab || typeof crashTab.setPartialHtml !== "function") {
+                    return;
+                }
                 for (const { id } of ids) {
-                    const el = container.querySelector(`[data-partial-id="${id}"]`);
-                    if (el) {
-                        el.innerHTML = html;
+                    if (id) {
+                        crashTab.setPartialHtml(id, html);
                     }
                 }
             };
@@ -2127,6 +2162,10 @@ export default {
                 this.pageShellBackground = null;
                 return;
             }
+            // Crash-tab content lives in an opaque iframe. Keep prior shell paint.
+            if (this.$refs.crashTab) {
+                return;
+            }
             const container = this.$el?.querySelector?.(".nodeContainer");
             if (!container) {
                 this.pageShellBackground = null;
@@ -2135,10 +2174,66 @@ export default {
             const root = container.querySelector(".nomad-html-root");
             this.pageShellBackground = root ? resolveNomadPageShellBackground(root) : null;
         },
+        onCrashTabPartials(partials) {
+            this.crashTabPartials = Array.isArray(partials) ? partials : [];
+            this.scheduleProcessPartials();
+            this.$nextTick(() => {
+                this.refreshMultilineExpansion();
+                this.syncPageShellBackground();
+            });
+        },
+        onCrashTabHung() {
+            this.isCrashTabRendering = false;
+            ToastUtils.warning(this.$t("nomadnet.crash_tab_hung_toast"));
+        },
+        onCrashTabNavigate(payload) {
+            if (!payload || !payload.kind) {
+                return;
+            }
+            const navOptions = {
+                forceNewTab: payload.ctrlKey || payload.metaKey || payload.button === 1,
+                activate: !(payload.ctrlKey || payload.metaKey || payload.button === 1),
+            };
+            if (payload.kind === "nomad") {
+                this.onNodePageUrlClick(payload.url, null, true, false, navOptions);
+                return;
+            }
+            if (payload.kind === "lxmf") {
+                const address = payload.url;
+                if (!address || !/^[a-fA-F0-9]{32}$/.test(address)) {
+                    return;
+                }
+                const routeName = this.isPopoutMode ? "messages-popout" : "messages";
+                this.$router.push({
+                    name: routeName,
+                    params: { destinationHash: address },
+                });
+                return;
+            }
+            if (payload.kind === "http") {
+                const httpHref = LinkUtils.httpUrlHrefOrNull(String(payload.url || "").trim());
+                if (httpHref) {
+                    window.open(httpHref, "_blank", "noopener,noreferrer");
+                }
+                return;
+            }
+            if (payload.kind === "openNode") {
+                const destination = payload.url;
+                if (!destination) {
+                    return;
+                }
+                const fields = payload.fields;
+                const fieldSpec = payload.fieldSpec;
+                if (fields && typeof fields === "object") {
+                    this.onNodePageUrlClick(destination, fields, true, false, navOptions);
+                } else {
+                    this.onNodePageUrlClick(destination, fieldSpec, true, false, navOptions);
+                }
+            }
+        },
         renderPageContent(path, content) {
-            // render page content if we aren't viewing source
+            // Used for partials and tests. Full page paint runs in NomadCrashTab.
             if (!this.isShowingNodePageSource) {
-                // address:/page/index.mu`Data=123
                 const [pagePathWithoutData] = path.split("`");
                 return renderNomadPageByPath(
                     pagePathWithoutData,
@@ -2149,12 +2244,23 @@ export default {
                 );
             }
 
-            return content
+            return String(content ?? "")
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;")
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#039;");
+        },
+        cancelCrashTabRender() {
+            const crashTab = this.$refs.crashTab;
+            if (crashTab && typeof crashTab.abortRender === "function") {
+                crashTab.abortRender();
+            }
+            this.isCrashTabRendering = false;
+        },
+        onCrashTabAborted() {
+            this.isCrashTabRendering = false;
+            ToastUtils.info(this.$t("nomadnet.crash_tab_render_cancelled"));
         },
         toggleNodePageSource() {
             this.isShowingNodePageSource = !this.isShowingNodePageSource;
@@ -2385,7 +2491,10 @@ export default {
         async onNodePageUrlClick(url, options = null, addToHistory = true, useCache = false, navOptions = {}) {
             let fieldData = [];
 
-            if (options === "*") {
+            if (options && typeof options === "object" && !Array.isArray(options)) {
+                useCache = false;
+                fieldData = options;
+            } else if (options === "*") {
                 useCache = false; // we want to send another request with the field data
                 // Scope to this tab only. Inactive tabs stay mounted with v-show.
                 const inputs = this.$el.querySelectorAll(".nodeContainer input, .nodeContainer textarea");
@@ -2870,6 +2979,7 @@ export default {
             }
         },
         cancelPageDownload() {
+            this.cancelCrashTabRender();
             if (this.currentPageDownloadId !== null) {
                 WebSocketConnection.send(
                     JSON.stringify({

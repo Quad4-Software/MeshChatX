@@ -313,8 +313,6 @@ describe("NomadNetworkPage.vue", () => {
             wrapper.vm.selectedNode = { destination_hash: dest, display_name: "Test" };
             wrapper.vm.nodePagePath = `${dest}:/page/index.mu`;
             wrapper.vm.nodePageContent = "`{" + dest + ":/page/nested.mu}";
-            wrapper.vm.isShowingNodePageSource = false;
-
             const downloadSpy = vi
                 .spyOn(wrapper.vm, "downloadNomadNetPage")
                 .mockImplementation((_d, _p, _f, onSuccess) => {
@@ -324,12 +322,30 @@ describe("NomadNetworkPage.vue", () => {
             await wrapper.vm.$nextTick();
             await wrapper.vm.$nextTick();
 
+            wrapper.vm.crashTabPartials = [
+                {
+                    id: "partial-0",
+                    dest,
+                    path: "/page/nested.mu",
+                    refresh: null,
+                    fields: null,
+                },
+            ];
             wrapper.vm.processPartials();
             await wrapper.vm.$nextTick();
 
             const afterFirst = downloadSpy.mock.calls.length;
             expect(afterFirst).toBeGreaterThanOrEqual(1);
 
+            wrapper.vm.crashTabPartials = [
+                {
+                    id: "partial-0",
+                    dest,
+                    path: "/page/nested.mu",
+                    refresh: null,
+                    fields: null,
+                },
+            ];
             wrapper.vm.processPartials();
             await wrapper.vm.$nextTick();
 
@@ -355,6 +371,15 @@ describe("NomadNetworkPage.vue", () => {
 
             await wrapper.vm.$nextTick();
             await wrapper.vm.$nextTick();
+            wrapper.vm.crashTabPartials = [
+                {
+                    id: "partial-0",
+                    dest,
+                    path: "/page/nested.mu",
+                    refresh: "1",
+                    fields: null,
+                },
+            ];
             wrapper.vm.processPartials();
             await wrapper.vm.$nextTick();
 
