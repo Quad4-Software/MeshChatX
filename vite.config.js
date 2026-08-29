@@ -301,6 +301,11 @@ export default defineConfig(({ command }) => {
         resolve: {
             dedupe: ["vue"],
             tsconfigPaths: true,
+            // Git-hosted micron-parser has no upstream package.json. Alias the entry so
+            // Vite/Rolldown resolve it in Docker and CI without relying on metadata alone.
+            alias: {
+                "micron-parser": path.join(__dirname, "node_modules", "micron-parser", "js", "micron-parser.js"),
+            },
         },
     };
 });

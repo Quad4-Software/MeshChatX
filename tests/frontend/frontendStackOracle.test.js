@@ -41,6 +41,8 @@ describe("frontend stack migration oracle", () => {
         expect(vite).toContain("rolldownOptions");
         expect(vite).toContain("chunkImportMap: false");
         expect(vite).toContain("tsconfigPaths: true");
+        expect(vite).toContain('"micron-parser"');
+        expect(vite).toMatch(/node_modules["'],\s*["']micron-parser["'],\s*["']js["'],\s*["']micron-parser\.js["']/);
         expect(vite).toContain("MESHCHAT_VITE_BUNDLED_DEV");
         expect(vite).not.toContain("vite-plugin-vuetify");
         expect(vite).not.toContain("vendor-vuetify");
