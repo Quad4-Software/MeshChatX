@@ -4,14 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [4.8.6] - 2026-08-22 [unreleased]
 
+### Added
+
+- **Archives**: Search with snippets, node filter, and pagination. Full page loads when opened. Crawl opt-out from the viewer.
+- **Smart Crawler**: Hop and RTT caps, one request per node per day, depth up to 2, max 20 pages per node, `# nocrawl` and Archives opt-out. Schema v56.
+
 ### Fixed
 
+- **NomadNet**: Page paint runs in a sandboxed crash-tab iframe so a hung Micron/HTML page does not freeze the shell. Cancel aborts download and tears down the renderer. No page-size refuse caps. Crash-tab and view-source strings translated in de, es, fi, fr, it, nl, ru, zh.
 - **Map**: Discovered interfaces and telemetry markers update again. OpenLayers Map no longer shadows the JS Map (#73).
 - **Map search**: MapSearchBar registers MaterialDesignIcon.
+- **Frontend tests**: ConversationViewer DialogUtils mocks include alert. Incremental-load oracle stubs no longer serialize object props onto DOM nodes.
+- **Docker**: Vite resolves micron-parser again via an explicit alias. ensure-micron-parser-package fails when the package is missing.
 
 ### Changed
 
-- **Dependencies**: RNS 1.5.0.
+- **Dependencies**: RNS 1.5.2.
+- **Smart Crawler**: Completed tasks stay completed until refresh. Retry backoff is enforced. Concurrent crawls capped at 2.
 
 ## [4.8.5] - 2026-08-21 [released]
 
