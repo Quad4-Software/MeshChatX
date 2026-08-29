@@ -2324,13 +2324,13 @@
         "tab_restore_failed": "Не удалось восстановить страницу вкладки",
         "open_node_failed": "Не удалось открыть узел NomadNet",
         "hide_source": "Скрыть исходник",
-        "view_source": "View source",
-        "crash_tab_title": "Page renderer stopped responding",
-        "crash_tab_body": "The Nomad page sandbox hung or crashed. The rest of MeshChatX stays usable. Reload the page renderer, view source, or cancel.",
-        "crash_tab_reload": "Reload renderer",
-        "crash_tab_hung_toast": "Nomad page renderer stopped responding",
-        "crash_tab_rendering": "Rendering page…",
-        "crash_tab_render_cancelled": "Page render cancelled"
+        "view_source": "Показать исходник",
+        "crash_tab_title": "Рендерер страницы не отвечает",
+        "crash_tab_body": "Песочница страницы Nomad зависла или аварийно завершилась. Остальная часть MeshChatX продолжает работать. Перезагрузите рендерер, откройте исходник или отмените.",
+        "crash_tab_reload": "Перезагрузить рендерер",
+        "crash_tab_hung_toast": "Рендерер страницы Nomad не отвечает",
+        "crash_tab_rendering": "Отрисовка страницы…",
+        "crash_tab_render_cancelled": "Отрисовка страницы отменена"
     },
     "forwarder": {
         "title": "LXMF Форвардер",
