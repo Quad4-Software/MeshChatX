@@ -7,35 +7,36 @@
 - ウェブサイト: [meshchatx.com](https://meshchatx.com)
 - フォーラム: [forum.meshchatx.com](https://forum.meshchatx.com/)
 - ソース: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
-- ミラー: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
+- PyPI: [reticulum-meshchatx](https://pypi.org/project/reticulum-meshchatx/)
 - Changelog: [CHANGELOG.md](../CHANGELOG.md)
 - 寄付: [donate.md](../donate.md)
 - LXMF: `f489752fbef161c64d65e385a4e9fc74`
 
-詳細ガイドは [`docs/en/`](../docs/en/)（英語）とアプリ内 Documentation にあります。
+## インストール
 
-| ガイド                                                         | 内容                                      |
-| -------------------------------------------------------------- | ----------------------------------------- |
-| [Getting started](../docs/en/getting-started.md)               | はじめに                                  |
-| [Installation](../docs/en/installation.md)                     | Docker、wheel、AppImage、deb/rpm、CLI     |
-| [Building](../docs/en/building.md)                             | オフラインビルド、パッケージ、Android APK |
-| [Development](../docs/en/development.md)                       | task/make、バージョン、ロケール           |
-| [Identities and security](../docs/en/identity-and-security.md) | バックアップ、DB 破損、データ削除         |
-| [Platform guides](../docs/en/platform-guides/)                 | Pi、Termux、Quest、Linux サンドボックス   |
-
-## クイックスタート
-
-要件: Python 3.11+、Node.js 24+、pnpm 11.1.2、UV。
+Docker:
 
 ```bash
-docker compose up -d
+docker run -d --name reticulum-meshchatx \
+  -p 127.0.0.1:8000:8000 \
+  -v meshchatx-config:/config \
+  ghcr.io/quad4-software/meshchatx:latest
 ```
 
+PyPI（`pip` / `pipx` / `uv tool install reticulum-meshchatx`）、その後 `meshchatx --headless --host 127.0.0.1`。
+
+ソースから:
+
 ```bash
-task install
-pnpm run build-frontend
-uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
+git clone https://github.com/Quad4-Software/MeshChatX.git
+# または rngit:
+git clone rns://06a54b505bb67b25ef3f8097e8001edc/public/MeshChatX
+cd MeshChatX
+make install && make build && make run
+# または: task install && task build && task run
 ```
+
+詳細は [`docs/en/installation.md`](../docs/en/installation.md)。
 
 このリポジトリの現在のバージョンは `4.8.6` です。
 

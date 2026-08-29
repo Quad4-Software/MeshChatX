@@ -7,35 +7,36 @@ Umfassend modifizierter Fork von [Reticulum MeshChat](https://github.com/liamcot
 - Website: [meshchatx.com](https://meshchatx.com)
 - Forum: [forum.meshchatx.com](https://forum.meshchatx.com/)
 - Quellcode: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
-- Spiegel: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
+- PyPI: [reticulum-meshchatx](https://pypi.org/project/reticulum-meshchatx/)
 - Changelog: [CHANGELOG.md](../CHANGELOG.md)
 - Spenden: [donate.md](../donate.md)
 - LXMF: `f489752fbef161c64d65e385a4e9fc74`
 
-Ausfuehrliche Anleitungen stehen unter [`docs/en/`](../docs/en/) (englisch) und in der In-App-Dokumentation:
+## Installation
 
-| Leitfaden                                                      | Inhalt                                 |
-| -------------------------------------------------------------- | -------------------------------------- |
-| [Getting started](../docs/en/getting-started.md)               | Einstieg                               |
-| [Installation](../docs/en/installation.md)                     | Docker, Wheel, AppImage, deb/rpm, CLI  |
-| [Building](../docs/en/building.md)                             | Offline-Builds, Packaging, Android-APK |
-| [Development](../docs/en/development.md)                       | task/make, Versionierung, Locales      |
-| [Identities and security](../docs/en/identity-and-security.md) | Backups, Korruption, Wipe              |
-| [Platform guides](../docs/en/platform-guides/)                 | Pi, Termux, Quest, Linux-Sandbox       |
-
-## Schnellstart
-
-Voraussetzungen: Python 3.11+, Node.js 24+, pnpm 11.1.2, UV.
+Docker:
 
 ```bash
-docker compose up -d
+docker run -d --name reticulum-meshchatx \
+  -p 127.0.0.1:8000:8000 \
+  -v meshchatx-config:/config \
+  ghcr.io/quad4-software/meshchatx:latest
 ```
 
+PyPI (`pip` / `pipx` / `uv tool install reticulum-meshchatx`), dann `meshchatx --headless --host 127.0.0.1`.
+
+Quellcode:
+
 ```bash
-task install
-pnpm run build-frontend
-uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
+git clone https://github.com/Quad4-Software/MeshChatX.git
+# oder rngit:
+git clone rns://06a54b505bb67b25ef3f8097e8001edc/public/MeshChatX
+cd MeshChatX
+make install && make build && make run
+# oder: task install && task build && task run
 ```
+
+Details: [`docs/en/installation.md`](../docs/en/installation.md).
 
 Aktuelle Version in diesem Repository: `4.8.6`.
 

@@ -23,7 +23,7 @@ All notable changes to this project will be documented in this file.
 
 - **Dependencies**: RNS 1.5.2.
 - **Smart Crawler**: Completed tasks stay completed until refresh. Retry backoff is enforced. Concurrent crawls capped at 2.
-- **Docs**: Root README and translated READMEs trimmed to under 100 lines. Long install, build, recovery, and contributor content moved under `docs/en/` (`building.md`, `development.md`, plus expansions in installation, audio-calls, and identity-and-security).
+- **Docs**: Root README and translated READMEs trimmed to under 100 lines. Long install, build, recovery, and contributor content moved under `docs/en/` (`building.md`, `development.md`, plus expansions in installation, audio-calls, and identity-and-security). README Install covers Docker, PyPI (`pip`/`pipx`/`uv`), HTTPS and rngit clone, and `make`/`task` source builds.
 
 ## [4.8.5] - 2026-08-21 [released]
 

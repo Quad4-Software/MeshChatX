@@ -8,6 +8,7 @@ Fork of [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) b
 - Forum: [forum.meshchatx.com](https://forum.meshchatx.com/)
 - Source: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Mirror: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
+- PyPI: [reticulum-meshchatx](https://pypi.org/project/reticulum-meshchatx/)
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
 - Donate: [donate.md](donate.md)
 - LXMF: `f489752fbef161c64d65e385a4e9fc74`
@@ -17,40 +18,93 @@ Fork of [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) b
 
 rngit NomadNet Node: `132f67e79d9b24aad014e93015fb858f:/page/index.mu`
 
-```bash
-git clone rns://06a54b505bb67b25ef3f8097e8001edc/public/MeshChatX
-```
+## Install
 
-## Docs
+Requirements for source builds: Python 3.11+, Node.js 24+, pnpm 11.1.2, UV. Web UI needs Safari 16.4, Chrome 111, or Firefox 128+. PyPI and Docker ship the built frontend (no Node on the runtime host).
 
-Guides live under [`docs/en/`](docs/en/) and ship in-app under Documentation.
-
-| Guide                                                       | Covers                                      |
-| ----------------------------------------------------------- | ------------------------------------------- |
-| [Getting started](docs/en/getting-started.md)               | What MeshChatX is and first-day flow        |
-| [Installation](docs/en/installation.md)                     | Docker, wheel, AppImage, deb/rpm, CLI flags |
-| [Building](docs/en/building.md)                             | Offline builds, packaging, Android APK      |
-| [Development](docs/en/development.md)                       | task/make, versioning, locales              |
-| [Identities and security](docs/en/identity-and-security.md) | Backups, corruption recovery, wipe          |
-| [Platform guides](docs/en/platform-guides/)                 | Pi, Termux, Quest, Linux sandbox            |
-
-## Quick start
-
-Requirements: Python 3.11+, Node.js 24+, pnpm 11.1.2, UV. Web UI needs Safari 16.4, Chrome 111, or Firefox 128+.
+### Docker
 
 ```bash
 docker compose up -d
 ```
 
 ```bash
-task install
+docker run -d --name reticulum-meshchatx \
+  -p 127.0.0.1:8000:8000 \
+  -v meshchatx-config:/config \
+  ghcr.io/quad4-software/meshchatx:latest
+```
+
+Images: `quad4io/meshchatx` (Docker Hub) and `ghcr.io/quad4-software/meshchatx`. Hardened and extra tags are in [Installation](docs/en/installation.md).
+
+### PyPI (pip, pipx, uv)
+
+Package: [`reticulum-meshchatx`](https://pypi.org/project/reticulum-meshchatx/)
+
+```bash
+pip install reticulum-meshchatx
+# or
+pipx install reticulum-meshchatx
+# or
+uv tool install reticulum-meshchatx
+```
+
+```bash
+meshchatx --headless --host 127.0.0.1
+```
+
+`meshchat` is the same entry point. Release wheels from GitHub also work: `pip install ./reticulum_meshchatx-*-py3-none-any.whl`.
+
+### From source (git clone, make, task)
+
+HTTPS:
+
+```bash
+git clone https://github.com/Quad4-Software/MeshChatX.git
+cd MeshChatX
+```
+
+Over Reticulum (rngit / `git-remote-rns`):
+
+```bash
+git clone rns://06a54b505bb67b25ef3f8097e8001edc/public/MeshChatX
+cd MeshChatX
+```
+
+Then install and run with either Make or Task (same targets):
+
+```bash
+make install && make build && make run
+```
+
+```bash
+task install && task build && task run
+```
+
+Or step through UV / pnpm yourself:
+
+```bash
+corepack enable
+pnpm install --frozen-lockfile
+uv sync --group dev
 pnpm run build-frontend
 uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 ```
 
-Release artifacts (AppImage, deb, rpm, wheel, Electron, Android) are documented in [Installation](docs/en/installation.md) and [Building](docs/en/building.md). Images: `quad4io/meshchatx` and `ghcr.io/quad4-software/meshchatx`.
+AppImage, deb, rpm, Electron, and Android: [Installation](docs/en/installation.md) and [Building](docs/en/building.md).
 
 Current version is 4.8.6.
+
+## Docs
+
+| Guide                                                       | Covers                                 |
+| ----------------------------------------------------------- | -------------------------------------- |
+| [Getting started](docs/en/getting-started.md)               | First-day flow                         |
+| [Installation](docs/en/installation.md)                     | Docker details, packages, CLI flags    |
+| [Building](docs/en/building.md)                             | Offline builds, packaging, Android APK |
+| [Development](docs/en/development.md)                       | task/make, versioning, locales         |
+| [Identities and security](docs/en/identity-and-security.md) | Backups, corruption recovery, wipe     |
+| [Platform guides](docs/en/platform-guides/)                 | Pi, Termux, Quest, Linux sandbox       |
 
 ## Changes from Reticulum MeshChat
 
