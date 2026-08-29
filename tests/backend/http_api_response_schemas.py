@@ -406,6 +406,20 @@ NOMADNET_ARCHIVES_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+NOMADNET_ARCHIVE_DETAIL_SCHEMA: dict = {
+    "type": "object",
+    "required": ["archive"],
+    "properties": {"archive": _OBJECT},
+    "additionalProperties": True,
+}
+
+NOMADNET_CRAWL_OPT_OUTS_SCHEMA: dict = {
+    "type": "object",
+    "required": ["opt_outs"],
+    "properties": {"opt_outs": _ARRAY},
+    "additionalProperties": True,
+}
+
 GIFS_LIST_SCHEMA: dict = {
     "type": "object",
     "required": ["gifs"],

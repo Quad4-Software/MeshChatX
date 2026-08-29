@@ -93,9 +93,12 @@ Legacy upstream data may still exist under `~/.reticulum-meshchat/`. Migration t
 
 ## Where to go next
 
-- **Installation and setup** covers Docker, wheels, desktop packages, and development builds.
+- **Installation and setup** covers Docker, wheels, desktop packages, and CLI flags.
+- **Building from source and packaging** covers offline builds, `Dockerfile.build`, and Android APKs.
+- **Development** covers `task`/`make`, version sync, and adding locales.
 - **Architecture and design** explains backend managers, identity scoping, and the API model.
 - **LXMF messaging** and **Audio calls** describe day-to-day communication features.
+- **Identities, privacy, and security** covers backups and corruption recovery.
 - **Reticulum interfaces** explains how your node joins the mesh.
 - Platform guides under **Platform guides** cover Raspberry Pi, Android Termux, Meta Quest, and Linux sandboxing (Firejail and Bubblewrap).
 

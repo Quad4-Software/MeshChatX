@@ -19,6 +19,16 @@
                     "title": { "en": "Installation and setup" }
                 },
                 {
+                    "path": "en/building.md",
+                    "lang": "en",
+                    "title": { "en": "Building from source and packaging" }
+                },
+                {
+                    "path": "en/development.md",
+                    "lang": "en",
+                    "title": { "en": "Development" }
+                },
+                {
                     "path": "en/architecture.md",
                     "lang": "en",
                     "title": { "en": "Architecture and design" }

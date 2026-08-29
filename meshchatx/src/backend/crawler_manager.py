@@ -238,6 +238,8 @@ def link_rtt_ms(link) -> float | None:
                 value = value()
             if value is None:
                 continue
+            if not isinstance(value, (int, float, str)):
+                continue
             rtt = float(value)
             # RNS Link.rtt is typically seconds
             if rtt < 0:

@@ -77,6 +77,8 @@ from tests.backend.http_api_response_schemas import (
     MESHCHATX_DOCS_LIST_SCHEMA,
     MESSAGE_ENVELOPE_SCHEMA,
     NOMADNET_ARCHIVES_SCHEMA,
+    NOMADNET_ARCHIVE_DETAIL_SCHEMA,
+    NOMADNET_CRAWL_OPT_OUTS_SCHEMA,
     NOTIFICATIONS_SCHEMA,
     PAGE_NODE_DETAIL_SCHEMA,
     PAGE_NODE_FILES_SCHEMA,
@@ -322,6 +324,19 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     HttpJsonContract("GET", "/api/v1/notifications", NOTIFICATIONS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/favourites", FAVOURITES_SCHEMA),
     HttpJsonContract("GET", "/api/v1/nomadnet/archives", NOMADNET_ARCHIVES_SCHEMA),
+    HttpJsonContract(
+        "GET",
+        "/api/v1/nomadnet/archives/{archive_id}",
+        NOMADNET_ARCHIVE_DETAIL_SCHEMA,
+        match_info={"archive_id": _NODE_ID},
+        allow_statuses=(200, 400, 404),
+        alt_schemas=(MESSAGE_ENVELOPE_SCHEMA,),
+    ),
+    HttpJsonContract(
+        "GET",
+        "/api/v1/nomadnet/crawl/opt-outs",
+        NOMADNET_CRAWL_OPT_OUTS_SCHEMA,
+    ),
     HttpJsonContract("GET", "/api/v1/page-nodes", PAGE_NODES_LIST_SCHEMA),
     HttpJsonContract(
         "GET",

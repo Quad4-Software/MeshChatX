@@ -103,6 +103,50 @@ meshchatx --export-backup backup-20260101-120000.zip /path/to/copy.zip
 meshchatx --restore-db /path/to/backup.zip
 ```
 
+When the backend can start briefly, or you run from source:
+
+```bash
+meshchatx --storage-dir /path/to/storage --restore-db /path/to/backup.zip
+```
+
+## Database corruption and data reset
+
+If MeshChatX fails to start with errors such as `database disk image is malformed`, DatabaseError, or corrupted ratchet data, the desktop crash screen offers:
+
+- Restore latest backup from `database-backups/` or `snapshots/` inside the MeshChatX storage folder
+- Choose backup file for a zip you saved elsewhere
+- Try auto-repair (`--auto-recover`: SQLite checkpoint / integrity pass)
+- Emergency mode, which opens the app without the database so you can export from About when possible
+- Copy reset instructions with the folders to delete for a clean reinstall
+
+### Storage locations
+
+| Platform | MeshChatX storage | Reticulum network stack |
+| -------- | ----------------- | ----------------------- |
+| Linux / macOS | `~/.reticulum-meshchatx/` | `~/.reticulum/` |
+| Windows | `%USERPROFILE%\.reticulum-meshchatx\` | `%USERPROFILE%\.reticulum\` |
+| Windows portable | `<MeshChatX.exe folder>\.reticulum-meshchatx\` | `<MeshChatX.exe folder>\.reticulum\` |
+
+Legacy Reticulum MeshChat data may still exist at `~/.reticulum-meshchat/` (or the Windows equivalent). Automatic database backups go to `database-backups/` inside the MeshChatX storage folder after a successful run.
+
+### Complete removal
+
+Quit MeshChatX. On Windows, also end `ReticulumMeshChatX.exe` in Task Manager if it is still running. Then delete the MeshChatX storage folder and the Reticulum config folder for your install type. That removes the local identity, messages, contacts, path cache, and ratchet state. The next launch creates a new identity unless you restore a backup first.
+
+Linux / macOS:
+
+```bash
+rm -rf ~/.reticulum-meshchatx ~/.reticulum ~/.reticulum-meshchat
+```
+
+Windows PowerShell:
+
+```powershell
+Remove-Item -Recurse -Force "$env:USERPROFILE\.reticulum-meshchatx", "$env:USERPROFILE\.reticulum", "$env:USERPROFILE\.reticulum-meshchat" -ErrorAction SilentlyContinue
+```
+
+If you pass `--storage-dir` or `--reticulum-config-dir`, delete those directories instead.
+
 ## Integrity checks
 
 Startup integrity verification runs in packaged Electron builds and can be triggered from the backend. Failed checks surface recovery options instead of silently corrupting data.
