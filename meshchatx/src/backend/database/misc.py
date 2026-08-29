@@ -70,10 +70,10 @@ class MiscDAO:
             """
             INSERT INTO lxmf_user_icons (destination_hash, icon_name, foreground_colour, background_colour, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT(destination_hash) DO UPDATE SET 
-                icon_name = EXCLUDED.icon_name, 
-                foreground_colour = EXCLUDED.foreground_colour, 
-                background_colour = EXCLUDED.background_colour, 
+            ON CONFLICT(destination_hash) DO UPDATE SET
+                icon_name = EXCLUDED.icon_name,
+                foreground_colour = EXCLUDED.foreground_colour,
+                background_colour = EXCLUDED.background_colour,
                 updated_at = EXCLUDED.updated_at
         """,
             (
@@ -189,7 +189,7 @@ class MiscDAO:
             "id, destination_hash, page_path, hash, created_at, content"
             if include_content
             else "id, destination_hash, page_path, hash, created_at, "
-            "SUBSTR(content, 1, 400) AS content_preview"
+            "SUBSTR(content, 1, 2000) AS content_preview"
         )
         sql = f"SELECT {columns} FROM archived_pages WHERE 1=1"
         params = []
@@ -520,8 +520,8 @@ class MiscDAO:
             """
             INSERT INTO keyboard_shortcuts (identity_hash, action, keys, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(identity_hash, action) DO UPDATE SET 
-                keys = EXCLUDED.keys, 
+            ON CONFLICT(identity_hash, action) DO UPDATE SET
+                keys = EXCLUDED.keys,
                 updated_at = EXCLUDED.updated_at
         """,
             (identity_hash, action, keys, now, now),

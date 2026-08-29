@@ -12,6 +12,7 @@ function mountArchives() {
                 mocks: {
                     $t: (key) => key,
                     $router: { push: routerPush },
+                    $route: { query: {} },
                 },
                 stubs: {
                     MaterialDesignIcon: true,

@@ -2580,6 +2580,7 @@
         "rule_deleted": "Règle de transfert supprimée"
     },
     "archives": {
+        "title": "Archives",
         "description": "Recherchez les pages Nomad Network stockées dans votre archive locale.",
         "search_placeholder": "Rechercher contenu, nom de nœud, hash ou chemin...",
         "loading": "Chargement des archives...",
@@ -2625,7 +2626,13 @@
         "never_crawl_failed": "Impossible d'enregistrer l'exclusion du crawler",
         "prev_page": "Précédent",
         "next_page": "Suivant",
-        "retry": "Réessayer"
+        "retry": "Réessayer",
+        "back_to_list": "Retour à la liste",
+        "recrawl": "Relancer le crawl",
+        "recrawl_pending": "Récupération de la page en direct...",
+        "recrawl_done": "Page crawlée à nouveau",
+        "recrawl_failed": "Échec du crawl. Réessaie.",
+        "rendering": "Rendu..."
     },
     "docs": {
         "title": "Documentation",

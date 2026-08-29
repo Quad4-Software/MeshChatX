@@ -2580,6 +2580,7 @@
         "rule_deleted": "Forwarding rule deleted"
     },
     "archives": {
+        "title": "Archives",
         "description": "Search Nomad Network pages stored in your local archive.",
         "search_placeholder": "Search content, node name, hash, or path...",
         "loading": "Loading archives...",
@@ -2625,7 +2626,13 @@
         "never_crawl_failed": "Could not save crawl opt-out",
         "prev_page": "Previous",
         "next_page": "Next",
-        "retry": "Retry"
+        "retry": "Retry",
+        "back_to_list": "Back to list",
+        "recrawl": "Recrawl page",
+        "recrawl_pending": "Fetching live page...",
+        "recrawl_done": "Page recrawled",
+        "recrawl_failed": "Recrawl failed. Try again.",
+        "rendering": "Rendering..."
     },
     "docs": {
         "title": "Documentation",

@@ -10808,12 +10808,18 @@ class ReticulumMeshChat:
             )
 
     # queues a crawler task for the provided destination and path
-    def queue_crawler_task(self, destination_hash: str, page_path: str, context=None):
+    def queue_crawler_task(
+        self,
+        destination_hash: str,
+        page_path: str,
+        context=None,
+        force: bool = False,
+    ):
         ctx = context or self.current_context
         if not ctx:
             return
         crawler = getattr(ctx, "crawler_manager", None)
-        if crawler and not ctx.config.crawler_enabled.get():
+        if crawler and not force and not ctx.config.crawler_enabled.get():
             return
         if crawler:
             crawler.queue_if_allowed(
@@ -10821,6 +10827,7 @@ class ReticulumMeshChat:
                 page_path,
                 depth=0,
                 announced_recently=True,
+                force=force,
             )
             return
         ctx.database.misc.upsert_crawl_task(destination_hash, page_path)

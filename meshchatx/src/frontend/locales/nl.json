@@ -2580,6 +2580,7 @@
         "rule_deleted": "Doorstuurlingsregel verwijderd"
     },
     "archives": {
+        "title": "Archieven",
         "description": "Zoek Nomad Network-pagina's in je lokale archief.",
         "search_placeholder": "Zoek inhoud, node-naam, hash of pad...",
         "loading": "Archieven laden...",
@@ -2625,7 +2626,13 @@
         "never_crawl_failed": "Crawl-uitsluiting kon niet worden opgeslagen",
         "prev_page": "Vorige",
         "next_page": "Volgende",
-        "retry": "Opnieuw"
+        "retry": "Opnieuw",
+        "back_to_list": "Terug naar lijst",
+        "recrawl": "Opnieuw crawlen",
+        "recrawl_pending": "Live pagina ophalen...",
+        "recrawl_done": "Pagina opnieuw gearchiveerd",
+        "recrawl_failed": "Opnieuw crawlen mislukt. Probeer het opnieuw.",
+        "rendering": "Bezig met renderen..."
     },
     "docs": {
         "title": "Documentatie",

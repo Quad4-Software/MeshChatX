@@ -3,26 +3,24 @@
 <template>
     <div class="flex h-full min-h-0 flex-col overflow-hidden bg-sem-canvas text-sem-fg">
         <div class="shrink-0 border-b border-sem-border px-3 py-3 sm:px-4">
-            <div class="mx-auto flex max-w-5xl flex-col gap-3">
+            <div class="mx-auto flex w-full max-w-6xl flex-col gap-3">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
-                        <h1 class="text-lg font-semibold sm:text-xl">{{ $t("nav.archives") }}</h1>
+                        <h1 class="text-lg font-semibold sm:text-xl">{{ $t("archives.title") }}</h1>
                         <p class="mt-0.5 text-xs text-sem-fg-muted sm:text-sm">{{ $t("archives.description") }}</p>
                     </div>
-                    <div class="flex shrink-0 items-center gap-1">
-                        <button
-                            v-if="viewingArchive"
-                            type="button"
-                            class="rounded-lg p-2 text-sem-fg-muted hover:bg-sem-surface/60"
-                            :title="$t('archives.close_viewer')"
-                            @click="closeViewer"
-                        >
-                            <MaterialDesignIcon icon-name="close" class="size-5" />
-                        </button>
-                    </div>
+                    <button
+                        v-if="viewingArchive && !isWideSplit"
+                        type="button"
+                        class="rounded-lg p-2 text-sem-fg-muted hover:bg-sem-surface/60"
+                        :title="$t('archives.close_viewer')"
+                        @click="closeViewer"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-5" />
+                    </button>
                 </div>
 
-                <div class="relative">
+                <div v-show="!viewingArchive || isWideSplit" class="relative">
                     <MaterialDesignIcon
                         icon-name="magnify"
                         class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-sem-fg-muted"
@@ -48,7 +46,10 @@
                     </button>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-2 text-xs text-sem-fg-muted">
+                <div
+                    v-show="!viewingArchive || isWideSplit"
+                    class="flex flex-wrap items-center gap-2 text-xs text-sem-fg-muted"
+                >
                     <span
                         v-if="pagination.total_count > 0"
                         class="rounded-full bg-sem-surface-muted px-2 py-0.5 font-medium"
@@ -80,8 +81,15 @@
             </div>
         </div>
 
-        <div class="flex min-h-0 flex-1 overflow-hidden">
-            <div class="flex min-w-0 flex-1 flex-col overflow-hidden" :class="{ 'hidden sm:flex': viewingArchive }">
+        <div
+            class="mx-auto flex min-h-0 w-full max-w-6xl flex-1 overflow-hidden"
+            :class="isWideSplit ? 'flex-row' : 'flex-col'"
+        >
+            <div
+                v-show="!viewingArchive || isWideSplit"
+                class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+                :class="{ 'lg:max-w-md lg:border-r lg:border-sem-border xl:max-w-lg': isWideSplit && viewingArchive }"
+            >
                 <div v-if="loadError" class="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
                     <MaterialDesignIcon icon-name="alert-circle-outline" class="size-10 text-red-400" />
                     <p class="text-sm">{{ $t("archives.search_failed") }}</p>
@@ -112,25 +120,26 @@
                 </div>
 
                 <div v-else class="flex-1 overflow-y-auto">
-                    <div class="mx-auto max-w-5xl space-y-2 p-3 sm:p-4">
-                        <button
+                    <div class="grid grid-cols-1 gap-3 p-3 sm:p-4" :class="{ 'sm:grid-cols-2': !viewingArchive }">
+                        <article
                             v-for="archive in archives"
                             :key="archive.id"
-                            type="button"
-                            class="group w-full rounded-xl border border-sem-border/60 bg-sem-surface/30 p-3 text-left transition-colors hover:border-sem-accent/40 hover:bg-sem-surface/60"
+                            class="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-sem-border/70 bg-sem-surface/40 shadow-sm transition-colors hover:border-sem-accent/40 hover:bg-sem-surface/70"
                             :class="{
-                                'ring-1 ring-sem-accent/40 border-sem-accent/40': viewingArchive?.id === archive.id,
+                                'ring-2 ring-sem-accent/40 border-sem-accent/40': viewingArchive?.id === archive.id,
                             }"
                             @click="openArchive(archive)"
                         >
-                            <div class="flex items-start justify-between gap-3">
+                            <div
+                                class="flex items-start justify-between gap-2 border-b border-sem-border/50 px-3 py-2.5"
+                            >
                                 <div class="min-w-0">
-                                    <div class="truncate text-sm font-semibold group-hover:text-sem-accent">
+                                    <h2 class="truncate text-sm font-semibold group-hover:text-sem-accent">
                                         {{ archive.node_name }}
-                                    </div>
-                                    <div class="mt-0.5 truncate font-mono text-xs text-sem-fg-muted">
+                                    </h2>
+                                    <p class="mt-0.5 truncate font-mono text-[11px] text-sem-fg-muted">
                                         {{ archive.page_path || "/" }}
-                                    </div>
+                                    </p>
                                 </div>
                                 <div class="shrink-0 text-right text-[10px] text-sem-fg-muted">
                                     <div>{{ formatDate(archive.created_at) }}</div>
@@ -139,21 +148,32 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- eslint-disable vue/no-v-html -- highlightMatch escapes -->
-                            <p
-                                v-if="archive.snippet"
-                                class="mt-2 line-clamp-3 text-xs leading-relaxed text-sem-fg-muted"
-                                v-html="highlightMatch(archive.snippet)"
-                            ></p>
-                            <!-- eslint-enable vue/no-v-html -->
-                            <div class="mt-2 flex flex-wrap gap-2">
+
+                            <div class="archive-card-preview min-h-[5.5rem] flex-1 overflow-hidden px-3 py-2">
+                                <!-- eslint-disable vue/no-v-html -- sanitized via renderPreviewHtml -->
+                                <div
+                                    class="pointer-events-none max-h-36 overflow-hidden text-xs leading-relaxed text-sem-fg-muted"
+                                    :class="previewClasses(archive)"
+                                    v-html="cardPreviewHtml(archive)"
+                                ></div>
+                                <!-- eslint-enable vue/no-v-html -->
+                            </div>
+
+                            <div
+                                class="flex items-center justify-between gap-2 border-t border-sem-border/50 px-3 py-2"
+                            >
                                 <span
                                     class="rounded bg-sem-surface-muted px-1.5 py-0.5 font-mono text-[10px] text-sem-fg-muted"
                                 >
                                     {{ shortHash(archive.destination_hash) }}
                                 </span>
+                                <span
+                                    class="text-[10px] font-medium text-sem-accent opacity-0 transition-opacity group-hover:opacity-100"
+                                >
+                                    {{ $t("archives.view") }}
+                                </span>
                             </div>
-                        </button>
+                        </article>
                     </div>
 
                     <div
@@ -190,12 +210,14 @@
 
             <div
                 v-if="viewingArchive"
-                class="flex min-w-0 flex-1 flex-col overflow-hidden border-l border-sem-border bg-sem-canvas sm:max-w-xl lg:max-w-2xl"
+                class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-sem-canvas"
+                :class="{ 'border-t border-sem-border lg:border-t-0': !isWideSplit }"
             >
                 <div class="flex shrink-0 items-center gap-1 border-b border-sem-border px-2 py-2">
                     <button
                         type="button"
-                        class="rounded-lg p-1 text-sem-fg-muted hover:bg-sem-surface/60 sm:hidden"
+                        class="rounded-lg p-1 text-sem-fg-muted hover:bg-sem-surface/60 lg:hidden"
+                        :title="$t('archives.back_to_list')"
                         @click="closeViewer"
                     >
                         <MaterialDesignIcon icon-name="arrow-left" class="size-5" />
@@ -204,6 +226,19 @@
                         <div class="truncate text-xs text-sem-fg-muted">{{ viewingArchive.node_name }}</div>
                         <div class="truncate font-mono text-sm">{{ viewingArchive.page_path || "/" }}</div>
                     </div>
+                    <button
+                        type="button"
+                        class="rounded-lg p-2 text-sem-fg hover:bg-sem-surface/60 disabled:opacity-40"
+                        :disabled="isRecrawling"
+                        :title="$t('archives.recrawl')"
+                        @click="recrawlArchive(viewingArchive)"
+                    >
+                        <MaterialDesignIcon
+                            :icon-name="isRecrawling ? 'loading' : 'refresh'"
+                            class="size-4"
+                            :class="{ 'animate-spin': isRecrawling }"
+                        />
+                    </button>
                     <button
                         type="button"
                         class="rounded-lg p-2 text-sem-fg hover:bg-sem-surface/60"
@@ -235,6 +270,14 @@
                         @click="deleteArchive(viewingArchive)"
                     >
                         <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
+                    </button>
+                    <button
+                        type="button"
+                        class="hidden rounded-lg p-2 text-sem-fg-muted hover:bg-sem-surface/60 lg:inline-flex"
+                        :title="$t('archives.close_viewer')"
+                        @click="closeViewer"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-5" />
                     </button>
                 </div>
 
@@ -273,6 +316,8 @@ import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 
+const SPLIT_MIN_WIDTH = 1024;
+
 export default {
     name: "ArchivesPage",
     components: {
@@ -284,6 +329,7 @@ export default {
             isLoading: false,
             isSearching: false,
             isLoadingViewer: false,
+            isRecrawling: false,
             loadError: false,
             viewingArchive: null,
             renderedContent: "",
@@ -291,6 +337,8 @@ export default {
             nodeFilter: "",
             nodeOptions: [],
             searchTimeout: null,
+            isWideSplit: false,
+            cardPreviewCache: {},
             pagination: {
                 page: 1,
                 limit: 25,
@@ -334,44 +382,27 @@ export default {
             };
         },
         archiveViewerClasses() {
-            const a = this.viewingArchive;
-            if (!a?.page_path) {
-                return ["wrap-break-word", "whitespace-pre-wrap", "text-gray-100"];
-            }
-            const pl = (a.page_path || "").split("`")[0].toLowerCase();
-            const isRich = pl.endsWith(".mu") || pl.endsWith(".md") || pl.endsWith(".html");
-            const isHtml = pl.endsWith(".html");
-            const isMd = pl.endsWith(".md");
-            const classes = ["wrap-break-word"];
-            if (isRich) {
-                classes.push("nomad-page-rich");
-            } else {
-                classes.push("whitespace-pre-wrap");
-            }
-            if (isHtml) {
-                classes.push("nomad-page-html-host");
-            } else {
-                classes.push("text-gray-100");
-            }
-            if (isMd) {
-                classes.push("nomad-markdown-host");
-            }
-            return classes;
+            return this.pathViewerClasses(this.viewingArchive?.page_path);
         },
     },
     watch: {
         viewingArchive(newVal) {
             if (newVal && newVal.content != null) {
-                this.renderedContent = "Rendering...";
-                setTimeout(() => {
+                this.renderedContent = this.$t("archives.rendering");
+                this.$nextTick(() => {
                     this.renderedContent = this.renderFullContent(newVal);
-                }, 10);
+                });
             } else if (!newVal) {
                 this.renderedContent = "";
             }
         },
+        archives() {
+            this.cardPreviewCache = {};
+        },
     },
     mounted() {
+        this.updateWideSplit();
+        window.addEventListener("resize", this.updateWideSplit);
         const q = this.$route?.query?.q;
         if (typeof q === "string" && q) {
             this.searchQuery = q;
@@ -390,6 +421,7 @@ export default {
                 }
                 invalidateNomadMicronWasmPreload();
                 this.nomadMicronWasmReady = await preloadNomadMicronWasm();
+                this.cardPreviewCache = {};
                 const a = this.viewingArchive;
                 if (a) {
                     this.renderedContent = this.renderFullContent(a);
@@ -399,6 +431,7 @@ export default {
         this.$watch(
             () => GlobalState.config?.nomad_micron_default_engine,
             () => {
+                this.cardPreviewCache = {};
                 const a = this.viewingArchive;
                 if (a) {
                     this.renderedContent = this.renderFullContent(a);
@@ -408,6 +441,7 @@ export default {
         if (isMicronWasmBundled() && GlobalState.config?.nomad_micron_wasm_enabled === true) {
             preloadNomadMicronWasm().then((ok) => {
                 this.nomadMicronWasmReady = ok === true;
+                this.cardPreviewCache = {};
                 const a = this.viewingArchive;
                 if (a && ok) {
                     this.renderedContent = this.renderFullContent(a);
@@ -415,7 +449,13 @@ export default {
             });
         }
     },
+    beforeUnmount() {
+        window.removeEventListener("resize", this.updateWideSplit);
+    },
     methods: {
+        updateWideSplit() {
+            this.isWideSplit = typeof window !== "undefined" && window.innerWidth >= SPLIT_MIN_WIDTH;
+        },
         shortHash(hash) {
             return (hash || "").substring(0, 12);
         },
@@ -435,10 +475,64 @@ export default {
             }
             const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
             try {
+                // eslint-disable-next-line security/detect-non-literal-regexp -- query is escaped above
                 const re = new RegExp(`(${escaped})`, "ig");
                 return safe.replace(re, '<mark class="bg-sem-accent/30 text-inherit rounded-sm px-0.5">$1</mark>');
             } catch {
                 return safe;
+            }
+        },
+        pathViewerClasses(pagePath) {
+            if (!pagePath) {
+                return ["wrap-break-word", "whitespace-pre-wrap", "text-gray-100"];
+            }
+            const pl = (pagePath || "").split("`")[0].toLowerCase();
+            const isRich = pl.endsWith(".mu") || pl.endsWith(".md") || pl.endsWith(".html");
+            const isHtml = pl.endsWith(".html");
+            const isMd = pl.endsWith(".md");
+            const classes = ["wrap-break-word"];
+            if (isRich) {
+                classes.push("nomad-page-rich");
+            } else {
+                classes.push("whitespace-pre-wrap");
+            }
+            if (isHtml) {
+                classes.push("nomad-page-html-host");
+            } else {
+                classes.push("text-gray-100");
+            }
+            if (isMd) {
+                classes.push("nomad-markdown-host");
+            }
+            return classes;
+        },
+        previewClasses(archive) {
+            return this.pathViewerClasses(archive?.page_path);
+        },
+        cardPreviewHtml(archive) {
+            const cacheKey = `${archive.id}:${archive.hash || ""}:${this.nomadMicronWasmActive ? "w" : "j"}`;
+            if (this.cardPreviewCache[cacheKey]) {
+                return this.cardPreviewCache[cacheKey];
+            }
+            const source = archive.preview || archive.snippet || "";
+            if (!source) {
+                return "";
+            }
+            let html = this.renderPreviewHtml(archive.page_path, source, archive.destination_hash);
+            if (this.searchQuery && archive.snippet && !archive.preview) {
+                html = this.highlightMatch(archive.snippet);
+            }
+            this.cardPreviewCache[cacheKey] = html;
+            return html;
+        },
+        renderPreviewHtml(pagePath, content, destinationHash) {
+            if (!content) {
+                return "";
+            }
+            try {
+                return this.renderContentByPath(pagePath, content, destinationHash);
+            } catch {
+                return this.escapeHtml(content).replace(/\n/g, "<br>");
             }
         },
         async getArchives() {
@@ -534,6 +628,52 @@ export default {
         closeViewer() {
             this.viewingArchive = null;
             this.renderedContent = "";
+        },
+        async recrawlArchive(archive) {
+            if (!archive || this.isRecrawling) {
+                return;
+            }
+            this.isRecrawling = true;
+            const toastKey = `archives-recrawl-${archive.id || archive.destination_hash}`;
+            ToastUtils.loading(this.$t("archives.recrawl_pending"), 0, toastKey);
+            try {
+                const response = await window.api.post("/api/v1/nomadnet/archives/recrawl", {
+                    destination_hash: archive.destination_hash,
+                    page_path: archive.page_path,
+                });
+                ToastUtils.dismiss(toastKey);
+                const next = response.data.archive;
+                ToastUtils.success(this.$t("archives.recrawl_done"));
+                if (next) {
+                    this.viewingArchive = next;
+                    this.renderedContent = this.renderFullContent(next);
+                    const idx = this.archives.findIndex(
+                        (a) => a.destination_hash === next.destination_hash && a.page_path === next.page_path
+                    );
+                    if (idx >= 0) {
+                        this.archives.splice(idx, 1, {
+                            ...this.archives[idx],
+                            ...next,
+                            content: undefined,
+                        });
+                    } else {
+                        this.archives.unshift({
+                            ...next,
+                            content: undefined,
+                        });
+                    }
+                    this.cardPreviewCache = {};
+                } else {
+                    await this.getArchives();
+                }
+            } catch (e) {
+                ToastUtils.dismiss(toastKey);
+                console.error("Recrawl failed:", e);
+                const msg = e?.response?.data?.message || this.$t("archives.recrawl_failed");
+                ToastUtils.error(msg);
+            } finally {
+                this.isRecrawling = false;
+            }
         },
         async deleteArchive(archive) {
             if (!(await DialogUtils.confirm(this.$t("archives.delete_snapshot_confirm")))) {
@@ -637,29 +777,44 @@ export default {
             }
             this.downloadTextAsFile(archive.content, this.muExportFilename(archive));
         },
-        renderFullContent(archive) {
-            if (!archive.content) {
-                return "";
-            }
-            const pathPart = (archive.page_path || "").split("`")[0];
+        renderContentByPath(pagePath, content, destinationHash) {
+            const pathPart = (pagePath || "").split("`")[0];
             const pl = pathPart.toLowerCase();
             const hasKnownExt = /\.(mu|md|txt|html)$/.test(pl);
             const micronOpts = {
                 useWasm: this.nomadMicronWasmActive,
             };
-            const destinationHash = archive.destination_hash || this.viewingArchive?.destination_hash || null;
-            try {
-                if (!hasKnownExt && archive.content.includes("`")) {
-                    let out = new MicronParser().convertMicronToHtml(archive.content, {}, micronOpts);
-                    if (destinationHash) {
-                        out = isolateNomadLinksInHtml(out, destinationHash);
-                    }
-                    return out;
+            const dest = destinationHash || null;
+            if (!hasKnownExt && String(content).includes("`")) {
+                let out = new MicronParser().convertMicronToHtml(content, {}, micronOpts);
+                if (dest) {
+                    out = isolateNomadLinksInHtml(out, dest);
                 }
-                return renderNomadPageByPath(pathPart, archive.content, {}, MicronParser, {
-                    ...this.nomadRenderOptions,
-                    nomadDestinationHash: destinationHash || this.nomadRenderOptions.nomadDestinationHash,
-                });
+                return out;
+            }
+            if (!hasKnownExt) {
+                // Treat extensionless Nomad pages as Micron (common for index paths).
+                let out = new MicronParser().convertMicronToHtml(content, {}, micronOpts);
+                if (dest) {
+                    out = isolateNomadLinksInHtml(out, dest);
+                }
+                return out;
+            }
+            return renderNomadPageByPath(pathPart, content, {}, MicronParser, {
+                ...this.nomadRenderOptions,
+                nomadDestinationHash: dest || this.nomadRenderOptions.nomadDestinationHash,
+            });
+        },
+        renderFullContent(archive) {
+            if (!archive?.content) {
+                return "";
+            }
+            try {
+                return this.renderContentByPath(
+                    archive.page_path,
+                    archive.content,
+                    archive.destination_hash || this.viewingArchive?.destination_hash
+                );
             } catch (e) {
                 console.error("Archive render failed", e);
                 return this.escapeHtml(archive.content);
@@ -674,30 +829,42 @@ export default {
     contain: content;
 }
 
-:deep(.nodeContainer) a {
+.archive-card-preview {
+    mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+}
+
+:deep(.nodeContainer) a,
+:deep(.archive-card-preview) a {
     color: #3b82f6;
     text-decoration: underline;
 }
 
-:deep(.nodeContainer) p {
+:deep(.nodeContainer) p,
+:deep(.archive-card-preview) p {
     margin: 0.5rem 0;
 }
 
 :deep(.nodeContainer) h1,
 :deep(.nodeContainer) h2,
-:deep(.nodeContainer) h3 {
+:deep(.nodeContainer) h3,
+:deep(.archive-card-preview) h1,
+:deep(.archive-card-preview) h2,
+:deep(.archive-card-preview) h3 {
     margin: 1.25rem 0 0.75rem 0;
     font-weight: bold;
     line-height: 1.2;
 }
 
-:deep(.nodeContainer) h1 {
+:deep(.nodeContainer) h1,
+:deep(.archive-card-preview) h1 {
     font-size: 1.5rem;
 }
-:deep(.nodeContainer) h2 {
+:deep(.nodeContainer) h2,
+:deep(.archive-card-preview) h2 {
     font-size: 1.25rem;
 }
-:deep(.nodeContainer) h3 {
+:deep(.nodeContainer) h3,
+:deep(.archive-card-preview) h3 {
     font-size: 1.1rem;
 }
 
