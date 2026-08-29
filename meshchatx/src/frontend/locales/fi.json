@@ -2547,7 +2547,14 @@
         "tab_content_mismatch": "Tämä välilehti oli epäsynkassa ja ladataan uudelleen",
         "tab_restore_failed": "Välilehden sivua ei voitu palauttaa",
         "open_node_failed": "NomadNet-solmua ei voitu avata",
-        "hide_source": "Piilota lähdekoodi"
+        "hide_source": "Piilota lähdekoodi",
+        "view_source": "View source",
+        "crash_tab_title": "Page renderer stopped responding",
+        "crash_tab_body": "The Nomad page sandbox hung or crashed. The rest of MeshChatX stays usable. Reload the page renderer, view source, or cancel.",
+        "crash_tab_reload": "Reload renderer",
+        "crash_tab_hung_toast": "Nomad page renderer stopped responding",
+        "crash_tab_rendering": "Rendering page…",
+        "crash_tab_render_cancelled": "Page render cancelled"
     },
     "forwarder": {
         "title": "LXMF-välittäjä",

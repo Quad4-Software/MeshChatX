@@ -2547,7 +2547,14 @@
         "tab_content_mismatch": "此标签页不同步，正在重新加载",
         "tab_restore_failed": "无法恢复此标签页的页面",
         "open_node_failed": "无法打开 NomadNet 节点",
-        "hide_source": "隐藏源码"
+        "hide_source": "隐藏源码",
+        "view_source": "View source",
+        "crash_tab_title": "Page renderer stopped responding",
+        "crash_tab_body": "The Nomad page sandbox hung or crashed. The rest of MeshChatX stays usable. Reload the page renderer, view source, or cancel.",
+        "crash_tab_reload": "Reload renderer",
+        "crash_tab_hung_toast": "Nomad page renderer stopped responding",
+        "crash_tab_rendering": "Rendering page…",
+        "crash_tab_render_cancelled": "Page render cancelled"
     },
     "forwarder": {
         "title": "LXMF 转发器",
