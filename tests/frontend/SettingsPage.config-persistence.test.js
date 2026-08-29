@@ -467,13 +467,25 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { crawler_enabled: true });
         w.vm.config.crawler_max_retries = 5;
         w.vm.config.crawler_retry_delay_seconds = 60;
-        w.vm.config.crawler_max_concurrent = 3;
+        w.vm.config.crawler_max_concurrent = 2;
+        w.vm.config.crawler_max_hops = 3;
+        w.vm.config.crawler_max_rtt_ms = 2000;
+        w.vm.config.crawler_max_depth = 1;
+        w.vm.config.crawler_max_pages_per_node = 10;
+        w.vm.config.crawler_requests_per_day_per_node = 1;
+        w.vm.config.crawler_refresh_days = 30;
         await w.vm.onCrawlerConfigChange();
         await vi.advanceTimersByTimeAsync(1000);
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", {
             crawler_max_retries: 5,
             crawler_retry_delay_seconds: 60,
-            crawler_max_concurrent: 3,
+            crawler_max_concurrent: 2,
+            crawler_max_hops: 3,
+            crawler_max_rtt_ms: 2000,
+            crawler_max_depth: 1,
+            crawler_max_pages_per_node: 10,
+            crawler_requests_per_day_per_node: 1,
+            crawler_refresh_days: 30,
         });
     });
 

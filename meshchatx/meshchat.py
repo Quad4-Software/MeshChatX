@@ -3746,8 +3746,11 @@ class ReticulumMeshChat:
         while self.running and ctx.running and ctx.session_id == session_id:
             try:
                 if ctx.config.crawler_enabled.get():
-                    # Proactively queue any known nodes from the database that haven't been queued yet
-                    # get known propagation nodes from database
+                    crawler = getattr(ctx, "crawler_manager", None)
+                    homepage = (
+                        ctx.config.nomad_default_page_path.get() or "/page/index.mu"
+                    )
+                    # Sweep announced nodes. Policy decides whether to queue.
                     known_nodes = ctx.database.announces.get_announces(
                         aspect="nomadnetwork.node",
                     )
@@ -3758,21 +3761,33 @@ class ReticulumMeshChat:
                             or ctx.session_id != session_id
                         ):
                             break
-                        self.queue_crawler_task(
-                            node["destination_hash"],
-                            ctx.config.nomad_default_page_path.get()
-                            or "/page/index.mu",
-                            context=ctx,
+                        dest = node["destination_hash"]
+                        if crawler:
+                            crawler.queue_if_allowed(
+                                dest,
+                                homepage,
+                                depth=0,
+                                announced_recently=True,
+                            )
+                        else:
+                            self.queue_crawler_task(dest, homepage, context=ctx)
+
+                    max_retries = ctx.config.crawler_max_retries.get()
+                    max_concurrent = max(
+                        1,
+                        min(2, int(ctx.config.crawler_max_concurrent.get() or 1)),
+                    )
+                    if crawler:
+                        tasks = crawler.select_next_tasks(
+                            max_retries=max_retries,
+                            max_concurrent=max_concurrent,
+                        )
+                    else:
+                        tasks = ctx.database.misc.get_pending_or_failed_crawl_tasks(
+                            max_retries=max_retries,
+                            max_concurrent=max_concurrent,
                         )
 
-                    # process pending or failed tasks
-                    # ensure we handle potential string comparison issues in SQLite
-                    tasks = ctx.database.misc.get_pending_or_failed_crawl_tasks(
-                        max_retries=ctx.config.crawler_max_retries.get(),
-                        max_concurrent=ctx.config.crawler_max_concurrent.get(),
-                    )
-
-                    # process tasks concurrently up to the limit
                     if tasks and self.running and ctx.running:
                         await asyncio.gather(
                             *[
@@ -3784,8 +3799,8 @@ class ReticulumMeshChat:
             except Exception as e:
                 print(f"Error in crawler loop for {ctx.identity_hash}: {e}")
 
-            # wait 30 seconds before checking again
-            for _ in range(30):
+            # Wait 60s between policy sweeps (was 30s). Less mesh load.
+            for _ in range(60):
                 if not self.running or not ctx.running or ctx.session_id != session_id:
                     return
                 await asyncio.sleep(1)
@@ -3795,26 +3810,71 @@ class ReticulumMeshChat:
         if not ctx:
             return
 
-        # mark as crawling
+        crawler = getattr(ctx, "crawler_manager", None)
         task_id = task["id"]
+        destination_hash = task["destination_hash"]
+        page_path = task["page_path"]
+        depth = int(task.get("depth") or 0)
+
+        if crawler and crawler.is_opted_out(destination_hash):
+            ctx.database.misc.update_crawl_task(
+                task_id,
+                status="cancelled",
+                updated_at=datetime.now(UTC),
+            )
+            return
+
+        if crawler and not crawler.node_may_request_today(destination_hash):
+            # Defer until the daily slot opens.
+            ctx.database.misc.update_crawl_task(
+                task_id,
+                status="pending",
+                next_retry_at=datetime.now(UTC) + timedelta(hours=6),
+                updated_at=datetime.now(UTC),
+            )
+            return
+
+        if crawler:
+            ok, reason, hops = crawler.path_ready_for_crawl(destination_hash)
+            if not ok:
+                if reason == "no_path":
+                    ctx.database.misc.update_crawl_task(
+                        task_id,
+                        status="pending",
+                        next_retry_at=datetime.now(UTC) + timedelta(minutes=15),
+                        updated_at=datetime.now(UTC),
+                    )
+                    return
+                crawler.mark_node_requested(
+                    destination_hash,
+                    hops=hops if hops < 64 else None,
+                    skipped_reason=reason,
+                )
+                ctx.database.misc.update_crawl_task(
+                    task_id,
+                    status="skipped",
+                    updated_at=datetime.now(UTC),
+                )
+                return
+        else:
+            hops = 0
+
         ctx.database.misc.update_crawl_task(
             task_id,
             status="crawling",
             last_retry_at=datetime.now(UTC),
         )
 
-        destination_hash = task["destination_hash"]
-        page_path = task["page_path"]
-
         print(
-            f"Crawler: Archiving {destination_hash}:{page_path} (Attempt {task['retry_count'] + 1})",
+            f"Crawler: Archiving {destination_hash}:{page_path} "
+            f"(Attempt {task['retry_count'] + 1}, depth={depth})",
         )
 
-        # completion event
         done_event = asyncio.Event()
         success = [False]
         content_received = [None]
         failure_reason = ["timeout"]
+        started = time.monotonic()
 
         def on_success(content):
             success[0] = True
@@ -3828,7 +3888,6 @@ class ReticulumMeshChat:
         def on_progress(progress):
             pass
 
-        # start downloader
         downloader = NomadnetPageDownloader(
             destination_hash=bytes.fromhex(destination_hash),
             page_path=page_path,
@@ -3841,16 +3900,12 @@ class ReticulumMeshChat:
         )
 
         try:
-            # use a dedicated task for the download so we can wait for it
             download_task = asyncio.create_task(downloader.download())
-
-            # wait for completion event
             try:
                 await asyncio.wait_for(done_event.wait(), timeout=180)
             except TimeoutError:
                 failure_reason[0] = "timeout"
                 downloader.cancel()
-
             await download_task
         except Exception as e:
             print(
@@ -3859,12 +3914,68 @@ class ReticulumMeshChat:
             failure_reason[0] = str(e)
             done_event.set()
 
+        elapsed_ms = (time.monotonic() - started) * 1000.0
+        rtt_ms = None
+        try:
+            from meshchatx.src.backend.nomadnet_downloader import get_cached_active_link
+            from meshchatx.src.backend.crawler_manager import link_rtt_ms
+
+            link = get_cached_active_link(bytes.fromhex(destination_hash))
+            rtt_ms = link_rtt_ms(link)
+        except Exception:
+            rtt_ms = None
+        if rtt_ms is None:
+            # Wall time for a single page request is a coarse stand-in.
+            rtt_ms = elapsed_ms
+
+        if crawler:
+            crawler.mark_node_requested(
+                destination_hash,
+                rtt_ms=rtt_ms,
+                hops=hops if isinstance(hops, int) else None,
+            )
+
+        if crawler and crawler.rtt_exceeds_limit(rtt_ms):
+            print(
+                f"Crawler: Skipping {destination_hash} (RTT {rtt_ms:.0f}ms above limit)",
+            )
+            crawler.mark_node_requested(
+                destination_hash,
+                rtt_ms=rtt_ms,
+                hops=hops if isinstance(hops, int) else None,
+                skipped_reason="rtt",
+            )
+            ctx.database.misc.update_crawl_task(
+                task_id,
+                status="skipped",
+                updated_at=datetime.now(UTC),
+            )
+            return
+
         if success[0]:
+            content = content_received[0] or ""
+            from meshchatx.src.backend.crawler_manager import content_signals_nocrawl
+
+            if content_signals_nocrawl(content):
+                print(f"Crawler: Node {destination_hash} signalled nocrawl")
+                if crawler:
+                    crawler.record_opt_out(
+                        destination_hash,
+                        reason="page_signal",
+                        source="signal",
+                    )
+                ctx.database.misc.update_crawl_task(
+                    task_id,
+                    status="cancelled",
+                    updated_at=datetime.now(UTC),
+                )
+                return
+
             print(f"Crawler: Successfully archived {destination_hash}:{page_path}")
             self.archive_page(
                 destination_hash,
                 page_path,
-                content_received[0],
+                content,
                 is_manual=False,
                 context=ctx,
             )
@@ -3873,18 +3984,31 @@ class ReticulumMeshChat:
                 status="completed",
                 updated_at=datetime.now(UTC),
             )
+            if crawler:
+                crawler.database.misc.upsert_crawl_node_stats(
+                    destination_hash,
+                    pages_indexed=crawler.pages_indexed_for_node(destination_hash),
+                )
+                for child in crawler.discover_child_paths(
+                    destination_hash,
+                    content,
+                    parent_depth=depth,
+                    parent_path=page_path,
+                ):
+                    crawler.queue_if_allowed(
+                        destination_hash,
+                        child,
+                        depth=depth + 1,
+                        announced_recently=True,
+                    )
         else:
             print(
                 f"Crawler: Failed to archive {destination_hash}:{page_path} - {failure_reason[0]}",
             )
             retry_count = task["retry_count"] + 1
-
-            # calculate next retry time
             retry_delay = ctx.config.crawler_retry_delay_seconds.get()
-            # simple backoff
             backoff_delay = retry_delay * (2 ** (retry_count - 1))
             next_retry_at = datetime.now(UTC) + timedelta(seconds=backoff_delay)
-
             ctx.database.misc.update_crawl_task(
                 task_id,
                 status="failed",
@@ -6164,6 +6288,48 @@ class ReticulumMeshChat:
                 value = self.config.crawler_max_concurrent.default_value
             self.config.crawler_max_concurrent.set(value)
 
+        if "crawler_max_hops" in data:
+            try:
+                value = int(data["crawler_max_hops"])
+            except (TypeError, ValueError):
+                value = self.config.crawler_max_hops.default_value
+            self.config.crawler_max_hops.set(max(1, min(16, value)))
+
+        if "crawler_max_rtt_ms" in data:
+            try:
+                value = int(data["crawler_max_rtt_ms"])
+            except (TypeError, ValueError):
+                value = self.config.crawler_max_rtt_ms.default_value
+            self.config.crawler_max_rtt_ms.set(max(100, min(60000, value)))
+
+        if "crawler_max_depth" in data:
+            try:
+                value = int(data["crawler_max_depth"])
+            except (TypeError, ValueError):
+                value = self.config.crawler_max_depth.default_value
+            self.config.crawler_max_depth.set(max(0, min(2, value)))
+
+        if "crawler_max_pages_per_node" in data:
+            try:
+                value = int(data["crawler_max_pages_per_node"])
+            except (TypeError, ValueError):
+                value = self.config.crawler_max_pages_per_node.default_value
+            self.config.crawler_max_pages_per_node.set(max(1, min(20, value)))
+
+        if "crawler_requests_per_day_per_node" in data:
+            try:
+                value = int(data["crawler_requests_per_day_per_node"])
+            except (TypeError, ValueError):
+                value = self.config.crawler_requests_per_day_per_node.default_value
+            self.config.crawler_requests_per_day_per_node.set(max(1, min(3, value)))
+
+        if "crawler_refresh_days" in data:
+            try:
+                value = int(data["crawler_refresh_days"])
+            except (TypeError, ValueError):
+                value = self.config.crawler_refresh_days.default_value
+            self.config.crawler_refresh_days.set(max(1, min(365, value)))
+
         if "auth_enabled" in data:
             value = self._parse_bool(data["auth_enabled"])
             self.config.auth_enabled.set(value)
@@ -7398,6 +7564,12 @@ class ReticulumMeshChat:
             "crawler_max_retries": ctx.config.crawler_max_retries.get(),
             "crawler_retry_delay_seconds": ctx.config.crawler_retry_delay_seconds.get(),
             "crawler_max_concurrent": ctx.config.crawler_max_concurrent.get(),
+            "crawler_max_hops": ctx.config.crawler_max_hops.get(),
+            "crawler_max_rtt_ms": ctx.config.crawler_max_rtt_ms.get(),
+            "crawler_max_depth": ctx.config.crawler_max_depth.get(),
+            "crawler_max_pages_per_node": ctx.config.crawler_max_pages_per_node.get(),
+            "crawler_requests_per_day_per_node": ctx.config.crawler_requests_per_day_per_node.get(),
+            "crawler_refresh_days": ctx.config.crawler_refresh_days.get(),
             "auth_enabled": self.auth_enabled,
             "privacy_mode_enabled": ctx.config.privacy_mode_enabled.get(),
             "multi_session_warning_enabled": ctx.config.multi_session_warning_enabled.get(),
@@ -10639,6 +10811,17 @@ class ReticulumMeshChat:
     def queue_crawler_task(self, destination_hash: str, page_path: str, context=None):
         ctx = context or self.current_context
         if not ctx:
+            return
+        crawler = getattr(ctx, "crawler_manager", None)
+        if crawler and not ctx.config.crawler_enabled.get():
+            return
+        if crawler:
+            crawler.queue_if_allowed(
+                destination_hash,
+                page_path,
+                depth=0,
+                announced_recently=True,
+            )
             return
         ctx.database.misc.upsert_crawl_task(destination_hash, page_path)
 

@@ -169,8 +169,29 @@ class MiscDAO:
             (destination_hash, page_path),
         )
 
-    def get_archived_pages_paginated(self, destination_hash=None, query=None):
-        sql = "SELECT * FROM archived_pages WHERE 1=1"
+    def count_archived_distinct_paths(self, destination_hash):
+        row = self.provider.fetchone(
+            "SELECT COUNT(DISTINCT page_path) AS n FROM archived_pages WHERE destination_hash = ?",
+            (destination_hash,),
+        )
+        return int(row["n"] or 0) if row else 0
+
+    def get_archived_pages_paginated(
+        self,
+        destination_hash=None,
+        query=None,
+        *,
+        limit=None,
+        offset=None,
+        include_content=True,
+    ):
+        columns = (
+            "id, destination_hash, page_path, hash, created_at, content"
+            if include_content
+            else "id, destination_hash, page_path, hash, created_at, "
+            "SUBSTR(content, 1, 400) AS content_preview"
+        )
+        sql = f"SELECT {columns} FROM archived_pages WHERE 1=1"
         params = []
         if destination_hash:
             sql += " AND destination_hash = ?"
@@ -183,7 +204,28 @@ class MiscDAO:
             params.extend([like_term, like_term, like_term])
 
         sql += " ORDER BY created_at DESC"
+        if limit is not None:
+            sql += " LIMIT ?"
+            params.append(int(limit))
+            if offset is not None:
+                sql += " OFFSET ?"
+                params.append(int(offset))
         return self.provider.fetchall(sql, params)
+
+    def count_archived_pages(self, destination_hash=None, query=None):
+        sql = "SELECT COUNT(*) AS n FROM archived_pages WHERE 1=1"
+        params = []
+        if destination_hash:
+            sql += " AND destination_hash = ?"
+            params.append(destination_hash)
+        if query:
+            like_term = f"%{query}%"
+            sql += (
+                " AND (destination_hash LIKE ? OR page_path LIKE ? OR content LIKE ?)"
+            )
+            params.extend([like_term, like_term, like_term])
+        row = self.provider.fetchone(sql, params)
+        return int(row["n"] or 0) if row else 0
 
     def delete_archived_pages(self, destination_hash=None, page_path=None, ids=None):
         if ids:
@@ -207,18 +249,53 @@ class MiscDAO:
         page_path,
         status="pending",
         retry_count=0,
+        depth=0,
+        priority=0.0,
+        reset_completed=True,
     ):
         now = datetime.now(UTC)
+        if not reset_completed:
+            existing = self.get_crawl_task(destination_hash, page_path)
+            if existing and existing.get("status") == "completed":
+                self.provider.execute(
+                    """
+                    UPDATE crawl_tasks
+                    SET depth = ?, priority = ?, updated_at = ?
+                    WHERE destination_hash = ? AND page_path = ?
+                    """,
+                    (depth, priority, now, destination_hash, page_path),
+                )
+                return
         self.provider.execute(
             """
-            INSERT INTO crawl_tasks (destination_hash, page_path, status, retry_count, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT(destination_hash, page_path) DO UPDATE SET 
-                status = EXCLUDED.status, 
+            INSERT INTO crawl_tasks (
+                destination_hash, page_path, status, retry_count,
+                depth, priority, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(destination_hash, page_path) DO UPDATE SET
+                status = EXCLUDED.status,
                 retry_count = EXCLUDED.retry_count,
+                depth = EXCLUDED.depth,
+                priority = EXCLUDED.priority,
                 updated_at = EXCLUDED.updated_at
-        """,
-            (destination_hash, page_path, status, retry_count, now, now),
+            """,
+            (
+                destination_hash,
+                page_path,
+                status,
+                retry_count,
+                depth,
+                priority,
+                now,
+                now,
+            ),
+        )
+
+    def get_crawl_task(self, destination_hash, page_path):
+        return self.provider.fetchone(
+            "SELECT * FROM crawl_tasks WHERE destination_hash = ? AND page_path = ?",
+            (destination_hash, page_path),
         )
 
     def get_pending_crawl_tasks(self):
@@ -235,6 +312,8 @@ class MiscDAO:
             "last_retry_at",
             "next_retry_at",
             "updated_at",
+            "depth",
+            "priority",
         }
         filtered_kwargs = {k: v for k, v in kwargs.items() if k in allowed_keys}
 
@@ -248,15 +327,129 @@ class MiscDAO:
         self.provider.execute(query, params)
 
     def get_pending_or_failed_crawl_tasks(self, max_retries, max_concurrent):
+        return self.get_prioritized_crawl_tasks(
+            max_retries=max_retries,
+            max_concurrent=max_concurrent,
+        )
+
+    def get_prioritized_crawl_tasks(self, max_retries, max_concurrent):
+        now = datetime.now(UTC).isoformat()
         return self.provider.fetchall(
-            "SELECT * FROM crawl_tasks WHERE status IN ('pending', 'failed') AND retry_count < ? LIMIT ?",
-            (max_retries, max_concurrent),
+            """
+            SELECT * FROM crawl_tasks
+            WHERE status IN ('pending', 'failed')
+              AND retry_count < ?
+              AND (next_retry_at IS NULL OR next_retry_at <= ?)
+            ORDER BY priority ASC, created_at ASC
+            LIMIT ?
+            """,
+            (max_retries, now, max_concurrent),
+        )
+
+    def cancel_crawl_tasks_for_destination(self, destination_hash):
+        now = datetime.now(UTC)
+        self.provider.execute(
+            """
+            UPDATE crawl_tasks
+            SET status = 'cancelled', updated_at = ?
+            WHERE destination_hash = ?
+              AND status IN ('pending', 'failed', 'crawling')
+            """,
+            (now, destination_hash),
         )
 
     def get_archived_page_by_id(self, archive_id):
         return self.provider.fetchone(
             "SELECT * FROM archived_pages WHERE id = ?",
             (archive_id,),
+        )
+
+    # Crawl opt-outs and per-node stats
+    def is_crawl_opted_out(self, destination_hash):
+        row = self.provider.fetchone(
+            "SELECT destination_hash FROM crawl_opt_outs WHERE destination_hash = ?",
+            (destination_hash,),
+        )
+        return row is not None
+
+    def upsert_crawl_opt_out(self, destination_hash, reason="signal", source="signal"):
+        now = datetime.now(UTC)
+        self.provider.execute(
+            """
+            INSERT INTO crawl_opt_outs (destination_hash, reason, source, created_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(destination_hash) DO UPDATE SET
+                reason = EXCLUDED.reason,
+                source = EXCLUDED.source
+            """,
+            (destination_hash, reason, source, now),
+        )
+
+    def delete_crawl_opt_out(self, destination_hash):
+        self.provider.execute(
+            "DELETE FROM crawl_opt_outs WHERE destination_hash = ?",
+            (destination_hash,),
+        )
+
+    def list_crawl_opt_outs(self):
+        return self.provider.fetchall(
+            "SELECT * FROM crawl_opt_outs ORDER BY created_at DESC",
+        )
+
+    def get_crawl_node_stats(self, destination_hash):
+        return self.provider.fetchone(
+            "SELECT * FROM crawl_node_stats WHERE destination_hash = ?",
+            (destination_hash,),
+        )
+
+    def upsert_crawl_node_stats(
+        self,
+        destination_hash,
+        *,
+        pages_indexed=None,
+        last_request_at=None,
+        last_rtt_ms=None,
+        last_hops=None,
+        skipped_reason=None,
+    ):
+        now = datetime.now(UTC)
+        existing = self.get_crawl_node_stats(destination_hash)
+        if existing is None:
+            self.provider.execute(
+                """
+                INSERT INTO crawl_node_stats (
+                    destination_hash, pages_indexed, last_request_at,
+                    last_rtt_ms, last_hops, skipped_reason, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    destination_hash,
+                    pages_indexed if pages_indexed is not None else 0,
+                    last_request_at,
+                    last_rtt_ms,
+                    last_hops,
+                    skipped_reason,
+                    now,
+                ),
+            )
+            return
+        fields = {"updated_at": now}
+        if pages_indexed is not None:
+            fields["pages_indexed"] = pages_indexed
+        if last_request_at is not None:
+            fields["last_request_at"] = last_request_at
+        if last_rtt_ms is not None:
+            fields["last_rtt_ms"] = last_rtt_ms
+        if last_hops is not None:
+            fields["last_hops"] = last_hops
+        if skipped_reason is not None:
+            fields["skipped_reason"] = skipped_reason
+        set_clause = ", ".join(f"{k} = ?" for k in fields)
+        params = list(fields.values())
+        params.append(destination_hash)
+        self.provider.execute(
+            f"UPDATE crawl_node_stats SET {set_clause} WHERE destination_hash = ?",
+            params,
         )
 
     # Notifications

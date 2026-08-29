@@ -1,174 +1,209 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex h-full overflow-hidden bg-sem-canvas text-sem-fg">
-        <ArchiveSidebar
-            v-if="!isSidebar1Hidden"
-            class="w-full shrink-0 sm:w-60 lg:w-64"
-            :class="{ 'hidden sm:flex': selectedNodeHash }"
-            :nodes="groupedArchives"
-            :selected-node-hash="selectedNodeHash"
-            :initial-search-query="searchQuery"
-            @select-node="onNodeSelect"
-            @update:search-query="onSearchQueryChange"
-        />
-
-        <div
-            v-if="selectedNode && !isSidebar2Hidden"
-            class="flex w-full shrink-0 flex-col border-r border-sem-border bg-sem-canvas sm:w-72 lg:w-80"
-            :class="{ 'hidden sm:flex': viewingArchive }"
-        >
-            <div class="flex flex-col gap-2 border-b border-sem-border px-3 py-2.5">
-                <div class="flex items-center gap-2">
-                    <button
-                        type="button"
-                        class="rounded-lg p-1 text-sem-fg-muted hover:bg-sem-surface/60 sm:hidden"
-                        :aria-label="$t('common.back')"
-                        :title="$t('common.back')"
-                        @click="selectedNodeHash = null"
-                    >
-                        <MaterialDesignIcon icon-name="arrow-left" class="size-5" />
-                    </button>
-                    <h2 class="min-w-0 flex-1 truncate text-sm font-semibold">{{ selectedNode.node_name }}</h2>
-                    <span class="rounded-full bg-sem-surface-muted px-2 py-0.5 text-xs text-sem-fg-muted">
-                        {{ selectedNode.archives.length }}
-                    </span>
+    <div class="flex h-full min-h-0 flex-col overflow-hidden bg-sem-canvas text-sem-fg">
+        <div class="shrink-0 border-b border-sem-border px-3 py-3 sm:px-4">
+            <div class="mx-auto flex max-w-5xl flex-col gap-3">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <h1 class="text-lg font-semibold sm:text-xl">{{ $t("nav.archives") }}</h1>
+                        <p class="mt-0.5 text-xs text-sem-fg-muted sm:text-sm">{{ $t("archives.description") }}</p>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-1">
+                        <button
+                            v-if="viewingArchive"
+                            type="button"
+                            class="rounded-lg p-2 text-sem-fg-muted hover:bg-sem-surface/60"
+                            :title="$t('archives.close_viewer')"
+                            @click="closeViewer"
+                        >
+                            <MaterialDesignIcon icon-name="close" class="size-5" />
+                        </button>
+                    </div>
                 </div>
 
-                <div class="flex items-center justify-between gap-2">
+                <div class="relative">
+                    <MaterialDesignIcon
+                        icon-name="magnify"
+                        class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-sem-fg-muted"
+                    />
+                    <input
+                        v-model="searchQuery"
+                        type="search"
+                        :placeholder="$t('archives.search_placeholder')"
+                        class="w-full rounded-xl border border-sem-border bg-sem-surface py-2.5 pl-10 pr-10 text-sm text-sem-fg placeholder:text-sem-fg-muted focus:border-sem-accent focus:outline-hidden focus:ring-2 focus:ring-sem-accent/20"
+                        @input="onSearchInput"
+                    />
+                    <div v-if="isSearching" class="absolute inset-y-0 right-3 flex items-center">
+                        <MaterialDesignIcon icon-name="loading" class="size-4 animate-spin text-sem-fg-muted" />
+                    </div>
                     <button
-                        v-if="!selectMode"
+                        v-else-if="searchQuery"
                         type="button"
-                        class="rounded-lg px-2 py-1 text-xs font-medium text-sem-fg-muted transition-colors hover:bg-sem-surface/60 hover:text-sem-fg"
-                        @click="selectMode = true"
+                        class="absolute inset-y-0 right-2 flex items-center rounded p-1 text-sem-fg-muted hover:text-sem-fg"
+                        :title="$t('archives.clear_search')"
+                        @click="clearSearch"
                     >
-                        {{ $t("common.select") }}
+                        <MaterialDesignIcon icon-name="close" class="size-4" />
                     </button>
-                    <label v-else class="flex cursor-pointer items-center gap-2">
-                        <input
-                            type="checkbox"
-                            class="rounded border-sem-border text-sem-accent focus:ring-sem-accent/30"
-                            :checked="isAllSelected"
-                            @change="toggleSelectAll"
-                        />
-                        <span class="text-xs text-sem-fg-muted">{{ $t("archives.select_all") }}</span>
-                    </label>
+                </div>
 
-                    <div class="flex items-center gap-1">
-                        <template v-if="selectMode && selectedArchives.length > 0">
-                            <button
-                                type="button"
-                                class="rounded-lg p-1.5 text-sem-accent hover:bg-sem-surface/60"
-                                :title="$t('archives.export_selected_mu', { count: selectedArchives.length })"
-                                @click="exportSelectedArchivesAsMu"
-                            >
-                                <MaterialDesignIcon icon-name="download" class="size-4" />
-                            </button>
-                            <button
-                                type="button"
-                                class="rounded-lg p-1.5 text-red-500 hover:bg-sem-surface/60"
-                                :title="$t('archives.delete_selected', { count: selectedArchives.length })"
-                                @click="deleteSelected"
-                            >
-                                <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
-                            </button>
-                        </template>
-                        <button
-                            v-if="selectMode"
-                            type="button"
-                            class="rounded-lg px-2 py-1 text-xs font-medium text-sem-fg-muted transition-colors hover:bg-sem-surface/60 hover:text-sem-fg"
-                            @click="exitSelectMode"
+                <div class="flex flex-wrap items-center gap-2 text-xs text-sem-fg-muted">
+                    <span
+                        v-if="pagination.total_count > 0"
+                        class="rounded-full bg-sem-surface-muted px-2 py-0.5 font-medium"
+                    >
+                        {{
+                            searchQuery
+                                ? $t("archives.matches_count", { count: pagination.total_count })
+                                : $t("archives.showing_range", {
+                                      start: rangeStart,
+                                      end: rangeEnd,
+                                      total: pagination.total_count,
+                                  })
+                        }}
+                    </span>
+                    <label class="ml-auto flex items-center gap-1.5">
+                        <span>{{ $t("archives.filter_node") }}</span>
+                        <select
+                            v-model="nodeFilter"
+                            class="rounded-lg border border-sem-border bg-sem-canvas px-2 py-1 text-xs text-sem-fg"
+                            @change="onFilterChange"
                         >
-                            {{ $t("common.cancel") }}
+                            <option value="">{{ $t("archives.all_nodes") }}</option>
+                            <option v-for="node in nodeOptions" :key="node.hash" :value="node.hash">
+                                {{ node.label }}
+                            </option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex min-h-0 flex-1 overflow-hidden">
+            <div class="flex min-w-0 flex-1 flex-col overflow-hidden" :class="{ 'hidden sm:flex': viewingArchive }">
+                <div v-if="loadError" class="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
+                    <MaterialDesignIcon icon-name="alert-circle-outline" class="size-10 text-red-400" />
+                    <p class="text-sm">{{ $t("archives.search_failed") }}</p>
+                    <button type="button" class="text-xs font-medium text-sem-accent" @click="getArchives">
+                        {{ $t("archives.retry") }}
+                    </button>
+                </div>
+
+                <div
+                    v-else-if="!isLoading && archives.length === 0"
+                    class="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center"
+                >
+                    <MaterialDesignIcon icon-name="text-search" class="size-12 text-sem-fg-muted opacity-40" />
+                    <p class="text-sm font-medium">
+                        {{ searchQuery ? $t("archives.no_results") : $t("archives.no_archives") }}
+                    </p>
+                    <p class="max-w-sm text-xs text-sem-fg-muted">
+                        {{ searchQuery ? $t("archives.adjust_filters") : $t("archives.browse_to_archive") }}
+                    </p>
+                    <button
+                        v-if="searchQuery"
+                        type="button"
+                        class="mt-2 text-xs font-medium text-sem-accent"
+                        @click="clearSearch"
+                    >
+                        {{ $t("archives.clear_search") }}
+                    </button>
+                </div>
+
+                <div v-else class="flex-1 overflow-y-auto">
+                    <div class="mx-auto max-w-5xl space-y-2 p-3 sm:p-4">
+                        <button
+                            v-for="archive in archives"
+                            :key="archive.id"
+                            type="button"
+                            class="group w-full rounded-xl border border-sem-border/60 bg-sem-surface/30 p-3 text-left transition-colors hover:border-sem-accent/40 hover:bg-sem-surface/60"
+                            :class="{
+                                'ring-1 ring-sem-accent/40 border-sem-accent/40': viewingArchive?.id === archive.id,
+                            }"
+                            @click="openArchive(archive)"
+                        >
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="truncate text-sm font-semibold group-hover:text-sem-accent">
+                                        {{ archive.node_name }}
+                                    </div>
+                                    <div class="mt-0.5 truncate font-mono text-xs text-sem-fg-muted">
+                                        {{ archive.page_path || "/" }}
+                                    </div>
+                                </div>
+                                <div class="shrink-0 text-right text-[10px] text-sem-fg-muted">
+                                    <div>{{ formatDate(archive.created_at) }}</div>
+                                    <div class="mt-0.5 font-mono opacity-70">
+                                        {{ (archive.hash || "").substring(0, 8) }}
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- eslint-disable vue/no-v-html -- highlightMatch escapes -->
+                            <p
+                                v-if="archive.snippet"
+                                class="mt-2 line-clamp-3 text-xs leading-relaxed text-sem-fg-muted"
+                                v-html="highlightMatch(archive.snippet)"
+                            ></p>
+                            <!-- eslint-enable vue/no-v-html -->
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                <span
+                                    class="rounded bg-sem-surface-muted px-1.5 py-0.5 font-mono text-[10px] text-sem-fg-muted"
+                                >
+                                    {{ shortHash(archive.destination_hash) }}
+                                </span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div
+                        v-if="pagination.total_pages > 1"
+                        class="flex items-center justify-center gap-3 border-t border-sem-border px-3 py-3"
+                    >
+                        <button
+                            type="button"
+                            class="rounded-lg px-3 py-1.5 text-xs font-medium disabled:opacity-40"
+                            :disabled="pagination.page <= 1 || isLoading"
+                            @click="goPage(pagination.page - 1)"
+                        >
+                            {{ $t("archives.prev_page") }}
+                        </button>
+                        <span class="text-xs text-sem-fg-muted">
+                            {{
+                                $t("archives.page_of", {
+                                    page: pagination.page,
+                                    total_pages: pagination.total_pages,
+                                })
+                            }}
+                        </span>
+                        <button
+                            type="button"
+                            class="rounded-lg px-3 py-1.5 text-xs font-medium disabled:opacity-40"
+                            :disabled="pagination.page >= pagination.total_pages || isLoading"
+                            @click="goPage(pagination.page + 1)"
+                        >
+                            {{ $t("archives.next_page") }}
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div class="flex-1 overflow-y-auto">
-                <div
-                    v-for="archive in selectedNode.archives"
-                    :key="archive.id"
-                    class="group relative flex items-stretch border-b border-sem-border/50 transition-colors hover:bg-sem-surface/40"
-                    :class="{
-                        'bg-sem-surface/60 ring-1 ring-inset ring-sem-accent/30': viewingArchive?.id === archive.id,
-                        'bg-sem-accent/5': selectedArchives.includes(archive.id),
-                    }"
-                >
-                    <div v-if="selectMode" class="flex items-center px-2" @click.stop>
-                        <input
-                            v-model="selectedArchives"
-                            type="checkbox"
-                            class="rounded border-sem-border text-sem-accent focus:ring-sem-accent/30"
-                            :value="archive.id"
-                        />
+            <div
+                v-if="viewingArchive"
+                class="flex min-w-0 flex-1 flex-col overflow-hidden border-l border-sem-border bg-sem-canvas sm:max-w-xl lg:max-w-2xl"
+            >
+                <div class="flex shrink-0 items-center gap-1 border-b border-sem-border px-2 py-2">
+                    <button
+                        type="button"
+                        class="rounded-lg p-1 text-sem-fg-muted hover:bg-sem-surface/60 sm:hidden"
+                        @click="closeViewer"
+                    >
+                        <MaterialDesignIcon icon-name="arrow-left" class="size-5" />
+                    </button>
+                    <div class="min-w-0 flex-1 px-1">
+                        <div class="truncate text-xs text-sem-fg-muted">{{ viewingArchive.node_name }}</div>
+                        <div class="truncate font-mono text-sm">{{ viewingArchive.page_path || "/" }}</div>
                     </div>
-
-                    <button
-                        type="button"
-                        class="min-w-0 flex-1 px-2 py-2.5 text-left"
-                        :class="selectMode ? '' : 'pl-3'"
-                        @click="viewArchive(archive)"
-                    >
-                        <div class="truncate text-sm font-medium">{{ archive.page_path || "/" }}</div>
-                        <div class="mt-1 flex items-center justify-between gap-2 text-xs text-sem-fg-muted">
-                            <span class="inline-flex items-center gap-1">
-                                <MaterialDesignIcon icon-name="clock-outline" class="size-3" />
-                                {{ formatDate(archive.created_at) }}
-                            </span>
-                            <span class="font-mono opacity-60">{{ archive.hash.substring(0, 8) }}</span>
-                        </div>
-                    </button>
-
-                    <button
-                        type="button"
-                        class="self-center rounded-lg p-2 text-sem-fg-muted opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
-                        :title="$t('archives.delete_snapshot')"
-                        @click.stop="deleteArchive(archive)"
-                    >
-                        <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <div
-            class="flex min-w-0 flex-1 flex-col overflow-hidden bg-sem-canvas"
-            :class="{ 'hidden sm:flex': !viewingArchive }"
-        >
-            <div v-if="viewingArchive" class="flex shrink-0 items-center gap-1 border-b border-sem-border px-2 py-2">
-                <button
-                    type="button"
-                    class="rounded-lg p-1 text-sem-fg-muted hover:bg-sem-surface/60 sm:hidden"
-                    @click="viewingArchive = null"
-                >
-                    <MaterialDesignIcon icon-name="arrow-left" class="size-5" />
-                </button>
-
-                <div class="min-w-0 flex-1 px-1">
-                    <div class="text-xs text-sem-fg-muted">{{ $t("archives.viewing_archive") }}</div>
-                    <div class="truncate font-mono text-sm">{{ viewingArchive.page_path || "/" }}</div>
-                </div>
-
-                <div class="flex items-center gap-0.5">
-                    <button
-                        type="button"
-                        class="hidden rounded-lg p-2 hover:bg-sem-surface/60 sm:block"
-                        :class="isSidebar1Hidden ? 'text-sem-fg-muted' : 'text-sem-accent'"
-                        :title="isSidebar1Hidden ? $t('archives.show_nodes') : $t('archives.hide_nodes')"
-                        @click="isSidebar1Hidden = !isSidebar1Hidden"
-                    >
-                        <MaterialDesignIcon icon-name="page-layout-sidebar-left" class="size-4" />
-                    </button>
-                    <button
-                        type="button"
-                        class="hidden rounded-lg p-2 hover:bg-sem-surface/60 sm:block"
-                        :class="isSidebar2Hidden ? 'text-sem-fg-muted' : 'text-sem-accent'"
-                        :title="isSidebar2Hidden ? $t('archives.show_snapshots') : $t('archives.hide_snapshots')"
-                        @click="isSidebar2Hidden = !isSidebar2Hidden"
-                    >
-                        <MaterialDesignIcon icon-name="view-list" class="size-4" />
-                    </button>
                     <button
                         type="button"
                         class="rounded-lg p-2 text-sem-fg hover:bg-sem-surface/60"
@@ -187,35 +222,36 @@
                     </button>
                     <button
                         type="button"
-                        class="hidden rounded-lg p-2 text-sem-fg-muted hover:bg-sem-surface/60 sm:block"
-                        :title="$t('common.cancel')"
-                        @click="viewingArchive = null"
+                        class="rounded-lg p-2 text-sem-fg-muted hover:bg-sem-surface/60"
+                        :title="$t('archives.never_crawl')"
+                        @click="optOutNode(viewingArchive)"
                     >
-                        <MaterialDesignIcon icon-name="close" class="size-5" />
+                        <MaterialDesignIcon icon-name="cancel" class="size-4" />
+                    </button>
+                    <button
+                        type="button"
+                        class="rounded-lg p-2 text-red-500 hover:bg-sem-surface/60"
+                        :title="$t('archives.delete_snapshot')"
+                        @click="deleteArchive(viewingArchive)"
+                    >
+                        <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
                     </button>
                 </div>
-            </div>
 
-            <div class="nodeContainer flex-1 overflow-y-auto overscroll-contain p-4">
-                <div v-if="isLoading" class="flex h-full items-center justify-center text-sem-fg-muted">
-                    <MaterialDesignIcon icon-name="refresh" class="size-8 animate-spin-reverse" />
+                <div class="nodeContainer flex-1 overflow-y-auto overscroll-contain p-4">
+                    <div v-if="isLoadingViewer" class="flex h-full items-center justify-center text-sem-fg-muted">
+                        <MaterialDesignIcon icon-name="refresh" class="size-8 animate-spin-reverse" />
+                    </div>
+                    <!-- eslint-disable vue/no-v-html -- sanitized via renderNomadPageByPath -->
+                    <div
+                        v-else
+                        class="h-full selection:bg-sem-accent/30"
+                        :class="archiveViewerClasses"
+                        @click.capture="onArchiveContentClick"
+                        v-html="renderedContent"
+                    ></div>
+                    <!-- eslint-enable vue/no-v-html -->
                 </div>
-                <div
-                    v-else-if="!viewingArchive"
-                    class="flex h-full flex-col items-center justify-center gap-3 text-sem-fg-muted"
-                >
-                    <MaterialDesignIcon icon-name="archive-clock-outline" class="size-14 opacity-30" />
-                    <div class="text-sm">{{ $t("archives.select_snapshot") }}</div>
-                </div>
-                <!-- eslint-disable vue/no-v-html -- sanitized via renderNomadPageByPath -->
-                <div
-                    v-else
-                    class="h-full selection:bg-sem-accent/30"
-                    :class="archiveViewerClasses"
-                    @click.capture="onArchiveContentClick"
-                    v-html="renderedContent"
-                ></div>
-                <!-- eslint-enable vue/no-v-html -->
             </div>
         </div>
     </div>
@@ -234,7 +270,6 @@ import {
 } from "../../js/MicronWasmLoader.js";
 import { renderNomadPageByPath, isolateNomadLinksInHtml } from "../../js/NomadPageRenderer.js";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
-import ArchiveSidebar from "./ArchiveSidebar.vue";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 
@@ -242,28 +277,37 @@ export default {
     name: "ArchivesPage",
     components: {
         MaterialDesignIcon,
-        ArchiveSidebar,
     },
     data() {
         return {
             archives: [],
             isLoading: false,
-            selectedNodeHash: null,
+            isSearching: false,
+            isLoadingViewer: false,
+            loadError: false,
             viewingArchive: null,
-            isSidebar1Hidden: false,
-            isSidebar2Hidden: false,
             renderedContent: "",
             searchQuery: "",
-            selectedArchives: [],
-            selectMode: false,
+            nodeFilter: "",
+            nodeOptions: [],
+            searchTimeout: null,
             pagination: {
                 page: 1,
-                limit: 500, // Reduced from 1000 to improve initial load
+                limit: 25,
+                total_count: 0,
+                total_pages: 0,
             },
             nomadMicronWasmReady: false,
         };
     },
     computed: {
+        rangeStart() {
+            if (!this.pagination.total_count) return 0;
+            return (this.pagination.page - 1) * this.pagination.limit + 1;
+        },
+        rangeEnd() {
+            return Math.min(this.pagination.page * this.pagination.limit, this.pagination.total_count);
+        },
         nomadMicronWasmFeatureEffective() {
             return isMicronWasmBundled() && (GlobalState.config || {}).nomad_micron_wasm_enabled === true;
         },
@@ -288,14 +332,6 @@ export default {
                 nomad_micron_wasm_use:
                     this.nomadMicronWasmFeatureEffective && this.nomadMicronWasmReady === true && engineWasm,
             };
-        },
-        selectedNode() {
-            if (!this.selectedNodeHash) return null;
-            return this.groupedArchives.find((g) => g.destination_hash === this.selectedNodeHash);
-        },
-        isAllSelected() {
-            if (!this.selectedNode || this.selectedNode.archives.length === 0) return false;
-            return this.selectedNode.archives.every((a) => this.selectedArchives.includes(a.id));
         },
         archiveViewerClasses() {
             const a = this.viewingArchive;
@@ -322,54 +358,25 @@ export default {
             }
             return classes;
         },
-        groupedArchives() {
-            // Optimization: Use a simple object for grouping
-            const groups = {};
-            const list = this.archives || [];
-            for (let i = 0; i < list.length; i++) {
-                const archive = list[i];
-                const hash = archive.destination_hash;
-                if (!groups[hash]) {
-                    groups[hash] = {
-                        destination_hash: hash,
-                        node_name: archive.node_name,
-                        archives: [],
-                    };
-                }
-                groups[hash].archives.push(archive);
-            }
-
-            return Object.values(groups).sort((a, b) => {
-                // Sort by latest archive date
-                const dateA = new Date(a.archives[0].created_at);
-                const dateB = new Date(b.archives[0].created_at);
-                return dateB - dateA;
-            });
-        },
     },
     watch: {
-        groupedArchives(newVal) {
-            if (!this.selectedNodeHash && newVal.length > 0 && window.innerWidth >= 640) {
-                this.selectedNodeHash = newVal[0].destination_hash;
-            }
-        },
         viewingArchive(newVal) {
-            if (newVal) {
-                // Defer heavy rendering to next tick or use a small delay to prevent UI freezing
+            if (newVal && newVal.content != null) {
                 this.renderedContent = "Rendering...";
                 setTimeout(() => {
                     this.renderedContent = this.renderFullContent(newVal);
                 }, 10);
-            } else {
+            } else if (!newVal) {
                 this.renderedContent = "";
-                this.isSidebar1Hidden = false;
-                this.isSidebar2Hidden = false;
             }
         },
     },
     mounted() {
+        const q = this.$route?.query?.q;
+        if (typeof q === "string" && q) {
+            this.searchQuery = q;
+        }
         this.getArchives();
-
         this.$watch(
             () => GlobalState.config?.nomad_micron_wasm_enabled,
             async (enabled) => {
@@ -389,7 +396,6 @@ export default {
                 }
             }
         );
-
         this.$watch(
             () => GlobalState.config?.nomad_micron_default_engine,
             () => {
@@ -399,7 +405,6 @@ export default {
                 }
             }
         );
-
         if (isMicronWasmBundled() && GlobalState.config?.nomad_micron_wasm_enabled === true) {
             preloadNomadMicronWasm().then((ok) => {
                 this.nomadMicronWasmReady = ok === true;
@@ -411,115 +416,158 @@ export default {
         }
     },
     methods: {
-        async getArchives() {
-            this.isLoading = true;
+        shortHash(hash) {
+            return (hash || "").substring(0, 12);
+        },
+        escapeHtml(value) {
+            return String(value ?? "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        },
+        highlightMatch(snippet) {
+            const safe = this.escapeHtml(snippet);
+            const q = (this.searchQuery || "").trim();
+            if (!q || q.length < 2) {
+                return safe;
+            }
+            const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
             try {
-                const response = await window.api.get("/api/v1/nomadnet/archives", {
-                    params: {
-                        page: 1,
-                        limit: 500,
-                        q: this.searchQuery,
-                    },
-                });
-                this.archives = response.data.archives;
-            } catch (e) {
-                console.error("Failed to load archives:", e);
-            } finally {
-                this.isLoading = false;
+                const re = new RegExp(`(${escaped})`, "ig");
+                return safe.replace(re, '<mark class="bg-sem-accent/30 text-inherit rounded-sm px-0.5">$1</mark>');
+            } catch {
+                return safe;
             }
         },
-        onSearchQueryChange(query) {
-            this.searchQuery = query;
-            // Debounce search
+        async getArchives() {
+            this.isLoading = true;
+            this.isSearching = Boolean(this.searchQuery);
+            this.loadError = false;
+            try {
+                const params = {
+                    page: this.pagination.page,
+                    limit: this.pagination.limit,
+                    include_content: false,
+                };
+                if (this.searchQuery) {
+                    params.q = this.searchQuery;
+                }
+                if (this.nodeFilter) {
+                    params.destination_hash = this.nodeFilter;
+                }
+                const response = await window.api.get("/api/v1/nomadnet/archives", { params });
+                this.archives = response.data.archives || [];
+                const pag = response.data.pagination || {};
+                this.pagination = {
+                    page: pag.page || this.pagination.page,
+                    limit: pag.limit || this.pagination.limit,
+                    total_count: pag.total_count || 0,
+                    total_pages: pag.total_pages || 0,
+                };
+                this.refreshNodeOptions();
+            } catch (e) {
+                console.error("Failed to load archives:", e);
+                this.loadError = true;
+                ToastUtils.error(this.$t("archives.search_failed"));
+            } finally {
+                this.isLoading = false;
+                this.isSearching = false;
+            }
+        },
+        refreshNodeOptions() {
+            const map = new Map();
+            for (const a of this.archives) {
+                if (!map.has(a.destination_hash)) {
+                    map.set(a.destination_hash, {
+                        hash: a.destination_hash,
+                        label: `${a.node_name} (${this.shortHash(a.destination_hash)})`,
+                    });
+                }
+            }
+            if (this.nodeFilter && !map.has(this.nodeFilter)) {
+                map.set(this.nodeFilter, {
+                    hash: this.nodeFilter,
+                    label: this.shortHash(this.nodeFilter),
+                });
+            }
+            this.nodeOptions = Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
+        },
+        onSearchInput() {
             clearTimeout(this.searchTimeout);
+            this.isSearching = true;
             this.searchTimeout = setTimeout(() => {
+                this.pagination.page = 1;
                 this.getArchives();
             }, 300);
         },
-        onNodeSelect(node) {
-            this.selectedNodeHash = node.destination_hash;
-            this.selectedArchives = [];
-            this.selectMode = false;
-            // On desktop, auto-select latest archive. On mobile, just show the list.
-            if (window.innerWidth >= 640 && node.archives && node.archives.length > 0) {
-                this.viewingArchive = node.archives[0];
-            } else {
-                this.viewingArchive = null;
-            }
+        clearSearch() {
+            this.searchQuery = "";
+            this.pagination.page = 1;
+            this.getArchives();
         },
-        toggleSelectAll() {
-            if (this.isAllSelected) {
-                this.selectedArchives = [];
-            } else if (this.selectedNode) {
-                this.selectedArchives = this.selectedNode.archives.map((a) => a.id);
-            }
+        onFilterChange() {
+            this.pagination.page = 1;
+            this.getArchives();
         },
-        exitSelectMode() {
-            this.selectMode = false;
-            this.selectedArchives = [];
+        goPage(page) {
+            this.pagination.page = page;
+            this.getArchives();
         },
-        async deleteSelected() {
-            if (this.selectedArchives.length === 0) return;
-
-            if (
-                !(await DialogUtils.confirm(
-                    this.$t("archives.delete_selected_confirm", { count: this.selectedArchives.length })
-                ))
-            ) {
-                return;
-            }
-
+        async openArchive(archive) {
+            this.isLoadingViewer = true;
+            this.viewingArchive = { ...archive, content: archive.content || null };
             try {
-                await window.api.delete("/api/v1/nomadnet/archives", {
-                    data: { ids: this.selectedArchives },
-                });
-
-                // Remove from local list
-                this.archives = this.archives.filter((a) => !this.selectedArchives.includes(a.id));
-                this.selectedArchives = [];
-
-                if (this.viewingArchive && !this.archives.find((a) => a.id === this.viewingArchive.id)) {
-                    this.viewingArchive = null;
-                }
-
-                // If current node has no more archives, deselect it
-                if (this.selectedNode && this.selectedNode.archives.length === 0) {
-                    this.selectedNodeHash = null;
-                }
+                const response = await window.api.get(`/api/v1/nomadnet/archives/${archive.id}`);
+                const full = response.data.archive;
+                this.viewingArchive = full;
+                this.renderedContent = this.renderFullContent(full);
             } catch (e) {
-                console.error("Failed to delete archives:", e);
-                ToastUtils.error(this.$t("archives.failed_delete"));
+                console.error("Failed to load archive:", e);
+                ToastUtils.error(this.$t("archives.failed_load"));
+                this.viewingArchive = null;
+            } finally {
+                this.isLoadingViewer = false;
             }
+        },
+        closeViewer() {
+            this.viewingArchive = null;
+            this.renderedContent = "";
         },
         async deleteArchive(archive) {
             if (!(await DialogUtils.confirm(this.$t("archives.delete_snapshot_confirm")))) {
                 return;
             }
-
             try {
                 await window.api.delete("/api/v1/nomadnet/archives", {
                     data: { ids: [archive.id] },
                 });
-
-                // Remove from local list
                 this.archives = this.archives.filter((a) => a.id !== archive.id);
-                this.selectedArchives = this.selectedArchives.filter((id) => id !== archive.id);
-
                 if (this.viewingArchive?.id === archive.id) {
-                    this.viewingArchive = null;
+                    this.closeViewer();
                 }
-
-                // If current node has no more archives, deselect it
-                if (this.selectedNode && this.selectedNode.archives.length === 0) {
-                    this.selectedNodeHash = null;
-                }
+                this.pagination.total_count = Math.max(0, this.pagination.total_count - 1);
+                ToastUtils.success(this.$t("archives.deleted"));
             } catch (e) {
                 console.error("Failed to delete archive:", e);
                 ToastUtils.error(this.$t("archives.failed_delete"));
             }
         },
-        viewArchive(archive) {
-            this.viewingArchive = archive;
+        async optOutNode(archive) {
+            if (!(await DialogUtils.confirm(this.$t("archives.never_crawl_confirm")))) {
+                return;
+            }
+            try {
+                await window.api.post("/api/v1/nomadnet/crawl/opt-outs", {
+                    destination_hash: archive.destination_hash,
+                    reason: "user",
+                });
+                ToastUtils.success(this.$t("archives.never_crawl_saved"));
+            } catch (e) {
+                console.error("Failed to opt out node:", e);
+                ToastUtils.error(this.$t("archives.never_crawl_failed"));
+            }
         },
         openInNomadnet(archive) {
             this.$router.push({
@@ -589,14 +637,6 @@ export default {
             }
             this.downloadTextAsFile(archive.content, this.muExportFilename(archive));
         },
-        exportSelectedArchivesAsMu() {
-            const list = this.archives.filter((a) => this.selectedArchives.includes(a.id));
-            list.forEach((archive, i) => {
-                window.setTimeout(() => {
-                    this.downloadTextAsFile(archive.content, this.muExportFilenameDisambiguated(archive));
-                }, i * 120);
-            });
-        },
         renderFullContent(archive) {
             if (!archive.content) {
                 return "";
@@ -622,12 +662,7 @@ export default {
                 });
             } catch (e) {
                 console.error("Archive render failed", e);
-                return String(archive.content)
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;")
-                    .replace(/"/g, "&quot;")
-                    .replace(/'/g, "&#039;");
+                return this.escapeHtml(archive.content);
             }
         },
     },
@@ -635,16 +670,6 @@ export default {
 </script>
 
 <style scoped>
-pre {
-    font-family: "Roboto Mono Nerd Font", ui-monospace, monospace;
-    font-size: 13px;
-    line-height: 1.5;
-    letter-spacing: normal;
-    font-variant-ligatures: none;
-    font-feature-settings: normal;
-}
-
-/* Ensure long pages don't lag the layout */
 .nodeContainer {
     contain: content;
 }
@@ -684,7 +709,6 @@ pre {
 </style>
 
 <style>
-/* Match NomadNetworkPage so archives render Markdown/HTML before that route is loaded */
 .nomad-markdown-host {
     font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
 }

@@ -109,7 +109,7 @@ const UI_PAGES = [
         id: "archives",
         path: "/archives",
         readyKind: "placeholder",
-        ready: "Search nodes or content...",
+        ready: "Search content, node name, hash, or path...",
     },
     {
         id: "blocked",

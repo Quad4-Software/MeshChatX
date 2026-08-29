@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 
+from meshchatx.src.backend.crawler_manager import make_snippet
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     GeoValidationError,
     OutboundHttpBlockedError,
@@ -132,60 +133,90 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 )
 
 
+def _resolve_node_name(app, destination_hash: str) -> str:
+    node_name = app.get_custom_destination_display_name(destination_hash)
+    if not node_name:
+        db_announce = app.database.announces.get_announce_by_hash(destination_hash)
+        if db_announce and db_announce["aspect"] == "nomadnetwork.node":
+            node_name = parse_nomadnetwork_node_display_name(db_announce["app_data"])
+    return node_name or "Unknown Node"
+
+
 def register_archives_routes(routes, app):
 
-    # serve archived pages
     @routes.get("/api/v1/nomadnet/archives")
     async def get_all_archived_pages(request):
-        # get search query and pagination from request
         query = request.query.get("q", "").strip()
+        destination_hash = request.query.get("destination_hash", "").strip() or None
+        include_content_raw = request.query.get("include_content")
+        if include_content_raw is None:
+            include_content = False
+        else:
+            include_content = parse_bool_query_param(include_content_raw)
         try:
             page = max(1, int(request.query.get("page", 1)))
         except (ValueError, TypeError):
             page = 1
         try:
-            limit = max(1, min(100, int(request.query.get("limit", 15))))
+            limit = max(1, min(100, int(request.query.get("limit", 25))))
         except (ValueError, TypeError):
-            limit = 15
+            limit = 25
         offset = (page - 1) * limit
 
-        # fetch archived pages from database
-        all_archives = app.database.misc.get_archived_pages_paginated(
-            query=query,
+        total_count = app.database.misc.count_archived_pages(
+            destination_hash=destination_hash,
+            query=query or None,
         )
-        total_count = len(all_archives)
-        total_pages = (total_count + limit - 1) // limit
+        total_pages = (total_count + limit - 1) // limit if total_count else 0
 
-        # apply pagination
-        archives_results = all_archives[offset : offset + limit]
+        # Fetch a wider window when searching so token ranking can reorder.
+        fetch_limit = limit
+        fetch_offset = offset
+        if query:
+            fetch_limit = min(200, max(limit * 4, limit))
+            fetch_offset = max(0, offset - limit)
 
-        # return results
+        rows = app.database.misc.get_archived_pages_paginated(
+            destination_hash=destination_hash,
+            query=query or None,
+            limit=fetch_limit,
+            offset=fetch_offset,
+            include_content=True if query else include_content,
+        )
+
+        crawler = (
+            getattr(app.current_context, "crawler_manager", None)
+            if app.current_context
+            else None
+        )
+        if query and crawler:
+            rows = crawler.rank_archives_by_query(rows, query)
+            # Re-slice to the requested page after ranking.
+            start = offset - fetch_offset
+            rows = rows[start : start + limit]
+        elif query and not include_content:
+            # Rank helper needed content. Drop bodies for the list payload.
+            pass
+
         archives = []
-        for archive in archives_results:
-            # find node name from announces or custom display names
-            node_name = app.get_custom_destination_display_name(
-                archive["destination_hash"],
-            )
-            if not node_name:
-                db_announce = app.database.announces.get_announce_by_hash(
-                    archive["destination_hash"],
-                )
-                if db_announce and db_announce["aspect"] == "nomadnetwork.node":
-                    node_name = parse_nomadnetwork_node_display_name(
-                        db_announce["app_data"],
-                    )
-
-            archives.append(
-                {
-                    "id": archive["id"],
-                    "destination_hash": archive["destination_hash"],
-                    "node_name": node_name or "Unknown Node",
-                    "page_path": archive["page_path"],
-                    "content": archive["content"],
-                    "hash": archive["hash"],
-                    "created_at": archive["created_at"],
-                },
-            )
+        for archive in rows:
+            content = archive.get("content")
+            preview = archive.get("content_preview")
+            if content is None and preview is not None:
+                content = preview
+            snippet = make_snippet(content, query if query else None)
+            entry = {
+                "id": archive["id"],
+                "destination_hash": archive["destination_hash"],
+                "node_name": _resolve_node_name(app, archive["destination_hash"]),
+                "page_path": archive["page_path"],
+                "hash": archive["hash"],
+                "created_at": archive["created_at"],
+                "snippet": snippet,
+            }
+            if include_content:
+                entry["content"] = archive.get("content") or ""
+            archives.append(entry)
 
         return web.json_response(
             {
@@ -199,12 +230,32 @@ def register_archives_routes(routes, app):
             },
         )
 
-    # delete archived pages
+    @routes.get("/api/v1/nomadnet/archives/{archive_id}")
+    async def get_archived_page(request):
+        try:
+            archive_id = int(request.match_info["archive_id"])
+        except (TypeError, ValueError):
+            return web.json_response({"message": "Invalid archive id"}, status=400)
+        archive = app.database.misc.get_archived_page_by_id(archive_id)
+        if not archive:
+            return web.json_response({"message": "Archive not found"}, status=404)
+        return web.json_response(
+            {
+                "archive": {
+                    "id": archive["id"],
+                    "destination_hash": archive["destination_hash"],
+                    "node_name": _resolve_node_name(app, archive["destination_hash"]),
+                    "page_path": archive["page_path"],
+                    "content": archive["content"],
+                    "hash": archive["hash"],
+                    "created_at": archive["created_at"],
+                    "snippet": make_snippet(archive["content"], None),
+                },
+            },
+        )
 
-    # delete archived pages
     @routes.delete("/api/v1/nomadnet/archives")
     async def delete_archived_pages(request):
-        # get archive IDs from body
         data = await request.json()
         ids = data.get("ids", [])
 
@@ -216,11 +267,79 @@ def register_archives_routes(routes, app):
                 status=400,
             )
 
-        # delete archives from database
         app.database.misc.delete_archived_pages(ids=ids)
 
         return web.json_response(
             {
                 "message": f"Deleted {len(ids)} archives!",
             },
+        )
+
+    @routes.get("/api/v1/nomadnet/crawl/opt-outs")
+    async def list_crawl_opt_outs(_request):
+        rows = app.database.misc.list_crawl_opt_outs()
+        return web.json_response(
+            {
+                "opt_outs": [
+                    {
+                        "destination_hash": row["destination_hash"],
+                        "reason": row["reason"],
+                        "source": row["source"],
+                        "created_at": row["created_at"],
+                        "node_name": _resolve_node_name(app, row["destination_hash"]),
+                    }
+                    for row in rows
+                ],
+            },
+        )
+
+    @routes.post("/api/v1/nomadnet/crawl/opt-outs")
+    async def add_crawl_opt_out(request):
+        data = await request.json()
+        destination_hash = (data.get("destination_hash") or "").strip().lower()
+        if len(destination_hash) != 32:
+            return web.json_response(
+                {"message": "destination_hash must be 32 hex characters"},
+                status=400,
+            )
+        reason = (data.get("reason") or "user").strip()[:200] or "user"
+        crawler = (
+            getattr(app.current_context, "crawler_manager", None)
+            if app.current_context
+            else None
+        )
+        if crawler:
+            crawler.record_opt_out(destination_hash, reason=reason, source="user")
+        else:
+            app.database.misc.upsert_crawl_opt_out(
+                destination_hash,
+                reason=reason,
+                source="user",
+            )
+            app.database.misc.cancel_crawl_tasks_for_destination(destination_hash)
+        return web.json_response(
+            {"message": "opt-out recorded", "destination_hash": destination_hash}
+        )
+
+    @routes.delete("/api/v1/nomadnet/crawl/opt-outs/{destination_hash}")
+    async def remove_crawl_opt_out(request):
+        destination_hash = (
+            (request.match_info.get("destination_hash") or "").strip().lower()
+        )
+        if len(destination_hash) != 32:
+            return web.json_response(
+                {"message": "destination_hash must be 32 hex characters"},
+                status=400,
+            )
+        crawler = (
+            getattr(app.current_context, "crawler_manager", None)
+            if app.current_context
+            else None
+        )
+        if crawler:
+            crawler.remove_opt_out(destination_hash)
+        else:
+            app.database.misc.delete_crawl_opt_out(destination_hash)
+        return web.json_response(
+            {"message": "opt-out removed", "destination_hash": destination_hash}
         )

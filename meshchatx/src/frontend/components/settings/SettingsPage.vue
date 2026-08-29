@@ -906,7 +906,14 @@
                                 <div>
                                     <div class="settings-section__eyebrow">Discovery</div>
                                     <h2>Smart Crawler</h2>
-                                    <p>Automatically archive node homepages when announced.</p>
+                                    <p>
+                                        Opt-in NomadNet indexer. Listens for announces, prefers nearby low-hop nodes,
+                                        fetches at most one page per node per day, stays within a small hop and RTT
+                                        budget, and only walks a couple of levels from the front page (hard cap 20 pages
+                                        per node). Nodes can opt out forever with a
+                                        <code class="text-xs"># nocrawl</code> line on their index page, or from the
+                                        Archives viewer.
+                                    </p>
                                 </div>
                             </header>
                             <div class="settings-section__body space-y-4">
@@ -919,12 +926,107 @@
                                     <span class="setting-toggle__label">
                                         <span class="setting-toggle__title">Enable Crawler</span>
                                         <span class="setting-toggle__description"
-                                            >Archive index pages for every node discovered on the mesh.</span
+                                            >Off by default. When on, archives announced Nomad nodes under the limits
+                                            below.</span
                                         >
                                     </span>
                                 </label>
 
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Max hops</div>
+                                        <input
+                                            v-model.number="config.crawler_max_hops"
+                                            type="number"
+                                            min="1"
+                                            max="16"
+                                            class="input-field"
+                                            @input="onCrawlerConfigChange"
+                                        />
+                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                            Skip nodes farther than this path length (default 4).
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            Max link RTT (ms)
+                                        </div>
+                                        <input
+                                            v-model.number="config.crawler_max_rtt_ms"
+                                            type="number"
+                                            min="100"
+                                            max="60000"
+                                            class="input-field"
+                                            @input="onCrawlerConfigChange"
+                                        />
+                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                            Do not index nodes whose link RTT is above this (default 2500).
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            Max depth
+                                        </div>
+                                        <input
+                                            v-model.number="config.crawler_max_depth"
+                                            type="number"
+                                            min="0"
+                                            max="2"
+                                            class="input-field"
+                                            @input="onCrawlerConfigChange"
+                                        />
+                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                            0 is front page only. 2 is front page plus two levels down.
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            Max pages per node
+                                        </div>
+                                        <input
+                                            v-model.number="config.crawler_max_pages_per_node"
+                                            type="number"
+                                            min="1"
+                                            max="20"
+                                            class="input-field"
+                                            @input="onCrawlerConfigChange"
+                                        />
+                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                            Hard cap on indexed paths per destination (default 20).
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            Requests per day per node
+                                        </div>
+                                        <input
+                                            v-model.number="config.crawler_requests_per_day_per_node"
+                                            type="number"
+                                            min="1"
+                                            max="3"
+                                            class="input-field"
+                                            @input="onCrawlerConfigChange"
+                                        />
+                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                            Default 1. Keeps scrape load trivial on constrained links.
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            Homepage refresh (days)
+                                        </div>
+                                        <input
+                                            v-model.number="config.crawler_refresh_days"
+                                            type="number"
+                                            min="1"
+                                            max="365"
+                                            class="input-field"
+                                            @input="onCrawlerConfigChange"
+                                        />
+                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                            Re-queue a completed homepage after this many days (default 30).
+                                        </div>
+                                    </div>
                                     <div class="space-y-2">
                                         <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                             Max Retries
@@ -966,12 +1068,12 @@
                                         v-model.number="config.crawler_max_concurrent"
                                         type="number"
                                         min="1"
-                                        max="5"
+                                        max="2"
                                         class="input-field"
                                         @input="onCrawlerConfigChange"
                                     />
                                     <div class="text-xs text-gray-600 dark:text-gray-400">
-                                        Limits background bandwidth usage.
+                                        Capped at 2. Prefer 1 on LoRa-class links.
                                     </div>
                                 </div>
                             </div>
@@ -4927,6 +5029,12 @@ export default {
                         crawler_max_retries: this.config.crawler_max_retries,
                         crawler_retry_delay_seconds: this.config.crawler_retry_delay_seconds,
                         crawler_max_concurrent: this.config.crawler_max_concurrent,
+                        crawler_max_hops: this.config.crawler_max_hops,
+                        crawler_max_rtt_ms: this.config.crawler_max_rtt_ms,
+                        crawler_max_depth: this.config.crawler_max_depth,
+                        crawler_max_pages_per_node: this.config.crawler_max_pages_per_node,
+                        crawler_requests_per_day_per_node: this.config.crawler_requests_per_day_per_node,
+                        crawler_refresh_days: this.config.crawler_refresh_days,
                     },
                     "smart_crawler"
                 );

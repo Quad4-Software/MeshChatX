@@ -176,6 +176,20 @@ class ConfigManager:
             3600,
         )
         self.crawler_max_concurrent = self.IntConfig(self, "crawler_max_concurrent", 1)
+        self.crawler_max_hops = self.IntConfig(self, "crawler_max_hops", 4)
+        self.crawler_max_rtt_ms = self.IntConfig(self, "crawler_max_rtt_ms", 2500)
+        self.crawler_max_depth = self.IntConfig(self, "crawler_max_depth", 2)
+        self.crawler_max_pages_per_node = self.IntConfig(
+            self,
+            "crawler_max_pages_per_node",
+            20,
+        )
+        self.crawler_requests_per_day_per_node = self.IntConfig(
+            self,
+            "crawler_requests_per_day_per_node",
+            1,
+        )
+        self.crawler_refresh_days = self.IntConfig(self, "crawler_refresh_days", 30)
         self.auth_enabled = self.BoolConfig(self, "auth_enabled", False)
         self.auth_password_hash = self.StringConfig(self, "auth_password_hash", None)
         self.auth_session_secret = self.StringConfig(self, "auth_session_secret", None)

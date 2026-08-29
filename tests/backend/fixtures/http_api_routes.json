@@ -821,6 +821,22 @@
             "path": "/api/v1/nomadnet/archives"
         },
         {
+            "method": "GET",
+            "path": "/api/v1/nomadnet/archives/{archive_id}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/nomadnet/crawl/opt-outs"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/nomadnet/crawl/opt-outs"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/nomadnet/crawl/opt-outs/{destination_hash}"
+        },
+        {
             "method": "POST",
             "path": "/api/v1/nomadnetwork/{destination_hash}/identify"
         },

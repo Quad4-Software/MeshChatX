@@ -31,7 +31,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 55
+    LATEST_VERSION = 56
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -311,9 +311,30 @@ class DatabaseSchema:
                     last_retry_at DATETIME,
                     next_retry_at DATETIME,
                     status TEXT DEFAULT 'pending',
+                    depth INTEGER DEFAULT 0,
+                    priority REAL DEFAULT 0,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(destination_hash, page_path)
+                )
+            """,
+            "crawl_opt_outs": """
+                CREATE TABLE IF NOT EXISTS crawl_opt_outs (
+                    destination_hash TEXT PRIMARY KEY,
+                    reason TEXT,
+                    source TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "crawl_node_stats": """
+                CREATE TABLE IF NOT EXISTS crawl_node_stats (
+                    destination_hash TEXT PRIMARY KEY,
+                    pages_indexed INTEGER DEFAULT 0,
+                    last_request_at DATETIME,
+                    last_rtt_ms REAL,
+                    last_hops INTEGER,
+                    skipped_reason TEXT,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """,
             "lxmf_forwarding_rules": """
@@ -1758,4 +1779,43 @@ class DatabaseSchema:
             self._safe_execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_map_published_identity_map "
                 "ON map_published(identity_hash, map_id)",
+            )
+
+        if current_version < 56 and target_version >= 56:
+            self._safe_execute(
+                "ALTER TABLE crawl_tasks ADD COLUMN depth INTEGER DEFAULT 0",
+            )
+            self._safe_execute(
+                "ALTER TABLE crawl_tasks ADD COLUMN priority REAL DEFAULT 0",
+            )
+            self._safe_execute(
+                """
+                CREATE TABLE IF NOT EXISTS crawl_opt_outs (
+                    destination_hash TEXT PRIMARY KEY,
+                    reason TEXT,
+                    source TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+                """,
+            )
+            self._safe_execute(
+                """
+                CREATE TABLE IF NOT EXISTS crawl_node_stats (
+                    destination_hash TEXT PRIMARY KEY,
+                    pages_indexed INTEGER DEFAULT 0,
+                    last_request_at DATETIME,
+                    last_rtt_ms REAL,
+                    last_hops INTEGER,
+                    skipped_reason TEXT,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+                """,
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_crawl_tasks_priority "
+                "ON crawl_tasks(status, priority, next_retry_at)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_archived_pages_dest_path "
+                "ON archived_pages(destination_hash, page_path)",
             )

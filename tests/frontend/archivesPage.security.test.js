@@ -15,7 +15,6 @@ function mountArchives() {
                 },
                 stubs: {
                     MaterialDesignIcon: true,
-                    ArchiveSidebar: true,
                 },
             },
         }),

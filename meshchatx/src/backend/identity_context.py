@@ -10,6 +10,7 @@ import RNS
 from meshchatx.src.backend.announce_handler import AnnounceHandler
 from meshchatx.src.backend.announce_manager import AnnounceManager
 from meshchatx.src.backend.archiver_manager import ArchiverManager
+from meshchatx.src.backend.crawler_manager import CrawlerManager
 from meshchatx.src.backend.auto_propagation_manager import AutoPropagationManager
 from meshchatx.src.backend.bot_handler import BotHandler
 from meshchatx.src.backend.community_interfaces import CommunityInterfacesManager
@@ -88,6 +89,7 @@ class IdentityContext:
         self.message_handler = None
         self.announce_manager = None
         self.archiver_manager = None
+        self.crawler_manager = None
         self.map_manager = None
         self.map_overlay_manager = None
         self.map_data_manager = None
@@ -225,6 +227,7 @@ class IdentityContext:
         self.message_handler = MessageHandler(self.database)
         self.announce_manager = AnnounceManager(self.database, self.config)
         self.archiver_manager = ArchiverManager(self.database)
+        self.crawler_manager = CrawlerManager(self.database, self.config)
         self.map_manager = MapManager(self.config, self.app.storage_dir)
         self.map_overlay_manager = None
         self.map_data_manager = None
@@ -1100,6 +1103,9 @@ class IdentityContext:
 
         if self.archiver_manager:
             self.archiver_manager = None
+
+        if self.crawler_manager:
+            self.crawler_manager = None
 
         if self.map_overlay_manager:
             try:
