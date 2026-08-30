@@ -2554,7 +2554,11 @@
         "crash_tab_reload": "重新加载渲染器",
         "crash_tab_hung_toast": "Nomad 页面渲染器无响应",
         "crash_tab_rendering": "正在渲染页面…",
-        "crash_tab_render_cancelled": "页面渲染已取消"
+        "crash_tab_render_cancelled": "页面渲染已取消",
+        "private_tab": "隐私标签页",
+        "new_private_tab": "新建隐私标签页",
+        "new_private_tab_shortcut": "新建隐私标签页 (Ctrl+Shift+P)",
+        "private_browsing_hint": "隐私浏览：不会归档页面，收藏与身份识别已禁用，网格链路不与其他标签页共享。"
     },
     "forwarder": {
         "title": "LXMF 转发器",
