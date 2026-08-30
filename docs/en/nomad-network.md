@@ -29,6 +29,8 @@ When **page archiver** is enabled, MeshChatX stores versioned snapshots of pages
 
 Archived pages use the same renderer as the live browser based on the stored `page_path` extension.
 
+**Private tabs** (incognito icon, purple strip) browse without writing archives, without favourites or Identify, and without reusing the shared Nomad link cache. Private tabs are not restored from localStorage. They use the same Reticulum process as the active identity. They do not create a separate IdentityContext.
+
 ## Mesh Server (page nodes)
 
 **Tools → Mesh Server** lets you run a `nomadnetwork.node` destination locally.

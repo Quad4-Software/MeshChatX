@@ -59,8 +59,7 @@ Pattern:
 ```python
 def register_status_routes(routes, app):
     @routes.get("/api/v1/status")
-    async def status(request):
-        ...
+    async def status(request): ...
 ```
 
 `register.py` calls `register_extracted_routes`, which binds meshchat free names via
