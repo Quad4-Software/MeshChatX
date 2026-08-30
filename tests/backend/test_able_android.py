@@ -5,13 +5,24 @@ from pathlib import Path
 
 import pytest
 
-ABLE_ROOT = (
-    Path(__file__).resolve().parents[2] / "android" / "app" / "src" / "main" / "python"
-)
+
+def _find_able_root() -> Path:
+    """Locate Android able/ even when pytest runs under mutmut mutants/."""
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        candidate = parent / "android" / "app" / "src" / "main" / "python"
+        if (candidate / "able").is_dir():
+            return candidate
+    return here.parents[2] / "android" / "app" / "src" / "main" / "python"
+
+
+ABLE_ROOT = _find_able_root()
 
 
 @pytest.fixture
 def able_path(monkeypatch):
+    if not (ABLE_ROOT / "able").is_dir():
+        pytest.skip(f"able package not found at {ABLE_ROOT}")
     monkeypatch.syspath_prepend(str(ABLE_ROOT))
     for name in list(sys.modules):
         if name == "able" or name.startswith("able."):
