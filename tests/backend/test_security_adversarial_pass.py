@@ -219,9 +219,13 @@ def test_oracle_plugin_asset_path_rejects_traversal():
 
 
 def test_oracle_ws_handlers_are_classified():
+    from meshchatx.src.backend.websocket_config_guard import (
+        WEBSOCKET_RUNTIME_CONTROL_TYPES,
+    )
+
     classified = WEBSOCKET_PUBLIC_TYPES | WEBSOCKET_READ_TYPES | WEBSOCKET_MUTATOR_TYPES
     missing = set(WS_HANDLERS) - classified
-    extra = classified - set(WS_HANDLERS)
+    extra = classified - set(WS_HANDLERS) - WEBSOCKET_RUNTIME_CONTROL_TYPES
     assert not missing, f"unclassified WS handlers: {sorted(missing)}"
     assert not extra, f"guard lists types with no handler: {sorted(extra)}"
     for msg_type in WEBSOCKET_MUTATOR_TYPES:

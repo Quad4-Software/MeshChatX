@@ -672,6 +672,33 @@ export default {
         onOutputEvent(payload) {
             this.appendOutput(payload.session_id, payload.chunk?.text);
         },
+        onWebsocketMessage(message) {
+            let json;
+            try {
+                if (
+                    message &&
+                    typeof message === "object" &&
+                    typeof message.type === "string" &&
+                    message.data === undefined
+                ) {
+                    json = message;
+                } else {
+                    const raw = typeof message === "string" ? message : message?.data;
+                    json = typeof raw === "string" ? JSON.parse(raw) : message;
+                }
+            } catch {
+                return;
+            }
+            if (!json || typeof json !== "object" || typeof json.type !== "string") {
+                return;
+            }
+            if (json.type === "rnsh.session.change") {
+                return this.onSessionChange(json);
+            }
+            if (json.type === "rnsh.output") {
+                return this.onOutputEvent(json);
+            }
+        },
         scrollOutputToBottom() {
             const inline = this.$refs.sessionTerminal;
             const full = this.$refs.fullscreenTerminal;

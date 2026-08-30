@@ -3367,6 +3367,39 @@ export default {
                 this.upsertDiscovered(json.announce);
             }
         },
+        onWebsocketMessage(message) {
+            let json;
+            try {
+                if (
+                    message &&
+                    typeof message === "object" &&
+                    typeof message.type === "string" &&
+                    message.data === undefined
+                ) {
+                    json = message;
+                } else {
+                    const raw = typeof message === "string" ? message : message?.data;
+                    json = typeof raw === "string" ? JSON.parse(raw) : message;
+                }
+            } catch {
+                return;
+            }
+            if (!json || typeof json !== "object" || typeof json.type !== "string") {
+                return;
+            }
+            switch (json.type) {
+                case "rrc.change":
+                    return this.onRrcChange(json);
+                case "rrc.message":
+                    return this.onRrcMessage(json);
+                case "rrc.server.change":
+                    return this.onRrcServerChange(json);
+                case "announce":
+                    return this.onAnnounceEvent(json);
+                default:
+                    break;
+            }
+        },
     },
 };
 </script>

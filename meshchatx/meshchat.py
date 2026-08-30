@@ -469,6 +469,9 @@ def list_host_network_interfaces():
 
 def _is_loopback_bind_host(host: str | None) -> bool:
     h = (host or "").strip().lower()
+    # Unset or empty means the default loopback bind has not been overridden.
+    if not h:
+        return True
     return h in ("127.0.0.1", "localhost", "::1", "[::1]")
 
 
@@ -7486,9 +7489,14 @@ class ReticulumMeshChat:
 
             results = await asyncio.gather(
                 *[_send_one(c) for c in targets],
-                return_exceptions=False,
+                return_exceptions=True,
             )
-            dead = [c for c in results if c is not None]
+            dead = []
+            for item in results:
+                if isinstance(item, BaseException):
+                    continue
+                if item is not None:
+                    dead.append(item)
             for client in dead:
                 try:
                     self.websocket_clients.remove(client)

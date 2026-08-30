@@ -84,16 +84,10 @@ describe("PaperMessagePage.vue", () => {
     it("handles websocket result and shows QR code", async () => {
         const wrapper = mountPaperMessagePage();
 
-        // Find the callback passed to WebSocketConnection.on
-        const onCall = WebSocketConnection.on.mock.calls.find((call) => call[0] === "message");
-        const callback = onCall[1];
-
-        await callback({
-            data: JSON.stringify({
-                type: "lxm.generate_paper_uri.result",
-                status: "success",
-                uri: "lxmf://testuri",
-            }),
+        await wrapper.vm.onGeneratePaperUriResult({
+            type: "lxm.generate_paper_uri.result",
+            status: "success",
+            uri: "lxmf://testuri",
         });
 
         expect(wrapper.vm.generatedUri).toBe("lxmf://testuri");

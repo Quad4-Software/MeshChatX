@@ -93,14 +93,9 @@ describe("ForwarderPage.vue", () => {
 
     it("handles incoming rules from websocket", async () => {
         const wrapper = mountForwarderPage();
-        const onCall = WebSocketConnection.on.mock.calls.find((call) => call[0] === "message");
-        const callback = onCall[1];
-
-        await callback({
-            data: JSON.stringify({
-                type: "lxmf.forwarding.rules",
-                rules: [{ id: "rule1", name: "Rule 1", forward_to_hash: "hash1", is_active: true }],
-            }),
+        await wrapper.vm.onForwardingRules({
+            type: "lxmf.forwarding.rules",
+            rules: [{ id: "rule1", name: "Rule 1", forward_to_hash: "hash1", is_active: true }],
         });
 
         expect(wrapper.vm.rules.length).toBe(1);

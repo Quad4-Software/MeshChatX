@@ -4090,6 +4090,37 @@ export default {
                 ToastUtils.info(message, 2500, toastKey);
             }
         },
+        onWebsocketMessage(message) {
+            let json;
+            try {
+                if (
+                    message &&
+                    typeof message === "object" &&
+                    typeof message.type === "string" &&
+                    message.data === undefined
+                ) {
+                    json = message;
+                } else {
+                    const raw = typeof message === "string" ? message : message?.data;
+                    json = typeof raw === "string" ? JSON.parse(raw) : message;
+                }
+            } catch {
+                return;
+            }
+            if (!json || typeof json !== "object" || typeof json.type !== "string") {
+                return;
+            }
+            switch (json.type) {
+                case "config":
+                    return this.onConfigEvent(json);
+                case "keyboard_shortcuts":
+                    return this.onKeyboardShortcutsEvent(json);
+                case "reticulum_reload_status":
+                    return this.onReloadStatusEvent(json);
+                default:
+                    break;
+            }
+        },
         async getConfig() {
             try {
                 const merged = await fetchMergedConfig(window.api, this.config);
