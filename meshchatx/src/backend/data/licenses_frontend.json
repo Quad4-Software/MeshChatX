@@ -25,43 +25,43 @@
     },
     {
         "name": "@babel/code-frame",
-        "version": "7.24.7",
+        "version": "7.0.0",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/compat-data",
-        "version": "7.28.6",
+        "version": "7.29.7",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/core",
-        "version": "7.29.6",
+        "version": "7.29.7",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/generator",
-        "version": "7.28.0",
+        "version": "7.23.0",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/helper-annotate-as-pure",
-        "version": "7.22.5",
+        "version": "7.29.7",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/helper-compilation-targets",
-        "version": "7.28.6",
+        "version": "7.29.7",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/helper-create-class-features-plugin",
-        "version": "7.22.15",
+        "version": "7.29.7",
         "author": "The Babel Team",
         "license": "MIT"
     },
@@ -79,19 +79,25 @@
     },
     {
         "name": "@babel/helper-globals",
-        "version": "7.28.0",
+        "version": "7.29.7",
+        "author": "The Babel Team",
+        "license": "MIT"
+    },
+    {
+        "name": "@babel/helper-hoist-variables",
+        "version": "7.24.7",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/helper-member-expression-to-functions",
-        "version": "7.22.15",
+        "version": "7.29.7",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/helper-module-imports",
-        "version": "7.27.1",
+        "version": "7.29.7",
         "author": "The Babel Team",
         "license": "MIT"
     },
@@ -103,25 +109,25 @@
     },
     {
         "name": "@babel/helper-optimise-call-expression",
-        "version": "7.22.5",
+        "version": "7.29.7",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/helper-plugin-utils",
-        "version": "7.10.4",
+        "version": "7.29.7",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/helper-replace-supers",
-        "version": "7.22.20",
+        "version": "7.29.7",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/helper-skip-transparent-expression-wrappers",
-        "version": "7.22.5",
+        "version": "7.29.7",
         "author": "The Babel Team",
         "license": "MIT"
     },
@@ -133,55 +139,55 @@
     },
     {
         "name": "@babel/helper-string-parser",
-        "version": "7.27.1",
+        "version": "7.22.5",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/helper-validator-identifier",
-        "version": "7.28.5",
+        "version": "7.22.5",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/helper-validator-option",
-        "version": "7.27.1",
+        "version": "7.29.7",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/helpers",
-        "version": "7.29.2",
+        "version": "7.29.7",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/highlight",
-        "version": "7.24.7",
+        "version": "7.0.0",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/parser",
-        "version": "7.29.0",
-        "author": "The Babel Team",
-        "license": "MIT"
-    },
-    {
-        "name": "@babel/plugin-proposal-decorators",
         "version": "7.23.0",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
+        "name": "@babel/plugin-proposal-decorators",
+        "version": "7.29.7",
+        "author": "The Babel Team",
+        "license": "MIT"
+    },
+    {
         "name": "@babel/plugin-syntax-decorators",
-        "version": "7.22.10",
+        "version": "7.29.7",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/plugin-syntax-import-attributes",
-        "version": "7.22.5",
+        "version": "7.29.7",
         "author": "The Babel Team",
         "license": "MIT"
     },
@@ -193,19 +199,19 @@
     },
     {
         "name": "@babel/plugin-syntax-jsx",
-        "version": "7.27.1",
+        "version": "7.29.7",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/plugin-syntax-typescript",
-        "version": "7.22.5",
+        "version": "7.29.7",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/plugin-transform-typescript",
-        "version": "7.22.15",
+        "version": "7.29.7",
         "author": "The Babel Team",
         "license": "MIT"
     },
@@ -217,13 +223,13 @@
     },
     {
         "name": "@babel/traverse",
-        "version": "7.28.0",
+        "version": "7.23.2",
         "author": "The Babel Team",
         "license": "MIT"
     },
     {
         "name": "@babel/types",
-        "version": "7.29.0",
+        "version": "7.23.0",
         "author": "The Babel Team",
         "license": "MIT"
     },
@@ -240,20 +246,134 @@
         "license": "MIT"
     },
     {
+        "name": "@commitlint/cli",
+        "version": "21.2.2",
+        "author": "Mario Nebl",
+        "license": "MIT"
+    },
+    {
+        "name": "@commitlint/config-conventional",
+        "version": "21.2.2",
+        "author": "Mario Nebl",
+        "license": "MIT"
+    },
+    {
+        "name": "@commitlint/config-validator",
+        "version": "21.2.0",
+        "author": "Mario Nebl",
+        "license": "MIT"
+    },
+    {
+        "name": "@commitlint/ensure",
+        "version": "21.2.0",
+        "author": "Mario Nebl",
+        "license": "MIT"
+    },
+    {
+        "name": "@commitlint/execute-rule",
+        "version": "21.0.1",
+        "author": "Mario Nebl",
+        "license": "MIT"
+    },
+    {
+        "name": "@commitlint/format",
+        "version": "21.2.2",
+        "author": "Mario Nebl",
+        "license": "MIT"
+    },
+    {
+        "name": "@commitlint/is-ignored",
+        "version": "21.2.2",
+        "author": "Mario Nebl",
+        "license": "MIT"
+    },
+    {
+        "name": "@commitlint/lint",
+        "version": "21.2.2",
+        "author": "Mario Nebl",
+        "license": "MIT"
+    },
+    {
+        "name": "@commitlint/load",
+        "version": "21.2.2",
+        "author": "Mario Nebl",
+        "license": "MIT"
+    },
+    {
+        "name": "@commitlint/message",
+        "version": "21.2.0",
+        "author": "Mario Nebl",
+        "license": "MIT"
+    },
+    {
+        "name": "@commitlint/parse",
+        "version": "21.2.2",
+        "author": "Mario Nebl",
+        "license": "MIT"
+    },
+    {
+        "name": "@commitlint/read",
+        "version": "21.2.1",
+        "author": "Mario Nebl",
+        "license": "MIT"
+    },
+    {
+        "name": "@commitlint/resolve-extends",
+        "version": "21.2.2",
+        "author": "Mario Nebl",
+        "license": "MIT"
+    },
+    {
+        "name": "@commitlint/rules",
+        "version": "21.2.2",
+        "author": "Mario Nebl",
+        "license": "MIT"
+    },
+    {
+        "name": "@commitlint/to-lines",
+        "version": "21.0.1",
+        "author": "Mario Nebl",
+        "license": "MIT"
+    },
+    {
+        "name": "@commitlint/top-level",
+        "version": "21.2.0",
+        "author": "Mario Nebl",
+        "license": "MIT"
+    },
+    {
+        "name": "@commitlint/types",
+        "version": "21.2.0",
+        "author": "Mario Nebl",
+        "license": "MIT"
+    },
+    {
+        "name": "@conventional-changelog/git-client",
+        "version": "3.1.2",
+        "author": "Dan Onoshko",
+        "license": "MIT"
+    },
+    {
+        "name": "@conventional-changelog/template",
+        "version": "1.4.0",
+        "author": "Dan Onoshko",
+        "license": "MIT"
+    },
+    {
         "name": "@csstools/color-helpers",
-        "version": "6.0.2",
+        "version": "6.1.1",
         "author": "-",
         "license": "MIT-0"
     },
     {
         "name": "@csstools/css-calc",
-        "version": "3.2.0",
+        "version": "3.3.0",
         "author": "-",
         "license": "MIT"
     },
     {
         "name": "@csstools/css-color-parser",
-        "version": "4.1.0",
+        "version": "4.2.1",
         "author": "-",
         "license": "MIT"
     },
@@ -265,7 +385,7 @@
     },
     {
         "name": "@csstools/css-syntax-patches-for-csstree",
-        "version": "1.1.3",
+        "version": "1.1.9",
         "author": "-",
         "license": "MIT-0"
     },
@@ -283,7 +403,7 @@
     },
     {
         "name": "@electron-internal/extract-zip",
-        "version": "1.0.1",
+        "version": "1.0.5",
         "author": "-",
         "license": "BSD-2-Clause"
     },
@@ -319,7 +439,7 @@
     },
     {
         "name": "@electron/rebuild",
-        "version": "4.0.4",
+        "version": "4.2.0",
         "author": "-",
         "license": "MIT"
     },
@@ -343,7 +463,7 @@
     },
     {
         "name": "@eslint-community/eslint-utils",
-        "version": "4.8.0",
+        "version": "4.10.1",
         "author": "Toru Nagashima",
         "license": "MIT"
     },
@@ -397,7 +517,7 @@
     },
     {
         "name": "@exodus/bytes",
-        "version": "1.15.0",
+        "version": "1.15.1",
         "author": "Exodus Movement, Inc.",
         "license": "MIT"
     },
@@ -408,9 +528,33 @@
         "license": "OFL-1.1"
     },
     {
-        "name": "@gar/promise-retry",
-        "version": "1.0.3",
+        "name": "@formatjs/ecma402-abstract",
+        "version": "2.3.6",
+        "author": "Long Ho",
+        "license": "MIT"
+    },
+    {
+        "name": "@formatjs/fast-memoize",
+        "version": "2.2.7",
+        "author": "Long Ho",
+        "license": "MIT"
+    },
+    {
+        "name": "@formatjs/icu-messageformat-parser",
+        "version": "2.11.4",
         "author": "-",
+        "license": "MIT"
+    },
+    {
+        "name": "@formatjs/icu-skeleton-parser",
+        "version": "1.8.16",
+        "author": "-",
+        "license": "MIT"
+    },
+    {
+        "name": "@formatjs/intl-localematcher",
+        "version": "0.6.2",
+        "author": "Long Ho",
         "license": "MIT"
     },
     {
@@ -445,25 +589,25 @@
     },
     {
         "name": "@intlify/core-base",
-        "version": "11.4.7",
+        "version": "11.4.10",
         "author": "kazuya kawaguchi",
         "license": "MIT"
     },
     {
         "name": "@intlify/devtools-types",
-        "version": "11.4.7",
+        "version": "11.4.10",
         "author": "kazuya kawaguchi",
         "license": "MIT"
     },
     {
         "name": "@intlify/message-compiler",
-        "version": "11.4.7",
+        "version": "11.4.10",
         "author": "kazuya kawaguchi",
         "license": "MIT"
     },
     {
         "name": "@intlify/shared",
-        "version": "11.4.7",
+        "version": "11.4.10",
         "author": "kazuya kawaguchi",
         "license": "MIT"
     },
@@ -475,13 +619,13 @@
     },
     {
         "name": "@isaacs/fs-minipass",
-        "version": "4.0.0",
+        "version": "4.0.1",
         "author": "Isaac Z. Schlueter",
         "license": "ISC"
     },
     {
         "name": "@jridgewell/gen-mapping",
-        "version": "0.3.0",
+        "version": "0.3.2",
         "author": "Justin Ridgewell",
         "license": "MIT"
     },
@@ -499,7 +643,7 @@
     },
     {
         "name": "@jridgewell/set-array",
-        "version": "1.2.1",
+        "version": "1.0.1",
         "author": "Justin Ridgewell",
         "license": "MIT"
     },
@@ -522,6 +666,12 @@
         "license": "MIT"
     },
     {
+        "name": "@keyv/serialize",
+        "version": "1.1.1",
+        "author": "Jared Wray",
+        "license": "MIT"
+    },
+    {
         "name": "@malept/cross-spawn-promise",
         "version": "2.0.0",
         "author": "Mark Lee",
@@ -535,27 +685,21 @@
     },
     {
         "name": "@mapbox/jsonlint-lines-primitives",
-        "version": "2.0.2",
+        "version": "2.0.3",
         "author": "Zach Carter",
-        "license": "Unknown"
+        "license": "MIT"
     },
     {
         "name": "@mapbox/unitbezier",
-        "version": "0.0.1",
+        "version": "1.0.0",
         "author": "-",
         "license": "BSD-2-Clause"
     },
     {
         "name": "@maplibre/maplibre-gl-style-spec",
-        "version": "24.4.1",
+        "version": "26.4.1",
         "author": "MapLibre",
         "license": "ISC"
-    },
-    {
-        "name": "@mdi/font",
-        "version": "7.4.47",
-        "author": "Austin Andrews",
-        "license": "Apache-2.0"
     },
     {
         "name": "@mdi/js",
@@ -571,37 +715,223 @@
     },
     {
         "name": "@npmcli/agent",
-        "version": "4.0.2",
+        "version": "3.0.0",
         "author": "GitHub Inc.",
         "license": "ISC"
     },
     {
         "name": "@npmcli/fs",
-        "version": "5.0.0",
-        "author": "GitHub Inc.",
-        "license": "ISC"
-    },
-    {
-        "name": "@npmcli/redact",
         "version": "4.0.0",
         "author": "GitHub Inc.",
         "license": "ISC"
     },
     {
         "name": "@one-ini/wasm",
-        "version": "0.1.1",
+        "version": "0.2.1",
         "author": "-",
         "license": "MIT"
     },
     {
+        "name": "@opentelemetry/api",
+        "version": "1.9.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/api-logs",
+        "version": "0.57.2",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/context-async-hooks",
+        "version": "1.30.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/core",
+        "version": "1.30.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation",
+        "version": "0.57.2",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-amqplib",
+        "version": "0.46.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-connect",
+        "version": "0.43.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-dataloader",
+        "version": "0.16.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-express",
+        "version": "0.47.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-fs",
+        "version": "0.19.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-generic-pool",
+        "version": "0.43.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-graphql",
+        "version": "0.47.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-hapi",
+        "version": "0.45.2",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-http",
+        "version": "0.57.2",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-ioredis",
+        "version": "0.47.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-kafkajs",
+        "version": "0.7.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-knex",
+        "version": "0.44.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-koa",
+        "version": "0.47.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-lru-memoizer",
+        "version": "0.44.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-mongodb",
+        "version": "0.52.0",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-mongoose",
+        "version": "0.46.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-mysql",
+        "version": "0.45.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-mysql2",
+        "version": "0.45.2",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-pg",
+        "version": "0.51.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-redis-4",
+        "version": "0.46.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-tedious",
+        "version": "0.18.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/instrumentation-undici",
+        "version": "0.10.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/redis-common",
+        "version": "0.36.2",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/resources",
+        "version": "1.30.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/sdk-trace-base",
+        "version": "1.30.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/semantic-conventions",
+        "version": "1.28.0",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@opentelemetry/sql-common",
+        "version": "0.40.1",
+        "author": "OpenTelemetry Authors",
+        "license": "Apache-2.0"
+    },
+    {
         "name": "@oxc-parser/binding-linux-x64-gnu",
-        "version": "0.140.0",
+        "version": "0.147.0",
         "author": "Boshen and oxc contributors",
         "license": "MIT"
     },
     {
         "name": "@oxc-project/types",
-        "version": "0.139.0",
+        "version": "0.144.0",
         "author": "Boshen and oxc contributors",
         "license": "MIT"
     },
@@ -612,8 +942,26 @@
         "license": "MIT"
     },
     {
+        "name": "@parcel/watcher",
+        "version": "2.5.1",
+        "author": "-",
+        "license": "MIT"
+    },
+    {
+        "name": "@parcel/watcher-linux-x64-glibc",
+        "version": "2.5.1",
+        "author": "-",
+        "license": "MIT"
+    },
+    {
+        "name": "@paulirish/trace_engine",
+        "version": "0.0.59",
+        "author": "-",
+        "license": "BSD-3-Clause"
+    },
+    {
         "name": "@peculiar/asn1-schema",
-        "version": "2.7.0",
+        "version": "2.9.4",
         "author": "PeculiarVentures, LLC",
         "license": "MIT"
     },
@@ -655,7 +1003,7 @@
     },
     {
         "name": "@playwright/test",
-        "version": "1.61.1",
+        "version": "1.62.1",
         "author": "Microsoft Corporation",
         "license": "Apache-2.0"
     },
@@ -666,8 +1014,20 @@
         "license": "MIT"
     },
     {
+        "name": "@prisma/instrumentation",
+        "version": "6.11.1",
+        "author": "-",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "@puppeteer/browsers",
+        "version": "2.13.2",
+        "author": "The Chromium Authors",
+        "license": "Apache-2.0"
+    },
+    {
         "name": "@rolldown/binding-linux-x64-gnu",
-        "version": "1.1.5",
+        "version": "1.2.4",
         "author": "-",
         "license": "MIT"
     },
@@ -678,8 +1038,50 @@
         "license": "MIT"
     },
     {
+        "name": "@sec-ant/readable-stream",
+        "version": "0.4.1",
+        "author": "Ze-Zheng Wu",
+        "license": "MIT"
+    },
+    {
+        "name": "@sentry/core",
+        "version": "9.47.1",
+        "author": "Sentry",
+        "license": "MIT"
+    },
+    {
+        "name": "@sentry/node",
+        "version": "9.47.1",
+        "author": "Sentry",
+        "license": "MIT"
+    },
+    {
+        "name": "@sentry/node-core",
+        "version": "9.47.1",
+        "author": "Sentry",
+        "license": "MIT"
+    },
+    {
+        "name": "@sentry/opentelemetry",
+        "version": "9.47.1",
+        "author": "Sentry",
+        "license": "MIT"
+    },
+    {
+        "name": "@simple-libs/child-process-utils",
+        "version": "2.0.0",
+        "author": "Dan Onoshko",
+        "license": "MIT"
+    },
+    {
+        "name": "@simple-libs/stream-utils",
+        "version": "2.0.0",
+        "author": "Dan Onoshko",
+        "license": "MIT"
+    },
+    {
         "name": "@sindresorhus/is",
-        "version": "4.0.0",
+        "version": "8.1.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
@@ -690,9 +1092,9 @@
         "license": "MIT"
     },
     {
-        "name": "@szmarczak/http-timer",
-        "version": "4.0.5",
-        "author": "Szymon Marczak",
+        "name": "@tailwindcss/cli",
+        "version": "4.3.3",
+        "author": "-",
         "license": "MIT"
     },
     {
@@ -727,37 +1129,43 @@
     },
     {
         "name": "@tanstack/virtual-core",
-        "version": "3.17.6",
+        "version": "3.17.8",
         "author": "Tanner Linsley",
         "license": "MIT"
     },
     {
         "name": "@tanstack/vue-virtual",
-        "version": "3.13.34",
+        "version": "3.13.36",
         "author": "Tanner Linsley",
         "license": "MIT"
     },
     {
-        "name": "@types/cacheable-request",
-        "version": "6.0.1",
+        "name": "@tootallnate/quickjs-emscripten",
+        "version": "0.23.0",
         "author": "-",
         "license": "MIT"
     },
     {
         "name": "@types/chai",
-        "version": "5.2.3",
+        "version": "5.2.2",
+        "author": "-",
+        "license": "MIT"
+    },
+    {
+        "name": "@types/connect",
+        "version": "3.4.38",
         "author": "-",
         "license": "MIT"
     },
     {
         "name": "@types/debug",
-        "version": "4.1.6",
+        "version": "4.1.13",
         "author": "-",
         "license": "MIT"
     },
     {
         "name": "@types/deep-eql",
-        "version": "4.0.2",
+        "version": "4.0.0",
         "author": "-",
         "license": "MIT"
     },
@@ -781,7 +1189,7 @@
     },
     {
         "name": "@types/http-cache-semantics",
-        "version": "4.0.0",
+        "version": "4.2.0",
         "author": "-",
         "license": "MIT"
     },
@@ -792,8 +1200,14 @@
         "license": "MIT"
     },
     {
-        "name": "@types/keyv",
-        "version": "3.0.0",
+        "name": "@types/ms",
+        "version": "0.7.15-alpha",
+        "author": "Zhiyuan Wang",
+        "license": "MIT"
+    },
+    {
+        "name": "@types/mysql",
+        "version": "2.15.26",
         "author": "-",
         "license": "MIT"
     },
@@ -804,20 +1218,44 @@
         "license": "MIT"
     },
     {
+        "name": "@types/pg",
+        "version": "8.6.1",
+        "author": "-",
+        "license": "MIT"
+    },
+    {
+        "name": "@types/pg-pool",
+        "version": "2.0.6",
+        "author": "-",
+        "license": "MIT"
+    },
+    {
         "name": "@types/rbush",
         "version": "4.0.0",
         "author": "-",
         "license": "MIT"
     },
     {
-        "name": "@types/responselike",
-        "version": "1.0.0",
+        "name": "@types/shimmer",
+        "version": "1.2.0",
+        "author": "-",
+        "license": "MIT"
+    },
+    {
+        "name": "@types/tedious",
+        "version": "4.0.14",
         "author": "-",
         "license": "MIT"
     },
     {
         "name": "@types/trusted-types",
         "version": "2.0.7",
+        "author": "-",
+        "license": "MIT"
+    },
+    {
+        "name": "@types/yauzl",
+        "version": "2.9.1",
         "author": "-",
         "license": "MIT"
     },
@@ -829,55 +1267,55 @@
     },
     {
         "name": "@vitest/coverage-v8",
-        "version": "4.1.10",
+        "version": "4.1.11",
         "author": "Anthony Fu",
         "license": "MIT"
     },
     {
         "name": "@vitest/expect",
-        "version": "4.1.10",
+        "version": "4.1.11",
         "author": "-",
         "license": "MIT"
     },
     {
         "name": "@vitest/mocker",
-        "version": "4.1.10",
+        "version": "4.1.11",
         "author": "-",
         "license": "MIT"
     },
     {
         "name": "@vitest/pretty-format",
-        "version": "4.1.10",
+        "version": "4.1.11",
         "author": "-",
         "license": "MIT"
     },
     {
         "name": "@vitest/runner",
-        "version": "4.1.10",
+        "version": "4.1.11",
         "author": "-",
         "license": "MIT"
     },
     {
         "name": "@vitest/snapshot",
-        "version": "4.1.10",
+        "version": "4.1.11",
         "author": "-",
         "license": "MIT"
     },
     {
         "name": "@vitest/spy",
-        "version": "4.1.10",
+        "version": "4.1.11",
         "author": "-",
         "license": "MIT"
     },
     {
         "name": "@vitest/ui",
-        "version": "4.1.10",
+        "version": "4.1.11",
         "author": "-",
         "license": "MIT"
     },
     {
         "name": "@vitest/utils",
-        "version": "4.1.10",
+        "version": "4.1.11",
         "author": "-",
         "license": "MIT"
     },
@@ -919,31 +1357,31 @@
     },
     {
         "name": "@vue/compiler-core",
-        "version": "3.5.40",
+        "version": "3.5.42",
         "author": "Evan You",
         "license": "MIT"
     },
     {
         "name": "@vue/compiler-dom",
-        "version": "3.5.40",
+        "version": "3.5.42",
         "author": "Evan You",
         "license": "MIT"
     },
     {
         "name": "@vue/compiler-sfc",
-        "version": "3.5.40",
+        "version": "3.5.42",
         "author": "Evan You",
         "license": "MIT"
     },
     {
         "name": "@vue/compiler-ssr",
-        "version": "3.5.40",
+        "version": "3.5.42",
         "author": "Evan You",
         "license": "MIT"
     },
     {
         "name": "@vue/devtools-api",
-        "version": "6.5.0",
+        "version": "6.6.4",
         "author": "Guillaume Chau",
         "license": "MIT"
     },
@@ -967,50 +1405,50 @@
     },
     {
         "name": "@vue/language-core",
-        "version": "3.3.7",
+        "version": "3.3.11",
         "author": "-",
         "license": "MIT"
     },
     {
         "name": "@vue/reactivity",
-        "version": "3.5.40",
+        "version": "3.5.42",
         "author": "Evan You",
         "license": "MIT"
     },
     {
         "name": "@vue/runtime-core",
-        "version": "3.5.40",
+        "version": "3.5.42",
         "author": "Evan You",
         "license": "MIT"
     },
     {
         "name": "@vue/runtime-dom",
-        "version": "3.5.40",
+        "version": "3.5.42",
         "author": "Evan You",
         "license": "MIT"
     },
     {
         "name": "@vue/server-renderer",
-        "version": "3.5.40",
+        "version": "3.5.42",
         "author": "Evan You",
         "license": "MIT"
     },
     {
         "name": "@vue/shared",
-        "version": "3.5.40",
+        "version": "3.5.18",
         "author": "Evan You",
         "license": "MIT"
     },
     {
         "name": "@vue/test-utils",
-        "version": "2.4.11",
+        "version": "2.5.0",
         "author": "Lachlan Miller",
         "license": "MIT"
     },
     {
-        "name": "@vuetify/loader-shared",
-        "version": "2.1.2",
-        "author": "Kael Watts-Deuchar",
+        "name": "@xmldom/xmldom",
+        "version": "0.9.10",
+        "author": "-",
         "license": "MIT"
     },
     {
@@ -1026,15 +1464,15 @@
         "license": "ISC"
     },
     {
-        "name": "abbrev",
-        "version": "1.0.3",
-        "author": "Isaac Z. Schlueter",
-        "license": "Unknown"
+        "name": "acorn",
+        "version": "8.14.0",
+        "author": "-",
+        "license": "MIT"
     },
     {
-        "name": "acorn",
-        "version": "0.11.0",
-        "author": "-",
+        "name": "acorn-import-attributes",
+        "version": "1.9.5",
+        "author": "Sven Sauleau",
         "license": "MIT"
     },
     {
@@ -1045,7 +1483,7 @@
     },
     {
         "name": "agent-base",
-        "version": "7.0.2",
+        "version": "7.1.0",
         "author": "Nathan Rajlich",
         "license": "MIT"
     },
@@ -1063,15 +1501,15 @@
     },
     {
         "name": "altcha",
-        "version": "3.2.1",
+        "version": "3.2.2",
         "author": "Daniel Regeci",
         "license": "MIT"
     },
     {
-        "name": "amdefine",
-        "version": "1.0.1",
-        "author": "James Burke",
-        "license": "BSD-3-Clause OR MIT"
+        "name": "ansi-colors",
+        "version": "4.1.3",
+        "author": "Brian Woodward",
+        "license": "MIT"
     },
     {
         "name": "ansi-regex",
@@ -1081,7 +1519,7 @@
     },
     {
         "name": "ansi-styles",
-        "version": "3.2.1",
+        "version": "3.1.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
@@ -1104,20 +1542,32 @@
         "license": "Python-2.0"
     },
     {
+        "name": "argue-cli",
+        "version": "3.1.0",
+        "author": "dangreen",
+        "license": "MIT"
+    },
+    {
+        "name": "array-buffer-byte-length",
+        "version": "1.0.2",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "arraybuffer.prototype.slice",
+        "version": "1.0.4",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
         "name": "asn1js",
         "version": "3.0.10",
         "author": "Yury Strozhevsky",
         "license": "BSD-3-Clause"
     },
     {
-        "name": "assertion-error",
-        "version": "2.0.1",
-        "author": "Jake Luer",
-        "license": "MIT"
-    },
-    {
         "name": "ast-types",
-        "version": "0.6.12",
+        "version": "0.13.4",
         "author": "Ben Newman",
         "license": "MIT"
     },
@@ -1125,12 +1575,6 @@
         "name": "ast-v8-to-istanbul",
         "version": "1.0.0",
         "author": "Ari Perkkiö",
-        "license": "MIT"
-    },
-    {
-        "name": "async",
-        "version": "3.2.3",
-        "author": "Caolan McMahon",
         "license": "MIT"
     },
     {
@@ -1152,10 +1596,34 @@
         "license": "ISC"
     },
     {
+        "name": "atomically",
+        "version": "2.1.1",
+        "author": "-",
+        "license": "MIT"
+    },
+    {
+        "name": "available-typed-arrays",
+        "version": "1.0.7",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
         "name": "aws4",
         "version": "1.13.2",
         "author": "Michael Hart",
         "license": "MIT"
+    },
+    {
+        "name": "axe-core",
+        "version": "4.13.0",
+        "author": "-",
+        "license": "MPL-2.0"
+    },
+    {
+        "name": "b4a",
+        "version": "1.8.1",
+        "author": "Holepunch",
+        "license": "Apache-2.0"
     },
     {
         "name": "balanced-match",
@@ -1164,9 +1632,51 @@
         "license": "MIT"
     },
     {
-        "name": "base64-js",
-        "version": "1.5.1",
-        "author": "T. Jameson Little",
+        "name": "bare-events",
+        "version": "2.5.4",
+        "author": "Holepunch",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "bare-fs",
+        "version": "4.0.1",
+        "author": "Holepunch",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "bare-os",
+        "version": "3.9.3",
+        "author": "Holepunch",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "bare-path",
+        "version": "3.0.0",
+        "author": "Holepunch",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "bare-stream",
+        "version": "2.6.4",
+        "author": "Holepunch",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "bare-url",
+        "version": "2.2.2",
+        "author": "Holepunch",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "baseline-browser-mapping",
+        "version": "2.11.12",
+        "author": "-",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "basic-ftp",
+        "version": "5.3.1",
+        "author": "Patrick Juchli",
         "license": "MIT"
     },
     {
@@ -1201,7 +1711,7 @@
     },
     {
         "name": "boolean",
-        "version": "3.0.1",
+        "version": "3.2.0",
         "author": "-",
         "license": "MIT"
     },
@@ -1212,9 +1722,21 @@
         "license": "MIT"
     },
     {
+        "name": "braces",
+        "version": "3.0.3",
+        "author": "Jon Schlinkert",
+        "license": "MIT"
+    },
+    {
         "name": "browserslist",
-        "version": "4.16.5",
+        "version": "4.28.8",
         "author": "Andrey Sitnik",
+        "license": "MIT"
+    },
+    {
+        "name": "buffer-crc32",
+        "version": "0.2.13",
+        "author": "Brian J. Brennan",
         "license": "MIT"
     },
     {
@@ -1242,6 +1764,12 @@
         "license": "MIT"
     },
     {
+        "name": "byte-counter",
+        "version": "0.1.0",
+        "author": "Sindre Sorhus",
+        "license": "MIT"
+    },
+    {
         "name": "bytestreamjs",
         "version": "2.0.1",
         "author": "Yury Strozhevsky",
@@ -1249,20 +1777,26 @@
     },
     {
         "name": "cacache",
-        "version": "20.0.4",
+        "version": "20.0.0",
         "author": "GitHub Inc.",
         "license": "ISC"
     },
     {
         "name": "cacheable-lookup",
-        "version": "5.0.3",
+        "version": "7.0.0",
         "author": "Szymon Marczak",
         "license": "MIT"
     },
     {
         "name": "cacheable-request",
-        "version": "7.0.2",
-        "author": "Luke Childs",
+        "version": "13.0.19",
+        "author": "Jared Wray",
+        "license": "MIT"
+    },
+    {
+        "name": "call-bind",
+        "version": "1.0.9",
+        "author": "Jordan Harband",
         "license": "MIT"
     },
     {
@@ -1272,14 +1806,20 @@
         "license": "MIT"
     },
     {
+        "name": "call-bound",
+        "version": "1.0.4",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
         "name": "callsites",
-        "version": "3.1.0",
+        "version": "3.0.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
     {
         "name": "caniuse-lite",
-        "version": "1.0.30001214",
+        "version": "1.0.30001810",
         "author": "Ben Briggs",
         "license": "CC-BY-4.0"
     },
@@ -1291,7 +1831,7 @@
     },
     {
         "name": "chalk",
-        "version": "2.4.2",
+        "version": "2.0.0",
         "author": "-",
         "license": "MIT"
     },
@@ -1302,63 +1842,57 @@
         "license": "BlueOak-1.0.0"
     },
     {
+        "name": "chrome-launcher",
+        "version": "1.2.1",
+        "author": "The Chromium Authors",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "chromium-bidi",
+        "version": "14.0.0",
+        "author": "The Chromium Authors",
+        "license": "Apache-2.0"
+    },
+    {
         "name": "chromium-pickle-js",
         "version": "0.2.0",
         "author": "-",
         "license": "MIT"
     },
     {
-        "name": "ci-info",
-        "version": "4.2.0",
-        "author": "Thomas Watson Steen",
-        "license": "MIT"
-    },
-    {
-        "name": "cli-table3",
-        "version": "0.5.0",
-        "author": "James Talmage",
-        "license": "MIT"
-    },
-    {
-        "name": "cliui",
-        "version": "4.0.0",
-        "author": "Ben Coe",
-        "license": "ISC"
-    },
-    {
-        "name": "clone-response",
-        "version": "1.0.2",
-        "author": "Luke Childs",
-        "license": "MIT"
-    },
-    {
-        "name": "code-point-at",
-        "version": "1.0.0",
+        "name": "chunk-data",
+        "version": "0.1.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
     {
+        "name": "ci-info",
+        "version": "4.3.1",
+        "author": "Thomas Watson Steen",
+        "license": "MIT"
+    },
+    {
+        "name": "cjs-module-lexer",
+        "version": "1.4.3",
+        "author": "Guy Bedford",
+        "license": "MIT"
+    },
+    {
+        "name": "cliui",
+        "version": "6.0.0",
+        "author": "Ben Coe",
+        "license": "ISC"
+    },
+    {
         "name": "color-convert",
-        "version": "1.9.0",
+        "version": "1.0.0",
         "author": "Heather Arthur",
         "license": "MIT"
     },
     {
         "name": "color-name",
-        "version": "1.1.4",
+        "version": "1.1.1",
         "author": "DY",
-        "license": "MIT"
-    },
-    {
-        "name": "colorette",
-        "version": "1.4.0",
-        "author": "Jorge Bucaran",
-        "license": "MIT"
-    },
-    {
-        "name": "colors",
-        "version": "1.1.2",
-        "author": "Marak Squires",
         "license": "MIT"
     },
     {
@@ -1369,7 +1903,7 @@
     },
     {
         "name": "commander",
-        "version": "2.20.0",
+        "version": "2.20.3",
         "author": "TJ Holowaychuk",
         "license": "MIT"
     },
@@ -1404,6 +1938,30 @@
         "license": "MIT"
     },
     {
+        "name": "configstore",
+        "version": "7.1.0",
+        "author": "Sindre Sorhus",
+        "license": "BSD-2-Clause"
+    },
+    {
+        "name": "conventional-changelog-angular",
+        "version": "9.4.0",
+        "author": "Steve Mao",
+        "license": "ISC"
+    },
+    {
+        "name": "conventional-changelog-conventionalcommits",
+        "version": "10.4.0",
+        "author": "Ben Coe",
+        "license": "ISC"
+    },
+    {
+        "name": "conventional-commits-parser",
+        "version": "7.0.0",
+        "author": "Steve Mao",
+        "license": "MIT"
+    },
+    {
         "name": "convert-source-map",
         "version": "2.0.0",
         "author": "Thorsten Lorenz",
@@ -1413,6 +1971,18 @@
         "name": "core-util-is",
         "version": "1.0.0",
         "author": "Isaac Z. Schlueter",
+        "license": "MIT"
+    },
+    {
+        "name": "cosmiconfig",
+        "version": "9.0.1",
+        "author": "Daniel Fischer",
+        "license": "MIT"
+    },
+    {
+        "name": "cosmiconfig-typescript-loader",
+        "version": "6.3.0",
+        "author": "Alex Miller",
         "license": "MIT"
     },
     {
@@ -1434,6 +2004,12 @@
         "license": "MIT"
     },
     {
+        "name": "csp_evaluator",
+        "version": "1.1.5",
+        "author": "Lukas Weichselbaum",
+        "license": "Apache-2.0"
+    },
+    {
         "name": "css-tree",
         "version": "3.2.1",
         "author": "Roman Dvornov",
@@ -1452,14 +2028,38 @@
         "license": "MIT"
     },
     {
+        "name": "data-uri-to-buffer",
+        "version": "6.0.2",
+        "author": "Nathan Rajlich",
+        "license": "MIT"
+    },
+    {
         "name": "data-urls",
         "version": "7.0.0",
         "author": "Domenic Denicola",
         "license": "MIT"
     },
     {
+        "name": "data-view-buffer",
+        "version": "1.0.2",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "data-view-byte-length",
+        "version": "1.0.2",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "data-view-byte-offset",
+        "version": "1.0.1",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
         "name": "dayjs",
-        "version": "1.11.21",
+        "version": "1.11.23",
         "author": "iamkun",
         "license": "MIT"
     },
@@ -1477,13 +2077,13 @@
     },
     {
         "name": "decimal.js",
-        "version": "10.6.0",
+        "version": "10.4.3",
         "author": "Michael Mclaughlin",
         "license": "MIT"
     },
     {
         "name": "decompress-response",
-        "version": "6.0.0",
+        "version": "10.0.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
@@ -1495,7 +2095,7 @@
     },
     {
         "name": "default-browser",
-        "version": "5.5.0",
+        "version": "5.5.1",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
@@ -1506,21 +2106,27 @@
         "license": "MIT"
     },
     {
-        "name": "defer-to-connect",
-        "version": "2.0.0",
-        "author": "Szymon Marczak",
+        "name": "define-data-property",
+        "version": "1.1.4",
+        "author": "Jordan Harband",
         "license": "MIT"
     },
     {
         "name": "define-lazy-prop",
-        "version": "3.0.0",
+        "version": "2.0.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
     {
         "name": "define-properties",
-        "version": "1.1.2",
+        "version": "1.2.1",
         "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "degenerator",
+        "version": "5.0.1",
+        "author": "Nathan Rajlich",
         "license": "MIT"
     },
     {
@@ -1531,19 +2137,25 @@
     },
     {
         "name": "detect-libc",
-        "version": "2.0.3",
+        "version": "1.0.3",
         "author": "Lovell Fuller",
         "license": "Apache-2.0"
     },
     {
         "name": "detect-node",
-        "version": "2.0.4",
+        "version": "2.1.0",
         "author": "Ilya Kantor",
-        "license": "ISC"
+        "license": "MIT"
+    },
+    {
+        "name": "devtools-protocol",
+        "version": "0.0.1507524",
+        "author": "The Chromium Authors",
+        "license": "BSD-3-Clause"
     },
     {
         "name": "dijkstrajs",
-        "version": "1.0.1",
+        "version": "1.0.3",
         "author": "-",
         "license": "MIT"
     },
@@ -1561,9 +2173,15 @@
     },
     {
         "name": "dompurify",
-        "version": "3.4.13",
+        "version": "3.4.14",
         "author": "Dr.-Ing. Mario Heiderich, Cure53",
         "license": "(MPL-2.0 OR Apache-2.0)"
+    },
+    {
+        "name": "dot-prop",
+        "version": "9.0.0",
+        "author": "Sindre Sorhus",
+        "license": "MIT"
     },
     {
         "name": "dotenv",
@@ -1573,13 +2191,13 @@
     },
     {
         "name": "dotenv-expand",
-        "version": "11.0.6",
+        "version": "11.0.7",
         "author": "motdotla",
         "license": "BSD-2-Clause"
     },
     {
         "name": "dunder-proto",
-        "version": "1.0.0",
+        "version": "1.0.1",
         "author": "Jordan Harband",
         "license": "MIT"
     },
@@ -1603,13 +2221,13 @@
     },
     {
         "name": "editorconfig",
-        "version": "1.0.3",
+        "version": "3.0.2",
         "author": "EditorConfig Team",
         "license": "MIT"
     },
     {
         "name": "ejs",
-        "version": "3.1.10",
+        "version": "6.0.1",
         "author": "Matthew Eernisse",
         "license": "Apache-2.0"
     },
@@ -1645,7 +2263,7 @@
     },
     {
         "name": "electron-to-chromium",
-        "version": "1.3.719",
+        "version": "1.5.416",
         "author": "Kilian Valkhof",
         "license": "ISC"
     },
@@ -1674,6 +2292,12 @@
         "license": "MIT"
     },
     {
+        "name": "encoding",
+        "version": "0.1.13",
+        "author": "Andris Reinman",
+        "license": "MIT"
+    },
+    {
         "name": "end-of-stream",
         "version": "1.1.0",
         "author": "Mathias Buus",
@@ -1681,8 +2305,14 @@
     },
     {
         "name": "enhanced-resolve",
-        "version": "5.24.1",
+        "version": "5.24.5",
         "author": "Tobias Koppers @sokra",
+        "license": "MIT"
+    },
+    {
+        "name": "enquirer",
+        "version": "2.4.1",
+        "author": "Jon Schlinkert",
         "license": "MIT"
     },
     {
@@ -1699,8 +2329,14 @@
     },
     {
         "name": "err-code",
-        "version": "2.0.2",
+        "version": "2.0.3",
         "author": "IndigoUnited",
+        "license": "MIT"
+    },
+    {
+        "name": "error-ex",
+        "version": "1.3.1",
+        "author": "-",
         "license": "MIT"
     },
     {
@@ -1711,13 +2347,19 @@
     },
     {
         "name": "es-abstract",
-        "version": "1.5.0",
+        "version": "1.24.2",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "es-abstract-get",
+        "version": "1.0.0",
         "author": "Jordan Harband",
         "license": "MIT"
     },
     {
         "name": "es-define-property",
-        "version": "1.0.1",
+        "version": "1.0.0",
         "author": "Jordan Harband",
         "license": "MIT"
     },
@@ -1735,7 +2377,7 @@
     },
     {
         "name": "es-object-atoms",
-        "version": "1.0.0",
+        "version": "1.1.1",
         "author": "Jordan Harband",
         "license": "MIT"
     },
@@ -1747,8 +2389,14 @@
     },
     {
         "name": "es-to-primitive",
-        "version": "1.1.0",
+        "version": "1.3.4",
         "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "es-toolkit",
+        "version": "1.46.0",
+        "author": "-",
         "license": "MIT"
     },
     {
@@ -1768,6 +2416,12 @@
         "version": "1.0.5",
         "author": "Sindre Sorhus",
         "license": "MIT"
+    },
+    {
+        "name": "escodegen",
+        "version": "2.1.0",
+        "author": "-",
+        "license": "BSD-2-Clause"
     },
     {
         "name": "eslint",
@@ -1812,22 +2466,16 @@
         "license": "Apache-2.0"
     },
     {
-        "name": "esmangle-evaluator",
-        "version": "1.0.0",
-        "author": "Andres Suarez",
-        "license": "Unknown"
-    },
-    {
         "name": "espree",
         "version": "10.3.0",
         "author": "Nicholas C. Zakas",
         "license": "BSD-2-Clause"
     },
     {
-        "name": "esprima-fb",
-        "version": "12001.1.0-dev-harmony-fb",
+        "name": "esprima",
+        "version": "4.0.1",
         "author": "Ariya Hidayat",
-        "license": "BSD"
+        "license": "BSD-2-Clause"
     },
     {
         "name": "esquery",
@@ -1860,10 +2508,16 @@
         "license": "BSD-2-Clause"
     },
     {
-        "name": "execa",
-        "version": "0.10.0",
-        "author": "Sindre Sorhus",
-        "license": "MIT"
+        "name": "esutils",
+        "version": "2.0.2",
+        "author": "-",
+        "license": "BSD"
+    },
+    {
+        "name": "events-universal",
+        "version": "1.0.0",
+        "author": "Holepunch",
+        "license": "Apache-2.0"
     },
     {
         "name": "expect-type",
@@ -1873,9 +2527,15 @@
     },
     {
         "name": "exponential-backoff",
-        "version": "3.1.1",
+        "version": "3.1.3",
         "author": "Sami Sayegh",
         "license": "Apache-2.0"
+    },
+    {
+        "name": "extract-zip",
+        "version": "2.0.1",
+        "author": "max ogden",
+        "license": "BSD-2-Clause"
     },
     {
         "name": "fake-indexeddb",
@@ -1884,22 +2544,22 @@
         "license": "Apache-2.0"
     },
     {
-        "name": "falafel",
-        "version": "1.0.1",
-        "author": "James Halliday",
-        "license": "MIT"
-    },
-    {
         "name": "fast-deep-equal",
-        "version": "3.1.3",
+        "version": "3.1.1",
         "author": "Evgeny Poberezkin",
         "license": "MIT"
     },
     {
         "name": "fast-diff",
-        "version": "1.1.2",
+        "version": "1.3.0",
         "author": "Jason Chen",
         "license": "Apache-2.0"
+    },
+    {
+        "name": "fast-fifo",
+        "version": "1.3.2",
+        "author": "Mathias Buus",
+        "license": "MIT"
     },
     {
         "name": "fast-json-stable-stringify",
@@ -1926,6 +2586,12 @@
         "license": "MIT"
     },
     {
+        "name": "fd-slicer",
+        "version": "1.1.0",
+        "author": "Andrew Kelley",
+        "license": "MIT"
+    },
+    {
         "name": "fdir",
         "version": "6.4.3",
         "author": "thecodrr",
@@ -1944,14 +2610,14 @@
         "license": "MIT"
     },
     {
-        "name": "filelist",
-        "version": "1.0.1",
-        "author": "Matthew Eernisse",
-        "license": "Apache-2.0"
+        "name": "fill-range",
+        "version": "7.1.1",
+        "author": "Jon Schlinkert",
+        "license": "MIT"
     },
     {
         "name": "find-up",
-        "version": "3.0.0",
+        "version": "4.1.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
@@ -1969,19 +2635,13 @@
     },
     {
         "name": "for-each",
-        "version": "0.3.3",
+        "version": "0.3.5",
         "author": "Raynos",
         "license": "MIT"
     },
     {
-        "name": "foreach",
-        "version": "2.0.6",
-        "author": "Manuel Stofer",
-        "license": "MIT"
-    },
-    {
         "name": "foreground-child",
-        "version": "3.1.0",
+        "version": "3.3.1",
         "author": "Isaac Z. Schlueter",
         "license": "ISC"
     },
@@ -1993,8 +2653,14 @@
     },
     {
         "name": "formatly",
-        "version": "0.3.0",
+        "version": "0.7.0",
         "author": "Josh Goldberg ✨",
+        "license": "MIT"
+    },
+    {
+        "name": "forwarded-parse",
+        "version": "2.1.2",
+        "author": "Luigi Pinca",
         "license": "MIT"
     },
     {
@@ -2005,7 +2671,7 @@
     },
     {
         "name": "fs-minipass",
-        "version": "3.0.3",
+        "version": "3.0.0",
         "author": "GitHub Inc.",
         "license": "ISC"
     },
@@ -2017,8 +2683,20 @@
     },
     {
         "name": "function-bind",
-        "version": "1.0.2",
+        "version": "1.1.1",
         "author": "Raynos",
+        "license": "MIT"
+    },
+    {
+        "name": "function.prototype.name",
+        "version": "1.1.8",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "functions-have-names",
+        "version": "1.2.3",
+        "author": "Jordan Harband",
         "license": "MIT"
     },
     {
@@ -2029,32 +2707,56 @@
     },
     {
         "name": "geotiff",
-        "version": "3.0.5",
+        "version": "3.1.0-beta.0",
         "author": "Fabian Schindler",
         "license": "MIT"
     },
     {
         "name": "get-caller-file",
-        "version": "1.0.1",
+        "version": "2.0.1",
         "author": "Stefan Penner",
         "license": "ISC"
     },
     {
+        "name": "get-east-asian-width",
+        "version": "1.0.0",
+        "author": "Sindre Sorhus",
+        "license": "MIT"
+    },
+    {
         "name": "get-intrinsic",
-        "version": "1.2.6",
+        "version": "1.1.3",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "get-proto",
+        "version": "1.0.1",
         "author": "Jordan Harband",
         "license": "MIT"
     },
     {
         "name": "get-stream",
-        "version": "3.0.0",
+        "version": "5.1.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
     {
+        "name": "get-symbol-description",
+        "version": "1.1.0",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
         "name": "get-tsconfig",
-        "version": "4.14.0",
+        "version": "4.14.3",
         "author": "Hiroki Osame",
+        "license": "MIT"
+    },
+    {
+        "name": "get-uri",
+        "version": "6.0.5",
+        "author": "Nathan Rajlich",
         "license": "MIT"
     },
     {
@@ -2062,6 +2764,12 @@
         "version": "7.2.3",
         "author": "Isaac Z. Schlueter",
         "license": "ISC"
+    },
+    {
+        "name": "glob",
+        "version": "13.0.6",
+        "author": "Isaac Z. Schlueter",
+        "license": "BlueOak-1.0.0"
     },
     {
         "name": "glob-parent",
@@ -2076,26 +2784,32 @@
         "license": "BSD-3-Clause"
     },
     {
+        "name": "global-directory",
+        "version": "5.0.0",
+        "author": "Sindre Sorhus",
+        "license": "MIT"
+    },
+    {
         "name": "globals",
-        "version": "14.0.0",
+        "version": "11.1.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
     {
         "name": "globalthis",
-        "version": "1.0.1",
+        "version": "1.0.4",
         "author": "Jordan Harband",
         "license": "MIT"
     },
     {
         "name": "gopd",
-        "version": "1.2.0",
+        "version": "1.0.1",
         "author": "Jordan Harband",
         "license": "MIT"
     },
     {
         "name": "got",
-        "version": "11.8.6",
+        "version": "15.1.0",
         "author": "-",
         "license": "MIT"
     },
@@ -2106,9 +2820,33 @@
         "license": "ISC"
     },
     {
+        "name": "has",
+        "version": "1.0.4",
+        "author": "Thiago de Arruda",
+        "license": "MIT"
+    },
+    {
+        "name": "has-bigints",
+        "version": "1.0.2",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
         "name": "has-flag",
-        "version": "3.0.0",
+        "version": "2.0.0",
         "author": "Sindre Sorhus",
+        "license": "MIT"
+    },
+    {
+        "name": "has-property-descriptors",
+        "version": "1.0.2",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "has-proto",
+        "version": "1.0.1",
+        "author": "Jordan Harband",
         "license": "MIT"
     },
     {
@@ -2119,7 +2857,7 @@
     },
     {
         "name": "has-tostringtag",
-        "version": "1.0.2",
+        "version": "1.0.0",
         "author": "Jordan Harband",
         "license": "MIT"
     },
@@ -2131,7 +2869,7 @@
     },
     {
         "name": "hasown",
-        "version": "2.0.4",
+        "version": "2.0.0",
         "author": "Jordan Harband",
         "license": "MIT"
     },
@@ -2143,8 +2881,8 @@
     },
     {
         "name": "hosted-git-info",
-        "version": "2.8.9",
-        "author": "Rebecca Turner",
+        "version": "10.1.1",
+        "author": "GitHub Inc.",
         "license": "ISC"
     },
     {
@@ -2166,6 +2904,12 @@
         "license": "BSD-2-Clause"
     },
     {
+        "name": "http-link-header",
+        "version": "1.1.4",
+        "author": "Jonas Hermsmeier",
+        "license": "MIT"
+    },
+    {
         "name": "http-proxy-agent",
         "version": "7.0.0",
         "author": "Nathan Rajlich",
@@ -2173,19 +2917,19 @@
     },
     {
         "name": "http2-wrapper",
-        "version": "1.0.0-beta.5.2",
+        "version": "2.2.1",
         "author": "Szymon Marczak",
         "license": "MIT"
     },
     {
         "name": "https-proxy-agent",
-        "version": "7.0.0",
+        "version": "7.0.1",
         "author": "Nathan Rajlich",
         "license": "MIT"
     },
     {
         "name": "iconv-lite",
-        "version": "0.7.2",
+        "version": "0.6.2",
         "author": "Alexander Shtuchkin",
         "license": "MIT"
     },
@@ -2196,16 +2940,28 @@
         "license": "MIT"
     },
     {
+        "name": "image-ssim",
+        "version": "0.2.0",
+        "author": "Jan Forst",
+        "license": "MIT"
+    },
+    {
         "name": "immediate",
-        "version": "3.0.5",
+        "version": "3.0.6",
         "author": "-",
         "license": "MIT"
     },
     {
         "name": "import-fresh",
-        "version": "3.3.1",
+        "version": "3.2.1",
         "author": "Sindre Sorhus",
         "license": "MIT"
+    },
+    {
+        "name": "import-in-the-middle",
+        "version": "1.15.0",
+        "author": "Bryan English",
+        "license": "Apache-2.0"
     },
     {
         "name": "imurmurhash",
@@ -2215,7 +2971,7 @@
     },
     {
         "name": "inflight",
-        "version": "1.0.4",
+        "version": "1.0.6",
         "author": "Isaac Z. Schlueter",
         "license": "ISC"
     },
@@ -2234,25 +2990,49 @@
     {
         "name": "ini",
         "version": "1.3.6",
-        "author": "Isaac Z. Schlueter",
+        "author": "GitHub Inc.",
         "license": "ISC"
     },
     {
-        "name": "inline-process-browser",
-        "version": "1.0.0",
-        "author": "Calvin W. Metcalf",
+        "name": "internal-slot",
+        "version": "1.1.0",
+        "author": "Jordan Harband",
         "license": "MIT"
     },
     {
-        "name": "invert-kv",
-        "version": "2.0.0",
-        "author": "Sindre Sorhus",
-        "license": "MIT"
+        "name": "intl-messageformat",
+        "version": "10.7.18",
+        "author": "Eric Ferraiuolo",
+        "license": "BSD-3-Clause"
     },
     {
         "name": "ip-address",
-        "version": "10.5.0",
+        "version": "10.3.1",
         "author": "Beau Gunderson",
+        "license": "MIT"
+    },
+    {
+        "name": "is-array-buffer",
+        "version": "3.0.5",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "is-arrayish",
+        "version": "0.2.1",
+        "author": "Qix",
+        "license": "MIT"
+    },
+    {
+        "name": "is-async-function",
+        "version": "2.0.0",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "is-bigint",
+        "version": "1.0.1",
+        "author": "Jordan Harband",
         "license": "MIT"
     },
     {
@@ -2262,20 +3042,38 @@
         "license": "MIT"
     },
     {
+        "name": "is-boolean-object",
+        "version": "1.1.0",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
         "name": "is-callable",
-        "version": "1.1.1",
+        "version": "1.2.7",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "is-core-module",
+        "version": "2.16.2",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "is-data-view",
+        "version": "1.0.2",
         "author": "Jordan Harband",
         "license": "MIT"
     },
     {
         "name": "is-date-object",
-        "version": "1.0.1",
+        "version": "1.0.5",
         "author": "Jordan Harband",
         "license": "MIT"
     },
     {
         "name": "is-docker",
-        "version": "3.0.0",
+        "version": "2.2.1",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
@@ -2286,9 +3084,21 @@
         "license": "MIT"
     },
     {
+        "name": "is-finalizationregistry",
+        "version": "1.0.2",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
         "name": "is-fullwidth-code-point",
-        "version": "1.0.0",
+        "version": "3.0.0",
         "author": "Sindre Sorhus",
+        "license": "MIT"
+    },
+    {
+        "name": "is-generator-function",
+        "version": "1.0.10",
+        "author": "Jordan Harband",
         "license": "MIT"
     },
     {
@@ -2310,6 +3120,36 @@
         "license": "MIT"
     },
     {
+        "name": "is-map",
+        "version": "2.0.1",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "is-negative-zero",
+        "version": "2.0.3",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "is-number",
+        "version": "7.0.0",
+        "author": "Jon Schlinkert",
+        "license": "MIT"
+    },
+    {
+        "name": "is-number-object",
+        "version": "1.0.4",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "is-plain-obj",
+        "version": "4.1.0",
+        "author": "Sindre Sorhus",
+        "license": "MIT"
+    },
+    {
         "name": "is-potential-custom-element-name",
         "version": "1.0.1",
         "author": "Mathias Bynens",
@@ -2317,25 +3157,67 @@
     },
     {
         "name": "is-regex",
-        "version": "1.0.3",
+        "version": "1.2.1",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "is-set",
+        "version": "2.0.3",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "is-shared-array-buffer",
+        "version": "1.0.4",
         "author": "Jordan Harband",
         "license": "MIT"
     },
     {
         "name": "is-stream",
-        "version": "1.1.0",
+        "version": "4.0.1",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
     {
+        "name": "is-string",
+        "version": "1.1.1",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
         "name": "is-symbol",
-        "version": "1.0.1",
+        "version": "1.0.3",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "is-typed-array",
+        "version": "1.1.15",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "is-weakmap",
+        "version": "2.0.1",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "is-weakref",
+        "version": "1.1.1",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "is-weakset",
+        "version": "2.0.1",
         "author": "Jordan Harband",
         "license": "MIT"
     },
     {
         "name": "is-wsl",
-        "version": "3.1.0",
+        "version": "2.2.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
@@ -2358,12 +3240,6 @@
         "license": "ISC"
     },
     {
-        "name": "isexe",
-        "version": "3.1.5",
-        "author": "Isaac Z. Schlueter",
-        "license": "BlueOak-1.0.0"
-    },
-    {
         "name": "istanbul-lib-coverage",
         "version": "3.2.2",
         "author": "Krishnan Anantheswaran",
@@ -2383,15 +3259,9 @@
     },
     {
         "name": "jackspeak",
-        "version": "3.1.2",
+        "version": "3.4.3",
         "author": "Isaac Z. Schlueter",
         "license": "BlueOak-1.0.0"
-    },
-    {
-        "name": "jake",
-        "version": "10.8.5",
-        "author": "Matthew Eernisse",
-        "license": "Apache-2.0"
     },
     {
         "name": "jiti",
@@ -2400,9 +3270,27 @@
         "license": "MIT"
     },
     {
+        "name": "jpeg-js",
+        "version": "0.4.4",
+        "author": "Eugene Ware",
+        "license": "BSD-3-Clause"
+    },
+    {
         "name": "js-beautify",
-        "version": "1.14.9",
+        "version": "2.0.3",
         "author": "Einar Lielmanis",
+        "license": "MIT"
+    },
+    {
+        "name": "js-cookie",
+        "version": "3.0.8",
+        "author": "Klaus Hartl",
+        "license": "MIT"
+    },
+    {
+        "name": "js-library-detector",
+        "version": "6.7.0",
+        "author": "John Michel",
         "license": "MIT"
     },
     {
@@ -2413,7 +3301,7 @@
     },
     {
         "name": "js-yaml",
-        "version": "5.2.3",
+        "version": "5.2.2",
         "author": "Vladimir Zapparov",
         "license": "MIT"
     },
@@ -2425,7 +3313,7 @@
     },
     {
         "name": "jsesc",
-        "version": "3.0.2",
+        "version": "2.5.1",
         "author": "Mathias Bynens",
         "license": "MIT"
     },
@@ -2433,6 +3321,12 @@
         "name": "json-buffer",
         "version": "3.0.1",
         "author": "Dominic Tarr",
+        "license": "MIT"
+    },
+    {
+        "name": "json-parse-even-better-errors",
+        "version": "2.3.0",
+        "author": "Kat Marchán",
         "license": "MIT"
     },
     {
@@ -2491,13 +3385,13 @@
     },
     {
         "name": "keyv",
-        "version": "4.0.0",
+        "version": "4.5.4",
         "author": "Jared Wray",
         "license": "MIT"
     },
     {
         "name": "knip",
-        "version": "6.29.0",
+        "version": "6.33.0",
         "author": "Lars Kappert",
         "license": "ISC"
     },
@@ -2514,10 +3408,10 @@
         "license": "MIT"
     },
     {
-        "name": "lcid",
-        "version": "2.0.0",
-        "author": "Sindre Sorhus",
-        "license": "MIT"
+        "name": "legacy-javascript",
+        "version": "0.0.1",
+        "author": "Google LLC",
+        "license": "Apache-2.0"
     },
     {
         "name": "lerc",
@@ -2538,6 +3432,24 @@
         "license": "MIT"
     },
     {
+        "name": "lighthouse",
+        "version": "12.8.2",
+        "author": "Google LLC",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "lighthouse-logger",
+        "version": "2.0.2",
+        "author": "-",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "lighthouse-stack-packs",
+        "version": "1.12.2",
+        "author": "The Chromium Authors",
+        "license": "Apache-2.0"
+    },
+    {
         "name": "lightningcss",
         "version": "1.32.0",
         "author": "-",
@@ -2550,8 +3462,14 @@
         "license": "MPL-2.0"
     },
     {
+        "name": "lines-and-columns",
+        "version": "1.1.6",
+        "author": "Brian Donovan",
+        "license": "MIT"
+    },
+    {
         "name": "locate-path",
-        "version": "3.0.0",
+        "version": "5.0.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
@@ -2562,14 +3480,26 @@
         "license": "MIT"
     },
     {
+        "name": "lodash-es",
+        "version": "4.18.1",
+        "author": "John-David Dalton",
+        "license": "MIT"
+    },
+    {
         "name": "lodash.merge",
         "version": "4.6.2",
         "author": "John-David Dalton",
         "license": "MIT"
     },
     {
+        "name": "lookup-closest-locale",
+        "version": "6.2.0",
+        "author": "Andy VanWagoner",
+        "license": "MIT"
+    },
+    {
         "name": "lowercase-keys",
-        "version": "2.0.0",
+        "version": "3.0.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
@@ -2581,13 +3511,13 @@
     },
     {
         "name": "lru-cache",
-        "version": "11.3.5",
+        "version": "11.5.2",
         "author": "Isaac Z. Schlueter",
         "license": "BlueOak-1.0.0"
     },
     {
         "name": "magic-string",
-        "version": "0.30.21",
+        "version": "0.30.4",
         "author": "Rich Harris",
         "license": "MIT"
     },
@@ -2605,7 +3535,7 @@
     },
     {
         "name": "make-fetch-happen",
-        "version": "15.0.6",
+        "version": "15.0.0",
         "author": "GitHub Inc.",
         "license": "ISC"
     },
@@ -2617,9 +3547,15 @@
     },
     {
         "name": "marked",
-        "version": "18.0.7",
+        "version": "18.0.11",
         "author": "Christopher Jeffrey",
         "license": "MIT"
+    },
+    {
+        "name": "marky",
+        "version": "1.3.0",
+        "author": "Nolan Lawson",
+        "license": "Apache-2.0"
     },
     {
         "name": "matcher",
@@ -2629,7 +3565,7 @@
     },
     {
         "name": "math-intrinsics",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "author": "Jordan Harband",
         "license": "MIT"
     },
@@ -2640,9 +3576,21 @@
         "license": "CC0-1.0"
     },
     {
-        "name": "mem",
-        "version": "3.0.1",
+        "name": "meow",
+        "version": "14.0.0",
         "author": "Sindre Sorhus",
+        "license": "MIT"
+    },
+    {
+        "name": "metaviewport-parser",
+        "version": "0.3.0",
+        "author": "-",
+        "license": "MIT"
+    },
+    {
+        "name": "micromatch",
+        "version": "4.0.8",
+        "author": "Jon Schlinkert",
         "license": "MIT"
     },
     {
@@ -2653,7 +3601,7 @@
     },
     {
         "name": "mime",
-        "version": "2.5.2",
+        "version": "2.6.0",
         "author": "Robert Kieffer",
         "license": "MIT"
     },
@@ -2670,20 +3618,14 @@
         "license": "MIT"
     },
     {
-        "name": "mimic-fn",
-        "version": "1.0.0",
-        "author": "Sindre Sorhus",
-        "license": "MIT"
-    },
-    {
         "name": "mimic-response",
-        "version": "1.0.0",
+        "version": "4.0.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
     {
         "name": "mini-svg-data-uri",
-        "version": "1.2.3",
+        "version": "1.4.4",
         "author": "Taylor “Tigt” Hunt",
         "license": "MIT"
     },
@@ -2712,6 +3654,12 @@
         "license": "ISC"
     },
     {
+        "name": "minipass",
+        "version": "7.1.3",
+        "author": "Isaac Z. Schlueter",
+        "license": "BlueOak-1.0.0"
+    },
+    {
         "name": "minipass-collect",
         "version": "2.0.1",
         "author": "Isaac Z. Schlueter",
@@ -2719,15 +3667,15 @@
     },
     {
         "name": "minipass-fetch",
-        "version": "5.0.2",
+        "version": "4.0.0",
         "author": "GitHub Inc.",
         "license": "MIT"
     },
     {
         "name": "minipass-flush",
-        "version": "1.0.7",
+        "version": "1.0.5",
         "author": "Isaac Z. Schlueter",
-        "license": "BlueOak-1.0.0"
+        "license": "ISC"
     },
     {
         "name": "minipass-pipeline",
@@ -2737,7 +3685,7 @@
     },
     {
         "name": "minipass-sized",
-        "version": "2.0.0",
+        "version": "1.0.3",
         "author": "Isaac Z. Schlueter",
         "license": "ISC"
     },
@@ -2745,6 +3693,30 @@
         "name": "minizlib",
         "version": "3.0.1",
         "author": "Isaac Z. Schlueter",
+        "license": "MIT"
+    },
+    {
+        "name": "mitt",
+        "version": "3.0.1",
+        "author": "-",
+        "license": "MIT"
+    },
+    {
+        "name": "mkdirp",
+        "version": "0.5.1",
+        "author": "James Halliday",
+        "license": "MIT"
+    },
+    {
+        "name": "module-details-from-path",
+        "version": "1.0.3",
+        "author": "Thomas Watson",
+        "license": "MIT"
+    },
+    {
+        "name": "mri",
+        "version": "1.2.0",
+        "author": "Luke Edwards",
         "license": "MIT"
     },
     {
@@ -2767,7 +3739,7 @@
     },
     {
         "name": "nanoid",
-        "version": "3.3.18",
+        "version": "3.3.17",
         "author": "Andrey Sitnik",
         "license": "MIT"
     },
@@ -2784,9 +3756,21 @@
         "license": "MIT"
     },
     {
+        "name": "netmask",
+        "version": "2.1.1",
+        "author": "Olivier Poitrey",
+        "license": "MIT"
+    },
+    {
         "name": "node-abi",
         "version": "4.2.0",
         "author": "Lukas Geiger",
+        "license": "MIT"
+    },
+    {
+        "name": "node-addon-api",
+        "version": "7.1.1",
+        "author": "-",
         "license": "MIT"
     },
     {
@@ -2809,25 +3793,19 @@
     },
     {
         "name": "node-releases",
-        "version": "1.1.71",
+        "version": "2.0.54",
         "author": "Sergey Rubanov",
         "license": "MIT"
     },
     {
         "name": "nopt",
-        "version": "6.0.0",
+        "version": "9.0.0",
         "author": "GitHub Inc.",
         "license": "ISC"
     },
     {
         "name": "normalize-url",
-        "version": "6.0.1",
-        "author": "Sindre Sorhus",
-        "license": "MIT"
-    },
-    {
-        "name": "npm-run-path",
-        "version": "2.0.0",
+        "version": "8.1.1",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
@@ -2838,26 +3816,26 @@
         "license": "BSD-2-Clause"
     },
     {
-        "name": "number-is-nan",
-        "version": "1.0.0",
-        "author": "Sindre Sorhus",
-        "license": "MIT"
-    },
-    {
         "name": "numcodecs",
         "version": "0.3.2",
         "author": "Trevor Manz",
         "license": "MIT"
     },
     {
-        "name": "object-assign",
-        "version": "4.1.0",
-        "author": "Sindre Sorhus",
+        "name": "object-inspect",
+        "version": "1.13.4",
+        "author": "James Halliday",
         "license": "MIT"
     },
     {
         "name": "object-keys",
-        "version": "1.0.8",
+        "version": "1.1.1",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "object.assign",
+        "version": "4.1.7",
         "author": "Jordan Harband",
         "license": "MIT"
     },
@@ -2875,25 +3853,31 @@
     },
     {
         "name": "ol",
-        "version": "10.9.0",
+        "version": "10.10.0",
         "author": "-",
         "license": "BSD-2-Clause"
     },
     {
         "name": "ol-mapbox-style",
-        "version": "13.4.1",
+        "version": "13.4.3",
         "author": "-",
         "license": "BSD-2-Clause"
     },
     {
         "name": "once",
-        "version": "1.3.0",
+        "version": "1.4.0",
+        "author": "Isaac Z. Schlueter",
+        "license": "ISC"
+    },
+    {
+        "name": "once",
+        "version": "1.3.1",
         "author": "Isaac Z. Schlueter",
         "license": "BSD"
     },
     {
         "name": "open",
-        "version": "11.0.0",
+        "version": "8.4.2",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
@@ -2904,14 +3888,14 @@
         "license": "MIT"
     },
     {
-        "name": "os-locale",
-        "version": "3.0.0",
-        "author": "Sindre Sorhus",
+        "name": "own-keys",
+        "version": "1.0.1",
+        "author": "Jordan Harband",
         "license": "MIT"
     },
     {
         "name": "oxc-parser",
-        "version": "0.140.0",
+        "version": "0.147.0",
         "author": "Boshen and oxc contributors",
         "license": "MIT"
     },
@@ -2922,52 +3906,52 @@
         "license": "MIT"
     },
     {
-        "name": "p-cancelable",
-        "version": "2.0.0",
-        "author": "Sindre Sorhus",
-        "license": "MIT"
-    },
-    {
-        "name": "p-finally",
-        "version": "1.0.0",
-        "author": "Sindre Sorhus",
-        "license": "MIT"
-    },
-    {
-        "name": "p-is-promise",
-        "version": "1.1.0",
-        "author": "Sindre Sorhus",
-        "license": "MIT"
-    },
-    {
         "name": "p-limit",
-        "version": "2.0.0",
+        "version": "2.2.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
     {
         "name": "p-locate",
-        "version": "3.0.0",
+        "version": "4.1.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
     {
         "name": "p-map",
-        "version": "7.0.6",
+        "version": "7.0.2",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
     {
         "name": "p-try",
-        "version": "2.0.0",
+        "version": "2.2.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
     {
+        "name": "pac-proxy-agent",
+        "version": "7.2.0",
+        "author": "Nathan Rajlich",
+        "license": "MIT"
+    },
+    {
+        "name": "pac-resolver",
+        "version": "7.0.1",
+        "author": "Nathan Rajlich",
+        "license": "MIT"
+    },
+    {
         "name": "package-json-from-dist",
-        "version": "1.0.0",
+        "version": "1.0.1",
         "author": "Isaac Z. Schlueter",
         "license": "BlueOak-1.0.0"
+    },
+    {
+        "name": "package-manager-detector",
+        "version": "1.8.0",
+        "author": "Anthony Fu",
+        "license": "MIT"
     },
     {
         "name": "pako",
@@ -2983,14 +3967,26 @@
     },
     {
         "name": "parent-module",
-        "version": "1.0.1",
+        "version": "1.0.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
+    },
+    {
+        "name": "parse-cache-control",
+        "version": "1.0.1",
+        "author": "-",
+        "license": "BSD"
     },
     {
         "name": "parse-headers",
         "version": "2.0.2",
         "author": "David Björklund",
+        "license": "MIT"
+    },
+    {
+        "name": "parse-json",
+        "version": "5.2.0",
+        "author": "Sindre Sorhus",
         "license": "MIT"
     },
     {
@@ -3007,20 +4003,26 @@
     },
     {
         "name": "path-exists",
-        "version": "3.0.0",
+        "version": "4.0.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
     {
         "name": "path-is-absolute",
-        "version": "1.0.0",
+        "version": "1.0.1",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
     {
         "name": "path-key",
-        "version": "2.0.0",
+        "version": "3.1.0",
         "author": "Sindre Sorhus",
+        "license": "MIT"
+    },
+    {
+        "name": "path-parse",
+        "version": "1.0.7",
+        "author": "Javier Blanco",
         "license": "MIT"
     },
     {
@@ -3037,14 +4039,20 @@
     },
     {
         "name": "pbf",
-        "version": "4.0.1",
+        "version": "5.1.2",
         "author": "Konstantin Kaefer",
         "license": "BSD-3-Clause"
     },
     {
         "name": "pe-library",
-        "version": "0.4.0",
+        "version": "0.4.1",
         "author": "jet",
+        "license": "MIT"
+    },
+    {
+        "name": "pend",
+        "version": "1.2.0",
+        "author": "Andrew Kelley",
         "license": "MIT"
     },
     {
@@ -3054,8 +4062,26 @@
         "license": "MIT"
     },
     {
+        "name": "pg-int8",
+        "version": "1.0.1",
+        "author": "-",
+        "license": "ISC"
+    },
+    {
+        "name": "pg-protocol",
+        "version": "1.16.0",
+        "author": "-",
+        "license": "MIT"
+    },
+    {
+        "name": "pg-types",
+        "version": "2.2.0",
+        "author": "Brian M. Carlson",
+        "license": "MIT"
+    },
+    {
         "name": "picocolors",
-        "version": "1.1.1",
+        "version": "1.0.0",
         "author": "Alexey Raspopov",
         "license": "ISC"
     },
@@ -3073,19 +4099,19 @@
     },
     {
         "name": "playwright",
-        "version": "1.61.1",
+        "version": "1.62.1",
         "author": "Microsoft Corporation",
         "license": "Apache-2.0"
     },
     {
         "name": "playwright-core",
-        "version": "1.61.1",
+        "version": "1.62.1",
         "author": "Microsoft Corporation",
         "license": "Apache-2.0"
     },
     {
         "name": "plist",
-        "version": "3.0.5",
+        "version": "5.0.0",
         "author": "Nathan Rajlich",
         "license": "MIT"
     },
@@ -3096,15 +4122,45 @@
         "license": "MIT"
     },
     {
+        "name": "possible-typed-array-names",
+        "version": "1.0.0",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
         "name": "postcss",
-        "version": "8.5.26",
+        "version": "8.5.23",
         "author": "Andrey Sitnik",
         "license": "MIT"
     },
     {
         "name": "postcss-selector-parser",
-        "version": "7.1.4",
+        "version": "7.1.5",
         "author": "-",
+        "license": "MIT"
+    },
+    {
+        "name": "postgres-array",
+        "version": "2.0.0",
+        "author": "Ben Drucker",
+        "license": "MIT"
+    },
+    {
+        "name": "postgres-bytea",
+        "version": "1.0.1",
+        "author": "Ben Drucker",
+        "license": "MIT"
+    },
+    {
+        "name": "postgres-date",
+        "version": "1.0.7",
+        "author": "Ben Drucker",
+        "license": "MIT"
+    },
+    {
+        "name": "postgres-interval",
+        "version": "1.2.0",
+        "author": "Ben Drucker",
         "license": "MIT"
     },
     {
@@ -3138,14 +4194,8 @@
         "license": "MIT"
     },
     {
-        "name": "private",
-        "version": "0.1.5",
-        "author": "Ben Newman",
-        "license": "MIT"
-    },
-    {
         "name": "proc-log",
-        "version": "6.0.0",
+        "version": "5.0.0",
         "author": "GitHub Inc.",
         "license": "ISC"
     },
@@ -3186,6 +4236,18 @@
         "license": "MIT"
     },
     {
+        "name": "proxy-agent",
+        "version": "6.5.0",
+        "author": "Nathan Rajlich",
+        "license": "MIT"
+    },
+    {
+        "name": "proxy-from-env",
+        "version": "1.1.0",
+        "author": "Rob Wu",
+        "license": "MIT"
+    },
+    {
         "name": "pump",
         "version": "3.0.0",
         "author": "Mathias Buus Madsen",
@@ -3193,9 +4255,15 @@
     },
     {
         "name": "punycode",
-        "version": "2.3.1",
+        "version": "2.1.0",
         "author": "Mathias Bynens",
         "license": "MIT"
+    },
+    {
+        "name": "puppeteer-core",
+        "version": "24.43.1",
+        "author": "The Chromium Authors",
+        "license": "Apache-2.0"
     },
     {
         "name": "pvtsutils",
@@ -3205,7 +4273,7 @@
     },
     {
         "name": "pvutils",
-        "version": "1.1.3",
+        "version": "1.2.0",
         "author": "Yury Strozhevsky",
         "license": "MIT"
     },
@@ -3241,14 +4309,8 @@
     },
     {
         "name": "readable-stream",
-        "version": "1.0.31",
+        "version": "2.0.2",
         "author": "-",
-        "license": "MIT"
-    },
-    {
-        "name": "recast",
-        "version": "0.10.1",
-        "author": "Ben Newman",
         "license": "MIT"
     },
     {
@@ -3258,9 +4320,21 @@
         "license": "MIT"
     },
     {
+        "name": "reflect.getprototypeof",
+        "version": "1.0.6",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
         "name": "regexp-tree",
-        "version": "0.1.1",
+        "version": "0.1.27",
         "author": "Dmitry Soshnikov",
+        "license": "MIT"
+    },
+    {
+        "name": "regexp.prototype.flags",
+        "version": "1.5.4",
+        "author": "Jordan Harband",
         "license": "MIT"
     },
     {
@@ -3276,8 +4350,14 @@
         "license": "MIT"
     },
     {
+        "name": "require-in-the-middle",
+        "version": "7.5.2",
+        "author": "Thomas Watson Steen",
+        "license": "MIT"
+    },
+    {
         "name": "require-main-filename",
-        "version": "1.0.1",
+        "version": "2.0.0",
         "author": "Ben Coe",
         "license": "ISC"
     },
@@ -3288,8 +4368,14 @@
         "license": "MIT"
     },
     {
+        "name": "resolve",
+        "version": "1.22.12",
+        "author": "James Halliday",
+        "license": "MIT"
+    },
+    {
         "name": "resolve-alpn",
-        "version": "1.0.0",
+        "version": "1.2.1",
         "author": "Szymon Marczak",
         "license": "MIT"
     },
@@ -3313,8 +4399,8 @@
     },
     {
         "name": "responselike",
-        "version": "2.0.0",
-        "author": "lukechilds",
+        "version": "4.0.2",
+        "author": "-",
         "license": "MIT"
     },
     {
@@ -3325,19 +4411,25 @@
     },
     {
         "name": "rimraf",
-        "version": "2.6.2",
+        "version": "2.6.3",
         "author": "Isaac Z. Schlueter",
         "license": "ISC"
     },
     {
         "name": "roarr",
-        "version": "2.15.3",
+        "version": "2.15.4",
         "author": "Gajus Kuizinas",
         "license": "BSD-3-Clause"
     },
     {
+        "name": "robots-parser",
+        "version": "3.0.1",
+        "author": "Sam Clarke",
+        "license": "MIT"
+    },
+    {
         "name": "rolldown",
-        "version": "1.1.5",
+        "version": "1.2.4",
         "author": "-",
         "license": "MIT"
     },
@@ -3348,21 +4440,33 @@
         "license": "MIT"
     },
     {
-        "name": "rw",
-        "version": "1.3.3",
-        "author": "Mike Bostock",
-        "license": "BSD-3-Clause"
+        "name": "safe-array-concat",
+        "version": "1.1.3",
+        "author": "Jordan Harband",
+        "license": "MIT"
     },
     {
         "name": "safe-buffer",
-        "version": "5.1.1",
+        "version": "5.1.2",
         "author": "Feross Aboukhadijeh",
+        "license": "MIT"
+    },
+    {
+        "name": "safe-push-apply",
+        "version": "1.0.0",
+        "author": "Jordan Harband",
         "license": "MIT"
     },
     {
         "name": "safe-regex",
         "version": "2.1.1",
         "author": "James C.",
+        "license": "MIT"
+    },
+    {
+        "name": "safe-regex-test",
+        "version": "1.1.0",
+        "author": "Jordan Harband",
         "license": "MIT"
     },
     {
@@ -3373,15 +4477,15 @@
     },
     {
         "name": "sanitize-filename",
-        "version": "1.6.3",
+        "version": "1.6.4",
         "author": "Parsha Pourkhomami",
         "license": "WTFPL OR ISC"
     },
     {
         "name": "sax",
-        "version": "1.2.4",
+        "version": "1.6.1",
         "author": "Isaac Z. Schlueter",
-        "license": "ISC"
+        "license": "BlueOak-1.0.0"
     },
     {
         "name": "saxes",
@@ -3414,6 +4518,24 @@
         "license": "ISC"
     },
     {
+        "name": "set-function-length",
+        "version": "1.2.2",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "set-function-name",
+        "version": "2.0.2",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "set-proto",
+        "version": "1.0.0",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
         "name": "setimmediate",
         "version": "1.0.5",
         "author": "YuzuJS",
@@ -3432,6 +4554,36 @@
         "license": "MIT"
     },
     {
+        "name": "shimmer",
+        "version": "1.2.1",
+        "author": "Forrest L Norvell",
+        "license": "BSD-2-Clause"
+    },
+    {
+        "name": "side-channel",
+        "version": "1.1.0",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "side-channel-list",
+        "version": "1.0.0",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "side-channel-map",
+        "version": "1.0.1",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "side-channel-weakmap",
+        "version": "1.0.2",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
         "name": "siginfo",
         "version": "2.0.0",
         "author": "Emil Bay",
@@ -3439,7 +4591,7 @@
     },
     {
         "name": "signal-exit",
-        "version": "3.0.0",
+        "version": "3.0.7",
         "author": "Ben Coe",
         "license": "ISC"
     },
@@ -3463,7 +4615,7 @@
     },
     {
         "name": "smol-toml",
-        "version": "1.7.0",
+        "version": "1.8.0",
         "author": "Cynthia Rey",
         "license": "BSD-3-Clause"
     },
@@ -3486,14 +4638,8 @@
         "license": "BSD-3-Clause"
     },
     {
-        "name": "source-map",
-        "version": "0.3.0",
-        "author": "Nick Fitzgerald",
-        "license": "BSD"
-    },
-    {
         "name": "source-map-js",
-        "version": "1.2.1",
+        "version": "1.0.2",
         "author": "Valentin 7rulnik Semirulnik",
         "license": "BSD-3-Clause"
     },
@@ -3504,14 +4650,20 @@
         "license": "MIT"
     },
     {
+        "name": "speedline-core",
+        "version": "1.4.3",
+        "author": "-",
+        "license": "MIT"
+    },
+    {
         "name": "sprintf-js",
-        "version": "1.1.2",
+        "version": "1.1.3",
         "author": "Alexandru Mărășteanu",
         "license": "BSD-3-Clause"
     },
     {
         "name": "ssri",
-        "version": "13.0.1",
+        "version": "12.0.0",
         "author": "GitHub Inc.",
         "license": "ISC"
     },
@@ -3534,14 +4686,38 @@
         "license": "MIT"
     },
     {
+        "name": "stop-iteration-iterator",
+        "version": "1.1.0",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "streamx",
+        "version": "2.25.0",
+        "author": "Mathias Buus",
+        "license": "MIT"
+    },
+    {
         "name": "string-width",
-        "version": "1.0.1",
+        "version": "4.2.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
     {
         "name": "string.prototype.trim",
-        "version": "1.1.2",
+        "version": "1.2.11",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "string.prototype.trimend",
+        "version": "1.0.9",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "string.prototype.trimstart",
+        "version": "1.0.8",
         "author": "Jordan Harband",
         "license": "MIT"
     },
@@ -3558,16 +4734,22 @@
         "license": "MIT"
     },
     {
-        "name": "strip-eof",
-        "version": "1.0.0",
-        "author": "Sindre Sorhus",
-        "license": "MIT"
-    },
-    {
         "name": "strip-json-comments",
         "version": "3.1.1",
         "author": "Sindre Sorhus",
         "license": "MIT"
+    },
+    {
+        "name": "stubborn-fs",
+        "version": "2.0.0",
+        "author": "-",
+        "license": "MIT"
+    },
+    {
+        "name": "stubborn-utils",
+        "version": "1.0.1",
+        "author": "-",
+        "license": "Unknown"
     },
     {
         "name": "sumchecker",
@@ -3577,8 +4759,14 @@
     },
     {
         "name": "supports-color",
-        "version": "5.3.0",
+        "version": "4.0.0",
         "author": "Sindre Sorhus",
+        "license": "MIT"
+    },
+    {
+        "name": "supports-preserve-symlinks-flag",
+        "version": "1.0.0",
+        "author": "Jordan Harband",
         "license": "MIT"
     },
     {
@@ -3591,6 +4779,12 @@
         "name": "synckit",
         "version": "0.11.13",
         "author": "JounQin",
+        "license": "MIT"
+    },
+    {
+        "name": "tagged-tag",
+        "version": "1.0.0",
+        "author": "Sindre Sorhus",
         "license": "MIT"
     },
     {
@@ -3607,13 +4801,31 @@
     },
     {
         "name": "tar",
-        "version": "7.5.21",
+        "version": "7.5.22",
         "author": "Isaac Z. Schlueter",
         "license": "BlueOak-1.0.0"
     },
     {
+        "name": "tar-fs",
+        "version": "3.1.3",
+        "author": "Mathias Buus",
+        "license": "MIT"
+    },
+    {
+        "name": "tar-stream",
+        "version": "3.2.1",
+        "author": "Mathias Buus",
+        "license": "MIT"
+    },
+    {
+        "name": "teex",
+        "version": "1.0.1",
+        "author": "Mathias Buus",
+        "license": "MIT"
+    },
+    {
         "name": "temp",
-        "version": "0.9.0",
+        "version": "0.9.4",
         "author": "Bruce Williams",
         "license": "MIT"
     },
@@ -3625,14 +4837,20 @@
     },
     {
         "name": "terser",
-        "version": "5.49.0",
+        "version": "5.51.2",
         "author": "Mihai Bazon",
         "license": "BSD-2-Clause"
     },
     {
-        "name": "through2",
-        "version": "0.6.2",
-        "author": "Rod Vagg",
+        "name": "text-decoder",
+        "version": "1.1.0",
+        "author": "Holepunch",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "third-party-web",
+        "version": "0.27.0",
+        "author": "Patrick Hulce",
         "license": "MIT"
     },
     {
@@ -3673,13 +4891,19 @@
     },
     {
         "name": "tldts",
-        "version": "7.0.5",
+        "version": "7.4.11",
         "author": "Rémi Berson",
         "license": "MIT"
     },
     {
         "name": "tldts-core",
-        "version": "7.0.5",
+        "version": "7.4.11",
+        "author": "Rémi Berson",
+        "license": "MIT"
+    },
+    {
+        "name": "tldts-icann",
+        "version": "7.4.11",
         "author": "Rémi Berson",
         "license": "MIT"
     },
@@ -3691,8 +4915,20 @@
     },
     {
         "name": "tmp-promise",
-        "version": "3.0.2",
+        "version": "3.0.3",
         "author": "Benjamin Gruenbaum and Collaborators.",
+        "license": "MIT"
+    },
+    {
+        "name": "to-fast-properties",
+        "version": "2.0.0",
+        "author": "Sindre Sorhus",
+        "license": "MIT"
+    },
+    {
+        "name": "to-regex-range",
+        "version": "5.0.1",
+        "author": "Jon Schlinkert",
         "license": "MIT"
     },
     {
@@ -3703,7 +4939,7 @@
     },
     {
         "name": "tough-cookie",
-        "version": "6.0.1",
+        "version": "6.0.2",
         "author": "Jeremy Stashewsky",
         "license": "BSD-3-Clause"
     },
@@ -3715,13 +4951,13 @@
     },
     {
         "name": "truncate-utf8-bytes",
-        "version": "1.0.0",
+        "version": "1.0.2",
         "author": "Carl Xiong",
         "license": "WTFPL"
     },
     {
         "name": "tslib",
-        "version": "2.8.1",
+        "version": "2.0.1",
         "author": "Microsoft Corp.",
         "license": "0BSD"
     },
@@ -3738,16 +4974,58 @@
         "license": "(MIT OR CC0-1.0)"
     },
     {
+        "name": "typed-array-buffer",
+        "version": "1.0.3",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "typed-array-byte-length",
+        "version": "1.0.3",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "typed-array-byte-offset",
+        "version": "1.0.4",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "typed-array-length",
+        "version": "1.0.7",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "typed-query-selector",
+        "version": "2.12.2",
+        "author": "Pig Fang",
+        "license": "MIT"
+    },
+    {
         "name": "typescript",
         "version": "6.0.3",
         "author": "Microsoft Corp.",
         "license": "Apache-2.0"
     },
     {
+        "name": "uint8array-extras",
+        "version": "1.5.0",
+        "author": "Sindre Sorhus",
+        "license": "MIT"
+    },
+    {
         "name": "unbash",
-        "version": "4.0.3",
+        "version": "4.0.10",
         "author": "Lars Kappert",
         "license": "ISC"
+    },
+    {
+        "name": "unbox-primitive",
+        "version": "1.1.0",
+        "author": "Jordan Harband",
+        "license": "MIT"
     },
     {
         "name": "undici",
@@ -3757,9 +5035,21 @@
     },
     {
         "name": "undici-types",
-        "version": "7.16.0",
+        "version": "7.18.2",
         "author": "-",
         "license": "MIT"
+    },
+    {
+        "name": "unique-filename",
+        "version": "4.0.0",
+        "author": "GitHub Inc.",
+        "license": "ISC"
+    },
+    {
+        "name": "unique-slug",
+        "version": "5.0.0",
+        "author": "GitHub Inc.",
+        "license": "ISC"
     },
     {
         "name": "universalify",
@@ -3774,12 +5064,6 @@
         "license": "MIT"
     },
     {
-        "name": "unreachable-branch-transform",
-        "version": "0.3.0",
-        "author": "Andres Suarez",
-        "license": "MIT"
-    },
-    {
         "name": "unzipit",
         "version": "2.0.0",
         "author": "-",
@@ -3787,27 +5071,27 @@
     },
     {
         "name": "unzipper",
-        "version": "0.12.3",
-        "author": "Evan Oxfeld",
+        "version": "0.12.5",
+        "author": "Ziggy Jonsson",
         "license": "MIT"
     },
     {
-        "name": "upath",
-        "version": "2.0.1",
-        "author": "Angelos Pikoulas",
+        "name": "update-browserslist-db",
+        "version": "1.3.0",
+        "author": "Andrey Sitnik",
         "license": "MIT"
     },
     {
         "name": "uri-js",
-        "version": "4.4.1",
+        "version": "4.2.2",
         "author": "Gary Court",
         "license": "BSD-2-Clause"
     },
     {
         "name": "utf8-byte-length",
-        "version": "1.0.1",
+        "version": "1.0.5",
         "author": "Carl Xiong",
-        "license": "WTFPL"
+        "license": "(WTFPL OR MIT)"
     },
     {
         "name": "util-deprecate",
@@ -3841,7 +5125,7 @@
     },
     {
         "name": "vite",
-        "version": "8.1.5",
+        "version": "8.2.2",
         "author": "Evan You",
         "license": "MIT"
     },
@@ -3876,32 +5160,26 @@
         "license": "MIT"
     },
     {
-        "name": "vite-plugin-vuetify",
-        "version": "2.1.3",
-        "author": "Kael Watts-Deuchar",
-        "license": "MIT"
-    },
-    {
         "name": "vitest",
-        "version": "4.1.10",
+        "version": "4.1.11",
         "author": "Anthony Fu",
         "license": "MIT"
     },
     {
         "name": "vscode-uri",
-        "version": "3.0.8",
+        "version": "3.2.0",
         "author": "Microsoft",
         "license": "MIT"
     },
     {
         "name": "vue",
-        "version": "3.5.40",
+        "version": "3.5.42",
         "author": "Evan You",
         "license": "MIT"
     },
     {
         "name": "vue-component-type-helpers",
-        "version": "3.0.0",
+        "version": "3.3.11",
         "author": "-",
         "license": "MIT"
     },
@@ -3913,7 +5191,7 @@
     },
     {
         "name": "vue-i18n",
-        "version": "11.4.7",
+        "version": "11.4.10",
         "author": "kazuya kawaguchi",
         "license": "MIT"
     },
@@ -3925,14 +5203,8 @@
     },
     {
         "name": "vue-tsc",
-        "version": "3.3.7",
+        "version": "3.3.11",
         "author": "-",
-        "license": "MIT"
-    },
-    {
-        "name": "vuetify",
-        "version": "3.12.10",
-        "author": "John Leider",
         "license": "MIT"
     },
     {
@@ -3960,6 +5232,12 @@
         "license": "MIT"
     },
     {
+        "name": "webdriver-bidi-protocol",
+        "version": "0.4.1",
+        "author": "The Chromium Authors",
+        "license": "Apache-2.0"
+    },
+    {
         "name": "webidl-conversions",
         "version": "8.0.1",
         "author": "Domenic Denicola",
@@ -3978,16 +5256,46 @@
         "license": "MIT"
     },
     {
+        "name": "when-exit",
+        "version": "2.1.5",
+        "author": "-",
+        "license": "MIT"
+    },
+    {
         "name": "which",
         "version": "2.0.1",
         "author": "GitHub Inc.",
         "license": "ISC"
     },
     {
+        "name": "which-boxed-primitive",
+        "version": "1.0.2",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "which-builtin-type",
+        "version": "1.1.3",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
+        "name": "which-collection",
+        "version": "1.0.1",
+        "author": "Jordan Harband",
+        "license": "MIT"
+    },
+    {
         "name": "which-module",
-        "version": "2.0.0",
+        "version": "2.0.1",
         "author": "nexdrew",
         "license": "ISC"
+    },
+    {
+        "name": "which-typed-array",
+        "version": "1.1.19",
+        "author": "Jordan Harband",
+        "license": "MIT"
     },
     {
         "name": "why-is-node-running",
@@ -4003,7 +5311,7 @@
     },
     {
         "name": "wrap-ansi",
-        "version": "2.0.0",
+        "version": "6.2.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
@@ -4014,8 +5322,20 @@
         "license": "ISC"
     },
     {
+        "name": "ws",
+        "version": "7.5.13",
+        "author": "Einar Otto Stangvik",
+        "license": "MIT"
+    },
+    {
         "name": "wsl-utils",
         "version": "0.3.1",
+        "author": "Sindre Sorhus",
+        "license": "MIT"
+    },
+    {
+        "name": "xdg-basedir",
+        "version": "5.1.0",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
@@ -4033,7 +5353,7 @@
     },
     {
         "name": "xmlbuilder",
-        "version": "9.0.7",
+        "version": "15.1.1",
         "author": "Ozgur Ozcitak",
         "license": "MIT"
     },
@@ -4045,7 +5365,7 @@
     },
     {
         "name": "xtend",
-        "version": "4.0.0",
+        "version": "4.0.2",
         "author": "Raynos",
         "license": "MIT"
     },
@@ -4057,7 +5377,7 @@
     },
     {
         "name": "yallist",
-        "version": "3.1.1",
+        "version": "3.0.2",
         "author": "Isaac Z. Schlueter",
         "license": "ISC"
     },
@@ -4075,7 +5395,7 @@
     },
     {
         "name": "yargs",
-        "version": "12.0.5",
+        "version": "15.3.1",
         "author": "-",
         "license": "MIT"
     },
@@ -4084,6 +5404,12 @@
         "version": "21.1.1",
         "author": "Ben Coe",
         "license": "ISC"
+    },
+    {
+        "name": "yauzl",
+        "version": "2.10.0",
+        "author": "Josh Wolfe",
+        "license": "MIT"
     },
     {
         "name": "yocto-queue",
@@ -4099,7 +5425,7 @@
     },
     {
         "name": "zod",
-        "version": "4.4.3",
+        "version": "3.24.1",
         "author": "Colin McDonnell",
         "license": "MIT"
     },
