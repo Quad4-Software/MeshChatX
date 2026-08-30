@@ -1,8 +1,7 @@
 diff --git a/render/canvas/ExecutorGroup.js b/render/canvas/ExecutorGroup.js
-index e791ac73b7ca585c3892b5f02841e86aa83f47ce..75eb7d56e49d46bbfdf17ac303cc0557c53bb527 100644
 --- a/render/canvas/ExecutorGroup.js
 +++ b/render/canvas/ExecutorGroup.js
-@@ -48,30 +48,7 @@ let canvasReadsBenchmarked = false;
+@@ -48,30 +48,7 @@
  
  /** Determine if canvas read operations are faster with willReadFrequently set to true or false */
  function benchmarkCanvasReads() {
@@ -35,10 +34,9 @@ index e791ac73b7ca585c3892b5f02841e86aa83f47ce..75eb7d56e49d46bbfdf17ac303cc0557
  }
  
 diff --git a/render/canvas/hitdetect.js b/render/canvas/hitdetect.js
-index 7f161bd7e94abb1293a5e61d5d11c87996ec9949..465c18663ccf257e494de0473ab6848e67d6f8f2 100644
 --- a/render/canvas/hitdetect.js
 +++ b/render/canvas/hitdetect.js
-@@ -46,7 +46,9 @@ export function createHitDetectionImageData(
+@@ -46,7 +46,9 @@
    const userExtent = projection ? toUserExtent(extent, projection) : extent;
    const width = size[0] * HIT_DETECT_RESOLUTION;
    const height = size[1] * HIT_DETECT_RESOLUTION;
