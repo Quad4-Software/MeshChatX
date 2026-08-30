@@ -5,7 +5,6 @@
 Fork of [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) by Liam Cottle. MeshChatX adds LXST voice calls, RRC relay chat, Nomad map overlays, plugins, raw SQLite (no Peewee), and Electron 41 desktop builds. Independent from upstream. Not affiliated with it.
 
 - Website: [meshchatx.com](https://meshchatx.com)
-- Forum: [forum.meshchatx.com](https://forum.meshchatx.com/)
 - Source: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Mirror: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
 - PyPI: [reticulum-meshchatx](https://pypi.org/project/reticulum-meshchatx/)

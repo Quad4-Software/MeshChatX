@@ -5,7 +5,6 @@
 [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat)（Liam Cottle）的独立分支。MeshChatX 增加 LXST 语音通话、RRC 中继聊天、Nomad 地图叠加层、插件、原生 SQLite（无 Peewee）以及 Electron 41 桌面构建。与上游无关，无隶属关系。
 
 - 网站: [meshchatx.com](https://meshchatx.com)
-- 论坛: [forum.meshchatx.com](https://forum.meshchatx.com/)
 - 源码: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - PyPI: [reticulum-meshchatx](https://pypi.org/project/reticulum-meshchatx/)
 - Changelog: [CHANGELOG.md](../CHANGELOG.md)
