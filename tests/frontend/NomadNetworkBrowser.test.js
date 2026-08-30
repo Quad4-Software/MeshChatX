@@ -11,6 +11,7 @@ vi.mock("@/components/nomadnetwork/NomadNetworkPage.vue", () => ({
             embedded: { type: Boolean, default: false },
             tabsEnabled: { type: Boolean, default: false },
             isActive: { type: Boolean, default: true },
+            isPrivate: { type: Boolean, default: false },
         },
         emits: ["navigate", "open-node", "close-tab"],
         methods: {
@@ -625,5 +626,36 @@ describe("NomadNetworkBrowser.vue", () => {
             expect(toggleFavouriteFromContext).toHaveBeenCalledOnce();
             expect(wrapper.vm.contextMenu.show).toBe(false);
         });
+    });
+
+    it("addTab with isPrivate marks the tab and uses private title", () => {
+        const wrapper = mountBrowser();
+        const id = wrapper.vm.addTab("", null, null, true, true);
+        const tab = wrapper.vm.tabs.find((t) => t.id === id);
+        expect(tab.private).toBe(true);
+        expect(wrapper.vm.tabTitle(tab)).toBe("nomadnet.private_tab");
+    });
+
+    it("persistTabs excludes private tabs from localStorage", () => {
+        const wrapper = mountBrowser();
+        const dest = "a".repeat(32);
+        wrapper.vm.tabs[0].destinationHash = dest;
+        wrapper.vm.tabs[0].title = "Normal";
+        wrapper.vm.addTab("b".repeat(32), null, "Private", true, true);
+        wrapper.vm.persistTabs();
+        const saved = JSON.parse(localStorage.getItem("meshchatx.nomadnet.tabs"));
+        expect(saved.tabs).toHaveLength(1);
+        expect(saved.tabs[0].destinationHash).toBe(dest);
+        expect(saved.tabs[0].title).toBe("Normal");
+    });
+
+    it("onOpenNode from a private tab opens another private tab", () => {
+        const wrapper = mountBrowser();
+        wrapper.vm.addTab("", null, null, true, true);
+        const hash = "c".repeat(32);
+        wrapper.vm.onOpenNode({ destinationHash: hash, forceNewTab: true, title: "Priv Node" });
+        const opened = wrapper.vm.tabs.filter((t) => t.destinationHash === hash);
+        expect(opened).toHaveLength(1);
+        expect(opened[0].private).toBe(true);
     });
 });

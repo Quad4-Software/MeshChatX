@@ -57,6 +57,32 @@ describe("electron shell static assets", () => {
         }
     });
 
+    it("crash.html and loading.html apply theme in head before paint", () => {
+        for (const rel of ["electron/crash.html", "electron/loading.html"]) {
+            const html = readRepo(rel);
+            expect(html, rel).toContain('name="color-scheme"');
+            expect(html, rel).toContain("meshchatx_ui_theme");
+            expect(html, rel).toContain('URLSearchParams(window.location.search).get("theme")');
+            expect(html, rel).toContain('classList.add("dark")');
+            expect(html, rel).toContain("background-color: #09090b");
+            const headEnd = html.indexOf("</head>");
+            const bootScript = html.indexOf("meshchatx_ui_theme");
+            expect(bootScript, rel).toBeGreaterThan(-1);
+            expect(bootScript, rel).toBeLessThan(headEnd);
+        }
+    });
+
+    it("main process persists shell UI theme for file:// crash and loading pages", () => {
+        const main = readRepo("electron/main.js");
+        expect(main).toContain("getShellThemeQuery");
+        expect(main).toContain("set-ui-theme");
+        expect(main).toContain("shellBackgroundColor");
+        expect(main).toContain("...getShellThemeQuery()");
+        const preload = readRepo("electron/preload.js");
+        expect(preload).toContain("setUiTheme");
+        expect(preload).toContain("get-ui-theme");
+    });
+
     it("compiled electron-shell.css includes utilities used by loading.html", () => {
         const css = readRepo("electron/assets/css/electron-shell.css");
         expect(css.length).toBeGreaterThan(1024);

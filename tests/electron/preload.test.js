@@ -139,6 +139,23 @@ describe("electron/preload", () => {
         expect(invoke).toHaveBeenCalledWith("set-close-settings", { closeBehavior: "quit" });
     });
 
+    it("exposes UI theme IPC helpers for shell pages", async () => {
+        const exposeInMainWorld = vi.fn();
+        const invoke = vi.fn();
+        loadPreloadWithElectronMock({
+            contextBridge: { exposeInMainWorld },
+            ipcRenderer: { invoke, on: vi.fn() },
+        });
+        const api = exposeInMainWorld.mock.calls[0][1];
+        invoke.mockResolvedValueOnce({ preference: "dark", theme: "dark" });
+        await expect(api.getUiTheme()).resolves.toEqual({ preference: "dark", theme: "dark" });
+        expect(invoke).toHaveBeenCalledWith("get-ui-theme");
+
+        invoke.mockResolvedValueOnce({ preference: "dark", theme: "dark" });
+        await expect(api.setUiTheme("dark")).resolves.toEqual({ preference: "dark", theme: "dark" });
+        expect(invoke).toHaveBeenCalledWith("set-ui-theme", "dark");
+    });
+
     it("exposes screen security IPC helpers and platform", async () => {
         const exposeInMainWorld = vi.fn();
         const invoke = vi.fn();
