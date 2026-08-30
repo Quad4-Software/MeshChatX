@@ -53,6 +53,28 @@ def is_opaque_frame_cors_resource(path: str) -> bool:
     return False
 
 
+def build_nomad_crash_tab_csp() -> str:
+    """CSP for /nomad-crash-tab.html only.
+
+    Keeps Micron JS, Micron WASM (fetch + blob: wasm_exec inject), fonts, and
+    inline styles. Drops map tiles, websocket, and other shell clearnet sources
+    so CSS network paints cannot beacon even if style scrub misses.
+    """
+    return (
+        "default-src 'none'; "
+        "script-src 'self' 'wasm-unsafe-eval' blob:; "
+        "style-src 'self' 'unsafe-inline'; "
+        "font-src 'self' data:; "
+        "img-src 'self' data: blob:; "
+        "connect-src 'self'; "
+        "worker-src 'none'; "
+        "media-src 'none'; "
+        "frame-src 'none'; "
+        "object-src 'none'; "
+        "base-uri 'none'; "
+        "form-action 'none'"
+    )
+
 def create_ip_allowlist_middleware(app):
     @web.middleware
     async def ip_allowlist_middleware(request, handler):
@@ -325,6 +347,16 @@ def create_security_middleware(app):
 
         # CSP base configuration
         privacy_mode = privacy_mode_enabled(app.config)
+        path = request.path
+
+        # Crash-tab document: tight policy. Do not inherit shell tile/WS extras.
+        if path == "/nomad-crash-tab.html":
+            if is_opaque_frame_cors_resource(path):
+                response.headers["Access-Control-Allow-Origin"] = "*"
+                response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
+            response.headers["Content-Security-Policy"] = build_nomad_crash_tab_csp()
+            return response
+
         # IPv6 loopback with a port wildcard is not a valid CSP source
         # (ws://[::1]:* is ignored). Same-origin WS is covered by 'self'.
         connect_sources = [
@@ -365,7 +397,6 @@ def create_security_middleware(app):
             "'self'",
         ]
 
-        path = request.path
         if path.startswith("/rnode-flasher/") or is_opaque_frame_cors_resource(path):
             # Crash-tab iframe is sandboxed without allow-same-origin so its
             # effective Origin is null. Module scripts and Micron WASM fetches

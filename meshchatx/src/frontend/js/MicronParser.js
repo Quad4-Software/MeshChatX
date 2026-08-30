@@ -1,5 +1,9 @@
 import DOMPurify from "dompurify";
 import BaseMicronParser from "micron-parser";
+import {
+    inlineStyleHasNetworkPaint,
+    scrubNetworkCss as scrubNetworkCssBody,
+} from "./nomadCssSecurity.js";
 
 const ALLOWED_URI_REGEXP =
     /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|nomadnetwork|lxmf):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i;
@@ -116,11 +120,7 @@ export default class MicronParser extends BaseMicronParser {
                 // page and line backgrounds (NomadNet full-bleed rows).
                 if (prop === "width" && /100v[wh]/.test(val)) return false;
                 if (prop === "height" && /100v[hw]/.test(val)) return false;
-                // Block clearnet / protocol-relative url() and @import in inline styles.
-                if (/url\s*\(\s*["']?(?:https?:|\/\/)/i.test(decl)) return false;
-                if (/@import/i.test(decl)) return false;
-                if (/expression\s*\(/i.test(decl)) return false;
-                if (/javascript\s*:/i.test(decl)) return false;
+                if (inlineStyleHasNetworkPaint(decl)) return false;
                 return true;
             });
             return safe.join("; ").trim();
@@ -138,20 +138,9 @@ export default class MicronParser extends BaseMicronParser {
 
     /**
      * Scrub network CSS from style tag bodies (WASM micron path).
-     * Kept local to avoid a circular import with NomadPageRenderer.
      */
     static scrubNetworkCss(css) {
-        if (!css) {
-            return "";
-        }
-        let s = String(css);
-        s = s.replace(/@import\s+[^;]+;/gi, "");
-        s = s.replace(/@import\s+url\s*\([^)]+\)\s*;?/gi, "");
-        s = s.replace(/expression\s*\(/gi, "blocked(");
-        s = s.replace(/javascript\s*:/gi, "blocked:");
-        s = s.replace(/-moz-binding/gi, "blocked-binding");
-        s = s.replace(/url\s*\(\s*["']?(?:https?:|\/\/)/gi, "url(blocked:");
-        return s;
+        return scrubNetworkCssBody(css);
     }
 
     static sanitizeRenderedMicronHtml(html) {

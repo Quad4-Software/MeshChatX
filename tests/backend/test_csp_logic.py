@@ -159,6 +159,45 @@ async def test_security_middleware_allows_nomad_crash_tab_frame_and_cors(
                 path.startswith("/assets/") and "nomad-crash-tab" in path
             ):
                 assert response.headers.get("X-Frame-Options") == "SAMEORIGIN"
+            if path == "/nomad-crash-tab.html":
+                csp = response.headers.get("Content-Security-Policy", "")
+                assert "default-src 'none'" in csp
+                assert "connect-src 'self'" in csp
+                assert "openstreetmap.org" not in csp
+                assert "blob:" in csp
+                assert "wasm-unsafe-eval" in csp
+                assert "'unsafe-inline'" in csp
+                assert "form-action 'none'" in csp
+
+
+@pytest.mark.asyncio
+async def test_nomad_crash_tab_csp_is_tighter_than_shell(
+    mock_rns_minimal,
+    tmp_path,
+):
+    storage_dir = str(tmp_path / "storage")
+    config_dir = str(tmp_path / "config")
+
+    with patch("meshchatx.meshchat.generate_ssl_certificate"):
+        app_instance = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=storage_dir,
+            reticulum_config_dir=config_dir,
+        )
+        app_instance.config.csp_extra_connect_src.set("https://api.example.com")
+        app_instance.config.map_tile_server_url.set(
+            "https://tiles.example.com/{z}/{x}/{y}.png",
+        )
+
+        shell_csp = await _csp_for_path(app_instance, "/")
+        crash_csp = await _csp_for_path(app_instance, "/nomad-crash-tab.html")
+        assert "tiles.example.com" in shell_csp
+        assert "api.example.com" in shell_csp
+        assert "tiles.example.com" not in crash_csp
+        assert "api.example.com" not in crash_csp
+        assert "ws://127.0.0.1:*" not in crash_csp
+        assert "default-src 'none'" in crash_csp
+        assert "script-src 'self' 'wasm-unsafe-eval' blob:" in crash_csp
 
 
 @pytest.mark.asyncio

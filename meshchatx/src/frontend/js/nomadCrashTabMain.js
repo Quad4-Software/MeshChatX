@@ -4,29 +4,65 @@
  *
  * Heavy Micron/Markdown/HTML work stays off the MeshChatX shell thread.
  * Parent cancels by reloading this frame.
+ *
+ * Boot is intentionally thin: paint dark chrome and post ready before loading
+ * parsers so the shell can keep a warm frame during page download.
  */
 
-import "../fonts/RobotoMonoNerdFont/font.css";
 import "../css/nomad-page-chrome.css";
-import MicronParser from "./MicronParser.js";
-import { renderNomadPageByPath, resolveNomadPageShellBackground } from "./NomadPageRenderer.js";
 import { NOMAD_CRASH_TAB_CHANNEL } from "./nomadCrashTabShell.js";
-import { preloadNomadMicronWasm } from "./MicronWasmLoader.js";
-import DOMPurify from "dompurify";
-
-// micron-parser (base) expects a global DOMPurify. The shell sets this in main.js
-// the crash-tab is a separate Vite entry and must set it here too.
-globalThis.DOMPurify = DOMPurify;
-if (typeof window !== "undefined") {
-    window.DOMPurify = DOMPurify;
-}
 
 const root = document.getElementById("root");
 let renderSeq = 0;
 let multilineCleanup = null;
+let rendererPromise = null;
+
+function parentTargetOrigin() {
+    try {
+        return new URL(window.location.href).origin;
+    } catch {
+        return "*";
+    }
+}
 
 function post(msg) {
-    parent.postMessage({ channel: NOMAD_CRASH_TAB_CHANNEL, ...msg }, "*");
+    parent.postMessage({ channel: NOMAD_CRASH_TAB_CHANNEL, ...msg }, parentTargetOrigin());
+}
+
+function paintShell(background, color) {
+    const bg = background && background !== "transparent" ? background : "#000000";
+    const fg = color || "#dddddd";
+    root.style.background = bg;
+    root.style.color = fg;
+    document.body.style.background = bg;
+    document.body.style.color = fg;
+    document.documentElement.style.background = bg;
+}
+
+function loadRenderer() {
+    if (rendererPromise) {
+        return rendererPromise;
+    }
+    rendererPromise = Promise.all([
+        import("./MicronParser.js"),
+        import("./NomadPageRenderer.js"),
+        import("./MicronWasmLoader.js"),
+        import("dompurify"),
+        import("../fonts/RobotoMonoNerdFont/font.css"),
+    ]).then(([micronMod, pageMod, wasmMod, purifyMod]) => {
+        const DOMPurify = purifyMod.default || purifyMod;
+        globalThis.DOMPurify = DOMPurify;
+        if (typeof window !== "undefined") {
+            window.DOMPurify = DOMPurify;
+        }
+        return {
+            MicronParser: micronMod.default || micronMod,
+            renderNomadPageByPath: pageMod.renderNomadPageByPath,
+            resolveNomadPageShellBackground: pageMod.resolveNomadPageShellBackground,
+            preloadNomadMicronWasm: wasmMod.preloadNomadMicronWasm,
+        };
+    });
+    return rendererPromise;
 }
 
 function teardownMultiline() {
@@ -40,7 +76,7 @@ function teardownMultiline() {
     multilineCleanup = null;
 }
 
-function setupMultilineForMicron(pagePath, renderOptions) {
+function setupMultilineForMicron(MicronParser, pagePath, renderOptions) {
     teardownMultiline();
     const pl = String(pagePath || "").toLowerCase();
     if (!pl.endsWith(".mu")) {
@@ -251,19 +287,10 @@ function applyChrome(msg) {
         parts.push("bg-black");
     }
     root.className = parts.join(" ");
-    const color = msg.color || "";
-    const background = msg.background || "transparent";
-    root.style.color = color;
-    root.style.background = background;
-    // Fill the iframe viewport so short pages do not leave an unpainted gap.
-    document.body.style.background = background;
-    document.documentElement.style.background = background;
-    if (color) {
-        document.body.style.color = color;
-    }
+    paintShell(msg.background || "#000000", msg.color || "#dddddd");
 }
 
-async function renderPage(msg, seq) {
+async function renderPage(msg, seq, api) {
     teardownMultiline();
     applyChrome(msg);
     const path = msg.path || "";
@@ -279,12 +306,15 @@ async function renderPage(msg, seq) {
     const pagePartials = msg.pagePartials && typeof msg.pagePartials === "object" ? msg.pagePartials : {};
     const renderOptions = msg.renderOptions && typeof msg.renderOptions === "object" ? msg.renderOptions : {};
     if (renderOptions.nomad_micron_wasm_use === true) {
-        await preloadNomadMicronWasm();
+        await api.preloadNomadMicronWasm();
+    }
+    if (seq !== renderSeq) {
+        return;
     }
     const opts = { ...renderOptions };
     let html = "";
     try {
-        html = renderNomadPageByPath(pagePathWithoutData, content, pagePartials, MicronParser, opts);
+        html = api.renderNomadPageByPath(pagePathWithoutData, content, pagePartials, api.MicronParser, opts);
     } catch (err) {
         if (seq === renderSeq) {
             post({
@@ -298,35 +328,32 @@ async function renderPage(msg, seq) {
         return;
     }
     root.innerHTML = html || "";
-    // Prefer #!bg= / #!fg= page shell paint for the full iframe viewport.
     const pageShell = root.querySelector(".mu-page");
     if (pageShell) {
         const pageBg = pageShell.style.backgroundColor;
         const pageFg = pageShell.style.color;
         if (pageBg) {
-            root.style.background = pageBg;
-            document.body.style.background = pageBg;
-            document.documentElement.style.background = pageBg;
+            paintShell(pageBg, pageFg || root.style.color || "#dddddd");
             post({ type: "shell-background", background: pageBg });
-        }
-        if (pageFg) {
+        } else if (pageFg) {
             root.style.color = pageFg;
             document.body.style.color = pageFg;
         }
     } else {
-        const resolved = resolveNomadPageShellBackground(root);
+        const resolved = api.resolveNomadPageShellBackground(root);
         if (resolved) {
-            root.style.background = resolved;
-            document.body.style.background = resolved;
-            document.documentElement.style.background = resolved;
+            paintShell(resolved, root.style.color || "#dddddd");
             post({ type: "shell-background", background: resolved });
         }
     }
-    setupMultilineForMicron(pagePathWithoutData, opts);
+    setupMultilineForMicron(api.MicronParser, pagePathWithoutData, opts);
     post({ type: "render-done", partials: listPartials() });
 }
 
 window.addEventListener("message", (ev) => {
+    if (ev.source !== window.parent) {
+        return;
+    }
     const d = ev.data;
     if (!d || d.channel !== NOMAD_CRASH_TAB_CHANNEL) {
         return;
@@ -339,6 +366,7 @@ window.addEventListener("message", (ev) => {
         renderSeq += 1;
         teardownMultiline();
         root.innerHTML = "";
+        paintShell("#000000", "#dddddd");
         post({ type: "aborted" });
         return;
     }
@@ -347,8 +375,7 @@ window.addEventListener("message", (ev) => {
         teardownMultiline();
         root.innerHTML = "";
         root.className = "nodeContainer";
-        root.style.color = "";
-        root.style.background = "transparent";
+        paintShell("#000000", "#dddddd");
         return;
     }
     if (d.type === "set-partial") {
@@ -370,17 +397,31 @@ window.addEventListener("message", (ev) => {
     if (d.type === "render") {
         renderSeq += 1;
         const seq = renderSeq;
+        // Paint expected chrome before loading parsers so the frame stays dark.
+        applyChrome(d);
         post({ type: "render-started", seq });
-        // Yield so the shell can paint Cancel / stay responsive before heavy work.
-        setTimeout(() => {
-            if (seq !== renderSeq) {
-                return;
-            }
-            void renderPage(d, seq);
-        }, 0);
+        void loadRenderer()
+            .then((api) => {
+                if (seq !== renderSeq) {
+                    return null;
+                }
+                return renderPage(d, seq, api);
+            })
+            .catch((err) => {
+                if (seq !== renderSeq) {
+                    return;
+                }
+                post({
+                    type: "render-error",
+                    message: err && err.message ? String(err.message) : "renderer_load_failed",
+                });
+            });
     }
 });
 
 root.addEventListener("click", onClick, true);
 root.addEventListener("auxclick", onClick, true);
+paintShell("#000000", "#dddddd");
+// Warm the parser chunk while the shell downloads the page.
+void loadRenderer();
 post({ type: "ready" });

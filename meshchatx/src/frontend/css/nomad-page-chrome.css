@@ -21,20 +21,24 @@
     resize: vertical;
 }
 
+/* NomadNet #!bg= / #!fg= page shell: fill the crash-tab viewport. */
+.nodeContainer .mu-page {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-height: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
 .nodeContainer {
     font-family: "Roboto Mono Nerd Font", ui-monospace, monospace;
     line-height: 1.25;
     letter-spacing: normal;
     font-variant-ligatures: none;
     font-feature-settings: normal;
-}
-
-/* NomadNet #!bg= / #!fg= page shell: fill the crash-tab viewport. */
-.nodeContainer .mu-page {
-    display: block;
-    width: 100%;
-    min-height: 100%;
-    box-sizing: border-box;
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 .nodeContainer .nomad-page-rich {
@@ -50,15 +54,10 @@
 }
 
 /*
- * Mobile-only: allow horizontal scrolling for micron pages so ASCII art and
- * fixed-width content do not get word-wrapped and broken up. Markdown and HTML
- * rendered content keep their natural wrap behaviour.
+ * Mobile-only: keep Micron ASCII on one line visually. Clip rather than
+ * introducing a page-level horizontal scrollbar.
  */
 @media (max-width: 640px) {
-    .nodeContainer {
-        overflow-x: auto;
-    }
-
     .nodeContainer .Mu-mws {
         flex-wrap: nowrap;
     }
@@ -67,17 +66,24 @@
     .nodeContainer .mu-parse-fallback,
     .nodeContainer .mu-line-parse-fallback {
         white-space: pre;
+        max-width: 100%;
+        overflow-x: hidden;
     }
 }
 
 pre.text-wrap > div {
     display: flex;
+    max-width: 100%;
+    min-width: 0;
     white-space: pre;
 }
 
 pre.text-wrap > div > :last-child {
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
 }
 
 .nodeContainer pre a:hover {
@@ -216,7 +222,8 @@ pre.text-wrap > div > :last-child {
 .nomad-markdown-host .nomad-markdown pre {
     white-space: pre-wrap;
     word-wrap: break-word;
-    overflow-x: auto;
+    overflow-x: hidden;
+    max-width: 100%;
 }
 
 .nomad-markdown-host .nomad-markdown a.nomadnet-link,

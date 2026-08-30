@@ -1,6 +1,7 @@
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 import MicronParser from "./MicronParser.js";
+import { scrubNetworkCss } from "./nomadCssSecurity.js";
 
 marked.setOptions({
     gfm: true,
@@ -99,14 +100,7 @@ export function stripExternalFromCss(css) {
     if (!css) {
         return "";
     }
-    let s = stripOverlayFromCss(css);
-    s = s.replace(/@import\s+[^;]+;/gi, "");
-    s = s.replace(/@import\s+url\s*\([^)]+\)\s*;?/gi, "");
-    s = s.replace(/expression\s*\(/gi, "blocked(");
-    s = s.replace(/javascript\s*:/gi, "blocked:");
-    s = s.replace(/-moz-binding/gi, "blocked-binding");
-    s = s.replace(/url\s*\(\s*["']?(?:https?:|\/\/)/gi, "url(blocked:");
-    return s;
+    return scrubNetworkCss(stripOverlayFromCss(css));
 }
 
 function isAllowedNomadHref(href) {
