@@ -63,9 +63,11 @@ Field details:
 
 - `destination_hash`: hex string of the peer destination
 - `aspect`: dot-separated RNS app name + sub-aspects, for example `microrn.mgmt`
-- `data_b64` / `payload_b64` / reply `body_b64`: msgpack payloads, base64-encoded
+- `data_b64` / `payload_b64` / reply `body_b64`: msgpack payloads, base64-encoded (size-capped on the server)
 - `path`: request path string on the remote link endpoint
 - `timeout`: seconds for the request wait
+
+Optional binary frames: send `{ "type": "ws.caps", "binary_rns_link": true }` first. After that, binary WebSocket frames carrying msgpack dicts with the same fields as the JSON messages are accepted. JSON remains the default and is always supported.
 
 Example open:
 

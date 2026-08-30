@@ -53,6 +53,8 @@ When `MESHCHAT_ALTCHA_ENABLED=1`, login and setup require a valid [ALTCHA](https
 - Self-signed certificates are generated per identity when custom PEM files are missing.
 - Pass `--ssl-cert` and `--ssl-key` for managed certificates.
 - Use `--no-https` only on trusted loopback setups.
+- WebSocket upgrades require a same-authority `Origin` when the browser sends one. Missing `Origin` is allowed on loopback binds (and when password auth is enabled) so local non-browser tools keep working. On a non-loopback bind without password auth, a missing `Origin` is rejected.
+- `/ws` inbound messages are rate-limited per connection. Nomad file downloads over WS are capped (default 10 MiB) and large transfers use chunked frames. Debug counters are at `GET /api/v1/debug/websocket`.
 
 Electron loads the UI from the local HTTPS origin served by the embedded backend.
 

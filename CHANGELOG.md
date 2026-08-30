@@ -6,25 +6,26 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- **Archives**: Search returns snippets with pagination. Cards preview Micron, Markdown, and HTML. Recrawl from the viewer. Layout stacks under 1024px.
-- **Smart Crawler**: Caps hop count and RTT, allows one request per node per day, depth up to 2, and at most 20 pages per node. Respects `# nocrawl` and Archives opt-out. Schema v56.
-- **Nomad private tabs**: Purple tabs skip archiving, favourites, Identify, tab restore, and the shared Nomad link cache. The destination hash stays out of the URL bar and history. The keybind is Ctrl+Shift+P.
-- **Micron editor publish**: The Publish menu can create a mesh server, start it, upload the current tab, and open that destination in NomadNet. Publishing to a stopped server starts it first.
+- **WebSocket hardening**: Rate limits per socket, message checks, optional topic subscribe (all topics by default), `config.changed` events, sequence ids on broadcasts, idle disconnect, clear error replies, Nomad size caps with chunked large downloads, optional binary `rns.link` after `ws.caps`, and `GET /api/v1/debug/websocket`.
+- **Archives**: Search shows short previews and pages of results. Cards can preview Micron, Markdown, and HTML. You can recrawl a page from the viewer. On smaller screens the layout stacks.
+- **Smart Crawler**: Limits how far and how often it crawls (one request per node per day, shallow depth, page caps). Honors `# nocrawl` and Archives opt-out.
+- **Nomad private tabs**: Purple private tabs (Ctrl+Shift+P). They are not archived, favourited, restored, or shown in the URL or history.
+- **Micron editor publish**: Publish can create a mesh server, start it, upload the current tab, and open it in NomadNet. A stopped server is started first.
 
 ### Fixed
 
-- **NomadNet**: Opening a node before the UI websocket is ready no longer sticks on Loading. Downloads queue until the socket connects, then fail clearly if it never does. Partial page fetches no longer steal the primary download id.
-- **Nomad crash-tab**: Pages render in a sandboxed iframe so a hung Micron or HTML page does not freeze the shell. Shared Nomad chrome matches the main browser. Null-Origin CORS covers the frame, fonts, and Micron WASM. Vite proxies `/ws` for `task dev` without an Origin mismatch. Crash-tab CSP is tighter than the shell (no tiles or WS extras). Network CSS scrub also blocks `image-set` and `cross-fade`. postMessage uses the opaque-null target origin.
-- **Build / CI**: Pin babel traverse, ruff, cx-freeze, plist, nanoid, and numpy so Vite build, package jobs, and Trivy stay green.
-- **Electron**: Crash and loading shells apply the stored theme before paint so dark mode does not flash white.
-- **Map**: Discovered interfaces and telemetry markers update again. OpenLayers Map no longer shadows the JS Map.
-- **UI / Docker / tests**: Native selects use theme colors. MapSearchBar registers MaterialDesignIcon. Docker resolves micron-parser via an explicit alias. ConversationViewer and incremental-load oracle stubs no longer break frontend tests.
+- **Messages**: Coming back to Messages with the same chat still open marks it read and clears badges and desktop notifications.
+- **NomadNet**: Opening a node while the app is still connecting no longer hangs on Loading. Downloads wait for the connection, then fail with a clear error if it never comes up. A hung page no longer freezes the whole Nomad UI.
+- **Desktop app**: Startup and crash screens use your saved theme right away, so dark mode does not flash white.
+- **Map**: Discovered interfaces and telemetry markers update again.
+- **UI**: Dropdowns follow the theme colors.
 
 ### Changed
 
-- **Dependencies**: RNS updated to 1.5.2.
-- **Smart Crawler**: Completed tasks stay completed until refresh. Retry backoff is enforced. Concurrent crawls are capped at 2.
-- **Docs**: Root READMEs are under 100 lines. Long install, build, and contributor content moved to `docs/en/`.
+- **WebSocket**: `/ws` max frame size is 16 MiB. Large Nomad payloads use chunks. Missing Origin is rejected on non-loopback binds when password auth is off.
+- **Reticulum**: Updated to RNS 1.5.2.
+- **Smart Crawler**: Finished crawls stay marked finished until you refresh. Retries wait longer between attempts. At most two crawls run at once.
+- **Docs**: Short READMEs at the repo root. Longer install and contributor guides live under `docs/en/`.
 
 ## [4.8.5] - 2026-08-21 [released]
 
