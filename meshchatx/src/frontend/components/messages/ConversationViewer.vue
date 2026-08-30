@@ -1647,6 +1647,7 @@ import {
 } from "../../js/reticulumPathfinding.js";
 import MicrophoneRecorder from "../../js/MicrophoneRecorder";
 import WebSocketConnection from "../../js/WebSocketConnection";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 import AddAudioButton from "./composer/AddAudioButton.vue";
 import { fromNow } from "../../libs/datetime.js";
 
@@ -2354,8 +2355,13 @@ export default {
             this.now = Date.now();
         }, 30000); // Update every 30 seconds
 
-        // listen for websocket messages
-        WebSocketConnection.on("message", this.onWebsocketMessage);
+        // listen for websocket events
+        onWsEvent("announce", this.onAnnounceEvent);
+        onWsEvent("lxmf.delivery", this.onLxmfDeliveryEvent);
+        onWsEvent("lxmf_message_created", this.onLxmfMessageCreatedEvent);
+        onWsEvent("lxmf_message_state_updated", this.onLxmfMessageStateUpdatedEvent);
+        onWsEvent("lxmf_message_deleted", this.onLxmfMessageDeletedEvent);
+        onWsEvent("lxm.generate_paper_uri.result", this.onGeneratePaperUriResultEvent);
 
         // listen for compose new message event
         GlobalEmitter.on("compose-new-message", this.onComposeNewMessageEvent);
@@ -2413,8 +2419,13 @@ export default {
             clearInterval(this.sendStatusTickInterval);
             this.sendStatusTickInterval = null;
         }
-        // stop listening for websocket messages
-        WebSocketConnection.off("message", this.onWebsocketMessage);
+        // stop listening for websocket events
+        offWsEvent("announce", this.onAnnounceEvent);
+        offWsEvent("lxmf.delivery", this.onLxmfDeliveryEvent);
+        offWsEvent("lxmf_message_created", this.onLxmfMessageCreatedEvent);
+        offWsEvent("lxmf_message_state_updated", this.onLxmfMessageStateUpdatedEvent);
+        offWsEvent("lxmf_message_deleted", this.onLxmfMessageDeletedEvent);
+        offWsEvent("lxm.generate_paper_uri.result", this.onGeneratePaperUriResultEvent);
         GlobalEmitter.off("compose-new-message", this.onComposeNewMessageEvent);
         GlobalEmitter.off("contact-updated", this.onContactUpdatedForBanner);
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
@@ -3463,51 +3474,36 @@ export default {
                 })
             );
         },
-        async onWebsocketMessage(message) {
-            const json = JSON.parse(message.data);
-            switch (json.type) {
-                case "announce": {
-                    // update stamp info and signal metrics if an announce is received from the selected peer
-                    if (json.announce.destination_hash === this.selectedPeer?.destination_hash) {
-                        await this.refreshPeerPath({ warm: true });
-                        await this.getPeerLxmfStampInfo();
-                        await this.getPeerSignalMetrics();
-                    }
-                    break;
-                }
-                case "lxmf.delivery": {
-                    this.onLxmfMessageReceived(json.lxmf_message);
-                    await this.refreshPeerPath({ warm: false });
-                    await this.getPeerSignalMetrics();
-                    break;
-                }
-                case "lxmf_message_created": {
-                    this.onLxmfMessageCreated(json.lxmf_message);
-                    await this.refreshPeerPath({ warm: false });
-                    break;
-                }
-                case "lxmf_message_state_updated": {
-                    this.onLxmfMessageUpdated(json.lxmf_message);
-                    break;
-                }
-                case "lxmf_message_deleted": {
-                    this.onLxmfMessageDeleted(json.hash);
-                    break;
-                }
-                case "lxm.generate_paper_uri.result": {
-                    this.isGeneratingPaperMessage = false;
-                    if (json.status === "success") {
-                        this.generatedPaperMessageUri = json.uri;
-                        this.isPaperMessageResultModalOpen = true;
-                    } else {
-                        ToastUtils.error(json.message);
-                    }
-                    break;
-                }
-                case "lxm.ingest_uri.result": {
-                    // Handled in App.vue or MessagesPage.vue
-                    break;
-                }
+        async onAnnounceEvent(json) {
+            // update stamp info and signal metrics if an announce is received from the selected peer
+            if (json.announce.destination_hash === this.selectedPeer?.destination_hash) {
+                await this.refreshPeerPath({ warm: true });
+                await this.getPeerLxmfStampInfo();
+                await this.getPeerSignalMetrics();
+            }
+        },
+        async onLxmfDeliveryEvent(json) {
+            this.onLxmfMessageReceived(json.lxmf_message);
+            await this.refreshPeerPath({ warm: false });
+            await this.getPeerSignalMetrics();
+        },
+        async onLxmfMessageCreatedEvent(json) {
+            this.onLxmfMessageCreated(json.lxmf_message);
+            await this.refreshPeerPath({ warm: false });
+        },
+        onLxmfMessageStateUpdatedEvent(json) {
+            this.onLxmfMessageUpdated(json.lxmf_message);
+        },
+        onLxmfMessageDeletedEvent(json) {
+            this.onLxmfMessageDeleted(json.hash);
+        },
+        onGeneratePaperUriResultEvent(json) {
+            this.isGeneratingPaperMessage = false;
+            if (json.status === "success") {
+                this.generatedPaperMessageUri = json.uri;
+                this.isPaperMessageResultModalOpen = true;
+            } else {
+                ToastUtils.error(json.message);
             }
         },
         openLXMFAddress() {

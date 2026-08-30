@@ -578,4 +578,30 @@ describe("WebSocketConnection module", () => {
 
         WebSocketConnection.destroy();
     });
+
+    it("queues mutators with request_id until ready then flushes", async () => {
+        const MockWS = makeWsImpl();
+        global.WebSocket = MockWS;
+        global.window = makeWindowMock();
+
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+
+        await WebSocketConnection.connect();
+        await vi.waitUntil(() => WebSocketConnection.ws?.readyState === MockWS.OPEN);
+        // Force not-ready so sendQueued stores instead of sending.
+        WebSocketConnection._sessionReady = false;
+        const sendSpy = vi.spyOn(WebSocketConnection.ws, "send");
+        const queued = WebSocketConnection.sendQueued(
+            JSON.stringify({ type: "nomadnet.download.cancel", download_id: 1, request_id: "r1" })
+        );
+        expect(queued).toBe(true);
+        expect(sendSpy).not.toHaveBeenCalled();
+        WebSocketConnection._sessionReady = true;
+        WebSocketConnection._flushOutboundQueue();
+        expect(sendSpy).toHaveBeenCalled();
+        const raw = sendSpy.mock.calls[0][0];
+        expect(JSON.parse(raw).request_id).toBe("r1");
+
+        WebSocketConnection.destroy();
+    });
 });

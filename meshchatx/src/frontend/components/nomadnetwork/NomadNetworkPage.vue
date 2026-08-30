@@ -687,6 +687,7 @@ import {
 } from "../../js/NomadPageRenderer";
 import DialogUtils from "../../js/DialogUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 import NomadNetworkSidebar from "./NomadNetworkSidebar.vue";
 import NomadBrowserContextMenu from "./NomadBrowserContextMenu.vue";
 import NomadCrashTab from "./NomadCrashTab.vue";
@@ -806,6 +807,8 @@ export default {
 
             nomadnetPageDownloadCallbacks: {},
             nomadnetFileDownloadCallbacks: {},
+            nomadPageDownloadChunkBuffers: {},
+            nomadFileDownloadChunkBuffers: {},
 
             pageArchives: [],
             isArchiveDropdownOpen: false,
@@ -1279,12 +1282,22 @@ export default {
         this.clearPartials();
         this.teardownMultilineExpansion();
 
-        WebSocketConnection.off("message", this.onWebsocketMessage);
+        offWsEvent("announce", this.onNomadAnnounceEvent);
+        offWsEvent("nomadnet.page.download", this.onNomadPageDownloadEvent);
+        offWsEvent("nomadnet.file.download", this.onNomadFileDownloadEvent);
+        offWsEvent("nomadnet.download.cancelled", this.onNomadDownloadCancelledEvent);
+        offWsEvent("nomadnet.page.archives", this.onNomadPageArchivesEvent);
+        offWsEvent("nomadnet.page.archive.added", this.onNomadPageArchiveAddedEvent);
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
     },
     mounted() {
         // listen for websocket messages
-        WebSocketConnection.on("message", this.onWebsocketMessage);
+        onWsEvent("announce", this.onNomadAnnounceEvent);
+        onWsEvent("nomadnet.page.download", this.onNomadPageDownloadEvent);
+        onWsEvent("nomadnet.file.download", this.onNomadFileDownloadEvent);
+        onWsEvent("nomadnet.download.cancelled", this.onNomadDownloadCancelledEvent);
+        onWsEvent("nomadnet.page.archives", this.onNomadPageArchivesEvent);
+        onWsEvent("nomadnet.page.archive.added", this.onNomadPageArchiveAddedEvent);
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
 
         this.$watch(
@@ -1612,8 +1625,32 @@ export default {
                 },
             });
         },
+        onNomadAnnounceEvent(json) {
+            if (json?.announce?.aspect === "nomadnetwork.node") {
+                this.updateNodeFromAnnounce(json.announce);
+            }
+        },
         async onWebsocketMessage(message) {
-            const json = JSON.parse(message.data);
+            const raw = typeof message === "string" ? message : message?.data;
+            const json = typeof raw === "string" ? JSON.parse(raw) : message;
+            await this._handleNomadWsPayload(json);
+        },
+        async onNomadPageDownloadEvent(json) {
+            await this._handleNomadWsPayload({ ...json, type: "nomadnet.page.download" });
+        },
+        async onNomadFileDownloadEvent(json) {
+            await this._handleNomadWsPayload({ ...json, type: "nomadnet.file.download" });
+        },
+        onNomadDownloadCancelledEvent(json) {
+            return this._handleNomadWsPayload({ ...json, type: "nomadnet.download.cancelled" });
+        },
+        onNomadPageArchivesEvent(json) {
+            return this._handleNomadWsPayload({ ...json, type: "nomadnet.page.archives" });
+        },
+        onNomadPageArchiveAddedEvent(json) {
+            return this._handleNomadWsPayload({ ...json, type: "nomadnet.page.archive.added" });
+        },
+        async _handleNomadWsPayload(json) {
             switch (json.type) {
                 case "announce": {
                     const aspect = json.announce.aspect;
@@ -1623,11 +1660,26 @@ export default {
                     break;
                 }
                 case "nomadnet.page.download": {
-                    const nomadnetPageDownload = json.nomadnet_page_download;
+                    let nomadnetPageDownload = json.nomadnet_page_download;
                     const downloadId = json.download_id;
 
                     if (!this.ownsNomadPageDownloadEvent(nomadnetPageDownload, downloadId)) {
                         break;
+                    }
+
+                    if (nomadnetPageDownload.status === "chunk") {
+                        this.appendDownloadChunk(this.nomadPageDownloadChunkBuffers, downloadId, nomadnetPageDownload);
+                        break;
+                    }
+
+                    if (nomadnetPageDownload.status === "success" && nomadnetPageDownload.chunked) {
+                        nomadnetPageDownload = {
+                            ...nomadnetPageDownload,
+                            page_content: this.consumeDownloadChunksAsText(
+                                this.nomadPageDownloadChunkBuffers,
+                                downloadId
+                            ),
+                        };
                     }
 
                     const responsePagePath = `${nomadnetPageDownload.destination_hash}:${nomadnetPageDownload.page_path}`;
@@ -1769,11 +1821,26 @@ export default {
                     break;
                 }
                 case "nomadnet.file.download": {
-                    const nomadnetFileDownload = json.nomadnet_file_download;
+                    let nomadnetFileDownload = json.nomadnet_file_download;
                     const downloadId = json.download_id;
 
                     if (!this.ownsNomadFileDownloadEvent(nomadnetFileDownload, downloadId)) {
                         break;
+                    }
+
+                    if (nomadnetFileDownload.status === "chunk") {
+                        this.appendDownloadChunk(this.nomadFileDownloadChunkBuffers, downloadId, nomadnetFileDownload);
+                        break;
+                    }
+
+                    if (nomadnetFileDownload.status === "success" && nomadnetFileDownload.chunked) {
+                        nomadnetFileDownload = {
+                            ...nomadnetFileDownload,
+                            file_bytes: this.consumeDownloadChunksAsBase64(
+                                this.nomadFileDownloadChunkBuffers,
+                                downloadId
+                            ),
+                        };
                     }
 
                     if (nomadnetFileDownload.status === "started") {
@@ -3136,6 +3203,41 @@ export default {
         },
         getNomadnetFileDownloadCallbackKey: function (destinationHash, filePath) {
             return `${destinationHash}:${filePath}`;
+        },
+        decodeBase64ToBytes(base64) {
+            const binary = atob(base64 || "");
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes;
+        },
+        appendDownloadChunk(chunkBuffers, downloadId, chunkPayload) {
+            if (downloadId == null) {
+                return;
+            }
+            const entry = chunkBuffers[downloadId] || { chunks: [] };
+            entry.chunks.push(this.decodeBase64ToBytes(chunkPayload.chunk_b64));
+            chunkBuffers[downloadId] = entry;
+        },
+        consumeDownloadChunkBytes(chunkBuffers, downloadId) {
+            const entry = chunkBuffers[downloadId];
+            delete chunkBuffers[downloadId];
+            const chunks = entry?.chunks || [];
+            const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+            const merged = new Uint8Array(totalLength);
+            let offset = 0;
+            for (const chunk of chunks) {
+                merged.set(chunk, offset);
+                offset += chunk.length;
+            }
+            return merged;
+        },
+        consumeDownloadChunksAsText(chunkBuffers, downloadId) {
+            return new TextDecoder("utf-8").decode(this.consumeDownloadChunkBytes(chunkBuffers, downloadId));
+        },
+        consumeDownloadChunksAsBase64(chunkBuffers, downloadId) {
+            return Utils.arrayBufferToBase64(this.consumeDownloadChunkBytes(chunkBuffers, downloadId));
         },
         toggleArchiveDropdown() {
             this.isArchiveDropdownOpen = !this.isArchiveDropdownOpen;

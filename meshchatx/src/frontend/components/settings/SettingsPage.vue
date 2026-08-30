@@ -2944,6 +2944,7 @@ import Utils from "../../js/Utils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 import { readTextFromClipboard } from "../../js/clipboardUtils.js";
 import { importMessagesFromFile } from "../../js/messageImport";
 import DownloadUtils from "../../js/DownloadUtils";
@@ -3476,14 +3477,18 @@ export default {
         },
     },
     beforeUnmount() {
-        // stop listening for websocket messages
-        WebSocketConnection.off("message", this.onWebsocketMessage);
+        // stop listening for websocket events
+        offWsEvent("config", this.onConfigEvent);
+        offWsEvent("keyboard_shortcuts", this.onKeyboardShortcutsEvent);
+        offWsEvent("reticulum_reload_status", this.onReloadStatusEvent);
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
         window.removeEventListener("keydown", this.onSettingsSearchHotkey);
     },
     mounted() {
-        // listen for websocket messages
-        WebSocketConnection.on("message", this.onWebsocketMessage);
+        // listen for websocket events
+        onWsEvent("config", this.onConfigEvent);
+        onWsEvent("keyboard_shortcuts", this.onKeyboardShortcutsEvent);
+        onWsEvent("reticulum_reload_status", this.onReloadStatusEvent);
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
         window.addEventListener("keydown", this.onSettingsSearchHotkey);
 
@@ -4060,37 +4065,29 @@ export default {
         selectSettingsTab(tabId) {
             this.activeSettingsTab = normalizeSettingsTabId(tabId);
         },
-        async onWebsocketMessage(message) {
-            const json = JSON.parse(message.data);
-            switch (json.type) {
-                case "config": {
-                    if (json.config) {
-                        this.config = { ...this.config, ...json.config };
-                        this.sanitizeColorConfigFields();
-                        this.syncLxmfTransferLimitInputs();
-                    }
-                    break;
-                }
-                case "keyboard_shortcuts": {
-                    this.shortcuts = json.shortcuts;
-                    break;
-                }
-                case "reticulum_reload_status": {
-                    const message = json.message || this.$t("app.reloading_rns");
-                    this.reloadRnsStatusMessage = message;
-                    this.reloadingRns = json.in_progress !== false;
-                    const toastKey = "settings-rns-reload";
-                    if (json.level === "error") {
-                        ToastUtils.dismiss(toastKey);
-                        ToastUtils.error(message, 7000);
-                    } else if (json.level === "success") {
-                        ToastUtils.dismiss(toastKey);
-                        ToastUtils.success(message, 5000);
-                    } else {
-                        ToastUtils.info(message, 2500, toastKey);
-                    }
-                    break;
-                }
+        onConfigEvent(json) {
+            if (json.config) {
+                this.config = { ...this.config, ...json.config };
+                this.sanitizeColorConfigFields();
+                this.syncLxmfTransferLimitInputs();
+            }
+        },
+        onKeyboardShortcutsEvent(json) {
+            this.shortcuts = json.shortcuts;
+        },
+        onReloadStatusEvent(json) {
+            const message = json.message || this.$t("app.reloading_rns");
+            this.reloadRnsStatusMessage = message;
+            this.reloadingRns = json.in_progress !== false;
+            const toastKey = "settings-rns-reload";
+            if (json.level === "error") {
+                ToastUtils.dismiss(toastKey);
+                ToastUtils.error(message, 7000);
+            } else if (json.level === "success") {
+                ToastUtils.dismiss(toastKey);
+                ToastUtils.success(message, 5000);
+            } else {
+                ToastUtils.info(message, 2500, toastKey);
             }
         },
         async getConfig() {

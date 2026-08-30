@@ -1337,7 +1337,7 @@
 
 <script>
 import { nextTick } from "vue";
-import WebSocketConnection from "../../js/WebSocketConnection";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import DialogUtils from "../../js/DialogUtils";
@@ -1702,7 +1702,10 @@ export default {
         },
     },
     mounted() {
-        WebSocketConnection.on("message", this.onWebsocketMessage);
+        onWsEvent("rrc.change", this.onRrcChange);
+        onWsEvent("rrc.message", this.onRrcMessage);
+        onWsEvent("rrc.server.change", this.onRrcServerChange);
+        onWsEvent("announce", this.onAnnounceEvent);
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
         this.smMq = window.matchMedia("(min-width: 640px)");
         this.smUp = this.smMq.matches;
@@ -1724,7 +1727,10 @@ export default {
         }
     },
     beforeUnmount() {
-        WebSocketConnection.off("message", this.onWebsocketMessage);
+        offWsEvent("rrc.change", this.onRrcChange);
+        offWsEvent("rrc.message", this.onRrcMessage);
+        offWsEvent("rrc.server.change", this.onRrcServerChange);
+        offWsEvent("announce", this.onAnnounceEvent);
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
         if (this.discoverySearchTimer) {
             clearTimeout(this.discoverySearchTimer);
@@ -3324,46 +3330,40 @@ export default {
             }
             await this.removeHub(clientHub);
         },
-        onWebsocketMessage(message) {
-            let json;
-            try {
-                json = JSON.parse(message.data);
-            } catch {
-                return;
+        onRrcChange() {
+            this.fetchHubs();
+        },
+        onRrcMessage(json) {
+            if (json.message && json.message.kind === "error" && this.isBadKeyErrorText(json.message.text)) {
+                this.handleBadKeyError(json.hub_hash, json.room || json.message.room, json.message.text);
             }
-            if (!json || typeof json !== "object" || Array.isArray(json)) {
-                return;
-            }
-            if (json.type === "rrc.change") {
+            if (json.hub_hash === this.selectedHubHash && json.room === this.selectedRoom && json.message) {
+                if (!relayMessageAlreadyPresent(this.messages, json.message)) {
+                    this.messages.push(json.message);
+                    this._invalidateMessageTimelineCache();
+                    this.scrollToBottom();
+                }
+                if (json.message.kind === "system" || json.message.kind === "notice") {
+                    this.refreshMembers();
+                }
+                // Chat is already open: dismiss unread/mention badge without waiting
+                // for a later hub list refresh race.
+                this.markRoomRead(json.hub_hash, json.room);
+            } else if (json.message && json.message.kind === "msg") {
+                const onRelayPage = this.$route?.name === "relay-chat" || this.$route?.name === "relay-chat-popout";
+                if (!onRelayPage || json.hub_hash !== this.selectedHubHash || json.room !== this.selectedRoom) {
+                    ToastUtils.info(this.$t("relay_chat.new_message_toast", { room: json.room || "" }));
+                }
                 this.fetchHubs();
-            } else if (json.type === "rrc.message") {
-                if (json.message && json.message.kind === "error" && this.isBadKeyErrorText(json.message.text)) {
-                    this.handleBadKeyError(json.hub_hash, json.room || json.message.room, json.message.text);
-                }
-                if (json.hub_hash === this.selectedHubHash && json.room === this.selectedRoom && json.message) {
-                    if (!relayMessageAlreadyPresent(this.messages, json.message)) {
-                        this.messages.push(json.message);
-                        this._invalidateMessageTimelineCache();
-                        this.scrollToBottom();
-                    }
-                    if (json.message.kind === "system" || json.message.kind === "notice") {
-                        this.refreshMembers();
-                    }
-                    // Chat is already open: dismiss unread/mention badge without waiting
-                    // for a later hub list refresh race.
-                    this.markRoomRead(json.hub_hash, json.room);
-                } else if (json.message && json.message.kind === "msg") {
-                    const onRelayPage = this.$route?.name === "relay-chat" || this.$route?.name === "relay-chat-popout";
-                    if (!onRelayPage || json.hub_hash !== this.selectedHubHash || json.room !== this.selectedRoom) {
-                        ToastUtils.info(this.$t("relay_chat.new_message_toast", { room: json.room || "" }));
-                    }
-                    this.fetchHubs();
-                } else {
-                    this.fetchHubs();
-                }
-            } else if (json.type === "rrc.server.change") {
-                this.fetchServers();
-            } else if (json.type === "announce" && json.announce && json.announce.aspect === "rrc.hub") {
+            } else {
+                this.fetchHubs();
+            }
+        },
+        onRrcServerChange() {
+            this.fetchServers();
+        },
+        onAnnounceEvent(json) {
+            if (json.announce && json.announce.aspect === "rrc.hub") {
                 this.upsertDiscovered(json.announce);
             }
         },
