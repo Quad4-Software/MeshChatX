@@ -6,30 +6,25 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- **Archives**: Search with snippets and pagination. Card Micron/Markdown/HTML previews. Recrawl from the viewer. Stacked layout under 1024px.
-- **Smart Crawler**: Hop and RTT caps, one request per node per day, depth up to 2, max 20 pages per node, `# nocrawl` and Archives opt-out. Schema v56.
-- **Nomad private tabs**: Purple incognito tabs that skip archiving, favourites, Identify, tab restore, and the shared Nomad link cache. Destination hash stays out of the URL bar and history. Keybind is Ctrl+Shift+P.
-- **Micron editor publish**: Create a mesh server from the Publish menu, start it, upload the current tab, then open that destination in NomadNet. Publishing to a stopped server starts it first.
+- **Archives**: Search returns snippets with pagination. Cards preview Micron, Markdown, and HTML. Recrawl from the viewer. Layout stacks under 1024px.
+- **Smart Crawler**: Caps hop count and RTT, allows one request per node per day, depth up to 2, and at most 20 pages per node. Respects `# nocrawl` and Archives opt-out. Schema v56.
+- **Nomad private tabs**: Purple tabs skip archiving, favourites, Identify, tab restore, and the shared Nomad link cache. The destination hash stays out of the URL bar and history. The keybind is Ctrl+Shift+P.
+- **Micron editor publish**: The Publish menu can create a mesh server, start it, upload the current tab, and open that destination in NomadNet. Publishing to a stopped server starts it first.
 
 ### Fixed
 
-- **NomadNet**: Opening a node before the UI websocket is OPEN no longer leaves the browser stuck on Loading page. Downloads queue until the socket connects, then fail clearly if it never does. Partial page fetches no longer steal the primary download id. Invalid download requests return a failure event instead of going silent.
-- **NomadNet crash-tab**: Pages render in a sandboxed iframe so a hung Micron/HTML page does not freeze the shell. Cancel aborts the download and reloads the frame. Shared Nomad chrome (Roboto Mono Nerd Font, `#!bg=` fill, full pane height). Micron links stay un-underlined unless markup uses `_`. Icon loading/cancel/error/empty states. Null-Origin CORS for the frame, fonts, and Micron WASM. Vite `task dev` proxies `/ws` without a 403 Origin mismatch.
-- **Build**: Pin `@babel/traverse` to `>=7.29.6` so Vite build and `task dev` do not crash on `environmentVisitor is not a function`.
-- **CI**: Pin `ruff` below 0.16 and `cx-freeze` below 8.7, pin `plist` 3.1.1 and `nanoid` >=3.3.18, and keep `numpy` on 2.4.x so Linux/macOS package jobs and Trivy stay green after the dependency bump.
-- **Electron**: Crash and loading shells apply stored theme in head before paint so dark mode does not flash white.
-- **CI**: Register HTTP JSON contracts for archive detail and crawl opt-outs GETs. Narrow `link_rtt_ms` float conversion for basedpyright.
-- **UI**: Native select options and dropdown panels use theme text and background colors.
-- **Map**: Discovered interfaces and telemetry markers update again. OpenLayers Map no longer shadows the JS Map (#73).
-- **Map search**: MapSearchBar registers MaterialDesignIcon.
-- **Frontend tests**: ConversationViewer DialogUtils mocks include alert. Incremental-load oracle stubs no longer serialize object props onto DOM nodes.
-- **Docker**: Vite resolves micron-parser again via an explicit alias. ensure-micron-parser-package fails when the package is missing.
+- **NomadNet**: Opening a node before the UI websocket is ready no longer sticks on Loading. Downloads queue until the socket connects, then fail clearly if it never does. Partial page fetches no longer steal the primary download id.
+- **Nomad crash-tab**: Pages render in a sandboxed iframe so a hung Micron or HTML page does not freeze the shell. Shared Nomad chrome matches the main browser. Null-Origin CORS covers the frame, fonts, and Micron WASM. Vite proxies `/ws` for `task dev` without an Origin mismatch. Crash-tab CSP is tighter than the shell (no tiles or WS extras). Network CSS scrub also blocks `image-set` and `cross-fade`. postMessage uses the opaque-null target origin.
+- **Build / CI**: Pin babel traverse, ruff, cx-freeze, plist, nanoid, and numpy so Vite build, package jobs, and Trivy stay green.
+- **Electron**: Crash and loading shells apply the stored theme before paint so dark mode does not flash white.
+- **Map**: Discovered interfaces and telemetry markers update again. OpenLayers Map no longer shadows the JS Map.
+- **UI / Docker / tests**: Native selects use theme colors. MapSearchBar registers MaterialDesignIcon. Docker resolves micron-parser via an explicit alias. ConversationViewer and incremental-load oracle stubs no longer break frontend tests.
 
 ### Changed
 
-- **Dependencies**: RNS 1.5.2.
-- **Smart Crawler**: Completed tasks stay completed until refresh. Retry backoff is enforced. Concurrent crawls capped at 2.
-- **Docs**: Root README and translated READMEs trimmed to under 100 lines. Long install, build, recovery, and contributor content moved under `docs/en/` (`building.md`, `development.md`, plus expansions in installation, audio-calls, and identity-and-security). README Install covers Docker, PyPI (`pip`/`pipx`/`uv`), HTTPS and rngit clone, and `make`/`task` source builds.
+- **Dependencies**: RNS updated to 1.5.2.
+- **Smart Crawler**: Completed tasks stay completed until refresh. Retry backoff is enforced. Concurrent crawls are capped at 2.
+- **Docs**: Root READMEs are under 100 lines. Long install, build, and contributor content moved to `docs/en/`.
 
 ## [4.8.5] - 2026-08-21 [released]
 
