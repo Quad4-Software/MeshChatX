@@ -6,6 +6,9 @@ cd "$ROOT"
 
 export E2E_BACKEND_PORT="${E2E_BACKEND_PORT:-18079}"
 export MESHCHAT_NO_HTTPS=1
+# Vite proxies /ws with changeOrigin. Trust loopback so X-Forwarded-Host
+# (browser Vite port) passes the WebSocket Origin check.
+export MESHCHAT_TRUSTED_PROXIES="${MESHCHAT_TRUSTED_PROXIES:-127.0.0.1/32}"
 # E2E exercises /api/v1/self-test (subprocess + bots). Keep Landlock off so
 # uv-managed interpreters and temp paths are not a sandbox variable.
 export MESHCHAT_LANDLOCK=0

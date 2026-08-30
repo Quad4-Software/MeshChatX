@@ -112,8 +112,10 @@ export default class MicronParser extends BaseMicronParser {
                     return false;
                 }
                 if (dangerousProps.includes(prop)) return false;
-                if (prop === "width" && (/100v[wh]/.test(val) || /^100%$/.test(val))) return false;
-                if (prop === "height" && (/100v[hw]/.test(val) || /^100%$/.test(val))) return false;
+                // Block viewport-covering sizes. Keep width/height 100% for Micron
+                // page and line backgrounds (NomadNet full-bleed rows).
+                if (prop === "width" && /100v[wh]/.test(val)) return false;
+                if (prop === "height" && /100v[hw]/.test(val)) return false;
                 // Block clearnet / protocol-relative url() and @import in inline styles.
                 if (/url\s*\(\s*["']?(?:https?:|\/\/)/i.test(decl)) return false;
                 if (/@import/i.test(decl)) return false;
@@ -255,6 +257,7 @@ export default class MicronParser extends BaseMicronParser {
         styleEl.textContent = `
             .Mu-nl {
                 cursor: pointer;
+                text-decoration: none;
             }
             .Mu-mnt {
                 display: inline-block;
@@ -371,13 +374,43 @@ export default class MicronParser extends BaseMicronParser {
                 html += this._convertMicronToHtmlJs(seg.line + "\n", partialContents);
             }
         }
-        return html;
+        return this._wrapMicronPageShell(markup, html);
+    }
+
+    /**
+     * Match upstream micron-parser: when #!fg= / #!bg= headers are set, wrap
+     * the page so the background fills the host (NomadNet full-page paint).
+     * Also wraps with default theme fg (e.g. #ddd) like upstream.
+     */
+    _wrapMicronPageShell(markup, innerHtml) {
+        let headerColors = { fg: null, bg: null };
+        try {
+            headerColors = this.parseHeaderTags(markup);
+        } catch (e) {
+            console.warn("MicronParser: parseHeaderTags failed", e);
+        }
+        const plainStyle = this.SELECTED_STYLES?.plain || { fg: this.DEFAULT_FG_DARK, bg: this.DEFAULT_BG };
+        const defaultFg = headerColors.fg || plainStyle.fg;
+        const defaultBg = headerColors.bg || plainStyle.bg;
+        const hasFg = defaultFg && defaultFg !== "default";
+        const hasBg = defaultBg && defaultBg !== "default";
+        if (!hasFg && !hasBg) {
+            return innerHtml;
+        }
+        const wrap = document.createElement("div");
+        wrap.className = "mu-page";
+        if (hasFg) {
+            wrap.style.color = this.colorToCss(defaultFg);
+        }
+        if (hasBg) {
+            wrap.style.backgroundColor = this.colorToCss(defaultBg);
+        }
+        wrap.innerHTML = innerHtml || "";
+        return MicronParser.sanitizeRenderedMicronHtml(wrap.outerHTML);
     }
 
     _convertMicronToHtmlJs(markup, partialContents = {}) {
         const build = () => {
-            let html = "";
-
             let headerColors = { fg: null, bg: null };
             try {
                 headerColors = this.parseHeaderTags(markup);
@@ -409,6 +442,18 @@ export default class MicronParser extends BaseMicronParser {
             };
 
             const lines = markup.split("\n");
+            const tempContainer = document.createElement("div");
+            const hasFg = defaultFg && defaultFg !== "default";
+            const hasBg = defaultBg && defaultBg !== "default";
+            if (hasFg || hasBg) {
+                tempContainer.className = "mu-page";
+            }
+            if (hasFg) {
+                tempContainer.style.color = this.colorToCss(defaultFg);
+            }
+            if (hasBg) {
+                tempContainer.style.backgroundColor = this.colorToCss(defaultBg);
+            }
 
             for (let line of lines) {
                 let lineOutput;
@@ -416,7 +461,12 @@ export default class MicronParser extends BaseMicronParser {
                     lineOutput = this.parseLine(line, state);
                 } catch (e) {
                     console.warn("MicronParser: parseLine failed", e);
-                    html += `<span class="mu-line-parse-fallback" style="white-space:pre-wrap">${escapeHtmlForFallback(line)}</span><br>`;
+                    const fallback = document.createElement("span");
+                    fallback.className = "mu-line-parse-fallback";
+                    fallback.style.whiteSpace = "pre-wrap";
+                    fallback.innerHTML = escapeHtmlForFallback(line);
+                    tempContainer.appendChild(fallback);
+                    tempContainer.appendChild(document.createElement("br"));
                     continue;
                 }
                 if (lineOutput && lineOutput.length > 0) {
@@ -425,26 +475,45 @@ export default class MicronParser extends BaseMicronParser {
                             if (el.classList && el.classList.contains("mu-partial")) {
                                 const id = el.getAttribute("data-partial-id");
                                 if (id && partialContents[id]) {
-                                    html += partialContents[id];
+                                    const holder = document.createElement("div");
+                                    holder.innerHTML = partialContents[id];
+                                    while (holder.firstChild) {
+                                        tempContainer.appendChild(holder.firstChild);
+                                    }
                                 } else {
-                                    html += el.outerHTML;
+                                    tempContainer.appendChild(el);
                                 }
                             } else {
-                                html += el.outerHTML;
+                                tempContainer.appendChild(el);
                             }
                         } catch (e) {
                             console.warn("MicronParser: line output serialization failed", e);
-                            html += `<span class="mu-line-parse-fallback" style="white-space:pre-wrap">${escapeHtmlForFallback(line)}</span><br>`;
+                            const fallback = document.createElement("span");
+                            fallback.className = "mu-line-parse-fallback";
+                            fallback.style.whiteSpace = "pre-wrap";
+                            fallback.innerHTML = escapeHtmlForFallback(line);
+                            tempContainer.appendChild(fallback);
+                            tempContainer.appendChild(document.createElement("br"));
                             break;
                         }
                     }
                 } else if (lineOutput && lineOutput.length === 0) {
                     // skip
                 } else {
-                    html += "<br>";
+                    tempContainer.appendChild(document.createElement("br"));
                 }
             }
 
+            try {
+                if (typeof MicronParser._resolveEmptyAnchors === "function") {
+                    MicronParser._resolveEmptyAnchors(tempContainer);
+                }
+            } catch (e) {
+                console.warn("MicronParser: resolveEmptyAnchors failed", e);
+            }
+
+            const hasContainerStyle = hasFg || hasBg;
+            const html = hasContainerStyle ? tempContainer.outerHTML : tempContainer.innerHTML;
             return MicronParser.sanitizeRenderedMicronHtml(html);
         };
 

@@ -78,6 +78,26 @@ describe("vite-dx Vue DevTools gate", () => {
         expect(e2e).toContain("MESHCHAT_VUE_DEVTOOLS=0");
     });
 
+    it("Vite proxy forwards Host and task stacks trust loopback for WS Origin", () => {
+        const vite = readFileSync(resolve(ROOT, "vite.config.js"), "utf8");
+        expect(vite).toContain("X-Forwarded-Host");
+        expect(vite).toContain("setForwardedHost");
+        expect(vite).toContain("xfwd: true");
+        const devLocal = readFileSync(resolve(ROOT, "scripts/dev-local.sh"), "utf8");
+        expect(devLocal).toContain("MESHCHAT_TRUSTED_PROXIES");
+        expect(devLocal).toContain("127.0.0.1/32");
+        const e2e = readFileSync(resolve(ROOT, "scripts/e2e/start-e2e-stack.sh"), "utf8");
+        expect(e2e).toContain("MESHCHAT_TRUSTED_PROXIES");
+        expect(e2e).toContain("127.0.0.1/32");
+    });
+
+    it("Vite CORS allows opaque null Origin for the Nomad crash-tab sandbox", () => {
+        const vite = readFileSync(resolve(ROOT, "vite.config.js"), "utf8");
+        expect(vite).toContain('origin === "null"');
+        expect(vite).toContain("skipVueDevToolsInCrashTab");
+        expect(vite).toContain("nomad-crash-tab");
+    });
+
     it("package.json lists vite-plugin-vue-devtools as a devDependency", () => {
         const pkg = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8"));
         expect(pkg.devDependencies["vite-plugin-vue-devtools"]).toBeTruthy();

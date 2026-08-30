@@ -412,7 +412,7 @@
                 <!-- page content: capture-phase clicks so <a href> is handled before browser default navigation -->
                 <div
                     :class="[
-                        'flex-1 overflow-y-auto nodeContainer relative contain-[layout_paint]',
+                        'flex-1 min-h-0 overflow-y-auto nodeContainer relative contain-[layout_paint]',
                         nomadRenderedShellFullBleed
                             ? 'p-0 bg-transparent min-h-full text-gray-900 dark:text-gray-100'
                             : 'p-3 bg-black text-white',
@@ -448,13 +448,21 @@
                         </button>
                     </div>
 
-                    <div v-if="isLoadingNodePage" class="flex">
-                        <div class="my-auto">
+                    <div
+                        v-if="isLoadingNodePage"
+                        class="flex h-full min-h-0 flex-col items-center justify-center gap-4 px-4 text-center"
+                        role="status"
+                        aria-live="polite"
+                    >
+                        <div
+                            class="flex size-14 items-center justify-center rounded-full bg-sem-surface-muted text-sem-fg"
+                        >
                             <svg
-                                class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                                class="size-7 animate-spin text-sem-accent"
                                 xmlns="http://www.w3.org/2000/svg"
                                 fill="none"
                                 viewBox="0 0 24 24"
+                                aria-hidden="true"
                             >
                                 <circle
                                     class="opacity-25"
@@ -471,37 +479,113 @@
                                 ></path>
                             </svg>
                         </div>
-                        <div class="my-auto flex-1">{{ nomadnetPageLoadingLine }}</div>
+                        <div class="space-y-1">
+                            <div class="text-lg font-semibold text-sem-fg">{{ $t("nomadnet.load_phase_default") }}</div>
+                            <div class="max-w-md text-sm text-sem-fg-muted">{{ nomadnetPageLoadingLine }}</div>
+                        </div>
                         <button
                             type="button"
-                            class="my-auto text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer ml-3"
+                            class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500"
                             @click="cancelPageDownload"
                         >
+                            <MaterialDesignIcon icon-name="cancel" class="size-5" />
                             {{ $t("common.cancel") }}
                         </button>
                     </div>
                     <div
-                        v-else-if="isFailedPageContent(nodePageContent)"
-                        class="flex flex-col items-center justify-center h-full text-center space-y-4"
+                        v-else-if="showCancelledPageState"
+                        class="flex h-full min-h-0 flex-col items-center justify-center gap-3 px-4 text-center"
+                        role="status"
                     >
-                        <div class="text-red-400 font-semibold text-lg">{{ $t("nomadnet.failed_to_load_page") }}</div>
-                        <div class="text-gray-400 text-sm max-w-md">{{ nodePageContent }}</div>
-
-                        <div v-if="!isPrivate && hasArchivesForCurrentPage" class="space-y-2">
-                            <div class="text-sm text-gray-300">{{ $t("nomadnet.archived_version_available") }}</div>
+                        <MaterialDesignIcon
+                            icon-name="stop-circle-outline"
+                            class="size-12 text-sem-fg-muted opacity-70"
+                        />
+                        <div class="text-lg font-semibold text-sem-fg">
+                            {{
+                                pageRenderAborted
+                                    ? $t("nomadnet.crash_tab_render_cancelled")
+                                    : $t("nomadnet.page_download_cancelled")
+                            }}
+                        </div>
+                        <div class="max-w-md text-sm text-sem-fg-muted">
+                            {{ $t("nomadnet.page_stopped_hint") }}
+                        </div>
+                        <div class="flex flex-wrap items-center justify-center gap-2 pt-1">
                             <button
-                                class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition"
+                                v-if="pageRenderAborted && canRetryCrashTabRender"
+                                type="button"
+                                class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
+                                @click="retryCrashTabRender"
+                            >
+                                <MaterialDesignIcon icon-name="refresh" class="size-5" />
+                                {{ $t("nomadnet.crash_tab_reload") }}
+                            </button>
+                            <button
+                                v-else-if="selectedNode?.destination_hash && nodePagePath"
+                                type="button"
+                                class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
+                                @click="reloadNodePage"
+                            >
+                                <MaterialDesignIcon icon-name="refresh" class="size-5" />
+                                {{ $t("common.refresh") }}
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        v-else-if="isFailedPageContent(nodePageContent)"
+                        class="flex h-full min-h-0 flex-col items-center justify-center gap-3 px-4 text-center"
+                        role="alert"
+                    >
+                        <MaterialDesignIcon icon-name="alert-circle-outline" class="size-12 text-red-400" />
+                        <div class="text-lg font-semibold text-red-400">{{ $t("nomadnet.failed_to_load_page") }}</div>
+                        <div class="max-w-md text-sm text-sem-fg-muted break-words">{{ nodePageContent }}</div>
+
+                        <div v-if="!isPrivate && hasArchivesForCurrentPage" class="space-y-2 pt-1">
+                            <div class="text-sm text-sem-fg-muted">{{ $t("nomadnet.archived_version_available") }}</div>
+                            <button
+                                type="button"
+                                class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
                                 @click="toggleArchiveDropdown"
                             >
                                 <MaterialDesignIcon icon-name="archive" class="size-5" />
                                 {{ $t("nomadnet.view_archive") }}
                             </button>
                         </div>
+                        <button
+                            v-else-if="selectedNode?.destination_hash"
+                            type="button"
+                            class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
+                            @click="reloadNodePage"
+                        >
+                            <MaterialDesignIcon icon-name="refresh" class="size-5" />
+                            {{ $t("common.refresh") }}
+                        </button>
                     </div>
-                    <div v-else class="relative h-full min-h-0 w-full">
+                    <div
+                        v-else-if="showEmptyPageState"
+                        class="flex h-full min-h-0 flex-col items-center justify-center gap-3 px-4 text-center"
+                    >
+                        <MaterialDesignIcon
+                            icon-name="file-document-outline"
+                            class="size-12 text-sem-fg-muted opacity-40"
+                        />
+                        <div class="text-lg font-semibold text-sem-fg">{{ $t("nomadnet.page_empty_title") }}</div>
+                        <div class="max-w-md text-sm text-sem-fg-muted">{{ $t("nomadnet.page_empty_body") }}</div>
+                        <button
+                            v-if="selectedNode?.destination_hash"
+                            type="button"
+                            class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
+                            @click="reloadNodePage"
+                        >
+                            <MaterialDesignIcon icon-name="refresh" class="size-5" />
+                            {{ $t("common.refresh") }}
+                        </button>
+                    </div>
+                    <div v-else class="relative h-full min-h-full min-h-0 w-full">
                         <NomadCrashTab
                             ref="crashTab"
-                            class="h-full min-h-0 w-full"
+                            class="absolute inset-0 h-full min-h-0 w-full"
                             :path="nodePagePath || ''"
                             :content="nodePageContent || ''"
                             :show-source="isShowingNodePageSource"
@@ -518,13 +602,15 @@
                             @render-started="isCrashTabRendering = true"
                             @render-done="isCrashTabRendering = false"
                             @aborted="onCrashTabAborted"
+                            @shell-background="onCrashTabShellBackground"
                         />
                         <div v-if="isCrashTabRendering" class="absolute bottom-3 right-3 z-20 flex items-center gap-2">
                             <button
                                 type="button"
-                                class="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-semibold text-white shadow hover:bg-red-500"
+                                class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-1.5 text-sm font-semibold text-white shadow hover:bg-red-500"
                                 @click="cancelCrashTabRender"
                             >
+                                <MaterialDesignIcon icon-name="cancel" class="size-4" />
                                 {{ $t("common.cancel") }}
                             </button>
                         </div>
@@ -735,6 +821,7 @@ export default {
             nodePageCache: {},
             currentPageDownloadId: null,
             pendingNomadPageCancelWithoutId: false,
+            pageRenderAborted: false,
 
             isDownloadingNodeFile: false,
             nodeFilePath: null,
@@ -791,7 +878,34 @@ export default {
         },
         standaloneContextCanDownloadPage() {
             return Boolean(
-                this.nodePageContent && this.nodePagePath && !this.isFailedPageContent(this.nodePageContent)
+                this.nodePageContent &&
+                this.nodePagePath &&
+                !this.isFailedPageContent(this.nodePageContent) &&
+                !this.isCancelledPageContent(this.nodePageContent) &&
+                !this.pageRenderAborted
+            );
+        },
+        showCancelledPageState() {
+            if (this.isLoadingNodePage) {
+                return false;
+            }
+            return this.pageRenderAborted || this.isCancelledPageContent(this.nodePageContent);
+        },
+        showEmptyPageState() {
+            if (this.isLoadingNodePage || this.showCancelledPageState) {
+                return false;
+            }
+            if (this.isFailedPageContent(this.nodePageContent)) {
+                return false;
+            }
+            return this.nodePageContent == null || this.nodePageContent === "";
+        },
+        canRetryCrashTabRender() {
+            return Boolean(
+                this.pageRenderAborted &&
+                this.nodePageContent &&
+                !this.isCancelledPageContent(this.nodePageContent) &&
+                !this.isFailedPageContent(this.nodePageContent)
             );
         },
         nomadMicronWasmFeatureEffective() {
@@ -939,19 +1053,98 @@ export default {
             return `${this.isShowingNodePageSource ? "src" : "page"}:${this.nodePagePath}:${this.nodePageContent.length}`;
         },
         nomadCrashTabContentClass() {
-            return (this.nomadPageContentClasses || []).join(" ");
+            if (this.isShowingNodePageSource) {
+                return "source bg-black";
+            }
+            if (!this.nodePagePath) {
+                return "";
+            }
+            const [p] = this.nodePagePath.split("`");
+            const pl = (p || "").toLowerCase();
+            const classes = [];
+            if (pl.endsWith(".mu") || pl.endsWith(".md") || pl.endsWith(".html")) {
+                classes.push("nomad-page-rich");
+            }
+            if (pl.endsWith(".html")) {
+                classes.push("nomad-page-html-host");
+            } else if (pl.endsWith(".md")) {
+                classes.push("nomad-markdown-host");
+            } else if (pl.endsWith(".mu")) {
+                classes.push("bg-black");
+            } else {
+                classes.push("plaintext-page");
+            }
+            if (this.nomadRenderedShellFullBleed) {
+                classes.push("pad");
+                if (this.nomadShellDark) {
+                    classes.push("nomad-shell-dark");
+                }
+            }
+            return classes.join(" ");
         },
         nomadCrashTabColor() {
+            if (this.isShowingNodePageSource) {
+                return "#dddddd";
+            }
             if (this.nomadRenderedShellFullBleed) {
                 return this.nomadShellDark ? "#f3f4f6" : "#111827";
             }
-            return "#ffffff";
+            if (!this.nodePagePath) {
+                return "#dddddd";
+            }
+            const [p] = this.nodePagePath.split("`");
+            const pl = (p || "").toLowerCase();
+            if (pl.endsWith(".mu")) {
+                // Match micron-parser DEFAULT_FG_DARK.
+                return "#dddddd";
+            }
+            return "#f3f4f6";
         },
         nomadCrashTabBackground() {
             if (this.nomadRenderedShellFullBleed && this.pageShellBackground) {
                 return this.pageShellBackground;
             }
+            if (this.isShowingNodePageSource) {
+                return "#000000";
+            }
+            if (!this.nodePagePath) {
+                return "#000000";
+            }
+            const [p] = this.nodePagePath.split("`");
+            const pl = (p || "").toLowerCase();
+            if (pl.endsWith(".mu")) {
+                const fromHeader = this.micronHeaderBackgroundCss;
+                if (fromHeader) {
+                    return fromHeader;
+                }
+                return "#000000";
+            }
+            if (pl.endsWith(".txt") || !pl.includes(".")) {
+                return "#000000";
+            }
             return "transparent";
+        },
+        micronHeaderBackgroundCss() {
+            if (!this.nodePageContent || typeof this.nodePageContent !== "string") {
+                return null;
+            }
+            if (!this.nodePagePath) {
+                return null;
+            }
+            const [p] = this.nodePagePath.split("`");
+            if (!(p || "").toLowerCase().endsWith(".mu")) {
+                return null;
+            }
+            try {
+                const { bg } = MicronParser.prototype.parseHeaderTags.call(null, this.nodePageContent);
+                if (!bg || bg === "default") {
+                    return null;
+                }
+                return MicronParser.prototype.colorToCss.call(null, bg);
+            } catch (e) {
+                console.warn("nomadnet: parse micron #!bg= failed", e);
+            }
+            return null;
         },
         hasPageLoadFailed() {
             if (this.isLoadingNodePage) {
@@ -963,10 +1156,14 @@ export default {
             return this.isFailedPageContent(this.nodePageContent);
         },
         nodeContainerShellStyle() {
-            if (!this.nomadRenderedShellFullBleed || !this.pageShellBackground) {
-                return null;
+            if (this.nomadRenderedShellFullBleed && this.pageShellBackground) {
+                return { background: this.pageShellBackground };
             }
-            return { background: this.pageShellBackground };
+            const muBg = this.micronHeaderBackgroundCss;
+            if (muBg) {
+                return { background: muBg };
+            }
+            return null;
         },
         nomadShellDark() {
             if (!this.nomadRenderedShellFullBleed) {
@@ -997,7 +1194,10 @@ export default {
             if (this.isLoadingNodePage) {
                 return false;
             }
-            if (this.isFailedPageContent(this.nodePageContent)) {
+            if (this.isFailedPageContent(this.nodePageContent) || this.isCancelledPageContent(this.nodePageContent)) {
+                return false;
+            }
+            if (this.pageRenderAborted) {
                 return false;
             }
             const [p] = this.nodePagePath.split("`");
@@ -1232,6 +1432,31 @@ export default {
                 return false;
             }
             return content.startsWith("Failed loading page:");
+        },
+        /**
+         * Cancelled downloads use a stable sentinel so the crash-tab renderer
+         * never mounts an empty white iframe for status text.
+         */
+        isCancelledPageContent(content) {
+            if (content == null || typeof content !== "string") {
+                return false;
+            }
+            if (content === "page_download_cancelled") {
+                return true;
+            }
+            try {
+                return content === this.$t("nomadnet.page_download_cancelled");
+            } catch {
+                return false;
+            }
+        },
+        applyPageDownloadCancelledUi() {
+            this.pageRenderAborted = false;
+            this.isCrashTabRendering = false;
+            this.isLoadingNodePage = false;
+            this.nodePageLoadPhase = null;
+            this.nodePageProgress = 0;
+            this.nodePageContent = "page_download_cancelled";
         },
         async applyNomadMicronDefaultEngine(engine) {
             if (!isMicronWasmBundled()) {
@@ -1604,8 +1829,9 @@ export default {
                     if (this.currentPageDownloadId === downloadId) {
                         this.currentPageDownloadId = null;
                         this.pendingNomadPageCancelWithoutId = false;
-                        this.isLoadingNodePage = false;
-                        this.nodePageContent = this.$t("nomadnet.page_download_cancelled");
+                        this.applyPageDownloadCancelledUi();
+                    } else if (this.isCancelledPageContent(this.nodePageContent)) {
+                        this.pendingNomadPageCancelWithoutId = false;
                     }
 
                     // clear file download if it matches
@@ -1726,6 +1952,9 @@ export default {
             );
         },
         async addFavourite(node) {
+            if (this.isPrivate) {
+                return false;
+            }
             try {
                 const existing = this.favourites.find(
                     (favourite) => favourite.destination_hash === node.destination_hash
@@ -1744,6 +1973,9 @@ export default {
             }
         },
         async removeFavourite(node) {
+            if (this.isPrivate) {
+                return false;
+            }
             try {
                 await window.api.delete(`/api/v1/favourites/${node.destination_hash}`);
                 await this.getFavourites();
@@ -1941,6 +2173,8 @@ export default {
             const seq = ++this.nodePageRequestSequence;
 
             this.pendingNomadPageCancelWithoutId = false;
+            this.pageRenderAborted = false;
+            this.isCrashTabRendering = false;
 
             // get previous page path
             const previousNodePagePath = this.nodePagePath;
@@ -1970,8 +2204,8 @@ export default {
                 this.nodePagePathHistory.push(previousNodePagePath);
             }
 
-            // check if we can load this page from the cache
-            if (loadFromCache) {
+            // check if we can load this page from the cache (never in private browse)
+            if (loadFromCache && !this.isPrivate) {
                 // load from cache
                 const nodePagePathCacheKey = `${destinationHash}:${pagePath}`;
                 const cachedNodePageContent = this.nodePageCache[nodePagePathCacheKey];
@@ -2001,9 +2235,11 @@ export default {
                     // update page content
                     this.nodePageContent = pageContent;
 
-                    // update cache
-                    const nodePagePathCacheKey = `${destinationHash}:${pagePath}`;
-                    this.nodePageCache[nodePagePathCacheKey] = this.nodePageContent;
+                    // update cache (never for private browse)
+                    if (!this.isPrivate) {
+                        const nodePagePathCacheKey = `${destinationHash}:${pagePath}`;
+                        this.nodePageCache[nodePagePathCacheKey] = this.nodePageContent;
+                    }
 
                     // update status
                     this.isLoadingNodePage = false;
@@ -2205,7 +2441,8 @@ export default {
                 this.pageShellBackground = null;
                 return;
             }
-            // Crash-tab content lives in an opaque iframe. Keep prior shell paint.
+            // Crash-tab content lives in an opaque iframe. Background comes from
+            // the shell-background postMessage, not DOM probing in the parent.
             if (this.$refs.crashTab) {
                 return;
             }
@@ -2216,6 +2453,12 @@ export default {
             }
             const root = container.querySelector(".nomad-html-root");
             this.pageShellBackground = root ? resolveNomadPageShellBackground(root) : null;
+        },
+        onCrashTabShellBackground(background) {
+            if (!this.nomadRenderedShellFullBleed) {
+                return;
+            }
+            this.pageShellBackground = background || null;
         },
         onCrashTabPartials(partials) {
             this.crashTabPartials = Array.isArray(partials) ? partials : [];
@@ -2303,7 +2546,12 @@ export default {
         },
         onCrashTabAborted() {
             this.isCrashTabRendering = false;
+            this.pageRenderAborted = true;
             ToastUtils.info(this.$t("nomadnet.crash_tab_render_cancelled"));
+        },
+        retryCrashTabRender() {
+            this.pageRenderAborted = false;
+            this.isCrashTabRendering = false;
         },
         toggleNodePageSource() {
             this.isShowingNodePageSource = !this.isShowingNodePageSource;
@@ -2317,6 +2565,10 @@ export default {
             return true;
         },
         async toggleFavouriteFromContext() {
+            if (this.isPrivate) {
+                ToastUtils.info(this.$t("nomadnet.private_browsing_hint"));
+                return false;
+            }
             if (!this.selectedNode?.destination_hash) {
                 ToastUtils.warning(this.$t("nomadnet.context_menu_page_unavailable"));
                 return false;
@@ -2335,7 +2587,12 @@ export default {
             return true;
         },
         async downloadPageToDisk() {
-            if (!this.nodePageContent || !this.nodePagePath || this.isFailedPageContent(this.nodePageContent)) {
+            if (
+                !this.nodePageContent ||
+                !this.nodePagePath ||
+                this.isFailedPageContent(this.nodePageContent) ||
+                this.isCancelledPageContent(this.nodePageContent)
+            ) {
                 ToastUtils.warning(this.$t("nomadnet.download_page_unavailable"));
                 return false;
             }
@@ -2455,6 +2712,9 @@ export default {
             }
         },
         loadLatestArchiveSnapshot() {
+            if (this.isPrivate) {
+                return;
+            }
             if (this.pageArchives && this.pageArchives.length > 0) {
                 this.loadArchivedPage(this.pageArchives[0].id);
                 return;
@@ -2897,6 +3157,7 @@ export default {
         },
         manualArchive() {
             if (this.isPrivate) {
+                ToastUtils.info(this.$t("nomadnet.private_browsing_hint"));
                 return;
             }
             if (!this.selectedNode || !this.nodePagePath || !this.nodePageContent) return;
@@ -2948,6 +3209,7 @@ export default {
         },
         async identify(destinationHash) {
             if (this.isPrivate) {
+                ToastUtils.info(this.$t("nomadnet.private_browsing_hint"));
                 return;
             }
             try {
@@ -3128,19 +3390,12 @@ export default {
             }
         },
         cancelPageDownload() {
-            this.cancelCrashTabRender();
-            if (this.currentPageDownloadId !== null) {
-                WebSocketConnection.send(
-                    JSON.stringify({
-                        type: "nomadnet.download.cancel",
-                        download_id: this.currentPageDownloadId,
-                    })
-                );
+            if (!this.isLoadingNodePage && this.currentPageDownloadId === null) {
+                this.cancelCrashTabRender();
                 return;
             }
-            if (!this.isLoadingNodePage) {
-                return;
-            }
+
+            const downloadId = this.currentPageDownloadId;
             const parsed = this.parseNomadnetworkUrl(this.nodePagePath || "");
             const dh = parsed?.destination_hash || this.selectedNode?.destination_hash;
             const pathPart = parsed?.path;
@@ -3152,11 +3407,21 @@ export default {
                 }
                 delete this.nomadnetPageDownloadCallbacks[key];
             }
-            this.pendingNomadPageCancelWithoutId = true;
+
             this.nodePageRequestSequence += 1;
-            this.isLoadingNodePage = false;
-            this.nodePageLoadPhase = null;
-            this.nodePageContent = this.$t("nomadnet.page_download_cancelled");
+            if (downloadId !== null) {
+                this.pendingNomadPageCancelWithoutId = false;
+                this.currentPageDownloadId = null;
+                WebSocketConnection.send(
+                    JSON.stringify({
+                        type: "nomadnet.download.cancel",
+                        download_id: downloadId,
+                    })
+                );
+            } else {
+                this.pendingNomadPageCancelWithoutId = true;
+            }
+            this.applyPageDownloadCancelledUi();
         },
         cancelFileDownload() {
             if (this.currentFileDownloadId !== null) {
@@ -3173,6 +3438,8 @@ export default {
 </script>
 
 <style>
+@import "../../css/nomad-page-chrome.css";
+
 .nomad-icon-btn {
     border-radius: 10px !important;
     border: none !important;
@@ -3206,207 +3473,5 @@ export default {
 .nomad-url-input:focus {
     border-color: var(--mc-accent, #60a5fa);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--mc-accent, #60a5fa) 25%, transparent);
-}
-
-.nodeContainer input.Mu-armed {
-    outline: 1px dashed #fbbf24;
-    outline-offset: 1px;
-}
-
-.nodeContainer textarea {
-    font: inherit;
-    color: inherit;
-    background: inherit;
-}
-
-.nodeContainer textarea.Mu-multiline {
-    outline: 1px solid #34d399;
-    outline-offset: 1px;
-    resize: vertical;
-}
-
-.nodeContainer {
-    font-family: "Roboto Mono Nerd Font", ui-monospace, monospace;
-    line-height: 1.25;
-    letter-spacing: normal;
-    font-variant-ligatures: none;
-    font-feature-settings: normal;
-}
-
-.nodeContainer .nomad-page-rich {
-    line-height: 1.25;
-}
-
-.nodeContainer pre {
-    font-family: inherit;
-    line-height: normal;
-    letter-spacing: inherit;
-    font-variant-ligatures: inherit;
-    font-feature-settings: inherit;
-}
-
-/*
- * Mobile-only: allow horizontal scrolling for micron pages so ASCII art and
- * fixed-width content do not get word-wrapped and broken up. Markdown and HTML
- * rendered content keep their natural wrap behaviour.
- */
-@media (max-width: 640px) {
-    .nodeContainer {
-        overflow-x: auto;
-    }
-
-    .nodeContainer .Mu-mws {
-        flex-wrap: nowrap;
-    }
-
-    .nodeContainer pre,
-    .nodeContainer .mu-parse-fallback,
-    .nodeContainer .mu-line-parse-fallback {
-        white-space: pre;
-    }
-}
-
-pre.text-wrap > div {
-    display: flex;
-    white-space: pre;
-}
-
-pre.text-wrap > div > :last-child {
-    width: 100%;
-    white-space: pre-wrap;
-}
-
-.nodeContainer pre a:hover {
-    text-decoration: underline;
-}
-
-.nodeContainer input[type="text"],
-.nodeContainer input[type="password"] {
-    font-family: inherit;
-    font-size: 1em;
-    line-height: 1;
-    padding: 0;
-    margin: 0;
-    border: 0;
-    border-bottom: 1px solid currentColor;
-    border-radius: 0;
-    background: transparent;
-    color: inherit;
-    caret-color: currentColor;
-    -webkit-text-fill-color: currentColor;
-    box-sizing: content-box;
-}
-
-.nodeContainer.bg-black input[type="text"],
-.nodeContainer.bg-black input[type="password"],
-.nodeContainer.bg-black textarea {
-    color: #f3f4f6 !important;
-    caret-color: #f3f4f6 !important;
-    -webkit-text-fill-color: #f3f4f6 !important;
-    border-bottom-color: #f3f4f6 !important;
-}
-
-.nodeContainer.nomad-shell-dark input[type="text"],
-.nodeContainer.nomad-shell-dark input[type="password"],
-.nodeContainer.nomad-shell-dark textarea {
-    color: #f3f4f6 !important;
-    caret-color: #f3f4f6 !important;
-    -webkit-text-fill-color: #f3f4f6 !important;
-    border-bottom-color: #f3f4f6 !important;
-}
-
-.nomad-markdown-host {
-    font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-}
-
-.nomad-markdown-host .nomad-markdown {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-}
-
-.nomad-markdown-host .nomad-markdown table {
-    white-space: normal;
-}
-
-.nomad-markdown-host .nomad-markdown h1 {
-    font-size: 1.875rem;
-    line-height: 2.25rem;
-    font-weight: 700;
-    margin: 0.75rem 0 0.5rem;
-}
-
-.nomad-markdown-host .nomad-markdown h2 {
-    font-size: 1.5rem;
-    line-height: 2rem;
-    font-weight: 700;
-    margin: 0.65rem 0 0.45rem;
-}
-
-.nomad-markdown-host .nomad-markdown h3 {
-    font-size: 1.25rem;
-    line-height: 1.75rem;
-    font-weight: 600;
-    margin: 0.55rem 0 0.4rem;
-}
-
-.nomad-markdown-host .nomad-markdown h4 {
-    font-size: 1.125rem;
-    line-height: 1.75rem;
-    font-weight: 600;
-    margin: 0.5rem 0 0.35rem;
-}
-
-.nomad-markdown-host .nomad-markdown h5,
-.nomad-markdown-host .nomad-markdown h6 {
-    font-size: 1rem;
-    line-height: 1.5rem;
-    font-weight: 600;
-    margin: 0.45rem 0 0.3rem;
-}
-
-.nomad-markdown-host .nomad-markdown p {
-    margin: 0.4rem 0;
-}
-
-.nomad-markdown-host .nomad-markdown ul,
-.nomad-markdown-host .nomad-markdown ol {
-    margin: 0.4rem 0;
-    padding-left: 1.5rem;
-}
-
-.nomad-markdown-host .nomad-markdown blockquote {
-    margin: 0.5rem 0;
-    padding-left: 0.75rem;
-    border-left: 3px solid rgb(107 114 128);
-}
-
-.nomad-markdown-host .nomad-markdown pre {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    overflow-x: auto;
-}
-
-.nomad-markdown-host .nomad-markdown a.nomadnet-link,
-.nomad-markdown-host .nomad-markdown a[href^="#"]:not([href="#"]) {
-    cursor: pointer;
-    pointer-events: auto;
-}
-
-.nomad-page-html-host {
-    font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-    min-height: 100%;
-    width: 100%;
-}
-
-.nomad-page-html-host .nomad-html-root {
-    color: rgb(229 231 235);
-    min-height: 100%;
-    box-sizing: border-box;
-}
-
-.nomad-page-html-host .nomad-html-root a.nomadnet-link,
-.nomad-page-html-host .nomad-html-root a[href^="#"]:not([href="#"]) {
-    cursor: pointer;
-    pointer-events: auto;
 }
 </style>

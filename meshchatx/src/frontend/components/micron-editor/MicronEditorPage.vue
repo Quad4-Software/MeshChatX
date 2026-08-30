@@ -1185,6 +1185,7 @@ ${b}=
 
 :deep(.Mu-nl) {
     cursor: pointer;
+    text-decoration: none;
 }
 :deep(.Mu-mnt) {
     display: inline-block;
@@ -1220,7 +1221,10 @@ ${b}=
     gap: 0;
 }
 
-:deep(a:hover) {
-    text-decoration: underline;
+:deep(a.Mu-nl),
+:deep(a.nomadnet-link) {
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
 }
 </style>

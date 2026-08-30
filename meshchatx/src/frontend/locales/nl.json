@@ -2559,7 +2559,10 @@
         "private_tab": "Private tab",
         "new_private_tab": "New private tab",
         "new_private_tab_shortcut": "New private tab (Ctrl+Shift+P)",
-        "private_browsing_hint": "Private browsing: pages are not archived, favourites and identify are disabled, and mesh links are not shared with other tabs."
+        "private_browsing_hint": "Private browsing: pages are not archived, favourites and identify are disabled, and mesh links are not shared with other tabs.",
+        "page_stopped_hint": "Nothing was saved for this attempt. Refresh to try again.",
+        "page_empty_title": "This page is empty",
+        "page_empty_body": "The node returned no content for this path."
     },
     "forwarder": {
         "title": "LXMF-doorstuurder",

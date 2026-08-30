@@ -186,7 +186,7 @@ export function isolateNomadLinksInHtml(html, destinationHash) {
             if (full) {
                 a.setAttribute("href", "#");
                 a.setAttribute("data-nomadnet-url", full);
-                a.classList.add("nomadnet-link", "text-blue-600", "dark:text-blue-400", "hover:underline");
+                a.classList.add("nomadnet-link");
             } else {
                 a.setAttribute("href", "#");
                 // For micron parser links with data-destination, update title so hover shows the full URL

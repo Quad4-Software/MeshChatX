@@ -2335,7 +2335,10 @@
         "private_tab": "Privates Tab",
         "new_private_tab": "Neues privates Tab",
         "new_private_tab_shortcut": "Neues privates Tab (Ctrl+Shift+P)",
-        "private_browsing_hint": "Privates Surfen: Seiten werden nicht archiviert, Favoriten und Identifizieren sind deaktiviert, und Mesh-Links werden nicht mit anderen Tabs geteilt."
+        "private_browsing_hint": "Privates Surfen: Seiten werden nicht archiviert, Favoriten und Identifizieren sind deaktiviert, und Mesh-Links werden nicht mit anderen Tabs geteilt.",
+        "page_stopped_hint": "Nothing was saved for this attempt. Refresh to try again.",
+        "page_empty_title": "This page is empty",
+        "page_empty_body": "The node returned no content for this path."
     },
     "forwarder": {
         "title": "LXMF-Weiterleiter",

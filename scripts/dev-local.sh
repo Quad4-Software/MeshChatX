@@ -9,6 +9,9 @@ cd "$ROOT"
 export PYTHONUNBUFFERED="${PYTHONUNBUFFERED:-1}"
 export MESHCHAT_PORT="${MESHCHAT_PORT:-8000}"
 export E2E_BACKEND_PORT="$MESHCHAT_PORT"
+# Vite proxies /ws with changeOrigin. Trust loopback so X-Forwarded-Host
+# (browser :5173) passes the WebSocket Origin check against backend :8000.
+export MESHCHAT_TRUSTED_PROXIES="${MESHCHAT_TRUSTED_PROXIES:-127.0.0.1/32}"
 
 BE_PID=""
 cleanup() {

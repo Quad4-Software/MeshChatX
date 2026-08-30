@@ -1,0 +1,248 @@
+/* SPDX-License-Identifier: 0BSD */
+/*
+ * Shared Nomad / Micron page chrome for the shell and NomadCrashTab iframe.
+ * The crash-tab document does not inherit shell CSS. Keep typography here.
+ */
+
+.nodeContainer input.Mu-armed {
+    outline: 1px dashed #fbbf24;
+    outline-offset: 1px;
+}
+
+.nodeContainer textarea {
+    font: inherit;
+    color: inherit;
+    background: inherit;
+}
+
+.nodeContainer textarea.Mu-multiline {
+    outline: 1px solid #34d399;
+    outline-offset: 1px;
+    resize: vertical;
+}
+
+.nodeContainer {
+    font-family: "Roboto Mono Nerd Font", ui-monospace, monospace;
+    line-height: 1.25;
+    letter-spacing: normal;
+    font-variant-ligatures: none;
+    font-feature-settings: normal;
+}
+
+/* NomadNet #!bg= / #!fg= page shell: fill the crash-tab viewport. */
+.nodeContainer .mu-page {
+    display: block;
+    width: 100%;
+    min-height: 100%;
+    box-sizing: border-box;
+}
+
+.nodeContainer .nomad-page-rich {
+    line-height: 1.25;
+}
+
+.nodeContainer pre {
+    font-family: inherit;
+    line-height: normal;
+    letter-spacing: inherit;
+    font-variant-ligatures: inherit;
+    font-feature-settings: inherit;
+}
+
+/*
+ * Mobile-only: allow horizontal scrolling for micron pages so ASCII art and
+ * fixed-width content do not get word-wrapped and broken up. Markdown and HTML
+ * rendered content keep their natural wrap behaviour.
+ */
+@media (max-width: 640px) {
+    .nodeContainer {
+        overflow-x: auto;
+    }
+
+    .nodeContainer .Mu-mws {
+        flex-wrap: nowrap;
+    }
+
+    .nodeContainer pre,
+    .nodeContainer .mu-parse-fallback,
+    .nodeContainer .mu-line-parse-fallback {
+        white-space: pre;
+    }
+}
+
+pre.text-wrap > div {
+    display: flex;
+    white-space: pre;
+}
+
+pre.text-wrap > div > :last-child {
+    width: 100%;
+    white-space: pre-wrap;
+}
+
+.nodeContainer pre a:hover {
+    text-decoration: underline;
+}
+
+/*
+ * NomadNet / Micron: no default link underline. Only `_underline`_ in markup
+ * (inline text-decoration from the parser) should underline. Kill the browser
+ * default <a> underline.
+ */
+.nodeContainer a.Mu-nl,
+.nodeContainer a.nomadnet-link,
+.nodeContainer a.lxmf-link,
+.nodeContainer a[data-action="openNode"] {
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+}
+
+.nodeContainer input[type="text"],
+.nodeContainer input[type="password"] {
+    font-family: inherit;
+    font-size: 1em;
+    line-height: 1;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    border-bottom: 1px solid currentColor;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    caret-color: currentColor;
+    -webkit-text-fill-color: currentColor;
+    box-sizing: content-box;
+}
+
+.nodeContainer.bg-black input[type="text"],
+.nodeContainer.bg-black input[type="password"],
+.nodeContainer.bg-black textarea {
+    color: #f3f4f6 !important;
+    caret-color: #f3f4f6 !important;
+    -webkit-text-fill-color: #f3f4f6 !important;
+    border-bottom-color: #f3f4f6 !important;
+}
+
+.nodeContainer.nomad-shell-dark input[type="text"],
+.nodeContainer.nomad-shell-dark input[type="password"],
+.nodeContainer.nomad-shell-dark textarea {
+    color: #f3f4f6 !important;
+    caret-color: #f3f4f6 !important;
+    -webkit-text-fill-color: #f3f4f6 !important;
+    border-bottom-color: #f3f4f6 !important;
+}
+
+.nodeContainer.pad {
+    padding: 0.75rem;
+    box-sizing: border-box;
+}
+
+.nodeContainer.source {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.nodeContainer.plaintext-page {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.nomad-markdown-host {
+    font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+.nomad-markdown-host .nomad-markdown {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.nomad-markdown-host .nomad-markdown table {
+    white-space: normal;
+}
+
+.nomad-markdown-host .nomad-markdown h1 {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+    font-weight: 700;
+    margin: 0.75rem 0 0.5rem;
+}
+
+.nomad-markdown-host .nomad-markdown h2 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 700;
+    margin: 0.65rem 0 0.45rem;
+}
+
+.nomad-markdown-host .nomad-markdown h3 {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 600;
+    margin: 0.55rem 0 0.4rem;
+}
+
+.nomad-markdown-host .nomad-markdown h4 {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    font-weight: 600;
+    margin: 0.5rem 0 0.35rem;
+}
+
+.nomad-markdown-host .nomad-markdown h5,
+.nomad-markdown-host .nomad-markdown h6 {
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 600;
+    margin: 0.45rem 0 0.3rem;
+}
+
+.nomad-markdown-host .nomad-markdown p {
+    margin: 0.4rem 0;
+}
+
+.nomad-markdown-host .nomad-markdown ul,
+.nomad-markdown-host .nomad-markdown ol {
+    margin: 0.4rem 0;
+    padding-left: 1.5rem;
+}
+
+.nomad-markdown-host .nomad-markdown blockquote {
+    margin: 0.5rem 0;
+    padding-left: 0.75rem;
+    border-left: 3px solid rgb(107 114 128);
+}
+
+.nomad-markdown-host .nomad-markdown pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-x: auto;
+}
+
+.nomad-markdown-host .nomad-markdown a.nomadnet-link,
+.nomad-markdown-host .nomad-markdown a[href^="#"]:not([href="#"]) {
+    cursor: pointer;
+    pointer-events: auto;
+    color: #60a5fa;
+    text-decoration: underline;
+}
+
+.nomad-page-html-host {
+    font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    min-height: 100%;
+    width: 100%;
+}
+
+.nomad-page-html-host .nomad-html-root {
+    color: rgb(229 231 235);
+    min-height: 100%;
+    box-sizing: border-box;
+}
+
+.nomad-page-html-host .nomad-html-root a.nomadnet-link,
+.nomad-page-html-host .nomad-html-root a[href^="#"]:not([href="#"]) {
+    cursor: pointer;
+    pointer-events: auto;
+    color: #60a5fa;
+    text-decoration: underline;
+}

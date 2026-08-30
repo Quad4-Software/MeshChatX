@@ -29,6 +29,30 @@ def csrf_exempt_path(path: str) -> bool:
     return path == "/api/v1/auth/csrf"
 
 
+def is_nomad_crash_tab_resource(path: str) -> bool:
+    """Crash-tab HTML/JS is framed without allow-same-origin (opaque null Origin)."""
+    if path == "/nomad-crash-tab.html":
+        return True
+    if path.startswith("/assets/") and "nomad-crash-tab" in path:
+        return True
+    return False
+
+
+def is_opaque_frame_cors_resource(path: str) -> bool:
+    """Static assets fetched by the sandboxed crash-tab (null Origin) need CORS."""
+    if is_nomad_crash_tab_resource(path):
+        return True
+    if path.startswith("/vendor/micron-parser-go/"):
+        return True
+    # Crash-tab CSS/font chunks are hashed under /assets/ without "nomad-crash-tab"
+    # in the filename. Fonts require CORS even when referenced from CSS.
+    if path.startswith("/assets/"):
+        lower = path.lower()
+        if lower.endswith((".css", ".ttf", ".otf", ".woff", ".woff2", ".eot")):
+            return True
+    return False
+
+
 def create_ip_allowlist_middleware(app):
     @web.middleware
     async def ip_allowlist_middleware(request, handler):
@@ -276,9 +300,11 @@ def create_security_middleware(app):
         # Add security headers to all responses
         response.headers["X-Content-Type-Options"] = "nosniff"
 
-        # Allow framing for docs and rnode flasher
-        if request.path.startswith("/reticulum-docs/") or request.path.startswith(
-            "/rnode-flasher/",
+        # Allow framing for docs, rnode flasher, and Nomad crash-tab renderer.
+        if (
+            request.path.startswith("/reticulum-docs/")
+            or request.path.startswith("/rnode-flasher/")
+            or is_nomad_crash_tab_resource(request.path)
         ):
             response.headers["X-Frame-Options"] = "SAMEORIGIN"
         else:
@@ -340,7 +366,10 @@ def create_security_middleware(app):
         ]
 
         path = request.path
-        if path.startswith("/rnode-flasher/"):
+        if path.startswith("/rnode-flasher/") or is_opaque_frame_cors_resource(path):
+            # Crash-tab iframe is sandboxed without allow-same-origin so its
+            # effective Origin is null. Module scripts and Micron WASM fetches
+            # need CORS + CORP.
             response.headers["Access-Control-Allow-Origin"] = "*"
             response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
         if path.startswith("/rnode-flasher/"):

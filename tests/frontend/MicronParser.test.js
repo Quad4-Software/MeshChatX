@@ -88,6 +88,25 @@ describe("MicronParser.js", () => {
             expect(html).toContain("<div");
         });
 
+        it("wraps #!bg= pages in mu-page shell like NomadNet", () => {
+            const markup = "#!bg=444\n#!fg=ddd\nHello";
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).toContain('class="mu-page"');
+            expect(html).toMatch(/background-color:\s*(rgb\(68,\s*68,\s*68\)|#444)/i);
+            expect(html).toContain("Hello");
+        });
+
+        it("keeps Micron full-width background rows after overlay scrub", () => {
+            const scrubbed = MicronParser.stripOverlayStyles(
+                '<div style="background-color: rgb(68, 68, 68); width: 100%; height: 1.2em"></div>'
+            );
+            expect(scrubbed).toContain("width: 100%");
+            expect(scrubbed).toContain("background-color");
+            expect(MicronParser.stripOverlayStyles('<div style="position:fixed;width:100vw"></div>')).not.toMatch(
+                /100vw/
+            );
+        });
+
         it("converts headings correctly", () => {
             const markup = "> Heading 1\n>> Heading 2";
             const html = parser.convertMicronToHtml(markup);

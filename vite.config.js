@@ -40,8 +40,22 @@ const e2eBackendOrigin = backendUsesHttps
 const backendProxyTls = backendUsesHttps ? { secure: false } : {};
 
 /**
+ * Preserve the browser Host for backend Origin checks. Vite uses changeOrigin so
+ * the backend Host becomes :8000 while the browser Origin stays :5173. The
+ * backend accepts X-Forwarded-Host only from MESHCHAT_TRUSTED_PROXIES.
+ * @param {import('http').ClientRequest} proxyReq
+ * @param {import('http').IncomingMessage} req
+ */
+function setForwardedHost(proxyReq, req) {
+    const host = req && req.headers && req.headers.host;
+    if (host) {
+        proxyReq.setHeader("X-Forwarded-Host", host);
+    }
+}
+
+/**
  * Attach quiet handlers for expected proxy disconnects (browser refresh,
- * client reconnect, peer closed before proxy flush).
+ * client reconnect, peer closed before proxy flush) and forward the public Host.
  * @param {import('http-proxy').Server} proxy
  */
 function configureQuietProxyErrors(proxy) {
@@ -60,7 +74,11 @@ function configureQuietProxyErrors(proxy) {
         }
         console.error("[vite] proxy error:", err);
     });
-    proxy.on("proxyReqWs", (_proxyReq, _req, socket) => {
+    proxy.on("proxyReq", (proxyReq, req) => {
+        setForwardedHost(proxyReq, req);
+    });
+    proxy.on("proxyReqWs", (proxyReq, req, socket) => {
+        setForwardedHost(proxyReq, req);
         socket.on("error", (err) => {
             const code = err && err.code;
             if (code === "EPIPE" || code === "ECONNRESET") {
@@ -148,8 +166,33 @@ function loadVisualiserWasmIntegrity() {
 const micronWasmIntegrity = loadMicronWasmIntegrity();
 const visualiserWasmIntegrity = loadVisualiserWasmIntegrity();
 
+// Vite default plus opaque null (sandboxed crash-tab iframe without allow-same-origin).
+const viteDevCorsOrigin = /^https?:\/\/(?:(?:[^:]+\.)?localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/;
+
+/**
+ * Strip Vue DevTools / inspector tags from the crash-tab HTML entry.
+ * That frame is sandboxed to opaque null and must not pull overlay scripts.
+ * @returns {import('vite').Plugin}
+ */
+function skipVueDevToolsInCrashTab() {
+    return {
+        name: "meshchatx-skip-vue-devtools-in-crash-tab",
+        transformIndexHtml: {
+            order: "post",
+            handler(html, ctx) {
+                const file = String(ctx.filename || ctx.path || "");
+                if (!file.includes("nomad-crash-tab")) {
+                    return html;
+                }
+                return html.replace(/<script[^>]+(?:vue-devtools-path|vue-inspector-path)[^>]*>\s*<\/script>\s*/gi, "");
+            },
+        },
+    };
+}
+
 export default defineConfig(({ command }) => {
     const bundledDev = envBool(process.env.MESHCHAT_VITE_BUNDLED_DEV);
+    const vueDevToolsOn = isVueDevToolsEnabled({ command });
 
     // Only clear hashed assets on production build. Loading this config for
     // `vite` / `vite preview` must not wipe meshchatx/public/assets used by
@@ -173,11 +216,12 @@ export default defineConfig(({ command }) => {
         },
         plugins: [
             tailwindcss(),
-            ...(isVueDevToolsEnabled({ command })
+            ...(vueDevToolsOn
                 ? [
                       vueDevTools({
                           launchEditor: detectLaunchEditor(),
                       }),
+                      skipVueDevToolsInCrashTab(),
                   ]
                 : []),
             vue({
@@ -200,6 +244,16 @@ export default defineConfig(({ command }) => {
             strictPort: true,
             clearScreen: false,
             forwardConsole: command === "serve",
+            // Opaque null Origin from sandbox="allow-scripts" crash-tab modules.
+            cors: {
+                origin(origin, callback) {
+                    if (!origin || origin === "null" || viteDevCorsOrigin.test(origin)) {
+                        callback(null, true);
+                        return;
+                    }
+                    callback(null, false);
+                },
+            },
             warmup: {
                 clientFiles: ["./main.js", "./components/App.vue", "./components/messages/MessagesPage.vue"],
             },
@@ -207,6 +261,7 @@ export default defineConfig(({ command }) => {
                 "/api": {
                     target: e2eBackendOrigin,
                     changeOrigin: true,
+                    xfwd: true,
                     configure: configureQuietProxyErrors,
                     ...backendProxyTls,
                 },
@@ -215,6 +270,7 @@ export default defineConfig(({ command }) => {
                     target: e2eBackendOrigin,
                     ws: true,
                     changeOrigin: true,
+                    xfwd: true,
                     configure: configureQuietProxyErrors,
                     ...backendProxyTls,
                 },
@@ -222,18 +278,21 @@ export default defineConfig(({ command }) => {
                     target: e2eBackendOrigin,
                     ws: true,
                     changeOrigin: true,
+                    xfwd: true,
                     configure: configureQuietProxyErrors,
                     ...backendProxyTls,
                 },
                 "/reticulum-docs": {
                     target: e2eBackendOrigin,
                     changeOrigin: true,
+                    xfwd: true,
                     configure: configureQuietProxyErrors,
                     ...backendProxyTls,
                 },
                 "/meshchatx-docs": {
                     target: e2eBackendOrigin,
                     changeOrigin: true,
+                    xfwd: true,
                     configure: configureQuietProxyErrors,
                     ...backendProxyTls,
                 },
