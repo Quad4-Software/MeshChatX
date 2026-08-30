@@ -75,6 +75,7 @@ def build_nomad_crash_tab_csp() -> str:
         "form-action 'none'"
     )
 
+
 def create_ip_allowlist_middleware(app):
     @web.middleware
     async def ip_allowlist_middleware(request, handler):
