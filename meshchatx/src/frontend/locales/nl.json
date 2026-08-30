@@ -2501,6 +2501,7 @@
         "load_phase_finding_path": "Op zoek naar een netwerkpad naar het knooppunt",
         "load_phase_establishing_link": "Koppeling naar het knooppunt instellen",
         "page_download_cancelled": "Download geannuleerd.",
+        "websocket_not_connected": "Not connected. Wait a moment and try again.",
         "load_phase_requesting_page": "Paginaverzoek versturen",
         "load_phase_transferring": "Pagina ontvangen",
         "path_finder": "Padzoeker",

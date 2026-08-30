@@ -2501,6 +2501,7 @@
         "load_phase_finding_path": "Recherche d'un chemin réseau vers le nœud",
         "load_phase_establishing_link": "Établir un lien avec le nœud",
         "page_download_cancelled": "Téléchargement annulé.",
+        "websocket_not_connected": "Not connected. Wait a moment and try again.",
         "load_phase_requesting_page": "Envoi de la demande de page",
         "load_phase_transferring": "Page de réception",
         "path_finder": "Chercheur de chemin",

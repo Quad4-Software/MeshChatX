@@ -2501,6 +2501,7 @@
         "load_phase_finding_path": "Buscando un camino de red hacia el nodo",
         "load_phase_establishing_link": "Establecer vínculos con el nodo",
         "page_download_cancelled": "Descarga cancelada.",
+        "websocket_not_connected": "Not connected. Wait a moment and try again.",
         "load_phase_requesting_page": "Enviar solicitud de página",
         "load_phase_transferring": "Página de recepción",
         "path_finder": "Buscador de ruta",
