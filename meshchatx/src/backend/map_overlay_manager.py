@@ -17,11 +17,11 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from meshchatx.src.backend.map_geo_sanitizer import sanitize_geo_bytes
 from meshchatx.src.backend.map_geo_validator import (
     GeoValidationError,
     validate_geo_bytes,
 )
-from meshchatx.src.backend.map_geo_sanitizer import sanitize_geo_bytes
 from meshchatx.src.backend.map_overlay_export import (
     CONTENT_TYPES,
     EXTENSIONS,
@@ -39,11 +39,11 @@ from meshchatx.src.backend.map_overlay_sources import (
     KIND_RNGIT_FILES,
     OverlaySourceParseError,
     OverlaySourceSpec,
+    _safe_nomadnet_file_path,
+    _safe_repo_relpath,
     guess_format_from_path,
     normalize_destination_hash_hex,
     parse_create_payload,
-    _safe_nomadnet_file_path,
-    _safe_repo_relpath,
 )
 from meshchatx.src.backend.nomadnet_downloader import NomadnetFileDownloader
 from meshchatx.src.backend.path_utils import path_response_window
@@ -296,7 +296,9 @@ class MapOverlayManager:
         return _row_to_dict(row)
 
     def get_job(
-        self, job_id: str, identity_hash: str | None = None
+        self,
+        job_id: str,
+        identity_hash: str | None = None,
     ) -> dict[str, Any] | None:
         job = self._jobs.get(job_id)
         if job is None:
@@ -871,7 +873,9 @@ class MapOverlayManager:
         digest = hashlib.sha256(payload).hexdigest()
         row = self.database.map_overlays.get_by_id(overlay_id)
         expected_rel = self._expected_cache_rel(
-            identity_hash, overlay_id, validated.format
+            identity_hash,
+            overlay_id,
+            validated.format,
         )
         if (
             row
@@ -1034,7 +1038,9 @@ class MapOverlayManager:
         if not row or not row.get("cache_relpath") or not row.get("format"):
             return None
         expected_rel = self._expected_cache_rel(
-            identity_hash, overlay_id, row["format"]
+            identity_hash,
+            overlay_id,
+            row["format"],
         )
         if not expected_rel:
             return None

@@ -14,10 +14,10 @@ storage. This module:
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import re
-import contextlib
 from collections.abc import Callable
 from typing import Any
 
@@ -56,7 +56,7 @@ def _capturing_log(msg, level=3, *args, **kwargs):
         pass
     original = _ORIGINAL_RNS_LOG
     if original is None:
-        return
+        return None
     return original(msg, level, *args, **kwargs)
 
 
@@ -350,7 +350,7 @@ def apply_startup_recovery_step(
 
     if attempt <= 0:
         if _mentions_i2p(str(error)) and i2p_support.disable_all_i2p_in_config(
-            config_path
+            config_path,
         ):
             # Names unknown here, so report a synthetic marker for logs/tests.
             disabled.append("__i2p__")

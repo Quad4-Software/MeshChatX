@@ -61,7 +61,7 @@ def available_modes(profiles=None) -> list[int]:
     Profiles = profiles if profiles is not None else import_profiles()
     native = getattr(Profiles, "available_modes", None)
     if callable(native):
-        modes = cast(Callable[[], Any], native)()
+        modes = cast("Callable[[], Any]", native)()
         return [int(mode_id) for mode_id in modes]
     # Pre-duplex LXST: full duplex only. Half duplex needs switch_mode / squelch.
     return [mode_full_duplex(Profiles)]
@@ -71,7 +71,7 @@ def mode_name(mode_id, profiles=None) -> str:
     Profiles = profiles if profiles is not None else import_profiles()
     native = getattr(Profiles, "mode_name", None)
     if callable(native):
-        return str(cast(Callable[[Any], Any], native)(mode_id))
+        return str(cast("Callable[[Any], Any]", native)(mode_id))
     return _MODE_NAMES.get(int(mode_id), "Default")
 
 
@@ -79,5 +79,5 @@ def mode_abbreviation(mode_id, profiles=None) -> str:
     Profiles = profiles if profiles is not None else import_profiles()
     native = getattr(Profiles, "mode_abbrevation", None)
     if callable(native):
-        return str(cast(Callable[[Any], Any], native)(mode_id))
+        return str(cast("Callable[[Any], Any]", native)(mode_id))
     return _MODE_ABBREVS.get(int(mode_id), "DFLT")

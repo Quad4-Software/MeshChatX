@@ -115,7 +115,9 @@ def parse_fields_dict(fields_raw: Any) -> dict:
 
 
 def should_skip_for_budget(
-    fields_raw: Any, *, max_attempts: int = MAX_AUTO_RESEND_ATTEMPTS
+    fields_raw: Any,
+    *,
+    max_attempts: int = MAX_AUTO_RESEND_ATTEMPTS,
 ) -> bool:
     return read_auto_resend_count(fields_raw) >= max_attempts
 
@@ -125,6 +127,8 @@ def next_attempt_count(fields_raw: Any) -> int:
 
 
 def cooldown_until(
-    now: float | None = None, *, seconds: int = AUTO_RESEND_COOLDOWN_SECONDS
+    now: float | None = None,
+    *,
+    seconds: int = AUTO_RESEND_COOLDOWN_SECONDS,
 ) -> float:
     return float(now if now is not None else time.time()) + float(seconds)

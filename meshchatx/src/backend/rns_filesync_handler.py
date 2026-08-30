@@ -327,7 +327,7 @@ class RnsFilesyncHandler:
             leaf = parts[-1]
             parent_rel = "/".join(parts[:-1]) if len(parts) > 1 else ""
             parent_abs, err = self._resolve_manager_path(
-                parent_rel if parent_rel else None,
+                parent_rel or None,
                 allow_root=True,
                 must_exist=True,
             )
@@ -863,10 +863,8 @@ class RnsFilesyncHandler:
                 timeout_f = float(timeout)
             except (TypeError, ValueError):
                 timeout_f = 10.0
-            if timeout_f < 0.1:
-                timeout_f = 0.1
-            if timeout_f > 120.0:
-                timeout_f = 120.0
+            timeout_f = max(timeout_f, 0.1)
+            timeout_f = min(timeout_f, 120.0)
             files = self.service.browse_peer(cleaned, timeout=timeout_f)
             return {"ok": True, "peer_id": cleaned, "files": files}
 

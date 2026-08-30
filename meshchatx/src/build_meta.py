@@ -16,8 +16,14 @@ IS_DEV_BUILD = False
 try:
     from meshchatx.src._build_meta_baked import (  # type: ignore[import-not-found]
         BUILD_CHANNEL as _BAKED_CHANNEL,
+    )
+    from meshchatx.src._build_meta_baked import (
         GIT_COMMIT as _BAKED_COMMIT,
+    )
+    from meshchatx.src._build_meta_baked import (
         GIT_COMMIT_SHORT as _BAKED_SHORT,
+    )
+    from meshchatx.src._build_meta_baked import (
         IS_DEV_BUILD as _BAKED_IS_DEV,
     )
 

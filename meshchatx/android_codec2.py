@@ -180,7 +180,7 @@ def _install_pycodec2_ctypes_fallback() -> tuple[bool, str | None]:
         sys.modules.pop("pycodec2", None)
         sys.modules["pycodec2"] = pycodec2_ctypes
         logger.warning(
-            "Using ctypes Codec2 fallback (native pycodec2 extension unavailable)"
+            "Using ctypes Codec2 fallback (native pycodec2 extension unavailable)",
         )
         return True, None
     except Exception as exc:

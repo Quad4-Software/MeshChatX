@@ -166,7 +166,7 @@ class Codec2:
         spf = self.samples_per_frame()
         if samples.size == 0 or samples.size % spf != 0:
             raise AssertionError(
-                "encode input length must be a multiple of samples_per_frame"
+                "encode input length must be a multiple of samples_per_frame",
             )
         frames = samples.size // spf
         bpf = self.bytes_per_frame()

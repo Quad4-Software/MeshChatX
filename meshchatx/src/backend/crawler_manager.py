@@ -38,7 +38,7 @@ _PAGE_PATH_RE = re.compile(
     r"(?:`[^`]*`|/page/|\[[^\]]*\]\()\s*(/page/[A-Za-z0-9_./+-]+(?:\.[A-Za-z0-9]+)?)",
 )
 _BARE_PAGE_RE = re.compile(
-    r"(?<![A-Za-z0-9_/])(/page/[A-Za-z0-9_./+-]+(?:\.[A-Za-z0-9]+)?)"
+    r"(?<![A-Za-z0-9_/])(/page/[A-Za-z0-9_./+-]+(?:\.[A-Za-z0-9]+)?)",
 )
 _MD_LINK_RE = re.compile(r"\[[^\]]*\]\((/page/[^)\s]+)\)")
 _HTML_HREF_RE = re.compile(
@@ -108,7 +108,9 @@ def content_signals_nocrawl(content: str | None) -> bool:
 
 
 def extract_same_node_page_links(
-    content: str | None, *, max_links: int = 40
+    content: str | None,
+    *,
+    max_links: int = 40,
 ) -> list[str]:
     """Return unique /page/... paths linked from page content."""
     if not content:
@@ -309,7 +311,8 @@ class CrawlerManager:
             min(
                 3,
                 self._cfg_int(
-                    "crawler_requests_per_day_per_node", DEFAULT_REQUESTS_PER_DAY
+                    "crawler_requests_per_day_per_node",
+                    DEFAULT_REQUESTS_PER_DAY,
                 ),
             ),
         )
@@ -317,7 +320,8 @@ class CrawlerManager:
     @property
     def refresh_days(self) -> int:
         return max(
-            1, min(365, self._cfg_int("crawler_refresh_days", DEFAULT_REFRESH_DAYS))
+            1,
+            min(365, self._cfg_int("crawler_refresh_days", DEFAULT_REFRESH_DAYS)),
         )
 
     def is_opted_out(self, destination_hash: str) -> bool:
@@ -365,7 +369,8 @@ class CrawlerManager:
         return True, None, hops
 
     def path_ready_for_crawl(
-        self, destination_hash: str
+        self,
+        destination_hash: str,
     ) -> tuple[bool, str | None, int]:
         """Stricter gate used right before a network request."""
         ok, reason, hops = self.should_accept_node(destination_hash)
@@ -489,7 +494,10 @@ class CrawlerManager:
         return True
 
     def select_next_tasks(
-        self, *, max_retries: int, max_concurrent: int
+        self,
+        *,
+        max_retries: int,
+        max_concurrent: int,
     ) -> list[dict[str, Any]]:
         return self.database.misc.get_prioritized_crawl_tasks(
             max_retries=max_retries,

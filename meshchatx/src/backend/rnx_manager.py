@@ -479,7 +479,7 @@ class RNXSession:
         master_fd, slave_fd = pty.openpty()
         self._set_winsize(master_fd, self._rows, self._cols)
         try:
-            self._process = subprocess.Popen(  # noqa: S603
+            self._process = subprocess.Popen(
                 command,
                 stdin=slave_fd,
                 stdout=slave_fd,
@@ -503,7 +503,7 @@ class RNXSession:
 
     def _start_with_pipe(self, command):
         self._master_fd = None
-        self._process = subprocess.Popen(  # noqa: S603
+        self._process = subprocess.Popen(
             command,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,

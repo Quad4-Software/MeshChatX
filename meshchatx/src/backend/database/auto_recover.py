@@ -13,13 +13,13 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-from meshchatx.src.backend.database import Database, PRE_MIGRATE_BACKUP_PREFIX
+from meshchatx.src.backend.database import PRE_MIGRATE_BACKUP_PREFIX, Database
 from meshchatx.src.backend.database.provider import DatabaseProvider
 
-_SUSPICIOUS_RE = re.compile(r"SUSPICIOUS", re.I)
+_SUSPICIOUS_RE = re.compile(r"SUSPICIOUS", re.IGNORECASE)
 _PRE_MIGRATE_VERSION_RE = re.compile(
     rf"{re.escape(PRE_MIGRATE_BACKUP_PREFIX)}v(\d+)-to-v(\d+)",
-    re.I,
+    re.IGNORECASE,
 )
 
 
@@ -168,7 +168,7 @@ def pick_compatible_backup(
 ) -> dict[str, Any] | None:
     candidates = list_recovery_backup_candidates(storage_path)
     healthy = [row for row in candidates if not row.suspicious]
-    ordered = healthy if healthy else list(candidates)
+    ordered = healthy or list(candidates)
 
     for candidate in ordered:
         probe = probe_backup_zip(candidate.path)

@@ -41,12 +41,12 @@ from urllib.parse import urlparse
 import aiohttp
 import bcrypt
 import LXMF
-import psutil
-import RNS
 
 # meshchatx/__init__ already ensures pyogg ctypes aliases. Import LXST after
 # that package init so plain pip installs do not crash without the Docker patch.
 import LXST
+import psutil
+import RNS
 from aiohttp import WSCloseCode, WSMessage, WSMsgType, web
 from aiohttp_session import get_session
 from aiohttp_session import setup as setup_session
@@ -64,6 +64,11 @@ from meshchatx.src.backend import (
     reticulum_pathfinding,
     sticker_pack_utils,
 )
+from meshchatx.src.backend.active_sessions import (
+    ActiveSessionTracker,
+    should_warn_multi_session,
+)
+from meshchatx.src.backend.altcha_auth import altcha_enabled_from_env
 from meshchatx.src.backend.announce_manager import (
     filter_announced_dicts_by_search_query,
 )
@@ -73,19 +78,33 @@ from meshchatx.src.backend.app_security_settings import (
     load_app_security_settings,
     save_app_security_settings,
 )
+from meshchatx.src.backend.appcontainer_sandbox import (
+    appcontainer_auto_enabled,
+    appcontainer_disabled_by_env,
+    appcontainer_requested,
+    appcontainer_supported,
+    apply_windows_process_mitigations,
+    is_appcontainer_child,
+)
 from meshchatx.src.backend.async_utils import AsyncUtils
-from meshchatx.src.backend.safe_rotating_file_handler import SafeRotatingFileHandler
+from meshchatx.src.backend.auth_page_hint import auth_page_hint_from_env
+from meshchatx.src.backend.auto_resend_guard import (
+    AUTO_RESEND_COOLDOWN_SECONDS,
+    MAX_AUTO_RESEND_ATTEMPTS,
+    RECENT_SAME_CONTENT_SECONDS,
+    AutoResendCoordinator,
+    cooldown_until,
+    fields_have_attachments,
+    fields_with_auto_resend_count,
+    next_attempt_count,
+    parse_fields_dict,
+    should_skip_for_budget,
+)
 from meshchatx.src.backend.colour_utils import ColourUtils
 from meshchatx.src.backend.csrf import (
     ensure_session_csrf_token,
     rotate_session_csrf_token,
     validate_csrf_header,
-)
-from meshchatx.src.backend.altcha_auth import altcha_enabled_from_env
-from meshchatx.src.backend.auth_page_hint import auth_page_hint_from_env
-from meshchatx.src.backend.demo_mode import (
-    auth_bypass_from_env,
-    demo_auth_password_from_env,
 )
 from meshchatx.src.backend.database.access_attempts import (
     LOGIN_PATH,
@@ -97,6 +116,10 @@ from meshchatx.src.backend.database.access_attempts import (
     WINDOW_RATE_TRUSTED_S,
     WINDOW_RATE_UNTRUSTED_S,
     user_agent_hash,
+)
+from meshchatx.src.backend.demo_mode import (
+    auth_bypass_from_env,
+    demo_auth_password_from_env,
 )
 from meshchatx.src.backend.identity_context import IdentityContext
 from meshchatx.src.backend.identity_manager import IdentityManager
@@ -115,26 +138,15 @@ from meshchatx.src.backend.landlock_sandbox import (
     landlock_kernel_supported,
     landlock_requested,
 )
-from meshchatx.src.backend.appcontainer_sandbox import (
-    apply_windows_process_mitigations,
-    appcontainer_auto_enabled,
-    appcontainer_disabled_by_env,
-    appcontainer_requested,
-    appcontainer_supported,
-    is_appcontainer_child,
-)
-from meshchatx.src.backend.seccomp_sandbox import (
-    apply_seccomp_sandbox,
-    seccomp_auto_enabled,
-    seccomp_disabled_by_env,
-    seccomp_kernel_supported,
-    seccomp_requested,
-)
 from meshchatx.src.backend.legacy_migrator import (
     assert_migration_context_paths,
     fresh_storage_at_target,
     migrate_legacy_to_target,
     resolve_startup_storage,
+)
+from meshchatx.src.backend.local_message_retention import (
+    purge_messages_before_cutoff,
+    resolve_message_age_cutoff,
 )
 from meshchatx.src.backend.lxmf_message_fields import (
     LxmfAudioField,
@@ -210,22 +222,6 @@ from meshchatx.src.backend.message_blocklist import (
     parse_import_document,
     parse_message_blocklist_json,
 )
-from meshchatx.src.backend.auto_resend_guard import (
-    AUTO_RESEND_COOLDOWN_SECONDS,
-    MAX_AUTO_RESEND_ATTEMPTS,
-    RECENT_SAME_CONTENT_SECONDS,
-    AutoResendCoordinator,
-    cooldown_until,
-    fields_have_attachments,
-    fields_with_auto_resend_count,
-    next_attempt_count,
-    parse_fields_dict,
-    should_skip_for_budget,
-)
-from meshchatx.src.backend.local_message_retention import (
-    purge_messages_before_cutoff,
-    resolve_message_age_cutoff,
-)
 from meshchatx.src.backend.message_export_bundle import (
     build_messages_export_bundle,
     import_messages_export_bundle,
@@ -244,10 +240,6 @@ from meshchatx.src.backend.page_node_manager import PageNodeManager
 from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
 from meshchatx.src.backend.plugin_guard import PluginSecurityError
 from meshchatx.src.backend.plugin_manager import PluginManager
-from meshchatx.src.backend.active_sessions import (
-    ActiveSessionTracker,
-    should_warn_multi_session,
-)
 from meshchatx.src.backend.privacy_mode import (
     OutboundHttpBlockedError,
     ensure_outbound_http_allowed,
@@ -269,15 +261,23 @@ from meshchatx.src.backend.rns_link_manager import (
     RnsLinkManager,
     clear_all_cached_links,
 )
-from meshchatx.src.backend.rns_startup_recovery import (
-    create_reticulum_with_recovery,
-    install_rns_panic_containment,
-)
 from meshchatx.src.backend.rns_ratchet_persist import (
     install_bounded_ratchet_persist,
     raise_nofile_soft_limit,
 )
+from meshchatx.src.backend.rns_startup_recovery import (
+    create_reticulum_with_recovery,
+    install_rns_panic_containment,
+)
 from meshchatx.src.backend.rrc import protocol as rrc_protocol
+from meshchatx.src.backend.safe_rotating_file_handler import SafeRotatingFileHandler
+from meshchatx.src.backend.seccomp_sandbox import (
+    apply_seccomp_sandbox,
+    seccomp_auto_enabled,
+    seccomp_disabled_by_env,
+    seccomp_kernel_supported,
+    seccomp_requested,
+)
 from meshchatx.src.backend.sideband_commands import SidebandCommands
 from meshchatx.src.backend.sideband_plugin_loader import SidebandPluginLoader
 from meshchatx.src.backend.sticker_utils import (
@@ -427,15 +427,16 @@ def _create_reticulum_instance(config_dir: str, loglevel: int | None = None):
 
 
 def _install_reticulum_signal_handlers() -> bool:
-    """Install RNS SIGINT/SIGTERM handlers. Must run on the main thread."""
-    try:
-        signal.signal(signal.SIGINT, RNS.Reticulum.sigint_handler)
-        signal.signal(signal.SIGTERM, RNS.Reticulum.sigterm_handler)
-        return True
-    except ValueError:
-        return False
-    except Exception:
-        return False
+    """Install MeshChat SIGINT/SIGTERM handlers (flush DB, then GracefulExit).
+
+    Must run on the main thread. Replaces raw RNS handlers that used to call
+    RNS.exit / os._exit and skip SQLite WAL checkpoint.
+    """
+    from meshchatx.src.backend.lifecycle.signal_shutdown import (
+        install_meshchat_signal_handlers,
+    )
+
+    return install_meshchat_signal_handlers()
 
 
 def list_host_network_interfaces():
@@ -682,6 +683,12 @@ class ReticulumMeshChat:
         self.current_context: IdentityContext | None = None
         self._propagation_sync_metrics: dict[str, dict] = {}
         self._auto_resend_coordinator = AutoResendCoordinator()
+
+        from meshchatx.src.backend.lifecycle.signal_shutdown import (
+            register_shutdown_app,
+        )
+
+        register_shutdown_app(self)
 
         AsyncUtils.ensure_background_loop()
         self.web_audio_bridge = WebAudioBridge(
@@ -1524,7 +1531,7 @@ class ReticulumMeshChat:
         def restart():
             time.sleep(delay)
             try:
-                os.execv(sys.executable, [sys.executable] + sys.argv)  # noqa: S606
+                os.execv(sys.executable, [sys.executable] + sys.argv)
             except Exception as e:
                 print(f"Failed to restart: {e}")
                 os._exit(0)
@@ -2738,7 +2745,7 @@ class ReticulumMeshChat:
                                                     # Match IP and port for IPv4
                                                     if conn.laddr.port == addr[1] and (
                                                         conn.laddr.ip == addr[0]
-                                                        or addr[0] == "0.0.0.0"  # noqa: S104
+                                                        or addr[0] == "0.0.0.0"
                                                     ):
                                                         match = True
                                                 elif family_str == "AF_UNIX":
@@ -3917,8 +3924,8 @@ class ReticulumMeshChat:
         elapsed_ms = (time.monotonic() - started) * 1000.0
         rtt_ms = None
         try:
-            from meshchatx.src.backend.nomadnet_downloader import get_cached_active_link
             from meshchatx.src.backend.crawler_manager import link_rtt_ms
+            from meshchatx.src.backend.nomadnet_downloader import get_cached_active_link
 
             link = get_cached_active_link(bytes.fromhex(destination_hash))
             rtt_ms = link_rtt_ms(link)
@@ -5255,6 +5262,14 @@ class ReticulumMeshChat:
 
     # web server has shutdown, likely ctrl+c, but if we don't do the following, the script never exits
     async def shutdown(self, app):
+        # Always flush SQLite first. Signal handlers may have already done this.
+        with contextlib.suppress(Exception):
+            from meshchatx.src.backend.lifecycle.signal_shutdown import (
+                durable_flush_all_databases,
+            )
+
+            durable_flush_all_databases(self)
+
         for identity_hash in list(self.contexts.keys()):
             ctx = self.contexts.get(identity_hash)
             if ctx is None:
@@ -5995,17 +6010,17 @@ class ReticulumMeshChat:
 
         if "accent_color" in data:
             self.config.accent_color.set(
-                self._normalize_optional_hex_color(data["accent_color"])
+                self._normalize_optional_hex_color(data["accent_color"]),
             )
 
         if "custom_canvas_color" in data:
             self.config.custom_canvas_color.set(
-                self._normalize_optional_hex_color(data["custom_canvas_color"])
+                self._normalize_optional_hex_color(data["custom_canvas_color"]),
             )
 
         if "custom_surface_color" in data:
             self.config.custom_surface_color.set(
-                self._normalize_optional_hex_color(data["custom_surface_color"])
+                self._normalize_optional_hex_color(data["custom_surface_color"]),
             )
 
         # update language in config
@@ -7392,9 +7407,7 @@ class ReticulumMeshChat:
                 plugin_manager.on_rns_link_event(payload)
 
     async def websocket_broadcast(self, data):
-        if isinstance(data, (dict, list)):
-            data = json.dumps(data)
-        elif not isinstance(data, str):
+        if isinstance(data, (dict, list)) or not isinstance(data, str):
             data = json.dumps(data)
         # Serialize: concurrent callers must not interleave. The second snapshot must run
         # only after the first broadcast has finished mutating the live client list.
@@ -7718,7 +7731,7 @@ class ReticulumMeshChat:
 
         # 2. if identity recall failed, or we couldn't find a name for the calculated hash
         # try to look up an lxmf.delivery announce with this identity_hash in the database
-        lookup_hash = id_norm if id_norm else identity_hash
+        lookup_hash = id_norm or identity_hash
         announces = self.database.announces.get_filtered_announces(
             aspect="lxmf.delivery",
             identity_hash=lookup_hash,
@@ -7757,7 +7770,7 @@ class ReticulumMeshChat:
             return RNS.Destination.hash(identity, "lxmf", "delivery").hex()
 
         # fallback to announces
-        lookup_hash = id_norm if id_norm else identity_hash
+        lookup_hash = id_norm or identity_hash
         announces = self.database.announces.get_filtered_announces(
             aspect="lxmf.delivery",
             identity_hash=lookup_hash,
@@ -7773,7 +7786,7 @@ class ReticulumMeshChat:
     def get_lxst_telephony_hash_for_identity_hash(self, identity_hash: str):
         id_norm = normalize_hex_identifier(identity_hash) if identity_hash else ""
         # Primary: use announces table for lxst.telephony aspect
-        lookup_hash = id_norm if id_norm else identity_hash
+        lookup_hash = id_norm or identity_hash
         announces = self.database.announces.get_filtered_announces(
             aspect="lxst.telephony",
             identity_hash=lookup_hash,

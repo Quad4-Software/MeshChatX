@@ -37,18 +37,18 @@ def bake_lxst_filterlib(build_dir: Path) -> None:
     if not kept:
         raise SystemExit(
             "bake_frozen_lxst_native: no filterlib native artifact for this platform "
-            f"({sys.platform}, EXT_SUFFIX={ext_suffix!r})"
+            f"({sys.platform}, EXT_SUFFIX={ext_suffix!r})",
         )
 
     print(
-        f"bake_frozen_lxst_native: OK kept {kept!r} (removed {removed} alien blob(s))"
+        f"bake_frozen_lxst_native: OK kept {kept!r} (removed {removed} alien blob(s))",
     )
 
 
 def main() -> None:
     if len(sys.argv) != 2:
         raise SystemExit(
-            "usage: python -m meshchatx.src.backend.bake_frozen_lxst_native <build dir>"
+            "usage: python -m meshchatx.src.backend.bake_frozen_lxst_native <build dir>",
         )
     bake_lxst_filterlib(Path(sys.argv[1]).resolve())
 

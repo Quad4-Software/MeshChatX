@@ -3,9 +3,9 @@
 
 from __future__ import annotations
 
-from meshchatx.src.backend.http.live_names import inject_meshchat_names
 from meshchatx.src.backend.demo_mode import demo_mode_blocks_ws_type
-from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
+from meshchatx.src.backend.http.live_names import inject_meshchat_names
+from meshchatx.src.backend.http.meshchat_names import (
     AsyncUtils,
     json,
     logger,

@@ -128,7 +128,7 @@ class UserStickerPacksDAO:
         title: str | None = None,
         description: str | None = None,
         pack_type: str | None = None,
-        cover_sticker_id: int | None | object = ...,
+        cover_sticker_id: int | object | None = ...,
     ) -> bool:
         """Update mutable fields of an existing pack.
 

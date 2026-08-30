@@ -103,7 +103,8 @@ def parse_map_data_app_data(app_data) -> dict[str, Any]:
 
 
 def clamp_announce_interval(
-    value: Any, default: int = DEFAULT_ANNOUNCE_INTERVAL
+    value: Any,
+    default: int = DEFAULT_ANNOUNCE_INTERVAL,
 ) -> int:
     try:
         seconds = int(value)
@@ -211,7 +212,7 @@ class MapDataManager:
 
     def _published_count(self) -> int:
         return int(
-            self.database.map_published.count_for_identity(self.identity_hash()) or 0
+            self.database.map_published.count_for_identity(self.identity_hash()) or 0,
         )
 
     def _should_announce(self) -> bool:
@@ -341,17 +342,24 @@ class MapDataManager:
         return {"maps": maps}
 
     def _catalog_responder(
-        self, path, data, request_id, link_id, remote_identity, requested_at
+        self,
+        path,
+        data,
+        request_id,
+        link_id,
+        remote_identity,
+        requested_at,
     ):
         body = json.dumps(self._catalog_payload(), separators=(",", ":")).encode(
-            "utf-8"
+            "utf-8",
         )
         return body
 
     def _make_map_responder(self, map_id: str):
         def responder(path, data, request_id, link_id, remote_identity, requested_at):
             row = self.database.map_published.get_by_map_id(
-                self.identity_hash(), map_id
+                self.identity_hash(),
+                map_id,
             )
             if not row:
                 return None
@@ -499,7 +507,7 @@ class MapDataManager:
     ) -> dict[str, Any]:
         if display_name is not None:
             self.config.map_data_display_name.set(
-                str(display_name).strip()[:DISPLAY_NAME_MAX]
+                str(display_name).strip()[:DISPLAY_NAME_MAX],
             )
         if announce_enabled is not None:
             self.config.map_data_announce_enabled.set(bool(announce_enabled))
@@ -544,7 +552,10 @@ class MapDataManager:
             self._sync_announce_timer()
 
     def list_heard(
-        self, *, query: str | None = None, limit: int = 250
+        self,
+        *,
+        query: str | None = None,
+        limit: int = 250,
     ) -> list[dict[str, Any]]:
         from meshchatx.src.backend.announce_manager import AnnounceManager
 
@@ -648,7 +659,7 @@ class MapDataManager:
         dest = _require_dest_hash(destination_hash)
         if self._is_local_hash(dest):
             body = json.dumps(self._catalog_payload(), separators=(",", ":")).encode(
-                "utf-8"
+                "utf-8",
             )
             return self._parse_catalog_body(body, dest.hex())
         body = await self._link_request(dest, CATALOG_PATH)
@@ -687,7 +698,7 @@ class MapDataManager:
                 max_features=int(self.config.map_overlay_max_features.get() or 50_000),
                 max_kmz_uncompressed_bytes=int(
                     self.config.map_overlay_max_kmz_uncompressed_bytes.get()
-                    or (16 * 1024 * 1024)
+                    or (16 * 1024 * 1024),
                 ),
             )
         except GeoValidationError as exc:
@@ -695,7 +706,9 @@ class MapDataManager:
         return sanitized.data
 
     async def add_as_overlay(
-        self, destination_hash: str, map_id: str
+        self,
+        destination_hash: str,
+        map_id: str,
     ) -> dict[str, Any]:
         getter = self._overlay_manager_getter
         overlay_manager = getter() if getter else None

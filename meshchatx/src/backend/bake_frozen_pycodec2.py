@@ -79,7 +79,7 @@ def _extension_module(pkg: Path) -> Path | None:
             if path.is_file()
             and path.name.startswith("pycodec2")
             and path.suffix in {".so", ".pyd", ".dylib"}
-        ]
+        ],
     )
     return matches[0] if matches else None
 
@@ -185,7 +185,7 @@ def bake_frozen_pycodec2(build_dir: Path) -> None:
         if sys.platform == "darwin":
             raise SystemExit(
                 "bake_frozen_pycodec2: libcodec2 not found next to frozen pycodec2 "
-                "or in the build environment. The macOS app will crash on import LXST."
+                "or in the build environment. The macOS app will crash on import LXST.",
             )
         print("bake_frozen_pycodec2: libcodec2 not bundled, skipping")
         return
@@ -221,14 +221,14 @@ def bake_frozen_pycodec2(build_dir: Path) -> None:
 
     print(
         "bake_frozen_pycodec2: OK "
-        f"ext={ext_so.name} lib={canonical_name} src={source.name}"
+        f"ext={ext_so.name} lib={canonical_name} src={source.name}",
     )
 
 
 def main() -> None:
     if len(sys.argv) != 2:
         raise SystemExit(
-            "usage: python -m meshchatx.src.backend.bake_frozen_pycodec2 <build dir>"
+            "usage: python -m meshchatx.src.backend.bake_frozen_pycodec2 <build dir>",
         )
     bake_frozen_pycodec2(Path(sys.argv[1]).resolve())
 

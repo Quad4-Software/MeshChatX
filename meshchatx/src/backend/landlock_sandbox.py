@@ -596,7 +596,12 @@ def apply_landlock_sandbox(
                 read_roots.append(resolved)
         for root in read_roots:
             _add_path_beneath_rule(
-                libc, add_rule_nr, ruleset_fd, root, read_access, handled
+                libc,
+                add_rule_nr,
+                ruleset_fd,
+                root,
+                read_access,
+                handled,
             )
         rw_roots = _collect_rw_roots(storage_dir, reticulum_config_dir, log_dir)
         public_existing = _existing_dir(public_dir)
@@ -604,7 +609,12 @@ def apply_landlock_sandbox(
             rw_roots.append(public_existing)
         for root in rw_roots:
             _add_path_beneath_rule(
-                libc, add_rule_nr, ruleset_fd, root, rw_access, handled
+                libc,
+                add_rule_nr,
+                ruleset_fd,
+                root,
+                rw_access,
+                handled,
             )
         _syscall(libc, restrict_nr, ruleset_fd, 0)
     except OSError as exc:

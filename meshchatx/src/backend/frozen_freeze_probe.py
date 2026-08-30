@@ -35,8 +35,8 @@ def _lxst_filterlib_path() -> Path | None:
 
 
 def main() -> None:
-    import email.header  # noqa: F401
-    import email.message  # noqa: F401
+    import email.header
+    import email.message
     import email.policy  # noqa: F401
 
     import aiohttp  # noqa: F401

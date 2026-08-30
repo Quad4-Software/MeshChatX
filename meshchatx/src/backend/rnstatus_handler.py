@@ -412,7 +412,8 @@ class RNStatusHandler:
                 blackhole_sources = [s.hex() for s in RNS.Reticulum.blackhole_sources()]
 
                 if self.reticulum and hasattr(
-                    self.reticulum, "get_blackholed_identities"
+                    self.reticulum,
+                    "get_blackholed_identities",
                 ):
                     blackhole_count = len(self.reticulum.get_blackholed_identities())
 
