@@ -2,7 +2,7 @@
 
 <template>
     <!-- peer selected -->
-    <div v-if="selectedPeer" class="flex flex-col h-full bg-sem-surface overflow-hidden relative">
+    <div v-if="selectedPeer" class="flex flex-col h-full bg-sem-canvas overflow-hidden relative">
         <!-- banished overlay -->
         <div
             v-if="GlobalState?.config?.banished_effect_enabled && isSelectedPeerBlocked"
