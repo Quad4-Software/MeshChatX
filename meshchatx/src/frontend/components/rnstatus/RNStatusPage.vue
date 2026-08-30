@@ -635,6 +635,30 @@ export default {
                 this.refreshStatus();
             }
         },
+        onWebsocketMessage(message) {
+            let json;
+            try {
+                if (
+                    message &&
+                    typeof message === "object" &&
+                    typeof message.type === "string" &&
+                    message.data === undefined
+                ) {
+                    json = message;
+                } else {
+                    const raw = typeof message === "string" ? message : message?.data;
+                    json = typeof raw === "string" ? JSON.parse(raw) : message;
+                }
+            } catch {
+                return;
+            }
+            if (!json || typeof json !== "object" || typeof json.type !== "string") {
+                return;
+            }
+            if (json.type === "reticulum_reload_status") {
+                return this.onReloadStatus(json);
+            }
+        },
         async refreshStatus() {
             if (this.reloadingRns) {
                 return;

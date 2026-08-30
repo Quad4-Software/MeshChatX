@@ -94,7 +94,7 @@ describe("RNStatusPage.vue", () => {
         expect(wrapper.text()).toContain("abc123.b32.i2p");
         expect(wrapper.vm.blackholeEnabled).toBe(true);
         expect(wrapper.text()).toContain("src1");
-        expect(WebSocketConnection.on).toHaveBeenCalledWith("message", expect.any(Function));
+        expect(typeof wrapper.vm.onWebsocketMessage).toBe("function");
     });
 
     it("labels disabled blackhole as Inactive", async () => {

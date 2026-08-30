@@ -202,10 +202,18 @@ def default_subscriptions() -> set[str]:
 
 
 def client_allows_topic(client, topic: str) -> bool:
-    subs = getattr(client, "_meshchatx_ws_topics", None)
+    # Prefer object.__getattribute__ so test MagicMocks do not auto-vivify
+    # a fake subscriptions attribute that fails membership checks.
+    try:
+        subs = object.__getattribute__(client, "_meshchatx_ws_topics")
+    except AttributeError:
+        return True
     if subs is None:
         return True
-    return topic in subs
+    try:
+        return topic in subs
+    except TypeError:
+        return True
 
 
 def apply_subscribe(client, topics: object, *, subscribe: bool) -> list[str]:

@@ -25,13 +25,20 @@ WEBSOCKET_CONFIG_DENYLIST = frozenset(
     },
 )
 
-WEBSOCKET_PUBLIC_TYPES = frozenset(
+# Handled in websocket dispatch before WS_HANDLERS lookup.
+WEBSOCKET_RUNTIME_CONTROL_TYPES = frozenset(
     {
-        "ping",
         "ws.subscribe",
         "ws.unsubscribe",
         "sync.subscribe",
         "ws.caps",
+    },
+)
+
+WEBSOCKET_PUBLIC_TYPES = frozenset(
+    {
+        "ping",
+        *WEBSOCKET_RUNTIME_CONTROL_TYPES,
     },
 )
 

@@ -736,6 +736,45 @@ export default {
             }
             this.applyToPanePeers(destHash, { is_tracking: json.is_tracking });
         },
+        async onWebsocketMessage(message) {
+            let json;
+            try {
+                if (
+                    message &&
+                    typeof message === "object" &&
+                    typeof message.type === "string" &&
+                    message.data === undefined
+                ) {
+                    json = message;
+                } else {
+                    const raw = typeof message === "string" ? message : message?.data;
+                    json = typeof raw === "string" ? JSON.parse(raw) : message;
+                }
+            } catch {
+                return;
+            }
+            if (!json || typeof json !== "object" || typeof json.type !== "string") {
+                return;
+            }
+            switch (json.type) {
+                case "config":
+                    return this.onConfigEvent(json);
+                case "announce":
+                    return this.onAnnounceEvent(json);
+                case "lxmf.delivery":
+                    return this.onLxmfDeliveryEvent(json);
+                case "lxmf_message_created":
+                    return this.onLxmfMessageCreatedEvent(json);
+                case "lxmf_message_state_updated":
+                    return this.onLxmfMessageStateUpdatedEvent(json);
+                case "lxmf.telemetry":
+                    return this.onLxmfTelemetryEvent(json);
+                case "lxm.ingest_uri.result":
+                    return this.onLxmIngestUriResultEvent(json);
+                default:
+                    break;
+            }
+        },
         async onLxmIngestUriResultEvent(json) {
             if (json.ingest_type === "map_view" && json.map_query) {
                 const mq = json.map_query;
