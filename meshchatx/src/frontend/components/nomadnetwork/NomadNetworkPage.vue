@@ -271,6 +271,7 @@
                             <MaterialDesignIcon icon-name="fingerprint" class="size-5" />
                         </IconButton>
                         <IconButton
+                            v-if="!isPrivate"
                             class="nomad-icon-btn text-sem-fg-muted"
                             :title="$t('nomadnet.pop_out_browser')"
                             @click="openNomadnetPopout"
@@ -1540,7 +1541,7 @@ export default {
             };
         },
         openNomadnetPopout() {
-            if (!this.selectedNode) {
+            if (this.isPrivate || !this.selectedNode) {
                 return;
             }
             const destinationHash = this.selectedNode.destination_hash || "";
@@ -2155,7 +2156,7 @@ export default {
                     pagePath: pagePath,
                     title: this.selectedNode?.custom_display_name || this.selectedNode?.display_name || null,
                 });
-            } else {
+            } else if (!this.isPrivate) {
                 const routeName = this.isPopoutMode ? "nomadnetwork-popout" : "nomadnetwork";
                 const routeOptions = {
                     name: routeName,
@@ -2165,6 +2166,17 @@ export default {
                 };
                 if (!this.isPopoutMode && this.$route?.query) {
                     routeOptions.query = { ...this.$route.query };
+                }
+                this.$router.replace(routeOptions);
+            } else if (this.$route?.params?.destinationHash || this.$route?.query?.path) {
+                // Private non-embedded: strip any leaked hash/path from the URL bar.
+                const routeName = this.isPopoutMode ? "nomadnetwork-popout" : "nomadnetwork";
+                const routeOptions = { name: routeName, params: {} };
+                if (!this.isPopoutMode && this.$route?.query) {
+                    routeOptions.query = { ...this.$route.query };
+                    delete routeOptions.query.path;
+                    delete routeOptions.query.archive_id;
+                    delete routeOptions.query.newTab;
                 }
                 this.$router.replace(routeOptions);
             }

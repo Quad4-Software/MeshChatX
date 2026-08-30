@@ -652,9 +652,13 @@ export default {
         },
         syncRoute() {
             const tab = this.activeTab;
-            const targetHash = tab?.destinationHash || "";
+            // Private tabs keep destination state in memory only (SearXNG-style).
+            // Do not put the hash or page path in the URL bar, history, or Electron title.
+            const targetHash = tab?.private ? "" : tab?.destinationHash || "";
             const currentHash = this.$route?.params?.destinationHash || "";
-            if (targetHash === currentHash) {
+            const currentPath = this.$route?.query?.path || "";
+            const needsClearPrivateQuery = Boolean(tab?.private) && Boolean(currentPath);
+            if (targetHash === currentHash && !needsClearPrivateQuery) {
                 return;
             }
             const routeOptions = {

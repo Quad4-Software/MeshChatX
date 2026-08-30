@@ -658,4 +658,26 @@ describe("NomadNetworkBrowser.vue", () => {
         expect(opened).toHaveLength(1);
         expect(opened[0].private).toBe(true);
     });
+
+    it("syncRoute keeps private tab destinations out of the URL bar", async () => {
+        const wrapper = mountBrowser({}, { name: "nomadnetwork", params: { destinationHash: "d".repeat(32) }, query: {} });
+        routerReplace.mockClear();
+        const id = wrapper.vm.addTab("e".repeat(32), "/page/index.mu", "Secret", true, true);
+        expect(wrapper.vm.tabs.find((t) => t.id === id).private).toBe(true);
+        expect(routerReplace).toHaveBeenCalled();
+        const arg = routerReplace.mock.calls[routerReplace.mock.calls.length - 1][0];
+        expect(arg.name).toBe("nomadnetwork");
+        expect(arg.params.destinationHash).toBe("");
+        expect(arg.query?.path).toBeUndefined();
+
+        routerReplace.mockClear();
+        wrapper.vm.onTabNavigate(id, {
+            destinationHash: "f".repeat(32),
+            pagePath: "/page/secret.mu",
+            title: "Moved",
+        });
+        const afterNav = routerReplace.mock.calls[routerReplace.mock.calls.length - 1][0];
+        expect(afterNav.params.destinationHash).toBe("");
+        expect(afterNav.query?.path).toBeUndefined();
+    });
 });
