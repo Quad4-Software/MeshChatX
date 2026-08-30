@@ -406,7 +406,7 @@ class WebAudioBridge:
         try:
             if not self.loop:
                 return
-            send_fn = lambda pcm: self._send_bytes_to_all(pcm)  # noqa: E731
+            send_fn = lambda pcm: self._send_bytes_to_all(pcm)
             self.rx_sink = WebAudioSink(self.loop, send_fn)
             # Build tee with existing audio_output as first sink to preserve speaker
             base_sink = tele.audio_output

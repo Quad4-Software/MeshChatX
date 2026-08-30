@@ -162,6 +162,7 @@ class NomadnetDownloader:
         *,
         on_phase: Callable[[str], None] | None = None,
         reticulum: ReticulumLike | None = None,
+        private: bool = False,
     ):
         self.app_name = "nomadnetwork"
         self.aspects = "node"
@@ -174,6 +175,9 @@ class NomadnetDownloader:
         self.on_progress_update = on_progress_update
         self._on_phase = on_phase
         self._reticulum = reticulum
+        # Private browse: no shared link cache, tear down after the request.
+        # Does not spin IdentityContext. Nomad links stay unidentified.
+        self.private = bool(private)
         self.request_receipt = None
         self.is_cancelled = False
         self.link = None
@@ -219,7 +223,36 @@ class NomadnetDownloader:
 
         self._download_failure_callback("cancelled")
 
+    def _teardown_private_link(self) -> None:
+        if not self.private or self.link is None:
+            return
+        link = self.link
+        self.link = None
+        try:
+            link.teardown()
+        except Exception:
+            pass
+
     async def download(
+        self,
+        path_lookup_timeout: float | None = None,
+        link_establishment_timeout: float | None = None,
+    ):
+        try:
+            await self._download_inner(
+                path_lookup_timeout=path_lookup_timeout,
+                link_establishment_timeout=link_establishment_timeout,
+            )
+        except Exception as exc:
+            if self.is_cancelled:
+                return
+            print(f"[NomadnetDownloader] download failed: {exc}")
+            try:
+                self._download_failure_callback(str(exc) or "download_failed")
+            except Exception:
+                pass
+
+    async def _download_inner(
         self,
         path_lookup_timeout: float | None = None,
         link_establishment_timeout: float | None = None,
@@ -227,13 +260,14 @@ class NomadnetDownloader:
         if self.is_cancelled:
             return
 
-        cached = get_cached_active_link(self.destination_hash)
-        if cached is not None:
-            print("[NomadnetDownloader] using existing link for request")
-            self._emit_phase("requesting_page")
-            self.link = cached
-            self.link_established(cached)
-            return
+        if not self.private:
+            cached = get_cached_active_link(self.destination_hash)
+            if cached is not None:
+                print("[NomadnetDownloader] using existing link for request")
+                self._emit_phase("requesting_page")
+                self.link = cached
+                self.link_established(cached)
+                return
 
         if path_lookup_timeout is None:
             path_lookup_timeout = path_response_window(
@@ -242,10 +276,23 @@ class NomadnetDownloader:
             )
         timeout_after_seconds = time.time() + path_lookup_timeout
 
-        reticulum_pathfinding.prepare_fresh_path_request(
-            self._reticulum,
-            self.destination_hash,
-        )
+        # Prefer a live path over dropping on soft expiry. Announces can still
+        # show as fresh in the UI while the path table marks DESTINATION_TIMEOUT.
+        # Only rediscover when missing or Transport says the path is unresponsive.
+        has_path = RNS.Transport.has_path(self.destination_hash)
+        unresponsive = False
+        if has_path:
+            try:
+                unresponsive = bool(
+                    RNS.Transport.path_is_unresponsive(self.destination_hash),
+                )
+            except Exception:
+                unresponsive = False
+        if not has_path or unresponsive:
+            reticulum_pathfinding.prepare_fresh_path_request(
+                self._reticulum,
+                self.destination_hash,
+            )
 
         if not RNS.Transport.has_path(self.destination_hash):
             self._emit_phase("finding_path")
@@ -262,19 +309,29 @@ class NomadnetDownloader:
             self._download_failure_callback("Could not find path to destination.")
             return
 
-        cached = get_cached_active_link(self.destination_hash)
-        if cached is not None:
-            print("[NomadnetDownloader] using link cached while waiting for path")
-            self._emit_phase("requesting_page")
-            self.link = cached
-            self.link_established(cached)
-            return
+        if not self.private:
+            cached = get_cached_active_link(self.destination_hash)
+            if cached is not None:
+                print("[NomadnetDownloader] using link cached while waiting for path")
+                self._emit_phase("requesting_page")
+                self.link = cached
+                self.link_established(cached)
+                return
 
         if self.is_cancelled:
             return
 
         self._emit_phase("establishing_link")
         identity = RNS.Identity.recall(self.destination_hash)
+        if identity is None:
+            # Path table can list a dest before Identity.recall has the key.
+            # Requesting the path again often recovers; do not crash the task.
+            reticulum_pathfinding.nudge_path_request(self.destination_hash)
+            self._download_failure_callback(
+                "No identity key for destination yet. Try Path Finder or wait for an announce.",
+            )
+            return
+
         destination = RNS.Destination(
             identity,
             RNS.Destination.OUT,
@@ -283,13 +340,16 @@ class NomadnetDownloader:
             self.aspects,
         )
 
-        cached = get_cached_active_link(self.destination_hash)
-        if cached is not None:
-            print("[NomadnetDownloader] using link cached before establishing new link")
-            self._emit_phase("requesting_page")
-            self.link = cached
-            self.link_established(cached)
-            return
+        if not self.private:
+            cached = get_cached_active_link(self.destination_hash)
+            if cached is not None:
+                print(
+                    "[NomadnetDownloader] using link cached before establishing new link",
+                )
+                self._emit_phase("requesting_page")
+                self.link = cached
+                self.link_established(cached)
+                return
 
         print("[NomadnetDownloader] establishing new link for request")
         link = RNS.Link(destination, established_callback=self.link_established)
@@ -319,7 +379,8 @@ class NomadnetDownloader:
 
         self._emit_phase("transferring")
 
-        _cache_link_if_active(self.destination_hash, link)
+        if not self.private:
+            _cache_link_if_active(self.destination_hash, link)
 
         self.request_receipt = link.request(
             self.path,
@@ -331,10 +392,16 @@ class NomadnetDownloader:
         )
 
     def on_response(self, request_receipt: RNS.RequestReceipt):
-        self._download_success_callback(request_receipt)
+        try:
+            self._download_success_callback(request_receipt)
+        finally:
+            self._teardown_private_link()
 
     def on_failed(self, request_receipt=None):
-        self._download_failure_callback("request_failed")
+        try:
+            self._download_failure_callback("request_failed")
+        finally:
+            self._teardown_private_link()
 
     def on_progress(self, request_receipt):
         self.on_progress_update(request_receipt.progress)
@@ -353,6 +420,7 @@ class NomadnetPageDownloader(NomadnetDownloader):
         *,
         on_phase: Callable[[str], None] | None = None,
         reticulum: ReticulumLike | None = None,
+        private: bool = False,
     ):
         self.on_page_download_success = on_page_download_success
         self.on_page_download_failure = on_page_download_failure
@@ -366,6 +434,7 @@ class NomadnetPageDownloader(NomadnetDownloader):
             timeout,
             on_phase=on_phase,
             reticulum=reticulum,
+            private=private,
         )
 
     def on_download_success(self, request_receipt: RNS.RequestReceipt):
@@ -398,6 +467,7 @@ class NomadnetFileDownloader(NomadnetDownloader):
         on_phase: Callable[[str], None] | None = None,
         reticulum: ReticulumLike | None = None,
         max_bytes: int | None = None,
+        private: bool = False,
     ):
         self.on_file_download_success = on_file_download_success
         self.on_file_download_failure = on_file_download_failure
@@ -413,6 +483,7 @@ class NomadnetFileDownloader(NomadnetDownloader):
             timeout,
             on_phase=on_phase,
             reticulum=reticulum,
+            private=private,
         )
 
     @staticmethod

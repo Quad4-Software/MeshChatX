@@ -184,9 +184,9 @@ class HubCommandHandler:
             founder = st.get("founder")
             ops = st.get("ops") or set()
             peer_b = bytes(peer)
-            if isinstance(founder, (bytes, bytearray)) and bytes(founder) == peer_b:
-                is_room_op = True
-            elif isinstance(ops, set) and peer_b in {bytes(x) for x in ops}:
+            if (
+                isinstance(founder, (bytes, bytearray)) and bytes(founder) == peer_b
+            ) or (isinstance(ops, set) and peer_b in {bytes(x) for x in ops}):
                 is_room_op = True
         can_see = is_member or is_room_op or is_server_op
         if len(parts) == 2:

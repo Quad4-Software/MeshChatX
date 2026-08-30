@@ -150,7 +150,9 @@ class _H3Session:
                 )
                 if data:
                     self._http.send_data(
-                        stream_id=stream_id, data=data, end_stream=True
+                        stream_id=stream_id,
+                        data=data,
+                        end_stream=True,
                     )
 
                 waiter = self._loop.create_future()
@@ -553,7 +555,7 @@ class HTTPTunnelInterface(Interface):
                         (b"content-type", content_type.encode()),
                         (b"content-length", str(len(response_body)).encode()),
                     ],
-                }
+                },
             )
             await send({"type": "http.response.body", "body": response_body})
 
@@ -704,7 +706,7 @@ class HTTPTunnelInterface(Interface):
             )
             self._last_http_version = "HTTP/3"
         else:
-            verify = self.tls_ca_certs if self.tls_ca_certs else self.tls_verify
+            verify = self.tls_ca_certs or self.tls_verify
             limits = httpx.Limits(
                 max_connections=max(self.pool_maxsize, 1),
                 max_keepalive_connections=max(self.pool_maxsize, 1),

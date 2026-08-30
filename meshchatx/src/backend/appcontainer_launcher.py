@@ -38,10 +38,10 @@ def _parse_dir_flag(argv: list[str], flag: str) -> str | None:
 
 def _resolve_paths(argv: list[str]) -> tuple[str | None, str | None, str | None]:
     storage = _parse_dir_flag(argv, "--storage-dir") or os.environ.get(
-        "MESHCHAT_STORAGE_DIR"
+        "MESHCHAT_STORAGE_DIR",
     )
     reticulum = _parse_dir_flag(argv, "--reticulum-config-dir") or os.environ.get(
-        "MESHCHAT_RETICULUM_CONFIG_DIR"
+        "MESHCHAT_RETICULUM_CONFIG_DIR",
     )
     log_dir = os.environ.get("MESHCHAT_LOG_DIR")
     if not log_dir and storage:

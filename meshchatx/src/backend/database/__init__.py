@@ -63,7 +63,9 @@ def _zip_file_date_time(file_path: str) -> tuple:
 
 
 def _zip_write_file(
-    zf: zipfile.ZipFile, file_path: str, arcname: str | None = None
+    zf: zipfile.ZipFile,
+    file_path: str,
+    arcname: str | None = None,
 ) -> None:
     name = arcname if arcname is not None else os.path.basename(file_path)
     with open(file_path, "rb") as handle:
@@ -536,22 +538,24 @@ class Database:
     def check_db_health_at_close(self, storage_path):
         """Run health checks before closing the database (for logging only).
 
-        Returns issue strings. Empty if healthy.
+        Uses quick_check instead of full integrity_check so Ctrl+C during
+        shutdown is less likely to race a long scan. Returns issue strings.
+        Empty if healthy.
         """
         issues = []
         try:
-            integrity_rows = self.provider.integrity_check()
-            if not integrity_rows:
-                issues.append("Database integrity check failed: no result")
+            quick_rows = self.provider.quick_check()
+            if not quick_rows:
+                issues.append("Database quick_check failed: no result")
                 _log.warning("DB close health check: no result")
             else:
-                first = integrity_rows[0]
+                first = quick_rows[0]
                 val = (
                     next(iter(first.values())) if isinstance(first, dict) else first[0]
                 )
                 if val != "ok":
                     issues.append(f"Database integrity check failed: {val!s}")
-                    _log.warning("DB close health check: integrity failed")
+                    _log.warning("DB close health check: quick_check failed")
         except Exception as e:
             _log.warning("DB close health check: %s", e)
 
@@ -694,6 +698,29 @@ class Database:
             self.close_all()
         except Exception as e:
             print(f"Failed to close database: {e}")
+
+    def durable_shutdown(self):
+        """Commit, force a durable WAL checkpoint, then close all connections.
+
+        Use on SIGINT/SIGTERM and identity teardown so Ctrl+C cannot leave an
+        uncheckpointed WAL that later fails PRAGMA quick_check.
+        """
+        try:
+            # FULL before the final checkpoint so the last pages hit disk even
+            # when the process is about to die (NORMAL can delay fsync).
+            self.execute_sql("PRAGMA synchronous=FULL")
+        except Exception as e:
+            print(f"Failed to set synchronous=FULL before shutdown: {e}")
+        try:
+            self._checkpoint_wal("TRUNCATE")
+        except Exception as e:
+            print(f"Failed to checkpoint WAL during durable shutdown: {e}")
+            with suppress(Exception):
+                self._checkpoint_wal("FULL")
+        try:
+            self.close_all()
+        except Exception as e:
+            print(f"Failed to close database during durable shutdown: {e}")
 
     def close(self):
         self.close_all()
@@ -839,7 +866,10 @@ class Database:
         return sorted(backups, key=lambda row: row["created_at"], reverse=True)
 
     def copy_auto_backup(
-        self, storage_path: str, filename: str, dest_path: str
+        self,
+        storage_path: str,
+        filename: str,
+        dest_path: str,
     ) -> dict:
         from meshchatx.src.path_utils import safe_path_under_dir
 

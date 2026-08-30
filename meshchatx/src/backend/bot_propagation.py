@@ -15,12 +15,12 @@ from meshchatx.src.backend.bot_lxmf_config import (
 __all__ = [
     "load_bot_lxmf_config_sidecar",
     "normalize_lxmf_destination_hash",
+    "propagation_settings_from_cli",
+    "propagation_settings_to_cli_args",
+    "resolve_bot_lxmf_propagation_settings",
     "resolve_effective_bot_lxmf_settings",
     "resolve_host_lxmf_propagation_settings",
     "write_bot_lxmf_config_sidecar",
-    "resolve_bot_lxmf_propagation_settings",
-    "propagation_settings_to_cli_args",
-    "propagation_settings_from_cli",
 ]
 
 resolve_bot_lxmf_propagation_settings = resolve_host_lxmf_propagation_settings

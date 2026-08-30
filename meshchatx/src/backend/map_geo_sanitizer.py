@@ -12,8 +12,8 @@ from io import BytesIO
 from xml.etree import ElementTree as ET
 
 from meshchatx.src.backend.map_geo_validator import (
-    GeoValidationError,
     ZIP_LOCAL_HEADER,
+    GeoValidationError,
     sniff_format,
 )
 
@@ -192,13 +192,11 @@ def _walk_strip_kml(
         if href is not None:
             if is_allowed_data_image_href(href):
                 pass
-            elif is_remote_href(href) or href.strip().lower().startswith("data:"):
-                stripped.append("remote_href")
-                if _strip_ns(child.tag).lower() == "href":
-                    el.remove(child)
-                    continue
-                _set_href_on_element(child, None)
-            elif not zip_local_ok:
+            elif (
+                is_remote_href(href)
+                or href.strip().lower().startswith("data:")
+                or not zip_local_ok
+            ):
                 stripped.append("remote_href")
                 if _strip_ns(child.tag).lower() == "href":
                     el.remove(child)
@@ -231,7 +229,10 @@ def sanitize_kml_bytes(data: bytes, *, zip_local_ok: bool = False) -> SanitizeRe
         raise GeoValidationError("remote_content")
     out = ET.tostring(root, encoding="utf-8", xml_declaration=True)
     return SanitizeResult(
-        data=out, format="kml", stripped=stripped, feature_count=count
+        data=out,
+        format="kml",
+        stripped=stripped,
+        feature_count=count,
     )
 
 
@@ -255,7 +256,7 @@ def _retain_kmz_local_hrefs(
                 stripped.append(
                     "unsafe_kmz_entry"
                     if resolved and resolved in kept
-                    else "remote_href"
+                    else "remote_href",
                 )
                 if _strip_ns(child.tag).lower() == "href":
                     el.remove(child)
@@ -394,11 +395,17 @@ def sanitize_geojson_bytes(data: bytes) -> SanitizeResult:
             count = 1
     if not stripped:
         return SanitizeResult(
-            data=data, format="geojson", stripped=[], feature_count=count
+            data=data,
+            format="geojson",
+            stripped=[],
+            feature_count=count,
         )
     out = json.dumps(obj, separators=(",", ":")).encode("utf-8")
     return SanitizeResult(
-        data=out, format="geojson", stripped=stripped, feature_count=count
+        data=out,
+        format="geojson",
+        stripped=stripped,
+        feature_count=count,
     )
 
 

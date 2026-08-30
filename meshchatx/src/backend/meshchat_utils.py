@@ -86,7 +86,7 @@ def list_inbound_deliveries(router) -> list[dict]:
                     "size_bytes": size,
                     "transfer_size_bytes": transfer_size,
                     "progress": progress,
-                }
+                },
             )
         except Exception:
             continue

@@ -213,8 +213,7 @@ def _resolve_shebang_interpreter(program: str) -> str | None:
         if found:
             return found
     stem = name.lower()
-    if stem.endswith(".exe"):
-        stem = stem[:-4]
+    stem = stem.removesuffix(".exe")
     if not frozen and stem in ("python", "python3", "py"):
         executable = sys.executable
         if executable and os.path.isfile(executable):
@@ -399,7 +398,9 @@ class PageNode:
         self._sync_announce_timer()
 
     def set_announce_settings(
-        self, announce_enabled=None, announce_interval_seconds=None
+        self,
+        announce_enabled=None,
+        announce_interval_seconds=None,
     ):
         """Update announce enablement and/or interval, then resync the periodic timer."""
         if announce_enabled is not None:
@@ -622,7 +623,11 @@ class PageNode:
             return f.read()
 
     def _execute_page_bytes(
-        self, page_path, data=None, link_id=None, remote_identity=None
+        self,
+        page_path,
+        data=None,
+        link_id=None,
+        remote_identity=None,
     ):
         env_map = _build_executable_page_env(data, link_id, remote_identity)
         run_kwargs = {

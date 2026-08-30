@@ -10,25 +10,25 @@ import RNS
 from meshchatx.src.backend.announce_handler import AnnounceHandler
 from meshchatx.src.backend.announce_manager import AnnounceManager
 from meshchatx.src.backend.archiver_manager import ArchiverManager
-from meshchatx.src.backend.crawler_manager import CrawlerManager
 from meshchatx.src.backend.auto_propagation_manager import AutoPropagationManager
 from meshchatx.src.backend.bot_handler import BotHandler
 from meshchatx.src.backend.community_interfaces import CommunityInterfacesManager
 from meshchatx.src.backend.config_manager import ConfigManager
+from meshchatx.src.backend.crawler_manager import CrawlerManager
 from meshchatx.src.backend.database import Database, merge_health_issues
 from meshchatx.src.backend.docs_manager import DocsManager
 from meshchatx.src.backend.forwarding_manager import ForwardingManager
-from meshchatx.src.backend.lxmf_inbound_policy import (
-    install_lxmf_inbound_delivery_policy,
-)
 from meshchatx.src.backend.integrity_manager import (
     CriticalIntegrityError,
     IntegrityManager,
     select_critical_integrity_issues,
 )
+from meshchatx.src.backend.lxmf_inbound_policy import (
+    install_lxmf_inbound_delivery_policy,
+)
+from meshchatx.src.backend.map_data_manager import MapDataManager
 from meshchatx.src.backend.map_manager import MapManager
 from meshchatx.src.backend.map_overlay_manager import MapOverlayManager
-from meshchatx.src.backend.map_data_manager import MapDataManager
 from meshchatx.src.backend.meshchat_utils import create_lxmf_router
 from meshchatx.src.backend.message_handler import MessageHandler
 from meshchatx.src.backend.nomadnet_utils import NomadNetworkManager
@@ -38,8 +38,8 @@ from meshchatx.src.backend.rncp_handler import RNCPHandler
 from meshchatx.src.backend.rnpath_handler import RNPathHandler
 from meshchatx.src.backend.rnpath_trace_handler import RNPathTraceHandler
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
-from meshchatx.src.backend.rnsh_manager import RNSHManager
 from meshchatx.src.backend.rns_filesync_handler import RnsFilesyncHandler
+from meshchatx.src.backend.rnsh_manager import RNSHManager
 from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
 from meshchatx.src.backend.rnx_manager import RNXManager
 from meshchatx.src.backend.rrc import RRCManager, RRCServerManager
@@ -1139,22 +1139,38 @@ class IdentityContext:
         self.community_interfaces_manager = None
 
         if self.database:
+            db_path = self.database_path
             try:
-                if not getattr(self.app, "emergency", False):
-                    close_issues = self.database.check_db_health_at_close(
-                        self.storage_path,
-                    )
-                    if close_issues:
-                        print(
-                            f"Database health at close for {self.identity_hash}: {', '.join(close_issues)}",
-                        )
-                self.database._checkpoint_and_close()
+                # Flush WAL before any close-time health scans so a second
+                # Ctrl+C cannot SIGKILL an uncheckpointed database.
+                self.database.durable_shutdown()
             except Exception as e:
                 print(
                     f"Error closing database during teardown for {self.identity_hash}: {e}",
                 )
 
-            # 2. Save integrity manifest AFTER closing to capture final stable state
+            try:
+                if not getattr(self.app, "emergency", False) and db_path:
+                    # Handles are closed. Probe via a fresh SQLite connection so
+                    # we do not revive the shutdown provider mid-teardown.
+                    import sqlite3
+
+                    conn = sqlite3.connect(db_path)
+                    try:
+                        row = conn.execute("PRAGMA quick_check").fetchone()
+                        if not row or row[0] != "ok":
+                            print(
+                                f"Database health at close for {self.identity_hash}: "
+                                f"Database integrity check failed: {row[0] if row else 'no result'}",
+                            )
+                    finally:
+                        conn.close()
+            except Exception as e:
+                print(
+                    f"Error checking database health after close for {self.identity_hash}: {e}",
+                )
+
+            # Save integrity manifest AFTER closing to capture final stable state
             if self.integrity_manager:
                 self.integrity_manager.save_manifest()
             self.database = None

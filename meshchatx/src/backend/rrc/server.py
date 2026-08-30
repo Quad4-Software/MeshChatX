@@ -26,7 +26,7 @@ from meshchatx.src.backend.rrc.room_key_crypto import (
     room_keys_equal,
 )
 from meshchatx.src.backend.rrc.room_registry import RoomRegistry
-from meshchatx.src.backend.rrc.rooms_toml import RoomsTomlStore, INVITE_DEFAULT_TTL_S
+from meshchatx.src.backend.rrc.rooms_toml import INVITE_DEFAULT_TTL_S, RoomsTomlStore
 
 SERVER_DIR_NAME = "rrc_server"
 MESSAGE_LOG_CAP = 5000
@@ -546,7 +546,8 @@ class RRCHubServer:
                 peer,
             ):
                 if not room_keys_equal(
-                    join_body if isinstance(join_body, str) else None, key
+                    join_body if isinstance(join_body, str) else None,
+                    key,
                 ):
                     self._queue_error(outgoing, link, "bad key (+k)", room=r)
                     return

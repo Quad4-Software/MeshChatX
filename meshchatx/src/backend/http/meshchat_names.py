@@ -6,10 +6,12 @@ from __future__ import annotations
 
 from meshchatx.src.backend.http.live_names import LiveMeshchatName
 from meshchatx.src.backend.map_geo_validator import GeoValidationError  # noqa: F401
-from meshchatx.src.backend.privacy_mode import OutboundHttpBlockedError  # noqa: F401
 from meshchatx.src.backend.map_overlay_export import OverlayExportError  # noqa: F401
-from meshchatx.src.backend.map_overlay_sources import OverlaySourceParseError  # noqa: F401
+from meshchatx.src.backend.map_overlay_sources import (
+    OverlaySourceParseError,  # noqa: F401
+)
 from meshchatx.src.backend.plugin_guard import PluginSecurityError  # noqa: F401
+from meshchatx.src.backend.privacy_mode import OutboundHttpBlockedError  # noqa: F401
 
 AsyncUtils = LiveMeshchatName("AsyncUtils")
 InterfaceConfigParser = LiveMeshchatName("InterfaceConfigParser")
@@ -50,7 +52,7 @@ cache_stats = LiveMeshchatName("cache_stats")
 cancel_inbound_deliveries = LiveMeshchatName("cancel_inbound_deliveries")
 cast = LiveMeshchatName("cast")
 compute_lxmf_conversation_unread_from_latest_row = LiveMeshchatName(
-    "compute_lxmf_conversation_unread_from_latest_row"
+    "compute_lxmf_conversation_unread_from_latest_row",
 )
 configparser = LiveMeshchatName("configparser")
 contextlib = LiveMeshchatName("contextlib")
@@ -58,13 +60,13 @@ convert_db_favourite_to_dict = LiveMeshchatName("convert_db_favourite_to_dict")
 convert_db_lxmf_message_to_dict = LiveMeshchatName("convert_db_lxmf_message_to_dict")
 convert_lxmf_message_to_dict = LiveMeshchatName("convert_lxmf_message_to_dict")
 convert_nomadnet_field_data_to_map = LiveMeshchatName(
-    "convert_nomadnet_field_data_to_map"
+    "convert_nomadnet_field_data_to_map",
 )
 convert_nomadnet_string_data_to_map = LiveMeshchatName(
-    "convert_nomadnet_string_data_to_map"
+    "convert_nomadnet_string_data_to_map",
 )
 convert_propagation_node_state_to_string = LiveMeshchatName(
-    "convert_propagation_node_state_to_string"
+    "convert_propagation_node_state_to_string",
 )
 copy = LiveMeshchatName("copy")
 datetime = LiveMeshchatName("datetime")
@@ -73,7 +75,7 @@ detect_image_format_from_magic = LiveMeshchatName("detect_image_format_from_magi
 ensure_outbound_http_allowed = LiveMeshchatName("ensure_outbound_http_allowed")
 ensure_session_csrf_token = LiveMeshchatName("ensure_session_csrf_token")
 filter_announced_dicts_by_search_query = LiveMeshchatName(
-    "filter_announced_dicts_by_search_query"
+    "filter_announced_dicts_by_search_query",
 )
 fresh_storage_at_target = LiveMeshchatName("fresh_storage_at_target")
 get_cached_active_link = LiveMeshchatName("get_cached_active_link")
@@ -96,7 +98,7 @@ load_app_security_settings = LiveMeshchatName("load_app_security_settings")
 logger = LiveMeshchatName("logger")
 logging = LiveMeshchatName("logging")
 lxmf_sidebar_preview_for_conversation_latest_row = LiveMeshchatName(
-    "lxmf_sidebar_preview_for_conversation_latest_row"
+    "lxmf_sidebar_preview_for_conversation_latest_row",
 )
 memory_log_handler = LiveMeshchatName("memory_log_handler")
 message_fields_have_attachments = LiveMeshchatName("message_fields_have_attachments")
@@ -110,13 +112,13 @@ parse_bool_query_param = LiveMeshchatName("parse_bool_query_param")
 parse_import_document = LiveMeshchatName("parse_import_document")
 parse_lxmf_display_name = LiveMeshchatName("parse_lxmf_display_name")
 parse_lxmf_propagation_node_app_data = LiveMeshchatName(
-    "parse_lxmf_propagation_node_app_data"
+    "parse_lxmf_propagation_node_app_data",
 )
 parse_lxmf_sieve_filters_json = LiveMeshchatName("parse_lxmf_sieve_filters_json")
 parse_lxmf_stamp_cost = LiveMeshchatName("parse_lxmf_stamp_cost")
 parse_message_blocklist_json = LiveMeshchatName("parse_message_blocklist_json")
 parse_nomadnetwork_node_display_name = LiveMeshchatName(
-    "parse_nomadnetwork_node_display_name"
+    "parse_nomadnetwork_node_display_name",
 )
 platform = LiveMeshchatName("platform")
 privacy_mode_enabled = LiveMeshchatName("privacy_mode_enabled")

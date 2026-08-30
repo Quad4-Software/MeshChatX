@@ -3,34 +3,33 @@
 
 from __future__ import annotations
 
-
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    GeoValidationError,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
+    LOGIN_PATH,
+    LXMF,
+    MAX_EXPORT_TILES,
+    RNS,
+    SETUP_PATH,
+    TRANSPARENT_TILE,
+    UTC,
     AsyncUtils,
+    GeoValidationError,
     InterfaceConfigParser,
     InterfaceDiscovery,
     InterfaceEditor,
-    LOGIN_PATH,
-    LXMF,
     LxmfAudioField,
     LxmfFileAttachment,
     LxmfFileAttachmentsField,
     LxmfImageField,
-    MAX_EXPORT_TILES,
     MarkdownRenderer,
     NomadnetFileDownloader,
     NomadnetPageDownloader,
-    RNProbeHandler,
-    RNS,
+    OutboundHttpBlockedError,
+    OverlayExportError,
+    OverlaySourceParseError,
+    PluginSecurityError,
     ReticulumMeshChat,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
+    RNProbeHandler,
     Telemeter,
-    UTC,
     WSMsgType,
     _is_chaquopy_android,
     _is_loopback_bind_host,
@@ -310,6 +309,7 @@ async def handle_nomadnet_file_download(app, client, data):
     destination_hash_hex = download_data.get("destination_hash")
     file_path = download_data.get("file_path")
     request_data = download_data.get("data")
+    private = bool(download_data.get("private"))
     if isinstance(request_data, str):
         request_data = convert_nomadnet_string_data_to_map(request_data)
     elif request_data is None:
@@ -345,6 +345,7 @@ async def handle_nomadnet_file_download(app, client, data):
                             "file_bytes": base64.b64encode(file_bytes).decode(
                                 "utf-8",
                             ),
+                            "private": private,
                         },
                     },
                 ),
@@ -462,6 +463,7 @@ async def handle_nomadnet_file_download(app, client, data):
         data=request_data,
         on_phase=on_file_download_phase,
         reticulum=getattr(app, "reticulum", None),
+        private=private,
     )
     downloader.start_time = time.time()
     app.active_downloads[download_id] = downloader
@@ -495,6 +497,7 @@ async def handle_nomadnet_page_download(app, client, data):
     destination_hash = page_download_data.get("destination_hash")
     page_path = page_download_data.get("page_path")
     field_data = page_download_data.get("field_data")
+    private = bool(page_download_data.get("private"))
 
     if not destination_hash or not page_path:
         return
@@ -534,7 +537,8 @@ async def handle_nomadnet_page_download(app, client, data):
         request_data=combined_data,
     )
     if local_page is not None:
-        app.archive_page(destination_hash.hex(), page_path, local_page)
+        if not private:
+            app.archive_page(destination_hash.hex(), page_path, local_page)
         AsyncUtils.run_async(
             client.send_str(
                 json.dumps(
@@ -546,6 +550,7 @@ async def handle_nomadnet_page_download(app, client, data):
                             "destination_hash": destination_hash.hex(),
                             "page_path": page_path,
                             "page_content": local_page,
+                            "private": private,
                         },
                     },
                 ),
@@ -559,8 +564,9 @@ async def handle_nomadnet_page_download(app, client, data):
         if download_id in app.active_downloads:
             del app.active_downloads[download_id]
 
-        # archive the page if enabled
-        app.archive_page(destination_hash.hex(), page_path, page_content)
+        # archive the page if enabled (never for private browse)
+        if not private:
+            app.archive_page(destination_hash.hex(), page_path, page_content)
 
         AsyncUtils.run_async(
             client.send_str(
@@ -573,6 +579,7 @@ async def handle_nomadnet_page_download(app, client, data):
                             "destination_hash": destination_hash.hex(),
                             "page_path": page_path,
                             "page_content": page_content,
+                            "private": private,
                         },
                     },
                 ),
@@ -585,16 +592,18 @@ async def handle_nomadnet_page_download(app, client, data):
         if download_id in app.active_downloads:
             del app.active_downloads[download_id]
 
-        # check if there are any archived versions
-        has_archives = (
-            len(
-                app.get_archived_page_versions(
-                    destination_hash.hex(),
-                    page_path,
-                ),
+        # check if there are any archived versions (not offered in private browse)
+        has_archives = False
+        if not private:
+            has_archives = (
+                len(
+                    app.get_archived_page_versions(
+                        destination_hash.hex(),
+                        page_path,
+                    ),
+                )
+                > 0
             )
-            > 0
-        )
 
         AsyncUtils.run_async(
             client.send_str(
@@ -661,6 +670,7 @@ async def handle_nomadnet_page_download(app, client, data):
         on_page_download_progress,
         on_phase=on_page_download_phase,
         reticulum=getattr(app, "reticulum", None),
+        private=private,
     )
     app.active_downloads[download_id] = downloader
 

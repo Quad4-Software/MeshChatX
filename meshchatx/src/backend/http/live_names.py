@@ -41,9 +41,11 @@ def inject_meshchat_names(module_globals: dict[str, Any]) -> None:
             continue
         if isinstance(value, type) and issubclass(value, BaseException):
             module_globals[key] = value
-        elif isinstance(value, types.ModuleType):
-            module_globals[key] = LiveMeshchatName(key)
-        elif isinstance(value, type) or callable(value):
+        elif (
+            isinstance(value, types.ModuleType)
+            or isinstance(value, type)
+            or callable(value)
+        ):
             module_globals[key] = LiveMeshchatName(key)
         else:
             module_globals[key] = value

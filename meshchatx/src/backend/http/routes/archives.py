@@ -3,35 +3,34 @@
 
 from __future__ import annotations
 
-
 from meshchatx.src.backend.crawler_manager import make_snippet
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    GeoValidationError,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
+    LOGIN_PATH,
+    LXMF,
+    MAX_EXPORT_TILES,
+    RNS,
+    SETUP_PATH,
+    TRANSPARENT_TILE,
+    UTC,
     AsyncUtils,
+    GeoValidationError,
     InterfaceConfigParser,
     InterfaceDiscovery,
     InterfaceEditor,
-    LOGIN_PATH,
-    LXMF,
     LxmfAudioField,
     LxmfFileAttachment,
     LxmfFileAttachmentsField,
     LxmfImageField,
-    MAX_EXPORT_TILES,
     MarkdownRenderer,
     NomadnetFileDownloader,
     NomadnetPageDownloader,
-    RNProbeHandler,
-    RNS,
+    OutboundHttpBlockedError,
+    OverlayExportError,
+    OverlaySourceParseError,
+    PluginSecurityError,
     ReticulumMeshChat,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
+    RNProbeHandler,
     Telemeter,
-    UTC,
     WSMsgType,
     _is_chaquopy_android,
     _is_loopback_bind_host,
@@ -204,7 +203,7 @@ def register_archives_routes(routes, app):
             if content is None and preview is not None:
                 content = preview
             raw_preview = (content or "")[:2000]
-            snippet = make_snippet(content, query if query else None)
+            snippet = make_snippet(content, query or None)
             entry = {
                 "id": archive["id"],
                 "destination_hash": archive["destination_hash"],
@@ -319,7 +318,7 @@ def register_archives_routes(routes, app):
             )
             app.database.misc.cancel_crawl_tasks_for_destination(destination_hash)
         return web.json_response(
-            {"message": "opt-out recorded", "destination_hash": destination_hash}
+            {"message": "opt-out recorded", "destination_hash": destination_hash},
         )
 
     @routes.delete("/api/v1/nomadnet/crawl/opt-outs/{destination_hash}")
@@ -342,7 +341,7 @@ def register_archives_routes(routes, app):
         else:
             app.database.misc.delete_crawl_opt_out(destination_hash)
         return web.json_response(
-            {"message": "opt-out removed", "destination_hash": destination_hash}
+            {"message": "opt-out removed", "destination_hash": destination_hash},
         )
 
     @routes.post("/api/v1/nomadnet/archives/recrawl")

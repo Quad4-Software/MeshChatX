@@ -21,7 +21,7 @@ ALLOWED_INTERFACE_MODES = frozenset(
         "roaming",
         "boundary",
         "internal",
-    }
+    },
 )
 
 # Prefer writing the long form when aliases are supplied via the API.

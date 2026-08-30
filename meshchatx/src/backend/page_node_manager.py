@@ -149,7 +149,10 @@ class PageNodeManager:
                     print(f"Failed to announce page node {node.node_id}: {e}")
 
     def set_announce_settings(
-        self, node_id, announce_enabled=None, announce_interval_seconds=None
+        self,
+        node_id,
+        announce_enabled=None,
+        announce_interval_seconds=None,
     ):
         """Update a node's announce enablement/interval, persist, and resync its timer."""
         node = self.nodes.get(node_id)

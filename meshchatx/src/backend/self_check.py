@@ -959,13 +959,16 @@ async def _run_web_api_probes(app: Any) -> dict[str, dict[str, str]]:
                     None
                     if body.get("app_info", {}).get("version")
                     and isinstance(
-                        body.get("app_info", {}).get("appcontainer_supported"), bool
+                        body.get("app_info", {}).get("appcontainer_supported"),
+                        bool,
                     )
                     and isinstance(
-                        body.get("app_info", {}).get("landlock_active"), bool
+                        body.get("app_info", {}).get("landlock_active"),
+                        bool,
                     )
                     and isinstance(
-                        body.get("app_info", {}).get("fs_sandbox_active"), bool
+                        body.get("app_info", {}).get("fs_sandbox_active"),
+                        bool,
                     )
                     and isinstance(body.get("app_info", {}).get("seccomp_active"), bool)
                     else "app_info missing version or FS sandbox status fields"

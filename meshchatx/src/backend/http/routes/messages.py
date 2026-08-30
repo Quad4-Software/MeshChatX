@@ -3,35 +3,34 @@
 
 from __future__ import annotations
 
-
 from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    GeoValidationError,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
+    LOGIN_PATH,
+    LXMF,
+    MAX_EXPORT_TILES,
+    RNS,
+    SETUP_PATH,
+    TRANSPARENT_TILE,
+    UTC,
     AsyncUtils,
+    GeoValidationError,
     InterfaceConfigParser,
     InterfaceDiscovery,
     InterfaceEditor,
-    LOGIN_PATH,
-    LXMF,
     LxmfAudioField,
     LxmfFileAttachment,
     LxmfFileAttachmentsField,
     LxmfImageField,
-    MAX_EXPORT_TILES,
     MarkdownRenderer,
     NomadnetFileDownloader,
     NomadnetPageDownloader,
-    RNProbeHandler,
-    RNS,
+    OutboundHttpBlockedError,
+    OverlayExportError,
+    OverlaySourceParseError,
+    PluginSecurityError,
     ReticulumMeshChat,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
+    RNProbeHandler,
     Telemeter,
-    UTC,
     WSMsgType,
     _is_chaquopy_android,
     _is_loopback_bind_host,
@@ -210,7 +209,7 @@ def register_messages_routes(routes, app):
 
         # get outbound ticket expiry for this lxmf destination
         lxmf_outbound_ticket_expiry = app.message_router.get_outbound_ticket_expiry(
-            destination_hash_bytes
+            destination_hash_bytes,
         )
         if lxmf_outbound_ticket_expiry is not None and not isinstance(
             lxmf_outbound_ticket_expiry,

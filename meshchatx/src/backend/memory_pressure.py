@@ -248,7 +248,7 @@ class MemoryPressureManager:
             pass
         try:
             extra["map_exports_pruned"] = int(
-                ctx.map_manager.prune_export_records() or 0
+                ctx.map_manager.prune_export_records() or 0,
             )
         except Exception:
             pass
@@ -283,7 +283,8 @@ class MemoryPressureManager:
             for iface in interfaces:
                 iface_held = getattr(iface, "held_announces", None)
                 if isinstance(iface_held, dict) or isinstance(
-                    iface_held, (list, set, tuple)
+                    iface_held,
+                    (list, set, tuple),
                 ):
                     total += len(iface_held)
         except Exception:

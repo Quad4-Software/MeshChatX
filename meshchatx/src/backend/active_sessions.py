@@ -9,7 +9,6 @@ import time
 import uuid
 from typing import Any
 
-
 _MAX_UA_LEN = 512
 _MAX_IP_LEN = 128
 

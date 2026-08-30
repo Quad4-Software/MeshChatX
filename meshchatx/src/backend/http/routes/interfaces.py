@@ -3,34 +3,33 @@
 
 from __future__ import annotations
 
-
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    GeoValidationError,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
+    LOGIN_PATH,
+    LXMF,
+    MAX_EXPORT_TILES,
+    RNS,
+    SETUP_PATH,
+    TRANSPARENT_TILE,
+    UTC,
     AsyncUtils,
+    GeoValidationError,
     InterfaceConfigParser,
     InterfaceDiscovery,
     InterfaceEditor,
-    LOGIN_PATH,
-    LXMF,
     LxmfAudioField,
     LxmfFileAttachment,
     LxmfFileAttachmentsField,
     LxmfImageField,
-    MAX_EXPORT_TILES,
     MarkdownRenderer,
     NomadnetFileDownloader,
     NomadnetPageDownloader,
-    RNProbeHandler,
-    RNS,
+    OutboundHttpBlockedError,
+    OverlayExportError,
+    OverlaySourceParseError,
+    PluginSecurityError,
     ReticulumMeshChat,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
+    RNProbeHandler,
     Telemeter,
-    UTC,
     WSMsgType,
     _is_chaquopy_android,
     _is_loopback_bind_host,
@@ -130,7 +129,6 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
-
 from meshchatx.src.backend.interface_enabled_flag import apply_interface_enabled_flag
 from meshchatx.src.backend.serial_comports import list_serial_comports
 
@@ -1379,7 +1377,7 @@ def register_interfaces_routes(routes, app):
                 if server_url is None or str(server_url).strip() == "":
                     return web.json_response(
                         {
-                            "message": "server_url is required for HTTPInterface client mode"
+                            "message": "server_url is required for HTTPInterface client mode",
                         },
                         status=422,
                     )
@@ -1403,14 +1401,16 @@ def register_interfaces_routes(routes, app):
                 if listen_port is None or listen_port == "":
                     return web.json_response(
                         {
-                            "message": "listen_port is required for HTTPInterface server mode"
+                            "message": "listen_port is required for HTTPInterface server mode",
                         },
                         status=422,
                     )
                 interface_details["listen_host"] = str(listen_host).strip()
                 interface_details["listen_port"] = listen_port
                 InterfaceEditor.update_value(
-                    interface_details, data, "check_user_agent"
+                    interface_details,
+                    data,
+                    "check_user_agent",
                 )
                 InterfaceEditor.update_value(interface_details, data, "serve_html_page")
                 InterfaceEditor.update_value(interface_details, data, "html_file_path")
@@ -1774,7 +1774,7 @@ def register_interfaces_routes(routes, app):
                         status=422,
                     )
                 import_option_error = InterfaceEditor.sanitize_imported_rns_options(
-                    iface_body
+                    iface_body,
                 )
                 if import_option_error is not None:
                     return web.json_response(
@@ -1804,7 +1804,7 @@ def register_interfaces_routes(routes, app):
                                 status=422,
                             )
                         iface_body["txpower"] = InterfaceEditor.normalize_rnode_txpower(
-                            txpower
+                            txpower,
                         )
                 elif iface_type == "RNodeMultiInterface":
                     for sub_key, sub in list(iface_body.items()):

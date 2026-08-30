@@ -3,34 +3,33 @@
 
 from __future__ import annotations
 
-
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
-    GeoValidationError,
-    OutboundHttpBlockedError,
-    OverlayExportError,
-    OverlaySourceParseError,
-    PluginSecurityError,
+    LOGIN_PATH,
+    LXMF,
+    MAX_EXPORT_TILES,
+    RNS,
+    SETUP_PATH,
+    TRANSPARENT_TILE,
+    UTC,
     AsyncUtils,
+    GeoValidationError,
     InterfaceConfigParser,
     InterfaceDiscovery,
     InterfaceEditor,
-    LOGIN_PATH,
-    LXMF,
     LxmfAudioField,
     LxmfFileAttachment,
     LxmfFileAttachmentsField,
     LxmfImageField,
-    MAX_EXPORT_TILES,
     MarkdownRenderer,
     NomadnetFileDownloader,
     NomadnetPageDownloader,
-    RNProbeHandler,
-    RNS,
+    OutboundHttpBlockedError,
+    OverlayExportError,
+    OverlaySourceParseError,
+    PluginSecurityError,
     ReticulumMeshChat,
-    SETUP_PATH,
-    TRANSPARENT_TILE,
+    RNProbeHandler,
     Telemeter,
-    UTC,
     WSMsgType,
     _is_chaquopy_android,
     _is_loopback_bind_host,
@@ -281,7 +280,7 @@ def register_rrc_routes(routes, app):
         except (ValueError, RuntimeError) as e:
             return web.json_response({"message": str(e)}, status=400)
         return web.json_response(
-            {"message": "Room list requested", "hub": hub.to_dict()}
+            {"message": "Room list requested", "hub": hub.to_dict()},
         )
 
     @routes.post("/api/v1/rrc/hubs/{hub_hash}/connect")

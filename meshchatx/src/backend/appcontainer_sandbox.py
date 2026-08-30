@@ -14,8 +14,8 @@ import logging
 import os
 import sys
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 logger = logging.getLogger("meshchatx.appcontainer")
 
@@ -308,7 +308,7 @@ def _windows_known_folder(folder_id: str) -> str | None:
             parts = hex_part.split("-")
             data4_hex = parts[3] + parts[4]
             data4 = (wintypes.BYTE * 8)(
-                *[int(data4_hex[i : i + 2], 16) for i in range(0, 16, 2)]
+                *[int(data4_hex[i : i + 2], 16) for i in range(0, 16, 2)],
             )
             return _GUID(
                 int(parts[0], 16),
@@ -513,7 +513,8 @@ def ensure_appcontainer_profile(
     if hr != 0 or not sid.value:
         err = ctypes.get_last_error()
         raise OSError(
-            err, f"DeriveAppContainerSidFromAppContainerName failed: hr={hr} err={err}"
+            err,
+            f"DeriveAppContainerSidFromAppContainerName failed: hr={hr} err={err}",
         )
     return sid
 
@@ -527,7 +528,10 @@ def delete_appcontainer_profile(profile_name: str = APPCONTAINER_PROFILE_NAME) -
 
 
 def _set_path_access(
-    path: str, sid: ctypes.c_void_p, access_mask: int, mode: int
+    path: str,
+    sid: ctypes.c_void_p,
+    access_mask: int,
+    mode: int,
 ) -> None:
     advapi32 = ctypes.WinDLL("advapi32", use_last_error=True)
     ea = _EXPLICIT_ACCESS_W()
@@ -556,7 +560,8 @@ def _set_path_access(
     if get_status != _ERROR_SUCCESS:
         err = ctypes.get_last_error()
         raise OSError(
-            err, f"GetNamedSecurityInfoW failed for {path}: status={get_status}"
+            err,
+            f"GetNamedSecurityInfoW failed for {path}: status={get_status}",
         )
 
     new_acl = ctypes.c_void_p()
@@ -583,7 +588,8 @@ def _set_path_access(
         if result != _ERROR_SUCCESS:
             err = ctypes.get_last_error()
             raise OSError(
-                err, f"SetNamedSecurityInfoW failed for {path}: result={result}"
+                err,
+                f"SetNamedSecurityInfoW failed for {path}: result={result}",
             )
     finally:
         _local_free(new_acl.value)
@@ -670,7 +676,8 @@ def create_process_in_appcontainer(
     sec_caps.AppContainerSid = sid
     if capability_holders:
         sec_caps.Capabilities = ctypes.cast(
-            caps_array, ctypes.POINTER(_SID_AND_ATTRIBUTES)
+            caps_array,
+            ctypes.POINTER(_SID_AND_ATTRIBUTES),
         )
         sec_caps.CapabilityCount = len(capability_holders)
     else:
@@ -683,15 +690,20 @@ def create_process_in_appcontainer(
     kernel32.InitializeProcThreadAttributeList(None, attr_count, 0, ctypes.byref(size))
     if size.value == 0:
         raise OSError(
-            ctypes.get_last_error(), "InitializeProcThreadAttributeList size failed"
+            ctypes.get_last_error(),
+            "InitializeProcThreadAttributeList size failed",
         )
     attr_buf = (ctypes.c_ubyte * size.value)()
     attr_list = ctypes.cast(attr_buf, ctypes.c_void_p)
     if not kernel32.InitializeProcThreadAttributeList(
-        attr_list, attr_count, 0, ctypes.byref(size)
+        attr_list,
+        attr_count,
+        0,
+        ctypes.byref(size),
     ):
         raise OSError(
-            ctypes.get_last_error(), "InitializeProcThreadAttributeList failed"
+            ctypes.get_last_error(),
+            "InitializeProcThreadAttributeList failed",
         )
 
     try:
