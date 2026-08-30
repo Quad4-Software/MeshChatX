@@ -3063,8 +3063,7 @@ export default {
             };
 
             const failNotConnected = () => {
-                const stillCurrent =
-                    this.nomadnetPageDownloadCallbacks[callbackKey]?.requestToken === requestToken;
+                const stillCurrent = this.nomadnetPageDownloadCallbacks[callbackKey]?.requestToken === requestToken;
                 cancelPendingSend();
                 if (!stillCurrent) {
                     return;

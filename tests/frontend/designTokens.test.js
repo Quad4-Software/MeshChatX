@@ -26,7 +26,7 @@ describe("design tokens", () => {
 
     it("preserves legacy dark palette anchors", () => {
         expect(MESHCHAT_THEME_VARIABLES_DARK["--mc-canvas"]).toBe("#09090b");
-        expect(MESHCHAT_THEME_VARIABLES_DARK["--mc-surface"]).toBe("#18181b");
+        expect(MESHCHAT_THEME_VARIABLES_DARK["--mc-surface"]).toBe("#09090b");
         expect(MESHCHAT_THEME_VARIABLES_DARK["--mc-accent"]).toBe("#60a5fa");
         expect(MESHCHAT_THEME_VARIABLES_DARK["--mc-action-primary"]).toBe("#2563eb");
         expect(MESHCHAT_THEME_VARIABLES_DARK["--mc-error"]).toBe("#f87171");

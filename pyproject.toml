@@ -54,6 +54,7 @@ Homepage = "https://github.com/Quad4-Software/MeshChatX"
 [tool.uv]
 constraint-dependencies = [
   "h2>=4.4.1",
+  "numpy>=2.4.6,<2.5",
 ]
 override-dependencies = [
   "setuptools>=83.0.0",
@@ -77,7 +78,7 @@ build-backend = "setuptools.build_meta"
 
 [dependency-groups]
 dev = [
-    "cx-freeze>=8.7.0",
+    "cx-freeze>=7.0.0,<8.7.0",
     "hypothesis>=6.167.0",
     "jsonschema>=4.26.0",
     "pygments>=2.21.0",
@@ -85,7 +86,7 @@ dev = [
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
     "pytest-xdist>=3.8.0",
-    "ruff>=0.16.5",
+    "ruff>=0.14.0,<0.16.0",
     "debugpy>=1.8.16",
     "mutmut>=3.7.0; python_version < '4.0'",
     "basedpyright>=1.39.10",
@@ -124,6 +125,12 @@ extend-ignore = [
     "D213",
     "D401",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/backend/**" = ["E402"]
+"cx_setup.py" = ["E402"]
+"scripts/**" = ["E402"]
+"meshchatx/src/backend/web_audio_bridge.py" = ["E731"]
 
 [tool.coverage.run]
 parallel = true

@@ -202,7 +202,7 @@ describe("MessagesSidebar UI", () => {
 
     it("conversations tab has correct layout classes", () => {
         const wrapper = mountSidebar();
-        const conversationsPanel = wrapper.find(".flex-1.flex.flex-col.bg-sem-surface");
+        const conversationsPanel = wrapper.find(".flex-1.flex.flex-col.bg-sem-canvas");
         expect(conversationsPanel.exists()).toBe(true);
     });
 
