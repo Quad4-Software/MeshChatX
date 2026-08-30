@@ -499,12 +499,30 @@ async def handle_nomadnet_page_download(app, client, data):
     field_data = page_download_data.get("field_data")
     private = bool(page_download_data.get("private"))
 
-    if not destination_hash or not page_path:
-        return
-
-    # generate download id
+    # generate download id early so the client can always clear Loading page
     app.download_id_counter += 1
     download_id = app.download_id_counter
+
+    async def send_failure(reason: str, dest_hex: str = "", path: str = "") -> None:
+        await client.send_str(
+            json.dumps(
+                {
+                    "type": "nomadnet.page.download",
+                    "download_id": download_id,
+                    "nomadnet_page_download": {
+                        "status": "failure",
+                        "failure_reason": reason,
+                        "destination_hash": dest_hex or (destination_hash or ""),
+                        "page_path": path or (page_path or ""),
+                        "has_archives": False,
+                    },
+                },
+            ),
+        )
+
+    if not destination_hash or not page_path:
+        await send_failure("missing_destination_or_path")
+        return
 
     combined_data = {}
     # parse data from page path
@@ -527,9 +545,12 @@ async def handle_nomadnet_page_download(app, client, data):
 
     # convert destination hash to bytes
     try:
-        destination_hash = bytes.fromhex(destination_hash)
+        destination_hash_bytes = bytes.fromhex(destination_hash)
     except (TypeError, ValueError):
+        await send_failure("invalid_destination_hash", str(destination_hash), page_path)
         return
+
+    destination_hash = destination_hash_bytes
 
     local_page = app._try_serve_local_page_node(
         destination_hash,
