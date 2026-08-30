@@ -5,7 +5,6 @@
 Форк [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) от Liam Cottle. MeshChatX добавляет голосовые звонки LXST, RRC relay chat, оверлеи карты Nomad, плагины, сырой SQLite (без Peewee) и десктопные сборки Electron 41. Независим от upstream. Не связан с ним.
 
 - Сайт: [meshchatx.com](https://meshchatx.com)
-- Форум: [forum.meshchatx.com](https://forum.meshchatx.com/)
 - Исходники: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - PyPI: [reticulum-meshchatx](https://pypi.org/project/reticulum-meshchatx/)
 - Changelog: [CHANGELOG.md](../CHANGELOG.md)
