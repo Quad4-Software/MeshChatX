@@ -317,8 +317,12 @@ class WebSocketConnection {
         }
     }
 
+    isOpen() {
+        return this.ws != null && this.ws.readyState === WebSocket.OPEN;
+    }
+
     send(message) {
-        if (this.ws != null && this.ws.readyState === WebSocket.OPEN) {
+        if (this.isOpen()) {
             this.ws.send(message);
             return true;
         }
