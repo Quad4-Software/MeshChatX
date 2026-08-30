@@ -13,7 +13,7 @@ _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
-from meshchatx.src.backend.plugin_signature import (  # noqa: E402
+from meshchatx.src.backend.plugin_signature import (
     SignatureInfo,
     canonical_dir_payload,
     verify_dir_signature,
@@ -21,7 +21,7 @@ from meshchatx.src.backend.plugin_signature import (  # noqa: E402
     verify_zip_signature,
     write_dir_signature,
 )
-from meshchatx.src.backend.plugin_wasm_bundle import (  # noqa: E402
+from meshchatx.src.backend.plugin_wasm_bundle import (
     append_wasm_signature,
     wasm_payload_without_signature,
 )

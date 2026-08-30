@@ -131,7 +131,7 @@ _PONG_SCRIPT = textwrap.dedent(
         dest.announce()
         time.sleep(4)
     RNS.exit(0)
-    """
+    """,
 )
 
 _PING_SCRIPT = textwrap.dedent(
@@ -189,7 +189,7 @@ _PING_SCRIPT = textwrap.dedent(
             handle,
         )
     RNS.exit(0)
-    """
+    """,
 )
 
 
@@ -260,7 +260,8 @@ def _run_pair(tmp_path: Path, host: str, port: int, name: str) -> dict:
 
 @pytest.mark.integration
 @pytest.mark.skipif(
-    not _RUN, reason="Set MESHCHAT_LIVE_RETICULUM=1 for live TCP path test"
+    not _RUN,
+    reason="Set MESHCHAT_LIVE_RETICULUM=1 for live TCP path test",
 )
 def test_live_two_peer_path_over_random_tcp(tmp_path):
     candidates = _pick_candidates()
@@ -280,5 +281,5 @@ def test_live_two_peer_path_over_random_tcp(tmp_path):
             return
 
     pytest.fail(
-        f"no path between two new LXMF dests after {len(candidates)} TCP nodes: {last}"
+        f"no path between two new LXMF dests after {len(candidates)} TCP nodes: {last}",
     )

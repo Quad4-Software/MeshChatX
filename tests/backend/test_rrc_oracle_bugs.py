@@ -646,7 +646,9 @@ def _oracle_available_rooms_diff(previous, next_rooms):
 )
 @settings(max_examples=60, deadline=None)
 def test_oracle_list_notice_replaces_available_rooms(
-    tmp_path_factory, previous, next_rooms
+    tmp_path_factory,
+    previous,
+    next_rooms,
 ):
     """Hub /list notices replace available_rooms. Adds and removals both apply."""
     manager = RRCManager(

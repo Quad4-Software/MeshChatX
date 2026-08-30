@@ -128,7 +128,7 @@ def test_should_skip_fetch_when_bundle_matches_rns_version(tmp_path):
             {
                 "source_url": source,
                 "rns_version": "1.5.0",
-            }
+            },
         ),
         encoding="utf-8",
     )
@@ -156,7 +156,7 @@ def test_should_not_skip_fetch_when_rns_version_changes(tmp_path):
             {
                 "source_url": source,
                 "rns_version": "1.4.0",
-            }
+            },
         ),
         encoding="utf-8",
     )
@@ -191,7 +191,7 @@ def test_should_skip_fetch_accepts_https_fallback_manifest(tmp_path):
             {
                 "source_url": fetch.DEFAULT_HTTPS_FALLBACK,
                 "rns_version": "1.5.0",
-            }
+            },
         ),
         encoding="utf-8",
     )

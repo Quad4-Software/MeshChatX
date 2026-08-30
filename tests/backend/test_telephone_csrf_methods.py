@@ -31,7 +31,9 @@ def test_telephone_call_mutators_are_post_not_get(mock_app):
     assert _handler(mock_app, "GET", "/api/v1/telephone/call/{identity_hash}") is None
     assert (
         _handler(
-            mock_app, "POST", "/api/v1/telephone/switch-audio-profile/{profile_id}"
+            mock_app,
+            "POST",
+            "/api/v1/telephone/switch-audio-profile/{profile_id}",
         )
         is not None
     )

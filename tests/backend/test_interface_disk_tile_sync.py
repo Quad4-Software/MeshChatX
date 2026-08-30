@@ -16,7 +16,6 @@ import RNS
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend.interface_config_parser import InterfaceConfigParser
 
-
 DOTTED_CONFIG = """\
 [reticulum]
 enable_transport = False

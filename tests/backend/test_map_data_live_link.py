@@ -100,7 +100,7 @@ _PUB_SCRIPT = textwrap.dedent(
         mgr.announce()
         time.sleep(1.5)
     RNS.exit(0)
-    """
+    """,
 )
 
 _CLI_SCRIPT = textwrap.dedent(
@@ -211,7 +211,7 @@ _CLI_SCRIPT = textwrap.dedent(
     with open(result_path, "w", encoding="utf-8") as handle:
         json.dump(payload, handle)
     RNS.exit(0)
-    """
+    """,
 )
 
 
@@ -290,7 +290,7 @@ def test_live_catalog_and_map_bytes_over_rns_link(tmp_path):
                 if pub.poll() is not None:
                     stdout, stderr = pub.communicate(timeout=5)
                     raise AssertionError(
-                        f"publisher exited {pub.returncode}: {stderr}\n{stdout}"
+                        f"publisher exited {pub.returncode}: {stderr}\n{stdout}",
                     )
                 time.sleep(0.2)
             assert ready.is_file(), "publisher did not write ready.json"
@@ -307,7 +307,7 @@ def test_live_catalog_and_map_bytes_over_rns_link(tmp_path):
                 if cli.poll() is not None and not result_path.is_file():
                     stdout, stderr = cli.communicate(timeout=5)
                     raise AssertionError(
-                        f"client exited {cli.returncode}: {stderr}\n{stdout}"
+                        f"client exited {cli.returncode}: {stderr}\n{stdout}",
                     )
                 time.sleep(0.2)
             assert result_path.is_file(), "client did not write result.json"

@@ -386,7 +386,9 @@ def test_safe_zip_extract_rejects_symlink_jail_escape(temp_dir):
     with zipfile.ZipFile(zip_path, "r") as zf:
         with pytest.raises(DatabaseRestoreError, match="Unsafe zip entry"):
             Database._safe_zip_extract_member(
-                zf, "plugins/stolen_write.txt", identity_dir
+                zf,
+                "plugins/stolen_write.txt",
+                identity_dir,
             )
 
     assert not os.path.exists(os.path.join(outside, "stolen_write.txt"))
@@ -423,6 +425,19 @@ class TestRestoreDatabaseMethod(unittest.TestCase):
         db.initialize()
         with patch.object(db.provider, "close_all") as mock_close:
             db._checkpoint_and_close()
+            mock_close.assert_called_once()
+
+    def test_durable_shutdown_sets_full_sync_then_closes(self):
+        db = Database(self.db_path)
+        db.initialize()
+        with (
+            patch.object(db, "execute_sql") as mock_exec,
+            patch.object(db, "_checkpoint_wal") as mock_ckpt,
+            patch.object(db, "close_all") as mock_close,
+        ):
+            db.durable_shutdown()
+            mock_exec.assert_any_call("PRAGMA synchronous=FULL")
+            mock_ckpt.assert_called()
             mock_close.assert_called_once()
 
 

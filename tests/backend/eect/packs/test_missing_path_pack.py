@@ -79,7 +79,8 @@ async def test_eect_propagated_skips_path_await(send_app):
             patch("meshchatx.meshchat.RNS.Destination", return_value=MagicMock()),
             patch("meshchatx.meshchat.LXMF.LXMessage", return_value=mock_msg),
             patch(
-                "meshchatx.meshchat.RNS.Identity.current_ratchet_id", return_value=None
+                "meshchatx.meshchat.RNS.Identity.current_ratchet_id",
+                return_value=None,
             ),
             patch(
                 "meshchatx.meshchat.convert_lxmf_message_to_dict",

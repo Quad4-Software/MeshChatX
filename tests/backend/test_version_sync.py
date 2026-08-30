@@ -37,7 +37,7 @@ def test_pyproject_version_matches_package():
     assert re.search(
         rf'^version = "{re.escape(_package_version())}"',
         _text("pyproject.toml"),
-        re.M,
+        re.MULTILINE,
     )
 
 
@@ -67,7 +67,9 @@ def test_readme_current_version_lines_match_package():
 def test_notices_and_backend_license_match_package():
     version = _package_version()
     notices = _text("meshchatx/src/backend/data/THIRD_PARTY_NOTICES.txt")
-    assert re.search(rf"^reticulum-meshchatx {re.escape(version)}$", notices, re.M)
+    assert re.search(
+        rf"^reticulum-meshchatx {re.escape(version)}$", notices, re.MULTILINE
+    )
     licenses = json.loads(_text("meshchatx/src/backend/data/licenses_backend.json"))
     entry = next(item for item in licenses if item.get("name") == "reticulum-meshchatx")
     assert entry["version"] == version
@@ -76,10 +78,10 @@ def test_notices_and_backend_license_match_package():
 def test_arch_packaging_version_matches_package():
     version = _package_version()
     pkgbuild = _text("packaging/arch/PKGBUILD")
-    assert re.search(rf"^pkgver={re.escape(version)}", pkgbuild, re.M)
+    assert re.search(rf"^pkgver={re.escape(version)}", pkgbuild, re.MULTILINE)
     assert f'printf "{version}.r%s.%s"' in pkgbuild
     srcinfo = _text("packaging/arch/.SRCINFO")
-    assert re.search(rf"^\tpkgver = {re.escape(version)}", srcinfo, re.M)
+    assert re.search(rf"^\tpkgver = {re.escape(version)}", srcinfo, re.MULTILINE)
 
 
 def test_issue_template_placeholders_match_package():

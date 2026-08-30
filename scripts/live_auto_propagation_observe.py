@@ -23,8 +23,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from meshchatx.meshchat import ReticulumMeshChat  # noqa: E402
-from meshchatx.src.backend.auto_propagation_manager import (  # noqa: E402
+from meshchatx.meshchat import ReticulumMeshChat
+from meshchatx.src.backend.auto_propagation_manager import (
     MEMORY_CONFIG_KEY,
     AutoPropagationManager,
 )

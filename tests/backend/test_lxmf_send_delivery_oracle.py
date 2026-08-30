@@ -142,14 +142,14 @@ def test_oracle_progress_terminal_matrix(state, method, try_prop, expected):
             LXMF.LXMessage.OPPORTUNISTIC,
             LXMF.LXMessage.DIRECT,
             LXMF.LXMessage.PAPER,
-        ]
-    )
+        ],
+    ),
 )
 @settings(max_examples=24, deadline=None)
 def test_oracle_sent_without_propagated_never_terminal(method):
     """No-receipt peers leave opportunistic/direct at SENT. Must keep polling."""
     assert not is_lxmf_outbound_progress_terminal(
-        _msg(state=LXMF.LXMessage.SENT, method=method)
+        _msg(state=LXMF.LXMessage.SENT, method=method),
     )
 
 
@@ -344,7 +344,7 @@ async def test_oracle_auto_resend_emits_new_hash_not_same_hash(db):
             db.provider.fetchone(
                 "SELECT fields FROM lxmf_messages WHERE hash = ?",
                 (new_hash.hex(),),
-            )["fields"]
+            )["fields"],
         )
         == 1
     )
@@ -423,7 +423,7 @@ def test_oracle_no_receipt_cascade_contract_documented():
         _msg(
             state=LXMF.LXMessage.SENT,
             method=LXMF.LXMessage.OPPORTUNISTIC,
-        )
+        ),
     )
     # 4) Only FAILED is auto-resend eligible (claim SQL requires state=failed)
     messages_src = (

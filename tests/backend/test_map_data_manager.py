@@ -19,7 +19,6 @@ from meshchatx.src.backend.map_data_manager import (
 from meshchatx.src.backend.map_geo_validator import GeoValidationError
 from meshchatx.src.backend.map_overlay_manager import MapOverlayManager
 
-
 HASH = "ab" * 16
 
 GEOJSON = json.dumps(
@@ -106,7 +105,7 @@ def test_parse_map_data_app_data_json():
 
 def test_parse_map_data_app_data_truncates_name():
     parsed = parse_map_data_app_data(
-        json.dumps({"v": 1, "n": "x" * 80, "c": 1}).encode()
+        json.dumps({"v": 1, "n": "x" * 80, "c": 1}).encode(),
     )
     assert len(parsed["n"]) == 32
 

@@ -24,7 +24,7 @@ def _bitrate_floor_s(bitrate: float) -> float:
 
 def test_min_window_bitrate_matches_rns_minimum():
     assert min_window_bitrate() == float(RNS.Reticulum.MINIMUM_BITRATE)
-    assert MIN_WINDOW_BITRATE == float(RNS.Reticulum.MINIMUM_BITRATE)
+    assert float(RNS.Reticulum.MINIMUM_BITRATE) == MIN_WINDOW_BITRATE
     assert MIN_WINDOW_BITRATE == 5.0
 
 

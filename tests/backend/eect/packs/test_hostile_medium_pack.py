@@ -45,13 +45,15 @@ pytestmark = pytest.mark.eect
                             "id": st.one_of(
                                 st.none(),
                                 st.sampled_from(
-                                    ["__proto__", "constructor", "prototype", "ok", ""]
+                                    ["__proto__", "constructor", "prototype", "ok", ""],
                                 ),
                                 st.text(min_size=0, max_size=80),
                             ),
                             "name": st.one_of(st.none(), st.text(max_size=200)),
                             "collapsed": st.one_of(
-                                st.none(), st.booleans(), st.integers()
+                                st.none(),
+                                st.booleans(),
+                                st.integers(),
                             ),
                         },
                     ),

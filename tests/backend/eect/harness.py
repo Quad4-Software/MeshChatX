@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import os
 import random
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Iterator
 
 from tests.backend.eect.catalog import Scenario, get_scenario
 
@@ -38,7 +38,8 @@ def format_failure_banner(scenario: Scenario, seed: int, detail: str = "") -> st
 
 @contextmanager
 def eect_scenario(
-    scenario_id: str, seed: int | None = None
+    scenario_id: str,
+    seed: int | None = None,
 ) -> Iterator[tuple[Scenario, int, random.Random]]:
     """Bind scenario + seeded RNG. On assert failure, append banner to the message."""
     scenario = get_scenario(scenario_id)

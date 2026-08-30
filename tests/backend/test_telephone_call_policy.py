@@ -13,7 +13,8 @@ from meshchatx.src.backend.telephone_manager import TelephoneManager
 
 @patch("meshchatx.src.backend.telephone_manager.Telephone")
 def test_init_telephone_disables_auto_answer_and_applies_policy(
-    mock_tel_class, tmp_path
+    mock_tel_class,
+    tmp_path,
 ):
     storage_dir = tmp_path / "tel"
     storage_dir.mkdir()

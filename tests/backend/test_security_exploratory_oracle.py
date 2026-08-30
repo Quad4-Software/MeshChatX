@@ -48,7 +48,7 @@ class _Sink:
         st.integers(min_value=-10_000, max_value=10_000),
         st.text(max_size=40),
         st.sampled_from(
-            ["", "15", "0", "-1", "999999", "1.5", "nan", "0x10", "timeout"]
+            ["", "15", "0", "-1", "999999", "1.5", "nan", "0x10", "timeout"],
         ),
     ),
 )
@@ -153,7 +153,7 @@ def _try_b64(raw):
         st.lists(st.text(max_size=8), max_size=3),
         st.text(max_size=40),
         st.sampled_from(
-            ["png", "PNG", "image/jpeg", "svg", "svg+xml", "webm", "", " "]
+            ["png", "PNG", "image/jpeg", "svg", "svg+xml", "webm", "", " "],
         ),
     ),
 )

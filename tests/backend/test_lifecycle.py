@@ -113,7 +113,7 @@ def test_identity_context_teardown_completeness():
         context.teardown()
 
         # Verify component cleanup
-        db_instance._checkpoint_and_close.assert_called()
+        db_instance.durable_shutdown.assert_called()
         auto_prop_instance.stop.assert_called()
         assert context.running is False
         assert context.ringtone_manager is None

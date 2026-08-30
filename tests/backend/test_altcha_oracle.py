@@ -19,8 +19,8 @@ from meshchatx.src.backend.altcha_auth import (
     ALTCHA_INVALID_CODE,
     verify_altcha_submission,
 )
-from tests.backend.demo_http_support import build_test_aio_app
 from tests.backend.conftest import fetch_api_csrf_headers
+from tests.backend.demo_http_support import build_test_aio_app
 
 _TEST_SECRET = "test-secret-key-32chars-minimum!!"
 
@@ -41,7 +41,9 @@ def _solved_payload_b64(secret: str) -> str:
 
 def test_altcha_verify_round_trip():
     with patch.dict(
-        os.environ, {"MESHCHAT_ALTCHA_HMAC_KEY": _TEST_SECRET}, clear=False
+        os.environ,
+        {"MESHCHAT_ALTCHA_HMAC_KEY": _TEST_SECRET},
+        clear=False,
     ):
         ok, code = verify_altcha_submission(_solved_payload_b64(_TEST_SECRET))
         assert ok is True
@@ -50,7 +52,9 @@ def test_altcha_verify_round_trip():
 
 def test_altcha_rejects_tampered_payload():
     with patch.dict(
-        os.environ, {"MESHCHAT_ALTCHA_HMAC_KEY": _TEST_SECRET}, clear=False
+        os.environ,
+        {"MESHCHAT_ALTCHA_HMAC_KEY": _TEST_SECRET},
+        clear=False,
     ):
         bad = _solved_payload_b64(_TEST_SECRET)[:-4] + "XXXX"
         ok, code = verify_altcha_submission(bad)

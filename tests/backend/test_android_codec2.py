@@ -46,7 +46,9 @@ def test_ensure_codec2_prefers_java_load_library():
     with (
         patch.object(android_codec2, "_is_chaquopy_android", return_value=True),
         patch.object(
-            android_codec2, "_java_system_load_library", return_value=True
+            android_codec2,
+            "_java_system_load_library",
+            return_value=True,
         ) as java_load,
         patch.object(android_codec2, "_java_system_load_absolute", return_value=False),
         patch.object(android_codec2, "_cdll_load") as cdll,
@@ -129,10 +131,14 @@ def test_ensure_lxst_codec2_binding_reloads_when_codec2_none():
     with (
         patch.object(android_codec2, "probe_pycodec2", return_value=(True, None)),
         patch.object(
-            android_codec2.importlib, "import_module", side_effect=import_module
+            android_codec2.importlib,
+            "import_module",
+            side_effect=import_module,
         ),
         patch.object(
-            android_codec2.importlib, "reload", return_value=reloaded
+            android_codec2.importlib,
+            "reload",
+            return_value=reloaded,
         ) as reload_mock,
     ):
         assert android_codec2.ensure_lxst_codec2_binding() is True

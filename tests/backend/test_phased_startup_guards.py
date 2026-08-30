@@ -298,7 +298,7 @@ def test_critical_integrity_ignores_non_critical_new_files(temp_dir):
     (storage / "notes.txt").write_text("benign", encoding="utf-8")
     is_ok_critical, issues_critical = manager.check_integrity(critical_only=True)
     assert is_ok_critical is True or not select_critical_integrity_issues(
-        issues_critical
+        issues_critical,
     )
 
     is_ok_full, issues_full = manager.check_integrity(critical_only=False)

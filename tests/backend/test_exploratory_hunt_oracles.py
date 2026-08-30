@@ -24,7 +24,6 @@ from meshchatx.src.backend.rrc import protocol as proto
 from meshchatx.src.backend.rrc.manager import RRCManager
 from meshchatx.src.backend.rrc.server import RRCHubServer, _Session
 
-
 HUB_HASH = bytes(range(16))
 
 
@@ -148,7 +147,10 @@ def test_oracle_docs_zip_absolute_and_dotdot_leave_bait(tmp_path):
     storage_dir.mkdir()
     config = MagicMock()
     dm = DocsManager(
-        config, str(public_dir), storage_dir=str(storage_dir), populate=False
+        config,
+        str(public_dir),
+        storage_dir=str(storage_dir),
+        populate=False,
     )
 
     outside = tmp_path / "OUTSIDE"
@@ -237,7 +239,8 @@ def test_oracle_python_runtime_purges_nested_pycache(tmp_path):
 
     manager = PluginManager(str(tmp_path / "storage"), app=FakeApp())
     manager.install_from_directory(
-        str(source), granted_permissions=["storage:isolated"]
+        str(source),
+        granted_permissions=["storage:isolated"],
     )
     nested = (
         tmp_path

@@ -43,7 +43,7 @@ class TestCriticalOnlyIntegrity(unittest.TestCase):
         self.assertFalse(is_ok)
         self.assertTrue(
             select_critical_integrity_issues(issues)
-            or any("missing" in i.lower() for i in issues)
+            or any("missing" in i.lower() for i in issues),
         )
 
     def test_critical_only_skips_non_critical_size_drift(self):
@@ -52,7 +52,7 @@ class TestCriticalOnlyIntegrity(unittest.TestCase):
         self.manager.save_manifest()
         notes.write_bytes(b"bbbbbbbb")
         is_ok_critical, issues_critical = self.manager.check_integrity(
-            critical_only=True
+            critical_only=True,
         )
         self.assertTrue(
             is_ok_critical or not select_critical_integrity_issues(issues_critical),

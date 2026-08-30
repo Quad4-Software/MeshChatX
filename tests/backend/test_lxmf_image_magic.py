@@ -6,7 +6,6 @@ import base64
 
 from meshchatx.src.backend.sticker_utils import detect_image_format_from_magic
 
-
 _PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 16
 _ALLOWED = {"png", "jpeg", "jpg", "gif", "webp", "bmp"}
 

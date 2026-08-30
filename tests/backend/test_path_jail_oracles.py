@@ -53,7 +53,9 @@ def test_filesync_rejects_identity_root_and_reserved(tmp_path):
     (storage / "identity").mkdir()
     (storage / "bots").mkdir()
     handler = RnsFilesyncHandler(
-        MagicMock(), SimpleNamespace(hash=b"\x11" * 16), str(storage)
+        MagicMock(),
+        SimpleNamespace(hash=b"\x11" * 16),
+        str(storage),
     )
     assert handler._resolve_sync_directory(str(storage)) is None
     assert handler._resolve_sync_directory(str(storage / "identity")) is None
@@ -71,7 +73,9 @@ def test_filesync_manager_resolve_never_leaves_sync_root(tmp_path):
     outside.mkdir()
     (outside / "secret.txt").write_text("x", encoding="utf-8")
     handler = RnsFilesyncHandler(
-        MagicMock(), SimpleNamespace(hash=b"\x22" * 16), str(storage)
+        MagicMock(),
+        SimpleNamespace(hash=b"\x22" * 16),
+        str(storage),
     )
     sync_root = handler._sync_root()
     payloads = [

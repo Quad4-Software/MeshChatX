@@ -113,7 +113,7 @@ def test_oracle_disabled_entry_is_skipped():
 
 def test_oracle_import_rejects_wrong_version():
     doc = build_export_document(
-        normalize_message_blocklist({"entries": [{"text": "a"}]})
+        normalize_message_blocklist({"entries": [{"text": "a"}]}),
     )
     doc["version"] = EXPORT_VERSION + 1
     assert parse_import_document(doc) is None

@@ -28,7 +28,7 @@ async def test_map_data_routes_with_mock_manager(mock_app):
     }
     mgr.list_published.return_value = [{"map_id": "aaaaaaaaaaaaaaaa", "name": "Camp"}]
     mgr.list_heard.return_value = [
-        {"destination_hash": HASH, "map_name": "Camp", "map_count": 1}
+        {"destination_hash": HASH, "map_name": "Camp", "map_count": 1},
     ]
     mgr.publish_bytes.return_value = {
         "map": {"map_id": "aaaaaaaaaaaaaaaa", "name": "Camp"},
@@ -40,7 +40,7 @@ async def test_map_data_routes_with_mock_manager(mock_app):
     mgr.fetch_catalog = AsyncMock(return_value={"destination_hash": HASH, "maps": []})
     mgr.fetch_map_bytes = AsyncMock(return_value=b'{"type":"Point"}')
     mgr.add_as_overlay = AsyncMock(
-        return_value={"overlay": {"id": 1, "kind": "map_data"}}
+        return_value={"overlay": {"id": 1, "kind": "map_data"}},
     )
     mgr._cfg_max_bytes.return_value = 512 * 1024
     app.map_data_manager = mgr
@@ -49,7 +49,7 @@ async def test_map_data_routes_with_mock_manager(mock_app):
     assert status.status == 200
 
     published = await _find_handler(app, "GET", "/api/v1/map/data/published")(
-        MagicMock()
+        MagicMock(),
     )
     assert published.status == 200
     body = json.loads(published.text)
@@ -82,13 +82,13 @@ async def test_map_data_routes_with_mock_manager(mock_app):
     assert deleted.status == 200
 
     announced = await _find_handler(app, "POST", "/api/v1/map/data/announce")(
-        MagicMock()
+        MagicMock(),
     )
     assert announced.status == 200
 
     cfg_req = MagicMock()
     cfg_req.json = AsyncMock(
-        return_value={"display_name": "Camp maps", "announce_enabled": True}
+        return_value={"display_name": "Camp maps", "announce_enabled": True},
     )
     patched = await _find_handler(app, "PATCH", "/api/v1/map/data/config")(cfg_req)
     assert patched.status == 200
@@ -100,14 +100,14 @@ async def test_map_data_routes_with_mock_manager(mock_app):
 
     fetch_req = MagicMock()
     fetch_req.json = AsyncMock(
-        return_value={"destination_hash": HASH, "map_id": "aaaaaaaaaaaaaaaa"}
+        return_value={"destination_hash": HASH, "map_id": "aaaaaaaaaaaaaaaa"},
     )
     fetched = await _find_handler(app, "POST", "/api/v1/map/data/fetch")(fetch_req)
     assert fetched.status == 200
 
     add_req = MagicMock()
     add_req.json = AsyncMock(
-        return_value={"destination_hash": HASH, "map_id": "aaaaaaaaaaaaaaaa"}
+        return_value={"destination_hash": HASH, "map_id": "aaaaaaaaaaaaaaaa"},
     )
     added = await _find_handler(app, "POST", "/api/v1/map/data/add-overlay")(add_req)
     assert added.status == 200
@@ -133,7 +133,7 @@ async def test_map_data_announce_nothing_published(mock_app):
     mgr.announce.side_effect = MapDataError("nothing_published")
     mock_app.map_data_manager = mgr
     resp = await _find_handler(mock_app, "POST", "/api/v1/map/data/announce")(
-        MagicMock()
+        MagicMock(),
     )
     assert resp.status == 400
     body = json.loads(resp.text)

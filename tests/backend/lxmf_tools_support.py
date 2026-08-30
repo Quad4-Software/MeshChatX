@@ -31,8 +31,10 @@ from meshchatx.src.backend.lxmf_sieve import (
 from meshchatx.src.backend.message_blocklist import (
     BLOCKLIST_SCOPES,
     MAX_ENTRIES,
-    MAX_TERM_LEN as BLOCKLIST_MAX_TERM_LEN,
     normalize_message_blocklist,
+)
+from meshchatx.src.backend.message_blocklist import (
+    MAX_TERM_LEN as BLOCKLIST_MAX_TERM_LEN,
 )
 
 LOCAL_LXMF = "11" * 16
@@ -264,7 +266,10 @@ def set_sieve_filters(app, filters: list[dict[str, Any]]) -> list[dict[str, Any]
 
 
 def set_blocklist(
-    app, blocklist: dict[str, Any], *, enabled: bool = True
+    app,
+    blocklist: dict[str, Any],
+    *,
+    enabled: bool = True,
 ) -> dict[str, Any]:
     normalized = normalize_message_blocklist(blocklist)
     app.config.message_blocklist_json.set(json.dumps(normalized))

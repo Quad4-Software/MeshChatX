@@ -32,7 +32,8 @@ def load_schema_versions_manifest(fixture_path: Path) -> dict[str, str]:
 
 
 def write_schema_versions_manifest(
-    fixture_path: Path, manifest: dict[str, str]
+    fixture_path: Path,
+    manifest: dict[str, str],
 ) -> None:
     fixture_path.parent.mkdir(parents=True, exist_ok=True)
     fixture_path.write_text(

@@ -14,9 +14,9 @@ import pytest
 pytest.importorskip("LXST")
 pytestmark = pytest.mark.lxst_real
 
-from LXST.Primitives import Telephony as LXSTTelephony  # noqa: E402
+from LXST.Primitives import Telephony as LXSTTelephony
 
-from meshchatx.src.backend.telephone_manager import TelephoneManager  # noqa: E402
+from meshchatx.src.backend.telephone_manager import TelephoneManager
 
 
 class _DummyThread:

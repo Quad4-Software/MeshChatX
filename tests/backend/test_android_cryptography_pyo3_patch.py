@@ -82,7 +82,7 @@ def test_pyo3_no_interpreter_patch_applies_to_cryptography_50_0_0(
     patched = cargo.read_text(encoding="utf-8")
     assert (
         patched.count(
-            'pyo3 = { version = "0.29", features = ["abi3", "abi3t", "abi3-py310"] }'
+            'pyo3 = { version = "0.29", features = ["abi3", "abi3t", "abi3-py310"] }',
         )
         == 1
     )

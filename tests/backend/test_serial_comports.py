@@ -9,7 +9,7 @@ import pytest
 from meshchatx.src.backend import serial_comports as sc
 
 PYSERIAL_SYSFS_TYPEERROR = TypeError(
-    "int() can't convert non-string with explicit base"
+    "int() can't convert non-string with explicit base",
 )
 
 
@@ -64,7 +64,7 @@ def test_comports_success_keeps_pyserial_metadata(monkeypatch):
             "device": "/dev/ttyACM0",
             "product": "RNode",
             "serial_number": "ABC123",
-        }
+        },
     ]
 
 

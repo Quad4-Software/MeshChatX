@@ -186,7 +186,9 @@ class TestPageNodeAnnounce:
         assert node.last_announced_at is not None
 
     def test_announce_does_not_update_last_announced_at_when_not_running(
-        self, node_dir, mock_rns
+        self,
+        node_dir,
+        mock_rns,
     ):
         node = _make_node(node_dir, mock_rns)
         node.announce()
@@ -347,7 +349,9 @@ class TestPageNodeAnnounceInterval:
         assert node._announce_timer is None
 
     def test_set_announce_settings_updates_enabled_and_interval(
-        self, node_dir, mock_rns
+        self,
+        node_dir,
+        mock_rns,
     ):
         node = _make_node(node_dir, mock_rns)
         node.setup()
@@ -364,7 +368,9 @@ class TestPageNodeAnnounceInterval:
         assert node._announce_timer is None
 
     def test_set_announce_settings_interval_zero_cancels_timer(
-        self, node_dir, mock_rns
+        self,
+        node_dir,
+        mock_rns,
     ):
         node = _make_node(node_dir, mock_rns)
         node.setup()
@@ -373,7 +379,9 @@ class TestPageNodeAnnounceInterval:
         assert node._announce_timer is None
 
     def test_set_announce_settings_partial_update_keeps_other_field(
-        self, node_dir, mock_rns
+        self,
+        node_dir,
+        mock_rns,
     ):
         node = _make_node(node_dir, mock_rns)
         node.set_announce_settings(announce_interval_seconds=300)
@@ -603,7 +611,8 @@ class TestPageNodeConfig:
 
         node = _make_node(node_dir, mock_rns)
         node.set_announce_settings(
-            announce_enabled=False, announce_interval_seconds=120
+            announce_enabled=False,
+            announce_interval_seconds=120,
         )
         node.save_config()
 
@@ -827,7 +836,9 @@ class TestPageNodeEdgeCases:
 
 class TestPageNodeExecutablePages:
     def test_executable_disabled_serves_static_even_when_chmod_x(
-        self, node_dir, mock_rns
+        self,
+        node_dir,
+        mock_rns,
     ):
         node = _make_node(node_dir, mock_rns)
         node.setup()
@@ -958,7 +969,12 @@ class TestPageNodeExecutablePages:
         node.add_page("dyn.mu", script, executable=True)
         responder = node._make_page_responder("dyn.mu")
         result = responder(
-            "/page/dyn.mu", {"var_x": "1"}, "req1", b"\xab" * 16, None, 0
+            "/page/dyn.mu",
+            {"var_x": "1"},
+            "req1",
+            b"\xab" * 16,
+            None,
+            0,
         )
         assert result == b"from-responder\n"
 

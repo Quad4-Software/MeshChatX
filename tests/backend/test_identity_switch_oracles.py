@@ -178,7 +178,7 @@ async def test_oracle_hotswap_broadcast_requires_reauth_when_auth_enabled(
     mock_ctx.config.display_name.get.return_value = "User"
     mock_ctx.config.auth_enabled.get.return_value = True
     app.setup_identity = MagicMock(
-        side_effect=lambda _id: setattr(app, "current_context", mock_ctx)
+        side_effect=lambda _id: setattr(app, "current_context", mock_ctx),
     )
 
     new_hash = "ee" * 16
@@ -212,7 +212,7 @@ async def test_oracle_hotswap_broadcast_no_reauth_when_auth_disabled(
     mock_ctx.config.display_name.get.return_value = "User"
     mock_ctx.config.auth_enabled.get.return_value = False
     app.setup_identity = MagicMock(
-        side_effect=lambda _id: setattr(app, "current_context", mock_ctx)
+        side_effect=lambda _id: setattr(app, "current_context", mock_ctx),
     )
 
     new_hash = "ff" * 16
