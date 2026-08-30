@@ -633,6 +633,110 @@ describe("MessagesPage.vue", () => {
         expect(dismissSpy).toHaveBeenCalledWith(destHash);
     });
 
+    it("force-dismisses unread for a restored pane when remounting /messages with no route hash", async () => {
+        const destHash = "d".repeat(32);
+        localStorage.setItem(
+            "meshchatx.messages.panes",
+            JSON.stringify({
+                panes: [{ destination_hash: destHash, display_name: "Restored Peer" }],
+                sizes: [1],
+                focusedIndex: 0,
+            })
+        );
+
+        const dismissSpy = vi.spyOn(MessagesPage.methods, "dismissUnreadForVisiblePanes");
+        const wrapper = mountMessagesPage({ destinationHash: "" });
+        await flushPromises();
+
+        expect(wrapper.vm.selectedPeer?.destination_hash).toBe(destHash);
+        expect(dismissSpy).toHaveBeenCalledWith({ force: true });
+        expect(wrapper.vm.$router.replace).toHaveBeenCalledWith(
+            expect.objectContaining({
+                name: "messages",
+                params: { destinationHash: destHash },
+            })
+        );
+        dismissSpy.mockRestore();
+        wrapper.unmount();
+    });
+
+    it("dismissUnreadForVisiblePanes marks open unread conversations after list refresh", async () => {
+        const destHash = "e".repeat(32);
+        const conversation = { destination_hash: destHash, display_name: "Peer", is_unread: true };
+        const wrapper = mountMessagesPage();
+        await flushPromises();
+
+        wrapper.vm.selectedPeer = { destination_hash: destHash, display_name: "Peer" };
+        wrapper.vm.conversations = [conversation];
+        wrapper.vm.paneViewers = {};
+        axiosMock.post.mockClear();
+        GlobalEmitter.emit.mockClear();
+        NotificationUtils.clearMessageNotifications.mockClear();
+
+        wrapper.vm.dismissUnreadForVisiblePanes();
+        await flushPromises();
+
+        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/lxmf/conversations/${destHash}/mark-as-read`);
+        expect(conversation.is_unread).toBe(false);
+        expect(GlobalEmitter.emit).toHaveBeenCalledWith("notifications-changed");
+        expect(NotificationUtils.clearMessageNotifications).toHaveBeenCalledWith(destHash);
+        wrapper.unmount();
+    });
+
+    it("dismissUnreadForVisiblePanes skips already-read open panes unless force is set", async () => {
+        const destHash = "f".repeat(32);
+        const conversation = { destination_hash: destHash, display_name: "Peer", is_unread: false };
+        const wrapper = mountMessagesPage();
+        await flushPromises();
+
+        wrapper.vm.selectedPeer = { destination_hash: destHash, display_name: "Peer" };
+        wrapper.vm.conversations = [conversation];
+        axiosMock.post.mockClear();
+
+        wrapper.vm.dismissUnreadForVisiblePanes();
+        await flushPromises();
+        expect(axiosMock.post).not.toHaveBeenCalled();
+
+        wrapper.vm.dismissUnreadForVisiblePanes({ force: true });
+        await flushPromises();
+        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/lxmf/conversations/${destHash}/mark-as-read`);
+        wrapper.unmount();
+    });
+
+    it("getConversations dismisses unread for open panes after the list updates", async () => {
+        const destHash = "a1".repeat(16);
+        const conversation = {
+            destination_hash: destHash,
+            display_name: "Peer",
+            is_unread: true,
+            failed_messages_count: 0,
+            latest_message_created_at: "2026-01-01T00:00:00Z",
+            latest_message_preview: "hello",
+            updated_at: "2026-01-01T00:00:00Z",
+        };
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/config")
+                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
+            if (url === "/api/v1/lxmf/conversations") {
+                return Promise.resolve({ data: { conversations: [conversation] } });
+            }
+            if (url === "/api/v1/announces") return Promise.resolve({ data: { announces: [] } });
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountMessagesPage();
+        wrapper.vm.selectedPeer = { destination_hash: destHash, display_name: "Peer" };
+        const dismissSpy = vi.spyOn(wrapper.vm, "dismissUnreadForVisiblePanes");
+        await wrapper.vm.getConversations();
+        await flushPromises();
+
+        expect(dismissSpy).toHaveBeenCalled();
+        expect(wrapper.vm.conversations.some((c) => c.destination_hash === destHash && c.is_unread === false)).toBe(
+            true
+        );
+        wrapper.unmount();
+    });
+
     it("composes the conversation when the route hash differs from the selected peer", async () => {
         const selectedHash = "a".repeat(32);
         const newHash = "b".repeat(32);

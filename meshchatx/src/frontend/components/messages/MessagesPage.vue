@@ -588,6 +588,11 @@ export default {
         // compose message if a destination hash was provided on page load
         if (this.destinationHash) {
             this.onComposeNewMessage(this.destinationHash);
+        } else if (this.selectedPeer?.destination_hash) {
+            // Nav to /messages with no hash still restores the last open pane from storage.
+            // Force-dismiss unread so returning from another page clears badges/notifications.
+            this.dismissUnreadForVisiblePanes({ force: true });
+            this.syncRouteToFocusedPane();
         }
     },
     methods: {
@@ -889,6 +894,8 @@ export default {
                     if (nextSignature === this.conversationListSignature) {
                         this.hasLoadedConversations = true;
                         this.hasMoreConversations = newConversations.length === this.pageSize;
+                        // Open panes can still be unread if mark-as-read raced an earlier fetch.
+                        this.dismissUnreadForVisiblePanes();
                         return;
                     }
                 }
@@ -936,6 +943,9 @@ export default {
 
                 this.hasLoadedConversations = true;
                 this.hasMoreConversations = newConversations.length === this.pageSize;
+                if (!append) {
+                    this.dismissUnreadForVisiblePanes();
+                }
             } catch (e) {
                 if (window.api.isCancel?.(e)) return;
                 console.log(e);
@@ -1327,6 +1337,24 @@ export default {
             const viewer = this.paneViewers?.[this.focusedPaneId];
             viewer?.markConversationAsRead?.(conversation);
         },
+        dismissUnreadForVisiblePanes({ force = false } = {}) {
+            const seen = new Set();
+            for (const pane of this.panes || []) {
+                const normalized = Utils.normalizeMeshchatHashHex(pane?.peer?.destination_hash || "");
+                if (!normalized || seen.has(normalized)) {
+                    continue;
+                }
+                seen.add(normalized);
+                const conversation =
+                    this.conversations.find(
+                        (c) => Utils.normalizeMeshchatHashHex(c.destination_hash) === normalized
+                    ) || pane.peer;
+                if (!force && conversation?.is_unread !== true) {
+                    continue;
+                }
+                this.dismissUnreadForOpenDestination(normalized);
+            }
+        },
         dismissUnreadForOpenDestination(destinationHash) {
             const normalized = Utils.normalizeMeshchatHashHex(destinationHash || "");
             if (!normalized) {
@@ -1334,11 +1362,15 @@ export default {
             }
             const conversation =
                 this.conversations.find((c) => Utils.normalizeMeshchatHashHex(c.destination_hash) === normalized) ||
+                this.panes?.find((p) => Utils.normalizeMeshchatHashHex(p?.peer?.destination_hash) === normalized)
+                    ?.peer ||
                 this.selectedPeer;
             if (!conversation) {
                 return;
             }
-            const viewer = this.paneViewers?.[this.focusedPaneId];
+            const viewer =
+                this.paneViewers?.[this.focusedPaneId] ||
+                Object.values(this.paneViewers || {}).find((v) => v?.markConversationAsRead);
             if (viewer?.markConversationAsRead) {
                 viewer.markConversationAsRead(conversation, { force: true });
                 return;
