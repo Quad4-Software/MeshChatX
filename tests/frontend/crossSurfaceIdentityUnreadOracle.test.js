@@ -49,6 +49,7 @@ describe("conversations unread oracle", () => {
         const ctx = {
             conversations: [{ destination_hash: peer, is_unread: false }],
             selectedPeer: { destination_hash: peer, is_unread: false },
+            panes: [{ peer: { destination_hash: peer, is_unread: false } }],
             paneViewers: {},
             focusedPaneId: 0,
         };
@@ -65,6 +66,7 @@ describe("conversations unread oracle", () => {
         const ctx = {
             conversations: [conversation],
             selectedPeer: conversation,
+            panes: [{ peer: conversation }],
             paneViewers: {},
             focusedPaneId: 0,
         };
@@ -74,6 +76,28 @@ describe("conversations unread oracle", () => {
 
         expect(conversation.is_unread).toBe(false);
         expect(GlobalState.unreadConversationsCount).toBe(2);
+    });
+
+    it("marks a restored open pane read after leaving Messages and returning", async () => {
+        // Oracle: returning to Messages with the same pane still open must clear
+        // unread without requiring a second sidebar click.
+        const peer = "cc".repeat(16);
+        const conversation = { destination_hash: peer, is_unread: true };
+        const ctx = {
+            conversations: [conversation],
+            selectedPeer: { destination_hash: peer, display_name: "Peer" },
+            panes: [{ peer: { destination_hash: peer, display_name: "Peer" } }],
+            paneViewers: {},
+            focusedPaneId: 0,
+            dismissUnreadForOpenDestination: MessagesPage.methods.dismissUnreadForOpenDestination,
+        };
+
+        MessagesPage.methods.dismissUnreadForVisiblePanes.call(ctx);
+        await vi.waitFor(() => expect(window.api.post).toHaveBeenCalled());
+
+        expect(conversation.is_unread).toBe(false);
+        expect(GlobalState.unreadConversationsCount).toBe(2);
+        expect(window.api.post).toHaveBeenCalledWith(`/api/v1/lxmf/conversations/${peer}/mark-as-read`);
     });
 });
 

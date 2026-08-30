@@ -205,6 +205,23 @@ describe("ConversationViewer.vue", () => {
         expect(NotificationUtils.clearMessageNotifications).toHaveBeenCalledWith("open-hash");
     });
 
+    it("initialLoad force marks a slim restored peer that has no is_unread flag", async () => {
+        axiosMock.post.mockClear();
+        NotificationUtils.clearMessageNotifications.mockClear();
+        const slimPeer = { destination_hash: "restored-peer-hash", display_name: "Restored" };
+        const wrapper = mountConversationViewer({
+            selectedPeer: slimPeer,
+            conversations: [],
+        });
+        await flushPromises();
+
+        const markCalls = axiosMock.post.mock.calls.filter((c) => String(c[0]).includes("/mark-as-read"));
+        expect(markCalls.length).toBeGreaterThanOrEqual(1);
+        expect(markCalls[0][0]).toContain("restored-peer-hash");
+        expect(NotificationUtils.clearMessageNotifications).toHaveBeenCalledWith("restored-peer-hash");
+        wrapper.unmount();
+    });
+
     it("onLxmfMessageReceived force marks the open conversation as read", async () => {
         const conversations = [{ destination_hash: "open-peer", is_unread: false }];
         const wrapper = mountConversationViewer({
@@ -1011,6 +1028,8 @@ describe("ConversationViewer.vue", () => {
 
     it("cancelSendingMessage removes optimistic pending placeholder without API call", async () => {
         const wrapper = mountConversationViewer();
+        await flushPromises();
+        axiosMock.post.mockClear();
         const pendingItem = {
             type: "lxmf_message",
             is_outbound: true,

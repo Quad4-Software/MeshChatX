@@ -3198,7 +3198,9 @@ export default {
             this.getPeerLxmfStampInfo();
             this.getPeerSignalMetrics();
 
-            this.markConversationAsRead(this.selectedPeer);
+            // Force mark on open. Restored pane peers are slim objects without is_unread,
+            // so a non-force call skips and leaves the thread unread until re-click.
+            this.markConversationAsRead(this.selectedPeer, { force: true });
 
             await this.loadPrevious();
             this.reconcileOutboundPendingPlaceholders();
