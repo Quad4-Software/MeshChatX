@@ -37,9 +37,9 @@ When password auth is enabled, WS mutators and reads require an authenticated se
 
 Only `ping` skips the session check. Unknown types require auth.
 
-`/ws` and `/ws/telephone/audio` upgrades also require a same-authority `Origin` (missing Origin is allowed for non-browser clients). Behind a trusted proxy, `X-Forwarded-Host` is accepted as the public authority.
+`/ws` and `/ws/telephone/audio` upgrades also require a same-authority `Origin` (missing Origin is allowed for non-browser clients on loopback, or when password auth is enabled; missing Origin is rejected on non-loopback binds without auth). Behind a trusted proxy, `X-Forwarded-Host` is accepted as the public authority.
 
-Public / read / mutator classification lives in `WEBSOCKET_PUBLIC_TYPES`, `WEBSOCKET_READ_TYPES`, and `WEBSOCKET_MUTATOR_TYPES` in `websocket_config_guard.py`.
+Public / read / mutator classification lives in `WEBSOCKET_PUBLIC_TYPES`, `WEBSOCKET_READ_TYPES`, and `WEBSOCKET_MUTATOR_TYPES` in `websocket_config_guard.py`. Control types `ws.subscribe`, `ws.unsubscribe`, `sync.subscribe`, and `ws.caps` are public.
 
 ## Dangerous knobs
 

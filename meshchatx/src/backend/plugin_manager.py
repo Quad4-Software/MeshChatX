@@ -1637,13 +1637,15 @@ class PluginManager:
         import json as json_module
 
         from meshchatx.src.backend.async_utils import AsyncUtils
+        from meshchatx.src.backend.websocket_runtime import truncate_plugin_payload
 
+        safe_payload = truncate_plugin_payload(payload)
         message = json_module.dumps(
             {
                 "type": "plugin.event",
                 "plugin_id": plugin_id,
                 "event": event,
-                "payload": payload,
+                "payload": safe_payload,
             },
         )
         AsyncUtils.run_async(self.app.websocket_broadcast(message))

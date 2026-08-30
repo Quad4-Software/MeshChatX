@@ -130,22 +130,65 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     zipfile,
 )
 from meshchatx.src.backend.websocket_config_guard import websocket_origin_allowed
+from meshchatx.src.backend.websocket_runtime import (
+    WS_RATE_ABUSE_STRIKES,
+    WS_RATE_RETRY_AFTER_SEC,
+    client_is_idle,
+    get_client_bucket,
+    init_client_runtime,
+    message_rate_cost,
+    send_ws_error,
+    touch_client_activity,
+    websocket_origin_policy_allows,
+)
+
+
+async def _reject_forbidden_ws_session(app, request):
+    """Defense in depth: identity-bound session when password auth is on."""
+    if not getattr(app, "auth_enabled", False):
+        return None
+    try:
+        session = await get_session(request)
+    except Exception:
+        return web.json_response({"error": "Authentication required"}, status=401)
+    identity_hash = None
+    identity = getattr(app, "identity", None)
+    if identity is not None and getattr(identity, "hash", None) is not None:
+        identity_hash = identity.hash.hex()
+    if not (
+        session.get("authenticated", False)
+        and identity_hash
+        and session.get("identity_hash") == identity_hash
+    ):
+        return web.json_response({"error": "Authentication required"}, status=401)
+    return None
 
 
 def _reject_forbidden_ws_origin(app, request):
-    if websocket_origin_allowed(request, get_trusted_proxy_cidrs(app.storage_dir)):
+    listen_host = getattr(app, "listen_host", None)
+    auth_enabled = bool(getattr(app, "auth_enabled", False))
+    if websocket_origin_policy_allows(
+        request,
+        listen_host=listen_host,
+        auth_enabled=auth_enabled,
+        trusted_proxy_cidrs=get_trusted_proxy_cidrs(app.storage_dir),
+        origin_allowed_fn=websocket_origin_allowed,
+        is_loopback_fn=_is_loopback_bind_host,
+    ):
         return None
     return web.json_response({"error": "Forbidden origin"}, status=403)
 
 
 def register_websocket_upgrade_routes(routes, app):
-
     # handle websocket clients
     @routes.get("/ws")
     async def ws(request):
         forbidden = _reject_forbidden_ws_origin(app, request)
         if forbidden is not None:
             return forbidden
+        forbidden_session = await _reject_forbidden_ws_session(app, request)
+        if forbidden_session is not None:
+            return forbidden_session
         max_clients = int(getattr(app, "max_websocket_clients", 64) or 64)
         if len(app.websocket_clients) >= max_clients:
             return web.json_response(
@@ -153,15 +196,20 @@ def register_websocket_upgrade_routes(routes, app):
                 status=503,
             )
 
-        # prepare websocket response
+        # Control + chunked Nomad frames. Whole-file success under the Nomad
+        # app cap still fits (10 MiB raw + base64) under 50 MiB legacy until
+        # Phase 4 fully switches large transfers to chunks only.
+        max_msg = int(
+            getattr(app, "websocket_max_msg_size", None) or (50 * 1024 * 1024),
+        )
         websocket_response = web.WebSocketResponse(
-            # set max message size accepted by server to 50 megabytes
-            max_msg_size=50 * 1024 * 1024,
+            max_msg_size=max_msg,
         )
         await websocket_response.prepare(request)
         # aiohttp WebSocketResponse does not expose .request, so keep it for
         # session checks on authenticated mutators (nomadnet downloads, etc).
         websocket_response._meshchatx_request = request
+        init_client_runtime(websocket_response)
 
         # add client to connected clients list
         app.websocket_clients.append(websocket_response)
@@ -179,16 +227,83 @@ def register_websocket_upgrade_routes(routes, app):
         async for msg in websocket_response:
             message = cast("WSMessage", msg)
             if message.type == WSMsgType.TEXT:
+                touch_client_activity(websocket_response)
                 try:
                     data = json.loads(message.data)
-                    await app.on_websocket_data_received(websocket_response, data)
                 except Exception as e:
-                    # ignore errors while handling message
                     print("failed to process client message")
                     print(e)
+                    await send_ws_error(
+                        websocket_response,
+                        message="Invalid JSON",
+                        code="invalid_json",
+                    )
+                    continue
+                counters = getattr(app, "ws_counters", None)
+                if counters is not None:
+                    counters.msgs_in += 1
+                bucket = get_client_bucket(websocket_response)
+                msg_type = data.get("type") if isinstance(data, dict) else None
+                cost = message_rate_cost(
+                    msg_type if isinstance(msg_type, str) else None
+                )
+                if not bucket.consume(cost):
+                    if counters is not None:
+                        counters.rate_limit_hits += 1
+                    strikes = int(
+                        getattr(websocket_response, "_meshchatx_rate_strikes", 0) or 0,
+                    )
+                    strikes += 1
+                    websocket_response._meshchatx_rate_strikes = strikes
+                    await send_ws_error(
+                        websocket_response,
+                        message="Rate limit exceeded",
+                        code="rate_limited",
+                        request_id=data.get("request_id")
+                        if isinstance(data, dict)
+                        else None,
+                        retry_after=WS_RATE_RETRY_AFTER_SEC,
+                    )
+                    if strikes >= WS_RATE_ABUSE_STRIKES:
+                        await websocket_response.close()
+                        break
+                    continue
+                websocket_response._meshchatx_rate_strikes = 0
+                try:
+                    await app.on_websocket_data_received(websocket_response, data)
+                except Exception as e:
+                    print("failed to process client message")
+                    print(e)
+                    await send_ws_error(
+                        websocket_response,
+                        message="Handler failed",
+                        code="handler_failed",
+                        request_id=data.get("request_id")
+                        if isinstance(data, dict)
+                        else None,
+                    )
+            elif message.type == WSMsgType.BINARY:
+                touch_client_activity(websocket_response)
+                try:
+                    await app.on_websocket_binary_received(
+                        websocket_response,
+                        message.data,
+                    )
+                except Exception as e:
+                    print("failed to process binary client message")
+                    print(e)
             elif message.type == WSMsgType.ERROR:
-                # ignore errors while handling message
                 print(f"ws connection error {websocket_response.exception()}")
+
+            if client_is_idle(websocket_response):
+                counters = getattr(app, "ws_counters", None)
+                if counters is not None:
+                    counters.idle_closes += 1
+                try:
+                    await websocket_response.close()
+                except Exception:
+                    pass
+                break
 
         # websocket closed
         try:
@@ -206,11 +321,15 @@ def register_websocket_upgrade_routes(routes, app):
         forbidden = _reject_forbidden_ws_origin(app, request)
         if forbidden is not None:
             return forbidden
+        forbidden_session = await _reject_forbidden_ws_session(app, request)
+        if forbidden_session is not None:
+            return forbidden_session
         websocket_response = web.WebSocketResponse(
             # Cap well above a normal PCM frame (tens of KB) but far below prior 5 MiB.
             max_msg_size=256 * 1024,
         )
         await websocket_response.prepare(request)
+        init_client_runtime(websocket_response)
 
         if getattr(app, "demo_mode", False):
             await websocket_response.send_str(
@@ -250,6 +369,7 @@ def register_websocket_upgrade_routes(routes, app):
 
         async for msg in websocket_response:
             message = cast("WSMessage", msg)
+            touch_client_activity(websocket_response)
             if message.type == WSMsgType.BINARY:
                 # Only accept PCM after a successful attach for this socket.
                 if websocket_response in app.web_audio_bridge.clients:

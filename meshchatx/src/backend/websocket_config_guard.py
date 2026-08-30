@@ -28,6 +28,10 @@ WEBSOCKET_CONFIG_DENYLIST = frozenset(
 WEBSOCKET_PUBLIC_TYPES = frozenset(
     {
         "ping",
+        "ws.subscribe",
+        "ws.unsubscribe",
+        "sync.subscribe",
+        "ws.caps",
     },
 )
 
