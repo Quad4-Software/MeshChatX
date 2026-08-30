@@ -53,10 +53,23 @@
 
                 <!-- header -->
                 <div
-                    class="flex min-w-0 items-center gap-1 border-b border-sem-border bg-sem-surface px-2 py-0.5 sm:px-3"
+                    class="flex min-w-0 items-center gap-1 border-b px-2 py-0.5 sm:px-3"
+                    :class="
+                        isPrivate
+                            ? 'border-purple-500/50 bg-[#1a0b33] text-purple-100'
+                            : 'border-sem-border bg-sem-surface'
+                    "
                 >
+                    <div
+                        v-if="isPrivate"
+                        class="my-auto flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-purple-200"
+                        :title="$t('nomadnet.private_browsing_hint')"
+                    >
+                        <MaterialDesignIcon icon-name="incognito" class="size-4 text-purple-300" />
+                        <span class="hidden sm:inline">{{ $t("nomadnet.private_tab") }}</span>
+                    </div>
                     <!-- favourite button -->
-                    <div class="my-auto shrink-0">
+                    <div v-if="!isPrivate" class="my-auto shrink-0">
                         <IconButton
                             v-if="isFavourite(selectedNode.destination_hash)"
                             class="nomad-icon-btn text-yellow-500 dark:text-yellow-300"
@@ -187,7 +200,10 @@
                     </div>
 
                     <!-- archive button -->
-                    <div v-if="pageArchives.length > 0 || nodePageContent" class="my-auto shrink-0 relative">
+                    <div
+                        v-if="!isPrivate && (pageArchives.length > 0 || nodePageContent)"
+                        class="my-auto shrink-0 relative"
+                    >
                         <IconButton
                             class="nomad-icon-btn text-sem-fg-muted"
                             :class="{ 'text-sem-accent': pageArchives.length > 0 }"
@@ -237,6 +253,7 @@
                     </div>
 
                     <IconButton
+                        v-if="!isPrivate"
                         class="nomad-icon-btn shrink-0 text-sem-fg-muted lg:hidden"
                         :title="$t('nomadnet.identify')"
                         @click="identify(selectedNode.destination_hash)"
@@ -246,6 +263,7 @@
 
                     <div class="hidden shrink-0 items-center gap-0 lg:flex">
                         <IconButton
+                            v-if="!isPrivate"
                             class="nomad-icon-btn text-sem-fg-muted"
                             :title="$t('nomadnet.identify')"
                             @click="identify(selectedNode.destination_hash)"
@@ -354,7 +372,7 @@
                         <MaterialDesignIcon icon-name="arrow-right" class="size-5" />
                     </IconButton>
 
-                    <DropDownMenu v-if="hasPageLoadFailed" class="shrink-0">
+                    <DropDownMenu v-if="selectedNode" class="shrink-0">
                         <template #button>
                             <IconButton
                                 :title="$t('nomadnet.path_finder')"
@@ -381,7 +399,7 @@
                                 <span>{{ $t("nomadnet.path_finder_drop_and_request") }}</span>
                             </DropDownMenuItem>
                             <DropDownMenuItem
-                                v-if="hasArchivesForCurrentPage || pageArchives.length > 0"
+                                v-if="!isPrivate && (hasArchivesForCurrentPage || pageArchives.length > 0)"
                                 @click="loadLatestArchiveSnapshot"
                             >
                                 <MaterialDesignIcon icon-name="archive-clock" class="size-5" />
@@ -469,7 +487,7 @@
                         <div class="text-red-400 font-semibold text-lg">{{ $t("nomadnet.failed_to_load_page") }}</div>
                         <div class="text-gray-400 text-sm max-w-md">{{ nodePageContent }}</div>
 
-                        <div v-if="hasArchivesForCurrentPage" class="space-y-2">
+                        <div v-if="!isPrivate && hasArchivesForCurrentPage" class="space-y-2">
                             <div class="text-sm text-gray-300">{{ $t("nomadnet.archived_version_available") }}</div>
                             <button
                                 class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition"
@@ -587,7 +605,7 @@
             :y="standaloneContextMenu.y"
             :just-opened="standaloneContextMenu.justOpened"
             :has-active-page="standaloneContextHasActivePage"
-            :can-favourite="Boolean(selectedNode?.destination_hash)"
+            :can-favourite="!isPrivate && Boolean(selectedNode?.destination_hash)"
             :is-favourite="selectedNode ? isFavourite(selectedNode.destination_hash) : false"
             :can-download-page="standaloneContextCanDownloadPage"
             :show-tab-actions="false"
@@ -669,6 +687,10 @@ export default {
         isActive: {
             type: Boolean,
             default: true,
+        },
+        isPrivate: {
+            type: Boolean,
+            default: false,
         },
         initialPath: {
             type: String,
@@ -894,7 +916,10 @@ export default {
             };
         },
         nomadnetPageLoadingLine() {
-            const phase = this.nodePageLoadPhase || "finding_path";
+            const phase = this.nodePageLoadPhase;
+            if (!phase) {
+                return this.$t("nomadnet.load_phase_default");
+            }
             const key = `nomadnet.load_phase_${phase}`;
             const translated = this.$t(key);
             const base =
@@ -1447,7 +1472,6 @@ export default {
                             return;
                         }
                         this.currentPageDownloadId = downloadId;
-                        this.nodePageLoadPhase = "finding_path";
                         return;
                     }
 
@@ -1458,7 +1482,7 @@ export default {
                         if (this.nodePagePath && responsePagePath !== this.nodePagePath) {
                             return;
                         }
-                        this.nodePageLoadPhase = nomadnetPageDownload.load_phase || "finding_path";
+                        this.nodePageLoadPhase = nomadnetPageDownload.load_phase || null;
                         return;
                     }
 
@@ -1487,7 +1511,7 @@ export default {
 
                     // handle failure
                     if (nomadnetPageDownload.status === "failure" && nomadnetPageDownloadCallback.onFailureCallback) {
-                        this.hasArchivesForCurrentPage = nomadnetPageDownload.has_archives;
+                        this.hasArchivesForCurrentPage = this.isPrivate ? false : nomadnetPageDownload.has_archives;
                         nomadnetPageDownloadCallback.onFailureCallback(nomadnetPageDownload.failure_reason);
                         delete this.nomadnetPageDownloadCallbacks[getNomadnetPageDownloadCallbackKey];
                         this.currentPageDownloadId = null;
@@ -1921,7 +1945,7 @@ export default {
             this.nodePageContent = null;
             this.pageArchives = [];
             this.nodePageProgress = 0;
-            this.nodePageLoadPhase = "finding_path";
+            this.nodePageLoadPhase = null;
             this.pageLoadStartedAt = Date.now();
             this.lastPageLoadDurationMs = null;
             this.lastPageContentBytes = null;
@@ -2795,6 +2819,11 @@ export default {
             }
         },
         fetchArchives() {
+            if (this.isPrivate) {
+                this.pageArchives = [];
+                this.isLoadingArchives = false;
+                return;
+            }
             if (!this.selectedNode || !this.nodePagePath) return;
             this.isLoadingArchives = true;
 
@@ -2810,13 +2839,16 @@ export default {
             );
         },
         loadArchivedPage(archiveId) {
+            if (this.isPrivate) {
+                return;
+            }
             this.isArchiveDropdownOpen = false;
             this.isLoadingNodePage = true;
             this.isShowingArchivedVersion = false;
             this.archivedAt = null;
             this.nodePageProgress = 0;
             this.pageLoadStartedAt = Date.now();
-            this.nodePageLoadPhase = "finding_path";
+            this.nodePageLoadPhase = null;
 
             const archive = this.pageArchives.find((a) => a.id === archiveId);
             if (archive) {
@@ -2845,6 +2877,9 @@ export default {
             }
         },
         manualArchive() {
+            if (this.isPrivate) {
+                return;
+            }
             if (!this.selectedNode || !this.nodePagePath || !this.nodePageContent) return;
             ToastUtils.info(this.$t("nomadnet.archiving_page"));
 
@@ -2893,6 +2928,9 @@ export default {
             }
         },
         async identify(destinationHash) {
+            if (this.isPrivate) {
+                return;
+            }
             try {
                 // ask user to confirm
                 if (!(await DialogUtils.confirm(this.$t("nomadnet.identify_confirm")))) {
@@ -2936,6 +2974,7 @@ export default {
                     nomadnet_file_download: {
                         destination_hash: destinationHash,
                         file_path: filePath,
+                        private: Boolean(this.isPrivate),
                     },
                 };
                 if (data != null) {
@@ -2971,6 +3010,7 @@ export default {
                             destination_hash: destinationHash,
                             page_path: pagePath,
                             field_data: fieldData,
+                            private: Boolean(this.isPrivate),
                         },
                     })
                 );

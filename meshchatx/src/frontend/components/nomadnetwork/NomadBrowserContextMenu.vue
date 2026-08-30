@@ -32,6 +32,10 @@
             <template v-if="showTabActions">
                 <ContextMenuDivider />
                 <ContextMenuSectionLabel>{{ $t("nomadnet.context_tabs") }}</ContextMenuSectionLabel>
+                <ContextMenuItem @click="$emit('new-private-tab')">
+                    <MaterialDesignIcon icon-name="incognito" class="size-5 text-purple-400" />
+                    <span>{{ $t("nomadnet.new_private_tab") }}</span>
+                </ContextMenuItem>
                 <ContextMenuItem :disabled="!canCloseTabsRight" @click="$emit('close-tabs-right')">
                     <MaterialDesignIcon icon-name="tab-remove" class="size-5" />
                     <span>{{ $t("nomadnet.close_tabs_to_right") }}</span>
@@ -114,6 +118,10 @@ export default {
             type: Boolean,
             default: false,
         },
+        contextTabIsPrivate: {
+            type: Boolean,
+            default: false,
+        },
     },
     emits: [
         "close",
@@ -121,6 +129,7 @@ export default {
         "reload",
         "favorite",
         "download-page",
+        "new-private-tab",
         "close-tabs-right",
         "close-other-tabs",
         "close-all-tabs",
