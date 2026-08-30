@@ -38,7 +38,10 @@ WEBSOCKET_RUNTIME_CONTROL_TYPES = frozenset(
 WEBSOCKET_PUBLIC_TYPES = frozenset(
     {
         "ping",
-        *WEBSOCKET_RUNTIME_CONTROL_TYPES,
+        "ws.subscribe",
+        "ws.unsubscribe",
+        "sync.subscribe",
+        "ws.caps",
     },
 )
 

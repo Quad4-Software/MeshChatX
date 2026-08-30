@@ -58,6 +58,11 @@ WS_MESSAGE_SCHEMAS: dict[str, dict] = {
         required=["config"],
         properties={"config": _WS_OBJECT},
     ),
+    "config.changed": _ws_type(
+        "config.changed",
+        required=["keys"],
+        properties={"keys": {"type": "array", "items": _WS_STRING}},
+    ),
     "announced": _ws_type(
         "announced",
         properties={
@@ -288,6 +293,7 @@ WS_MESSAGE_SAMPLES: dict[str, dict] = {
     },
     "config.set": {"type": "config.set", "config": {"display_name": "Test"}},
     "config": {"type": "config", "config": {"display_name": "Test"}},
+    "config.changed": {"type": "config.changed", "keys": ["display_name"]},
     "announced": {
         "type": "announced",
         "identity_hash": "abc123",
