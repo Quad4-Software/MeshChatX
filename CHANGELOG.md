@@ -8,9 +8,14 @@ All notable changes to this project will be documented in this file.
 
 - **Archives**: Search with snippets and pagination. Card Micron/Markdown/HTML previews. Recrawl from the viewer. Stacked layout under 1024px.
 - **Smart Crawler**: Hop and RTT caps, one request per node per day, depth up to 2, max 20 pages per node, `# nocrawl` and Archives opt-out. Schema v56.
+- **Nomad private tabs**: Purple incognito tabs that skip archiving, favourites, Identify, tab restore, and the shared Nomad link cache. Ctrl+Shift+P.
 
 ### Fixed
 
+- **NomadNet**: Opening a node before the UI websocket is OPEN no longer leaves the browser stuck on Loading page. Downloads queue until the socket connects, then fail clearly if it never does. Partial page fetches no longer steal the primary download id. Invalid download requests return a failure event instead of going silent.
+- **Build**: Pin `@babel/traverse` to `>=7.29.6` so Vite build and `task dev` do not crash on `environmentVisitor is not a function`.
+- **CI**: Pin `ruff` below 0.16 and `cx-freeze` below 8.7, pin `plist` 3.1.1 and `nanoid` >=3.3.18, and keep `numpy` on 2.4.x so Linux/macOS package jobs and Trivy stay green after the dependency bump.
+- **Electron**: Crash and loading shells apply stored theme in head before paint so dark mode does not flash white.
 - **CI**: Register HTTP JSON contracts for archive detail and crawl opt-outs GETs. Narrow `link_rtt_ms` float conversion for basedpyright.
 - **UI**: Native select options and dropdown panels use theme text and background colors.
 - **NomadNet**: Page paint runs in a sandboxed crash-tab iframe so a hung Micron/HTML page does not freeze the shell. Cancel aborts download and tears down the renderer. No page-size refuse caps. Crash-tab and view-source strings translated in de, es, fi, fr, it, nl, ru, zh.

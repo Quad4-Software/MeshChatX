@@ -504,19 +504,23 @@ async def handle_nomadnet_page_download(app, client, data):
     download_id = app.download_id_counter
 
     async def send_failure(reason: str, dest_hex: str = "", path: str = "") -> None:
-        await client.send_str(
-            json.dumps(
-                {
-                    "type": "nomadnet.page.download",
-                    "download_id": download_id,
-                    "nomadnet_page_download": {
-                        "status": "failure",
-                        "failure_reason": reason,
-                        "destination_hash": dest_hex or (destination_hash or ""),
-                        "page_path": path or (page_path or ""),
-                        "has_archives": False,
+        # Match other Nomad WS callbacks: fire-and-forget so MagicMock clients
+        # in unit tests do not need to be awaitable.
+        AsyncUtils.run_async(
+            client.send_str(
+                json.dumps(
+                    {
+                        "type": "nomadnet.page.download",
+                        "download_id": download_id,
+                        "nomadnet_page_download": {
+                            "status": "failure",
+                            "failure_reason": reason,
+                            "destination_hash": dest_hex or (destination_hash or ""),
+                            "page_path": path or (page_path or ""),
+                            "has_archives": False,
+                        },
                     },
-                },
+                ),
             ),
         )
 

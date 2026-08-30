@@ -39,7 +39,7 @@ overrides:
   fast-uri: '>=4.1.2'
   ms: '>=2.0.0'
   picomatch: '>=4.0.4'
-  plist: '>=3.0.5'
+  plist: 3.1.1
   protocol-buffers-schema: '>=3.6.1'
   semver: '>=7.5.2'
   serialize-javascript: '>=7.0.3'
@@ -47,7 +47,7 @@ overrides:
   tar: '>=7.5.16'
   tmp: '>=0.2.7'
   undici: 7.29.0
-  nanoid: '>=3.3.17 <4.0.0'
+  nanoid: '>=3.3.18 <4.0.0'
   postcss: '>=8.5.23'
   ip-address: '>=10.3.1'
   webpack: '>=5.104.0'
@@ -2086,6 +2086,9 @@ packages:
   bare-url@2.2.2:
     resolution: {integrity: sha512-g+ueNGKkrjMazDG3elZO1pNs3HY5+mMmOet1jtKyhOaCnkLzitxf26z7hoAEkDNgdNmnc1KIlt/dw6Po6xZMpA==}
 
+  base64-js@1.5.1:
+    resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
+
   baseline-browser-mapping@2.11.12:
     resolution: {integrity: sha512-r7WnVImvVCeFpf2DOXfy41aPWzeNg3H/A2X4dKmy1QL0MSyyk/e7z8ihJ3N6Nn2PsdhkVlqnEfnUE4a05P2aTA==}
     engines: {node: '>=6.0.0'}
@@ -4057,11 +4060,6 @@ packages:
   muggle-string@0.4.1:
     resolution: {integrity: sha512-VNTrAak/KhO2i8dqqnqnAHOa3cYBwXEZe9h+D5h/1ZqFSTEFHdM65lR7RoIqq3tBBYavsOXV84NoHXZ0AkPyqQ==}
 
-  nanoid@3.3.17:
-    resolution: {integrity: sha512-xQLf0A3HOMlgHq0n247/LRuAOYmB7dXJ/DvAxGvsSBij45XtBSmQycu+F8ODbHwns/XyFZagyL1+J0Offw1E0g==}
-    engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
-    hasBin: true
-
   nanoid@3.3.18:
     resolution: {integrity: sha512-DTg4MJbGMWkfi6VZFdNt2/caMbQy4Ou+Op/hJQvGEWcnVfoA1QA+xzRKAzw9jD6+GVOOeYr/mIcuDSdug6F6+w==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
@@ -4327,9 +4325,9 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  plist@5.0.0:
-    resolution: {integrity: sha512-20N+g1DvMm/DFRbsvER7tT4wDryq0WunK7VMkDaiJcKNapAnUMkTsAnacFYf8n420F4Hf6/hefgmJRkMb1M0fg==}
-    engines: {node: '>=18'}
+  plist@3.1.1:
+    resolution: {integrity: sha512-ZIfcLJC+7E7FBFnDxm9MPmt7D+DidyQ26lewieO75AdhA2ayMtsJSES0iWzqJQbcVRSrTufQoy0DR94xHue0oA==}
+    engines: {node: '>=10.4.0'}
 
   pngjs@5.0.0:
     resolution: {integrity: sha512-40QW5YalBNfQo5yRYmiw7Yz6TKKVr3h6970B2YE+3fQpsWcrbj1PzJgxeJ19DRQjhMbKPIuMY8rFaXc8moolVw==}
@@ -5954,7 +5952,7 @@ snapshots:
       fs-extra: 10.1.0
       isbinaryfile: 4.0.8
       minimist: 1.2.8
-      plist: 5.0.0
+      plist: 3.1.1
     transitivePeerDependencies:
       - supports-color
 
@@ -5977,7 +5975,7 @@ snapshots:
       dir-compare: 4.2.0
       fs-extra: 11.1.1
       minimatch: 10.2.3
-      plist: 5.0.0
+      plist: 3.1.1
     transitivePeerDependencies:
       - supports-color
 
@@ -7370,7 +7368,7 @@ snapshots:
       lazy-val: 1.0.5
       minimatch: 10.2.3
       pkijs: 3.4.0
-      plist: 5.0.0
+      plist: 3.1.1
       proper-lockfile: 4.1.2
       resedit: 1.7.0
       semver: 7.5.2
@@ -7498,6 +7496,8 @@ snapshots:
   bare-url@2.2.2:
     dependencies:
       bare-path: 3.0.0
+
+  base64-js@1.5.1: {}
 
   baseline-browser-mapping@2.11.12: {}
 
@@ -9544,8 +9544,6 @@ snapshots:
 
   muggle-string@0.4.1: {}
 
-  nanoid@3.3.17: {}
-
   nanoid@3.3.18: {}
 
   natural-compare@1.4.0: {}
@@ -9860,9 +9858,10 @@ snapshots:
     optionalDependencies:
       fsevents: 2.3.2
 
-  plist@5.0.0:
+  plist@3.1.1:
     dependencies:
       '@xmldom/xmldom': 0.9.10
+      base64-js: 1.5.1
       xmlbuilder: 15.1.1
 
   pngjs@5.0.0: {}
@@ -9876,7 +9875,7 @@ snapshots:
 
   postcss@8.5.23:
     dependencies:
-      nanoid: 3.3.17
+      nanoid: 3.3.18
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
