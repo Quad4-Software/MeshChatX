@@ -12,9 +12,9 @@ _vendor_rns_filesync = ROOT / "vendor" / "rns_filesync"
 if _vendor_rns_filesync.is_dir() and (_vendor_rns_filesync / "rns_filesync").is_dir():
     sys.path.insert(0, str(_vendor_rns_filesync))
 
-from cx_Freeze import Executable, setup  # noqa: E402
+from cx_Freeze import Executable, setup
 
-from meshchatx.src.version import __version__  # noqa: E402
+from meshchatx.src.version import __version__
 
 PUBLIC_DIR = ROOT / "meshchatx" / "public"
 
