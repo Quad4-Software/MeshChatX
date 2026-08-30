@@ -167,7 +167,25 @@ const micronWasmIntegrity = loadMicronWasmIntegrity();
 const visualiserWasmIntegrity = loadVisualiserWasmIntegrity();
 
 // Vite default plus opaque null (sandboxed crash-tab iframe without allow-same-origin).
-const viteDevCorsOrigin = /^https?:\/\/(?:(?:[^:]+\.)?localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/;
+function isViteDevCorsOrigin(origin) {
+    if (!origin || origin === "null") {
+        return true;
+    }
+    try {
+        const url = new URL(origin);
+        if (url.protocol !== "http:" && url.protocol !== "https:") {
+            return false;
+        }
+        const host = url.hostname;
+        if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
+            return true;
+        }
+        // Subdomains of localhost (e.g. app.localhost).
+        return host.length > 10 && host.endsWith(".localhost");
+    } catch {
+        return false;
+    }
+}
 
 /**
  * Strip Vue DevTools / inspector tags from the crash-tab HTML entry.
@@ -247,7 +265,7 @@ export default defineConfig(({ command }) => {
             // Opaque null Origin from sandbox="allow-scripts" crash-tab modules.
             cors: {
                 origin(origin, callback) {
-                    if (!origin || origin === "null" || viteDevCorsOrigin.test(origin)) {
+                    if (isViteDevCorsOrigin(origin)) {
                         callback(null, true);
                         return;
                     }
