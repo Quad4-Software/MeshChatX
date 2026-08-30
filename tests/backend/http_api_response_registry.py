@@ -38,6 +38,7 @@ from tests.backend.http_api_response_schemas import (
     DATABASE_HEALTH_SCHEMA,
     DATABASE_SNAPSHOTS_SCHEMA,
     DEBUG_LOGS_SCHEMA,
+    DEBUG_WEBSOCKET_SCHEMA,
     DESTINATION_DISPLAY_NAME_SCHEMA,
     DESTINATION_PATH_SCHEMA,
     DESTINATION_SIGNAL_METRICS_SCHEMA,
@@ -257,6 +258,7 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     HttpJsonContract("GET", "/api/v1/database/snapshots", DATABASE_SNAPSHOTS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/database/backups", DATABASE_BACKUPS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/debug/logs", DEBUG_LOGS_SCHEMA),
+    HttpJsonContract("GET", "/api/v1/debug/websocket", DEBUG_WEBSOCKET_SCHEMA),
     HttpJsonContract("GET", "/api/v1/debug/access-attempts", ACCESS_ATTEMPTS_SCHEMA),
     HttpJsonContract(
         "GET",

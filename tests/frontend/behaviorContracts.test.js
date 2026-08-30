@@ -525,13 +525,20 @@ describe("behavior contracts: security gates", () => {
 
     it("WebSocket auth fails closed except explicit public control types", () => {
         const src = readSource("meshchatx/src/backend/websocket_config_guard.py");
-        const match = src.match(/WEBSOCKET_PUBLIC_TYPES = frozenset\(\s*\{([^}]+)\}/s);
-        expect(match).toBeTruthy();
-        const members = [...match[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
-        expect(members).toEqual(
+        const publicMatch = src.match(/WEBSOCKET_PUBLIC_TYPES = frozenset\(\s*\{([^}]+)\}/s);
+        const runtimeMatch = src.match(/WEBSOCKET_RUNTIME_CONTROL_TYPES = frozenset\(\s*\{([^}]+)\}/s);
+        expect(publicMatch).toBeTruthy();
+        expect(runtimeMatch).toBeTruthy();
+        const publicMembers = [...publicMatch[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+        const runtimeMembers = [...runtimeMatch[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+        expect(publicMembers).toEqual(
             expect.arrayContaining(["ping", "ws.subscribe", "ws.unsubscribe", "sync.subscribe", "ws.caps"])
         );
-        expect(members).toHaveLength(5);
+        expect(publicMembers).toHaveLength(5);
+        expect(runtimeMembers).toEqual(
+            expect.arrayContaining(["ws.subscribe", "ws.unsubscribe", "sync.subscribe", "ws.caps"])
+        );
+        expect(runtimeMembers).toHaveLength(4);
         expect(src).toContain("websocket_type_requires_auth");
         expect(src).toContain("if msg_type in WEBSOCKET_PUBLIC_TYPES:");
     });

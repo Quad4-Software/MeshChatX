@@ -196,6 +196,13 @@ DEBUG_LOGS_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+DEBUG_WEBSOCKET_SCHEMA: dict = {
+    "type": "object",
+    "required": ["websocket"],
+    "properties": {"websocket": _OBJECT},
+    "additionalProperties": True,
+}
+
 ACCESS_ATTEMPTS_SCHEMA: dict = {
     "type": "object",
     "required": ["attempts"],
