@@ -13,7 +13,17 @@ export E2E_BACKEND_PORT="$MESHCHAT_PORT"
 BE_PID=""
 cleanup() {
     if [[ -n "$BE_PID" ]] && kill -0 "$BE_PID" 2>/dev/null; then
-        kill "$BE_PID" 2>/dev/null || true
+        # TERM first so MeshChat can WAL-checkpoint. Escalate only after a wait.
+        kill -TERM "$BE_PID" 2>/dev/null || true
+        local waited=0
+        while kill -0 "$BE_PID" 2>/dev/null && (( waited < 50 )); do
+            sleep 0.1
+            waited=$((waited + 1))
+        done
+        if kill -0 "$BE_PID" 2>/dev/null; then
+            echo "[dev] Backend still running after TERM wait; sending KILL" >&2
+            kill -KILL "$BE_PID" 2>/dev/null || true
+        fi
         wait "$BE_PID" 2>/dev/null || true
     fi
 }
