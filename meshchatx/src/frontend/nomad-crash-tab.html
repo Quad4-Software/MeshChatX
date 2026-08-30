@@ -3,6 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="color-scheme" content="dark" />
         <title>Nomad crash tab</title>
         <style>
             html,
@@ -10,16 +11,23 @@
                 margin: 0;
                 padding: 0;
                 width: 100%;
+                max-width: 100%;
                 height: 100%;
-                background: transparent;
+                color-scheme: dark;
+                background: #000000;
+                color: #dddddd;
+                overflow-x: hidden;
             }
             body {
-                overflow: auto;
+                overflow-y: auto;
             }
             #root {
                 box-sizing: border-box;
                 width: 100%;
+                max-width: 100%;
                 min-height: 100%;
+                overflow-x: hidden;
+                background: #000000;
             }
             /* Browser default underline is wrong for Micron. `_` sets inline styles. */
             a {

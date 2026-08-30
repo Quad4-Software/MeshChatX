@@ -413,7 +413,7 @@
                 <!-- page content: capture-phase clicks so <a href> is handled before browser default navigation -->
                 <div
                     :class="[
-                        'flex-1 min-h-0 overflow-y-auto nodeContainer relative contain-[layout_paint]',
+                        'flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden nodeContainer relative contain-[layout_paint]',
                         nomadRenderedShellFullBleed
                             ? 'p-0 bg-transparent min-h-full text-gray-900 dark:text-gray-100'
                             : 'p-3 bg-black text-white',
@@ -428,21 +428,21 @@
                     <div
                         v-if="isShowingArchivedVersion"
                         :class="[
-                            'mb-4 p-2 bg-yellow-900/40 border border-yellow-700/50 rounded-sm flex items-center justify-between text-yellow-200',
+                            'mb-4 flex min-w-0 items-center justify-between gap-2 rounded-sm border border-yellow-700/50 bg-yellow-900/40 p-2 text-yellow-200',
                             nomadRenderedShellFullBleed ? 'mx-3 mt-3' : '',
                         ]"
                     >
-                        <div class="flex items-center gap-2">
-                            <MaterialDesignIcon icon-name="clock" class="size-5" />
-                            <span v-if="archivedAt" class="text-sm font-medium">{{
+                        <div class="flex min-w-0 items-center gap-2">
+                            <MaterialDesignIcon icon-name="clock" class="size-5 shrink-0" />
+                            <span v-if="archivedAt" class="min-w-0 text-sm font-medium wrap-break-word">{{
                                 $t("nomadnet.viewing_archived_version_from", { time: formatDate(archivedAt) })
                             }}</span>
-                            <span v-else class="text-sm font-medium">{{
+                            <span v-else class="min-w-0 text-sm font-medium wrap-break-word">{{
                                 $t("nomadnet.viewing_archived_version")
                             }}</span>
                         </div>
                         <button
-                            class="text-xs bg-yellow-700/50 hover:bg-yellow-700 px-2 py-1 rounded-sm transition"
+                            class="shrink-0 text-xs bg-yellow-700/50 hover:bg-yellow-700 px-2 py-1 rounded-sm transition"
                             @click="reloadNodePage"
                         >
                             {{ $t("nomadnet.load_live") }}
@@ -450,16 +450,14 @@
                     </div>
 
                     <div
-                        v-if="isLoadingNodePage"
-                        class="flex h-full min-h-0 flex-col items-center justify-center gap-4 px-4 text-center"
+                        v-if="showPageBusyBanner"
+                        class="flex min-w-0"
                         role="status"
                         aria-live="polite"
                     >
-                        <div
-                            class="flex size-14 items-center justify-center rounded-full bg-sem-surface-muted text-sem-fg"
-                        >
+                        <div class="my-auto">
                             <svg
-                                class="size-7 animate-spin text-sem-accent"
+                                class="animate-spin mr-3 h-5 w-5 text-white"
                                 xmlns="http://www.w3.org/2000/svg"
                                 fill="none"
                                 viewBox="0 0 24 24"
@@ -480,69 +478,56 @@
                                 ></path>
                             </svg>
                         </div>
-                        <div class="space-y-1">
-                            <div class="text-lg font-semibold text-sem-fg">{{ $t("nomadnet.load_phase_default") }}</div>
-                            <div class="max-w-md text-sm text-sem-fg-muted">{{ nomadnetPageLoadingLine }}</div>
-                        </div>
+                        <div class="my-auto min-w-0 flex-1 truncate">{{ pageBusyBannerLine }}</div>
                         <button
                             type="button"
-                            class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500"
-                            @click="cancelPageDownload"
+                            class="my-auto text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer ml-3"
+                            @click="cancelPageBusy"
                         >
-                            <MaterialDesignIcon icon-name="cancel" class="size-5" />
                             {{ $t("common.cancel") }}
                         </button>
                     </div>
                     <div
                         v-else-if="showCancelledPageState"
-                        class="flex h-full min-h-0 flex-col items-center justify-center gap-3 px-4 text-center"
+                        class="flex"
                         role="status"
                     >
-                        <MaterialDesignIcon
-                            icon-name="stop-circle-outline"
-                            class="size-12 text-sem-fg-muted opacity-70"
-                        />
-                        <div class="text-lg font-semibold text-sem-fg">
-                            {{
-                                pageRenderAborted
-                                    ? $t("nomadnet.crash_tab_render_cancelled")
-                                    : $t("nomadnet.page_download_cancelled")
-                            }}
+                        <div class="my-auto flex-1">
+                            <div>
+                                {{
+                                    pageRenderAborted
+                                        ? $t("nomadnet.crash_tab_render_cancelled")
+                                        : $t("nomadnet.page_download_cancelled")
+                                }}
+                            </div>
+                            <div class="text-sm text-sem-fg-muted">{{ $t("nomadnet.page_stopped_hint") }}</div>
                         </div>
-                        <div class="max-w-md text-sm text-sem-fg-muted">
-                            {{ $t("nomadnet.page_stopped_hint") }}
-                        </div>
-                        <div class="flex flex-wrap items-center justify-center gap-2 pt-1">
-                            <button
-                                v-if="pageRenderAborted && canRetryCrashTabRender"
-                                type="button"
-                                class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
-                                @click="retryCrashTabRender"
-                            >
-                                <MaterialDesignIcon icon-name="refresh" class="size-5" />
-                                {{ $t("nomadnet.crash_tab_reload") }}
-                            </button>
-                            <button
-                                v-else-if="selectedNode?.destination_hash && nodePagePath"
-                                type="button"
-                                class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
-                                @click="reloadNodePage"
-                            >
-                                <MaterialDesignIcon icon-name="refresh" class="size-5" />
-                                {{ $t("common.refresh") }}
-                            </button>
-                        </div>
+                        <button
+                            v-if="pageRenderAborted && canRetryCrashTabRender"
+                            type="button"
+                            class="my-auto text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer ml-3"
+                            @click="retryCrashTabRender"
+                        >
+                            {{ $t("nomadnet.crash_tab_reload") }}
+                        </button>
+                        <button
+                            v-else-if="selectedNode?.destination_hash && nodePagePath"
+                            type="button"
+                            class="my-auto text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer ml-3"
+                            @click="reloadNodePage"
+                        >
+                            {{ $t("common.refresh") }}
+                        </button>
                     </div>
                     <div
                         v-else-if="isFailedPageContent(nodePageContent)"
-                        class="flex h-full min-h-0 flex-col items-center justify-center gap-3 px-4 text-center"
+                        class="flex flex-col items-center justify-center h-full text-center space-y-4"
                         role="alert"
                     >
-                        <MaterialDesignIcon icon-name="alert-circle-outline" class="size-12 text-red-400" />
-                        <div class="text-lg font-semibold text-red-400">{{ $t("nomadnet.failed_to_load_page") }}</div>
-                        <div class="max-w-md text-sm text-sem-fg-muted break-words">{{ nodePageContent }}</div>
+                        <div class="text-red-400 font-semibold text-lg">{{ $t("nomadnet.failed_to_load_page") }}</div>
+                        <div class="text-sem-fg-muted text-sm max-w-md break-words">{{ nodePageContent }}</div>
 
-                        <div v-if="!isPrivate && hasArchivesForCurrentPage" class="space-y-2 pt-1">
+                        <div v-if="!isPrivate && hasArchivesForCurrentPage" class="space-y-2">
                             <div class="text-sm text-sem-fg-muted">{{ $t("nomadnet.archived_version_available") }}</div>
                             <button
                                 type="button"
@@ -556,39 +541,43 @@
                         <button
                             v-else-if="selectedNode?.destination_hash"
                             type="button"
-                            class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
+                            class="my-auto text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer"
                             @click="reloadNodePage"
                         >
-                            <MaterialDesignIcon icon-name="refresh" class="size-5" />
                             {{ $t("common.refresh") }}
                         </button>
                     </div>
                     <div
                         v-else-if="showEmptyPageState"
-                        class="flex h-full min-h-0 flex-col items-center justify-center gap-3 px-4 text-center"
+                        class="flex"
                     >
-                        <MaterialDesignIcon
-                            icon-name="file-document-outline"
-                            class="size-12 text-sem-fg-muted opacity-40"
-                        />
-                        <div class="text-lg font-semibold text-sem-fg">{{ $t("nomadnet.page_empty_title") }}</div>
-                        <div class="max-w-md text-sm text-sem-fg-muted">{{ $t("nomadnet.page_empty_body") }}</div>
+                        <div class="my-auto flex-1">
+                            <div>{{ $t("nomadnet.page_empty_title") }}</div>
+                            <div class="text-sm text-sem-fg-muted">{{ $t("nomadnet.page_empty_body") }}</div>
+                        </div>
                         <button
                             v-if="selectedNode?.destination_hash"
                             type="button"
-                            class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
+                            class="my-auto text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer ml-3"
                             @click="reloadNodePage"
                         >
-                            <MaterialDesignIcon icon-name="refresh" class="size-5" />
                             {{ $t("common.refresh") }}
                         </button>
                     </div>
-                    <div v-else class="relative h-full min-h-full min-h-0 w-full">
+                    <div
+                        v-if="showCrashTabHost"
+                        class="relative min-h-0 w-full min-w-0 overflow-hidden bg-black"
+                        :class="
+                            showPageBusyBanner || showCancelledPageState || isFailedPageContent(nodePageContent) || showEmptyPageState
+                                ? 'pointer-events-none absolute inset-0 opacity-0'
+                                : 'h-full'
+                        "
+                    >
                         <NomadCrashTab
                             ref="crashTab"
-                            class="absolute inset-0 h-full min-h-0 w-full"
+                            class="absolute inset-0 h-full min-h-0 w-full min-w-0"
                             :path="nodePagePath || ''"
-                            :content="nodePageContent || ''"
+                            :content="crashTabPageContent"
                             :show-source="isShowingNodePageSource"
                             :page-partials="pagePartials"
                             :render-options="nomadRenderOptions"
@@ -596,25 +585,16 @@
                             :color="nomadCrashTabColor"
                             :background="nomadCrashTabBackground"
                             :active="isActive"
+                            :reveal="!showPageBusyBanner"
                             @navigate="onCrashTabNavigate"
                             @partials="onCrashTabPartials"
                             @view-source="showPageSource"
                             @hung="onCrashTabHung"
-                            @render-started="isCrashTabRendering = true"
-                            @render-done="isCrashTabRendering = false"
+                            @render-started="onCrashTabRenderStarted"
+                            @render-done="onCrashTabRenderDone"
                             @aborted="onCrashTabAborted"
                             @shell-background="onCrashTabShellBackground"
                         />
-                        <div v-if="isCrashTabRendering" class="absolute bottom-3 right-3 z-20 flex items-center gap-2">
-                            <button
-                                type="button"
-                                class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-1.5 text-sm font-semibold text-white shadow hover:bg-red-500"
-                                @click="cancelCrashTabRender"
-                            >
-                                <MaterialDesignIcon icon-name="cancel" class="size-4" />
-                                {{ $t("common.cancel") }}
-                            </button>
-                        </div>
                     </div>
                     <Teleport to="body">
                         <div
@@ -887,19 +867,53 @@ export default {
             );
         },
         showCancelledPageState() {
-            if (this.isLoadingNodePage) {
+            if (this.isLoadingNodePage || this.isCrashTabRendering) {
                 return false;
             }
             return this.pageRenderAborted || this.isCancelledPageContent(this.nodePageContent);
         },
         showEmptyPageState() {
-            if (this.isLoadingNodePage || this.showCancelledPageState) {
+            if (this.isLoadingNodePage || this.isCrashTabRendering || this.showCancelledPageState) {
                 return false;
             }
             if (this.isFailedPageContent(this.nodePageContent)) {
                 return false;
             }
             return this.nodePageContent == null || this.nodePageContent === "";
+        },
+        showPageBusyBanner() {
+            return this.isLoadingNodePage || this.isCrashTabRendering;
+        },
+        pageBusyBannerLine() {
+            if (this.isLoadingNodePage) {
+                return this.nomadnetPageLoadingLine;
+            }
+            return this.$t("nomadnet.load_phase_default");
+        },
+        showCrashTabHost() {
+            if (!this.selectedNode || !this.nodePagePath) {
+                return false;
+            }
+            if (this.showCancelledPageState) {
+                return false;
+            }
+            if (this.isFailedPageContent(this.nodePageContent)) {
+                return false;
+            }
+            if (this.showEmptyPageState) {
+                return false;
+            }
+            // Keep the iframe mounted during download/render so it stays warm and dark.
+            return true;
+        },
+        crashTabPageContent() {
+            if (this.isLoadingNodePage) {
+                return "";
+            }
+            if (this.isCancelledPageContent(this.nodePageContent) || this.isFailedPageContent(this.nodePageContent)) {
+                return "";
+            }
+            return this.nodePageContent || "";
         },
         canRetryCrashTabRender() {
             return Boolean(
@@ -1306,6 +1320,7 @@ export default {
                     this.nodePageContent = null;
                     this.$nextTick(() => {
                         this.nodePageContent = content;
+                        this.beginCrashTabRenderWait();
                     });
                 }
             }
@@ -1478,6 +1493,7 @@ export default {
                     this.nodePageContent = null;
                     this.$nextTick(() => {
                         this.nodePageContent = content;
+                        this.beginCrashTabRenderWait();
                     });
                 }
             } catch (e) {
@@ -1633,6 +1649,7 @@ export default {
                         this.nodePageContent = nomadnetPageDownload.page_content;
                         this.nodePageProgress = 100;
                         this.isLoadingNodePage = false;
+                        this.beginCrashTabRenderWait();
                         this.nodePageLoadPhase = null;
                         this.currentPageDownloadId = null;
                         {
@@ -2226,6 +2243,7 @@ export default {
                 if (cachedNodePageContent != null) {
                     this.nodePageContent = cachedNodePageContent;
                     this.isLoadingNodePage = false;
+                    this.beginCrashTabRenderWait();
                     this.nodePageLoadPhase = null;
                     this.lastPageLoadDurationMs = 0;
                     this.lastPageContentBytes = new TextEncoder().encode(cachedNodePageContent).length;
@@ -2255,6 +2273,7 @@ export default {
 
                     // update status
                     this.isLoadingNodePage = false;
+                    this.beginCrashTabRenderWait();
                     this.nodePageLoadPhase = null;
                     if (this.pageLoadStartedAt != null) {
                         this.lastPageLoadDurationMs = Date.now() - this.pageLoadStartedAt;
@@ -2556,6 +2575,30 @@ export default {
             }
             this.isCrashTabRendering = false;
         },
+        cancelPageBusy() {
+            if (this.isLoadingNodePage) {
+                this.cancelPageDownload();
+                return;
+            }
+            if (this.isCrashTabRendering) {
+                this.cancelCrashTabRender();
+            }
+        },
+        onCrashTabRenderStarted() {
+            this.isCrashTabRendering = true;
+        },
+        onCrashTabRenderDone() {
+            this.isCrashTabRendering = false;
+        },
+        beginCrashTabRenderWait() {
+            if (
+                this.nodePageContent &&
+                !this.isFailedPageContent(this.nodePageContent) &&
+                !this.isCancelledPageContent(this.nodePageContent)
+            ) {
+                this.isCrashTabRendering = true;
+            }
+        },
         onCrashTabAborted() {
             this.isCrashTabRendering = false;
             this.pageRenderAborted = true;
@@ -2563,7 +2606,7 @@ export default {
         },
         retryCrashTabRender() {
             this.pageRenderAborted = false;
-            this.isCrashTabRendering = false;
+            this.isCrashTabRendering = true;
         },
         toggleNodePageSource() {
             this.isShowingNodePageSource = !this.isShowingNodePageSource;

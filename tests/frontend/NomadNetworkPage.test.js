@@ -629,6 +629,24 @@ describe("NomadNetworkPage.vue", () => {
             expect(wrapper.findComponent({ name: "NomadCrashTab" }).exists()).toBe(true);
         });
 
+        it("shows loading banner with cancel while crash-tab is rendering", async () => {
+            const wrapper = mountNomadNetworkPage();
+            await wrapper.setData({
+                selectedNode: { destination_hash: destHash, display_name: "N" },
+                nodePagePath: `${destHash}:/page/index.mu`,
+                isLoadingNodePage: false,
+                nodePageContent: ">#!\n# Hello",
+                pageRenderAborted: false,
+                isCrashTabRendering: true,
+            });
+            expect(wrapper.vm.showPageBusyBanner).toBe(true);
+            expect(wrapper.vm.pageBusyBannerLine).toBe("nomadnet.load_phase_default");
+            expect(wrapper.text()).toContain("nomadnet.load_phase_default");
+            expect(wrapper.text()).toContain("common.cancel");
+            expect(wrapper.text()).not.toContain("nomadnet.crash_tab_rendering");
+            expect(wrapper.findComponent({ name: "NomadCrashTab" }).exists()).toBe(true);
+        });
+
         it("shows empty-page status when content is blank", async () => {
             const wrapper = mountNomadNetworkPage();
             await wrapper.setData({

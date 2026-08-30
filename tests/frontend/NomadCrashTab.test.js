@@ -46,6 +46,7 @@ describe("NomadCrashTab.vue", () => {
 
         wrapper.vm.frameReady = true;
         wrapper.vm.pushRender();
+        await wrapper.vm.$nextTick();
         expect(postMessageSpy).toHaveBeenCalled();
         const renderCalls = postMessageSpy.mock.calls.filter((c) => c[0]?.type === "render");
         expect(renderCalls.length).toBe(1);
@@ -78,9 +79,41 @@ describe("NomadCrashTab.vue", () => {
 
         wrapper.vm.onWindowMessage({
             source: fakeWindow,
+            origin: "null",
             data: { channel: NOMAD_CRASH_TAB_CHANNEL, type: "aborted" },
         });
         expect(wrapper.emitted("aborted")?.length).toBe(1);
+    });
+
+    it("ignores frame messages that are not opaque-null origin", () => {
+        const wrapper = mountCrashTab();
+        const frame = wrapper.find("iframe").element;
+        const fakeWindow = { postMessage: postMessageSpy };
+        Object.defineProperty(frame, "contentWindow", {
+            configurable: true,
+            get: () => fakeWindow,
+        });
+
+        wrapper.vm.onWindowMessage({
+            source: fakeWindow,
+            origin: "https://evil.example",
+            data: { channel: NOMAD_CRASH_TAB_CHANNEL, type: "ready" },
+        });
+        expect(wrapper.vm.frameReady).toBe(false);
+        expect(wrapper.emitted("ready")).toBeUndefined();
+    });
+
+    it("postToFrame uses * targetOrigin for opaque-origin frame", () => {
+        const wrapper = mountCrashTab();
+        const frame = wrapper.find("iframe").element;
+        Object.defineProperty(frame, "contentWindow", {
+            configurable: true,
+            get: () => ({ postMessage: postMessageSpy }),
+        });
+        wrapper.vm.postToFrame({ type: "ping", id: 1 });
+        expect(postMessageSpy).toHaveBeenCalledOnce();
+        // HTML forbids targetOrigin "null" when the target browsing context is opaque.
+        expect(postMessageSpy.mock.calls[0][1]).toBe("*");
     });
 
     it("postToFrame JSON-clones Vue-like proxies so structured clone succeeds", () => {
@@ -120,18 +153,55 @@ describe("NomadCrashTab.vue", () => {
         expect(Object.getPrototypeOf(payload.pagePartials)).toBe(Object.prototype);
     });
 
-    it("crash-tab entry installs DOMPurify for the JS micron-parser path", async () => {
+    it("unstable renderOptions object identity does not retrigger render after done", async () => {
+        const wrapper = mountCrashTab({
+            renderOptions: { renderMarkdown: true },
+        });
+        const frame = wrapper.find("iframe").element;
+        Object.defineProperty(frame, "contentWindow", {
+            configurable: true,
+            get: () => ({ postMessage: postMessageSpy }),
+        });
+        wrapper.vm.frameReady = true;
+        wrapper.vm.pushRender();
+        await wrapper.vm.$nextTick();
+        postMessageSpy.mockClear();
+
+        // Simulate parent re-creating the options object with the same values.
+        await wrapper.setProps({ renderOptions: { renderMarkdown: true } });
+        await wrapper.vm.$nextTick();
+        await Promise.resolve();
+        const renderCalls = postMessageSpy.mock.calls.filter((c) => c[0]?.type === "render");
+        expect(renderCalls.length).toBe(0);
+    });
+
+    it("does not deep-watch renderOptions object identity", () => {
+        const wrapper = mountCrashTab();
+        const src = wrapper.vm.$options.watch || {};
+        // Watchers are on stable JSON keys, not deep object identity.
+        expect(wrapper.vm.renderOptionsKey).toEqual(expect.any(String));
+        expect(wrapper.vm.pagePartialsKey).toEqual(expect.any(String));
+        expect(src.renderOptions).toBeUndefined();
+        expect(src.pagePartials).toBeUndefined();
+        expect(src.renderOptionsKey).toBeTruthy();
+        expect(src.pagePartialsKey).toBeTruthy();
+    });
+
+    it("crash-tab entry boots dark and lazy-loads the Micron renderer", async () => {
         const fs = await import("node:fs");
         const path = await import("node:path");
         const src = fs.readFileSync(
             path.resolve(__dirname, "../../meshchatx/src/frontend/js/nomadCrashTabMain.js"),
             "utf8"
         );
-        expect(src).toMatch(/import DOMPurify from ["']dompurify["']/);
-        expect(src).toContain("globalThis.DOMPurify = DOMPurify");
-        expect(src).toContain("window.DOMPurify = DOMPurify");
         expect(src).toContain('import "../css/nomad-page-chrome.css"');
-        expect(src).toContain('import "../fonts/RobotoMonoNerdFont/font.css"');
         expect(src).toContain('parts = ["nodeContainer"]');
+        expect(src).toContain("paintShell");
+        expect(src).toContain("loadRenderer");
+        expect(src).toContain('import("./MicronParser.js")');
+        expect(src).toContain('import("dompurify")');
+        expect(src).toContain("globalThis.DOMPurify = DOMPurify");
+        expect(src).toContain('import("../fonts/RobotoMonoNerdFont/font.css")');
+        expect(src).not.toMatch(/^import MicronParser from/m);
     });
 });

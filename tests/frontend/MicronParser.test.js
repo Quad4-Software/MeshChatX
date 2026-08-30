@@ -640,6 +640,15 @@ Content at depth 1`;
             expect(html).toContain("color:red");
         });
 
+        it("stripOverlayStyles drops inline image-set network paint", () => {
+            const html = MicronParser.stripOverlayStyles(
+                `<div style="color:blue; background:image-set(url(https://evil.com/x) 1x)">x</div>`
+            );
+            expect(html.toLowerCase()).not.toContain("image-set");
+            expect(html.toLowerCase()).not.toContain("evil.com");
+            expect(html).toContain("color:blue");
+        });
+
         it("blocks javascript: in link with encoding", () => {
             const markup = "`[click`java\tscript:alert(1)]";
             const html = parser.convertMicronToHtml(markup);

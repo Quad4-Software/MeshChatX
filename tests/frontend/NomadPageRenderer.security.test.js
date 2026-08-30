@@ -33,6 +33,19 @@ describe("NomadPageRenderer stripExternalFromCss", () => {
         expect(stripExternalFromCss(`a { background: url(//x/y) }`)).toContain("url(blocked:");
     });
 
+    it("blocks image-set and cross-fade network paint wrappers", () => {
+        expect(stripExternalFromCss(`x{background:image-set(url(https://evil/a) 1x)}`)).toContain("blocked(");
+        expect(stripExternalFromCss(`x{background:-webkit-image-set(url(https://evil/a) 1x)}`)).toContain(
+            "blocked("
+        );
+        expect(stripExternalFromCss(`x{background:cross-fade(url(https://evil/a), url(https://evil/b))}`)).toContain(
+            "blocked("
+        );
+        expect(stripExternalFromCss(`x{background:image-set(url(https://evil/a) 1x)}`)).not.toMatch(
+            /url\s*\(\s*["']?https?:/i
+        );
+    });
+
     it("allows local-looking and relative css without network url()", () => {
         const s = stripExternalFromCss(`p { color: #333; border: 1px solid currentColor }`);
         expect(s).toContain("#333");
