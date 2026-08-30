@@ -226,7 +226,7 @@ def start_server(port=8000, app_files_dir=None, activity=None):
         except Exception as port_check_exc:
             port_outcome = "free"
             print(
-                f"meshchat_wrapper: port availability check skipped: {port_check_exc}"
+                f"meshchat_wrapper: port availability check skipped: {port_check_exc}",
             )
 
         if port_outcome == "serving":
@@ -270,7 +270,7 @@ def start_server(port=8000, app_files_dir=None, activity=None):
                 bound = ensure_lxst_codec2_binding()
                 print(
                     "meshchat_wrapper: Codec2/pycodec2 ready"
-                    + (" (LXST bound)" if bound else " (LXST bind deferred)")
+                    + (" (LXST bound)" if bound else " (LXST bind deferred)"),
                 )
             else:
                 print(f"meshchat_wrapper: Codec2/pycodec2 unavailable: {err}")
@@ -284,7 +284,7 @@ def start_server(port=8000, app_files_dir=None, activity=None):
 
             if ensure_lxst_codec2_binding():
                 print(
-                    "meshchat_wrapper: LXST Codec2 binding confirmed after meshchat import"
+                    "meshchat_wrapper: LXST Codec2 binding confirmed after meshchat import",
                 )
         except Exception as bind_exc:
             print(f"meshchat_wrapper: LXST Codec2 bind skipped: {bind_exc}")
