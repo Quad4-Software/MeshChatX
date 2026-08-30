@@ -1458,10 +1458,11 @@ export default {
                             nomadnetPageDownload.destination_hash,
                             nomadnetPageDownload.page_path
                         );
-                        if (!this.nomadnetPageDownloadCallbacks[startedCallbackKey]) {
+                        const startedCallback = this.nomadnetPageDownloadCallbacks[startedCallbackKey];
+                        if (!startedCallback) {
                             break;
                         }
-                        if (this.pendingNomadPageCancelWithoutId) {
+                        if (this.pendingNomadPageCancelWithoutId && startedCallback.primary) {
                             this.pendingNomadPageCancelWithoutId = false;
                             WebSocketConnection.send(
                                 JSON.stringify({
@@ -1471,7 +1472,10 @@ export default {
                             );
                             return;
                         }
-                        this.currentPageDownloadId = downloadId;
+                        // Partials must not steal currentPageDownloadId from the main page load.
+                        if (startedCallback.primary) {
+                            this.currentPageDownloadId = downloadId;
+                        }
                         return;
                     }
 
@@ -1505,7 +1509,9 @@ export default {
                             nomadnetPageDownloadCallback.onSuccessCallback(nomadnetPageDownload.page_content);
                         }
                         delete this.nomadnetPageDownloadCallbacks[getNomadnetPageDownloadCallbackKey];
-                        this.currentPageDownloadId = null;
+                        if (this.currentPageDownloadId === downloadId) {
+                            this.currentPageDownloadId = null;
+                        }
                         return;
                     }
 
@@ -1514,7 +1520,9 @@ export default {
                         this.hasArchivesForCurrentPage = this.isPrivate ? false : nomadnetPageDownload.has_archives;
                         nomadnetPageDownloadCallback.onFailureCallback(nomadnetPageDownload.failure_reason);
                         delete this.nomadnetPageDownloadCallbacks[getNomadnetPageDownloadCallbackKey];
-                        this.currentPageDownloadId = null;
+                        if (this.currentPageDownloadId === downloadId) {
+                            this.currentPageDownloadId = null;
+                        }
                         return;
                     }
 
@@ -2035,7 +2043,8 @@ export default {
 
                     // update page content
                     this.nodePageProgress = Math.round(progress * 100);
-                }
+                },
+                { primary: true }
             );
         },
         clearPartials() {
@@ -2045,6 +2054,16 @@ export default {
             this.loadedPartialIds = {};
             this.partialIdsByKey = {};
             this.partialRefreshByKey = {};
+            this.cancelPendingNomadPageSends();
+        },
+        cancelPendingNomadPageSends() {
+            const callbacks = this.nomadnetPageDownloadCallbacks || {};
+            for (const key of Object.keys(callbacks)) {
+                const entry = callbacks[key];
+                if (entry && typeof entry.cancelPendingSend === "function") {
+                    entry.cancelPendingSend();
+                }
+            }
         },
         processPartials() {
             if (!this.selectedNode || !this.nodePagePath || !this.nodePageContent || this.isShowingNodePageSource)
@@ -2991,31 +3010,122 @@ export default {
             fieldData,
             onSuccessCallback,
             onFailureCallback,
-            onProgressCallback
+            onProgressCallback,
+            options = {}
         ) {
-            try {
-                // set callbacks for nomadnet page download
-                this.nomadnetPageDownloadCallbacks[this.getNomadnetPageDownloadCallbackKey(destinationHash, pagePath)] =
-                    {
-                        onSuccessCallback: onSuccessCallback,
-                        onFailureCallback: onFailureCallback,
-                        onProgressCallback: onProgressCallback,
-                    };
+            const primary = options.primary === true;
+            const callbackKey = this.getNomadnetPageDownloadCallbackKey(destinationHash, pagePath);
+            const previous = this.nomadnetPageDownloadCallbacks[callbackKey];
+            if (previous && typeof previous.cancelPendingSend === "function") {
+                previous.cancelPendingSend();
+            }
 
-                // ask reticulum to download page from nomadnet
-                WebSocketConnection.send(
-                    JSON.stringify({
-                        type: "nomadnet.page.download",
-                        nomadnet_page_download: {
-                            destination_hash: destinationHash,
-                            page_path: pagePath,
-                            field_data: fieldData,
-                            private: Boolean(this.isPrivate),
-                        },
-                    })
-                );
+            const payload = JSON.stringify({
+                type: "nomadnet.page.download",
+                nomadnet_page_download: {
+                    destination_hash: destinationHash,
+                    page_path: pagePath,
+                    field_data: fieldData,
+                    private: Boolean(this.isPrivate),
+                },
+            });
+
+            let pendingTimer = null;
+            let onWsRetry = null;
+            let pendingCancelled = false;
+            const requestToken = Symbol("nomad-page-download");
+            const cancelPendingSend = () => {
+                pendingCancelled = true;
+                if (pendingTimer != null) {
+                    clearTimeout(pendingTimer);
+                    pendingTimer = null;
+                }
+                if (onWsRetry) {
+                    WebSocketConnection.off("connected", onWsRetry);
+                    WebSocketConnection.off("ready", onWsRetry);
+                    onWsRetry = null;
+                }
+            };
+
+            const entry = {
+                onSuccessCallback: onSuccessCallback,
+                onFailureCallback: onFailureCallback,
+                onProgressCallback: onProgressCallback,
+                primary,
+                requestToken,
+                cancelPendingSend,
+            };
+            this.nomadnetPageDownloadCallbacks[callbackKey] = entry;
+
+            const isCurrentEntry = () => {
+                const current = this.nomadnetPageDownloadCallbacks[callbackKey];
+                return Boolean(current) && current.requestToken === requestToken && !pendingCancelled;
+            };
+
+            const failNotConnected = () => {
+                const stillCurrent =
+                    this.nomadnetPageDownloadCallbacks[callbackKey]?.requestToken === requestToken;
+                cancelPendingSend();
+                if (!stillCurrent) {
+                    return;
+                }
+                delete this.nomadnetPageDownloadCallbacks[callbackKey];
+                const reason =
+                    typeof this.$t === "function"
+                        ? this.$t("nomadnet.websocket_not_connected")
+                        : "websocket_not_connected";
+                if (onFailureCallback) {
+                    onFailureCallback(reason);
+                    return;
+                }
+                if (primary && this.isLoadingNodePage) {
+                    this.isLoadingNodePage = false;
+                    this.nodePageLoadPhase = null;
+                    this.currentPageDownloadId = null;
+                    this.nodePageContent = `Failed loading page: ${reason}`;
+                    ToastUtils.error(this.$t("nomadnet.failed_to_load_page"));
+                }
+            };
+
+            const trySend = () => {
+                if (WebSocketConnection.send(payload)) {
+                    cancelPendingSend();
+                    return true;
+                }
+                return false;
+            };
+
+            try {
+                if (trySend()) {
+                    return;
+                }
+                // Bootstrap / reconnect race: queue until the socket is usable.
+                onWsRetry = () => {
+                    if (!isCurrentEntry()) {
+                        cancelPendingSend();
+                        return;
+                    }
+                    if (!trySend()) {
+                        failNotConnected();
+                    }
+                };
+                WebSocketConnection.on("connected", onWsRetry);
+                WebSocketConnection.on("ready", onWsRetry);
+                pendingTimer = setTimeout(() => {
+                    pendingTimer = null;
+                    if (!isCurrentEntry()) {
+                        cancelPendingSend();
+                        return;
+                    }
+                    if (typeof WebSocketConnection.isOpen === "function" && WebSocketConnection.isOpen()) {
+                        onWsRetry();
+                        return;
+                    }
+                    failNotConnected();
+                }, 20000);
             } catch (e) {
                 console.error(e);
+                failNotConnected();
             }
         },
         cancelPageDownload() {
@@ -3037,6 +3147,10 @@ export default {
             const pathPart = parsed?.path;
             if (dh && pathPart) {
                 const key = this.getNomadnetPageDownloadCallbackKey(dh, pathPart);
+                const entry = this.nomadnetPageDownloadCallbacks[key];
+                if (entry && typeof entry.cancelPendingSend === "function") {
+                    entry.cancelPendingSend();
+                }
                 delete this.nomadnetPageDownloadCallbacks[key];
             }
             this.pendingNomadPageCancelWithoutId = true;
