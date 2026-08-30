@@ -2501,6 +2501,7 @@
         "load_phase_finding_path": "Etsitään verkkopolkua solmuun",
         "load_phase_establishing_link": "Luodaan yhteyttä solmuun",
         "page_download_cancelled": "Lataus peruutettu.",
+        "websocket_not_connected": "Not connected. Wait a moment and try again.",
         "load_phase_requesting_page": "Pyydetään sivua",
         "load_phase_transferring": "Vastaanotetaan sivua",
         "path_finder": "Polkuetsin",

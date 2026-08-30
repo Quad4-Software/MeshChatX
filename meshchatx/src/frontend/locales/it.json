@@ -2555,6 +2555,7 @@
         "load_phase_finding_path": "Ricerca del percorso di rete verso il nodo",
         "load_phase_establishing_link": "Connessione al nodo in corso",
         "page_download_cancelled": "Download annullato.",
+        "websocket_not_connected": "Not connected. Wait a moment and try again.",
         "load_phase_requesting_page": "Invio richiesta pagina",
         "load_phase_transferring": "Ricezione pagina",
         "path_finder": "Ricerca percorso",

@@ -2277,6 +2277,7 @@
         "load_phase_finding_path": "Поиск сетевого пути к узлу",
         "load_phase_establishing_link": "Установка соединения с узлом",
         "page_download_cancelled": "Загрузка отменена.",
+        "websocket_not_connected": "Not connected. Wait a moment and try again.",
         "load_phase_requesting_page": "Отправка запроса страницы",
         "load_phase_transferring": "Приём страницы",
         "path_finder": "Поиск маршрута",

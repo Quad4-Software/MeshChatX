@@ -2277,6 +2277,7 @@
         "load_phase_finding_path": "Netzwerkpfad zum Knoten wird gesucht",
         "load_phase_establishing_link": "Verbindung zum Knoten wird aufgebaut",
         "page_download_cancelled": "Download abgebrochen.",
+        "websocket_not_connected": "Not connected. Wait a moment and try again.",
         "load_phase_requesting_page": "Seitenanfrage wird gesendet",
         "load_phase_transferring": "Seite wird empfangen",
         "path_finder": "Pfadfinder",

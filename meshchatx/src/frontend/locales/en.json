@@ -2502,6 +2502,7 @@
         "load_phase_finding_path": "Looking for a network path to the node",
         "load_phase_establishing_link": "Establishing link to the node",
         "page_download_cancelled": "Download cancelled.",
+        "websocket_not_connected": "Not connected. Wait a moment and try again.",
         "load_phase_requesting_page": "Sending page request",
         "load_phase_transferring": "Receiving page",
         "path_finder": "Path Finder",
