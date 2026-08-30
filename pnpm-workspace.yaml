@@ -68,8 +68,8 @@ overrides:
     "@tootallnate/once": ">=3.0.1"
 
 patchedDependencies:
-    ol@10.9.0: patches/ol@10.9.0.patch
-    ol-mapbox-style@13.4.1: patches/ol-mapbox-style@13.4.1.patch
+    ol@10.10.0: patches/ol@10.10.0.patch
+    ol-mapbox-style@13.4.3: patches/ol-mapbox-style@13.4.3.patch
 
 peerDependencyRules:
     allowedVersions:
