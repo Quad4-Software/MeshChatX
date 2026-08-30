@@ -13,10 +13,31 @@ from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from meshchatx.meshchat import ReticulumMeshChat
+from meshchatx.src.backend.websocket_runtime import (
+    BroadcastSeqState,
+    WsRuntimeCounters,
+)
 
 
 def _bind_real_websocket_broadcast(app):
+    if not hasattr(app, "ws_seq_state") or app.ws_seq_state is None:
+        app.ws_seq_state = BroadcastSeqState()
+    if not hasattr(app, "ws_counters") or app.ws_counters is None:
+        app.ws_counters = WsRuntimeCounters()
+    if not hasattr(app, "_ws_coalesce"):
+        app._ws_coalesce = None
     return ReticulumMeshChat.websocket_broadcast.__get__(app, ReticulumMeshChat)
+
+
+def _assert_delivered(clients, *, expect_type=None):
+    for c in clients:
+        assert c.send_str.await_count >= 1
+        raw = c.send_str.await_args[0][0]
+        assert isinstance(raw, str)
+        if expect_type is not None:
+            parsed = json.loads(raw)
+            assert parsed["type"] == expect_type
+            assert "seq" in parsed
 
 
 @pytest.mark.asyncio
@@ -30,12 +51,8 @@ async def test_websocket_broadcast_fanout_many_clients(mock_app):
     mock_app.websocket_clients.extend(clients)
 
     real = _bind_real_websocket_broadcast(mock_app)
-    payload = '{"type":"config","config":{}}'
-    await real(payload)
-
-    for c in clients:
-        assert c.send_str.await_count == 1
-        assert c.send_str.await_args[0][0] == payload
+    await real('{"type":"config","config":{}}')
+    _assert_delivered(clients, expect_type="config")
 
 
 @pytest.mark.asyncio
@@ -47,7 +64,9 @@ async def test_websocket_broadcast_json_dumps_dict_payload(mock_app):
     await real({"type": "startup_status", "status": "ok", "stage": "ready"})
     raw = client.send_str.await_args[0][0]
     assert isinstance(raw, str)
-    assert json.loads(raw)["type"] == "startup_status"
+    parsed = json.loads(raw)
+    assert parsed["type"] == "startup_status"
+    assert "seq" in parsed
 
 
 @pytest.mark.asyncio
@@ -146,12 +165,8 @@ async def test_websocket_broadcast_fanout_large_client_pool(mock_app):
     mock_app.websocket_clients.extend(clients)
 
     real = _bind_real_websocket_broadcast(mock_app)
-    payload = '{"type":"metrics","x":1}'
-    await real(payload)
-
-    for c in clients:
-        assert c.send_str.await_count == 1
-        assert c.send_str.await_args[0][0] == payload
+    await real('{"type":"metrics","x":1}')
+    _assert_delivered(clients, expect_type="metrics")
 
 
 @pytest.mark.asyncio
@@ -173,9 +188,26 @@ async def test_websocket_broadcast_mixed_failures_still_delivers_to_healthy(mock
         assert c.send_str.await_count == 1
 
 
+@pytest.mark.asyncio
+async def test_websocket_broadcast_respects_topic_subscription(mock_app):
+    mock_app.websocket_clients.clear()
+    all_topics = MagicWs()
+    lxmf_only = MagicWs()
+    lxmf_only._meshchatx_ws_topics = {"lxmf"}
+    mock_app.websocket_clients.extend([all_topics, lxmf_only])
+    real = _bind_real_websocket_broadcast(mock_app)
+    # Use a non-coalesced type so delivery is immediate.
+    await real({"type": "rrc.message", "x": 1})
+    assert all_topics.send_str.await_count == 1
+    assert lxmf_only.send_str.await_count == 0
+    await real({"type": "lxmf.delivery", "x": 1})
+    assert lxmf_only.send_str.await_count == 1
+
+
 class MagicWs:
     def __init__(self):
         self.send_str = AsyncMock(return_value=None)
+        self.close = AsyncMock(return_value=None)
 
 
 @settings(
@@ -196,4 +228,16 @@ async def test_websocket_broadcast_fanout_property(mock_app, n, payload):
     await real(payload)
     for c in clients:
         assert c.send_str.await_count == 1
-        assert c.send_str.await_args[0][0] == payload
+        raw = c.send_str.await_args[0][0]
+        assert isinstance(raw, str)
+        try:
+            parsed = json.loads(payload)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            assert raw == payload
+            continue
+        if isinstance(parsed, dict):
+            out = json.loads(raw)
+            assert out.get("type") == parsed.get("type")
+            assert "seq" in out
+        else:
+            assert raw == payload

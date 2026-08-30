@@ -627,9 +627,20 @@ class ReticulumMeshChat:
         self.websocket_clients: list[web.WebSocketResponse] = []
         # Cap UI /ws clients so a reconnect storm cannot exhaust process FDs.
         self.max_websocket_clients = 64
+        # Cap after Nomad chunking: whole-file frames only for small payloads.
+        self.websocket_max_msg_size = 16 * 1024 * 1024
 
         self.active_sessions = ActiveSessionTracker()
         self._websocket_broadcast_lock = asyncio.Lock()
+        from meshchatx.src.backend.websocket_runtime import (
+            BroadcastSeqState,
+            CoalesceBuffer,
+            WsRuntimeCounters,
+        )
+
+        self.ws_counters = WsRuntimeCounters()
+        self.ws_seq_state = BroadcastSeqState()
+        self._ws_coalesce = CoalesceBuffer(self._websocket_broadcast_coalesced)
         self._identity_hotswap_lock = asyncio.Lock()
         self.listen_host: str | None = None
         self.listen_port: int | None = None
@@ -7406,21 +7417,78 @@ class ReticulumMeshChat:
             if plugin_manager is not None:
                 plugin_manager.on_rns_link_event(payload)
 
-    async def websocket_broadcast(self, data):
-        if isinstance(data, (dict, list)) or not isinstance(data, str):
+    async def _websocket_broadcast_coalesced(self, payload: dict) -> None:
+        await self.websocket_broadcast(payload, _skip_coalesce=True)
+
+    async def websocket_broadcast(self, data, *, _skip_coalesce: bool = False):
+        from meshchatx.src.backend.websocket_runtime import (
+            WS_BROADCAST_SEND_TIMEOUT_SEC,
+            client_allows_topic,
+            topic_for_type,
+            touch_client_activity,
+        )
+
+        payload_obj = None
+        if isinstance(data, dict):
+            payload_obj = data
+        elif isinstance(data, str):
+            try:
+                parsed = json.loads(data)
+                if isinstance(parsed, dict):
+                    payload_obj = parsed
+            except (TypeError, ValueError, json.JSONDecodeError):
+                payload_obj = None
+        elif isinstance(data, list):
             data = json.dumps(data)
-        # Serialize: concurrent callers must not interleave. The second snapshot must run
-        # only after the first broadcast has finished mutating the live client list.
+
+        if payload_obj is not None and not _skip_coalesce:
+            coalesce = getattr(self, "_ws_coalesce", None)
+            if coalesce is not None and coalesce.offer(dict(payload_obj)):
+                return
+
+        if payload_obj is not None:
+            seq_state = getattr(self, "ws_seq_state", None)
+            if seq_state is not None:
+                await seq_state.stamp(payload_obj)
+            data = json.dumps(payload_obj)
+        elif not isinstance(data, str):
+            data = json.dumps(data)
+
+        msg_type = payload_obj.get("type") if payload_obj else None
+        topic = topic_for_type(msg_type if isinstance(msg_type, str) else None)
+
+        # Serialize list mutation. Fan-out sends run in parallel so one slow
+        # client does not stall every other socket.
         sessions_changed = False
         async with self._websocket_broadcast_lock:
-            dead = []
-            # Iterate a copy: awaits allow other tasks to mutate self.websocket_clients.
-            for websocket_client in list(self.websocket_clients):
+            clients = list(self.websocket_clients)
+            targets = [c for c in clients if client_allows_topic(c, topic)]
+
+            async def _send_one(websocket_client):
                 try:
-                    await websocket_client.send_str(data)
+                    await asyncio.wait_for(
+                        websocket_client.send_str(data),
+                        timeout=WS_BROADCAST_SEND_TIMEOUT_SEC,
+                    )
+                    touch_client_activity(websocket_client)
+                    counters = getattr(self, "ws_counters", None)
+                    if counters is not None:
+                        counters.msgs_out += 1
+                    return None
                 except Exception as e:
                     print(f"Failed to broadcast to websocket client: {e}")
-                    dead.append(websocket_client)
+                    counters = getattr(self, "ws_counters", None)
+                    if counters is not None:
+                        counters.broadcast_failures += 1
+                        if isinstance(e, (TimeoutError, asyncio.TimeoutError)):
+                            counters.slow_drops += 1
+                    return websocket_client
+
+            results = await asyncio.gather(
+                *[_send_one(c) for c in targets],
+                return_exceptions=False,
+            )
+            dead = [c for c in results if c is not None]
             for client in dead:
                 try:
                     self.websocket_clients.remove(client)
@@ -7434,6 +7502,30 @@ class ReticulumMeshChat:
                     pass
         if sessions_changed:
             await self.send_active_sessions_to_websocket_clients()
+
+    async def on_websocket_binary_received(self, client, data: bytes):
+        """Optional binary rns.link frames (msgpack). JSON path remains default."""
+        if not getattr(client, "_meshchatx_binary_rns_link", False):
+            return
+        if not data or len(data) < 2:
+            return
+        try:
+            import msgpack
+        except ImportError:
+            return
+        try:
+            decoded = msgpack.unpackb(data, raw=False)
+        except Exception:
+            from meshchatx.src.backend.websocket_runtime import send_ws_error
+
+            await send_ws_error(
+                client,
+                message="Invalid binary frame",
+                code="invalid_binary",
+            )
+            return
+        if isinstance(decoded, dict):
+            await self.on_websocket_data_received(client, decoded)
 
     def _detach_active_session(self, websocket_response) -> bool:
         session_id = getattr(websocket_response, "_meshchatx_session_id", None)
@@ -7468,17 +7560,25 @@ class ReticulumMeshChat:
         await self.websocket_broadcast(json.dumps(payload))
 
     # broadcasts config to all websocket clients
-    async def send_config_to_websocket_clients(self, context=None):
+    async def send_config_to_websocket_clients(self, context=None, changed_keys=None):
         ctx = context or self.current_context
         if not ctx:
             return
+        config_dict = self.get_config_dict(context=ctx)
         await self.websocket_broadcast(
-            json.dumps(
-                {
-                    "type": "config",
-                    "config": self.get_config_dict(context=ctx),
-                },
-            ),
+            {
+                "type": "config",
+                "config": config_dict,
+            },
+        )
+        keys = changed_keys
+        if keys is None:
+            keys = list(config_dict.keys()) if isinstance(config_dict, dict) else []
+        await self.websocket_broadcast(
+            {
+                "type": "config.changed",
+                "keys": keys,
+            },
         )
 
     # broadcasts to all websocket clients that we just announced

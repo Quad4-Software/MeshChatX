@@ -173,6 +173,17 @@ def _cancel_incoming_call_notification_java() -> None:
 def _after_websocket_broadcast(data: object) -> None:
     if not isinstance(data, str):
         return
+    from meshchatx.src.backend.websocket_runtime import (
+        NOTIFY_WORTHY_TYPES,
+        peek_json_type,
+    )
+
+    peeked = peek_json_type(data)
+    if peeked is not None and peeked not in NOTIFY_WORTHY_TYPES:
+        # lxmf.delivery notifications also arrive as nested shapes without
+        # matching the type peek allowlist when type is absent from head.
+        if peeked not in ("lxmf.delivery", "lxmf_message_created"):
+            return
     try:
         payload = json.loads(data)
     except json.JSONDecodeError:
