@@ -449,12 +449,7 @@
                         </button>
                     </div>
 
-                    <div
-                        v-if="showPageBusyBanner"
-                        class="flex min-w-0"
-                        role="status"
-                        aria-live="polite"
-                    >
+                    <div v-if="showPageBusyBanner" class="flex min-w-0" role="status" aria-live="polite">
                         <div class="my-auto">
                             <svg
                                 class="animate-spin mr-3 h-5 w-5 text-white"
@@ -487,11 +482,7 @@
                             {{ $t("common.cancel") }}
                         </button>
                     </div>
-                    <div
-                        v-else-if="showCancelledPageState"
-                        class="flex"
-                        role="status"
-                    >
+                    <div v-else-if="showCancelledPageState" class="flex" role="status">
                         <div class="my-auto flex-1">
                             <div>
                                 {{
@@ -547,10 +538,7 @@
                             {{ $t("common.refresh") }}
                         </button>
                     </div>
-                    <div
-                        v-else-if="showEmptyPageState"
-                        class="flex"
-                    >
+                    <div v-else-if="showEmptyPageState" class="flex">
                         <div class="my-auto flex-1">
                             <div>{{ $t("nomadnet.page_empty_title") }}</div>
                             <div class="text-sm text-sem-fg-muted">{{ $t("nomadnet.page_empty_body") }}</div>
@@ -568,7 +556,10 @@
                         v-if="showCrashTabHost"
                         class="relative min-h-0 w-full min-w-0 overflow-hidden bg-black"
                         :class="
-                            showPageBusyBanner || showCancelledPageState || isFailedPageContent(nodePageContent) || showEmptyPageState
+                            showPageBusyBanner ||
+                            showCancelledPageState ||
+                            isFailedPageContent(nodePageContent) ||
+                            showEmptyPageState
                                 ? 'pointer-events-none absolute inset-0 opacity-0'
                                 : 'h-full'
                         "

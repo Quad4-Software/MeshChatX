@@ -35,9 +35,7 @@ describe("NomadPageRenderer stripExternalFromCss", () => {
 
     it("blocks image-set and cross-fade network paint wrappers", () => {
         expect(stripExternalFromCss(`x{background:image-set(url(https://evil/a) 1x)}`)).toContain("blocked(");
-        expect(stripExternalFromCss(`x{background:-webkit-image-set(url(https://evil/a) 1x)}`)).toContain(
-            "blocked("
-        );
+        expect(stripExternalFromCss(`x{background:-webkit-image-set(url(https://evil/a) 1x)}`)).toContain("blocked(");
         expect(stripExternalFromCss(`x{background:cross-fade(url(https://evil/a), url(https://evil/b))}`)).toContain(
             "blocked("
         );
