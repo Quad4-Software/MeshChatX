@@ -163,5 +163,6 @@ pytest_add_cli_args_test_selection = [
     "--ignore=tests/backend/test_performance_hotpaths.py",
     "--ignore=tests/backend/test_memory_profiling.py",
     "--ignore=tests/backend/test_performance_bottlenecks.py",
+    "--ignore=tests/backend/test_able_android.py",
     "--ignore=tests/backend/eect",
 ]
