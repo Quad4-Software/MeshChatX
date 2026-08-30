@@ -24,40 +24,83 @@
                 <div class="relative">
                     <button type="button" class="primary-chip py-1! px-3!" @click="togglePublishMenu">
                         <MaterialDesignIcon icon-name="publish" class="w-3.5 h-3.5" />
-                        <span class="hidden sm:inline">Publish</span>
+                        <span class="hidden sm:inline">{{ $t("tools.micron_editor.publish") }}</span>
                     </button>
                     <div
                         v-if="showPublishMenu"
                         v-click-outside="() => (showPublishMenu = false)"
-                        class="absolute right-0 top-full mt-1 w-64 bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-sem-border z-50 py-2"
+                        class="absolute right-0 top-full mt-1 w-72 bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-sem-border z-50 py-2"
                     >
                         <div class="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-sem-fg-muted">
-                            Publish to Mesh Server
+                            {{ $t("tools.micron_editor.publish_to_mesh_server") }}
                         </div>
-                        <div v-if="pageNodes.length === 0" class="px-3 py-2 text-xs text-sem-fg-muted">
-                            No mesh servers available.
-                            <router-link to="/mesh-server" class="text-blue-500 hover:underline"
-                                >Create one</router-link
-                            >
-                        </div>
-                        <button
-                            v-for="pn in pageNodes"
-                            :key="pn.node_id"
-                            class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 hover:bg-sem-surface-muted flex items-center gap-2 transition-colors"
-                            @click="publishToNode(pn)"
-                        >
-                            <div
-                                class="w-2 h-2 rounded-full shrink-0"
-                                :class="pn.running ? 'bg-green-500' : 'bg-gray-400'"
-                            ></div>
-                            <span class="truncate text-sem-fg">{{ pn.name }}</span>
-                        </button>
-                        <div class="border-t border-sem-border mt-1 pt-1">
+                        <div v-if="pageNodes.length === 0" class="px-3 py-2 text-xs text-sem-fg-muted space-y-2">
+                            <div>{{ $t("tools.micron_editor.publish_no_servers") }}</div>
                             <button
-                                class="w-full text-left px-3 py-2 text-xs text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors"
-                                @click="publishAllToNode"
+                                type="button"
+                                class="w-full text-left rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-500"
+                                :disabled="publishBusy"
+                                @click="createMeshServerAndPublish"
                             >
-                                Publish all tabs to server...
+                                {{ $t("tools.micron_editor.publish_create_and_publish") }}
+                            </button>
+                            <router-link
+                                to="/mesh-server"
+                                class="inline-block text-blue-500 hover:underline"
+                                @click="showPublishMenu = false"
+                            >
+                                {{ $t("tools.micron_editor.publish_manage_servers") }}
+                            </router-link>
+                        </div>
+                        <template v-else>
+                            <button
+                                v-for="pn in pageNodes"
+                                :key="pn.node_id"
+                                type="button"
+                                class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 hover:bg-sem-surface-muted flex items-center gap-2 transition-colors disabled:opacity-50"
+                                :disabled="publishBusy"
+                                @click="publishToNode(pn)"
+                            >
+                                <div
+                                    class="w-2 h-2 rounded-full shrink-0"
+                                    :class="pn.running ? 'bg-green-500' : 'bg-gray-400'"
+                                ></div>
+                                <span class="truncate text-sem-fg">{{ pn.name }}</span>
+                                <span v-if="!pn.running" class="ml-auto text-[10px] text-sem-fg-muted shrink-0">{{
+                                    $t("tools.micron_editor.publish_will_start")
+                                }}</span>
+                            </button>
+                            <div class="border-t border-sem-border mt-1 pt-1">
+                                <button
+                                    type="button"
+                                    class="w-full text-left px-3 py-2 text-xs text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors disabled:opacity-50"
+                                    :disabled="publishBusy"
+                                    @click="createMeshServerAndPublish"
+                                >
+                                    {{ $t("tools.micron_editor.publish_create_and_publish") }}
+                                </button>
+                                <button
+                                    type="button"
+                                    class="w-full text-left px-3 py-2 text-xs text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors disabled:opacity-50"
+                                    :disabled="publishBusy"
+                                    @click="publishAllToNode"
+                                >
+                                    {{ $t("tools.micron_editor.publish_all_tabs") }}
+                                </button>
+                            </div>
+                        </template>
+                        <div v-if="lastPublished?.destinationHash" class="border-t border-sem-border mt-1 pt-1">
+                            <button
+                                type="button"
+                                class="w-full text-left px-3 py-2 text-xs font-medium text-teal-600 dark:text-teal-400 hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors flex items-center gap-2"
+                                @click="openPublishedInNomadNet"
+                            >
+                                <MaterialDesignIcon icon-name="web" class="w-3.5 h-3.5" />
+                                <span class="truncate">{{
+                                    $t("tools.micron_editor.publish_open_in_nomadnet", {
+                                        page: lastPublished.pageName,
+                                    })
+                                }}</span>
                             </button>
                         </div>
                     </div>
@@ -176,6 +219,7 @@ import MicronParser from "../../js/MicronParser.js";
 import { micronStorage } from "../../js/MicronStorage";
 import { preloadNomadMicronWasm, isMicronWasmBundled } from "../../js/MicronWasmLoader";
 import DialogUtils from "../../js/DialogUtils";
+import ToastUtils from "../../js/ToastUtils";
 import LinkUtils from "../../js/LinkUtils.js";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
@@ -206,6 +250,8 @@ export default {
             editingTabName: "",
             showPublishMenu: false,
             pageNodes: [],
+            publishBusy: false,
+            lastPublished: null,
             useWasm: false,
             wasmReady: false,
             wasmBundled: isMicronWasmBundled(),
@@ -1101,30 +1147,156 @@ ${b}=
             }
             return base || null;
         },
-        async publishToNode(node) {
-            const tab = this.tabs[this.activeTabIndex];
+        async ensureNodeRunning(node) {
+            if (node?.running && node.destination_hash) {
+                return node;
+            }
+            if (!node?.node_id) {
+                throw new Error("missing_node");
+            }
+            const startRes = await window.api.post(`/api/v1/page-nodes/${node.node_id}/start`);
+            const destinationHash = startRes.data?.destination_hash || node.destination_hash || "";
+            return {
+                ...node,
+                running: true,
+                destination_hash: destinationHash,
+            };
+        },
+        nomadPagePathForName(pageName) {
+            const name = String(pageName || "index.mu").trim();
+            if (!name) {
+                return "/page/index.mu";
+            }
+            if (name.startsWith("/page/")) {
+                return name;
+            }
+            if (name.startsWith("/")) {
+                return name;
+            }
+            return `/page/${name}`;
+        },
+        rememberPublished(node, pageName) {
+            const destinationHash = (node?.destination_hash || "").trim();
+            if (!destinationHash || !NOMAD_DESTINATION_HASH.test(destinationHash)) {
+                return;
+            }
+            this.lastPublished = {
+                destinationHash,
+                pagePath: this.nomadPagePathForName(pageName),
+                pageName: pageName || "index.mu",
+                serverName: node.name || "",
+            };
+        },
+        openPublishedInNomadNet() {
+            const published = this.lastPublished;
+            if (!published?.destinationHash) {
+                return;
+            }
+            this.showPublishMenu = false;
+            this.$router.push({
+                name: "nomadnetwork",
+                params: { destinationHash: published.destinationHash },
+                query: {
+                    path: published.pagePath || "/page/index.mu",
+                    newTab: "1",
+                },
+            });
+        },
+        async offerOpenInNomadNet(pageName, serverName) {
+            if (!this.lastPublished?.destinationHash) {
+                DialogUtils.alert(
+                    this.$t("tools.micron_editor.publish_published", { page: pageName, server: serverName })
+                );
+                return;
+            }
+            const open = await DialogUtils.confirm(
+                this.$t("tools.micron_editor.publish_open_nomadnet_confirm", {
+                    page: pageName,
+                    server: serverName,
+                })
+            );
+            if (open) {
+                this.openPublishedInNomadNet();
+            } else {
+                ToastUtils.success(
+                    this.$t("tools.micron_editor.publish_published", { page: pageName, server: serverName })
+                );
+            }
+        },
+        async createMeshServerAndPublish() {
+            if (this.publishBusy) {
+                return;
+            }
+            const entered = await DialogUtils.prompt(
+                this.$t("tools.micron_editor.publish_create_prompt_name"),
+                "Micron Pages"
+            );
+            if (entered === null || !String(entered).trim()) {
+                return;
+            }
+            const serverName = String(entered).trim();
+            this.publishBusy = true;
             try {
-                const existingPages = await this.fetchNodePages(node);
-                const pageBase = await this.resolvePublishPageBase(tab, existingPages, node.name);
+                const createRes = await window.api.post("/api/v1/page-nodes", { name: serverName });
+                const created = createRes.data || {};
+                if (!created.node_id) {
+                    throw new Error("create_failed");
+                }
+                const running = await this.ensureNodeRunning(created);
+                this.pageNodes = [...this.pageNodes.filter((n) => n.node_id !== running.node_id), running];
+                await this.publishToNode(running, { alreadyRunning: true });
+            } catch (e) {
+                this.showPublishMenu = false;
+                DialogUtils.alert(e.response?.data?.message || this.$t("tools.micron_editor.publish_failed_create"));
+            } finally {
+                this.publishBusy = false;
+            }
+        },
+        async publishToNode(node, options = {}) {
+            if (this.publishBusy && !options.alreadyRunning) {
+                return;
+            }
+            const tab = this.tabs[this.activeTabIndex];
+            const busyOwned = !options.alreadyRunning;
+            if (busyOwned) {
+                this.publishBusy = true;
+            }
+            try {
+                let running = node;
+                if (!options.alreadyRunning) {
+                    running = await this.ensureNodeRunning(node);
+                }
+                const existingPages = await this.fetchNodePages(running);
+                const pageBase = await this.resolvePublishPageBase(tab, existingPages, running.name);
                 if (!pageBase) {
                     return;
                 }
                 const publishName = this.pageBaseWithExtension(pageBase, tab);
-                const response = await window.api.post(`/api/v1/page-nodes/${node.node_id}/pages`, {
+                const response = await window.api.post(`/api/v1/page-nodes/${running.node_id}/pages`, {
                     name: publishName,
                     content: tab.content,
                 });
                 this.showPublishMenu = false;
                 const savedName = response.data?.name || publishName;
-                DialogUtils.alert(
-                    this.$t("tools.micron_editor.publish_published", { page: savedName, server: node.name })
-                );
+                this.rememberPublished(running, savedName);
+                await this.offerOpenInNomadNet(savedName, running.name);
             } catch (e) {
-                DialogUtils.alert(e.response?.data?.message || this.$t("tools.micron_editor.publish_failed"));
+                DialogUtils.alert(
+                    e.response?.data?.message ||
+                        (e.message === "missing_node"
+                            ? this.$t("tools.micron_editor.publish_failed")
+                            : this.$t("tools.micron_editor.publish_failed"))
+                );
+            } finally {
+                if (busyOwned) {
+                    this.publishBusy = false;
+                }
             }
         },
         async publishAllToNode() {
-            if (this.pageNodes.length === 0) return;
+            if (this.pageNodes.length === 0 || this.publishBusy) {
+                return;
+            }
 
             const nodeNames = this.pageNodes.map((n) => n.name);
             const nodeName = await DialogUtils.prompt(
@@ -1138,37 +1310,59 @@ ${b}=
                 return;
             }
 
-            let existingPages = await this.fetchNodePages(node);
-            let published = 0;
-            for (const tab of this.tabs) {
-                const pageBase = await this.resolvePublishPageBase(tab, existingPages, node.name);
-                if (!pageBase) {
-                    continue;
-                }
-                const publishName = this.pageBaseWithExtension(pageBase, tab);
-                try {
-                    const response = await window.api.post(`/api/v1/page-nodes/${node.node_id}/pages`, {
-                        name: publishName,
-                        content: tab.content,
-                    });
-                    const savedName = response.data?.name;
-                    if (savedName) {
+            this.publishBusy = true;
+            try {
+                const running = await this.ensureNodeRunning(node);
+                let existingPages = await this.fetchNodePages(running);
+                let published = 0;
+                let lastSavedName = null;
+                for (const tab of this.tabs) {
+                    const pageBase = await this.resolvePublishPageBase(tab, existingPages, running.name);
+                    if (!pageBase) {
+                        continue;
+                    }
+                    const publishName = this.pageBaseWithExtension(pageBase, tab);
+                    try {
+                        const response = await window.api.post(`/api/v1/page-nodes/${running.node_id}/pages`, {
+                            name: publishName,
+                            content: tab.content,
+                        });
+                        const savedName = response.data?.name || publishName;
+                        lastSavedName = savedName;
                         const pageNames = pageNamesFromList(existingPages);
                         existingPages = [...new Set([...pageNames, savedName])];
+                        published++;
+                    } catch {
+                        console.error(`Failed to publish tab: ${tab.name}`);
                     }
-                    published++;
-                } catch {
-                    console.error(`Failed to publish tab: ${tab.name}`);
                 }
+                this.showPublishMenu = false;
+                if (lastSavedName) {
+                    this.rememberPublished(running, lastSavedName);
+                }
+                DialogUtils.alert(
+                    this.$t("tools.micron_editor.publish_all_done", {
+                        published,
+                        total: this.tabs.length,
+                        server: running.name,
+                    })
+                );
+                if (published > 0 && this.lastPublished?.destinationHash) {
+                    const open = await DialogUtils.confirm(
+                        this.$t("tools.micron_editor.publish_open_nomadnet_confirm", {
+                            page: lastSavedName,
+                            server: running.name,
+                        })
+                    );
+                    if (open) {
+                        this.openPublishedInNomadNet();
+                    }
+                }
+            } catch (e) {
+                DialogUtils.alert(e.response?.data?.message || this.$t("tools.micron_editor.publish_failed_start"));
+            } finally {
+                this.publishBusy = false;
             }
-            this.showPublishMenu = false;
-            DialogUtils.alert(
-                this.$t("tools.micron_editor.publish_all_done", {
-                    published,
-                    total: this.tabs.length,
-                    server: node.name,
-                })
-            );
         },
     },
 };

@@ -3236,7 +3236,19 @@
             "publish_failed": "Sivun julkaisu epäonnistui",
             "publish_all_prompt_server": "Anna palvelimen nimi, jolle kaikki välilehdet julkaistaan:\n\nSaatavilla: {servers}",
             "publish_server_not_found": "Palvelinta ei löydy: {server}",
-            "publish_all_done": "Julkaistu {published}/{total} välilehteä palvelimelle {server}"
+            "publish_all_done": "Julkaistu {published}/{total} välilehteä palvelimelle {server}",
+            "publish": "Publish",
+            "publish_to_mesh_server": "Publish to Mesh Server",
+            "publish_no_servers": "No mesh servers yet.",
+            "publish_create_and_publish": "Create mesh server and publish...",
+            "publish_manage_servers": "Manage mesh servers",
+            "publish_will_start": "will start",
+            "publish_all_tabs": "Publish all tabs to server...",
+            "publish_create_prompt_name": "Name for the new mesh server:",
+            "publish_failed_create": "Failed to create mesh server",
+            "publish_failed_start": "Failed to start mesh server",
+            "publish_open_in_nomadnet": "Open {page} in NomadNet",
+            "publish_open_nomadnet_confirm": "Published \"{page}\" to {server}. Open it in NomadNet now?"
         },
         "reticulum_config_editor": {
             "title": "Reticulum-asetusten muokkain",
