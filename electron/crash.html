@@ -7,7 +7,56 @@
             content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
         />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <meta name="color-scheme" content="light dark" />
         <title>MeshChatX - Crash Report</title>
+        <style>
+            html {
+                background-color: #f8fafc;
+                color-scheme: light;
+            }
+            html.dark {
+                background-color: #09090b;
+                color-scheme: dark;
+            }
+            body {
+                background-color: inherit;
+            }
+        </style>
+        <script>
+            (function () {
+                try {
+                    var theme = null;
+                    try {
+                        theme = new URLSearchParams(window.location.search).get("theme");
+                    } catch (e) {}
+                    if (!theme) {
+                        theme =
+                            localStorage.getItem("meshchatx_ui_theme") ||
+                            localStorage.getItem("meshchat.theme") ||
+                            localStorage.getItem("meshchatx.theme");
+                    }
+                    if (theme === "system") {
+                        theme =
+                            window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                                ? "dark"
+                                : "light";
+                    }
+                    if (theme !== "light" && theme !== "dark") {
+                        theme =
+                            window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                                ? "dark"
+                                : "light";
+                    }
+                    if (theme === "dark") {
+                        document.documentElement.classList.add("dark");
+                        document.documentElement.style.colorScheme = "dark";
+                    } else {
+                        document.documentElement.classList.remove("dark");
+                        document.documentElement.style.colorScheme = "light";
+                    }
+                } catch (e) {}
+            })();
+        </script>
         <link rel="stylesheet" href="./assets/css/electron-shell.css" />
     </head>
     <body
@@ -278,6 +327,10 @@
 
             function detectPreferredTheme() {
                 try {
+                    const queryTheme = new URLSearchParams(window.location.search).get("theme");
+                    if (queryTheme === "dark" || queryTheme === "light") {
+                        return queryTheme;
+                    }
                     const storedTheme =
                         localStorage.getItem("meshchatx_ui_theme") ||
                         localStorage.getItem("meshchat.theme") ||
@@ -299,6 +352,28 @@
             function applyTheme(theme) {
                 const isDark = theme === "dark";
                 document.documentElement.classList.toggle("dark", isDark);
+                document.documentElement.style.colorScheme = isDark ? "dark" : "light";
+                document.body.dataset.theme = isDark ? "dark" : "light";
+            }
+
+            function listenForSystemThemeChanges() {
+                if (!window.matchMedia) {
+                    return;
+                }
+                const media = window.matchMedia("(prefers-color-scheme: dark)");
+                media.addEventListener("change", (event) => {
+                    let stored = null;
+                    try {
+                        stored =
+                            localStorage.getItem("meshchatx_ui_theme") ||
+                            localStorage.getItem("meshchat.theme") ||
+                            localStorage.getItem("meshchatx.theme");
+                    } catch (e) {}
+                    if (stored && stored !== "system") {
+                        return;
+                    }
+                    applyTheme(event.matches ? "dark" : "light");
+                });
             }
 
             function setRecoveryStatus(message, isError = false) {
@@ -478,6 +553,7 @@
             }
 
             applyTheme(detectPreferredTheme());
+            listenForSystemThemeChanges();
             initRecoveryPanel();
         </script>
     </body>

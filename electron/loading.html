@@ -9,8 +9,18 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <meta name="color-scheme" content="light dark" />
         <title>MeshChatX</title>
-        <link rel="stylesheet" href="./assets/css/electron-shell.css" />
         <style>
+            html {
+                background-color: #f8fafc;
+                color-scheme: light;
+            }
+            html.dark {
+                background-color: #09090b;
+                color-scheme: dark;
+            }
+            body {
+                background-color: inherit;
+            }
             @keyframes meshchatx-indeterminate {
                 0% {
                     transform: translateX(-100%);
@@ -23,6 +33,42 @@
                 animation: meshchatx-indeterminate 1.4s ease-in-out infinite;
             }
         </style>
+        <script>
+            (function () {
+                try {
+                    var theme = null;
+                    try {
+                        theme = new URLSearchParams(window.location.search).get("theme");
+                    } catch (e) {}
+                    if (!theme) {
+                        theme =
+                            localStorage.getItem("meshchatx_ui_theme") ||
+                            localStorage.getItem("meshchat.theme") ||
+                            localStorage.getItem("meshchatx.theme");
+                    }
+                    if (theme === "system") {
+                        theme =
+                            window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                                ? "dark"
+                                : "light";
+                    }
+                    if (theme !== "light" && theme !== "dark") {
+                        theme =
+                            window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                                ? "dark"
+                                : "light";
+                    }
+                    if (theme === "dark") {
+                        document.documentElement.classList.add("dark");
+                        document.documentElement.style.colorScheme = "dark";
+                    } else {
+                        document.documentElement.classList.remove("dark");
+                        document.documentElement.style.colorScheme = "light";
+                    }
+                } catch (e) {}
+            })();
+        </script>
+        <link rel="stylesheet" href="./assets/css/electron-shell.css" />
     </head>
     <body
         class="min-h-screen antialiased bg-gradient-to-b from-slate-100 to-slate-200 text-slate-800 dark:from-zinc-950 dark:to-zinc-900 dark:text-zinc-100"
@@ -294,6 +340,10 @@
 
             function detectPreferredTheme() {
                 try {
+                    const queryTheme = new URLSearchParams(window.location.search).get("theme");
+                    if (queryTheme === "dark" || queryTheme === "light") {
+                        return queryTheme;
+                    }
                     const storedTheme =
                         localStorage.getItem("meshchatx_ui_theme") ||
                         localStorage.getItem("meshchat.theme") ||
@@ -315,6 +365,7 @@
             function applyTheme(theme) {
                 const isDark = theme === "dark";
                 document.documentElement.classList.toggle("dark", isDark);
+                document.documentElement.style.colorScheme = isDark ? "dark" : "light";
                 document.body.dataset.theme = isDark ? "dark" : "light";
             }
 
