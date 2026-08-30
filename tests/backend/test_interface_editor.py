@@ -122,7 +122,9 @@ def test_apply_yes_no_option_recursive_prs():
     details = {}
     assert (
         InterfaceEditor.apply_yes_no_option(
-            details, {"recursive_prs": True}, "recursive_prs"
+            details,
+            {"recursive_prs": True},
+            "recursive_prs",
         )
         is None
     )

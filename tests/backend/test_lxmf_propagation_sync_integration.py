@@ -136,7 +136,9 @@ async def test_remote_propagation_sync_transitions_path_requested_to_complete(
             known_paths.add(key)
 
     sync_handler = _route_handler(
-        app, "/api/v1/lxmf/propagation-node/sync", method="POST"
+        app,
+        "/api/v1/lxmf/propagation-node/sync",
+        method="POST",
     )
     status_handler = _route_handler(app, "/api/v1/lxmf/propagation-node/status")
 
@@ -178,7 +180,9 @@ async def test_local_preferred_propagation_sync_completes_without_remote_lookup(
     fake_router.set_outbound_propagation_node(local_hash)
 
     sync_handler = _route_handler(
-        app, "/api/v1/lxmf/propagation-node/sync", method="POST"
+        app,
+        "/api/v1/lxmf/propagation-node/sync",
+        method="POST",
     )
     status_handler = _route_handler(app, "/api/v1/lxmf/propagation-node/status")
 

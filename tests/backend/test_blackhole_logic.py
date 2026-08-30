@@ -368,8 +368,8 @@ def test_oracle_banish_does_not_remove_reticulum_interfaces():
                 "interface_enabled": "True",
                 "target_host": "10.100.11.12",
                 "target_port": "4242",
-            }
-        }
+            },
+        },
     }
     before = copy.deepcopy(app.reticulum.config["interfaces"])
     with patch("meshchatx.meshchat.AsyncUtils") as async_utils:

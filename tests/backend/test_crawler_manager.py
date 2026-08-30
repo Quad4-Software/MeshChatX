@@ -5,11 +5,11 @@
 from meshchatx.src.backend.crawler_manager import (
     CrawlerManager,
     content_signals_nocrawl,
+    cosine_similarity,
     extract_same_node_page_links,
     make_snippet,
     normalize_page_path,
     token_vector,
-    cosine_similarity,
 )
 
 

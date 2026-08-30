@@ -102,6 +102,69 @@ async def test_download_cached_link(downloader):
         mock_established.assert_called_with(mock_link)
 
 
+@pytest.mark.asyncio
+async def test_private_download_skips_cached_link():
+    mock_link = MagicMock()
+    mock_link.status = RNS.Link.ACTIVE
+    with _nomadnet_links_lock:
+        nomadnet_cached_links[b"dest"] = mock_link
+
+    d = NomadnetDownloader(
+        b"dest",
+        "/path",
+        None,
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        private=True,
+    )
+    with (
+        patch.object(RNS.Transport, "has_path", return_value=False),
+        patch.object(RNS.Transport, "request_path"),
+        patch.object(d, "link_established") as mock_established,
+    ):
+        await d.download(path_lookup_timeout=0.05)
+        mock_established.assert_not_called()
+        d._download_failure_callback.assert_called_with(
+            "Could not find path to destination.",
+        )
+
+
+def test_private_link_established_does_not_cache():
+    d = NomadnetDownloader(
+        b"priv",
+        "/p",
+        None,
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        private=True,
+    )
+    mock_link = MagicMock()
+    mock_link.status = RNS.Link.ACTIVE
+    mock_link.request = MagicMock(return_value=MagicMock())
+    d.link_established(mock_link)
+    assert get_cached_active_link(b"priv") is None
+    mock_link.request.assert_called_once()
+
+
+def test_private_on_response_tears_down_link():
+    d = NomadnetDownloader(
+        b"priv2",
+        "/p",
+        None,
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        private=True,
+    )
+    mock_link = MagicMock()
+    d.link = mock_link
+    d.on_response(MagicMock())
+    mock_link.teardown.assert_called_once()
+    assert d.link is None
+
+
 def test_page_downloader_invalid_utf8_replaced():
     on_ok = MagicMock()
     on_fail = MagicMock()
@@ -236,3 +299,73 @@ def test_file_downloader_caps_payload_bytes():
     fd.on_download_success(rr)
     on_fail.assert_called_once_with("file_too_large")
     on_ok.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_download_reuses_live_path_without_prepare_fresh():
+    dest = b"ab" * 8
+    phases = []
+    d = NomadnetDownloader(
+        dest,
+        "/page.mu",
+        None,
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        on_phase=lambda phase: phases.append(phase),
+    )
+    link = MagicMock()
+    link.status = RNS.Link.ACTIVE
+
+    with (
+        patch(
+            "meshchatx.src.backend.nomadnet_downloader.reticulum_pathfinding.prepare_fresh_path_request",
+        ) as prepare,
+        patch.object(RNS.Transport, "has_path", return_value=True),
+        patch.object(RNS.Transport, "path_is_unresponsive", return_value=False),
+        patch.object(RNS.Identity, "recall", return_value=MagicMock()),
+        patch.object(RNS, "Destination", return_value=MagicMock()),
+        patch.object(RNS, "Link", return_value=link) as link_ctor,
+        patch(
+            "meshchatx.src.backend.nomadnet_downloader.link_establishment_window",
+            return_value=0.01,
+        ),
+    ):
+        link.status = RNS.Link.ACTIVE
+        await d.download(path_lookup_timeout=0.05, link_establishment_timeout=0.05)
+
+    prepare.assert_not_called()
+    assert "finding_path" not in phases
+    assert "establishing_link" in phases
+    link_ctor.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_download_fails_cleanly_when_identity_missing():
+    dest = b"cd" * 8
+    failures = []
+    phases = []
+    d = NomadnetDownloader(
+        dest,
+        "/page.mu",
+        None,
+        MagicMock(),
+        lambda reason: failures.append(reason),
+        MagicMock(),
+        on_phase=lambda phase: phases.append(phase),
+    )
+
+    with (
+        patch.object(RNS.Transport, "has_path", return_value=True),
+        patch.object(RNS.Transport, "path_is_unresponsive", return_value=False),
+        patch.object(RNS.Identity, "recall", return_value=None),
+        patch(
+            "meshchatx.src.backend.nomadnet_downloader.reticulum_pathfinding.nudge_path_request",
+        ) as nudge,
+    ):
+        await d.download(path_lookup_timeout=0.05, link_establishment_timeout=0.05)
+
+    assert "establishing_link" in phases
+    assert failures
+    assert "identity" in failures[0].lower()
+    nudge.assert_called_once_with(dest)

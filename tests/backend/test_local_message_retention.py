@@ -278,10 +278,10 @@ def test_purge_messages_before_cutoff_and_count(_db_path):
         "attachments_stripped": 0,
     }
     db.messages.upsert_lxmf_message(
-        {**base, "hash": "d" * 32, "timestamp": now - 40 * 86400}
+        {**base, "hash": "d" * 32, "timestamp": now - 40 * 86400},
     )
     db.messages.upsert_lxmf_message(
-        {**base, "hash": "e" * 32, "timestamp": now - 5 * 86400}
+        {**base, "hash": "e" * 32, "timestamp": now - 5 * 86400},
     )
     cutoff = now - 30 * 86400
     assert db.messages.count_lxmf_messages_with_timestamp_before(cutoff) == 1

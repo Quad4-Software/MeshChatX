@@ -12,7 +12,7 @@ async def test_theme_customization_config_round_trip(mock_app):
     await mock_app.update_config(
         {
             "theme_preset": "nord",
-        }
+        },
     )
     assert mock_app.config.theme_preset.get() == "nord"
 
@@ -23,7 +23,7 @@ async def test_theme_customization_config_round_trip(mock_app):
             "accent_color": "#aabbcc",
             "custom_canvas_color": "#010203",
             "custom_surface_color": "#040506",
-        }
+        },
     )
 
     c = mock_app.config
@@ -40,7 +40,7 @@ async def test_theme_customization_config_round_trip(mock_app):
             "accent_color": "not-a-color",
             "custom_canvas_color": "",
             "custom_surface_color": None,
-        }
+        },
     )
 
     assert c.theme.get() == "light"

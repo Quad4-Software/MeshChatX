@@ -96,7 +96,7 @@ def test_stage_fails_when_no_signed_apk(tmp_path: Path):
     dest = tmp_path / "draft"
     src.mkdir()
     (src / "ReticulumMeshChatX-v4.8.4-android-universal-unsigned.apk").write_bytes(
-        b"apk"
+        b"apk",
     )
     proc = subprocess.run(
         ["bash", str(_SCRIPT), str(src), str(dest)],

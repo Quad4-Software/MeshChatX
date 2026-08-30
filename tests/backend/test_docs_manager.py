@@ -115,7 +115,7 @@ def test_docs_manager_readonly_public_dir_handling(tmp_path):
     public_dir = tmp_path / "readonly_public"
     public_dir.mkdir()
 
-    os.chmod(public_dir, 0o555)  # noqa: S103
+    os.chmod(public_dir, 0o555)
 
     config = MagicMock()
     from unittest.mock import patch
@@ -128,7 +128,7 @@ def test_docs_manager_readonly_public_dir_handling(tmp_path):
             or "Permission denied" in dm.last_error
         )
 
-    os.chmod(public_dir, 0o755)  # noqa: S103
+    os.chmod(public_dir, 0o755)
 
 
 def test_has_docs(docs_manager, temp_dirs):

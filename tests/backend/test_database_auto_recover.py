@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import os
 
-from meshchatx.src.backend.database import Database, PRE_MIGRATE_BACKUP_PREFIX
+from meshchatx.src.backend.database import PRE_MIGRATE_BACKUP_PREFIX, Database
 from meshchatx.src.backend.database.auto_recover import (
     infer_version_hint_from_backup_name,
     pick_compatible_backup,

@@ -100,8 +100,8 @@ def test_last_announced_at_config_roundtrip_db(tmp_path):
 
 @pytest.mark.asyncio
 async def test_send_announced_includes_last_announced_at(mock_app):
-    from unittest.mock import AsyncMock
     import json
+    from unittest.mock import AsyncMock
 
     ts = 1_700_000_000
     mock_app.current_context.config.last_announced_at.set(ts)

@@ -275,14 +275,16 @@ def test_run_database_recovery_skips_vacuum_when_integrity_fails(temp_dir):
     db.initialize()
     db.execute_sql("INSERT INTO config (key, value) VALUES (?, ?)", ("keep", "me"))
 
-    with patch.object(
-        db.provider,
-        "integrity_check",
-        return_value=[{"integrity_check": "tree corrupt"}],
+    with (
+        patch.object(
+            db.provider,
+            "integrity_check",
+            return_value=[{"integrity_check": "tree corrupt"}],
+        ),
+        patch.object(db.provider, "vacuum") as mock_vacuum,
     ):
-        with patch.object(db.provider, "vacuum") as mock_vacuum:
-            result = db.run_database_recovery()
-            mock_vacuum.assert_not_called()
+        result = db.run_database_recovery()
+        mock_vacuum.assert_not_called()
 
     vacuum_steps = [step for step in result["actions"] if step.get("step") == "vacuum"]
     assert vacuum_steps
@@ -374,7 +376,7 @@ def test_check_db_health_at_close_integrity_fail(temp_dir):
     db_path = os.path.join(temp_dir, "test.db")
     db = Database(db_path)
     db.initialize()
-    with patch.object(db.provider, "integrity_check", return_value=[("corrupt",)]):
+    with patch.object(db.provider, "quick_check", return_value=[("corrupt",)]):
         issues = db.check_db_health_at_close(temp_dir)
     assert len(issues) >= 1
     assert any("integrity" in i.lower() for i in issues)

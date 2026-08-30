@@ -8,8 +8,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from meshchatx.src.backend import appcontainer_sandbox as ac
 from meshchatx.src.backend import appcontainer_launcher as launcher
+from meshchatx.src.backend import appcontainer_sandbox as ac
 
 
 @pytest.fixture(autouse=True)
@@ -124,7 +124,8 @@ def test_collect_ro_roots_includes_exe_dir(tmp_path):
 
 def test_build_command_line_quotes_spaces():
     line = ac._build_command_line(
-        r"C:\Program Files\app.exe", ["--storage-dir", r"C:\Users\a b\data"]
+        r"C:\Program Files\app.exe",
+        ["--storage-dir", r"C:\Users\a b\data"],
     )
     assert '"C:\\Program Files\\app.exe"' in line
     assert '"C:\\Users\\a b\\data"' in line
@@ -155,7 +156,9 @@ def test_launcher_forced_fails_when_unsupported(monkeypatch):
 def test_launcher_success_path(monkeypatch, tmp_path):
     monkeypatch.setattr(launcher.sys, "platform", "win32")
     monkeypatch.setattr(
-        launcher.sys, "executable", str(tmp_path / "ReticulumMeshChatX.exe")
+        launcher.sys,
+        "executable",
+        str(tmp_path / "ReticulumMeshChatX.exe"),
     )
     monkeypatch.setattr(launcher, "is_appcontainer_child", lambda: False)
     monkeypatch.setattr(launcher, "appcontainer_supported", lambda: True)
@@ -168,7 +171,7 @@ def test_launcher_success_path(monkeypatch, tmp_path):
 
     monkeypatch.setattr(launcher, "launch_backend_sandboxed", fake_launch)
     code = launcher.run_launcher(
-        ["--headless", "--port", "9337", "--storage-dir", str(tmp_path)]
+        ["--headless", "--port", "9337", "--storage-dir", str(tmp_path)],
     )
     assert code == 0
 
@@ -218,7 +221,9 @@ def test_main_skips_appcontainer_wrap_for_self_check(monkeypatch, tmp_path):
 def test_launcher_reports_launch_failure(monkeypatch, tmp_path):
     monkeypatch.setattr(launcher.sys, "platform", "win32")
     monkeypatch.setattr(
-        launcher.sys, "executable", str(tmp_path / "ReticulumMeshChatX.exe")
+        launcher.sys,
+        "executable",
+        str(tmp_path / "ReticulumMeshChatX.exe"),
     )
     monkeypatch.setattr(launcher, "is_appcontainer_child", lambda: False)
     monkeypatch.setattr(launcher, "appcontainer_supported", lambda: True)

@@ -131,7 +131,7 @@ def main() -> int:
     tel_text = telephony.read_text(encoding="utf-8")
     if "if Codec2 is not None:" in tel_text and "BANDWIDTH_ULTRA_LOW" in tel_text:
         print(
-            f"patch_lxst_codec2_optional: Telephony get_codec already guarded ({telephony})"
+            f"patch_lxst_codec2_optional: Telephony get_codec already guarded ({telephony})",
         )
         return 0
 

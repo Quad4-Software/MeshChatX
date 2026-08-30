@@ -17,7 +17,7 @@ import os
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from aiohttp import WSServerHandshakeError, WSMsgType
+from aiohttp import WSMsgType, WSServerHandshakeError
 from aiohttp.test_utils import TestClient, TestServer
 
 from meshchatx.src.backend.rns_filesync_handler import RnsFilesyncHandler

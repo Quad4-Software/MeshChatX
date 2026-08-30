@@ -103,8 +103,8 @@ def test_oracle_known_methods_never_unknown(method):
 
 @given(
     state=st.integers(min_value=0, max_value=512).filter(
-        lambda v: v not in LXMF_STATE_ORACLE
-    )
+        lambda v: v not in LXMF_STATE_ORACLE,
+    ),
 )
 @settings(max_examples=80, deadline=None)
 def test_oracle_unknown_state_ints_report_unknown(state):
@@ -113,8 +113,8 @@ def test_oracle_unknown_state_ints_report_unknown(state):
 
 @given(
     method=st.integers(min_value=0, max_value=64).filter(
-        lambda v: v not in LXMF_METHOD_ORACLE
-    )
+        lambda v: v not in LXMF_METHOD_ORACLE,
+    ),
 )
 @settings(max_examples=40, deadline=None)
 def test_oracle_unknown_method_ints_report_unknown(method):
@@ -142,7 +142,7 @@ def test_oracle_message_dict_reports_lxmf_status_pair(state, method):
 def test_oracle_propagated_sent_is_on_node_not_delivered():
     """Parked on a propagation node is SENT + PROPAGATED, not DELIVERED."""
     payload = convert_lxmf_message_to_dict(
-        _mock_lxmessage(state=LXMF.LXMessage.SENT, method=LXMF.LXMessage.PROPAGATED)
+        _mock_lxmessage(state=LXMF.LXMessage.SENT, method=LXMF.LXMessage.PROPAGATED),
     )
     assert payload["state"] == "sent"
     assert payload["method"] == "propagated"
@@ -153,7 +153,7 @@ def test_oracle_propagated_delivered_means_recipient_got_mail():
         _mock_lxmessage(
             state=LXMF.LXMessage.DELIVERED,
             method=LXMF.LXMessage.PROPAGATED,
-        )
+        ),
     )
     assert payload["state"] == "delivered"
     assert payload["method"] == "propagated"
@@ -161,7 +161,7 @@ def test_oracle_propagated_delivered_means_recipient_got_mail():
 
 def test_oracle_direct_delivered_is_not_propagated():
     payload = convert_lxmf_message_to_dict(
-        _mock_lxmessage(state=LXMF.LXMessage.DELIVERED, method=LXMF.LXMessage.DIRECT)
+        _mock_lxmessage(state=LXMF.LXMessage.DELIVERED, method=LXMF.LXMessage.DIRECT),
     )
     assert payload["state"] == "delivered"
     assert payload["method"] == "direct"
@@ -173,7 +173,7 @@ def test_oracle_opportunistic_failed_still_reports_failed_state():
         _mock_lxmessage(
             state=LXMF.LXMessage.FAILED,
             method=LXMF.LXMessage.OPPORTUNISTIC,
-        )
+        ),
     )
     assert payload["state"] == "failed"
     assert payload["method"] == "opportunistic"
@@ -185,7 +185,7 @@ def test_oracle_paper_method_preserved_across_states():
         (LXMF.LXMessage.DELIVERED, "delivered"),
     ):
         payload = convert_lxmf_message_to_dict(
-            _mock_lxmessage(state=state, method=LXMF.LXMessage.PAPER)
+            _mock_lxmessage(state=state, method=LXMF.LXMessage.PAPER),
         )
         assert payload["state"] == state_name
         assert payload["method"] == "paper"

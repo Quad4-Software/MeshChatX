@@ -62,14 +62,20 @@ def _assert_paths_exist(rows: list[dict], key: str, resolver, label: str) -> Non
 def test_manager_modules_exist_on_disk():
     rows = load_ownership_fixture(_FIXTURE)
     _assert_paths_exist(
-        rows, "manager_modules", resolve_manager_module_paths, "manager module"
+        rows,
+        "manager_modules",
+        resolve_manager_module_paths,
+        "manager module",
     )
 
 
 def test_http_route_modules_exist_on_disk():
     rows = load_ownership_fixture(_FIXTURE)
     _assert_paths_exist(
-        rows, "http_route_module", resolve_http_route_paths, "HTTP route module"
+        rows,
+        "http_route_module",
+        resolve_http_route_paths,
+        "HTTP route module",
     )
 
 
@@ -81,7 +87,10 @@ def test_ws_modules_exist_on_disk():
 def test_frontend_pages_exist_on_disk():
     rows = load_ownership_fixture(_FIXTURE)
     _assert_paths_exist(
-        rows, "frontend_page", resolve_frontend_page_paths, "frontend page"
+        rows,
+        "frontend_page",
+        resolve_frontend_page_paths,
+        "frontend page",
     )
 
 
@@ -98,7 +107,7 @@ def test_primary_tests_glob_patterns_match_at_least_one_file():
         matched = []
         for pattern in globs:
             matched.extend(
-                glob.glob(str(_TESTS_BACKEND_DIR / "**" / pattern), recursive=True)
+                glob.glob(str(_TESTS_BACKEND_DIR / "**" / pattern), recursive=True),
             )
         assert matched, (
             f"{row['domain']}: none of {globs} matched a file under tests/backend/"

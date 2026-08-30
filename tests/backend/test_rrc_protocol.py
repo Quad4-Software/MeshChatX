@@ -91,7 +91,7 @@ def test_parse_room_list_notice():
     assert proto.parse_room_list_notice("No public rooms registered") == {}
     assert proto.parse_room_list_notice("unrelated") is None
     blank_topic = proto.parse_room_list_notice(
-        "Registered public rooms\n0 -\nlobby -  \n"
+        "Registered public rooms\n0 -\nlobby -  \n",
     )
     assert blank_topic == {"0": None, "lobby": None}
 

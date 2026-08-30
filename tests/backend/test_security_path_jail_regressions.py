@@ -183,7 +183,9 @@ async def test_rncp_send_path_jails_and_blocks_identity(tmp_path, monkeypatch):
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
     monkeypatch.setattr(
-        os.path, "expanduser", lambda p: str(fake_home) if p == "~" else p
+        os.path,
+        "expanduser",
+        lambda p: str(fake_home) if p == "~" else p,
     )
 
     outside_root = tmp_path.parent / "rncp-outside-root"
@@ -246,9 +248,9 @@ def test_resolve_database_restore_path_jails(mock_app, tmp_path):
     evil.write_bytes(b"PK")
     mock_app.storage_path = str(storage)
     assert mock_app._resolve_database_restore_path("ok.zip") == os.path.realpath(
-        str(good)
+        str(good),
     )
     assert mock_app._resolve_database_restore_path(str(evil)) is None
     assert mock_app._resolve_database_restore_path(str(good)) == os.path.realpath(
-        str(good)
+        str(good),
     )

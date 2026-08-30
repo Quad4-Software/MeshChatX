@@ -171,7 +171,8 @@ def test_oracle_codec2_available_false_on_android_probe_fail():
     with (
         patch("meshchatx.android_codec2._is_chaquopy_android", return_value=True),
         patch(
-            "meshchatx.android_codec2.probe_pycodec2", return_value=(False, "missing")
+            "meshchatx.android_codec2.probe_pycodec2",
+            return_value=(False, "missing"),
         ),
     ):
         assert tm.codec2_available() is False

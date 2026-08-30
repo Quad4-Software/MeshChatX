@@ -52,15 +52,24 @@ def test_announce_timestamps_hard_cap_inside_window():
 @given(
     stamps=st.lists(
         st.floats(
-            min_value=0, max_value=1_000_000, allow_nan=False, allow_infinity=False
+            min_value=0,
+            max_value=1_000_000,
+            allow_nan=False,
+            allow_infinity=False,
         ),
         max_size=80,
     ),
     now=st.floats(
-        min_value=0, max_value=1_000_000, allow_nan=False, allow_infinity=False
+        min_value=0,
+        max_value=1_000_000,
+        allow_nan=False,
+        allow_infinity=False,
     ),
     window_s=st.floats(
-        min_value=1, max_value=10_000, allow_nan=False, allow_infinity=False
+        min_value=1,
+        max_value=10_000,
+        allow_nan=False,
+        allow_infinity=False,
     ),
     hard_cap=st.integers(min_value=0, max_value=40),
 )

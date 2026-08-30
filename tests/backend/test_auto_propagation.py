@@ -491,7 +491,9 @@ async def test_auto_propagation_caps_probes_per_cycle():
         patch.object(RNS.Transport, "hops_to", return_value=1),
         patch.object(manager, "_wait_for_usable_path", return_value=True),
         patch.object(
-            manager, "_probe_propagation_sync", return_value=False
+            manager,
+            "_probe_propagation_sync",
+            return_value=False,
         ) as mock_probe,
         patch(
             "meshchatx.src.backend.auto_propagation_manager.reticulum_pathfinding.transport_path_table_entry_is_expired",

@@ -81,7 +81,8 @@ async def test_lxmf_cancel_inbound_all_endpoint(web_cancel_app):
     aio_app = _build_aio_app(web_cancel_app)
     async with TestClient(TestServer(aio_app)) as client:
         response = await client.post(
-            "/api/v1/lxmf/propagation-node/cancel-inbound", json={}
+            "/api/v1/lxmf/propagation-node/cancel-inbound",
+            json={},
         )
         assert response.status == 200
         body = await response.json()

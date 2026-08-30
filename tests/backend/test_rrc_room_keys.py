@@ -147,13 +147,17 @@ def test_manager_remember_get_forget(db, tmp_path):
 
 def test_manager_wrong_identity_returns_none(db, tmp_path):
     manager_a = RRCManager(
-        _Identity(b"\x11" * 16, PRIVATE_A), str(tmp_path), database=db
+        _Identity(b"\x11" * 16, PRIVATE_A),
+        str(tmp_path),
+        database=db,
     )
     hub = manager_a.add_hub(HUB_HASH)
     manager_a.remember_room_key(hub, "lobby", "secret")
 
     manager_b = RRCManager(
-        _Identity(b"\x22" * 16, PRIVATE_B), str(tmp_path), database=db
+        _Identity(b"\x22" * 16, PRIVATE_B),
+        str(tmp_path),
+        database=db,
     )
     hub_b = manager_b.add_hub(HUB_HASH)
     assert manager_b.get_room_key(hub_b, "lobby") is None

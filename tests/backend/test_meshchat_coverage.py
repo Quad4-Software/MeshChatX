@@ -195,6 +195,7 @@ async def test_lxm_ingest_uri_lxma_accepts_128_hex_public_key(mock_app):
 def test_identity_from_public_key_bytes_accepts_real_rns_none_return():
     """Regression for issue #21: RNS load_public_key returns None on success."""
     import RNS
+
     from meshchatx.meshchat import ReticulumMeshChat
 
     source = RNS.Identity()

@@ -24,7 +24,7 @@ from datetime import UTC, datetime
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, _REPO_ROOT)
 
-from tests.backend.benchmarking_utils import (  # noqa: E402
+from tests.backend.benchmarking_utils import (
     parse_extra_stats,
     should_alert_regression,
 )

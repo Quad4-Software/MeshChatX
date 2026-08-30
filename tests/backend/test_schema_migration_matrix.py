@@ -44,7 +44,7 @@ def _fixture_path(version: int) -> Path:
     path = FIXTURE_DIR / f"schema_v{version}.db"
     if not path.is_file():
         pytest.skip(
-            f"Missing fixture {path}; run scripts/ci/schema_fixture_generate.py"
+            f"Missing fixture {path}; run scripts/ci/schema_fixture_generate.py",
         )
     return path
 
@@ -118,11 +118,15 @@ def test_post_migration_verify_failure_blocks_version_bump(tmp_path):
     if prior < 1:
         pytest.skip("No prior version")
     db.schema.migrate_up_to(prior)
-    with patch.object(
-        db.provider, "quick_check", return_value=[{"quick_check": "fail"}]
+    with (
+        patch.object(
+            db.provider,
+            "quick_check",
+            return_value=[{"quick_check": "fail"}],
+        ),
+        pytest.raises(PostMigrationVerificationError),
     ):
-        with pytest.raises(PostMigrationVerificationError):
-            db.initialize()
+        db.initialize()
     row = db.provider.fetchone(
         "SELECT value FROM config WHERE key = ?",
         ("database_version",),

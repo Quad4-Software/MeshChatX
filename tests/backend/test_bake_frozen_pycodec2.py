@@ -9,9 +9,9 @@ from pathlib import Path
 import pytest
 
 from meshchatx.src.backend.bake_frozen_pycodec2 import (
-    bake_frozen_pycodec2,
     _is_codec2_lib,
     _pick_source_lib,
+    bake_frozen_pycodec2,
 )
 
 _VERIFY = Path("scripts/ci/github-verify-frozen-codec2.sh")
@@ -70,10 +70,12 @@ def test_bake_copies_dylibs_layout_to_canonical_and_executable_path(
 
 
 def test_bake_fails_when_libcodec2_missing_on_darwin(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        "meshchatx.src.backend.bake_frozen_pycodec2.sys.platform", "darwin"
+        "meshchatx.src.backend.bake_frozen_pycodec2.sys.platform",
+        "darwin",
     )
     root = _frozen_pycodec2_tree(tmp_path)
     with pytest.raises(SystemExit, match="libcodec2 not found"):
@@ -81,10 +83,12 @@ def test_bake_fails_when_libcodec2_missing_on_darwin(
 
 
 def test_bake_skips_missing_libcodec2_on_linux(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        "meshchatx.src.backend.bake_frozen_pycodec2.sys.platform", "linux"
+        "meshchatx.src.backend.bake_frozen_pycodec2.sys.platform",
+        "linux",
     )
     root = _frozen_pycodec2_tree(tmp_path)
     bake_frozen_pycodec2(root)
@@ -106,10 +110,12 @@ def test_bake_fails_when_extension_missing(tmp_path: Path) -> None:
 
 
 def test_bake_copies_executable_path_basename_from_load_command(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        "meshchatx.src.backend.bake_frozen_pycodec2.sys.platform", "darwin"
+        "meshchatx.src.backend.bake_frozen_pycodec2.sys.platform",
+        "darwin",
     )
     monkeypatch.setattr(
         "meshchatx.src.backend.bake_frozen_pycodec2._darwin_load_commands",
@@ -177,7 +183,8 @@ def test_bake_prunes_versioned_dylib_next_to_extension(tmp_path: Path) -> None:
 
 
 def test_bake_copies_from_build_env_when_freeze_tree_has_no_dylib(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     root = _frozen_pycodec2_tree(tmp_path)
     dist = tmp_path / "site" / "pycodec2"
@@ -242,12 +249,12 @@ def test_verify_frozen_codec2_script_accepts_extension(tmp_path: Path) -> None:
 def test_ci_wires_codec2_freeze_guards() -> None:
     deps = Path("scripts/ci/github-install-deps.sh").read_text(encoding="utf-8")
     x64 = Path("scripts/ci/github-install-macos-x64-python-deps.sh").read_text(
-        encoding="utf-8"
+        encoding="utf-8",
     )
     universal = Path("scripts/build-macos-universal.sh").read_text(encoding="utf-8")
     backend_js = Path("scripts/build-backend.js").read_text(encoding="utf-8")
     probe = Path("meshchatx/src/backend/frozen_freeze_probe.py").read_text(
-        encoding="utf-8"
+        encoding="utf-8",
     )
     unify = Path("scripts/unify-backend-plain-files.sh").read_text(encoding="utf-8")
     macos_ci = Path("scripts/ci/github-build-macos.sh").read_text(encoding="utf-8")

@@ -147,7 +147,7 @@ def extract_client_direct_response_types(meshchat_py: Path) -> list[str]:
             continue
         text = path.read_text(encoding="utf-8")
         block = _direct_response_block(text)
-        scan = block if block else text
+        scan = block or text
         if not block and "backend/http" not in path.as_posix():
             continue
         for blob in _WS_SEND_STR_RE.findall(scan):

@@ -153,7 +153,7 @@ def test_sanitize_kmz_skips_arcgis_xsl_sidecar():
                 b"<xsl:stylesheet xmlns:xsl='http://www.w3.org/1999/XSL/Transform' version='1.0'/>"
             ),
             "Layer0_Symbol.png": TINY_PNG,
-        }
+        },
     )
     result = sanitize_geo_bytes(data)
     assert result.format == "kmz"

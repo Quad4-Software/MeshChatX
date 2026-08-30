@@ -125,7 +125,8 @@ def test_parse_mcx_bootstraps_rejects_invalid_ports(fetch, port):
         min_size=1,
         max_size=64,
         alphabet=st.characters(
-            blacklist_characters="\r\n\t=", blacklist_categories=("Cs",)
+            blacklist_characters="\r\n\t=",
+            blacklist_categories=("Cs",),
         ),
     ).filter(lambda value: value.strip()),
     port=st.integers(min_value=1, max_value=65535),
@@ -239,22 +240,40 @@ def test_traffic_totals_data_share_oracle():
 @settings(max_examples=80, deadline=None)
 @given(
     rxs=st.floats(
-        min_value=1.0, max_value=1_000_000.0, allow_nan=False, allow_infinity=False
+        min_value=1.0,
+        max_value=1_000_000.0,
+        allow_nan=False,
+        allow_infinity=False,
     ),
     txs=st.floats(
-        min_value=1.0, max_value=1_000_000.0, allow_nan=False, allow_infinity=False
+        min_value=1.0,
+        max_value=1_000_000.0,
+        allow_nan=False,
+        allow_infinity=False,
     ),
     prxs=st.floats(
-        min_value=0.0, max_value=500_000.0, allow_nan=False, allow_infinity=False
+        min_value=0.0,
+        max_value=500_000.0,
+        allow_nan=False,
+        allow_infinity=False,
     ),
     arxs=st.floats(
-        min_value=0.0, max_value=500_000.0, allow_nan=False, allow_infinity=False
+        min_value=0.0,
+        max_value=500_000.0,
+        allow_nan=False,
+        allow_infinity=False,
     ),
     ptxs=st.floats(
-        min_value=0.0, max_value=500_000.0, allow_nan=False, allow_infinity=False
+        min_value=0.0,
+        max_value=500_000.0,
+        allow_nan=False,
+        allow_infinity=False,
     ),
     atxs=st.floats(
-        min_value=0.0, max_value=500_000.0, allow_nan=False, allow_infinity=False
+        min_value=0.0,
+        max_value=500_000.0,
+        allow_nan=False,
+        allow_infinity=False,
     ),
 )
 def test_traffic_totals_data_share_fuzz_oracle(rxs, txs, prxs, arxs, ptxs, atxs):
@@ -295,10 +314,16 @@ def test_traffic_totals_data_share_fuzz_oracle(rxs, txs, prxs, arxs, ptxs, atxs)
 @settings(max_examples=60, deadline=None)
 @given(
     part=st.floats(
-        min_value=0.0, max_value=10_000.0, allow_nan=False, allow_infinity=False
+        min_value=0.0,
+        max_value=10_000.0,
+        allow_nan=False,
+        allow_infinity=False,
     ),
     total=st.floats(
-        min_value=0.0, max_value=10_000.0, allow_nan=False, allow_infinity=False
+        min_value=0.0,
+        max_value=10_000.0,
+        allow_nan=False,
+        allow_infinity=False,
     ),
 )
 def test_flow_share_percent_oracle(part, total):

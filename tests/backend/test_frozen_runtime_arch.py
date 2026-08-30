@@ -104,13 +104,13 @@ def test_thin_backend_thins_executable_not_only_dylibs(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert (arm / "ReticulumMeshChatX").read_text(encoding="utf-8") == "thinned-arm64\n"
     assert (x64 / "ReticulumMeshChatX").read_text(
-        encoding="utf-8"
+        encoding="utf-8",
     ) == "thinned-x86_64\n"
     assert (arm / "lib" / "zlib.cpython-314-darwin.so").read_text(
-        encoding="utf-8"
+        encoding="utf-8",
     ) == "thinned-arm64\n"
     assert (x64 / "lib" / "zlib.cpython-314-darwin.so").read_text(
-        encoding="utf-8"
+        encoding="utf-8",
     ) == "thinned-x86_64\n"
     assert (arm / "readme.txt").read_text(encoding="utf-8") == "leave me"
 
@@ -230,7 +230,7 @@ def test_unify_mirrors_x64_openblas_and_still_drops_other_arch_only_mach_o(
     openblas = b"openblas-x64-bytes"
     (x64 / "lib" / "libscipy_openblas64_.dylib").write_bytes(openblas)
     (x64 / "lib" / "numpy" / ".dylibs" / "libscipy_openblas64_.dylib").write_bytes(
-        openblas
+        openblas,
     )
     (x64 / "lib" / "numpy" / ".dylibs" / "libgfortran.5.dylib").write_bytes(b"gfortran")
     wasm = x64 / "lib" / "wasmtime" / "darwin-x86_64" / "_libwasmtime.dylib"

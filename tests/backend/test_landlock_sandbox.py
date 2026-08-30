@@ -163,7 +163,7 @@ def test_collect_read_roots_includes_venv_root_for_pyvenv_cfg(tmp_path, monkeypa
         path = list(sys.path)
 
     monkeypatch.setattr(ll, "sys", _FakeSys)
-    monkeypatch.setattr(ll.site, "getsitepackages", lambda: [])
+    monkeypatch.setattr(ll.site, "getsitepackages", list)
     monkeypatch.setattr(ll.site, "getusersitepackages", lambda: "")
     monkeypatch.setenv("VIRTUAL_ENV", str(venv))
 

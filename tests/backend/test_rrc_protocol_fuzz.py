@@ -152,7 +152,7 @@ def test_parse_room_list_notice_shape_oracle(text):
             st.booleans(),
         ),
         max_size=8,
-    )
+    ),
 )
 @settings(max_examples=60, deadline=None)
 def test_parse_room_list_notice_keyed_roundtrip_oracle(rooms):

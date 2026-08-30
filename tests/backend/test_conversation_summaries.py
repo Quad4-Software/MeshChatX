@@ -15,7 +15,13 @@ from meshchatx.src.backend.message_handler import MessageHandler
 
 
 def _message(
-    peer_hash, i, *, state="delivered", content="hello", title=None, is_incoming=1
+    peer_hash,
+    i,
+    *,
+    state="delivered",
+    content="hello",
+    title=None,
+    is_incoming=1,
 ):
     return {
         "hash": secrets.token_hex(16),
@@ -172,7 +178,7 @@ class TestConversationSummaries(unittest.TestCase):
         peers = [secrets.token_hex(16) for _ in range(5)]
         for i, peer in enumerate(peers):
             self.db.messages.upsert_lxmf_message(
-                _message(peer, 10 - i, content=f"p{i}")
+                _message(peer, 10 - i, content=f"p{i}"),
             )
         page1 = [
             dict(r)["peer_hash"]

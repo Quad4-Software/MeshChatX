@@ -174,7 +174,9 @@ class TestPageNodeManagerAnnounceSettings:
     def test_create_node_with_custom_announce_settings(self, storage_dir, mock_rns):
         mgr = _make_manager(storage_dir)
         node = mgr.create_node(
-            "Custom", announce_enabled=False, announce_interval_seconds=120
+            "Custom",
+            announce_enabled=False,
+            announce_interval_seconds=120,
         )
         assert node.announce_enabled is False
         assert node.announce_interval_seconds == 120
@@ -202,7 +204,9 @@ class TestPageNodeManagerAnnounceSettings:
         mgr = _make_manager(storage_dir)
         node = mgr.create_node("Settable")
         mgr.set_announce_settings(
-            node.node_id, announce_enabled=False, announce_interval_seconds=300
+            node.node_id,
+            announce_enabled=False,
+            announce_interval_seconds=300,
         )
         assert node.announce_enabled is False
         assert node.announce_interval_seconds == 300
@@ -226,7 +230,9 @@ class TestPageNodeManagerAnnounceSettings:
         mgr = _make_manager(storage_dir)
         node = mgr.create_node("Reloaded", node_id="reload-1")
         mgr.set_announce_settings(
-            node.node_id, announce_enabled=False, announce_interval_seconds=200
+            node.node_id,
+            announce_enabled=False,
+            announce_interval_seconds=200,
         )
 
         mgr2 = _make_manager(storage_dir)

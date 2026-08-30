@@ -11,7 +11,6 @@ import pytest
 
 from meshchatx.src.backend import lxst_pyogg_ctypes_compat as compat
 
-
 _NEEDLE = compat._NEEDLE
 
 
@@ -25,7 +24,7 @@ def _ogg_source(*, with_marker: bool = False, with_legacy: bool = False) -> str:
         """
         libogg = None
         PYOGG_OGG_AVAIL = False
-        """
+        """,
     )
     return body
 

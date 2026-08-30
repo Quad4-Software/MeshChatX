@@ -12,12 +12,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
+from rns_filesync.paths import PathJailError, normalize_relpath
 
 from meshchatx.src.backend.rns_filesync_handler import (
     RnsFilesyncHandler,
     _is_forbidden_entry_name,
 )
-from rns_filesync.paths import PathJailError, normalize_relpath
 
 _TRAVERSAL_PAYLOADS = (
     "../etc/passwd",
@@ -165,7 +165,9 @@ def test_acl_enforce_false_persists_across_reload(tmp_path):
 def test_acl_get_matches_update_result(handler):
     peer = "dd" * 16
     updated = handler.update_acl(
-        identity_hash=peer, perms=["read", "write"], enforce=True
+        identity_hash=peer,
+        perms=["read", "write"],
+        enforce=True,
     )
     fetched = handler.get_acl()
     assert updated["enforce"] is True
@@ -308,7 +310,7 @@ def test_download_path_oracle(handler, path):
     ),
 )
 def test_acl_hash_oracle(handler, identity_hash, perms):
-    effective_perms = perms if perms else ["read"]
+    effective_perms = perms or ["read"]
     result = handler.update_acl(
         identity_hash=identity_hash,
         perms=effective_perms,
@@ -434,10 +436,14 @@ def test_manager_rejects_cross_identity_paths(tmp_path):
     storage_a.mkdir()
     storage_b.mkdir()
     ha = RnsFilesyncHandler(
-        MagicMock(), SimpleNamespace(hash=b"\xaa" * 16), str(storage_a)
+        MagicMock(),
+        SimpleNamespace(hash=b"\xaa" * 16),
+        str(storage_a),
     )
     hb = RnsFilesyncHandler(
-        MagicMock(), SimpleNamespace(hash=b"\xbb" * 16), str(storage_b)
+        MagicMock(),
+        SimpleNamespace(hash=b"\xbb" * 16),
+        str(storage_b),
     )
 
     bait = os.path.join(hb._sync_directory, "peer_secret.txt")
@@ -512,7 +518,7 @@ def test_manager_refuses_delete_sync_root(handler):
 @given(
     path=st.one_of(
         st.sampled_from(
-            list(_TRAVERSAL_PAYLOADS) + ["ok.txt", "dir/file.bin", "nested/a/b"]
+            list(_TRAVERSAL_PAYLOADS) + ["ok.txt", "dir/file.bin", "nested/a/b"],
         ),
         st.text(min_size=0, max_size=40),
     ),
@@ -536,9 +542,8 @@ def test_manager_path_oracle(handler, path):
         assert err is None, path
         assert abspath is not None
         assert abspath.startswith(handler._sync_root() + os.sep)
+    elif cleaned == "":
+        assert err == "path is required"
     else:
-        if cleaned == "":
-            assert err == "path is required"
-        else:
-            assert abspath is None
-            assert err is not None
+        assert abspath is None
+        assert err is not None

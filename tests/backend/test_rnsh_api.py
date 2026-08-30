@@ -297,7 +297,7 @@ def test_rnsh_frozen_listen_command_keeps_mirror_flag_separate(monkeypatch):
     assert command.index("-m") > command.index(rnsh_mod._RNSH_MODULE)
     assert "--rnsconfig" in command
     assert command[command.index("--rnsconfig") + 1] == os.path.realpath(
-        "/tmp/rns-config/session-config"
+        "/tmp/rns-config/session-config",
     )
     assert "-l" in command
     assert "-n" in command

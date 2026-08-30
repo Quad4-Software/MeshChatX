@@ -222,7 +222,7 @@ def test_manager_upload_mkdir_delete_roundtrip(handler):
     deleted = handler.manager_delete("photos/shot.jpg")
     assert deleted["ok"] is True
     assert not os.path.exists(
-        os.path.join(handler._sync_directory, "photos", "shot.jpg")
+        os.path.join(handler._sync_directory, "photos", "shot.jpg"),
     )
 
     empty = handler.manager_delete("photos")
