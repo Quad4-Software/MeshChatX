@@ -205,7 +205,12 @@ const {
     closeAllMessageNotifications,
 } = require("./messageNotifications.js");
 
-trustedIpcHandle("show-notification", (event, { title, body, silent, destinationHash }) => {
+trustedIpcHandle("show-notification", (event, payload) => {
+    const data = payload && typeof payload === "object" ? payload : {};
+    const title = String(data.title == null ? "" : data.title).slice(0, 200);
+    const body = String(data.body == null ? "" : data.body).slice(0, 1000);
+    const silent = data.silent === true;
+    const destinationHash = data.destinationHash == null ? null : String(data.destinationHash).slice(0, 128);
     const notification = new Notification({
         title: title,
         body: body,
@@ -234,7 +239,7 @@ trustedIpcHandle("close-message-notifications", (_event, destinationHash) => {
 
 // Power Management IPC
 trustedIpcHandle("set-power-save-blocker", (event, enabled) => {
-    if (enabled) {
+    if (enabled === true) {
         if (activePowerSaveBlockerId === null) {
             activePowerSaveBlockerId = powerSaveBlocker.start("prevent-app-suspension");
             log("Power save blocker started.");
