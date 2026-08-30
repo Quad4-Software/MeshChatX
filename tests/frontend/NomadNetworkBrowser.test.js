@@ -660,7 +660,10 @@ describe("NomadNetworkBrowser.vue", () => {
     });
 
     it("syncRoute keeps private tab destinations out of the URL bar", async () => {
-        const wrapper = mountBrowser({}, { name: "nomadnetwork", params: { destinationHash: "d".repeat(32) }, query: {} });
+        const wrapper = mountBrowser(
+            {},
+            { name: "nomadnetwork", params: { destinationHash: "d".repeat(32) }, query: {} }
+        );
         routerReplace.mockClear();
         const id = wrapper.vm.addTab("e".repeat(32), "/page/index.mu", "Secret", true, true);
         expect(wrapper.vm.tabs.find((t) => t.id === id).private).toBe(true);
