@@ -15,19 +15,34 @@ vi.mock("@/js/ToastUtils", () => ({
 }));
 
 const wsMessageHandlers = [];
+const wsEventHandlers = {};
 
 vi.mock("@/js/WebSocketConnection", () => ({
     default: {
-        send: vi.fn(),
+        send: vi.fn(() => true),
+        isOpen: vi.fn(() => true),
         on: vi.fn((event, handler) => {
             if (event === "message") {
                 wsMessageHandlers.push(handler);
+                return;
             }
+            if (!wsEventHandlers[event]) {
+                wsEventHandlers[event] = [];
+            }
+            wsEventHandlers[event].push(handler);
         }),
         off: vi.fn((event, handler) => {
-            const index = wsMessageHandlers.indexOf(handler);
+            if (event === "message") {
+                const index = wsMessageHandlers.indexOf(handler);
+                if (index >= 0) {
+                    wsMessageHandlers.splice(index, 1);
+                }
+                return;
+            }
+            const list = wsEventHandlers[event] || [];
+            const index = list.indexOf(handler);
             if (index >= 0) {
-                wsMessageHandlers.splice(index, 1);
+                list.splice(index, 1);
             }
         }),
     },
@@ -36,7 +51,7 @@ vi.mock("@/js/WebSocketConnection", () => ({
 describe("NomadNetworkPage.vue", () => {
     let axiosMock;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         axiosMock = {
             get: vi.fn(),
             post: vi.fn(),
@@ -44,7 +59,13 @@ describe("NomadNetworkPage.vue", () => {
         };
         window.api = axiosMock;
         wsMessageHandlers.length = 0;
+        for (const key of Object.keys(wsEventHandlers)) {
+            delete wsEventHandlers[key];
+        }
         vi.clearAllMocks();
+        const WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
+        WebSocketConnection.send.mockReturnValue(true);
+        WebSocketConnection.isOpen.mockReturnValue(true);
 
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/favourites") return Promise.resolve({ data: { favourites: [] } });
@@ -1034,6 +1055,86 @@ describe("NomadNetworkPage.vue", () => {
 
             expect(wrapper.vm.isLoadingNodePage).toBe(false);
             expect(ToastUtils.error).toHaveBeenCalledWith("nomadnet.failed_to_load_page");
+            wrapper.unmount();
+        });
+    });
+
+    describe("websocket send race", () => {
+        it("queues primary download until websocket connects instead of hanging on Loading page", async () => {
+            const WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
+            WebSocketConnection.send.mockReset();
+            WebSocketConnection.send.mockImplementationOnce(() => false).mockImplementation(() => true);
+            WebSocketConnection.isOpen.mockReturnValue(false);
+
+            const wrapper = mountNomadNetworkPage({
+                destinationHash: "",
+                embedded: true,
+                isActive: true,
+            });
+            await wrapper.vm.$nextTick();
+
+            const hash = "d".repeat(32);
+            const path = "/page/index.mu";
+            wrapper.vm.isLoadingNodePage = true;
+            wrapper.vm.nodePagePath = `${hash}:${path}`;
+
+            const onSuccess = vi.fn();
+            const onFailure = vi.fn();
+            wrapper.vm.downloadNomadNetPage(hash, path, null, onSuccess, onFailure, null, { primary: true });
+
+            expect(WebSocketConnection.send).toHaveBeenCalledTimes(1);
+            expect(wrapper.vm.isLoadingNodePage).toBe(true);
+            expect(onFailure).not.toHaveBeenCalled();
+            expect(wsEventHandlers.connected?.length || 0).toBeGreaterThan(0);
+
+            WebSocketConnection.isOpen.mockReturnValue(true);
+            for (const handler of [...(wsEventHandlers.connected || [])]) {
+                handler();
+            }
+
+            expect(WebSocketConnection.send).toHaveBeenCalledTimes(2);
+            expect(onFailure).not.toHaveBeenCalled();
+            expect(wrapper.vm.nomadnetPageDownloadCallbacks[`${hash}:${path}`]).toBeTruthy();
+            wrapper.unmount();
+        });
+
+        it("partial started events do not overwrite primary currentPageDownloadId", async () => {
+            const wrapper = mountNomadNetworkPage({
+                destinationHash: "",
+                embedded: true,
+                isActive: true,
+            });
+            await wrapper.vm.$nextTick();
+
+            const hash = "e".repeat(32);
+            const mainPath = "/page/index.mu";
+            const partialPath = "/page/partial.mu";
+            wrapper.vm.nodePagePath = `${hash}:${mainPath}`;
+            wrapper.vm.nomadnetPageDownloadCallbacks[`${hash}:${mainPath}`] = {
+                primary: true,
+                onSuccessCallback: vi.fn(),
+                onFailureCallback: vi.fn(),
+            };
+            wrapper.vm.nomadnetPageDownloadCallbacks[`${hash}:${partialPath}`] = {
+                primary: false,
+                onSuccessCallback: vi.fn(),
+                onFailureCallback: vi.fn(),
+            };
+            wrapper.vm.currentPageDownloadId = 100;
+
+            await wrapper.vm.onWebsocketMessage({
+                data: JSON.stringify({
+                    type: "nomadnet.page.download",
+                    download_id: 200,
+                    nomadnet_page_download: {
+                        status: "started",
+                        destination_hash: hash,
+                        page_path: partialPath,
+                    },
+                }),
+            });
+
+            expect(wrapper.vm.currentPageDownloadId).toBe(100);
             wrapper.unmount();
         });
     });
