@@ -12,6 +12,7 @@ const {
     powerMonitor,
     session,
     clipboard,
+    nativeTheme,
 } = require("electron");
 const electronPrompt = require("electron-prompt");
 const fs = require("fs");
@@ -20,6 +21,12 @@ const path = require("node:path");
 const { createBackendProcessManager } = require("./backendProcess");
 const { readPackagedAppVersion } = require("./appVersion");
 const { getCrashRecoveryInfo } = require("./offlineRecovery");
+const {
+    loadUiThemePreference,
+    saveUiThemePreference,
+    resolveEffectiveUiTheme,
+    shellBackgroundColor,
+} = require("./uiTheme");
 const {
     getUserProvidedArguments,
     resolvePortableStorageRoots,
@@ -412,6 +419,22 @@ trustedIpcHandle("set-close-settings", (_event, partial) => {
     return updateCloseSettings(partial || {});
 });
 
+trustedIpcHandle("get-ui-theme", () => {
+    return {
+        preference: getShellUiThemePreference(),
+        theme: getShellEffectiveUiTheme(),
+    };
+});
+
+trustedIpcHandle("set-ui-theme", (_event, preference) => {
+    const saved = saveUiThemePreference(getDefaultStorageDir(), preference);
+    const theme = resolveEffectiveUiTheme(saved, Boolean(nativeTheme.shouldUseDarkColors));
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.setBackgroundColor(shellBackgroundColor(theme));
+    }
+    return { preference: saved, theme };
+});
+
 trustedIpcHandle("get-screen-security-settings", () => {
     return getScreenSecuritySettingsPayload();
 });
@@ -797,6 +820,7 @@ async function loadBackendCrashPage(crash) {
             stderr: stderrBase64,
             logPath: paths?.backendLogPath || "",
             crashReportPath: paths?.crashReportPath || "",
+            ...getShellThemeQuery(),
         },
     });
 }
@@ -825,6 +849,18 @@ function getCloseSettings() {
         closeSettings = loadCloseSettings(getDefaultStorageDir());
     }
     return closeSettings;
+}
+
+function getShellUiThemePreference() {
+    return loadUiThemePreference(getDefaultStorageDir());
+}
+
+function getShellEffectiveUiTheme() {
+    return resolveEffectiveUiTheme(getShellUiThemePreference(), Boolean(nativeTheme.shouldUseDarkColors));
+}
+
+function getShellThemeQuery() {
+    return { theme: getShellEffectiveUiTheme() };
 }
 
 function updateCloseSettings(partial) {
@@ -1049,12 +1085,14 @@ app.whenReady().then(async () => {
 
     if (!shouldLaunchHeadless) {
         const appIconPath = getAppIconPath();
+        const shellTheme = getShellEffectiveUiTheme();
         // create browser window
         mainWindow = new BrowserWindow({
             width: 1500,
             height: 800,
             icon: appIconPath,
             autoHideMenuBar: true,
+            backgroundColor: shellBackgroundColor(shellTheme),
             webPreferences: {
                 // used to inject logging over ipc
                 preload: resolvePreloadScriptPath(),
@@ -1090,7 +1128,7 @@ app.whenReady().then(async () => {
                 }
                 try {
                     await mainWindow.loadFile(path.join(__dirname, "loading.html"), {
-                        query: { startup_error: "backend_unreachable" },
+                        query: { startup_error: "backend_unreachable", ...getShellThemeQuery() },
                     });
                 } catch (error) {
                     log(`Failed to restore loading screen after backend load failure: ${error.message}`);
@@ -1104,8 +1142,9 @@ app.whenReady().then(async () => {
         });
 
         // navigate to loading page
-        await mainWindow.loadFile(path.join(__dirname, "loading.html"));
-
+        await mainWindow.loadFile(path.join(__dirname, "loading.html"), {
+            query: getShellThemeQuery(),
+        });
         // ask mac users for microphone access for audio calls to work
         if (process.platform === "darwin") {
             await systemPreferences.askForMediaAccess("microphone");

@@ -213,6 +213,14 @@ contextBridge.exposeInMainWorld("electron", {
         return await invokeTrusted("set-close-settings", partial);
     },
 
+    getUiTheme: async function () {
+        return await invokeTrusted("get-ui-theme");
+    },
+
+    setUiTheme: async function (preference) {
+        return await invokeTrusted("set-ui-theme", preference);
+    },
+
     getPlatform: function () {
         if (!originAllowed()) {
             return "";
