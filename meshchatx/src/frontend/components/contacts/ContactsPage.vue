@@ -512,6 +512,7 @@ import WebSocketConnection from "../../js/WebSocketConnection";
 import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import DialogUtils from "../../js/DialogUtils";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 import {
     attachStreamToVideo,
     decodeQrFromVideo,
@@ -607,7 +608,7 @@ export default {
         },
     },
     beforeUnmount() {
-        WebSocketConnection.off("message", this.onWebsocketMessage);
+        offWsEvent("lxm.ingest_uri.result", this.onLxmIngestUriResult);
         document.removeEventListener("click", this.closeContextMenu);
         this.stopScanner();
         if (this.searchDebounceTimeout) {
@@ -616,7 +617,7 @@ export default {
     },
     async mounted() {
         document.addEventListener("click", this.closeContextMenu);
-        WebSocketConnection.on("message", this.onWebsocketMessage);
+        onWsEvent("lxm.ingest_uri.result", this.onLxmIngestUriResult);
         await this.getConfig();
         await this.getContacts();
     },
@@ -810,24 +811,18 @@ export default {
                 this.isSubmitting = false;
             }
         },
-        async onWebsocketMessage(message) {
-            let json;
-            try {
-                json = JSON.parse(message.data);
-            } catch {
+        async onLxmIngestUriResult(json) {
+            if (!this.pendingLxmaImport) {
                 return;
             }
-
-            if (json.type === "lxm.ingest_uri.result" && this.pendingLxmaImport) {
-                this.pendingLxmaImport = false;
-                this.isSubmitting = false;
-                if (json.status === "success" && json.ingest_type === "lxma_contact") {
-                    ToastUtils.success(json.message || this.$t("contacts.contact_added"));
-                    this.closeAddDialog();
-                    await this.getContacts();
-                } else if (json.status === "error") {
-                    ToastUtils.error(json.message || this.$t("contacts.failed_add_contact"));
-                }
+            this.pendingLxmaImport = false;
+            this.isSubmitting = false;
+            if (json.status === "success" && json.ingest_type === "lxma_contact") {
+                ToastUtils.success(json.message || this.$t("contacts.contact_added"));
+                this.closeAddDialog();
+                await this.getContacts();
+            } else if (json.status === "error") {
+                ToastUtils.error(json.message || this.$t("contacts.failed_add_contact"));
             }
         },
         async removeContact(contact) {

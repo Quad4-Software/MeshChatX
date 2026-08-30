@@ -449,11 +449,11 @@
 import DialogUtils from "../../js/DialogUtils";
 import ElectronUtils from "../../js/ElectronUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
-import WebSocketConnection from "../../js/WebSocketConnection";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import ToastUtils from "../../js/ToastUtils";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 
 const RNCP_LISTEN_PREFS_KEY = "meshchatx.rncp.listenForm.v1";
 
@@ -509,12 +509,14 @@ export default {
         },
     },
     mounted() {
-        WebSocketConnection.on("message", this.handleWebSocketMessage);
+        onWsEvent("rncp.transfer.progress", this.onTransferProgress);
+        onWsEvent("rncp.receive.completed", this.onReceiveCompleted);
         this.loadRncpListenPrefs();
         this.syncListenerStatusFromServer();
     },
     beforeUnmount() {
-        WebSocketConnection.off("message", this.handleWebSocketMessage);
+        offWsEvent("rncp.transfer.progress", this.onTransferProgress);
+        offWsEvent("rncp.receive.completed", this.onReceiveCompleted);
         this.cancelSend();
         this.cancelFetch();
     },
@@ -645,43 +647,35 @@ export default {
                 this.fetchSavePath = String(entered).trim();
             }
         },
-        handleWebSocketMessage(message) {
-            try {
-                const data = JSON.parse(message.data);
-                if (data.type === "rncp.transfer.progress") {
-                    const tid = data.transfer_id;
-                    const p = typeof data.progress === "number" ? data.progress : 0;
-                    if (this.sendInProgress) {
-                        if (!this.sendTransferId && tid) {
-                            this.sendTransferId = tid;
-                        }
-                        if (tid && this.sendTransferId === tid) {
-                            this.sendProgress = p;
-                        }
-                    } else if (this.fetchInProgress) {
-                        if (!this.fetchTransferId && tid) {
-                            this.fetchTransferId = tid;
-                        }
-                        if (tid && this.fetchTransferId === tid) {
-                            this.fetchProgress = p;
-                        }
-                    }
-                    return;
+        onTransferProgress(data) {
+            const tid = data.transfer_id;
+            const p = typeof data.progress === "number" ? data.progress : 0;
+            if (this.sendInProgress) {
+                if (!this.sendTransferId && tid) {
+                    this.sendTransferId = tid;
                 }
-                if (data.type === "rncp.receive.completed") {
-                    this.lastReceiveEvent = {
-                        status: data.status,
-                        saved_path: data.saved_path,
-                        error: data.error,
-                    };
-                    if (data.status === "completed" && data.saved_path) {
-                        this.notifyRncp(this.$t("rncp.received_file"), data.saved_path);
-                    } else if (data.status !== "completed") {
-                        this.notifyRncpError(this.$t("rncp.receive_failed"), data.error || data.status);
-                    }
+                if (tid && this.sendTransferId === tid) {
+                    this.sendProgress = p;
                 }
-            } catch {
-                // ignore parse errors
+            } else if (this.fetchInProgress) {
+                if (!this.fetchTransferId && tid) {
+                    this.fetchTransferId = tid;
+                }
+                if (tid && this.fetchTransferId === tid) {
+                    this.fetchProgress = p;
+                }
+            }
+        },
+        onReceiveCompleted(data) {
+            this.lastReceiveEvent = {
+                status: data.status,
+                saved_path: data.saved_path,
+                error: data.error,
+            };
+            if (data.status === "completed" && data.saved_path) {
+                this.notifyRncp(this.$t("rncp.received_file"), data.saved_path);
+            } else if (data.status !== "completed") {
+                this.notifyRncpError(this.$t("rncp.receive_failed"), data.error || data.status);
             }
         },
         async sendFile() {

@@ -311,6 +311,7 @@ import Utils from "../../js/Utils";
 import MessagesSidebar from "./MessagesSidebar.vue";
 import ConversationViewer from "./ConversationViewer.vue";
 import GlobalState, { mergeGlobalConfig } from "../../js/GlobalState";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 
 function snapshotGlobalConfig() {
     return GlobalState.config && typeof GlobalState.config === "object" ? { ...GlobalState.config } : {};
@@ -545,8 +546,14 @@ export default {
         this.teardownPaneResize();
         setOpenDestinationHashes([]);
 
-        // stop listening for websocket messages
-        WebSocketConnection.off("message", this.onWebsocketMessage);
+        // stop listening for websocket events
+        offWsEvent("config", this.onConfigEvent);
+        offWsEvent("announce", this.onAnnounceEvent);
+        offWsEvent("lxmf.delivery", this.onLxmfDeliveryEvent);
+        offWsEvent("lxmf_message_created", this.onLxmfMessageCreatedEvent);
+        offWsEvent("lxmf_message_state_updated", this.onLxmfMessageStateUpdatedEvent);
+        offWsEvent("lxmf.telemetry", this.onLxmfTelemetryEvent);
+        offWsEvent("lxm.ingest_uri.result", this.onLxmIngestUriResultEvent);
         GlobalEmitter.off("compose-new-message", this.onComposeNewMessage);
         GlobalEmitter.off("refresh-conversations", this.requestConversationsRefresh);
         GlobalEmitter.off("websocket-reconnected", this.requestConversationsRefresh);
@@ -555,8 +562,14 @@ export default {
     mounted() {
         this.setupPaneViewportWatchers();
 
-        // listen for websocket messages
-        WebSocketConnection.on("message", this.onWebsocketMessage);
+        // listen for websocket events
+        onWsEvent("config", this.onConfigEvent);
+        onWsEvent("announce", this.onAnnounceEvent);
+        onWsEvent("lxmf.delivery", this.onLxmfDeliveryEvent);
+        onWsEvent("lxmf_message_created", this.onLxmfMessageCreatedEvent);
+        onWsEvent("lxmf_message_state_updated", this.onLxmfMessageStateUpdatedEvent);
+        onWsEvent("lxmf.telemetry", this.onLxmfTelemetryEvent);
+        onWsEvent("lxm.ingest_uri.result", this.onLxmIngestUriResultEvent);
         GlobalEmitter.on("compose-new-message", this.onComposeNewMessage);
         GlobalEmitter.on("refresh-conversations", this.requestConversationsRefresh);
         GlobalEmitter.on("websocket-reconnected", this.requestConversationsRefresh);
@@ -693,71 +706,59 @@ export default {
                 this.config = snapshotGlobalConfig();
             }
         },
-        async onWebsocketMessage(message) {
-            const json = JSON.parse(message.data);
-            switch (json.type) {
-                case "config": {
-                    const next = json?.config;
-                    if (next && typeof next === "object") {
-                        mergeGlobalConfig(next);
-                        this.config = next;
-                    }
-                    break;
+        onConfigEvent(json) {
+            const next = json?.config;
+            if (next && typeof next === "object") {
+                mergeGlobalConfig(next);
+                this.config = next;
+            }
+        },
+        onAnnounceEvent(json) {
+            const aspect = json.announce.aspect;
+            if (aspect === "lxmf.delivery") {
+                this.updatePeerFromAnnounce(json.announce);
+            }
+        },
+        onLxmfDeliveryEvent() {
+            this.requestConversationsRefresh();
+        },
+        onLxmfMessageCreatedEvent(json) {
+            this.onOutboundMessageCreated(json.lxmf_message);
+        },
+        onLxmfMessageStateUpdatedEvent(json) {
+            this.onOutboundMessageStateUpdated(json.lxmf_message);
+        },
+        onLxmfTelemetryEvent(json) {
+            // update tracking status if peer matches
+            const destHash = json.destination_hash;
+            if (this.peers[destHash]) {
+                this.peers[destHash].is_tracking = json.is_tracking;
+            }
+            this.applyToPanePeers(destHash, { is_tracking: json.is_tracking });
+        },
+        async onLxmIngestUriResultEvent(json) {
+            if (json.ingest_type === "map_view" && json.map_query) {
+                const mq = json.map_query;
+                const query = {
+                    lat: String(mq.lat),
+                    lon: String(mq.lon),
+                    zoom: String(mq.zoom),
+                };
+                if (mq.layers) {
+                    query.layers = mq.layers;
                 }
-                case "announce": {
-                    const aspect = json.announce.aspect;
-                    if (aspect === "lxmf.delivery") {
-                        this.updatePeerFromAnnounce(json.announce);
-                    }
-                    break;
+                if (mq.label) {
+                    query.label = mq.label;
                 }
-                case "lxmf.delivery": {
-                    this.requestConversationsRefresh();
-                    break;
-                }
-                case "lxmf_message_created": {
-                    this.onOutboundMessageCreated(json.lxmf_message);
-                    break;
-                }
-                case "lxmf_message_state_updated": {
-                    this.onOutboundMessageStateUpdated(json.lxmf_message);
-                    break;
-                }
-                case "lxmf.telemetry": {
-                    // update tracking status if peer matches
-                    const destHash = json.destination_hash;
-                    if (this.peers[destHash]) {
-                        this.peers[destHash].is_tracking = json.is_tracking;
-                    }
-                    this.applyToPanePeers(destHash, { is_tracking: json.is_tracking });
-                    break;
-                }
-                case "lxm.ingest_uri.result": {
-                    if (json.ingest_type === "map_view" && json.map_query) {
-                        const mq = json.map_query;
-                        const query = {
-                            lat: String(mq.lat),
-                            lon: String(mq.lon),
-                            zoom: String(mq.zoom),
-                        };
-                        if (mq.layers) {
-                            query.layers = mq.layers;
-                        }
-                        if (mq.label) {
-                            query.label = mq.label;
-                        }
-                        await this.$router.push({ name: "map", query });
-                        break;
-                    }
-                    if (json.status === "success") {
-                        this.ingestUri = "";
-                        if (json.ingest_type === "lxma_contact" && json.destination_hash) {
-                            await this.onComposeNewMessage(json.destination_hash);
-                        } else {
-                            await this.getConversations();
-                        }
-                    }
-                    break;
+                await this.$router.push({ name: "map", query });
+                return;
+            }
+            if (json.status === "success") {
+                this.ingestUri = "";
+                if (json.ingest_type === "lxma_contact" && json.destination_hash) {
+                    await this.onComposeNewMessage(json.destination_hash);
+                } else {
+                    await this.getConversations();
                 }
             }
         },
@@ -1346,9 +1347,8 @@ export default {
                 }
                 seen.add(normalized);
                 const conversation =
-                    this.conversations.find(
-                        (c) => Utils.normalizeMeshchatHashHex(c.destination_hash) === normalized
-                    ) || pane.peer;
+                    this.conversations.find((c) => Utils.normalizeMeshchatHashHex(c.destination_hash) === normalized) ||
+                    pane.peer;
                 if (!force && conversation?.is_unread !== true) {
                     continue;
                 }

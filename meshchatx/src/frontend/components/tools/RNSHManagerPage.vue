@@ -277,10 +277,10 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
 import RNSHSessionTerminal from "./RNSHSessionTerminal.vue";
 import ToastUtils from "../../js/ToastUtils";
-import WebSocketConnection from "../../js/WebSocketConnection";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import { loadRnshLayout, saveRnshLayout } from "../../js/browserLayoutStore";
 import { renderTerminalOutput } from "../../js/terminalRender";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 
 const EMPTY_LAYOUT = {
     selectedSessionId: null,
@@ -402,7 +402,8 @@ export default {
         window.addEventListener("keydown", this.onFullscreenKeydown);
         this.restoreLayout();
         await this.loadSessions();
-        WebSocketConnection.on("message", this.onWebsocketMessage);
+        onWsEvent("rnsh.session.change", this.onSessionChange);
+        onWsEvent("rnsh.output", this.onOutputEvent);
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
     },
     beforeUnmount() {
@@ -413,7 +414,8 @@ export default {
             window.removeEventListener("keydown", this.onFullscreenKeydown);
         }
         document.body.style.overflow = "";
-        WebSocketConnection.off("message", this.onWebsocketMessage);
+        offWsEvent("rnsh.session.change", this.onSessionChange);
+        offWsEvent("rnsh.output", this.onOutputEvent);
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
     },
     methods: {
@@ -664,23 +666,11 @@ export default {
                 });
             }
         },
-        onWebsocketMessage(event) {
-            let payload = null;
-            try {
-                payload = JSON.parse(event.data);
-            } catch {
-                return;
-            }
-            if (!payload || typeof payload !== "object") {
-                return;
-            }
-            if (payload.type === "rnsh.session.change") {
-                void this.loadSessions();
-                return;
-            }
-            if (payload.type === "rnsh.output") {
-                this.appendOutput(payload.session_id, payload.chunk?.text);
-            }
+        onSessionChange() {
+            void this.loadSessions();
+        },
+        onOutputEvent(payload) {
+            this.appendOutput(payload.session_id, payload.chunk?.text);
         },
         scrollOutputToBottom() {
             const inline = this.$refs.sessionTerminal;

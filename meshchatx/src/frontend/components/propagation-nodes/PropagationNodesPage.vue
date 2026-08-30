@@ -521,12 +521,12 @@
 
 <script>
 import Utils from "../../js/Utils";
-import WebSocketConnection from "../../js/WebSocketConnection";
 import ToastUtils from "../../js/ToastUtils";
 import { copyTextToClipboard, readTextFromClipboard } from "../../js/clipboardUtils.js";
 import { postDestinationPath } from "../../js/reticulumPathfinding.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 import {
     incomingDeliveryBytesFromCustom,
     incomingDeliveryBytesFromPresetKey,
@@ -678,8 +678,7 @@ export default {
         },
     },
     beforeUnmount() {
-        // stop listening for websocket messages
-        WebSocketConnection.off("message", this.onWebsocketMessage);
+        offWsEvent("config", this.onConfigEvent);
         for (const timeoutKey of Object.keys(this.saveTimeouts)) {
             if (this.saveTimeouts[timeoutKey]) {
                 clearTimeout(this.saveTimeouts[timeoutKey]);
@@ -687,8 +686,7 @@ export default {
         }
     },
     mounted() {
-        // listen for websocket messages
-        WebSocketConnection.on("message", this.onWebsocketMessage);
+        onWsEvent("config", this.onConfigEvent);
 
         if (window.matchMedia && window.matchMedia("(max-width: 640px)").matches) {
             this.isLocalManagerCollapsed = true;
@@ -697,22 +695,10 @@ export default {
         this.loadPropagationNodes();
     },
     methods: {
-        async onWebsocketMessage(message) {
-            let json = null;
-            try {
-                json = JSON.parse(message.data);
-            } catch (e) {
-                console.error(e);
-                return;
-            }
-            switch (json.type) {
-                case "config": {
-                    this.config = json.config;
-                    this.syncManagerInputsFromConfig();
-                    this.syncManualHashDraftFromConfig();
-                    break;
-                }
-            }
+        onConfigEvent(json) {
+            this.config = json.config;
+            this.syncManagerInputsFromConfig();
+            this.syncManualHashDraftFromConfig();
         },
         async getConfig() {
             try {

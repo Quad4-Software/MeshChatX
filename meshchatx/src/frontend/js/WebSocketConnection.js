@@ -9,6 +9,8 @@ const JITTER_MAX_MS = 400;
 // Foreground recovery: prefer a ping for longer before tearing down a still-OPEN socket.
 // Android WebViews often idle past one ping interval while backgrounded without a dead link.
 const FOREGROUND_FORCE_RECONNECT_IDLE_MS = 90000;
+const OUTBOUND_QUEUE_MAX = 32;
+const OUTBOUND_QUEUE_TTL_MS = 30000;
 
 class WebSocketConnection {
     constructor() {
@@ -26,6 +28,7 @@ class WebSocketConnection {
         this._lastReceivedTime = Date.now();
         this._hasEventListeners = false;
         this._isForcedReconnect = false;
+        this._outboundQueue = [];
     }
 
     async connect() {
@@ -241,6 +244,7 @@ class WebSocketConnection {
             if (!this._sessionReady) {
                 this._sessionReady = true;
                 this.emit("ready");
+                this._flushOutboundQueue();
             }
             if (isPong) {
                 return;
@@ -302,6 +306,7 @@ class WebSocketConnection {
         this._hadSuccessfulOpen = false;
         this._pendingReconnectUi = false;
         this._sessionReady = false;
+        this._outboundQueue = [];
         this._stopHeartbeat();
         if (this._reconnectTimeout != null) {
             clearTimeout(this._reconnectTimeout);
@@ -319,6 +324,67 @@ class WebSocketConnection {
 
     isOpen() {
         return this.ws != null && this.ws.readyState === WebSocket.OPEN;
+    }
+
+    _flushOutboundQueue() {
+        if (!this.isOpen() || !this._outboundQueue.length) {
+            return;
+        }
+        const now = Date.now();
+        const pending = this._outboundQueue;
+        this._outboundQueue = [];
+        for (const item of pending) {
+            if (item.expiresAt != null && item.expiresAt < now) {
+                this.emit("queue_expired", { request_id: item.requestId });
+                continue;
+            }
+            try {
+                this.ws.send(item.message);
+            } catch {
+                // drop
+            }
+        }
+    }
+
+    /**
+     * Queue a mutator JSON string until the socket is ready.
+     * Only messages that include request_id are queued (idempotent matching).
+     * @param {string} message
+     * @returns {boolean} true if sent or queued
+     */
+    sendQueued(message) {
+        if (typeof message !== "string") {
+            return false;
+        }
+        if (this.isOpen() && this._sessionReady) {
+            try {
+                this.ws.send(message);
+                return true;
+            } catch {
+                return false;
+            }
+        }
+        let requestId = null;
+        try {
+            const parsed = JSON.parse(message);
+            if (parsed && parsed.request_id != null) {
+                requestId = parsed.request_id;
+            }
+        } catch {
+            return false;
+        }
+        if (requestId == null) {
+            return false;
+        }
+        if (this._outboundQueue.length >= OUTBOUND_QUEUE_MAX) {
+            this._outboundQueue.shift();
+        }
+        this._outboundQueue.push({
+            message,
+            requestId,
+            expiresAt: Date.now() + OUTBOUND_QUEUE_TTL_MS,
+        });
+        return true;
     }
 
     send(message) {

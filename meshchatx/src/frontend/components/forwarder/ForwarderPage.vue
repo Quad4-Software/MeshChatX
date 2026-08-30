@@ -145,6 +145,7 @@ import WebSocketConnection from "../../js/WebSocketConnection";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 
 export default {
     name: "ForwarderPage",
@@ -164,11 +165,11 @@ export default {
         };
     },
     mounted() {
-        WebSocketConnection.on("message", this.onWebsocketMessage);
+        onWsEvent("lxmf.forwarding.rules", this.onForwardingRules);
         this.fetchRules();
     },
     beforeUnmount() {
-        WebSocketConnection.off("message", this.onWebsocketMessage);
+        offWsEvent("lxmf.forwarding.rules", this.onForwardingRules);
     },
     methods: {
         fetchRules() {
@@ -178,15 +179,8 @@ export default {
                 })
             );
         },
-        onWebsocketMessage(message) {
-            try {
-                const data = JSON.parse(message.data);
-                if (data.type === "lxmf.forwarding.rules") {
-                    this.rules = data.rules;
-                }
-            } catch (e) {
-                console.error("Failed to parse websocket message", e);
-            }
+        onForwardingRules(data) {
+            this.rules = data.rules;
         },
         addRule() {
             if (!this.newRule.forward_to_hash) return;

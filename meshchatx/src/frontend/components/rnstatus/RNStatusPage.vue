@@ -416,7 +416,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 import ManagementIdentityPicker from "../tools/ManagementIdentityPicker.vue";
 import ToastUtils from "../../js/ToastUtils";
-import WebSocketConnection from "../../js/WebSocketConnection";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 
 export default {
     name: "RNStatusPage",
@@ -509,11 +509,11 @@ export default {
         },
     },
     mounted() {
-        WebSocketConnection.on("message", this.onWebsocketMessage);
+        onWsEvent("reticulum_reload_status", this.onReloadStatus);
         this.refreshStatus();
     },
     beforeUnmount() {
-        WebSocketConnection.off("message", this.onWebsocketMessage);
+        offWsEvent("reticulum_reload_status", this.onReloadStatus);
     },
     methods: {
         formatInt(value) {
@@ -629,16 +629,7 @@ export default {
                 ToastUtils.error(this.$t("common.failed_to_copy"));
             }
         },
-        onWebsocketMessage(message) {
-            let json;
-            try {
-                json = typeof message === "string" ? JSON.parse(message) : message;
-            } catch {
-                return;
-            }
-            if (!json || json.type !== "reticulum_reload_status") {
-                return;
-            }
+        onReloadStatus(json) {
             this.reloadingRns = json.in_progress !== false;
             if (json.in_progress === false && json.level !== "error") {
                 this.refreshStatus();

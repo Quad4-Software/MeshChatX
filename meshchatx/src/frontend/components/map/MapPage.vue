@@ -941,7 +941,7 @@ import {
     NOMINATIM_FETCH_RETRIES,
     NOMINATIM_FETCH_RETRY_BASE_DELAY_MS,
 } from "../../js/mapTileNetwork";
-import WebSocketConnection from "../../js/WebSocketConnection";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 import MapClusterPanel from "./internal/MapClusterPanel.vue";
 import MapMarkerPanel from "./internal/MapMarkerPanel.vue";
 import MapDrawingToolbar from "./internal/MapDrawingToolbar.vue";
@@ -1358,7 +1358,7 @@ export default {
         }
 
         // Listen for websocket messages
-        WebSocketConnection.on("message", this.onWebsocketMessage);
+        onWsEvent("lxmf.telemetry", this.onLxmfTelemetry);
 
         this.applyMapViewFromRoute();
 
@@ -1411,7 +1411,7 @@ export default {
         document.removeEventListener("click", this.handleClickOutside);
         window.removeEventListener("resize", this.checkScreenSize);
         document.removeEventListener("keydown", this.onDeleteKey);
-        WebSocketConnection.off("message", this.onWebsocketMessage);
+        offWsEvent("lxmf.telemetry", this.onLxmfTelemetry);
         if (this._pointerMoveRaf != null) {
             cancelAnimationFrame(this._pointerMoveRaf);
             this._pointerMoveRaf = null;
@@ -5053,50 +5053,47 @@ export default {
                 this.historySource.clear();
             }
         },
-        async onWebsocketMessage(message) {
-            const json = JSON.parse(message.data);
-            if (json.type === "lxmf.telemetry") {
-                // Find and update or add to telemetryList
-                const index = this.telemetryList.findIndex((t) => t.destination_hash === json.destination_hash);
-                const oldEntry = index !== -1 ? this.telemetryList[index] : null;
-                const entry = {
-                    destination_hash: json.destination_hash,
-                    timestamp: json.timestamp,
-                    telemetry: json.telemetry,
-                    updated_at: new Date().toISOString(),
-                    is_tracking:
-                        json.is_tracking !== undefined ? json.is_tracking : oldEntry ? oldEntry.is_tracking : false,
-                    physical_link: json.physical_link || oldEntry?.physical_link,
-                };
+        onLxmfTelemetry(json) {
+            // Find and update or add to telemetryList
+            const index = this.telemetryList.findIndex((t) => t.destination_hash === json.destination_hash);
+            const oldEntry = index !== -1 ? this.telemetryList[index] : null;
+            const entry = {
+                destination_hash: json.destination_hash,
+                timestamp: json.timestamp,
+                telemetry: json.telemetry,
+                updated_at: new Date().toISOString(),
+                is_tracking:
+                    json.is_tracking !== undefined ? json.is_tracking : oldEntry ? oldEntry.is_tracking : false,
+                physical_link: json.physical_link || oldEntry?.physical_link,
+            };
 
-                if (index !== -1) {
-                    this.telemetryList.splice(index, 1, entry);
-                } else {
-                    this.telemetryList.push(entry);
-                }
-
-                // Show notification for tracked peers
-                if (entry.telemetry?.location) {
-                    const peer = this.peers[json.destination_hash];
-                    const name = peer?.display_name || json.destination_hash.substring(0, 8);
-                    const isTracked = this.telemetryList.find(
-                        (t) => t.destination_hash === json.destination_hash
-                    )?.is_tracking;
-
-                    if (isTracked) {
-                        ToastUtils.info(
-                            `Live update: ${name} is at ${entry.telemetry.location.latitude.toFixed(4)}, ${entry.telemetry.location.longitude.toFixed(4)}`
-                        );
-                    }
-
-                    // Update trail if this marker is currently selected
-                    if (this.selectedMarker?.telemetry?.destination_hash === json.destination_hash) {
-                        this.drawTelemetryPath(json.destination_hash);
-                    }
-                }
-
-                this.updateMarkers();
+            if (index !== -1) {
+                this.telemetryList.splice(index, 1, entry);
+            } else {
+                this.telemetryList.push(entry);
             }
+
+            // Show notification for tracked peers
+            if (entry.telemetry?.location) {
+                const peer = this.peers[json.destination_hash];
+                const name = peer?.display_name || json.destination_hash.substring(0, 8);
+                const isTracked = this.telemetryList.find(
+                    (t) => t.destination_hash === json.destination_hash
+                )?.is_tracking;
+
+                if (isTracked) {
+                    ToastUtils.info(
+                        `Live update: ${name} is at ${entry.telemetry.location.latitude.toFixed(4)}, ${entry.telemetry.location.longitude.toFixed(4)}`
+                    );
+                }
+
+                // Update trail if this marker is currently selected
+                if (this.selectedMarker?.telemetry?.destination_hash === json.destination_hash) {
+                    this.drawTelemetryPath(json.destination_hash);
+                }
+            }
+
+            this.updateMarkers();
         },
         formatTimestamp(ts) {
             return new Date(ts * 1000).toLocaleString();

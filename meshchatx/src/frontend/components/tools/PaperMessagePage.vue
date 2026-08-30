@@ -270,6 +270,7 @@ import {
     startCameraStream,
 } from "../../js/qrScannerUtils";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 
 export default {
     name: "PaperMessagePage",
@@ -298,29 +299,29 @@ export default {
         },
     },
     mounted() {
-        WebSocketConnection.on("message", this.onWebsocketMessage);
+        onWsEvent("lxm.generate_paper_uri.result", this.onGeneratePaperUriResult);
+        onWsEvent("lxm.ingest_uri.result", this.onIngestUriResult);
     },
     beforeUnmount() {
-        WebSocketConnection.off("message", this.onWebsocketMessage);
+        offWsEvent("lxm.generate_paper_uri.result", this.onGeneratePaperUriResult);
+        offWsEvent("lxm.ingest_uri.result", this.onIngestUriResult);
         this.stopIngestScanner();
     },
     methods: {
-        async onWebsocketMessage(message) {
-            const json = JSON.parse(message.data);
-            if (json.type === "lxm.generate_paper_uri.result") {
-                this.isGenerating = false;
-                if (json.status === "success") {
-                    this.generatedUri = json.uri;
-                    this.$nextTick(() => {
-                        this.renderQRCode();
-                    });
-                } else {
-                    ToastUtils.error(json.message);
-                }
-            } else if (json.type === "lxm.ingest_uri.result") {
-                if (json.status === "success") {
-                    this.ingestUri = "";
-                }
+        onGeneratePaperUriResult(json) {
+            this.isGenerating = false;
+            if (json.status === "success") {
+                this.generatedUri = json.uri;
+                this.$nextTick(() => {
+                    this.renderQRCode();
+                });
+            } else {
+                ToastUtils.error(json.message);
+            }
+        },
+        onIngestUriResult(json) {
+            if (json.status === "success") {
+                this.ingestUri = "";
             }
         },
         async generatePaperMessage() {
