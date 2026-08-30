@@ -7,10 +7,10 @@
         role="img"
         :aria-label="iconName"
         fill="currentColor"
-        width="100%"
-        height="100%"
+        width="20"
+        height="20"
         style="display: block"
-        class="antialiased"
+        class="antialiased shrink-0"
     >
         <path :d="iconPath" fill="currentColor" />
     </svg>

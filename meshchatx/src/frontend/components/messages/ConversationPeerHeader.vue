@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="relative z-20 flex items-center gap-2 px-3 sm:px-4 py-2 border-b border-sem-border bg-sem-surface">
+    <div class="relative z-20 flex items-center gap-2 px-3 sm:px-4 py-2 border-b border-sem-border bg-sem-canvas">
         <div class="shrink-0 mr-3">
             <LxmfUserIcon
                 :custom-image="selectedPeer.contact_image"

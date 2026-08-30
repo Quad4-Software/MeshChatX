@@ -58,7 +58,7 @@
 
             <template v-else>
                 <div
-                    class="z-100 flex shrink-0 bg-sem-surface border-sem-border border-b min-h-12 sm:min-h-14 shadow-xs transition-colors pt-[env(safe-area-inset-top,0px)]"
+                    class="z-100 flex shrink-0 bg-sem-canvas border-sem-border border-b min-h-12 sm:min-h-14 shadow-xs transition-colors pt-[env(safe-area-inset-top,0px)]"
                 >
                     <div
                         class="flex w-full min-h-12 sm:min-h-14 items-center gap-0 overflow-x-auto no-scrollbar pl-2 pr-2 sm:ps-0 sm:pe-3"

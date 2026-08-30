@@ -805,6 +805,7 @@
 
                             <div class="space-y-8 min-w-0">
                                 <div
+                                    v-if="electronVersion || chromeVersion || nodeVersion"
                                     class="py-4 sm:p-5 border-t border-gray-200/60 dark:border-zinc-800/80 sm:border sm:rounded-2xl sm:bg-black/2 dark:sm:bg-white/2 min-w-0"
                                 >
                                     <div
@@ -992,24 +993,24 @@
                                         {{ $t("about.database_backups_desc") }}
                                     </div>
                                 </div>
-                                <div class="flex flex-col sm:flex-row gap-2">
+                                <div class="flex flex-col sm:flex-row gap-2 shrink-0">
                                     <button
                                         type="button"
-                                        class="primary-chip px-5! py-2.5!"
+                                        class="primary-chip px-5! py-2.5! text-sm"
                                         :disabled="backupInProgress"
                                         @click="backupDatabase"
                                     >
-                                        <MaterialDesignIcon icon-name="download" class="shrink-0" />
+                                        <MaterialDesignIcon icon-name="download" class="size-4 shrink-0" />
                                         <span v-if="backupInProgress">{{ $t("about.downloading") }}</span>
                                         <span v-else>{{ $t("about.download_backup") }}</span>
                                     </button>
                                     <button
                                         type="button"
-                                        class="secondary-chip px-5! py-2.5!"
+                                        class="secondary-chip px-5! py-2.5! text-sm"
                                         :disabled="restoreInProgress"
                                         @click="$refs.restoreFileInput?.click()"
                                     >
-                                        <MaterialDesignIcon icon-name="upload" class="shrink-0" />
+                                        <MaterialDesignIcon icon-name="upload" class="size-4 shrink-0" />
                                         <span v-if="restoreInProgress">{{ $t("about.restoring") }}</span>
                                         <span v-else>{{ $t("about.restore_from_file") }}</span>
                                     </button>
@@ -1114,18 +1115,18 @@
                                         </div>
                                         <div class="flex gap-2">
                                             <button
-                                                class="secondary-chip p-1! disabled:opacity-30"
+                                                class="secondary-chip p-1.5! disabled:opacity-30"
                                                 :disabled="snapshotsOffset === 0"
                                                 @click="prevSnapshots"
                                             >
-                                                <MaterialDesignIcon icon-name="chevron-left" />
+                                                <MaterialDesignIcon icon-name="chevron-left" class="size-4" />
                                             </button>
                                             <button
-                                                class="secondary-chip p-1! disabled:opacity-30"
+                                                class="secondary-chip p-1.5! disabled:opacity-30"
                                                 :disabled="snapshotsOffset + snapshotsLimit >= snapshotsTotal"
                                                 @click="nextSnapshots"
                                             >
-                                                <MaterialDesignIcon icon-name="chevron-right" />
+                                                <MaterialDesignIcon icon-name="chevron-right" class="size-4" />
                                             </button>
                                         </div>
                                     </div>
@@ -1220,18 +1221,18 @@
                                         </div>
                                         <div class="flex gap-2">
                                             <button
-                                                class="secondary-chip p-1! disabled:opacity-30"
+                                                class="secondary-chip p-1.5! disabled:opacity-30"
                                                 :disabled="autoBackupsOffset === 0"
                                                 @click="prevBackups"
                                             >
-                                                <MaterialDesignIcon icon-name="chevron-left" />
+                                                <MaterialDesignIcon icon-name="chevron-left" class="size-4" />
                                             </button>
                                             <button
-                                                class="secondary-chip p-1! disabled:opacity-30"
+                                                class="secondary-chip p-1.5! disabled:opacity-30"
                                                 :disabled="autoBackupsOffset + autoBackupsLimit >= autoBackupsTotal"
                                                 @click="nextBackups"
                                             >
-                                                <MaterialDesignIcon icon-name="chevron-right" />
+                                                <MaterialDesignIcon icon-name="chevron-right" class="size-4" />
                                             </button>
                                         </div>
                                     </div>

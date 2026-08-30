@@ -4,7 +4,7 @@
     <div :class="sidebarRootClass">
         <div
             v-if="effectiveCollapsed"
-            :class="['flex flex-col h-full min-h-0 bg-sem-surface border-sem-border', edgeBorderClass]"
+            :class="['flex flex-col h-full min-h-0 bg-sem-canvas border-sem-border', edgeBorderClass]"
         >
             <div class="hidden sm:flex h-10 shrink-0 items-center justify-center border-b border-sem-border px-2">
                 <button
@@ -71,7 +71,7 @@
         </div>
         <template v-else>
             <!-- tabs (h-10 matches sidebar collapse row height) -->
-            <div :class="['bg-sem-surface border-b border-sem-border', edgeBorderClass]">
+            <div :class="['bg-sem-canvas border-b border-sem-border', edgeBorderClass]">
                 <div class="-mb-px flex h-10 min-w-0 items-stretch" :class="{ 'flex-row-reverse': isRightSidebar }">
                     <div class="flex min-w-0 flex-1">
                         <div
@@ -111,7 +111,7 @@
             <div
                 v-if="tab === 'conversations'"
                 :class="[
-                    'relative flex-1 flex flex-col bg-sem-surface border-sem-border overflow-hidden min-h-0',
+                    'relative flex-1 flex flex-col bg-sem-canvas border-sem-border overflow-hidden min-h-0',
                     edgeBorderClass,
                 ]"
                 @dragenter.prevent="onMessagesImportDragEnter"
@@ -120,7 +120,7 @@
                 @drop.prevent="onMessagesImportDrop"
             >
                 <!-- Folders Section -->
-                <div class="border-b border-sem-border bg-sem-surface">
+                <div class="border-b border-sem-border bg-sem-canvas">
                     <div
                         class="flex cursor-pointer items-center justify-between px-3 py-2 transition-colors hover:bg-sem-surface-muted"
                         @click="foldersExpanded = !foldersExpanded"
@@ -832,7 +832,7 @@
             <div
                 v-if="tab === 'announces'"
                 :class="[
-                    'flex-1 flex flex-col bg-sem-surface border-sem-border overflow-hidden min-h-0',
+                    'flex-1 flex flex-col bg-sem-canvas border-sem-border overflow-hidden min-h-0',
                     edgeBorderClass,
                 ]"
             >
