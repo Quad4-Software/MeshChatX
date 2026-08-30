@@ -146,6 +146,13 @@ select option {
 .primary-chip {
     @apply inline-flex! items-center! justify-center! gap-x-2! rounded-full! bg-sem-action-primary! px-4! py-2! text-xs! font-bold! text-white! shadow-xs! transition-all!;
 }
+.primary-chip svg,
+.secondary-chip svg,
+.danger-chip svg {
+    width: 1rem !important;
+    height: 1rem !important;
+    flex-shrink: 0;
+}
 .primary-chip:hover {
     @apply bg-sem-action-primary-hover! -translate-y-0.5!;
 }
