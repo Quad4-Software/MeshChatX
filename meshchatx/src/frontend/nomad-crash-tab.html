@@ -9,6 +9,7 @@
             body {
                 margin: 0;
                 padding: 0;
+                width: 100%;
                 height: 100%;
                 background: transparent;
             }
@@ -16,23 +17,20 @@
                 overflow: auto;
             }
             #root {
-                min-height: 100%;
                 box-sizing: border-box;
+                width: 100%;
+                min-height: 100%;
             }
-            #root.pad {
-                padding: 0.75rem;
-            }
-            #root.source {
-                white-space: pre-wrap;
-                word-break: break-word;
-            }
+            /* Browser default underline is wrong for Micron. `_` sets inline styles. */
             a {
                 cursor: pointer;
+                text-decoration: none;
+                color: inherit;
             }
         </style>
     </head>
     <body>
-        <div id="root"></div>
+        <div id="root" class="nodeContainer"></div>
         <script type="module" src="./js/nomadCrashTabMain.js"></script>
     </body>
 </html>

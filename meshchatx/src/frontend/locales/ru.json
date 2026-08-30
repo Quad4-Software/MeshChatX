@@ -2335,7 +2335,10 @@
         "private_tab": "Приватная вкладка",
         "new_private_tab": "Новая приватная вкладка",
         "new_private_tab_shortcut": "Новая приватная вкладка (Ctrl+Shift+P)",
-        "private_browsing_hint": "Приватный просмотр: страницы не архивируются, избранное и identify отключены, mesh-ссылки не разделяются с другими вкладками."
+        "private_browsing_hint": "Приватный просмотр: страницы не архивируются, избранное и identify отключены, mesh-ссылки не разделяются с другими вкладками.",
+        "page_stopped_hint": "Nothing was saved for this attempt. Refresh to try again.",
+        "page_empty_title": "This page is empty",
+        "page_empty_body": "The node returned no content for this path."
     },
     "forwarder": {
         "title": "LXMF Форвардер",

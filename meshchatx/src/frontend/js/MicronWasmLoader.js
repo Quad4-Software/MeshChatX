@@ -24,6 +24,11 @@ function readRuntimeOverrideCached() {
         try {
             return await getMicronWasmRuntimeOverride();
         } catch (e) {
+            // Sandboxed crash-tab iframe (opaque null Origin) cannot open IndexedDB.
+            const name = e && e.name;
+            if (name === "SecurityError" || name === "InvalidStateError") {
+                return null;
+            }
             console.warn("Micron WASM: could not read runtime override", e);
             return null;
         }
@@ -43,23 +48,54 @@ function injectMicronWasmStyles() {
     if (document.getElementById("micron-wasm-monospace-styles")) {
         return;
     }
+    // Match MicronParser.injectMonospaceStyles so WASM and JS ForceMonospace align.
     const styleEl = document.createElement("style");
     styleEl.id = "micron-wasm-monospace-styles";
     styleEl.textContent = `
         .Mu-nl {
             cursor: pointer;
+            text-decoration: none;
         }
         .Mu-mnt {
             display: inline-block;
+            box-sizing: border-box;
             min-width: 1ch;
+            width: 1ch;
+            max-width: 1ch;
             text-align: center;
             white-space: pre;
             text-decoration: inherit;
-            font-variant-numeric: tabular-nums;
+            vertical-align: baseline;
+            line-height: 1.25;
+        }
+        .Mu-mnt-full {
+            display: inline-block;
+            box-sizing: border-box;
+            min-width: 2ch;
+            width: 2ch;
+            max-width: 2ch;
+            text-align: center;
+            white-space: pre;
+            text-decoration: inherit;
+            vertical-align: baseline;
+            line-height: 1.25;
         }
         .Mu-mws {
             text-decoration: inherit;
-            display: inline;
+            display: inline-flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            column-gap: 0;
+            row-gap: 0;
+            gap: 0;
+        }
+        .Mu-mnt-group {
+            display: inline-flex;
+            flex-wrap: nowrap;
+            align-items: baseline;
+            column-gap: 0;
+            row-gap: 0;
+            gap: 0;
         }
     `;
     document.head.appendChild(styleEl);

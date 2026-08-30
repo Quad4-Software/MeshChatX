@@ -2613,7 +2613,10 @@
         "private_tab": "Scheda privata",
         "new_private_tab": "Nuova scheda privata",
         "new_private_tab_shortcut": "Nuova scheda privata (Ctrl+Shift+P)",
-        "private_browsing_hint": "Navigazione privata: le pagine non vengono archiviate, preferiti e identify sono disabilitati, e i link mesh non sono condivisi con altre schede."
+        "private_browsing_hint": "Navigazione privata: le pagine non vengono archiviate, preferiti e identify sono disabilitati, e i link mesh non sono condivisi con altre schede.",
+        "page_stopped_hint": "Nothing was saved for this attempt. Refresh to try again.",
+        "page_empty_title": "This page is empty",
+        "page_empty_body": "The node returned no content for this path."
     },
     "forwarder": {
         "title": "Inoltro LXMF",

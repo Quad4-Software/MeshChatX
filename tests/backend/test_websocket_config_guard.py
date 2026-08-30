@@ -95,3 +95,16 @@ def test_websocket_origin_honors_forwarded_host_behind_trusted_proxy():
         forwarded_host="chat.example",
     )
     assert websocket_origin_allowed(untrusted, "127.0.0.1/32") is False
+
+
+def test_websocket_origin_allows_vite_dev_proxy_via_forwarded_host():
+    """Task dev: browser Origin is :5173, Vite changeOrigin makes Host :8000."""
+    req = _WsRequest(
+        host="127.0.0.1:8000",
+        scheme="https",
+        origin="http://127.0.0.1:5173",
+        remote="127.0.0.1",
+        forwarded_host="127.0.0.1:5173",
+    )
+    assert websocket_origin_allowed(req, "127.0.0.1/32") is True
+    assert websocket_origin_allowed(req, "") is False

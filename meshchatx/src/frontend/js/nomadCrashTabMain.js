@@ -6,15 +6,73 @@
  * Parent cancels by reloading this frame.
  */
 
+import "../fonts/RobotoMonoNerdFont/font.css";
+import "../css/nomad-page-chrome.css";
 import MicronParser from "./MicronParser.js";
-import { renderNomadPageByPath } from "./NomadPageRenderer.js";
+import { renderNomadPageByPath, resolveNomadPageShellBackground } from "./NomadPageRenderer.js";
 import { NOMAD_CRASH_TAB_CHANNEL } from "./nomadCrashTabShell.js";
+import { preloadNomadMicronWasm } from "./MicronWasmLoader.js";
+import DOMPurify from "dompurify";
+
+// micron-parser (base) expects a global DOMPurify. The shell sets this in main.js
+// the crash-tab is a separate Vite entry and must set it here too.
+globalThis.DOMPurify = DOMPurify;
+if (typeof window !== "undefined") {
+    window.DOMPurify = DOMPurify;
+}
 
 const root = document.getElementById("root");
 let renderSeq = 0;
+let multilineCleanup = null;
 
 function post(msg) {
     parent.postMessage({ channel: NOMAD_CRASH_TAB_CHANNEL, ...msg }, "*");
+}
+
+function teardownMultiline() {
+    if (typeof multilineCleanup === "function") {
+        try {
+            multilineCleanup();
+        } catch (e) {
+            console.warn("nomad crash-tab: multiline cleanup failed", e);
+        }
+    }
+    multilineCleanup = null;
+}
+
+function setupMultilineForMicron(pagePath, renderOptions) {
+    teardownMultiline();
+    const pl = String(pagePath || "").toLowerCase();
+    if (!pl.endsWith(".mu")) {
+        return;
+    }
+    if (renderOptions && renderOptions.nomad_micron_wasm_use === true) {
+        return;
+    }
+    const onArmed = (e) => {
+        e.detail?.element?.classList?.add("Mu-armed");
+    };
+    const onDisarmed = (e) => {
+        e.detail?.element?.classList?.remove("Mu-armed");
+    };
+    const onExpanded = (e) => {
+        e.detail?.element?.classList?.add("Mu-multiline");
+    };
+    root.addEventListener("micron-multiline-armed", onArmed);
+    root.addEventListener("micron-multiline-disarmed", onDisarmed);
+    root.addEventListener("micron-field-multiline-enabled", onExpanded);
+    const detach = MicronParser.enableDoubleEnterMultiline(root, {
+        windowMs: 500,
+        rows: 4,
+    });
+    multilineCleanup = () => {
+        root.removeEventListener("micron-multiline-armed", onArmed);
+        root.removeEventListener("micron-multiline-disarmed", onDisarmed);
+        root.removeEventListener("micron-field-multiline-enabled", onExpanded);
+        if (typeof detach === "function") {
+            detach();
+        }
+    };
 }
 
 function collectFields(filterNames) {
@@ -172,13 +230,41 @@ function onClick(event) {
     }
 }
 
+/**
+ * Build iframe root classes. Always include nodeContainer so ForceMonospace
+ * Mu-mnt / Mu-mws cells use the Nomad monospace grid.
+ */
 function applyChrome(msg) {
-    root.className = msg.className || "";
-    root.style.color = msg.color || "";
-    root.style.background = msg.background || "transparent";
+    const parts = ["nodeContainer"];
+    const fromParent = String(msg.className || "")
+        .split(/\s+/)
+        .filter(Boolean);
+    for (const c of fromParent) {
+        if (!parts.includes(c)) {
+            parts.push(c);
+        }
+    }
+    if (msg.showSource === true && !parts.includes("source")) {
+        parts.push("source");
+    }
+    if (msg.showSource === true && !parts.includes("bg-black")) {
+        parts.push("bg-black");
+    }
+    root.className = parts.join(" ");
+    const color = msg.color || "";
+    const background = msg.background || "transparent";
+    root.style.color = color;
+    root.style.background = background;
+    // Fill the iframe viewport so short pages do not leave an unpainted gap.
+    document.body.style.background = background;
+    document.documentElement.style.background = background;
+    if (color) {
+        document.body.style.color = color;
+    }
 }
 
 async function renderPage(msg, seq) {
+    teardownMultiline();
     applyChrome(msg);
     const path = msg.path || "";
     const content = msg.content ?? "";
@@ -192,8 +278,10 @@ async function renderPage(msg, seq) {
     const [pagePathWithoutData] = String(path).split("`");
     const pagePartials = msg.pagePartials && typeof msg.pagePartials === "object" ? msg.pagePartials : {};
     const renderOptions = msg.renderOptions && typeof msg.renderOptions === "object" ? msg.renderOptions : {};
-    // Keep WASM out of the crash tab. JS Micron is enough and avoids cross-frame wasm bootstrap.
-    const opts = { ...renderOptions, nomad_micron_wasm_use: false };
+    if (renderOptions.nomad_micron_wasm_use === true) {
+        await preloadNomadMicronWasm();
+    }
+    const opts = { ...renderOptions };
     let html = "";
     try {
         html = renderNomadPageByPath(pagePathWithoutData, content, pagePartials, MicronParser, opts);
@@ -210,6 +298,31 @@ async function renderPage(msg, seq) {
         return;
     }
     root.innerHTML = html || "";
+    // Prefer #!bg= / #!fg= page shell paint for the full iframe viewport.
+    const pageShell = root.querySelector(".mu-page");
+    if (pageShell) {
+        const pageBg = pageShell.style.backgroundColor;
+        const pageFg = pageShell.style.color;
+        if (pageBg) {
+            root.style.background = pageBg;
+            document.body.style.background = pageBg;
+            document.documentElement.style.background = pageBg;
+            post({ type: "shell-background", background: pageBg });
+        }
+        if (pageFg) {
+            root.style.color = pageFg;
+            document.body.style.color = pageFg;
+        }
+    } else {
+        const resolved = resolveNomadPageShellBackground(root);
+        if (resolved) {
+            root.style.background = resolved;
+            document.body.style.background = resolved;
+            document.documentElement.style.background = resolved;
+            post({ type: "shell-background", background: resolved });
+        }
+    }
+    setupMultilineForMicron(pagePathWithoutData, opts);
     post({ type: "render-done", partials: listPartials() });
 }
 
@@ -224,14 +337,18 @@ window.addEventListener("message", (ev) => {
     }
     if (d.type === "abort") {
         renderSeq += 1;
+        teardownMultiline();
         root.innerHTML = "";
         post({ type: "aborted" });
         return;
     }
     if (d.type === "clear") {
         renderSeq += 1;
+        teardownMultiline();
         root.innerHTML = "";
-        root.className = "";
+        root.className = "nodeContainer";
+        root.style.color = "";
+        root.style.background = "transparent";
         return;
     }
     if (d.type === "set-partial") {

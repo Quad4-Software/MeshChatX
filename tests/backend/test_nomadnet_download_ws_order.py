@@ -146,3 +146,97 @@ async def test_nomadnet_file_download_with_data_passed_to_downloader(
         "__init__",
         orig_init,
     )
+
+
+@pytest.mark.asyncio
+async def test_private_page_download_skips_archive_on_local_serve(mock_app):
+    mock_app._try_serve_local_page_node = MagicMock(return_value="# private page")
+    mock_app.archive_page = MagicMock()
+
+    mock_ws = MagicMock()
+    mock_ws.send_str = AsyncMock()
+
+    dh = "d" * 32
+    await mock_app.on_websocket_data_received(
+        mock_ws,
+        {
+            "type": "nomadnet.page.download",
+            "nomadnet_page_download": {
+                "destination_hash": dh,
+                "page_path": "/page/index.mu",
+                "field_data": None,
+                "private": True,
+            },
+        },
+    )
+
+    mock_app.archive_page.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_private_page_download_skips_archive_on_remote_success(
+    mock_app,
+    monkeypatch,
+):
+    mock_app._try_serve_local_page_node = MagicMock(return_value=None)
+    mock_app.archive_page = MagicMock()
+
+    captured = {}
+
+    class FakeDownloader:
+        def __init__(self, *args, **kwargs):
+            captured["private"] = kwargs.get("private")
+            captured["on_success"] = args[3] if len(args) > 3 else None
+
+        async def download(self):
+            return None
+
+    monkeypatch.setattr(meshchat_module, "NomadnetPageDownloader", FakeDownloader)
+
+    mock_ws = MagicMock()
+    mock_ws.send_str = AsyncMock()
+
+    dh = "e" * 32
+    await mock_app.on_websocket_data_received(
+        mock_ws,
+        {
+            "type": "nomadnet.page.download",
+            "nomadnet_page_download": {
+                "destination_hash": dh,
+                "page_path": "/page/secret.mu",
+                "field_data": None,
+                "private": True,
+            },
+        },
+    )
+
+    assert captured.get("private") is True
+    on_success = captured.get("on_success")
+    assert callable(on_success)
+    on_success("# remote private body")
+    mock_app.archive_page.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_non_private_page_download_archives_local_serve(mock_app):
+    mock_app._try_serve_local_page_node = MagicMock(return_value="# public page")
+    mock_app.archive_page = MagicMock()
+
+    mock_ws = MagicMock()
+    mock_ws.send_str = AsyncMock()
+
+    dh = "f" * 32
+    await mock_app.on_websocket_data_received(
+        mock_ws,
+        {
+            "type": "nomadnet.page.download",
+            "nomadnet_page_download": {
+                "destination_hash": dh,
+                "page_path": "/page/index.mu",
+                "field_data": None,
+                "private": False,
+            },
+        },
+    )
+
+    mock_app.archive_page.assert_called_once()

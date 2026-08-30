@@ -119,6 +119,49 @@ async def test_security_middleware_sets_cors_headers_on_rnode_flasher(
 
 
 @pytest.mark.asyncio
+async def test_security_middleware_allows_nomad_crash_tab_frame_and_cors(
+    mock_rns_minimal,
+    tmp_path,
+):
+    storage_dir = str(tmp_path / "storage")
+    config_dir = str(tmp_path / "config")
+
+    with patch("meshchatx.meshchat.generate_ssl_certificate"):
+        app_instance = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=storage_dir,
+            reticulum_config_dir=config_dir,
+        )
+
+        routes = web.RouteTableDef()
+        _, _, security_middleware, _, _, _ = app_instance._define_routes(routes)
+
+        async def mock_handler(req):
+            return web.Response(text="// crash tab")
+
+        for path in (
+            "/nomad-crash-tab.html",
+            "/assets/nomad-crash-tab-abc123.js",
+            "/assets/nomad-page-chrome-abc123.css",
+            "/assets/RobotoMonoNerdFont-Regular-abc123.ttf",
+            "/vendor/micron-parser-go/micron-parser-go.wasm",
+        ):
+            request = MagicMock(spec=web.Request)
+            request.path = path
+            request.app = {}
+            response = await security_middleware(request, mock_handler)
+            assert response.headers.get("Access-Control-Allow-Origin") == "*"
+            assert (
+                response.headers.get("Cross-Origin-Resource-Policy") == "cross-origin"
+            )
+            # Only the crash-tab document/scripts are framed. CSS/fonts stay DENY.
+            if path == "/nomad-crash-tab.html" or (
+                path.startswith("/assets/") and "nomad-crash-tab" in path
+            ):
+                assert response.headers.get("X-Frame-Options") == "SAMEORIGIN"
+
+
+@pytest.mark.asyncio
 async def test_security_middleware_does_not_set_cors_on_reticulum_docs(
     mock_rns_minimal,
     tmp_path,

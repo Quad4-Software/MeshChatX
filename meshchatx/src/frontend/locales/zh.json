@@ -2559,7 +2559,10 @@
         "private_tab": "隐私标签页",
         "new_private_tab": "新建隐私标签页",
         "new_private_tab_shortcut": "新建隐私标签页 (Ctrl+Shift+P)",
-        "private_browsing_hint": "隐私浏览：不会归档页面，收藏与身份识别已禁用，网格链路不与其他标签页共享。"
+        "private_browsing_hint": "隐私浏览：不会归档页面，收藏与身份识别已禁用，网格链路不与其他标签页共享。",
+        "page_stopped_hint": "Nothing was saved for this attempt. Refresh to try again.",
+        "page_empty_title": "This page is empty",
+        "page_empty_body": "The node returned no content for this path."
     },
     "forwarder": {
         "title": "LXMF 转发器",

@@ -99,6 +99,7 @@ describe("NomadNetworkPage.vue", () => {
                         props: ["nodes", "selectedDestinationHash"],
                     },
                     NomadBrowserContextMenu: true,
+                    NomadCrashTab: true,
                     VTooltip: {
                         template: '<div class="v-tooltip-stub"><slot /></div>',
                     },
@@ -506,6 +507,8 @@ describe("NomadNetworkPage.vue", () => {
             ["partial_failure in prose"],
             [""],
             ["Download cancelled"],
+            ["Download cancelled."],
+            ["page_download_cancelled"],
             ["<p>success</p>"],
         ];
 
@@ -540,6 +543,167 @@ describe("NomadNetworkPage.vue", () => {
             expect(wrapper.vm.isFailedPageContent({ status: "failure" })).toBe(false);
             expect(wrapper.vm.isFailedPageContent(new String("request_failed"))).toBe(false);
             expect(wrapper.vm.isFailedPageContent(new String("Failed loading page: boxed"))).toBe(false);
+        });
+    });
+
+    describe("isCancelledPageContent and cancel UI", () => {
+        const destHash = "d".repeat(32);
+
+        it("treats the cancel sentinel as cancelled content", () => {
+            const wrapper = mountNomadNetworkPage();
+            expect(wrapper.vm.isCancelledPageContent("page_download_cancelled")).toBe(true);
+            expect(wrapper.vm.isCancelledPageContent("nomadnet.page_download_cancelled")).toBe(true);
+            expect(wrapper.vm.isCancelledPageContent("Failed loading page: x")).toBe(false);
+            expect(wrapper.vm.isCancelledPageContent("# page")).toBe(false);
+        });
+
+        it("shows cancelled status instead of crash-tab content after cancelPageDownload", async () => {
+            const wrapper = mountNomadNetworkPage();
+            await wrapper.setData({
+                selectedNode: { destination_hash: destHash, display_name: "N" },
+                nodePagePath: `${destHash}:/page/index.mu`,
+                isLoadingNodePage: true,
+                currentPageDownloadId: 42,
+                nodePageContent: null,
+            });
+            wrapper.vm.cancelPageDownload();
+            await wrapper.vm.$nextTick();
+
+            expect(wrapper.vm.isLoadingNodePage).toBe(false);
+            expect(wrapper.vm.currentPageDownloadId).toBe(null);
+            expect(wrapper.vm.nodePageContent).toBe("page_download_cancelled");
+            expect(wrapper.vm.showCancelledPageState).toBe(true);
+            expect(wrapper.text()).toContain("nomadnet.page_download_cancelled");
+            expect(wrapper.findComponent({ name: "NomadCrashTab" }).exists()).toBe(false);
+
+            const WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
+            expect(WebSocketConnection.send).toHaveBeenCalledWith(
+                JSON.stringify({
+                    type: "nomadnet.download.cancel",
+                    download_id: 42,
+                })
+            );
+        });
+
+        it("optimistic cancel without download id still shows cancelled status", async () => {
+            const wrapper = mountNomadNetworkPage();
+            await wrapper.setData({
+                selectedNode: { destination_hash: destHash, display_name: "N" },
+                nodePagePath: `${destHash}:/page/index.mu`,
+                isLoadingNodePage: true,
+                currentPageDownloadId: null,
+                nodePageContent: null,
+            });
+            wrapper.vm.cancelPageDownload();
+            await wrapper.vm.$nextTick();
+
+            expect(wrapper.vm.pendingNomadPageCancelWithoutId).toBe(true);
+            expect(wrapper.vm.showCancelledPageState).toBe(true);
+            expect(wrapper.findComponent({ name: "NomadCrashTab" }).exists()).toBe(false);
+        });
+
+        it("render abort shows cancelled status without wiping page bytes", async () => {
+            const wrapper = mountNomadNetworkPage();
+            await wrapper.setData({
+                selectedNode: { destination_hash: destHash, display_name: "N" },
+                nodePagePath: `${destHash}:/page/index.mu`,
+                isLoadingNodePage: false,
+                nodePageContent: ">#!\n# Hello",
+                pageRenderAborted: false,
+                isCrashTabRendering: true,
+            });
+            wrapper.vm.onCrashTabAborted();
+            await wrapper.vm.$nextTick();
+
+            expect(wrapper.vm.pageRenderAborted).toBe(true);
+            expect(wrapper.vm.nodePageContent).toBe(">#!\n# Hello");
+            expect(wrapper.vm.showCancelledPageState).toBe(true);
+            expect(wrapper.vm.canRetryCrashTabRender).toBe(true);
+            expect(wrapper.findComponent({ name: "NomadCrashTab" }).exists()).toBe(false);
+            expect(ToastUtils.info).toHaveBeenCalledWith("nomadnet.crash_tab_render_cancelled");
+
+            wrapper.vm.retryCrashTabRender();
+            await wrapper.vm.$nextTick();
+            expect(wrapper.vm.pageRenderAborted).toBe(false);
+            expect(wrapper.vm.showCancelledPageState).toBe(false);
+            expect(wrapper.findComponent({ name: "NomadCrashTab" }).exists()).toBe(true);
+        });
+
+        it("shows empty-page status when content is blank", async () => {
+            const wrapper = mountNomadNetworkPage();
+            await wrapper.setData({
+                selectedNode: { destination_hash: destHash, display_name: "N" },
+                nodePagePath: `${destHash}:/page/index.mu`,
+                isLoadingNodePage: false,
+                nodePageContent: "",
+                pageRenderAborted: false,
+            });
+            expect(wrapper.vm.showEmptyPageState).toBe(true);
+            expect(wrapper.vm.showCancelledPageState).toBe(false);
+            expect(wrapper.text()).toContain("nomadnet.page_empty_title");
+            expect(wrapper.findComponent({ name: "NomadCrashTab" }).exists()).toBe(false);
+        });
+    });
+
+    describe("crash-tab Micron chrome props", () => {
+        const destHash = "b".repeat(32);
+
+        it("passes semantic micron classes and Nomad dark colors for .mu pages", async () => {
+            const wrapper = mountNomadNetworkPage();
+            await wrapper.setData({
+                selectedNode: { destination_hash: destHash, display_name: "N" },
+                nodePagePath: `${destHash}:/page/index.mu`,
+                isLoadingNodePage: false,
+                nodePageContent: ">#!\n# Hello",
+                isShowingNodePageSource: false,
+            });
+            expect(wrapper.vm.nomadCrashTabContentClass).toContain("nomad-page-rich");
+            expect(wrapper.vm.nomadCrashTabContentClass).toContain("bg-black");
+            expect(wrapper.vm.nomadCrashTabContentClass).not.toContain("text-gray-100");
+            expect(wrapper.vm.nomadCrashTabContentClass).not.toContain("wrap-break-word");
+            expect(wrapper.vm.nomadCrashTabColor).toBe("#dddddd");
+            expect(wrapper.vm.nomadCrashTabBackground).toBe("#000000");
+        });
+
+        it("uses #!bg= header for crash-tab background", async () => {
+            const wrapper = mountNomadNetworkPage();
+            await wrapper.setData({
+                selectedNode: { destination_hash: destHash, display_name: "N" },
+                nodePagePath: `${destHash}:/page/index.mu`,
+                isLoadingNodePage: false,
+                nodePageContent: "#!bg=444\nHello",
+                isShowingNodePageSource: false,
+            });
+            expect(wrapper.vm.micronHeaderBackgroundCss).toBe("#444");
+            expect(wrapper.vm.nomadCrashTabBackground).toBe("#444");
+        });
+
+        it("passes source chrome for view-source mode", async () => {
+            const wrapper = mountNomadNetworkPage();
+            await wrapper.setData({
+                selectedNode: { destination_hash: destHash, display_name: "N" },
+                nodePagePath: `${destHash}:/page/index.mu`,
+                isLoadingNodePage: false,
+                nodePageContent: ">#!\n# Hello",
+                isShowingNodePageSource: true,
+            });
+            expect(wrapper.vm.nomadCrashTabContentClass).toContain("source");
+            expect(wrapper.vm.nomadCrashTabBackground).toBe("#000000");
+        });
+
+        it("pads markdown full-bleed hosts without micron black chrome", async () => {
+            const wrapper = mountNomadNetworkPage();
+            await wrapper.setData({
+                selectedNode: { destination_hash: destHash, display_name: "N" },
+                nodePagePath: `${destHash}:/page/readme.md`,
+                isLoadingNodePage: false,
+                nodePageContent: "# Title",
+                isShowingNodePageSource: false,
+                pageShellBackground: "#112233",
+            });
+            expect(wrapper.vm.nomadCrashTabContentClass).toContain("nomad-markdown-host");
+            expect(wrapper.vm.nomadCrashTabContentClass).toContain("pad");
+            expect(wrapper.vm.nomadCrashTabContentClass).not.toContain("bg-black");
         });
     });
 
@@ -1135,6 +1299,62 @@ describe("NomadNetworkPage.vue", () => {
             });
 
             expect(wrapper.vm.currentPageDownloadId).toBe(100);
+            wrapper.unmount();
+        });
+    });
+
+    describe("private browsing guards", () => {
+        let WebSocketConnection;
+
+        beforeEach(async () => {
+            WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
+            WebSocketConnection.send.mockClear();
+        });
+
+        it("page and file downloads mark private true", () => {
+            const wrapper = mountNomadNetworkPage({ destinationHash: "", isPrivate: true });
+            wrapper.vm.downloadNomadNetPage("a".repeat(32), "/page/index.mu", null, vi.fn(), vi.fn(), vi.fn());
+            const pagePayload = JSON.parse(WebSocketConnection.send.mock.calls[0][0]);
+            expect(pagePayload.nomadnet_page_download.private).toBe(true);
+
+            WebSocketConnection.send.mockClear();
+            wrapper.vm.downloadNomadNetFile("a".repeat(32), "/file/x.bin", null, vi.fn(), vi.fn(), vi.fn());
+            const filePayload = JSON.parse(WebSocketConnection.send.mock.calls[0][0]);
+            expect(filePayload.nomadnet_file_download.private).toBe(true);
+            wrapper.unmount();
+        });
+
+        it("blocks identify, archive, and favourites without sending requests", async () => {
+            const wrapper = mountNomadNetworkPage({ destinationHash: "", isPrivate: true });
+            wrapper.vm.selectedNode = { destination_hash: "a".repeat(32), display_name: "Node" };
+            wrapper.vm.nodePagePath = `${"a".repeat(32)}:/page/index.mu`;
+            wrapper.vm.nodePageContent = "# hi";
+
+            await wrapper.vm.identify("a".repeat(32));
+            expect(axiosMock.post).not.toHaveBeenCalledWith(expect.stringContaining("/identify"), expect.anything());
+            expect(ToastUtils.info).toHaveBeenCalledWith("nomadnet.private_browsing_hint");
+
+            WebSocketConnection.send.mockClear();
+            wrapper.vm.manualArchive();
+            expect(WebSocketConnection.send).not.toHaveBeenCalled();
+
+            WebSocketConnection.send.mockClear();
+            wrapper.vm.fetchArchives();
+            expect(WebSocketConnection.send).not.toHaveBeenCalled();
+
+            const favOk = await wrapper.vm.addFavourite(wrapper.vm.selectedNode);
+            expect(favOk).toBe(false);
+            expect(axiosMock.post).not.toHaveBeenCalledWith("/api/v1/favourites/add", expect.anything());
+            wrapper.unmount();
+        });
+
+        it("hides identify and archive controls in the header", () => {
+            const wrapper = mountNomadNetworkPage({ destinationHash: "a".repeat(32), isPrivate: true });
+            wrapper.vm.selectedNode = { destination_hash: "a".repeat(32), display_name: "Node" };
+            wrapper.vm.nodePageContent = "# hi";
+            wrapper.vm.nodePagePath = `${"a".repeat(32)}:/page/index.mu`;
+            expect(wrapper.find('[title="nomadnet.identify"]').exists()).toBe(false);
+            expect(wrapper.find('[title="app.archives"]').exists()).toBe(false);
             wrapper.unmount();
         });
     });

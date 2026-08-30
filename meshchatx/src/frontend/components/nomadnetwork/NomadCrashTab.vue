@@ -1,12 +1,13 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="nomad-crash-tab relative flex h-full min-h-0 w-full min-w-0 flex-col">
+    <div class="nomad-crash-tab relative h-full min-h-0 w-full min-w-0">
         <iframe
             ref="frame"
-            class="nomad-crash-tab__frame h-full w-full min-h-0 flex-1 border-0 bg-transparent"
+            class="nomad-crash-tab__frame absolute inset-0 h-full w-full border-0 bg-transparent"
             title="Nomad page renderer"
             sandbox="allow-scripts"
+            allow="local-network-access"
             :src="frameSrc"
             @load="onFrameLoad"
         ></iframe>
@@ -100,7 +101,17 @@ export default {
             default: true,
         },
     },
-    emits: ["navigate", "partials", "view-source", "ready", "hung", "render-started", "render-done", "aborted"],
+    emits: [
+        "navigate",
+        "partials",
+        "view-source",
+        "ready",
+        "hung",
+        "render-started",
+        "render-done",
+        "aborted",
+        "shell-background",
+    ],
     data() {
         return {
             frameSrc: nomadCrashTabRendererUrl(),
@@ -112,37 +123,47 @@ export default {
             watchdogTimer: null,
             pingTimer: null,
             renderEpoch: 0,
+            // After abort, do not re-push the same content when the iframe reloads.
+            skipRenderUntilPropChange: false,
         };
     },
     watch: {
         path() {
+            this.skipRenderUntilPropChange = false;
             this.pushRender();
         },
         content() {
+            this.skipRenderUntilPropChange = false;
             this.pushRender();
         },
         showSource() {
+            this.skipRenderUntilPropChange = false;
             this.pushRender();
         },
         pagePartials: {
             deep: true,
             handler() {
+                this.skipRenderUntilPropChange = false;
                 this.pushRender();
             },
         },
         renderOptions: {
             deep: true,
             handler() {
+                this.skipRenderUntilPropChange = false;
                 this.pushRender();
             },
         },
         contentClass() {
+            this.skipRenderUntilPropChange = false;
             this.pushRender();
         },
         color() {
+            this.skipRenderUntilPropChange = false;
             this.pushRender();
         },
         background() {
+            this.skipRenderUntilPropChange = false;
             this.pushRender();
         },
         active(isActive) {
@@ -164,12 +185,27 @@ export default {
         this.stopWatchdog();
     },
     methods: {
+        /**
+         * postMessage requires the structured clone algorithm. Vue reactive
+         * proxies in pagePartials / renderOptions are not cloneable.
+         */
+        toCloneableMessage(msg) {
+            try {
+                return JSON.parse(JSON.stringify(msg));
+            } catch {
+                return null;
+            }
+        },
         postToFrame(msg) {
             const frame = this.$refs.frame;
             if (!frame || !frame.contentWindow) {
                 return false;
             }
-            frame.contentWindow.postMessage({ channel: NOMAD_CRASH_TAB_CHANNEL, ...msg }, "*");
+            const payload = this.toCloneableMessage({ channel: NOMAD_CRASH_TAB_CHANNEL, ...msg });
+            if (!payload) {
+                return false;
+            }
+            frame.contentWindow.postMessage(payload, "*");
             return true;
         },
         onFrameLoad() {
@@ -179,6 +215,9 @@ export default {
             this.lastPongAt = Date.now();
         },
         pushRender() {
+            if (this.skipRenderUntilPropChange) {
+                return;
+            }
             if (!this.frameReady) {
                 return;
             }
@@ -191,7 +230,7 @@ export default {
             this.status = "rendering";
             this.lastPongAt = Date.now();
             this.$emit("render-started");
-            this.postToFrame({
+            const posted = this.postToFrame({
                 type: "render",
                 path: this.path || "",
                 content: this.content || "",
@@ -202,6 +241,10 @@ export default {
                 color: this.color || "",
                 background: this.background || "transparent",
             });
+            if (!posted) {
+                this.status = "crashed";
+                this.$emit("hung");
+            }
         },
         onWindowMessage(event) {
             const frame = this.$refs.frame;
@@ -214,7 +257,7 @@ export default {
             }
             if (data.type === "ready") {
                 this.frameReady = true;
-                this.status = "ready";
+                this.status = this.skipRenderUntilPropChange ? "aborted" : "ready";
                 this.lastPongAt = Date.now();
                 this.$emit("ready");
                 this.pushRender();
@@ -228,6 +271,9 @@ export default {
                 return;
             }
             if (data.type === "render-started") {
+                if (this.skipRenderUntilPropChange) {
+                    return;
+                }
                 this.status = "rendering";
                 this.lastPongAt = Date.now();
                 return;
@@ -244,9 +290,16 @@ export default {
                 this.$emit("hung");
                 return;
             }
+            if (data.type === "shell-background") {
+                this.$emit("shell-background", data.background || null);
+                return;
+            }
             if (data.type === "aborted") {
-                this.status = "ready";
-                this.$emit("aborted");
+                this.status = "aborted";
+                // abortRender already emitted. Ignore the frame echo after hard cancel.
+                if (!this.skipRenderUntilPropChange) {
+                    this.$emit("aborted");
+                }
                 return;
             }
             if (data.type === "navigate") {
@@ -305,12 +358,18 @@ export default {
         },
         abortRender() {
             this.renderEpoch += 1;
+            this.skipRenderUntilPropChange = true;
             this.postToFrame({ type: "abort" });
             // Hard cancel: tear down the sandboxed renderer process/context.
             this.reloadFrame();
+            this.status = "aborted";
+            this.$emit("render-done");
             this.$emit("aborted");
         },
         setPartialHtml(partialId, html) {
+            if (this.skipRenderUntilPropChange) {
+                return;
+            }
             this.postToFrame({ type: "set-partial", id: partialId, html: html || "" });
         },
     },
