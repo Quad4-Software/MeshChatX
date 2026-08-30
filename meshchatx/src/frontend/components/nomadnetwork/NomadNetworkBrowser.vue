@@ -16,11 +16,16 @@
                 :aria-selected="tab.id === activeTabId"
                 class="group flex min-h-0 min-w-[6.5rem] max-w-[12rem] min-[900px]:min-w-[7rem] min-[900px]:max-w-[14rem] shrink-0 cursor-grab items-center gap-1 border border-transparent px-2 min-[900px]:px-3 text-xs min-[900px]:text-sm leading-none transition-[opacity,background-color,border-color] duration-150 rounded-t-lg active:cursor-grabbing"
                 :class="[
-                    tab.id === activeTabId
-                        ? 'border-sem-border border-b-transparent bg-sem-canvas font-medium text-sem-fg'
-                        : 'text-sem-fg-muted hover:bg-sem-surface/50',
+                    tab.private
+                        ? tab.id === activeTabId
+                            ? 'border-purple-500/60 border-b-transparent bg-[#2b1065] font-medium text-purple-100'
+                            : 'text-purple-300/90 hover:bg-purple-900/40'
+                        : tab.id === activeTabId
+                          ? 'border-sem-border border-b-transparent bg-sem-canvas font-medium text-sem-fg'
+                          : 'text-sem-fg-muted hover:bg-sem-surface/50',
                     dragTabIndex === tabIndex ? 'opacity-50' : '',
                 ]"
+                :title="tab.private ? $t('nomadnet.private_tab') : undefined"
                 @click="selectTab(tab.id)"
                 @dragstart="onTabDragStart(tabIndex, $event)"
                 @dragover.prevent="onTabDragOver(tabIndex)"
@@ -28,9 +33,15 @@
                 @dragend="onTabDragEnd"
                 @contextmenu.prevent="openTabContextMenu($event, tab)"
             >
+                <MaterialDesignIcon
+                    v-if="tab.private"
+                    icon-name="incognito"
+                    class="size-3.5 min-[900px]:size-4 shrink-0 text-purple-300"
+                />
                 <span class="min-w-0 flex-1 truncate text-left leading-none">{{ tabTitle(tab) }}</span>
                 <span
                     class="shrink-0 rounded p-0.5 text-sem-fg-muted opacity-0 transition-opacity hover:bg-sem-surface hover:text-sem-fg group-hover:opacity-100 group-focus-within:opacity-100"
+                    :class="tab.private ? 'hover:bg-purple-800/60 hover:text-purple-100' : ''"
                     :title="$t('common.cancel')"
                     draggable="false"
                     @click.stop="closeTab(tab.id)"
@@ -46,6 +57,14 @@
             >
                 <MaterialDesignIcon icon-name="plus" class="size-4 min-[900px]:size-5" />
             </button>
+            <button
+                type="button"
+                class="mb-0 flex h-full w-8 min-[900px]:w-9 shrink-0 items-center justify-center rounded-lg text-purple-400 transition-colors hover:bg-purple-900/40 hover:text-purple-200"
+                :title="$t('nomadnet.new_private_tab_shortcut')"
+                @click="addTab('', null, null, true, true)"
+            >
+                <MaterialDesignIcon icon-name="incognito" class="size-4 min-[900px]:size-5" />
+            </button>
         </div>
 
         <div class="relative flex flex-1 min-h-0 min-w-0 overflow-hidden">
@@ -58,6 +77,7 @@
                     embedded
                     :tabs-enabled="tabsEnabled"
                     :is-active="tab.id === activeTabId && isRouteActive"
+                    :is-private="Boolean(tab.private)"
                     :destination-hash="tab.destinationHash"
                     :initial-path="tab.initialPath"
                     @navigate="onTabNavigate(tab.id, $event)"
@@ -80,11 +100,13 @@
             :can-close-tabs-right="contextMenuCanCloseTabsRight"
             :can-close-other-tabs="contextMenuCanCloseOtherTabs"
             :can-close-all-tabs="tabs.length > 1"
+            :context-tab-is-private="Boolean(contextMenuTab?.private)"
             @close="closeContextMenu"
             @view-source="onContextViewSource"
             @reload="onContextReload"
             @favorite="onContextFavorite"
             @download-page="onContextDownloadPage"
+            @new-private-tab="onContextNewPrivateTab"
             @close-tabs-right="onContextCloseTabsRight"
             @close-other-tabs="onContextCloseOtherTabs"
             @close-all-tabs="onContextCloseAllTabs"
@@ -159,14 +181,20 @@ export default {
         },
         tabLayoutSignature() {
             const tabs = this.tabs
+                .filter((tab) => !tab.private)
                 .map((tab) => `${tab.destinationHash || ""}|${tab.path || ""}|${tab.title || ""}`)
                 .join("\u241f");
-            const activeIndex = this.tabs.findIndex((tab) => tab.id === this.activeTabId);
+            const persistable = this.tabs.filter((tab) => !tab.private);
+            const activeIndex = persistable.findIndex((tab) => tab.id === this.activeTabId);
             return `${activeIndex}\u241e${tabs}`;
         },
         contextTabIndex() {
             const tabId = this.contextMenu.tabId ?? this.activeTabId;
             return this.tabs.findIndex((tab) => tab.id === tabId);
+        },
+        contextMenuTab() {
+            const tabId = this.contextMenu.tabId ?? this.activeTabId;
+            return this.tabs.find((tab) => tab.id === tabId) || null;
         },
         contextPageRef() {
             const tabId = this.contextMenu.tabId ?? this.activeTabId;
@@ -177,6 +205,9 @@ export default {
             return Boolean(page?.selectedNode && page?.nodePagePath);
         },
         contextMenuCanFavourite() {
+            if (this.contextMenuTab?.private) {
+                return false;
+            }
             return Boolean(this.contextPageRef?.selectedNode?.destination_hash);
         },
         contextMenuIsFavourite() {
@@ -314,7 +345,7 @@ export default {
             delete nextMounted[tabId];
             this.mountedTabIds = nextMounted;
         },
-        addTab(destinationHash = "", initialPath = null, title = null, activate = true) {
+        addTab(destinationHash = "", initialPath = null, title = null, activate = true, isPrivate = false) {
             const id = this.nextTabId++;
             this.tabs.push({
                 id,
@@ -322,6 +353,7 @@ export default {
                 initialPath: initialPath || null,
                 path: initialPath || null,
                 title: title || null,
+                private: Boolean(isPrivate),
             });
             if (activate) {
                 this.activeTabId = id;
@@ -333,9 +365,12 @@ export default {
         onOpenNode(payload) {
             const destinationHash = payload?.destinationHash || "";
             const forceNewTab = payload?.forceNewTab === true;
+            const openPrivate = payload?.private === true || Boolean(this.activeTab?.private);
 
             if (destinationHash && !forceNewTab) {
-                const existing = this.tabs.find((tab) => tab.destinationHash === destinationHash);
+                const existing = this.tabs.find(
+                    (tab) => tab.destinationHash === destinationHash && Boolean(tab.private) === openPrivate
+                );
                 if (existing) {
                     if (payload?.title) {
                         existing.title = payload.title;
@@ -351,7 +386,8 @@ export default {
                 destinationHash,
                 payload?.pagePath || null,
                 payload?.title || null,
-                payload?.activate !== false
+                payload?.activate !== false,
+                openPrivate
             );
         },
         selectRelativeTab(offset) {
@@ -391,6 +427,12 @@ export default {
                 event.preventDefault();
                 event.stopPropagation();
                 this.addTab();
+                return;
+            }
+            if (mod && event.shiftKey && key === "p") {
+                event.preventDefault();
+                event.stopPropagation();
+                this.addTab("", null, null, true, true);
                 return;
             }
             if (mod && key === "w") {
@@ -441,6 +483,7 @@ export default {
                     initialPath: this.sanitizeNomadTabPath(tab.path),
                     path: this.sanitizeNomadTabPath(tab.path),
                     title: typeof tab.title === "string" ? tab.title : null,
+                    private: false,
                 }))
                 .filter((tab) => !this.isExternalNomadTabPath(tab.path));
 
@@ -483,14 +526,22 @@ export default {
             return typeof path === "string" && LinkUtils.httpUrlHrefOrNull(path.trim()) != null;
         },
         persistTabs() {
-            const activeIndex = this.tabs.findIndex((tab) => tab.id === this.activeTabId);
+            const persistable = this.tabs.filter((tab) => !tab.private);
+            if (persistable.length === 0) {
+                saveNomadTabs({ tabs: [], activeIndex: 0 });
+                return;
+            }
+            let activeIndex = persistable.findIndex((tab) => tab.id === this.activeTabId);
+            if (activeIndex < 0) {
+                activeIndex = 0;
+            }
             saveNomadTabs({
-                tabs: this.tabs.map((tab) => ({
+                tabs: persistable.map((tab) => ({
                     destinationHash: tab.destinationHash || "",
                     path: this.sanitizeNomadTabPath(tab.path),
                     title: tab.title || null,
                 })),
-                activeIndex: activeIndex < 0 ? 0 : activeIndex,
+                activeIndex,
             });
         },
         selectTab(tabId) {
@@ -593,7 +644,11 @@ export default {
             if (tab.destinationHash) {
                 return tab.destinationHash.slice(0, 12);
             }
-            return this.$t("nomadnet.new_tab");
+            return tab.private ? this.$t("nomadnet.private_tab") : this.$t("nomadnet.new_tab");
+        },
+        onContextNewPrivateTab() {
+            this.closeContextMenu();
+            this.addTab("", null, null, true, true);
         },
         syncRoute() {
             const tab = this.activeTab;
