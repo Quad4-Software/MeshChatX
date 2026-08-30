@@ -2330,7 +2330,11 @@
         "crash_tab_reload": "Перезагрузить рендерер",
         "crash_tab_hung_toast": "Рендерер страницы Nomad не отвечает",
         "crash_tab_rendering": "Отрисовка страницы…",
-        "crash_tab_render_cancelled": "Отрисовка страницы отменена"
+        "crash_tab_render_cancelled": "Отрисовка страницы отменена",
+        "private_tab": "Приватная вкладка",
+        "new_private_tab": "Новая приватная вкладка",
+        "new_private_tab_shortcut": "Новая приватная вкладка (Ctrl+Shift+P)",
+        "private_browsing_hint": "Приватный просмотр: страницы не архивируются, избранное и identify отключены, mesh-ссылки не разделяются с другими вкладками."
     },
     "forwarder": {
         "title": "LXMF Форвардер",

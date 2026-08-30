@@ -2330,7 +2330,11 @@
         "crash_tab_reload": "Renderer neu laden",
         "crash_tab_hung_toast": "Nomad-Seitenrenderer reagiert nicht mehr",
         "crash_tab_rendering": "Seite wird gerendert…",
-        "crash_tab_render_cancelled": "Seitenrender abgebrochen"
+        "crash_tab_render_cancelled": "Seitenrender abgebrochen",
+        "private_tab": "Privates Tab",
+        "new_private_tab": "Neues privates Tab",
+        "new_private_tab_shortcut": "Neues privates Tab (Ctrl+Shift+P)",
+        "private_browsing_hint": "Privates Surfen: Seiten werden nicht archiviert, Favoriten und Identifizieren sind deaktiviert, und Mesh-Links werden nicht mit anderen Tabs geteilt."
     },
     "forwarder": {
         "title": "LXMF-Weiterleiter",

@@ -2608,7 +2608,11 @@
         "crash_tab_reload": "Ricarica renderer",
         "crash_tab_hung_toast": "Il renderer della pagina Nomad non risponde",
         "crash_tab_rendering": "Rendering della pagina…",
-        "crash_tab_render_cancelled": "Rendering della pagina annullato"
+        "crash_tab_render_cancelled": "Rendering della pagina annullato",
+        "private_tab": "Scheda privata",
+        "new_private_tab": "Nuova scheda privata",
+        "new_private_tab_shortcut": "Nuova scheda privata (Ctrl+Shift+P)",
+        "private_browsing_hint": "Navigazione privata: le pagine non vengono archiviate, preferiti e identify sono disabilitati, e i link mesh non sono condivisi con altre schede."
     },
     "forwarder": {
         "title": "Inoltro LXMF",

@@ -2554,7 +2554,11 @@
         "crash_tab_reload": "Renderer opnieuw laden",
         "crash_tab_hung_toast": "Nomad-paginarenderer reageert niet meer",
         "crash_tab_rendering": "Pagina wordt gerenderd…",
-        "crash_tab_render_cancelled": "Paginarender geannuleerd"
+        "crash_tab_render_cancelled": "Paginarender geannuleerd",
+        "private_tab": "Private tab",
+        "new_private_tab": "New private tab",
+        "new_private_tab_shortcut": "New private tab (Ctrl+Shift+P)",
+        "private_browsing_hint": "Private browsing: pages are not archived, favourites and identify are disabled, and mesh links are not shared with other tabs."
     },
     "forwarder": {
         "title": "LXMF-doorstuurder",
