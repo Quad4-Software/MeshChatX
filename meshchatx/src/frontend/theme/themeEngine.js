@@ -226,11 +226,11 @@ export const THEME_PRESETS = {
         },
         dark: {
             "--mc-canvas": "#000000",
-            "--mc-surface": "#0a0a0a",
+            "--mc-surface": "#000000",
             "--mc-border-card": "#141414",
-            "--mc-glass-surface": "rgb(0 0 0 / 0.92)",
-            "--mc-surface-muted": "rgb(10 10 10 / 0.85)",
-            "--mc-surface-raised": "rgb(10 10 10 / 0.7)",
+            "--mc-glass-surface": "rgb(0 0 0 / 0.94)",
+            "--mc-surface-muted": "rgb(20 20 20 / 0.9)",
+            "--mc-surface-raised": "rgb(20 20 20 / 0.85)",
         },
     },
     solarized: {
@@ -773,6 +773,15 @@ export function applyAppearanceTheme(config, options = {}) {
         windowObj?.localStorage?.setItem("meshchatx_ui_theme", persistMode);
     } catch {
         // ignore quota / private mode
+    }
+
+    try {
+        const electronBridge = windowObj?.electron;
+        if (electronBridge && typeof electronBridge.setUiTheme === "function") {
+            void electronBridge.setUiTheme(persistMode);
+        }
+    } catch {
+        // ignore missing bridge
     }
 
     try {
