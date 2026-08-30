@@ -131,9 +131,228 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 )
 
 
+from meshchatx.src.backend.websocket_runtime import (
+    WS_NOMAD_CHUNK_SIZE,
+    WS_NOMAD_CHUNK_THRESHOLD,
+    WS_NOMAD_FILE_MAX_BYTES,
+    WS_NOMAD_PAGE_MAX_CHARS,
+)
+
+
+def _request_id_fields(data: dict) -> dict:
+    rid = data.get("request_id")
+    if rid is None:
+        return {}
+    return {"request_id": rid}
+
+
+async def _send_nomad_file_bytes(
+    client,
+    *,
+    download_id,
+    destination_hash_hex: str,
+    file_path: str,
+    file_name: str,
+    file_bytes: bytes,
+    private: bool,
+    request_id_fields: dict,
+):
+    """Single-frame for small files; chunked frames for large ones."""
+    if len(file_bytes) > WS_NOMAD_FILE_MAX_BYTES:
+        await client.send_str(
+            json.dumps(
+                {
+                    "type": "nomadnet.file.download",
+                    "download_id": download_id,
+                    **request_id_fields,
+                    "nomadnet_file_download": {
+                        "status": "failure",
+                        "failure_reason": "file_too_large",
+                        "destination_hash": destination_hash_hex,
+                        "file_path": file_path,
+                    },
+                },
+            ),
+        )
+        return
+    if len(file_bytes) <= WS_NOMAD_CHUNK_THRESHOLD:
+        await client.send_str(
+            json.dumps(
+                {
+                    "type": "nomadnet.file.download",
+                    "download_id": download_id,
+                    **request_id_fields,
+                    "nomadnet_file_download": {
+                        "status": "success",
+                        "destination_hash": destination_hash_hex,
+                        "file_path": file_path,
+                        "file_name": file_name,
+                        "file_bytes": base64.b64encode(file_bytes).decode("utf-8"),
+                        "private": private,
+                    },
+                },
+            ),
+        )
+        return
+    total = len(file_bytes)
+    offset = 0
+    chunk_index = 0
+    while offset < total:
+        chunk = file_bytes[offset : offset + WS_NOMAD_CHUNK_SIZE]
+        await client.send_str(
+            json.dumps(
+                {
+                    "type": "nomadnet.file.download",
+                    "download_id": download_id,
+                    **request_id_fields,
+                    "nomadnet_file_download": {
+                        "status": "chunk",
+                        "destination_hash": destination_hash_hex,
+                        "file_path": file_path,
+                        "file_name": file_name,
+                        "offset": offset,
+                        "total": total,
+                        "chunk_index": chunk_index,
+                        "chunk_b64": base64.b64encode(chunk).decode("utf-8"),
+                        "private": private,
+                    },
+                },
+            ),
+        )
+        offset += len(chunk)
+        chunk_index += 1
+    import hashlib
+
+    digest = hashlib.sha256(file_bytes).hexdigest()
+    await client.send_str(
+        json.dumps(
+            {
+                "type": "nomadnet.file.download",
+                "download_id": download_id,
+                **request_id_fields,
+                "nomadnet_file_download": {
+                    "status": "success",
+                    "destination_hash": destination_hash_hex,
+                    "file_path": file_path,
+                    "file_name": file_name,
+                    "chunked": True,
+                    "total": total,
+                    "sha256": digest,
+                    "private": private,
+                },
+            },
+        ),
+    )
+
+
+async def _send_nomad_page_content(
+    client,
+    *,
+    download_id,
+    destination_hash_hex: str,
+    page_path: str,
+    page_content: str,
+    private: bool,
+    request_id_fields: dict,
+    extra: dict | None = None,
+):
+    if not isinstance(page_content, str):
+        page_content = str(page_content)
+    if len(page_content) > WS_NOMAD_PAGE_MAX_CHARS:
+        await client.send_str(
+            json.dumps(
+                {
+                    "type": "nomadnet.page.download",
+                    "download_id": download_id,
+                    **request_id_fields,
+                    "nomadnet_page_download": {
+                        "status": "failure",
+                        "failure_reason": "page_too_large",
+                        "destination_hash": destination_hash_hex,
+                        "page_path": page_path,
+                    },
+                },
+            ),
+        )
+        return
+    body = {
+        "status": "success",
+        "destination_hash": destination_hash_hex,
+        "page_path": page_path,
+        "page_content": page_content,
+        "private": private,
+    }
+    if extra:
+        body.update(extra)
+    if len(page_content.encode("utf-8", errors="replace")) <= WS_NOMAD_CHUNK_THRESHOLD:
+        await client.send_str(
+            json.dumps(
+                {
+                    "type": "nomadnet.page.download",
+                    "download_id": download_id,
+                    **request_id_fields,
+                    "nomadnet_page_download": body,
+                },
+            ),
+        )
+        return
+    raw = page_content.encode("utf-8", errors="replace")
+    total = len(raw)
+    offset = 0
+    chunk_index = 0
+    while offset < total:
+        chunk = raw[offset : offset + WS_NOMAD_CHUNK_SIZE]
+        await client.send_str(
+            json.dumps(
+                {
+                    "type": "nomadnet.page.download",
+                    "download_id": download_id,
+                    **request_id_fields,
+                    "nomadnet_page_download": {
+                        "status": "chunk",
+                        "destination_hash": destination_hash_hex,
+                        "page_path": page_path,
+                        "offset": offset,
+                        "total": total,
+                        "chunk_index": chunk_index,
+                        "chunk_b64": base64.b64encode(chunk).decode("utf-8"),
+                        "private": private,
+                    },
+                },
+            ),
+        )
+        offset += len(chunk)
+        chunk_index += 1
+    import hashlib
+
+    digest = hashlib.sha256(raw).hexdigest()
+    body = {
+        "status": "success",
+        "destination_hash": destination_hash_hex,
+        "page_path": page_path,
+        "chunked": True,
+        "total": total,
+        "sha256": digest,
+        "private": private,
+    }
+    if extra:
+        body.update({k: v for k, v in extra.items() if k != "page_content"})
+    await client.send_str(
+        json.dumps(
+            {
+                "type": "nomadnet.page.download",
+                "download_id": download_id,
+                **request_id_fields,
+                "nomadnet_page_download": body,
+            },
+        ),
+    )
+
+
 async def handle_nomadnet_download_cancel(app, client, data):
     # get data from websocket client
     download_id = data.get("download_id")
+    rid = _request_id_fields(data)
     if download_id is None:
         return
 
@@ -150,6 +369,7 @@ async def handle_nomadnet_download_cancel(app, client, data):
                     {
                         "type": "nomadnet.download.cancelled",
                         "download_id": download_id,
+                        **rid,
                     },
                 ),
             ),
@@ -323,6 +543,8 @@ async def handle_nomadnet_file_download(app, client, data):
     except ValueError:
         return
 
+    rid = _request_id_fields(data)
+
     local_file = app._try_serve_local_page_node_file(
         destination_hash,
         file_path,
@@ -332,23 +554,15 @@ async def handle_nomadnet_file_download(app, client, data):
         app.download_id_counter += 1
         download_id = app.download_id_counter
         AsyncUtils.run_async(
-            client.send_str(
-                json.dumps(
-                    {
-                        "type": "nomadnet.file.download",
-                        "download_id": download_id,
-                        "nomadnet_file_download": {
-                            "status": "success",
-                            "destination_hash": destination_hash.hex(),
-                            "file_path": file_path,
-                            "file_name": file_name,
-                            "file_bytes": base64.b64encode(file_bytes).decode(
-                                "utf-8",
-                            ),
-                            "private": private,
-                        },
-                    },
-                ),
+            _send_nomad_file_bytes(
+                client,
+                download_id=download_id,
+                destination_hash_hex=destination_hash.hex(),
+                file_path=file_path,
+                file_name=file_name,
+                file_bytes=file_bytes,
+                private=private,
+                request_id_fields=rid,
             ),
         )
         return
@@ -374,22 +588,15 @@ async def handle_nomadnet_file_download(app, client, data):
                     app.download_speeds.pop(0)
 
         AsyncUtils.run_async(
-            client.send_str(
-                json.dumps(
-                    {
-                        "type": "nomadnet.file.download",
-                        "download_id": download_id,
-                        "nomadnet_file_download": {
-                            "status": "success",
-                            "destination_hash": destination_hash.hex(),
-                            "file_path": file_path,
-                            "file_name": file_name,
-                            "file_bytes": base64.b64encode(file_bytes).decode(
-                                "utf-8",
-                            ),
-                        },
-                    },
-                ),
+            _send_nomad_file_bytes(
+                client,
+                download_id=download_id,
+                destination_hash_hex=destination_hash.hex(),
+                file_path=file_path,
+                file_name=file_name,
+                file_bytes=file_bytes,
+                private=private,
+                request_id_fields=rid,
             ),
         )
 
@@ -405,6 +612,7 @@ async def handle_nomadnet_file_download(app, client, data):
                     {
                         "type": "nomadnet.file.download",
                         "download_id": download_id,
+                        **rid,
                         "nomadnet_file_download": {
                             "status": "failure",
                             "failure_reason": failure_reason,
@@ -424,6 +632,7 @@ async def handle_nomadnet_file_download(app, client, data):
                     {
                         "type": "nomadnet.file.download",
                         "download_id": download_id,
+                        **rid,
                         "nomadnet_file_download": {
                             "status": "progress",
                             "progress": progress,
@@ -442,6 +651,7 @@ async def handle_nomadnet_file_download(app, client, data):
                     {
                         "type": "nomadnet.file.download",
                         "download_id": download_id,
+                        **rid,
                         "nomadnet_file_download": {
                             "status": "phase",
                             "load_phase": phase,
@@ -463,6 +673,7 @@ async def handle_nomadnet_file_download(app, client, data):
         data=request_data,
         on_phase=on_file_download_phase,
         reticulum=getattr(app, "reticulum", None),
+        max_bytes=WS_NOMAD_FILE_MAX_BYTES,
         private=private,
     )
     downloader.start_time = time.time()
@@ -474,6 +685,7 @@ async def handle_nomadnet_file_download(app, client, data):
             {
                 "type": "nomadnet.file.download",
                 "download_id": download_id,
+                **rid,
                 "nomadnet_file_download": {
                     "status": "started",
                     "destination_hash": destination_hash.hex(),
@@ -498,6 +710,7 @@ async def handle_nomadnet_page_download(app, client, data):
     page_path = page_download_data.get("page_path")
     field_data = page_download_data.get("field_data")
     private = bool(page_download_data.get("private"))
+    rid = _request_id_fields(data)
 
     # generate download id early so the client can always clear Loading page
     app.download_id_counter += 1
@@ -512,6 +725,7 @@ async def handle_nomadnet_page_download(app, client, data):
                     {
                         "type": "nomadnet.page.download",
                         "download_id": download_id,
+                        **rid,
                         "nomadnet_page_download": {
                             "status": "failure",
                             "failure_reason": reason,
@@ -565,20 +779,14 @@ async def handle_nomadnet_page_download(app, client, data):
         if not private:
             app.archive_page(destination_hash.hex(), page_path, local_page)
         AsyncUtils.run_async(
-            client.send_str(
-                json.dumps(
-                    {
-                        "type": "nomadnet.page.download",
-                        "download_id": download_id,
-                        "nomadnet_page_download": {
-                            "status": "success",
-                            "destination_hash": destination_hash.hex(),
-                            "page_path": page_path,
-                            "page_content": local_page,
-                            "private": private,
-                        },
-                    },
-                ),
+            _send_nomad_page_content(
+                client,
+                download_id=download_id,
+                destination_hash_hex=destination_hash.hex(),
+                page_path=page_path,
+                page_content=local_page,
+                private=private,
+                request_id_fields=rid,
             ),
         )
         return
@@ -594,20 +802,14 @@ async def handle_nomadnet_page_download(app, client, data):
             app.archive_page(destination_hash.hex(), page_path, page_content)
 
         AsyncUtils.run_async(
-            client.send_str(
-                json.dumps(
-                    {
-                        "type": "nomadnet.page.download",
-                        "download_id": download_id,
-                        "nomadnet_page_download": {
-                            "status": "success",
-                            "destination_hash": destination_hash.hex(),
-                            "page_path": page_path,
-                            "page_content": page_content,
-                            "private": private,
-                        },
-                    },
-                ),
+            _send_nomad_page_content(
+                client,
+                download_id=download_id,
+                destination_hash_hex=destination_hash.hex(),
+                page_path=page_path,
+                page_content=page_content,
+                private=private,
+                request_id_fields=rid,
             ),
         )
 
@@ -636,6 +838,7 @@ async def handle_nomadnet_page_download(app, client, data):
                     {
                         "type": "nomadnet.page.download",
                         "download_id": download_id,
+                        **rid,
                         "nomadnet_page_download": {
                             "status": "failure",
                             "failure_reason": failure_reason,
@@ -656,6 +859,7 @@ async def handle_nomadnet_page_download(app, client, data):
                     {
                         "type": "nomadnet.page.download",
                         "download_id": download_id,
+                        **rid,
                         "nomadnet_page_download": {
                             "status": "progress",
                             "progress": progress,
@@ -674,6 +878,7 @@ async def handle_nomadnet_page_download(app, client, data):
                     {
                         "type": "nomadnet.page.download",
                         "download_id": download_id,
+                        **rid,
                         "nomadnet_page_download": {
                             "status": "phase",
                             "load_phase": phase,
@@ -705,6 +910,7 @@ async def handle_nomadnet_page_download(app, client, data):
             {
                 "type": "nomadnet.page.download",
                 "download_id": download_id,
+                **rid,
                 "nomadnet_page_download": {
                     "status": "started",
                     "destination_hash": destination_hash.hex(),

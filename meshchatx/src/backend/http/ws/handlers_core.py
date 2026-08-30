@@ -166,11 +166,15 @@ async def handle_keyboard_shortcuts_get(app, client, data):
     shortcuts = app.database.misc.get_keyboard_shortcuts(
         app.identity.hash.hex(),
     )
+    rid = {}
+    if data.get("request_id") is not None:
+        rid["request_id"] = data.get("request_id")
     AsyncUtils.run_async(
         client.send_str(
             json.dumps(
                 {
                     "type": "keyboard_shortcuts",
+                    **rid,
                     "shortcuts": [
                         {
                             "action": s["action"],
@@ -198,7 +202,10 @@ async def handle_keyboard_shortcuts_set(app, client, data):
     AsyncUtils.run_async(
         app.on_websocket_data_received(
             client,
-            {"type": "keyboard_shortcuts.get"},
+            {
+                "type": "keyboard_shortcuts.get",
+                "request_id": data.get("request_id"),
+            },
         ),
     )
 
@@ -215,7 +222,10 @@ async def handle_keyboard_shortcuts_delete(app, client, data):
     AsyncUtils.run_async(
         app.on_websocket_data_received(
             client,
-            {"type": "keyboard_shortcuts.get"},
+            {
+                "type": "keyboard_shortcuts.get",
+                "request_id": data.get("request_id"),
+            },
         ),
     )
 

@@ -132,7 +132,6 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 
 
 def register_debug_routes(routes, app):
-
     # serve debug logs
     @routes.get("/api/v1/debug/logs")
     async def get_debug_logs(request):
@@ -166,6 +165,23 @@ def register_debug_routes(routes, app):
                 "offset": offset,
             },
         )
+
+    @routes.get("/api/v1/debug/websocket")
+    async def get_websocket_debug(request):
+        counters = getattr(app, "ws_counters", None)
+        clients = getattr(app, "websocket_clients", None) or []
+        snap = (
+            counters.snapshot(client_count=len(clients))
+            if counters is not None
+            else {"clients": len(clients)}
+        )
+        seq_state = getattr(app, "ws_seq_state", None)
+        if seq_state is not None:
+            snap["seq"] = int(seq_state.seq)
+        snap["max_msg_size"] = int(
+            getattr(app, "websocket_max_msg_size", 0) or 0,
+        )
+        return web.json_response({"websocket": snap})
 
     @routes.get("/api/v1/debug/access-attempts")
     async def get_access_attempts(request):
