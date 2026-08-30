@@ -1,8 +1,8 @@
 {
   "dest": "meshchatx/public/reticulum-docs-bundled/current",
-  "fetched_utc": "2026-07-25T20:12:03Z",
+  "fetched_utc": "2026-08-30T02:57:23Z",
   "html_files": 206,
-  "rns_version": "1.5.0",
+  "rns_version": "1.5.2",
   "skipped_binary_files": 2,
-  "source_url": "rns://7649a50d84610232d1416b41d2896aff/reticulum/website"
+  "source_url": "https://codeload.github.com/markqvist/reticulum_website/zip/refs/heads/master"
 }
