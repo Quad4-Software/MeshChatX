@@ -715,9 +715,9 @@
                                         class="absolute left-[-2px] top-0 bottom-0 w-[2px] bg-linear-to-b from-blue-500 to-emerald-500"
                                     ></div>
                                     <div
-                                        class="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 text-emerald-600 font-black text-[10px] tracking-tighter shadow-xs"
+                                        class="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 text-emerald-600 shadow-xs"
                                     >
-                                        LXMFy
+                                        <MaterialDesignIcon icon-name="robot" class="size-6" />
                                     </div>
                                     <div>
                                         <div class="text-sm font-black text-sem-fg leading-tight">LXMFy</div>
@@ -733,9 +733,9 @@
                                         class="absolute left-[-2px] top-0 bottom-0 w-[2px] bg-linear-to-b from-emerald-500 to-purple-500"
                                     ></div>
                                     <div
-                                        class="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20 text-purple-600 font-black text-[10px] tracking-tighter shadow-xs"
+                                        class="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20 text-purple-600 shadow-xs"
                                     >
-                                        LXMF
+                                        <MaterialDesignIcon icon-name="message-text" class="size-6" />
                                     </div>
                                     <div>
                                         <div class="text-sm font-black text-sem-fg leading-tight">LXMF</div>
@@ -752,9 +752,9 @@
                                         class="absolute left-[-2px] top-0 bottom-0 w-[2px] bg-linear-to-b from-purple-500 to-rose-500"
                                     ></div>
                                     <div
-                                        class="w-12 h-12 rounded-2xl bg-rose-500/10 flex items-center justify-center border border-rose-500/20 text-rose-600 font-black text-[10px] tracking-tighter shadow-xs"
+                                        class="w-12 h-12 rounded-2xl bg-rose-500/10 flex items-center justify-center border border-rose-500/20 text-rose-600 shadow-xs"
                                     >
-                                        LXST
+                                        <MaterialDesignIcon icon-name="phone" class="size-6" />
                                     </div>
                                     <div>
                                         <div class="text-sm font-black text-sem-fg leading-tight">LXST</div>
@@ -770,9 +770,9 @@
                                         class="absolute left-[-2px] top-0 bottom-0 w-[2px] bg-linear-to-b from-rose-500 to-indigo-500"
                                     ></div>
                                     <div
-                                        class="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 text-indigo-600 font-black text-[10px] tracking-tighter shadow-xs"
+                                        class="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 text-indigo-600 shadow-xs"
                                     >
-                                        RNS
+                                        <MaterialDesignIcon icon-name="lan" class="size-6" />
                                     </div>
                                     <div>
                                         <div class="text-sm font-black text-sem-fg leading-tight">RNS</div>
