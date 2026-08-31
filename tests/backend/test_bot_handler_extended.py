@@ -319,6 +319,21 @@ def test_read_subprocess_log(temp_identity_dir):
     assert "line2" in (out["log"] or "")
 
 
+def test_rotate_subprocess_log_if_needed(temp_identity_dir, tmp_path):
+    log_path = tmp_path / "meshchatx_bot_subprocess.log"
+    log_path.write_bytes(b"x" * 100)
+    BotHandler._rotate_subprocess_log_if_needed(str(log_path), max_bytes=50, backups=1)
+    assert not log_path.exists()
+    assert (tmp_path / "meshchatx_bot_subprocess.log.1").exists()
+    assert (tmp_path / "meshchatx_bot_subprocess.log.1").stat().st_size == 100
+
+    small = tmp_path / "small.log"
+    small.write_bytes(b"ok")
+    BotHandler._rotate_subprocess_log_if_needed(str(small), max_bytes=50, backups=1)
+    assert small.exists()
+    assert small.read_bytes() == b"ok"
+
+
 def test_read_subprocess_log_unknown_bot(temp_identity_dir):
     handler = BotHandler(temp_identity_dir)
     with pytest.raises(ValueError, match="Unknown bot"):

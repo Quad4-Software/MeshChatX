@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file.
 - **Desktop app**: Startup and crash screens use your saved theme right away, so dark mode does not flash white.
 - **Map**: Discovered interfaces and telemetry markers update again.
 - **UI**: Dropdowns follow the theme colors.
+- **Docker / logs**: Compose caps container json-file logs at 10 MB × 5. Per-announce traffic no longer `print`s to stdout (debug logger only). When a log directory exists, RNS lines go through the rotating Python logger (`MESHCHAT_RNS_LOG_DEST=stdout` keeps the old console path). Bot subprocess logs rotate at 5 MB. Electron main-process appends rotate the same `meshchatx.log` size cap.
 
 ### Changed
 

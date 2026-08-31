@@ -69,6 +69,18 @@ docker run -d --name reticulum-meshchatx \
 
 Default Compose maps `127.0.0.1:8000` on the host to port `8000` in the container. Data persists in the `meshchatx-config` volume at `/config`.
 
+Compose caps Docker's own json-file logs at **10 MB × 5 files** per container (`logging.options`). App file logs under `/config` already rotate separately (`meshchatx.log`, about 20 MB). For a bare `docker run` without Compose, add the same limits or the host can fill under `/var/lib/docker/containers/`:
+
+```bash
+docker run -d --name reticulum-meshchatx \
+  --log-opt max-size=10m --log-opt max-file=5 \
+  -p 127.0.0.1:8000:8000 \
+  -v meshchatx-config:/config \
+  ghcr.io/quad4-software/meshchatx:latest
+```
+
+Coolify and other hosts that ignore Compose `logging:` should set equivalent log rotation in the platform UI.
+
 To bind a host directory instead, mount it at `/config`. The container runs as UID 1000. The host directory must be writable by that user.
 
 Run only **one** MeshChatX instance per `/config` volume. Startup takes an exclusive storage lock so schema migration and runtime do not overlap. For Docker or Coolify, use a single replica on that volume and replace containers in a rolling stop-then-start order instead of two replicas sharing one config path.
@@ -207,25 +219,26 @@ Open the UI at the host and port you chose. HTTPS is enabled by default with a s
 
 Common flags and environment variables:
 
-| Flag                     | Environment variable            | Default        | Description                                                                         |
-| ------------------------ | ------------------------------- | -------------- | ----------------------------------------------------------------------------------- |
-| `--host`                 | `MESHCHAT_HOST`                 | `127.0.0.1`    | Bind address                                                                        |
-| `--port`                 | `MESHCHAT_PORT`                 | `8000`         | HTTP or HTTPS port                                                                  |
-| `--no-https`             | `MESHCHAT_NO_HTTPS`             | false          | Serve plain HTTP                                                                    |
-| `--ssl-cert`             | `MESHCHAT_SSL_CERT`             | auto           | TLS certificate path                                                                |
-| `--ssl-key`              | `MESHCHAT_SSL_KEY`              | auto           | TLS private key path                                                                |
-| `--headless`             | `MESHCHAT_HEADLESS`             | false          | Do not open a browser                                                               |
-| `--auth`                 | `MESHCHAT_AUTH`                 | false          | Require HTTP basic auth for the UI                                                  |
-| `--reset-password`       | `MESHCHAT_RESET_PASSWORD`       | false          | Clear the stored password hash so a new one can be set in the UI                    |
-| `--storage-dir`          | `MESHCHAT_STORAGE_DIR`          | `./storage`    | Application data directory                                                          |
-| `--public-dir`           | `MESHCHAT_PUBLIC_DIR`           | auto/bundled   | Frontend files. Needed for source installs without bundled assets.                  |
-| `--reticulum-config-dir` | `MESHCHAT_RETICULUM_CONFIG_DIR` | `~/.reticulum` | Reticulum configuration                                                             |
-| `--data-dir`             | `MESHCHAT_DATA_DIR`             | none           | Portable root (`storage` + `.reticulum` subdirs when the two paths above are unset) |
-| `--identity-file`        | `MESHCHAT_IDENTITY_FILE`        | none           | Load identity from file                                                             |
-| `--rns-log-level`        | `MESHCHAT_RNS_LOG_LEVEL`        | none           | Reticulum log level                                                                 |
-| `--auto-recover`         | `MESHCHAT_AUTO_RECOVER`         | false          | Attempt SQLite recovery on start                                                    |
-| `--emergency`            |                                 | false          | Start without database                                                              |
-| `--disable-plugins`      |                                 | false          | Disable the plugin system                                                           |
+| Flag                     | Environment variable            | Default        | Description                                                                              |
+| ------------------------ | ------------------------------- | -------------- | ---------------------------------------------------------------------------------------- |
+| `--host`                 | `MESHCHAT_HOST`                 | `127.0.0.1`    | Bind address                                                                             |
+| `--port`                 | `MESHCHAT_PORT`                 | `8000`         | HTTP or HTTPS port                                                                       |
+| `--no-https`             | `MESHCHAT_NO_HTTPS`             | false          | Serve plain HTTP                                                                         |
+| `--ssl-cert`             | `MESHCHAT_SSL_CERT`             | auto           | TLS certificate path                                                                     |
+| `--ssl-key`              | `MESHCHAT_SSL_KEY`              | auto           | TLS private key path                                                                     |
+| `--headless`             | `MESHCHAT_HEADLESS`             | false          | Do not open a browser                                                                    |
+| `--auth`                 | `MESHCHAT_AUTH`                 | false          | Require HTTP basic auth for the UI                                                       |
+| `--reset-password`       | `MESHCHAT_RESET_PASSWORD`       | false          | Clear the stored password hash so a new one can be set in the UI                         |
+| `--storage-dir`          | `MESHCHAT_STORAGE_DIR`          | `./storage`    | Application data directory                                                               |
+| `--public-dir`           | `MESHCHAT_PUBLIC_DIR`           | auto/bundled   | Frontend files. Needed for source installs without bundled assets.                       |
+| `--reticulum-config-dir` | `MESHCHAT_RETICULUM_CONFIG_DIR` | `~/.reticulum` | Reticulum configuration                                                                  |
+| `--data-dir`             | `MESHCHAT_DATA_DIR`             | none           | Portable root (`storage` + `.reticulum` subdirs when the two paths above are unset)      |
+| `--identity-file`        | `MESHCHAT_IDENTITY_FILE`        | none           | Load identity from file                                                                  |
+| `--rns-log-level`        | `MESHCHAT_RNS_LOG_LEVEL`        | none           | Reticulum log level                                                                      |
+| (env only)               | `MESHCHAT_RNS_LOG_DEST`         | logging        | `stdout` keeps RNS on the console. With a log dir, default is the rotating Python logger |
+| `--auto-recover`         | `MESHCHAT_AUTO_RECOVER`         | false          | Attempt SQLite recovery on start                                                         |
+| `--emergency`            |                                 | false          | Start without database                                                                   |
+| `--disable-plugins`      |                                 | false          | Disable the plugin system                                                                |
 
 CLI flags override environment variables when both are set.
 

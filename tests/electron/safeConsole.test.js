@@ -145,9 +145,7 @@ describe("safeConsole", () => {
             },
         });
         expect(unlinked).toContain("/tmp/meshchat-logs/meshchatx.log.1");
-        expect(renamed).toEqual([
-            ["/tmp/meshchat-logs/meshchatx.log", "/tmp/meshchat-logs/meshchatx.log.1"],
-        ]);
+        expect(renamed).toEqual([["/tmp/meshchat-logs/meshchatx.log", "/tmp/meshchat-logs/meshchatx.log.1"]]);
         expect(ELECTRON_LOG_MAX_BYTES).toBe(5 * 1024 * 1024);
     });
 

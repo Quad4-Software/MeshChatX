@@ -363,6 +363,32 @@ def _resolve_rns_loglevel(cli_override: str | None) -> int | None:
     return _parse_rns_loglevel_value(os.environ.get("MESHCHAT_RNS_LOG_LEVEL"))
 
 
+_rns_bridge_logger = logging.getLogger("meshchatx.rns")
+
+
+def _rns_log_to_python_logging(logstring: str) -> None:
+    """Forward already-formatted RNS log lines into the MeshChatX logger."""
+    try:
+        _rns_bridge_logger.info("%s", logstring)
+    except Exception:
+        pass
+
+
+def _resolve_rns_logdest():
+    """Choose RNS log destination.
+
+    When a writable log_dir exists, default to a callback into Python logging
+    so RNS output shares SafeRotatingFileHandler and does not flood Docker
+    stdout. Set MESHCHAT_RNS_LOG_DEST=stdout to keep the RNS console default.
+    """
+    raw = (os.environ.get("MESHCHAT_RNS_LOG_DEST") or "").strip().lower()
+    if raw in ("stdout", "console", "stderr"):
+        return None
+    if raw in ("", "logging", "callback", "file") and log_dir:
+        return _rns_log_to_python_logging
+    return None
+
+
 def _restore_rns_console_logging_after_reticulum_init(app) -> None:
     """Undo shutdown side effects from RNS.Reticulum.exit_handler.
 
@@ -386,7 +412,11 @@ def _restore_rns_console_logging_after_reticulum_init(app) -> None:
         RNS.loglevel = RNS.LOG_WARNING
 
 
-def _create_reticulum_instance(config_dir: str, loglevel: int | None = None):
+def _create_reticulum_instance(
+    config_dir: str,
+    loglevel: int | None = None,
+    logdest=None,
+):
     """Construct RNS.Reticulum even when called off the main thread.
 
     Reticulum registers SIGINT/SIGTERM handlers in __init__. Python only allows
@@ -401,6 +431,9 @@ def _create_reticulum_instance(config_dir: str, loglevel: int | None = None):
     kwargs = {}
     if loglevel is not None:
         kwargs["loglevel"] = loglevel
+    resolved_logdest = logdest if logdest is not None else _resolve_rns_logdest()
+    if resolved_logdest is not None:
+        kwargs["logdest"] = resolved_logdest
 
     def _construct():
         if threading.current_thread() is threading.main_thread():
@@ -10335,7 +10368,10 @@ class ReticulumMeshChat:
             return
         identity_hash = announced_identity.hash.hex()
         if self.is_destination_blocked(identity_hash, context=ctx):
-            print(f"Dropping telephone announce from blocked source: {identity_hash}")
+            logger.debug(
+                "Dropping telephone announce from blocked source: %s",
+                identity_hash,
+            )
             if hasattr(self, "reticulum") and self.reticulum:
                 self.reticulum.drop_path(destination_hash)
             return
@@ -10343,11 +10379,9 @@ class ReticulumMeshChat:
         if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
             return
 
-        # log received announce
-        print(
-            "Received an announce from "
-            + RNS.prettyhexrep(destination_hash)
-            + " for [lxst.telephony]",
+        logger.debug(
+            "Received an announce from %s for [lxst.telephony]",
+            RNS.prettyhexrep(destination_hash),
         )
 
         # track announce timestamp
@@ -10396,15 +10430,19 @@ class ReticulumMeshChat:
 
         # check if announced identity or its hash is missing
         if not announced_identity or not announced_identity.hash:
-            print(
-                f"Dropping announce with missing identity or hash: {RNS.prettyhexrep(destination_hash)}",
+            logger.debug(
+                "Dropping announce with missing identity or hash: %s",
+                RNS.prettyhexrep(destination_hash),
             )
             return
 
         # check if source is blocked - drop announce and path if blocked
         identity_hash = announced_identity.hash.hex()
         if self.is_destination_blocked(identity_hash, context=ctx):
-            print(f"Dropping announce from blocked source: {identity_hash}")
+            logger.debug(
+                "Dropping announce from blocked source: %s",
+                identity_hash,
+            )
             if hasattr(self, "reticulum") and self.reticulum:
                 self.reticulum.drop_path(destination_hash)
             return
@@ -10412,11 +10450,9 @@ class ReticulumMeshChat:
         if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
             return
 
-        # log received announce
-        print(
-            "Received an announce from "
-            + RNS.prettyhexrep(destination_hash)
-            + " for [lxmf.delivery]",
+        logger.debug(
+            "Received an announce from %s for [lxmf.delivery]",
+            RNS.prettyhexrep(destination_hash),
         )
 
         # track announce timestamp
@@ -10480,11 +10516,9 @@ class ReticulumMeshChat:
         if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
             return
 
-        # log received announce
-        print(
-            "Received an announce from "
-            + RNS.prettyhexrep(destination_hash)
-            + " for [lxmf.propagation]",
+        logger.debug(
+            "Received an announce from %s for [lxmf.propagation]",
+            RNS.prettyhexrep(destination_hash),
         )
 
         # track announce timestamp
@@ -10681,7 +10715,10 @@ class ReticulumMeshChat:
 
         identity_hash = announced_identity.hash.hex()
         if self.is_destination_blocked(identity_hash, context=ctx):
-            print(f"Dropping rrc.hub announce from blocked source: {identity_hash}")
+            logger.debug(
+                "Dropping rrc.hub announce from blocked source: %s",
+                identity_hash,
+            )
             if hasattr(self, "reticulum") and self.reticulum:
                 self.reticulum.drop_path(destination_hash)
             return
@@ -10689,10 +10726,9 @@ class ReticulumMeshChat:
         if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
             return
 
-        print(
-            "Received an announce from "
-            + RNS.prettyhexrep(destination_hash)
-            + " for [rrc.hub]",
+        logger.debug(
+            "Received an announce from %s for [rrc.hub]",
+            RNS.prettyhexrep(destination_hash),
         )
 
         self._note_announce_timestamp()
@@ -10738,7 +10774,10 @@ class ReticulumMeshChat:
         # check if source is blocked - drop announce and path if blocked
         identity_hash = announced_identity.hash.hex()
         if self.is_destination_blocked(identity_hash, context=ctx):
-            print(f"Dropping announce from blocked source: {identity_hash}")
+            logger.debug(
+                "Dropping announce from blocked source: %s",
+                identity_hash,
+            )
             if hasattr(self, "reticulum") and self.reticulum:
                 self.reticulum.drop_path(destination_hash)
             return
@@ -10746,11 +10785,9 @@ class ReticulumMeshChat:
         if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
             return
 
-        # log received announce
-        print(
-            "Received an announce from "
-            + RNS.prettyhexrep(destination_hash)
-            + " for [nomadnetwork.node]",
+        logger.debug(
+            "Received an announce from %s for [nomadnetwork.node]",
+            RNS.prettyhexrep(destination_hash),
         )
 
         # track announce timestamp
@@ -10810,10 +10847,9 @@ class ReticulumMeshChat:
             return
         if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
             return
-        print(
-            "Received an announce from "
-            + RNS.prettyhexrep(destination_hash)
-            + " for [map-data-v1]",
+        logger.debug(
+            "Received an announce from %s for [map-data-v1]",
+            RNS.prettyhexrep(destination_hash),
         )
         self._note_announce_timestamp()
         ctx.announce_manager.upsert_announce(

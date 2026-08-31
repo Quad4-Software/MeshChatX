@@ -31,6 +31,8 @@ _BOT_PROCESS_MODULE = "meshchatx.src.backend.bot_process"
 # cx_Freeze / AppImage / macOS bundles set sys.executable to MeshChatX itself.
 # meshchat.main() dispatches this flag to runpy.run_module before argparse.
 _MESHCHATX_RUN_MODULE_FLAG = "--meshchatx-run-module"
+_BOT_SUBPROCESS_LOG_MAX_BYTES = 5 * 1024 * 1024
+_BOT_SUBPROCESS_LOG_BACKUPS = 1
 
 
 class BotHandler:
@@ -219,6 +221,38 @@ class BotHandler:
         if not storage_dir:
             return None
         return os.path.join(storage_dir, "meshchatx_bot_subprocess.log")
+
+    @staticmethod
+    def _rotate_subprocess_log_if_needed(
+        path: str,
+        *,
+        max_bytes: int = _BOT_SUBPROCESS_LOG_MAX_BYTES,
+        backups: int = _BOT_SUBPROCESS_LOG_BACKUPS,
+    ) -> None:
+        """Rotate an oversized bot subprocess log before opening a new writer.
+
+        The child process inherits the FD after Popen, so rotation only runs
+        at start (and any later restart), not while the child is writing.
+        """
+        if not path or max_bytes <= 0:
+            return
+        try:
+            if not os.path.isfile(path):
+                return
+            if os.path.getsize(path) <= max_bytes:
+                return
+        except OSError:
+            return
+        try:
+            if backups > 0:
+                prev = f"{path}.1"
+                if os.path.isfile(prev):
+                    os.unlink(prev)
+                os.rename(path, prev)
+            else:
+                os.unlink(path)
+        except OSError as exc:
+            logger.warning("Could not rotate bot subprocess log %s: %s", path, exc)
 
     def read_subprocess_log(self, bot_id, max_bytes=524_288):
         entry = None
@@ -444,6 +478,7 @@ class BotHandler:
         ]
 
         subprocess_log = os.path.join(bot_storage_dir, "meshchatx_bot_subprocess.log")
+        self._rotate_subprocess_log_if_needed(subprocess_log)
         log_f = open(
             subprocess_log,
             "a",
