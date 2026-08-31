@@ -175,6 +175,54 @@ describe("NomadCrashTab.vue", () => {
         expect(renderCalls.length).toBe(0);
     });
 
+    it("background and contentClass chrome updates do not emit render-started", async () => {
+        const wrapper = mountCrashTab({
+            background: "#000000",
+            contentClass: "nomad-page-rich bg-black",
+        });
+        const frame = wrapper.find("iframe").element;
+        Object.defineProperty(frame, "contentWindow", {
+            configurable: true,
+            get: () => ({ postMessage: postMessageSpy }),
+        });
+        wrapper.vm.frameReady = true;
+        wrapper.vm.status = "ready";
+        wrapper.vm.framePainted = true;
+        wrapper.vm.lastPostedRenderKey = wrapper.vm.contentRenderKey;
+
+        await wrapper.setProps({ background: "rgb(0, 0, 0)", contentClass: "nomad-page-rich bg-black pad" });
+        await wrapper.vm.$nextTick();
+        await Promise.resolve();
+
+        expect(wrapper.emitted("render-started")).toBeUndefined();
+        const chromeCalls = postMessageSpy.mock.calls.filter((c) => c[0]?.type === "chrome");
+        expect(chromeCalls.length).toBeGreaterThanOrEqual(1);
+        const renderCalls = postMessageSpy.mock.calls.filter((c) => c[0]?.type === "render");
+        expect(renderCalls.length).toBe(0);
+    });
+
+    it("render deadline emits hung when paint never completes", async () => {
+        vi.useFakeTimers();
+        try {
+            const wrapper = mountCrashTab();
+            const frame = wrapper.find("iframe").element;
+            Object.defineProperty(frame, "contentWindow", {
+                configurable: true,
+                get: () => ({ postMessage: postMessageSpy }),
+            });
+            wrapper.vm.frameReady = true;
+            wrapper.vm.pushRender();
+            await wrapper.vm.$nextTick();
+            expect(wrapper.emitted("render-started")?.length).toBe(1);
+
+            vi.advanceTimersByTime(20000);
+            expect(wrapper.vm.status).toBe("hung");
+            expect(wrapper.emitted("hung")?.length).toBe(1);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it("does not deep-watch renderOptions object identity", () => {
         const wrapper = mountCrashTab();
         const src = wrapper.vm.$options.watch || {};
@@ -202,6 +250,9 @@ describe("NomadCrashTab.vue", () => {
         expect(src).toContain('import("dompurify")');
         expect(src).toContain("globalThis.DOMPurify = DOMPurify");
         expect(src).toContain('import("../fonts/RobotoMonoNerdFont/font.css")');
+        expect(src).toContain('parent.postMessage({ channel: NOMAD_CRASH_TAB_CHANNEL, ...msg }, "*")');
+        expect(src).not.toContain("parentTargetOrigin");
+        expect(src).toContain('d.type === "chrome"');
         expect(src).not.toMatch(/^import MicronParser from/m);
     });
 });

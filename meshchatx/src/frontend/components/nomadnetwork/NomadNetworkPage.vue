@@ -1110,9 +1110,8 @@ export default {
             return "#f3f4f6";
         },
         nomadCrashTabBackground() {
-            if (this.nomadRenderedShellFullBleed && this.pageShellBackground) {
-                return this.pageShellBackground;
-            }
+            // Do not feed pageShellBackground (from shell-background postMessage) back
+            // into the iframe. That re-triggered full renders and stuck Loading page.
             if (this.isShowingNodePageSource) {
                 return "#000000";
             }

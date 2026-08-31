@@ -17,16 +17,10 @@ let renderSeq = 0;
 let multilineCleanup = null;
 let rendererPromise = null;
 
-function parentTargetOrigin() {
-    try {
-        return new URL(window.location.href).origin;
-    } catch {
-        return "*";
-    }
-}
-
 function post(msg) {
-    parent.postMessage({ channel: NOMAD_CRASH_TAB_CHANNEL, ...msg }, parentTargetOrigin());
+    // Opaque sandbox frames must use "*". Parent accepts only event.origin "null"
+    // from this frame's contentWindow (see NomadCrashTab.onWindowMessage).
+    parent.postMessage({ channel: NOMAD_CRASH_TAB_CHANNEL, ...msg }, "*");
 }
 
 function paintShell(background, color) {
@@ -376,6 +370,10 @@ window.addEventListener("message", (ev) => {
         root.innerHTML = "";
         root.className = "nodeContainer";
         paintShell("#000000", "#dddddd");
+        return;
+    }
+    if (d.type === "chrome") {
+        applyChrome(d);
         return;
     }
     if (d.type === "set-partial") {
