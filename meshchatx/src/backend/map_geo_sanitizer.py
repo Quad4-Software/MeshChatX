@@ -117,10 +117,68 @@ def _set_href_on_element(el: ET.Element, value: str | None) -> None:
 
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE = re.compile(r"\s+")
+_SCRIPT_STYLE_RE = re.compile(
+    r"<(script|style)\b[^>]*>[\s\S]*?</\1\s*>",
+    re.IGNORECASE,
+)
+_TABLE_ROW_RE = re.compile(r"<tr\b[^>]*>([\s\S]*?)</tr\s*>", re.IGNORECASE)
+_CELL_RE = re.compile(r"<t[dh]\b[^>]*>([\s\S]*?)</t[dh]\s*>", re.IGNORECASE)
+_BR_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
+_BLOCK_BREAK_RE = re.compile(
+    r"</(?:p|div|li|h[1-6]|br|tr)\s*>",
+    re.IGNORECASE,
+)
+_NULLISH_RE = re.compile(
+    r"^(?:&lt;null&gt;|<null>|null|n/?a|undefined|none|-)$",
+    re.IGNORECASE,
+)
+
+
+def _is_nullish_value(value: str) -> bool:
+    t = (value or "").strip().replace("\xa0", " ")
+    if not t:
+        return True
+    return bool(_NULLISH_RE.match(t))
+
+
+def _cell_plain(cell_html: str) -> str:
+    text = _HTML_TAG_RE.sub(" ", cell_html or "")
+    text = (
+        text.replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", '"')
+        .replace("&#39;", "'")
+        .replace("&apos;", "'")
+        .replace("&nbsp;", " ")
+    )
+    return _WS_RE.sub(" ", text).strip()
 
 
 def _flatten_html_text(text: str) -> str:
-    return _WS_RE.sub(" ", _HTML_TAG_RE.sub(" ", text)).strip()
+    s = _SCRIPT_STYLE_RE.sub("", text or "")
+    rows: list[str] = []
+    for match in _TABLE_ROW_RE.finditer(s):
+        cells = [_cell_plain(c) for c in _CELL_RE.findall(match.group(1))]
+        cells = [c for c in cells if c]
+        if len(cells) >= 2:
+            key = cells[0]
+            val = " ".join(cells[1:])
+            if key and not _is_nullish_value(val):
+                rows.append(f"{key}: {val}")
+        elif len(cells) == 1 and not _is_nullish_value(cells[0]):
+            rows.append(cells[0])
+    if rows:
+        return "\n".join(rows)
+    s = _BR_RE.sub("\n", s)
+    s = _BLOCK_BREAK_RE.sub("\n", s)
+    s = _HTML_TAG_RE.sub(" ", s)
+    lines = []
+    for line in s.splitlines():
+        cleaned = _WS_RE.sub(" ", line).strip()
+        if cleaned and not _is_nullish_value(cleaned):
+            lines.append(cleaned)
+    return "\n".join(lines)
 
 
 def _strip_description_html(el: ET.Element) -> bool:

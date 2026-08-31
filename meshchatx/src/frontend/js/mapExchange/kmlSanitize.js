@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
+import { flattenHtmlDescription } from "./descriptionFlatten.js";
+
 const ALLOWED_DATA_PREFIXES = [
     "data:image/png;base64,",
     "data:image/jpeg;base64,",
@@ -122,10 +124,7 @@ function stripDescriptionHtml(text) {
             return full;
         }
         stripped.push("html_description");
-        const plain = content
-            .replace(/<[^>]+>/g, " ")
-            .replace(/\s+/g, " ")
-            .trim();
+        const plain = flattenHtmlDescription(content);
         return `<description>${escapeXmlText(plain)}</description>`;
     });
     return { text: out, stripped };
