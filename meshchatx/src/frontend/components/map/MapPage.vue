@@ -229,47 +229,139 @@
             <div ref="drawFeatureInfoElement" class="absolute z-45 pointer-events-none">
                 <div
                     v-show="drawFeatureInfoPayload"
-                    class="info-popup pointer-events-auto min-w-44 max-w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-sem-border bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm shadow-xl px-3 py-2.5 transform -translate-x-1/2 -translate-y-full mb-2 overflow-x-hidden"
+                    class="info-popup pointer-events-auto min-w-52 max-w-[min(22rem,calc(100vw-2rem))] max-h-[min(22rem,calc(100vh-6rem))] overflow-y-auto rounded-xl border border-sem-border bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm shadow-xl px-3 py-2.5 transform -translate-x-1/2 -translate-y-full mb-2"
                 >
                     <template v-if="drawFeatureInfoPayload">
-                        <div v-if="drawFeatureInfoPayload.iconSrc" class="flex justify-center mb-2">
-                            <img
-                                :src="drawFeatureInfoPayload.iconSrc"
-                                alt=""
-                                class="max-h-12 max-w-18 object-contain rounded-sm border border-sem-border bg-gray-50 dark:bg-zinc-800/50"
+                        <div class="flex items-start justify-between gap-2 mb-1">
+                            <div v-if="drawFeatureInfoPayload.iconSrc" class="flex justify-center shrink-0">
+                                <img
+                                    :src="drawFeatureInfoPayload.iconSrc"
+                                    alt=""
+                                    class="max-h-12 max-w-18 object-contain rounded-sm border border-sem-border bg-gray-50 dark:bg-zinc-800/50"
+                                />
+                            </div>
+                            <div class="flex items-center gap-0.5 ml-auto shrink-0">
+                                <button
+                                    v-if="!drawFeatureInfoEditing && canEditSelectedDrawFeature"
+                                    type="button"
+                                    class="p-1 rounded-md text-sem-fg-muted hover:text-sem-fg hover:bg-sem-surface-muted"
+                                    :title="$t('map.feature_edit')"
+                                    @click="startDrawFeatureInfoEdit"
+                                >
+                                    <MaterialDesignIcon icon-name="pencil" class="size-3.5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="p-1 rounded-md text-sem-fg-muted hover:text-sem-fg hover:bg-sem-surface-muted"
+                                    :title="$t('common.close')"
+                                    @click="clearDrawFeatureSelection"
+                                >
+                                    <MaterialDesignIcon icon-name="close" class="size-3.5" />
+                                </button>
+                            </div>
+                        </div>
+                        <template v-if="drawFeatureInfoEditing">
+                            <label
+                                class="block text-[10px] font-bold text-sem-fg-muted uppercase tracking-wider mb-0.5"
+                            >
+                                {{ $t("map.feature_name") }}
+                            </label>
+                            <input
+                                v-model="drawFeatureEditName"
+                                type="text"
+                                class="w-full mb-2 px-2 py-1.5 text-xs rounded-lg border border-sem-border bg-sem-surface text-sem-fg"
                             />
-                        </div>
-                        <div v-if="drawFeatureInfoPayload.name" class="text-xs font-bold text-sem-fg leading-snug mb-1">
-                            {{ drawFeatureInfoPayload.name }}
-                        </div>
-                        <div
-                            v-if="drawFeatureInfoPayload.description && !drawFeatureInfoPayload.descriptionIsHtml"
-                            class="text-[11px] text-sem-fg-muted whitespace-pre-wrap wrap-break-word leading-snug"
-                        >
-                            {{ drawFeatureInfoPayload.description }}
-                        </div>
-                        <!-- eslint-disable vue/no-v-html -- sanitized via drawFeatureDescriptionSanitized -->
-                        <div
-                            v-else-if="drawFeatureDescriptionSanitized"
-                            class="text-[11px] text-sem-fg-muted prose prose-sm dark:prose-invert max-w-none leading-snug [&_*]:bg-transparent! [&_*]:text-inherit!"
-                            v-html="drawFeatureDescriptionSanitized"
-                        ></div>
-                        <!-- eslint-enable vue/no-v-html -->
-                        <dl
-                            v-if="drawFeatureInfoPayload.extended.length"
-                            class="mt-2 space-y-1 border-t border-sem-border pt-2 overflow-hidden"
-                        >
-                            <template v-for="row in drawFeatureInfoPayload.extended" :key="row.key">
-                                <div class="grid grid-cols-[minmax(0,40%)_1fr] gap-x-2 gap-y-0.5 text-[10px] min-w-0">
-                                    <dt class="font-semibold text-sem-fg-muted truncate" :title="row.key">
-                                        {{ row.key }}
-                                    </dt>
-                                    <dd class="text-sem-fg truncate m-0" :title="row.value">
-                                        {{ row.value }}
-                                    </dd>
-                                </div>
-                            </template>
-                        </dl>
+                            <label
+                                class="block text-[10px] font-bold text-sem-fg-muted uppercase tracking-wider mb-0.5"
+                            >
+                                {{ $t("map.feature_description") }}
+                            </label>
+                            <textarea
+                                v-model="drawFeatureEditDescription"
+                                rows="5"
+                                class="w-full mb-2 px-2 py-1.5 text-[11px] rounded-lg border border-sem-border bg-sem-surface text-sem-fg resize-y"
+                            ></textarea>
+                            <div class="flex justify-end gap-2">
+                                <button
+                                    type="button"
+                                    class="px-2 py-1 text-[10px] font-semibold rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted"
+                                    @click="cancelDrawFeatureInfoEdit"
+                                >
+                                    {{ $t("common.cancel") }}
+                                </button>
+                                <button
+                                    type="button"
+                                    class="px-2 py-1 text-[10px] font-semibold rounded-lg bg-blue-500 text-white hover:bg-blue-600"
+                                    @click="saveDrawFeatureInfoEdit"
+                                >
+                                    {{ $t("common.save") }}
+                                </button>
+                            </div>
+                        </template>
+                        <template v-else>
+                            <div
+                                v-if="drawFeatureInfoPayload.name"
+                                class="text-xs font-bold text-sem-fg leading-snug mb-1"
+                            >
+                                {{ drawFeatureInfoPayload.name }}
+                            </div>
+                            <div
+                                v-if="drawFeatureInfoPayload.description && !drawFeatureInfoPayload.descriptionIsHtml"
+                                class="text-[11px] text-sem-fg-muted whitespace-pre-wrap wrap-break-word leading-snug"
+                            >
+                                <template
+                                    v-for="(part, idx) in splitTextWithLinks(drawFeatureInfoPayload.description)"
+                                    :key="'d' + idx"
+                                >
+                                    <a
+                                        v-if="part.kind === 'link'"
+                                        :href="part.href"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="text-blue-500 underline break-all"
+                                        >{{ part.text }}</a
+                                    >
+                                    <span v-else>{{ part.text }}</span>
+                                </template>
+                            </div>
+                            <!-- eslint-disable vue/no-v-html -- sanitized via drawFeatureDescriptionSanitized -->
+                            <div
+                                v-else-if="drawFeatureDescriptionSanitized"
+                                class="text-[11px] text-sem-fg-muted prose prose-sm dark:prose-invert max-w-none leading-snug [&_*]:bg-transparent! [&_*]:text-inherit!"
+                                v-html="drawFeatureDescriptionSanitized"
+                            ></div>
+                            <!-- eslint-enable vue/no-v-html -->
+                            <dl
+                                v-if="drawFeatureInfoPayload.extended.length"
+                                class="mt-2 space-y-1.5 border-t border-sem-border pt-2"
+                            >
+                                <template v-for="row in drawFeatureInfoPayload.extended" :key="row.key">
+                                    <div
+                                        class="grid grid-cols-[minmax(0,38%)_1fr] gap-x-2 gap-y-0.5 text-[10px] min-w-0"
+                                    >
+                                        <dt class="font-semibold text-sem-fg-muted wrap-break-word" :title="row.key">
+                                            {{ row.key }}
+                                        </dt>
+                                        <dd class="text-sem-fg m-0 wrap-break-word min-w-0">
+                                            <template
+                                                v-for="(part, idx) in splitTextWithLinks(row.value)"
+                                                :key="row.key + idx"
+                                            >
+                                                <a
+                                                    v-if="part.kind === 'link'"
+                                                    :href="part.href"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    class="text-blue-500 underline break-all"
+                                                    >{{ part.text }}</a
+                                                >
+                                                <span v-else>{{ part.text }}</span>
+                                            </template>
+                                        </dd>
+                                    </div>
+                                </template>
+                            </dl>
+                        </template>
                     </template>
                 </div>
             </div>
@@ -286,16 +378,29 @@
                         {{ contextMenuFeature ? "Feature actions" : "Map actions" }}
                     </div>
                 </template>
-                <ContextMenuItem v-if="contextMenuFeature" @click="contextSelectFeature">
+                <ContextMenuItem
+                    v-if="contextMenuFeature && isEditableDrawFeature(contextMenuFeature)"
+                    @click="contextSelectFeature"
+                >
                     <MaterialDesignIcon icon-name="cursor-default" class="size-4" />
                     Select / Move
                 </ContextMenuItem>
-                <ContextMenuItem v-if="contextMenuFeature" @click="contextAddNote">
+                <ContextMenuItem
+                    v-if="contextMenuFeature && isEditableDrawFeature(contextMenuFeature)"
+                    @click="contextEditFeatureInfo"
+                >
+                    <MaterialDesignIcon icon-name="pencil" class="size-4" />
+                    {{ $t("map.feature_edit") }}
+                </ContextMenuItem>
+                <ContextMenuItem
+                    v-if="contextMenuFeature && isEditableDrawFeature(contextMenuFeature)"
+                    @click="contextAddNote"
+                >
                     <MaterialDesignIcon icon-name="note-edit" class="size-4" />
                     Add / Edit Note
                 </ContextMenuItem>
                 <ContextMenuItem
-                    v-if="contextMenuFeature && !contextMenuFeature.get('telemetry')"
+                    v-if="contextMenuFeature && isEditableDrawFeature(contextMenuFeature)"
                     item-class="text-red-600 dark:text-red-400"
                     @click="contextDeleteFeature"
                 >
@@ -702,15 +807,19 @@
                     :mbtiles-list="mbtilesList"
                     :mbtiles-dir="mbtilesDir"
                     :has-offline-map="hasOfflineMap"
+                    :announce-listen-enabled="announceListenEnabled"
+                    :announce-listen-busy="announceListenBusy"
                     @overlays-changed="onRemoteOverlaysChanged"
                     @import-features="onVectorExchangeImport"
                     @import-error="onVectorExchangeImportError"
                     @export-geojson="exportVectorGeoJson"
                     @export-kml="exportVectorKml"
                     @export-kmz="exportVectorKmz"
+                    @export-gpx="exportVectorGpx"
                     @export-overlay="onRemoteOverlayExport"
                     @copy-overlay-to-drawings="onRemoteOverlayCopyToDrawings"
                     @overlay-error="onRemoteOverlayError"
+                    @toggle-announce-listen="onToggleAnnounceListen"
                     @toggle-offline="toggleOffline"
                     @toggle-caching="toggleCaching"
                     @upload-mbtiles="$refs.fileInput.click()"
@@ -925,6 +1034,8 @@ import DialogUtils from "../../js/DialogUtils";
 import TileCache from "../../js/TileCache";
 import { mapViewStateKey } from "../../js/mapStateKeys.js";
 import GlobalState from "../../js/GlobalState";
+import GlobalEmitter from "../../js/GlobalEmitter";
+import { publishPatchedConfig } from "../../js/settings/settingsConfigService.js";
 import {
     detectRasterTileProviderId,
     nextRasterTileProviderId,
@@ -959,7 +1070,13 @@ import { buildMeshchatMapUri, buildWebHashMapUrl } from "../../js/mapLinkUtils.j
 import { readGeoJsonToFeatures, writeFeaturesToGeoJson } from "../../js/mapExchange/geoJsonCodec.js";
 import { readKmlToFeatures, writeFeaturesToKml } from "../../js/mapExchange/kmlCodec.js";
 import { readKmzToFeatures, writeFeaturesToKmzBlob } from "../../js/mapExchange/kmzCodec.js";
-import { getDrawFeatureMetadataPayload, getFeatureAnchorCoordinate } from "../../js/mapExchange/metadataUtils.js";
+import { readGpxToFeatures, writeFeaturesToGpx } from "../../js/mapExchange/gpxCodec.js";
+import {
+    applyFeatureMetadataEdits,
+    getDrawFeatureMetadataPayload,
+    getFeatureAnchorCoordinate,
+    splitTextWithLinks,
+} from "../../js/mapExchange/metadataUtils.js";
 import { styleFromMcxProperties } from "../../js/mapExchange/styleFromProperties.js";
 import { computeSegmentMetrics, buildBearingOverlayHtml, buildBearingLiveTooltipHtml } from "../../js/mapGeodesy.js";
 import { isLocalMapServiceUrl } from "../../js/mapLocalUrl.js";
@@ -1139,6 +1256,11 @@ export default {
             noteOverlay: null,
             drawFeatureInfoOverlay: null,
             drawFeatureInfoPayload: null,
+            drawFeatureInfoEditing: false,
+            drawFeatureEditName: "",
+            drawFeatureEditDescription: "",
+            announceListenEnabled: false,
+            announceListenBusy: false,
             showNoteModal: false,
             showSaveDrawingModal: false,
             newDrawingName: "",
@@ -1247,6 +1369,9 @@ export default {
                 USE_PROFILES: { html: true },
                 FORBID_ATTR: ["style"],
             });
+        },
+        canEditSelectedDrawFeature() {
+            return this.isEditableDrawFeature(this.selectedFeature);
         },
     },
     watch: {
@@ -1360,6 +1485,19 @@ export default {
         // Listen for websocket messages
         onWsEvent("lxmf.telemetry", this.onLxmfTelemetry);
 
+        this.onConfigUpdatedExternally = (cfg) => {
+            if (!cfg || typeof cfg !== "object") {
+                return;
+            }
+            if (Object.prototype.hasOwnProperty.call(cfg, "announce_store_map_data")) {
+                this.announceListenEnabled = Boolean(cfg.announce_store_map_data);
+                if (this.config) {
+                    this.config.announce_store_map_data = cfg.announce_store_map_data;
+                }
+            }
+        };
+        GlobalEmitter.on("config-updated", this.onConfigUpdatedExternally);
+
         this.applyMapViewFromRoute();
 
         this.attachMapMoveEndListener();
@@ -1386,6 +1524,9 @@ export default {
     beforeUnmount() {
         if (this.map && this.map.getViewport()) {
             this.map.getViewport().removeEventListener("contextmenu", this.onContextMenu);
+        }
+        if (this.onConfigUpdatedExternally) {
+            GlobalEmitter.off("config-updated", this.onConfigUpdatedExternally);
         }
         document.removeEventListener("click", this.handleGlobalClick);
         if (this._saveStateTimer) {
@@ -1503,6 +1644,7 @@ export default {
                 const response = await window.api.get("/api/v1/config");
                 this.config = response.data.config;
                 this.offlineEnabled = this.config.map_offline_enabled;
+                this.announceListenEnabled = Boolean(this.config.announce_store_map_data);
                 this.cachingEnabled =
                     this.config.map_tile_cache_enabled !== undefined ? this.config.map_tile_cache_enabled : true;
                 this.mbtilesDir = this.config.map_mbtiles_dir || "";
@@ -1770,6 +1912,7 @@ export default {
             });
             this.select.on("select", (e) => {
                 const picked = e.selected[0];
+                this.drawFeatureInfoEditing = false;
                 this.selectedFeature = picked ? markRaw(picked) : null;
                 this.syncDrawFeatureInfoOverlay();
             });
@@ -1922,8 +2065,13 @@ export default {
                 } else {
                     this.selectedMarker = null;
                     this.selectedCluster = null;
-                    if (feature && this.drawLayer) {
+                    if (feature && this.isMapInfoFeature(feature)) {
+                        this.drawFeatureInfoEditing = false;
                         this.selectedFeature = markRaw(feature);
+                        this.syncDrawFeatureInfoOverlay();
+                    } else if (!feature) {
+                        this.selectedFeature = null;
+                        this.drawFeatureInfoEditing = false;
                         this.syncDrawFeatureInfoOverlay();
                     }
                 }
@@ -3299,25 +3447,152 @@ export default {
                 this.drawSource.removeFeature(this.selectedFeature);
                 if (this.select) this.select.getFeatures().clear();
                 this.selectedFeature = null;
+                this.drawFeatureInfoEditing = false;
                 this.syncDrawFeatureInfoOverlay();
                 this.saveMapState();
             }
         },
 
+        clearDrawFeatureSelection() {
+            this.drawFeatureInfoEditing = false;
+            if (this.select) {
+                this.select.getFeatures().clear();
+            }
+            this.selectedFeature = null;
+            this.syncDrawFeatureInfoOverlay();
+        },
+
+        isEditableDrawFeature(feature) {
+            if (!feature || !this.drawSource) {
+                return false;
+            }
+            if (!this.drawSource.hasFeature(feature)) {
+                return false;
+            }
+            if (feature.get("telemetry") || feature.get("discovered") || feature.get("cluster")) {
+                return false;
+            }
+            if (feature.get("type") === "remote_overlay" || feature.get("type") === "history_trail") {
+                return false;
+            }
+            return true;
+        },
+
+        isMapInfoFeature(feature) {
+            if (!feature) {
+                return false;
+            }
+            if (feature.get("telemetry") || feature.get("discovered") || feature.get("cluster")) {
+                return false;
+            }
+            if (feature.get("type") === "history_trail") {
+                return false;
+            }
+            if (this.drawSource && this.drawSource.hasFeature(feature)) {
+                return true;
+            }
+            for (const entry of Object.values(this.remoteOverlayLayers || {})) {
+                if (
+                    entry?.source &&
+                    typeof entry.source.hasFeature === "function" &&
+                    entry.source.hasFeature(feature)
+                ) {
+                    return true;
+                }
+            }
+            return false;
+        },
+
+        splitTextWithLinks,
+
+        startDrawFeatureInfoEdit() {
+            const f = this.selectedFeature;
+            if (!this.isEditableDrawFeature(f)) {
+                return;
+            }
+            this.drawFeatureEditName = String(f.get("name") || f.get("Name") || "");
+            this.drawFeatureEditDescription = String(f.get("description") || f.get("Description") || "");
+            this.drawFeatureInfoEditing = true;
+        },
+
+        cancelDrawFeatureInfoEdit() {
+            this.drawFeatureInfoEditing = false;
+        },
+
+        saveDrawFeatureInfoEdit() {
+            const f = this.selectedFeature;
+            if (!this.isEditableDrawFeature(f)) {
+                return;
+            }
+            applyFeatureMetadataEdits(f, {
+                name: this.drawFeatureEditName,
+                description: this.drawFeatureEditDescription,
+            });
+            this.drawFeatureInfoEditing = false;
+            this.syncDrawFeatureInfoOverlay();
+            this.saveMapState();
+            ToastUtils.success(this.$t("map.feature_saved"));
+        },
+
+        contextEditFeatureInfo() {
+            this.showContextMenu = false;
+            if (!this.isEditableDrawFeature(this.contextMenuFeature)) {
+                return;
+            }
+            this.selectedFeature = markRaw(this.contextMenuFeature);
+            if (this.select) {
+                this.select.getFeatures().clear();
+                this.select.getFeatures().push(this.contextMenuFeature);
+            }
+            this.syncDrawFeatureInfoOverlay();
+            this.$nextTick(() => this.startDrawFeatureInfoEdit());
+        },
+
+        async onToggleAnnounceListen(enabled) {
+            if (this.announceListenBusy) {
+                return;
+            }
+            this.announceListenBusy = true;
+            const next = Boolean(enabled);
+            try {
+                const response = await window.api.patch("/api/v1/config", {
+                    announce_store_map_data: next,
+                });
+                if (response?.data?.config) {
+                    this.config = response.data.config;
+                    publishPatchedConfig(response.data.config);
+                } else if (this.config) {
+                    this.config.announce_store_map_data = next;
+                    publishPatchedConfig({ announce_store_map_data: next });
+                }
+                this.announceListenEnabled = next;
+                ToastUtils.success(
+                    next ? this.$t("map.data_listen_enabled_toast") : this.$t("map.data_listen_disabled_toast")
+                );
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("common.save_failed"));
+            } finally {
+                this.announceListenBusy = false;
+            }
+        },
+
         syncDrawFeatureInfoOverlay() {
-            if (!this.drawFeatureInfoOverlay || !this.map || !this.drawSource) {
+            if (!this.drawFeatureInfoOverlay || !this.map) {
                 return;
             }
             const f = this.selectedFeature;
-            if (!f || !this.drawSource.hasFeature(f)) {
+            if (!f || !this.isMapInfoFeature(f)) {
                 this.drawFeatureInfoOverlay.setPosition(undefined);
                 this.drawFeatureInfoPayload = null;
+                this.drawFeatureInfoEditing = false;
                 return;
             }
             const payload = getDrawFeatureMetadataPayload(f);
             if (!payload) {
                 this.drawFeatureInfoOverlay.setPosition(undefined);
                 this.drawFeatureInfoPayload = null;
+                this.drawFeatureInfoEditing = false;
                 return;
             }
             this.drawFeatureInfoPayload = payload;
@@ -3661,7 +3936,7 @@ export default {
             this.closeContextMenu();
         },
         contextDeleteFeature() {
-            if (this.contextMenuFeature && !this.contextMenuFeature.get("telemetry")) {
+            if (this.isEditableDrawFeature(this.contextMenuFeature)) {
                 this.drawSource.removeFeature(this.contextMenuFeature);
                 this.saveMapState();
             }
@@ -3675,14 +3950,14 @@ export default {
             )
                 return;
             const f = this.selectedFeature;
-            if (!f || f.get("telemetry")) return;
+            if (!this.isEditableDrawFeature(f)) return;
             this.drawSource.removeFeature(f);
             this.selectedFeature = null;
             this.syncDrawFeatureInfoOverlay();
             this.saveMapState();
         },
         contextAddNote() {
-            if (this.contextMenuFeature) {
+            if (this.isEditableDrawFeature(this.contextMenuFeature)) {
                 this.startEditingNote(this.contextMenuFeature);
             }
             this.closeContextMenu();
@@ -4524,7 +4799,8 @@ export default {
                     name.endsWith(".geojson") ||
                     name.endsWith(".json") ||
                     name.endsWith(".kml") ||
-                    name.endsWith(".kmz")
+                    name.endsWith(".kmz") ||
+                    name.endsWith(".gpx")
                 );
             });
             if (!mbtilesFiles.length && !geoFiles.length) {
@@ -4546,8 +4822,15 @@ export default {
                     } else if (name.endsWith(".kml")) {
                         const text = await this.readFileText(file);
                         features = readKmlToFeatures(text, "EPSG:3857");
+                    } else if (name.endsWith(".gpx")) {
+                        const text = await this.readFileText(file);
+                        features = readGpxToFeatures(text, "EPSG:3857");
                     } else {
                         const text = await this.readFileText(file);
+                        if (!this.looksLikeGeoJsonText(text)) {
+                            ToastUtils.warning(this.$t("map.drop_no_supported_files"));
+                            continue;
+                        }
                         features = readGeoJsonToFeatures(text, "EPSG:3857");
                     }
                     this.onVectorExchangeImport({ features, merge: true });
@@ -4555,6 +4838,28 @@ export default {
                     console.error("Map drop import failed:", e);
                     ToastUtils.error(this.$t("map.vector_import_failed") + ` - ${file.name}`);
                 }
+            }
+        },
+        looksLikeGeoJsonText(text) {
+            try {
+                const obj = JSON.parse(String(text || ""));
+                if (!obj || typeof obj !== "object") {
+                    return false;
+                }
+                const t = obj.type;
+                return (
+                    t === "FeatureCollection" ||
+                    t === "Feature" ||
+                    t === "Point" ||
+                    t === "MultiPoint" ||
+                    t === "LineString" ||
+                    t === "MultiLineString" ||
+                    t === "Polygon" ||
+                    t === "MultiPolygon" ||
+                    t === "GeometryCollection"
+                );
+            } catch {
+                return false;
             }
         },
         readFileText(file) {
@@ -4613,6 +4918,18 @@ export default {
                 console.error(e);
                 ToastUtils.error(this.$t("map.vector_import_failed"));
             }
+        },
+
+        exportVectorGpx() {
+            if (!this.drawSource || !this.hasVectorDrawFeatures) {
+                return;
+            }
+            const raw = this.drawSource.getFeatures();
+            const features = this.serializeFeatures(raw);
+            const text = writeFeaturesToGpx(features, "EPSG:3857");
+            const name = `meshchatx-drawings-${new Date().toISOString().slice(0, 10)}.gpx`;
+            this.downloadTextFile(name, text, "application/gpx+xml");
+            ToastUtils.success(this.$t("map.vector_export_ok"));
         },
 
         downloadBlobFile(filename, blob, mime) {

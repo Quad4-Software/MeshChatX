@@ -19,25 +19,34 @@
             </button>
         </div>
         <div class="flex-1 min-h-0 overflow-y-auto p-3">
-            <MapDiscoverPanel v-if="activeTab === 'discover'" @overlays-changed="$emit('overlays-changed')" />
-            <MapPublishPanel v-else-if="activeTab === 'publish'" :draw-source="drawSource" />
+            <MapDiscoverPanel
+                v-show="activeTab === 'discover'"
+                :listen-enabled="announceListenEnabled"
+                @overlays-changed="$emit('overlays-changed')"
+                @enable-listen="$emit('toggle-announce-listen', true)"
+            />
+            <MapPublishPanel v-if="activeTab === 'publish'" :draw-source="drawSource" />
             <MapLayersPanel
                 v-else-if="activeTab === 'layers'"
                 :disabled="!drawSource"
                 :has-features="hasVectorDrawFeatures"
                 :map-ready="mapReady"
+                :announce-listen-enabled="announceListenEnabled"
+                :announce-listen-busy="announceListenBusy"
                 @import-features="$emit('import-features', $event)"
                 @import-error="$emit('import-error', $event)"
                 @export-geojson="$emit('export-geojson')"
                 @export-kml="$emit('export-kml')"
                 @export-kmz="$emit('export-kmz')"
+                @export-gpx="$emit('export-gpx')"
                 @overlays-changed="$emit('overlays-changed')"
                 @export-overlay="$emit('export-overlay', $event)"
                 @copy-overlay-to-drawings="$emit('copy-overlay-to-drawings', $event)"
                 @error="$emit('overlay-error', $event)"
+                @toggle-announce-listen="$emit('toggle-announce-listen', $event)"
             />
             <MapOfflinePanel
-                v-else
+                v-else-if="activeTab === 'offline'"
                 :offline-enabled="offlineEnabled"
                 :caching-enabled="cachingEnabled"
                 :mbtiles-list="mbtilesList"
@@ -80,6 +89,8 @@ export default {
         mbtilesDir: { type: String, default: "" },
         hasOfflineMap: { type: Boolean, default: false },
         initialTab: { type: String, default: "discover" },
+        announceListenEnabled: { type: Boolean, default: false },
+        announceListenBusy: { type: Boolean, default: false },
     },
     emits: [
         "overlays-changed",
@@ -88,6 +99,7 @@ export default {
         "export-geojson",
         "export-kml",
         "export-kmz",
+        "export-gpx",
         "export-overlay",
         "copy-overlay-to-drawings",
         "overlay-error",
@@ -99,6 +111,7 @@ export default {
         "save-mbtiles-dir",
         "clear-cache",
         "export-region",
+        "toggle-announce-listen",
     ],
     data() {
         return {

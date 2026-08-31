@@ -38,6 +38,14 @@
             </button>
             <button
                 type="button"
+                class="py-2 px-2 text-[10px] font-bold uppercase rounded-lg bg-sem-surface border border-sem-border text-sem-fg hover:bg-sem-surface-muted disabled:opacity-40"
+                :disabled="disabled"
+                @click="triggerGpxPick"
+            >
+                {{ $t("map.vector_import_gpx") }}
+            </button>
+            <button
+                type="button"
                 class="flex items-center justify-center px-2 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 :disabled="disabled || !hasFeatures"
                 @click="$emit('export-geojson')"
@@ -59,6 +67,14 @@
                 @click="$emit('export-kmz')"
             >
                 {{ $t("map.vector_export_kmz") }}
+            </button>
+            <button
+                type="button"
+                class="flex items-center justify-center px-2 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                :disabled="disabled || !hasFeatures"
+                @click="$emit('export-gpx')"
+            >
+                {{ $t("map.vector_export_gpx") }}
             </button>
         </div>
         <p class="text-[9px] text-sem-fg-muted leading-snug">
@@ -85,6 +101,13 @@
             class="hidden"
             @change="onKmzFile"
         />
+        <input
+            ref="gpxInput"
+            type="file"
+            accept=".gpx,application/gpx+xml,application/xml,text/xml"
+            class="hidden"
+            @change="onGpxFile"
+        />
     </div>
 </template>
 
@@ -92,6 +115,7 @@
 import { readGeoJsonToFeatures } from "../../../js/mapExchange/geoJsonCodec.js";
 import { readKmlToFeatures } from "../../../js/mapExchange/kmlCodec.js";
 import { readKmzToFeatures } from "../../../js/mapExchange/kmzCodec.js";
+import { readGpxToFeatures } from "../../../js/mapExchange/gpxCodec.js";
 
 export default {
     name: "MapVectorExchangePanel",
@@ -99,7 +123,7 @@ export default {
         disabled: { type: Boolean, default: false },
         hasFeatures: { type: Boolean, default: false },
     },
-    emits: ["import-features", "export-geojson", "export-kml", "export-kmz", "import-error"],
+    emits: ["import-features", "export-geojson", "export-kml", "export-kmz", "export-gpx", "import-error"],
     data() {
         return {
             mergeImport: true,
@@ -114,6 +138,9 @@ export default {
         },
         triggerKmzPick() {
             this.$refs.kmzInput?.click();
+        },
+        triggerGpxPick() {
+            this.$refs.gpxInput?.click();
         },
         async readFileText(file) {
             return new Promise((resolve, reject) => {
@@ -173,6 +200,22 @@ export default {
             try {
                 const buf = await this.readFileArrayBuffer(file);
                 const features = await readKmzToFeatures(buf, "EPSG:3857");
+                this.$emit("import-features", { features, merge: this.mergeImport });
+            } catch (e) {
+                console.error(e);
+                this.$emit("import-error", e);
+            }
+        },
+        async onGpxFile(ev) {
+            const input = ev.target;
+            const file = input.files && input.files[0];
+            input.value = "";
+            if (!file) {
+                return;
+            }
+            try {
+                const text = await this.readFileText(file);
+                const features = readGpxToFeatures(text, "EPSG:3857");
                 this.$emit("import-features", { features, merge: this.mergeImport });
             } catch (e) {
                 console.error(e);

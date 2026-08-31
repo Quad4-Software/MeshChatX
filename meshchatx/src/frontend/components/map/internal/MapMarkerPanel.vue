@@ -31,11 +31,11 @@
                         {{
                             marker.discovered?.name ||
                             marker.peer?.display_name ||
-                            marker.telemetry?.destination_hash.substring(0, 8)
+                            shortHash(marker.telemetry?.destination_hash)
                         }}
                     </h3>
                     <div v-if="marker.telemetry" class="text-[10px] font-mono text-gray-500 uppercase tracking-tighter">
-                        {{ marker.telemetry.destination_hash }}
+                        {{ marker.telemetry.destination_hash || "" }}
                     </div>
                     <div
                         v-else-if="marker.discovered"
@@ -72,11 +72,11 @@
                 <div class="grid grid-cols-2 gap-4 text-sm">
                     <div>
                         <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Latitude</div>
-                        <div class="tabular-nums">{{ marker.discovered.latitude.toFixed(6) }}</div>
+                        <div class="tabular-nums">{{ formatFixed(marker.discovered.latitude, 6) }}</div>
                     </div>
                     <div>
                         <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Longitude</div>
-                        <div class="tabular-nums">{{ marker.discovered.longitude.toFixed(6) }}</div>
+                        <div class="tabular-nums">{{ formatFixed(marker.discovered.longitude, 6) }}</div>
                     </div>
                 </div>
 
@@ -97,28 +97,25 @@
             </div>
 
             <div v-if="marker.telemetry" class="space-y-3">
-                <div class="grid grid-cols-2 gap-4 text-sm">
+                <div v-if="telemetryLocation" class="grid grid-cols-2 gap-4 text-sm">
                     <div>
                         <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Latitude</div>
-                        <div class="tabular-nums">
-                            {{ marker.telemetry.telemetry.location.latitude.toFixed(6) }}
-                        </div>
+                        <div class="tabular-nums">{{ formatFixed(telemetryLocation.latitude, 6) }}</div>
                     </div>
                     <div>
                         <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Longitude</div>
-                        <div class="tabular-nums">
-                            {{ marker.telemetry.telemetry.location.longitude.toFixed(6) }}
-                        </div>
+                        <div class="tabular-nums">{{ formatFixed(telemetryLocation.longitude, 6) }}</div>
                     </div>
                     <div>
                         <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Altitude</div>
-                        <div class="tabular-nums">{{ marker.telemetry.telemetry.location.altitude.toFixed(1) }}m</div>
+                        <div class="tabular-nums">{{ formatFixed(telemetryLocation.altitude, 1) }}m</div>
                     </div>
                     <div>
                         <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Speed</div>
-                        <div class="tabular-nums">{{ marker.telemetry.telemetry.location.speed.toFixed(1) }}km/h</div>
+                        <div class="tabular-nums">{{ formatFixed(telemetryLocation.speed, 1) }}km/h</div>
                     </div>
                 </div>
+                <div v-else class="text-[11px] text-sem-fg-muted">Location unavailable</div>
 
                 <div v-if="marker.telemetry.physical_link" class="pt-2 border-t border-sem-border">
                     <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Signal</div>
@@ -142,7 +139,7 @@
                         <MaterialDesignIcon :icon-name="miniChatOpen ? 'chevron-up' : 'message-text'" class="size-4" />
                         {{ miniChatOpen ? "Hide Mini-Chat" : "Show Mini-Chat" }}
                     </button>
-                    <div v-if="miniChatOpen">
+                    <div v-if="miniChatOpen && marker.telemetry.destination_hash">
                         <MiniChat :destination-hash="marker.telemetry.destination_hash" />
                     </div>
                 </div>
@@ -164,10 +161,36 @@ export default {
         miniChatOpen: { type: Boolean, default: false },
     },
     emits: ["close", "toggle-tracking", "toggle-mini-chat"],
+    computed: {
+        telemetryLocation() {
+            const loc = this.marker?.telemetry?.telemetry?.location;
+            if (!loc || typeof loc !== "object") {
+                return null;
+            }
+            if (loc.latitude == null || loc.longitude == null) {
+                return null;
+            }
+            return loc;
+        },
+    },
     methods: {
         getDiscoveredIconName,
+        shortHash(hash) {
+            const h = String(hash || "");
+            return h ? h.substring(0, 8) : "Peer";
+        },
+        formatFixed(value, digits) {
+            const n = Number(value);
+            if (!Number.isFinite(n)) {
+                return "-";
+            }
+            return n.toFixed(digits);
+        },
         formatTimestamp(ts) {
-            return new Date(ts * 1000).toLocaleString();
+            if (ts == null || !Number.isFinite(Number(ts))) {
+                return "-";
+            }
+            return new Date(Number(ts) * 1000).toLocaleString();
         },
     },
 };
