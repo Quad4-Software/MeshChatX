@@ -20,6 +20,17 @@ const vendorChunkGroups = [
     { test: /[/\\]node_modules[/\\]/, name: "vendor-other", priority: 10 },
 ];
 
+// Keep app-only IndexedDB stores out of shared-async. That chunk is also loaded
+// by the opaque Nomad crash-tab iframe (sandbox without allow-same-origin).
+// Module load must stay free of indexedDB.open side effects (lazy init).
+const idbChunkGroups = [
+    {
+        test: /[/\\](MicronStorage|TileCache|networkVisualiserCache)\.js$/,
+        name: "idb-app-stores",
+        priority: 80,
+    },
+];
+
 const assetsDir = path.join(__dirname, "meshchatx", "public", "assets");
 
 const e2eBackendPort = process.env.E2E_BACKEND_PORT || "8000";
@@ -360,6 +371,7 @@ export default defineConfig(({ command }) => {
                         minSize: 20_000,
                         groups: [
                             ...vendorChunkGroups,
+                            ...idbChunkGroups,
                             {
                                 name: "shared-async",
                                 minShareCount: 2,

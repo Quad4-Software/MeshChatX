@@ -75,60 +75,88 @@ describe("TileCache.js", () => {
         });
 
         it("should support window.indexedDB", async () => {
-            const mockRequest = { onsuccess: null, onerror: null };
+            const mockRequest = { onsuccess: null, onerror: null, result: {} };
             const mockOpen = vi.fn().mockReturnValue(mockRequest);
             window.indexedDB = { open: mockOpen };
 
-            await import("@/js/TileCache");
+            const mod = await import("@/js/TileCache");
+            void mod.default._ensureInit();
 
             expect(mockOpen).toHaveBeenCalledWith(DB_NAME, DB_VERSION);
         });
 
         it("should support vendor prefixes (mozIndexedDB)", async () => {
-            const mockRequest = { onsuccess: null, onerror: null };
+            const mockRequest = { onsuccess: null, onerror: null, result: {} };
             const mockOpen = vi.fn().mockReturnValue(mockRequest);
             window.mozIndexedDB = { open: mockOpen };
 
-            await import("@/js/TileCache");
+            const mod = await import("@/js/TileCache");
+            void mod.default._ensureInit();
 
             expect(mockOpen).toHaveBeenCalledWith(DB_NAME, DB_VERSION);
         });
 
         it("should support vendor prefixes (webkitIndexedDB)", async () => {
-            const mockRequest = { onsuccess: null, onerror: null };
+            const mockRequest = { onsuccess: null, onerror: null, result: {} };
             const mockOpen = vi.fn().mockReturnValue(mockRequest);
             window.webkitIndexedDB = { open: mockOpen };
 
-            await import("@/js/TileCache");
+            const mod = await import("@/js/TileCache");
+            void mod.default._ensureInit();
 
             expect(mockOpen).toHaveBeenCalledWith(DB_NAME, DB_VERSION);
         });
 
         it("should support vendor prefixes (msIndexedDB)", async () => {
-            const mockRequest = { onsuccess: null, onerror: null };
+            const mockRequest = { onsuccess: null, onerror: null, result: {} };
             const mockOpen = vi.fn().mockReturnValue(mockRequest);
             window.msIndexedDB = { open: mockOpen };
 
-            await import("@/js/TileCache");
+            const mod = await import("@/js/TileCache");
+            void mod.default._ensureInit();
 
             expect(mockOpen).toHaveBeenCalledWith(DB_NAME, DB_VERSION);
         });
 
         it("should support globalThis.indexedDB", async () => {
-            const mockRequest = { onsuccess: null, onerror: null };
+            const mockRequest = { onsuccess: null, onerror: null, result: {} };
             const mockOpen = vi.fn().mockReturnValue(mockRequest);
             globalThis.indexedDB = { open: mockOpen };
 
-            await import("@/js/TileCache");
+            const mod = await import("@/js/TileCache");
+            void mod.default._ensureInit();
 
             expect(mockOpen).toHaveBeenCalledWith(DB_NAME, DB_VERSION);
         });
 
-        it("should reject if IndexedDB is not supported", async () => {
+        it("soft-fails when IndexedDB is not supported", async () => {
             const module = await import("@/js/TileCache");
             const cache = module.default;
 
-            await expect(cache.initPromise).rejects.toBe("IndexedDB not supported");
+            await cache._ensureInit();
+            expect(cache.unavailable).toBe(true);
+            expect(cache.db).toBeNull();
+            await expect(cache.getTile("k")).resolves.toBeUndefined();
+        });
+
+        it("does not open IndexedDB on module import", async () => {
+            const mockOpen = vi.fn();
+            window.indexedDB = { open: mockOpen };
+            await import("@/js/TileCache");
+            expect(mockOpen).not.toHaveBeenCalled();
+        });
+
+        it("soft-fails when indexedDB.open throws SecurityError", async () => {
+            const err = new DOMException("denied", "SecurityError");
+            window.indexedDB = {
+                open: () => {
+                    throw err;
+                },
+            };
+            const mod = await import("@/js/TileCache");
+            await mod.default._ensureInit();
+            expect(mod.default.unavailable).toBe(true);
+            await expect(mod.default.getMapState("k")).resolves.toBeUndefined();
         });
     });
 
