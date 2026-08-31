@@ -52,6 +52,8 @@ import { nomadCrashTabRendererUrl, NOMAD_CRASH_TAB_CHANNEL } from "../../js/noma
 
 const WATCHDOG_MS = 12000;
 const PING_INTERVAL_MS = 2000;
+/** Wall-clock cap for one paint. Ping liveness alone cannot clear a hung import. */
+const RENDER_DEADLINE_MS = 20000;
 
 export default {
     name: "NomadCrashTab",
@@ -124,6 +126,9 @@ export default {
             pushRenderQueued: false,
             // After abort, do not re-push the same content when the iframe reloads.
             skipRenderUntilPropChange: false,
+            renderDeadlineTimer: null,
+            lastPostedRenderKey: "",
+            chromePushQueued: false,
         };
     },
     computed: {
@@ -148,6 +153,19 @@ export default {
             } catch {
                 return "";
             }
+        },
+        /**
+         * Full repaint identity. Chrome-only props are excluded so shell-background
+         * feedback cannot loop render-started and stick Loading page forever.
+         */
+        contentRenderKey() {
+            return [
+                this.path || "",
+                this.showSource ? "1" : "0",
+                this.content || "",
+                this.renderOptionsKey,
+                this.pagePartialsKey,
+            ].join("\u0001");
         },
     },
     watch: {
@@ -174,17 +192,15 @@ export default {
             this.skipRenderUntilPropChange = false;
             this.schedulePushRender();
         },
+        // Chrome-only: update paint without a full Micron pass or render-started.
         contentClass() {
-            this.skipRenderUntilPropChange = false;
-            this.schedulePushRender();
+            this.schedulePushChrome();
         },
         color() {
-            this.skipRenderUntilPropChange = false;
-            this.schedulePushRender();
+            this.schedulePushChrome();
         },
         background() {
-            this.skipRenderUntilPropChange = false;
-            this.schedulePushRender();
+            this.schedulePushChrome();
         },
         active(isActive) {
             if (isActive) {
@@ -203,6 +219,7 @@ export default {
     beforeUnmount() {
         window.removeEventListener("message", this.onWindowMessage);
         this.stopWatchdog();
+        this.clearRenderDeadline();
     },
     methods: {
         /**
@@ -253,15 +270,72 @@ export default {
                 this.pushRender();
             });
         },
+        schedulePushChrome() {
+            if (this.chromePushQueued) {
+                return;
+            }
+            this.chromePushQueued = true;
+            queueMicrotask(() => {
+                this.chromePushQueued = false;
+                this.pushChrome();
+            });
+        },
+        pushChrome() {
+            if (!this.frameReady || this.skipRenderUntilPropChange) {
+                return;
+            }
+            if (this.content == null || this.content === "") {
+                return;
+            }
+            // Full paint still pending: chrome rides along with the next render.
+            if (this.status === "rendering" || this.status === "loading") {
+                return;
+            }
+            this.postToFrame({
+                type: "chrome",
+                className: this.contentClass || "",
+                color: this.color || "#dddddd",
+                background: this.background || "#000000",
+                showSource: this.showSource === true,
+            });
+        },
+        clearRenderDeadline() {
+            if (this.renderDeadlineTimer != null) {
+                clearTimeout(this.renderDeadlineTimer);
+                this.renderDeadlineTimer = null;
+            }
+        },
+        armRenderDeadline() {
+            this.clearRenderDeadline();
+            const epoch = this.renderEpoch;
+            this.renderDeadlineTimer = setTimeout(() => {
+                this.renderDeadlineTimer = null;
+                if (epoch !== this.renderEpoch) {
+                    return;
+                }
+                if (this.status !== "rendering" && this.status !== "loading") {
+                    return;
+                }
+                this.status = "hung";
+                this.framePainted = false;
+                this.$emit("hung");
+            }, RENDER_DEADLINE_MS);
+        },
         pushRender() {
             if (this.skipRenderUntilPropChange) {
                 return;
             }
             if (!this.frameReady) {
+                // Content is waiting on a frame that has not posted ready yet.
+                if (this.content && this.status === "loading") {
+                    this.armRenderDeadline();
+                }
                 return;
             }
             if (this.content == null || this.content === "") {
                 this.framePainted = false;
+                this.lastPostedRenderKey = "";
+                this.clearRenderDeadline();
                 this.postToFrame({ type: "clear" });
                 this.status = "ready";
                 // Do not emit render-done for clears. That raced with
@@ -269,12 +343,19 @@ export default {
                 // or interact badly with a following real render.
                 return;
             }
+            const renderKey = this.contentRenderKey;
+            if (renderKey === this.lastPostedRenderKey && this.status === "ready" && this.framePainted) {
+                this.pushChrome();
+                return;
+            }
             this.renderEpoch += 1;
             const epoch = this.renderEpoch;
             this.framePainted = false;
             this.status = "rendering";
             this.lastPongAt = Date.now();
+            this.lastPostedRenderKey = renderKey;
             this.$emit("render-started");
+            this.armRenderDeadline();
             // Let the shell paint the loading banner before heavy iframe work.
             this.$nextTick(() => {
                 if (this.skipRenderUntilPropChange || epoch !== this.renderEpoch) {
@@ -292,6 +373,7 @@ export default {
                     background: this.background || "#000000",
                 });
                 if (!posted) {
+                    this.clearRenderDeadline();
                     this.status = "crashed";
                     this.$emit("hung");
                 }
@@ -312,6 +394,8 @@ export default {
             }
             if (data.type === "ready") {
                 this.frameReady = true;
+                this.lastPostedRenderKey = "";
+                this.clearRenderDeadline();
                 this.status = this.skipRenderUntilPropChange ? "aborted" : "ready";
                 this.lastPongAt = Date.now();
                 this.$emit("ready");
@@ -334,6 +418,7 @@ export default {
                 return;
             }
             if (data.type === "render-done") {
+                this.clearRenderDeadline();
                 this.status = "ready";
                 this.framePainted = true;
                 this.lastPongAt = Date.now();
@@ -342,6 +427,7 @@ export default {
                 return;
             }
             if (data.type === "render-error") {
+                this.clearRenderDeadline();
                 this.status = "crashed";
                 this.framePainted = false;
                 this.$emit("hung");
@@ -352,6 +438,7 @@ export default {
                 return;
             }
             if (data.type === "aborted") {
+                this.clearRenderDeadline();
                 this.status = "aborted";
                 this.framePainted = false;
                 // abortRender already emitted. Ignore the frame echo after hard cancel.
@@ -391,6 +478,7 @@ export default {
                 }
                 if (Date.now() - this.lastPongAt > WATCHDOG_MS) {
                     if (this.status !== "hung") {
+                        this.clearRenderDeadline();
                         this.status = "hung";
                         this.$emit("hung");
                     }
@@ -408,9 +496,11 @@ export default {
             }
         },
         reloadFrame() {
+            this.clearRenderDeadline();
             this.status = "loading";
             this.frameReady = false;
             this.framePainted = false;
+            this.lastPostedRenderKey = "";
             this.frameSrc = `${nomadCrashTabRendererUrl()}?t=${Date.now()}`;
             this.frameGeneration += 1;
             this.lastPongAt = Date.now();
@@ -419,6 +509,8 @@ export default {
             this.renderEpoch += 1;
             this.skipRenderUntilPropChange = true;
             this.framePainted = false;
+            this.lastPostedRenderKey = "";
+            this.clearRenderDeadline();
             this.postToFrame({ type: "abort" });
             // Hard cancel: tear down the sandboxed renderer process/context.
             this.reloadFrame();

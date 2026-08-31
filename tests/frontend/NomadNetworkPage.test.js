@@ -722,6 +722,26 @@ describe("NomadNetworkPage.vue", () => {
             expect(wrapper.vm.nomadCrashTabContentClass).toContain("nomad-markdown-host");
             expect(wrapper.vm.nomadCrashTabContentClass).toContain("pad");
             expect(wrapper.vm.nomadCrashTabContentClass).not.toContain("bg-black");
+            // Outer shell may use pageShellBackground. Crash-tab iframe must not,
+            // or shell-background postMessage loops render-started forever.
+            expect(wrapper.vm.nomadCrashTabBackground).toBe("transparent");
+        });
+
+        it("shell-background updates outer shell only", async () => {
+            const wrapper = mountNomadNetworkPage();
+            await wrapper.setData({
+                selectedNode: { destination_hash: destHash, display_name: "N" },
+                nodePagePath: `${destHash}:/page/readme.md`,
+                isLoadingNodePage: false,
+                nodePageContent: "# Title",
+                isShowingNodePageSource: false,
+                pageShellBackground: null,
+            });
+            const before = wrapper.vm.nomadCrashTabBackground;
+            wrapper.vm.onCrashTabShellBackground("rgb(17, 34, 51)");
+            await wrapper.vm.$nextTick();
+            expect(wrapper.vm.pageShellBackground).toBe("rgb(17, 34, 51)");
+            expect(wrapper.vm.nomadCrashTabBackground).toBe(before);
         });
     });
 
