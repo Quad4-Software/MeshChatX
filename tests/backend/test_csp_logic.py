@@ -8,6 +8,7 @@ import RNS
 from aiohttp import web
 
 from meshchatx.meshchat import ReticulumMeshChat
+from meshchatx.src.backend.http.middleware import is_opaque_frame_cors_resource
 
 
 @pytest.fixture
@@ -28,6 +29,17 @@ def mock_rns_minimal():
         mock_id.hexhash = mock_id.hash.hex()
         mock_id.get_private_key.return_value = b"test_private_key"
         yield mock_id
+
+
+def test_opaque_frame_cors_covers_shared_vite_asset_chunks():
+    assert is_opaque_frame_cors_resource("/nomad-crash-tab.html") is True
+    assert is_opaque_frame_cors_resource("/assets/nomad-crash-tab-abc.js") is True
+    assert is_opaque_frame_cors_resource("/assets/shared-async-DbyfccQO.js") is True
+    assert is_opaque_frame_cors_resource("/assets/rolldown-runtime-Bpd4S2KM.js") is True
+    assert is_opaque_frame_cors_resource("/assets/vendor-vue-Cweu0crb.js") is True
+    assert is_opaque_frame_cors_resource("/vendor/micron-parser-go/x.wasm") is True
+    assert is_opaque_frame_cors_resource("/api/v1/status") is False
+    assert is_opaque_frame_cors_resource("/") is False
 
 
 @pytest.mark.asyncio
@@ -144,21 +156,30 @@ async def test_security_middleware_allows_nomad_crash_tab_frame_and_cors(
             "/assets/nomad-crash-tab-abc123.js",
             "/assets/nomad-page-chrome-abc123.css",
             "/assets/RobotoMonoNerdFont-Regular-abc123.ttf",
+            # Shared Vite chunks imported by the crash-tab entry (no "nomad-crash-tab"
+            # in the filename). Opaque null Origin requires ACAO on these too.
+            "/assets/shared-async-DbyfccQO.js",
+            "/assets/rolldown-runtime-Bpd4S2KM.js",
+            "/assets/vendor-vue-Cweu0crb.js",
+            "/assets/vendor-micron-e8e4huBB.js",
             "/vendor/micron-parser-go/micron-parser-go.wasm",
         ):
             request = MagicMock(spec=web.Request)
             request.path = path
             request.app = {}
             response = await security_middleware(request, mock_handler)
-            assert response.headers.get("Access-Control-Allow-Origin") == "*"
+            assert response.headers.get("Access-Control-Allow-Origin") == "*", path
             assert (
                 response.headers.get("Cross-Origin-Resource-Policy") == "cross-origin"
-            )
-            # Only the crash-tab document/scripts are framed. CSS/fonts stay DENY.
+            ), path
+            # Only the crash-tab document/scripts are framed. CSS/fonts/shared
+            # chunks stay DENY for clickjacking.
             if path == "/nomad-crash-tab.html" or (
                 path.startswith("/assets/") and "nomad-crash-tab" in path
             ):
                 assert response.headers.get("X-Frame-Options") == "SAMEORIGIN"
+            elif path.startswith("/assets/"):
+                assert response.headers.get("X-Frame-Options") == "DENY"
             if path == "/nomad-crash-tab.html":
                 csp = response.headers.get("Content-Security-Policy", "")
                 assert "default-src 'none'" in csp

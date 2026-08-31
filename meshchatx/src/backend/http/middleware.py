@@ -39,17 +39,18 @@ def is_nomad_crash_tab_resource(path: str) -> bool:
 
 
 def is_opaque_frame_cors_resource(path: str) -> bool:
-    """Static assets fetched by the sandboxed crash-tab (null Origin) need CORS."""
+    """Static assets fetched by the sandboxed crash-tab (null Origin) need CORS.
+
+    Vite splits the crash-tab entry across hashed /assets/ chunks that do not
+    contain "nomad-crash-tab" in the filename (shared-async, rolldown-runtime,
+    vendor-vue, Micron, fonts, CSS). Opaque-origin module scripts require ACAO.
+    """
     if is_nomad_crash_tab_resource(path):
         return True
     if path.startswith("/vendor/micron-parser-go/"):
         return True
-    # Crash-tab CSS/font chunks are hashed under /assets/ without "nomad-crash-tab"
-    # in the filename. Fonts require CORS even when referenced from CSS.
     if path.startswith("/assets/"):
-        lower = path.lower()
-        if lower.endswith((".css", ".ttf", ".otf", ".woff", ".woff2", ".eot")):
-            return True
+        return True
     return False
 
 
