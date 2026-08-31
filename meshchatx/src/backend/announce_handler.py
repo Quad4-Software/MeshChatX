@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: 0BSD AND MIT
 
+import logging
+
+_log = logging.getLogger("meshchatx.announce")
+
+
 # an announce handler that forwards announces to a provided callback for the provided aspect filter
 # this handler exists so we can have access to the original aspect, as this is not provided in the announce itself
 class AnnounceHandler:
@@ -26,4 +31,4 @@ class AnnounceHandler:
             )
         except Exception as e:
             # ignore failure to handle received announce
-            print(f"Failed to handle received announce: {e}")
+            _log.debug("Failed to handle received announce: %s", e)

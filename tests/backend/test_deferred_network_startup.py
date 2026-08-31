@@ -155,12 +155,34 @@ def test_create_reticulum_instance_main_thread_passes_loglevel(temp_dir):
 
     with patch.object(meshchat_mod.RNS, "Reticulum") as mock_ctor:
         mock_ctor.return_value = MagicMock(name="rns")
-        with patch(
-            "meshchatx.meshchat.threading.current_thread",
-            return_value=threading.main_thread(),
+        with (
+            patch(
+                "meshchatx.meshchat.threading.current_thread",
+                return_value=threading.main_thread(),
+            ),
+            patch.object(meshchat_mod, "_resolve_rns_logdest", return_value=None),
         ):
             meshchat_mod._create_reticulum_instance(temp_dir, loglevel=3)
         mock_ctor.assert_called_once_with(temp_dir, loglevel=3)
+
+
+def test_create_reticulum_instance_passes_logdest_callback(temp_dir):
+    from meshchatx import meshchat as meshchat_mod
+
+    def _cb(msg):
+        return None
+
+    with patch.object(meshchat_mod.RNS, "Reticulum") as mock_ctor:
+        mock_ctor.return_value = MagicMock(name="rns")
+        with (
+            patch(
+                "meshchatx.meshchat.threading.current_thread",
+                return_value=threading.main_thread(),
+            ),
+            patch.object(meshchat_mod, "_resolve_rns_logdest", return_value=_cb),
+        ):
+            meshchat_mod._create_reticulum_instance(temp_dir, loglevel=2)
+        mock_ctor.assert_called_once_with(temp_dir, loglevel=2, logdest=_cb)
 
 
 def test_immediate_init_still_sets_up_network(mock_identity, temp_dir):

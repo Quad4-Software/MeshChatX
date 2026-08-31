@@ -274,33 +274,34 @@ When identity/network is not ready, prefer **503** with a retryable message over
 
 Common overrides (CLI flags usually mirror these):
 
-| Variable / flag                                            | Purpose                                                        |
-| ---------------------------------------------------------- | -------------------------------------------------------------- |
-| `MESHCHAT_HOST` / `--host`                                 | Bind address (default `127.0.0.1`)                             |
-| `MESHCHAT_PORT` / `--port`                                 | Bind port (default `8000`)                                     |
-| `MESHCHAT_HEADLESS` / `--headless`                         | Do not auto-launch a browser                                   |
-| `MESHCHAT_STORAGE_DIR` / `--storage-dir`                   | App storage root                                               |
-| `MESHCHAT_RETICULUM_CONFIG_DIR` / `--reticulum-config-dir` | Reticulum config dir                                           |
-| `MESHCHAT_DATA_DIR` / `--data-dir`                         | Portable root for storage + Reticulum when those two are unset |
-| `MESHCHAT_PUBLIC_DIR` / `--public-dir`                     | Frontend assets dir                                            |
-| `MESHCHAT_AUTH` / `--auth`                                 | Enable web auth                                                |
-| `MESHCHAT_NO_HTTPS` / `--no-https`                         | HTTP instead of HTTPS                                          |
-| `MESHCHAT_SSL_CERT` + `MESHCHAT_SSL_KEY`                   | Custom TLS PEM pair (both required)                            |
-| `MESHCHAT_IDENTITY_FILE` / `BASE32` / `BASE64`             | Seed identity from key material                                |
-| `MESHCHAT_AUTO_RECOVER` / `--auto-recover`                 | Attempt DB recovery on startup                                 |
-| `MESHCHAT_EMERGENCY` / `--emergency`                       | Emergency mode (limited operation)                             |
-| `MESHCHAT_RESET_PASSWORD` / `--reset-password`             | Clear password hash                                            |
-| `MESHCHAT_DISABLE_PLUGINS` / `--disable-plugins`           | Disable plugin system                                          |
-| `MESHCHAT_LANDLOCK`                                        | `1` / `0` / unset auto                                         |
-| `MESHCHAT_SELF_CHECK` / `--self-check`                     | Run diagnostics and exit                                       |
-| `MESHCHAT_MEMORY_DIAG` / `--memory-diag`                   | tracemalloc diagnostics                                        |
-| `MESHCHAT_DISABLE_CSRF`                                    | Dangerous. Tests/dev only                                      |
-| `MESHCHAT_SKIP_STORAGE_LOCK`                               | Dangerous. Avoid overlapping instances carefully               |
-| `MESHCHAT_RNS_LOG_LEVEL`                                   | RNS log verbosity                                              |
-| `MESHCHAT_DEBUGPY`                                         | `task debug`: listen with debugpy                              |
-| `MESHCHAT_DEBUGPY_PORT`                                    | debugpy port (default 5678, bind 127.0.0.1)                    |
-| `MESHCHAT_DEBUGPY_WAIT`                                    | `1` pauses backend until a debugger attaches                   |
-| `MESHCHAT_VUE_DEVTOOLS`                                    | `0` disables the Vite Vue DevTools overlay                     |
+| Variable / flag                                            | Purpose                                                                                 |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `MESHCHAT_HOST` / `--host`                                 | Bind address (default `127.0.0.1`)                                                      |
+| `MESHCHAT_PORT` / `--port`                                 | Bind port (default `8000`)                                                              |
+| `MESHCHAT_HEADLESS` / `--headless`                         | Do not auto-launch a browser                                                            |
+| `MESHCHAT_STORAGE_DIR` / `--storage-dir`                   | App storage root                                                                        |
+| `MESHCHAT_RETICULUM_CONFIG_DIR` / `--reticulum-config-dir` | Reticulum config dir                                                                    |
+| `MESHCHAT_DATA_DIR` / `--data-dir`                         | Portable root for storage + Reticulum when those two are unset                          |
+| `MESHCHAT_PUBLIC_DIR` / `--public-dir`                     | Frontend assets dir                                                                     |
+| `MESHCHAT_AUTH` / `--auth`                                 | Enable web auth                                                                         |
+| `MESHCHAT_NO_HTTPS` / `--no-https`                         | HTTP instead of HTTPS                                                                   |
+| `MESHCHAT_SSL_CERT` + `MESHCHAT_SSL_KEY`                   | Custom TLS PEM pair (both required)                                                     |
+| `MESHCHAT_IDENTITY_FILE` / `BASE32` / `BASE64`             | Seed identity from key material                                                         |
+| `MESHCHAT_AUTO_RECOVER` / `--auto-recover`                 | Attempt DB recovery on startup                                                          |
+| `MESHCHAT_EMERGENCY` / `--emergency`                       | Emergency mode (limited operation)                                                      |
+| `MESHCHAT_RESET_PASSWORD` / `--reset-password`             | Clear password hash                                                                     |
+| `MESHCHAT_DISABLE_PLUGINS` / `--disable-plugins`           | Disable plugin system                                                                   |
+| `MESHCHAT_LANDLOCK`                                        | `1` / `0` / unset auto                                                                  |
+| `MESHCHAT_SELF_CHECK` / `--self-check`                     | Run diagnostics and exit                                                                |
+| `MESHCHAT_MEMORY_DIAG` / `--memory-diag`                   | tracemalloc diagnostics                                                                 |
+| `MESHCHAT_DISABLE_CSRF`                                    | Dangerous. Tests/dev only                                                               |
+| `MESHCHAT_SKIP_STORAGE_LOCK`                               | Dangerous. Avoid overlapping instances carefully                                        |
+| `MESHCHAT_RNS_LOG_LEVEL`                                   | RNS log verbosity                                                                       |
+| `MESHCHAT_RNS_LOG_DEST`                                    | `stdout` keeps RNS on the console. Default with a log dir is the rotating Python logger |
+| `MESHCHAT_DEBUGPY`                                         | `task debug`: listen with debugpy                                                       |
+| `MESHCHAT_DEBUGPY_PORT`                                    | debugpy port (default 5678, bind 127.0.0.1)                                             |
+| `MESHCHAT_DEBUGPY_WAIT`                                    | `1` pauses backend until a debugger attaches                                            |
+| `MESHCHAT_VUE_DEVTOOLS`                                    | `0` disables the Vite Vue DevTools overlay                                              |
 
 Restore helpers:
 

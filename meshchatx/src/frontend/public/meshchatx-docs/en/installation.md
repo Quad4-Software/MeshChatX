@@ -69,6 +69,18 @@ docker run -d --name reticulum-meshchatx \
 
 Default Compose maps `127.0.0.1:8000` on the host to port `8000` in the container. Data persists in the `meshchatx-config` volume at `/config`.
 
+Compose caps Docker's own json-file logs at **10 MB × 5 files** per container (`logging.options`). App file logs under `/config` already rotate separately (`meshchatx.log`, about 20 MB). For a bare `docker run` without Compose, add the same limits or the host can fill under `/var/lib/docker/containers/`:
+
+```bash
+docker run -d --name reticulum-meshchatx \
+  --log-opt max-size=10m --log-opt max-file=5 \
+  -p 127.0.0.1:8000:8000 \
+  -v meshchatx-config:/config \
+  ghcr.io/quad4-software/meshchatx:latest
+```
+
+Coolify and other hosts that ignore Compose `logging:` should set equivalent log rotation in the platform UI.
+
 To bind a host directory instead, mount it at `/config`. The container runs as UID 1000. The host directory must be writable by that user.
 
 Run only **one** MeshChatX instance per `/config` volume. Startup takes an exclusive storage lock so schema migration and runtime do not overlap. For Docker or Coolify, use a single replica on that volume and replace containers in a rolling stop-then-start order instead of two replicas sharing one config path.
@@ -223,6 +235,7 @@ Common flags and environment variables:
 | `--data-dir`             | `MESHCHAT_DATA_DIR`             | none           | Portable root (`storage` + `.reticulum` subdirs when the two paths above are unset) |
 | `--identity-file`        | `MESHCHAT_IDENTITY_FILE`        | none           | Load identity from file                                                             |
 | `--rns-log-level`        | `MESHCHAT_RNS_LOG_LEVEL`        | none           | Reticulum log level                                                                 |
+| (env only)               | `MESHCHAT_RNS_LOG_DEST`         | logging        | `stdout` keeps RNS on the console. With a log dir, default is the rotating Python logger |
 | `--auto-recover`         | `MESHCHAT_AUTO_RECOVER`         | false          | Attempt SQLite recovery on start                                                    |
 | `--emergency`            |                                 | false          | Start without database                                                              |
 | `--disable-plugins`      |                                 | false          | Disable the plugin system                                                           |
