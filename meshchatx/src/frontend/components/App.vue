@@ -1884,7 +1884,12 @@ export default {
                     const sourceHash = deliverySourceHash(json);
                     const openHashes = listOpenDestinationHashes();
                     const sourceOpen = openHashes.includes(String(sourceHash || "").toLowerCase());
-                    const hasFocus = typeof document !== "undefined" ? document.hasFocus() : true;
+                    // Minimized Electron windows often keep hasFocus true while
+                    // visibilityState is hidden. Require both for "in foreground".
+                    const hasFocus =
+                        typeof document !== "undefined"
+                            ? document.visibilityState !== "hidden" && document.hasFocus()
+                            : true;
                     const policyBase = {
                         isIncoming,
                         sieveSuppress: Boolean(json.sieve_suppress_notifications),
