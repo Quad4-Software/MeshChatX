@@ -10,7 +10,9 @@ const {
     safeConsoleLog,
     shouldMirrorStdout,
     createMainProcessLogger,
+    rotateLogFileIfNeeded,
     ELECTRON_LOG_PREFIX,
+    ELECTRON_LOG_MAX_BYTES,
 } = require("../../electron/safeConsole");
 
 describe("safeConsole", () => {
@@ -127,5 +129,45 @@ describe("safeConsole", () => {
         expect(joined).toContain("early");
         expect(joined).toContain("later");
         expect(logger._pendingForTests.length).toBe(0);
+    });
+
+    it("rotateLogFileIfNeeded renames oversized logs", () => {
+        const renamed = [];
+        const unlinked = [];
+        rotateLogFileIfNeeded("/tmp/meshchat-logs/meshchatx.log", {
+            maxBytes: 10,
+            statSync: () => ({ size: 100 }),
+            unlinkSync: (p) => {
+                unlinked.push(p);
+            },
+            renameSync: (from, to) => {
+                renamed.push([from, to]);
+            },
+        });
+        expect(unlinked).toContain("/tmp/meshchat-logs/meshchatx.log.1");
+        expect(renamed).toEqual([
+            ["/tmp/meshchat-logs/meshchatx.log", "/tmp/meshchat-logs/meshchatx.log.1"],
+        ]);
+        expect(ELECTRON_LOG_MAX_BYTES).toBe(5 * 1024 * 1024);
+    });
+
+    it("createMainProcessLogger rotates before append when oversized", () => {
+        const renamed = [];
+        const writes = [];
+        const logger = createMainProcessLogger({
+            getLogsDir: () => "/tmp/meshchat-logs",
+            mkdirSync: () => {},
+            appendFileSync: (file, data) => {
+                writes.push([file, data]);
+            },
+            statSync: () => ({ size: ELECTRON_LOG_MAX_BYTES + 1 }),
+            renameSync: (from, to) => {
+                renamed.push([from, to]);
+            },
+            unlinkSync: () => {},
+        });
+        logger.write("after-rotate", { mirrorStdout: false });
+        expect(renamed.length).toBe(1);
+        expect(writes).toHaveLength(1);
     });
 });
