@@ -3,6 +3,8 @@
  * Install via local .wasm upload only. Build ships bundled WASM under /vendor/.
  */
 
+import { openIndexedDb } from "./idbOpen.js";
+
 const DB_NAME = "meshchatx_micron_wasm_override";
 const DB_VERSION = 1;
 const STORE = "kv";
@@ -15,16 +17,12 @@ export const WASM_FILENAME = "micron-parser-go.wasm";
 export const MAX_WASM_OVERRIDE_BYTES = 14 * 1024 * 1024;
 
 function openDb() {
-    return new Promise((resolve, reject) => {
-        const req = indexedDB.open(DB_NAME, DB_VERSION);
-        req.onerror = () => reject(req.error || new Error("IndexedDB open failed"));
-        req.onupgradeneeded = () => {
-            const db = req.result;
+    return openIndexedDb(DB_NAME, DB_VERSION, {
+        onUpgrade: (db) => {
             if (!db.objectStoreNames.contains(STORE)) {
                 db.createObjectStore(STORE);
             }
-        };
-        req.onsuccess = () => resolve(req.result);
+        },
     });
 }
 
