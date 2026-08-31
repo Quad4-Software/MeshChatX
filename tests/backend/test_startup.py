@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import RNS
 
+from meshchatx import meshchat as meshchat_mod
 from meshchatx.meshchat import ReticulumMeshChat
 
 
@@ -144,8 +145,15 @@ def test_reticulum_meshchat_init(mock_rns, temp_dir):
         # Verify database initialization
         mock_db_instance.initialize.assert_called_once()
 
-        # Verify RNS initialization
-        mock_rns["Reticulum"].assert_called_once_with(temp_dir)
+        # Verify RNS initialization (logdest when a writable log_dir is active)
+        mock_rns["Reticulum"].assert_called_once()
+        reticulum_args, reticulum_kwargs = mock_rns["Reticulum"].call_args
+        assert reticulum_args == (temp_dir,)
+        expected_logdest = meshchat_mod._resolve_rns_logdest()
+        if expected_logdest is not None:
+            assert reticulum_kwargs.get("logdest") is expected_logdest
+        else:
+            assert "logdest" not in reticulum_kwargs
 
         # Verify LXMF Router initialization
         mock_rns["LXMRouter"].assert_called_once()

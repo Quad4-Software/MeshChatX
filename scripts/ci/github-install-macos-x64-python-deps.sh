@@ -19,8 +19,16 @@ export UV_PYTHON_INSTALL_DIR="${ROOT}/.cache/uv/python"
 
 uv lock --check
 
+# Homebrew moved macOS Intel to Tier 3 (no new bottles). Prefer an existing
+# openssl@3 prefix. If install fails, keep going: uv sync uses
+# --python-platform x86_64-apple-darwin and should land binary wheels that do
+# not need OPENSSL_DIR headers.
 if [[ -x /usr/local/bin/brew ]]; then
-    arch -x86_64 /usr/local/bin/brew install openssl@3
+    if ! arch -x86_64 /usr/local/bin/brew --prefix openssl@3 >/dev/null 2>&1; then
+        if ! arch -x86_64 /usr/local/bin/brew install openssl@3; then
+            echo "github-install-macos-x64-python-deps: openssl@3 x64 unavailable, continuing without OPENSSL_DIR" >&2
+        fi
+    fi
 fi
 
 _codec2="$(arch -x86_64 /usr/local/bin/brew --prefix codec2 2>/dev/null || true)"
