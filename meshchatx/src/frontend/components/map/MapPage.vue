@@ -230,6 +230,10 @@
                 <div
                     v-show="drawFeatureInfoPayload"
                     class="info-popup pointer-events-auto min-w-52 max-w-[min(22rem,calc(100vw-2rem))] max-h-[min(22rem,calc(100vh-6rem))] overflow-y-auto rounded-xl border border-sem-border bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm shadow-xl px-3 py-2.5 transform -translate-x-1/2 -translate-y-full mb-2"
+                    @click.stop
+                    @mousedown.stop
+                    @pointerdown.stop
+                    @touchstart.stop
                 >
                     <template v-if="drawFeatureInfoPayload">
                         <div class="flex items-start justify-between gap-2 mb-1">
@@ -246,7 +250,7 @@
                                     type="button"
                                     class="p-1 rounded-md text-sem-fg-muted hover:text-sem-fg hover:bg-sem-surface-muted"
                                     :title="$t('map.feature_edit')"
-                                    @click="startDrawFeatureInfoEdit"
+                                    @click.stop="startDrawFeatureInfoEdit"
                                 >
                                     <MaterialDesignIcon icon-name="pencil" class="size-3.5" />
                                 </button>
@@ -254,7 +258,7 @@
                                     type="button"
                                     class="p-1 rounded-md text-sem-fg-muted hover:text-sem-fg hover:bg-sem-surface-muted"
                                     :title="$t('common.close')"
-                                    @click="clearDrawFeatureSelection"
+                                    @click.stop="clearDrawFeatureSelection"
                                 >
                                     <MaterialDesignIcon icon-name="close" class="size-3.5" />
                                 </button>
@@ -285,14 +289,14 @@
                                 <button
                                     type="button"
                                     class="px-2 py-1 text-[10px] font-semibold rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted"
-                                    @click="cancelDrawFeatureInfoEdit"
+                                    @click.stop="cancelDrawFeatureInfoEdit"
                                 >
                                     {{ $t("common.cancel") }}
                                 </button>
                                 <button
                                     type="button"
                                     class="px-2 py-1 text-[10px] font-semibold rounded-lg bg-blue-500 text-white hover:bg-blue-600"
-                                    @click="saveDrawFeatureInfoEdit"
+                                    @click.stop="saveDrawFeatureInfoEdit"
                                 >
                                     {{ $t("common.save") }}
                                 </button>
@@ -1888,7 +1892,7 @@ export default {
                 element: this.$refs.drawFeatureInfoElement,
                 offset: [0, -10],
                 positioning: "bottom-center",
-                stopEvent: false,
+                stopEvent: true,
             });
             this.map.addOverlay(this.drawFeatureInfoOverlay);
 
@@ -2047,6 +2051,9 @@ export default {
 
             this.map.on("pointermove", this.handleMapPointerMove);
             this.map.on("click", (evt) => {
+                if (this.isClickFromDrawFeatureInfo(evt)) {
+                    return;
+                }
                 if (this.isBearingMode) {
                     this.handleBearingClick(evt);
                     this.closeContextMenu();
@@ -3460,6 +3467,15 @@ export default {
             }
             this.selectedFeature = null;
             this.syncDrawFeatureInfoOverlay();
+        },
+
+        isClickFromDrawFeatureInfo(evt) {
+            const target = evt?.originalEvent?.target;
+            const root = this.$refs.drawFeatureInfoElement;
+            if (!target || !root || typeof root.contains !== "function") {
+                return false;
+            }
+            return root.contains(target);
         },
 
         isEditableDrawFeature(feature) {
