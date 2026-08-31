@@ -32,8 +32,9 @@ describe("notificationPolicy", () => {
             shouldPlayMessageSound({
                 isIncoming: true,
                 dnd: true,
-                hasFocus: true,
+                hasFocus: false,
                 userFacing: true,
+                sourceHash: peerA,
             })
         ).toBe(false);
     });
@@ -54,11 +55,12 @@ describe("notificationPolicy", () => {
                 sieveSuppress: true,
                 hasFocus: true,
                 userFacing: true,
+                sourceHash: peerA,
             })
         ).toBe(false);
     });
 
-    it("open peer A + msg A + focused: no OS, sound ok", () => {
+    it("open peer A + msg A + focused: no OS, no sound", () => {
         expect(
             shouldShowOsMessageNotification({
                 isIncoming: true,
@@ -72,12 +74,14 @@ describe("notificationPolicy", () => {
             shouldPlayMessageSound({
                 isIncoming: true,
                 hasFocus: true,
+                openDestinationHashes: [peerA],
+                sourceHash: peerA,
                 userFacing: true,
             })
-        ).toBe(true);
+        ).toBe(false);
     });
 
-    it("open peer A + msg A + blurred: no OS", () => {
+    it("open peer A + msg A + blurred: OS and sound", () => {
         expect(
             shouldShowOsMessageNotification({
                 isIncoming: true,
@@ -86,7 +90,16 @@ describe("notificationPolicy", () => {
                 sourceHash: peerA,
                 userFacing: true,
             })
-        ).toBe(false);
+        ).toBe(true);
+        expect(
+            shouldPlayMessageSound({
+                isIncoming: true,
+                hasFocus: false,
+                openDestinationHashes: [peerA],
+                sourceHash: peerA,
+                userFacing: true,
+            })
+        ).toBe(true);
     });
 
     it("open A + msg B + focused: no OS, sound for B", () => {
@@ -103,12 +116,14 @@ describe("notificationPolicy", () => {
             shouldPlayMessageSound({
                 isIncoming: true,
                 hasFocus: true,
+                openDestinationHashes: [peerA],
+                sourceHash: peerB,
                 userFacing: true,
             })
         ).toBe(true);
     });
 
-    it("open A + msg B + blurred: OS for B", () => {
+    it("open A + msg B + blurred: OS and sound for B", () => {
         expect(
             shouldShowOsMessageNotification({
                 isIncoming: true,
@@ -118,9 +133,18 @@ describe("notificationPolicy", () => {
                 userFacing: true,
             })
         ).toBe(true);
+        expect(
+            shouldPlayMessageSound({
+                isIncoming: true,
+                hasFocus: false,
+                openDestinationHashes: [peerA],
+                sourceHash: peerB,
+                userFacing: true,
+            })
+        ).toBe(true);
     });
 
-    it("no open peers + blurred: OS", () => {
+    it("no open peers + blurred: OS and sound", () => {
         expect(
             shouldShowOsMessageNotification({
                 isIncoming: true,
@@ -130,9 +154,39 @@ describe("notificationPolicy", () => {
                 userFacing: true,
             })
         ).toBe(true);
+        expect(
+            shouldPlayMessageSound({
+                isIncoming: true,
+                hasFocus: false,
+                openDestinationHashes: [],
+                sourceHash: peerA,
+                userFacing: true,
+            })
+        ).toBe(true);
     });
 
-    it("outbound: no OS", () => {
+    it("no open peers + focused: no OS, sound", () => {
+        expect(
+            shouldShowOsMessageNotification({
+                isIncoming: true,
+                hasFocus: true,
+                openDestinationHashes: [],
+                sourceHash: peerA,
+                userFacing: true,
+            })
+        ).toBe(false);
+        expect(
+            shouldPlayMessageSound({
+                isIncoming: true,
+                hasFocus: true,
+                openDestinationHashes: [],
+                sourceHash: peerA,
+                userFacing: true,
+            })
+        ).toBe(true);
+    });
+
+    it("outbound: no OS or sound", () => {
         expect(
             shouldShowOsMessageNotification({
                 isIncoming: false,
@@ -141,11 +195,27 @@ describe("notificationPolicy", () => {
                 userFacing: true,
             })
         ).toBe(false);
+        expect(
+            shouldPlayMessageSound({
+                isIncoming: false,
+                hasFocus: false,
+                sourceHash: peerA,
+                userFacing: true,
+            })
+        ).toBe(false);
     });
 
-    it("non-user-facing: no OS", () => {
+    it("non-user-facing: no OS or sound", () => {
         expect(
             shouldShowOsMessageNotification({
+                isIncoming: true,
+                hasFocus: false,
+                sourceHash: peerA,
+                userFacing: false,
+            })
+        ).toBe(false);
+        expect(
+            shouldPlayMessageSound({
                 isIncoming: true,
                 hasFocus: false,
                 sourceHash: peerA,

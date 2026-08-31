@@ -3,9 +3,46 @@
 /**
  * Pure policy for LXMF message OS notifications and in-app sound.
  * Open peer means any messages pane currently showing that destination.
+ * Sound is suppressed only while that peer is open and the window is focused.
+ * OS toasts fire whenever the window is backgrounded (minimized or unfocused).
  */
 
 /**
+ * Show a desktop/OS toast for incoming mail when the window is not in the
+ * foreground. When minimized or blurred, toast for every eligible message.
+ *
+ * @param {object} opts
+ * @param {boolean} [opts.isIncoming]
+ * @param {boolean} [opts.sieveSuppress]
+ * @param {boolean} [opts.dnd]
+ * @param {boolean} [opts.hasFocus]
+ * @param {boolean} [opts.userFacing]
+ * @returns {boolean}
+ */
+export function shouldShowOsMessageNotification({
+    isIncoming = false,
+    sieveSuppress = false,
+    dnd = false,
+    hasFocus = true,
+    userFacing = true,
+} = {}) {
+    if (dnd || sieveSuppress) {
+        return false;
+    }
+    if (!isIncoming || !userFacing) {
+        return false;
+    }
+    if (hasFocus) {
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Play in-app alert for incoming mail unless DND or the user is already
+ * reading that peer with the window focused. Unfocused or minimized windows
+ * still get sound so alerts are not tied to foreground-only autoplay.
+ *
  * @param {object} opts
  * @param {boolean} [opts.isIncoming]
  * @param {boolean} [opts.sieveSuppress]
@@ -16,7 +53,7 @@
  * @param {boolean} [opts.userFacing]
  * @returns {boolean}
  */
-export function shouldShowOsMessageNotification({
+export function shouldPlayMessageSound({
     isIncoming = false,
     sieveSuppress = false,
     dnd = false,
@@ -32,38 +69,10 @@ export function shouldShowOsMessageNotification({
         return false;
     }
     const src = normalizeDestinationHash(sourceHash);
-    if (src && isOpenDestination(src, openDestinationHashes)) {
-        return false;
-    }
-    if (hasFocus) {
+    if (hasFocus && src && isOpenDestination(src, openDestinationHashes)) {
         return false;
     }
     return true;
-}
-
-/**
- * @param {object} opts
- * @param {boolean} [opts.isIncoming]
- * @param {boolean} [opts.sieveSuppress]
- * @param {boolean} [opts.dnd]
- * @param {boolean} [opts.hasFocus]
- * @param {boolean} [opts.userFacing]
- * @returns {boolean}
- */
-export function shouldPlayMessageSound({
-    isIncoming = false,
-    sieveSuppress = false,
-    dnd = false,
-    hasFocus = true,
-    userFacing = true,
-} = {}) {
-    if (dnd || sieveSuppress) {
-        return false;
-    }
-    if (!isIncoming || !userFacing) {
-        return false;
-    }
-    return Boolean(hasFocus);
 }
 
 /**
