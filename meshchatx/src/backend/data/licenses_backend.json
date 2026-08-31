@@ -1,230 +1,230 @@
 [
-    {
-        "name": "aiohappyeyeballs",
-        "version": "2.7.1",
-        "author": "J. Nick Koston",
-        "license": "PSF-2.0"
-    },
-    {
-        "name": "aiohttp",
-        "version": "3.14.3",
-        "author": "-",
-        "license": "Apache-2.0 AND MIT"
-    },
-    {
-        "name": "aiohttp-session",
-        "version": "2.12.1",
-        "author": "Andrew Svetlov",
-        "license": "Apache 2"
-    },
-    {
-        "name": "aiosignal",
-        "version": "1.4.0",
-        "author": "aiohttp team <team@aiohttp.org>",
-        "license": "Apache 2.0"
-    },
-    {
-        "name": "altcha",
-        "version": "2.1.0",
-        "author": "Daniel Regeci",
-        "license": "OSI Approved :: MIT License"
-    },
-    {
-        "name": "anyio",
-        "version": "4.14.2",
-        "author": "Alex Grönholm <alex.gronholm@nextday.fi>",
-        "license": "MIT"
-    },
-    {
-        "name": "attrs",
-        "version": "26.1.0",
-        "author": "Hynek Schlawack <hs@ox.cx>",
-        "license": "MIT"
-    },
-    {
-        "name": "audioop-lts",
-        "version": "0.2.2",
-        "author": "-",
-        "license": "PSF-2.0"
-    },
-    {
-        "name": "bcrypt",
-        "version": "5.0.0",
-        "author": "The Python Cryptographic Authority developers <cryptography-dev@python.org>",
-        "license": "Apache-2.0"
-    },
-    {
-        "name": "bleak",
-        "version": "3.0.2",
-        "author": "Henrik Blidh",
-        "license": "MIT"
-    },
-    {
-        "name": "cbor2",
-        "version": "6.1.4",
-        "author": "Alex Grönholm <alex.gronholm@nextday.fi>",
-        "license": "MIT"
-    },
-    {
-        "name": "certifi",
-        "version": "2026.7.22",
-        "author": "Kenneth Reitz",
-        "license": "MPL-2.0"
-    },
-    {
-        "name": "cffi",
-        "version": "2.1.1",
-        "author": "Armin Rigo, Maciej Fijalkowski",
-        "license": "MIT-0"
-    },
-    {
-        "name": "cryptography",
-        "version": "50.0.1",
-        "author": "The Python Cryptographic Authority and individual contributors <cryptography-dev@python.org>",
-        "license": "Apache-2.0 OR BSD-3-Clause"
-    },
-    {
-        "name": "dbus-fast",
-        "version": "5.0.22",
-        "author": "Bluetooth Devices Authors",
-        "license": "MIT"
-    },
-    {
-        "name": "frozenlist",
-        "version": "1.8.0",
-        "author": "aiohttp team <team@aiohttp.org>",
-        "license": "Apache-2.0"
-    },
-    {
-        "name": "h11",
-        "version": "0.16.0",
-        "author": "Nathaniel J. Smith",
-        "license": "MIT"
-    },
-    {
-        "name": "httpcore",
-        "version": "1.0.9",
-        "author": "Tom Christie <tom@tomchristie.com>",
-        "license": "BSD-3-Clause"
-    },
-    {
-        "name": "httpx",
-        "version": "0.28.1",
-        "author": "Tom Christie <tom@tomchristie.com>",
-        "license": "BSD-3-Clause"
-    },
-    {
-        "name": "idna",
-        "version": "3.19",
-        "author": "Kim Davies <kim+pypi@gumleaf.org>",
-        "license": "BSD-3-Clause"
-    },
-    {
-        "name": "lxmf",
-        "version": "1.1.1",
-        "author": "Mark Qvist",
-        "license": "Reticulum License"
-    },
-    {
-        "name": "lxmfy",
-        "version": "2.0.1",
-        "author": "Quad4 <team@quad4.io>",
-        "license": "BSD-0-Clause"
-    },
-    {
-        "name": "lxst",
-        "version": "0.5.2",
-        "author": "Mark Qvist",
-        "license": "Other/Proprietary License"
-    },
-    {
-        "name": "miniaudio",
-        "version": "1.71",
-        "author": "Irmen de Jong <irmen@razorvine.net>",
-        "license": "MIT"
-    },
-    {
-        "name": "multidict",
-        "version": "6.7.1",
-        "author": "Andrew Svetlov",
-        "license": "Apache License 2.0"
-    },
-    {
-        "name": "numpy",
-        "version": "2.5.2",
-        "author": "Travis E. Oliphant et al.",
-        "license": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0"
-    },
-    {
-        "name": "ply",
-        "version": "3.11",
-        "author": "David Beazley",
-        "license": "BSD"
-    },
-    {
-        "name": "propcache",
-        "version": "0.5.2",
-        "author": "Andrew Svetlov",
-        "license": "Apache-2.0"
-    },
-    {
-        "name": "psutil",
-        "version": "7.2.2",
-        "author": "Giampaolo Rodola",
-        "license": "BSD-3-Clause"
-    },
-    {
-        "name": "pycodec2",
-        "version": "4.1.1",
-        "author": "Grzegorz Milka",
-        "license": "OSI Approved :: BSD License"
-    },
-    {
-        "name": "pycparser",
-        "version": "3.0",
-        "author": "Eli Bendersky <eliben@gmail.com>",
-        "license": "BSD-3-Clause"
-    },
-    {
-        "name": "pyserial",
-        "version": "3.5",
-        "author": "Chris Liechti",
-        "license": "BSD"
-    },
-    {
-        "name": "reticulum-meshchatx",
-        "version": "4.8.6",
-        "author": "Quad4",
-        "license": "0BSD AND MIT"
-    },
-    {
-        "name": "rns",
-        "version": "1.5.2",
-        "author": "Mark Qvist",
-        "license": "Reticulum License"
-    },
-    {
-        "name": "rns-filesync",
-        "version": "1.0.0",
-        "author": "-",
-        "license": "BSD-2-Clause"
-    },
-    {
-        "name": "wasmtime",
-        "version": "48.0.0",
-        "author": "The Wasmtime Project Developers <hello@bytecodealliance.org>",
-        "license": "Apache-2.0 WITH LLVM-exception"
-    },
-    {
-        "name": "websockets",
-        "version": "17.1",
-        "author": "Aymeric Augustin <aymeric.augustin@m4x.org>",
-        "license": "BSD-3-Clause"
-    },
-    {
-        "name": "yarl",
-        "version": "1.24.5",
-        "author": "Andrew Svetlov",
-        "license": "Apache-2.0"
-    }
+  {
+    "name": "aiohappyeyeballs",
+    "version": "2.7.1",
+    "author": "J. Nick Koston",
+    "license": "PSF-2.0"
+  },
+  {
+    "name": "aiohttp",
+    "version": "3.14.3",
+    "author": "-",
+    "license": "Apache-2.0 AND MIT"
+  },
+  {
+    "name": "aiohttp-session",
+    "version": "2.12.1",
+    "author": "Andrew Svetlov",
+    "license": "Apache 2"
+  },
+  {
+    "name": "aiosignal",
+    "version": "1.4.0",
+    "author": "aiohttp team <team@aiohttp.org>",
+    "license": "Apache 2.0"
+  },
+  {
+    "name": "altcha",
+    "version": "2.1.0",
+    "author": "Daniel Regeci",
+    "license": "OSI Approved :: MIT License"
+  },
+  {
+    "name": "anyio",
+    "version": "4.14.2",
+    "author": "Alex Grönholm <alex.gronholm@nextday.fi>",
+    "license": "MIT"
+  },
+  {
+    "name": "attrs",
+    "version": "26.1.0",
+    "author": "Hynek Schlawack <hs@ox.cx>",
+    "license": "MIT"
+  },
+  {
+    "name": "audioop-lts",
+    "version": "0.2.2",
+    "author": "-",
+    "license": "PSF-2.0"
+  },
+  {
+    "name": "bcrypt",
+    "version": "5.0.0",
+    "author": "The Python Cryptographic Authority developers <cryptography-dev@python.org>",
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "bleak",
+    "version": "3.0.2",
+    "author": "Henrik Blidh",
+    "license": "MIT"
+  },
+  {
+    "name": "cbor2",
+    "version": "6.1.4",
+    "author": "Alex Grönholm <alex.gronholm@nextday.fi>",
+    "license": "MIT"
+  },
+  {
+    "name": "certifi",
+    "version": "2026.7.22",
+    "author": "Kenneth Reitz",
+    "license": "MPL-2.0"
+  },
+  {
+    "name": "cffi",
+    "version": "2.1.1",
+    "author": "Armin Rigo, Maciej Fijalkowski",
+    "license": "MIT-0"
+  },
+  {
+    "name": "cryptography",
+    "version": "50.0.1",
+    "author": "The Python Cryptographic Authority and individual contributors <cryptography-dev@python.org>",
+    "license": "Apache-2.0 OR BSD-3-Clause"
+  },
+  {
+    "name": "dbus-fast",
+    "version": "5.0.22",
+    "author": "Bluetooth Devices Authors",
+    "license": "MIT"
+  },
+  {
+    "name": "frozenlist",
+    "version": "1.8.0",
+    "author": "aiohttp team <team@aiohttp.org>",
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "h11",
+    "version": "0.16.0",
+    "author": "Nathaniel J. Smith",
+    "license": "MIT"
+  },
+  {
+    "name": "httpcore",
+    "version": "1.0.9",
+    "author": "Tom Christie <tom@tomchristie.com>",
+    "license": "BSD-3-Clause"
+  },
+  {
+    "name": "httpx",
+    "version": "0.28.1",
+    "author": "Tom Christie <tom@tomchristie.com>",
+    "license": "BSD-3-Clause"
+  },
+  {
+    "name": "idna",
+    "version": "3.19",
+    "author": "Kim Davies <kim+pypi@gumleaf.org>",
+    "license": "BSD-3-Clause"
+  },
+  {
+    "name": "lxmf",
+    "version": "1.1.1",
+    "author": "Mark Qvist",
+    "license": "Reticulum License"
+  },
+  {
+    "name": "lxmfy",
+    "version": "2.0.1",
+    "author": "Quad4 <team@quad4.io>",
+    "license": "BSD-0-Clause"
+  },
+  {
+    "name": "lxst",
+    "version": "0.5.2",
+    "author": "Mark Qvist",
+    "license": "Other/Proprietary License"
+  },
+  {
+    "name": "miniaudio",
+    "version": "1.71",
+    "author": "Irmen de Jong <irmen@razorvine.net>",
+    "license": "MIT"
+  },
+  {
+    "name": "multidict",
+    "version": "6.7.1",
+    "author": "Andrew Svetlov",
+    "license": "Apache License 2.0"
+  },
+  {
+    "name": "numpy",
+    "version": "2.4.6",
+    "author": "Travis E. Oliphant et al.",
+    "license": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0"
+  },
+  {
+    "name": "ply",
+    "version": "3.11",
+    "author": "David Beazley",
+    "license": "BSD"
+  },
+  {
+    "name": "propcache",
+    "version": "0.5.2",
+    "author": "Andrew Svetlov",
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "psutil",
+    "version": "7.2.2",
+    "author": "Giampaolo Rodola",
+    "license": "BSD-3-Clause"
+  },
+  {
+    "name": "pycodec2",
+    "version": "4.1.1",
+    "author": "Grzegorz Milka",
+    "license": "OSI Approved :: BSD License"
+  },
+  {
+    "name": "pycparser",
+    "version": "3.0",
+    "author": "Eli Bendersky <eliben@gmail.com>",
+    "license": "BSD-3-Clause"
+  },
+  {
+    "name": "pyserial",
+    "version": "3.5",
+    "author": "Chris Liechti",
+    "license": "BSD"
+  },
+  {
+    "name": "reticulum-meshchatx",
+    "version": "4.8.6",
+    "author": "Quad4",
+    "license": "0BSD AND MIT"
+  },
+  {
+    "name": "rns",
+    "version": "1.5.2",
+    "author": "Mark Qvist",
+    "license": "Reticulum License"
+  },
+  {
+    "name": "rns-filesync",
+    "version": "1.0.0",
+    "author": "-",
+    "license": "BSD-2-Clause"
+  },
+  {
+    "name": "wasmtime",
+    "version": "48.0.0",
+    "author": "The Wasmtime Project Developers <hello@bytecodealliance.org>",
+    "license": "Apache-2.0 WITH LLVM-exception"
+  },
+  {
+    "name": "websockets",
+    "version": "17.1",
+    "author": "Aymeric Augustin <aymeric.augustin@m4x.org>",
+    "license": "BSD-3-Clause"
+  },
+  {
+    "name": "yarl",
+    "version": "1.24.5",
+    "author": "Andrew Svetlov",
+    "license": "Apache-2.0"
+  }
 ]

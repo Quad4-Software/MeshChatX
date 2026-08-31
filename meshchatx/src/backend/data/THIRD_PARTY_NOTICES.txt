@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-08-30T02:59:02.492326Z
+Generated at: 2026-08-31T11:40:02.493720Z
 Frontend source: pnpm
 
 Python dependencies
@@ -79,7 +79,7 @@ miniaudio 1.71
 multidict 6.7.1
   License: Apache License 2.0
   Author: Andrew Svetlov
-numpy 2.5.2
+numpy 2.4.6
   License: BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0
   Author: Travis E. Oliphant et al.
 ply 3.11
@@ -142,7 +142,7 @@ Node dependencies
 @babel/core 7.29.7
   License: MIT
   Author: The Babel Team
-@babel/generator 7.23.0
+@babel/generator 7.29.8
   License: MIT
   Author: The Babel Team
 @babel/helper-annotate-as-pure 7.29.7
@@ -154,16 +154,7 @@ Node dependencies
 @babel/helper-create-class-features-plugin 7.29.7
   License: MIT
   Author: The Babel Team
-@babel/helper-environment-visitor 7.24.7
-  License: MIT
-  Author: The Babel Team
-@babel/helper-function-name 7.24.7
-  License: MIT
-  Author: The Babel Team
 @babel/helper-globals 7.29.7
-  License: MIT
-  Author: The Babel Team
-@babel/helper-hoist-variables 7.24.7
   License: MIT
   Author: The Babel Team
 @babel/helper-member-expression-to-functions 7.29.7
@@ -187,13 +178,10 @@ Node dependencies
 @babel/helper-skip-transparent-expression-wrappers 7.29.7
   License: MIT
   Author: The Babel Team
-@babel/helper-split-export-declaration 7.24.7
+@babel/helper-string-parser 7.27.1
   License: MIT
   Author: The Babel Team
-@babel/helper-string-parser 7.22.5
-  License: MIT
-  Author: The Babel Team
-@babel/helper-validator-identifier 7.22.5
+@babel/helper-validator-identifier 7.27.1
   License: MIT
   Author: The Babel Team
 @babel/helper-validator-option 7.29.7
@@ -204,8 +192,8 @@ Node dependencies
   Author: The Babel Team
 @babel/highlight 7.0.0
   License: MIT
-  Author: The Babel Team
-@babel/parser 7.23.0
+  Author: suchipi
+@babel/parser 7.28.0
   License: MIT
   Author: The Babel Team
 @babel/plugin-proposal-decorators 7.29.7
@@ -229,13 +217,13 @@ Node dependencies
 @babel/plugin-transform-typescript 7.29.7
   License: MIT
   Author: The Babel Team
-@babel/template 7.24.7
+@babel/template 7.29.7
   License: MIT
   Author: The Babel Team
-@babel/traverse 7.23.2
+@babel/traverse 7.29.8
   License: MIT
   Author: The Babel Team
-@babel/types 7.23.0
+@babel/types 7.28.2
   License: MIT
   Author: The Babel Team
 @bcoe/v8-coverage 1.0.2
@@ -433,7 +421,7 @@ Node dependencies
 @isaacs/fs-minipass 4.0.1
   License: ISC
   Author: Isaac Z. Schlueter
-@jridgewell/gen-mapping 0.3.2
+@jridgewell/gen-mapping 0.3.5
   License: MIT
   Author: Justin Ridgewell
 @jridgewell/remapping 2.3.5
@@ -442,7 +430,7 @@ Node dependencies
 @jridgewell/resolve-uri 3.0.3
   License: MIT
   Author: Justin Ridgewell
-@jridgewell/set-array 1.0.1
+@jridgewell/set-array 1.2.1
   License: MIT
   Author: Justin Ridgewell
 @jridgewell/source-map 0.3.3
@@ -721,9 +709,9 @@ Node dependencies
 @types/json-schema 7.0.15
   License: MIT
   Author: -
-@types/ms 0.7.15-alpha
+@types/ms 2.1.0
   License: MIT
-  Author: Zhiyuan Wang
+  Author: -
 @types/mysql 2.15.26
   License: MIT
   Author: -
@@ -955,6 +943,9 @@ bare-stream 2.6.4
 bare-url 2.2.2
   License: Apache-2.0
   Author: Holepunch
+base64-js 1.5.1
+  License: MIT
+  Author: T. Jameson Little
 baseline-browser-mapping 2.11.12
   License: Apache-2.0
   Author: -
@@ -1066,7 +1057,7 @@ cliui 6.0.0
 color-convert 1.0.0
   License: MIT
   Author: Heather Arthur
-color-name 1.1.1
+color-name 1.1.4
   License: MIT
   Author: DY
 combined-stream 1.0.8
@@ -1516,7 +1507,7 @@ global-agent 3.0.0
 global-directory 5.0.0
   License: MIT
   Author: Sindre Sorhus
-globals 11.1.0
+globals 14.0.0
   License: MIT
   Author: Sindre Sorhus
 globalthis 1.0.4
@@ -1777,7 +1768,7 @@ js-yaml 5.2.2
 jsdom 29.1.1
   License: MIT
   Author: -
-jsesc 2.5.1
+jsesc 3.1.0
   License: MIT
   Author: Mathias Bynens
 json-buffer 3.0.1
@@ -1990,7 +1981,7 @@ ms 2.0.0
 muggle-string 0.4.1
   License: MIT
   Author: -
-nanoid 3.3.17
+nanoid 3.3.18
   License: MIT
   Author: Andrey Sitnik
 natural-compare 1.4.0
@@ -2161,7 +2152,7 @@ pg-protocol 1.16.0
 pg-types 2.2.0
   License: MIT
   Author: Brian M. Carlson
-picocolors 1.0.0
+picocolors 1.1.1
   License: ISC
   Author: Alexey Raspopov
 picomatch 4.0.4
@@ -2176,7 +2167,7 @@ playwright 1.62.1
 playwright-core 1.62.1
   License: Apache-2.0
   Author: Microsoft Corporation
-plist 5.0.0
+plist 3.1.1
   License: MIT
   Author: Nathan Rajlich
 pngjs 5.0.0
@@ -2581,9 +2572,6 @@ tmp 0.2.7
 tmp-promise 3.0.3
   License: MIT
   Author: Benjamin Gruenbaum and Collaborators.
-to-fast-properties 2.0.0
-  License: MIT
-  Author: Sindre Sorhus
 to-regex-range 5.0.1
   License: MIT
   Author: Jon Schlinkert
