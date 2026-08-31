@@ -1982,6 +1982,9 @@
     .max-h-\[500px\] {
         max-height: 500px;
     }
+    .max-h-\[min\(22rem\,calc\(100vh-6rem\)\)\] {
+        max-height: min(22rem, 100vh - 6rem);
+    }
     .max-h-\[min\(36rem\,90vh\)\] {
         max-height: min(36rem, 90vh);
     }
@@ -2363,9 +2366,6 @@
     .max-w-\[min\(18rem\,100\%\)\] {
         max-width: min(18rem, 100%);
     }
-    .max-w-\[min\(18rem\,calc\(100vw-2rem\)\)\] {
-        max-width: min(18rem, 100vw - 2rem);
-    }
     .max-w-\[min\(20rem\,85vw\)\] {
         max-width: min(20rem, 85vw);
     }
@@ -2374,6 +2374,9 @@
     }
     .max-w-\[min\(20rem\,calc\(100vw-1\.5rem\)\)\] {
         max-width: min(20rem, 100vw - 1.5rem);
+    }
+    .max-w-\[min\(22rem\,calc\(100vw-2rem\)\)\] {
+        max-width: min(22rem, 100vw - 2rem);
     }
     .max-w-\[min\(40vw\,12rem\)\] {
         max-width: min(40vw, 12rem);
@@ -2455,6 +2458,9 @@
     }
     .min-w-48 {
         min-width: calc(var(--spacing) * 48);
+    }
+    .min-w-52 {
+        min-width: calc(var(--spacing) * 52);
     }
     .min-w-56 {
         min-width: calc(var(--spacing) * 56);
@@ -2967,8 +2973,8 @@
     .grid-cols-6 {
         grid-template-columns: repeat(6, minmax(0, 1fr));
     }
-    .grid-cols-\[minmax\(0\,40\%\)_1fr\] {
-        grid-template-columns: minmax(0, 40%) 1fr;
+    .grid-cols-\[minmax\(0\,38\%\)_1fr\] {
+        grid-template-columns: minmax(0, 38%) 1fr;
     }
     .grid-rows-4 {
         grid-template-rows: repeat(4, minmax(0, 1fr));

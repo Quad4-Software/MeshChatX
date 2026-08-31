@@ -572,7 +572,7 @@ class ConfigManager:
         self.announce_store_map_data = self.BoolConfig(
             self,
             "announce_store_map_data",
-            True,
+            False,
         )
         # announce caps: max rows stored per aspect (oldest dropped). Default 2500.
         self.announce_max_stored_lxmf_delivery = self.IntConfig(
