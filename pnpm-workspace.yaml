@@ -7,7 +7,7 @@ strictPeerDependencies: false
 
 minimumReleaseAge: 7d
 minimumReleaseAgeStrict: false
-blockExoticSubDeps: true
+blockExoticSubdeps: true
 
 allowBuilds:
     "@parcel/watcher": true
