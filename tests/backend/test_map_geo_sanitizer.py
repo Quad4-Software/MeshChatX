@@ -115,7 +115,29 @@ def test_sanitize_kml_flattens_cdata_html_description():
     lower = result.data.lower()
     assert b"<script" not in lower
     assert b"<h2" not in lower
+    assert b"alert(1)" not in lower
     assert b"hostile" in lower
+
+
+def test_sanitize_kml_flattens_table_balloon_and_drops_nulls():
+    kml = b"""<?xml version="1.0" encoding="utf-8"?>
+    <kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+      <Placemark><name>Vandalism</name>
+        <description><![CDATA[<table>
+          <tr><td>AttackType</td><td>Vandalism</td></tr>
+          <tr><td>Enemy Wounded</td><td>&lt;Null&gt;</td></tr>
+          <tr><td>Notes</td><td>Memorial</td></tr>
+        </table><script>function changeImage(){}</script>]]></description>
+        <Point><coordinates>-94.2,36.3,0</coordinates></Point>
+      </Placemark>
+    </Document></kml>"""
+    result = sanitize_geo_bytes(kml)
+    assert result.feature_count == 1
+    text = result.data.decode("utf-8")
+    assert "AttackType: Vandalism" in text
+    assert "Notes: Memorial" in text
+    assert "Enemy Wounded" not in text
+    assert "changeImage" not in text
 
 
 def test_sanitize_kmz_skips_unreferenced_svg_keeps_placemark():
