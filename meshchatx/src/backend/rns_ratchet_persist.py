@@ -30,6 +30,7 @@ _QUEUE_MAX = 512
 
 def _persist_one(destination_hash: bytes, ratchet: bytes) -> None:
     import RNS
+
     # Must be the RNS-vendored module. A bare import of top-level umsgpack fails
     # in frozen desktop builds where that package is not installed (issue 76).
     import RNS.vendor.umsgpack as umsgpack

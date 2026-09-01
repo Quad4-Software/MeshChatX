@@ -58,8 +58,13 @@ def test_persist_one_writes_ratchet_via_vendored_umsgpack(tmp_path, monkeypatch)
     dest = b"\x11" * 32
     ratchet = b"\x22" * 32
     monkeypatch.setattr(RNS.Reticulum, "storagepath", str(tmp_path), raising=False)
-    if not hasattr(RNS.Identity, "ratchet_persist_lock") or RNS.Identity.ratchet_persist_lock is None:
-        monkeypatch.setattr(RNS.Identity, "ratchet_persist_lock", threading.Lock(), raising=False)
+    if (
+        not hasattr(RNS.Identity, "ratchet_persist_lock")
+        or RNS.Identity.ratchet_persist_lock is None
+    ):
+        monkeypatch.setattr(
+            RNS.Identity, "ratchet_persist_lock", threading.Lock(), raising=False
+        )
 
     ratchet_mod._persist_one(dest, ratchet)
 
