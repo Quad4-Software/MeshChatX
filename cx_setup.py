@@ -59,6 +59,9 @@ if bin_dir.exists() and bin_dir.is_dir():
 packages = [
     "RNS",
     "RNS.Interfaces",
+    # Vendored u-msgpack is used by RNS Identity ratchet persist and LXMF.
+    # Name it explicitly so cx_Freeze cannot drop it from desktop freezes.
+    "RNS.vendor",
     "LXMF",
     "LXST",
     "pycodec2",
@@ -82,6 +85,8 @@ includes = [
     "meshchatx.src.backend.appcontainer_launcher",
     "meshchatx.src.backend.seccomp_sandbox",
     "meshchatx.src.backend.frozen_freeze_probe",
+    "RNS.vendor.umsgpack",
+    "RNS.vendor.configobj",
 ]
 
 if sys.version_info >= (3, 13):

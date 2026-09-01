@@ -41,6 +41,37 @@ def test_enqueue_persist_starts_single_worker_and_coalesces():
     assert persisted[-1] == (dest, b"\x33" * 32)
 
 
+def test_persist_one_imports_rns_vendored_umsgpack():
+    """Oracle: never bare-import top-level umsgpack (fails in frozen desktop)."""
+    from pathlib import Path
+
+    src = Path(ratchet_mod.__file__).read_text(encoding="utf-8")
+    assert "import RNS.vendor.umsgpack as umsgpack" in src
+    assert "\n    import umsgpack\n" not in src
+    assert "\nimport umsgpack\n" not in src
+
+
+def test_persist_one_writes_ratchet_via_vendored_umsgpack(tmp_path, monkeypatch):
+    _reset_module_state()
+    import RNS
+
+    dest = b"\x11" * 32
+    ratchet = b"\x22" * 32
+    monkeypatch.setattr(RNS.Reticulum, "storagepath", str(tmp_path), raising=False)
+    if not hasattr(RNS.Identity, "ratchet_persist_lock") or RNS.Identity.ratchet_persist_lock is None:
+        monkeypatch.setattr(RNS.Identity, "ratchet_persist_lock", threading.Lock(), raising=False)
+
+    ratchet_mod._persist_one(dest, ratchet)
+
+    final = tmp_path / "ratchets" / RNS.hexrep(dest, delimit=False)
+    assert final.is_file()
+    from RNS.vendor import umsgpack
+
+    loaded = umsgpack.unpackb(final.read_bytes())
+    assert loaded["ratchet"] == ratchet
+    assert "received" in loaded
+
+
 def test_patched_remember_skips_persist_on_shared_instance():
     _reset_module_state()
     identity = MagicMock()
