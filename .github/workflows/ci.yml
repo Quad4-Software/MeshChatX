@@ -218,6 +218,9 @@ jobs:
             - name: Verify bleak bundled in frozen backend
               run: bash scripts/ci/github-verify-frozen-bleak.sh build/exe
 
+            - name: Verify RNS.vendor.umsgpack bundled in frozen backend
+              run: bash scripts/ci/github-verify-frozen-umsgpack.sh build/exe
+
             - name: Verify FS sandbox modules bundled in frozen backend
               run: bash scripts/ci/github-verify-frozen-sandbox.sh build/exe
 
@@ -268,6 +271,8 @@ jobs:
                   test -n "$(ls -A .artifacts/linux-build-check/meshchatx/public)"
                   test -n "$(ls -A .artifacts/linux-build-check/build/exe)"
                   bash scripts/ci/github-verify-frozen-bleak.sh \
+                      .artifacts/linux-build-check/build/exe
+                  bash scripts/ci/github-verify-frozen-umsgpack.sh \
                       .artifacts/linux-build-check/build/exe
                   bash scripts/ci/github-verify-frozen-sandbox.sh \
                       .artifacts/linux-build-check/build/exe
