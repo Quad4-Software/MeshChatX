@@ -10570,8 +10570,18 @@ class ReticulumMeshChat:
 
         lock = self._auto_resend_coordinator.lock_for(identity_key, destination_hash)
         async with lock:
+            lookup_hash = destination_hash
+            try:
+                resolved = self.get_lxmf_destination_hash_for_identity_hash(
+                    destination_hash,
+                )
+                if isinstance(resolved, str) and resolved.strip():
+                    lookup_hash = resolved.strip()
+            except Exception:
+                lookup_hash = destination_hash
+
             failed_messages = ctx.database.messages.get_failed_messages_for_destination(
-                destination_hash,
+                lookup_hash,
             )
             now = time.time()
 
