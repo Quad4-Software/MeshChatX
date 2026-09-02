@@ -244,6 +244,19 @@ def convert_db_favourite_to_dict(favourite):
     }
 
 
+def parse_lxmf_icon_appearance(value):
+    if not isinstance(value, (list, tuple)) or len(value) < 3:
+        return None
+    icon_name, foreground, background = value[:3]
+    if not isinstance(icon_name, str) or not 0 < len(icon_name) <= 64:
+        return None
+    if not icon_name.isprintable():
+        return None
+    if not all(isinstance(c, bytes) and len(c) == 3 for c in (foreground, background)):
+        return None
+    return icon_name, "#" + foreground.hex(), "#" + background.hex()
+
+
 def parse_lxmf_display_name(
     app_data_base64: str | bytes | None,
     default_value: str | None = "Anonymous Peer",

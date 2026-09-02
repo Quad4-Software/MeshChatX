@@ -207,6 +207,7 @@ from meshchatx.src.backend.meshchat_utils import (
     normalize_identity_storage_hash,
     parse_bool_query_param,
     parse_lxmf_display_name,
+    parse_lxmf_icon_appearance,
     parse_lxmf_propagation_node_app_data,
     parse_lxmf_stamp_cost,
     parse_nomadnetwork_node_display_name,
@@ -6112,6 +6113,10 @@ class ReticulumMeshChat:
             )
             self.config.auto_send_failed_messages_to_propagation_node.set(value)
 
+        if "delivery_helptips_enabled" in data:
+            value = self._parse_bool(data["delivery_helptips_enabled"])
+            self.config.delivery_helptips_enabled.set(value)
+
         if "lxmf_delivery_transfer_limit_in_bytes" in data:
             value = self._coerce_int(data["lxmf_delivery_transfer_limit_in_bytes"])
             if value is None:
@@ -7688,6 +7693,7 @@ class ReticulumMeshChat:
             "auto_resend_failed_messages_when_announce_received": ctx.config.auto_resend_failed_messages_when_announce_received.get(),
             "allow_auto_resending_failed_messages_with_attachments": ctx.config.allow_auto_resending_failed_messages_with_attachments.get(),
             "auto_send_failed_messages_to_propagation_node": ctx.config.auto_send_failed_messages_to_propagation_node.get(),
+            "delivery_helptips_enabled": ctx.config.delivery_helptips_enabled.get(),
             "show_suggested_community_interfaces": ctx.config.show_suggested_community_interfaces.get(),
             "lxmf_delivery_transfer_limit_in_bytes": ctx.config.lxmf_delivery_transfer_limit_in_bytes.get(),
             "lxmf_propagation_transfer_limit_in_bytes": ctx.config.lxmf_propagation_transfer_limit_in_bytes.get(),
@@ -9048,6 +9054,11 @@ class ReticulumMeshChat:
 
         try:
             source_hash = lxmf_message.source_hash.hex()
+            unverified_reason = getattr(lxmf_message, "unverified_reason", None)
+
+            if unverified_reason == LXMF.LXMessage.SIGNATURE_INVALID:
+                logger.warning("Invalid LXMF signature from %s, dropping", source_hash)
+                return
 
             # check if source is blocked - reject immediately
             if self.is_destination_blocked(source_hash, context=ctx):
@@ -9311,11 +9322,11 @@ class ReticulumMeshChat:
             # update lxmf user icon if icon appearance field is available
             try:
                 message_fields = lxmf_message.get_fields()
-                if LXMF.FIELD_ICON_APPEARANCE in message_fields:
-                    icon_appearance = message_fields[LXMF.FIELD_ICON_APPEARANCE]
-                    icon_name = icon_appearance[0]
-                    foreground_colour = "#" + icon_appearance[1].hex()
-                    background_colour = "#" + icon_appearance[2].hex()
+                icon_appearance = parse_lxmf_icon_appearance(
+                    message_fields.get(LXMF.FIELD_ICON_APPEARANCE),
+                )
+                if icon_appearance:
+                    icon_name, foreground_colour, background_colour = icon_appearance
 
                     local_hash = (
                         ctx.local_lxmf_destination.hexhash
