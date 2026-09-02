@@ -2227,7 +2227,12 @@
         "failed_to_send": "Не удалось отправить сообщение",
         "failed_to_send_image": "Не удалось отправить изображение {index}: {detail}",
         "unknown_meshchatx_link": "Unknown meshchatx link ({host})",
-        "unknown_meshchatx_link_generic": "Unknown or invalid meshchatx link"
+        "unknown_meshchatx_link_generic": "Unknown or invalid meshchatx link",
+        "paper_message_detected": "Обнаружено бумажное сообщение",
+        "paper_message_detected_desc": "Это сообщение содержит подписанный LXMF URI, который можно добавить в ваши беседы.",
+        "paper_message_ingest": "Принять сообщение",
+        "paper_message_ingested": "Бумажное сообщение принято",
+        "paper_message_ingested_desc": "Этот подписанный LXMF URI добавлен в ваши беседы."
     },
     "nomadnet": {
         "remove_favourite": "Удалить из избранного",

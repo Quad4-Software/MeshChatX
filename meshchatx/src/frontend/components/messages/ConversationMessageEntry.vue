@@ -8,10 +8,10 @@
             'ml-auto items-end': entry.items[0].is_outbound,
             'mr-auto items-start': !entry.items[0].is_outbound,
         }"
-        @contextmenu.prevent="cv.onMessageContextMenu($event, entry.items[0], false)"
+        @contextmenu="cv.onMessageContextMenu($event, entry.items[0], false)"
     >
         <div
-            class="relative w-full max-w-[min(280px,85vw)] mb-1.5"
+            class="relative w-full max-w-[min(280px,85vw)] mb-1.5 min-h-[120px]"
             :class="[
                 entry.items[0].is_outbound ? 'ml-auto' : 'mr-auto',
                 (entry.items[0].lxmf_message.reactions?.length ?? 0) > 0 ? 'mb-1' : '',
@@ -20,7 +20,7 @@
             <div
                 class="relative rounded-2xl overflow-hidden ring-1 ring-black/10 dark:ring-white/10 shadow-md"
                 @click.stop="cv.onChatItemClick(entry.items[0])"
-                @contextmenu.prevent.stop="cv.onMessageContextMenu($event, entry.items[0], true)"
+                @contextmenu="cv.onMessageContextMenu($event, entry.items[0], true)"
             >
                 <button
                     type="button"
@@ -55,7 +55,7 @@
                                 cv.imageGroupSortedChron(entry.items)
                             )
                         "
-                        @contextmenu.prevent.stop="cv.onMessageContextMenu($event, imgItem, true)"
+                        @contextmenu="cv.onMessageContextMenu($event, imgItem, true)"
                     >
                         <button
                             type="button"
@@ -106,7 +106,7 @@
                                 cv.imageGroupSortedChron(entry.items)
                             )
                         "
-                        @contextmenu.prevent.stop="cv.onMessageContextMenu($event, imgItem, true)"
+                        @contextmenu="cv.onMessageContextMenu($event, imgItem, true)"
                     >
                         <button
                             type="button"
@@ -150,9 +150,7 @@
                                 cv.imageGroupSortedChron(entry.items)
                             )
                         "
-                        @contextmenu.prevent.stop="
-                            cv.onMessageContextMenu($event, cv.imageGroupSortedChron(entry.items)[2], true)
-                        "
+                        @contextmenu="cv.onMessageContextMenu($event, cv.imageGroupSortedChron(entry.items)[2], true)"
                     >
                         <button
                             type="button"
@@ -204,7 +202,7 @@
                                 cv.imageGroupSortedChron(entry.items)
                             )
                         "
-                        @contextmenu.prevent.stop="cv.onMessageContextMenu($event, cell, true)"
+                        @contextmenu="cv.onMessageContextMenu($event, cell, true)"
                     >
                         <button
                             type="button"
@@ -266,7 +264,7 @@
                           : 'bg-sem-surface text-sem-fg border border-sem-border shadow-xs',
             ]"
             :style="cv.bubbleStyles(entry.items[0])"
-            @contextmenu.prevent.stop="cv.onMessageContextMenu($event, entry.items[0], true)"
+            @contextmenu="cv.onMessageContextMenu($event, entry.items[0], true)"
         >
             <div
                 v-if="entry.showTimestamp !== false || entry.items[0].is_outbound"
@@ -445,12 +443,12 @@
             'ml-auto items-end': chatItem.is_outbound,
             'mr-auto items-start': !chatItem.is_outbound,
         }"
-        @contextmenu.prevent="cv.onMessageContextMenu($event, chatItem, false)"
+        @contextmenu="cv.onMessageContextMenu($event, chatItem, false)"
     >
         <!-- standalone image (outside bubble) -->
         <div
             v-if="chatItem.lxmf_message.fields?.image"
-            class="relative w-full max-w-[min(280px,85vw)] mb-1.5"
+            class="relative w-full max-w-[min(280px,85vw)] mb-1.5 min-h-[120px]"
             :class="[
                 chatItem.is_outbound ? 'ml-auto' : 'mr-auto',
                 cv.isImageOnlyMessage(chatItem) && (chatItem.lxmf_message.reactions?.length ?? 0) > 0 ? 'mb-1' : '',
@@ -458,7 +456,7 @@
         >
             <div
                 class="relative rounded-2xl overflow-hidden ring-1 ring-black/10 dark:ring-white/10 shadow-md"
-                @contextmenu.prevent.stop="cv.onMessageContextMenu($event, chatItem, true)"
+                @contextmenu="cv.onMessageContextMenu($event, chatItem, true)"
             >
                 <template
                     v-if="['tgs', 'webm'].includes((chatItem.lxmf_message.fields.image.image_type || '').toLowerCase())"
@@ -489,7 +487,7 @@
                         :src="cv.pendingOutboundImageSrc(chatItem)"
                         loading="lazy"
                         decoding="async"
-                        class="max-h-[min(320px,55vh)] w-full cursor-pointer object-contain object-center bg-black/5 dark:bg-white/5 transition-transform hover:scale-[1.01]"
+                        class="max-h-[min(320px,55vh)] min-h-[120px] w-full cursor-pointer object-contain object-center bg-black/5 dark:bg-white/5 transition-transform hover:scale-[1.01]"
                         alt=""
                         @click.stop="cv.onOutboundImageClick(chatItem)"
                     />
@@ -587,7 +585,7 @@
                 ]"
                 :style="cv.bubbleStyles(chatItem)"
                 @click="cv.onChatItemClick(chatItem)"
-                @contextmenu.prevent.stop="cv.onMessageContextMenu($event, chatItem, true)"
+                @contextmenu="cv.onMessageContextMenu($event, chatItem, true)"
             >
                 <button
                     type="button"
@@ -899,7 +897,9 @@
                                     ? cv.isThemeOutboundBubble(chatItem)
                                         ? 'bg-white/10 border-white/20'
                                         : 'bg-black/5 border-black/10'
-                                    : 'bg-emerald-50 dark:bg-black/60 border-emerald-100 dark:border-zinc-700/50'
+                                    : cv.isPaperMessageIngested(chatItem)
+                                      ? 'bg-emerald-50/80 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40'
+                                      : 'bg-emerald-50 dark:bg-black/60 border-emerald-100 dark:border-zinc-700/50'
                             "
                         >
                             <div
@@ -912,8 +912,20 @@
                                         : 'text-emerald-700 dark:text-emerald-400'
                                 "
                             >
-                                <MaterialDesignIcon icon-name="qrcode-scan" class="size-5" />
-                                <span class="text-sm font-bold">Paper Message detected</span>
+                                <MaterialDesignIcon
+                                    :icon-name="cv.isPaperMessageIngested(chatItem) ? 'qrcode' : 'qrcode-scan'"
+                                    class="size-5"
+                                />
+                                <span class="text-sm font-bold">{{
+                                    cv.isPaperMessageIngested(chatItem)
+                                        ? $t("messages.paper_message_ingested")
+                                        : $t("messages.paper_message_detected")
+                                }}</span>
+                                <MaterialDesignIcon
+                                    v-if="cv.isPaperMessageIngested(chatItem)"
+                                    icon-name="check-circle"
+                                    class="size-4 text-emerald-600 dark:text-emerald-400"
+                                />
                             </div>
                             <p
                                 class="text-xs leading-relaxed"
@@ -925,15 +937,24 @@
                                         : 'text-emerald-600/80 text-sem-fg-muted'
                                 "
                             >
-                                This message contains a signed LXMF URI that can be ingested into your conversations.
+                                {{
+                                    cv.isPaperMessageIngested(chatItem)
+                                        ? $t("messages.paper_message_ingested_desc")
+                                        : $t("messages.paper_message_detected_desc")
+                                }}
                             </p>
                             <button
-                                v-if="!chatItem.is_outbound"
+                                v-if="!chatItem.is_outbound && !cv.isPaperMessageIngested(chatItem)"
                                 type="button"
                                 class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
-                                @click="cv.ingestPaperMessage(cv.getParsedItems(chatItem).paperMessage)"
+                                @click="
+                                    cv.ingestPaperMessage(
+                                        cv.getParsedItems(chatItem).paperMessage,
+                                        chatItem.lxmf_message.hash
+                                    )
+                                "
                             >
-                                Ingest Message
+                                {{ $t("messages.paper_message_ingest") }}
                             </button>
                         </div>
 
@@ -1200,6 +1221,13 @@
                         v-if="entry.showTimestamp !== false || chatItem.is_outbound"
                         class="flex items-center justify-end gap-1.5 mt-1.5 select-none h-3"
                     >
+                        <span
+                            v-if="cv.getParsedItems(chatItem)?.paperMessage && cv.isPaperMessageIngested(chatItem)"
+                            class="inline-flex items-center opacity-80"
+                            :title="$t('messages.paper_message_ingested')"
+                        >
+                            <MaterialDesignIcon icon-name="qrcode" class="size-3" />
+                        </span>
                         <span
                             v-if="entry.showTimestamp !== false"
                             class="text-[9px] opacity-80 font-medium"

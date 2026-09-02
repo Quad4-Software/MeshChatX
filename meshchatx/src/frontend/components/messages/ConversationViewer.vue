@@ -121,7 +121,7 @@
                     ref="messagesScroll"
                     class="flex-1 min-h-0 overflow-y-auto bg-sem-canvas"
                     style="overflow-anchor: none; overscroll-behavior-y: contain"
-                    :data-message-list-mode="useVirtualMessageList ? 'virtual' : 'reverse'"
+                    :data-message-list-mode="useVirtualMessageList ? 'virtual' : 'flow'"
                     :aria-busy="!messagesViewportReady ? 'true' : undefined"
                     @scroll="onMessagesScroll"
                 >
@@ -129,40 +129,39 @@
                         v-if="selectedPeerChatItems.length > 0"
                         :key="selectedPeer ? selectedPeer.destination_hash : ''"
                         class="min-w-0 px-4 py-6"
-                        :class="useVirtualMessageList ? 'relative flex flex-col' : ''"
+                        :class="useVirtualMessageList ? 'relative flex flex-col' : 'flex flex-col'"
                     >
                         <template v-if="!useVirtualMessageList">
-                            <div class="flex flex-col flex-col-reverse min-w-0 [overflow-anchor:none]">
+                            <button
+                                v-show="!isLoadingPrevious && hasMorePrevious"
+                                id="load-previous"
+                                type="button"
+                                class="flex items-center gap-2 mx-auto mb-4 bg-sem-surface border border-sem-border px-4 py-2 hover:bg-sem-surface-muted rounded-full shadow-xs text-sm font-medium text-sem-fg-muted transition-colors"
+                                @click="loadPrevious"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke-width="1.5"
+                                    stroke="currentColor"
+                                    class="w-4 h-4"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="m15 11.25-3-3m0 0-3 3m3-3v7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                                    />
+                                </svg>
+                                <span>{{ $t("messages.load_previous") }}</span>
+                            </button>
+                            <div class="flex flex-col min-w-0 [overflow-anchor:none]">
                                 <template
-                                    v-for="entry in selectedPeerChatDisplayGroupsNewestFirstAugmented"
+                                    v-for="entry in selectedPeerChatDisplayGroupsOldestFirstAugmented"
                                     :key="entry.key"
                                 >
                                     <ConversationMessageEntry :entry="entry" :cv="conversationViewerSelf" />
                                 </template>
-                                <!-- load previous -->
-                                <button
-                                    v-show="!isLoadingPrevious && hasMorePrevious"
-                                    id="load-previous"
-                                    type="button"
-                                    class="flex items-center gap-2 mx-auto mt-4 bg-sem-surface border border-sem-border px-4 py-2 hover:bg-sem-surface-muted rounded-full shadow-xs text-sm font-medium text-sem-fg-muted transition-colors"
-                                    @click="loadPrevious"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke-width="1.5"
-                                        stroke="currentColor"
-                                        class="w-4 h-4"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            d="m15 11.25-3-3m0 0-3 3m3-3v7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                                        />
-                                    </svg>
-                                    <span>{{ $t("messages.load_previous") }}</span>
-                                </button>
                             </div>
                         </template>
                         <template v-else>
@@ -1600,6 +1599,7 @@
 <script>
 import Utils from "../../js/Utils";
 import { copyTextToClipboard, copyImageBlobToClipboard, readTextFromClipboard } from "../../js/clipboardUtils.js";
+import { preferNativeTextSelectionMenu } from "../../js/contextMenuUtils.js";
 import { MESSAGE_BODY_MAX_DISPLAY_CHARS, isStringTooLargeForInlineDisplay } from "../../js/messageDisplayLimits.js";
 import {
     MAX_CODEC2_DECODED_RAW_BYTES,
@@ -1628,6 +1628,13 @@ import {
     collectImageFilesFromDataTransfer as collectImagesFromDataTransfer,
     extractClipboardImageFiles,
 } from "./conversationMessageHelpers.js";
+import {
+    isPaperMessageIngested as isPaperMessageIngestedStored,
+    listIngestedPaperMessageHashes,
+    markPaperMessageIngested,
+    normalizePaperIngestMessageHash,
+    shouldMarkPaperIngestFromResultStatus,
+} from "./conversationPaperIngest.js";
 import ConversationPeerHeader from "./ConversationPeerHeader.vue";
 import ConversationMessageEntry from "./ConversationMessageEntry.vue";
 import ConversationMessageListVirtual from "./ConversationMessageListVirtual.vue";
@@ -1831,6 +1838,8 @@ export default {
             },
             isPaperMessageModalOpen: false,
             paperMessageHash: null,
+            pendingPaperIngestMessageHash: null,
+            ingestedPaperMessageHashes: {},
             isRawMessageModalOpen: false,
             rawMessageData: null,
             hasTranslator: false,
@@ -2365,6 +2374,7 @@ export default {
         onWsEvent("lxmf_message_state_updated", this.onLxmfMessageStateUpdatedEvent);
         onWsEvent("lxmf_message_deleted", this.onLxmfMessageDeletedEvent);
         onWsEvent("lxm.generate_paper_uri.result", this.onGeneratePaperUriResultEvent);
+        onWsEvent("lxm.ingest_uri.result", this.onLxmIngestUriResultEvent);
 
         // listen for compose new message event
         GlobalEmitter.on("compose-new-message", this.onComposeNewMessageEvent);
@@ -2373,6 +2383,8 @@ export default {
         GlobalEmitter.on("contact-updated", this.onContactUpdatedForBanner);
 
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+
+        this.reloadIngestedPaperMessageHashes();
 
         // check translator
         this.checkTranslator();
@@ -2429,6 +2441,7 @@ export default {
         offWsEvent("lxmf_message_state_updated", this.onLxmfMessageStateUpdatedEvent);
         offWsEvent("lxmf_message_deleted", this.onLxmfMessageDeletedEvent);
         offWsEvent("lxm.generate_paper_uri.result", this.onGeneratePaperUriResultEvent);
+        offWsEvent("lxm.ingest_uri.result", this.onLxmIngestUriResultEvent);
         GlobalEmitter.off("compose-new-message", this.onComposeNewMessageEvent);
         GlobalEmitter.off("contact-updated", this.onContactUpdatedForBanner);
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
@@ -3133,10 +3146,30 @@ export default {
             this.messageBubbleTranslation = {};
             this.clearAudioAttachmentCache();
             this.lastDraftIdentityKey = nextKey;
+            this.pendingPaperIngestMessageHash = null;
+            this.reloadIngestedPaperMessageHashes();
             if (this.selectedPeer) {
                 this.loadDraft(dest, nextKey);
                 this.initialLoad();
             }
+        },
+        reloadIngestedPaperMessageHashes() {
+            const hashes = listIngestedPaperMessageHashes(this._draftIdentityKey());
+            const next = {};
+            for (const hash of hashes) {
+                next[hash] = true;
+            }
+            this.ingestedPaperMessageHashes = next;
+        },
+        isPaperMessageIngested(chatItem) {
+            const hash = normalizePaperIngestMessageHash(chatItem?.lxmf_message?.hash);
+            if (!hash) {
+                return false;
+            }
+            if (this.ingestedPaperMessageHashes[hash]) {
+                return true;
+            }
+            return isPaperMessageIngestedStored(this._draftIdentityKey(), hash);
         },
         close() {
             this.$emit("close");
@@ -3178,8 +3211,10 @@ export default {
             const nearBottom = isNearBottom(element);
             this.autoScrollOnNewMessage = nearBottom;
             if (!nearBottom) {
-                this.conversationOpenPinUntil = 0;
-                this.disconnectOpenConversationScrollObserver();
+                // Cancel open-conversation settle/pin. Attachment image decode and paper-message
+                // card growth fire ResizeObserver during the pin window and were yanking scroll
+                // back to the newest edge (often an image) after the user left the bottom.
+                this.cancelPendingScrollToBottom();
             }
 
             const wantLoad = shouldLoadPreviousMessages(element);
@@ -3451,8 +3486,10 @@ export default {
                 ToastUtils.error(this.$t("messages.failed_add_contact"));
             }
         },
-        async ingestPaperMessage(uri) {
+        async ingestPaperMessage(uri, messageHash = null) {
             try {
+                const hash = normalizePaperIngestMessageHash(messageHash);
+                this.pendingPaperIngestMessageHash = hash || null;
                 WebSocketConnection.send(
                     JSON.stringify({
                         type: "lxm.ingest_uri",
@@ -3462,8 +3499,23 @@ export default {
                 ToastUtils.info(this.$t("messages.ingesting_paper_message"));
             } catch (e) {
                 console.error(e);
+                this.pendingPaperIngestMessageHash = null;
                 ToastUtils.error(this.$t("messages.failed_ingest_paper"));
             }
+        },
+        onLxmIngestUriResultEvent(json) {
+            const pendingHash = this.pendingPaperIngestMessageHash;
+            this.pendingPaperIngestMessageHash = null;
+            if (!pendingHash || !shouldMarkPaperIngestFromResultStatus(json?.status)) {
+                return;
+            }
+            const list = markPaperMessageIngested(this._draftIdentityKey(), pendingHash);
+            const next = { ...this.ingestedPaperMessageHashes };
+            for (const hash of list) {
+                next[hash] = true;
+            }
+            next[pendingHash] = true;
+            this.ingestedPaperMessageHashes = next;
         },
         async generatePaperMessageFromComposition() {
             if (!this.canSendMessage) return;
@@ -3840,10 +3892,19 @@ export default {
                 clearTimeout(this._openConversationScrollPinTimer);
                 this._openConversationScrollPinTimer = null;
             }
+            this.conversationOpenPinUntil = 0;
+        },
+
+        cancelPendingScrollToBottom() {
+            this.scrollBottomGen += 1;
+            this.disconnectOpenConversationScrollObserver();
         },
 
         _startOpenConversationScrollPin(gen, stale) {
             this.disconnectOpenConversationScrollObserver();
+            if (!this.autoScrollOnNewMessage || stale()) {
+                return;
+            }
             const container = this.$refs.messagesScroll;
             const observed = container?.firstElementChild;
             if (!observed || typeof ResizeObserver === "undefined") {
@@ -3882,11 +3943,17 @@ export default {
 
         scrollMessagesToBottom: function (options) {
             const pinAfter = options && options.pinAfter === true;
+            // Explicit bottom requests (open settle, send, FAB) re-enable follow mode.
+            this.autoScrollOnNewMessage = true;
             this.scrollBottomGen += 1;
             const gen = this.scrollBottomGen;
             const stale = () => gen !== this.scrollBottomGen;
+            const userLeftBottom = () => !this.autoScrollOnNewMessage;
 
             const pump = () => {
+                if (stale() || userLeftBottom()) {
+                    return;
+                }
                 const container = this.$refs.messagesScroll;
                 if (!container) {
                     return;
@@ -3902,9 +3969,15 @@ export default {
             };
 
             this.$nextTick(() => {
-                if (stale()) return;
+                if (stale() || userLeftBottom()) {
+                    this.messagesViewportReady = true;
+                    return;
+                }
                 this.$nextTick(() => {
-                    if (stale()) return;
+                    if (stale() || userLeftBottom()) {
+                        this.messagesViewportReady = true;
+                        return;
+                    }
                     const container = this.$refs.messagesScroll;
                     if (!container) {
                         this.messagesViewportReady = true;
@@ -3914,7 +3987,10 @@ export default {
                     if (!hasItems) {
                         pump();
                         requestAnimationFrame(() => {
-                            if (stale()) return;
+                            if (stale() || userLeftBottom()) {
+                                this.messagesViewportReady = true;
+                                return;
+                            }
                             this.messagesViewportReady = true;
                             if (pinAfter) {
                                 this._startOpenConversationScrollPin(gen, stale);
@@ -3925,13 +4001,16 @@ export default {
 
                     let passes = 0;
                     const settle = () => {
-                        if (stale()) return;
+                        if (stale() || userLeftBottom()) {
+                            this.messagesViewportReady = true;
+                            return;
+                        }
                         pump();
                         passes++;
                         const trustNear = canTrustScrollNearBottomHeuristic(container);
                         if ((trustNear && isNearBottom(container)) || passes >= SCROLL_SETTLE_MAX_PASSES) {
                             this.messagesViewportReady = true;
-                            if (pinAfter) {
+                            if (pinAfter && !userLeftBottom() && !stale()) {
                                 this._startOpenConversationScrollPin(gen, stale);
                             }
                         } else {
@@ -4401,6 +4480,18 @@ export default {
             }
         },
         onMessageContextMenu(event, chatItem, openedFromBubble = false) {
+            // Long-press text selection on Android fires contextmenu after the
+            // word is highlighted. Do not steal Copy for the app message menu.
+            if (event && preferNativeTextSelectionMenu(event)) {
+                return;
+            }
+            if (event && typeof event.preventDefault === "function") {
+                event.preventDefault();
+            }
+            if (event && typeof event.stopPropagation === "function") {
+                event.stopPropagation();
+            }
+
             this.messageContextMenu.chatItem = chatItem;
             this.messageContextMenu.openedFromBubble = openedFromBubble;
             this.messageContextMenu.justOpened = true;
@@ -4410,8 +4501,8 @@ export default {
                 const menuWidth = 200;
                 const menuHeight = 280;
 
-                let x = event.clientX;
-                let y = event.clientY;
+                let x = event?.clientX ?? 0;
+                let y = event?.clientY ?? 0;
 
                 if (x + menuWidth > window.innerWidth) {
                     x = window.innerWidth - menuWidth - 10;

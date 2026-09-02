@@ -52,7 +52,10 @@ export default {
                 return;
             }
             this.ioCleanup = attachInView(el, (entry) => {
-                this.show = entry.isIntersecting;
+                // One-way reveal. Toggling hide collapses height and yanks the message list scroll.
+                if (entry.isIntersecting) {
+                    this.show = true;
+                }
             });
         });
     },

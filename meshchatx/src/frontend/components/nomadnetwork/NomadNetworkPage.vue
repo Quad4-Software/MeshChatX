@@ -422,7 +422,7 @@
                     :style="nodeContainerShellStyle"
                     @click.capture="onElementClick"
                     @auxclick.capture="onElementClick"
-                    @contextmenu.prevent="onPageContextMenu"
+                    @contextmenu="onPageContextMenu"
                 >
                     <!-- archived version notice -->
                     <div
@@ -694,6 +694,7 @@ import NomadCrashTab from "./NomadCrashTab.vue";
 import Utils from "../../js/Utils";
 import DownloadUtils from "../../js/DownloadUtils";
 import ToastUtils from "../../js/ToastUtils";
+import { openAppContextMenuUnlessTextSelection } from "../../js/contextMenuUtils.js";
 import { getDestinationPath, runDestinationPathFinder } from "../../js/reticulumPathfinding.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import IconButton from "../IconButton.vue";
@@ -2732,11 +2733,13 @@ export default {
             }
         },
         onPageContextMenu(event) {
-            if (this.embedded && this.nomadBrowserTabActions) {
-                this.nomadBrowserTabActions.openContextMenu(event);
-                return;
-            }
-            this.openStandaloneContextMenu(event);
+            openAppContextMenuUnlessTextSelection(event, (ev) => {
+                if (this.embedded && this.nomadBrowserTabActions) {
+                    this.nomadBrowserTabActions.openContextMenu(ev);
+                    return;
+                }
+                this.openStandaloneContextMenu(ev);
+            });
         },
         openStandaloneContextMenu(event) {
             this.standaloneContextMenu = {
