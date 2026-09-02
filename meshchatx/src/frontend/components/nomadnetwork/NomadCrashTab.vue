@@ -52,8 +52,14 @@ import { nomadCrashTabRendererUrl, NOMAD_CRASH_TAB_CHANNEL } from "../../js/noma
 
 const WATCHDOG_MS = 12000;
 const PING_INTERVAL_MS = 2000;
+/**
+ * Coalesced wake after a freeze often skips the 1s watchdog ticks. Silence
+ * larger than this is a stall, not a live hang.
+ */
+const WATCHDOG_STALL_MS = 20000;
 /** Wall-clock cap for one paint. Ping liveness alone cannot clear a hung import. */
 const RENDER_DEADLINE_MS = 20000;
+const RENDER_DEADLINE_MIN_RESUME_MS = 1000;
 
 export default {
     name: "NomadCrashTab",
@@ -129,6 +135,10 @@ export default {
             renderDeadlineTimer: null,
             lastPostedRenderKey: "",
             chromePushQueued: false,
+            livenessPaused: false,
+            renderDeadlineParked: false,
+            renderDeadlineRemainingMs: 0,
+            renderDeadlineArmedAt: 0,
         };
     },
     computed: {
@@ -203,7 +213,7 @@ export default {
             this.schedulePushChrome();
         },
         active(isActive) {
-            if (isActive) {
+            if (isActive && !this.livenessPaused && !this.isDocumentHidden()) {
                 this.startWatchdog();
             } else {
                 this.stopWatchdog();
@@ -212,12 +222,24 @@ export default {
     },
     mounted() {
         window.addEventListener("message", this.onWindowMessage);
-        if (this.active) {
+        window.addEventListener("visibilitychange", this.onVisibilityChange);
+        if (typeof document !== "undefined") {
+            document.addEventListener("freeze", this.onPageFreeze);
+            document.addEventListener("resume", this.onPageResume);
+        }
+        if (this.isDocumentHidden()) {
+            this.pauseLivenessForBackground();
+        } else if (this.active) {
             this.startWatchdog();
         }
     },
     beforeUnmount() {
         window.removeEventListener("message", this.onWindowMessage);
+        window.removeEventListener("visibilitychange", this.onVisibilityChange);
+        if (typeof document !== "undefined") {
+            document.removeEventListener("freeze", this.onPageFreeze);
+            document.removeEventListener("resume", this.onPageResume);
+        }
         this.stopWatchdog();
         this.clearRenderDeadline();
     },
@@ -299,15 +321,97 @@ export default {
                 showSource: this.showSource === true,
             });
         },
+        isDocumentHidden() {
+            if (typeof document === "undefined") {
+                return false;
+            }
+            if (document.visibilityState === "hidden") {
+                return true;
+            }
+            return document.hidden === true;
+        },
+        onVisibilityChange() {
+            if (this.isDocumentHidden()) {
+                this.pauseLivenessForBackground();
+                return;
+            }
+            this.resumeLivenessFromBackground();
+        },
+        onPageFreeze() {
+            this.pauseLivenessForBackground();
+        },
+        onPageResume() {
+            if (this.isDocumentHidden()) {
+                return;
+            }
+            this.resumeLivenessFromBackground();
+        },
+        pauseLivenessForBackground() {
+            if (this.livenessPaused) {
+                this.parkRenderDeadline();
+                this.stopWatchdog();
+                return;
+            }
+            this.livenessPaused = true;
+            this.stopWatchdog();
+            this.parkRenderDeadline();
+        },
+        resumeLivenessFromBackground() {
+            this.livenessPaused = false;
+            this.lastPongAt = Date.now();
+            if (this.active) {
+                this.startWatchdog();
+                this.pingNow();
+            }
+            this.unparkRenderDeadline();
+        },
         clearRenderDeadline() {
             if (this.renderDeadlineTimer != null) {
                 clearTimeout(this.renderDeadlineTimer);
                 this.renderDeadlineTimer = null;
             }
+            this.renderDeadlineParked = false;
+            this.renderDeadlineRemainingMs = 0;
+            this.renderDeadlineArmedAt = 0;
         },
-        armRenderDeadline() {
+        parkRenderDeadline() {
+            if (this.renderDeadlineTimer != null) {
+                clearTimeout(this.renderDeadlineTimer);
+                this.renderDeadlineTimer = null;
+                const elapsed = Date.now() - (this.renderDeadlineArmedAt || Date.now());
+                const left = (this.renderDeadlineRemainingMs || RENDER_DEADLINE_MS) - elapsed;
+                this.renderDeadlineRemainingMs = Math.max(RENDER_DEADLINE_MIN_RESUME_MS, left);
+                this.renderDeadlineParked = true;
+                return;
+            }
+            if (this.status === "rendering" || this.status === "loading") {
+                this.renderDeadlineParked = true;
+                if (!this.renderDeadlineRemainingMs) {
+                    this.renderDeadlineRemainingMs = RENDER_DEADLINE_MS;
+                }
+            }
+        },
+        unparkRenderDeadline() {
+            if (!this.renderDeadlineParked) {
+                return;
+            }
+            this.renderDeadlineParked = false;
+            if (this.status !== "rendering" && this.status !== "loading") {
+                this.renderDeadlineRemainingMs = 0;
+                return;
+            }
+            this.armRenderDeadline(this.renderDeadlineRemainingMs || RENDER_DEADLINE_MS);
+        },
+        armRenderDeadline(timeoutMs) {
             this.clearRenderDeadline();
+            const wait = timeoutMs == null ? RENDER_DEADLINE_MS : timeoutMs;
+            this.renderDeadlineRemainingMs = wait;
+            if (this.livenessPaused || this.isDocumentHidden()) {
+                this.renderDeadlineParked = true;
+                return;
+            }
             const epoch = this.renderEpoch;
+            this.renderDeadlineArmedAt = Date.now();
             this.renderDeadlineTimer = setTimeout(() => {
                 this.renderDeadlineTimer = null;
                 if (epoch !== this.renderEpoch) {
@@ -316,10 +420,17 @@ export default {
                 if (this.status !== "rendering" && this.status !== "loading") {
                     return;
                 }
+                if (this.livenessPaused || this.isDocumentHidden()) {
+                    this.renderDeadlineParked = true;
+                    if (!this.renderDeadlineRemainingMs) {
+                        this.renderDeadlineRemainingMs = RENDER_DEADLINE_MS;
+                    }
+                    return;
+                }
                 this.status = "hung";
                 this.framePainted = false;
                 this.$emit("hung");
-            }, RENDER_DEADLINE_MS);
+            }, wait);
         },
         pushRender() {
             if (this.skipRenderUntilPropChange) {
@@ -459,30 +570,52 @@ export default {
                 });
             }
         },
+        pingNow() {
+            if (!this.active || !this.frameReady) {
+                return;
+            }
+            if (this.livenessPaused || this.isDocumentHidden()) {
+                return;
+            }
+            this.pendingPingId += 1;
+            this.postToFrame({ type: "ping", id: this.pendingPingId });
+        },
+        checkWatchdog() {
+            if (!this.active || !this.frameReady) {
+                return;
+            }
+            if (this.livenessPaused || this.isDocumentHidden()) {
+                return;
+            }
+            if (this.status !== "rendering" && this.status !== "ready") {
+                return;
+            }
+            const silentMs = Date.now() - this.lastPongAt;
+            if (silentMs <= WATCHDOG_MS) {
+                return;
+            }
+            if (silentMs > WATCHDOG_STALL_MS) {
+                this.lastPongAt = Date.now();
+                this.pingNow();
+                return;
+            }
+            if (this.status !== "hung") {
+                this.clearRenderDeadline();
+                this.status = "hung";
+                this.$emit("hung");
+            }
+        },
         startWatchdog() {
             this.stopWatchdog();
+            if (!this.active || this.livenessPaused || this.isDocumentHidden()) {
+                return;
+            }
             this.lastPongAt = Date.now();
             this.pingTimer = setInterval(() => {
-                if (!this.active || !this.frameReady) {
-                    return;
-                }
-                this.pendingPingId += 1;
-                this.postToFrame({ type: "ping", id: this.pendingPingId });
+                this.pingNow();
             }, PING_INTERVAL_MS);
             this.watchdogTimer = setInterval(() => {
-                if (!this.active || !this.frameReady) {
-                    return;
-                }
-                if (this.status !== "rendering" && this.status !== "ready") {
-                    return;
-                }
-                if (Date.now() - this.lastPongAt > WATCHDOG_MS) {
-                    if (this.status !== "hung") {
-                        this.clearRenderDeadline();
-                        this.status = "hung";
-                        this.$emit("hung");
-                    }
-                }
+                this.checkWatchdog();
             }, 1000);
         },
         stopWatchdog() {
