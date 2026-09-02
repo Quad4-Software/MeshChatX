@@ -23,33 +23,45 @@ Two paths: **GitHub pull requests** (full dev workflow below) and **LXMF patches
     task test:quick
     ```
 
-4. Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages (`feat:`, `fix:`, `chore:`, etc.). Details: `.agents/conventions/commits.md`. With hooks installed, `commitlint` runs on every commit.
+4. Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages (feat:, fix:, chore:, etc.). Details: .agents/conventions/commits.md. With hooks installed, commitlint runs on every commit.
 
-5. Open a pull request against `master` or `dev`. CI runs `task lint`, frontend tests, and localization checks.
+5. Open a pull request against master or dev. CI runs task lint, frontend tests, and localization checks.
 
 ### Git hooks
 
-`task hooks:install` enables tracked hooks under `.githooks/`:
+task hooks:install enables tracked hooks under .githooks/:
 
-| Hook         | What it does                                                                                               |
-| ------------ | ---------------------------------------------------------------------------------------------------------- |
-| `pre-commit` | Ruff format/lint, Prettier, ESLint fix on staged files, whitespace checks, optional `meshchatx.rsm` resign |
-| `commit-msg` | commitlint (conventional commit header)                                                                    |
+| Hook       | What it does                                                                                             |
+| ---------- | -------------------------------------------------------------------------------------------------------- |
+| pre-commit | Ruff format/lint, Prettier, ESLint fix on staged files, whitespace checks, optional meshchatx.rsm resign |
+| commit-msg | commitlint (conventional commit header)                                                                  |
 
-Skip one hook: `SKIP=ruff-format git commit ...`
+Skip one hook:
 
-Skip all hooks: `git commit --no-verify`
+```bash
+SKIP=ruff-format git commit ...
+```
 
-Skip RSM resign only: `SKIP=meshchatx-rsm git commit ...`
+Skip all hooks:
+
+```bash
+git commit --no-verify
+```
+
+Skip RSM resign only:
+
+```bash
+SKIP=meshchatx-rsm git commit ...
+```
 
 ### Code style
 
-| Surface  | Tool                            | Task                                         |
-| -------- | ------------------------------- | -------------------------------------------- |
-| Python   | Ruff                            | `task format:backend`, `task lint:backend`   |
-| Frontend | Prettier, ESLint, vue-tsc, knip | `task format:frontend`, `task lint:frontend` |
+| Surface  | Tool                            | Task                                     |
+| -------- | ------------------------------- | ---------------------------------------- |
+| Python   | Ruff                            | task format:backend, task lint:backend   |
+| Frontend | Prettier, ESLint, vue-tsc, knip | task format:frontend, task lint:frontend |
 
-Editor baseline: `.editorconfig`. Agent conventions: `.agents/conventions/`.
+Editor baseline: .editorconfig. Agent conventions: .agents/conventions/.
 
 ---
 
@@ -64,7 +76,7 @@ Editor baseline: `.editorconfig`. Agent conventions: `.agents/conventions/`.
     git commit -m "Short description of the change"
     ```
 
-3. Export the commit(s) as a `.patch` file:
+3. Export the commit(s) as a .patch file:
 
     ```bash
     # Single most recent commit
@@ -77,11 +89,11 @@ Editor baseline: `.editorconfig`. Agent conventions: `.agents/conventions/`.
     git format-patch main..HEAD
     ```
 
-    This produces one `.patch` file per commit (for example `0001-my-change.patch`).
+    This produces one .patch file per commit (for example 0001-my-change.patch).
 
 ## Sending the patch
 
-Send the `.patch` file as an LXMF message over Reticulum to:
+Send the .patch file as an LXMF message over Reticulum to:
 
 ```
 f489752fbef161c64d65e385a4e9fc74
@@ -96,14 +108,14 @@ Lastly, be patient.
 - Keep patches focused on a single change or fix.
 - Test your changes before exporting.
 - Hooks, lint, and tests are optional for mesh patches but strongly recommended when you have the toolchain.
-- GitHub contributors should run `task lint` and add tests when behaviour changes.
+- GitHub contributors should run task lint and add tests when behaviour changes.
 
 ## Licensing of contributions
 
-By submitting a patch, you agree that your contribution is licensed under the same terms as the file or files it modifies, as recorded by the per-file SPDX headers and the repository `LICENSE`:
+By submitting a patch, you agree that your contribution is licensed under the same terms as the file or files it modifies, as recorded by the per-file SPDX headers and the repository LICENSE:
 
-- Contributions to project-owned files (SPDX `0BSD`) are licensed under 0BSD.
-- Contributions to upstream-derived files (SPDX `MIT` or `0BSD AND MIT`) are licensed under MIT, so the upstream license obligations are preserved.
+- Contributions to project-owned files (SPDX 0BSD) are licensed under 0BSD.
+- Contributions to upstream-derived files (SPDX MIT or 0BSD AND MIT) are licensed under MIT, so the upstream license obligations are preserved.
 - New files you author and add to the project are licensed under 0BSD unless you explicitly mark them otherwise in the patch.
 
 You also confirm that you have the right to submit the contribution under these terms (for example, it is your own work, or you have permission from the copyright holder), and that you are not knowingly introducing code under an incompatible license.
