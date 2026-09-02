@@ -286,118 +286,155 @@
                 <div class="space-y-6">
                     <!-- Security & Integrity -->
                     <div v-if="appInfo" class="about-section hidden sm:block">
-                        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
-                            <div
-                                class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2"
-                            >
-                                <MaterialDesignIcon icon-name="shield-search" class="size-3.5" />
-                                {{ $t("about.security_integrity") }}
-                            </div>
-                            <div v-if="appInfo.integrity_issues" class="flex flex-wrap gap-2">
-                                <span
-                                    :class="statusPillClass(appInfo.integrity_issues.length === 0)"
-                                    class="font-black px-3 py-1 text-[11px]"
-                                >
-                                    <MaterialDesignIcon
-                                        :icon-name="
-                                            appInfo.integrity_issues.length === 0 ? 'shield-check' : 'shield-alert'
-                                        "
-                                        class="size-3.5 appInfo.integrity_issues.length === 0 ? 'text-emerald-600 dark:text-emerald-400' : '' shrink-0"
-                                    />
-                                    {{
-                                        appInfo.integrity_issues.length === 0
-                                            ? $t("about.secured")
-                                            : $t("about.tampering_detected")
-                                    }}
-                                </span>
-                                <button
-                                    v-if="appInfo.integrity_issues.length > 0"
-                                    type="button"
-                                    class="secondary-chip px-3 py-1 text-[11px] font-black"
-                                    @click="acknowledgeIntegrity"
-                                >
-                                    <MaterialDesignIcon icon-name="check-circle" class="size-3.5 shrink-0" />
-                                    {{ $t("common.acknowledge_reset") }}
-                                </button>
-                            </div>
+                        <div
+                            class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2 mb-6"
+                        >
+                            <MaterialDesignIcon icon-name="shield-search" class="size-3.5" />
+                            {{ $t("about.security_integrity") }}
                         </div>
-
-                        <p class="text-[11px] leading-relaxed text-sem-fg-muted mb-4">
-                            {{ $t("about.security_integrity_description") }}
-                        </p>
 
                         <div class="mb-6 pb-6 border-b border-gray-200/60 dark:border-zinc-800/80 space-y-4">
-                            <div>
-                                <div class="text-[10px] font-black text-sem-fg uppercase tracking-[0.2em] mb-2">
-                                    {{ $t("about.sandbox_title") }}
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <div class="text-[10px] font-black text-sem-fg uppercase tracking-[0.2em] mb-2">
+                                        {{ $t("about.integrity_monitoring_title") }}
+                                    </div>
+                                    <p class="text-[11px] leading-relaxed text-sem-fg-muted">
+                                        {{ $t("about.security_integrity_description") }}
+                                    </p>
                                 </div>
-                                <p class="text-[11px] leading-relaxed text-sem-fg-muted">
-                                    {{ $t("about.sandbox_description") }}
-                                </p>
+                                <div
+                                    v-if="Array.isArray(appInfo.integrity_issues)"
+                                    class="flex flex-wrap gap-2 shrink-0"
+                                >
+                                    <span
+                                        :class="statusPillClass(appInfo.integrity_issues.length === 0)"
+                                        class="font-black px-3 py-1 text-[11px]"
+                                    >
+                                        <MaterialDesignIcon
+                                            :icon-name="
+                                                appInfo.integrity_issues.length === 0 ? 'shield-check' : 'shield-alert'
+                                            "
+                                            class="size-3.5 shrink-0"
+                                            :class="
+                                                appInfo.integrity_issues.length === 0
+                                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                                    : ''
+                                            "
+                                        />
+                                        {{
+                                            appInfo.integrity_issues.length === 0
+                                                ? $t("about.secured")
+                                                : $t("about.tampering_detected")
+                                        }}
+                                    </span>
+                                    <button
+                                        v-if="appInfo.integrity_issues.length > 0"
+                                        type="button"
+                                        class="secondary-chip px-3 py-1 text-[11px] font-black"
+                                        @click="acknowledgeIntegrity"
+                                    >
+                                        <MaterialDesignIcon icon-name="check-circle" class="size-3.5 shrink-0" />
+                                        {{ $t("common.acknowledge_reset") }}
+                                    </button>
+                                </div>
                             </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm min-w-0">
+
+                            <div
+                                v-if="Array.isArray(appInfo.integrity_issues) && appInfo.integrity_issues.length > 0"
+                                class="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-xl"
+                            >
                                 <div
-                                    v-if="appInfo.landlock_requested !== undefined"
-                                    class="rounded-xl border border-gray-200/60 dark:border-zinc-800/80 p-3 min-w-0"
+                                    class="text-xs font-black text-amber-700 dark:text-amber-400 mb-3 uppercase tracking-wider flex items-center gap-2"
                                 >
-                                    <div class="text-[10px] font-black uppercase tracking-wider text-sem-fg-muted mb-1">
-                                        {{ $t("app.landlock_status") }}
-                                    </div>
-                                    <div class="text-xs font-bold text-sem-fg">
-                                        {{ sandboxLandlockLabel }}
-                                    </div>
+                                    <MaterialDesignIcon icon-name="alert" class="size-4" />
+                                    {{ $t("about.technical_issues_detected") }}
                                 </div>
-                                <div
-                                    v-if="appInfo.appcontainer_requested !== undefined"
-                                    class="rounded-xl border border-gray-200/60 dark:border-zinc-800/80 p-3 min-w-0"
+                                <ul
+                                    class="text-[11px] text-amber-700 dark:text-amber-300 space-y-2 list-none font-mono"
                                 >
-                                    <div class="text-[10px] font-black uppercase tracking-wider text-sem-fg-muted mb-1">
-                                        {{ $t("app.appcontainer_status") }}
-                                    </div>
-                                    <div class="text-xs font-bold text-sem-fg">
-                                        {{ sandboxAppcontainerLabel }}
-                                    </div>
-                                </div>
-                                <div
-                                    v-if="appInfo.seccomp_requested !== undefined"
-                                    class="rounded-xl border border-gray-200/60 dark:border-zinc-800/80 p-3 min-w-0"
-                                >
-                                    <div class="text-[10px] font-black uppercase tracking-wider text-sem-fg-muted mb-1">
-                                        {{ $t("app.seccomp_status") }}
-                                    </div>
-                                    <div class="text-xs font-bold text-sem-fg">
-                                        {{ sandboxSeccompLabel }}
-                                    </div>
-                                </div>
+                                    <li
+                                        v-for="(issue, index) in appInfo.integrity_issues"
+                                        :key="index"
+                                        class="flex gap-2"
+                                    >
+                                        <span class="opacity-50">•</span>
+                                        <span>{{ issue }}</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div
+                                v-else
+                                class="text-sm text-gray-700 dark:text-emerald-200 flex items-center gap-3 bg-emerald-500/10 dark:bg-emerald-900/30 p-4 rounded-xl border border-emerald-500/20 dark:border-emerald-500/30"
+                            >
+                                <MaterialDesignIcon
+                                    icon-name="check-decagram"
+                                    class="size-5 text-emerald-600 dark:text-emerald-400 shrink-0"
+                                />
+                                <span class="font-bold tracking-tight">{{ $t("about.no_integrity_violations") }}</span>
                             </div>
                         </div>
 
-                        <div
-                            v-if="appInfo.integrity_issues && appInfo.integrity_issues.length > 0"
-                            class="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-xl"
-                        >
-                            <div
-                                class="text-xs font-black text-amber-700 dark:text-amber-400 mb-3 uppercase tracking-wider flex items-center gap-2"
-                            >
-                                <MaterialDesignIcon icon-name="alert" class="size-4" />
-                                {{ $t("about.technical_issues_detected") }}
+                        <div class="space-y-4">
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <div class="text-[10px] font-black text-sem-fg uppercase tracking-[0.2em] mb-2">
+                                        {{ $t("about.sandbox_title") }}
+                                    </div>
+                                    <p class="text-[11px] leading-relaxed text-sem-fg-muted">
+                                        {{ $t("about.sandbox_description") }}
+                                    </p>
+                                </div>
+                                <span
+                                    :class="statusPillClass(sandboxSummaryActive)"
+                                    class="font-black px-3 py-1 text-[11px] shrink-0"
+                                >
+                                    <MaterialDesignIcon
+                                        :icon-name="sandboxSummaryActive ? 'shield-check' : 'shield-off'"
+                                        class="size-3.5 shrink-0"
+                                        :class="sandboxSummaryActive ? 'text-emerald-600 dark:text-emerald-400' : ''"
+                                    />
+                                    {{ $t(sandboxSummaryTypeKey) }}
+                                </span>
                             </div>
-                            <ul class="text-[11px] text-amber-700 dark:text-amber-300 space-y-2 list-none font-mono">
-                                <li v-for="(issue, index) in appInfo.integrity_issues" :key="index" class="flex gap-2">
-                                    <span class="opacity-50">•</span>
-                                    <span>{{ issue }}</span>
-                                </li>
-                            </ul>
-                        </div>
-                        <div
-                            v-else
-                            class="text-sm text-gray-700 dark:text-emerald-200 flex items-center gap-3 bg-emerald-500/10 dark:bg-emerald-900/30 p-4 rounded-xl border border-emerald-500/20 dark:border-emerald-500/30"
-                        >
-                            <MaterialDesignIcon
-                                icon-name="check-decagram"
-                                class="size-5 text-emerald-600 dark:text-emerald-400 shrink-0"
-                            />
-                            <span class="font-bold tracking-tight">{{ $t("about.no_integrity_violations") }}</span>
+
+                            <div class="grid grid-cols-1 gap-3 min-w-0">
+                                <div
+                                    v-for="card in sandboxFeatureCards"
+                                    :key="card.id"
+                                    class="rounded-xl border p-3 min-w-0"
+                                    :class="sandboxCardClass(card)"
+                                >
+                                    <div class="flex items-center gap-3 flex-wrap min-w-0">
+                                        <span
+                                            class="inline-flex items-center justify-center size-9 rounded-full border shrink-0"
+                                            :class="sandboxIconClass(card)"
+                                        >
+                                            <MaterialDesignIcon
+                                                :icon-name="card.active ? 'shield-check' : 'shield-off'"
+                                                class="size-4"
+                                            />
+                                        </span>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-sm font-bold text-sem-fg">
+                                                {{ $t(card.titleKey) }}
+                                            </div>
+                                        </div>
+                                        <span
+                                            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider shrink-0"
+                                            :class="sandboxBadgeClass(card)"
+                                        >
+                                            {{ $t(card.badgeKey) }}
+                                        </span>
+                                    </div>
+                                    <p
+                                        class="text-[11px] leading-relaxed text-sem-fg-muted mt-2"
+                                        :class="card.active ? 'text-emerald-700 dark:text-emerald-300' : ''"
+                                    >
+                                        {{ $t(card.noteKey) }}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -1276,6 +1313,11 @@ import {
     loadBatterySaverPrefs,
 } from "../../js/settings/batterySaverPrefs.js";
 import { mergeResourceBreakdown, topResourceByCpu, topResourceByRss } from "../../js/resourceBreakdown.js";
+import {
+    listSandboxFeatures,
+    sandboxSummaryActive as computeSandboxSummaryActive,
+    sandboxSummaryType,
+} from "../../js/sandboxStatus.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
 export default {
@@ -1445,48 +1487,14 @@ export default {
             }
             return level;
         },
-        sandboxLandlockLabel() {
-            const info = this.appInfo || {};
-            if (info.landlock_active) {
-                return info.landlock_auto_enabled
-                    ? this.$t("app.landlock_auto_enabled")
-                    : this.$t("app.landlock_active");
-            }
-            if (info.landlock_kernel_supported === false) {
-                return this.$t("app.landlock_kernel_unsupported");
-            }
-            if (info.landlock_disabled_by_env) {
-                return this.$t("app.landlock_disabled_by_env");
-            }
-            return this.$t("app.landlock_inactive");
+        sandboxFeatureCards() {
+            return listSandboxFeatures(this.appInfo);
         },
-        sandboxAppcontainerLabel() {
-            const info = this.appInfo || {};
-            if (info.appcontainer_active) {
-                return info.appcontainer_auto_enabled
-                    ? this.$t("app.appcontainer_auto_enabled")
-                    : this.$t("app.appcontainer_active");
-            }
-            if (info.appcontainer_supported === false) {
-                return this.$t("app.appcontainer_unsupported");
-            }
-            if (info.appcontainer_disabled_by_env) {
-                return this.$t("app.appcontainer_disabled_by_env");
-            }
-            return this.$t("app.appcontainer_inactive");
+        sandboxSummaryActive() {
+            return computeSandboxSummaryActive(this.appInfo);
         },
-        sandboxSeccompLabel() {
-            const info = this.appInfo || {};
-            if (info.seccomp_active) {
-                return info.seccomp_auto_enabled ? this.$t("app.seccomp_auto_enabled") : this.$t("app.seccomp_active");
-            }
-            if (info.seccomp_kernel_supported === false) {
-                return this.$t("app.seccomp_kernel_unsupported");
-            }
-            if (info.seccomp_disabled_by_env) {
-                return this.$t("app.seccomp_disabled_by_env");
-            }
-            return this.$t("app.seccomp_inactive");
+        sandboxSummaryTypeKey() {
+            return sandboxSummaryType(this.appInfo);
         },
         batteryStatusToneClass() {
             if (!this.batteryStatus || !this.batteryStatus.supported) {
@@ -2087,6 +2095,36 @@ export default {
             return isGood
                 ? "inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 px-3 py-1 text-xs font-semibold"
                 : "inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300 px-3 py-1 text-xs font-semibold";
+        },
+        sandboxCardClass(card) {
+            if (card.active) {
+                return "border-emerald-500/35 bg-emerald-500/5 dark:bg-emerald-900/20";
+            }
+            if (card.warn) {
+                return "border-amber-500/35 bg-amber-500/5 dark:bg-amber-950/20";
+            }
+            return "border-gray-200/60 dark:border-zinc-800/80";
+        },
+        sandboxIconClass(card) {
+            if (card.active) {
+                return "text-emerald-600 dark:text-emerald-400 border-emerald-500/35 bg-emerald-500/10";
+            }
+            if (card.unavailable) {
+                return "text-sem-fg-muted border-gray-200/60 dark:border-zinc-800/80 bg-gray-50/70 dark:bg-zinc-900/40";
+            }
+            return "text-sem-fg-muted border-gray-200/60 dark:border-zinc-800/80";
+        },
+        sandboxBadgeClass(card) {
+            if (card.active) {
+                return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300";
+            }
+            if (card.unavailable) {
+                return "bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-gray-300";
+            }
+            if (card.warn) {
+                return "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300";
+            }
+            return "bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-gray-300";
         },
     },
 };
