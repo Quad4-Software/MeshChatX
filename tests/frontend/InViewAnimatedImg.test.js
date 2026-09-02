@@ -56,7 +56,7 @@ describe("InViewAnimatedImg.vue", () => {
         w.unmount();
     });
 
-    it("hides img when intersection becomes false", async () => {
+    it("keeps img visible after leaving viewport (one-way reveal)", async () => {
         let callback;
         class MockIntersectionObserver {
             constructor(cb) {
@@ -80,7 +80,7 @@ describe("InViewAnimatedImg.vue", () => {
 
         callback([{ isIntersecting: false, target: wrap }]);
         await flushPromises();
-        expect(w.find("img").exists()).toBe(false);
+        expect(w.find("img").exists()).toBe(true);
 
         w.unmount();
     });
