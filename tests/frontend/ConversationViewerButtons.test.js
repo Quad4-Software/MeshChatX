@@ -185,6 +185,47 @@ describe("ConversationViewer.vue button interactions", () => {
         expect(replySpy).toHaveBeenCalledWith(chatItem);
     });
 
+    it("onMessageContextMenu defers when text is selected so Android copy can work", async () => {
+        const wrapper = mountViewer();
+        const chatItem = {
+            type: "lxmf_message",
+            is_outbound: false,
+            lxmf_message: {
+                hash: "msg-sel",
+                content: "Selectable text",
+                state: "delivered",
+                fields: {},
+            },
+        };
+        const p = document.createElement("p");
+        p.textContent = "Selectable text";
+        document.body.appendChild(p);
+        try {
+            const range = document.createRange();
+            range.selectNodeContents(p);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            const event = {
+                clientX: 40,
+                clientY: 40,
+                target: p,
+                preventDefault: vi.fn(),
+                stopPropagation: vi.fn(),
+            };
+            wrapper.vm.onMessageContextMenu(event, chatItem, true);
+            await wrapper.vm.$nextTick();
+
+            expect(wrapper.vm.messageContextMenu.show).toBe(false);
+            expect(event.preventDefault).not.toHaveBeenCalled();
+        } finally {
+            window.getSelection()?.removeAllRanges?.();
+            p.remove();
+            wrapper.unmount();
+        }
+    });
+
     it("message context menu Delete calls deleteChatItem", async () => {
         const wrapper = mountViewer();
         const chatItem = {

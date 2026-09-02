@@ -2173,7 +2173,12 @@
         "failed_to_send": "Viestin lähettäminen epäonnistui",
         "failed_to_send_image": "Kuvan {index} lähettäminen epäonnistui: {detail}",
         "unknown_meshchatx_link": "Unknown meshchatx link ({host})",
-        "unknown_meshchatx_link_generic": "Unknown or invalid meshchatx link"
+        "unknown_meshchatx_link_generic": "Unknown or invalid meshchatx link",
+        "paper_message_detected": "Paperiviesti havaittu",
+        "paper_message_detected_desc": "Tämä viesti sisältää allekirjoitetun LXMF-URI:n, jonka voit lukea keskusteluihisi.",
+        "paper_message_ingest": "Lue viesti",
+        "paper_message_ingested": "Paperiviesti luettu",
+        "paper_message_ingested_desc": "Tämä allekirjoitettu LXMF-URI lisättiin keskusteluihisi."
     },
     "settings": {
         "tabs": {

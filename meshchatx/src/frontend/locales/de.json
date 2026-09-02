@@ -2227,7 +2227,12 @@
         "failed_to_send": "Nachricht konnte nicht gesendet werden",
         "failed_to_send_image": "Bild {index} konnte nicht gesendet werden: {detail}",
         "unknown_meshchatx_link": "Unknown meshchatx link ({host})",
-        "unknown_meshchatx_link_generic": "Unknown or invalid meshchatx link"
+        "unknown_meshchatx_link_generic": "Unknown or invalid meshchatx link",
+        "paper_message_detected": "Papiernachricht erkannt",
+        "paper_message_detected_desc": "Diese Nachricht enthält eine signierte LXMF-URI, die du in deine Unterhaltungen einlesen kannst.",
+        "paper_message_ingest": "Nachricht einlesen",
+        "paper_message_ingested": "Papiernachricht eingelesen",
+        "paper_message_ingested_desc": "Diese signierte LXMF-URI wurde zu deinen Unterhaltungen hinzugefügt."
     },
     "nomadnet": {
         "remove_favourite": "Favorit entfernen",

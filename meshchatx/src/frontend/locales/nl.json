@@ -2173,7 +2173,12 @@
         "failed_to_send": "Bericht verzenden mislukt",
         "failed_to_send_image": "Afbeelding {index} verzenden mislukt: {detail}",
         "unknown_meshchatx_link": "Unknown meshchatx link ({host})",
-        "unknown_meshchatx_link_generic": "Unknown or invalid meshchatx link"
+        "unknown_meshchatx_link_generic": "Unknown or invalid meshchatx link",
+        "paper_message_detected": "Papierbericht gedetecteerd",
+        "paper_message_detected_desc": "Dit bericht bevat een ondertekende LXMF-URI die je in je gesprekken kunt innemen.",
+        "paper_message_ingest": "Bericht innemen",
+        "paper_message_ingested": "Papierbericht ingenomen",
+        "paper_message_ingested_desc": "Deze ondertekende LXMF-URI is aan je gesprekken toegevoegd."
     },
     "settings": {
         "shortcut_saved": "Sneltoets opgeslagen",

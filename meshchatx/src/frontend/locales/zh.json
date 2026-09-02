@@ -2173,7 +2173,12 @@
         "failed_to_send": "发送消息失败",
         "failed_to_send_image": "发送图片 {index} 失败：{detail}",
         "unknown_meshchatx_link": "Unknown meshchatx link ({host})",
-        "unknown_meshchatx_link_generic": "Unknown or invalid meshchatx link"
+        "unknown_meshchatx_link_generic": "Unknown or invalid meshchatx link",
+        "paper_message_detected": "检测到纸质消息",
+        "paper_message_detected_desc": "此消息包含可导入会话的已签名 LXMF URI。",
+        "paper_message_ingest": "导入消息",
+        "paper_message_ingested": "已导入纸质消息",
+        "paper_message_ingested_desc": "此已签名 LXMF URI 已添加到你的会话。"
     },
     "settings": {
         "shortcut_saved": "快捷键已保存",

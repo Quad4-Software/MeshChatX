@@ -2173,7 +2173,12 @@
         "failed_to_send": "Échec de l'envoi du message",
         "failed_to_send_image": "Échec de l'envoi de l'image {index} : {detail}",
         "unknown_meshchatx_link": "Unknown meshchatx link ({host})",
-        "unknown_meshchatx_link_generic": "Unknown or invalid meshchatx link"
+        "unknown_meshchatx_link_generic": "Unknown or invalid meshchatx link",
+        "paper_message_detected": "Message papier détecté",
+        "paper_message_detected_desc": "Ce message contient un URI LXMF signé que vous pouvez ingérer dans vos conversations.",
+        "paper_message_ingest": "Ingérer le message",
+        "paper_message_ingested": "Message papier ingéré",
+        "paper_message_ingested_desc": "Cet URI LXMF signé a été ajouté à vos conversations."
     },
     "settings": {
         "shortcut_saved": "Raccourci enregistré",
