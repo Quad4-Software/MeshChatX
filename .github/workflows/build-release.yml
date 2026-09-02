@@ -1,6 +1,11 @@
 # Single tagged-release pipeline: Linux release assets, Windows + macOS Electron
 # builds, Flatpak, Android APKs (dev/master track tags via android-apk-tag.yml), SLSA
 # provenance (generic generator: Linux, desktop, optional Android+Flatpak), optional cosign bundles, and one draft GitHub release.
+# Optional: same draft upload/ tree is mirrored to bunny.net Edge Storage when
+# BUNNY_STORAGE_ACCESS_KEY is set (see draft job). Paths are release/<tag> or
+# nightly/<tag>. preview-* tags are skipped. After each upload, older version
+# folders under that track are deleted so only the newest release and newest
+# nightly remain.
 # One workflow run per tag keeps the release graph immutable.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
@@ -676,6 +681,27 @@ jobs:
               env:
                   GH_TOKEN: ${{ github.token }}
               run: bash scripts/ci/github-draft-release-upload-assets.sh upload
+
+            - name: Upload release assets to Bunny Storage
+              if: ${{ !startsWith(github.ref_name, 'preview-') }}
+              env:
+                  BUNNY_STORAGE_ACCESS_KEY: ${{ secrets.BUNNY_STORAGE_ACCESS_KEY }}
+                  BUNNY_STORAGE_BASE_URL: ${{ vars.BUNNY_STORAGE_BASE_URL }}
+              run: |
+                  set -euo pipefail
+                  if [[ -z "${BUNNY_STORAGE_ACCESS_KEY:-}" ]]; then
+                    echo "::notice::Skipping Bunny Storage (set repository secret BUNNY_STORAGE_ACCESS_KEY to enable)."
+                    exit 0
+                  fi
+                  export BUNNY_STORAGE_BASE_URL="${BUNNY_STORAGE_BASE_URL:-https://la.storage.bunnycdn.com/meshchatx}"
+                  if [[ "${GITHUB_REF_NAME}" == nightly-* ]]; then
+                    track=nightly
+                  else
+                    track=release
+                  fi
+                  export BUNNY_STORAGE_OBJECT_PREFIX="${track}/${GITHUB_REF_NAME}"
+                  echo "Bunny Storage prefix: ${BUNNY_STORAGE_OBJECT_PREFIX}"
+                  python3 scripts/ci/github-upload-bunny-storage-release-assets.py upload
 
     release-artifact-gate:
         name: Verify required tagged release artifacts
