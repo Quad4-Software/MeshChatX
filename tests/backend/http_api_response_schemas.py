@@ -843,6 +843,28 @@ DESTINATION_SIGNAL_METRICS_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+DESTINATION_DELIVERY_DIAGNOSTICS_SCHEMA: dict = {
+    "type": "object",
+    "required": [
+        "peer",
+        "self",
+        "peer_announce",
+        "path",
+        "recall",
+        "delivery_prefs",
+    ],
+    "properties": {
+        "peer": {"type": "object"},
+        "self": {"type": "object"},
+        "peer_announce": {"type": "object"},
+        "path": {"type": "object"},
+        "recall": {"type": "object"},
+        "delivery_prefs": {"type": "object"},
+        "failure_hint": {"type": ["string", "null"]},
+    },
+    "additionalProperties": True,
+}
+
 LXMF_CONVERSATION_MESSAGES_SCHEMA: dict = {
     "type": "object",
     "required": ["lxmf_messages"],
