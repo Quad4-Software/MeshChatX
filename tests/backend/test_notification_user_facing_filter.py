@@ -74,9 +74,16 @@ class TestIsUserFacingLxmfPayload:
         }
         assert not is_user_facing_lxmf_payload(fields, "", "")
 
-    def test_reaction_with_text_is_still_not_user_facing(self):
-        fields = {"reaction": {"reaction_to": "abc", "reaction_content": "\U0001f44d"}}
-        assert not is_user_facing_lxmf_payload(fields, "noise", "noise")
+    def test_reaction_with_text_is_user_facing(self):
+        # Reaction plus body is a hybrid payload and must notify / count as unread.
+        fields = {
+            "reaction": {
+                "reaction_to": "ab" * 16,
+                "reaction_content": "\U0001f44d",
+            },
+        }
+        assert is_user_facing_lxmf_payload(fields, "noise", "noise")
+        assert not is_user_facing_lxmf_payload(fields, "", "")
 
     def test_telemetry_only_is_not_user_facing(self):
         fields = {"telemetry": {"some": "data"}}
