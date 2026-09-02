@@ -1,5 +1,6 @@
 # Primary CI: lint, tests, localization, Linux build check, E2E, and native builds (dev).
 # Verify matrix steps delegate to Taskfile.yml (task lint, test:frontend, test:lang).
+# Live LXMF local-TCP suite: task test:lxmf:live (MESHCHAT_LIVE_RETICULUM=1).
 #
 # The frontend bundle is built once via the reusable frontend-build workflow and
 # downloaded by downstream jobs instead of rebuilding on every runner.
@@ -175,6 +176,30 @@ jobs:
                   PYTEST_SHARD_INDEX: ${{ matrix.shard }}
                   PYTEST_TOTAL_SHARDS: 4
               run: task test:backend
+
+            - name: Verify workspace clean
+              uses: ./.github/actions/verify-workspace-clean
+
+    lxmf-live-local:
+        name: Live LXMF (local TCP + pack/reject)
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        permissions:
+            contents: read
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Set up development environment
+              uses: ./.github/actions/setup-dev-environment
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  uv-version: ${{ env.UV_VERSION }}
+                  node-version: ${{ env.NODE_VERSION }}
+                  pnpm-version: ${{ env.PNPM_VERSION }}
+
+            - name: Run live LXMF local suites
+              run: task test:lxmf:live
 
             - name: Verify workspace clean
               uses: ./.github/actions/verify-workspace-clean

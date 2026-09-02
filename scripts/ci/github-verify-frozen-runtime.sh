@@ -54,6 +54,16 @@ if [[ ! -f "${BUILD_EXE}/lib/email/header.py" ]]; then
     fi
 fi
 
+# Cross-built Windows trees (Wine/docker) cannot be exec'd on Linux or macOS.
+if [[ "${EXE}" == *.exe ]] && [[ "$(uname -s)" != "MINGW"* && "$(uname -s)" != "MSYS"* && "$(uname -s)" != CYGWIN* ]]; then
+    case "$(uname -s)" in
+        Linux | Darwin)
+            echo "frozen runtime verify: structural checks OK, skipping Windows exe probe on $(uname -s) (${EXE})"
+            exit 0
+            ;;
+    esac
+fi
+
 run_prefix=()
 if [[ "$(uname -s)" == "Darwin" ]]; then
     host_arch="$(uname -m)"
