@@ -25,6 +25,16 @@ class ToastUtils {
         this.show(message, "loading", duration, key);
     }
 
+    static helptips({ title, details, type = "warning", duration = 11000, key = null }) {
+        GlobalEmitter.emit("toast", {
+            message: title,
+            details: Array.isArray(details) ? details : [],
+            type,
+            duration,
+            key,
+        });
+    }
+
     static dismiss(key) {
         if (key == null) {
             return;

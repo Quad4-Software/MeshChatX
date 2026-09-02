@@ -44,6 +44,11 @@ class ConfigManager:
             "auto_send_failed_messages_to_propagation_node",
             False,
         )
+        self.delivery_helptips_enabled = self.BoolConfig(
+            self,
+            "delivery_helptips_enabled",
+            True,
+        )
         self.show_suggested_community_interfaces = self.BoolConfig(
             self,
             "show_suggested_community_interfaces",
