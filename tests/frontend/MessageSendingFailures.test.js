@@ -5,11 +5,13 @@ import WebSocketConnection from "@/js/WebSocketConnection";
 import GlobalState from "@/js/GlobalState";
 import DialogUtils from "@/js/DialogUtils";
 import ToastUtils from "@/js/ToastUtils";
+import { resetHelptipPolicyForTests } from "@/js/helptipPolicy.js";
 
 describe("MessageSendingFailures.test.js", () => {
     let axiosMock;
 
     beforeEach(() => {
+        resetHelptipPolicyForTests();
         GlobalState.config.theme = "light";
         GlobalState.config.message_outbound_bubble_color = "#4f46e5";
         GlobalState.config.message_waiting_bubble_color = "#e5e7eb";
@@ -18,6 +20,16 @@ describe("MessageSendingFailures.test.js", () => {
             get: vi.fn().mockImplementation((url) => {
                 if (url.includes("/path")) return Promise.resolve({ data: { path: [] } });
                 if (url.includes("/stamp-info")) return Promise.resolve({ data: { stamp_info: {} } });
+                if (url.includes("/delivery-diagnostics"))
+                    return Promise.resolve({
+                        data: {
+                            self: { auto_announce_enabled: false, seconds_since_last_announce: 100000 },
+                            peer_announce: { known: false, stamp_cost: 0 },
+                            path: { has_path: false, path_stale: true, path_unresponsive: false },
+                            recall: { identity_known: false },
+                            delivery_prefs: { propagation_fallback: false },
+                        },
+                    });
                 if (url.includes("/lxmf-messages/conversation/"))
                     return Promise.resolve({ data: { lxmf_messages: [] } });
                 return Promise.resolve({ data: {} });
@@ -39,6 +51,8 @@ describe("MessageSendingFailures.test.js", () => {
         vi.spyOn(DialogUtils, "confirm").mockResolvedValue(true);
         vi.spyOn(DialogUtils, "alert").mockImplementation(() => {});
         vi.spyOn(ToastUtils, "error").mockImplementation(() => {});
+        vi.spyOn(ToastUtils, "helptips").mockImplementation(() => {});
+        GlobalState.config.delivery_helptips_enabled = true;
     });
 
     afterEach(() => {
@@ -101,6 +115,74 @@ describe("MessageSendingFailures.test.js", () => {
 
         const pendingItems = wrapper.vm.chatItems.filter((item) => item.lxmf_message.hash.startsWith("pending-"));
         expect(pendingItems).toHaveLength(0);
+    });
+
+    it("shows helptip toast after pre-send 503 when helptips enabled", async () => {
+        axiosMock.post.mockImplementation((url) => {
+            if (typeof url === "string" && url.includes("/lxmf-messages/send")) {
+                return Promise.reject({
+                    response: {
+                        status: 503,
+                        data: {
+                            message: "No path to destination.",
+                            diagnostics: {
+                                self: { auto_announce_enabled: true, seconds_since_last_announce: 100 },
+                                peer_announce: { known: true, stamp_cost: 0 },
+                                path: { has_path: false, path_stale: true, path_unresponsive: false },
+                                recall: { identity_known: true },
+                                delivery_prefs: { propagation_fallback: false },
+                            },
+                        },
+                    },
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountConversationViewer({
+            config: { delivery_helptips_enabled: true },
+        });
+        wrapper.vm.newMessageText = "Hello failure";
+
+        await wrapper.vm.sendMessage();
+        await vi.waitFor(
+            () => {
+                expect(DialogUtils.alert).toHaveBeenCalledWith("No path to destination.");
+            },
+            { timeout: 5000 }
+        );
+        expect(ToastUtils.helptips).toHaveBeenCalled();
+    });
+
+    it("suppresses helptip toast when delivery_helptips_enabled is false", async () => {
+        ToastUtils.helptips.mockClear();
+        GlobalState.config.delivery_helptips_enabled = false;
+
+        axiosMock.post.mockImplementation((url) => {
+            if (typeof url === "string" && url.includes("/lxmf-messages/send")) {
+                return Promise.reject({
+                    response: {
+                        status: 503,
+                        data: { message: "Sending failed" },
+                    },
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountConversationViewer({
+            config: { delivery_helptips_enabled: false },
+        });
+        wrapper.vm.newMessageText = "Hello failure";
+
+        await wrapper.vm.sendMessage();
+        await vi.waitFor(
+            () => {
+                expect(DialogUtils.alert).toHaveBeenCalled();
+            },
+            { timeout: 5000 }
+        );
+        expect(ToastUtils.helptips).not.toHaveBeenCalled();
     });
 
     it("sends plain text when crypto.randomUUID is unavailable (non-secure context)", async () => {

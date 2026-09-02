@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
+from meshchatx.src.backend.delivery_diagnostics import build_delivery_diagnostics
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -133,7 +134,6 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 
 
 def register_messages_routes(routes, app):
-
     # get custom destination display name
     @routes.get("/api/v1/destination/{destination_hash}/custom-display-name")
     async def destination_custom_display_name_get(request):
@@ -197,7 +197,13 @@ def register_messages_routes(routes, app):
         destination_hash = request.match_info.get("destination_hash", "")
 
         # convert destination hash to bytes
-        destination_hash_bytes = bytes.fromhex(destination_hash)
+        try:
+            destination_hash_bytes = bytes.fromhex(destination_hash)
+        except (TypeError, ValueError):
+            return web.json_response(
+                {"message": "invalid destination_hash"},
+                status=400,
+            )
 
         # get lxmf stamp cost from announce in database
         lxmf_stamp_cost = None
@@ -224,6 +230,18 @@ def register_messages_routes(routes, app):
                     "outbound_ticket_expiry": lxmf_outbound_ticket_expiry,
                 },
             },
+        )
+
+    @routes.get("/api/v1/destination/{destination_hash}/delivery-diagnostics")
+    async def destination_delivery_diagnostics(request):
+        destination_hash = request.match_info.get("destination_hash", "")
+        if not destination_hash:
+            return web.json_response(
+                {"message": "destination_hash is required"},
+                status=400,
+            )
+        return web.json_response(
+            build_delivery_diagnostics(app, destination_hash),
         )
 
     # get interface stats

@@ -1664,6 +1664,8 @@ import AudioWaveformPlayer from "./AudioWaveformPlayer.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
+import { showDeliveryHelptips } from "../../js/HelptipUtils.js";
+import { shouldShowDeliveryHelptips } from "../../js/helptipPolicy.js";
 import NotificationUtils from "../../js/NotificationUtils";
 import PaperMessageModal from "./modals/PaperMessageModal.vue";
 import ShareContactModal from "./modals/ShareContactModal.vue";
@@ -1751,6 +1753,7 @@ export default {
             GlobalState,
             lastDraftIdentityKey: "",
             peerPathSnapshot: null,
+            deliveryHelptipCache: {},
             peerPathLoading: false,
             peerPathWarming: false,
             peerPathRequestSequence: 0,
@@ -3649,6 +3652,7 @@ export default {
 
             const chatItem = this.chatItems[chatItemIndex];
             const prev = chatItem.lxmf_message;
+            const prevState = prev?.state;
             const merged = { ...prev, ...lxmfMessage };
             if (!Object.prototype.hasOwnProperty.call(lxmfMessage, "_pendingPathfinding")) {
                 delete merged._pendingPathfinding;
@@ -3658,6 +3662,13 @@ export default {
                 lxmf_message: merged,
             };
             this._invalidateDisplayGroupsCache();
+
+            if (merged.state === "failed" && prevState !== "failed" && !isOpportunisticDeferredDeliveryStatus(merged)) {
+                const peerHash = merged.destination_hash || this.selectedPeer?.destination_hash;
+                if (peerHash) {
+                    this._maybeShowDeliveryHelptips(peerHash, "delivery_failed");
+                }
+            }
         },
         onLxmfMessageDeleted(hash) {
             if (hash) {
@@ -5177,7 +5188,38 @@ export default {
             if (lxmfMessage.method === "opportunistic") {
                 return this.$t("messages.opportunistic_deferred_tooltip");
             }
+            const peerHash = lxmfMessage?.destination_hash || this.selectedPeer?.destination_hash;
+            const cached = peerHash ? this.deliveryHelptipCache[(peerHash || "").toLowerCase()] : null;
+            if (cached?.firstTipLine) {
+                return cached.firstTipLine;
+            }
             return this.$t("messages.failed_waiting_announce_tooltip");
+        },
+        async _maybeShowDeliveryHelptips(peerHash, failureKind, options = {}) {
+            const cfg = this.config ?? GlobalState.config;
+            if (!shouldShowDeliveryHelptips(cfg)) {
+                return;
+            }
+            try {
+                const result = await showDeliveryHelptips({
+                    api: window.api,
+                    peerHash,
+                    failureKind,
+                    diagnostics: options.diagnostics,
+                    status: options.status,
+                    message: options.message,
+                    config: cfg,
+                    i18n: (key, params) => this.$t(key, params),
+                });
+                if (result?.firstTipLine && peerHash) {
+                    this.deliveryHelptipCache = {
+                        ...this.deliveryHelptipCache,
+                        [peerHash.toLowerCase()]: result,
+                    };
+                }
+            } catch (e) {
+                console.log(e);
+            }
         },
         isOpportunisticDeferredDelivery(lxmfMessage) {
             return isOpportunisticDeferredDeliveryStatus(lxmfMessage);
@@ -5815,6 +5857,11 @@ export default {
                 this.removeAllPendingOutboundPlaceholdersForPeer(job.destinationHash);
                 const message = e.response?.data?.message ?? "failed to send message";
                 DialogUtils.alert(message);
+                await this._maybeShowDeliveryHelptips(job.destinationHash, "send_failed", {
+                    diagnostics: e.response?.data?.diagnostics,
+                    status: e.response?.status,
+                    message,
+                });
                 console.log(e);
             }
         },
