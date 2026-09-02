@@ -156,6 +156,30 @@ def extract_reaction_from_lxmf_fields(
     return None
 
 
+def looks_like_sideband_command_entry(entry) -> bool:
+    """True for Sideband command shapes, false for packed embedded LXMF bytes."""
+    if isinstance(entry, (bytes, bytearray)):
+        return False
+    if isinstance(entry, dict):
+        return True
+    if isinstance(entry, (list, tuple)):
+        return True
+    if isinstance(entry, bool):
+        return False
+    if isinstance(entry, int):
+        return True
+    return False
+
+
+def extract_sideband_command_entries(value) -> list:
+    """Pull Sideband-shaped command entries from FIELD_COMMANDS or field 0x01."""
+    if isinstance(value, dict):
+        return [value]
+    if not isinstance(value, list):
+        return []
+    return [entry for entry in value if looks_like_sideband_command_entry(entry)]
+
+
 def lxmf_is_reaction_only_delivery(lxmf_fields, title="", content="") -> bool:
     """True when the payload is a reaction with no spam-relevant body or attachments."""
     if not lxmf_fields_are_reaction(lxmf_fields):
@@ -202,15 +226,16 @@ def is_user_facing_lxmf_payload(fields, content, title) -> bool:
     """Determine whether an LXMF message represents a user-visible item.
 
     Messages that should NOT raise the notification bell:
-      - reactions (FIELD_REACTION with no other payload)
+      - reaction-only payloads (FIELD_REACTION with no body or attachments)
       - bare telemetry updates with no coordinates, no stream, and no
         Sideband location-request command (FIELD_TELEMETRY body-only noise)
       - icon-only / appearance-only updates (no body, no attachment)
       - empty pings (no content, no title, no attachment)
 
     Location shares (telemetry including location), telemetry streams,
-    and Sideband commands entries with key 0x01 (location request) ARE
-    treated as user-facing so the bell and previews stay informative.
+    Sideband commands entries with key 0x01 (location request), and
+    reaction hybrids that also carry body or attachments ARE treated as
+    user-facing so the bell and previews stay informative.
 
     The helper is intentionally tolerant: fields may be the rich dict
     produced by convert_lxmf_message_to_dict (string keys), the raw
@@ -226,16 +251,6 @@ def is_user_facing_lxmf_payload(fields, content, title) -> bool:
     if not isinstance(fields, dict):
         fields = {}
 
-    if isinstance(fields.get("reaction"), dict) and fields["reaction"].get(
-        "reaction_to",
-    ):
-        return False
-    raw_reaction = (
-        fields.get(FIELD_REACTION) or fields.get("reaction") or fields.get(0x40)
-    )
-    if isinstance(raw_reaction, dict) and parse_lxmf_reaction_field_dict(raw_reaction):
-        return False
-
     def _has_text(value):
         if value is None:
             return False
@@ -245,6 +260,47 @@ def is_user_facing_lxmf_payload(fields, content, title) -> bool:
             except Exception:
                 return False
         return bool(str(value).strip())
+
+    # Reaction-only payloads stay silent. Reaction plus body/attachments notify.
+    has_reaction = False
+    if isinstance(fields.get("reaction"), dict) and fields["reaction"].get(
+        "reaction_to",
+    ):
+        has_reaction = True
+    else:
+        raw_reaction = (
+            fields.get(FIELD_REACTION) or fields.get("reaction") or fields.get(0x40)
+        )
+        if isinstance(raw_reaction, dict) and parse_lxmf_reaction_field_dict(
+            raw_reaction,
+        ):
+            has_reaction = True
+
+    if has_reaction:
+        if not _has_text(content) and not _has_text(title):
+            # Still allow attachment-bearing reaction hybrids to notify below.
+            image = fields.get("image")
+            audio = fields.get("audio")
+            files = fields.get("file_attachments")
+            has_att = bool(
+                (
+                    isinstance(image, dict)
+                    and (image.get("image_size") or image.get("image_bytes"))
+                )
+                or (image is None and fields.get(LXMF_IMAGE_FIELD) is not None)
+                or (
+                    isinstance(audio, dict)
+                    and (audio.get("audio_size") or audio.get("audio_bytes"))
+                )
+                or (audio is None and fields.get(LXMF_AUDIO_FIELD) is not None)
+                or (isinstance(files, list) and len(files) > 0)
+                or (
+                    isinstance(fields.get(LXMF_FILE_ATTACHMENTS_FIELD), list)
+                    and len(fields.get(LXMF_FILE_ATTACHMENTS_FIELD)) > 0
+                )
+            )
+            if not has_att:
+                return False
 
     if _has_text(content):
         return True
@@ -717,30 +773,33 @@ def convert_lxmf_message_to_dict(
         if field_type == LXMF.FIELD_TELEMETRY:
             fields["telemetry"] = Telemeter.from_packed(value)
 
-        # handle commands field
-        if field_type in (LXMF.FIELD_COMMANDS, 1):
+        # handle commands field (LXMF FIELD_COMMANDS=9) and Sideband-shaped field 1
+        embedded_field = getattr(LXMF, "FIELD_EMBEDDED_LXMS", 0x01)
+        if field_type == LXMF.FIELD_COMMANDS or (
+            field_type == embedded_field and extract_sideband_command_entries(value)
+        ):
             processed_commands = []
-            if isinstance(value, list):
-                for cmd in value:
-                    if isinstance(cmd, dict):
-                        new_cmd = {}
-                        for k, v in cmd.items():
-                            if isinstance(k, int):
-                                new_cmd[f"0x{k:02x}"] = v
-                            else:
-                                new_cmd[str(k)] = v
-                        processed_commands.append(new_cmd)
-                    else:
-                        processed_commands.append(cmd)
-            elif isinstance(value, dict):
-                new_cmd = {}
-                for k, v in value.items():
-                    if isinstance(k, int):
-                        new_cmd[f"0x{k:02x}"] = v
-                    else:
-                        new_cmd[str(k)] = v
-                processed_commands.append(new_cmd)
-            fields["commands"] = processed_commands
+            for cmd in extract_sideband_command_entries(value):
+                if isinstance(cmd, dict):
+                    new_cmd = {}
+                    for k, v in cmd.items():
+                        if isinstance(k, int):
+                            new_cmd[f"0x{k:02x}"] = v
+                        else:
+                            new_cmd[str(k)] = v
+                    processed_commands.append(new_cmd)
+                else:
+                    processed_commands.append(cmd)
+            if processed_commands:
+                fields["commands"] = processed_commands
+        elif field_type == embedded_field and isinstance(value, list):
+            # Standard FIELD_EMBEDDED_LXMS: list of packed LXMF byte blobs.
+            embedded = []
+            for item in value:
+                if isinstance(item, (bytes, bytearray)):
+                    embedded.append({"size": len(item)})
+            if embedded:
+                fields["embedded_lxms"] = embedded
 
         if field_type == FIELD_REPLY_TO:
             fields["reply_to"] = value.hex() if isinstance(value, bytes) else value

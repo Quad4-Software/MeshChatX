@@ -134,6 +134,7 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 
 
 def register_messages_routes(routes, app):
+
     # get custom destination display name
     @routes.get("/api/v1/destination/{destination_hash}/custom-display-name")
     async def destination_custom_display_name_get(request):

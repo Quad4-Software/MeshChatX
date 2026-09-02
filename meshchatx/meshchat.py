@@ -170,6 +170,7 @@ from meshchatx.src.backend.lxmf_utils import (
     convert_lxmf_message_to_dict,
     convert_lxmf_method_to_string,
     convert_lxmf_state_to_string,
+    extract_sideband_command_entries,
     is_lxmf_outbound_progress_terminal,
     is_user_facing_lxmf_payload,
     lxmf_is_reaction_only_delivery,
@@ -9089,20 +9090,20 @@ class ReticulumMeshChat:
             is_sideband_telemetry_request = False
             lxmf_fields = lxmf_message.get_fields()
 
-            # check both standard LXMF.FIELD_COMMANDS (9) and FIELD_COMMANDS (1)
+            # FIELD_COMMANDS (9) is the LXMF-standard command slot.
+            # Field 0x01 is FIELD_EMBEDDED_LXMS on the wire. Sideband also put
+            # telemetry requests there historically, so only treat Sideband-shaped
+            # entries as commands and leave packed embedded LXMs alone.
             commands = []
             if LXMF.FIELD_COMMANDS in lxmf_fields:
-                val = lxmf_fields[LXMF.FIELD_COMMANDS]
-                if isinstance(val, list):
-                    commands.extend(val)
-                elif isinstance(val, dict):
-                    commands.append(val)
-            if 0x01 in lxmf_fields and LXMF.FIELD_COMMANDS != 0x01:
-                val = lxmf_fields[0x01]
-                if isinstance(val, list):
-                    commands.extend(val)
-                elif isinstance(val, dict):
-                    commands.append(val)
+                commands.extend(
+                    extract_sideband_command_entries(lxmf_fields[LXMF.FIELD_COMMANDS]),
+                )
+            embedded_field = getattr(LXMF, "FIELD_EMBEDDED_LXMS", 0x01)
+            if embedded_field in lxmf_fields and embedded_field != LXMF.FIELD_COMMANDS:
+                commands.extend(
+                    extract_sideband_command_entries(lxmf_fields[embedded_field]),
+                )
 
             if commands:
                 for command in commands:
@@ -9144,9 +9145,9 @@ class ReticulumMeshChat:
                             except Exception as exc:
                                 print(f"Sideband plugin command failed: {exc}")
 
-            # respond to telemetry requests
+            # Respond to telemetry requests as a side effect. Do not return early:
+            # spam, stranger-attachment, and drop policies must still run.
             if is_sideband_telemetry_request:
-                # Check if telemetry is enabled globally
                 if not ctx.config.telemetry_enabled.get():
                     print(f"Telemetry is disabled, ignoring request from {source_hash}")
                 elif not lxmf_signature_validated(lxmf_message):
@@ -9154,7 +9155,6 @@ class ReticulumMeshChat:
                         f"Ignoring unsigned telemetry request from {source_hash}",
                     )
                 else:
-                    # Check if peer is trusted
                     contact = ctx.database.contacts.get_contact_by_identity_hash(
                         source_hash,
                     )
@@ -9178,25 +9178,6 @@ class ReticulumMeshChat:
                                     f"Cannot respond to telemetry request from {source_hash}: No location set. "
                                     "Set manual coordinates in Settings > Location to respond.",
                                 )
-
-                self.db_upsert_lxmf_message(lxmf_message, context=ctx)
-
-                AsyncUtils.run_async(
-                    self.websocket_broadcast(
-                        json.dumps(
-                            {
-                                "type": "lxmf.delivery",
-                                "remote_identity_name": source_hash[:8],
-                                "lxmf_message": convert_lxmf_message_to_dict(
-                                    lxmf_message,
-                                    include_attachments=False,
-                                    reticulum=self.reticulum,
-                                ),
-                            },
-                        ),
-                    ),
-                )
-                return
 
             # check for spam keywords
             is_spam = False
