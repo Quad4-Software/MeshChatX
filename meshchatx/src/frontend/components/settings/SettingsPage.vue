@@ -865,9 +865,32 @@
                                             {{ $t("settings.nomad_micron_default_engine_option_js") }}
                                         </option>
                                         <option value="wasm">
-                                            {{ $t("settings.nomad_micron_default_engine_option_wasm") }}
+                                            {{
+                                                micronWasmReleaseLabel
+                                                    ? $t("settings.nomad_micron_default_engine_option_wasm_version", {
+                                                          version: micronWasmReleaseLabel,
+                                                      })
+                                                    : $t("settings.nomad_micron_default_engine_option_wasm")
+                                            }}
                                         </option>
                                     </select>
+                                    <div
+                                        v-if="micronWasmReleaseLabel"
+                                        class="text-xs text-gray-600 dark:text-gray-400 font-mono"
+                                    >
+                                        {{
+                                            $t("settings.micron_wasm_installed_version", {
+                                                version: micronWasmReleaseLabel,
+                                            })
+                                        }}
+                                        <span class="opacity-80">
+                                            ({{
+                                                micronWasmReleaseIsOverride
+                                                    ? $t("settings.micron_wasm_version_source_override")
+                                                    : $t("settings.micron_wasm_version_source_bundled")
+                                            }})
+                                        </span>
+                                    </div>
                                 </div>
                                 <div v-if="micronWasmBundledInBuild" class="mt-2">
                                     <button
@@ -2425,6 +2448,21 @@
                             <div class="settings-section__body space-y-3">
                                 <label class="setting-toggle">
                                     <Toggle
+                                        id="delivery-helptips-enabled"
+                                        v-model="config.delivery_helptips_enabled"
+                                        @update:model-value="onDeliveryHelptipsEnabledChangeWrapper"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("app.delivery_helptips_enabled")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.delivery_helptips_enabled_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+                                <label class="setting-toggle">
+                                    <Toggle
                                         id="auto-resend-failed"
                                         v-model="config.auto_resend_failed_messages_when_announce_received"
                                         @update:model-value="
@@ -3016,6 +3054,8 @@ import {
 } from "../../js/settings/settingsTabs.js";
 import { getAllSettingsSectionKeywords } from "../../js/registries/settingsSectionRegistry.js";
 import { isMicronWasmBundled } from "../../js/MicronWasmLoader.js";
+import { getMicronWasmRuntimeOverride } from "../../js/MicronWasmRuntimeOverride.js";
+import { getEffectiveMicronWasmReleaseLabel, MICRON_WASM_OVERRIDE_CHANGED_EVENT } from "../../js/micronWasmVersion.js";
 import MicronWasmUpdateModal from "./MicronWasmUpdateModal.vue";
 import NotificationSoundSettings from "./NotificationSoundSettings.vue";
 import PluginsSettingsSection from "./PluginsSettingsSection.vue";
@@ -3070,6 +3110,7 @@ export default {
                 auto_resend_failed_messages_when_announce_received: null,
                 allow_auto_resending_failed_messages_with_attachments: null,
                 auto_send_failed_messages_to_propagation_node: null,
+                delivery_helptips_enabled: true,
                 show_suggested_community_interfaces: null,
                 lxmf_delivery_transfer_limit_in_bytes: 1000 * 1000 * 10,
                 lxmf_propagation_transfer_limit_in_bytes: 1000 * 256,
@@ -3205,6 +3246,8 @@ export default {
             searchTabFilter: null,
             activeSettingsTab: DEFAULT_SETTINGS_TAB,
             micronWasmUpdateModalOpen: false,
+            micronWasmReleaseLabel: null,
+            micronWasmReleaseIsOverride: false,
             trustedTelemetryPeers: [],
             stickerCount: 0,
             stickerImportReplaceDuplicates: false,
@@ -3482,6 +3525,7 @@ export default {
         offWsEvent("keyboard_shortcuts", this.onKeyboardShortcutsEvent);
         offWsEvent("reticulum_reload_status", this.onReloadStatusEvent);
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.off(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseInfo);
         window.removeEventListener("keydown", this.onSettingsSearchHotkey);
     },
     mounted() {
@@ -3490,9 +3534,11 @@ export default {
         onWsEvent("keyboard_shortcuts", this.onKeyboardShortcutsEvent);
         onWsEvent("reticulum_reload_status", this.onReloadStatusEvent);
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.on(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseInfo);
         window.addEventListener("keydown", this.onSettingsSearchHotkey);
 
         this.getConfig();
+        this.refreshMicronWasmReleaseInfo();
         this.getServerSecurity();
         this.loadExposureAcknowledgements();
         this.getTrustedTelemetryPeers();
@@ -4562,6 +4608,18 @@ export default {
             this.config.auto_resend_failed_messages_when_announce_received = value;
             await this.onAutoResendFailedMessagesWhenAnnounceReceivedChange();
         },
+        async onDeliveryHelptipsEnabledChangeWrapper(value) {
+            this.config.delivery_helptips_enabled = value;
+            await this.onDeliveryHelptipsEnabledChange();
+        },
+        async onDeliveryHelptipsEnabledChange() {
+            await this.updateConfig(
+                {
+                    delivery_helptips_enabled: this.config.delivery_helptips_enabled,
+                },
+                "delivery_helptips"
+            );
+        },
         async onAutoResendFailedMessagesWhenAnnounceReceivedChange() {
             await this.updateConfig(
                 {
@@ -4959,7 +5017,23 @@ export default {
                 console.log(e);
             }
         },
-        onMicronWasmOverrideSaved() {},
+        onMicronWasmOverrideSaved() {
+            this.refreshMicronWasmReleaseInfo();
+        },
+        async refreshMicronWasmReleaseInfo() {
+            if (!isMicronWasmBundled()) {
+                this.micronWasmReleaseLabel = null;
+                this.micronWasmReleaseIsOverride = false;
+                return;
+            }
+            this.micronWasmReleaseLabel = await getEffectiveMicronWasmReleaseLabel();
+            try {
+                const override = await getMicronWasmRuntimeOverride();
+                this.micronWasmReleaseIsOverride = Boolean(override?.wasmBytes);
+            } catch {
+                this.micronWasmReleaseIsOverride = false;
+            }
+        },
         async onNomadDefaultPagePathChange() {
             await this.updateConfig(
                 {
