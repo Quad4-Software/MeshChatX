@@ -708,6 +708,7 @@ import {
     invalidateNomadMicronWasmPreload,
     isMicronWasmBundled,
 } from "../../js/MicronWasmLoader";
+import { getEffectiveMicronWasmReleaseLabel, MICRON_WASM_OVERRIDE_CHANGED_EVENT } from "../../js/micronWasmVersion.js";
 import ClickPopover from "../ClickPopover.vue";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../js/browserLayoutStore";
 import { isUnknownNodeDisplayName, resolveFavouriteUpsertDisplayName } from "../../js/nomadUnknownNodeName.js";
@@ -833,6 +834,7 @@ export default {
             pendingLoadLatestArchive: false,
 
             nomadMicronWasmReady: false,
+            micronWasmReleaseLabel: null,
             wasmBundled: isMicronWasmBundled(),
             pageShellBackground: null,
             standaloneContextMenu: {
@@ -956,11 +958,7 @@ export default {
             }
             const [p] = this.nodePagePath.split("`");
             const pathLower = (p || "").toLowerCase();
-            const micronGoRelease =
-                typeof import.meta.env.VITE_MICRON_PARSER_GO_RELEASE === "string" &&
-                import.meta.env.VITE_MICRON_PARSER_GO_RELEASE.trim() !== ""
-                    ? import.meta.env.VITE_MICRON_PARSER_GO_RELEASE.trim()
-                    : "\u2014";
+            const micronGoRelease = this.micronWasmReleaseLabel || "\u2014";
             const plainChip = (labelKey, detailKey, detailParams) => {
                 const detail = detailKey ? this.$t(detailKey, detailParams ?? {}) : "";
                 return {
@@ -1288,6 +1286,7 @@ export default {
         offWsEvent("nomadnet.page.archives", this.onNomadPageArchivesEvent);
         offWsEvent("nomadnet.page.archive.added", this.onNomadPageArchiveAddedEvent);
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.off(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseLabel);
     },
     mounted() {
         // listen for websocket messages
@@ -1298,6 +1297,8 @@ export default {
         onWsEvent("nomadnet.page.archives", this.onNomadPageArchivesEvent);
         onWsEvent("nomadnet.page.archive.added", this.onNomadPageArchiveAddedEvent);
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.on(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseLabel);
+        this.refreshMicronWasmReleaseLabel();
 
         this.$watch(
             () => GlobalState.config?.nomad_micron_wasm_enabled,
@@ -1382,6 +1383,13 @@ export default {
             this.clearPartials?.();
             this.getFavourites();
             this.getNomadnetworkNodeAnnounces();
+        },
+        async refreshMicronWasmReleaseLabel() {
+            if (!isMicronWasmBundled()) {
+                this.micronWasmReleaseLabel = null;
+                return;
+            }
+            this.micronWasmReleaseLabel = await getEffectiveMicronWasmReleaseLabel();
         },
         getEmbeddedTabStateHash() {
             return (this.selectedNode?.destination_hash || "").trim();
