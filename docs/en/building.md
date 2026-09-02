@@ -79,6 +79,28 @@ docker cp "${cid}:/artifacts" ./meshchatx-artifacts
 docker rm "${cid}"
 ```
 
+## Container Windows build (optional, Wine)
+
+Tagged releases still build Windows on GitHub `windows-latest`. For a local cross-build without that runner, use [Dockerfile.electron-wine](../../Dockerfile.electron-wine) on top of `electronuserland/builder:24-wine`. It installs embeddable Windows Python under Wine for cx_Freeze (same role as `task setup:wine`), downloads `win_amd64` wheels on the Linux side (Wine HTTPS to PyPI is flaky), then runs electron-builder for portable and NSIS.
+
+```bash
+task docker:dist:win:smoke
+task docker:dist:win
+```
+
+Or:
+
+```bash
+docker build -f Dockerfile.electron-wine -t meshchatx-electron-wine:local .
+cid=$(docker create meshchatx-electron-wine:local)
+docker cp "${cid}:/artifacts/." ./meshchatx-artifacts-win
+docker rm "${cid}"
+```
+
+`MESHCHATX_ELECTRON_WINE_TARGETS` values: `smoke` (toolchain only), `win` (default), `linux+win`. Host helper: `scripts/docker/electron-wine-build.sh`.
+
+This path can fail on packages that lack Windows wheels under Wine. Prefer a real Windows host or GH Actions when the Wine freeze misbehaves.
+
 ## Android APK
 
 Native APK builds, not only Termux. From the repo root:

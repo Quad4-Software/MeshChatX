@@ -1,0 +1,78 @@
+# Optional Windows (and optional Linux) Electron packages via electron-builder + Wine.
+# Does not replace GitHub Actions windows-latest builds. Use when you need a local
+# cross-build without a Windows host.
+#
+# Base image: electronuserland/builder (Node + Wine). MeshChatX adds Windows Python
+# under Wine for cx_Freeze (same idea as task setup:wine / dist:win:wine).
+#
+# Build Windows portable + NSIS:
+#   docker build -f Dockerfile.electron-wine -t meshchatx-electron-wine:local .
+#
+# Toolchain smoke only (no Electron package):
+#   docker build -f Dockerfile.electron-wine \
+#       --build-arg MESHCHATX_ELECTRON_WINE_TARGETS=smoke \
+#       -t meshchatx-electron-wine:smoke .
+#
+# Copy artifacts:
+#   cid=$(docker create meshchatx-electron-wine:local)
+#   docker cp "$cid":/artifacts ./meshchatx-artifacts-win
+#   docker rm "$cid"
+#
+# Or: task docker:dist:win
+
+ARG ELECTRON_BUILDER_IMAGE=electronuserland/builder:24-wine-05.26
+FROM ${ELECTRON_BUILDER_IMAGE}
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    WINEDEBUG=-all \
+    WINEARCH=win64 \
+    WINEPREFIX=/root/.wine \
+    WINE_PYTHON="/project/scripts/ci/wine-python.sh" \
+    MESHCHATX_ELECTRON_WINE_TARGETS=win \
+    ELECTRON_CACHE=/root/.cache/electron \
+    ELECTRON_BUILDER_CACHE=/root/.cache/electron-builder
+
+ARG MESHCHATX_ELECTRON_WINE_TARGETS=win
+ENV MESHCHATX_ELECTRON_WINE_TARGETS=${MESHCHATX_ELECTRON_WINE_TARGETS}
+
+ARG UV_VERSION=0.11.15
+ARG PNPM_VERSION=11.1.2
+ARG TASK_VERSION=3.49.1
+ENV UV_VERSION=${UV_VERSION} \
+    PNPM_VERSION=${PNPM_VERSION} \
+    TASK_VERSION=${TASK_VERSION}
+
+USER root
+WORKDIR /project
+
+# curl + xvfb for Wine GUI-less installs and NSIS. Base image already has wine/node.
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends ca-certificates curl xvfb unzip python3 python3-pip python3-packaging \
+    && rm -rf /var/lib/apt/lists/*
+
+# Host-side uv downloads Windows wheels (Wine SSL to PyPI is flaky in this image).
+RUN curl -LsSf "https://astral.sh/uv/${UV_VERSION}/install.sh" | sh \
+    && ln -sf /root/.local/bin/uv /usr/local/bin/uv \
+    && uv --version
+
+# Bake Wine Python into the image with the embeddable zip (no GUI installer).
+# Git for Windows is optional for packaging. Skip it in the image bake for speed.
+# Project pip deps are installed later from the COPY'd tree (lockfile changes often).
+COPY scripts/setup_wine_env.sh /tmp/setup_wine_env.sh
+RUN chmod +x /tmp/setup_wine_env.sh \
+    && MESHCHATX_WINE_INSTALL_REQUIREMENTS=0 \
+       MESHCHATX_WINE_INSTALL_GIT=0 \
+       MESHCHATX_WINE_SETUP_DIR=/tmp/meshchatx-wine-setup \
+       bash /tmp/setup_wine_env.sh \
+    && rm -rf /tmp/meshchatx-wine-setup /tmp/setup_wine_env.sh \
+    && wine C:/Python314/python.exe --version \
+    && wine C:/Python314/python.exe -m pip --version
+
+COPY . /project
+
+RUN chmod +x scripts/ci/docker-electron-wine-entry.sh \
+    && chmod +x scripts/ci/wine-python.sh \
+    && find scripts/ci -maxdepth 1 -name '*.sh' -exec chmod +x {} + \
+    && chmod +x scripts/setup_wine_env.sh \
+    && bash scripts/ci/docker-electron-wine-entry.sh
