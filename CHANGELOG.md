@@ -20,7 +20,7 @@ All notable changes to this project will be documented in this file.
 - **Map**: Discovered interfaces and telemetry markers update again.
 - **UI**: Dropdowns follow the theme colors.
 - **Docker / logs**: Compose caps container logs at 10 MB with five rotated files. Announce traffic no longer prints to stdout. When a log directory exists, RNS lines go through the rotating logger (set MESHCHAT_RNS_LOG_DEST=stdout for the old console path). Bot and Electron logs rotate under the same size caps.
-- **Nomad crash tab**: IndexedDB opens lazily and soft-fails in opaque sandbox frames, so the console is no longer flooded with SecurityError.
+- **Nomad crash tab**: IndexedDB opens lazily and soft-fails in opaque sandbox frames, so the console is no longer flooded with SecurityError. Coming back from another window or browser tab no longer shows Page renderer stopped responding. Ping silence while the document is hidden is not treated as a hang.
 
 ### Changed
 
