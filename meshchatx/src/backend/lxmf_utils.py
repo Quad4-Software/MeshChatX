@@ -282,6 +282,7 @@ def is_user_facing_lxmf_payload(fields, content, title) -> bool:
             image = fields.get("image")
             audio = fields.get("audio")
             files = fields.get("file_attachments")
+            raw_file_attachments = fields.get(LXMF_FILE_ATTACHMENTS_FIELD)
             has_att = bool(
                 (
                     isinstance(image, dict)
@@ -295,8 +296,8 @@ def is_user_facing_lxmf_payload(fields, content, title) -> bool:
                 or (audio is None and fields.get(LXMF_AUDIO_FIELD) is not None)
                 or (isinstance(files, list) and len(files) > 0)
                 or (
-                    isinstance(fields.get(LXMF_FILE_ATTACHMENTS_FIELD), list)
-                    and len(fields.get(LXMF_FILE_ATTACHMENTS_FIELD)) > 0
+                    isinstance(raw_file_attachments, list)
+                    and len(raw_file_attachments) > 0
                 )
             )
             if not has_att:

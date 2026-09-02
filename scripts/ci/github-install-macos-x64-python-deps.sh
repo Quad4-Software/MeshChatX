@@ -19,15 +19,27 @@ export UV_PYTHON_INSTALL_DIR="${ROOT}/.cache/uv/python"
 
 uv lock --check
 
-# Homebrew moved macOS Intel to Tier 3 (no new bottles). Prefer an existing
-# openssl@3 prefix. If install fails, keep going: uv sync uses
-# --python-platform x86_64-apple-darwin and should land binary wheels that do
-# not need OPENSSL_DIR headers.
+# cryptography 49+ ships arm64-only macOS wheels, so the x64 slice builds from
+# sdist and needs a usable x86_64 OpenSSL. brew --prefix can still resolve when
+# the cellar path is a broken symlink, so require lib/ and include/ before export.
+_openssl_usable_prefix() {
+    local prefix="${1:-}"
+    if [[ -n "$prefix" && -d "${prefix}/lib" && -d "${prefix}/include" ]]; then
+        printf '%s\n' "$prefix"
+        return 0
+    fi
+    return 1
+}
+
+_openssl=""
 if [[ -x /usr/local/bin/brew ]]; then
-    if ! arch -x86_64 /usr/local/bin/brew --prefix openssl@3 >/dev/null 2>&1; then
-        if ! arch -x86_64 /usr/local/bin/brew install openssl@3; then
-            echo "github-install-macos-x64-python-deps: openssl@3 x64 unavailable, continuing without OPENSSL_DIR" >&2
+    _openssl="$(_openssl_usable_prefix "$(arch -x86_64 /usr/local/bin/brew --prefix openssl@3 2>/dev/null || true)" || true)"
+    if [[ -z "$_openssl" ]]; then
+        echo "github-install-macos-x64-python-deps: installing openssl@3 for x64 cryptography sdist" >&2
+        if ! arch -x86_64 /usr/local/bin/brew install --build-from-source openssl@3; then
+            arch -x86_64 /usr/local/bin/brew reinstall --build-from-source openssl@3 || true
         fi
+        _openssl="$(_openssl_usable_prefix "$(arch -x86_64 /usr/local/bin/brew --prefix openssl@3 2>/dev/null || true)" || true)"
     fi
 fi
 
@@ -38,14 +50,17 @@ if [[ -n "$_codec2" && -d "${_codec2}/include" ]]; then
     export PKG_CONFIG_PATH="${_codec2}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
 fi
 
-if arch -x86_64 /usr/local/bin/brew --prefix openssl@3 >/dev/null 2>&1; then
-    _openssl="$(arch -x86_64 /usr/local/bin/brew --prefix openssl@3)"
+# Never export OPENSSL_* at a missing path. openssl-sys panics on that.
+unset OPENSSL_DIR OPENSSL_LIB_DIR OPENSSL_INCLUDE_DIR || true
+if [[ -n "$_openssl" ]]; then
     export LDFLAGS="${LDFLAGS:-} -L${_openssl}/lib -arch x86_64"
     export CPPFLAGS="${CPPFLAGS:-} -I${_openssl}/include -arch x86_64"
     export PKG_CONFIG_PATH="${_openssl}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
     export OPENSSL_DIR="${_openssl}"
     export OPENSSL_LIB_DIR="${_openssl}/lib"
     export OPENSSL_INCLUDE_DIR="${_openssl}/include"
+else
+    echo "github-install-macos-x64-python-deps: usable openssl@3 x64 missing, cryptography sdist may fail" >&2
 fi
 
 export ARCHFLAGS="${ARCHFLAGS:--arch x86_64}"
