@@ -172,7 +172,7 @@ from meshchatx.src.backend.lxmf_utils import (
     convert_lxmf_state_to_string,
     is_lxmf_outbound_progress_terminal,
     is_user_facing_lxmf_payload,
-    lxmf_fields_are_reaction,
+    lxmf_is_reaction_only_delivery,
     lxmf_sidebar_preview_for_conversation_latest_row,
 )
 from meshchatx.src.backend.map_geo_validator import GeoValidationError
@@ -206,8 +206,13 @@ from meshchatx.src.backend.meshchat_utils import (
     normalize_hex_identifier,
     normalize_identity_storage_hash,
     parse_bool_query_param,
+    lxmf_signature_validated,
+    normalize_lxmf_destination_hash,
+    parse_lxmf_audio_field_value,
     parse_lxmf_display_name,
+    parse_lxmf_file_attachments_field_value,
     parse_lxmf_icon_appearance,
+    parse_lxmf_image_field_value,
     parse_lxmf_propagation_node_app_data,
     parse_lxmf_stamp_cost,
     parse_nomadnetwork_node_display_name,
@@ -289,7 +294,7 @@ from meshchatx.src.backend.sticker_utils import (
     sanitize_sticker_name,
     validate_export_document,
 )
-from meshchatx.src.backend.telemetry_utils import Telemeter
+from meshchatx.src.backend.telemetry_utils import Telemeter, _valid_number
 from meshchatx.src.backend.web_audio_bridge import WebAudioBridge
 from meshchatx.src.backend.websocket_config_guard import (
     sanitize_websocket_config_update,
@@ -9122,7 +9127,7 @@ class ReticulumMeshChat:
                     if (
                         isinstance(command, dict)
                         and SidebandCommands.PLUGIN_COMMAND in command
-                        and getattr(lxmf_message, "signature_validated", False)
+                        and lxmf_signature_validated(lxmf_message)
                     ):
                         plugin_command = command.get(SidebandCommands.PLUGIN_COMMAND)
                         if isinstance(plugin_command, bytes):
@@ -9144,6 +9149,10 @@ class ReticulumMeshChat:
                 # Check if telemetry is enabled globally
                 if not ctx.config.telemetry_enabled.get():
                     print(f"Telemetry is disabled, ignoring request from {source_hash}")
+                elif not lxmf_signature_validated(lxmf_message):
+                    print(
+                        f"Ignoring unsigned telemetry request from {source_hash}",
+                    )
                 else:
                     # Check if peer is trusted
                     contact = ctx.database.contacts.get_contact_by_identity_hash(
@@ -9204,10 +9213,14 @@ class ReticulumMeshChat:
             elif message_title is None:
                 message_title = ""
 
-            is_reaction_delivery = lxmf_fields_are_reaction(lxmf_fields)
+            is_reaction_only = lxmf_is_reaction_only_delivery(
+                lxmf_fields,
+                message_title,
+                message_content,
+            )
 
-            # check spam keywords
-            if not is_reaction_delivery and self.check_spam_keywords(
+            # check spam keywords (reaction+body must not skip spam)
+            if not is_reaction_only and self.check_spam_keywords(
                 message_title,
                 message_content,
                 context=ctx,
@@ -9259,7 +9272,8 @@ class ReticulumMeshChat:
             self._maybe_store_path_at_send_for_lxmf(ctx, lxmf_message)
 
             # handle forwarding
-            self.handle_forwarding(lxmf_message, context=ctx)
+            if lxmf_signature_validated(lxmf_message):
+                self.handle_forwarding(lxmf_message, context=ctx)
 
             self._apply_lxmf_sieve_folder_rule(
                 source_hash,
@@ -9282,38 +9296,53 @@ class ReticulumMeshChat:
 
             # handle telemetry
             try:
-                message_fields = lxmf_message.get_fields()
+                if lxmf_signature_validated(lxmf_message):
+                    message_fields = lxmf_message.get_fields()
 
-                # Single telemetry entry
-                if LXMF.FIELD_TELEMETRY in message_fields:
-                    self.process_incoming_telemetry(
-                        source_hash,
-                        message_fields[LXMF.FIELD_TELEMETRY],
-                        lxmf_message,
-                        context=ctx,
-                    )
+                    # Single telemetry entry
+                    if LXMF.FIELD_TELEMETRY in message_fields:
+                        self.process_incoming_telemetry(
+                            source_hash,
+                            message_fields[LXMF.FIELD_TELEMETRY],
+                            lxmf_message,
+                            context=ctx,
+                        )
 
-                # Telemetry stream (multiple entries)
-                if (
-                    hasattr(LXMF, "FIELD_TELEMETRY_STREAM")
-                    and LXMF.FIELD_TELEMETRY_STREAM in message_fields
-                ):
-                    stream = message_fields[LXMF.FIELD_TELEMETRY_STREAM]
-                    if isinstance(stream, (list, tuple)):
-                        for entry in stream:
-                            if isinstance(entry, (list, tuple)) and len(entry) >= 3:
-                                entry_source = (
-                                    entry[0].hex()
-                                    if isinstance(entry[0], bytes)
-                                    else entry[0]
+                    # Telemetry stream (multiple entries)
+                    if (
+                        hasattr(LXMF, "FIELD_TELEMETRY_STREAM")
+                        and LXMF.FIELD_TELEMETRY_STREAM in message_fields
+                    ):
+                        stream = message_fields[LXMF.FIELD_TELEMETRY_STREAM]
+                        if isinstance(stream, (list, tuple)):
+                            sender_trusted = False
+                            contact = (
+                                ctx.database.contacts.get_contact_by_identity_hash(
+                                    source_hash,
                                 )
-                                entry_timestamp = entry[1]
+                            )
+                            if contact and contact.get("is_telemetry_trusted"):
+                                sender_trusted = True
+                            for entry in stream:
+                                if (
+                                    not isinstance(entry, (list, tuple))
+                                    or len(entry) < 3
+                                ):
+                                    continue
+                                entry_source = normalize_lxmf_destination_hash(entry[0])
+                                if not entry_source:
+                                    continue
+                                if entry_source != source_hash and not sender_trusted:
+                                    continue
+                                entry_timestamp = _valid_number(entry[1])
+                                if entry_timestamp is None:
+                                    continue
                                 entry_data = entry[2]
                                 self.process_incoming_telemetry(
                                     entry_source,
                                     entry_data,
                                     lxmf_message,
-                                    timestamp_override=entry_timestamp,
+                                    timestamp_override=int(entry_timestamp),
                                     context=ctx,
                                 )
             except Exception as e:
@@ -9321,53 +9350,60 @@ class ReticulumMeshChat:
 
             # update lxmf user icon if icon appearance field is available
             try:
-                message_fields = lxmf_message.get_fields()
-                icon_appearance = parse_lxmf_icon_appearance(
-                    message_fields.get(LXMF.FIELD_ICON_APPEARANCE),
-                )
-                if icon_appearance:
-                    icon_name, foreground_colour, background_colour = icon_appearance
-
-                    local_hash = (
-                        ctx.local_lxmf_destination.hexhash
-                        if ctx.local_lxmf_destination
-                        else None
+                if lxmf_signature_validated(lxmf_message):
+                    message_fields = lxmf_message.get_fields()
+                    icon_appearance = parse_lxmf_icon_appearance(
+                        message_fields.get(LXMF.FIELD_ICON_APPEARANCE),
                     )
-                    source_hash = lxmf_message.source_hash.hex()
-
-                    # ignore our own icon and empty payloads to avoid overwriting peers with our appearance
-                    if (source_hash and local_hash and source_hash == local_hash) or (
-                        not icon_name or not foreground_colour or not background_colour
-                    ):
-                        pass
-                    else:
-                        local_icon_name = ctx.config.lxmf_user_icon_name.get()
-                        local_icon_fg = (
-                            ctx.config.lxmf_user_icon_foreground_colour.get()
-                        )
-                        local_icon_bg = (
-                            ctx.config.lxmf_user_icon_background_colour.get()
+                    if icon_appearance:
+                        icon_name, foreground_colour, background_colour = (
+                            icon_appearance
                         )
 
-                        # if incoming icon matches our own, skip storing and clear any mistaken stored copy
-                        # for now, but this will need to be updated later if two users do have the same icon
+                        local_hash = (
+                            ctx.local_lxmf_destination.hexhash
+                            if ctx.local_lxmf_destination
+                            else None
+                        )
+                        source_hash = lxmf_message.source_hash.hex()
+
+                        # ignore our own icon and empty payloads to avoid overwriting peers with our appearance
                         if (
-                            local_icon_name
-                            and local_icon_fg
-                            and local_icon_bg
-                            and icon_name == local_icon_name
-                            and foreground_colour == local_icon_fg
-                            and background_colour == local_icon_bg
+                            source_hash and local_hash and source_hash == local_hash
+                        ) or (
+                            not icon_name
+                            or not foreground_colour
+                            or not background_colour
                         ):
-                            ctx.database.misc.delete_user_icon(source_hash)
+                            pass
                         else:
-                            self.update_lxmf_user_icon(
-                                source_hash,
-                                icon_name,
-                                foreground_colour,
-                                background_colour,
-                                context=ctx,
+                            local_icon_name = ctx.config.lxmf_user_icon_name.get()
+                            local_icon_fg = (
+                                ctx.config.lxmf_user_icon_foreground_colour.get()
                             )
+                            local_icon_bg = (
+                                ctx.config.lxmf_user_icon_background_colour.get()
+                            )
+
+                            # if incoming icon matches our own, skip storing and clear any mistaken stored copy
+                            # for now, but this will need to be updated later if two users do have the same icon
+                            if (
+                                local_icon_name
+                                and local_icon_fg
+                                and local_icon_bg
+                                and icon_name == local_icon_name
+                                and foreground_colour == local_icon_fg
+                                and background_colour == local_icon_bg
+                            ):
+                                ctx.database.misc.delete_user_icon(source_hash)
+                            else:
+                                self.update_lxmf_user_icon(
+                                    source_hash,
+                                    icon_name,
+                                    foreground_colour,
+                                    background_colour,
+                                    context=ctx,
+                                )
             except Exception as e:
                 print("failed to update lxmf user icon from lxmf message")
                 print(e)
@@ -9425,6 +9461,8 @@ class ReticulumMeshChat:
             ctx = context or self.current_context
             if not ctx:
                 return
+            if not lxmf_signature_validated(lxmf_message):
+                return
 
             source_hash = lxmf_message.source_hash.hex()
             destination_hash = lxmf_message.destination_hash.hex()
@@ -9436,19 +9474,28 @@ class ReticulumMeshChat:
             file_attachments_field = None
 
             if LXMF.FIELD_IMAGE in lxmf_fields:
-                val = lxmf_fields[LXMF.FIELD_IMAGE]
-                image_field = LxmfImageField(val[0], val[1])
+                parsed_image = parse_lxmf_image_field_value(
+                    lxmf_fields[LXMF.FIELD_IMAGE],
+                )
+                if parsed_image:
+                    image_field = LxmfImageField(parsed_image[0], parsed_image[1])
 
             if LXMF.FIELD_AUDIO in lxmf_fields:
-                val = lxmf_fields[LXMF.FIELD_AUDIO]
-                audio_field = LxmfAudioField(val[0], val[1])
+                parsed_audio = parse_lxmf_audio_field_value(
+                    lxmf_fields[LXMF.FIELD_AUDIO],
+                )
+                if parsed_audio:
+                    audio_field = LxmfAudioField(parsed_audio[0], parsed_audio[1])
 
             if LXMF.FIELD_FILE_ATTACHMENTS in lxmf_fields:
-                attachments = [
-                    LxmfFileAttachment(val[0], val[1])
-                    for val in lxmf_fields[LXMF.FIELD_FILE_ATTACHMENTS]
-                ]
-                file_attachments_field = LxmfFileAttachmentsField(attachments)
+                parsed_files = parse_lxmf_file_attachments_field_value(
+                    lxmf_fields[LXMF.FIELD_FILE_ATTACHMENTS],
+                )
+                if parsed_files:
+                    attachments = [
+                        LxmfFileAttachment(name, data) for name, data in parsed_files
+                    ]
+                    file_attachments_field = LxmfFileAttachmentsField(attachments)
 
             app_extensions = None
             if LXMF_APP_EXTENSIONS_FIELD in lxmf_fields and isinstance(

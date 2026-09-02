@@ -5,6 +5,11 @@ import json
 
 import LXMF
 
+from meshchatx.src.backend.meshchat_utils import (
+    parse_lxmf_audio_field_value,
+    parse_lxmf_file_attachments_field_value,
+    parse_lxmf_image_field_value,
+)
 from meshchatx.src.backend.telemetry_utils import Telemeter
 
 # MeshChatX app extensions (field 16). not used for LXMF-standard reactions.
@@ -49,18 +54,34 @@ def parse_stored_lxmf_fields(raw):
 
 def _bytes_to_message_hash_hex(value) -> str | None:
     if isinstance(value, bytes):
+        # LXMF message hashes are 32 bytes; destination-style 16-byte ids also appear.
+        if len(value) not in (16, 32):
+            return None
         return value.hex()
-    if isinstance(value, str) and value.strip():
-        return value.strip()
+    if isinstance(value, str):
+        h = value.strip().lower()
+        if len(h) not in (32, 64):
+            return None
+        if any(c not in "0123456789abcdef" for c in h):
+            return None
+        return h
     return None
+
+
+_REACTION_EMOJI_MAX_LEN = 16
 
 
 def _reaction_content_to_emoji(value) -> str:
     if isinstance(value, bytes):
-        return value.decode("utf-8", errors="replace").strip()
-    if value is None:
+        text = value.decode("utf-8", errors="replace").strip()
+    elif value is None:
+        text = ""
+    else:
+        text = str(value).strip()
+    text = "".join(ch for ch in text if ch.isprintable())
+    if not text:
         return ""
-    return str(value).strip()
+    return text[:_REACTION_EMOJI_MAX_LEN]
 
 
 def parse_lxmf_reaction_field_dict(
@@ -118,8 +139,11 @@ def extract_reaction_from_lxmf_fields(
         reaction = parsed_fields.get("reaction")
         if isinstance(reaction, dict):
             if reaction.get("reaction_to"):
+                reaction_to = _bytes_to_message_hash_hex(reaction.get("reaction_to"))
+                if not reaction_to:
+                    return None
                 return {
-                    "reaction_to": reaction.get("reaction_to") or "",
+                    "reaction_to": reaction_to,
                     "reaction_emoji": _reaction_content_to_emoji(
                         reaction.get("reaction_content"),
                     ),
@@ -130,6 +154,32 @@ def extract_reaction_from_lxmf_fields(
                 return parsed
 
     return None
+
+
+def lxmf_is_reaction_only_delivery(lxmf_fields, title="", content="") -> bool:
+    """True when the payload is a reaction with no spam-relevant body or attachments."""
+    if not lxmf_fields_are_reaction(lxmf_fields):
+        return False
+
+    def _has_text(value):
+        if value is None:
+            return False
+        if isinstance(value, bytes):
+            value = value.decode("utf-8", errors="replace")
+        return bool(str(value).strip())
+
+    if _has_text(title) or _has_text(content):
+        return False
+    if not isinstance(lxmf_fields, dict):
+        return True
+    files = lxmf_fields.get(LXMF_FILE_ATTACHMENTS_FIELD)
+    if isinstance(files, list) and len(files) > 0:
+        return False
+    if lxmf_fields.get(LXMF_IMAGE_FIELD) is not None:
+        return False
+    if lxmf_fields.get(LXMF_AUDIO_FIELD) is not None:
+        return False
+    return True
 
 
 def build_lxmf_reaction_field(target_message_hash: str, emoji: str) -> dict:
@@ -618,47 +668,31 @@ def convert_lxmf_message_to_dict(
         value = message_fields[field_type]
 
         # handle file attachments field
-        if field_type == LXMF.FIELD_FILE_ATTACHMENTS and isinstance(value, list):
-            file_attachments = []
-            for file_attachment in value:
-                if (
-                    not isinstance(file_attachment, (list, tuple))
-                    or len(file_attachment) < 2
-                ):
-                    continue
-                file_name = file_attachment[0]
-                file_data = file_attachment[1]
-                if not isinstance(file_data, (bytes, bytearray)):
-                    continue
-                file_bytes = None
-                if include_attachments:
-                    file_bytes = base64.b64encode(file_data).decode(
-                        "utf-8",
+        if field_type == LXMF.FIELD_FILE_ATTACHMENTS:
+            parsed_files = parse_lxmf_file_attachments_field_value(value)
+            if parsed_files:
+                file_attachments = []
+                for file_name, file_data in parsed_files:
+                    file_bytes = None
+                    if include_attachments:
+                        file_bytes = base64.b64encode(file_data).decode("utf-8")
+                    file_attachments.append(
+                        {
+                            "file_name": file_name,
+                            "file_size": len(file_data),
+                            "file_bytes": file_bytes,
+                        },
                     )
-
-                file_attachments.append(
-                    {
-                        "file_name": str(file_name) if file_name else "",
-                        "file_size": len(file_data),
-                        "file_bytes": file_bytes,
-                    },
-                )
-
-            fields["file_attachments"] = file_attachments
+                fields["file_attachments"] = file_attachments
 
         # handle image field
-        if (
-            field_type == LXMF.FIELD_IMAGE
-            and isinstance(value, (list, tuple))
-            and len(value) >= 2
-        ):
-            image_type = value[0]
-            image_data = value[1]
-            if isinstance(image_data, (bytes, bytearray)):
+        if field_type == LXMF.FIELD_IMAGE:
+            parsed_image = parse_lxmf_image_field_value(value)
+            if parsed_image:
+                image_type, image_data = parsed_image
                 image_bytes = None
                 if include_attachments:
                     image_bytes = base64.b64encode(image_data).decode("utf-8")
-
                 fields["image"] = {
                     "image_type": image_type,
                     "image_size": len(image_data),
@@ -666,18 +700,13 @@ def convert_lxmf_message_to_dict(
                 }
 
         # handle audio field
-        if (
-            field_type == LXMF.FIELD_AUDIO
-            and isinstance(value, (list, tuple))
-            and len(value) >= 2
-        ):
-            audio_mode = value[0]
-            audio_data = value[1]
-            if isinstance(audio_data, (bytes, bytearray)):
+        if field_type == LXMF.FIELD_AUDIO:
+            parsed_audio = parse_lxmf_audio_field_value(value)
+            if parsed_audio:
+                audio_mode, audio_data = parsed_audio
                 audio_bytes = None
                 if include_attachments:
                     audio_bytes = base64.b64encode(audio_data).decode("utf-8")
-
                 fields["audio"] = {
                     "audio_mode": audio_mode,
                     "audio_size": len(audio_data),

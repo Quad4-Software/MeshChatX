@@ -129,6 +129,8 @@ async def test_telemetry_request_parsing(mock_app):
     mock_app.database.config.set("map_default_lat", 50.0)
     mock_app.database.config.set("map_default_lon", 10.0)
     mock_app.current_context.config.location_source.get.return_value = "browser"
+    mock_lxmf_message.signature_validated = True
+    mock_lxmf_message.unverified_reason = None
 
     mock_app.on_lxmf_delivery(mock_lxmf_message)
 

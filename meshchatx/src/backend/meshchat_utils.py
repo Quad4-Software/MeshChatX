@@ -3,6 +3,7 @@
 import base64
 import contextlib
 import json
+import math
 import signal
 import threading
 
@@ -257,6 +258,68 @@ def parse_lxmf_icon_appearance(value):
     return icon_name, "#" + foreground.hex(), "#" + background.hex()
 
 
+def lxmf_signature_validated(lxmf_message) -> bool:
+    """True only when LXMF set signature_validated to the real bool True."""
+    return getattr(lxmf_message, "signature_validated", False) is True
+
+
+def normalize_lxmf_destination_hash(value) -> str | None:
+    if isinstance(value, bytes):
+        if len(value) == 0:
+            return None
+        return value.hex()
+    if isinstance(value, str):
+        h = value.strip().lower()
+        return h or None
+    return None
+
+
+def parse_lxmf_image_field_value(value):
+    if not isinstance(value, (list, tuple)) or len(value) < 2:
+        return None
+    image_type, image_data = value[0], value[1]
+    if not isinstance(image_data, (bytes, bytearray)):
+        return None
+    if isinstance(image_type, bytes):
+        image_type = image_type.decode("utf-8", errors="replace")
+    if not isinstance(image_type, str) or not 0 < len(image_type) <= 32:
+        return None
+    if not image_type.isprintable():
+        return None
+    return image_type, bytes(image_data)
+
+
+def parse_lxmf_audio_field_value(value):
+    if not isinstance(value, (list, tuple)) or len(value) < 2:
+        return None
+    audio_mode, audio_data = value[0], value[1]
+    if isinstance(audio_mode, bool) or not isinstance(audio_mode, int):
+        return None
+    if not isinstance(audio_data, (bytes, bytearray)):
+        return None
+    return audio_mode, bytes(audio_data)
+
+
+def parse_lxmf_file_attachments_field_value(value):
+    if not isinstance(value, list):
+        return None
+    attachments = []
+    for item in value:
+        if not isinstance(item, (list, tuple)) or len(item) < 2:
+            continue
+        file_name, file_data = item[0], item[1]
+        if not isinstance(file_data, (bytes, bytearray)):
+            continue
+        if isinstance(file_name, bytes):
+            file_name = file_name.decode("utf-8", errors="replace")
+        if not isinstance(file_name, str) or not 0 < len(file_name) <= 255:
+            continue
+        if not file_name.isprintable():
+            continue
+        attachments.append((file_name, bytes(file_data)))
+    return attachments
+
+
 def parse_lxmf_display_name(
     app_data_base64: str | bytes | None,
     default_value: str | None = "Anonymous Peer",
@@ -281,18 +344,31 @@ def parse_lxmf_display_name(
                         dn = peer_data[0]
                         if dn is not None:
                             if isinstance(dn, bytes):
-                                return dn.decode("utf-8", errors="replace")
-                            return str(dn)
+                                name = dn.decode("utf-8", errors="replace")
+                            else:
+                                name = str(dn)
+                            return _clamp_lxmf_display_name(name)
 
         # If manual parsing didn't work, try using the library as a fallback.
         with contextlib.suppress(AttributeError, Exception):
             display_name = LXMF.display_name_from_app_data(app_data_bytes)
             if display_name is not None:
-                return display_name
+                return _clamp_lxmf_display_name(str(display_name))
     except Exception as e:
         print(f"Failed to parse LXMF display name: {e}")
 
     return default_value
+
+
+_LXMF_DISPLAY_NAME_MAX_LEN = 256
+
+
+def _clamp_lxmf_display_name(name: str) -> str:
+    text = "".join(ch for ch in name if ch.isprintable() or ch in "\t ")
+    text = text.strip()
+    if not text:
+        return ""
+    return text[:_LXMF_DISPLAY_NAME_MAX_LEN]
 
 
 def parse_lxmf_stamp_cost(app_data_base64: str | bytes | None):
@@ -305,7 +381,15 @@ def parse_lxmf_stamp_cost(app_data_base64: str | bytes | None):
         else:
             app_data_bytes = base64.b64decode(app_data_base64)
 
-        return LXMF.stamp_cost_from_app_data(app_data_bytes)
+        cost = LXMF.stamp_cost_from_app_data(app_data_bytes)
+        if isinstance(cost, bool) or not isinstance(cost, (int, float)):
+            return None
+        if not math.isfinite(cost):
+            return None
+        cost_i = int(cost)
+        if cost_i < 0 or cost_i > 254:
+            return None
+        return cost_i
     except Exception as e:
         print(f"Failed to parse LXMF stamp cost: {e}")
         return None
