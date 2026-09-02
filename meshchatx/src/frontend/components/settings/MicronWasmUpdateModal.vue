@@ -1,7 +1,13 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <AppModal :model-value="modelValue" :max-width="560" @update:model-value="$emit('update:modelValue', $event)">
+    <AppModal
+        :model-value="modelValue"
+        :max-width="560"
+        :scrollable="true"
+        :show-close="true"
+        @update:model-value="$emit('update:modelValue', $event)"
+    >
         <template #header>
             <h2 class="min-w-0 flex-1 text-lg font-semibold text-sem-fg">
                 {{ $t("settings.micron_wasm_update_modal_title") }}
@@ -26,8 +32,11 @@
                     {{ $t("settings.micron_wasm_update_active_size", { bytes: currentInfo.byteLength }) }}
                 </div>
             </div>
-            <div v-else class="text-sm text-sem-fg-muted">
-                {{ $t("settings.micron_wasm_update_bundled_only") }}
+            <div v-else class="text-sm text-sem-fg-muted space-y-1">
+                <div>{{ $t("settings.micron_wasm_update_bundled_only") }}</div>
+                <div v-if="bundledReleaseLabel" class="text-xs font-mono opacity-90">
+                    {{ $t("settings.micron_wasm_installed_version", { version: bundledReleaseLabel }) }}
+                </div>
             </div>
 
             <p class="text-sm text-sem-fg-muted">
@@ -39,14 +48,53 @@
                 <p class="text-xs text-amber-800 dark:text-amber-200/90">
                     {{ $t("settings.micron_wasm_update_upload_warning") }}
                 </p>
-                <input
-                    ref="fileInput"
-                    type="file"
-                    accept=".wasm,application/wasm"
-                    class="max-w-full text-sm"
-                    :disabled="busy"
-                    @change="onWasmFileSelected"
-                />
+
+                <div
+                    class="micron-wasm-dropzone rounded-xl border-2 border-dashed p-4 sm:p-6 text-center transition-colors touch-manipulation"
+                    :class="dropzoneClass"
+                    role="button"
+                    tabindex="0"
+                    :aria-disabled="busy"
+                    @dragenter.prevent="onDragEnter"
+                    @dragover.prevent="onDragOver"
+                    @dragleave.prevent="onDragLeave"
+                    @drop.prevent="onDrop"
+                    @click="openFilePicker"
+                    @keydown.enter.prevent="openFilePicker"
+                    @keydown.space.prevent="openFilePicker"
+                >
+                    <MaterialDesignIcon
+                        icon-name="upload"
+                        class="mx-auto mb-2 size-8 text-sem-fg-muted"
+                        aria-hidden="true"
+                    />
+                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                        {{ $t("settings.micron_wasm_update_drop_hint") }}
+                    </p>
+                    <p class="mt-1 text-xs text-sem-fg-muted">
+                        {{ $t("settings.micron_wasm_update_paste_hint") }}
+                    </p>
+                    <label class="mt-4 inline-flex" @click.stop>
+                        <input
+                            ref="fileInput"
+                            type="file"
+                            accept=".wasm,application/wasm"
+                            class="sr-only"
+                            :disabled="busy"
+                            @change="onWasmFileSelected"
+                        />
+                        <span
+                            class="primary-chip min-h-[44px] px-4 py-2.5 text-sm"
+                            :class="busy ? 'opacity-60 pointer-events-none' : 'cursor-pointer'"
+                        >
+                            {{
+                                busy
+                                    ? $t("settings.micron_wasm_update_installing")
+                                    : $t("settings.micron_wasm_update_choose_file")
+                            }}
+                        </span>
+                    </label>
+                </div>
             </div>
 
             <div
@@ -57,11 +105,18 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-2 pt-2">
-                <button type="button" class="secondary-chip" :disabled="busy || !currentInfo" @click="onRevertBundled">
+                <button
+                    type="button"
+                    class="secondary-chip min-h-[44px]"
+                    :disabled="busy || !currentInfo"
+                    @click="onRevertBundled"
+                >
                     {{ $t("settings.micron_wasm_update_revert_bundled") }}
                 </button>
                 <div class="flex-1" />
-                <button type="button" class="secondary-chip" @click="close">{{ $t("common.close") }}</button>
+                <button type="button" class="secondary-chip min-h-[44px]" @click="close">
+                    {{ $t("common.close") }}
+                </button>
             </div>
         </div>
     </AppModal>
@@ -69,6 +124,7 @@
 
 <script>
 import AppModal from "../AppModal.vue";
+import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import {
     getMicronWasmRuntimeOverride,
@@ -82,11 +138,24 @@ import {
     refreshMicronWasmRuntimeOverrideCache,
     preloadNomadMicronWasm,
 } from "../../js/MicronWasmLoader.js";
+import GlobalEmitter from "../../js/GlobalEmitter";
+import {
+    MICRON_WASM_OVERRIDE_CHANGED_EVENT,
+    normalizeMicronWasmReleaseTag,
+    bundledMicronWasmReleaseTag,
+} from "../../js/micronWasmVersion.js";
+import {
+    isWasmUploadFile,
+    pickWasmFileFromClipboardEvent,
+    pickWasmFileFromDataTransfer,
+    pickWasmFileFromFileList,
+} from "../../js/micronWasmUpload.js";
 
 export default {
     name: "MicronWasmUpdateModal",
     components: {
         AppModal,
+        MaterialDesignIcon,
     },
     props: {
         modelValue: { type: Boolean, default: false },
@@ -97,26 +166,94 @@ export default {
             busy: false,
             formError: "",
             currentInfo: null,
+            bundledReleaseLabel: bundledMicronWasmReleaseTag(),
+            dragDepth: 0,
         };
+    },
+    computed: {
+        dragActive() {
+            return this.dragDepth > 0;
+        },
+        dropzoneClass() {
+            if (this.busy) {
+                return "border-gray-300 bg-sem-surface-muted/30 opacity-80 dark:border-zinc-700";
+            }
+            if (this.dragActive) {
+                return "border-blue-500 bg-blue-50/60 dark:border-blue-400 dark:bg-blue-950/20";
+            }
+            return "border-gray-300 bg-sem-surface-muted/40 hover:border-blue-400/70 dark:border-zinc-700 cursor-pointer";
+        },
     },
     watch: {
         modelValue(v) {
             if (v) {
                 this.formError = "";
+                this.dragDepth = 0;
                 this.loadCurrentInfo();
+                document.addEventListener("paste", this.onWasmPaste);
+            } else {
+                document.removeEventListener("paste", this.onWasmPaste);
             }
         },
+    },
+    beforeUnmount() {
+        document.removeEventListener("paste", this.onWasmPaste);
     },
     methods: {
         close() {
             this.$emit("update:modelValue", false);
         },
+        openFilePicker() {
+            if (this.busy) {
+                return;
+            }
+            this.$refs.fileInput?.click();
+        },
+        onDragEnter() {
+            if (this.busy) {
+                return;
+            }
+            this.dragDepth += 1;
+        },
+        onDragOver() {
+            if (this.busy) {
+                return;
+            }
+            this.dragDepth = Math.max(this.dragDepth, 1);
+        },
+        onDragLeave() {
+            this.dragDepth = Math.max(0, this.dragDepth - 1);
+        },
+        onDrop(event) {
+            this.dragDepth = 0;
+            if (this.busy) {
+                return;
+            }
+            const file = pickWasmFileFromDataTransfer(event.dataTransfer);
+            if (!file) {
+                this.formError = this.$t("settings.micron_wasm_update_err_not_wasm");
+                return;
+            }
+            this.installWasmFromFile(file);
+        },
+        onWasmPaste(event) {
+            if (!this.modelValue || this.busy) {
+                return;
+            }
+            const file = pickWasmFileFromClipboardEvent(event);
+            if (!file) {
+                return;
+            }
+            event.preventDefault();
+            this.installWasmFromFile(file);
+        },
         async loadCurrentInfo() {
             try {
                 const r = await getMicronWasmRuntimeOverride();
                 if (r && r.wasmBytes) {
+                    const normalized = normalizeMicronWasmReleaseTag(r.releaseTag);
                     this.currentInfo = {
-                        releaseTag: r.releaseTag,
+                        releaseTag: normalized || r.releaseTag,
                         byteLength: r.wasmBytes.byteLength,
                     };
                 } else {
@@ -127,15 +264,23 @@ export default {
                 this.currentInfo = null;
             }
         },
-        async onWasmFileSelected(ev) {
-            this.formError = "";
-            const file = ev.target.files && ev.target.files[0];
+        onWasmFileSelected(ev) {
+            const file = pickWasmFileFromFileList(ev.target.files);
             if (!file) {
+                if (ev.target.files && ev.target.files.length) {
+                    this.formError = this.$t("settings.micron_wasm_update_err_not_wasm");
+                }
+                ev.target.value = "";
                 return;
             }
-            if (!String(file.name).toLowerCase().endsWith(".wasm")) {
-                this.formError = this.$t("settings.micron_wasm_update_err_not_wasm");
+            this.installWasmFromFile(file).finally(() => {
                 ev.target.value = "";
+            });
+        },
+        async installWasmFromFile(file) {
+            this.formError = "";
+            if (!isWasmUploadFile(file)) {
+                this.formError = this.$t("settings.micron_wasm_update_err_not_wasm");
                 return;
             }
             this.busy = true;
@@ -143,18 +288,18 @@ export default {
                 const buf = await file.arrayBuffer();
                 if (buf.byteLength > MAX_WASM_OVERRIDE_BYTES) {
                     this.formError = this.$t("settings.micron_wasm_update_err_too_large");
-                    ev.target.value = "";
                     return;
                 }
                 if (buf.byteLength < 4096) {
                     this.formError = this.$t("settings.micron_wasm_update_err_too_small");
-                    ev.target.value = "";
                     return;
                 }
                 const wasmSri = await computeWasmSriSha384(buf);
+                const releaseTag =
+                    normalizeMicronWasmReleaseTag(file.name) || String(file.name || "").trim() || "upload";
                 await setMicronWasmRuntimeOverride({
                     source: "upload",
-                    releaseTag: file.name,
+                    releaseTag,
                     wasmSri,
                     wasmBytes: buf,
                     expectedSha256Hex: null,
@@ -167,17 +312,16 @@ export default {
                     refreshMicronWasmRuntimeOverrideCache();
                     invalidateNomadMicronWasmPreload();
                     this.formError = this.$t("settings.micron_wasm_update_err_activate_failed");
-                    ev.target.value = "";
                     return;
                 }
                 ToastUtils.success(this.$t("settings.micron_wasm_update_toast_uploaded"));
                 await this.loadCurrentInfo();
+                GlobalEmitter.emit(MICRON_WASM_OVERRIDE_CHANGED_EVENT);
                 this.$emit("saved");
             } catch (e) {
                 this.formError = (e && e.message) || String(e);
             } finally {
                 this.busy = false;
-                ev.target.value = "";
             }
         },
         async onRevertBundled() {
@@ -190,6 +334,7 @@ export default {
                 await preloadNomadMicronWasm();
                 ToastUtils.success(this.$t("settings.micron_wasm_update_toast_reverted"));
                 await this.loadCurrentInfo();
+                GlobalEmitter.emit(MICRON_WASM_OVERRIDE_CHANGED_EVENT);
                 this.$emit("saved");
             } catch (e) {
                 this.formError = (e && e.message) || String(e);
@@ -200,3 +345,12 @@ export default {
     },
 };
 </script>
+
+<style scoped>
+@reference "../../style.css";
+
+.micron-wasm-dropzone:focus-visible {
+    outline: 2px solid rgba(59, 130, 246, 0.45);
+    outline-offset: 2px;
+}
+</style>
