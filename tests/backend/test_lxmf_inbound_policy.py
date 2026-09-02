@@ -87,6 +87,28 @@ def test_oracle_blocked_peer_rejects_before_transfer():
     assert reason == "blocked"
 
 
+def test_oracle_unknown_identity_does_not_reject_attachment_block():
+    """Fresh LXMF delivery links often lack remote identity at advertise.
+
+    Rejecting unknown identity marked contact attachments REJECTED on the
+    sender while packet-sized messages still arrived. Defer to delivery.
+    """
+    app = _policy_app(is_contact=False)
+    ctx = _policy_ctx(block_attachments=True, block_all=True)
+    resource = SimpleNamespace(
+        link=SimpleNamespace(get_remote_identity=lambda: None, destination=None),
+        hash=bytes.fromhex("aa" * 16),
+        status=0,
+        cancel=MagicMock(),
+    )
+
+    reject, reason = evaluate_inbound_delivery_resource_policy(app, ctx, resource)
+    assert reject is False
+    assert reason is None
+    app._is_contact.assert_not_called()
+    app.is_destination_blocked.assert_not_called()
+
+
 def test_install_rejects_stranger_resource_at_advertise():
     router = SimpleNamespace()
     router.delivery_resource_advertised = MagicMock(return_value=True)
@@ -107,6 +129,28 @@ def test_install_rejects_stranger_resource_at_advertise():
     assert accepted_contact is True
 
 
+def test_install_accepts_unknown_identity_at_advertise():
+    router = SimpleNamespace()
+    original_advertised = MagicMock(return_value=True)
+    router.delivery_resource_advertised = original_advertised
+    router.delivery_resource_transfer_began = MagicMock()
+    app = _policy_app(is_contact=False)
+    ctx = _policy_ctx(block_attachments=True, block_all=True)
+
+    install_lxmf_inbound_delivery_policy(router, app, lambda: ctx)
+
+    resource = SimpleNamespace(
+        link=SimpleNamespace(get_remote_identity=lambda: None, destination=None),
+        hash=bytes.fromhex("cc" * 16),
+        status=0,
+        cancel=MagicMock(),
+    )
+    accepted = router.delivery_resource_advertised(resource)
+    assert accepted is True
+    original_advertised.assert_called_once_with(resource)
+    app._is_contact.assert_not_called()
+
+
 def test_install_cancels_stranger_resource_when_transfer_begins():
     router = SimpleNamespace()
     router.delivery_resource_advertised = MagicMock(return_value=True)
@@ -125,6 +169,31 @@ def test_install_cancels_stranger_resource_when_transfer_begins():
     router.delivery_resource_transfer_began(resource)
     resource.cancel.assert_called_once()
     assert began_calls == []
+
+
+def test_install_does_not_cancel_when_identity_unknown_at_transfer_began():
+    router = SimpleNamespace()
+    router.delivery_resource_advertised = MagicMock(return_value=True)
+    began_calls = []
+
+    def _record_began(resource):
+        began_calls.append(resource)
+
+    router.delivery_resource_transfer_began = _record_began
+    app = _policy_app(is_contact=False)
+    ctx = _policy_ctx(block_attachments=True, block_all=True)
+
+    install_lxmf_inbound_delivery_policy(router, app, lambda: ctx)
+
+    resource = SimpleNamespace(
+        link=SimpleNamespace(get_remote_identity=lambda: None, destination=None),
+        hash=bytes.fromhex("bb" * 16),
+        status=0,
+        cancel=MagicMock(),
+    )
+    router.delivery_resource_transfer_began(resource)
+    resource.cancel.assert_not_called()
+    assert began_calls == [resource]
 
 
 def test_install_is_idempotent():

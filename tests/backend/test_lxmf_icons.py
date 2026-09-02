@@ -282,6 +282,8 @@ async def test_receive_message_updates_icon(mock_rns, temp_dir):
             b"\x00\x00\x00",  # #000000
         ],
     }
+    mock_msg.signature_validated = True
+    mock_msg.unverified_reason = None
 
     # Mock methods
     app.db_upsert_lxmf_message = MagicMock()
