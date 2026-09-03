@@ -1,6 +1,6 @@
 # RNS Link API
 
-MeshChatX exposes a generic Reticulum Link transport on the main WebSocket (`/ws`). External apps and plugins can open links, run request/response exchanges, send packets, and tear links down without going through NomadNet helpers.
+MeshChatX exposes a generic Reticulum Link transport on the main WebSocket (/ws). External apps and plugins can open links, run request/response exchanges, send packets, and tear links down without going through NomadNet helpers.
 
 ## When to use it
 
@@ -18,7 +18,7 @@ Address peers by destination hash and aspect. Do not invent IP or hostname short
 
 ## Auth
 
-When password auth is enabled, every `rns.link.*` client message needs an authenticated session. Same rule as other WebSocket mutators.
+When password auth is enabled, every rns.link.* client message needs an authenticated session. Same rule as other WebSocket mutators.
 
 ## Link lifecycle
 
@@ -42,30 +42,30 @@ Client sends rns.link.open
 
 Cache notes:
 
-- Key is `(aspect, destination_hash)`
+- Key is (aspect, destination_hash)
 - Cap is 64 active links
 - Idle links expire after about 30 minutes
 - Repeated request failures recycle the cached link so the next call re-opens
 
 ## Client to server
 
-All messages need a unique `request_id` so replies can be matched.
+All messages need a unique request_id so replies can be matched.
 
-| `type`              | Required fields                                           | Optional              | Behaviour                                                                |
+| type              | Required fields                                           | Optional              | Behaviour                                                                |
 | ------------------- | --------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------ |
-| `rns.link.open`     | `destination_hash`, `aspect`, `request_id`                | `auto_identify`       | Open or reuse a cached link. Streams `phase` then `success` / `failure`. |
-| `rns.link.identify` | `destination_hash`, `aspect`, `request_id`                |                       | Call `link.identify(local_identity)` on the cached link.                 |
-| `rns.link.request`  | `destination_hash`, `aspect`, `path`, `request_id`        | `data_b64`, `timeout` | Ensure the link is open, then `link.request(path, data=…)`.              |
-| `rns.link.send`     | `destination_hash`, `aspect`, `payload_b64`, `request_id` |                       | Send a raw packet on the cached link.                                    |
-| `rns.link.close`    | `destination_hash`, `aspect`, `request_id`                |                       | Teardown and uncache the link.                                           |
+| rns.link.open     | destination_hash, aspect, request_id                | auto_identify       | Open or reuse a cached link. Streams phase then success / failure. |
+| rns.link.identify | destination_hash, aspect, request_id                |                       | Call link.identify(local_identity) on the cached link.                 |
+| rns.link.request  | destination_hash, aspect, path, request_id        | data_b64, timeout | Ensure the link is open, then link.request(path, data=...).              |
+| rns.link.send     | destination_hash, aspect, payload_b64, request_id |                       | Send a raw packet on the cached link.                                    |
+| rns.link.close    | destination_hash, aspect, request_id                |                       | Teardown and uncache the link.                                           |
 
 Field details:
 
-- `destination_hash`: hex string of the peer destination
-- `aspect`: dot-separated RNS app name + sub-aspects, for example `microrn.mgmt`
-- `data_b64` / `payload_b64` / reply `body_b64`: msgpack payloads, base64-encoded (size-capped on the server)
-- `path`: request path string on the remote link endpoint
-- `timeout`: seconds for the request wait
+- destination_hash: hex string of the peer destination
+- aspect: dot-separated RNS app name + sub-aspects, for example microrn.mgmt
+- data_b64 / payload_b64 / reply body_b64: msgpack payloads, base64-encoded (size-capped on the server)
+- path: request path string on the remote link endpoint
+- timeout: seconds for the request wait
 
 Optional binary frames: send `{ "type": "ws.caps", "binary_rns_link": true }` first. After that, binary WebSocket frames carrying msgpack dicts with the same fields as the JSON messages are accepted. JSON remains the default and is always supported.
 
@@ -97,21 +97,21 @@ Example request:
 
 ## Server to client
 
-Per-`request_id` replies reuse the same `type` with a `status`:
+Per-request_id replies reuse the same type with a status:
 
-| `status`   | Meaning                                      |
+| status   | Meaning                                      |
 | ---------- | -------------------------------------------- |
-| `phase`    | Progress step while opening or requesting    |
-| `progress` | Additional progress detail when available    |
-| `success`  | Operation finished                           |
-| `failure`  | Operation failed (includes an error message) |
+| phase    | Progress step while opening or requesting    |
+| progress | Additional progress detail when available    |
+| success  | Operation finished                           |
+| failure  | Operation failed (includes an error message) |
 
-Broadcast events (not tied to one `request_id`):
+Broadcast events (not tied to one request_id):
 
-| `type`           | `event`           | Notes                  |
+| type           | event           | Notes                  |
 | ---------------- | ----------------- | ---------------------- |
-| `rns.link.event` | `packet_received` | Includes `payload_b64` |
-| `rns.link.event` | `link_closed`     | Cached link removed    |
+| rns.link.event | packet_received | Includes payload_b64 |
+| rns.link.event | link_closed     | Cached link removed    |
 
 ```
 Inbound packet on a cached link
@@ -138,15 +138,15 @@ Plugin Worker
     --> RnsLinkManager open / identify / request / send / close
 ```
 
-Declare managers in `plugin.json`:
+Declare managers in plugin.json:
 
 | Manager            | Maps to                 |
 | ------------------ | ----------------------- |
-| `rnsLink.open`     | Open or reuse link      |
-| `rnsLink.identify` | Identify on cached link |
-| `rnsLink.request`  | Request/response        |
-| `rnsLink.send`     | Raw packet send         |
-| `rnsLink.close`    | Teardown                |
+| rnsLink.open     | Open or reuse link      |
+| rnsLink.identify | Identify on cached link |
+| rnsLink.request  | Request/response        |
+| rnsLink.send     | Raw packet send         |
+| rnsLink.close    | Teardown                |
 
 Subscribe to async traffic with:
 
@@ -166,7 +166,7 @@ Hook delivery:
 ```
 RnsLinkManager event
     |
-    --> PluginManager.dispatch_hook("rns.link.event", …)
+    --> PluginManager.dispatch_hook("rns.link.event", ...)
     |
     --> WebSocket plugin.event to the UI
     |
@@ -189,11 +189,11 @@ Connect to MeshChatX /ws (auth cookie / session as required)
     --> Send rns.link.close when finished
 ```
 
-Keep one `request_id` per outstanding call. Cancel or ignore replies after you disconnect. MeshChatX cancels in-flight open/request work for that WebSocket client on disconnect.
+Keep one request_id per outstanding call. Cancel or ignore replies after you disconnect. MeshChatX cancels in-flight open/request work for that WebSocket client on disconnect.
 
 ## Limits and failure behaviour
 
-- Missing path or unreachable peer returns `failure` on the open/request reply
+- Missing path or unreachable peer returns failure on the open/request reply
 - After repeated request failures on one cached link, MeshChatX recycles that link
 - Idle unused links are swept after about 30 minutes
 - Over-cap eviction drops the oldest unused links first
