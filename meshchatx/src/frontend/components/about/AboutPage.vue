@@ -22,8 +22,20 @@
                                 <div
                                     class="flex flex-col gap-0.5 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-3 sm:gap-y-0"
                                 >
-                                    <div class="text-sm font-black uppercase tracking-[0.2em] text-blue-500 opacity-80">
-                                        {{ $t("about.version", { version: aboutDisplayVersion }) }}
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <div
+                                            class="text-sm font-black uppercase tracking-[0.2em] text-blue-500 opacity-80"
+                                        >
+                                            {{ $t("about.version", { version: aboutDisplayVersion }) }}
+                                        </div>
+                                        <span
+                                            v-if="aboutChannelLabel"
+                                            class="inline-flex h-5 items-center rounded-xs px-2 text-[10px] font-black uppercase tracking-tighter"
+                                            :class="aboutChannelBadgeClass"
+                                            data-testid="about-channel-badge"
+                                        >
+                                            {{ aboutChannelLabel }}
+                                        </span>
                                     </div>
                                     <div
                                         v-if="appInfo.git_commit_short || appInfo.git_commit"
@@ -87,6 +99,55 @@
                             <button type="button" class="about-action-btn danger-chip" @click="shutdown">
                                 <MaterialDesignIcon icon-name="power" class="size-5 mr-2 shrink-0" />
                                 <span class="truncate">{{ $t("common.shutdown") }}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div
+                        v-if="aboutShowChannelPromptDetails"
+                        class="mt-8 rounded-xl border border-sem-border bg-sem-surface px-4 py-4 space-y-4"
+                        data-testid="about-channel-prompt"
+                    >
+                        <p v-if="aboutChannelNotes" class="text-sm text-sem-fg">{{ aboutChannelNotes }}</p>
+                        <div v-if="aboutFocusAreas.length" class="space-y-2">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-sem-fg">
+                                {{ $t("about.channel_focus_title") }}
+                            </div>
+                            <ul class="list-disc space-y-1 pl-5 text-sm text-sem-fg-muted">
+                                <li v-for="(area, idx) in aboutFocusAreas" :key="`about-focus-${idx}`">
+                                    {{ area }}
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-sem-fg">
+                                {{ $t("about.channel_bug_report_title") }}
+                            </div>
+                            <ol class="list-decimal space-y-1 pl-5 text-sm text-sem-fg-muted">
+                                <li v-for="(step, idx) in aboutBugReportSteps" :key="`about-step-${idx}`">
+                                    {{ step }}
+                                </li>
+                            </ol>
+                            <p
+                                v-if="aboutBugReportTarget.value"
+                                class="break-all font-mono text-xs text-sem-fg-secondary"
+                            >
+                                <span v-if="aboutBugReportTarget.kind === 'lxmf'">
+                                    {{ $t("channel_prompt.lxmf_label") }}
+                                </span>
+                                {{ aboutBugReportTarget.value }}
+                            </p>
+                            <button
+                                v-if="aboutBugReportTarget.value"
+                                type="button"
+                                class="about-action-btn secondary-chip"
+                                @click="onAboutBugReportAction"
+                            >
+                                {{
+                                    aboutBugReportTarget.kind === "lxmf"
+                                        ? $t("channel_prompt.copy_lxmf")
+                                        : $t("channel_prompt.copy_url")
+                                }}
                             </button>
                         </div>
                     </div>
@@ -1319,6 +1380,12 @@ import {
     sandboxSummaryType,
 } from "../../js/sandboxStatus.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import {
+    channelBadgeClass,
+    channelBugReportTarget,
+    channelLabelKey,
+    normalizeReleaseChannel,
+} from "../../js/releaseChannel.js";
 
 export default {
     name: "AboutPage",
@@ -1390,6 +1457,41 @@ export default {
                 return `${base}-dev`;
             }
             return base;
+        },
+        aboutChannel() {
+            return normalizeReleaseChannel(this.appInfo?.build_channel);
+        },
+        aboutChannelLabel() {
+            if (!this.appInfo) {
+                return "";
+            }
+            return this.$t(channelLabelKey(this.aboutChannel));
+        },
+        aboutChannelBadgeClass() {
+            return channelBadgeClass(this.aboutChannel);
+        },
+        aboutShowChannelPromptDetails() {
+            return this.aboutChannel === "testing" || this.aboutChannel === "beta";
+        },
+        aboutChannelPrompt() {
+            const p = this.appInfo?.channel_prompt;
+            return p && typeof p === "object" ? p : {};
+        },
+        aboutFocusAreas() {
+            return Array.isArray(this.aboutChannelPrompt.focus_areas)
+                ? this.aboutChannelPrompt.focus_areas.map((s) => String(s)).filter(Boolean)
+                : [];
+        },
+        aboutBugReportSteps() {
+            return Array.isArray(this.aboutChannelPrompt.bug_report_steps)
+                ? this.aboutChannelPrompt.bug_report_steps.map((s) => String(s)).filter(Boolean)
+                : [];
+        },
+        aboutBugReportTarget() {
+            return channelBugReportTarget(this.aboutChannelPrompt);
+        },
+        aboutChannelNotes() {
+            return typeof this.aboutChannelPrompt.notes === "string" ? this.aboutChannelPrompt.notes.trim() : "";
         },
         formattedUiBuildDate() {
             try {
@@ -2021,6 +2123,25 @@ export default {
                 } else {
                     ToastUtils.success(this.$t("about.shutdown_sent"));
                 }
+            }
+        },
+        async onAboutBugReportAction() {
+            if (!this.aboutBugReportTarget.value) {
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(this.aboutBugReportTarget.value);
+                ToastUtils.success(
+                    this.aboutBugReportTarget.kind === "lxmf"
+                        ? this.$t("channel_prompt.lxmf_copied")
+                        : this.$t("channel_prompt.url_copied")
+                );
+            } catch {
+                ToastUtils.error(
+                    this.aboutBugReportTarget.kind === "lxmf"
+                        ? this.$t("channel_prompt.lxmf_copy_failed")
+                        : this.$t("channel_prompt.url_copy_failed")
+                );
             }
         },
         showChangelog() {

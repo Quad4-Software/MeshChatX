@@ -48,9 +48,18 @@ case "$REF" in
             echo "-t ${IMAGE}:$(_suffix_tag "v${MAJOR_MINOR}")" >> "$OUTPUT"
         fi
         ;;
+    refs/tags/nightly-*|refs/tags/testing-*)
+        TAG="${REF#refs/tags/}"
+        echo "-t ${IMAGE}:$(_suffix_tag "testing")" >> "$OUTPUT"
+        echo "-t ${IMAGE}:$(_suffix_tag "${TAG}")" >> "$OUTPUT"
+        ;;
+    refs/tags/beta-*|refs/tags/preview-*)
+        TAG="${REF#refs/tags/}"
+        echo "-t ${IMAGE}:$(_suffix_tag "beta")" >> "$OUTPUT"
+        echo "-t ${IMAGE}:$(_suffix_tag "${TAG}")" >> "$OUTPUT"
+        ;;
     refs/tags/*)
         TAG="${REF#refs/tags/}"
-        echo "-t ${IMAGE}:$(_suffix_tag "latest")" >> "$OUTPUT"
         echo "-t ${IMAGE}:$(_suffix_tag "${TAG}")" >> "$OUTPUT"
         ;;
 esac

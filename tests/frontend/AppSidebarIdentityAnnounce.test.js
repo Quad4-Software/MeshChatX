@@ -57,6 +57,9 @@ const appStubs = {
     CallOverlay: true,
     CommandPalette: true,
     IntegrityWarningModal: true,
+    ChangelogModal: true,
+    ChannelPromptModal: true,
+    TutorialModal: true,
     AppShellBanners: true,
     Toast: true,
     VDialog: true,
@@ -178,10 +181,12 @@ describe("App.vue sidebar identity label and announce control", () => {
         const versionLink = wrapper.find('[data-testid="sidebar-app-version"]');
         expect(versionLink.exists()).toBe(true);
         expect(versionLink.text()).toContain(`v${appPackageVersion}`);
-        expect(versionLink.attributes("title")).toBe(`v${appPackageVersion}`);
+        expect(versionLink.attributes("title")).toContain(`v${appPackageVersion}`);
+        const badge = wrapper.find('[data-testid="sidebar-channel-badge"]');
+        expect(badge.exists()).toBe(true);
     });
 
-    it("shows -dev and short commit for nightly-style app info", async () => {
+    it("shows -dev and short commit for testing-style app info", async () => {
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/app/info") {
                 return Promise.resolve({
@@ -192,9 +197,10 @@ describe("App.vue sidebar identity label and announce control", () => {
                             is_dev_build: true,
                             git_commit: "abcdef0123456789",
                             git_commit_short: "abcdef0",
-                            build_channel: "nightly",
+                            build_channel: "testing",
                             tutorial_seen: true,
                             changelog_seen_version: appPackageVersion,
+                            channel_prompt_seen: `testing:${appPackageVersion}-dev:abcdef0`,
                         },
                     },
                 });
@@ -206,6 +212,7 @@ describe("App.vue sidebar identity label and announce control", () => {
         const versionLink = wrapper.find('[data-testid="sidebar-app-version"]');
         expect(versionLink.text()).toContain(`v${appPackageVersion}-dev`);
         expect(versionLink.text()).toContain("abcdef0");
+        expect(wrapper.find('[data-testid="sidebar-channel-badge"]').text()).toMatch(/testing/i);
     });
 
     it("falls back to My Identity when display name is empty", async () => {

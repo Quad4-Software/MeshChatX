@@ -4,8 +4,10 @@
 """Upload a directory tree to bunny.net Edge Storage (HTTP PUT per object).
 
 When ``BUNNY_STORAGE_OBJECT_PREFIX`` is ``<track>/<version>`` with track in
-``release`` or ``nightly``, other version directories under that track are deleted
-after a successful upload so only the newest folder remains.
+``release``, ``testing``, or ``beta``, other version directories under that track
+are deleted after a successful upload so only the newest folder remains.
+
+Legacy ``nightly`` prefixes are accepted and remapped to ``testing``.
 """
 
 from __future__ import annotations
@@ -21,7 +23,11 @@ import urllib.request
 from pathlib import Path
 from urllib.parse import quote
 
-KEEP_TRACKS = frozenset({"release", "nightly"})
+KEEP_TRACKS = frozenset({"release", "testing", "beta"})
+TRACK_ALIASES = {
+    "nightly": "testing",
+    "preview": "beta",
+}
 
 # Match scripts/ci/github-draft-release-upload-assets.sh skip_noise.
 _SKIP_BASENAME_EXACT = frozenset(
@@ -69,6 +75,7 @@ def parse_track_version(prefix: str) -> tuple[str, str] | None:
     if len(parts) != 2:
         return None
     track, version = parts
+    track = TRACK_ALIASES.get(track, track)
     if track not in KEEP_TRACKS or not version or "/" in version:
         return None
     return track, version

@@ -132,7 +132,6 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 
 
 def register_app_info_routes(routes, app):
-
     @routes.get("/api/v1/app/sessions")
     async def app_sessions(_request):
         return web.json_response(app.get_active_sessions_payload())
@@ -516,6 +515,10 @@ def register_app_info_routes(routes, app):
                         "changelog_seen_version",
                         "0.0.0",
                     ),
+                    "channel_prompt_seen": _safe_config_get(
+                        "channel_prompt_seen",
+                        "",
+                    ),
                     "migration": dict(app.migration_context),
                 },
             },
@@ -648,6 +651,21 @@ def register_app_info_routes(routes, app):
         return web.json_response(
             {"message": f"Changelog version {version} marked as seen"},
         )
+
+    @routes.post("/api/v1/app/channel-prompt/seen")
+    async def app_channel_prompt_seen(request):
+        try:
+            data = await request.json()
+        except Exception:
+            return web.json_response({"error": "Invalid JSON"}, status=400)
+        key = data.get("key") if isinstance(data, dict) else None
+        if not key or not isinstance(key, str) or not key.strip():
+            return web.json_response({"error": "key required"}, status=400)
+        seen_key = key.strip()
+        if len(seen_key) > 200:
+            return web.json_response({"error": "key too long"}, status=400)
+        app.config.set("channel_prompt_seen", seen_key)
+        return web.json_response({"message": "Channel prompt marked as seen"})
 
     # shutdown app
 

@@ -352,7 +352,7 @@
                                 <div v-if="appInfo?.version" class="shrink-0 border-t border-sem-border bg-sem-canvas">
                                     <RouterLink
                                         :to="{ name: 'about' }"
-                                        class="flex items-center py-2 text-[10px] font-mono text-gray-500 transition-colors hover:text-gray-700 text-sem-fg-muted dark:hover:text-zinc-300"
+                                        class="flex items-center gap-2 py-2 text-[10px] font-mono text-gray-500 transition-colors hover:text-gray-700 text-sem-fg-muted dark:hover:text-zinc-300"
                                         :class="isSidebarCollapsed ? 'justify-center px-0' : 'justify-start px-3'"
                                         data-testid="sidebar-app-version"
                                         :title="sidebarVersionTitle"
@@ -362,7 +362,17 @@
                                             icon-name="information-outline"
                                             class="size-4"
                                         />
-                                        <span v-else>{{ sidebarVersionLabel }}</span>
+                                        <template v-else>
+                                            <span>{{ sidebarVersionLabel }}</span>
+                                            <span
+                                                v-if="sidebarChannelLabel"
+                                                class="inline-flex h-4 items-center rounded-xs px-1.5 text-[9px] font-black uppercase tracking-tighter"
+                                                :class="sidebarChannelBadgeClass"
+                                                data-testid="sidebar-channel-badge"
+                                            >
+                                                {{ sidebarChannelLabel }}
+                                            </span>
+                                        </template>
                                     </RouterLink>
                                 </div>
                             </div>
@@ -418,6 +428,7 @@
         <CommandPalette ref="commandPalette" />
         <IntegrityWarningModal />
         <ChangelogModal ref="changelogModal" :app-version="appInfo?.version" />
+        <ChannelPromptModal ref="channelPromptModal" />
         <TutorialModal ref="tutorialModal" />
         <AndroidStorageChoicePrompt
             ref="androidStorageUpgradePrompt"
@@ -517,7 +528,14 @@ import CallOverlay from "./call/CallOverlay.vue";
 import CommandPalette from "./CommandPalette.vue";
 import IntegrityWarningModal from "./IntegrityWarningModal.vue";
 import ChangelogModal from "./ChangelogModal.vue";
+import ChannelPromptModal from "./ChannelPromptModal.vue";
 import TutorialModal from "./TutorialModal.vue";
+import {
+    channelBadgeClass,
+    channelLabelKey,
+    normalizeReleaseChannel,
+    shouldShowChannelPrompt,
+} from "../js/releaseChannel.js";
 import AndroidStorageChoicePrompt from "./AndroidStorageChoicePrompt.vue";
 import PostInstallPromptHost from "./PostInstallPromptHost.vue";
 import AppShellBanners from "./layout/AppShellBanners.vue";
@@ -591,6 +609,7 @@ export default {
         CommandPalette,
         IntegrityWarningModal,
         ChangelogModal,
+        ChannelPromptModal,
         TutorialModal,
         AndroidStorageChoicePrompt,
         PostInstallPromptHost,
@@ -716,8 +735,25 @@ export default {
             }
             return label;
         },
+        sidebarChannel() {
+            return normalizeReleaseChannel(this.appInfo?.build_channel);
+        },
+        sidebarChannelLabel() {
+            if (!this.appInfo?.version) {
+                return "";
+            }
+            return this.$t(channelLabelKey(this.sidebarChannel));
+        },
+        sidebarChannelBadgeClass() {
+            return channelBadgeClass(this.sidebarChannel);
+        },
         sidebarVersionTitle() {
-            return this.sidebarVersionLabel;
+            const base = this.sidebarVersionLabel;
+            const channel = this.sidebarChannelLabel;
+            if (base && channel) {
+                return `${base} (${channel})`;
+            }
+            return base;
         },
         unreadConversationsCount() {
             return GlobalState.unreadConversationsCount;
@@ -1162,6 +1198,7 @@ export default {
             GlobalEmitter.on("show-changelog", this.onShowChangelogShell);
             GlobalEmitter.on("show-tutorial", this.onShowTutorialShell);
             GlobalEmitter.on("tutorial-finished", this.onTutorialFinishedShell);
+            GlobalEmitter.on("changelog-closed", this.onChangelogClosedShell);
             GlobalEmitter.on("notifications-changed", this.updateUnreadConversationsCount);
 
             this.getAppInfo();
@@ -1273,6 +1310,7 @@ export default {
             GlobalEmitter.off("show-changelog", this.onShowChangelogShell);
             GlobalEmitter.off("show-tutorial", this.onShowTutorialShell);
             GlobalEmitter.off("tutorial-finished", this.onTutorialFinishedShell);
+            GlobalEmitter.off("changelog-closed", this.onChangelogClosedShell);
             GlobalEmitter.off("notifications-changed", this.updateUnreadConversationsCount);
             this.clearWsShellUiTimers();
             this.wsDisconnected = false;
@@ -1674,6 +1712,9 @@ export default {
         onTutorialFinishedShell() {
             this.skipChangelogAfterTutorial = true;
         },
+        onChangelogClosedShell() {
+            this.maybeShowChannelPrompt();
+        },
         maybeShowAndroidStorageUpgrade() {
             const prompt = this.$refs.androidStorageUpgradePrompt;
             if (!prompt || typeof prompt.showUpgrade !== "function") {
@@ -2002,12 +2043,24 @@ export default {
                     ) {
                         // show changelog if version changed and not silenced forever
                         this.$refs.changelogModal.show();
+                    } else if (this.maybeShowChannelPrompt()) {
+                        // Testing/Beta one-time prompt after changelog
                     }
                 }
             } catch (e) {
                 // do nothing if failed to load app info
                 console.log(e);
             }
+        },
+        maybeShowChannelPrompt() {
+            if (!shouldShowChannelPrompt(this.appInfo)) {
+                return false;
+            }
+            const modal = this.$refs.channelPromptModal;
+            if (!modal || typeof modal.show !== "function") {
+                return false;
+            }
+            return modal.show(this.appInfo) === true;
         },
         async getConfig() {
             try {
