@@ -10,7 +10,7 @@ import { registerTool, unregisterTool } from "../registries/toolsRegistry.js";
 import { onWsEvent, offWsEvent } from "../registries/wsEventRegistry.js";
 import ToastUtils from "../ToastUtils.js";
 import { getThemeSnapshot } from "../../theme/themeEngine.js";
-import { GlobalState } from "../GlobalState.js";
+import GlobalState from "../GlobalState.js";
 
 /** @typedef {import('./pluginManifest.js').PluginManifest} PluginManifest */
 

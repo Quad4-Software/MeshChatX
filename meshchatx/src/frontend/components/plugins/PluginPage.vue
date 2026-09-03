@@ -19,7 +19,7 @@
 <script>
 import PluginSlotRenderer from "./PluginSlotRenderer.vue";
 import { pluginHost } from "../../js/plugins/PluginHost.js";
-import { GlobalState } from "../../js/GlobalState.js";
+import GlobalState from "../../js/GlobalState.js";
 import { resolveEffectiveTheme, shellCanvasBackgroundStyle } from "../../theme/themeEngine.js";
 
 export default {
