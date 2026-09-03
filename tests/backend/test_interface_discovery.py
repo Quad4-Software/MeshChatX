@@ -5,7 +5,7 @@ import random
 import shutil
 import string
 import tempfile
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import RNS
@@ -86,6 +86,7 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
             storage_dir=temp_dir,
             reticulum_config_dir=temp_dir,
         )
+        app_instance.reload_reticulum = AsyncMock(return_value=True)
         app_instance.current_context.config.default_bootstrap_only.set(True)
 
         get_handler = await find_route_handler(
@@ -236,6 +237,7 @@ async def test_discovery_patch_rejects_zero_autoconnect_as_unset(temp_dir):
             storage_dir=str(temp_dir),
             reticulum_config_dir=str(temp_dir),
         )
+        app.reload_reticulum = AsyncMock(return_value=True)
 
         patch_handler = await find_route_handler(
             app,
@@ -365,6 +367,7 @@ async def test_discovery_patch_sanitizes_whitelist_blacklist_values(temp_dir):
             storage_dir=temp_dir,
             reticulum_config_dir=temp_dir,
         )
+        app_instance.reload_reticulum = AsyncMock(return_value=True)
 
         patch_handler = await find_route_handler(
             app_instance,
