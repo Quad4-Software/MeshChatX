@@ -2,7 +2,7 @@
 
 How to build MeshChatX offline, package desktop artifacts, and produce Android APKs. For day-to-day install and CLI flags, see **Installation and setup**.
 
-Tagged releases build Linux wheel/AppImage/deb/rpm, Windows, macOS, Flatpak, and Android APKs (when the tag is on dev or master) in [build-release.yml](../../.github/workflows/build-release.yml). The container image is [docker.yml](../../.github/workflows/docker.yml). Branch and PR Android CI is [android-build.yml](../../.github/workflows/android-build.yml). Linux x64 and arm64 AppImage and DEB are built on GitHub. RPM is uploaded when the job produces one.
+Tagged releases build Linux wheel/AppImage/deb/rpm, Windows, macOS, Flatpak, and Android APKs (when the tag is on dev or master) in [build-release.yml](../../.github/workflows/build-release.yml). Flatpak OSTree is published to `https://cdn.meshchatx.com/flatpak/` in that workflow. The container image is [docker.yml](../../.github/workflows/docker.yml). Branch and PR Android CI is [android-build.yml](../../.github/workflows/android-build.yml). Linux x64 and arm64 AppImage and DEB are built on GitHub. RPM is uploaded when the job produces one.
 
 ## Offline builds
 

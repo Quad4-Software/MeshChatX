@@ -87,6 +87,8 @@ Before a Testing or Beta cut, edit release/channel_prompt.json (focus_areas, not
 4. Review the Stable **draft** GitHub release (assets, SLSA, cosign), then publish. Immutable releases cannot gain assets after publish.
 5. Rollback: publish a new Stable from a known-good prior SHA. Do not rewrite a published release.
 6. Users see the channel badge in the sidebar and About. Testing/Beta also get a one-time prompt.
+7. Flatpak: the tag's `flatpak-ostree` job publishes to `https://cdn.meshchatx.com/flatpak/` on branch `testing`, `beta`, or `stable`. Keep that OSTree tree under `flatpak/` only. After the first good CDN publish, disable GitHub Pages if it still hosts the old Flatpak tree.
+8. Bunny pull zone (`cdn.meshchatx.com`): long cache on `/flatpak/repo/objects/*` and `/deltas/*`. No cache or must-revalidate on `summary*`, `refs`, `config`, and `*.flatpakref` / `*.flatpakrepo`.
 
 Hard rule for CI speed: cache toolchains and downloads only. Tagged release binaries must be built inside that tag's single build-release run_id. Never attach artifacts from another run.
 

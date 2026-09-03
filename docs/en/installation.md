@@ -21,6 +21,7 @@ MeshChatX can be installed in several ways. All release artifacts that ship the 
 | PyPI (reticulum-meshchatx) | Yes               | Headless install without building the UI |
 | Release wheel              | Yes               | Same as PyPI from a GitHub artifact      |
 | Linux AppImage             | Yes               | Portable desktop on x64 or arm64         |
+| Flatpak                    | Yes               | Desktop from cdn.meshchatx.com           |
 | Debian .deb                | Yes               | Debian and Ubuntu systems                |
 | RPM package                | Yes               | Fedora, RHEL, openSUSE style systems     |
 | Electron desktop           | Yes               | Integrated desktop with bundled backend  |
@@ -182,6 +183,16 @@ sudo rpm -Uvh ./ReticulumMeshChatX-v*-linux-*.rpm
 ```
 
 Download the .rpm only when the release includes one. CI uploads RPM when the packaging job produces it.
+
+**Flatpak**
+
+```bash
+flatpak install --from https://cdn.meshchatx.com/flatpak/meshchatx-stable.flatpakref
+flatpak run com.quad4.meshchatx
+flatpak update
+```
+
+Swap in `meshchatx-beta.flatpakref` or `meshchatx-testing.flatpakref` for those channels. If a leftover GitHub Pages remote is still named `meshchatx`, run `flatpak remote-delete meshchatx` first.
 
 ## Linux desktop emoji fonts
 
