@@ -25,6 +25,10 @@
             "path": "/api/v1/app/changelog/seen"
         },
         {
+            "method": "POST",
+            "path": "/api/v1/app/channel-prompt/seen"
+        },
+        {
             "method": "GET",
             "path": "/api/v1/app/info"
         },
@@ -119,6 +123,22 @@
         {
             "method": "PATCH",
             "path": "/api/v1/bots/update"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/bug-reports/issues"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/bug-reports/issues/{fingerprint}"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/bug-reports/issues/{fingerprint}/status"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/bug-reports/local"
         },
         {
             "method": "GET",

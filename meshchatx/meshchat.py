@@ -3069,6 +3069,11 @@ class ReticulumMeshChat:
             self.running = True
             # setup_identity initializes context if needed and sets it as current
             self.setup_identity(new_identity)
+            try:
+                if getattr(self, "bug_report_manager", None) is not None:
+                    self.bug_report_manager.on_identity_switch()
+            except Exception:
+                pass
 
             # 5. broadcast update to clients
             await self.websocket_broadcast(
@@ -11559,6 +11564,7 @@ def main():
 
     # store recovery on app for wiring with identity context
     reticulum_meshchat._crash_recovery = recovery
+    recovery.app = reticulum_meshchat
 
     # update recovery with known paths (database_path may be unset until identity setup)
     recovery.update_paths(

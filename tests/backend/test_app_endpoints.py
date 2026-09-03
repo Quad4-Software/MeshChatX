@@ -91,6 +91,8 @@ async def test_app_info_extended(mock_rns_minimal, temp_dir):
         assert "git_commit_short" in data["app_info"]
         assert "is_dev_build" in data["app_info"]
         assert "build_channel" in data["app_info"]
+        assert "channel_prompt" in data["app_info"]
+        assert "channel_prompt_seen" in data["app_info"]
 
 
 @pytest.mark.asyncio

@@ -201,6 +201,7 @@ class ConfigManager:
         self.auth_password_hash = self.StringConfig(self, "auth_password_hash", None)
         self.auth_session_secret = self.StringConfig(self, "auth_session_secret", None)
         self.privacy_mode_enabled = self.BoolConfig(self, "privacy_mode_enabled", False)
+        self.bug_capture_enabled = self.BoolConfig(self, "bug_capture_enabled", True)
         self.multi_session_warning_enabled = self.BoolConfig(
             self,
             "multi_session_warning_enabled",

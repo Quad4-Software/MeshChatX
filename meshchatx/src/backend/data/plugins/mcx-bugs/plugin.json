@@ -1,9 +1,9 @@
 {
     "id": "com.meshchatx.mcx-bugs",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "apiVersion": 1,
     "name": "Bug Reports",
-    "description": "Send redacted debug logs to an mcx-bugs-v1 collector, or run a collector yourself.",
+    "description": "Local issue tracker with opt-in redacted mesh send over mcx-bugs-v1.",
     "frontend": {
         "entry": "frontend/main.js",
         "type": "js"
@@ -15,6 +15,9 @@
     "i18n": {
         "directory": "locales",
         "defaultLocale": "en"
+    },
+    "ui": {
+        "widgets": ["IssueStackView", "HashBadge"]
     },
     "contributes": {
         "navItems": [
@@ -49,7 +52,14 @@
             "bugReport.startCollector",
             "bugReport.stopCollector",
             "bugReport.announce",
-            "bugReport.setCollectorName"
+            "bugReport.setCollectorName",
+            "bugReport.listIssues",
+            "bugReport.getIssue",
+            "bugReport.recordLocal",
+            "bugReport.setIssueStatus",
+            "bugReport.listPendingSends",
+            "bugReport.enqueueSend",
+            "bugReport.cancelPendingSend"
         ],
         "storage": "isolated",
         "network": "none"
