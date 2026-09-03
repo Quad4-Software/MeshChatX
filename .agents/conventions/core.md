@@ -5,8 +5,10 @@
 - Prefer `task` targets (`format`, `lint`, `test:quick`, `test:backend`, `test:frontend`).
 - Commit messages on GitHub: `.agents/conventions/commits.md`. Run `task hooks:install` once per clone.
 - Minimal diffs. Match nearby style. Keep SPDX headers on new project files (`0BSD` unless file already differs).
-- No emojis in repo text. No TODO/FIXME comment noise.
+- No emojis in repo text or agent replies. No emoji arrows or decorative unicode arrows at all.
+- No TODO/FIXME comment noise.
 - No emdashes or semicolons in comments or docs you write.
+- Prefer fenced code blocks over inline backticks for commands, paths, and snippets. Short names can stay plain words or quoted identifiers.
 - No backticks in code comments. Prefer plain words or quoted identifiers.
 - Do not commit/push unless asked.
 - User-visible UI strings: i18n keys. Action feedback: `ToastUtils`.
