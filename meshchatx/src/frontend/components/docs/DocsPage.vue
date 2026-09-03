@@ -15,7 +15,7 @@
                 <!-- Tabs -->
                 <div class="flex bg-sem-surface-muted p-0.5 rounded-lg shrink-0">
                     <button
-                        class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all"
+                        class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center gap-1.5"
                         :class="
                             activeTab === 'meshchatx'
                                 ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
@@ -23,10 +23,11 @@
                         "
                         @click="activeTab = 'meshchatx'"
                     >
+                        <img :src="meshchatxLogoUrl" alt="" class="w-3.5 h-3.5 object-contain shrink-0" />
                         {{ $t("docs.tab_meshchatx") }}
                     </button>
                     <button
-                        class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all"
+                        class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center gap-1.5"
                         :class="
                             activeTab === 'reticulum'
                                 ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
@@ -34,6 +35,7 @@
                         "
                         @click="activeTab = 'reticulum'"
                     >
+                        <img :src="reticulumLogoUrl" alt="" class="w-3.5 h-3.5 object-contain shrink-0" />
                         {{ $t("docs.tab_reticulum") }}
                     </button>
                 </div>
@@ -235,7 +237,7 @@
                 <!-- Tabs -->
                 <div class="flex bg-sem-surface-muted p-0.5 rounded-lg w-full md:w-auto">
                     <button
-                        class="flex-1 md:flex-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all"
+                        class="flex-1 md:flex-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1.5"
                         :class="
                             activeTab === 'meshchatx'
                                 ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
@@ -243,10 +245,11 @@
                         "
                         @click="activeTab = 'meshchatx'"
                     >
+                        <img :src="meshchatxLogoUrl" alt="" class="w-3.5 h-3.5 object-contain shrink-0" />
                         {{ $t("docs.tab_meshchatx") }}
                     </button>
                     <button
-                        class="flex-1 md:flex-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all"
+                        class="flex-1 md:flex-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1.5"
                         :class="
                             activeTab === 'reticulum'
                                 ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
@@ -254,6 +257,7 @@
                         "
                         @click="activeTab = 'reticulum'"
                     >
+                        <img :src="reticulumLogoUrl" alt="" class="w-3.5 h-3.5 object-contain shrink-0" />
                         {{ $t("docs.tab_reticulum") }}
                     </button>
                 </div>
@@ -653,6 +657,8 @@ export default {
     },
     data() {
         return {
+            meshchatxLogoUrl: "/assets/images/logo.png",
+            reticulumLogoUrl: "/assets/images/reticulum_logo_512.png",
             status: {
                 status: "idle",
                 progress: 0,

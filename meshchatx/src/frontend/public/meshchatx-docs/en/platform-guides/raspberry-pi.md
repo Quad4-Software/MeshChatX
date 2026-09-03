@@ -19,18 +19,18 @@ bash scripts/rpi/install_meshchatx.sh
 
 The installer guides you through:
 
-- Optional `espeak-ng` install (tries apt/dnf/pacman)
-- Install method (`pipx` or `venv + pip`)
+- Optional espeak-ng install (tries apt/dnf/pacman)
+- Install method (pipx or venv + pip)
 - Wheel choice (latest stable, latest pre-release, or a custom URL)
-- Optional **cosign** attestation: if a `*.whl.cosign.bundle` is published
-  next to the wheel, you can verify it. The script uses `cosign` on `PATH` if
-  present, or downloads a **checksum-verified** official Linux binary to `/tmp`
+- Optional **cosign** attestation: if a *.whl.cosign.bundle is published
+  next to the wheel, you can verify it. The script uses cosign on PATH if
+  present, or downloads a **checksum-verified** official Linux binary to /tmp
   (the Sigstore bundle format is not reimplemented in shell, so you still use the
-  real `cosign` to verify, without installing a distro package)
+  real cosign to verify, without installing a distro package)
 - Storage and Reticulum directories
 - Bind host and port (with availability check)
 - HTTPS on/off (default on)
-- Service mode (`system`, `user`, or `none`)
+- Service mode (system, user, or none)
 - Service startup validation via the HTTP status endpoint
 
 If startup validation fails, it prints recent logs and stops the service to avoid
@@ -51,7 +51,7 @@ pipx ensurepath
 source ~/.profile
 ```
 
-If `pipx` is not available in your distro package repo, install it with:
+If pipx is not available in your distro package repo, install it with:
 
 ```bash
 python3 -m pip install --user pipx
@@ -74,7 +74,7 @@ Direct example (v4.8.6):
 pipx install "https://github.com/Quad4-Software/MeshChatX/releases/download/v4.8.6/reticulum_meshchatx-4.8.6-py3-none-any.whl"
 ```
 
-`py3-none-any` wheels are architecture-independent, so the same wheel artifact
+py3-none-any wheels are architecture-independent, so the same wheel artifact
 works on Raspberry Pi ARM and x86_64 Linux systems.
 
 Upgrade example:
@@ -116,17 +116,17 @@ http://<pi-ip>:8000
 
 ## 6) Configure a systemd Service
 
-`systemd` keeps MeshChatX running in the background and starts it automatically
+systemd keeps MeshChatX running in the background and starts it automatically
 on boot.
 
 You have two service styles:
 
-- System service (`/etc/systemd/system/...`) for always-on host services.
-- User service (`~/.config/systemd/user/...`) for per-user sessions.
+- System service (/etc/systemd/system/...) for always-on host services.
+- User service (~/.config/systemd/user/...) for per-user sessions.
 
 ### Option A: System service (recommended for Pi node/server use)
 
-Create `/etc/systemd/system/meshchatx.service`:
+Create /etc/systemd/system/meshchatx.service:
 
 ```ini
 [Unit]
@@ -162,7 +162,7 @@ Restart=always
 RestartSec=3
 ```
 
-Update `User`, `Group`, and paths if your install location is different.
+Update User, Group, and paths if your install location is different.
 
 Enable and start:
 
@@ -176,7 +176,7 @@ sudo systemctl status meshchatx.service
 
 ### Option B: User service (no sudo system unit)
 
-Create `~/.config/systemd/user/meshchatx.service`:
+Create ~/.config/systemd/user/meshchatx.service:
 
 ```ini
 [Unit]
@@ -227,7 +227,7 @@ systemctl show meshchatx.service -p ExecStart -p User -p Group
 
 ## Reset Password
 
-If you forget the web UI password and have SSH access to the Pi, reset it with the `--reset-password` flag:
+If you forget the web UI password and have SSH access to the Pi, reset it with the --reset-password flag:
 
 ```bash
 meshchatx --reset-password --headless --host 0.0.0.0 --port 8000
@@ -244,6 +244,6 @@ This clears the stored password hash on startup. Open the web UI and you will se
 ## Notes
 
 - Reticulum configuration and identity data are stored in the service user's home
-  directory by default (for example `~/.reticulum` and MeshChatX storage paths).
+  directory by default (for example ~/.reticulum and MeshChatX storage paths).
 - If you attach RNode hardware by USB, make sure the service user has permission
-  to access serial devices (`dialout` group on Debian-based systems).
+  to access serial devices (dialout group on Debian-based systems).

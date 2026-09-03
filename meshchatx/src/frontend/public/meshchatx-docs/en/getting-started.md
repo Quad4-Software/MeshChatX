@@ -17,7 +17,7 @@ When you open MeshChatX you work inside a single-page web interface. The sidebar
 Typical first-day workflow:
 
 1. Install MeshChatX using a method that fits your device. See **Installation and setup**.
-2. Open the web UI. The default address is `https://127.0.0.1:8000` when HTTPS is enabled.
+2. Open the web UI. The default address is https://127.0.0.1:8000 when HTTPS is enabled.
 3. Go to **Interfaces** and add a way to reach the mesh. A TCP client, community interface suggestion, or LoRa RNode are common starting points.
 4. Wait for paths and announces to populate. Peers appear in the announces list and in feature-specific views.
 5. Open **Messages** to start an LXMF conversation, or **Nomad Network** to browse a page node.
@@ -50,29 +50,29 @@ In a regular browser (including headless or LAN installs), MeshChatX may registe
 
 | Area               | Route                 | Purpose                                               |
 | ------------------ | --------------------- | ----------------------------------------------------- |
-| Messages           | `/messages`           | LXMF direct messaging, folders, attachments           |
-| Audio calls        | `/call`               | LXST voice calls and voicemail                        |
-| Contacts           | `/contacts`           | Telephone contacts and call-related entries           |
-| Relay chat         | `/relay-chat`         | RRC hubs and rooms (when enabled in settings)         |
-| Nomad Network      | `/nomadnetwork`       | Browse remote NomadNet pages and files                |
-| Map                | `/map`                | OpenLayers map, offline tiles, telemetry              |
-| Network visualiser | `/network-visualiser` | Graph view of mesh topology (sidebar Explore)         |
-| Tools              | `/tools`              | Ping, path tools, RNCP, bots, documentation, and more |
-| Settings           | `/settings`           | Theme, language, LXMF, telephone, security            |
-| Archives           | `/archives`           | Versioned snapshots of Nomad pages (sidebar More)     |
-| Interfaces         | `/interfaces`         | Add and manage Reticulum interfaces (sidebar More)    |
-| Blocked            | `/blocked`            | Blocked destinations (sidebar More)                   |
-| Identities         | `/identities`         | Create, import, or switch identities (sidebar More)   |
-| About              | `/about`              | Version, health, backups (sidebar More or footer)     |
-| Documentation      | `/documentation`      | MeshChatX guides and the Reticulum manual             |
+| Messages           | /messages           | LXMF direct messaging, folders, attachments           |
+| Audio calls        | /call               | LXST voice calls and voicemail                        |
+| Contacts           | /contacts           | Telephone contacts and call-related entries           |
+| Relay chat         | /relay-chat         | RRC hubs and rooms (when enabled in settings)         |
+| Nomad Network      | /nomadnetwork       | Browse remote NomadNet pages and files                |
+| Map                | /map                | OpenLayers map, offline tiles, telemetry              |
+| Network visualiser | /network-visualiser | Graph view of mesh topology (sidebar Explore)         |
+| Tools              | /tools              | Ping, path tools, RNCP, bots, documentation, and more |
+| Settings           | /settings           | Theme, language, LXMF, telephone, security            |
+| Archives           | /archives           | Versioned snapshots of Nomad pages (sidebar More)     |
+| Interfaces         | /interfaces         | Add and manage Reticulum interfaces (sidebar More)    |
+| Blocked            | /blocked            | Blocked destinations (sidebar More)                   |
+| Identities         | /identities         | Create, import, or switch identities (sidebar More)   |
+| About              | /about              | Version, health, backups (sidebar More or footer)     |
+| Documentation      | /documentation      | MeshChatX guides and the Reticulum manual             |
 
-Relay chat appears only when `rrc_enabled` is turned on in settings. When enabled, the Relay chat icon can show a red mention count. Messages shows unread conversation count. Calls shows unread missed-call count.
+Relay chat appears only when rrc_enabled is turned on in settings. When enabled, the Relay chat icon can show a red mention count. Messages shows unread conversation count. Calls shows unread missed-call count.
 
 ## Documentation in the app
 
 The **Documentation** page has two tabs.
 
-**MeshChatX** shows the guides in this bundle. They are markdown files synced from the `docs/` directory in the repository and rendered offline inside the app.
+**MeshChatX** shows the guides in this bundle. They are markdown files synced from the docs/ directory in the repository and rendered offline inside the app.
 
 **Reticulum** shows the upstream Reticulum manual as pre-built HTML. It is bundled at build time. You can upload a newer manual ZIP if you need a different version.
 
@@ -82,20 +82,20 @@ Use the search bar to query both sets at once. MeshChatX guide text is currently
 
 | Data                  | Typical path (CLI default)                                                                     |
 | --------------------- | ---------------------------------------------------------------------------------------------- |
-| MeshChatX app data    | `./storage` (or `--storage-dir` / `MESHCHAT_STORAGE_DIR`)                                      |
-| Reticulum config      | `~/.reticulum` (or `--reticulum-config-dir` / `MESHCHAT_RETICULUM_CONFIG_DIR`)                 |
-| Portable bundle       | `<data-dir>/storage` and `<data-dir>/.reticulum` when using `--data-dir` / `MESHCHAT_DATA_DIR` |
-| Desktop Electron data | `~/.reticulum-meshchatx` and `~/.reticulum` unless overridden at launch                        |
+| MeshChatX app data    | ./storage (or --storage-dir / MESHCHAT_STORAGE_DIR)                                      |
+| Reticulum config      | ~/.reticulum (or --reticulum-config-dir / MESHCHAT_RETICULUM_CONFIG_DIR)                 |
+| Portable bundle       | `<data-dir>/storage` and `<data-dir>/.reticulum` when using --data-dir / MESHCHAT_DATA_DIR |
+| Desktop Electron data | ~/.reticulum-meshchatx and ~/.reticulum unless overridden at launch                        |
 | Per-identity database | `<storage>/identities/<identity_hash>/database.db`                                             |
-| Docker volume         | `meshchatx-config` mounted at `/config`                                                        |
+| Docker volume         | meshchatx-config mounted at /config                                                        |
 
-Legacy upstream data may still exist under `~/.reticulum-meshchat/`. Migration tooling can move you to the MeshChatX layout.
+Legacy upstream data may still exist under ~/.reticulum-meshchat/. Migration tooling can move you to the MeshChatX layout.
 
 ## Where to go next
 
 - **Installation and setup** covers Docker, wheels, desktop packages, and CLI flags.
-- **Building from source and packaging** covers offline builds, `Dockerfile.build`, and Android APKs.
-- **Development** covers `task`/`make`, version sync, and adding locales.
+- **Building from source and packaging** covers offline builds, Dockerfile.build, and Android APKs.
+- **Development** covers task/make, version sync, and adding locales.
 - **Architecture and design** explains backend managers, identity scoping, and the API model.
 - **LXMF messaging** and **Audio calls** describe day-to-day communication features.
 - **Identities, privacy, and security** covers backups and corruption recovery.
