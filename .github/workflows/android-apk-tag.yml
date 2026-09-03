@@ -7,6 +7,7 @@
 #   actions/setup-java@v4.7.1          c5195efecf7bdfc987ee8bae7a71cb8b11521c00
 #   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
 #   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
+#   actions/cache@v4.2.0               1bd1e32a3bdc45362d1e726936510720a7c30a57
 
 name: Android APK (tag)
 
@@ -121,6 +122,22 @@ jobs:
               run: |
                   sudo apt-get update
                   sudo apt-get install -y build-essential cmake pkg-config patchelf
+
+            - name: Cache Cargo registry
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: |
+                      ~/.cargo/registry
+                      ~/.cargo/git
+                  key: android-cargo-${{ hashFiles('uv.lock') }}-${{ env.CHAQUOPY_REF }}
+                  restore-keys: |
+                      android-cargo-
+
+            - name: Cache Chaquopy wheel workdir
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: .local/chaquopy-build-wheel
+                  key: chaquopy-work-${{ hashFiles('uv.lock', 'android/**/*.gradle', 'scripts/build-android-wheels-local.sh') }}-${{ env.CHAQUOPY_REF }}
 
             - name: Install Rust toolchain
               run: |
