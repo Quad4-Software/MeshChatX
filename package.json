@@ -103,7 +103,7 @@
         "globals": "^17.11.0",
         "jsdom": "^29.1.1",
         "knip": "^6.33.0",
-        "lighthouse": "^12.8.2",
+        "lighthouse": "^13.4.1",
         "micron-parser": "github:RFnexus/micron-parser-js#33feb1054c8b2cb3f5f05abbb8903360d3f0c098",
         "prettier": "^3.9.6",
         "tailwindcss": "^4.3.3",
