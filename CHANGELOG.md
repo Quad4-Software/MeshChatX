@@ -6,35 +6,28 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- **Plugin UI host**: Declarative slots gain tabs, select, number, progress, separator, table, code, empty, image, reviewed host widgets, and opt-in sandboxed HTML frames. Descriptors are validated (depth, node count, string size). Enabled plugins register `/plugins/:id` routes dynamically. Workers get `callManager`, `clipboardWrite`, `getTheme`, and `onThemeChange`.
-- **Bug Reports 2.0**: Local issue capture with fingerprint grouping, durable identity-scoped inbox, inbound redaction, collector rate limits, pending mesh send queue, and a rebuilt Issues / Send / Collect UI. Mesh send stays explicit and redacted on `mcx-bugs-v1`. Fatal errors and Electron crash screens can open or save into Bug Reports.
-- **Release channels**: Testing, Beta, and Stable. Builds bake channel metadata into `/api/v1/app/info`. About and the sidebar show a channel badge. Testing and Beta show a one-time prompt from `release/channel_prompt.json` (bug report steps and optional focus areas).
-- **Release ops**: `Beta Release` and `Promote Release` workflows (CI-green gate), Bunny tracks `testing` / `beta` / `release`, Docker `testing` and `beta` tags, and prerelease retention for Testing/Beta.
-- **WebSocket hardening**: Per-socket rate limits, message checks, optional topic subscribe (all topics by default), config change events, sequence ids on broadcasts, idle disconnect, clearer error replies, Nomad download size caps with chunking, optional binary RNS link frames, and a WebSocket debug endpoint.
-- **Archives**: Search shows short previews and pages of results. Cards can preview Micron, Markdown, and HTML. You can recrawl a page from the viewer. On smaller screens the layout stacks.
-- **Smart Crawler**: Limits how far and how often it crawls (one request per node per day, shallow depth, page caps). Honors # nocrawl and Archives opt-out.
-- **Nomad private tabs**: Purple private tabs (Ctrl+Shift+P). They are not archived, favourited, restored, or shown in the URL or history.
-- **Micron editor publish**: Publish can create a mesh server, start it, upload the current tab, and open it in NomadNet. A stopped server is started first.
+- **Bug Reports**: Capture crashes and issues locally, group duplicates, and send a redacted report over the mesh when you choose. Crash screens can open or save into Bug Reports.
+- **Release channels**: Testing, Beta, and Stable. The sidebar shows which channel you are on. Testing and Beta ask once how to file useful bug reports.
+- **Install options**: Flatpak channels at https://cdn.meshchatx.com/flatpak/ (testing, beta, stable). Docker images with testing and beta tags.
+- **Plugins**: Richer plugin pages (tabs, tables, images, and more). Enabled plugins appear as their own destinations in the app. Plugin pages follow your theme and accent colors.
+- **Archives**: Search shows short previews. Open Micron, Markdown, or HTML previews from a card. Recrawl a page from the viewer. Layout stacks on phones.
+- **Smart Crawler**: Crawls less aggressively (about one request per node per day). Sites can opt out with # nocrawl or Archives settings.
+- **Nomad private tabs**: Ctrl+Shift+P opens a purple private tab that is not archived, favourited, or saved in history.
+- **Micron publish**: Publish can create a mesh server, upload the page, and open it in NomadNet in one step.
 
 ### Fixed
 
-- **Messages**: Coming back to Messages with the same chat still open marks it read and clears badges and desktop notifications.
-- **NomadNet**: Opening a node while the app is still connecting no longer hangs on Loading. Downloads wait for the connection, then fail with a clear error if it never comes up. A hung page no longer freezes the whole Nomad UI.
-- **Desktop app**: Startup and crash screens use your saved theme right away, so dark mode does not flash white.
-- **Map**: Discovered interfaces and telemetry markers update again.
-- **UI**: Dropdowns follow the theme colors.
-- **Docker / logs**: Compose caps container logs at 10 MB with five rotated files. Announce traffic no longer prints to stdout. When a log directory exists, RNS lines go through the rotating logger (set MESHCHAT_RNS_LOG_DEST=stdout for the old console path). Bot and Electron logs rotate under the same size caps.
-- **Nomad crash tab**: IndexedDB opens lazily and soft-fails in opaque sandbox frames, so the console is no longer flooded with SecurityError. Coming back from another window or browser tab no longer shows Page renderer stopped responding. Ping silence while the document is hidden is not treated as a hang. A live ping cannot dismiss a failed or unfinished paint. A busy Micron or WASM render is bounded by the paint deadline, not the ping watchdog.
+- **Messages**: Coming back to an open chat marks it read and clears badges and desktop notifications.
+- **NomadNet**: Opening a node while the app is still connecting no longer sticks on Loading. A stuck page no longer freezes the whole Nomad UI. Switching away and back no longer falsely claims the page renderer stopped.
+- **Desktop app**: Startup and crash screens respect dark mode instead of flashing white.
+- **Map**: Interface and telemetry markers update again.
+- **UI**: Dropdown menus match the theme.
 
 ### Changed
 
-- **Plugin theming**: Plugin slot chrome uses semantic `sem-*` / `--mc-*` tokens so appearance presets and accent overrides apply to plugin pages.
-- **Schema**: Database schema version 57 adds `channel_prompt_seen` config.
-- **CI**: Immutable-safe caches for electron-builder (Flatpak/desktop), UV/venv, Android cargo/Chaquopy workdirs, Flatpak runtimes, Playwright browsers, repository wheels, and Lighthouse reuse of the CI frontend artifact.
-- **WebSocket**: Max frame size is 16 MiB. Large Nomad payloads use chunks. Missing Origin is rejected on non-loopback binds when password auth is off.
-- **Reticulum**: Updated to RNS 1.5.2.
-- **Smart Crawler**: Finished crawls stay marked finished until you refresh. Retries wait longer between attempts. At most two crawls run at once.
-- **Docs**: Short READMEs at the repo root. Longer install and contributor guides live under docs/en/.
+- **Smart Crawler**: Finished crawls stay finished until you refresh. Fewer crawls run at once.
+- **Reticulum**: RNS 1.5.2.
+- **Docs**: Short READMEs at the repo root. Full install and contributor guides under docs/en/.
 
 ## [4.8.5] - 2026-08-21 [released]
 
