@@ -3,10 +3,14 @@
 import { validatePluginManifest } from "./pluginManifest.js";
 import { loadPluginLabelMap, resolvePluginUiString } from "./pluginLabels.js";
 import { setPluginUiLabels, clearPluginUiLabels } from "./pluginUiRegistry.js";
+import { validateUiDescriptor } from "./pluginUiDescriptor.js";
+import { isKnownHostWidget } from "./pluginHostWidgets.js";
 import { registerNavItem, unregisterNavItem } from "../registries/navRegistry.js";
 import { registerTool, unregisterTool } from "../registries/toolsRegistry.js";
 import { onWsEvent, offWsEvent } from "../registries/wsEventRegistry.js";
 import ToastUtils from "../ToastUtils.js";
+import { getThemeSnapshot } from "../../theme/themeEngine.js";
+import { GlobalState } from "../GlobalState.js";
 
 /** @typedef {import('./pluginManifest.js').PluginManifest} PluginManifest */
 
@@ -14,10 +18,49 @@ const FAILURE_REPORT_INTERVAL_MS = 5000;
 /** @type {Map<string, number>} */
 const lastFailureReportAt = new Map();
 
+/**
+ * @param {string} pluginId
+ * @returns {string}
+ */
+export function pluginRouteName(pluginId) {
+    return `plugin-${String(pluginId).replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+}
+
+/**
+ * @param {string} pluginId
+ * @returns {string}
+ */
+export function pluginRoutePath(pluginId) {
+    return `/plugins/${encodeURIComponent(pluginId)}`;
+}
+
 export class PluginHost {
     constructor() {
-        /** @type {Map<string, { worker: Worker, cleanup: Array<() => void>, manifest: PluginManifest, lastDescriptor: object | null, apiClient: ReturnType<import('../apiClient.js').createApiClient> | null }>} */
+        /** @type {Map<string, { worker: Worker, cleanup: Array<() => void>, manifest: PluginManifest, lastDescriptor: object | null, lastUiError: string, apiClient: ReturnType<import('../apiClient.js').createApiClient> | null, allowHtmlFrame: boolean, allowedWidgets: string[], routeName: string | null }>} */
         this.instances = new Map();
+        /** @type {import('vue-router').Router | null} */
+        this.router = null;
+        this._themeListener = null;
+    }
+
+    /**
+     * @param {import('vue-router').Router} router
+     */
+    attachRouter(router) {
+        this.router = router;
+    }
+
+    ensureThemeBridge() {
+        if (this._themeListener || typeof window === "undefined") {
+            return;
+        }
+        this._themeListener = (event) => {
+            const snapshot = event.detail || getThemeSnapshot(GlobalState.config);
+            for (const instance of this.instances.values()) {
+                instance.worker.postMessage({ type: "theme", theme: snapshot });
+            }
+        };
+        window.addEventListener("meshchatx-theme-changed", this._themeListener);
     }
 
     /**
@@ -25,6 +68,7 @@ export class PluginHost {
      * @param {string} [locale]
      */
     async loadEnabledPlugins(apiClient, locale = "en") {
+        this.ensureThemeBridge();
         const response = await apiClient.get("/api/v1/plugins");
         const plugins = response.data?.plugins || [];
         for (const plugin of plugins) {
@@ -49,6 +93,9 @@ export class PluginHost {
         if (!manifest.frontend) {
             return;
         }
+        if (manifest.frontend.type === "wasm") {
+            throw new Error("Plugin frontend.type wasm is not implemented yet");
+        }
         const labels = await loadPluginLabelMap(apiClient, pluginId, locale, manifest);
         setPluginUiLabels(pluginId, labels);
         const assetUrl = `/api/v1/plugins/${encodeURIComponent(pluginId)}/asset/${manifest.frontend.entry}?v=${encodeURIComponent(manifest.version || "1")}`;
@@ -57,6 +104,14 @@ export class PluginHost {
             typeof sourceResponse.data === "string" ? sourceResponse.data : String(sourceResponse.data ?? "");
         const worker = new Worker(new URL("./pluginWorker.js", import.meta.url), { type: "module" });
         const cleanup = [];
+
+        const ui = manifest.ui || {};
+        const declaredWidgets = Array.isArray(ui.widgets) ? ui.widgets.filter((w) => isKnownHostWidget(w)) : [];
+        const allowHtmlFrame = Boolean(
+            manifest.permissions?.ui === "sandboxed-html" ||
+            (Array.isArray(manifest.permissions?.ui) && manifest.permissions.ui.includes("sandboxed-html")) ||
+            manifest.permissions?.["ui:sandboxed-html"] === true
+        );
 
         worker.onmessage = (event) => {
             this.handleWorkerMessage(pluginId, event.data, apiClient);
@@ -71,16 +126,25 @@ export class PluginHost {
             this.unloadPlugin(pluginId);
         };
 
+        const theme = getThemeSnapshot(GlobalState.config);
         worker.postMessage({
             type: "init",
             pluginId,
             permissions: manifest.permissions || {},
             source,
             labels,
+            theme,
+            allowHtmlFrame,
+            allowedWidgets: declaredWidgets,
         });
 
         cleanup.push(...this.registerContributions(pluginId, manifest, labels));
         cleanup.push(() => clearPluginUiLabels(pluginId));
+        const routeName = this.ensurePluginRoute(pluginId);
+        if (routeName) {
+            cleanup.push(() => this.removePluginRoute(pluginId, routeName));
+        }
+
         if ((manifest.permissions?.hooks || []).length > 0) {
             const eventHandler = (payload) => {
                 if (payload?.plugin_id !== pluginId) {
@@ -114,6 +178,16 @@ export class PluginHost {
                         args: message.payload,
                     });
                     result = response.data?.result;
+                } else if (message.kind === "clipboard") {
+                    const text = String(message.payload?.text || "");
+                    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+                        await navigator.clipboard.writeText(text);
+                        result = { ok: true };
+                    } else {
+                        throw new Error("Clipboard unavailable");
+                    }
+                } else if (message.kind === "theme") {
+                    result = getThemeSnapshot(GlobalState.config);
                 }
                 worker.postMessage({ requestId: message.requestId, result });
             } catch (error) {
@@ -132,8 +206,53 @@ export class PluginHost {
             cleanup,
             manifest,
             lastDescriptor: null,
+            lastUiError: "",
             apiClient,
+            allowHtmlFrame,
+            allowedWidgets: declaredWidgets,
+            routeName,
         });
+    }
+
+    /**
+     * @param {string} pluginId
+     * @returns {string | null}
+     */
+    ensurePluginRoute(pluginId) {
+        if (!this.router) {
+            return null;
+        }
+        const name = pluginRouteName(pluginId);
+        if (this.router.hasRoute(name)) {
+            return name;
+        }
+        this.router.addRoute({
+            name,
+            path: pluginRoutePath(pluginId),
+            component: () => import("../../components/plugins/PluginPage.vue"),
+            props: { pluginId },
+        });
+        return name;
+    }
+
+    /**
+     * @param {string} pluginId
+     * @param {string} routeName
+     */
+    removePluginRoute(pluginId, routeName) {
+        if (!this.router) {
+            return;
+        }
+        // Keep bundled Bug Reports route stable for deep links.
+        if (pluginId === "com.meshchatx.mcx-bugs" && routeName === "plugin-mcx-bugs") {
+            return;
+        }
+        if (pluginId === "com.meshchatx.mcx-bugs") {
+            return;
+        }
+        if (this.router.hasRoute(routeName)) {
+            this.router.removeRoute(routeName);
+        }
     }
 
     /**
@@ -161,6 +280,18 @@ export class PluginHost {
 
     getLastDescriptor(pluginId) {
         return this.instances.get(pluginId)?.lastDescriptor ?? null;
+    }
+
+    getLastUiError(pluginId) {
+        return this.instances.get(pluginId)?.lastUiError || "";
+    }
+
+    getPluginUiCaps(pluginId) {
+        const instance = this.instances.get(pluginId);
+        return {
+            allowedWidgets: instance?.allowedWidgets || [],
+            allowHtmlFrame: Boolean(instance?.allowHtmlFrame),
+        };
     }
 
     requestUiRefresh(pluginId) {
@@ -210,12 +341,38 @@ export class PluginHost {
         }
         if (message.type === "ui") {
             const instance = this.instances.get(pluginId);
+            const validated = validateUiDescriptor(message.descriptor, {
+                pluginId,
+                allowHtmlFrame: Boolean(instance?.allowHtmlFrame),
+                allowedWidgets: instance?.allowedWidgets || [],
+            });
+            if (!validated.ok) {
+                if (instance) {
+                    instance.lastUiError = validated.error;
+                }
+                window.dispatchEvent(
+                    new CustomEvent("meshchatx-plugin-ui-error", {
+                        detail: { pluginId, message: validated.error, uiError: true },
+                    })
+                );
+                window.dispatchEvent(
+                    new CustomEvent("meshchatx-plugin-ui", {
+                        detail: {
+                            pluginId,
+                            descriptor: instance?.lastDescriptor || null,
+                            error: validated.error,
+                        },
+                    })
+                );
+                return;
+            }
             if (instance) {
-                instance.lastDescriptor = message.descriptor;
+                instance.lastDescriptor = validated.descriptor;
+                instance.lastUiError = "";
             }
             window.dispatchEvent(
                 new CustomEvent("meshchatx-plugin-ui", {
-                    detail: { pluginId, descriptor: message.descriptor },
+                    detail: { pluginId, descriptor: validated.descriptor, error: "" },
                 })
             );
         }

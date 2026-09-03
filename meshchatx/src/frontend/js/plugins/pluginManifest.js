@@ -42,8 +42,11 @@ export function validatePluginManifest(manifest) {
         if (typeof frontend.entry !== "string" || !frontend.entry.trim()) {
             throw new Error("Plugin frontend.entry is required when frontend is set");
         }
-        if (frontend.type !== "js" && frontend.type !== "wasm") {
-            throw new Error("Plugin frontend.type must be js or wasm");
+        if (frontend.type === "wasm") {
+            throw new Error("Plugin frontend.type wasm is not implemented yet");
+        }
+        if (frontend.type !== "js") {
+            throw new Error("Plugin frontend.type must be js");
         }
     }
     if (record.backend != null) {
@@ -55,9 +58,30 @@ export function validatePluginManifest(manifest) {
             throw new Error("Plugin backend.type must be wasm or python");
         }
     }
+    if (record.ui != null) {
+        const ui = /** @type {Record<string, unknown>} */ (record.ui);
+        if (ui.widgets != null) {
+            if (!Array.isArray(ui.widgets)) {
+                throw new Error("Plugin ui.widgets must be an array");
+            }
+            for (const widget of ui.widgets) {
+                if (typeof widget !== "string" || !widget.trim()) {
+                    throw new Error("Plugin ui.widgets entries must be non-empty strings");
+                }
+            }
+        }
+    }
     const permissions = record.permissions ?? {};
     if (permissions && typeof permissions !== "object") {
         throw new Error("Plugin permissions must be an object");
+    }
+    if (permissions && typeof permissions === "object") {
+        const uiPerm = /** @type {Record<string, unknown>} */ (permissions).ui;
+        if (uiPerm != null && uiPerm !== "sandboxed-html" && uiPerm !== "none") {
+            if (!Array.isArray(uiPerm) || uiPerm.some((v) => v !== "sandboxed-html")) {
+                throw new Error("Plugin permissions.ui must be none, sandboxed-html, or an array of those values");
+            }
+        }
     }
     if (record.network != null && typeof record.network !== "object") {
         throw new Error("Plugin network must be an object");

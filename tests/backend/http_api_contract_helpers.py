@@ -61,7 +61,12 @@ def path_matches_aiohttp_route(route: str, path: str) -> bool:
             j = route.find("}", i)
             if j == -1:
                 return False
-            pattern += "[^/]+"
+            spec = route[i + 1 : j]
+            if ":" in spec:
+                _name, conv = spec.split(":", 1)
+                pattern += conv if conv else "[^/]+"
+            else:
+                pattern += "[^/]+"
             i = j + 1
         else:
             pattern += re.escape(route[i])
