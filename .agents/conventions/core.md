@@ -1,8 +1,10 @@
 # Core conventions
 
-- Read `.agents/overview.md` for layout, commands, and domain traps.
-- Mesh-facing work: read `.agents/conventions/reticulum-zen.md` and run `.agents/skills/reticulum-design-gates/SKILL.md` gates first.
-- Prefer `task` targets (`format`, `lint`, `test:quick`, `test:backend`, `test:frontend`).
+Progressive load: root `AGENTS.md`, then one skill and one surface convention. Full index: `.agents/README.md`.
+
+- Architecture / storage / security / env: `.agents/overview.md` (only when needed).
+- Mesh-facing work: `.agents/conventions/reticulum-zen.md` then `.agents/skills/reticulum-design-gates/SKILL.md`.
+- Prefer Taskfile targets (`format`, `lint`, `test:quick`, `test:backend`, `test:frontend`).
 - Commit messages on GitHub: `.agents/conventions/commits.md`. Run `task hooks:install` once per clone.
 - Minimal diffs. Match nearby style. Keep SPDX headers on new project files (`0BSD` unless file already differs).
 - No emojis in repo text or agent replies. No emoji arrows or decorative unicode arrows at all.
@@ -11,7 +13,7 @@
 - Prefer fenced code blocks over inline backticks for commands, paths, and snippets. Short names can stay plain words or quoted identifiers.
 - No backticks in code comments. Prefer plain words or quoted identifiers.
 - Do not commit/push unless asked.
-- User-visible UI strings: i18n keys. Action feedback: `ToastUtils`.
+- User-visible UI strings: i18n keys. Action feedback: ToastUtils.
 - Do not invent install/run flows when Taskfile already covers them.
 - Do not create markdown docs unless asked (except agent guidance under `.agents/` when requested).
 - Do not generate exploit PoCs, malware, or attack tooling.
