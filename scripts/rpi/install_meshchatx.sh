@@ -108,6 +108,9 @@ repo_base_from_rss() {
 is_prerelease_tag() {
     local t="${1#v}"
     t="${t#V}"
+    if [[ "$t" == nightly-* || "$t" == testing-* || "$t" == beta-* || "$t" == preview-* ]]; then
+        return 0
+    fi
     if [[ "$t" =~ (^|[-_.])(rc|RC|alpha|beta|pre|dev|a[0-9]+|b[0-9]+)([-_.[:digit:]]|$) ]]; then
         return 0
     fi

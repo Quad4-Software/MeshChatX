@@ -31,7 +31,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 56
+    LATEST_VERSION = 57
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -1818,4 +1818,10 @@ class DatabaseSchema:
             self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_archived_pages_dest_path "
                 "ON archived_pages(destination_hash, page_path)",
+            )
+
+        if current_version < 57 and target_version >= 57:
+            self._safe_execute(
+                "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
+                ("channel_prompt_seen", ""),
             )

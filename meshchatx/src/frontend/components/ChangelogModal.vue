@@ -112,6 +112,7 @@
 import AppModal from "./AppModal.vue";
 import LoadingState from "./LoadingState.vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
+import GlobalEmitter from "../js/GlobalEmitter";
 
 export default {
     name: "ChangelogModal",
@@ -206,6 +207,7 @@ export default {
                 await this.markAsSeen();
             }
             this.visible = false;
+            GlobalEmitter.emit("changelog-closed");
         },
         async markAsSeen() {
             if (this.dontShowEver) {

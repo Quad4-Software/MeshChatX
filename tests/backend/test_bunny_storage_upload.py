@@ -34,16 +34,24 @@ def test_workflow_wires_bunny_upload() -> None:
     assert "github-upload-bunny-storage-release-assets.py" in text
     assert "BUNNY_STORAGE_ACCESS_KEY" in text
     assert "BUNNY_STORAGE_BASE_URL" in text
-    assert "release/${GITHUB_REF_NAME}" in text or "track=release" in text
-    assert "nightly" in text
-    assert "!startsWith(github.ref_name, 'preview-')" in text
+    assert "track=release" in text
+    assert "track=testing" in text
+    assert "track=beta" in text
 
 
 def test_parse_track_version(bunny: ModuleType) -> None:
     assert bunny.parse_track_version("release/v1.2.3") == ("release", "v1.2.3")
-    assert bunny.parse_track_version("nightly/nightly-2026.09.02-abc1234") == (
-        "nightly",
+    assert bunny.parse_track_version("testing/nightly-2026.09.02-abc1234") == (
+        "testing",
         "nightly-2026.09.02-abc1234",
+    )
+    assert bunny.parse_track_version("nightly/nightly-2026.09.02-abc1234") == (
+        "testing",
+        "nightly-2026.09.02-abc1234",
+    )
+    assert bunny.parse_track_version("beta/beta-2026.09.02-abc1234") == (
+        "beta",
+        "beta-2026.09.02-abc1234",
     )
     assert bunny.parse_track_version("master/v1.0.0") is None
     assert bunny.parse_track_version("release") is None

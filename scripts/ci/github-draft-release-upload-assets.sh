@@ -26,7 +26,7 @@ if [ -z "${GH_REPO:-}" ] && [ -n "${GITHUB_REPOSITORY:-}" ]; then
 fi
 
 is_auto_prerelease_tag() {
-    [[ "$1" == nightly-* || "$1" == preview-* ]]
+    [[ "$1" == nightly-* || "$1" == testing-* || "$1" == beta-* || "$1" == preview-* ]]
 }
 
 mapfile -d '' -t all < <(
@@ -91,23 +91,18 @@ done
 mapfile -t files < <(find "$STAGE" -type f)
 
 {
-    if [[ "$TAG" == nightly-* ]]; then
-        echo "**Nightly release** - automated daily snapshot from \`dev\`. Not a stable release, use tagged production releases for daily use."
+    if [[ "$TAG" == nightly-* || "$TAG" == testing-* ]]; then
+        echo "**Testing release** - automated snapshot from \`dev\`. Not a stable release. Use tagged production releases for daily use."
         echo
         echo "Commit: \`${GITHUB_SHA:-unknown}\`"
         echo
-    elif [[ "$TAG" == preview-dev-* ]]; then
-        echo "**Preview release (dev)** - automated snapshot from \`dev\`. Not a stable release, use tagged production releases for daily use."
-        echo
-        echo "Commit: \`${GITHUB_SHA:-unknown}\`"
-        echo
-    elif [[ "$TAG" == preview-* ]]; then
-        echo "**Preview release** - automated snapshot from \`master\`. Not a stable release, use tagged production releases for daily use."
+    elif [[ "$TAG" == beta-* || "$TAG" == preview-dev-* || "$TAG" == preview-* ]]; then
+        echo "**Beta release** - pre-stable candidate. Not a stable release. Use tagged production releases for daily use."
         echo
         echo "Commit: \`${GITHUB_SHA:-unknown}\`"
         echo
     else
-        echo "Automated draft release. Review assets and provenance before publishing."
+        echo "Automated Stable draft release. Review assets and provenance before publishing."
         echo
     fi
     echo "## SHA256 Checksums"

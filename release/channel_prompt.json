@@ -1,0 +1,13 @@
+{
+    "bug_report_lxmf": "f489752fbef161c64d65e385a4e9fc74",
+    "bug_report_url": "",
+    "bug_report_steps": [
+        "Send an LXMF message to f489752fbef161c64d65e385a4e9fc74",
+        "Include version, channel, and git commit from About",
+        "Describe steps to reproduce and expected vs actual",
+        "Attach logs and screenshots if needed",
+        "Note platform: Electron, Android, or self-host"
+    ],
+    "focus_areas": [],
+    "notes": ""
+}
