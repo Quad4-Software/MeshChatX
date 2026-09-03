@@ -15,13 +15,37 @@ function handleWorkerMessage(event, post) {
             pluginId: message.pluginId,
             permissions: message.permissions || {},
             labels: message.labels || {},
+            theme: message.theme || null,
+            allowHtmlFrame: Boolean(message.allowHtmlFrame),
+            allowedWidgets: Array.isArray(message.allowedWidgets) ? message.allowedWidgets : [],
             ui: null,
             inputValues: {},
             actionHandler: null,
             inputHandler: null,
             eventHandlers: new Map(),
             refreshHandler: null,
+            themeHandler: null,
         };
+
+        function postRequest(kind, payload) {
+            return new Promise((resolve, reject) => {
+                const requestId = `${Date.now()}-${Math.random()}`;
+                const onReply = (replyEvent) => {
+                    const reply = replyEvent.data;
+                    if (!reply || reply.requestId !== requestId) {
+                        return;
+                    }
+                    self.removeEventListener("message", onReply);
+                    if (reply.error) {
+                        reject(new Error(reply.error));
+                        return;
+                    }
+                    resolve(reply.result);
+                };
+                self.addEventListener("message", onReply);
+                post({ type: "request", requestId, kind, payload });
+            });
+        }
 
         const api = {
             t(key) {
@@ -35,6 +59,23 @@ function handleWorkerMessage(event, post) {
                     });
                 }
                 return postRequest("invoke", { method, args });
+            },
+            async callManager(capability, args = {}) {
+                return postRequest("manager", { capability, args });
+            },
+            async clipboardWrite(text) {
+                return postRequest("clipboard", { text: String(text ?? "") });
+            },
+            getTheme() {
+                return state.theme;
+            },
+            async refreshTheme() {
+                const theme = await postRequest("theme", {});
+                state.theme = theme;
+                return theme;
+            },
+            onThemeChange(handler) {
+                state.themeHandler = handler;
             },
             setUi(descriptor) {
                 state.ui = descriptor;
@@ -65,26 +106,6 @@ function handleWorkerMessage(event, post) {
                 post({ type: "download", filename, data });
             },
         };
-
-        function postRequest(kind, payload) {
-            return new Promise((resolve, reject) => {
-                const requestId = `${Date.now()}-${Math.random()}`;
-                const onReply = (replyEvent) => {
-                    const reply = replyEvent.data;
-                    if (!reply || reply.requestId !== requestId) {
-                        return;
-                    }
-                    self.removeEventListener("message", onReply);
-                    if (reply.error) {
-                        reject(new Error(reply.error));
-                        return;
-                    }
-                    resolve(reply.result);
-                };
-                self.addEventListener("message", onReply);
-                post({ type: "request", requestId, kind, payload });
-            });
-        }
 
         const source = `${message.source}\n//# sourceURL=plugin-${message.pluginId}.js`;
         const blob = new Blob([source], { type: "text/javascript" });
@@ -123,6 +144,13 @@ function handleWorkerMessage(event, post) {
             if (next.type === "refresh-ui") {
                 if (typeof state.refreshHandler === "function") {
                     void state.refreshHandler();
+                }
+                return;
+            }
+            if (next.type === "theme") {
+                state.theme = next.theme || null;
+                if (typeof state.themeHandler === "function") {
+                    void state.themeHandler(state.theme);
                 }
                 return;
             }

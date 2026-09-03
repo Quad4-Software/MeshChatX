@@ -1003,6 +1003,20 @@ class PluginManager:
             return self._bug_report_call("announce", args)
         if capability == "bugReport.setCollectorName":
             return self._bug_report_call("set_collector_name", args)
+        if capability == "bugReport.listIssues":
+            return self._bug_report_call("list_issues", args)
+        if capability == "bugReport.getIssue":
+            return self._bug_report_call("get_issue", args)
+        if capability == "bugReport.recordLocal":
+            return self._bug_report_call("record_local", args)
+        if capability == "bugReport.setIssueStatus":
+            return self._bug_report_call("set_issue_status", args)
+        if capability == "bugReport.listPendingSends":
+            return self._bug_report_call("list_pending_sends", args)
+        if capability == "bugReport.enqueueSend":
+            return self._bug_report_call("enqueue_send", args)
+        if capability == "bugReport.cancelPendingSend":
+            return self._bug_report_call("cancel_pending_send", args)
         if capability == "rnsLink.open":
             return self._rns_link_open(args)
         if capability == "rnsLink.identify":
@@ -1059,6 +1073,26 @@ class PluginManager:
             return manager.announce()
         if method == "set_collector_name":
             return manager.set_collector_name(str(args.get("name") or ""))
+        if method == "list_issues":
+            return manager.list_issues(
+                limit=int(args.get("limit") or 50),
+                status=args.get("status"),
+            )
+        if method == "get_issue":
+            return manager.get_issue(str(args.get("fingerprint") or ""))
+        if method == "record_local":
+            return manager.record_local(args or {})
+        if method == "set_issue_status":
+            return manager.set_issue_status(
+                str(args.get("fingerprint") or ""),
+                str(args.get("status") or ""),
+            )
+        if method == "list_pending_sends":
+            return manager.list_pending_sends()
+        if method == "enqueue_send":
+            return manager.enqueue_send(args or {})
+        if method == "cancel_pending_send":
+            return manager.cancel_pending_send(str(args.get("id") or ""))
         raise ValueError(f"unknown bug report method: {method}")
 
     def _require_rns_link_manager(self):

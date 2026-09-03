@@ -330,6 +330,8 @@ const router = createRouter({
     ],
 });
 
+pluginHost.attachRouter(router);
+
 window.api = createApiClient({
     onAuthError() {
         if (router.currentRoute.value.name !== "auth") {
@@ -506,6 +508,17 @@ if (networkReady) {
                 stack: e?.stack,
             });
             return;
+        }
+        try {
+            const pendingRoute = localStorage.getItem("meshchatx_open_after_relaunch");
+            if (pendingRoute) {
+                localStorage.removeItem("meshchatx_open_after_relaunch");
+                if (pendingRoute.startsWith("#/")) {
+                    void router.replace(pendingRoute.slice(1));
+                }
+            }
+        } catch {
+            // ignore
         }
         // Keep splash until the first painted frame so WebView does not flash white.
         requestAnimationFrame(() => {
