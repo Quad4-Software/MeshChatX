@@ -232,6 +232,9 @@ export default {
         } else if (this.active) {
             this.startWatchdog();
         }
+        if (this.content && this.status === "loading") {
+            this.armRenderDeadline();
+        }
     },
     beforeUnmount() {
         window.removeEventListener("message", this.onWindowMessage);
@@ -515,7 +518,9 @@ export default {
             }
             if (data.type === "pong") {
                 this.lastPongAt = Date.now();
-                if (this.status === "hung" || this.status === "crashed") {
+                // A live ping is not a successful paint. Recover only if we
+                // already showed a page and the sandbox stalled briefly.
+                if (this.status === "hung" && this.framePainted) {
                     this.status = "ready";
                 }
                 return;
@@ -529,6 +534,9 @@ export default {
                 return;
             }
             if (data.type === "render-done") {
+                if (this.skipRenderUntilPropChange) {
+                    return;
+                }
                 this.clearRenderDeadline();
                 this.status = "ready";
                 this.framePainted = true;
@@ -538,6 +546,9 @@ export default {
                 return;
             }
             if (data.type === "render-error") {
+                if (this.skipRenderUntilPropChange) {
+                    return;
+                }
                 this.clearRenderDeadline();
                 this.status = "crashed";
                 this.framePainted = false;
@@ -587,7 +598,7 @@ export default {
             if (this.livenessPaused || this.isDocumentHidden()) {
                 return;
             }
-            if (this.status !== "rendering" && this.status !== "ready") {
+            if (this.status !== "ready") {
                 return;
             }
             const silentMs = Date.now() - this.lastPongAt;

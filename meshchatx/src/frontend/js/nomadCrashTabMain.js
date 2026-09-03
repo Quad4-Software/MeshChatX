@@ -241,7 +241,12 @@ function onClick(event) {
         if (fh.charAt(0) === "#" && fh.length > 1 && !frag.getAttribute("data-nomadnet-url")) {
             event.preventDefault();
             event.stopPropagation();
-            const id = decodeURIComponent(fh.slice(1));
+            let id = fh.slice(1);
+            try {
+                id = decodeURIComponent(id);
+            } catch {
+                return;
+            }
             let el = null;
             try {
                 el = root.querySelector(`#${CSS.escape(id)}`);
@@ -385,7 +390,7 @@ window.addEventListener("message", (ev) => {
         try {
             target = root.querySelector(`[data-partial-id="${CSS.escape(id)}"]`);
         } catch {
-            target = root.querySelector(`[data-partial-id="${String(id).replace(/"/g, "")}"]`);
+            target = null;
         }
         if (target) {
             target.innerHTML = d.html || "";
