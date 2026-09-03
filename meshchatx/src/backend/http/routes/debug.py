@@ -324,4 +324,56 @@ def register_debug_routes(routes, app):
         await asyncio.to_thread(app._mem_diag.start)
         return web.json_response({"status": "ok", "message": "Diagnostics reset"})
 
-    # ── Database ─────────────────────────────────────────────────────
+    def _bug_manager():
+        manager = getattr(app, "bug_report_manager", None)
+        if manager is None:
+            from meshchatx.src.backend.bug_report_manager import BugReportManager
+
+            manager = BugReportManager(app)
+            app.bug_report_manager = manager
+        return manager
+
+    @routes.get("/api/v1/bug-reports/issues")
+    async def list_bug_issues(request):
+        manager = _bug_manager()
+        limit = int(request.query.get("limit", 50))
+        status = request.query.get("status") or None
+        return web.json_response(manager.list_issues(limit=limit, status=status))
+
+    @routes.get("/api/v1/bug-reports/issues/{fingerprint}")
+    async def get_bug_issue(request):
+        manager = _bug_manager()
+        fingerprint = request.match_info.get("fingerprint") or ""
+        try:
+            return web.json_response(manager.get_issue(fingerprint))
+        except LookupError:
+            return web.json_response({"error": "issue not found"}, status=404)
+
+    @routes.post("/api/v1/bug-reports/local")
+    async def record_local_bug(request):
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
+        if not isinstance(data, dict):
+            data = {}
+        manager = _bug_manager()
+        result = await asyncio.to_thread(manager.record_local, data)
+        return web.json_response(result)
+
+    @routes.post("/api/v1/bug-reports/issues/{fingerprint}/status")
+    async def set_bug_issue_status(request):
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
+        manager = _bug_manager()
+        fingerprint = request.match_info.get("fingerprint") or ""
+        status = str((data or {}).get("status") or "")
+        try:
+            result = manager.set_issue_status(fingerprint, status)
+            return web.json_response(result)
+        except LookupError:
+            return web.json_response({"error": "issue not found"}, status=404)
+        except ValueError as exc:
+            return web.json_response({"error": str(exc)}, status=400)

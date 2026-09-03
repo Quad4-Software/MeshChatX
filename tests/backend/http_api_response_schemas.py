@@ -210,6 +210,23 @@ ACCESS_ATTEMPTS_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+BUG_REPORT_ISSUES_SCHEMA: dict = {
+    "type": "object",
+    "required": ["issues", "total"],
+    "properties": {
+        "issues": _ARRAY,
+        "total": _INTEGER,
+    },
+    "additionalProperties": True,
+}
+
+BUG_REPORT_ISSUE_SCHEMA: dict = {
+    "type": "object",
+    "required": ["issue"],
+    "properties": {"issue": _OBJECT},
+    "additionalProperties": True,
+}
+
 MEMORY_DIAGNOSTICS_SCHEMA: dict = {
     "type": "object",
     "required": ["rss_bytes"],
