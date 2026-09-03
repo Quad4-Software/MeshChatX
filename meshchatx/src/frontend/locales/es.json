@@ -615,6 +615,9 @@
         "error_backend_title": "Backend no disponible",
         "error_reload_page": "Recargar página",
         "error_copy_details": "Copiar detalles del error",
+        "error_report_locally": "Reportar localmente",
+        "error_report_saved": "Guardado en informes de errores",
+        "error_report_failed": "No se pudo guardar el informe local",
         "error_details_heading": "Detalles técnicos"
     },
     "helptips": {
@@ -1388,7 +1391,13 @@
         "memory_pressure_normal": "Normal",
         "path_table": "Path table",
         "path_table_count": "{count} paths",
-        "git_commit": "commit {commit}"
+        "git_commit": "commit {commit}",
+        "channel_testing": "Testing",
+        "channel_beta": "Beta",
+        "channel_stable": "Stable",
+        "channel_local": "Local",
+        "channel_focus_title": "Focus areas for this build",
+        "channel_bug_report_title": "How to report bugs"
     },
     "interfaces": {
         "title": "Interfaces",
@@ -4663,5 +4672,21 @@
         "delete": "Eliminar",
         "delete_confirm": "¿Eliminar \"{name}\" de la carpeta de sincronización?",
         "delete_done": "Eliminado"
+    },
+    "channel_prompt": {
+        "title": "{channel} build",
+        "intro": "You are running a {channel} build. Please report issues over LXMF and help verify the focus areas below.",
+        "focus_title": "Focus areas for this build",
+        "bug_report_title": "How to report bugs",
+        "dismiss": "Got it",
+        "open_bug_report": "Open bug report",
+        "copy_url": "Copy report URL",
+        "copy_lxmf": "Copy LXMF address",
+        "lxmf_label": "LXMF",
+        "lxmf_copied": "LXMF address copied",
+        "lxmf_copy_failed": "Could not copy LXMF address",
+        "url_copied": "Bug report URL copied",
+        "url_copy_failed": "Could not copy URL",
+        "privacy_mode_hint": "Privacy mode is on. Clearnet links are not opened automatically. Copy the URL if you need it."
     }
 }
