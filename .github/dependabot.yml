@@ -1,10 +1,11 @@
 version: 2
+# Alerts only. GitHub is CI/releases. Patches land via rngit, not Dependabot PRs.
 updates:
     - package-ecosystem: npm
       directory: /
       schedule:
           interval: weekly
-      open-pull-requests-limit: 10
+      open-pull-requests-limit: 0
       versioning-strategy: increase-if-necessary
       groups:
           electron:
@@ -17,7 +18,7 @@ updates:
       directory: /
       schedule:
           interval: weekly
-      open-pull-requests-limit: 10
+      open-pull-requests-limit: 0
       # Keep slsa-github-generator on a release tag (@vX.Y.Z). Dependabot SHA
       # pins break its prebuilt download path unless compile-generator is true.
       ignore:
@@ -36,11 +37,11 @@ updates:
       directory: /
       schedule:
           interval: weekly
-      open-pull-requests-limit: 10
+      open-pull-requests-limit: 0
       versioning-strategy: increase-if-necessary
 
     - package-ecosystem: gradle
       directory: /android
       schedule:
           interval: weekly
-      open-pull-requests-limit: 10
+      open-pull-requests-limit: 0
