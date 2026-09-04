@@ -5485,6 +5485,7 @@ class ReticulumMeshChat:
         from meshchatx.src.backend.http.register import register_all_routes
 
         (
+            sqlite_unavailable_middleware,
             auth_middleware,
             mime_type_middleware,
             security_middleware,
@@ -5494,6 +5495,7 @@ class ReticulumMeshChat:
         ) = register_all_routes(routes, self)
 
         return (
+            sqlite_unavailable_middleware,
             auth_middleware,
             mime_type_middleware,
             security_middleware,
@@ -5596,6 +5598,7 @@ class ReticulumMeshChat:
         # create route table
         routes = web.RouteTableDef()
         (
+            sqlite_unavailable_middleware,
             auth_middleware,
             mime_type_middleware,
             security_middleware,
@@ -5706,6 +5709,7 @@ class ReticulumMeshChat:
         # add other middlewares
         app.middlewares.extend(
             [
+                sqlite_unavailable_middleware,
                 auth_middleware,
                 mime_type_middleware,
                 security_middleware,

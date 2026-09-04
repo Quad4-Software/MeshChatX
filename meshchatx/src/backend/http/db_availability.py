@@ -22,3 +22,13 @@ def http_for_database_exception(exc, *, unexpected_message="Internal error"):
     if sqlite_error_is_retryable(exc):
         return http_unavailable(DB_TEMPORARILY_UNAVAILABLE)
     return http_unexpected(unexpected_message)
+
+
+def exception_looks_like_missing_database(exc: BaseException, app) -> bool:
+    """True when a route touched app.database while it was None mid-switch."""
+    if getattr(app, "database", None) is not None:
+        return False
+    if not isinstance(exc, AttributeError):
+        return False
+    detail = str(exc).lower()
+    return "nonetype" in detail and "attribute" in detail
