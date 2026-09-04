@@ -129,11 +129,65 @@ def test_upload_ostree_tree_order_and_no_track_prune(
             "key",
             prefix="flatpak",
             prune_orphans=True,
+            workers=1,
         )
     assert rc == 0
     assert puts[0].endswith("/flatpak/repo/objects/aa/obj")
     assert puts[-1].endswith("/flatpak/repo/summary.idx")
     prune.assert_called_once()
+
+
+def test_upload_ostree_tree_phase_barrier_with_workers(
+    ostree_up: ModuleType, tmp_path: Path
+) -> None:
+    root = tmp_path
+    objs = root / "repo" / "objects"
+    for name in ("aa", "bb", "cc"):
+        d = objs / name
+        d.mkdir(parents=True)
+        (d / "obj").write_bytes(name.encode())
+    (root / "repo" / "config").write_text("mode=archive-z2\n", encoding="utf-8")
+    (root / "repo" / "summary").write_bytes(b"s")
+    (root / "repo" / "summary.idx").write_bytes(b"i")
+
+    puts: list[str] = []
+
+    def fake_put(
+        url: str,
+        body: bytes,
+        access_key: str,
+        content_type: str,
+        max_attempts: int = 4,
+    ) -> None:
+        puts.append(url)
+
+    with (
+        patch.object(ostree_up, "put_file", side_effect=fake_put),
+        patch.object(ostree_up, "prune_remote_orphans"),
+    ):
+        rc = ostree_up.upload_ostree_tree(
+            root,
+            "https://la.storage.bunnycdn.com/meshchatx",
+            "key",
+            prefix="flatpak",
+            prune_orphans=False,
+            workers=8,
+        )
+    assert rc == 0
+    assert len(puts) == 6
+    object_puts = [u for u in puts if "/repo/objects/" in u]
+    assert len(object_puts) == 3
+    assert all("/repo/objects/" in u for u in puts[:3])
+    assert puts[3].endswith("/flatpak/repo/config")
+    assert puts[4].endswith("/flatpak/repo/summary")
+    assert puts[5].endswith("/flatpak/repo/summary.idx")
+
+
+def test_workflow_flatpak_ostree_timeout_and_workers() -> None:
+    text = _WORKFLOW.read_text(encoding="utf-8")
+    assert "BUNNY_UPLOAD_WORKERS" in text
+    # Job timeout must leave headroom for cold Bunny publishes.
+    assert "timeout-minutes: 180" in text
 
 
 def test_export_script_uses_cdn_meshchatx() -> None:

@@ -329,7 +329,8 @@ jobs:
         needs: [flatpak]
         if: startsWith(github.ref, 'refs/tags/')
         runs-on: ubuntu-latest
-        timeout-minutes: 45
+        # Cold publish is thousands of small PUTs to Bunny Edge Storage.
+        timeout-minutes: 180
         concurrency:
             group: flatpak-ostree-bunny
             cancel-in-progress: false
@@ -377,6 +378,7 @@ jobs:
                   BUNNY_STORAGE_ACCESS_KEY: ${{ secrets.BUNNY_STORAGE_ACCESS_KEY }}
                   BUNNY_STORAGE_BASE_URL: ${{ vars.BUNNY_STORAGE_BASE_URL }}
                   FLATPAK_CDN_BASE_URL: ${{ vars.FLATPAK_CDN_BASE_URL }}
+                  BUNNY_UPLOAD_WORKERS: "24"
                   GPG_FINGERPRINT: ${{ steps.gpg.outputs.fingerprint }}
                   REQUIRE_GPG: "1"
                   GITHUB_REF_NAME: ${{ github.ref_name }}
