@@ -85,6 +85,24 @@ describe("withRetryableHttp", () => {
         expect(sleep).toHaveBeenCalledTimes(2);
     });
 
+    it("defaults to a longer 503 retry budget", async () => {
+        const sleep = vi.fn().mockResolvedValue(undefined);
+        let calls = 0;
+        await expect(
+            withRetryableHttp(
+                async () => {
+                    calls += 1;
+                    throw Object.assign(new Error("HTTP 503"), {
+                        response: { status: 503 },
+                    });
+                },
+                { sleep, baseDelayMs: 1 }
+            )
+        ).rejects.toMatchObject({ response: { status: 503 } });
+        expect(calls).toBe(12);
+        expect(sleep).toHaveBeenCalledTimes(11);
+    });
+
     it("isRetryableHttpError oracle", () => {
         expect(isRetryableHttpError({ response: { status: 503 } })).toBe(true);
         expect(isRetryableHttpError({ response: { status: 500 } })).toBe(false);

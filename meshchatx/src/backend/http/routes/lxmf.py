@@ -4,6 +4,10 @@
 from __future__ import annotations
 
 from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
+from meshchatx.src.backend.http.db_availability import (
+    http_for_database_exception,
+    require_database,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -1299,8 +1303,14 @@ def register_lxmf_routes(routes, app):
 
     @routes.get("/api/v1/lxmf/folders")
     async def lxmf_folders_get(request):
-        folders = app.database.messages.get_all_folders()
-        return web.json_response([dict(f) for f in folders])
+        unavailable = require_database(app)
+        if unavailable is not None:
+            return unavailable
+        try:
+            folders = app.database.messages.get_all_folders()
+            return web.json_response([dict(f) for f in folders])
+        except Exception as e:
+            return http_for_database_exception(e)
 
     @routes.post("/api/v1/lxmf/folders")
     async def lxmf_folders_post(request):

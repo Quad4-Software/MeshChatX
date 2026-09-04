@@ -52,7 +52,6 @@ import {
     normalizeReleaseChannel,
     shouldShowChannelPrompt,
 } from "../js/releaseChannel.js";
-import { fetchCsrfToken } from "../js/csrfToken.js";
 
 export default {
     name: "ChannelPromptModal",
@@ -145,7 +144,6 @@ export default {
             }
             const key = channelPromptSeenKey(this.appInfo);
             try {
-                await fetchCsrfToken();
                 await window.api.post("/api/v1/app/channel-prompt/seen", { key });
                 if (this.appInfo) {
                     this.appInfo.channel_prompt_seen = key;

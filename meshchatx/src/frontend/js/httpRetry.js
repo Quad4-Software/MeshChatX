@@ -47,8 +47,10 @@ export function isRetryableHttpError(error) {
  * @returns {Promise<any>}
  */
 export async function withRetryableHttp(requestFn, options = {}) {
-    const maxAttempts = options.maxAttempts ?? 4;
-    const baseDelayMs = options.baseDelayMs ?? 250;
+    // Long enough to cover identity switch and modest DB migrate windows.
+    // Pages that mount on early ui_ready should still gate on identity ready.
+    const maxAttempts = options.maxAttempts ?? 12;
+    const baseDelayMs = options.baseDelayMs ?? 400;
     const sleep =
         options.sleep ??
         ((ms) =>

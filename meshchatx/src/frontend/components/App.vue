@@ -496,6 +496,7 @@ import { formatDisconnectedDuration, WS_DISCONNECT_BANNER_GRACE_MS } from "../js
 import { applyAuthStatusToGlobalState, fetchAuthStatus } from "../js/authSessionSync.js";
 import GlobalState, { mergeGlobalConfig } from "../js/GlobalState";
 import { countRelayMentions } from "../js/relayMentionCount.js";
+import { isRetryableHttpError } from "../js/httpRetry.js";
 import Utils from "../js/Utils";
 import GlobalEmitter from "../js/GlobalEmitter";
 import NotificationUtils from "../js/NotificationUtils";
@@ -1743,7 +1744,9 @@ export default {
                     });
                     GlobalState.unreadConversationsCount = response.data?.lxmf_total_unread_count ?? 0;
                 } catch (e) {
-                    console.error("Failed to update unread conversations count", e);
+                    if (!isRetryableHttpError(e)) {
+                        console.error("Failed to update unread conversations count", e);
+                    }
                 }
             }, 300);
         },
@@ -1761,7 +1764,9 @@ export default {
                     const hubs = response.data?.hubs || [];
                     GlobalState.relayChatUnreadCount = countRelayMentions(hubs);
                 } catch (e) {
-                    console.error("Failed to update relay chat mention count", e);
+                    if (!isRetryableHttpError(e)) {
+                        console.error("Failed to update relay chat mention count", e);
+                    }
                 }
             }, 300);
         },
