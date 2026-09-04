@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import zipfile
 from types import SimpleNamespace
@@ -63,6 +64,49 @@ def test_filesync_rejects_identity_root_and_reserved(tmp_path):
     ok = handler._resolve_sync_directory(str(storage / "filesync" / "custom"))
     assert ok is not None
     assert ok.endswith("filesync/custom") or ok.endswith("filesync\\custom")
+    shared = tmp_path / "Documents" / "MeshChatX" / "11111111" / "sync"
+    shared.mkdir(parents=True)
+    external = handler._resolve_sync_directory(str(shared))
+    assert external == str(shared.resolve())
+    assert handler._resolve_sync_directory(str(tmp_path)) is None
+    assert handler._resolve_sync_directory("/etc") is None
+
+
+def test_collect_external_filesync_rw_roots(tmp_path):
+    from meshchatx.src.backend.rns_filesync_handler import (
+        collect_external_filesync_rw_roots,
+    )
+
+    storage = tmp_path / "storage"
+    ident = storage / "identities" / ("ab" * 16)
+    settings_dir = ident / "filesync"
+    settings_dir.mkdir(parents=True)
+    shared = tmp_path / "shared_out"
+    shared.mkdir()
+    (settings_dir / "settings.json").write_text(
+        json.dumps({"sync_directory": str(shared)}),
+        encoding="utf-8",
+    )
+    roots = collect_external_filesync_rw_roots(str(storage))
+    assert str(shared.resolve()) in roots
+    # Inside storage is ignored for extra Landlock RW.
+    (settings_dir / "settings.json").write_text(
+        json.dumps({"sync_directory": str(settings_dir / "sync")}),
+        encoding="utf-8",
+    )
+    assert collect_external_filesync_rw_roots(str(storage)) == []
+    # Forbidden hosts must not widen Landlock.
+    home = os.path.realpath(os.path.expanduser("~"))
+    (settings_dir / "settings.json").write_text(
+        json.dumps({"sync_directory": home}),
+        encoding="utf-8",
+    )
+    assert collect_external_filesync_rw_roots(str(storage)) == []
+    (settings_dir / "settings.json").write_text(
+        json.dumps({"sync_directory": "/etc/passwd"}),
+        encoding="utf-8",
+    )
+    assert collect_external_filesync_rw_roots(str(storage)) == []
 
 
 def test_filesync_manager_resolve_never_leaves_sync_root(tmp_path):

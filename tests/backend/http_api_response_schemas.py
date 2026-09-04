@@ -681,6 +681,18 @@ FILESYNC_ACL_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+FILESYNC_SHARED_SUGGESTION_SCHEMA: dict = {
+    "type": "object",
+    "required": ["ok", "path"],
+    "properties": {
+        "ok": _BOOLEAN,
+        "path": _STRING,
+        "android": _BOOLEAN,
+        "requires_all_files_access": _BOOLEAN,
+    },
+    "additionalProperties": True,
+}
+
 RNCP_TRANSFER_SCHEMA: dict = {
     "type": "object",
     "required": ["transfer"],

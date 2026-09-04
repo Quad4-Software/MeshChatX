@@ -4594,8 +4594,8 @@
         "tab_browse": "Remote",
         "tab_acl": "Sharing",
         "sync_directory": "Folder to sync",
-        "sync_directory_placeholder": "Choose a folder under this identity",
-        "sync_directory_help": "Folders stay inside this identity's MeshChat storage. Use Browse on any device to pick or create one.",
+        "sync_directory_placeholder": "Identity folder or shared Documents path",
+        "sync_directory_help": "Default folders stay under this identity. Use Shared for a Documents path other apps can open (Android needs All files access). Unique per identity.",
         "announce_interval": "Announce every (seconds)",
         "announce_interval_help": "How often others are reminded you are available to sync.",
         "monitor": "Watch folder for changes",
@@ -4636,7 +4636,7 @@
         "browse_folder": "Browse",
         "open_folder": "Open",
         "browser_title": "Choose sync folder",
-        "browser_hint": "Browse folders for this identity. Works the same on desktop, web, and mobile.",
+        "browser_hint": "Browse folders under this identity, or type/use Shared for a path outside app storage.",
         "browser_up": "Up",
         "browser_loading": "Loading folders...",
         "browser_empty": "No subfolders here. Create one below, or select this folder.",
@@ -4671,7 +4671,10 @@
         "download_local_done": "Lataus aloitettu",
         "delete": "Poista",
         "delete_confirm": "Poistetaanko \"{name}\" synkronointikansiosta?",
-        "delete_done": "Poistettu"
+        "delete_done": "Poistettu",
+        "use_shared_folder": "Shared",
+        "shared_folder_selected": "Shared sync folder selected",
+        "shared_folder_permission_needed": "Grant All files access, then tap Shared again."
     },
     "channel_prompt": {
         "title": "{channel} build",

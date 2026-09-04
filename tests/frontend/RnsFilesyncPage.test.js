@@ -169,6 +169,61 @@ describe("RnsFilesyncPage.vue", () => {
         expect(ToastUtils.success).toHaveBeenCalledWith("rns_filesync.folder_selected");
     });
 
+    it("selects shared documents folder suggestion", async () => {
+        apiMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/filesync/shared-directory-suggestion") {
+                return Promise.resolve({
+                    data: {
+                        ok: true,
+                        path: "/tmp/Documents/MeshChatX/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sync",
+                    },
+                });
+            }
+            if (url === "/api/v1/filesync/status") {
+                return Promise.resolve({
+                    data: {
+                        running: false,
+                        sync_directory: "/tmp/sync",
+                        peers: 0,
+                        files: 0,
+                        monitor: true,
+                        announce_interval: 300,
+                    },
+                });
+            }
+            if (url === "/api/v1/filesync/peers") {
+                return Promise.resolve({ data: { peers: [] } });
+            }
+            if (url === "/api/v1/filesync/acl") {
+                return Promise.resolve({ data: { enforce: false, rules: {} } });
+            }
+            if (url === "/api/v1/filesync/tree") {
+                return Promise.resolve({
+                    data: { ok: true, current: "", parent: null, entries: [] },
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
+        await wrapper.vm.useSharedFolder();
+        expect(wrapper.vm.syncDirectory).toBe("/tmp/Documents/MeshChatX/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sync");
+        expect(ToastUtils.success).toHaveBeenCalledWith("rns_filesync.shared_folder_selected");
+    });
+
+    it("requests android all-files access before shared folder", async () => {
+        window.MeshChatXAndroid = {
+            hasAllFilesAccess: vi.fn(() => false),
+            requestAllFilesAccess: vi.fn(),
+        };
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
+        await wrapper.vm.useSharedFolder();
+        expect(window.MeshChatXAndroid.requestAllFilesAccess).toHaveBeenCalled();
+        expect(ToastUtils.info).toHaveBeenCalledWith("rns_filesync.shared_folder_permission_needed");
+        delete window.MeshChatXAndroid;
+    });
+
     it("warns when browsing while syncing", async () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));

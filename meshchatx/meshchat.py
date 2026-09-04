@@ -138,6 +138,9 @@ from meshchatx.src.backend.landlock_sandbox import (
     landlock_kernel_supported,
     landlock_requested,
 )
+from meshchatx.src.backend.rns_filesync_handler import (
+    collect_external_filesync_rw_roots,
+)
 from meshchatx.src.backend.legacy_migrator import (
     assert_migration_context_paths,
     fresh_storage_at_target,
@@ -11685,6 +11688,9 @@ def main():
         public_dir=reticulum_meshchat.public_dir_override or get_file_path("public"),
         log_dir=resolve_log_dir(),
         extra_read_roots=extra_read_roots_from_app(reticulum_meshchat),
+        extra_rw_roots=collect_external_filesync_rw_roots(
+            reticulum_meshchat.storage_dir,
+        ),
     )
     # Apply after Landlock so landlock_* syscalls are not blocked by the filter.
     reticulum_meshchat.seccomp_active = apply_seccomp_sandbox()
