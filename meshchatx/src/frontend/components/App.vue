@@ -1822,7 +1822,12 @@ export default {
                 json?.warning_enabled !== undefined
                     ? json.warning_enabled !== false
                     : this.config?.multi_session_warning_enabled !== false;
-            const decision = shouldShowMultiSessionToast(count, warningEnabled, this.multiSessionWarningActive);
+            const decision = shouldShowMultiSessionToast(
+                count,
+                warningEnabled,
+                this.multiSessionWarningActive,
+                json?.sessions
+            );
             this.multiSessionWarningActive = decision.warned;
             if (decision.show) {
                 ToastUtils.warning(this.$t("app.multi_session_warning", { count }));
