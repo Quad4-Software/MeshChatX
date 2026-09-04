@@ -170,8 +170,14 @@ if [ "${EXT}" = "zip" ]; then
 else
     UV_CMD="${UV_INSTALL_DIR}/uv"
 fi
-if [ ! -x "${UV_CMD}" ]; then
+if [ ! -x "${UV_CMD}" ] && [ ! -f "${UV_CMD}" ]; then
     echo "uv install failed: missing executable at ${UV_CMD}" >&2
     exit 1
 fi
 "${UV_CMD}" --version
+
+# Persist for later workflow steps. Linux runners usually already have
+# /usr/local/bin; Windows Git Bash does not keep the install-step PATH.
+if [ -n "${GITHUB_PATH:-}" ]; then
+    echo "${UV_INSTALL_DIR}" >> "${GITHUB_PATH}"
+fi
