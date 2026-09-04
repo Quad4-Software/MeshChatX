@@ -436,6 +436,9 @@
                 :marker="selectedMarker"
                 :mini-chat-open="isMiniChatOpen"
                 :coordinate-format="coordinateFormat"
+                :geo-wasm-epoch="geoWasmEpoch"
+                :ref-lon="currentCenter?.[0] || 0"
+                :ref-lat="currentCenter?.[1] || 0"
                 @close="selectedMarker = null"
                 @toggle-tracking="toggleTracking"
                 @toggle-mini-chat="isMiniChatOpen = !isMiniChatOpen"
@@ -1188,6 +1191,7 @@ export default {
             currentZoom: 2,
             cursorCoords: null,
             coordinateFormat: "wgs84",
+            geoWasmEpoch: 0,
             config: null,
             peers: {},
 
@@ -1214,6 +1218,7 @@ export default {
             searchQuery: "",
             searchResults: [],
             isSearching: false,
+            searchGeneration: 0,
             isSearchFocused: false,
             searchError: null,
             nominatimApiUrl: "https://nominatim.openstreetmap.org",
@@ -1371,6 +1376,8 @@ export default {
             return this.cursorCoords || this.currentCenter;
         },
         formattedDisplayCoords() {
+            // Depend on geoWasmEpoch so the readout refreshes when WASM becomes ready.
+            void this.geoWasmEpoch;
             const [lon, lat] = this.displayCoords || [0, 0];
             const res = formatCoordinate(lon, lat, this.coordinateFormat, {
                 hasRef: true,
@@ -1492,7 +1499,7 @@ export default {
     },
     async mounted() {
         await this.getConfig();
-        await ensureGeoCoordsReady();
+        await this.refreshGeoWasmEpoch();
 
         // Load persisted map state
         try {
@@ -1543,6 +1550,16 @@ export default {
                 this.announceListenEnabled = Boolean(cfg.announce_store_map_data);
                 if (this.config) {
                     this.config.announce_store_map_data = cfg.announce_store_map_data;
+                }
+            }
+            if (Object.prototype.hasOwnProperty.call(cfg, "map_coordinate_format")) {
+                const fmt = normalizeCoordinateFormat(cfg.map_coordinate_format);
+                this.coordinateFormat = fmt;
+                if (this.config) {
+                    this.config.map_coordinate_format = fmt;
+                }
+                if (fmt !== "wgs84") {
+                    this.refreshGeoWasmEpoch();
                 }
             }
         };
@@ -1714,7 +1731,7 @@ export default {
             const fmt = normalizeCoordinateFormat(this.coordinateFormat);
             this.coordinateFormat = fmt;
             if (fmt !== "wgs84") {
-                await ensureGeoCoordsReady();
+                await this.refreshGeoWasmEpoch();
                 if (shouldWarnGeoWasmFallback()) {
                     ToastUtils.warning(this.$t("map.geo_wasm_unavailable"));
                 }
@@ -1727,6 +1744,13 @@ export default {
             } catch (e) {
                 console.error("Failed to save coordinate format", e);
             }
+        },
+        async refreshGeoWasmEpoch() {
+            const ready = await ensureGeoCoordsReady();
+            if (ready) {
+                this.geoWasmEpoch += 1;
+            }
+            return ready;
         },
         async loadMBTilesList() {
             try {
@@ -3247,56 +3271,59 @@ export default {
         async performSearch() {
             if (!this.searchQuery || this.isSearching) return;
 
-            await ensureGeoCoordsReady();
-            const parsed = parseCoordinateQuery(this.searchQuery, {
-                hasRef: true,
-                refLat: this.currentCenter?.[1] || 0,
-                refLon: this.currentCenter?.[0] || 0,
-            });
-            if (parsed.ok && Number.isFinite(parsed.lat) && Number.isFinite(parsed.lon)) {
-                this.isSearching = false;
-                this.searchError = null;
-                this.searchResults = [];
-                this.selectSearchResult({
-                    display_name: parsed.kind || "coordinates",
-                    lat: parsed.lat,
-                    lon: parsed.lon,
-                    type: parsed.kind || "coords",
-                });
-                return;
-            }
-
-            if (parsed.error === "geo_wasm_unavailable") {
-                this.searchError = this.$t("map.geo_wasm_unavailable");
-                if (shouldWarnGeoWasmFallback()) {
-                    ToastUtils.warning(this.$t("map.geo_wasm_unavailable"));
-                }
-                return;
-            }
-
-            const defaultNominatimUrl = "https://nominatim.openstreetmap.org";
-            const isCustomLocal = this.isLocalUrl(this.nominatimApiUrl);
-            const isDefaultOnline = this.isDefaultOnlineUrl(this.nominatimApiUrl);
-
-            if (this.offlineEnabled) {
-                if (isCustomLocal || (!isDefaultOnline && this.nominatimApiUrl !== defaultNominatimUrl)) {
-                    const isAccessible = await this.checkApiConnection(this.nominatimApiUrl);
-                    if (!isAccessible) {
-                        this.searchError = this.$t("map.search_offline_error");
-                        return;
-                    }
-                } else {
-                    this.searchError = this.$t("map.search_offline_coord_hint");
-                    return;
-                }
-            }
-
+            // Take the lock before any await so concurrent Enter/clicks cannot double-fetch.
+            const query = String(this.searchQuery);
+            const gen = ++this.searchGeneration;
             this.isSearching = true;
             this.searchError = null;
             this.searchResults = [];
 
             try {
-                const url = buildNominatimSearchUrl(this.nominatimApiUrl, this.searchQuery);
+                await ensureGeoCoordsReady();
+                if (gen !== this.searchGeneration) return;
+
+                const parsed = parseCoordinateQuery(query, {
+                    hasRef: true,
+                    refLat: this.currentCenter?.[1] || 0,
+                    refLon: this.currentCenter?.[0] || 0,
+                });
+                if (parsed.ok && Number.isFinite(parsed.lat) && Number.isFinite(parsed.lon)) {
+                    this.selectSearchResult({
+                        display_name: parsed.kind || "coordinates",
+                        lat: parsed.lat,
+                        lon: parsed.lon,
+                        type: parsed.kind || "coords",
+                    });
+                    return;
+                }
+
+                if (parsed.error === "geo_wasm_unavailable") {
+                    this.searchError = this.$t("map.geo_wasm_unavailable");
+                    if (shouldWarnGeoWasmFallback()) {
+                        ToastUtils.warning(this.$t("map.geo_wasm_unavailable"));
+                    }
+                    return;
+                }
+
+                const defaultNominatimUrl = "https://nominatim.openstreetmap.org";
+                const isCustomLocal = this.isLocalUrl(this.nominatimApiUrl);
+                const isDefaultOnline = this.isDefaultOnlineUrl(this.nominatimApiUrl);
+
+                if (this.offlineEnabled) {
+                    if (isCustomLocal || (!isDefaultOnline && this.nominatimApiUrl !== defaultNominatimUrl)) {
+                        const isAccessible = await this.checkApiConnection(this.nominatimApiUrl);
+                        if (gen !== this.searchGeneration) return;
+                        if (!isAccessible) {
+                            this.searchError = this.$t("map.search_offline_error");
+                            return;
+                        }
+                    } else {
+                        this.searchError = this.$t("map.search_offline_coord_hint");
+                        return;
+                    }
+                }
+
+                const url = buildNominatimSearchUrl(this.nominatimApiUrl, query);
                 const result = await fetchJsonWithRetry(
                     url,
                     {
@@ -3310,6 +3337,7 @@ export default {
                         retryBaseDelayMs: NOMINATIM_FETCH_RETRY_BASE_DELAY_MS,
                     }
                 );
+                if (gen !== this.searchGeneration) return;
 
                 if (!result.ok) {
                     if (result.status) {
@@ -3323,6 +3351,7 @@ export default {
                 }
 
                 const data = await result.response.json();
+                if (gen !== this.searchGeneration) return;
 
                 if (Array.isArray(data) && data.length > 0) {
                     this.searchResults = data.map((item) => ({
@@ -3336,10 +3365,13 @@ export default {
                     this.searchError = this.$t("map.search_no_results");
                 }
             } catch (e) {
+                if (gen !== this.searchGeneration) return;
                 console.error("Search error:", e);
                 this.searchError = this.$t("map.search_error") + ": " + (e.message || String(e));
             } finally {
-                this.isSearching = false;
+                if (gen === this.searchGeneration) {
+                    this.isSearching = false;
+                }
             }
         },
         selectSearchResult(result) {
