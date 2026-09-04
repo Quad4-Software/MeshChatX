@@ -227,7 +227,11 @@ if [[ ! -d "${CHAQUOPY_DIR}/.git" ]]; then
     git clone --depth 1 https://github.com/chaquo/chaquopy.git "${CHAQUOPY_DIR}"
 fi
 git -C "${CHAQUOPY_DIR}" fetch --depth 1 origin "${CHAQUOPY_REF}"
-git -C "${CHAQUOPY_DIR}" checkout --detach FETCH_HEAD
+# Hard reset so a restored wheel-build cache cannot leave a half-patched
+# build-wheel.py that breaks the idempotent libpython3.so markers below.
+git -C "${CHAQUOPY_DIR}" checkout --detach --force FETCH_HEAD
+git -C "${CHAQUOPY_DIR}" reset --hard FETCH_HEAD
+git -C "${CHAQUOPY_DIR}" clean -fd -- server/pypi/build-wheel.py
 
 if [[ -z "${TARGET_VERSION}" ]]; then
     TARGET_VERSION="$(discover_latest_target "${PYTHON_MINOR}")"
@@ -252,7 +256,7 @@ if "chaquopy_python_abi3_link" not in text:
         sys.exit(1)
     insert = needle + """
 
-        # PyO3 0.29 abi3 Android builds link libpython3.so (PEP 738).
+        # chaquopy_python_abi3_link: PyO3 0.29 abi3 Android builds link libpython3.so (PEP 738).
         python_soname = f"libpython{self.python}.so"
         python_abi3_link = "libpython3.so"
         if exists(f"{reqs_lib_dir}/{python_soname}") and not exists(f"{reqs_lib_dir}/{python_abi3_link}"):
@@ -289,6 +293,7 @@ if "chaquopy_python_abi3_available_lib" not in text:
         sys.exit(1)
     insert = """                            available_libs.add(name)
 
+        # chaquopy_python_abi3_available_lib: treat libpython3.so as satisfied by libpythonX.Y.so
         python_soname = f"libpython{self.python}.so"
         if python_soname in available_libs:
             available_libs.add("libpython3.so")
