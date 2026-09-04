@@ -4,8 +4,10 @@
 
 from __future__ import annotations
 
+import json
 import os
 import threading
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -102,8 +104,9 @@ def test_list_directories_rejects_traversal(handler):
             assert result["current"].startswith(handler.storage_dir)
         else:
             assert (
-                "identity storage" in result["error"]
+                "not allowed" in result["error"]
                 or "not a directory" in result["error"]
+                or "does not exist" in result["error"]
             )
 
 
@@ -177,12 +180,12 @@ def test_acl_get_matches_update_result(handler):
     assert peer in fetched["rules"]["write"]
 
 
-def test_sync_directory_cannot_escape_identity_storage(handler, tmp_path):
-    outside = tmp_path / "other_identity" / "filesync" / "sync"
-    outside.mkdir(parents=True)
+def test_sync_directory_allows_external_and_blocks_reserved(handler, tmp_path):
+    outside = tmp_path / "shared_sync"
+    outside.mkdir()
     result = handler.update_settings(sync_directory=str(outside))
-    assert result["ok"] is False
-    assert "identity storage" in result["error"]
+    assert result["ok"] is True
+    assert result["sync_directory"] == str(outside.resolve())
 
     nested = handler.storage_dir + "/filesync/custom"
     ok = handler.update_settings(sync_directory=nested)
@@ -203,14 +206,187 @@ def test_sync_directory_cannot_escape_identity_storage(handler, tmp_path):
     page_nodes_reject = handler.update_settings(sync_directory=page_nodes)
     assert page_nodes_reject["ok"] is False
 
+    # Ancestor of identity storage would expose keys/DB.
+    parent_reject = handler.update_settings(sync_directory=str(tmp_path))
+    assert parent_reject["ok"] is False
 
-def test_start_rejects_escaped_sync_directory(handler, tmp_path):
-    outside = tmp_path / "escape_me"
-    outside.mkdir()
+    # Sibling identity under .../identities/<hash>
+    identities = tmp_path / "identities"
+    peer = identities / "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    peer.mkdir(parents=True)
+    own = identities / "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    own.mkdir(parents=True)
+    sibling_handler = RnsFilesyncHandler(
+        MagicMock(),
+        SimpleNamespace(hash=b"\xaa" * 16),
+        str(own),
+    )
+    sibling_reject = sibling_handler.update_settings(sync_directory=str(peer / "sync"))
+    assert sibling_reject["ok"] is False
+    shared = tmp_path / "Documents" / "MeshChatX" / "aaaaaaaa" / "sync"
+    shared.mkdir(parents=True)
+    sibling_ok = sibling_handler.update_settings(sync_directory=str(shared))
+    assert sibling_ok["ok"] is True
+
+
+def test_start_rejects_forbidden_system_sync_directory(handler):
     with patch("meshchatx.src.backend.rns_filesync_handler.FileSyncService") as mocked:
-        result = handler.start(sync_directory=str(outside))
+        result = handler.start(sync_directory="/etc")
         assert result["ok"] is False
         mocked.assert_not_called()
+        home = os.path.expanduser("~")
+        if home and home != "~" and os.path.isdir(home):
+            home_result = handler.start(sync_directory=home)
+            assert home_result["ok"] is False
+            mocked.assert_not_called()
+
+
+def test_suggest_shared_sync_directory(handler):
+    suggestion = handler.suggest_shared_sync_directory()
+    assert suggestion["ok"] is True
+    assert "MeshChatX" in suggestion["path"]
+    full_hash = "aa" * 16
+    assert full_hash in suggestion["path"]
+    assert suggestion["path"].endswith(os.path.join(full_hash, "sync")) or suggestion[
+        "path"
+    ].endswith(f"{full_hash}/sync")
+    assert handler._resolve_sync_directory(suggestion["path"]) == suggestion["path"]
+
+
+def test_relative_dotdot_cannot_become_external_sibling(handler, tmp_path):
+    sibling = tmp_path / "escape"
+    sibling.mkdir()
+    assert handler._resolve_sync_directory("../escape") is None
+    assert handler.update_settings(sync_directory="../escape")["ok"] is False
+    # Absolute sibling outside identity storage remains allowed.
+    assert handler.update_settings(sync_directory=str(sibling))["ok"] is True
+
+
+def test_relative_sync_path_joins_identity_storage_not_cwd(handler, tmp_path):
+    cwd_probe = Path.cwd() / ".__filesync_cwd_should_not_win__"
+    cwd_probe.mkdir(exist_ok=True)
+    try:
+        resolved = handler._resolve_sync_directory("filesync/custom")
+        assert resolved is not None
+        assert resolved.startswith(handler.storage_dir)
+        assert resolved.endswith("filesync/custom") or resolved.endswith(
+            "filesync\\custom",
+        )
+        assert ".__filesync_cwd_should_not_win__" not in resolved
+        # Basename-only relative names land under identity storage, not CWD.
+        named = handler._resolve_sync_directory(".__filesync_cwd_should_not_win__")
+        assert named is not None
+        assert named.startswith(handler.storage_dir)
+        assert str(cwd_probe.resolve()) != named
+    finally:
+        cwd_probe.rmdir()
+
+
+def test_collect_external_rejects_home_and_etc(tmp_path):
+    from meshchatx.src.backend.rns_filesync_handler import (
+        collect_external_filesync_rw_roots,
+    )
+
+    storage = tmp_path / "storage"
+    ident = storage / "identities" / ("ab" * 16)
+    settings_dir = ident / "filesync"
+    settings_dir.mkdir(parents=True)
+    home = os.path.realpath(os.path.expanduser("~"))
+    (settings_dir / "settings.json").write_text(
+        json.dumps({"sync_directory": home}),
+        encoding="utf-8",
+    )
+    assert collect_external_filesync_rw_roots(str(storage)) == []
+    (settings_dir / "settings.json").write_text(
+        json.dumps({"sync_directory": "/etc"}),
+        encoding="utf-8",
+    )
+    assert collect_external_filesync_rw_roots(str(storage)) == []
+
+
+def test_shared_path_unique_per_full_identity_hash(tmp_path):
+    storage = tmp_path / "id"
+    storage.mkdir()
+    h1 = RnsFilesyncHandler(
+        MagicMock(),
+        SimpleNamespace(hash=bytes.fromhex("aaaaaaaa" + "11" * 12)),
+        str(storage),
+    )
+    h2 = RnsFilesyncHandler(
+        MagicMock(),
+        SimpleNamespace(hash=bytes.fromhex("aaaaaaaa" + "22" * 12)),
+        str(storage),
+    )
+    p1 = h1.suggest_shared_sync_directory()["path"]
+    p2 = h2.suggest_shared_sync_directory()["path"]
+    assert p1 != p2
+    assert "aaaaaaaa" + "11" * 12 in p1
+    assert "aaaaaaaa" + "22" * 12 in p2
+
+
+def test_external_sync_root_manager_stays_jailed(tmp_path):
+    storage = tmp_path / "id"
+    storage.mkdir()
+    outside = tmp_path / "shared"
+    outside.mkdir()
+    bait = tmp_path / "bait.txt"
+    bait.write_text("secret", encoding="utf-8")
+    handler = RnsFilesyncHandler(
+        MagicMock(),
+        SimpleNamespace(hash=b"\x33" * 16),
+        str(storage),
+    )
+    assert handler.update_settings(sync_directory=str(outside))["ok"] is True
+    abs_bait, err = handler._resolve_manager_path(str(bait))
+    assert abs_bait is None
+    assert err is not None
+    trav, err2 = handler._resolve_manager_path("../bait.txt")
+    assert trav is None
+    assert err2 is not None
+    assert bait.read_text(encoding="utf-8") == "secret"
+    (outside / "ok.txt").write_text("x", encoding="utf-8")
+    ok_path, ok_err = handler._resolve_manager_path("ok.txt", must_exist=True)
+    assert ok_err is None
+    assert ok_path is not None
+    assert ok_path.endswith("ok.txt")
+
+
+def test_symlink_external_to_identity_rejected(tmp_path):
+    storage = tmp_path / "id"
+    storage.mkdir()
+    keys = storage / "identity"
+    keys.mkdir()
+    (keys / "secret").write_text("k", encoding="utf-8")
+    ext = tmp_path / "Documents" / "wrap"
+    ext.mkdir(parents=True)
+    link = ext / "escape"
+    if hasattr(os, "symlink"):
+        try:
+            link.symlink_to(keys)
+        except OSError:
+            pytest.skip("symlink not permitted")
+    else:
+        pytest.skip("no symlink")
+    handler = RnsFilesyncHandler(
+        MagicMock(),
+        SimpleNamespace(hash=b"\x44" * 16),
+        str(storage),
+    )
+    assert handler._resolve_sync_directory(str(link)) is None
+    assert handler.update_settings(sync_directory=str(link))["ok"] is False
+
+
+def test_settings_relative_path_persists_under_identity(handler):
+    result = handler.update_settings(sync_directory="filesync/rel_persist")
+    assert result["ok"] is True
+    assert result["sync_directory"].startswith(handler.storage_dir)
+    reloaded = RnsFilesyncHandler(
+        MagicMock(),
+        handler.identity,
+        handler.storage_dir,
+    )
+    assert reloaded.get_status()["sync_directory"].startswith(handler.storage_dir)
+    assert "rel_persist" in reloaded.get_status()["sync_directory"]
 
 
 def test_teardown_clears_service_and_isolates_storage(tmp_path):
@@ -333,7 +509,7 @@ def test_acl_hash_oracle(handler, identity_hash, perms):
 
 
 @settings(
-    max_examples=30,
+    max_examples=40,
     deadline=None,
     suppress_health_check=[HealthCheck.too_slow, HealthCheck.function_scoped_fixture],
 )
@@ -343,21 +519,64 @@ def test_acl_hash_oracle(handler, identity_hash, perms):
             "",
             " ",
             "../escape",
-            "/tmp/x",
+            "/etc",
+            "/usr/bin",
+            "~",
             "~/.ssh",
             "filesync/nested",
             "filesync/../filesync/ok",
+            "identity",
+            "bots",
         ],
     ),
 )
 def test_settings_path_oracle(handler, sync_directory):
+    """Oracle: relative inputs stay under identity storage. Forbidden hosts reject."""
     before = handler.get_status()["sync_directory"]
     result = handler.update_settings(sync_directory=sync_directory)
     assert isinstance(result, dict)
+    storage_real = os.path.realpath(handler.storage_dir)
     if result["ok"]:
-        assert result["sync_directory"].startswith(handler.storage_dir)
+        resolved = os.path.realpath(result["sync_directory"])
+        assert handler._resolve_sync_directory(resolved) == resolved
+        assert resolved == storage_real or resolved.startswith(storage_real + os.sep)
+        first_rel = os.path.relpath(resolved, storage_real).split(os.sep, 1)[0]
+        assert first_rel not in {
+            "identity",
+            "bots",
+            "plugins",
+            "lxmf",
+            "ssl",
+        }
     else:
         assert handler.get_status()["sync_directory"] == before
+
+
+@settings(
+    max_examples=30,
+    deadline=None,
+    suppress_health_check=[HealthCheck.too_slow, HealthCheck.function_scoped_fixture],
+)
+@given(
+    rel=st.text(
+        min_size=1,
+        max_size=24,
+        alphabet=st.characters(
+            blacklist_categories=("Cs",),
+            blacklist_characters="\x00/\\",
+        ),
+    ),
+)
+def test_relative_path_oracle_stays_under_storage(handler, rel):
+    cleaned = rel.strip()
+    if not cleaned or cleaned in (".", ".."):
+        return
+    resolved = handler._resolve_sync_directory(cleaned)
+    if resolved is None:
+        return
+    storage_real = os.path.realpath(handler.storage_dir)
+    real = os.path.realpath(resolved)
+    assert real == storage_real or real.startswith(storage_real + os.sep)
 
 
 @patch("meshchatx.src.backend.rns_filesync_handler.FileSyncService")

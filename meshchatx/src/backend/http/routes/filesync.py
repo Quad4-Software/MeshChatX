@@ -132,7 +132,6 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 
 
 def register_filesync_routes(routes, app):
-
     # --- RNS FileSync ---
 
     def _filesync_require_handler():
@@ -364,6 +363,24 @@ def register_filesync_routes(routes, app):
         if not result.get("ok"):
             return web.json_response(
                 {"message": result.get("error", "list directories failed")},
+                status=400,
+            )
+        return web.json_response(result)
+
+    @routes.get("/api/v1/filesync/shared-directory-suggestion")
+    async def filesync_shared_directory_suggestion(_request):
+        not_ready = _filesync_require_handler()
+        if not_ready is not None:
+            return not_ready
+        try:
+            result = await asyncio.to_thread(
+                app.rns_filesync_handler.suggest_shared_sync_directory,
+            )
+        except Exception as e:
+            return web.json_response({"message": str(e)}, status=500)
+        if not result.get("ok"):
+            return web.json_response(
+                {"message": result.get("error", "suggestion failed")},
                 status=400,
             )
         return web.json_response(result)

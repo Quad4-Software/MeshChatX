@@ -19,7 +19,7 @@ Reference resolve helper: `rns_filesync_handler.py` (`_resolve_manager_path`).
 
 ## Hard rules
 
-1. Jail CRUD to the configured `sync_directory` only. The folder picker that _chooses_ a sync root is a different, looser jail (identity storage with reserved tops blocked, including `ssl`). Do not reuse the picker jail for tree/upload/delete.
+1. Jail CRUD to the configured `sync_directory` only. The folder picker that _chooses_ a sync root may be under identity storage (reserved tops blocked, including `ssl`) or an external shared path (Documents-style), never another identity or forbidden system roots. Do not reuse the picker jail for tree/upload/delete.
 2. Skip and refuse mutation of protocol sidecars (`.rns-filesync*`, `.rns-xfer*`).
 3. `announce_interval` must be an integer `>= 10` seconds. Invalid values return `{"ok": False, "error": ...}` rather than throwing 500.
 4. Upload cap for in-app manager uploads is `MANAGER_UPLOAD_MAX_BYTES` (64 MiB). That cap is the local control plane, not a mesh payload budget.

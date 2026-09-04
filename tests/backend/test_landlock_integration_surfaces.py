@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import tempfile
@@ -616,3 +617,44 @@ def test_extra_read_roots_from_app_uses_command_plugins_path(tmp_path):
     assert ll.extra_read_roots_from_app(_App(str(nested))) == [
         os.path.realpath(str(nested)),
     ]
+
+
+def test_collect_external_filesync_rw_roots_unit(tmp_path):
+    from meshchatx.src.backend.rns_filesync_handler import (
+        collect_external_filesync_rw_roots,
+    )
+
+    storage = tmp_path / "storage"
+    settings = storage / "identities" / ("cd" * 16) / "filesync" / "settings.json"
+    settings.parent.mkdir(parents=True)
+    shared = tmp_path / "ext_sync"
+    shared.mkdir()
+    settings.write_text(
+        json.dumps({"sync_directory": str(shared)}),
+        encoding="utf-8",
+    )
+    assert collect_external_filesync_rw_roots(str(storage)) == [
+        str(shared.resolve()),
+    ]
+
+
+@requires_landlock_integration
+def test_landlock_extra_rw_root_allows_external_filesync_dir(tmp_path):
+    storage = tmp_path / "storage"
+    storage.mkdir()
+    external = tmp_path / "filesync_external"
+    external.mkdir()
+    probe = external / "ok.txt"
+    result = run_python_under_landlock(
+        f"""
+        path = {str(probe)!r}
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write("ok")
+        print("OK", open(path, encoding="utf-8").read(), flush=True)
+        """,
+        storage=storage,
+        extra_rw_roots=[str(external)],
+    )
+    skip_if_landlock_not_applied(result)
+    assert_probe_ok(result)
+    assert "ok" in (result.stdout or "")

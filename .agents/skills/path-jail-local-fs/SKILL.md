@@ -33,12 +33,12 @@ You do not need the user to restate path jail, symlink policy, CSRF, or bait-fil
 
 Pick the tightest correct root for the feature:
 
-| Feature shape                          | Jail root                                     |
-| -------------------------------------- | --------------------------------------------- |
-| FileSync in-app manager                | Configured `sync_directory` only              |
-| Folder picker for choosing a sync root | Identity storage with reserved tops blocked   |
-| RNCP received / shared                 | That feature directory under identity storage |
-| Page-node files                        | That node file directory                      |
+| Feature shape                          | Jail root                                                                 |
+| -------------------------------------- | ------------------------------------------------------------------------- |
+| FileSync in-app manager                | Configured `sync_directory` only                                          |
+| Folder picker for choosing a sync root | Identity storage (reserved tops blocked) or approved external shared path |
+| RNCP received / shared                 | That feature directory under identity storage                             |
+| Page-node files                        | That node file directory                                                  |
 
 Never use a looser picker jail for tree/upload/delete/content of a tighter feature.
 
