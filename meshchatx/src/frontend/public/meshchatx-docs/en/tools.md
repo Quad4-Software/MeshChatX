@@ -17,11 +17,11 @@ Use these when messages or pages fail despite interfaces showing as enabled.
 
 ## File transfer and shell
 
-| Tool         | Purpose                                                  |
-| ------------ | -------------------------------------------------------- |
-| RNCP         | Send or fetch files over Reticulum                       |
+| Tool         | Purpose                                                |
+| ------------ | ------------------------------------------------------ |
+| RNCP         | Send or fetch files over Reticulum                     |
 | RNS FileSync | Sync a directory with peers over rns_filesync.filesync |
-| RNSH         | Remote shell sessions with streamed output               |
+| RNSH         | Remote shell sessions with streamed output             |
 
 RNCP progress events arrive on the WebSocket as rncp.transfer.progress.
 FileSync progress and peer events use filesync.sync.progress, filesync.peer.connected, filesync.peer.disconnected, filesync.file.updated, filesync.file.deleted, and filesync.error.
@@ -45,7 +45,7 @@ Bot templates include echo, note, and reminder starters. They use the bundled lx
 | Tool          | Purpose                               |
 | ------------- | ------------------------------------- |
 | Mesh Server   | Host NomadNet-compatible page nodes   |
-| Micron editor | Edit .mu pages locally              |
+| Micron editor | Edit .mu pages locally                |
 | Documentation | MeshChatX guides and Reticulum manual |
 
 ## Configuration editors

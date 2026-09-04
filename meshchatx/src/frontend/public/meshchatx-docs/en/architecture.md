@@ -54,8 +54,8 @@ Switching identities tears down the old context and loads another. Global mutabl
 
 Mesh peers are addressed by destination hash plus aspect. MeshChatX currently uses:
 
-| Aspect              | Role                         |
-| ------------------- | ---------------------------- |
+| Aspect            | Role                         |
+| ----------------- | ---------------------------- |
 | lxmf.delivery     | LXMF mail                    |
 | lxmf.propagation  | Propagation node             |
 | lxst.telephony    | LXST calls                   |

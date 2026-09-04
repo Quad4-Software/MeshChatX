@@ -66,16 +66,16 @@ Edit the version field in package.json, then run pnpm run version:sync (also the
 
 pnpm run version:sync also runs scripts/bake_build_meta.js, which writes gitignored _build_meta_baked.py with commit, product channel (testing / beta / stable / local), and release/channel_prompt.json. Override channel with MESHCHATX_BUILD_CHANNEL.
 
-Changelog entries are still written by hand when you cut a release. meshchatx.__version__ is read from meshchatx/src/version.py without importing meshchatx.src, so import meshchatx stays lightweight.
+Changelog entries are still written by hand when you cut a release. meshchatx.**version** is read from meshchatx/src/version.py without importing meshchatx.src, so import meshchatx stays lightweight.
 
 ## Release channels
 
-| Channel | Tags | How to cut |
-| ------- | ---- | ---------- |
-| Testing | nightly-* (also testing-*) | Daily cron / Testing Release workflow from dev |
-| Beta | beta-* (also preview-*) | Beta Release workflow_dispatch (CI must be green on that SHA) |
-| Stable | vX.Y.Z | Promote Release to Stable, or tag vX.Y.Z on the same SHA Beta tested |
-| Local | (none) | Source checkout / unset bake |
+| Channel | Tags                       | How to cut                                                           |
+| ------- | -------------------------- | -------------------------------------------------------------------- |
+| Testing | nightly-* (also testing-*) | Daily cron / Testing Release workflow from dev                       |
+| Beta    | beta-* (also preview-*)    | Beta Release workflow_dispatch (CI must be green on that SHA)        |
+| Stable  | vX.Y.Z                     | Promote Release to Stable, or tag vX.Y.Z on the same SHA Beta tested |
+| Local   | (none)                     | Source checkout / unset bake                                         |
 
 Before a Testing or Beta cut, edit release/channel_prompt.json (focus_areas, notes). Bug reports go to bug_report_lxmf in that file (swap later for an issues bot destination). The app shows that copy once per build on Testing/Beta and always on About.
 

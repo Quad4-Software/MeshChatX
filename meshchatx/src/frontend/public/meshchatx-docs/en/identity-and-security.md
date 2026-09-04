@@ -18,8 +18,8 @@ Shared resources include the Reticulum process and interface configuration in ~/
 
 MeshChatX tracks announces for aspects such as:
 
-| Aspect              | Meaning                           |
-| ------------------- | --------------------------------- |
+| Aspect            | Meaning                           |
+| ----------------- | --------------------------------- |
 | lxmf.delivery     | Peer accepts LXMF messages        |
 | lxst.telephony    | Peer accepts LXST calls           |
 | lxmf.propagation  | Propagation node                  |
@@ -127,7 +127,7 @@ If MeshChatX fails to start with errors such as database disk image is malformed
 
 | Platform         | MeshChatX storage                              | Reticulum network stack              |
 | ---------------- | ---------------------------------------------- | ------------------------------------ |
-| Linux / macOS    | ~/.reticulum-meshchatx/                      | ~/.reticulum/                      |
+| Linux / macOS    | ~/.reticulum-meshchatx/                        | ~/.reticulum/                        |
 | Windows          | `%USERPROFILE%\.reticulum-meshchatx\`          | `%USERPROFILE%\.reticulum\`          |
 | Windows portable | `<MeshChatX.exe folder>\.reticulum-meshchatx\` | `<MeshChatX.exe folder>\.reticulum\` |
 
