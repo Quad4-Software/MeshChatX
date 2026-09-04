@@ -485,4 +485,102 @@ describe("MapPage.vue", () => {
             expect(resultsContainer.classes()).toContain("overflow-y-auto");
         }
     });
+
+    it("dedupes concurrent performSearch before Nominatim (race)", async () => {
+        let inFlight = 0;
+        let maxInFlight = 0;
+        let completed = 0;
+        global.fetch = vi.fn(async () => {
+            inFlight += 1;
+            maxInFlight = Math.max(maxInFlight, inFlight);
+            await new Promise((r) => setTimeout(r, 40));
+            inFlight -= 1;
+            completed += 1;
+            return {
+                ok: true,
+                json: async () => [{ display_name: "Berlin", lat: "52.5", lon: "13.4", type: "city" }],
+            };
+        });
+
+        const wrapper = mountMapPage();
+        await flushPromises();
+        wrapper.vm.offlineEnabled = false;
+        wrapper.vm.searchQuery = "Berlin";
+
+        const first = wrapper.vm.performSearch();
+        const second = wrapper.vm.performSearch();
+        await Promise.all([first, second]);
+        await flushPromises();
+
+        expect(maxInFlight).toBe(1);
+        expect(completed).toBe(1);
+        expect(wrapper.vm.isSearching).toBe(false);
+        expect(wrapper.vm.searchResults.length).toBe(1);
+        expect(wrapper.vm.searchResults[0].display_name).toBe("Berlin");
+    });
+
+    it("ignores Nominatim results after a newer searchGeneration (race)", async () => {
+        let resolveStale;
+        const staleGate = new Promise((r) => {
+            resolveStale = r;
+        });
+        global.fetch = vi.fn(async (url) => {
+            const u = String(url);
+            if (u.includes("one")) {
+                await staleGate;
+                return {
+                    ok: true,
+                    json: async () => [{ display_name: "Stale", lat: "1", lon: "1", type: "city" }],
+                };
+            }
+            return {
+                ok: true,
+                json: async () => [{ display_name: "Fresh", lat: "2", lon: "2", type: "city" }],
+            };
+        });
+
+        const wrapper = mountMapPage();
+        await flushPromises();
+        wrapper.vm.offlineEnabled = false;
+        wrapper.vm.searchQuery = "one";
+
+        const p1 = wrapper.vm.performSearch();
+        // Unlock so a newer search can start while the first Nominatim call is gated.
+        wrapper.vm.isSearching = false;
+        wrapper.vm.searchQuery = "two";
+        const p2 = wrapper.vm.performSearch();
+        await flushPromises();
+        resolveStale();
+        await Promise.all([p1, p2]);
+        await flushPromises();
+
+        expect(wrapper.vm.searchResults.map((r) => r.display_name)).toEqual(["Fresh"]);
+        expect(wrapper.vm.isSearching).toBe(false);
+    });
+
+    it("applies map_coordinate_format from external config-updated", async () => {
+        const wrapper = mountMapPage();
+        await flushPromises();
+        expect(wrapper.vm.coordinateFormat).toBe("wgs84");
+        wrapper.vm.onConfigUpdatedExternally({ map_coordinate_format: "MGRS" });
+        expect(wrapper.vm.coordinateFormat).toBe("mgrs");
+        wrapper.vm.onConfigUpdatedExternally({ map_coordinate_format: "nope" });
+        expect(wrapper.vm.coordinateFormat).toBe("wgs84");
+    });
+
+    it("bumps geoWasmEpoch when refreshGeoWasmEpoch finds WASM ready", async () => {
+        const wrapper = mountMapPage();
+        await flushPromises();
+        const before = wrapper.vm.geoWasmEpoch;
+        globalThis.meshchatxGeoFormat = () => "{}";
+        globalThis.meshchatxGeoParse = () => "{}";
+        globalThis.meshchatxGeoLatLonToGrid = () => "{}";
+        globalThis.__MESHCHATX_TEST_GEO_WASM_BUNDLED__ = true;
+        await wrapper.vm.refreshGeoWasmEpoch();
+        expect(wrapper.vm.geoWasmEpoch).toBeGreaterThan(before);
+        delete globalThis.meshchatxGeoFormat;
+        delete globalThis.meshchatxGeoParse;
+        delete globalThis.meshchatxGeoLatLonToGrid;
+        delete globalThis.__MESHCHATX_TEST_GEO_WASM_BUNDLED__;
+    });
 });
