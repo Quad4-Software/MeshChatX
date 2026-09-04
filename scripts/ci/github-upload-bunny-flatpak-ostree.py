@@ -9,6 +9,7 @@ Upload order (Larsson / Flatpak static hosting):
 2. ``repo/refs/**``, ``repo/config``, root discovery files
 3. ``repo/summaries/**``, ``summary``, ``summary.sig``, then ``summary.idx`` last
 
+Within each phase, uploads may run concurrently. Phases never overlap.
 After summary is live, delete remote files under ``objects/`` and ``deltas/``
 that are no longer present locally (post-prune orphans).
 
@@ -25,10 +26,13 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import quote
 
 DEFAULT_PREFIX = "flatpak"
+DEFAULT_WORKERS = 16
+MAX_WORKERS = 64
 
 PHASE_OBJECTS = 0
 PHASE_DELTAS = 1
@@ -72,6 +76,15 @@ def ordered_rel_paths(root: Path) -> list[str]:
         p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file()
     )
     return sorted(rels, key=lambda r: (upload_phase(r), r))
+
+
+def upload_workers() -> int:
+    raw = os.environ.get("BUNNY_UPLOAD_WORKERS", str(DEFAULT_WORKERS))
+    try:
+        n = int(raw)
+    except ValueError:
+        n = DEFAULT_WORKERS
+    return max(1, min(n, MAX_WORKERS))
 
 
 def put_file(
@@ -207,8 +220,23 @@ def prune_remote_orphans(
         if under in local_rels:
             continue
         url = f"{base}/{encode_object_rel(remote_rel)}"
-        print(f"orphan prune: DELETE {url}", file=sys.stderr)
+        print(f"orphan prune: DELETE {url}", file=sys.stderr, flush=True)
         delete_path(url, access_key)
+
+
+def _upload_one(
+    root: Path,
+    rel: str,
+    base: str,
+    prefix: str,
+    access_key: str,
+) -> str:
+    object_rel = f"{prefix}/{rel}" if prefix else rel
+    url = f"{base}/{encode_object_rel(object_rel)}"
+    path = root / rel
+    body = path.read_bytes()
+    put_file(url, body, access_key, mime_for(path))
+    return f"phase={upload_phase(rel)} {url}"
 
 
 def upload_ostree_tree(
@@ -217,26 +245,48 @@ def upload_ostree_tree(
     access_key: str,
     prefix: str = DEFAULT_PREFIX,
     prune_orphans: bool = True,
+    workers: int | None = None,
 ) -> int:
     rels = ordered_rel_paths(root)
     if not rels:
-        print(f"no files under {root}", file=sys.stderr)
+        print(f"no files under {root}", file=sys.stderr, flush=True)
         return 1
     if "repo/config" not in rels:
-        print("missing repo/config under export root", file=sys.stderr)
+        print("missing repo/config under export root", file=sys.stderr, flush=True)
         return 1
 
     base = base.rstrip("/")
     prefix = prefix.strip("/")
     local_set = set(rels)
+    pool = upload_workers() if workers is None else max(1, min(workers, MAX_WORKERS))
 
+    by_phase: dict[int, list[str]] = {}
     for rel in rels:
-        object_rel = f"{prefix}/{rel}" if prefix else rel
-        url = f"{base}/{encode_object_rel(object_rel)}"
-        path = root / rel
-        body = path.read_bytes()
-        put_file(url, body, access_key, mime_for(path))
-        print(f"phase={upload_phase(rel)} {url}")
+        by_phase.setdefault(upload_phase(rel), []).append(rel)
+
+    print(
+        f"bunny ostree upload: {len(rels)} files in {len(by_phase)} phases "
+        f"workers={pool}",
+        flush=True,
+    )
+
+    for phase in sorted(by_phase):
+        batch = by_phase[phase]
+        print(f"bunny ostree phase={phase} files={len(batch)}", flush=True)
+        if pool == 1 or len(batch) == 1:
+            for rel in batch:
+                print(
+                    _upload_one(root, rel, base, prefix, access_key),
+                    flush=True,
+                )
+            continue
+        with ThreadPoolExecutor(max_workers=pool) as ex:
+            futures = [
+                ex.submit(_upload_one, root, rel, base, prefix, access_key)
+                for rel in batch
+            ]
+            for fut in as_completed(futures):
+                print(fut.result(), flush=True)
 
     if prune_orphans:
         prune_remote_orphans(base, access_key, prefix, local_set)
