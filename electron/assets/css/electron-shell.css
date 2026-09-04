@@ -1383,6 +1383,9 @@
     .mb-10 {
         margin-bottom: calc(var(--spacing) * 10);
     }
+    .-ml-1 {
+        margin-left: calc(var(--spacing) * -1);
+    }
     .-ml-11 {
         margin-left: calc(var(--spacing) * -11);
     }
@@ -2308,6 +2311,9 @@
     }
     .max-w-40 {
         max-width: calc(var(--spacing) * 40);
+    }
+    .max-w-\[5rem\] {
+        max-width: 5rem;
     }
     .max-w-\[7\.5rem\] {
         max-width: 7.5rem;
@@ -9957,12 +9963,6 @@
             width: calc(var(--spacing) * 6);
             height: calc(var(--spacing) * 6);
         }
-        .md\:h-5 {
-            height: calc(var(--spacing) * 5);
-        }
-        .md\:w-5 {
-            width: calc(var(--spacing) * 5);
-        }
         .md\:w-72 {
             width: calc(var(--spacing) * 72);
         }
@@ -9990,9 +9990,6 @@
         .md\:min-w-\[200px\] {
             min-width: 200px;
         }
-        .md\:flex-none {
-            flex: none;
-        }
         .md\:grid-cols-2 {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
@@ -10001,11 +9998,6 @@
         }
         .md\:grid-cols-4 {
             grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-        :where(.md\:space-x-2 > :not(:last-child)) {
-            --tw-space-x-reverse: 0;
-            margin-inline-start: calc(calc(var(--spacing) * 2) * var(--tw-space-x-reverse));
-            margin-inline-end: calc(calc(var(--spacing) * 2) * calc(1 - var(--tw-space-x-reverse)));
         }
         .md\:rounded-xl {
             border-radius: var(--radius-xl);
@@ -10021,9 +10013,6 @@
         .md\:border-b-0 {
             border-bottom-style: var(--tw-border-style);
             border-bottom-width: 0;
-        }
-        .md\:p-3 {
-            padding: calc(var(--spacing) * 3);
         }
         .md\:p-4 {
             padding: calc(var(--spacing) * 4);
@@ -10312,9 +10301,6 @@
         }
         .xl\:flex {
             display: flex;
-        }
-        .xl\:inline {
-            display: inline;
         }
         .xl\:max-h-\[min\(calc\(100dvh-6rem\)\,920px\)\] {
             max-height: min(100dvh - 6rem, 920px);

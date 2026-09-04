@@ -1166,74 +1166,97 @@ iframe {
     color-scheme: light dark;
 }
 
-:deep(.docs-prose) {
-    color: var(--mc-text-secondary);
+.docs-prose {
+    color: var(--mc-fg, var(--mc-text-secondary));
     font-size: 0.9375rem;
     line-height: 1.7;
 }
 
-:deep(.docs-prose h1) {
+.docs-prose :deep(h1) {
     letter-spacing: -0.02em;
 }
 
-:deep(.docs-prose h2 a),
-:deep(.docs-prose h3 a) {
+.docs-prose :deep(h2 a),
+.docs-prose :deep(h3 a) {
     color: inherit;
     text-decoration: none;
 }
 
-:deep(.docs-prose pre) {
+.docs-prose :deep(pre) {
     color: #f4f4f5 !important;
 }
 
-:deep(.docs-prose pre code) {
+.docs-prose :deep(pre code) {
     color: inherit !important;
 }
 
-:deep(.docs-prose code) {
+.docs-prose :deep(code) {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
-.dark :deep(.docs-prose p) {
-    color: #e4e4e7;
-}
-
-.dark :deep(.docs-prose h1),
-.dark :deep(.docs-prose h2),
-.dark :deep(.docs-prose h3),
-.dark :deep(.docs-prose h4) {
-    color: #f4f4f5;
-}
-
-:deep(.docs-prose table) {
+.docs-prose :deep(table) {
     width: 100%;
     border-collapse: collapse;
     margin: 1.25rem 0;
     font-size: 0.875rem;
 }
 
-:deep(.docs-prose th),
-:deep(.docs-prose td) {
+.docs-prose :deep(th),
+.docs-prose :deep(td) {
     border: 1px solid var(--mc-border);
     padding: 0.5rem 0.75rem;
     text-align: left;
 }
 
-:deep(.docs-prose th) {
+.docs-prose :deep(th) {
     background-color: var(--mc-surface-muted);
     font-weight: 700;
 }
 
-:deep(.docs-prose tr:nth-child(even)) {
+.docs-prose :deep(tr:nth-child(even)) {
     background-color: color-mix(in srgb, var(--mc-surface-muted) 65%, transparent);
 }
 
-:deep(.docs-prose a) {
+.docs-prose :deep(a) {
+    color: #0369a1;
+    text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 2px;
 }
 
-:deep(.docs-prose blockquote) {
+.docs-prose :deep(blockquote) {
     border-left-color: color-mix(in srgb, var(--mc-accent) 55%, transparent);
+}
+
+.dark .docs-prose {
+    color: #e4e4e7;
+}
+
+.dark .docs-prose :deep(p),
+.dark .docs-prose :deep(li),
+.dark .docs-prose :deep(td),
+.dark .docs-prose :deep(th),
+.dark .docs-prose :deep(strong),
+.dark .docs-prose :deep(em),
+.dark .docs-prose :deep(span),
+.dark .docs-prose :deep(blockquote) {
+    color: #e4e4e7 !important;
+}
+
+.dark .docs-prose :deep(h1),
+.dark .docs-prose :deep(h2),
+.dark .docs-prose :deep(h3),
+.dark .docs-prose :deep(h4) {
+    color: #f4f4f5 !important;
+}
+
+.dark .docs-prose :deep(a) {
+    color: #7dd3fc !important;
+}
+
+.dark .docs-prose :deep(h2 a),
+.dark .docs-prose :deep(h3 a) {
+    color: inherit !important;
+    text-decoration: none;
 }
 </style>

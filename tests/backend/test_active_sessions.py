@@ -59,6 +59,36 @@ def test_should_warn_multi_session_oracle_edge_cases():
     assert should_warn_multi_session(None, True) is False
 
 
+def test_should_warn_skips_localhost_and_lan_only_sessions():
+    from meshchatx.src.backend.active_sessions import is_loopback_or_lan_ip
+
+    assert is_loopback_or_lan_ip("127.0.0.1") is True
+    assert is_loopback_or_lan_ip("::1") is True
+    assert is_loopback_or_lan_ip("10.0.0.5") is True
+    assert is_loopback_or_lan_ip("192.168.1.20") is True
+    assert is_loopback_or_lan_ip("172.16.9.1") is True
+    assert is_loopback_or_lan_ip("8.8.8.8") is False
+    assert is_loopback_or_lan_ip("unknown") is False
+
+    local_sessions = [
+        {"ip": "127.0.0.1", "user_agent": "A"},
+        {"ip": "10.0.0.5", "user_agent": "B"},
+    ]
+    assert should_warn_multi_session(2, True, local_sessions) is False
+    assert (
+        should_warn_multi_session(2, True, [{"ip": "127.0.0.1"}, {"ip": "::1"}])
+        is False
+    )
+
+    remote_sessions = [
+        {"ip": "1.1.1.1", "user_agent": "A"},
+        {"ip": "2.2.2.2", "user_agent": "B"},
+    ]
+    assert should_warn_multi_session(2, True, remote_sessions) is True
+    mixed = [{"ip": "127.0.0.1"}, {"ip": "8.8.8.8"}]
+    assert should_warn_multi_session(2, True, mixed) is True
+
+
 @given(
     count=st.integers(min_value=-5, max_value=50),
     enabled=st.booleans(),
@@ -147,10 +177,16 @@ async def test_app_sessions_endpoint_smoke(mock_rns_minimal, temp_dir):
     response = await handler(MagicMock())
     data = json.loads(response.body)
     assert data["count"] == 2
-    assert data["warning"] is True
+    assert data["warning"] is False
     assert {row["ip"] for row in data["sessions"]} == {"127.0.0.1", "10.0.0.5"}
     assert {row["user_agent"] for row in data["sessions"]} == {"A/1", "B/2"}
     assert any(row["id"] == first["id"] for row in data["sessions"])
+
+    app.active_sessions.add(ip="8.8.8.8", user_agent="C/3")
+    response = await handler(MagicMock())
+    data = json.loads(response.body)
+    assert data["count"] == 3
+    assert data["warning"] is True
 
 
 @pytest.mark.asyncio
@@ -283,7 +319,7 @@ async def test_connect_disconnect_session_lifecycle_unit(mock_rns_minimal, temp_
     app.websocket_broadcast = capture
 
     clients = []
-    for ip, ua in (("127.0.0.1", "One"), ("127.0.0.1", "Two")):
+    for ip, ua in (("8.8.8.8", "One"), ("1.1.1.1", "Two")):
         client = MagicMock()
         session = app.active_sessions.add(ip=ip, user_agent=ua)
         client._meshchatx_session_id = session["id"]
@@ -302,3 +338,19 @@ async def test_connect_disconnect_session_lifecycle_unit(mock_rns_minimal, temp_
     assert app.active_sessions.count() == 1
     assert broadcasts[-1]["warning"] is False
     assert broadcasts[-1]["count"] == 1
+
+    remaining = clients.pop()
+    app.websocket_clients.remove(remaining)
+    app._detach_active_session(remaining)
+    await app.send_active_sessions_to_websocket_clients()
+    assert app.active_sessions.count() == 0
+
+    local_a = MagicMock()
+    local_b = MagicMock()
+    for client, ip in ((local_a, "127.0.0.1"), (local_b, "192.168.1.5")):
+        session = app.active_sessions.add(ip=ip, user_agent="Local")
+        client._meshchatx_session_id = session["id"]
+        app.websocket_clients.append(client)
+    await app.send_active_sessions_to_websocket_clients()
+    assert app.active_sessions.count() == 2
+    assert broadcasts[-1]["warning"] is False

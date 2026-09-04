@@ -7611,10 +7611,11 @@ class ReticulumMeshChat:
         except Exception:
             warning_enabled = True
         count = int(snap.get("count") or 0)
+        sessions = list(snap.get("sessions") or [])
         return {
             "count": count,
-            "sessions": list(snap.get("sessions") or []),
-            "warning": should_warn_multi_session(count, warning_enabled),
+            "sessions": sessions,
+            "warning": should_warn_multi_session(count, warning_enabled, sessions),
             "warning_enabled": warning_enabled,
         }
 

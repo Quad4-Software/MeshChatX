@@ -278,7 +278,7 @@
         "privacy_mode_enabled": "Privacy mode (block external HTTP/HTTPS)",
         "privacy_mode_description": "Blocks map tiles, geocoding, LibreTranslate, firmware downloads, and other outbound HTTP/HTTPS from the app. The browser Content Security Policy is tightened to same-origin only.",
         "multi_session_warning_enabled": "Warn when multiple sessions are connected",
-        "multi_session_warning_description": "Show a warning toast when two or more browsers or devices are connected to this MeshChatX instance at the same time.",
+        "multi_session_warning_description": "Show a warning toast when two or more browsers or devices are connected from outside localhost or your LAN.",
         "multi_session_warning": "Multiple active sessions ({count}). Another browser or device is connected to this MeshChatX instance.",
         "screen_security_enabled": "Screen security (block capture)",
         "screen_security_description": "Uses a Windows display-affinity flag so MeshChatX is omitted from screenshots, screen recording, and Windows Recall. The window still looks normal on your monitor.",
