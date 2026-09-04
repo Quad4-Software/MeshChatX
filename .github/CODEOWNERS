@@ -1,0 +1,4 @@
+# Require owner review for CI and security-sensitive paths.
+* @Sudo-Ivan
+/.github/ @Sudo-Ivan
+/.github/workflows/ @Sudo-Ivan
