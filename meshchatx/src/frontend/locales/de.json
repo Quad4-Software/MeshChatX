@@ -393,7 +393,7 @@
         "loading_overlay_title": "Profil wird gewechselt",
         "loading_overlay_subtitle": "Chats und Einstellungen werden geladen. Das dauert meist nur wenige Sekunden.",
         "emergency_mode_active": "Notfallmodus aktiv - In-Memory-Datenbank und eingeschränkte Dienste werden verwendet.",
-        "demo_mode_active": "Demo-Modus: Schreibgeschützte Mesh-Demo. Senden und Einstellungsänderungen sind deaktiviert.",
+        "demo_mode_active": "Demo-Modus: Schreibgeschützte Demo.",
         "backend_disconnected": "Verbindung zum Backend getrennt",
         "backend_process_stopped": "Reticulum-Backend gestoppt",
         "backend_reconnected": "Wieder mit dem Backend verbunden",

@@ -420,7 +420,7 @@
         "loading_overlay_title": "Perfil de conmutación",
         "loading_overlay_subtitle": "Carga tus chats y configuraciones. Esto normalmente lleva unos segundos.",
         "emergency_mode_active": "Modo de Emergencia Activo - Utilizar bases de datos en memoria y servicios restringidos.",
-        "demo_mode_active": "Modo demo: vitrina de malla de solo lectura. El envío y los cambios de configuración están deshabilitados.",
+        "demo_mode_active": "Modo demo: vitrina de solo lectura.",
         "backend_disconnected": "Desconectado desde el backend",
         "backend_process_stopped": "Backend de Reticulum detenido",
         "backend_reconnected": "Reconectado al backend",
