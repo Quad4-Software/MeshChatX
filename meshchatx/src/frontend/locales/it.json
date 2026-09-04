@@ -420,7 +420,7 @@
         "loading_overlay_title": "Cambio profilo",
         "loading_overlay_subtitle": "Caricamento chat e impostazioni. Di solito bastano pochi secondi.",
         "emergency_mode_active": "Modalità Emergenza Attiva - Utilizzo del database in memoria e servizi limitati.",
-        "demo_mode_active": "Modalità demo: vetrina mesh in sola lettura. Invio e modifiche alle impostazioni disabilitati.",
+        "demo_mode_active": "Modalità demo: vetrina in sola lettura.",
         "backend_disconnected": "Disconnesso dal backend",
         "backend_process_stopped": "Backend Reticulum arrestato",
         "backend_reconnected": "Riconnesso al backend",

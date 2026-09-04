@@ -420,7 +420,7 @@
         "loading_overlay_title": "Schakelen van profiel",
         "loading_overlay_subtitle": "Uw chats en instellingen laden. Dit duurt meestal een paar seconden.",
         "emergency_mode_active": "Noodmodus actief - Gebruik van in-geheugen database en beperkte diensten.",
-        "demo_mode_active": "Demomodus: alleen-lezen mesh-demo. Verzenden en instellingen wijzigen is uitgeschakeld.",
+        "demo_mode_active": "Demomodus: alleen-lezen showcase.",
         "backend_disconnected": "Verbinding verbroken met backend",
         "backend_process_stopped": "Reticulum-backend gestopt",
         "backend_reconnected": "Verbinding met backend",

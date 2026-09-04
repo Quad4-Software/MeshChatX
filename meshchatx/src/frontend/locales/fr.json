@@ -420,7 +420,7 @@
         "loading_overlay_title": "Profil de commutation",
         "loading_overlay_subtitle": "Chargement de vos chats et paramètres. Cela prend généralement quelques secondes.",
         "emergency_mode_active": "Mode d'urgence actif - Utilisation de la base de données en mémoire et des services restreints.",
-        "demo_mode_active": "Mode démo : vitrine mesh en lecture seule. L'envoi et les changements de paramètres sont désactivés.",
+        "demo_mode_active": "Mode démo : vitrine en lecture seule.",
         "backend_disconnected": "Déconnecté du moteur",
         "backend_process_stopped": "Moteur Reticulum arrêté",
         "backend_reconnected": "Reconnecté au moteur",

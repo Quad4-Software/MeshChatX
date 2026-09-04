@@ -420,7 +420,7 @@
         "loading_overlay_title": "切换配置",
         "loading_overlay_subtitle": "正在加载您的聊天和设置。这通常需要几秒钟。",
         "emergency_mode_active": "紧急模式激活 - 使用内存数据库和受限服务。",
-        "demo_mode_active": "演示模式：只读网状网络展示。已禁用发送和设置更改。",
+        "demo_mode_active": "演示模式：只读展示。",
         "backend_disconnected": "后端已断开",
         "backend_process_stopped": "Reticulum 后端已停止",
         "backend_reconnected": "已重新连接到后端",

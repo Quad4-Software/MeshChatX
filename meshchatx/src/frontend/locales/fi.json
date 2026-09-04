@@ -428,7 +428,7 @@
         "loading_overlay_title": "Vaihdetaan profiilia",
         "loading_overlay_subtitle": "Ladataan viestejä ja asetuksia. Tässä menee yleensä muutama sekunti.",
         "emergency_mode_active": "Hätätila käynnissä - Käytetään muistinsisäistä tietokantaa ja rajoitettuja palveluja.",
-        "demo_mode_active": "Demotila: vain luku -verkkoesittely. Lähetys ja asetusten muutokset on poistettu käytöstä.",
+        "demo_mode_active": "Demotila: vain luku -esittely.",
         "backend_disconnected": "Irrotettu taustapalvelusta",
         "backend_process_stopped": "Reticulum-taustapalvelu pysäytetty",
         "backend_reconnected": "Liitetty uudelleen taustapalveluun",

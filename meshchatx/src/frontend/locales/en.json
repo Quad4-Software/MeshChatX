@@ -516,7 +516,7 @@
         "loading_overlay_title": "Switching profile",
         "loading_overlay_subtitle": "Loading your chats and settings. This usually takes a few seconds.",
         "emergency_mode_active": "Emergency Mode Active - Using in-memory database and restricted services.",
-        "demo_mode_active": "Demo mode: read-only mesh showcase. Sending and settings changes are disabled.",
+        "demo_mode_active": "Demo mode: read-only showcase.",
         "backend_disconnected": "Disconnected from backend",
         "backend_process_stopped": "Reticulum backend stopped",
         "backend_reconnected": "Reconnected to backend",
