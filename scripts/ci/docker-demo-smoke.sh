@@ -10,10 +10,11 @@ COMPOSE_FILE="docker-compose.demo.yml"
 OVERRIDE_FILE="${TMPDIR:-/tmp}/meshchatx-demo-smoke-ports.yml"
 KEY="${MESHCHAT_ALTCHA_HMAC_KEY:-demo-smoke-hmac-key-change-me}"
 
+STATUS_JSON="${TMPDIR:-/tmp}/meshchatx-demo-smoke-status.json"
 cleanup() {
     MESHCHAT_IMAGE="$IMAGE" MESHCHAT_ALTCHA_HMAC_KEY="$KEY" \
         docker compose -f "$COMPOSE_FILE" -f "$OVERRIDE_FILE" down >/dev/null 2>&1 || true
-    rm -f "$OVERRIDE_FILE"
+    rm -f "$OVERRIDE_FILE" "$STATUS_JSON"
 }
 trap cleanup EXIT
 
@@ -32,25 +33,31 @@ fi
 MESHCHAT_IMAGE="$IMAGE" MESHCHAT_ALTCHA_HMAC_KEY="$KEY" \
     docker compose -f "$COMPOSE_FILE" -f "$OVERRIDE_FILE" up -d --pull never
 
+demo_status_ready() {
+    curl -fsS -o "$STATUS_JSON" "http://127.0.0.1:8000/api/v1/status" 2>/dev/null || return 1
+    python3 -c '
+import json,sys
+d=json.load(open(sys.argv[1], encoding="utf-8"))
+sys.exit(0 if d.get("demo_mode") and d.get("altcha_enabled") else 1)
+' "$STATUS_JSON"
+}
+
 deadline=$((SECONDS + 180))
 while [ "$SECONDS" -lt "$deadline" ]; do
-    if curl -fsS "http://127.0.0.1:8000/api/v1/status" 2>/dev/null | python3 -c '
-import json,sys
-d=json.load(sys.stdin)
-sys.exit(0 if d.get("demo_mode") and d.get("altcha_enabled") else 1)
-'; then
+    if demo_status_ready; then
         break
     fi
     sleep 3
 done
 
-curl -fsS "http://127.0.0.1:8000/api/v1/status" | python3 -c '
+curl -fsS -o "$STATUS_JSON" "http://127.0.0.1:8000/api/v1/status"
+python3 -c '
 import json,sys
-d=json.load(sys.stdin)
+d=json.load(open(sys.argv[1], encoding="utf-8"))
 assert d.get("demo_mode") is True
 assert d.get("altcha_enabled") is True
 print("demo status ok", d.get("status"))
-'
+' "$STATUS_JSON"
 
 code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
     -H "Content-Type: application/json" \

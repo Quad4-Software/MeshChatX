@@ -2,16 +2,12 @@
 # Shared setup for packaging service tests inside containers.
 set -eu
 
-pip_install() {
-  if python3 -m pip install --help 2>/dev/null | grep -q break-system-packages; then
-    python3 -m pip install --break-system-packages "$@"
-  else
-    python3 -m pip install "$@"
-  fi
-}
-
 echo "==> install rns-filesync from wheel"
-pip_install /wheels/*.whl
+if python3 -m pip install --help 2>/dev/null | grep -q break-system-packages; then
+  python3 -m pip install --break-system-packages /wheels/*.whl
+else
+  python3 -m pip install /wheels/*.whl
+fi
 BIN="$(command -v rns-filesync)"
 case "$BIN" in
   /usr/bin/rns-filesync) ;;

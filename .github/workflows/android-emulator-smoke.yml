@@ -143,8 +143,8 @@ jobs:
             - name: Build MeshChatX wheel for repository bundle
               run: |
                   set -euo pipefail
-                  python -m pip install -U pip build
-                  python -m build --wheel -o dist .
+                  bash scripts/ci/github-install-uv.sh
+                  uvx --from "build==1.3.0" pyproject-build --wheel -o dist .
 
             - name: Verify required x86_64 Android wheels
               run: |

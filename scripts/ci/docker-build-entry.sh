@@ -22,8 +22,7 @@ install_electron_builder_libs() {
 }
 
 if ! command -v node >/dev/null 2>&1; then
-    curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
-    apt-get install -y nodejs
+    bash scripts/ci/install-node-tarball.sh
 fi
 
 sh scripts/ci/setup-task.sh "${TASK_VERSION:-3.49.1}"

@@ -10,7 +10,8 @@ export GOTMPDIR="${GOTMPDIR:-/tmp/go-tmp}"
 
 PNPM_VERSION="${MESHCHATX_PNPM_VERSION:-11.1.2}"
 
-npm install -g "pnpm@${PNPM_VERSION}"
+corepack enable
+corepack prepare "pnpm@${PNPM_VERSION}" --activate
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
 node scripts/ensure-micron-parser-package.js

@@ -4,4 +4,4 @@
 set -eu
 
 apk upgrade --no-cache
-apk add --no-cache gcc g++ musl-dev linux-headers python3-dev libffi-dev openssl-dev git
+apk add --no-cache gcc g++ musl-dev linux-headers python3-dev libffi-dev openssl-dev git curl ca-certificates
