@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: 0BSD
+import { isIndexedDbAccessError, openIndexedDb } from "./idbOpen.js";
+
 const DB_NAME = "micron_editor_db";
 const DB_VERSION = 1;
 const STORE_NAME = "tabs";
@@ -5,50 +8,47 @@ const STORE_NAME = "tabs";
 class MicronStorage {
     constructor() {
         this.db = null;
-        this.initPromise = this.init();
+        this.initPromise = null;
+        this.unavailable = false;
+    }
+
+    _ensureInit() {
+        if (this.initPromise) {
+            return this.initPromise;
+        }
+        this.initPromise = this.init().catch((err) => {
+            if (isIndexedDbAccessError(err) || err === "IndexedDB not supported") {
+                this.unavailable = true;
+                this.db = null;
+                return null;
+            }
+            this.unavailable = true;
+            this.db = null;
+            console.warn("MicronStorage: IndexedDB init failed", err);
+            return null;
+        });
+        return this.initPromise;
     }
 
     async init() {
-        return new Promise((resolve, reject) => {
-            if (this.db) {
-                resolve(this.db);
-                return;
-            }
-
-            const idb =
-                window.indexedDB ||
-                window.mozIndexedDB ||
-                window.webkitIndexedDB ||
-                window.msIndexedDB ||
-                globalThis.indexedDB;
-            if (!idb) {
-                reject("IndexedDB not supported");
-                return;
-            }
-
-            const request = idb.open(DB_NAME, DB_VERSION);
-
-            request.onerror = (event) => {
-                console.error("IndexedDB error:", event.target.errorCode);
-                reject("IndexedDB error: " + event.target.errorCode);
-            };
-
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
+        if (this.db) {
+            return this.db;
+        }
+        this.db = await openIndexedDb(DB_NAME, DB_VERSION, {
+            onUpgrade: (db) => {
                 if (!db.objectStoreNames.contains(STORE_NAME)) {
                     db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
                 }
-            };
-
-            request.onsuccess = (event) => {
-                this.db = event.target.result;
-                resolve(this.db);
-            };
+            },
         });
+        return this.db;
     }
 
     async saveTabs(tabs) {
-        await this.initPromise;
+        await this._ensureInit();
+        if (!this.db) {
+            return;
+        }
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([STORE_NAME], "readwrite");
             const store = transaction.objectStore(STORE_NAME);
@@ -77,7 +77,10 @@ class MicronStorage {
     }
 
     async loadTabs() {
-        await this.initPromise;
+        await this._ensureInit();
+        if (!this.db) {
+            return [];
+        }
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([STORE_NAME], "readonly");
             const store = transaction.objectStore(STORE_NAME);
@@ -94,7 +97,10 @@ class MicronStorage {
     }
 
     async clearAll() {
-        await this.initPromise;
+        await this._ensureInit();
+        if (!this.db) {
+            return;
+        }
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([STORE_NAME], "readwrite");
             const store = transaction.objectStore(STORE_NAME);

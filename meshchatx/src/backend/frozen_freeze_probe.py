@@ -41,6 +41,11 @@ def main() -> None:
 
     import aiohttp  # noqa: F401
     import LXST  # noqa: F401
+    import RNS.vendor.umsgpack as umsgpack
+
+    packed = umsgpack.packb({"probe": True})
+    if umsgpack.unpackb(packed).get("probe") is not True:
+        raise SystemExit("frozen-freeze-probe: RNS.vendor.umsgpack roundtrip failed")
 
     native = _lxst_filterlib_path()
     if native is None:

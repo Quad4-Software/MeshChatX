@@ -54,7 +54,7 @@ describe("ChangelogModal.vue", () => {
 
         const img = wrapper.find("img");
         expect(img.exists()).toBe(true);
-        expect(img.attributes("src")).toContain("favicon-512x512.png");
+        expect(img.attributes("src")).toContain("logo.png");
     });
 
     it("displays logo in page version", async () => {
@@ -72,7 +72,7 @@ describe("ChangelogModal.vue", () => {
 
         const img = wrapper.find("img");
         expect(img.exists()).toBe(true);
-        expect(img.attributes("src")).toContain("favicon-512x512.png");
+        expect(img.attributes("src")).toContain("logo.png");
     });
 
     it("has hover classes on close button", async () => {

@@ -346,10 +346,16 @@ export default {
             return granted.map((id) => permissionLabel(id, (key) => this.$t(key)));
         },
         async refresh() {
+            if (!window.api?.get) {
+                return;
+            }
             const response = await window.api.get("/api/v1/plugins");
             this.plugins = response.data?.plugins || [];
         },
         async refreshSideband() {
+            if (!window.api?.get) {
+                return;
+            }
             const response = await window.api.get("/api/v1/sideband-plugins");
             const config = response.data?.config || {};
             this.sidebandConfig = {

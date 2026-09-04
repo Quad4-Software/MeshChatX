@@ -13,7 +13,7 @@
     >
         <template #header>
             <div class="flex min-w-0 flex-1 items-center">
-                <img src="../public/favicons/favicon-512x512.png" class="mr-3 size-8 object-contain" alt="Logo" />
+                <img :src="logoUrl" class="mr-3 size-8 object-contain" alt="Logo" />
                 <h2 class="text-xl font-bold tracking-tight text-sem-fg">
                     {{ $t("app.changelog_title", "What's New") }}
                 </h2>
@@ -73,7 +73,7 @@
         <div class="flex-1 overflow-y-auto px-6 py-10 md:px-12">
             <div class="mx-auto max-w-4xl">
                 <div class="mb-8 flex items-center gap-4">
-                    <img src="../public/favicons/favicon-512x512.png" class="size-16 object-contain" alt="Logo" />
+                    <img :src="logoUrl" class="size-16 object-contain" alt="Logo" />
                     <div>
                         <h1 class="mb-1 text-4xl font-black uppercase tracking-tighter text-sem-fg">
                             {{ $t("app.changelog_title", "What's New") }}
@@ -112,6 +112,8 @@
 import AppModal from "./AppModal.vue";
 import LoadingState from "./LoadingState.vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
+import GlobalEmitter from "../js/GlobalEmitter";
+import logoUrl from "../assets/images/logo.png";
 
 export default {
     name: "ChangelogModal",
@@ -128,6 +130,7 @@ export default {
     },
     data() {
         return {
+            logoUrl,
             visible: false,
             loading: true,
             error: null,
@@ -206,6 +209,7 @@ export default {
                 await this.markAsSeen();
             }
             this.visible = false;
+            GlobalEmitter.emit("changelog-closed");
         },
         async markAsSeen() {
             if (this.dontShowEver) {

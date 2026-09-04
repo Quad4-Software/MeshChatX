@@ -116,7 +116,7 @@ export function buildFullServerConfig(overrides = {}) {
         announce_store_lxst_telephony: true,
         announce_store_nomadnetwork_node: true,
         announce_store_lxmf_propagation: true,
-        announce_store_map_data: true,
+        announce_store_map_data: false,
         announce_max_stored_lxmf_delivery: 1000,
         announce_max_stored_nomadnetwork_node: 1000,
         announce_max_stored_lxmf_propagation: 1000,
@@ -167,6 +167,21 @@ export function createWindowApi(serverConfigRef) {
             }
             if (String(url).includes("/api/v1/stickers") && !String(url).includes("export")) {
                 return Promise.resolve({ data: { stickers: [] } });
+            }
+            if (String(url).includes("/api/v1/plugins")) {
+                return Promise.resolve({ data: { plugins: [] } });
+            }
+            if (String(url).includes("/api/v1/sideband-plugins")) {
+                return Promise.resolve({
+                    data: {
+                        config: {
+                            service_plugins_enabled: false,
+                            command_plugins_enabled: false,
+                            command_plugins_path: "",
+                        },
+                        plugins: [],
+                    },
+                });
             }
             if (String(url).includes("/api/v1/maintenance/messages/purge-preview")) {
                 return Promise.resolve({ data: { count: 0, cutoff: 1 } });

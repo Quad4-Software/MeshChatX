@@ -1,5 +1,6 @@
 # Primary CI: lint, tests, localization, Linux build check, E2E, and native builds (dev).
 # Verify matrix steps delegate to Taskfile.yml (task lint, test:frontend, test:lang).
+# Live LXMF local-TCP suite: task test:lxmf:live (MESHCHAT_LIVE_RETICULUM=1).
 #
 # The frontend bundle is built once via the reusable frontend-build workflow and
 # downloaded by downstream jobs instead of rebuilding on every runner.
@@ -10,6 +11,7 @@
 #   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
 #   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
 #   actions/setup-go@v7.0.0            b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+#   actions/cache@v4.2.0               1bd1e32a3bdc45362d1e726936510720a7c30a57
 
 name: CI
 
@@ -179,6 +181,30 @@ jobs:
             - name: Verify workspace clean
               uses: ./.github/actions/verify-workspace-clean
 
+    lxmf-live-local:
+        name: Live LXMF (local TCP + pack/reject)
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        permissions:
+            contents: read
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Set up development environment
+              uses: ./.github/actions/setup-dev-environment
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  uv-version: ${{ env.UV_VERSION }}
+                  node-version: ${{ env.NODE_VERSION }}
+                  pnpm-version: ${{ env.PNPM_VERSION }}
+
+            - name: Run live LXMF local suites
+              run: task test:lxmf:live
+
+            - name: Verify workspace clean
+              uses: ./.github/actions/verify-workspace-clean
+
     build-check:
         name: Linux build check
         runs-on: ubuntu-latest
@@ -217,6 +243,9 @@ jobs:
 
             - name: Verify bleak bundled in frozen backend
               run: bash scripts/ci/github-verify-frozen-bleak.sh build/exe
+
+            - name: Verify RNS.vendor.umsgpack bundled in frozen backend
+              run: bash scripts/ci/github-verify-frozen-umsgpack.sh build/exe
 
             - name: Verify FS sandbox modules bundled in frozen backend
               run: bash scripts/ci/github-verify-frozen-sandbox.sh build/exe
@@ -268,6 +297,8 @@ jobs:
                   test -n "$(ls -A .artifacts/linux-build-check/meshchatx/public)"
                   test -n "$(ls -A .artifacts/linux-build-check/build/exe)"
                   bash scripts/ci/github-verify-frozen-bleak.sh \
+                      .artifacts/linux-build-check/build/exe
+                  bash scripts/ci/github-verify-frozen-umsgpack.sh \
                       .artifacts/linux-build-check/build/exe
                   bash scripts/ci/github-verify-frozen-sandbox.sh \
                       .artifacts/linux-build-check/build/exe
@@ -322,6 +353,14 @@ jobs:
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
+
+            - name: Cache electron-builder toolsets
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: ~/.cache/electron-builder
+                  key: electron-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
+                  restore-keys: |
+                      electron-builder-${{ runner.os }}-${{ runner.arch }}-
 
             - name: Install dependencies
               run: bash scripts/ci/github-install-deps.sh
@@ -385,15 +424,28 @@ jobs:
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
+            - name: Cache Playwright browsers
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+                  restore-keys: |
+                      playwright-${{ runner.os }}-
+
             - name: Run Playwright smoke E2E
               run: bash scripts/ci/github-e2e.sh
 
     ui-lighthouse:
         name: UI Lighthouse (core pages)
+        needs: frontend
         runs-on: ubuntu-latest
         timeout-minutes: 45
         permissions:
             contents: read
+        env:
+            FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
+            MESHCHATX_FRONTEND_PREBUILT: "1"
+            MESHCHAT_LH_SKIP_BUILD: "1"
         steps:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
@@ -405,6 +457,19 @@ jobs:
                   uv-version: ${{ env.UV_VERSION }}
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
+
+            - name: Cache Playwright browsers
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+                  restore-keys: |
+                      playwright-${{ runner.os }}-
+
+            - name: Fetch frontend artifact
+              uses: ./.github/actions/fetch-frontend-artifact
+              with:
+                  artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
 
             - name: Run UI page smoke + Lighthouse CI subset
               run: bash scripts/ci/github-lighthouse.sh

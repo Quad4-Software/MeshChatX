@@ -1,9 +1,16 @@
 # SPDX-License-Identifier: 0BSD
 
+import math
 import struct
 import time
 
 from RNS.vendor import umsgpack
+
+
+def _valid_number(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return value if math.isfinite(value) else None
 
 
 class Sensor:
@@ -49,7 +56,7 @@ class Telemeter:
                 "speed": struct.unpack("!I", packed[3])[0] / 1e2,
                 "bearing": struct.unpack("!i", packed[4])[0] / 1e2,
                 "accuracy": struct.unpack("!H", packed[5])[0] / 1e2,
-                "last_update": packed[6],
+                "last_update": _valid_number(packed[6]),
             }
         except Exception:
             return None
@@ -82,18 +89,20 @@ class Telemeter:
         try:
             p = umsgpack.unpackb(packed)
             res = {}
-            if Sensor.SID_TIME in p:
-                res["time"] = {"utc": p[Sensor.SID_TIME]}
+            utc = _valid_number(p.get(Sensor.SID_TIME))
+            if utc is not None:
+                res["time"] = {"utc": int(utc)}
             if Sensor.SID_LOCATION in p:
                 res["location"] = Telemeter.unpack_location(p[Sensor.SID_LOCATION])
-            if Sensor.SID_PHYSICAL_LINK in p:
-                pl = p[Sensor.SID_PHYSICAL_LINK]
-                if isinstance(pl, (list, tuple)) and len(pl) >= 3:
-                    res["physical_link"] = {"rssi": pl[0], "snr": pl[1], "q": pl[2]}
-            if Sensor.SID_BATTERY in p:
-                b = p[Sensor.SID_BATTERY]
-                if isinstance(b, (list, tuple)) and len(b) >= 2:
-                    res["battery"] = {"charge_percent": b[0], "charging": b[1]}
+            pl = p.get(Sensor.SID_PHYSICAL_LINK)
+            if isinstance(pl, (list, tuple)) and len(pl) >= 3:
+                rssi, snr, q = (_valid_number(v) for v in pl[:3])
+                res["physical_link"] = {"rssi": rssi, "snr": snr, "q": q}
+            b = p.get(Sensor.SID_BATTERY)
+            if isinstance(b, (list, tuple)) and len(b) >= 2:
+                charge = _valid_number(b[0])
+                if charge is not None:
+                    res["battery"] = {"charge_percent": charge, "charging": bool(b[1])}
             # Add other sensors as needed
             return res
         except Exception:

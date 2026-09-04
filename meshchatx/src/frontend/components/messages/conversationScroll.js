@@ -1,19 +1,30 @@
+/* SPDX-License-Identifier: 0BSD */
+
 export const SCROLL_BOTTOM_EPS_PX = 8;
 
 export const LOAD_PREVIOUS_SCROLL_EDGE_PX = 500;
 
 /**
- * The message list uses `flex-col-reverse` on the inner wrapper; scrollTop is 0 at the visual bottom
- * (newest messages) and increases toward older history.
+ * True only when inverted scrollTop math applies: scrollTop 0 is the visual bottom (newest).
+ *
+ * That is the classic pattern where the *scrolling element* (or its direct child) is
+ * `flex-direction: column-reverse`. ConversationViewer now uses normal column flow for both
+ * virtual and non-virtual lists (oldest at top, newest at bottom), so this returns false there.
  * @param {Element} container
  * @returns {boolean}
  */
 export function isScrollColumnReverse(container) {
-    const inner = container?.firstElementChild;
-    if (!inner) {
+    if (!container) {
         return false;
     }
     try {
+        if (getComputedStyle(container).flexDirection === "column-reverse") {
+            return true;
+        }
+        const inner = container.firstElementChild;
+        if (!inner) {
+            return false;
+        }
         return getComputedStyle(inner).flexDirection === "column-reverse";
     } catch {
         return false;

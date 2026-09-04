@@ -1,16 +1,36 @@
 # MeshChatX agent entry
 
-Start at [.agents/README.md](.agents/README.md).
+Load only what the task needs. Do not dump the whole tree into context.
 
-Architecture and invariants: [.agents/overview.md](.agents/overview.md).
-Mesh design: [.agents/conventions/reticulum-zen.md](.agents/conventions/reticulum-zen.md).
-Prose: [.agents/skills/no-ai-slop/SKILL.md](.agents/skills/no-ai-slop/SKILL.md) before writing or editing docs, UI copy, or commit messages longer than a sentence.
+## Load order
 
-## Linux Landlock
+1. Task match: open one skill under `.agents/skills/<name>/SKILL.md` (index: `.agents/README.md`).
+2. Surface: open one file under `.agents/conventions/` (frontend, backend, android, tests, path-jail, commits).
+3. Mesh behaviour: `.agents/conventions/reticulum-zen.md` then `.agents/skills/reticulum-design-gates/SKILL.md`.
+4. Architecture / storage / security / env: `.agents/overview.md`.
+5. Where code lives: `.agents/module-ownership.md`.
+6. Prose: `.agents/skills/no-ai-slop/SKILL.md`.
 
-Optional filesystem sandbox on Linux (`MESHCHAT_LANDLOCK`, see overview). Besides SQLite `temp_store`, it affects subprocesses and user-local tools (pipx Argos Translate, `~/.local/bin` wrappers, rnsh/rnx launched as PATH scripts).
+Hard rules and skill triggers also live in `.cursor/rules/meshchatx-core.mdc` (always on).
+Zen gates: `.cursor/rules/reticulum-zen-gates.mdc`.
 
-- Implementation: `meshchatx/src/backend/landlock_sandbox.py`
-- SQLite symptoms and pragmas: [.agents/skills/landlock-sqlite/SKILL.md](.agents/skills/landlock-sqlite/SKILL.md)
-- Integration probes (subprocess spawn, translator Argos, home write denial): `tests/backend/test_landlock_integration_surfaces.py` and `tests/backend/landlock_integration_support.py`
-- After changing Landlock rules or any code that `subprocess`/`Popen`s external binaries, extend read/RW roots and add a probe test in that integration file.
+## Do not confuse
+
+| Topic                          | Open                                            |
+| ------------------------------ | ----------------------------------------------- |
+| Identity key vs zip restore    | `.agents/skills/identity-restore/SKILL.md`      |
+| Landlock + SQLite + subprocess | `.agents/skills/landlock-sqlite/SKILL.md`       |
+| CSRF / WS mutators             | `.agents/skills/auth-csrf-ws-security/SKILL.md` |
+| Local file path jail           | `.agents/conventions/path-jail.md`              |
+| Privacy mode vs mesh traffic   | `.agents/skills/privacy-mode-clearnet/SKILL.md` |
+
+## Landlock trap
+
+`MESHCHAT_LANDLOCK` sandboxes the process. SQLite must keep `temp_store=MEMORY` under Landlock. Features that `Popen` or read outside allowed roots need rule updates plus a probe in:
+
+```
+tests/backend/test_landlock_integration_surfaces.py
+```
+
+Implementation: `meshchatx/src/backend/landlock_sandbox.py`.
+User docs: `docs/en/`. Agent docs: `.agents/` only.

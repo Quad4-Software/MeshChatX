@@ -42,6 +42,36 @@ export function buildFatalErrorRecord(payload) {
  */
 export function reportFatalError(payload) {
     fatalErrorState.active = buildFatalErrorRecord(payload);
+    void recordFatalErrorLocally(fatalErrorState.active);
+}
+
+/**
+ * @param {FatalErrorRecord | null | undefined} record
+ */
+export async function recordFatalErrorLocally(record) {
+    if (!record || typeof window === "undefined" || !window.api?.post) {
+        return null;
+    }
+    try {
+        const response = await window.api.post("/api/v1/bug-reports/local", {
+            title: record.title || record.message,
+            description: record.details || record.context || "",
+            exception: {
+                type: record.kind === "backend" ? "BackendError" : "FrontendError",
+                value: record.message,
+                stack: record.stack || "",
+            },
+            source: record.kind === "backend" ? "backend" : "frontend",
+            kind: "exception",
+            meta: {
+                context: record.context || "",
+            },
+            force: true,
+        });
+        return response?.data || null;
+    } catch {
+        return null;
+    }
 }
 
 /**

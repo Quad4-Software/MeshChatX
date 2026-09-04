@@ -422,7 +422,7 @@
                     :style="nodeContainerShellStyle"
                     @click.capture="onElementClick"
                     @auxclick.capture="onElementClick"
-                    @contextmenu.prevent="onPageContextMenu"
+                    @contextmenu="onPageContextMenu"
                 >
                     <!-- archived version notice -->
                     <div
@@ -694,6 +694,7 @@ import NomadCrashTab from "./NomadCrashTab.vue";
 import Utils from "../../js/Utils";
 import DownloadUtils from "../../js/DownloadUtils";
 import ToastUtils from "../../js/ToastUtils";
+import { openAppContextMenuUnlessTextSelection } from "../../js/contextMenuUtils.js";
 import { getDestinationPath, runDestinationPathFinder } from "../../js/reticulumPathfinding.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import IconButton from "../IconButton.vue";
@@ -708,6 +709,7 @@ import {
     invalidateNomadMicronWasmPreload,
     isMicronWasmBundled,
 } from "../../js/MicronWasmLoader";
+import { getEffectiveMicronWasmReleaseLabel, MICRON_WASM_OVERRIDE_CHANGED_EVENT } from "../../js/micronWasmVersion.js";
 import ClickPopover from "../ClickPopover.vue";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../js/browserLayoutStore";
 import { isUnknownNodeDisplayName, resolveFavouriteUpsertDisplayName } from "../../js/nomadUnknownNodeName.js";
@@ -833,6 +835,7 @@ export default {
             pendingLoadLatestArchive: false,
 
             nomadMicronWasmReady: false,
+            micronWasmReleaseLabel: null,
             wasmBundled: isMicronWasmBundled(),
             pageShellBackground: null,
             standaloneContextMenu: {
@@ -956,11 +959,7 @@ export default {
             }
             const [p] = this.nodePagePath.split("`");
             const pathLower = (p || "").toLowerCase();
-            const micronGoRelease =
-                typeof import.meta.env.VITE_MICRON_PARSER_GO_RELEASE === "string" &&
-                import.meta.env.VITE_MICRON_PARSER_GO_RELEASE.trim() !== ""
-                    ? import.meta.env.VITE_MICRON_PARSER_GO_RELEASE.trim()
-                    : "\u2014";
+            const micronGoRelease = this.micronWasmReleaseLabel || "\u2014";
             const plainChip = (labelKey, detailKey, detailParams) => {
                 const detail = detailKey ? this.$t(detailKey, detailParams ?? {}) : "";
                 return {
@@ -1288,6 +1287,7 @@ export default {
         offWsEvent("nomadnet.page.archives", this.onNomadPageArchivesEvent);
         offWsEvent("nomadnet.page.archive.added", this.onNomadPageArchiveAddedEvent);
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.off(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseLabel);
     },
     mounted() {
         // listen for websocket messages
@@ -1298,6 +1298,8 @@ export default {
         onWsEvent("nomadnet.page.archives", this.onNomadPageArchivesEvent);
         onWsEvent("nomadnet.page.archive.added", this.onNomadPageArchiveAddedEvent);
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.on(MICRON_WASM_OVERRIDE_CHANGED_EVENT, this.refreshMicronWasmReleaseLabel);
+        this.refreshMicronWasmReleaseLabel();
 
         this.$watch(
             () => GlobalState.config?.nomad_micron_wasm_enabled,
@@ -1382,6 +1384,13 @@ export default {
             this.clearPartials?.();
             this.getFavourites();
             this.getNomadnetworkNodeAnnounces();
+        },
+        async refreshMicronWasmReleaseLabel() {
+            if (!isMicronWasmBundled()) {
+                this.micronWasmReleaseLabel = null;
+                return;
+            }
+            this.micronWasmReleaseLabel = await getEffectiveMicronWasmReleaseLabel();
         },
         getEmbeddedTabStateHash() {
             return (this.selectedNode?.destination_hash || "").trim();
@@ -2724,11 +2733,13 @@ export default {
             }
         },
         onPageContextMenu(event) {
-            if (this.embedded && this.nomadBrowserTabActions) {
-                this.nomadBrowserTabActions.openContextMenu(event);
-                return;
-            }
-            this.openStandaloneContextMenu(event);
+            openAppContextMenuUnlessTextSelection(event, (ev) => {
+                if (this.embedded && this.nomadBrowserTabActions) {
+                    this.nomadBrowserTabActions.openContextMenu(ev);
+                    return;
+                }
+                this.openStandaloneContextMenu(ev);
+            });
         },
         openStandaloneContextMenu(event) {
             this.standaloneContextMenu = {

@@ -66,7 +66,7 @@ Seen revisions live in `localStorage` under `meshchatx.post_install_prompts_seen
 - New top-level pages still need a route in `main.js` (see `page-toast-tests`). Registries cover discoverability and dispatch, not routing alone.
 - Prefer `onWsEvent` / registry handlers over growing ad-hoc `switch (json.type)` blocks in `App.vue`.
 - Settings search keywords belong in the settings section registry, not scattered only inside `SettingsPage.vue`.
-- Plugin UI uses the existing slot vocabulary (`PluginSlotNode` / related renderers). Do not invent a parallel slot system.
+- Plugin UI uses the existing slot vocabulary (`PluginSlotNode` / related renderers). Extend that vocabulary in place. Do not invent a parallel slot system. Document new node types in `docs/en/plugins.md` and validate them in `pluginUiDescriptor.js`.
 
 ## Key files
 

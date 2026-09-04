@@ -13,6 +13,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const ELECTRON_LOG_PREFIX = "[electron] ";
+const ELECTRON_LOG_MAX_BYTES = 5 * 1024 * 1024;
 
 function isBrokenPipeError(err) {
     if (!err || typeof err !== "object") {
@@ -89,11 +90,59 @@ function formatElectronLogLine(message) {
 }
 
 /**
+ * Rotate meshchatx.log when Electron appends would exceed the size cap.
+ * The Python backend also rotates this file. This keeps Electron-only growth
+ * bounded when the backend is not writing.
+ * @param {string} logPath
+ * @param {{
+ *   statSync?: typeof fs.statSync,
+ *   renameSync?: typeof fs.renameSync,
+ *   unlinkSync?: typeof fs.unlinkSync,
+ *   maxBytes?: number,
+ * }} [deps]
+ */
+function rotateLogFileIfNeeded(logPath, deps = {}) {
+    const statSync = deps.statSync || fs.statSync.bind(fs);
+    const renameSync = deps.renameSync || fs.renameSync.bind(fs);
+    const unlinkSync = deps.unlinkSync || fs.unlinkSync.bind(fs);
+    const maxBytes = deps.maxBytes ?? ELECTRON_LOG_MAX_BYTES;
+    let size = 0;
+    try {
+        size = statSync(logPath).size;
+    } catch (err) {
+        if (err && err.code === "ENOENT") {
+            return;
+        }
+        return;
+    }
+    if (size <= maxBytes) {
+        return;
+    }
+    const prev = `${logPath}.1`;
+    try {
+        unlinkSync(prev);
+    } catch (err) {
+        if (!err || err.code !== "ENOENT") {
+            // Best effort. Continue to rename.
+        }
+    }
+    try {
+        renameSync(logPath, prev);
+    } catch {
+        // Best effort. Append may still succeed on the oversized file.
+    }
+}
+
+/**
  * Create a durable main-process logger that appends to meshchatx.log.
  * @param {{
  *   getLogsDir: () => string | null | undefined,
  *   appendFileSync?: typeof fs.appendFileSync,
  *   mkdirSync?: typeof fs.mkdirSync,
+ *   statSync?: typeof fs.statSync,
+ *   renameSync?: typeof fs.renameSync,
+ *   unlinkSync?: typeof fs.unlinkSync,
+ *   maxBytes?: number,
  *   now?: () => Date,
  * }} options
  */
@@ -117,6 +166,17 @@ function createMainProcessLogger(options) {
         return path.join(logsDir, "meshchatx.log");
     }
 
+    function appendChunk(logPath, chunk) {
+        rotateLogFileIfNeeded(logPath, {
+            statSync: options.statSync,
+            renameSync: options.renameSync,
+            unlinkSync: options.unlinkSync,
+            maxBytes: options.maxBytes,
+        });
+        mkdirSync(path.dirname(logPath), { recursive: true });
+        appendFileSync(logPath, chunk, { encoding: "utf8" });
+    }
+
     function flushPending() {
         if (!pending.length) {
             return;
@@ -127,8 +187,7 @@ function createMainProcessLogger(options) {
         }
         const chunk = pending.splice(0, pending.length).join("");
         try {
-            mkdirSync(path.dirname(logPath), { recursive: true });
-            appendFileSync(logPath, chunk, { encoding: "utf8" });
+            appendChunk(logPath, chunk);
         } catch {
             disabled = true;
         }
@@ -146,8 +205,7 @@ function createMainProcessLogger(options) {
         }
         flushPending();
         try {
-            mkdirSync(path.dirname(logPath), { recursive: true });
-            appendFileSync(logPath, line, { encoding: "utf8" });
+            appendChunk(logPath, line);
         } catch {
             disabled = true;
         }
@@ -183,6 +241,8 @@ module.exports = {
     safeConsoleLog,
     shouldMirrorStdout,
     formatElectronLogLine,
+    rotateLogFileIfNeeded,
     createMainProcessLogger,
     ELECTRON_LOG_PREFIX,
+    ELECTRON_LOG_MAX_BYTES,
 };

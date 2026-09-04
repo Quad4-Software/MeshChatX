@@ -4,6 +4,10 @@
 from __future__ import annotations
 
 from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
+from meshchatx.src.backend.http.db_availability import (
+    http_for_database_exception,
+    require_database,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -133,7 +137,6 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 
 
 def register_lxmf_routes(routes, app):
-
     @routes.get("/api/v1/lxmf/propagation-node/status")
     async def propagation_node_status(request):
         router = app.message_router
@@ -691,12 +694,34 @@ def register_lxmf_routes(routes, app):
                 status = 400
             elif isinstance(e, TimeoutError):
                 status = 503
-            return web.json_response(
-                {
-                    "message": detail,
-                },
-                status=status,
+            body: dict[str, object] = {"message": detail}
+            lower = detail.lower()
+            failure_hint = None
+            if "could not recall" in lower:
+                failure_hint = "recall"
+            elif "no path" in lower:
+                failure_hint = "no_path"
+            elif "invalid destination" in lower:
+                failure_hint = "invalid"
+            elif status == 503:
+                failure_hint = "router_error"
+            ctx = app.current_context
+            helptips_on = (
+                ctx is not None
+                and ctx.config is not None
+                and ctx.config.delivery_helptips_enabled.get()
             )
+            if helptips_on and destination_hash and status in (400, 503):
+                from meshchatx.src.backend.delivery_diagnostics import (
+                    build_delivery_diagnostics,
+                )
+
+                body["diagnostics"] = build_delivery_diagnostics(
+                    app,
+                    destination_hash,
+                    failure_hint=failure_hint,
+                )
+            return web.json_response(body, status=status)
 
     @routes.post("/api/v1/lxmf-messages/reactions")
     async def lxmf_messages_reactions(request):
@@ -1278,8 +1303,14 @@ def register_lxmf_routes(routes, app):
 
     @routes.get("/api/v1/lxmf/folders")
     async def lxmf_folders_get(request):
-        folders = app.database.messages.get_all_folders()
-        return web.json_response([dict(f) for f in folders])
+        unavailable = require_database(app)
+        if unavailable is not None:
+            return unavailable
+        try:
+            folders = app.database.messages.get_all_folders()
+            return web.json_response([dict(f) for f in folders])
+        except Exception as e:
+            return http_for_database_exception(e)
 
     @routes.post("/api/v1/lxmf/folders")
     async def lxmf_folders_post(request):

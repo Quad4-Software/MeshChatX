@@ -39,6 +39,7 @@ describe("MapDiscoverPanel", () => {
 
     it("loads heard map-data-v1 announces through window.api", async () => {
         const wrapper = mount(MapDiscoverPanel, {
+            props: { listenEnabled: true },
             global: { mocks: { $t: (key) => key } },
         });
         await vi.advanceTimersByTimeAsync(250);
@@ -52,6 +53,7 @@ describe("MapDiscoverPanel", () => {
 
     it("fetches a catalog over window.api.post", async () => {
         const wrapper = mount(MapDiscoverPanel, {
+            props: { listenEnabled: true },
             global: { mocks: { $t: (key) => key } },
         });
         await vi.advanceTimersByTimeAsync(250);
@@ -69,6 +71,7 @@ describe("MapDiscoverPanel", () => {
     it("shows empty catalog copy when the node lists no maps", async () => {
         window.api.post = vi.fn().mockResolvedValue({ data: { maps: [] } });
         const wrapper = mount(MapDiscoverPanel, {
+            props: { listenEnabled: true },
             global: { mocks: { $t: (key) => key } },
         });
         await vi.advanceTimersByTimeAsync(250);
@@ -77,5 +80,16 @@ describe("MapDiscoverPanel", () => {
         await flushPromises();
         expect(wrapper.text()).toContain("map.data_catalog_empty");
         expect(ToastUtils.info).toHaveBeenCalled();
+    });
+
+    it("does not fetch heard announces while listening is off", async () => {
+        const wrapper = mount(MapDiscoverPanel, {
+            props: { listenEnabled: false },
+            global: { mocks: { $t: (key) => key } },
+        });
+        await vi.advanceTimersByTimeAsync(250);
+        await flushPromises();
+        expect(window.api.get).not.toHaveBeenCalled();
+        expect(wrapper.text()).toContain("map.data_listen_off");
     });
 });

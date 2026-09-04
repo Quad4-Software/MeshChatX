@@ -126,6 +126,13 @@ if (process.platform === "linux") {
     app.setName("reticulum-meshchatx");
 }
 
+// Windows toast notifications require a stable AppUserModelID that matches
+// the electron-builder appId. Without this, minimized-window message toasts
+// often never appear for installer and portable builds.
+if (process.platform === "win32") {
+    app.setAppUserModelId("com.quad4.meshchatx");
+}
+
 // Detect if running in Flatpak sandbox
 const isRunningInFlatpak = !!process.env.FLATPAK_ID;
 if (isRunningInFlatpak) {

@@ -43,8 +43,14 @@
                 </div>
 
                 <!-- content -->
-                <div class="flex-1 mr-2 text-sm font-medium text-sem-fg">
-                    {{ toastMessage(toast.message) }}
+                <div class="flex-1 mr-2 text-sm font-medium text-sem-fg min-w-0">
+                    <div>{{ toastMessage(toast.message) }}</div>
+                    <ul
+                        v-if="toast.details && toast.details.length"
+                        class="mt-2 list-disc list-inside space-y-1 text-xs font-normal text-sem-fg-muted"
+                    >
+                        <li v-for="(line, index) in toast.details" :key="index">{{ line }}</li>
+                    </ul>
                 </div>
 
                 <!-- close button -->
@@ -120,6 +126,7 @@ export default {
                     existingToast.message = toast.message;
                     existingToast.type = toast.type || "info";
                     existingToast.duration = toast.duration !== undefined ? toast.duration : 5000;
+                    existingToast.details = Array.isArray(toast.details) ? toast.details : [];
 
                     if (existingToast.duration > 0) {
                         existingToast.timer = setTimeout(() => {
@@ -137,6 +144,7 @@ export default {
                 id,
                 key: toast.key,
                 message: toast.message,
+                details: Array.isArray(toast.details) ? toast.details : [],
                 type: toast.type || "info",
                 duration: toast.duration !== undefined ? toast.duration : 5000,
                 timer: null,

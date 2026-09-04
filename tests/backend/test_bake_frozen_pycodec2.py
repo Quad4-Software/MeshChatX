@@ -268,11 +268,13 @@ def test_ci_wires_codec2_freeze_guards() -> None:
     assert "bake_frozen_pycodec2" in backend_js
     assert "github-verify-frozen-codec2.sh" in universal
     assert "github-verify-frozen-runtime.sh" in universal
+    assert "github-verify-frozen-umsgpack.sh" in universal
     assert "github-verify-frozen-codec2.sh" in macos_ci
     assert "github-verify-frozen-codec2.sh" in windows_ci
     assert "github-verify-frozen-codec2.sh" in ci_yml
     assert "import LXST" in probe
     assert "import pycodec2" in probe
+    assert "import RNS.vendor.umsgpack as umsgpack" in probe
     assert "required native" in unify
     assert "libcodec2" in unify
     assert "libscipy_openblas" in unify

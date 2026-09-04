@@ -428,7 +428,8 @@ describe("SettingsPage Component", () => {
                     TelephonySettingsSection: true,
                     DesktopSettingsSection: true,
                     LanguageSettingsSection: true,
-                    PluginsSettingsSection: true,
+                    PluginsSettingsSection: { template: "<div class='plugins-settings-section-stub'></div>" },
+                    MicronWasmUpdateModal: true,
                 },
                 mocks: {
                     $t: (key) => key,

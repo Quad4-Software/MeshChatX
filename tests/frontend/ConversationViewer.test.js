@@ -2699,4 +2699,48 @@ describe("ConversationViewer.vue", () => {
             expect(wrapper.vm.chatItems[0].lxmf_message.hash).toBe("real-hash");
         });
     });
+
+    describe("paper message ingest bubble state", () => {
+        it("marks the pending source bubble as ingested on success result", async () => {
+            const store = {};
+            vi.stubGlobal("localStorage", {
+                getItem: (key) => (Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null),
+                setItem: (key, value) => {
+                    store[key] = String(value);
+                },
+                removeItem: (key) => {
+                    delete store[key];
+                },
+            });
+            const wrapper = mountConversationViewer();
+            await flushPromises();
+            const hash = "aa".repeat(16);
+            wrapper.vm.pendingPaperIngestMessageHash = hash;
+            wrapper.vm.onLxmIngestUriResultEvent({ status: "success" });
+            expect(wrapper.vm.pendingPaperIngestMessageHash).toBeNull();
+            expect(wrapper.vm.isPaperMessageIngested({ lxmf_message: { hash } })).toBe(true);
+        });
+
+        it("does not mark the bubble on warning or error ingest results", async () => {
+            const store = {};
+            vi.stubGlobal("localStorage", {
+                getItem: (key) => (Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null),
+                setItem: (key, value) => {
+                    store[key] = String(value);
+                },
+                removeItem: (key) => {
+                    delete store[key];
+                },
+            });
+            const wrapper = mountConversationViewer();
+            await flushPromises();
+            const hash = "bb".repeat(16);
+            wrapper.vm.pendingPaperIngestMessageHash = hash;
+            wrapper.vm.onLxmIngestUriResultEvent({ status: "warning" });
+            expect(wrapper.vm.isPaperMessageIngested({ lxmf_message: { hash } })).toBe(false);
+            wrapper.vm.pendingPaperIngestMessageHash = hash;
+            wrapper.vm.onLxmIngestUriResultEvent({ status: "error" });
+            expect(wrapper.vm.isPaperMessageIngested({ lxmf_message: { hash } })).toBe(false);
+        });
+    });
 });

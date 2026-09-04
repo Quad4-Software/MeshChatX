@@ -37,6 +37,7 @@ def run_python_under_landlock(
     extra_read_roots: list[str] | None = None,
     extra_env: dict[str, str] | None = None,
     timeout: float = 90,
+    extra_rw_roots: list[str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Execute body in a fresh Python process after apply_landlock_sandbox."""
     storage_s = str(storage)
@@ -45,6 +46,8 @@ def run_python_under_landlock(
     extra_kw = ""
     if extra_read_roots:
         extra_kw = f", extra_read_roots={list(extra_read_roots)!r}"
+    if extra_rw_roots:
+        extra_kw += f", extra_rw_roots={list(extra_rw_roots)!r}"
     body_clean = textwrap.dedent(body).strip()
     script = (
         "import os\n"

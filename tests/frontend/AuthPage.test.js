@@ -238,6 +238,33 @@ describe("AuthPage.vue", () => {
         });
     });
 
+    it("submits login with ALTCHA payload from the widget", async () => {
+        axiosMock.get.mockResolvedValue({
+            data: {
+                auth_enabled: true,
+                authenticated: false,
+                password_set: true,
+                altcha_enabled: true,
+            },
+        });
+
+        const wrapper = mountAuthPage();
+        await wrapper.vm.$nextTick();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.altchaEnabled).toBe(true);
+        wrapper.vm.password = "password123";
+        wrapper.vm.altchaPayload = "altcha-token";
+        await wrapper.vm.handleSubmit();
+        await wrapper.vm.$nextTick();
+
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/auth/login", {
+            password: "password123",
+            altcha: "altcha-token",
+        });
+    });
+
     it("reloads page after successful login", async () => {
         axiosMock.get.mockResolvedValueOnce({
             data: {

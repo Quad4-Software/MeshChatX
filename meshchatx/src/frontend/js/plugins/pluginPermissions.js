@@ -43,6 +43,10 @@ export function declaredPermissionIds(manifest) {
     if (network && network !== "none") {
         ids.push("network:fetch");
     }
+    const ui = permissions.ui;
+    if (ui === "sandboxed-html" || (Array.isArray(ui) && ui.includes("sandboxed-html"))) {
+        ids.push("ui:sandboxed-html");
+    }
     return [...new Set(ids)];
 }
 

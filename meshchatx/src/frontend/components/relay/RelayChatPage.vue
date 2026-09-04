@@ -1365,6 +1365,7 @@ import { RELAY_HOST_MODAL_OVERLAY, RELAY_HOST_MODAL_PANEL_COMPACT } from "../../
 import { buildRelayShareMessage } from "../../js/relayLinkUtils.js";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import MarkdownRenderer from "../../js/MarkdownRenderer.js";
+import { preferNativeTextSelectionMenu } from "../../js/contextMenuUtils.js";
 import {
     ANNOUNCE_SLIDER_POS_MAX,
     announceMinutesToSliderPos,
@@ -2193,6 +2194,12 @@ export default {
         openMessageContextMenu(event, msg) {
             if (!msg || msg.kind === "system" || msg.kind === "notice" || msg.kind === "error") {
                 return;
+            }
+            if (event && preferNativeTextSelectionMenu(event)) {
+                return;
+            }
+            if (event && typeof event.preventDefault === "function") {
+                event.preventDefault();
             }
             this.messageMenu = {
                 show: true,

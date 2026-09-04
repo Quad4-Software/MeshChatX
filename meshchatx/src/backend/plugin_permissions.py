@@ -32,6 +32,13 @@ KNOWN_MANAGERS = frozenset(
         "bugReport.stopCollector",
         "bugReport.announce",
         "bugReport.setCollectorName",
+        "bugReport.listIssues",
+        "bugReport.getIssue",
+        "bugReport.recordLocal",
+        "bugReport.setIssueStatus",
+        "bugReport.listPendingSends",
+        "bugReport.enqueueSend",
+        "bugReport.cancelPendingSend",
         "rnsLink.open",
         "rnsLink.identify",
         "rnsLink.request",
@@ -42,13 +49,16 @@ KNOWN_MANAGERS = frozenset(
 
 KNOWN_STORAGE = frozenset({"isolated", "none"})
 KNOWN_NETWORK = frozenset({"none", "fetch"})
+KNOWN_UI = frozenset({"none", "sandboxed-html"})
 
 _URL_IN_TEXT_RE = re.compile(r"""https?://[^\s"'<>\\)]+""")
 _SCHEME_HOST_RE = re.compile(
     r"https?://([a-z0-9][-a-z0-9.]*(?:\.[a-z0-9][-a-z0-9.]*)+)",
     re.IGNORECASE,
 )
-_SCAN_EXTENSIONS = frozenset({".js", ".mjs", ".json", ".wasm", ".ts", ".go", ".wat"})
+_SCAN_EXTENSIONS = frozenset(
+    {".js", ".mjs", ".json", ".wasm", ".ts", ".go", ".wat", ".html", ".htm"}
+)
 _LOOPBACK_OR_UNSPECIFIED_HOSTS = frozenset(
     {
         "localhost",
@@ -75,6 +85,10 @@ def permission_id_for_network(network: str) -> str:
     return f"network:{network}"
 
 
+def permission_id_for_ui(ui: str) -> str:
+    return f"ui:{ui}"
+
+
 def normalize_network_mode(value: Any) -> str:
     if value is None or value == "" or value == "none":
         return "none"
@@ -83,6 +97,20 @@ def normalize_network_mode(value: Any) -> str:
     if isinstance(value, str):
         return "fetch"
     return "none"
+
+
+def normalize_ui_modes(value: Any) -> list[str]:
+    if value is None or value == "" or value == "none":
+        return []
+    if value == "sandboxed-html":
+        return ["sandboxed-html"]
+    if isinstance(value, list):
+        modes: list[str] = []
+        for item in value:
+            if item == "sandboxed-html":
+                modes.append("sandboxed-html")
+        return modes
+    return []
 
 
 def declared_permission_ids(manifest: dict[str, Any]) -> list[str]:
@@ -102,6 +130,8 @@ def declared_permission_ids(manifest: dict[str, Any]) -> list[str]:
     network = normalize_network_mode(permissions.get("network"))
     if network != "none":
         ids.append(permission_id_for_network(network))
+    for ui_mode in normalize_ui_modes(permissions.get("ui")):
+        ids.append(permission_id_for_ui(ui_mode))
     # Deduplicate while preserving order.
     seen: set[str] = set()
     ordered: list[str] = []
@@ -131,6 +161,14 @@ def validate_declared_permissions(manifest: dict[str, Any]) -> None:
     network = permissions.get("network", "none")
     if network is not None and normalize_network_mode(network) not in KNOWN_NETWORK:
         raise ValueError(f"unknown network permission: {network!r}")
+    ui = permissions.get("ui", "none")
+    if ui is not None and ui != "none":
+        modes = normalize_ui_modes(ui)
+        if not modes and ui not in KNOWN_UI:
+            raise ValueError(f"unknown ui permission: {ui!r}")
+        for mode in modes:
+            if mode not in KNOWN_UI:
+                raise ValueError(f"unknown ui permission: {mode!r}")
     network_block = manifest.get("network")
     if network_block is not None:
         if not isinstance(network_block, dict):

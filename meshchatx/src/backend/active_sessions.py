@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import ipaddress
 import threading
 import time
 import uuid
@@ -31,13 +32,61 @@ def _clean_user_agent(value: str | None) -> str:
     return cleaned[:_MAX_UA_LEN]
 
 
-def should_warn_multi_session(count: int, warning_enabled: bool) -> bool:
-    """Oracle: warn when two or more sessions are active and the setting is on."""
+def is_loopback_or_lan_ip(value: str | None) -> bool:
+    """True for loopback, RFC1918, link-local, and IPv6 ULA addresses."""
+    cleaned = str(value or "").strip()
+    if not cleaned or cleaned.lower() == "unknown":
+        return False
+    if cleaned.startswith("[") and cleaned.endswith("]"):
+        cleaned = cleaned[1:-1]
+    if "%" in cleaned:
+        cleaned = cleaned.split("%", 1)[0]
+    if cleaned.lower().startswith("::ffff:"):
+        cleaned = cleaned[7:]
+    try:
+        addr = ipaddress.ip_address(cleaned)
+    except ValueError:
+        return False
+    return bool(addr.is_loopback or addr.is_private or addr.is_link_local)
+
+
+def sessions_are_local_only(sessions: Any) -> bool:
+    """True when every session IP is loopback or LAN (or the list is empty)."""
+    if sessions is None:
+        return False
+    try:
+        rows = list(sessions)
+    except TypeError:
+        return False
+    if not rows:
+        return True
+    for row in rows:
+        if not isinstance(row, dict):
+            return False
+        if not is_loopback_or_lan_ip(row.get("ip")):
+            return False
+    return True
+
+
+def should_warn_multi_session(
+    count: int,
+    warning_enabled: bool,
+    sessions: Any = None,
+) -> bool:
+    """Oracle: warn when two or more non-local sessions are active and the setting is on.
+
+    Localhost and LAN-only clients (same machine or private network) do not
+    trigger the toast. Pass sessions=None to skip the locality check.
+    """
     try:
         active = int(count)
     except (TypeError, ValueError):
         return False
-    return bool(warning_enabled) and active >= 2
+    if not bool(warning_enabled) or active < 2:
+        return False
+    if sessions is not None and sessions_are_local_only(sessions):
+        return False
+    return True
 
 
 class ActiveSessionTracker:

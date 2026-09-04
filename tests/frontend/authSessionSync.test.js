@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
+import { readFileSync } from "fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import GlobalState from "../../meshchatx/src/frontend/js/GlobalState.js";
 import {
@@ -95,5 +96,12 @@ describe("authSessionSync", () => {
         const decision = await pending;
         expect(decision).toEqual({ allow: true });
         expect(GlobalState.authSessionResolved).toBe(true);
+    });
+});
+
+describe("auth boot defaults", () => {
+    it("keeps authSessionResolved false until status is applied", () => {
+        const src = readFileSync("meshchatx/src/frontend/js/GlobalState.js", "utf8");
+        expect(src).toMatch(/authSessionResolved:\s*false/);
     });
 });

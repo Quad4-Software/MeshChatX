@@ -18,7 +18,7 @@ function readBaked() {
     const short = (text.match(/^GIT_COMMIT_SHORT = "(.*)"$/m) || [])[1] ?? "";
     const channel = (text.match(/^BUILD_CHANNEL = "(.*)"$/m) || [])[1] ?? "";
     const isDev = /^IS_DEV_BUILD = True$/m.test(text);
-    return { commit, short, channel, isDev };
+    return { commit, short, channel, isDev, text };
 }
 
 function runBake(envOverrides) {
@@ -55,7 +55,7 @@ describe("bake_build_meta channel oracles", () => {
         }
     }
 
-    it("nightly ref bakes is_dev with short sha", () => {
+    it("nightly ref bakes testing with short sha and prompt", () => {
         snapshot();
         const meta = runBake({
             MESHCHATX_BUILD_CHANNEL: "",
@@ -64,13 +64,28 @@ describe("bake_build_meta channel oracles", () => {
             MESHCHATX_GIT_COMMIT: "",
             GIT_COMMIT: "",
         });
-        expect(meta.channel).toBe("nightly");
+        expect(meta.channel).toBe("testing");
         expect(meta.isDev).toBe(true);
         expect(meta.short).toBe("abcdef0");
         expect(meta.commit.startsWith("abcdef0")).toBe(true);
+        expect(meta.text, meta.text.slice(0, 400)).toContain("CHANNEL_PROMPT_JSON");
+        expect(meta.text).toContain("bug_report_url");
     });
 
-    it("release tag clears is_dev", () => {
+    it("beta tag bakes beta channel", () => {
+        snapshot();
+        const meta = runBake({
+            MESHCHATX_BUILD_CHANNEL: "",
+            GITHUB_REF_NAME: "beta-2026.09.02-deadbee",
+            GITHUB_SHA: "deadbeefcafebabe",
+            MESHCHATX_GIT_COMMIT: "",
+            GIT_COMMIT: "",
+        });
+        expect(meta.channel).toBe("beta");
+        expect(meta.isDev).toBe(true);
+    });
+
+    it("stable tag clears is_dev", () => {
         snapshot();
         const meta = runBake({
             MESHCHATX_BUILD_CHANNEL: "",
@@ -79,21 +94,32 @@ describe("bake_build_meta channel oracles", () => {
             MESHCHATX_GIT_COMMIT: "",
             GIT_COMMIT: "",
         });
-        expect(meta.channel).toBe("release");
+        expect(meta.channel).toBe("stable");
         expect(meta.isDev).toBe(false);
         expect(meta.short).toBe("deadbee");
     });
 
-    it("explicit MESHCHATX_BUILD_CHANNEL=release wins over nightly ref name", () => {
+    it("explicit MESHCHATX_BUILD_CHANNEL=stable wins over nightly ref name", () => {
+        snapshot();
+        const meta = runBake({
+            MESHCHATX_BUILD_CHANNEL: "stable",
+            GITHUB_REF_NAME: "nightly-2026.07.24-abcdef0",
+            MESHCHATX_GIT_COMMIT: "1234567890abcdef",
+        });
+        expect(meta.channel).toBe("stable");
+        expect(meta.isDev).toBe(false);
+        expect(meta.short).toBe("1234567");
+    });
+
+    it("legacy release env normalizes to stable", () => {
         snapshot();
         const meta = runBake({
             MESHCHATX_BUILD_CHANNEL: "release",
             GITHUB_REF_NAME: "nightly-2026.07.24-abcdef0",
             MESHCHATX_GIT_COMMIT: "1234567890abcdef",
         });
-        expect(meta.channel).toBe("release");
+        expect(meta.channel).toBe("stable");
         expect(meta.isDev).toBe(false);
-        expect(meta.short).toBe("1234567");
     });
 
     it("local/default channel is treated as dev", () => {

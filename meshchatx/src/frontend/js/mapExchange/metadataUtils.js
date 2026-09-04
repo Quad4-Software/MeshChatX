@@ -12,6 +12,8 @@ import {
     MCX_STROKE_COLOR,
     MCX_STROKE_WIDTH,
 } from "./constants.js";
+import { extractKeyedDescriptionLines, isNullishMapValue } from "./descriptionFlatten.js";
+import { isAllowedDataImageHref, isRemoteHref } from "./kmlSanitize.js";
 
 const SKIP_EXTENDED = new Set([
     "geometry",
@@ -41,7 +43,10 @@ const SKIP_EXTENDED = new Set([
     "stroke-width",
     "fill",
     "fill-opacity",
+    "overlay_id",
 ]);
+
+const URL_RE = /\bhttps?:\/\/[^\s<>"'`]+/gi;
 
 /**
  * Normalize KML-style Name/Description onto lowercase keys for export.
@@ -115,6 +120,77 @@ function looksLikeHtml(s) {
 }
 
 /**
+ * Only data-URI raster icons are safe in the local UI img tag.
+ * @param {unknown} src
+ * @returns {string|null}
+ */
+export function safeFeatureIconSrc(src) {
+    if (src == null || src === "") {
+        return null;
+    }
+    const s = String(src).trim();
+    if (!s) {
+        return null;
+    }
+    if (isAllowedDataImageHref(s)) {
+        return s;
+    }
+    if (isRemoteHref(s) || s.toLowerCase().startsWith("data:")) {
+        return null;
+    }
+    return null;
+}
+
+/**
+ * @param {unknown} v
+ * @returns {string}
+ */
+function stringifyPropValue(v) {
+    if (v == null) {
+        return "";
+    }
+    if (typeof v === "object") {
+        try {
+            return JSON.stringify(v);
+        } catch {
+            return String(v);
+        }
+    }
+    return String(v);
+}
+
+/**
+ * @param {string} text
+ * @returns {{ kind: "text"|"link", text: string, href?: string }[]}
+ */
+export function splitTextWithLinks(text) {
+    const raw = String(text || "");
+    if (!raw) {
+        return [];
+    }
+    const parts = [];
+    let last = 0;
+    URL_RE.lastIndex = 0;
+    let m;
+    while ((m = URL_RE.exec(raw)) !== null) {
+        if (m.index > last) {
+            parts.push({ kind: "text", text: raw.slice(last, m.index) });
+        }
+        let href = m[0];
+        while (/[),.;!?]$/.test(href)) {
+            href = href.slice(0, -1);
+        }
+        parts.push({ kind: "link", text: href, href });
+        last = m.index + href.length;
+        URL_RE.lastIndex = last;
+    }
+    if (last < raw.length) {
+        parts.push({ kind: "text", text: raw.slice(last) });
+    }
+    return parts.length ? parts : [{ kind: "text", text: raw }];
+}
+
+/**
  * @param {import("ol/Feature").default} feature
  * @returns {{ name: string, description: string, descriptionIsHtml: boolean, iconSrc: string|null, extended: { key: string, value: string }[] }|null}
  */
@@ -129,9 +205,10 @@ export function getDrawFeatureMetadataPayload(feature) {
     }
     const name = String(props.name ?? "").trim();
     const rawDesc = props.description;
-    const description = rawDesc == null ? "" : typeof rawDesc === "string" ? rawDesc : String(rawDesc);
-    const iconSrc = props[MCX_ICON_DATA_URL] || props[MCX_ICON_HREF] || null;
+    let description = rawDesc == null ? "" : typeof rawDesc === "string" ? rawDesc : String(rawDesc);
+    const iconSrc = safeFeatureIconSrc(props[MCX_ICON_DATA_URL] || props[MCX_ICON_HREF] || null);
     const extended = [];
+    const seenKeys = new Set();
     for (const [k, v] of Object.entries(props)) {
         if (k === "geometry" || k.startsWith("_")) {
             continue;
@@ -142,26 +219,26 @@ export function getDrawFeatureMetadataPayload(feature) {
         if (k === "name" || k === "Name" || k === "description" || k === "Description") {
             continue;
         }
-        let vs;
-        if (v == null) {
-            vs = "";
-        } else if (typeof v === "object") {
-            try {
-                vs = JSON.stringify(v);
-            } catch {
-                vs = String(v);
-            }
-        } else {
-            vs = String(v);
-        }
-        vs = vs.trim();
+        let vs = stringifyPropValue(v).trim();
         if (vs.length > 400) {
             vs = `${vs.slice(0, 400)}…`;
         }
-        if (!vs || vs === "null" || vs === "undefined") {
+        if (isNullishMapValue(vs)) {
             continue;
         }
         extended.push({ key: k, value: vs });
+        seenKeys.add(k.toLowerCase());
+    }
+    if (description.trim() && !looksLikeHtml(description)) {
+        const extracted = extractKeyedDescriptionLines(description);
+        for (const pair of extracted.pairs) {
+            if (seenKeys.has(pair.key.toLowerCase())) {
+                continue;
+            }
+            extended.push(pair);
+            seenKeys.add(pair.key.toLowerCase());
+        }
+        description = extracted.leftover;
     }
     extended.sort((a, b) => a.key.localeCompare(b.key));
     if (!name && !description.trim() && !extended.length && !iconSrc) {
@@ -182,7 +259,26 @@ export function getDrawFeatureMetadataPayload(feature) {
         name,
         description,
         descriptionIsHtml: Boolean(description.trim() && looksLikeHtml(description)),
-        iconSrc: iconSrc ? String(iconSrc) : null,
+        iconSrc,
         extended,
     };
+}
+
+/**
+ * Apply edited name and description onto a draw feature.
+ * @param {import("ol/Feature").default} feature
+ * @param {{ name?: string, description?: string }} fields
+ */
+export function applyFeatureMetadataEdits(feature, fields) {
+    if (!feature || !fields) {
+        return;
+    }
+    if (Object.prototype.hasOwnProperty.call(fields, "name")) {
+        feature.set("name", String(fields.name ?? "").trim());
+        feature.unset("Name");
+    }
+    if (Object.prototype.hasOwnProperty.call(fields, "description")) {
+        feature.set("description", String(fields.description ?? ""));
+        feature.unset("Description");
+    }
 }

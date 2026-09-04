@@ -93,6 +93,204 @@ _RESERVED_SYNC_TOP = frozenset(
     },
 )
 
+# Host paths that must never become a FileSync root (mesh exfil risk).
+_FORBIDDEN_EXTERNAL_PREFIXES = (
+    "/etc",
+    "/usr",
+    "/bin",
+    "/sbin",
+    "/boot",
+    "/proc",
+    "/sys",
+    "/dev",
+    "/lib",
+    "/lib64",
+    "/var/lib",
+    "/var/log",
+    "/root",
+)
+
+_FORBIDDEN_HOME_TOPS = frozenset(
+    {
+        ".ssh",
+        ".gnupg",
+        ".aws",
+        ".password-store",
+        ".reticulum",
+        ".config",
+        ".local",
+    },
+)
+
+
+def _identity_hex(identity) -> str:
+    raw = getattr(identity, "hash", None)
+    if isinstance(raw, (bytes, bytearray)):
+        return bytes(raw).hex()
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip().lower()
+    return "unknown"
+
+
+def _is_under_path(candidate: str, root: str) -> bool:
+    if not candidate or not root:
+        return False
+    return candidate == root or candidate.startswith(root + os.sep)
+
+
+def _looks_like_windows_system_path(resolved: str) -> bool:
+    lowered = resolved.replace("/", "\\").lower()
+    if lowered.startswith("\\windows") or "\\windows\\system32" in lowered:
+        return True
+    if len(lowered) >= 3 and lowered[1] == ":" and lowered[2] == "\\":
+        drive_tail = lowered[3:]
+        if drive_tail.startswith("windows") or drive_tail.startswith("program files"):
+            return True
+    return False
+
+
+def _identities_container_for(storage_dir: str) -> str | None:
+    parent = os.path.dirname(storage_dir)
+    if os.path.basename(parent).lower() == "identities":
+        return parent
+    return None
+
+
+def _is_forbidden_external_root(resolved: str) -> bool:
+    """Reject host paths that are too broad or system-critical."""
+    if "\x00" in resolved:
+        return True
+    fs_root = os.path.realpath(os.path.abspath(os.sep))
+    if resolved == fs_root:
+        return True
+    home = os.path.expanduser("~")
+    if home and home != "~":
+        try:
+            home_real = os.path.realpath(os.path.abspath(home))
+        except OSError:
+            home_real = ""
+        if home_real and resolved == home_real:
+            return True
+        if home_real and _is_under_path(resolved, home_real):
+            rel = os.path.relpath(resolved, home_real)
+            first = rel.split(os.sep, 1)[0]
+            if first in _FORBIDDEN_HOME_TOPS:
+                return True
+    if _looks_like_windows_system_path(resolved):
+        return True
+    for prefix in _FORBIDDEN_EXTERNAL_PREFIXES:
+        if _is_under_path(resolved, prefix):
+            return True
+    return False
+
+
+def resolve_sync_directory_path(path: str, identity_storage_dir: str) -> str | None:
+    """Resolve a candidate FileSync root for one identity storage tree.
+
+    Relative paths join under identity storage (never process CWD). Absolute and
+    ~ paths may be external when they pass the same reserved/sibling/forbidden
+    checks used by the live handler.
+    """
+    cleaned = str(path or "").strip()
+    if not cleaned or "\x00" in cleaned:
+        return None
+    try:
+        storage_root = os.path.realpath(identity_storage_dir)
+    except OSError:
+        return None
+    try:
+        expanded = os.path.expanduser(cleaned)
+        was_relative = not os.path.isabs(expanded)
+        if was_relative:
+            expanded = os.path.join(storage_root, expanded)
+        resolved = os.path.realpath(expanded)
+    except OSError:
+        return None
+
+    # Relative inputs are identity-scoped only. ../ must not become an
+    # accidental external sync root next to storage.
+    if was_relative and not _is_under_path(resolved, storage_root):
+        return None
+
+    # Never allow a sync root that contains this identity storage (keys/DB).
+    if _is_under_path(storage_root, resolved):
+        return None
+
+    if _is_under_path(resolved, storage_root):
+        rel = os.path.relpath(resolved, storage_root)
+        first = rel.split(os.sep, 1)[0]
+        if first in _RESERVED_SYNC_TOP or first.endswith(".db"):
+            return None
+        return resolved
+
+    identities = _identities_container_for(storage_root)
+    if identities is not None and _is_under_path(resolved, identities):
+        return None
+
+    if _is_forbidden_external_root(resolved):
+        return None
+    return resolved
+
+
+def collect_external_filesync_rw_roots(storage_dir: str | None) -> list[str]:
+    """Scan identity FileSync settings for sync roots outside global storage.
+
+    Used at Landlock apply time so a previously chosen shared folder stays
+    writable after restart. Paths must pass resolve_sync_directory_path for
+    that identity. Missing or invalid settings are skipped.
+    """
+    if not isinstance(storage_dir, str) or not storage_dir.strip():
+        return []
+    try:
+        base = os.path.realpath(os.path.abspath(storage_dir.strip()))
+    except OSError:
+        return []
+    identities = os.path.join(base, "identities")
+    if not os.path.isdir(identities):
+        return []
+    roots: list[str] = []
+    try:
+        entries = os.listdir(identities)
+    except OSError:
+        return []
+    for name in entries:
+        identity_storage = os.path.join(identities, name)
+        if not os.path.isdir(identity_storage):
+            continue
+        settings_path = os.path.join(identity_storage, "filesync", "settings.json")
+        if not os.path.isfile(settings_path):
+            continue
+        try:
+            with open(settings_path, encoding="utf-8") as handle:
+                data = json.load(handle)
+        except Exception:
+            continue
+        if not isinstance(data, dict):
+            continue
+        sync_dir = data.get("sync_directory")
+        if not isinstance(sync_dir, str) or not sync_dir.strip():
+            continue
+        resolved = resolve_sync_directory_path(sync_dir, identity_storage)
+        if resolved is None:
+            continue
+        if _is_under_path(resolved, base):
+            continue
+        if not os.path.isdir(resolved):
+            # Create before Landlock restrict so the path can be a RW root.
+            try:
+                os.makedirs(resolved, exist_ok=True)
+            except OSError:
+                continue
+        if not os.path.isdir(resolved):
+            continue
+        # Re-check after create/realpath in case of races or symlink swaps.
+        verified = resolve_sync_directory_path(resolved, identity_storage)
+        if verified is None or verified != os.path.realpath(resolved):
+            continue
+        if verified not in roots:
+            roots.append(verified)
+    return roots
+
 
 class RnsFilesyncHandler:
     """Host FileSync against the shared Reticulum stack for one identity."""
@@ -133,22 +331,54 @@ class RnsFilesyncHandler:
         except Exception:
             pass
 
+    def _identities_container(self) -> str | None:
+        return _identities_container_for(self.storage_dir)
+
     def _resolve_sync_directory(self, path: str) -> str | None:
-        cleaned = str(path or "").strip()
-        if not cleaned:
-            return None
-        resolved = os.path.realpath(os.path.expanduser(cleaned))
-        root = self.storage_dir
-        # Never sync the whole identity tree (would expose keys / DB).
-        if resolved == root:
-            return None
-        if not resolved.startswith(root + os.sep):
-            return None
-        rel = os.path.relpath(resolved, root)
-        first = rel.split(os.sep, 1)[0]
-        if first in _RESERVED_SYNC_TOP or first.endswith(".db"):
-            return None
-        return resolved
+        """Resolve a candidate sync root.
+
+        Allowed:
+        - Under this identity storage, excluding reserved tops and the identity root
+        - Outside identity storage, when not a forbidden host path and not another
+          identity's storage tree
+
+        CRUD under the chosen root stays jailed via _resolve_manager_path.
+        """
+        return resolve_sync_directory_path(path, self.storage_dir)
+
+    def suggest_shared_sync_directory(self) -> dict[str, Any]:
+        """Suggest a per-identity folder outside app-private storage.
+
+        On Android this targets public Documents so other apps can open files.
+        Desktop uses ~/Documents/MeshChatX/<full-identity-hash>/sync.
+        """
+        identity_id = _identity_hex(self.identity)
+        android = False
+        try:
+            from meshchatx.android_push_bridge import _is_chaquopy_android
+
+            android = bool(_is_chaquopy_android())
+        except Exception:
+            android = False
+        if android:
+            base = "/storage/emulated/0/Documents/MeshChatX"
+        else:
+            base = os.path.join(os.path.expanduser("~"), "Documents", "MeshChatX")
+        path = os.path.join(base, identity_id, "sync")
+        resolved = self._resolve_sync_directory(path)
+        if resolved is None:
+            return {
+                "ok": False,
+                "error": "shared sync directory not allowed",
+                "path": path,
+                "android": android,
+            }
+        return {
+            "ok": True,
+            "path": resolved,
+            "android": android,
+            "requires_all_files_access": android,
+        }
 
     def _sync_root(self) -> str:
         """Real path of the configured sync directory (file manager jail base)."""
@@ -640,38 +870,56 @@ class RnsFilesyncHandler:
             }
 
     def list_directories(self, path: str | None = None) -> dict[str, Any]:
-        """List subdirectories under identity storage for the folder browser."""
+        """List subdirectories for the sync-folder picker.
+
+        Default browse root is identity filesync config. Absolute paths that
+        pass _resolve_sync_directory (including shared external folders) are
+        also browsable.
+        """
         with self._lock:
-            root = self.storage_dir
+            identity_root = self.storage_dir
             cleaned = str(path or "").strip()
             if cleaned:
                 target = self._resolve_sync_directory(cleaned)
                 if target is None:
                     return {
                         "ok": False,
-                        "error": "path must stay under identity storage",
+                        "error": "path not allowed for sync directory",
                     }
+                under_identity = _is_under_path(target, identity_root)
             else:
                 os.makedirs(self._root, exist_ok=True)
                 target = self._root
+                under_identity = True
 
             if not os.path.isdir(target):
-                # Default sync path can appear in status before the folder exists.
-                # Walk up to the nearest existing directory still inside the jail.
                 cursor = target
                 while True:
                     parent = os.path.dirname(cursor)
                     if parent == cursor:
                         break
-                    if parent != root and not parent.startswith(root + os.sep):
-                        break
+                    if under_identity:
+                        if parent != identity_root and not _is_under_path(
+                            parent,
+                            identity_root,
+                        ):
+                            break
+                    else:
+                        if self._resolve_sync_directory(parent) is None:
+                            break
                     cursor = parent
                     if os.path.isdir(cursor):
                         target = cursor
                         break
                 if not os.path.isdir(target):
-                    os.makedirs(self._root, exist_ok=True)
-                    target = self._root
+                    if under_identity:
+                        os.makedirs(self._root, exist_ok=True)
+                        target = self._root
+                    else:
+                        return {
+                            "ok": False,
+                            "error": "directory does not exist",
+                        }
 
             entries: list[dict[str, str]] = []
             try:
@@ -682,7 +930,7 @@ class RnsFilesyncHandler:
                     if not os.path.isdir(full):
                         continue
                     resolved = os.path.realpath(full)
-                    if resolved != root and not resolved.startswith(root + os.sep):
+                    if self._resolve_sync_directory(resolved) is None:
                         continue
                     entries.append({"name": name, "path": resolved})
             except OSError as exc:
@@ -690,21 +938,32 @@ class RnsFilesyncHandler:
 
             current = os.path.realpath(target)
             parent = None
-            if current != root:
+            if under_identity:
+                if current != identity_root:
+                    candidate = os.path.dirname(current)
+                    if candidate == identity_root or _is_under_path(
+                        candidate,
+                        identity_root,
+                    ):
+                        parent = candidate
+            else:
                 candidate = os.path.dirname(current)
-                if candidate == root or candidate.startswith(root + os.sep):
+                if (
+                    candidate != current
+                    and self._resolve_sync_directory(candidate) is not None
+                ):
                     parent = candidate
 
             return {
                 "ok": True,
-                "root": root,
+                "root": identity_root if under_identity else current,
                 "current": current,
                 "parent": parent,
                 "directories": entries,
             }
 
     def create_directory(self, parent: str | None, name: str) -> dict[str, Any]:
-        """Create a subdirectory under identity storage for sync folders."""
+        """Create a subdirectory for use as a sync folder."""
         with self._lock:
             cleaned_name = str(name or "").strip()
             if (
@@ -725,7 +984,7 @@ class RnsFilesyncHandler:
             if parent_resolved is None:
                 return {
                     "ok": False,
-                    "error": "parent must stay under identity storage",
+                    "error": "parent not allowed for sync directory",
                 }
 
             new_path = os.path.join(parent_resolved, cleaned_name)
@@ -733,7 +992,7 @@ class RnsFilesyncHandler:
             if resolved is None:
                 return {
                     "ok": False,
-                    "error": "path must stay under identity storage",
+                    "error": "path not allowed for sync directory",
                 }
             try:
                 os.makedirs(resolved, exist_ok=False)
@@ -756,7 +1015,7 @@ class RnsFilesyncHandler:
                 if resolved is None:
                     return {
                         "ok": False,
-                        "error": "sync_directory must stay under identity storage",
+                        "error": "sync_directory not allowed",
                     }
                 self._sync_directory = resolved
             if monitor is not None:
@@ -775,7 +1034,17 @@ class RnsFilesyncHandler:
                 if status.get("running"):
                     return {"ok": True, "already_running": True, **status}
 
-            os.makedirs(self._sync_directory, exist_ok=True)
+            try:
+                os.makedirs(self._sync_directory, exist_ok=True)
+            except OSError as exc:
+                return {
+                    "ok": False,
+                    "error": (
+                        "cannot create sync directory "
+                        f"({exc}). If Landlock is active, restart MeshChatX "
+                        "after choosing a shared folder outside identity storage."
+                    ),
+                }
             permissions = self._load_permissions()
             self._permissions_cache = permissions
 
@@ -952,7 +1221,7 @@ class RnsFilesyncHandler:
                 if resolved is None:
                     return {
                         "ok": False,
-                        "error": "sync_directory must stay under identity storage",
+                        "error": "sync_directory not allowed",
                     }
                 self._sync_directory = resolved
 

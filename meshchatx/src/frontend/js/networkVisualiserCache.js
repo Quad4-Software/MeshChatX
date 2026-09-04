@@ -6,6 +6,8 @@
  * and only fetch announces for newly seen destination hashes.
  */
 
+import { openIndexedDb } from "./idbOpen.js";
+
 const DB_NAME = "meshchatx_visualiser_cache";
 const DB_VERSION = 1;
 const STORE_NAME = "snapshots";
@@ -16,30 +18,19 @@ const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 let dbPromise = null;
 
-function getIdb() {
-    return (
-        globalThis.indexedDB || globalThis.mozIndexedDB || globalThis.webkitIndexedDB || globalThis.msIndexedDB || null
-    );
-}
-
 function openDb() {
     if (dbPromise) {
         return dbPromise;
     }
-    const idb = getIdb();
-    if (!idb) {
-        return Promise.reject(new Error("IndexedDB unavailable"));
-    }
-    dbPromise = new Promise((resolve, reject) => {
-        const req = idb.open(DB_NAME, DB_VERSION);
-        req.onerror = () => reject(req.error || new Error("IndexedDB open failed"));
-        req.onupgradeneeded = () => {
-            const db = req.result;
+    dbPromise = openIndexedDb(DB_NAME, DB_VERSION, {
+        onUpgrade: (db) => {
             if (!db.objectStoreNames.contains(STORE_NAME)) {
                 db.createObjectStore(STORE_NAME, { keyPath: "identityHash" });
             }
-        };
-        req.onsuccess = () => resolve(req.result);
+        },
+    }).catch((err) => {
+        dbPromise = null;
+        throw err;
     });
     return dbPromise;
 }

@@ -104,6 +104,16 @@
                                     <button
                                         type="button"
                                         class="secondary-chip px-3 py-2 text-xs shrink-0"
+                                        :disabled="busy || status.running"
+                                        :title="$t('rns_filesync.use_shared_folder')"
+                                        @click="useSharedFolder"
+                                    >
+                                        <MaterialDesignIcon icon-name="folder-account-outline" class="w-4 h-4" />
+                                        <span class="hidden sm:inline">{{ $t("rns_filesync.use_shared_folder") }}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="secondary-chip px-3 py-2 text-xs shrink-0"
                                         :disabled="busy || !syncDirectory"
                                         :title="$t('rns_filesync.open_folder')"
                                         @click="openSyncFolder"
@@ -552,6 +562,41 @@ export default {
                 return;
             }
             this.directoryBrowserOpen = true;
+        },
+        async useSharedFolder() {
+            if (this.status.running) {
+                ToastUtils.warning(this.$t("rns_filesync.stop_before_change_folder"));
+                return;
+            }
+            const bridge = typeof window !== "undefined" ? window.MeshChatXAndroid : null;
+            if (bridge && typeof bridge.hasAllFilesAccess === "function") {
+                let hasAccess = false;
+                try {
+                    hasAccess = Boolean(bridge.hasAllFilesAccess());
+                } catch {
+                    hasAccess = false;
+                }
+                if (!hasAccess && typeof bridge.requestAllFilesAccess === "function") {
+                    bridge.requestAllFilesAccess();
+                    ToastUtils.info(this.$t("rns_filesync.shared_folder_permission_needed"));
+                    return;
+                }
+            }
+            this.busy = true;
+            try {
+                const response = await window.api.get("/api/v1/filesync/shared-directory-suggestion");
+                const path = String(response?.data?.path || "").trim();
+                if (!path) {
+                    ToastUtils.error(this.$t("rns_filesync.error"));
+                    return;
+                }
+                this.syncDirectory = path;
+                ToastUtils.success(this.$t("rns_filesync.shared_folder_selected"));
+            } catch (err) {
+                ToastUtils.error(err?.message || this.$t("rns_filesync.error"));
+            } finally {
+                this.busy = false;
+            }
         },
         onDirectorySelected(path) {
             const cleaned = String(path || "").trim();
