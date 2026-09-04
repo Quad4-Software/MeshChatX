@@ -81,6 +81,7 @@ from tests.backend.http_api_response_schemas import (
     MAP_DATA_STATUS_SCHEMA,
     MAP_DRAWINGS_SCHEMA,
     MAP_MBTILES_SCHEMA,
+    MAP_OFFLINE_METADATA_SCHEMA,
     MAP_OFFLINE_SCHEMA,
     MEMORY_DIAGNOSTICS_DISABLED_SCHEMA,
     MEMORY_DIAGNOSTICS_SCHEMA,
@@ -440,7 +441,12 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
         alt_schemas=(ERROR_ENVELOPE_SCHEMA,),
     ),
     HttpJsonContract("GET", "/api/v1/map/drawings", MAP_DRAWINGS_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/map/offline", MAP_OFFLINE_SCHEMA),
+    HttpJsonContract(
+        "GET",
+        "/api/v1/map/offline",
+        MAP_OFFLINE_SCHEMA,
+        alt_schemas=(MAP_OFFLINE_METADATA_SCHEMA,),
+    ),
     HttpJsonContract("GET", "/api/v1/map/mbtiles", MAP_MBTILES_SCHEMA),
     HttpJsonContract(
         "GET",
