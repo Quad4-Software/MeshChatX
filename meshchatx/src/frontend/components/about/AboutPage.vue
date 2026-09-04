@@ -10,11 +10,7 @@
                     <div class="flex flex-col gap-8 lg:flex-row lg:items-center">
                         <!-- Logo & Title -->
                         <div class="flex items-center gap-6">
-                            <img
-                                src="/favicons/favicon-512x512.png"
-                                class="h-20 w-20 shrink-0 object-contain"
-                                alt=""
-                            />
+                            <img :src="logoUrl" class="h-20 w-20 shrink-0 object-contain" alt="" />
                             <div class="space-y-1">
                                 <div class="text-4xl font-black text-sem-fg leading-none tracking-tight">
                                     {{ $t("about.app_name") }}
@@ -792,10 +788,7 @@
                                     <div
                                         class="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-xs"
                                     >
-                                        <img
-                                            src="/favicons/favicon-512x512.png"
-                                            class="w-7 h-7 object-contain"
-                                        />
+                                        <img :src="logoUrl" class="w-7 h-7 object-contain" />
                                     </div>
                                     <div>
                                         <div class="text-sm font-black text-sem-fg">
@@ -1380,6 +1373,7 @@ import {
     sandboxSummaryType,
 } from "../../js/sandboxStatus.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import logoUrl from "../../assets/images/logo.png";
 import {
     channelBadgeClass,
     channelBugReportTarget,
@@ -1395,6 +1389,7 @@ export default {
     data() {
         return {
             Utils,
+            logoUrl,
             appInfo: {
                 version: "unknown",
             },
