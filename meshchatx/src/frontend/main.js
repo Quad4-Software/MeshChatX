@@ -394,6 +394,19 @@ if (networkReady) {
     } catch {
         // status optional during early boot
     }
+    if (GlobalState.demoMode) {
+        try {
+            const { DEMO_UI_LANGUAGE_STORAGE_KEY } = await import("./js/demoUiPrefs.js");
+            const { setLocale } = await import("./js/localeLoader.js");
+            const storedLang =
+                typeof localStorage !== "undefined" ? localStorage.getItem(DEMO_UI_LANGUAGE_STORAGE_KEY) : null;
+            if (storedLang) {
+                await setLocale(i18n, storedLang);
+            }
+        } catch {
+            // locale overlay optional
+        }
+    }
     try {
         await fetchCsrfToken(window.api);
     } catch {

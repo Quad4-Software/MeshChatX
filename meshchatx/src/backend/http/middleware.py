@@ -400,7 +400,12 @@ def create_security_middleware(app):
             "data:",
             "blob:",
         ]
-        if not privacy_mode:
+        # Public demo keeps privacy_mode (no backend clearnet) but still needs
+        # browser basemap tiles for the map showcase.
+        allow_map_tile_origins = (not privacy_mode) or bool(
+            getattr(app, "demo_mode", False)
+        )
+        if allow_map_tile_origins:
             connect_sources.extend(
                 [
                     "https://*.tile.openstreetmap.org",

@@ -76,6 +76,7 @@
 import ElectronUtils from "../js/ElectronUtils.js";
 import AndroidBridge from "../js/rnode/AndroidBridge.js";
 import ToastUtils from "../js/ToastUtils";
+import GlobalState from "../js/GlobalState.js";
 import SettingToggleRow from "./settings/SettingToggleRow.vue";
 
 export default {
@@ -210,6 +211,12 @@ export default {
             if (this.configSaving) {
                 return;
             }
+            if (GlobalState.demoMode) {
+                // Demo forces privacy mode on the server. Keep the toggle on.
+                this.privacyModeEnabled = true;
+                ToastUtils.info(this.$t("app.demo_mode_active"));
+                return;
+            }
             this.configSaving = true;
             try {
                 await window.api.patch("/api/v1/config", {
@@ -226,6 +233,10 @@ export default {
         },
         async onTelemetryChange(value) {
             if (this.configSaving) {
+                return;
+            }
+            if (GlobalState.demoMode) {
+                this.telemetryEnabled = value === true;
                 return;
             }
             this.configSaving = true;
