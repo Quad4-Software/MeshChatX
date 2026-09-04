@@ -21,5 +21,7 @@ test -s meshchatx/src/frontend/public/vendor/visualiser-wasm/visualiser.wasm
 test -s meshchatx/src/frontend/public/vendor/visualiser-wasm/wasm_exec.js
 test -s meshchatx/src/frontend/public/vendor/micron-parser-go/micron-parser-go.wasm
 test -s meshchatx/src/frontend/public/vendor/micron-parser-go/wasm_exec.js
+test -s meshchatx/src/frontend/public/vendor/geo-wasm/geo.wasm
+test -s meshchatx/src/frontend/public/vendor/geo-wasm/wasm_exec.js
 
 pnpm run build-docs
