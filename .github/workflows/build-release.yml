@@ -111,8 +111,14 @@ jobs:
             FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
             MESHCHATX_FRONTEND_PREBUILT: "1"
         steps:
+          - name: Harden runner
+            uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+            with:
+              egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+                with:
+                  persist-credentials: false
 
             - name: Set up Python and UV
               uses: ./.github/actions/setup-python-uv
@@ -183,8 +189,14 @@ jobs:
             contents: read
             id-token: write
         steps:
+          - name: Harden runner
+            uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+            with:
+              egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+                with:
+                  persist-credentials: false
 
             - name: Download x64 artifacts
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
@@ -239,8 +251,14 @@ jobs:
             FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
             MESHCHATX_FRONTEND_PREBUILT: "1"
         steps:
+          - name: Harden runner
+            uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+            with:
+              egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+                with:
+                  persist-credentials: false
 
             - name: Install flatpak toolchain
               run: |
@@ -337,8 +355,14 @@ jobs:
         permissions:
             contents: read
         steps:
+          - name: Harden runner
+            uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+            with:
+              egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+                with:
+                  persist-credentials: false
 
             - name: Require Bunny Storage credentials
               env:
@@ -425,8 +449,14 @@ jobs:
             FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
             MESHCHATX_FRONTEND_PREBUILT: "1"
         steps:
+          - name: Harden runner
+            uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+            with:
+              egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+                with:
+                  persist-credentials: false
 
             - name: Set up Python and UV
               uses: ./.github/actions/setup-python-uv
@@ -536,8 +566,14 @@ jobs:
         outputs:
             hashes: ${{ steps.hash.outputs.hashes }}
         steps:
+          - name: Harden runner
+            uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+            with:
+              egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+                with:
+                  persist-credentials: false
 
             - name: Download Windows dist
               continue-on-error: true
@@ -565,7 +601,7 @@ jobs:
             id-token: write
             contents: write
             actions: read
-        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@f7dd8c54c2067bafc12ca7a55595d5ee9b75204a # v2.1.0
         with:
             base64-subjects: ${{ needs.collect-linux-slsa-subjects.outputs.hashes }}
             upload-assets: false
@@ -584,7 +620,7 @@ jobs:
             id-token: write
             contents: write
             actions: read
-        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@f7dd8c54c2067bafc12ca7a55595d5ee9b75204a # v2.1.0
         with:
             base64-subjects: ${{ needs.collect-desktop-slsa-subjects.outputs.hashes }}
             upload-assets: false
@@ -605,8 +641,14 @@ jobs:
             hashes: ${{ steps.hash.outputs.hashes }}
             has_subjects: ${{ steps.hash.outputs.has_subjects }}
         steps:
+          - name: Harden runner
+            uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+            with:
+              egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+                with:
+                  persist-credentials: false
 
             - name: Download Android APK bundle
               continue-on-error: true
@@ -634,7 +676,7 @@ jobs:
             id-token: write
             contents: write
             actions: read
-        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@f7dd8c54c2067bafc12ca7a55595d5ee9b75204a # v2.1.0
         with:
             base64-subjects: ${{ needs.collect-android-flatpak-slsa-subjects.outputs.hashes }}
             upload-assets: false
@@ -669,8 +711,14 @@ jobs:
         permissions:
             contents: write
         steps:
+          - name: Harden runner
+            uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+            with:
+              egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+                with:
+                  persist-credentials: false
 
             - name: Download Linux release assets (x64)
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
@@ -802,6 +850,10 @@ jobs:
             - draft-github-release
         runs-on: ubuntu-latest
         steps:
+          - name: Harden runner
+            uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+            with:
+              egress-policy: audit
             - name: Fail when required build jobs did not succeed
               run: |
                   set -euo pipefail
