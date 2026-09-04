@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: 0BSD
+import { isIndexedDbAccessError, openIndexedDb } from "./idbOpen.js";
+
 const DB_NAME = "meshchat_map_cache";
 const DB_VERSION = 3;
 const STORE_NAME = "tiles";
@@ -17,30 +20,34 @@ class TileCache {
         this._memCache = new Map();
         this._pendingAccess = new Map();
         this._accessFlushTimer = null;
-        this.initPromise = this.init();
+        this.initPromise = null;
+        this.unavailable = false;
+    }
+
+    _ensureInit() {
+        if (this.initPromise) {
+            return this.initPromise;
+        }
+        this.initPromise = this.init().catch((err) => {
+            if (isIndexedDbAccessError(err) || String(err).includes("IndexedDB")) {
+                this.unavailable = true;
+                this.db = null;
+                return null;
+            }
+            this.unavailable = true;
+            this.db = null;
+            console.warn("TileCache: IndexedDB init failed", err);
+            return null;
+        });
+        return this.initPromise;
     }
 
     async init() {
-        return new Promise((resolve, reject) => {
-            const idb =
-                window.indexedDB ||
-                window.mozIndexedDB ||
-                window.webkitIndexedDB ||
-                window.msIndexedDB ||
-                globalThis.indexedDB;
-
-            if (!idb) {
-                console.warn("IndexedDB not supported, map caching will be disabled");
-                reject("IndexedDB not supported");
-                return;
-            }
-
-            const request = idb.open(DB_NAME, DB_VERSION);
-
-            request.onerror = (event) => reject("IndexedDB error: " + event.target.errorCode);
-
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
+        if (this.db) {
+            return this.db;
+        }
+        this.db = await openIndexedDb(DB_NAME, DB_VERSION, {
+            onUpgrade: (db) => {
                 if (!db.objectStoreNames.contains(STORE_NAME)) {
                     db.createObjectStore(STORE_NAME);
                 }
@@ -50,13 +57,9 @@ class TileCache {
                 if (!db.objectStoreNames.contains(META_STORE)) {
                     db.createObjectStore(META_STORE);
                 }
-            };
-
-            request.onsuccess = (event) => {
-                this.db = event.target.result;
-                resolve();
-            };
+            },
         });
+        return this.db;
     }
 
     _blobSize(data) {
@@ -113,7 +116,10 @@ class TileCache {
             return;
         }
         try {
-            await this.initPromise;
+            await this._ensureInit();
+            if (!this.db) {
+                return;
+            }
             await new Promise((resolve, reject) => {
                 const transaction = this.db.transaction([META_STORE], "readwrite");
                 const metaStore = transaction.objectStore(META_STORE);
@@ -141,7 +147,10 @@ class TileCache {
     }
 
     async getTile(key) {
-        await this.initPromise;
+        await this._ensureInit();
+        if (!this.db) {
+            return undefined;
+        }
         const mem = this._memGet(key);
         if (mem !== undefined) {
             this._queueAccess(key);
@@ -165,7 +174,11 @@ class TileCache {
     }
 
     async setTile(key, data) {
-        await this.initPromise;
+        await this._ensureInit();
+        if (!this.db) {
+            this._memPut(key, data);
+            return;
+        }
         await this._evictIfNeeded(this._blobSize(data));
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([STORE_NAME, META_STORE], "readwrite");
@@ -260,7 +273,10 @@ class TileCache {
     }
 
     async getMapState(key) {
-        await this.initPromise;
+        await this._ensureInit();
+        if (!this.db) {
+            return undefined;
+        }
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([STATE_STORE], "readonly");
             const store = transaction.objectStore(STATE_STORE);
@@ -272,7 +288,10 @@ class TileCache {
     }
 
     async setMapState(key, data) {
-        await this.initPromise;
+        await this._ensureInit();
+        if (!this.db) {
+            return;
+        }
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([STATE_STORE], "readwrite");
             const store = transaction.objectStore(STATE_STORE);
@@ -285,7 +304,12 @@ class TileCache {
     }
 
     async clear() {
-        await this.initPromise;
+        await this._ensureInit();
+        this._memCache.clear();
+        this._pendingAccess.clear();
+        if (!this.db) {
+            return;
+        }
         return new Promise((resolve, reject) => {
             const stores = [STORE_NAME, STATE_STORE];
             if (this.db.objectStoreNames.contains(META_STORE)) {
@@ -295,8 +319,6 @@ class TileCache {
             for (const name of stores) {
                 transaction.objectStore(name).clear();
             }
-            this._memCache.clear();
-            this._pendingAccess.clear();
 
             transaction.oncomplete = () => resolve();
             transaction.onerror = () => reject(transaction.error);
@@ -304,4 +326,5 @@ class TileCache {
     }
 }
 
+export { TileCache };
 export default new TileCache();

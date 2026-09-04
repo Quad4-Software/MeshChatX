@@ -1,6 +1,14 @@
 # Single tagged-release pipeline: Linux release assets, Windows + macOS Electron
 # builds, Flatpak, Android APKs (dev/master track tags via android-apk-tag.yml), SLSA
 # provenance (generic generator: Linux, desktop, optional Android+Flatpak), optional cosign bundles, and one draft GitHub release.
+# Optional: same draft upload/ tree is mirrored to bunny.net Edge Storage when
+# BUNNY_STORAGE_ACCESS_KEY is set (see draft job). Paths are release/<tag>,
+# testing/<tag>, or beta/<tag>. After each upload, older version folders under
+# that track are deleted so only the newest folder remains per track.
+# Flatpak OSTree remote: flatpak-ostree job publishes a signed archive-z2 repo
+# under storage prefix flatpak/ (served at https://cdn.meshchatx.com/flatpak/).
+# Branches testing/beta/stable follow the tag channel. That prefix is never
+# version-pruned like release tracks.
 # One workflow run per tag keeps the release graph immutable.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
@@ -11,6 +19,7 @@
 #   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
 #   actions/cache@v4.2.0               1bd1e32a3bdc45362d1e726936510720a7c30a57
 #   actions/setup-java@v4.7.1          c5195efecf7bdfc987ee8bae7a71cb8b11521c00
+#   crazy-max/ghaction-import-gpg@v6   e89d40939c28e39f97cf32126055eeae86ba74ec
 #
 # SLSA generator: pin by tag (@vX.Y.Z), not by commit SHA.
 # Prefer compile-generator: true. builder-fetch.sh only downloads prebuilts
@@ -245,6 +254,14 @@ jobs:
                       desktop-file-utils \
                       appstream
 
+            - name: Cache Flatpak runtimes
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: ~/.local/share/flatpak
+                  key: flatpak-runtimes-25.08-${{ runner.os }}
+                  restore-keys: |
+                      flatpak-runtimes-
+
             - name: Install flatpak runtimes (user scope)
               run: |
                   set -euo pipefail
@@ -254,29 +271,25 @@ jobs:
                       org.freedesktop.Sdk//25.08 \
                       org.electronjs.Electron2.BaseApp//25.08
 
-            - name: Set up Python
-              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+            - name: Set up Python and UV
+              uses: ./.github/actions/setup-python-uv
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
-
-            - name: Install UV (PyPI pin)
-              env:
-                  UV_VERSION: ${{ env.UV_VERSION }}
-              run: bash scripts/ci/github-install-uv.sh
-
-            - name: Cache UV downloads
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-              with:
-                  path: ~/.cache/uv
-                  key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
-                  restore-keys: |
-                      ${{ runner.os }}-uv-
+                  uv-version: ${{ env.UV_VERSION }}
 
             - name: Set up Node and pnpm
               uses: ./.github/actions/setup-node-pnpm
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
+
+            - name: Cache electron-builder toolsets
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: ~/.cache/electron-builder
+                  key: electron-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
+                  restore-keys: |
+                      electron-builder-${{ runner.os }}-${{ runner.arch }}-
 
             - name: Install dependencies
               run: bash scripts/ci/github-install-deps.sh
@@ -311,6 +324,77 @@ jobs:
                   if-no-files-found: error
                   retention-days: 30
 
+    flatpak-ostree:
+        name: Flatpak OSTree (BunnyCDN)
+        needs: [flatpak]
+        if: startsWith(github.ref, 'refs/tags/')
+        runs-on: ubuntu-latest
+        timeout-minutes: 45
+        concurrency:
+            group: flatpak-ostree-bunny
+            cancel-in-progress: false
+        permissions:
+            contents: read
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Require Bunny Storage credentials
+              env:
+                  BUNNY_STORAGE_ACCESS_KEY: ${{ secrets.BUNNY_STORAGE_ACCESS_KEY }}
+              run: |
+                  set -euo pipefail
+                  if [[ -z "${BUNNY_STORAGE_ACCESS_KEY:-}" ]]; then
+                    echo "::error::BUNNY_STORAGE_ACCESS_KEY is required to publish the Flatpak OSTree remote"
+                    exit 1
+                  fi
+
+            - name: Install flatpak and ostree
+              run: |
+                  set -euo pipefail
+                  sudo apt-get update -y
+                  sudo apt-get install -y --no-install-recommends \
+                      flatpak \
+                      ostree \
+                      curl \
+                      ca-certificates
+
+            - name: Import Flatpak GPG key
+              id: gpg
+              uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec
+              with:
+                  gpg_private_key: ${{ secrets.FLATPAK_GPG_PRIVATE_KEY }}
+                  passphrase: ${{ secrets.FLATPAK_GPG_PASSPHRASE }}
+
+            - name: Download Flatpak artifact
+              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              with:
+                  name: meshchatx-linux-flatpak-${{ github.ref_name }}-${{ github.run_id }}
+                  path: dl/flatpak
+
+            - name: Export OSTree repo and upload to Bunny
+              env:
+                  BUNNY_STORAGE_ACCESS_KEY: ${{ secrets.BUNNY_STORAGE_ACCESS_KEY }}
+                  BUNNY_STORAGE_BASE_URL: ${{ vars.BUNNY_STORAGE_BASE_URL }}
+                  FLATPAK_CDN_BASE_URL: ${{ vars.FLATPAK_CDN_BASE_URL }}
+                  GPG_FINGERPRINT: ${{ steps.gpg.outputs.fingerprint }}
+                  REQUIRE_GPG: "1"
+                  GITHUB_REF_NAME: ${{ github.ref_name }}
+                  GITHUB_REPOSITORY: ${{ github.repository }}
+              run: |
+                  set -euo pipefail
+                  shopt -s nullglob
+                  bundles=(dl/flatpak/*.flatpak)
+                  if [[ ${#bundles[@]} -eq 0 ]]; then
+                    echo "No .flatpak under dl/flatpak/" >&2
+                    exit 1
+                  fi
+                  export BUNNY_STORAGE_BASE_URL="${BUNNY_STORAGE_BASE_URL:-https://la.storage.bunnycdn.com/meshchatx}"
+                  export FLATPAK_CDN_BASE_URL="${FLATPAK_CDN_BASE_URL:-https://cdn.meshchatx.com/flatpak}"
+                  mkdir -p flatpak-cdn
+                  bash scripts/ci/github-flatpak-ostree-export.sh "${bundles[0]}" flatpak-cdn
+                  python3 scripts/ci/github-upload-bunny-flatpak-ostree.py flatpak-cdn
+
     build-release:
         name: Build release (${{ matrix.label }})
         needs: frontend
@@ -342,21 +426,25 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
-            - name: Set up Python
-              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+            - name: Set up Python and UV
+              uses: ./.github/actions/setup-python-uv
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
-
-            - name: Install UV (PyPI pin)
-              env:
-                  UV_VERSION: ${{ env.UV_VERSION }}
-              run: bash scripts/ci/github-install-uv.sh
+                  uv-version: ${{ env.UV_VERSION }}
 
             - name: Set up Node and pnpm
               uses: ./.github/actions/setup-node-pnpm
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
+
+            - name: Cache electron-builder toolsets
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: ~/.cache/electron-builder
+                  key: electron-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
+                  restore-keys: |
+                      electron-builder-${{ runner.os }}-${{ runner.arch }}-
 
             - name: Install dependencies
               run: bash scripts/ci/github-install-deps.sh
@@ -552,7 +640,7 @@ jobs:
             provenance-name: meshchatx-android-flatpak-${{ github.ref_name }}.intoto.jsonl
 
     draft-github-release:
-        name: ${{ startsWith(github.ref_name, 'nightly-') && 'Nightly GitHub release (all assets + SLSA)' || startsWith(github.ref_name, 'preview-dev-') && 'Preview-dev GitHub release (all assets + SLSA)' || startsWith(github.ref_name, 'preview-') && 'Preview GitHub release (all assets + SLSA)' || 'Draft GitHub release (all assets + SLSA)' }}
+        name: ${{ (startsWith(github.ref_name, 'nightly-') || startsWith(github.ref_name, 'testing-')) && 'Testing GitHub release (all assets + SLSA)' || (startsWith(github.ref_name, 'beta-') || startsWith(github.ref_name, 'preview-')) && 'Beta GitHub release (all assets + SLSA)' || 'Stable draft GitHub release (all assets + SLSA)' }}
         needs:
             - linux-release
             - collect-linux-slsa-subjects
@@ -672,10 +760,32 @@ jobs:
                   done
                   rm -f /tmp/cosign.key
 
-            - name: Upload release assets (draft then publish for nightly/preview)
+            - name: Upload release assets (draft then publish for testing/beta)
               env:
                   GH_TOKEN: ${{ github.token }}
               run: bash scripts/ci/github-draft-release-upload-assets.sh upload
+
+            - name: Upload release assets to Bunny Storage
+              env:
+                  BUNNY_STORAGE_ACCESS_KEY: ${{ secrets.BUNNY_STORAGE_ACCESS_KEY }}
+                  BUNNY_STORAGE_BASE_URL: ${{ vars.BUNNY_STORAGE_BASE_URL }}
+              run: |
+                  set -euo pipefail
+                  if [[ -z "${BUNNY_STORAGE_ACCESS_KEY:-}" ]]; then
+                    echo "::notice::Skipping Bunny Storage (set repository secret BUNNY_STORAGE_ACCESS_KEY to enable)."
+                    exit 0
+                  fi
+                  export BUNNY_STORAGE_BASE_URL="${BUNNY_STORAGE_BASE_URL:-https://la.storage.bunnycdn.com/meshchatx}"
+                  if [[ "${GITHUB_REF_NAME}" == nightly-* || "${GITHUB_REF_NAME}" == testing-* ]]; then
+                    track=testing
+                  elif [[ "${GITHUB_REF_NAME}" == beta-* || "${GITHUB_REF_NAME}" == preview-* ]]; then
+                    track=beta
+                  else
+                    track=release
+                  fi
+                  export BUNNY_STORAGE_OBJECT_PREFIX="${track}/${GITHUB_REF_NAME}"
+                  echo "Bunny Storage prefix: ${BUNNY_STORAGE_OBJECT_PREFIX}"
+                  python3 scripts/ci/github-upload-bunny-storage-release-assets.py upload
 
     release-artifact-gate:
         name: Verify required tagged release artifacts
@@ -685,6 +795,7 @@ jobs:
             startsWith(github.ref, 'refs/tags/')
         needs:
             - flatpak
+            - flatpak-ostree
             - build-release
             - draft-github-release
         runs-on: ubuntu-latest
@@ -695,6 +806,10 @@ jobs:
                   fail=0
                   if [[ "${{ needs.flatpak.result }}" != "success" ]]; then
                     echo "::error::Flatpak job did not succeed (${{ needs.flatpak.result }})"
+                    fail=1
+                  fi
+                  if [[ "${{ needs.flatpak-ostree.result }}" != "success" ]]; then
+                    echo "::error::Flatpak OSTree (BunnyCDN) job did not succeed (${{ needs.flatpak-ostree.result }})"
                     fail=1
                   fi
                   if [[ "${{ needs.build-release.result }}" != "success" ]]; then

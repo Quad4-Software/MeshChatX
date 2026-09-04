@@ -139,8 +139,11 @@ describe("AboutPage.vue", () => {
         expect(wrapper.text()).toContain("RNS");
 
         expect(wrapper.text()).toContain("about.sandbox_title");
+        expect(wrapper.text()).toContain("about.integrity_monitoring_title");
         expect(wrapper.text()).toContain("app.landlock_status");
+        expect(wrapper.text()).toContain("app.enabled");
         expect(wrapper.text()).toContain("app.seccomp_status");
+        expect(wrapper.text()).toContain("about.sandbox_type_landlock");
 
         expect(wrapper.text()).toContain("about.backend_stack");
         expect(wrapper.text()).toContain("aiohttp");

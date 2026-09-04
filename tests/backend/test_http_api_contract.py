@@ -36,6 +36,16 @@ def test_meshchat_http_routes_match_fixture():
     )
 
 
+def test_path_matches_aiohttp_wildcard_asset_route():
+    route = "/api/v1/plugins/{plugin_id}/asset/{asset_path:.*}"
+    assert path_matches_aiohttp_route(route, "/api/v1/plugins/a/asset/")
+    assert path_matches_aiohttp_route(
+        route,
+        "/api/v1/plugins/a/asset/frontend/main.js",
+    )
+    assert not path_matches_aiohttp_route(route, "/api/v1/plugins/a/other")
+
+
 def test_frontend_api_paths_exist_on_backend():
     backend_paths = [r["path"] for r in extract_meshchat_http_routes(_MESHCHAT_PY)]
     frontend_paths = extract_frontend_api_paths(_FRONTEND_ROOT)

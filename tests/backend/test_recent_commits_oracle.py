@@ -289,26 +289,38 @@ def test_traffic_totals_data_share_fuzz_oracle(rxs, txs, prxs, arxs, ptxs, atxs)
     }
     totals = _format_traffic_totals(stats)
     assert totals is not None
-    expected_rx = int(
-        min(
-            100.0,
-            max(0.0, (rxs - stats["prxs"] - stats["arxs"]) / rxs) * 100.0,
-        ),
-    )
-    expected_tx = int(
-        min(
-            100.0,
-            max(0.0, (txs - stats["ptxs"] - stats["atxs"]) / txs) * 100.0,
-        ),
-    )
-    if expected_rx > 0:
-        assert totals["data_rx_pct"] == expected_rx
-    else:
+    rx_part = max(0.0, rxs - stats["prxs"] - stats["arxs"])
+    tx_part = max(0.0, txs - stats["ptxs"] - stats["atxs"])
+    if not (rxs and txs):
         assert "data_rx_pct" not in totals
-    if expected_tx > 0:
-        assert totals["data_tx_pct"] == expected_tx
-    else:
         assert "data_tx_pct" not in totals
+        return
+    if rx_part <= 0:
+        assert "data_rx_pct" not in totals
+    else:
+        assert totals["data_rx_pct"] == int(min(100.0, (rx_part / rxs) * 100.0))
+    if tx_part <= 0:
+        assert "data_tx_pct" not in totals
+    else:
+        assert totals["data_tx_pct"] == int(min(100.0, (tx_part / txs) * 100.0))
+
+
+def test_traffic_totals_keeps_truncated_zero_data_share():
+    from meshchatx.src.backend.rnstatus_handler import _format_traffic_totals
+
+    totals = _format_traffic_totals(
+        {
+            "rxs": 432934.0,
+            "txs": 1.0,
+            "prxs": 0.0,
+            "arxs": 432407.0,
+            "ptxs": 0.0,
+            "atxs": 0.0,
+        },
+    )
+    assert totals is not None
+    assert totals["data_rx_pct"] == 0
+    assert totals["data_tx_pct"] == 100
 
 
 @settings(max_examples=60, deadline=None)

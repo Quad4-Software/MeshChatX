@@ -329,6 +329,25 @@ describe("MapMarkerPanel", () => {
         await wrapper.find("button.text-gray-500").trigger("click");
         expect(wrapper.emitted("close")).toHaveLength(1);
     });
+
+    it("tolerates telemetry without location instead of throwing", () => {
+        const marker = {
+            telemetry: {
+                destination_hash: "aabbccddeeff00112233445566778899",
+                timestamp: 1700000000,
+                telemetry: {},
+            },
+        };
+        const wrapper = mount(MapMarkerPanel, {
+            props: { marker },
+            global: {
+                mocks: { $t: t },
+                stubs: { MiniChat: { template: "<div class='mini-chat-stub'></div>" } },
+            },
+        });
+        expect(wrapper.text()).toContain("aabbccdd");
+        expect(wrapper.text()).toContain("Location unavailable");
+    });
 });
 
 describe("MapVectorExchangePanel", () => {
@@ -377,9 +396,12 @@ describe("MapSidePanel", () => {
         const buttons = wrapper.findAll("button");
         await buttons[1].trigger("click");
         expect(wrapper.find(".publish-stub").exists()).toBe(true);
+        expect(wrapper.find(".discover-stub").exists()).toBe(true);
         await buttons[2].trigger("click");
         expect(wrapper.find(".layers-stub").exists()).toBe(true);
+        expect(wrapper.find(".discover-stub").exists()).toBe(true);
         await buttons[3].trigger("click");
         expect(wrapper.find(".offline-stub").exists()).toBe(true);
+        expect(wrapper.find(".discover-stub").exists()).toBe(true);
     });
 });

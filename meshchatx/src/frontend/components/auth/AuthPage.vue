@@ -2,14 +2,6 @@
 
 <template>
     <div class="h-dvh min-h-0 w-full flex flex-col bg-sem-canvas">
-        <div
-            v-if="demoMode"
-            class="relative z-100 shrink-0 bg-amber-600 text-white px-4 py-2 text-center text-sm font-medium shadow-md border-b border-amber-700/80"
-            role="status"
-        >
-            {{ $t("app.demo_mode_active") }}
-        </div>
-
         <div class="flex-1 min-h-0 flex items-center justify-center">
             <div class="w-full max-w-md p-8">
                 <div class="bg-sem-surface rounded-2xl shadow-lg border border-sem-border p-8">
@@ -69,9 +61,10 @@
                         <div v-if="altchaEnabled" class="min-h-[52px]">
                             <altcha-widget
                                 ref="altchaWidget"
-                                :challenge="altchaChallengeUrl"
-                                auto="onsubmit"
+                                challenge="/api/v1/auth/altcha/challenge"
                                 name="altcha"
+                                @verified="onAltchaVerified"
+                                @statechange="onAltchaStateChange"
                             ></altcha-widget>
                         </div>
 
@@ -101,6 +94,7 @@
 import "altcha";
 
 import logoUrl from "../../assets/images/logo.png";
+import { altchaPayloadFromEvent, ensureAltchaPayload } from "../../js/altchaWidget.js";
 
 export default {
     name: "AuthPage",
@@ -113,9 +107,8 @@ export default {
             isLoading: false,
             isSetup: false,
             altchaEnabled: false,
-            demoMode: false,
             authPageHint: "",
-            altchaChallengeUrl: "/api/v1/auth/altcha/challenge",
+            altchaPayload: "",
         };
     },
     async mounted() {
@@ -139,7 +132,6 @@ export default {
 
                 this.isSetup = !status.password_set;
                 this.altchaEnabled = status.altcha_enabled === true;
-                this.demoMode = status.demo_mode === true;
                 const hint = status.auth_page_hint;
                 this.authPageHint = typeof hint === "string" ? hint : "";
             } catch (e) {
@@ -147,18 +139,25 @@ export default {
                 this.error = this.$t("auth.status_check_failed");
             }
         },
-        readAltchaPayload() {
-            const widget = this.$refs.altchaWidget;
-            if (!widget) {
-                return null;
+        onAltchaVerified(event) {
+            const payload = altchaPayloadFromEvent(event);
+            if (payload) {
+                this.altchaPayload = payload;
             }
-            if (typeof widget.getPayload === "function") {
-                return widget.getPayload();
+        },
+        onAltchaStateChange(event) {
+            const detail = event && typeof event === "object" ? event.detail : null;
+            const state = detail && typeof detail === "object" ? detail.state : null;
+            if (state === "verified") {
+                const payload = altchaPayloadFromEvent(event);
+                if (payload) {
+                    this.altchaPayload = payload;
+                }
+                return;
             }
-            if (widget.value) {
-                return widget.value;
+            if (state === "unverified" || state === "error" || state === "expired") {
+                this.altchaPayload = "";
             }
-            return null;
         },
         async handleSubmit() {
             this.error = "";
@@ -181,12 +180,13 @@ export default {
                 const endpoint = this.isSetup ? "/api/v1/auth/setup" : "/api/v1/auth/login";
                 const body = { password: this.password };
                 if (this.altchaEnabled) {
-                    const altchaPayload = this.readAltchaPayload();
+                    const altchaPayload = await ensureAltchaPayload(this.$refs.altchaWidget, this.altchaPayload);
                     if (!altchaPayload) {
                         this.error = this.$t("auth.altcha_required");
                         this.isLoading = false;
                         return;
                     }
+                    this.altchaPayload = altchaPayload;
                     body.altcha = altchaPayload;
                 }
                 await window.api.post(endpoint, body);
@@ -196,6 +196,15 @@ export default {
                 this.error = e.response?.data?.error || this.$t("auth.failed");
                 this.password = "";
                 this.confirmPassword = "";
+                this.altchaPayload = "";
+                const widget = this.$refs.altchaWidget;
+                if (widget && typeof widget.reset === "function") {
+                    try {
+                        widget.reset();
+                    } catch {
+                        // ignore widget reset failures
+                    }
+                }
             } finally {
                 this.isLoading = false;
             }

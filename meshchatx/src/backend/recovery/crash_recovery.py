@@ -58,6 +58,7 @@ class CrashRecovery:
         self.reticulum_config_dir = reticulum_config_dir
         self.database = database
         self.log_handler = log_handler
+        self.app = None
         self.enabled = True
         self._learned_priors = None
         self._handling = False
@@ -175,6 +176,33 @@ class CrashRecovery:
                 divergence=divergence,
             )
             self.database.crash_history.cleanup_old(max_entries=200)
+            self._record_bug_issue(error_type, error_msg, top_cause)
+        except Exception:
+            pass
+
+    def _record_bug_issue(self, error_type, error_msg, top_cause):
+        manager = None
+        app = getattr(self, "app", None)
+        if app is not None:
+            manager = getattr(app, "bug_report_manager", None)
+        if manager is None:
+            return
+        try:
+            stack = "".join(traceback.format_stack(limit=40))
+            manager.record_local(
+                {
+                    "title": f"{error_type}: {str(error_msg)[:120]}",
+                    "description": str(top_cause or "")[:4000],
+                    "exception": {
+                        "type": str(error_type),
+                        "value": str(error_msg)[:2000],
+                        "stack": stack,
+                    },
+                    "source": "backend",
+                    "kind": "exception",
+                    "force": True,
+                }
+            )
         except Exception:
             pass
 

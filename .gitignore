@@ -141,6 +141,8 @@ bench_results.txt
 
 # Docker runtime smoke (optional local config dir)
 meshchatx-docker-smoke-config/
+meshchatx-artifacts-win/
+meshchatx-artifacts-win-smoke/
 
 meshchat-config/
 

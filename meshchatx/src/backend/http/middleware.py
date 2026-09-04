@@ -4,7 +4,7 @@
 
 Factories take the live app instance and return middleware callables.
 Order returned by register_all_routes / _define_routes must remain:
-auth, mime_type, security, csrf, ip_allowlist, demo_mode.
+sqlite_unavailable, auth, mime_type, security, csrf, ip_allowlist, demo_mode.
 """
 
 from __future__ import annotations
@@ -19,6 +19,12 @@ from meshchatx.src.backend.app_security_settings import (
     get_web_ui_ip_allowlist,
 )
 from meshchatx.src.backend.csrf import validate_csrf_header
+from meshchatx.src.backend.database.sqlite_errors import sqlite_error_is_retryable
+from meshchatx.src.backend.http.db_availability import (
+    DB_TEMPORARILY_UNAVAILABLE,
+    exception_looks_like_missing_database,
+)
+from meshchatx.src.backend.http.errors import http_unavailable
 from meshchatx.src.backend.ip_allowlist import client_ip_allowed
 from meshchatx.src.backend.privacy_mode import privacy_mode_enabled
 from meshchatx.src.env_utils import env_bool
@@ -75,6 +81,26 @@ def build_nomad_crash_tab_csp() -> str:
         "base-uri 'none'; "
         "form-action 'none'"
     )
+
+
+def create_sqlite_unavailable_middleware(app):
+    """Map uncaught SQLite / missing-DB races on /api to HTTP 503."""
+
+    @web.middleware
+    async def sqlite_unavailable_middleware(request, handler):
+        try:
+            return await handler(request)
+        except Exception as exc:
+            if not request.path.startswith("/api/"):
+                raise
+            if sqlite_error_is_retryable(exc) or exception_looks_like_missing_database(
+                exc,
+                app,
+            ):
+                return http_unavailable(DB_TEMPORARILY_UNAVAILABLE)
+            raise
+
+    return sqlite_unavailable_middleware
 
 
 def create_ip_allowlist_middleware(app):
@@ -374,7 +400,12 @@ def create_security_middleware(app):
             "data:",
             "blob:",
         ]
-        if not privacy_mode:
+        # Public demo keeps privacy_mode (no backend clearnet) but still needs
+        # browser basemap tiles for the map showcase.
+        allow_map_tile_origins = (not privacy_mode) or bool(
+            getattr(app, "demo_mode", False)
+        )
+        if allow_map_tile_origins:
             connect_sources.extend(
                 [
                     "https://*.tile.openstreetmap.org",

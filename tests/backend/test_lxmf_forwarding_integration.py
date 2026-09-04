@@ -39,6 +39,7 @@ def _make_lxmf_message(source_hex: str, dest_hex: str):
     msg.destination_hash = bytes.fromhex(dest_hex)
     msg.content = "body"
     msg.title = "t"
+    msg.signature_validated = True
     msg.get_fields = MagicMock(return_value={})
     return msg
 
@@ -97,6 +98,20 @@ def test_handle_forwarding_reply_path_sends_to_original_sender(forwarding_app):
     kwargs = app.send_message.call_args[1]
     assert kwargs["destination_hash"] == original
     assert "sender_identity_hash" not in kwargs
+
+
+@pytest.mark.integration
+def test_handle_forwarding_skips_unsigned_messages(forwarding_app):
+    app = forwarding_app
+    ctx = app.current_context
+    msg = _make_lxmf_message("aa" * 16, "bb" * 16)
+    msg.signature_validated = False
+
+    with patch.object(AsyncUtils, "run_async", side_effect=_run_async_immediate):
+        app.handle_forwarding(msg, context=ctx)
+
+    app.send_message.assert_not_called()
+    ctx.database.messages.get_forwarding_mapping.assert_not_called()
 
 
 @pytest.mark.integration

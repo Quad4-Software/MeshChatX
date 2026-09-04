@@ -210,6 +210,23 @@ ACCESS_ATTEMPTS_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+BUG_REPORT_ISSUES_SCHEMA: dict = {
+    "type": "object",
+    "required": ["issues", "total"],
+    "properties": {
+        "issues": _ARRAY,
+        "total": _INTEGER,
+    },
+    "additionalProperties": True,
+}
+
+BUG_REPORT_ISSUE_SCHEMA: dict = {
+    "type": "object",
+    "required": ["issue"],
+    "properties": {"issue": _OBJECT},
+    "additionalProperties": True,
+}
+
 MEMORY_DIAGNOSTICS_SCHEMA: dict = {
     "type": "object",
     "required": ["rss_bytes"],
@@ -664,6 +681,18 @@ FILESYNC_ACL_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+FILESYNC_SHARED_SUGGESTION_SCHEMA: dict = {
+    "type": "object",
+    "required": ["ok", "path"],
+    "properties": {
+        "ok": _BOOLEAN,
+        "path": _STRING,
+        "android": _BOOLEAN,
+        "requires_all_files_access": _BOOLEAN,
+    },
+    "additionalProperties": True,
+}
+
 RNCP_TRANSFER_SCHEMA: dict = {
     "type": "object",
     "required": ["transfer"],
@@ -839,6 +868,28 @@ DESTINATION_SIGNAL_METRICS_SCHEMA: dict = {
     "properties": {
         "signal_metrics": {"type": ["object", "null"]},
         "metrics": {"type": ["object", "null"]},
+    },
+    "additionalProperties": True,
+}
+
+DESTINATION_DELIVERY_DIAGNOSTICS_SCHEMA: dict = {
+    "type": "object",
+    "required": [
+        "peer",
+        "self",
+        "peer_announce",
+        "path",
+        "recall",
+        "delivery_prefs",
+    ],
+    "properties": {
+        "peer": {"type": "object"},
+        "self": {"type": "object"},
+        "peer_announce": {"type": "object"},
+        "path": {"type": "object"},
+        "recall": {"type": "object"},
+        "delivery_prefs": {"type": "object"},
+        "failure_hint": {"type": ["string", "null"]},
     },
     "additionalProperties": True,
 }

@@ -138,6 +138,9 @@ from meshchatx.src.backend.landlock_sandbox import (
     landlock_kernel_supported,
     landlock_requested,
 )
+from meshchatx.src.backend.rns_filesync_handler import (
+    collect_external_filesync_rw_roots,
+)
 from meshchatx.src.backend.legacy_migrator import (
     assert_migration_context_paths,
     fresh_storage_at_target,
@@ -170,9 +173,10 @@ from meshchatx.src.backend.lxmf_utils import (
     convert_lxmf_message_to_dict,
     convert_lxmf_method_to_string,
     convert_lxmf_state_to_string,
+    extract_sideband_command_entries,
     is_lxmf_outbound_progress_terminal,
     is_user_facing_lxmf_payload,
-    lxmf_fields_are_reaction,
+    lxmf_is_reaction_only_delivery,
     lxmf_sidebar_preview_for_conversation_latest_row,
 )
 from meshchatx.src.backend.map_geo_validator import GeoValidationError
@@ -206,7 +210,13 @@ from meshchatx.src.backend.meshchat_utils import (
     normalize_hex_identifier,
     normalize_identity_storage_hash,
     parse_bool_query_param,
+    lxmf_signature_validated,
+    normalize_lxmf_destination_hash,
+    parse_lxmf_audio_field_value,
     parse_lxmf_display_name,
+    parse_lxmf_file_attachments_field_value,
+    parse_lxmf_icon_appearance,
+    parse_lxmf_image_field_value,
     parse_lxmf_propagation_node_app_data,
     parse_lxmf_stamp_cost,
     parse_nomadnetwork_node_display_name,
@@ -288,7 +298,7 @@ from meshchatx.src.backend.sticker_utils import (
     sanitize_sticker_name,
     validate_export_document,
 )
-from meshchatx.src.backend.telemetry_utils import Telemeter
+from meshchatx.src.backend.telemetry_utils import Telemeter, _valid_number
 from meshchatx.src.backend.web_audio_bridge import WebAudioBridge
 from meshchatx.src.backend.websocket_config_guard import (
     sanitize_websocket_config_update,
@@ -363,6 +373,32 @@ def _resolve_rns_loglevel(cli_override: str | None) -> int | None:
     return _parse_rns_loglevel_value(os.environ.get("MESHCHAT_RNS_LOG_LEVEL"))
 
 
+_rns_bridge_logger = logging.getLogger("meshchatx.rns")
+
+
+def _rns_log_to_python_logging(logstring: str) -> None:
+    """Forward already-formatted RNS log lines into the MeshChatX logger."""
+    try:
+        _rns_bridge_logger.info("%s", logstring)
+    except Exception:
+        pass
+
+
+def _resolve_rns_logdest():
+    """Choose RNS log destination.
+
+    When a writable log_dir exists, default to a callback into Python logging
+    so RNS output shares SafeRotatingFileHandler and does not flood Docker
+    stdout. Set MESHCHAT_RNS_LOG_DEST=stdout to keep the RNS console default.
+    """
+    raw = (os.environ.get("MESHCHAT_RNS_LOG_DEST") or "").strip().lower()
+    if raw in ("stdout", "console", "stderr"):
+        return None
+    if raw in ("", "logging", "callback", "file") and log_dir:
+        return _rns_log_to_python_logging
+    return None
+
+
 def _restore_rns_console_logging_after_reticulum_init(app) -> None:
     """Undo shutdown side effects from RNS.Reticulum.exit_handler.
 
@@ -386,7 +422,11 @@ def _restore_rns_console_logging_after_reticulum_init(app) -> None:
         RNS.loglevel = RNS.LOG_WARNING
 
 
-def _create_reticulum_instance(config_dir: str, loglevel: int | None = None):
+def _create_reticulum_instance(
+    config_dir: str,
+    loglevel: int | None = None,
+    logdest=None,
+):
     """Construct RNS.Reticulum even when called off the main thread.
 
     Reticulum registers SIGINT/SIGTERM handlers in __init__. Python only allows
@@ -401,6 +441,9 @@ def _create_reticulum_instance(config_dir: str, loglevel: int | None = None):
     kwargs = {}
     if loglevel is not None:
         kwargs["loglevel"] = loglevel
+    resolved_logdest = logdest if logdest is not None else _resolve_rns_logdest()
+    if resolved_logdest is not None:
+        kwargs["logdest"] = resolved_logdest
 
     def _construct():
         if threading.current_thread() is threading.main_thread():
@@ -3029,6 +3072,11 @@ class ReticulumMeshChat:
             self.running = True
             # setup_identity initializes context if needed and sets it as current
             self.setup_identity(new_identity)
+            try:
+                if getattr(self, "bug_report_manager", None) is not None:
+                    self.bug_report_manager.on_identity_switch()
+            except Exception:
+                pass
 
             # 5. broadcast update to clients
             await self.websocket_broadcast(
@@ -5437,6 +5485,7 @@ class ReticulumMeshChat:
         from meshchatx.src.backend.http.register import register_all_routes
 
         (
+            sqlite_unavailable_middleware,
             auth_middleware,
             mime_type_middleware,
             security_middleware,
@@ -5446,6 +5495,7 @@ class ReticulumMeshChat:
         ) = register_all_routes(routes, self)
 
         return (
+            sqlite_unavailable_middleware,
             auth_middleware,
             mime_type_middleware,
             security_middleware,
@@ -5548,6 +5598,7 @@ class ReticulumMeshChat:
         # create route table
         routes = web.RouteTableDef()
         (
+            sqlite_unavailable_middleware,
             auth_middleware,
             mime_type_middleware,
             security_middleware,
@@ -5658,6 +5709,7 @@ class ReticulumMeshChat:
         # add other middlewares
         app.middlewares.extend(
             [
+                sqlite_unavailable_middleware,
                 auth_middleware,
                 mime_type_middleware,
                 security_middleware,
@@ -6078,6 +6130,10 @@ class ReticulumMeshChat:
                 data["auto_send_failed_messages_to_propagation_node"],
             )
             self.config.auto_send_failed_messages_to_propagation_node.set(value)
+
+        if "delivery_helptips_enabled" in data:
+            value = self._parse_bool(data["delivery_helptips_enabled"])
+            self.config.delivery_helptips_enabled.set(value)
 
         if "lxmf_delivery_transfer_limit_in_bytes" in data:
             value = self._coerce_int(data["lxmf_delivery_transfer_limit_in_bytes"])
@@ -7555,10 +7611,11 @@ class ReticulumMeshChat:
         except Exception:
             warning_enabled = True
         count = int(snap.get("count") or 0)
+        sessions = list(snap.get("sessions") or [])
         return {
             "count": count,
-            "sessions": list(snap.get("sessions") or []),
-            "warning": should_warn_multi_session(count, warning_enabled),
+            "sessions": sessions,
+            "warning": should_warn_multi_session(count, warning_enabled, sessions),
             "warning_enabled": warning_enabled,
         }
 
@@ -7655,6 +7712,7 @@ class ReticulumMeshChat:
             "auto_resend_failed_messages_when_announce_received": ctx.config.auto_resend_failed_messages_when_announce_received.get(),
             "allow_auto_resending_failed_messages_with_attachments": ctx.config.allow_auto_resending_failed_messages_with_attachments.get(),
             "auto_send_failed_messages_to_propagation_node": ctx.config.auto_send_failed_messages_to_propagation_node.get(),
+            "delivery_helptips_enabled": ctx.config.delivery_helptips_enabled.get(),
             "show_suggested_community_interfaces": ctx.config.show_suggested_community_interfaces.get(),
             "lxmf_delivery_transfer_limit_in_bytes": ctx.config.lxmf_delivery_transfer_limit_in_bytes.get(),
             "lxmf_propagation_transfer_limit_in_bytes": ctx.config.lxmf_propagation_transfer_limit_in_bytes.get(),
@@ -7875,7 +7933,13 @@ class ReticulumMeshChat:
         id_norm = normalize_hex_identifier(identity_hash) if identity_hash else ""
         identity = self.recall_identity(identity_hash)
         if identity is not None:
-            return RNS.Destination.hash(identity, "lxmf", "delivery").hex()
+            try:
+                return RNS.Destination.hash(identity, "lxmf", "delivery").hex()
+            except Exception:
+                pass
+
+        if self.database is None:
+            return None
 
         # fallback to announces
         lookup_hash = id_norm or identity_hash
@@ -7893,18 +7957,19 @@ class ReticulumMeshChat:
 
     def get_lxst_telephony_hash_for_identity_hash(self, identity_hash: str):
         id_norm = normalize_hex_identifier(identity_hash) if identity_hash else ""
-        # Primary: use announces table for lxst.telephony aspect
         lookup_hash = id_norm or identity_hash
-        announces = self.database.announces.get_filtered_announces(
-            aspect="lxst.telephony",
-            identity_hash=lookup_hash,
-            limit=5,
-        )
-        if announces:
-            for announce in announces:
-                ann_id = announce.get("identity_hash") or ""
-                if ann_id and normalize_hex_identifier(ann_id) == id_norm:
-                    return announce.get("destination_hash")
+
+        if self.database is not None:
+            announces = self.database.announces.get_filtered_announces(
+                aspect="lxst.telephony",
+                identity_hash=lookup_hash,
+                limit=5,
+            )
+            if announces:
+                for announce in announces:
+                    ann_id = announce.get("identity_hash") or ""
+                    if ann_id and normalize_hex_identifier(ann_id) == id_norm:
+                        return announce.get("destination_hash")
 
         # Fallback: derive from identity if available (same identity, different aspect)
         identity = self.recall_identity(identity_hash)
@@ -9015,6 +9080,11 @@ class ReticulumMeshChat:
 
         try:
             source_hash = lxmf_message.source_hash.hex()
+            unverified_reason = getattr(lxmf_message, "unverified_reason", None)
+
+            if unverified_reason == LXMF.LXMessage.SIGNATURE_INVALID:
+                logger.warning("Invalid LXMF signature from %s, dropping", source_hash)
+                return
 
             # check if source is blocked - reject immediately
             if self.is_destination_blocked(source_hash, context=ctx):
@@ -9040,20 +9110,20 @@ class ReticulumMeshChat:
             is_sideband_telemetry_request = False
             lxmf_fields = lxmf_message.get_fields()
 
-            # check both standard LXMF.FIELD_COMMANDS (9) and FIELD_COMMANDS (1)
+            # FIELD_COMMANDS (9) is the LXMF-standard command slot.
+            # Field 0x01 is FIELD_EMBEDDED_LXMS on the wire. Sideband also put
+            # telemetry requests there historically, so only treat Sideband-shaped
+            # entries as commands and leave packed embedded LXMs alone.
             commands = []
             if LXMF.FIELD_COMMANDS in lxmf_fields:
-                val = lxmf_fields[LXMF.FIELD_COMMANDS]
-                if isinstance(val, list):
-                    commands.extend(val)
-                elif isinstance(val, dict):
-                    commands.append(val)
-            if 0x01 in lxmf_fields and LXMF.FIELD_COMMANDS != 0x01:
-                val = lxmf_fields[0x01]
-                if isinstance(val, list):
-                    commands.extend(val)
-                elif isinstance(val, dict):
-                    commands.append(val)
+                commands.extend(
+                    extract_sideband_command_entries(lxmf_fields[LXMF.FIELD_COMMANDS]),
+                )
+            embedded_field = getattr(LXMF, "FIELD_EMBEDDED_LXMS", 0x01)
+            if embedded_field in lxmf_fields and embedded_field != LXMF.FIELD_COMMANDS:
+                commands.extend(
+                    extract_sideband_command_entries(lxmf_fields[embedded_field]),
+                )
 
             if commands:
                 for command in commands:
@@ -9078,7 +9148,7 @@ class ReticulumMeshChat:
                     if (
                         isinstance(command, dict)
                         and SidebandCommands.PLUGIN_COMMAND in command
-                        and getattr(lxmf_message, "signature_validated", False)
+                        and lxmf_signature_validated(lxmf_message)
                     ):
                         plugin_command = command.get(SidebandCommands.PLUGIN_COMMAND)
                         if isinstance(plugin_command, bytes):
@@ -9095,13 +9165,16 @@ class ReticulumMeshChat:
                             except Exception as exc:
                                 print(f"Sideband plugin command failed: {exc}")
 
-            # respond to telemetry requests
+            # Respond to telemetry requests as a side effect. Do not return early:
+            # spam, stranger-attachment, and drop policies must still run.
             if is_sideband_telemetry_request:
-                # Check if telemetry is enabled globally
                 if not ctx.config.telemetry_enabled.get():
                     print(f"Telemetry is disabled, ignoring request from {source_hash}")
+                elif not lxmf_signature_validated(lxmf_message):
+                    print(
+                        f"Ignoring unsigned telemetry request from {source_hash}",
+                    )
                 else:
-                    # Check if peer is trusted
                     contact = ctx.database.contacts.get_contact_by_identity_hash(
                         source_hash,
                     )
@@ -9126,25 +9199,6 @@ class ReticulumMeshChat:
                                     "Set manual coordinates in Settings > Location to respond.",
                                 )
 
-                self.db_upsert_lxmf_message(lxmf_message, context=ctx)
-
-                AsyncUtils.run_async(
-                    self.websocket_broadcast(
-                        json.dumps(
-                            {
-                                "type": "lxmf.delivery",
-                                "remote_identity_name": source_hash[:8],
-                                "lxmf_message": convert_lxmf_message_to_dict(
-                                    lxmf_message,
-                                    include_attachments=False,
-                                    reticulum=self.reticulum,
-                                ),
-                            },
-                        ),
-                    ),
-                )
-                return
-
             # check for spam keywords
             is_spam = False
             message_title = lxmf_message.title if hasattr(lxmf_message, "title") else ""
@@ -9160,10 +9214,14 @@ class ReticulumMeshChat:
             elif message_title is None:
                 message_title = ""
 
-            is_reaction_delivery = lxmf_fields_are_reaction(lxmf_fields)
+            is_reaction_only = lxmf_is_reaction_only_delivery(
+                lxmf_fields,
+                message_title,
+                message_content,
+            )
 
-            # check spam keywords
-            if not is_reaction_delivery and self.check_spam_keywords(
+            # check spam keywords (reaction+body must not skip spam)
+            if not is_reaction_only and self.check_spam_keywords(
                 message_title,
                 message_content,
                 context=ctx,
@@ -9215,7 +9273,8 @@ class ReticulumMeshChat:
             self._maybe_store_path_at_send_for_lxmf(ctx, lxmf_message)
 
             # handle forwarding
-            self.handle_forwarding(lxmf_message, context=ctx)
+            if lxmf_signature_validated(lxmf_message):
+                self.handle_forwarding(lxmf_message, context=ctx)
 
             self._apply_lxmf_sieve_folder_rule(
                 source_hash,
@@ -9238,38 +9297,53 @@ class ReticulumMeshChat:
 
             # handle telemetry
             try:
-                message_fields = lxmf_message.get_fields()
+                if lxmf_signature_validated(lxmf_message):
+                    message_fields = lxmf_message.get_fields()
 
-                # Single telemetry entry
-                if LXMF.FIELD_TELEMETRY in message_fields:
-                    self.process_incoming_telemetry(
-                        source_hash,
-                        message_fields[LXMF.FIELD_TELEMETRY],
-                        lxmf_message,
-                        context=ctx,
-                    )
+                    # Single telemetry entry
+                    if LXMF.FIELD_TELEMETRY in message_fields:
+                        self.process_incoming_telemetry(
+                            source_hash,
+                            message_fields[LXMF.FIELD_TELEMETRY],
+                            lxmf_message,
+                            context=ctx,
+                        )
 
-                # Telemetry stream (multiple entries)
-                if (
-                    hasattr(LXMF, "FIELD_TELEMETRY_STREAM")
-                    and LXMF.FIELD_TELEMETRY_STREAM in message_fields
-                ):
-                    stream = message_fields[LXMF.FIELD_TELEMETRY_STREAM]
-                    if isinstance(stream, (list, tuple)):
-                        for entry in stream:
-                            if isinstance(entry, (list, tuple)) and len(entry) >= 3:
-                                entry_source = (
-                                    entry[0].hex()
-                                    if isinstance(entry[0], bytes)
-                                    else entry[0]
+                    # Telemetry stream (multiple entries)
+                    if (
+                        hasattr(LXMF, "FIELD_TELEMETRY_STREAM")
+                        and LXMF.FIELD_TELEMETRY_STREAM in message_fields
+                    ):
+                        stream = message_fields[LXMF.FIELD_TELEMETRY_STREAM]
+                        if isinstance(stream, (list, tuple)):
+                            sender_trusted = False
+                            contact = (
+                                ctx.database.contacts.get_contact_by_identity_hash(
+                                    source_hash,
                                 )
-                                entry_timestamp = entry[1]
+                            )
+                            if contact and contact.get("is_telemetry_trusted"):
+                                sender_trusted = True
+                            for entry in stream:
+                                if (
+                                    not isinstance(entry, (list, tuple))
+                                    or len(entry) < 3
+                                ):
+                                    continue
+                                entry_source = normalize_lxmf_destination_hash(entry[0])
+                                if not entry_source:
+                                    continue
+                                if entry_source != source_hash and not sender_trusted:
+                                    continue
+                                entry_timestamp = _valid_number(entry[1])
+                                if entry_timestamp is None:
+                                    continue
                                 entry_data = entry[2]
                                 self.process_incoming_telemetry(
                                     entry_source,
                                     entry_data,
                                     lxmf_message,
-                                    timestamp_override=entry_timestamp,
+                                    timestamp_override=int(entry_timestamp),
                                     context=ctx,
                                 )
             except Exception as e:
@@ -9277,53 +9351,60 @@ class ReticulumMeshChat:
 
             # update lxmf user icon if icon appearance field is available
             try:
-                message_fields = lxmf_message.get_fields()
-                if LXMF.FIELD_ICON_APPEARANCE in message_fields:
-                    icon_appearance = message_fields[LXMF.FIELD_ICON_APPEARANCE]
-                    icon_name = icon_appearance[0]
-                    foreground_colour = "#" + icon_appearance[1].hex()
-                    background_colour = "#" + icon_appearance[2].hex()
-
-                    local_hash = (
-                        ctx.local_lxmf_destination.hexhash
-                        if ctx.local_lxmf_destination
-                        else None
+                if lxmf_signature_validated(lxmf_message):
+                    message_fields = lxmf_message.get_fields()
+                    icon_appearance = parse_lxmf_icon_appearance(
+                        message_fields.get(LXMF.FIELD_ICON_APPEARANCE),
                     )
-                    source_hash = lxmf_message.source_hash.hex()
-
-                    # ignore our own icon and empty payloads to avoid overwriting peers with our appearance
-                    if (source_hash and local_hash and source_hash == local_hash) or (
-                        not icon_name or not foreground_colour or not background_colour
-                    ):
-                        pass
-                    else:
-                        local_icon_name = ctx.config.lxmf_user_icon_name.get()
-                        local_icon_fg = (
-                            ctx.config.lxmf_user_icon_foreground_colour.get()
-                        )
-                        local_icon_bg = (
-                            ctx.config.lxmf_user_icon_background_colour.get()
+                    if icon_appearance:
+                        icon_name, foreground_colour, background_colour = (
+                            icon_appearance
                         )
 
-                        # if incoming icon matches our own, skip storing and clear any mistaken stored copy
-                        # for now, but this will need to be updated later if two users do have the same icon
+                        local_hash = (
+                            ctx.local_lxmf_destination.hexhash
+                            if ctx.local_lxmf_destination
+                            else None
+                        )
+                        source_hash = lxmf_message.source_hash.hex()
+
+                        # ignore our own icon and empty payloads to avoid overwriting peers with our appearance
                         if (
-                            local_icon_name
-                            and local_icon_fg
-                            and local_icon_bg
-                            and icon_name == local_icon_name
-                            and foreground_colour == local_icon_fg
-                            and background_colour == local_icon_bg
+                            source_hash and local_hash and source_hash == local_hash
+                        ) or (
+                            not icon_name
+                            or not foreground_colour
+                            or not background_colour
                         ):
-                            ctx.database.misc.delete_user_icon(source_hash)
+                            pass
                         else:
-                            self.update_lxmf_user_icon(
-                                source_hash,
-                                icon_name,
-                                foreground_colour,
-                                background_colour,
-                                context=ctx,
+                            local_icon_name = ctx.config.lxmf_user_icon_name.get()
+                            local_icon_fg = (
+                                ctx.config.lxmf_user_icon_foreground_colour.get()
                             )
+                            local_icon_bg = (
+                                ctx.config.lxmf_user_icon_background_colour.get()
+                            )
+
+                            # if incoming icon matches our own, skip storing and clear any mistaken stored copy
+                            # for now, but this will need to be updated later if two users do have the same icon
+                            if (
+                                local_icon_name
+                                and local_icon_fg
+                                and local_icon_bg
+                                and icon_name == local_icon_name
+                                and foreground_colour == local_icon_fg
+                                and background_colour == local_icon_bg
+                            ):
+                                ctx.database.misc.delete_user_icon(source_hash)
+                            else:
+                                self.update_lxmf_user_icon(
+                                    source_hash,
+                                    icon_name,
+                                    foreground_colour,
+                                    background_colour,
+                                    context=ctx,
+                                )
             except Exception as e:
                 print("failed to update lxmf user icon from lxmf message")
                 print(e)
@@ -9381,6 +9462,8 @@ class ReticulumMeshChat:
             ctx = context or self.current_context
             if not ctx:
                 return
+            if not lxmf_signature_validated(lxmf_message):
+                return
 
             source_hash = lxmf_message.source_hash.hex()
             destination_hash = lxmf_message.destination_hash.hex()
@@ -9392,19 +9475,28 @@ class ReticulumMeshChat:
             file_attachments_field = None
 
             if LXMF.FIELD_IMAGE in lxmf_fields:
-                val = lxmf_fields[LXMF.FIELD_IMAGE]
-                image_field = LxmfImageField(val[0], val[1])
+                parsed_image = parse_lxmf_image_field_value(
+                    lxmf_fields[LXMF.FIELD_IMAGE],
+                )
+                if parsed_image:
+                    image_field = LxmfImageField(parsed_image[0], parsed_image[1])
 
             if LXMF.FIELD_AUDIO in lxmf_fields:
-                val = lxmf_fields[LXMF.FIELD_AUDIO]
-                audio_field = LxmfAudioField(val[0], val[1])
+                parsed_audio = parse_lxmf_audio_field_value(
+                    lxmf_fields[LXMF.FIELD_AUDIO],
+                )
+                if parsed_audio:
+                    audio_field = LxmfAudioField(parsed_audio[0], parsed_audio[1])
 
             if LXMF.FIELD_FILE_ATTACHMENTS in lxmf_fields:
-                attachments = [
-                    LxmfFileAttachment(val[0], val[1])
-                    for val in lxmf_fields[LXMF.FIELD_FILE_ATTACHMENTS]
-                ]
-                file_attachments_field = LxmfFileAttachmentsField(attachments)
+                parsed_files = parse_lxmf_file_attachments_field_value(
+                    lxmf_fields[LXMF.FIELD_FILE_ATTACHMENTS],
+                )
+                if parsed_files:
+                    attachments = [
+                        LxmfFileAttachment(name, data) for name, data in parsed_files
+                    ]
+                    file_attachments_field = LxmfFileAttachmentsField(attachments)
 
             app_extensions = None
             if LXMF_APP_EXTENSIONS_FIELD in lxmf_fields and isinstance(
@@ -10335,7 +10427,10 @@ class ReticulumMeshChat:
             return
         identity_hash = announced_identity.hash.hex()
         if self.is_destination_blocked(identity_hash, context=ctx):
-            print(f"Dropping telephone announce from blocked source: {identity_hash}")
+            logger.debug(
+                "Dropping telephone announce from blocked source: %s",
+                identity_hash,
+            )
             if hasattr(self, "reticulum") and self.reticulum:
                 self.reticulum.drop_path(destination_hash)
             return
@@ -10343,11 +10438,9 @@ class ReticulumMeshChat:
         if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
             return
 
-        # log received announce
-        print(
-            "Received an announce from "
-            + RNS.prettyhexrep(destination_hash)
-            + " for [lxst.telephony]",
+        logger.debug(
+            "Received an announce from %s for [lxst.telephony]",
+            RNS.prettyhexrep(destination_hash),
         )
 
         # track announce timestamp
@@ -10396,15 +10489,19 @@ class ReticulumMeshChat:
 
         # check if announced identity or its hash is missing
         if not announced_identity or not announced_identity.hash:
-            print(
-                f"Dropping announce with missing identity or hash: {RNS.prettyhexrep(destination_hash)}",
+            logger.debug(
+                "Dropping announce with missing identity or hash: %s",
+                RNS.prettyhexrep(destination_hash),
             )
             return
 
         # check if source is blocked - drop announce and path if blocked
         identity_hash = announced_identity.hash.hex()
         if self.is_destination_blocked(identity_hash, context=ctx):
-            print(f"Dropping announce from blocked source: {identity_hash}")
+            logger.debug(
+                "Dropping announce from blocked source: %s",
+                identity_hash,
+            )
             if hasattr(self, "reticulum") and self.reticulum:
                 self.reticulum.drop_path(destination_hash)
             return
@@ -10412,11 +10509,9 @@ class ReticulumMeshChat:
         if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
             return
 
-        # log received announce
-        print(
-            "Received an announce from "
-            + RNS.prettyhexrep(destination_hash)
-            + " for [lxmf.delivery]",
+        logger.debug(
+            "Received an announce from %s for [lxmf.delivery]",
+            RNS.prettyhexrep(destination_hash),
         )
 
         # track announce timestamp
@@ -10480,11 +10575,9 @@ class ReticulumMeshChat:
         if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
             return
 
-        # log received announce
-        print(
-            "Received an announce from "
-            + RNS.prettyhexrep(destination_hash)
-            + " for [lxmf.propagation]",
+        logger.debug(
+            "Received an announce from %s for [lxmf.propagation]",
+            RNS.prettyhexrep(destination_hash),
         )
 
         # track announce timestamp
@@ -10536,8 +10629,18 @@ class ReticulumMeshChat:
 
         lock = self._auto_resend_coordinator.lock_for(identity_key, destination_hash)
         async with lock:
+            lookup_hash = destination_hash
+            try:
+                resolved = self.get_lxmf_destination_hash_for_identity_hash(
+                    destination_hash,
+                )
+                if isinstance(resolved, str) and resolved.strip():
+                    lookup_hash = resolved.strip()
+            except Exception:
+                lookup_hash = destination_hash
+
             failed_messages = ctx.database.messages.get_failed_messages_for_destination(
-                destination_hash,
+                lookup_hash,
             )
             now = time.time()
 
@@ -10681,7 +10784,10 @@ class ReticulumMeshChat:
 
         identity_hash = announced_identity.hash.hex()
         if self.is_destination_blocked(identity_hash, context=ctx):
-            print(f"Dropping rrc.hub announce from blocked source: {identity_hash}")
+            logger.debug(
+                "Dropping rrc.hub announce from blocked source: %s",
+                identity_hash,
+            )
             if hasattr(self, "reticulum") and self.reticulum:
                 self.reticulum.drop_path(destination_hash)
             return
@@ -10689,10 +10795,9 @@ class ReticulumMeshChat:
         if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
             return
 
-        print(
-            "Received an announce from "
-            + RNS.prettyhexrep(destination_hash)
-            + " for [rrc.hub]",
+        logger.debug(
+            "Received an announce from %s for [rrc.hub]",
+            RNS.prettyhexrep(destination_hash),
         )
 
         self._note_announce_timestamp()
@@ -10738,7 +10843,10 @@ class ReticulumMeshChat:
         # check if source is blocked - drop announce and path if blocked
         identity_hash = announced_identity.hash.hex()
         if self.is_destination_blocked(identity_hash, context=ctx):
-            print(f"Dropping announce from blocked source: {identity_hash}")
+            logger.debug(
+                "Dropping announce from blocked source: %s",
+                identity_hash,
+            )
             if hasattr(self, "reticulum") and self.reticulum:
                 self.reticulum.drop_path(destination_hash)
             return
@@ -10746,11 +10854,9 @@ class ReticulumMeshChat:
         if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
             return
 
-        # log received announce
-        print(
-            "Received an announce from "
-            + RNS.prettyhexrep(destination_hash)
-            + " for [nomadnetwork.node]",
+        logger.debug(
+            "Received an announce from %s for [nomadnetwork.node]",
+            RNS.prettyhexrep(destination_hash),
         )
 
         # track announce timestamp
@@ -10810,10 +10916,9 @@ class ReticulumMeshChat:
             return
         if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
             return
-        print(
-            "Received an announce from "
-            + RNS.prettyhexrep(destination_hash)
-            + " for [map-data-v1]",
+        logger.debug(
+            "Received an announce from %s for [map-data-v1]",
+            RNS.prettyhexrep(destination_hash),
         )
         self._note_announce_timestamp()
         ctx.announce_manager.upsert_announce(
@@ -11474,6 +11579,7 @@ def main():
 
     # store recovery on app for wiring with identity context
     reticulum_meshchat._crash_recovery = recovery
+    recovery.app = reticulum_meshchat
 
     # update recovery with known paths (database_path may be unset until identity setup)
     recovery.update_paths(
@@ -11587,6 +11693,9 @@ def main():
         public_dir=reticulum_meshchat.public_dir_override or get_file_path("public"),
         log_dir=resolve_log_dir(),
         extra_read_roots=extra_read_roots_from_app(reticulum_meshchat),
+        extra_rw_roots=collect_external_filesync_rw_roots(
+            reticulum_meshchat.storage_dir,
+        ),
     )
     # Apply after Landlock so landlock_* syscalls are not blocked by the filter.
     reticulum_meshchat.seccomp_active = apply_seccomp_sandbox()

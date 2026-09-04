@@ -6,7 +6,7 @@ Interfaces connect your MeshChatX node to the Reticulum mesh. Manage them from t
 
 Each interface is a Reticulum transport definition. Examples include TCP over the internet, UDP discovery, LoRa through an RNode, serial KISS devices, I2P tunnels, and automatic LAN discovery.
 
-MeshChatX reads and writes interface configuration in your Reticulum config directory (default `~/.reticulum`).
+MeshChatX reads and writes interface configuration in your Reticulum config directory (default ~/.reticulum).
 
 ## Supported interface types
 
@@ -27,7 +27,7 @@ The **Add interface** flow includes:
 | HTTPInterface         | HTTP/S tunnel (bundled RNS-over-HTTP)         |
 | Custom external types | Advanced setups                               |
 
-Community-curated suggestions come from bundled `community_interfaces.json`, built from [meshchatx.com/api/mcx-interfaces](https://meshchatx.com/api/mcx-interfaces) at release time. Browse listings at [meshchatx.com/interfaces](https://meshchatx.com/interfaces). An optional `public/community_interfaces.json` override can replace that list locally. The app does not fetch the directory over the network at runtime.
+Community-curated suggestions come from bundled community_interfaces.json, built from [meshchatx.com/api/mcx-interfaces](https://meshchatx.com/api/mcx-interfaces) at release time. Browse listings at [meshchatx.com/interfaces](https://meshchatx.com/interfaces). An optional public/community_interfaces.json override can replace that list locally. The app does not fetch the directory over the network at runtime.
 
 ## Interface discovery
 
@@ -39,15 +39,15 @@ Export your interface set for backup or clone it to another machine. Import vali
 
 ## RNode tools
 
-LoRa setups often need firmware management. **Tools → RNode Flasher** opens the bundled flasher at `/rnode-flasher/`. Configure frequency, bandwidth, spreading factor, and TX power when adding an RNode interface.
+LoRa setups often need firmware management. **Tools -> RNode Flasher** opens the bundled flasher at /rnode-flasher/. Configure frequency, bandwidth, spreading factor, and TX power when adding an RNode interface.
 
 ## Websocket server interface
 
-MeshChatX includes a custom `WebsocketServerInterface` for WebSocket-based Reticulum transport. Use it when bridging to web-friendly gateways.
+MeshChatX includes a custom WebsocketServerInterface for WebSocket-based Reticulum transport. Use it when bridging to web-friendly gateways.
 
 ## HTTP tunnel interface
 
-MeshChatX vendors [RNS-over-HTTP](https://github.com/Quad4-Software/RNS-over-HTTP) and installs `HTTPInterface.py` into your Reticulum `interfacepath` on startup. Use **Add interface → HTTP Tunnel** for client or server mode when only HTTP/S egress is available. Default transport is HTTP/1.1. HTTP/2 and HTTP/3 need TLS and optional extra packages on the server side.
+MeshChatX vendors [RNS-over-HTTP](https://github.com/Quad4-Software/RNS-over-HTTP) and installs HTTPInterface.py into your Reticulum interfacepath on startup. Use **Add interface -> HTTP Tunnel** for client or server mode when only HTTP/S egress is available. Default transport is HTTP/1.1. HTTP/2 and HTTP/3 need TLS and optional extra packages on the server side.
 
 ## Getting onto the mesh
 
@@ -71,18 +71,18 @@ LXMF, LXST, and Nomad features become reachable
 
 1. Pick a community interface or ask your mesh operator for TCP endpoint details.
 2. Add the interface and enable it.
-3. Watch the path table (**Tools → RNPath**) if connectivity fails.
+3. Watch the path table (**Tools -> RNPath**) if connectivity fails.
 4. Enable **auto-announce** so your services are visible.
 
 ## I2P
 
-I2P uses the local router's SAM API (usually `127.0.0.1:7656`). Enable SAM in the router. Do not run Java I2P and i2pd at the same time.
+I2P uses the local router's SAM API (usually 127.0.0.1:7656). Enable SAM in the router. Do not run Java I2P and i2pd at the same time.
 
-MeshChatX allows one I2P interface, last in the list, with Transport Mode on. New interfaces default `connectable` off. Turn it on only if this node should accept inbound I2P peers. That makes the node an I2P transport. At least one `b32.i2p` peer is required.
+MeshChatX allows one I2P interface, last in the list, with Transport Mode on. New interfaces default connectable off. Turn it on only if this node should accept inbound I2P peers. That makes the node an I2P transport. At least one b32.i2p peer is required.
 
 ## Bundled documentation hints
 
-The Interfaces UI links into the Reticulum manual sections on interface options. Open **Documentation → Reticulum** and search for `interfaces` if you need field-by-field reference.
+The Interfaces UI links into the Reticulum manual sections on interface options. Open **Documentation -> Reticulum** and search for interfaces if you need field-by-field reference.
 
 ## Tips
 

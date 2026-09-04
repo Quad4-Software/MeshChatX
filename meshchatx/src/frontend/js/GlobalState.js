@@ -2,7 +2,7 @@ import { reactive } from "vue";
 
 // global state
 const globalState = reactive({
-    authSessionResolved: true,
+    authSessionResolved: false,
     authEnabled: false,
     isLoopbackBind: true,
     authenticated: false,
@@ -43,6 +43,7 @@ const globalState = reactive({
         warn_on_stranger_links: true,
         messages_sidebar_position: "left",
         messages_multi_pane_enabled: true,
+        delivery_helptips_enabled: true,
         nomad_tabs_enabled: true,
         rrc_enabled: true,
         rrc_unread_badges_enabled: true,

@@ -116,6 +116,66 @@ describe("apiClient CSRF recovery", () => {
         expect(onAuthError).toHaveBeenCalledTimes(1);
     });
 
+    it("retries GET on 503 then succeeds", async () => {
+        vi.resetModules();
+        vi.doMock("../../meshchatx/src/frontend/js/httpRetry.js", async () => {
+            const actual = await vi.importActual("../../meshchatx/src/frontend/js/httpRetry.js");
+            return {
+                ...actual,
+                withRetryableHttp: (fn, options = {}) =>
+                    actual.withRetryableHttp(fn, {
+                        ...options,
+                        sleep: async () => {},
+                        baseDelayMs: 0,
+                    }),
+            };
+        });
+        const { createApiClient } = await import("../../meshchatx/src/frontend/js/apiClient.js");
+        const api = createApiClient();
+        let calls = 0;
+        vi.stubGlobal("fetch", async () => {
+            calls += 1;
+            if (calls < 3) {
+                return {
+                    ok: false,
+                    status: 503,
+                    headers: new Headers({ "content-type": "application/json" }),
+                    text: async () => JSON.stringify({ error: "busy" }),
+                };
+            }
+            return {
+                ok: true,
+                status: 200,
+                headers: new Headers({ "content-type": "application/json" }),
+                text: async () => JSON.stringify({ contacts: [] }),
+            };
+        });
+        const result = await api.get("/api/v1/telephone/contacts");
+        expect(calls).toBe(3);
+        expect(result.data).toEqual({ contacts: [] });
+    });
+
+    it("does not retry POST on 503", async () => {
+        const { setCsrfToken } = await import("../../meshchatx/src/frontend/js/csrfToken.js");
+        setCsrfToken("tok");
+        const { createApiClient } = await import("../../meshchatx/src/frontend/js/apiClient.js");
+        const api = createApiClient();
+        let calls = 0;
+        vi.stubGlobal("fetch", async () => {
+            calls += 1;
+            return {
+                ok: false,
+                status: 503,
+                headers: new Headers({ "content-type": "application/json" }),
+                text: async () => JSON.stringify({ error: "busy" }),
+            };
+        });
+        await expect(api.post("/api/v1/telephone/contacts", { name: "x" })).rejects.toMatchObject({
+            response: { status: 503 },
+        });
+        expect(calls).toBe(1);
+    });
+
     it("classifies CSRF rejection bodies without treating other 403s as CSRF", async () => {
         const { isCsrfRejection } = await import("../../meshchatx/src/frontend/js/apiClient.js");
         expect(isCsrfRejection(403, { error: "Invalid or missing CSRF token" })).toBe(true);

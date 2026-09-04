@@ -56,9 +56,9 @@ def test_list_directories_defaults_to_filesync_root(handler):
 
 
 def test_list_directories_rejects_outside_jail(handler):
-    result = handler.list_directories("/tmp/outside")
+    result = handler.list_directories("/etc")
     assert result["ok"] is False
-    assert "identity storage" in result["error"]
+    assert "not allowed" in result["error"]
 
 
 def test_create_directory_under_filesync(handler):

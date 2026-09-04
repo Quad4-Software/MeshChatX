@@ -11,6 +11,7 @@ import {
 } from "@/js/mapExchange/kmlSanitize.js";
 import { readKmlToFeatures } from "@/js/mapExchange/kmlCodec.js";
 import { readKmzToFeatures } from "@/js/mapExchange/kmzCodec.js";
+import { getDrawFeatureMetadataPayload } from "@/js/mapExchange/metadataUtils.js";
 
 const TINY_PNG =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
@@ -128,11 +129,35 @@ describe("kmlSanitize oracle", () => {
         expect(out.text).not.toMatch(/\]\]>/);
         expect(out.text.toLowerCase()).not.toContain("<script");
         expect(out.text.toLowerCase()).not.toContain("<h2");
+        expect(out.text.toLowerCase()).not.toContain("alert(1)");
         const parsed = new DOMParser().parseFromString(out.text, "application/xml");
         expect(parsed.getElementsByTagName("parsererror").length).toBe(0);
         const features = readKmlToFeatures(kml, "EPSG:3857");
         expect(features.length).toBe(1);
         expect(String(features[0].get("name") || "")).toContain("Leaking");
+    });
+
+    it("flattens ArcGIS table balloons into keyed lines and drops Null cells", () => {
+        const kml = `<?xml version="1.0" encoding="utf-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+<Placemark><name>Vandalism</name>
+<description><![CDATA[<html><body><table>
+<tr><td>AttackType</td><td>Vandalism</td></tr>
+<tr><td>Enemy Wounded</td><td>&lt;Null&gt;</td></tr>
+<tr><td>Notes</td><td>Memorial defaced</td></tr>
+</table><script>function changeImage(){}</script></body></html>]]></description>
+<Point><coordinates>-94.2,36.3,0</coordinates></Point>
+</Placemark></Document></kml>`;
+        const features = readKmlToFeatures(kml, "EPSG:3857");
+        expect(features.length).toBe(1);
+        const desc = String(features[0].get("description") || "");
+        expect(desc).toContain("AttackType: Vandalism");
+        expect(desc).toContain("Notes: Memorial defaced");
+        expect(desc.toLowerCase()).not.toContain("enemy wounded");
+        expect(desc.toLowerCase()).not.toContain("changeimage");
+        const payload = getDrawFeatureMetadataPayload(features[0]);
+        expect(payload.extended.some((r) => r.key === "AttackType" && r.value === "Vandalism")).toBe(true);
+        expect(payload.extended.some((r) => /null/i.test(r.value))).toBe(false);
     });
 
     it("skips unreferenced svg kmz entry and keeps placemarks", async () => {

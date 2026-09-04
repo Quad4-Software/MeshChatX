@@ -1,6 +1,6 @@
 # LXMF messaging
 
-MeshChatX uses LXMF (LXMF Message Format) for direct and store-and-forward messaging over Reticulum. Each identity has an `LXMRouter` registered under aspect `lxmf.delivery`.
+MeshChatX uses LXMF (LXMF Message Format) for direct and store-and-forward messaging over Reticulum. Each identity has an LXMRouter registered under aspect lxmf.delivery.
 
 ## Conversations
 
@@ -16,7 +16,7 @@ From a conversation you can:
 - Organise threads into folders and pin important chats
 - Run bulk operations on multiple conversations
 
-Incoming messages arrive over the WebSocket as `lxmf_message` events. The UI updates without a full page reload.
+Incoming messages arrive over the WebSocket as lxmf_message events. The UI updates without a full page reload.
 
 ## Attachments and rich content
 
@@ -38,10 +38,10 @@ MeshChatX can:
 
 - Run a **local propagation node** on your identity
 - **Sync** with remote propagation nodes you trust
-- **Auto-select** a preferred propagation peer via `AutoPropagationManager` from local `lxmf.propagation` announces and RNS paths (small sync probe, remembered destination hashes, no central directory)
+- **Auto-select** a preferred propagation peer via AutoPropagationManager from local lxmf.propagation announces and RNS paths (small sync probe, remembered destination hashes, no central directory)
 - **Retry** failed direct deliveries through propagation when configured
 
-Manage nodes from **Tools → Propagation nodes** or related settings entries.
+Manage nodes from **Tools -> Propagation nodes** or related settings entries.
 
 ## Stamp costs and stranger protection
 
@@ -63,11 +63,11 @@ Raise inbound costs when you operate a public-facing node. Lower them on trusted
 
 ## Paper messages
 
-**Tools → Paper message** generates LXMF URIs you can share as QR codes. Another MeshChatX user can ingest the URI to receive the payload. Useful for offline handoff when no live path exists yet.
+**Tools -> Paper message** generates LXMF URIs you can share as QR codes. Another MeshChatX user can ingest the URI to receive the payload. Useful for offline handoff when no live path exists yet.
 
 ## Forwarding
 
-`ForwardingManager` supports alias identities that forward messages between peers according to rules you define. Configure forwarding from **Tools → Forwarder**.
+ForwardingManager supports alias identities that forward messages between peers according to rules you define. Configure forwarding from **Tools -> Forwarder**.
 
 ## Import and export
 
@@ -102,10 +102,10 @@ WebSocket lxmf_message event on recipient UI
 ## Tips
 
 - Set a **display name** in settings so announces show a friendly label.
-- Enable **auto-announce** so your `lxmf.delivery` aspect stays visible on the mesh.
+- Enable **auto-announce** so your lxmf.delivery aspect stays visible on the mesh.
 - Check **Interfaces** if messages stall. No path to the peer means LXMF cannot deliver.
 - Review stamp settings before joining busy public meshes.
-- While a large message is downloading, the header shows **Cancel incoming**. That stops active LXMF delivery resource transfers (`cancel_all_inbound` / per-resource cancel). Outbound send cancel stays on each message menu.
+- While a large message is downloading, the header shows **Cancel incoming**. That stops active LXMF delivery resource transfers (cancel_all_inbound / per-resource cancel). Outbound send cancel stays on each message menu.
 
 ## See also
 

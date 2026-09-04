@@ -4,7 +4,14 @@
 
 LXMF 1.1 exposes delivery_resource_advertised on LXMRouter. Returning False
 rejects the RNS resource before bytes are transferred. transfer_began cancels
-as a fallback when peer identity was not available at advertise time.
+as a fallback when peer identity becomes known after advertise.
+
+LXMF senders typically identify only after a successful delivery (backchannel).
+On a fresh inbound delivery link, get_remote_identity() is often None when the
+resource is advertised. Treating unknown identity as stranger rejects contact
+attachments and marks the sender REJECTED even though smaller packet messages
+still land. Only reject when the peer identity is known and fails policy.
+Unknown peers are accepted here and handled in on_lxmf_delivery (strip or drop).
 """
 
 from __future__ import annotations
@@ -52,41 +59,44 @@ def evaluate_inbound_delivery_resource_policy(
     ctx,
     resource,
 ) -> tuple[bool, str | None]:
-    """Return (reject, reason). reject True means do not accept the transfer."""
+    """Return (reject, reason). reject True means do not accept the transfer.
+
+    Unknown peer identity never rejects. LXMF often has no remote identity on
+    the first resource advertise of a new delivery link. Post-delivery policy
+    in on_lxmf_delivery still strips stranger attachments and drops block_all.
+    """
     if ctx is None or not getattr(ctx, "config", None):
         return False, None
 
     source_hash = source_hash_from_delivery_resource(resource)
+    if not source_hash:
+        return False, None
 
-    if source_hash:
-        try:
-            if app.is_destination_blocked(source_hash, context=ctx):
-                return True, "blocked"
-        except Exception:
-            logger.debug(
-                "Inbound delivery resource blocklist check failed",
-                exc_info=True,
-            )
+    try:
+        if app.is_destination_blocked(source_hash, context=ctx):
+            return True, "blocked"
+    except Exception:
+        logger.debug(
+            "Inbound delivery resource blocklist check failed",
+            exc_info=True,
+        )
 
     is_contact = False
-    if source_hash:
-        try:
-            is_contact = bool(app._is_contact(source_hash, context=ctx))
-        except Exception:
-            logger.debug(
-                "Inbound delivery resource contact check failed",
-                exc_info=True,
-            )
+    try:
+        is_contact = bool(app._is_contact(source_hash, context=ctx))
+    except Exception:
+        logger.debug(
+            "Inbound delivery resource contact check failed",
+            exc_info=True,
+        )
 
-    if ctx.config.block_all_from_strangers.get():
-        if not source_hash or not is_contact:
-            return True, "block_all_strangers"
+    if ctx.config.block_all_from_strangers.get() and not is_contact:
+        return True, "block_all_strangers"
 
-    if ctx.config.block_attachments_from_strangers.get():
-        if not source_hash or not is_contact:
-            # Resource transfers carry whole LXMF payloads. Reject before download
-            # because attachment fields are not visible in the advertisement.
-            return True, "block_stranger_attachments"
+    if ctx.config.block_attachments_from_strangers.get() and not is_contact:
+        # Resource transfers carry whole LXMF payloads. Reject known strangers
+        # before download. Attachment fields are not visible in the advertisement.
+        return True, "block_stranger_attachments"
 
     return False, None
 

@@ -1465,6 +1465,63 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
+        public boolean hasAllFilesAccess() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                return Environment.isExternalStorageManager();
+            }
+            return true;
+        }
+
+        @JavascriptInterface
+        public void requestAllFilesAccess() {
+            activity.runOnUiThread(
+                () -> {
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                        Toast.makeText(
+                            activity,
+                            "Shared storage is already available on this Android version.",
+                            Toast.LENGTH_SHORT
+                        ).show();
+                        return;
+                    }
+                    if (Environment.isExternalStorageManager()) {
+                        Toast.makeText(
+                            activity,
+                            "All files access is already granted.",
+                            Toast.LENGTH_SHORT
+                        ).show();
+                        return;
+                    }
+                    try {
+                        Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                        intent.setData(Uri.parse("package:" + activity.getPackageName()));
+                        activity.startActivity(intent);
+                    } catch (ActivityNotFoundException e) {
+                        try {
+                            Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                            activity.startActivity(intent);
+                        } catch (ActivityNotFoundException e2) {
+                            Toast.makeText(
+                                activity,
+                                "Open system settings and grant All files access for MeshChatX.",
+                                Toast.LENGTH_LONG
+                            ).show();
+                        }
+                    }
+                }
+            );
+        }
+
+        @JavascriptInterface
+        public String getSharedDocumentsDir() {
+            File docs = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
+            if (docs == null) {
+                return "";
+            }
+            return docs.getAbsolutePath();
+        }
+
+        @JavascriptInterface
         public String getBatteryStatus() {
             try {
                 int level = -1;

@@ -330,10 +330,14 @@ const router = createRouter({
     ],
 });
 
+pluginHost.attachRouter(router);
+
 window.api = createApiClient({
     onAuthError() {
+        GlobalState.authenticated = false;
+        GlobalState.authEnabled = true;
+        GlobalState.authSessionResolved = true;
         if (router.currentRoute.value.name !== "auth") {
-            GlobalState.authenticated = false;
             router.push("/auth");
         }
     },
@@ -389,6 +393,19 @@ if (networkReady) {
         }
     } catch {
         // status optional during early boot
+    }
+    if (GlobalState.demoMode) {
+        try {
+            const { DEMO_UI_LANGUAGE_STORAGE_KEY } = await import("./js/demoUiPrefs.js");
+            const { setLocale } = await import("./js/localeLoader.js");
+            const storedLang =
+                typeof localStorage !== "undefined" ? localStorage.getItem(DEMO_UI_LANGUAGE_STORAGE_KEY) : null;
+            if (storedLang) {
+                await setLocale(i18n, storedLang);
+            }
+        } catch {
+            // locale overlay optional
+        }
     }
     try {
         await fetchCsrfToken(window.api);
@@ -506,6 +523,17 @@ if (networkReady) {
                 stack: e?.stack,
             });
             return;
+        }
+        try {
+            const pendingRoute = localStorage.getItem("meshchatx_open_after_relaunch");
+            if (pendingRoute) {
+                localStorage.removeItem("meshchatx_open_after_relaunch");
+                if (pendingRoute.startsWith("#/")) {
+                    void router.replace(pendingRoute.slice(1));
+                }
+            }
+        } catch {
+            // ignore
         }
         // Keep splash until the first painted frame so WebView does not flash white.
         requestAnimationFrame(() => {

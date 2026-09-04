@@ -68,7 +68,7 @@
         class="rounded-lg px-2 py-1 text-sm"
         :class="entry.msg.mention ? 'bg-sem-warning/15' : 'hover:bg-sem-surface/40 dark:hover:bg-sem-surface/20'"
         :data-msg-key="page.messageKey(entry.msg)"
-        @contextmenu.prevent="page.openMessageContextMenu($event, entry.msg)"
+        @contextmenu="page.openMessageContextMenu($event, entry.msg)"
     >
         <span class="mr-1.5 text-xs text-sem-fg-muted">{{ page.formatTime(entry.msg.ts) }}</span>
         <span class="mr-1.5 font-semibold" :style="page.nameStyle(entry.msg)">{{ page.displayName(entry.msg) }}:</span>

@@ -44,6 +44,11 @@ class ConfigManager:
             "auto_send_failed_messages_to_propagation_node",
             False,
         )
+        self.delivery_helptips_enabled = self.BoolConfig(
+            self,
+            "delivery_helptips_enabled",
+            True,
+        )
         self.show_suggested_community_interfaces = self.BoolConfig(
             self,
             "show_suggested_community_interfaces",
@@ -196,6 +201,7 @@ class ConfigManager:
         self.auth_password_hash = self.StringConfig(self, "auth_password_hash", None)
         self.auth_session_secret = self.StringConfig(self, "auth_session_secret", None)
         self.privacy_mode_enabled = self.BoolConfig(self, "privacy_mode_enabled", False)
+        self.bug_capture_enabled = self.BoolConfig(self, "bug_capture_enabled", True)
         self.multi_session_warning_enabled = self.BoolConfig(
             self,
             "multi_session_warning_enabled",
@@ -572,7 +578,7 @@ class ConfigManager:
         self.announce_store_map_data = self.BoolConfig(
             self,
             "announce_store_map_data",
-            True,
+            False,
         )
         # announce caps: max rows stored per aspect (oldest dropped). Default 2500.
         self.announce_max_stored_lxmf_delivery = self.IntConfig(

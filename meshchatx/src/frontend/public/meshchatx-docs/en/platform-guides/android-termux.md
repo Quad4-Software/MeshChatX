@@ -16,7 +16,7 @@ pkg install binutils
 pkg install build-essential
 ```
 
-> Note: Python 3.11 or higher is required. Check with `python --version`.
+> Note: Python 3.11 or higher is required. Check with python --version.
 
 ### Wheel install
 
@@ -26,7 +26,7 @@ Download the latest wheel from the [releases page](https://github.com/Quad4-Soft
 pip install reticulum_meshchatx-*-py3-none-any.whl
 ```
 
-The wheel pulls Python dependencies automatically. Building `cryptography` can take several minutes on Android.
+The wheel pulls Python dependencies automatically. Building cryptography can take several minutes on Android.
 
 ### Run
 
@@ -34,9 +34,9 @@ The wheel pulls Python dependencies automatically. Building `cryptography` can t
 meshchatx
 ```
 
-(`meshchat` is a compatibility alias for the same entry point.)
+(meshchat is a compatibility alias for the same entry point.)
 
-Open `http://localhost:8000` in the Android browser.
+Open http://localhost:8000 in the Android browser.
 
 ## Install from source
 
@@ -80,8 +80,8 @@ pip install dist/*.whl
 meshchatx
 ```
 
-(`meshchat` is a compatibility alias for the same entry point.)
+(meshchat is a compatibility alias for the same entry point.)
 
 ## Configuration notes
 
-> Note: The default `AutoInterface` may not work on your Android device. Configure another interface such as `TCPClientInterface` in the settings.
+> Note: The default AutoInterface may not work on your Android device. Configure another interface such as TCPClientInterface in the settings.

@@ -10,7 +10,7 @@ Fork of [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) b
 - PyPI: [reticulum-meshchatx](https://pypi.org/project/reticulum-meshchatx/)
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
 - Donate: [donate.md](donate.md)
-- LXMF: `f489752fbef161c64d65e385a4e9fc74`
+- LXMF: f489752fbef161c64d65e385a4e9fc74
 - Umbrel: [apps.umbrel.com/app/meshchatx](https://apps.umbrel.com/app/meshchatx)
 
 <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/Quad4-Software/MeshChatX"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" height="60" alt="Get it on Obtainium"></a>
@@ -34,11 +34,11 @@ docker run -d --name reticulum-meshchatx \
   ghcr.io/quad4-software/meshchatx:latest
 ```
 
-Images: `quad4io/meshchatx` (Docker Hub) and `ghcr.io/quad4-software/meshchatx`. Hardened and extra tags are in [Installation](docs/en/installation.md).
+Images: quad4io/meshchatx (Docker Hub) and ghcr.io/quad4-software/meshchatx. Hardened and extra tags are in [Installation](docs/en/installation.md).
 
 ### PyPI (pip, pipx, uv)
 
-Package: [`reticulum-meshchatx`](https://pypi.org/project/reticulum-meshchatx/)
+Package: [reticulum-meshchatx](https://pypi.org/project/reticulum-meshchatx/)
 
 ```bash
 pip install reticulum-meshchatx
@@ -52,7 +52,7 @@ uv tool install reticulum-meshchatx
 meshchatx --headless --host 127.0.0.1
 ```
 
-`meshchat` is the same entry point. Release wheels from GitHub also work: `pip install ./reticulum_meshchatx-*-py3-none-any.whl`.
+meshchat is the same entry point. Release wheels from GitHub also work: pip install ./reticulum_meshchatx-*-py3-none-any.whl.
 
 ### From source (git clone, make, task)
 
@@ -63,7 +63,7 @@ git clone https://github.com/Quad4-Software/MeshChatX.git
 cd MeshChatX
 ```
 
-Over Reticulum (rngit / `git-remote-rns`):
+Over Reticulum (rngit / git-remote-rns):
 
 ```bash
 git clone rns://06a54b505bb67b25ef3f8097e8001edc/public/MeshChatX

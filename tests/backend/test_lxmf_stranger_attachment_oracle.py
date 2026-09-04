@@ -6,8 +6,10 @@ Independent model:
 - block_attachments_from_strangers + non-contact + attachments -> keep text,
   strip FIELD_FILE_ATTACHMENTS / FIELD_IMAGE / FIELD_AUDIO, set attachments_stripped
 - Large direct deliveries use RNS resources. lxmf_inbound_policy rejects those
-  transfers before download when stranger settings apply. Small single-packet
-  messages still use on_lxmf_delivery stripping below the link packet limit.
+  transfers before download only when the peer identity is already known and
+  stranger settings apply. Unknown identity at advertise (common on fresh
+  links) is accepted and handled by on_lxmf_delivery stripping or drop.
+  Small single-packet messages always use on_lxmf_delivery stripping.
 - contact or disabled settings -> attachment bytes may persist
 - blocked or spam attachment-bearing messages -> drop entire message
 """

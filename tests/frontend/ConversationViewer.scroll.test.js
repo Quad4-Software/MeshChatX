@@ -14,6 +14,7 @@ vi.mock("@/js/DialogUtils", () => ({
 
 function makeMessagesScrollTarget({ reverse, scrollTop, scrollHeight, clientHeight }) {
     const outer = document.createElement("div");
+    outer.setAttribute("data-message-list-mode", reverse ? "reverse" : "virtual");
     const inner = document.createElement("div");
     inner.style.flexDirection = reverse ? "column-reverse" : "column";
     outer.appendChild(inner);
@@ -160,5 +161,113 @@ describe("ConversationViewer.vue scroll behavior", () => {
         await flushPromises();
         await wrapper.vm.$nextTick();
         expect(spy).toHaveBeenCalled();
+    });
+
+    it("onMessagesScroll away from bottom cancels pending scroll-to-bottom settle", async () => {
+        const wrapper = mountViewer();
+        await flushPromises();
+
+        const el = makeMessagesScrollTarget({
+            reverse: true,
+            scrollTop: 0,
+            scrollHeight: 5000,
+            clientHeight: 400,
+        });
+        Object.defineProperty(wrapper.vm.$refs, "messagesScroll", {
+            configurable: true,
+            writable: true,
+            value: el,
+        });
+        Object.defineProperty(wrapper.vm, "selectedPeerChatItems", {
+            configurable: true,
+            get: () => [{ type: "lxmf_message", lxmf_message: { hash: "aa".repeat(16) } }],
+        });
+
+        let currentScrollTop = 0;
+        Object.defineProperty(el, "scrollTop", {
+            configurable: true,
+            get: () => currentScrollTop,
+            set: (v) => {
+                currentScrollTop = v;
+            },
+        });
+
+        // Drop any open-conversation settle/pin left from mount initialLoad.
+        wrapper.vm.cancelPendingScrollToBottom();
+
+        const cancelSpy = vi.spyOn(wrapper.vm, "cancelPendingScrollToBottom");
+        wrapper.vm.autoScrollOnNewMessage = true;
+        const genAtStart = wrapper.vm.scrollBottomGen;
+        wrapper.vm.scrollMessagesToBottom({ pinAfter: true });
+        expect(wrapper.vm.scrollBottomGen).toBeGreaterThan(genAtStart);
+
+        // User leaves the newest edge while settle/pin is still active (attachment decode pending).
+        currentScrollTop = 1800;
+        wrapper.vm.onMessagesScroll({ target: el });
+
+        expect(wrapper.vm.autoScrollOnNewMessage).toBe(false);
+        expect(cancelSpy).toHaveBeenCalled();
+        expect(wrapper.vm.conversationOpenPinUntil).toBe(0);
+        expect(wrapper.vm.openConversationScrollObserver).toBeNull();
+
+        const genAfterCancel = wrapper.vm.scrollBottomGen;
+        currentScrollTop = 1800;
+        await flushPromises();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+        // Stale settle must not revive a newer generation or yank scrollTop back to 0.
+        expect(wrapper.vm.scrollBottomGen).toBe(genAfterCancel);
+        expect(currentScrollTop).toBe(1800);
+
+        el.remove();
+    });
+
+    it("open pin refuses to start when user has left the newest edge", async () => {
+        const wrapper = mountViewer();
+        await flushPromises();
+        wrapper.vm.cancelPendingScrollToBottom();
+        const el = makeMessagesScrollTarget({
+            reverse: true,
+            scrollTop: 2200,
+            scrollHeight: 5000,
+            clientHeight: 400,
+        });
+        Object.defineProperty(wrapper.vm.$refs, "messagesScroll", {
+            configurable: true,
+            writable: true,
+            value: el,
+        });
+        wrapper.vm.autoScrollOnNewMessage = false;
+        const gen = wrapper.vm.scrollBottomGen;
+        wrapper.vm._startOpenConversationScrollPin(gen, () => gen !== wrapper.vm.scrollBottomGen);
+        expect(wrapper.vm.openConversationScrollObserver).toBeNull();
+        expect(wrapper.vm.conversationOpenPinUntil).toBe(0);
+        el.remove();
+    });
+
+    it("cancelPendingScrollToBottom stales settle generation and disconnects open pin", async () => {
+        const wrapper = mountViewer();
+        await flushPromises();
+        const el = makeMessagesScrollTarget({
+            reverse: true,
+            scrollTop: 0,
+            scrollHeight: 2000,
+            clientHeight: 400,
+        });
+        Object.defineProperty(wrapper.vm.$refs, "messagesScroll", {
+            configurable: true,
+            writable: true,
+            value: el,
+        });
+        const genBefore = wrapper.vm.scrollBottomGen;
+        wrapper.vm.conversationOpenPinUntil = Date.now() + 5000;
+        wrapper.vm.openConversationScrollObserver = {
+            disconnect: vi.fn(),
+        };
+        wrapper.vm.cancelPendingScrollToBottom();
+        expect(wrapper.vm.scrollBottomGen).toBeGreaterThan(genBefore);
+        expect(wrapper.vm.openConversationScrollObserver).toBeNull();
+        expect(wrapper.vm.conversationOpenPinUntil).toBe(0);
+        el.remove();
     });
 });

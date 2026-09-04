@@ -1,0 +1,107 @@
+# Beta channel cut: tag a chosen ref (default master) as beta-* after CI is green,
+# then dispatch build-release.yml. Also triggers Android emulator smoke.
+#
+# Pinned first-party actions (bump tag and SHA together when upgrading):
+#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
+#
+name: Beta Release
+
+on:
+    workflow_dispatch:
+        inputs:
+            ref:
+                description: Git ref to cut Beta from (branch, tag, or SHA)
+                required: true
+                default: master
+            suffix:
+                description: Optional tag suffix (default YYYY.MM.DD-sha7)
+                required: false
+                default: ""
+
+concurrency:
+    group: beta-release
+    cancel-in-progress: false
+
+permissions:
+    contents: read
+
+jobs:
+    cut:
+        name: Tag Beta and dispatch build-release
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+            actions: write
+        outputs:
+            tag_name: ${{ steps.meta.outputs.tag_name }}
+            commit_sha: ${{ steps.meta.outputs.commit_sha }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+              with:
+                  ref: ${{ inputs.ref }}
+                  fetch-depth: 0
+
+            - name: Require CI green and create tag
+              id: meta
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  SUFFIX: ${{ inputs.suffix }}
+              run: |
+                  set -euo pipefail
+                  short_sha="$(git rev-parse --short=7 HEAD)"
+                  full_sha="$(git rev-parse HEAD)"
+                  bash scripts/ci/github-require-ci-green.sh "${full_sha}"
+
+                  if [ -n "${SUFFIX}" ]; then
+                    tag="beta-${SUFFIX}"
+                  else
+                    tag="beta-$(date -u +%Y.%m.%d)-${short_sha}"
+                  fi
+
+                  if git rev-parse "refs/tags/${tag}" >/dev/null 2>&1; then
+                    echo "Tag ${tag} already exists" >&2
+                    exit 1
+                  fi
+
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git tag -a "${tag}" -m "Beta build for ${full_sha}" "${full_sha}"
+                  git push origin "${tag}"
+
+                  echo "tag_name=${tag}" >> "$GITHUB_OUTPUT"
+                  echo "commit_sha=${full_sha}" >> "$GITHUB_OUTPUT"
+                  echo "Beta tag: ${tag} @ ${full_sha}"
+
+            - name: Dispatch build-release for tag
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  TAG: ${{ steps.meta.outputs.tag_name }}
+                  SHA: ${{ steps.meta.outputs.commit_sha }}
+              run: |
+                  set -euo pipefail
+                  for attempt in 1 2 3 4 5; do
+                    if gh workflow run build-release.yml --ref "refs/tags/${TAG}"; then
+                      echo "Dispatched build-release.yml for ref ${TAG} (${SHA})"
+                      exit 0
+                    fi
+                    echo "Dispatch attempt ${attempt} failed; waiting for tag to propagate..."
+                    sleep 5
+                  done
+                  echo "Failed to dispatch build-release.yml for ${TAG}" >&2
+                  exit 1
+
+            - name: Dispatch Android emulator smoke
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  set -euo pipefail
+                  gh workflow run android-emulator-smoke.yml --ref "${{ steps.meta.outputs.commit_sha }}" || \
+                    echo "::warning::Could not dispatch android-emulator-smoke.yml"
+
+            - name: Prune old Beta prereleases
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  MESHCHATX_KEEP_TESTING: "7"
+                  MESHCHATX_KEEP_BETA: "5"
+              run: bash scripts/ci/github-prune-channel-prereleases.sh

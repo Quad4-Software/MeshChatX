@@ -3,6 +3,14 @@
  */
 
 import { fetchCsrfToken, getCsrfToken } from "./csrfToken.js";
+import {
+    isDemoReadonlyRejection,
+    mergeAndSaveDemoUiPrefs,
+    mergeConfigWithDemoUiPrefs,
+    partialHasDemoUiPrefs,
+} from "./demoUiPrefs.js";
+import GlobalState from "./GlobalState.js";
+import { withRetryableHttp } from "./httpRetry.js";
 
 export function isCancel(error) {
     if (!error) return false;
@@ -25,6 +33,14 @@ function buildUrl(path, params) {
         }
     }
     return `${u.pathname}${u.search}${u.hash}`;
+}
+
+function apiPathname(path) {
+    try {
+        return new URL(path, window.location.origin).pathname;
+    } catch {
+        return path;
+    }
 }
 
 async function parseErrorBody(response) {
@@ -81,6 +97,45 @@ export function isCsrfRejection(status, errData) {
 }
 
 /**
+ * @param {unknown} dataOut
+ * @returns {unknown}
+ */
+function applyDemoConfigGetOverlay(dataOut) {
+    if (!GlobalState.demoMode || !dataOut || typeof dataOut !== "object") {
+        return dataOut;
+    }
+    const config = dataOut.config;
+    if (!config || typeof config !== "object") {
+        return dataOut;
+    }
+    return {
+        ...dataOut,
+        config: mergeConfigWithDemoUiPrefs(config),
+    };
+}
+
+/**
+ * Serve UI-only config writes from localStorage in demo mode.
+ * @param {unknown} data
+ * @returns {{ data: { config: Record<string, unknown> }, status: number, headers: Headers } | null}
+ */
+function tryDemoConfigPatch(data) {
+    if (!GlobalState.demoMode) {
+        return null;
+    }
+    if (!partialHasDemoUiPrefs(data)) {
+        return null;
+    }
+    const saved = mergeAndSaveDemoUiPrefs(data);
+    const base = GlobalState.config && typeof GlobalState.config === "object" ? { ...GlobalState.config } : {};
+    return {
+        data: { config: { ...base, ...saved } },
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+    };
+}
+
+/**
  * @param {{ onAuthError?: (err: Error & { response?: { status: number, data: unknown } }) => void }} options
  */
 export function createApiClient(options = {}) {
@@ -88,6 +143,15 @@ export function createApiClient(options = {}) {
 
     async function request(method, path, config = {}, csrfRetry = false) {
         const { params, data, signal, headers = {}, responseType } = config;
+        const pathname = apiPathname(path);
+
+        if (method === "PATCH" && pathname === "/api/v1/config") {
+            const demoResponse = tryDemoConfigPatch(data);
+            if (demoResponse) {
+                return demoResponse;
+            }
+        }
+
         const url = buildUrl(path, params);
         const hdrs = new Headers(headers);
         if (method !== "GET" && method !== "HEAD" && path.startsWith("/api/")) {
@@ -143,21 +207,38 @@ export function createApiClient(options = {}) {
                 return request(method, path, config, true);
             }
 
-            if (onAuthError && (response.status === 401 || response.status === 403)) {
-                if (!isCsrfRejection(response.status, errData)) {
-                    onAuthError(err);
-                }
+            // Demo read-only 403s are not auth failures. Config UI prefs are
+            // handled above; other mutations surface as normal errors.
+            if (
+                onAuthError &&
+                (response.status === 401 || response.status === 403) &&
+                !isCsrfRejection(response.status, errData) &&
+                !isDemoReadonlyRejection(errData)
+            ) {
+                onAuthError(err);
             }
             throw err;
         }
 
-        const dataOut = await readSuccessBody(response, responseType);
+        let dataOut = await readSuccessBody(response, responseType);
+        if (method === "GET" && pathname === "/api/v1/config") {
+            dataOut = applyDemoConfigGetOverlay(dataOut);
+        }
         return { data: dataOut, status: response.status, headers: response.headers };
     }
 
     const api = {
         get(path, config) {
-            return request("GET", path, config || {});
+            const cfg = config || {};
+            return withRetryableHttp(() => request("GET", path, cfg), {
+                signal: cfg.signal,
+            });
+        },
+        head(path, config) {
+            const cfg = config || {};
+            return withRetryableHttp(() => request("HEAD", path, cfg), {
+                signal: cfg.signal,
+            });
         },
         post(path, data, config = {}) {
             return request("POST", path, { ...config, data });

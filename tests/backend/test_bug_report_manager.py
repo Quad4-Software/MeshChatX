@@ -304,6 +304,85 @@ def test_delete_report_deletes_persisted_file(tmp_path):
     assert len(manager.list_reports(limit=10)["reports"]) == 1
 
 
+def test_inbound_redaction_and_fingerprint_merge(tmp_path):
+    manager = BugReportManager(_fake_app(tmp_path))
+    secret = "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
+    payload = {
+        "v": 2,
+        "title": "Boom",
+        "description": "desc",
+        "log_text": f"fail at /tmp/secret for {secret}",
+        "exception": {
+            "type": "RuntimeError",
+            "value": "nope",
+            "stack": 'RuntimeError: nope\n  File "/tmp/x.py", line 1',
+        },
+    }
+    first = manager._report_response(
+        path="/report",
+        data=json.dumps(payload).encode("utf-8"),
+        request_id=b"",
+        link_id=None,
+        remote_identity=None,
+        requested_at=0,
+    )
+    second = manager._report_response(
+        path="/report",
+        data=json.dumps(payload).encode("utf-8"),
+        request_id=b"",
+        link_id=None,
+        remote_identity=None,
+        requested_at=0,
+    )
+    assert first["ok"] is True
+    assert second["ok"] is True
+    assert first["fingerprint"] == second["fingerprint"]
+    report = manager.list_reports(limit=1)["reports"][0]
+    assert "/tmp/secret" not in report["log_text"]
+    assert secret not in report["log_text"]
+    assert "[redacted]" in report["log_text"]
+    issues = manager.list_issues(limit=10)["issues"]
+    assert len(issues) == 1
+    assert issues[0]["count"] == 2
+
+
+def test_record_local_and_reload(tmp_path):
+    app = _fake_app(tmp_path)
+    manager = BugReportManager(app)
+    result = manager.record_local(
+        {
+            "title": "Local fail",
+            "exception": {
+                "type": "ValueError",
+                "value": "bad",
+                "stack": "ValueError: bad\n  at main",
+            },
+            "source": "frontend",
+            "force": True,
+        },
+    )
+    assert result["ok"] is True
+    fingerprint = result["fingerprint"]
+    assert manager.get_issue(fingerprint)["issue"]["title"] == "Local fail"
+
+    reloaded = BugReportManager(app)
+    assert fingerprint in {i["fingerprint"] for i in reloaded.list_issues()["issues"]}
+
+
+def test_set_issue_status(tmp_path):
+    manager = BugReportManager(_fake_app(tmp_path))
+    result = manager.record_local(
+        {
+            "title": "Status test",
+            "exception": {"type": "Error", "value": "x", "stack": "Error: x"},
+            "force": True,
+        },
+    )
+    fp = result["fingerprint"]
+    updated = manager.set_issue_status(fp, "resolved")
+    assert updated["issue"]["status"] == "resolved"
+
+
 # Patch the manager to add a list helper for cross-platform robustness
 BugReportManager._storage_dir_list = lambda _self, path: [
     name for name in __import__("os").listdir(path)

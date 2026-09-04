@@ -25,6 +25,10 @@
             "path": "/api/v1/app/changelog/seen"
         },
         {
+            "method": "POST",
+            "path": "/api/v1/app/channel-prompt/seen"
+        },
+        {
             "method": "GET",
             "path": "/api/v1/app/info"
         },
@@ -122,6 +126,22 @@
         },
         {
             "method": "GET",
+            "path": "/api/v1/bug-reports/issues"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/bug-reports/issues/{fingerprint}"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/bug-reports/issues/{fingerprint}/status"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/bug-reports/local"
+        },
+        {
+            "method": "GET",
             "path": "/api/v1/community-interfaces"
         },
         {
@@ -211,6 +231,10 @@
         {
             "method": "POST",
             "path": "/api/v1/destination/{destination_hash}/custom-display-name/update"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/destination/{destination_hash}/delivery-diagnostics"
         },
         {
             "method": "POST",
@@ -379,6 +403,10 @@
         {
             "method": "PATCH",
             "path": "/api/v1/filesync/settings"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/filesync/shared-directory-suggestion"
         },
         {
             "method": "POST",

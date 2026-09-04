@@ -547,6 +547,7 @@ def apply_landlock_sandbox(
     public_dir: str | None = None,
     log_dir: str | None = None,
     extra_read_roots: list[str] | None = None,
+    extra_rw_roots: list[str] | None = None,
 ) -> bool:
     """Apply Landlock rules. Returns True when the sandbox is active."""
     if not landlock_requested():
@@ -607,6 +608,12 @@ def apply_landlock_sandbox(
         public_existing = _existing_dir(public_dir)
         if public_existing and public_existing not in rw_roots:
             rw_roots.append(public_existing)
+        for extra in extra_rw_roots or []:
+            if not extra:
+                continue
+            resolved = _normalize_extra_landlock_read_root(str(extra))
+            if resolved and resolved not in rw_roots:
+                rw_roots.append(resolved)
         for root in rw_roots:
             _add_path_beneath_rule(
                 libc,

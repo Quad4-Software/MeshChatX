@@ -192,6 +192,13 @@
                                 >
                                     Copy reset instructions
                                 </button>
+                                <button
+                                    id="btn-open-bug-reports"
+                                    type="button"
+                                    class="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-zinc-900 dark:text-amber-100 dark:hover:bg-zinc-800"
+                                >
+                                    Open Bug Reports after relaunch
+                                </button>
                             </div>
                             <p id="recovery-status" class="text-xs text-amber-900 dark:text-amber-200"></p>
                             <details
@@ -462,6 +469,7 @@
                 const emergencyMode = document.getElementById("btn-emergency-mode");
                 const openBackups = document.getElementById("btn-open-backups");
                 const copyResetGuide = document.getElementById("btn-copy-reset-guide");
+                const openBugReports = document.getElementById("btn-open-bug-reports");
 
                 if (cleanupGuide && info.cleanupGuide) {
                     cleanupGuide.textContent = info.cleanupGuide;
@@ -548,6 +556,15 @@
                         }
                         await navigator.clipboard.writeText(info.cleanupGuide);
                         setRecoveryStatus("Reset instructions copied to clipboard.");
+                    });
+                }
+
+                if (openBugReports) {
+                    openBugReports.addEventListener("click", () => {
+                        try {
+                            localStorage.setItem("meshchatx_open_after_relaunch", "#/plugins/com.meshchatx.mcx-bugs");
+                        } catch (e) {}
+                        setRecoveryStatus("Bug Reports will open after relaunch. Click Relaunch when ready.");
                     });
                 }
             }

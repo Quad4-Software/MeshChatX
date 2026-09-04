@@ -1,103 +1,80 @@
 # MeshChatX agent overview
 
-Project brief for automated agents and contributors.
-Conventions and task skills live under `.agents/`. This file is the durable source of truth for architecture and invariants.
+Architecture and invariants. Conventions and skills: `.agents/README.md`.
+Load this file when you need storage, security, env, or runtime shape. Prefer a skill for task work.
 
-## What this project is
+## Project
 
-Reticulum MeshChatX is a local-first mesh communications client on the Reticulum Network Stack.
-It is an independent fork of Reticulum MeshChat and is not affiliated with the upstream project.
+Local-first mesh client on Reticulum. Independent fork of Reticulum MeshChat (not affiliated).
 
-Core protocols:
+| Stack piece | Role                                               |
+| ----------- | -------------------------------------------------- |
+| RNS         | identities, paths, interfaces, encrypted transport |
+| LXMF        | messaging, attachments, propagation                |
+| LXST        | audio calls / telephony                            |
 
-- **Reticulum (RNS)** - identities, paths, interfaces, encrypted transport
-- **LXMF** - messaging, attachments, propagation nodes
-- **LXST** - audio calls and telephony
+One Python process owns HTTPS, Reticulum, and per-identity managers.
+Vue assets: `meshchatx/public/` after Vite. Electron and Android wrap the same backend.
 
-One Python process owns the web server, Reticulum stack, and per-identity managers.
-The Vue frontend is static assets served from `meshchatx/public/` after a Vite build.
-Electron and Android wrap the same backend.
+Site: https://meshchatx.com
+Source: https://github.com/Quad4-Software/MeshChatX
 
-Website: [meshchatx.com](https://meshchatx.com)
-Source: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
+Goals: local-first, correct RNS/LXMF/LXST semantics, multi-identity without leakage, testable Python + Vue, predictable SQLite, narrow plugin permissions.
 
-## Design goals
+## Mesh Zen
 
-- Local-first. Works on desktop, mobile, containers, and SBCs.
-- Preserve Reticulum / LXMF / LXST semantics while improving UX and ops tooling.
-- Multiple identities in one process without cross-identity data leakage.
-- Python backend and Vue frontend independently testable.
-- Predictable SQLite behaviour in constrained environments.
-- Prefer identity-scoped state, explicit migrations, and narrowly declared plugin permissions.
+Do not invent cloud/IP-era designs for mesh features.
 
-## Reticulum Zen gates (mesh work)
+```
+.agents/conventions/reticulum-zen.md
+.agents/skills/reticulum-design-gates/SKILL.md
+```
 
-MeshChatX sits on Reticulum. Agents must not invent cloud-era or IP-era designs for mesh features.
+Always-on editor rule: `.cursor/rules/reticulum-zen-gates.mdc`.
 
-- Philosophy: [Zen of Reticulum](https://reticulum.network/manual/zen.html)
-- Conventions: `.agents/conventions/reticulum-zen.md`
-- Checklist skill: `.agents/skills/reticulum-design-gates/SKILL.md`
-- Always-on editor rule (when present): reticulum Zen gates under project rules
-
-## Runtime shape
+## Runtime
 
 ```
 Browser / Electron / Android WebView
-    |
-    |  HTTPS REST /api/v1/*  and  WSS /ws  (+ /ws/telephone/audio)
-    v
+  |  HTTPS /api/v1/*  and  WSS /ws  (+ /ws/telephone/audio)
+  v
 ReticulumMeshChat (meshchatx/meshchat.py)
-    |
-    +-- HTTP package (meshchatx/src/backend/http/)
-    |       +-- middleware, register_all_routes, routes/*, ws/*
-    +-- static public/
-    +-- IdentityContext (active identity only)
-    |       +-- SQLite (database.db under identity storage)
-    |       +-- LXMRouter and message managers
-    |       +-- TelephoneManager (LXST)
-    |       +-- Domain managers (map, docs, RRC, bots, ...)
-    +-- Shared Reticulum instance (default ~/.reticulum)
+  +-- http/ (middleware, routes/*, ws/*)
+  +-- static public/
+  +-- IdentityContext (active identity only)
+  |     SQLite, LXMRouter, TelephoneManager, domain managers
+  +-- Shared Reticulum (~/.reticulum by default)
 ```
 
-Critical lifecycle facts:
+- HTTP can bind before RNS/identity finish. `/api/v1/status` reports `starting` / `ok` / `failed` with `stage` and `network_ready`.
+- CLI one-shots (`--self-check`, backup/restore) init synchronously.
+- Identity switch tears down `IdentityContext`. No identity state in process globals.
 
-- HTTP can bind before RNS/identity finish starting. `/api/v1/status` reports `starting` / `ok` / `failed` with `stage` and `network_ready`.
-- CLI one-shots (`--self-check`, backup/restore helpers) still initialize synchronously.
-- Switching identities tears down the old `IdentityContext` and loads another. Do not stash identity-specific state in process globals.
+## Repo layout
 
-## Repository layout
+| Path                          | Role                                      |
+| ----------------------------- | ----------------------------------------- |
+| `meshchatx/meshchat.py`       | orchestration, CLI, lifecycle             |
+| `meshchatx/src/backend/http/` | middleware, routes, WS                    |
+| `meshchatx/src/backend/`      | managers, DB, security, Landlock, plugins |
+| `.agents/module-ownership.md` | domain to code/tests map                  |
+| `meshchatx/src/frontend/`     | Vue 3 UI                                  |
+| `meshchatx/public/`           | built assets                              |
+| `electron/`                   | desktop shell                             |
+| `android/`                    | WebView + Chaquopy                        |
+| `tests/backend/`              | pytest                                    |
+| `tests/frontend/`             | vitest                                    |
+| `tests/e2e/`                  | Playwright E2E                            |
+| `tests/ui/`                   | Playwright UI + Lighthouse                |
+| `docs/en/`                    | shipped user docs                         |
+| `vendor/`                     | LXMFy, RNS FileSync                       |
+| `Taskfile.yml`                | preferred commands                        |
 
-| Path                          | Role                                        |
-| ----------------------------- | ------------------------------------------- |
-| `meshchatx/meshchat.py`       | Orchestration, CLI, lifecycle entry         |
-| `meshchatx/src/backend/http/` | HTTP middleware, route modules, WS dispatch |
-| `meshchatx/src/backend/`      | Managers, DB, security, Landlock, plugins   |
-| `.agents/module-ownership.md` | Domain to manager/HTTP/WS/tests map         |
-| `meshchatx/src/frontend/`     | Vue 3 UI, locales, registries, helpers      |
-| `meshchatx/public/`           | Built frontend assets consumed at runtime   |
-| `electron/`                   | Desktop shell around local HTTPS backend    |
-| `android/`                    | WebView + Chaquopy Python bridge            |
-| `tests/backend/`              | pytest                                      |
-| `tests/frontend/`             | vitest                                      |
-| `tests/e2e/`                  | Playwright functional E2E                   |
-| `tests/ui/`                   | Playwright UI page smoke + Lighthouse CI    |
-| `docs/en/`                    | In-app / shipped English docs               |
-| `vendor/`                     | Vendored deps (LXMFy, RNS FileSync)         |
-| `Taskfile.yml`                | Preferred command entrypoints               |
-| `.agents/`                    | Agent guidance (this tree)                  |
-| `AGENTS.md`                   | Short pointer to `.agents/`                 |
+Business rules live in managers under `meshchatx/src/backend/`. Keep `meshchat.py` on transport and lifecycle.
 
-Business rules belong in backend managers under `meshchatx/src/backend/`.
-Keep `meshchat.py` focused on transport and lifecycle when possible.
+## Tooling
 
-## Tooling and versions
-
-- Python `>=3.11` (CI commonly runs 3.14)
-- Node.js `>=24`, pnpm from `package.json` `packageManager`
-- UV for Python deps
-- Task for common workflows
-
-Prefer Task targets over inventing one-off scripts:
+Python `>=3.11` (CI often 3.14). Node `>=24`. pnpm from `packageManager`. UV. Task.
 
 ```bash
 task install
@@ -116,14 +93,14 @@ task dev
 task debug
 ```
 
-Optional RNS/rngit tooling (requires mesh reachability, often slower than PyPI):
+Optional mesh-side deps (slower, needs reachability):
 
 ```bash
 task deps:backend:rns
 task docs:rns
 ```
 
-Useful focused commands:
+Focused:
 
 ```bash
 uv run pytest tests/backend/test_<name>.py -q --tb=short
@@ -132,221 +109,185 @@ pnpm exec eslint <file> --fix
 uv run python -m meshchatx.meshchat --self-check
 ```
 
-## Storage and identity model
+## Storage and identity
 
-Default storage root: `./storage` (override with `--storage-dir` / `MESHCHAT_STORAGE_DIR`).
-Android may prefer external app files storage.
-
-Per identity:
+Default root: `./storage` (`--storage-dir` / `MESHCHAT_STORAGE_DIR`). Android may use external app files.
 
 ```
 storage/identities/<identity_hash>/
   identity                 # private key bytes
-  metadata.json            # display name, icon, cached addresses
-  database.db              # SQLite (WAL files may exist)
-  database-backups/        # zip backups
-  snapshots/               # named snapshots
-  ssl/                     # per-identity cert/key when using defaults
-  ...                      # LXMF dirs, caches, sqlite-tmp, etc.
+  metadata.json
+  database.db              # WAL sidecars possible
+  database-backups/
+  snapshots/
+  ssl/
+  ...                      # LXMF dirs, caches, sqlite-tmp
 ```
 
-Shared outside identity storage:
+Shared: Reticulum config `~/.reticulum` (`--reticulum-config-dir` / `MESHCHAT_RETICULUM_CONFIG_DIR`). Interfaces live with Reticulum, not only in the identity DB.
 
-- Reticulum config: `~/.reticulum` by default (`--reticulum-config-dir` / `MESHCHAT_RETICULUM_CONFIG_DIR`)
-- Interfaces and transport settings live with Reticulum, not only in the identity DB
+### Key restore vs database restore
 
-### Identity key restore vs database restore
+Do not conflate these.
 
-These are different operations. Do not conflate them in UI copy or code paths.
+| Goal                    | Where                              | Artifact                                               |
+| ----------------------- | ---------------------------------- | ------------------------------------------------------ |
+| Private key only        | Tutorial step 2, Identities import | `POST /api/v1/identity/restore`                        |
+| History + settings tree | About restore, CLI                 | `POST /api/v1/database/restore`, `--restore-db` `.zip` |
 
-| Goal                                          | Where                              | Artifact / API                                         |
-| --------------------------------------------- | ---------------------------------- | ------------------------------------------------------ |
-| Restore private key only                      | Tutorial step 2, Identities import | `POST /api/v1/identity/restore`                        |
-| Restore LXMF history, settings, identity tree | About → Restore from File, CLI     | `POST /api/v1/database/restore`, `--restore-db` `.zip` |
+Key export extension: `identity.bin`. Key pickers: `.bin`, `.key`, `.identity`, `application/octet-stream`, `*/*`. DB restore pickers: `.zip` only.
+Skill: `.agents/skills/identity-restore/SKILL.md`.
 
-Identity export download should use a real extension such as `identity.bin`.
-File pickers for keys should accept `.bin`, `.key`, `.identity`, `application/octet-stream`, and `*/*`.
-Database restore pickers stay `.zip`.
+## Persistence
 
-## Persistence rules
+- SQLite, explicit SQL, versioned migrations (no ORM).
+- Schema changes through the database schema layer.
+- Prefer restore APIs over hand-editing DB files.
+- Conversation list queries stay slim: truncate previews, attachment flags in SQL, no multi-MB `fields` in list endpoints.
+- Worker DB connections use the same pragmas via `DatabaseProvider` (especially `temp_store`).
 
-- Engine: SQLite with explicit SQL and versioned migrations (no ORM).
-- Schema changes go through migrations in the database schema layer.
-- Backups and snapshots are first-class recovery tools. Prefer restore APIs over hand-editing DB files.
-- Conversation list / sidebar queries must stay slim. Truncate content previews. Derive attachment flags in SQL. Do not ship multi-MB `fields` blobs in list endpoints.
-- Worker-thread DB connections must apply the same pragmas as the main connection via `DatabaseProvider` (especially `temp_store`).
+## Landlock
 
-## Landlock and Linux sandboxing
+`MESHCHAT_LANDLOCK`: `1` on, `0` off, unset = auto when kernel supports.
 
-On Linux, MeshChatX can apply a Landlock filesystem sandbox after startup.
-Control with `MESHCHAT_LANDLOCK` (`1` force on, `0` force off, unset = auto when kernel supports it).
+| Fact             | Detail                                                                                   |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| SQLite           | Under Landlock, `temp_store=FILE` can yield `unable to open database file`. Keep MEMORY. |
+| Memory pressure  | May shrink cache/mmap. Keep MEMORY temp while Landlock is active.                        |
+| Without Landlock | FILE temp + storage-local `sqlite-tmp` TMPDIR is fine.                                   |
+| Subprocess       | PATH tools outside allowed roots fail with Permission denied even if "detected".         |
+| Allowed extras   | `~/.local/bin`, pipx, Argos under `~/.local/share/argos-translate`.                      |
+| rnsh/rnx         | Prefer `python -m …`. rnsh uses storage-scoped HOME.                                     |
+| Not covered      | Broken symlinks out of allowed trees, nvm-only tools, arbitrary `location_cmd`.          |
+| Tests            | Apply Landlock only in a subprocess (`landlock_integration_support.py`).                 |
 
-Critical SQLite interaction:
-
-- Under Landlock, `PRAGMA temp_store=FILE` can break complex conversation queries with `unable to open database file`.
-- Default worker connections to `temp_store=MEMORY`.
-- Memory-pressure mode may shrink cache/mmap. While Landlock is active, keep MEMORY temp.
-- Without Landlock, FILE temp plus a storage-local `sqlite-tmp` TMPDIR is acceptable.
-
-Subprocess and user-local tools:
-
-- Landlock is not only SQLite. Features that **exec** binaries or read data outside `/usr`, the Python prefix, and MeshChatX storage can fail with `Permission denied` while the UI still "detects" the tool on PATH.
-- Read/execute roots include typical pipx layouts: `~/.local/bin`, `~/.local/share/pipx`, and Argos package metadata under `~/.local/share/argos-translate` (RW for Stanza temp files during translation).
-- **Translator (Argos)**: language lists use `argospm list` when the CLI is present. Local translation runs `argos-translate` or the `argostranslate` Python module.
-- **rnsh / rnx**: prefer `python -m …` so installs are not blocked when `~/.local/bin` wrappers are not executable under Landlock. rnsh uses a storage-scoped `HOME`, not the real home directory.
-- **Not covered by default**: symlinks in `~/.local/bin` that point outside allowed trees (for example IDE agent shims), tools installed only under `~/.nvm`, and arbitrary `location_cmd` paths in interface config. Use `MESHCHAT_LANDLOCK=0` to debug or widen rules deliberately in `landlock_sandbox.py`.
-
-Landlock apply is process-wide and one-shot. Tests that enable it must run in a subprocess (`tests/backend/landlock_integration_support.py`).
-
-Verification after Landlock or subprocess-facing edits:
+After Landlock or Popen-facing edits:
 
 ```bash
 uv run pytest tests/backend/test_landlock_sandbox.py tests/backend/test_landlock_integration_surfaces.py tests/backend/test_sqlite_landlock_temp_store.py -q
 ```
 
-Also see `docs/en/platform-guides/linux-sandbox.md` for Firejail / Bubblewrap host examples.
+Skill: `.agents/skills/landlock-sqlite/SKILL.md`.
+Host sandbox examples: `docs/en/platform-guides/linux-sandbox.md`.
 
-## Security model (critical)
+## Security
 
-Defaults aim at secure local operation:
+| Control      | Note                                                                    |
+| ------------ | ----------------------------------------------------------------------- |
+| HTTPS/WSS    | On by default (per-identity self-signed when custom PEMs absent)        |
+| Auth         | Optional (`--auth` / `MESHCHAT_AUTH=true`)                              |
+| CSRF         | Required on mutating HTTP                                               |
+| Cookies      | Encrypted session                                                       |
+| Middleware   | CORS, CSP, lockout when auth on, optional IP allowlist                  |
+| Privacy mode | Blocks outbound clearnet HTTP. Does not stop Reticulum mesh.            |
+| Bind         | Prefer `127.0.0.1`. Do not expose to public internet without hardening. |
 
-- HTTPS and WSS on by default (self-signed certs per identity when custom PEMs absent)
-- Optional HTTP auth (`--auth` / `MESHCHAT_AUTH=true`)
-- CSRF on mutating HTTP requests
-- Encrypted session cookies
-- CORS / CSP / defensive HTTP middleware
-- Access-attempt logging and lockout when auth is enabled
-- IP allowlisting available via app security settings
-- Privacy mode can block outbound clearnet HTTP from app features (does not stop Reticulum mesh traffic)
-
-Do not recommend exposing MeshChatX directly on the public internet without extra hardening.
-Prefer bind `127.0.0.1`, HTTPS, and auth if other local users share the host.
-
-Sensitive config changes (for example auth enable / password hash) must use CSRF-protected HTTP endpoints, not unrestricted WebSocket mutators.
-
-Local filesystem browse/upload/download/delete APIs must path-jail to a feature or identity root. See `.agents/conventions/path-jail.md` and `.agents/skills/path-jail-local-fs/SKILL.md`.
-
-Electron and Android shells must parse URLs before treating them as the local backend. Do not prefix-match `http://127.0.0.1`. See `.agents/skills/url-origin-allowlists/SKILL.md`.
-
-Password reset: `--reset-password` or `MESHCHAT_RESET_PASSWORD=true` clears the stored hash so a new password can be set in the UI.
+Sensitive config (auth enable / password hash): CSRF-protected HTTP only, not open WS mutators.
+Local FS APIs: path-jail. See `.agents/conventions/path-jail.md`.
+Shell URL checks: parse origins, never prefix-match `http://127.0.0.1`. Skill: `url-origin-allowlists`.
+Password reset: `--reset-password` or `MESHCHAT_RESET_PASSWORD=true`.
 
 ### Plugins
 
-Plugins are powerful and partially sandboxed. Treat install/enable paths as security-sensitive.
+Treat install/enable as security-sensitive.
 
-- Frontend plugins run in Workers with capability grants
-- Backend WASM plugins use wasmtime with fuel / capability gates
-- Backend Python plugins and Sideband loaders are higher risk and permission-gated / danger-switched
-- Invalid RSG signatures hard-block install
-- Tampered installed trees should disable as integrity failures
-- Disable all plugins with `--disable-plugins` / `MESHCHAT_DISABLE_PLUGINS=true`
+- Frontend Workers with capability grants
+- Backend WASM: wasmtime fuel / capability gates
+- Python / Sideband: higher risk, permission-gated
+- Invalid RSG signature: hard-block install
+- Tampered tree: disable as integrity failure
+- Kill switch: `--disable-plugins` / `MESHCHAT_DISABLE_PLUGINS=true`
 
-## HTTP and WebSocket surface
+Skill: `.agents/skills/plugin-install-security/SKILL.md`.
 
-- REST under `/api/v1/*`
-- Frontend uses `window.api` / `apiClient.js` with CSRF on mutating calls
-- WebSocket `/ws` for live events (messages, identity switch, telephone, RRC, Nomad downloads, plugins, RNS link events)
-- Typed WS handlers live in frontend registries (`wsEventRegistry` / `wsEventBridge`)
-- Generic RNS Link API over WS (`rns.link.open|identify|request|send|close` and `rns.link.event`) for external tools and plugins. See `docs/en/rns-link-api.md`.
+## HTTP and WebSocket
 
-When identity/network is not ready, prefer **503** with a retryable message over opaque **500** for temporary DB/startup failures.
+- REST: `/api/v1/*` via `window.api` / `apiClient.js` (CSRF on mutators)
+- WS: `/ws` for live events
+- Typed WS: frontend `wsEventRegistry` / `wsEventBridge`
+- RNS Link API over WS (`rns.link.*`). Docs: `docs/en/rns-link-api.md`
+- Startup/DB not ready: prefer **503** retryable over opaque **500**
 
-## Frontend conventions
+Frontend/Android surface rules: `.agents/conventions/frontend.md`, `.agents/conventions/android.md`.
 
-- Vue 3 Options API is the dominant style. Match the file you edit.
-- Routes are hash-based (for example `#/messages`).
-- New top-level pages need: route in `main.js`, nav/tools entry when discoverable, i18n keys, tests.
-- User-visible strings go through locale files (`meshchatx/src/frontend/locales/en.json` at minimum).
-- User-visible action outcomes use `ToastUtils`.
-- Do not use `_`-prefixed keys in Vue `data()` (`vue/no-reserved-keys`).
-- Contribution registries drive nav, tools, commands, settings sections, and WS events. Prefer extending registries over hardcoding one-off shell wiring.
+## Environment and flags
 
-## Android specifics
+CLI flags usually mirror these.
 
-- UI is a WebView. Backend runs via Chaquopy.
-- File chooser: bare extension tokens like `.identity` are not valid MIME types for `Intent.EXTRA_MIME_TYPES`. Map them to `application/octet-stream` / `*/*`.
-- Set multi-select only when the WebView chooser mode requests it.
-- Storage setup (internal vs external) can create a fresh-looking install if the user picks a different location than previous data.
-- External http(s) links should open in the system browser, not navigate the WebView away from the app.
-- WebView navigation is the configured backend origin only (`RemoteBackendUrl.isAllowedShellNavigation`). Deny `data:` and userinfo. The `MeshChatXAndroid` JS bridge is injected into every loaded page.
-
-## Important environment variables and flags
-
-Common overrides (CLI flags usually mirror these):
-
-| Variable / flag                                            | Purpose                                                        |
-| ---------------------------------------------------------- | -------------------------------------------------------------- |
-| `MESHCHAT_HOST` / `--host`                                 | Bind address (default `127.0.0.1`)                             |
-| `MESHCHAT_PORT` / `--port`                                 | Bind port (default `8000`)                                     |
-| `MESHCHAT_HEADLESS` / `--headless`                         | Do not auto-launch a browser                                   |
-| `MESHCHAT_STORAGE_DIR` / `--storage-dir`                   | App storage root                                               |
-| `MESHCHAT_RETICULUM_CONFIG_DIR` / `--reticulum-config-dir` | Reticulum config dir                                           |
-| `MESHCHAT_DATA_DIR` / `--data-dir`                         | Portable root for storage + Reticulum when those two are unset |
-| `MESHCHAT_PUBLIC_DIR` / `--public-dir`                     | Frontend assets dir                                            |
-| `MESHCHAT_AUTH` / `--auth`                                 | Enable web auth                                                |
-| `MESHCHAT_NO_HTTPS` / `--no-https`                         | HTTP instead of HTTPS                                          |
-| `MESHCHAT_SSL_CERT` + `MESHCHAT_SSL_KEY`                   | Custom TLS PEM pair (both required)                            |
-| `MESHCHAT_IDENTITY_FILE` / `BASE32` / `BASE64`             | Seed identity from key material                                |
-| `MESHCHAT_AUTO_RECOVER` / `--auto-recover`                 | Attempt DB recovery on startup                                 |
-| `MESHCHAT_EMERGENCY` / `--emergency`                       | Emergency mode (limited operation)                             |
-| `MESHCHAT_RESET_PASSWORD` / `--reset-password`             | Clear password hash                                            |
-| `MESHCHAT_DISABLE_PLUGINS` / `--disable-plugins`           | Disable plugin system                                          |
-| `MESHCHAT_LANDLOCK`                                        | `1` / `0` / unset auto                                         |
-| `MESHCHAT_SELF_CHECK` / `--self-check`                     | Run diagnostics and exit                                       |
-| `MESHCHAT_MEMORY_DIAG` / `--memory-diag`                   | tracemalloc diagnostics                                        |
-| `MESHCHAT_DISABLE_CSRF`                                    | Dangerous. Tests/dev only                                      |
-| `MESHCHAT_SKIP_STORAGE_LOCK`                               | Dangerous. Avoid overlapping instances carefully               |
-| `MESHCHAT_RNS_LOG_LEVEL`                                   | RNS log verbosity                                              |
-| `MESHCHAT_DEBUGPY`                                         | `task debug`: listen with debugpy                              |
-| `MESHCHAT_DEBUGPY_PORT`                                    | debugpy port (default 5678, bind 127.0.0.1)                    |
-| `MESHCHAT_DEBUGPY_WAIT`                                    | `1` pauses backend until a debugger attaches                   |
-| `MESHCHAT_VUE_DEVTOOLS`                                    | `0` disables the Vite Vue DevTools overlay                     |
-
-Restore helpers:
+| Variable / flag                                            | Purpose                                      |
+| ---------------------------------------------------------- | -------------------------------------------- |
+| `MESHCHAT_HOST` / `--host`                                 | Bind (default `127.0.0.1`)                   |
+| `MESHCHAT_PORT` / `--port`                                 | Port (default `8000`)                        |
+| `MESHCHAT_HEADLESS` / `--headless`                         | No auto browser                              |
+| `MESHCHAT_STORAGE_DIR` / `--storage-dir`                   | App storage root                             |
+| `MESHCHAT_RETICULUM_CONFIG_DIR` / `--reticulum-config-dir` | Reticulum config                             |
+| `MESHCHAT_DATA_DIR` / `--data-dir`                         | Portable root when storage + Reticulum unset |
+| `MESHCHAT_PUBLIC_DIR` / `--public-dir`                     | Frontend assets                              |
+| `MESHCHAT_AUTH` / `--auth`                                 | Enable web auth                              |
+| `MESHCHAT_NO_HTTPS` / `--no-https`                         | HTTP instead of HTTPS                        |
+| `MESHCHAT_SSL_CERT` + `MESHCHAT_SSL_KEY`                   | Custom TLS PEMs (both required)              |
+| `MESHCHAT_IDENTITY_FILE` / `BASE32` / `BASE64`             | Seed identity                                |
+| `MESHCHAT_AUTO_RECOVER` / `--auto-recover`                 | DB recovery on startup                       |
+| `MESHCHAT_EMERGENCY` / `--emergency`                       | Limited operation                            |
+| `MESHCHAT_RESET_PASSWORD` / `--reset-password`             | Clear password hash                          |
+| `MESHCHAT_DISABLE_PLUGINS` / `--disable-plugins`           | Disable plugins                              |
+| `MESHCHAT_LANDLOCK`                                        | `1` / `0` / unset auto                       |
+| `MESHCHAT_SELF_CHECK` / `--self-check`                     | Diagnostics then exit                        |
+| `MESHCHAT_MEMORY_DIAG` / `--memory-diag`                   | tracemalloc                                  |
+| `MESHCHAT_DISABLE_CSRF`                                    | Dangerous. Tests/dev only                    |
+| `MESHCHAT_SKIP_STORAGE_LOCK`                               | Dangerous. Overlapping instances             |
+| `MESHCHAT_RNS_LOG_LEVEL`                                   | RNS verbosity                                |
+| `MESHCHAT_RNS_LOG_DEST`                                    | `stdout` or rotating logger                  |
+| `MESHCHAT_DEBUGPY`                                         | `task debug` listen                          |
+| `MESHCHAT_DEBUGPY_PORT`                                    | default 5678 on 127.0.0.1                    |
+| `MESHCHAT_DEBUGPY_WAIT`                                    | `1` wait for attach                          |
+| `MESHCHAT_VUE_DEVTOOLS`                                    | `0` disables Vite overlay                    |
 
 ```bash
 meshchatx --restore-db /path/to/backup.zip
 ```
 
-## Testing expectations
+## Testing
 
-- Backend change → update `tests/backend/`
-- Frontend change → update `tests/frontend/`
-- API contract / route list fixtures may need updates when routes change
-- Prefer focused suites in agent loops. Full `task test` is heavy.
-- Avoid piping long pytest runs through `| tail` in automation shells (can hang the harness).
-- Landlock-enable tests must use a subprocess.
-- Long-running soak / some notification suites can hang. Use timeouts and isolate them unless explicitly requested.
-- Self-check and CI matrices cover cross-platform boot, storage lock fallbacks, and critical HTTP/WS probes. Do not weaken those without cause.
+| Change             | Update                                       |
+| ------------------ | -------------------------------------------- |
+| Backend            | `tests/backend/`                             |
+| Frontend           | `tests/frontend/`                            |
+| Routes / WS shapes | contract fixtures (see conventions/tests.md) |
 
-## Licensing and contributions
+Prefer focused suites. Full `task test` is heavy.
+Do not pipe long pytest through `| tail` in agent shells.
+Landlock-apply tests: subprocess only.
+Soak / some notification suites can hang: timeouts, isolate unless requested.
+Do not weaken self-check or CI boot probes without cause.
+Details: `.agents/conventions/tests.md`, `.agents/skills/test-loop/SKILL.md`.
 
-- Prefer existing per-file SPDX headers. Project-owned files are typically `0BSD`.
-- Upstream-derived files may be MIT or dual-marked. Preserve obligations.
-- Patch-oriented contribution flow is documented in `CONTRIBUTING.md` (LXMF patch submission is first-class for some contributors).
-- Generative AI policy in `CONTRIBUTING.md` requires disclosure and human review. Do not submit unreviewed bulk-generated churn.
+## License and contributions
 
-## High-risk change checklist
+Prefer existing SPDX. Project-owned files typically `0BSD`. Preserve upstream MIT / dual marks.
+Flow: `CONTRIBUTING.md`. Generative AI: disclose and human-review. No unreviewed bulk churn.
 
-Before finishing work in these areas, verify the matching invariants:
+## High-risk checklist
 
-1. **Identity import / tutorial** - key-only vs zip restore copy is correct, picker accepts real exports, activate-on-finish / skip paths do not orphan imports.
-2. **Conversations / notifications DB** - slim queries, MEMORY temp under Landlock, 503 on retryable SQLite errors. Sidebar unread pills (messages, relay mentions, missed calls) stay in sync with read/viewed state. No header notification bell.
-3. **Auth / CSRF / WS config** - no new unauthenticated mutating surfaces, no sensitive settings over open WS mutators.
-4. **Plugins** - permissions declared, install preview/consent preserved, signatures/integrity not bypassed.
-5. **Android bridges** - MIME mapping, storage paths, and WebView navigation guards remain correct.
-6. **Identity switch** - no cross-identity leakage via caches, routers, or global singletons.
-7. **Migrations** - schema version bump and upgrade path tested.
+| Area                          | Verify                                                                                                       |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Identity import / tutorial    | Key-only vs zip copy, picker accepts real exports, activate/skip does not orphan                             |
+| Conversations / notifications | Slim queries, MEMORY temp under Landlock, 503 on retryable SQLite, sidebar unread pills sync, no header bell |
+| Auth / CSRF / WS              | No new unauthenticated mutators, no sensitive settings over open WS                                          |
+| Plugins                       | Permissions declared, consent preserved, signatures not bypassed                                             |
+| Android bridges               | MIME map, storage paths, WebView nav guards                                                                  |
+| Identity switch               | No cross-identity leakage via caches, routers, globals                                                       |
+| Migrations                    | Schema version bump and upgrade path tested                                                                  |
 
 ## Product docs
 
-- `docs/en/architecture.md`
-- `docs/en/identity-and-security.md`
-- `docs/en/getting-started.md`
-- `docs/en/rns-link-api.md`
-- `docs/en/platform-guides/linux-sandbox.md`
-- `docs/en/messaging.md`
-- `CHANGELOG.md`
-- `CONTRIBUTING.md`
-
-Conventions and skills: `.agents/README.md`. Hard rules: `.agents/conventions/core.md`.
+```
+docs/en/architecture.md
+docs/en/identity-and-security.md
+docs/en/getting-started.md
+docs/en/rns-link-api.md
+docs/en/platform-guides/linux-sandbox.md
+docs/en/messaging.md
+CHANGELOG.md
+CONTRIBUTING.md
+```

@@ -4,19 +4,52 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import NomadCrashTab from "@/components/nomadnetwork/NomadCrashTab.vue";
 import { NOMAD_CRASH_TAB_CHANNEL } from "@/js/nomadCrashTabShell.js";
 
+function setDocumentVisibility(state) {
+    Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => state,
+    });
+    Object.defineProperty(document, "hidden", {
+        configurable: true,
+        get: () => state === "hidden",
+    });
+}
+
 describe("NomadCrashTab.vue", () => {
     let postMessageSpy;
+    let previousVisibilityState;
+    let previousHidden;
+
+    let mountedTabs = [];
 
     beforeEach(() => {
         postMessageSpy = vi.fn();
+        previousVisibilityState = Object.getOwnPropertyDescriptor(document, "visibilityState");
+        previousHidden = Object.getOwnPropertyDescriptor(document, "hidden");
+        setDocumentVisibility("visible");
+        mountedTabs = [];
     });
 
     afterEach(() => {
+        for (const wrapper of mountedTabs) {
+            try {
+                wrapper.unmount();
+            } catch {
+                // Already unmounted in the test body.
+            }
+        }
+        mountedTabs = [];
         vi.restoreAllMocks();
+        if (previousVisibilityState) {
+            Object.defineProperty(document, "visibilityState", previousVisibilityState);
+        }
+        if (previousHidden) {
+            Object.defineProperty(document, "hidden", previousHidden);
+        }
     });
 
     const mountCrashTab = (props = {}) => {
-        return mount(NomadCrashTab, {
+        const wrapper = mount(NomadCrashTab, {
             props: {
                 path: "aabb:/page/index.mu",
                 content: ">#!\n# Hi",
@@ -29,6 +62,27 @@ describe("NomadCrashTab.vue", () => {
                 },
             },
         });
+        mountedTabs.push(wrapper);
+        return wrapper;
+    };
+
+    const attachFrame = (wrapper) => {
+        const frameEl = wrapper.find("iframe").element;
+        const fakeWindow = { postMessage: postMessageSpy };
+        Object.defineProperty(frameEl, "contentWindow", {
+            configurable: true,
+            get: () => fakeWindow,
+        });
+        return fakeWindow;
+    };
+
+    const mountReadyCrashTab = (props = {}) => {
+        const wrapper = mountCrashTab(props);
+        attachFrame(wrapper);
+        wrapper.vm.frameReady = true;
+        wrapper.vm.status = "ready";
+        wrapper.vm.lastPongAt = Date.now();
+        return wrapper;
     };
 
     it("abortRender skips re-push after iframe reload ready", async () => {
@@ -203,13 +257,10 @@ describe("NomadCrashTab.vue", () => {
 
     it("render deadline emits hung when paint never completes", async () => {
         vi.useFakeTimers();
+        let wrapper;
         try {
-            const wrapper = mountCrashTab();
-            const frame = wrapper.find("iframe").element;
-            Object.defineProperty(frame, "contentWindow", {
-                configurable: true,
-                get: () => ({ postMessage: postMessageSpy }),
-            });
+            wrapper = mountCrashTab();
+            attachFrame(wrapper);
             wrapper.vm.frameReady = true;
             wrapper.vm.pushRender();
             await wrapper.vm.$nextTick();
@@ -219,6 +270,273 @@ describe("NomadCrashTab.vue", () => {
             expect(wrapper.vm.status).toBe("hung");
             expect(wrapper.emitted("hung")?.length).toBe(1);
         } finally {
+            wrapper?.unmount();
+            vi.useRealTimers();
+        }
+    });
+
+    it("does not mark hung after ping silence while the document is hidden", () => {
+        vi.useFakeTimers();
+        let wrapper;
+        try {
+            wrapper = mountReadyCrashTab();
+            setDocumentVisibility("hidden");
+            wrapper.vm.onVisibilityChange();
+            vi.advanceTimersByTime(30000);
+            expect(wrapper.vm.status).toBe("ready");
+            expect(wrapper.emitted("hung")).toBeUndefined();
+
+            setDocumentVisibility("visible");
+            wrapper.vm.onVisibilityChange();
+            vi.advanceTimersByTime(2000);
+            expect(wrapper.vm.status).toBe("ready");
+            expect(wrapper.emitted("hung")).toBeUndefined();
+        } finally {
+            wrapper?.unmount();
+            vi.useRealTimers();
+        }
+    });
+
+    it("does not mark hung across freeze and resume", () => {
+        vi.useFakeTimers();
+        let wrapper;
+        try {
+            wrapper = mountReadyCrashTab();
+            wrapper.vm.onPageFreeze();
+            vi.advanceTimersByTime(30000);
+            expect(wrapper.vm.status).toBe("ready");
+            expect(wrapper.emitted("hung")).toBeUndefined();
+
+            wrapper.vm.onPageResume();
+            vi.advanceTimersByTime(2000);
+            expect(wrapper.vm.status).toBe("ready");
+            expect(wrapper.emitted("hung")).toBeUndefined();
+        } finally {
+            wrapper?.unmount();
+            vi.useRealTimers();
+        }
+    });
+
+    it("marks hung after ping silence while the document stays visible", () => {
+        vi.useFakeTimers();
+        let wrapper;
+        try {
+            wrapper = mountReadyCrashTab();
+            vi.advanceTimersByTime(13000);
+            expect(wrapper.vm.status).toBe("hung");
+            expect(wrapper.emitted("hung")?.length).toBe(1);
+        } finally {
+            wrapper?.unmount();
+            vi.useRealTimers();
+        }
+    });
+
+    it("treats a coalesced wake gap as a stall instead of a hang", () => {
+        vi.useFakeTimers();
+        let wrapper;
+        try {
+            wrapper = mountReadyCrashTab();
+            wrapper.vm.lastPongAt = Date.now() - 30000;
+            wrapper.vm.checkWatchdog();
+            expect(wrapper.vm.status).toBe("ready");
+            expect(wrapper.emitted("hung")).toBeUndefined();
+            expect(postMessageSpy.mock.calls.some((c) => c[0]?.type === "ping")).toBe(true);
+
+            vi.advanceTimersByTime(13000);
+            expect(wrapper.vm.status).toBe("hung");
+            expect(wrapper.emitted("hung")?.length).toBe(1);
+        } finally {
+            wrapper?.unmount();
+            vi.useRealTimers();
+        }
+    });
+
+    it("does not fire the render deadline while the document is hidden", async () => {
+        vi.useFakeTimers();
+        let wrapper;
+        try {
+            wrapper = mountCrashTab();
+            attachFrame(wrapper);
+            wrapper.vm.frameReady = true;
+            wrapper.vm.pushRender();
+            await wrapper.vm.$nextTick();
+            expect(wrapper.emitted("render-started")?.length).toBe(1);
+
+            setDocumentVisibility("hidden");
+            wrapper.vm.onVisibilityChange();
+            vi.advanceTimersByTime(25000);
+            expect(wrapper.vm.status).toBe("rendering");
+            expect(wrapper.emitted("hung")).toBeUndefined();
+
+            setDocumentVisibility("visible");
+            wrapper.vm.onVisibilityChange();
+            vi.advanceTimersByTime(20000);
+            expect(wrapper.vm.status).toBe("hung");
+            expect(wrapper.emitted("hung")?.length).toBe(1);
+        } finally {
+            wrapper?.unmount();
+            vi.useRealTimers();
+        }
+    });
+
+    it("does not start the ping watchdog while the document is hidden", () => {
+        const wrapper = mountReadyCrashTab();
+        try {
+            setDocumentVisibility("hidden");
+            wrapper.vm.onVisibilityChange();
+            wrapper.vm.startWatchdog();
+            expect(wrapper.vm.watchdogTimer).toBeNull();
+            expect(wrapper.vm.pingTimer).toBeNull();
+        } finally {
+            wrapper.unmount();
+        }
+    });
+
+    const sendFromFrame = (wrapper, fakeWindow, type, extra = {}) => {
+        wrapper.vm.onWindowMessage({
+            source: fakeWindow,
+            origin: "null",
+            data: { channel: NOMAD_CRASH_TAB_CHANNEL, type, ...extra },
+        });
+    };
+
+    it("pong does not clear a render-error crash overlay", () => {
+        const wrapper = mountCrashTab();
+        const fakeWindow = { postMessage: postMessageSpy };
+        Object.defineProperty(wrapper.find("iframe").element, "contentWindow", {
+            configurable: true,
+            get: () => fakeWindow,
+        });
+        try {
+            wrapper.vm.frameReady = true;
+            sendFromFrame(wrapper, fakeWindow, "render-error", { message: "render_failed" });
+            expect(wrapper.vm.status).toBe("crashed");
+            expect(wrapper.emitted("hung")?.length).toBe(1);
+
+            sendFromFrame(wrapper, fakeWindow, "pong", { id: 1 });
+            expect(wrapper.vm.status).toBe("crashed");
+            expect(wrapper.vm.framePainted).toBe(false);
+        } finally {
+            wrapper.unmount();
+        }
+    });
+
+    it("pong does not clear hung when the page never painted", () => {
+        const wrapper = mountReadyCrashTab();
+        try {
+            wrapper.vm.status = "hung";
+            wrapper.vm.framePainted = false;
+            sendFromFrame(wrapper, wrapper.find("iframe").element.contentWindow, "pong", { id: 1 });
+            expect(wrapper.vm.status).toBe("hung");
+            expect(wrapper.vm.framePainted).toBe(false);
+        } finally {
+            wrapper.unmount();
+        }
+    });
+
+    it("pong recovers hung after a successful paint", () => {
+        const wrapper = mountReadyCrashTab();
+        try {
+            wrapper.vm.status = "hung";
+            wrapper.vm.framePainted = true;
+            sendFromFrame(wrapper, wrapper.find("iframe").element.contentWindow, "pong", { id: 1 });
+            expect(wrapper.vm.status).toBe("ready");
+            expect(wrapper.vm.framePainted).toBe(true);
+        } finally {
+            wrapper.unmount();
+        }
+    });
+
+    it("does not mark hung from ping silence while a paint is in flight", () => {
+        vi.useFakeTimers();
+        let wrapper;
+        try {
+            wrapper = mountReadyCrashTab();
+            wrapper.vm.status = "rendering";
+            wrapper.vm.framePainted = false;
+            wrapper.vm.lastPongAt = Date.now();
+            vi.advanceTimersByTime(13000);
+            expect(wrapper.vm.status).toBe("rendering");
+            expect(wrapper.emitted("hung")).toBeUndefined();
+        } finally {
+            wrapper?.unmount();
+            vi.useRealTimers();
+        }
+    });
+
+    it("render deadline still fires when the iframe never posts ready", async () => {
+        vi.useFakeTimers();
+        let wrapper;
+        try {
+            wrapper = mountCrashTab();
+            expect(wrapper.vm.frameReady).toBe(false);
+            await Promise.resolve();
+            vi.advanceTimersByTime(20000);
+            expect(wrapper.vm.status).toBe("hung");
+            expect(wrapper.emitted("hung")?.length).toBe(1);
+        } finally {
+            wrapper?.unmount();
+            vi.useRealTimers();
+        }
+    });
+
+    it("ignores late render-done after abort", () => {
+        const wrapper = mountCrashTab();
+        const fakeWindow = { postMessage: postMessageSpy };
+        Object.defineProperty(wrapper.find("iframe").element, "contentWindow", {
+            configurable: true,
+            get: () => fakeWindow,
+        });
+        try {
+            wrapper.vm.abortRender();
+            expect(wrapper.vm.status).toBe("aborted");
+            sendFromFrame(wrapper, fakeWindow, "render-done", { partials: [{ id: "p1" }] });
+            expect(wrapper.vm.status).toBe("aborted");
+            expect(wrapper.vm.framePainted).toBe(false);
+            expect(wrapper.emitted("render-done")?.length).toBe(1);
+            expect(wrapper.emitted("partials")).toBeUndefined();
+        } finally {
+            wrapper.unmount();
+        }
+    });
+
+    it("render-done after paint deadline hung recovers the overlay", async () => {
+        vi.useFakeTimers();
+        let wrapper;
+        try {
+            wrapper = mountCrashTab();
+            const fakeWindow = attachFrame(wrapper);
+            wrapper.vm.frameReady = true;
+            wrapper.vm.pushRender();
+            await wrapper.vm.$nextTick();
+            vi.advanceTimersByTime(20000);
+            expect(wrapper.vm.status).toBe("hung");
+            sendFromFrame(wrapper, fakeWindow, "render-done", { partials: [] });
+            expect(wrapper.vm.status).toBe("ready");
+            expect(wrapper.vm.framePainted).toBe(true);
+        } finally {
+            wrapper?.unmount();
+            vi.useRealTimers();
+        }
+    });
+
+    it("parks the never-ready deadline while hidden and fires after visible", async () => {
+        vi.useFakeTimers();
+        setDocumentVisibility("hidden");
+        let wrapper;
+        try {
+            wrapper = mountCrashTab();
+            vi.advanceTimersByTime(25000);
+            expect(wrapper.vm.status).toBe("loading");
+            expect(wrapper.emitted("hung")).toBeUndefined();
+
+            setDocumentVisibility("visible");
+            wrapper.vm.onVisibilityChange();
+            vi.advanceTimersByTime(20000);
+            expect(wrapper.vm.status).toBe("hung");
+            expect(wrapper.emitted("hung")?.length).toBe(1);
+        } finally {
+            wrapper?.unmount();
             vi.useRealTimers();
         }
     });
@@ -254,5 +572,7 @@ describe("NomadCrashTab.vue", () => {
         expect(src).not.toContain("parentTargetOrigin");
         expect(src).toContain('d.type === "chrome"');
         expect(src).not.toMatch(/^import MicronParser from/m);
+        expect(src).toMatch(/try \{\s*id = decodeURIComponent\(id\)/);
+        expect(src).not.toContain('replace(/"/g, "")');
     });
 });

@@ -395,6 +395,8 @@ export const CORE_SETTINGS_SECTION_KEYWORDS = {
         "app.retry_attachments_description",
         "app.auto_fallback_title",
         "app.auto_fallback_description",
+        "app.delivery_helptips_enabled",
+        "app.delivery_helptips_enabled_description",
         "app.inbound_stamp_cost",
         "app.inbound_stamp_description",
         "app.inbound_stamps_required_title",

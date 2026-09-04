@@ -28,6 +28,11 @@ describe("layout UX oracle-light", () => {
         expect(cv).toContain("updateKeyboardInset");
         expect(cv).toContain("env(safe-area-inset-bottom");
         expect(cv).toContain("flex-col gap-3 text-sm sm:flex-row sm:items-center");
+        // Non-virtual list must use oldest-first normal flow. Nested flex-col-reverse
+        // caused attachment image loads to yank scroll on wide viewports.
+        expect(cv).toContain("data-message-list-mode=\"useVirtualMessageList ? 'virtual' : 'flow'\"");
+        expect(cv).toContain("selectedPeerChatDisplayGroupsOldestFirstAugmented");
+        expect(cv).not.toMatch(/v-if="!useVirtualMessageList"[\s\S]{0,400}flex-col-reverse/);
     });
 
     it("MessagesPage mobile compose FAB and sheet clear safe-area and use dvh", () => {

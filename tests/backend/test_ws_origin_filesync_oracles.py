@@ -112,12 +112,16 @@ def test_filesync_sync_dir_rejects_identity_ssl_dir(tmp_path):
     assert handler._resolve_sync_directory(target) is None
 
 
-def test_filesync_sync_dir_rejects_identity_root_and_escape(tmp_path):
-    """Controls: identity root and sibling escape stay rejected today."""
+def test_filesync_sync_dir_rejects_identity_root_and_relative_escape(tmp_path):
+    """Identity root stays rejected. Relative ../ escapes stay identity-scoped."""
     handler, storage = _make_filesync_handler(tmp_path)
     assert handler._resolve_sync_directory(str(storage)) is None
     sibling = os.path.join(str(storage), "..", "other-identity")
-    assert handler._resolve_sync_directory(sibling) is None
+    os.makedirs(os.path.realpath(sibling), exist_ok=True)
+    # Absolute sibling outside storage is allowed for shared folders.
+    assert handler._resolve_sync_directory(os.path.realpath(sibling)) is not None
+    # Relative ../ must not become that external sibling.
+    assert handler._resolve_sync_directory("../other-identity") is None
 
 
 def test_filesync_sync_dir_allows_plain_subdirectory(tmp_path):

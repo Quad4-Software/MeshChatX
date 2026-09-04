@@ -174,6 +174,28 @@ async def read_path_probe_timeout_raw(request, default=None):
     return default
 
 
+def lxmf_delivery_hash_bytes_for_path(app, destination_hash_hex: str) -> bytes:
+    """Return lxmf.delivery bytes for transport path and ping operations.
+
+    The UI may pass an identity hash or an lxmf.delivery hash. Reticulum
+    path tables are keyed by destination hash, not identity hash.
+    """
+    fallback = bytes.fromhex(destination_hash_hex)
+    with contextlib.suppress(Exception):
+        resolved_hex = app.get_lxmf_destination_hash_for_identity_hash(
+            destination_hash_hex,
+        )
+        if isinstance(resolved_hex, str):
+            stripped = resolved_hex.strip()
+            if len(stripped) == 32:
+                return bytes.fromhex(stripped)
+    return fallback
+
+
+def lxmf_delivery_hash_hex_for_path(app, destination_hash_hex: str) -> str:
+    return lxmf_delivery_hash_bytes_for_path(app, destination_hash_hex).hex()
+
+
 def local_destination_hashes(app):
     hashes: set[str] = set()
     with contextlib.suppress(Exception):
@@ -199,9 +221,10 @@ def register_path_probe_routes(routes, app):
             and ctx.running
             and ctx.config.auto_resend_failed_messages_when_announce_received.get()
         ):
+            lookup_hash = lxmf_delivery_hash_hex_for_path(app, destination_hash_str)
             AsyncUtils.run_async(
                 app.resend_failed_messages_for_destination(
-                    destination_hash_str,
+                    lookup_hash,
                     context=ctx,
                 ),
             )
@@ -278,7 +301,13 @@ def register_path_probe_routes(routes, app):
     @routes.get("/api/v1/destination/{destination_hash}/path")
     async def destination_path(request):
         destination_hash = request.match_info.get("destination_hash", "")
-        destination_hash = bytes.fromhex(destination_hash)
+        try:
+            destination_hash = lxmf_delivery_hash_bytes_for_path(app, destination_hash)
+        except ValueError:
+            return web.json_response(
+                {"message": "invalid destination hash"},
+                status=400,
+            )
         destination_hash_hex = destination_hash.hex()
 
         request_query_param = request.query.get("request", "false")
@@ -297,8 +326,11 @@ def register_path_probe_routes(routes, app):
     async def destination_path_wait(request):
         destination_hash = request.match_info.get("destination_hash", "")
         try:
-            destination_hash_bytes = bytes.fromhex(destination_hash)
-        except Exception:
+            destination_hash_bytes = lxmf_delivery_hash_bytes_for_path(
+                app,
+                destination_hash,
+            )
+        except ValueError:
             return web.json_response(
                 {"message": "invalid destination hash"},
                 status=400,
@@ -333,7 +365,7 @@ def register_path_probe_routes(routes, app):
             await asyncio.sleep(0.1)
 
         if RNS.Transport.has_path(destination_hash_bytes):
-            maybe_resend_failed_for_current(destination_hash_hex)
+            maybe_resend_failed_for_current(destination_hash)
 
         return destination_path_snapshot(destination_hash_bytes)
 
@@ -345,8 +377,16 @@ def register_path_probe_routes(routes, app):
         # get path params
         destination_hash = request.match_info.get("destination_hash", "")
 
-        # convert destination hash to bytes
-        destination_hash = bytes.fromhex(destination_hash)
+        try:
+            destination_hash = lxmf_delivery_hash_bytes_for_path(
+                app,
+                destination_hash,
+            )
+        except ValueError:
+            return web.json_response(
+                {"message": "invalid destination hash"},
+                status=400,
+            )
 
         # drop path
         if hasattr(app, "reticulum") and app.reticulum:
@@ -365,8 +405,11 @@ def register_path_probe_routes(routes, app):
     async def destination_request_path_fire(request):
         destination_hash = request.match_info.get("destination_hash", "")
         try:
-            destination_hash_bytes = bytes.fromhex(destination_hash)
-        except Exception:
+            destination_hash_bytes = lxmf_delivery_hash_bytes_for_path(
+                app,
+                destination_hash,
+            )
+        except ValueError:
             return web.json_response(
                 {
                     "message": "invalid destination hash",
@@ -484,12 +527,16 @@ def register_path_probe_routes(routes, app):
         destination_hash_str = request.match_info.get("destination_hash", "")
 
         try:
-            destination_hash = bytes.fromhex(destination_hash_str)
-        except Exception:
+            destination_hash = lxmf_delivery_hash_bytes_for_path(
+                app,
+                destination_hash_str,
+            )
+        except ValueError:
             return web.json_response(
                 {"message": "Ping failed. Invalid destination hash."},
                 status=400,
             )
+        destination_hash_str = destination_hash.hex()
 
         timeout_raw = await read_path_probe_timeout_raw(request)
         timeout_seconds, timeout_error = parse_path_probe_timeout(timeout_raw)

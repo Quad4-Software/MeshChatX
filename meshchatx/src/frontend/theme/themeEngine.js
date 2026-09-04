@@ -748,6 +748,21 @@ export function updateThemeColorMeta(doc = typeof document !== "undefined" ? doc
  * @param {Record<string, unknown> | null | undefined} config
  * @param {object | null | undefined} options
  */
+/**
+ * Read-only theme snapshot for plugin workers and host APIs.
+ * @param {Record<string, unknown> | null | undefined} config
+ * @param {{ prefersDark?: boolean }} [options]
+ */
+export function getThemeSnapshot(config, options = {}) {
+    const prefersDark = options.prefersDark !== undefined ? Boolean(options.prefersDark) : systemPrefersDark();
+    return {
+        preference: normalizeThemePreference(config?.theme),
+        effective: resolveEffectiveTheme(config?.theme, prefersDark),
+        preset: normalizeThemePreset(config?.theme_preset),
+        accent: typeof config?.accent_color === "string" ? config.accent_color : "",
+    };
+}
+
 export function applyAppearanceTheme(config, options = {}) {
     const doc = options.doc ?? (typeof document !== "undefined" ? document : null);
     const windowObj = options.windowObj ?? (typeof window !== "undefined" ? window : null);
@@ -793,11 +808,28 @@ export function applyAppearanceTheme(config, options = {}) {
         // ignore missing bridge
     }
 
+    const snapshot = {
+        preference,
+        effective: effectiveMode,
+        preset: normalizeThemePreset(config?.theme_preset),
+        accent: typeof config?.accent_color === "string" ? config.accent_color : "",
+    };
+    try {
+        windowObj?.dispatchEvent?.(
+            new CustomEvent("meshchatx-theme-changed", {
+                detail: snapshot,
+            })
+        );
+    } catch {
+        // ignore missing window
+    }
+
     return {
         effectiveMode,
         preference,
         canvasHex,
         overrides,
+        snapshot,
     };
 }
 

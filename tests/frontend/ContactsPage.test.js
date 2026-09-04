@@ -2,12 +2,24 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ContactsPage from "@/components/contacts/ContactsPage.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
+import ToastUtils from "@/js/ToastUtils";
 
 vi.mock("@/js/WebSocketConnection", () => ({
     default: {
         on: vi.fn(),
         off: vi.fn(),
         send: vi.fn(),
+    },
+}));
+
+vi.mock("@/js/ToastUtils", () => ({
+    default: {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+        loading: vi.fn(),
+        dismiss: vi.fn(),
     },
 }));
 
@@ -191,5 +203,35 @@ describe("ContactsPage.vue", () => {
         expect(wrapper.vm.totalContactsCount).toBe(42);
         expect(wrapper.vm.contacts).toHaveLength(1);
         expect(wrapper.vm.contacts[0].name).toBe("One");
+    });
+
+    it("toasts failed_load_contacts when contacts GET fails", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/config") {
+                return Promise.resolve({
+                    data: {
+                        config: {
+                            lxmf_address_hash: "a".repeat(32),
+                            identity_public_key: "b".repeat(128),
+                        },
+                    },
+                });
+            }
+            if (
+                url === "/api/v1/telephone/contacts" ||
+                (typeof url === "string" && url.startsWith("/api/v1/telephone/contacts?"))
+            ) {
+                return Promise.reject(
+                    Object.assign(new Error("HTTP 500"), {
+                        response: { status: 500, data: { error: "boom" } },
+                    })
+                );
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        mountPage();
+        await flushPromises();
+        await vi.waitFor(() => expect(ToastUtils.error).toHaveBeenCalledWith("contacts.failed_load_contacts"));
     });
 });

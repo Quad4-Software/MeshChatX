@@ -57,6 +57,8 @@ function makeCv(overrides = {}) {
         formatAttachmentSize: () => "1 B",
         bubbleStyles: () => ({}),
         isImageOnlyMessage: () => false,
+        isPaperMessageIngested: () => false,
+        ingestPaperMessage: vi.fn(),
         pendingOutboundImageSrc: () => "",
         onOutboundImageClick: vi.fn(),
         openImage: vi.fn(),
@@ -180,5 +182,81 @@ describe("ConversationMessageEntry wiring", () => {
         expect(fileBtn.attributes("href")).toBeUndefined();
         await fileBtn.trigger("click");
         expect(cv.downloadLxmfFileAttachment).toHaveBeenCalledWith(chatItem, 0);
+    });
+
+    it("shows ingest button for paper message and passes hash on click", async () => {
+        const uri = "lxmf://deadbeefpaperpayload";
+        const chatItem = {
+            type: "lxmf_message",
+            is_outbound: false,
+            lxmf_message: {
+                hash: "ee".repeat(16),
+                state: "delivered",
+                content: uri,
+                destination_hash: "bb".repeat(16),
+                source_hash: "cc".repeat(16),
+                fields: {},
+            },
+        };
+        const cv = makeCv({
+            getParsedItems: () => ({ paperMessage: uri, isOnlyPaperMessage: true }),
+            isPaperMessageIngested: () => false,
+        });
+        const wrapper = mount(ConversationMessageEntry, {
+            props: {
+                entry: { type: "message", key: "m4", chatItem, showTimestamp: true },
+                cv,
+            },
+            global: {
+                mocks: { $t: (key) => key },
+                stubs: {
+                    MaterialDesignIcon: { template: "<span />" },
+                    MessageReactionsOverlay: true,
+                    OutboundTransferProgressFooter: true,
+                },
+            },
+        });
+        expect(wrapper.text()).toContain("messages.paper_message_detected");
+        const ingestBtn = wrapper.findAll("button").find((b) => b.text().includes("messages.paper_message_ingest"));
+        expect(ingestBtn).toBeDefined();
+        await ingestBtn.trigger("click");
+        expect(cv.ingestPaperMessage).toHaveBeenCalledWith(uri, chatItem.lxmf_message.hash);
+    });
+
+    it("shows ingested paper state without ingest button", () => {
+        const uri = "lxmf://alreadyingested";
+        const chatItem = {
+            type: "lxmf_message",
+            is_outbound: false,
+            lxmf_message: {
+                hash: "ff".repeat(16),
+                state: "delivered",
+                content: uri,
+                destination_hash: "bb".repeat(16),
+                source_hash: "cc".repeat(16),
+                fields: {},
+            },
+        };
+        const cv = makeCv({
+            getParsedItems: () => ({ paperMessage: uri, isOnlyPaperMessage: true }),
+            isPaperMessageIngested: () => true,
+        });
+        const wrapper = mount(ConversationMessageEntry, {
+            props: {
+                entry: { type: "message", key: "m5", chatItem, showTimestamp: true },
+                cv,
+            },
+            global: {
+                mocks: { $t: (key) => key },
+                stubs: {
+                    MaterialDesignIcon: { template: "<span />" },
+                    MessageReactionsOverlay: true,
+                    OutboundTransferProgressFooter: true,
+                },
+            },
+        });
+        expect(wrapper.text()).toContain("messages.paper_message_ingested");
+        const ingestBtn = wrapper.findAll("button").find((b) => b.text().trim() === "messages.paper_message_ingest");
+        expect(ingestBtn).toBeUndefined();
     });
 });

@@ -15,10 +15,32 @@ function makeScrollContainer({ reverse, scrollTop, scrollHeight, clientHeight })
     const inner = document.createElement("div");
     if (reverse) {
         inner.style.flexDirection = "column-reverse";
+        outer.setAttribute("data-message-list-mode", "reverse");
     } else {
         inner.style.flexDirection = "column";
+        outer.setAttribute("data-message-list-mode", "virtual");
     }
     outer.appendChild(inner);
+    document.body.appendChild(outer);
+    Object.defineProperty(outer, "scrollHeight", { value: scrollHeight, configurable: true });
+    Object.defineProperty(outer, "clientHeight", { value: clientHeight, configurable: true });
+    outer.scrollTop = scrollTop;
+    return outer;
+}
+
+/**
+ * Mirrors ConversationViewer non-virtual markup after flow migration:
+ * padding wrapper, then normal flex-col (no nested column-reverse).
+ */
+function makeProductionFlowScrollContainer({ scrollTop, scrollHeight, clientHeight }) {
+    const outer = document.createElement("div");
+    outer.setAttribute("data-message-list-mode", "flow");
+    const pad = document.createElement("div");
+    pad.className = "min-w-0 px-4 py-6 flex flex-col";
+    const flow = document.createElement("div");
+    flow.style.flexDirection = "column";
+    pad.appendChild(flow);
+    outer.appendChild(pad);
     document.body.appendChild(outer);
     Object.defineProperty(outer, "scrollHeight", { value: scrollHeight, configurable: true });
     Object.defineProperty(outer, "clientHeight", { value: clientHeight, configurable: true });
@@ -45,6 +67,39 @@ describe("conversationScroll.js", () => {
         expect(isNearBottom(el, SCROLL_BOTTOM_EPS_PX)).toBe(true);
         el.scrollTop = 2000;
         expect(isNearBottom(el, SCROLL_BOTTOM_EPS_PX)).toBe(false);
+        el.remove();
+    });
+
+    it("ConversationViewer flow list uses normal scroll coordinates", () => {
+        const el = makeProductionFlowScrollContainer({
+            scrollTop: 0,
+            scrollHeight: 5000,
+            clientHeight: 800,
+        });
+        expect(el.getAttribute("data-message-list-mode")).toBe("flow");
+        expect(isScrollColumnReverse(el)).toBe(false);
+        expect(isNearBottom(el, SCROLL_BOTTOM_EPS_PX)).toBe(false);
+        expect(shouldLoadPreviousMessages(el)).toBe(true);
+        el.scrollTop = 4192;
+        expect(isNearBottom(el, SCROLL_BOTTOM_EPS_PX)).toBe(true);
+        scrollContainerToBottom(el);
+        expect(el.scrollTop).toBe(4200);
+        el.remove();
+    });
+
+    it("data-message-list-mode=flow alone does not invert scroll math", () => {
+        const el = document.createElement("div");
+        el.setAttribute("data-message-list-mode", "flow");
+        const pad = document.createElement("div");
+        el.appendChild(pad);
+        document.body.appendChild(el);
+        Object.defineProperty(el, "scrollHeight", { value: 4000, configurable: true });
+        Object.defineProperty(el, "clientHeight", { value: 700, configurable: true });
+        el.scrollTop = 0;
+        expect(isScrollColumnReverse(el)).toBe(false);
+        expect(isNearBottom(el)).toBe(false);
+        scrollContainerToBottom(el);
+        expect(el.scrollTop).toBe(3300);
         el.remove();
     });
 

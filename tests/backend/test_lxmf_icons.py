@@ -10,6 +10,30 @@ import pytest
 import RNS
 
 from meshchatx.meshchat import ReticulumMeshChat
+from meshchatx.src.backend.meshchat_utils import parse_lxmf_icon_appearance
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (None, None),
+        ([], None),
+        (["user", b"\xff\xff\xff"], None),
+        (
+            ("user", b"\xff\xff\xff", b"\x00\x00\x00", "extra"),
+            ("user", "#ffffff", "#000000"),
+        ),
+        (["user", b"\xff\xff", b"\x00\x00\x00"], None),
+        (["user", "#ffffff", b"\x00\x00\x00"], None),
+        ([b"user", b"\xff\xff\xff", b"\x00\x00\x00"], None),
+        (["", b"\xff\xff\xff", b"\x00\x00\x00"], None),
+        (["x" * 65, b"\xff\xff\xff", b"\x00\x00\x00"], None),
+        (["bad\nname", b"\xff\xff\xff", b"\x00\x00\x00"], None),
+        (["user", b"\xaa\xbb\xcc", b"\x11\x22\x33"], ("user", "#aabbcc", "#112233")),
+    ],
+)
+def test_parse_lxmf_icon_appearance_oracle(value, expected):
+    assert parse_lxmf_icon_appearance(value) == expected
 
 
 @pytest.fixture
@@ -258,6 +282,8 @@ async def test_receive_message_updates_icon(mock_rns, temp_dir):
             b"\x00\x00\x00",  # #000000
         ],
     }
+    mock_msg.signature_validated = True
+    mock_msg.unverified_reason = None
 
     # Mock methods
     app.db_upsert_lxmf_message = MagicMock()
@@ -275,3 +301,58 @@ async def test_receive_message_updates_icon(mock_rns, temp_dir):
         "#000000",
         context=mock_context,
     )
+
+
+@pytest.mark.asyncio
+async def test_receive_message_rejects_malformed_icon(mock_rns, temp_dir):
+    app = ReticulumMeshChat(
+        identity=mock_rns["id_instance"],
+        storage_dir=temp_dir,
+        reticulum_config_dir=temp_dir,
+    )
+
+    mock_context = mock_rns["IdentityContext"].return_value
+    mock_context.database.misc.is_destination_blocked.return_value = False
+    app.current_context = mock_context
+
+    mock_msg = MagicMock()
+    mock_msg.source_hash = b"source_hash_bytes"
+    mock_msg.unverified_reason = None
+    mock_msg.get_fields.return_value = {
+        LXMF.FIELD_ICON_APPEARANCE: ["bad", "#ffffff", "#000000"],
+    }
+
+    app.db_upsert_lxmf_message = MagicMock()
+    app.update_lxmf_user_icon = MagicMock()
+    app.is_destination_blocked = MagicMock(return_value=False)
+
+    app.on_lxmf_delivery(mock_msg)
+
+    app.update_lxmf_user_icon.assert_not_called()
+    app.db_upsert_lxmf_message.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_receive_message_drops_invalid_signature(mock_rns, temp_dir):
+    app = ReticulumMeshChat(
+        identity=mock_rns["id_instance"],
+        storage_dir=temp_dir,
+        reticulum_config_dir=temp_dir,
+    )
+
+    mock_context = mock_rns["IdentityContext"].return_value
+    app.current_context = mock_context
+
+    mock_msg = MagicMock()
+    mock_msg.source_hash = b"source_hash_bytes"
+    mock_msg.unverified_reason = LXMF.LXMessage.SIGNATURE_INVALID
+    mock_msg.get_fields.return_value = {}
+
+    app.db_upsert_lxmf_message = MagicMock()
+    app.update_lxmf_user_icon = MagicMock()
+    app.is_destination_blocked = MagicMock(return_value=False)
+
+    app.on_lxmf_delivery(mock_msg)
+
+    app.db_upsert_lxmf_message.assert_not_called()
+    app.is_destination_blocked.assert_not_called()

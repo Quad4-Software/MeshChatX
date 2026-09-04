@@ -144,7 +144,7 @@ def test_convert_lxmf_message_to_dict_with_attachments():
     fields = {
         LXMF.FIELD_FILE_ATTACHMENTS: [("file1.txt", b"content1")],
         LXMF.FIELD_IMAGE: ("png", b"image_data"),
-        LXMF.FIELD_AUDIO: ("voice", b"audio_data"),
+        LXMF.FIELD_AUDIO: (LXMF.AM_CODEC2_1200, b"audio_data"),
     }
     mock_msg.get_fields.return_value = fields
 
@@ -160,7 +160,7 @@ def test_convert_lxmf_message_to_dict_with_attachments():
         result["fields"]["image"]["image_bytes"]
         == base64.b64encode(b"image_data").decode()
     )
-    assert result["fields"]["audio"]["audio_mode"] == "voice"
+    assert result["fields"]["audio"]["audio_mode"] == LXMF.AM_CODEC2_1200
     assert (
         result["fields"]["audio"]["audio_bytes"]
         == base64.b64encode(b"audio_data").decode()

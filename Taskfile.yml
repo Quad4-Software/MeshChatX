@@ -37,6 +37,14 @@ vars:
         sh: echo "${DOCKER_BUILD_IMAGE:-reticulum-meshchatx-build:local}"
     DOCKER_BUILD_FILE:
         sh: echo "${DOCKER_BUILD_FILE:-Dockerfile.build}"
+    DOCKER_ELECTRON_WINE_IMAGE:
+        sh: echo "${MESHCHATX_ELECTRON_WINE_IMAGE:-meshchatx-electron-wine:local}"
+    DOCKER_ELECTRON_WINE_FILE:
+        sh: echo "${MESHCHATX_ELECTRON_WINE_DOCKERFILE:-Dockerfile.electron-wine}"
+    DOCKER_ELECTRON_WINE_TARGETS:
+        sh: echo "${MESHCHATX_ELECTRON_WINE_TARGETS:-win}"
+    DOCKER_ELECTRON_WINE_OUT:
+        sh: echo "${MESHCHATX_ELECTRON_WINE_OUT:-./meshchatx-artifacts-win}"
     ANDROID_DIR:
         sh: echo "${ANDROID_DIR:-android}"
     PYTHON_SRC_DIR:
@@ -327,6 +335,24 @@ tasks:
         desc: Adversarial and Hypothesis fuzz tests for RNS FileSync
         cmds:
             - uv run pytest tests/backend/test_rns_filesync_security.py tests/backend/test_rns_filesync_handler.py -q --tb=short
+
+    test:lxmf:live:local:
+        desc: Live two-peer LXMF over 127.0.0.1 TCP (MESHCHAT_LIVE_RETICULUM=1)
+        cmds:
+            - >-
+                MESHCHAT_LIVE_RETICULUM=1 uv run pytest
+                tests/backend/test_lxmf_live_local_network.py
+                -m integration -q --tb=short
+
+    test:lxmf:live:
+        desc: Live LXMF suites (local TCP + pack/reject oracles, MESHCHAT_LIVE_RETICULUM=1)
+        cmds:
+            - >-
+                MESHCHAT_LIVE_RETICULUM=1 uv run pytest
+                tests/backend/test_lxmf_live_local_network.py
+                tests/backend/test_lxmf_live_rejection_oracle.py
+                tests/backend/test_lxmf_tools_live.py
+                -m integration -q --tb=short
 
     test:lv:
         desc: Live Validation ladder (set MESHCHAT_LIVE_VALIDATION=1 for L2-L3)
@@ -753,6 +779,21 @@ tasks:
             - docker cp meshchat-build-temp:/app/dist/. ./dist/
             - docker cp meshchat-build-temp:/app/python-dist/. ./python-dist/
             - docker rm meshchat-build-temp
+
+    docker:dist:win:
+        desc: Optional Windows Electron build via electronuserland/builder Wine image (not a GH Actions replacement)
+        cmds:
+            - chmod +x scripts/docker/electron-wine-build.sh scripts/ci/docker-electron-wine-entry.sh scripts/setup_wine_env.sh
+            - MESHCHATX_ELECTRON_WINE_IMAGE="{{.DOCKER_ELECTRON_WINE_IMAGE}}" MESHCHATX_ELECTRON_WINE_DOCKERFILE="{{.DOCKER_ELECTRON_WINE_FILE}}" MESHCHATX_ELECTRON_WINE_TARGETS="{{.DOCKER_ELECTRON_WINE_TARGETS}}" MESHCHATX_ELECTRON_WINE_OUT="{{.DOCKER_ELECTRON_WINE_OUT}}" bash scripts/docker/electron-wine-build.sh
+
+    docker:dist:win:smoke:
+        desc: Smoke-test electron-wine Docker toolchain (node/wine/python only)
+        cmds:
+            - task: docker:dist:win
+              vars:
+                  DOCKER_ELECTRON_WINE_TARGETS: smoke
+                  DOCKER_ELECTRON_WINE_IMAGE: meshchatx-electron-wine:smoke
+                  DOCKER_ELECTRON_WINE_OUT: ./meshchatx-artifacts-win-smoke
 
     # --- Android ---
 
