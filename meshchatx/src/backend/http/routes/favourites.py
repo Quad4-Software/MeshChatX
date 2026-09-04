@@ -3,6 +3,10 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.db_availability import (
+    http_for_database_exception,
+    require_database,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -132,7 +136,6 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 
 
 def register_favourites_routes(routes, app):
-
     # announce
     @routes.get("/api/v1/announce")
     async def announce_trigger(request):
@@ -149,6 +152,17 @@ def register_favourites_routes(routes, app):
     # serve announces
     @routes.get("/api/v1/announces")
     async def announces_get(request):
+        unavailable = require_database(app)
+        if unavailable is not None:
+            return unavailable
+
+        try:
+            return await _announces_get_impl(request)
+        except Exception as e:
+            logger.exception("announces_get failed")
+            return http_for_database_exception(e)
+
+    async def _announces_get_impl(request):
         # get query params
         aspect = request.query.get("aspect", None)
         identity_hash = request.query.get("identity_hash", None)
@@ -297,20 +311,23 @@ def register_favourites_routes(routes, app):
     # serve favourites
     @routes.get("/api/v1/favourites")
     async def favourites_get(request):
-        # get query params
+        unavailable = require_database(app)
+        if unavailable is not None:
+            return unavailable
         aspect = request.query.get("aspect", None)
-
-        # get favourites from database
-        results = app.database.announces.get_favourites(aspect=aspect)
-
-        # process favourites
-        favourites = [convert_db_favourite_to_dict(favourite) for favourite in results]
-
-        return web.json_response(
-            {
-                "favourites": favourites,
-            },
-        )
+        try:
+            results = app.database.announces.get_favourites(aspect=aspect)
+            favourites = [
+                convert_db_favourite_to_dict(favourite) for favourite in results
+            ]
+            return web.json_response(
+                {
+                    "favourites": favourites,
+                },
+            )
+        except Exception as e:
+            logger.exception("favourites_get failed")
+            return http_for_database_exception(e)
 
     # add favourite
 
@@ -480,8 +497,15 @@ def register_favourites_routes(routes, app):
 
     @routes.get("/api/v1/favourites/layout")
     async def favourites_layout_get(request):
-        layout = app.database.announces.get_favourites_layout()
-        return web.json_response({"layout": layout})
+        unavailable = require_database(app)
+        if unavailable is not None:
+            return unavailable
+        try:
+            layout = app.database.announces.get_favourites_layout()
+            return web.json_response({"layout": layout})
+        except Exception as e:
+            logger.exception("favourites_layout_get failed")
+            return http_for_database_exception(e)
 
     @routes.put("/api/v1/favourites/layout")
     async def favourites_layout_put(request):

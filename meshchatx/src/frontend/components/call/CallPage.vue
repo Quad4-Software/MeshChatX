@@ -1737,6 +1737,7 @@ import LxmfUserIcon from "../LxmfUserIcon.vue";
 import Toggle from "../forms/Toggle.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
+import { withRetryableHttp } from "../../js/httpRetry.js";
 import {
     WEB_AUDIO_MIC_TOAST_KEY,
     classifyGetUserMediaError,
@@ -3461,9 +3462,11 @@ export default {
         },
         async getContacts() {
             try {
-                const response = await window.api.get("/api/v1/telephone/contacts", {
-                    params: { search: this.contactsSearch },
-                });
+                const response = await withRetryableHttp(() =>
+                    window.api.get("/api/v1/telephone/contacts", {
+                        params: { search: this.contactsSearch },
+                    })
+                );
                 this.contacts = response.data.contacts || (Array.isArray(response.data) ? response.data : []);
                 this.hydrateContactVisuals();
             } catch (e) {

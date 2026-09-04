@@ -3,6 +3,11 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.db_availability import (
+    http_for_database_exception,
+    require_database,
+)
+from meshchatx.src.backend.http.errors import http_bad_request
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -130,43 +135,93 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     zipfile,
 )
 
+CONTACTS_DEFAULT_LIMIT = 100
+CONTACTS_MAX_LIMIT = 500
+
+
+def parse_contacts_pagination(query, default_limit=CONTACTS_DEFAULT_LIMIT):
+    """Parse limit/offset from a MultiDict-like query.
+
+    Returns (limit, offset) with limit clamped to [1, CONTACTS_MAX_LIMIT]
+    and offset >= 0. Returns None when limit or offset is not an integer.
+    """
+    try:
+        limit = int(query.get("limit", default_limit))
+        offset = int(query.get("offset", 0))
+    except (TypeError, ValueError):
+        return None
+    if limit < 1:
+        limit = 1
+    elif limit > CONTACTS_MAX_LIMIT:
+        limit = CONTACTS_MAX_LIMIT
+    if offset < 0:
+        offset = 0
+    return limit, offset
+
+
+def enrich_contact_row(app, row):
+    """Copy a contacts DAO row and attach LXMF/LXST hashes plus icon when known.
+
+    Enrichment failures for one peer must not fail the whole list.
+    """
+    d = dict(row)
+    remote_identity_hash = d.get("remote_identity_hash")
+    if not remote_identity_hash:
+        return d
+    try:
+        lxmf_hash = app.get_lxmf_destination_hash_for_identity_hash(
+            remote_identity_hash,
+        )
+        tele_hash = app.get_lxst_telephony_hash_for_identity_hash(
+            remote_identity_hash,
+        )
+        if lxmf_hash:
+            d["remote_destination_hash"] = lxmf_hash
+            try:
+                icon = app.database.misc.get_user_icon(lxmf_hash)
+            except Exception:
+                icon = None
+            if icon:
+                d["remote_icon"] = dict(icon)
+        if tele_hash:
+            d["remote_telephony_hash"] = tele_hash
+    except Exception:
+        logger.debug(
+            "Contact enrichment skipped for %s",
+            remote_identity_hash,
+            exc_info=True,
+        )
+    return d
+
 
 def register_contacts_routes(routes, app):
-
     # contacts routes
     @routes.get("/api/v1/telephone/contacts")
     async def telephone_contacts_get(request):
+        pagination = parse_contacts_pagination(request.query)
+        if pagination is None:
+            return http_bad_request("limit and offset must be integers")
+        limit, offset = pagination
         search = request.query.get("search")
-        limit = int(request.query.get("limit", 100))
-        offset = int(request.query.get("offset", 0))
-        contacts_rows = app.database.contacts.get_contacts(
-            search=search,
-            limit=limit,
-            offset=offset,
-        )
-        total_count = app.database.contacts.get_contacts_count(search=search)
 
-        contacts = []
-        for row in contacts_rows:
-            d = dict(row)
-            remote_identity_hash = d.get("remote_identity_hash")
-            if remote_identity_hash:
-                lxmf_hash = app.get_lxmf_destination_hash_for_identity_hash(
-                    remote_identity_hash,
-                )
-                tele_hash = app.get_lxst_telephony_hash_for_identity_hash(
-                    remote_identity_hash,
-                )
-                if lxmf_hash:
-                    d["remote_destination_hash"] = lxmf_hash
-                    icon = app.database.misc.get_user_icon(lxmf_hash)
-                    if icon:
-                        d["remote_icon"] = dict(icon)
-                if tele_hash:
-                    d["remote_telephony_hash"] = tele_hash
-            contacts.append(d)
+        unavailable = require_database(app)
+        if unavailable is not None:
+            return unavailable
 
-        return web.json_response({"contacts": contacts, "total_count": total_count})
+        try:
+            contacts_rows = app.database.contacts.get_contacts(
+                search=search,
+                limit=limit,
+                offset=offset,
+            )
+            total_count = app.database.contacts.get_contacts_count(search=search)
+            contacts = [enrich_contact_row(app, row) for row in contacts_rows]
+            return web.json_response(
+                {"contacts": contacts, "total_count": total_count},
+            )
+        except Exception as e:
+            logger.exception("telephone_contacts_get failed")
+            return http_for_database_exception(e)
 
     @routes.post("/api/v1/telephone/contacts")
     async def telephone_contacts_post(request):
@@ -296,17 +351,27 @@ def register_contacts_routes(routes, app):
 
     @routes.get("/api/v1/telephone/contacts/check/{identity_hash}")
     async def telephone_contacts_check(request):
+        unavailable = require_database(app)
+        if unavailable is not None:
+            return unavailable
         identity_hash = request.match_info["identity_hash"]
-        contact = app._resolve_contact_for_hash(identity_hash)
-        return web.json_response(
-            {
-                "is_contact": contact is not None,
-                "contact": dict(contact) if contact else None,
-            },
-        )
+        try:
+            contact = app._resolve_contact_for_hash(identity_hash)
+            return web.json_response(
+                {
+                    "is_contact": contact is not None,
+                    "contact": dict(contact) if contact else None,
+                },
+            )
+        except Exception as e:
+            logger.exception("telephone_contacts_check failed")
+            return http_for_database_exception(e)
 
     @routes.get("/api/v1/telephone/contacts/export")
     async def telephone_contacts_export(request):
+        unavailable = require_database(app)
+        if unavailable is not None:
+            return unavailable
         try:
             rows = app.database.contacts.get_contacts(limit=10000, offset=0)
             hashes = [
@@ -327,6 +392,9 @@ def register_contacts_routes(routes, app):
                 export_data.append(d)
             return web.json_response({"contacts": export_data})
         except Exception as e:
+            retryable = http_for_database_exception(e)
+            if retryable.status == 503:
+                return retryable
             return web.json_response(
                 {"message": f"Failed to export contacts: {e!s}"},
                 status=500,

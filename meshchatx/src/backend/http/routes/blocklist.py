@@ -3,6 +3,10 @@
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.db_availability import (
+    http_for_database_exception,
+    require_database,
+)
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,
@@ -132,7 +136,6 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 
 
 def register_blocklist_routes(routes, app):
-
     @routes.get("/api/v1/lxmf/message-blocklist")
     async def lxmf_message_blocklist_get(request):
         raw = app.config.message_blocklist_json.get()
@@ -205,19 +208,26 @@ def register_blocklist_routes(routes, app):
     # get blocked destinations
     @routes.get("/api/v1/blocked-destinations")
     async def blocked_destinations_get(request):
-        blocked = app.database.misc.get_blocked_destinations()
-        blocked_list = [
-            {
-                "destination_hash": b["destination_hash"],
-                "created_at": b["created_at"],
-            }
-            for b in blocked
-        ]
-        return web.json_response(
-            {
-                "blocked_destinations": blocked_list,
-            },
-        )
+        unavailable = require_database(app)
+        if unavailable is not None:
+            return unavailable
+        try:
+            blocked = app.database.misc.get_blocked_destinations()
+            blocked_list = [
+                {
+                    "destination_hash": b["destination_hash"],
+                    "created_at": b["created_at"],
+                }
+                for b in blocked
+            ]
+            return web.json_response(
+                {
+                    "blocked_destinations": blocked_list,
+                },
+            )
+        except Exception as e:
+            logger.exception("blocked_destinations_get failed")
+            return http_for_database_exception(e)
 
     # add blocked destination
 
