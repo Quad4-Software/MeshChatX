@@ -41,6 +41,7 @@ class MapManager:
         self._metadata_cache = None
         self._export_progress = {}
         self._export_cancelled = set()
+        self._starter_lock = threading.Lock()
 
     def get_connection(self, path):
         if not hasattr(self._local, "connections"):
@@ -84,42 +85,61 @@ class MapManager:
             ensure_bundled_starter_file,
         )
 
-        existing = self.get_offline_path()
-        if existing and os.path.exists(existing) and not force_restore:
-            return existing
+        with self._starter_lock:
+            existing = self.get_offline_path()
+            if existing and os.path.exists(existing) and not force_restore:
+                return existing
 
-        try:
-            src = ensure_bundled_starter_file()
-        except Exception as e:
-            RNS.log(
-                f"MapManager: failed to prepare starter MBTiles: {e}", RNS.LOG_WARNING
-            )
-            return existing if existing and os.path.exists(existing) else None
+            try:
+                src = ensure_bundled_starter_file()
+            except Exception as e:
+                RNS.log(
+                    f"MapManager: failed to prepare starter MBTiles: {e}",
+                    RNS.LOG_WARNING,
+                )
+                return existing if existing and os.path.exists(existing) else None
 
-        if not src.is_file():
-            return None
+            if not src.is_file():
+                return None
 
-        mbtiles_dir = self.get_mbtiles_dir()
-        os.makedirs(mbtiles_dir, exist_ok=True)
-        dest = os.path.join(mbtiles_dir, STARTER_FILENAME)
-        if force_restore or not os.path.exists(dest):
-            import shutil
+            mbtiles_dir = self.get_mbtiles_dir()
+            os.makedirs(mbtiles_dir, exist_ok=True)
+            dest = os.path.join(mbtiles_dir, STARTER_FILENAME)
+            if force_restore or not os.path.exists(dest):
+                import shutil
+                import tempfile
 
-            shutil.copy2(str(src), dest)
-
-        self.config.map_offline_path.set(dest)
-        if self.config.map_offline_enabled.get() is False and force_restore:
-            self.config.map_offline_enabled.set(True)
-        self._metadata_cache = None
-        # Drop cached connections so the new file is opened fresh.
-        if hasattr(self._local, "connections"):
-            for conn in list(self._local.connections.values()):
+                # Copy to a temp sibling then replace so concurrent tile readers
+                # never open a truncated MBTiles file.
+                fd, tmp_name = tempfile.mkstemp(
+                    prefix=f".{STARTER_FILENAME}.",
+                    suffix=".tmp",
+                    dir=mbtiles_dir,
+                )
+                os.close(fd)
                 try:
-                    conn.close()
-                except Exception:
-                    pass
-            self._local.connections = {}
-        return dest
+                    shutil.copy2(str(src), tmp_name)
+                    os.replace(tmp_name, dest)
+                finally:
+                    if os.path.exists(tmp_name):
+                        try:
+                            os.unlink(tmp_name)
+                        except OSError:
+                            pass
+
+            self.config.map_offline_path.set(dest)
+            if self.config.map_offline_enabled.get() is False and force_restore:
+                self.config.map_offline_enabled.set(True)
+            self._metadata_cache = None
+            # Drop cached connections so the new file is opened fresh.
+            if hasattr(self._local, "connections"):
+                for conn in list(self._local.connections.values()):
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
+                self._local.connections = {}
+            return dest
 
     def list_mbtiles(self):
         mbtiles_dir = self.get_mbtiles_dir()

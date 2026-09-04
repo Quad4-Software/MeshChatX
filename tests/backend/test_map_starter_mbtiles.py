@@ -90,3 +90,54 @@ def test_ensure_starter_force_restore(tmp_path):
 def test_bundled_starter_generate():
     path = ensure_bundled_starter_file()
     assert path.is_file()
+
+
+def test_concurrent_ensure_starter_mbtiles_race(tmp_path):
+    """Oracle: parallel seeds must leave one valid SQLite MBTiles, not a torn file."""
+    import sqlite3
+    import threading
+
+    cfg = _config(tmp_path)
+    mm = MapManager(cfg, str(tmp_path))
+    results = []
+    errors = []
+
+    def worker():
+        try:
+            results.append(mm.ensure_starter_mbtiles())
+        except Exception as e:
+            errors.append(e)
+
+    threads = [threading.Thread(target=worker) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert not errors, errors
+    assert len(results) == 8
+    assert len(set(results)) == 1
+    path = results[0]
+    assert path is not None
+    assert os.path.exists(path)
+    conn = sqlite3.connect(path)
+    try:
+        count = conn.execute("SELECT COUNT(*) FROM tiles").fetchone()[0]
+        name = conn.execute("SELECT value FROM metadata WHERE name='name'").fetchone()[
+            0
+        ]
+    finally:
+        conn.close()
+    assert count == 341
+    assert "starter" in name.lower()
+
+
+def test_write_starter_atomic_replace(tmp_path):
+    dest = tmp_path / "atomic.mbtiles"
+    write_starter_mbtiles(dest, max_zoom=0)
+    first_size = dest.stat().st_size
+    write_starter_mbtiles(dest, max_zoom=1)
+    assert dest.is_file()
+    assert dest.stat().st_size >= first_size
+    leftovers = list(tmp_path.glob(".atomic.mbtiles.*.tmp"))
+    assert leftovers == []
