@@ -68,7 +68,6 @@
                 </button>
                 <!-- search toggle (mobile only) -->
                 <button
-                    v-if="!offlineEnabled"
                     type="button"
                     class="sm:hidden p-2 text-sem-fg-muted hover:bg-sem-surface-muted rounded-full transition-colors shrink-0"
                     :title="$t('map.search_placeholder')"
@@ -125,7 +124,6 @@
             />
 
             <div
-                v-if="!offlineEnabled"
                 v-show="!isMobileScreen || isMobileSearchOpen"
                 ref="searchContainer"
                 class="absolute left-4 right-4 top-[calc(0.5rem+2.75rem+0.5rem)] z-30 sm:top-2 sm:left-auto sm:right-4 sm:w-80 md:max-lg:w-72 lg:w-80"
@@ -136,6 +134,7 @@
                     :error="searchError"
                     :searching="isSearching"
                     :show-results="isSearchFocused"
+                    :placeholder="offlineEnabled ? $t('map.search_placeholder_offline') : $t('map.search_placeholder')"
                     @input="onSearchInput"
                     @search="performSearch"
                     @clear="clearSearch"
@@ -436,6 +435,7 @@
                 v-if="selectedMarker"
                 :marker="selectedMarker"
                 :mini-chat-open="isMiniChatOpen"
+                :coordinate-format="coordinateFormat"
                 @close="selectedMarker = null"
                 @toggle-tracking="toggleTracking"
                 @toggle-mini-chat="isMiniChatOpen = !isMiniChatOpen"
@@ -569,17 +569,38 @@
                     </div>
                 </div>
 
-                <!-- Lat/Lon Box -->
+                <!-- Coordinate readout -->
                 <div
-                    class="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-sem-border p-2 rounded-lg text-[10px] text-sem-fg-muted pointer-events-auto shadow-xs flex flex-col space-y-0.5"
+                    class="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-sem-border p-2 rounded-lg text-[10px] text-sem-fg-muted pointer-events-auto shadow-xs flex flex-col space-y-0.5 min-w-[11rem]"
                 >
-                    <div class="flex justify-between space-x-4">
-                        <span class="opacity-50 uppercase tracking-tighter">Lat</span>
-                        <span class="text-sem-fg tabular-nums">{{ displayCoords[1].toFixed(6) }}</span>
+                    <div class="flex items-center justify-between gap-2 mb-0.5">
+                        <label class="opacity-50 uppercase tracking-tighter shrink-0" for="map-coord-format">{{
+                            $t("map.coordinate_format")
+                        }}</label>
+                        <select
+                            id="map-coord-format"
+                            v-model="coordinateFormat"
+                            class="bg-transparent text-sem-fg text-[10px] font-medium border border-sem-border rounded px-1 py-0.5 max-w-[7rem]"
+                            @change="onCoordinateFormatChange"
+                        >
+                            <option value="wgs84">{{ $t("map.coord_format_wgs84") }}</option>
+                            <option value="utm">{{ $t("map.coord_format_utm") }}</option>
+                            <option value="mgrs">{{ $t("map.coord_format_mgrs") }}</option>
+                            <option value="olc">{{ $t("map.coord_format_olc") }}</option>
+                        </select>
                     </div>
-                    <div class="flex justify-between space-x-4">
-                        <span class="opacity-50 uppercase tracking-tighter">Lon</span>
-                        <span class="text-sem-fg tabular-nums">{{ displayCoords[0].toFixed(6) }}</span>
+                    <div v-if="coordinateFormat === 'wgs84'" class="flex flex-col space-y-0.5">
+                        <div class="flex justify-between space-x-4">
+                            <span class="opacity-50 uppercase tracking-tighter">{{ $t("map.coord_lat") }}</span>
+                            <span class="text-sem-fg tabular-nums">{{ displayCoords[1].toFixed(6) }}</span>
+                        </div>
+                        <div class="flex justify-between space-x-4">
+                            <span class="opacity-50 uppercase tracking-tighter">{{ $t("map.coord_lon") }}</span>
+                            <span class="text-sem-fg tabular-nums">{{ displayCoords[0].toFixed(6) }}</span>
+                        </div>
+                    </div>
+                    <div v-else class="text-sem-fg tabular-nums break-all leading-snug">
+                        {{ formattedDisplayCoords }}
                     </div>
                 </div>
             </div>
@@ -643,71 +664,80 @@
                         </label>
                     </div>
 
-                    <!-- Map Style Presets -->
-                    <div v-if="!offlineEnabled" class="space-y-2">
-                        <div class="flex items-center justify-between">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest"
-                                >Map Styles</label
-                            >
-                            <div class="h-px flex-1 bg-sem-surface-muted ml-3"></div>
-                        </div>
-                        <div class="grid grid-cols-5 gap-1">
-                            <button
-                                v-for="style in [
-                                    { id: 'osm', label: 'OSM' },
-                                    { id: 'openfreemap', label: 'OFM' },
-                                    { id: 'carto-dark', label: 'Dark' },
-                                    { id: 'carto-voyager', label: 'Voy' },
-                                    { id: 'carto-light', label: 'Lite' },
-                                ]"
-                                :key="style.id"
-                                class="py-1.5 text-[8px] font-bold uppercase rounded-md transition-all border leading-tight"
-                                :class="
-                                    (style.id === 'openfreemap' &&
-                                        tileServerUrl.includes('tiles.openfreemap.org/styles/')) ||
-                                    (style.id === 'osm' && tileServerUrl.includes('openstreetmap.org')) ||
-                                    (style.id === 'carto-dark' &&
-                                        tileServerUrl.includes('basemaps.cartocdn.com/dark_all')) ||
-                                    (style.id === 'carto-voyager' && tileServerUrl.includes('rastertiles/voyager')) ||
-                                    (style.id === 'carto-light' &&
-                                        tileServerUrl.includes('basemaps.cartocdn.com/light_all'))
-                                        ? 'bg-blue-500 border-blue-600 text-white shadow-xs ring-2 ring-blue-500/20'
-                                        : 'bg-sem-surface border-sem-border text-sem-fg-muted hover:bg-sem-surface-muted'
-                                "
-                                @click="setTileServer(style.id)"
-                            >
-                                {{ style.label }}
-                            </button>
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="text-[9px] font-bold text-sem-fg-muted uppercase flex items-center">
-                                <MaterialDesignIcon icon-name="link-variant" class="size-3 mr-1" />
-                                Tile Server URL
-                            </label>
-                            <input
-                                v-model="tileServerUrl"
-                                type="text"
-                                class="w-full bg-gray-50/50 dark:bg-zinc-950/50 border border-sem-border rounded-lg px-2 py-1.5 text-[10px] text-sem-fg font-mono focus:ring-1 focus:ring-blue-500 transition-all outline-hidden"
-                                :placeholder="$t('map.tile_server_url_placeholder')"
-                                @blur="saveTileServerUrl"
+                    <!-- Online sources (clearnet). Collapsed by default when offline. -->
+                    <details class="space-y-2 group" :open="!offlineEnabled">
+                        <summary
+                            class="flex items-center justify-between cursor-pointer list-none text-[10px] font-bold text-gray-400 uppercase tracking-widest select-none"
+                        >
+                            <span>{{ $t("map.online_sources") }}</span>
+                            <MaterialDesignIcon
+                                icon-name="chevron-down"
+                                class="size-4 transition-transform group-open:rotate-180"
                             />
-                        </div>
+                        </summary>
+                        <div class="space-y-2 pt-1">
+                            <p class="text-[9px] text-sem-fg-muted leading-snug">
+                                {{ $t("map.online_sources_hint") }}
+                            </p>
+                            <div class="grid grid-cols-5 gap-1">
+                                <button
+                                    v-for="style in [
+                                        { id: 'osm', label: 'OSM' },
+                                        { id: 'openfreemap', label: 'OFM' },
+                                        { id: 'carto-dark', label: 'Dark' },
+                                        { id: 'carto-voyager', label: 'Voy' },
+                                        { id: 'carto-light', label: 'Lite' },
+                                    ]"
+                                    :key="style.id"
+                                    class="py-1.5 text-[8px] font-bold uppercase rounded-md transition-all border leading-tight"
+                                    :class="
+                                        (style.id === 'openfreemap' &&
+                                            tileServerUrl.includes('tiles.openfreemap.org/styles/')) ||
+                                        (style.id === 'osm' && tileServerUrl.includes('openstreetmap.org')) ||
+                                        (style.id === 'carto-dark' &&
+                                            tileServerUrl.includes('basemaps.cartocdn.com/dark_all')) ||
+                                        (style.id === 'carto-voyager' &&
+                                            tileServerUrl.includes('rastertiles/voyager')) ||
+                                        (style.id === 'carto-light' &&
+                                            tileServerUrl.includes('basemaps.cartocdn.com/light_all'))
+                                            ? 'bg-blue-500 border-blue-600 text-white shadow-xs ring-2 ring-blue-500/20'
+                                            : 'bg-sem-surface border-sem-border text-sem-fg-muted hover:bg-sem-surface-muted'
+                                    "
+                                    @click="setTileServer(style.id)"
+                                >
+                                    {{ style.label }}
+                                </button>
+                            </div>
 
-                        <div class="space-y-1">
-                            <label class="text-[9px] font-bold text-sem-fg-muted uppercase flex items-center">
-                                <MaterialDesignIcon icon-name="magnify" class="size-3 mr-1" />
-                                Geocoder API
-                            </label>
-                            <input
-                                v-model="nominatimApiUrl"
-                                type="text"
-                                class="w-full bg-gray-50/50 dark:bg-zinc-950/50 border border-sem-border rounded-lg px-2 py-1.5 text-[10px] text-sem-fg font-mono focus:ring-1 focus:ring-blue-500 transition-all outline-hidden"
-                                :placeholder="$t('map.nominatim_api_url_placeholder')"
-                                @blur="saveNominatimApiUrl"
-                            />
+                            <div class="space-y-1">
+                                <label class="text-[9px] font-bold text-sem-fg-muted uppercase flex items-center">
+                                    <MaterialDesignIcon icon-name="link-variant" class="size-3 mr-1" />
+                                    Tile Server URL
+                                </label>
+                                <input
+                                    v-model="tileServerUrl"
+                                    type="text"
+                                    class="w-full bg-gray-50/50 dark:bg-zinc-950/50 border border-sem-border rounded-lg px-2 py-1.5 text-[10px] text-sem-fg font-mono focus:ring-1 focus:ring-blue-500 transition-all outline-hidden"
+                                    :placeholder="$t('map.tile_server_url_placeholder')"
+                                    @blur="saveTileServerUrl"
+                                />
+                            </div>
+
+                            <div class="space-y-1">
+                                <label class="text-[9px] font-bold text-sem-fg-muted uppercase flex items-center">
+                                    <MaterialDesignIcon icon-name="magnify" class="size-3 mr-1" />
+                                    Geocoder API
+                                </label>
+                                <input
+                                    v-model="nominatimApiUrl"
+                                    type="text"
+                                    class="w-full bg-gray-50/50 dark:bg-zinc-950/50 border border-sem-border rounded-lg px-2 py-1.5 text-[10px] text-sem-fg font-mono focus:ring-1 focus:ring-blue-500 transition-all outline-hidden"
+                                    :placeholder="$t('map.nominatim_api_url_placeholder')"
+                                    @blur="saveNominatimApiUrl"
+                                />
+                            </div>
                         </div>
-                    </div>
+                    </details>
 
                     <!-- Live Tracking -->
                     <div class="space-y-2">
@@ -760,21 +790,18 @@
                                 currentZoom.toFixed(1)
                             }}</span>
                         </div>
-                        <div class="flex flex-col items-center border-x border-sem-border">
-                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-tighter mb-0.5"
-                                >Lat</span
-                            >
-                            <span class="text-[10px] font-bold text-sem-fg-muted leading-none tabular-nums">{{
-                                displayCoords[1].toFixed(4)
+                        <div class="flex flex-col items-center border-x border-sem-border col-span-2 px-1">
+                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-tighter mb-0.5">{{
+                                $t("map.coordinate_format")
                             }}</span>
-                        </div>
-                        <div class="flex flex-col items-center">
-                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-tighter mb-0.5"
-                                >Lon</span
+                            <span
+                                class="text-[9px] font-bold text-sem-fg-muted leading-tight tabular-nums text-center break-all"
+                                >{{
+                                    coordinateFormat === "wgs84"
+                                        ? `${displayCoords[1].toFixed(4)}, ${displayCoords[0].toFixed(4)}`
+                                        : formattedDisplayCoords
+                                }}</span
                             >
-                            <span class="text-[10px] font-bold text-sem-fg-muted leading-none tabular-nums">{{
-                                displayCoords[0].toFixed(4)
-                            }}</span>
                         </div>
                     </div>
                 </div>
@@ -832,6 +859,7 @@
                     @save-mbtiles-dir="onSaveMbtilesDirFromPanel"
                     @clear-cache="clearCache"
                     @export-region="toggleExportMode"
+                    @restore-starter="restoreStarterTiles"
                 />
             </div>
 
@@ -1041,6 +1069,13 @@ import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import { publishPatchedConfig } from "../../js/settings/settingsConfigService.js";
 import {
+    ensureGeoCoordsReady,
+    formatCoordinate,
+    normalizeCoordinateFormat,
+    parseCoordinateQuery,
+    shouldWarnGeoWasmFallback,
+} from "../../js/mapGeoCoords.js";
+import {
     detectRasterTileProviderId,
     nextRasterTileProviderId,
     TILE_PROVIDER_URLS,
@@ -1139,7 +1174,7 @@ export default {
     data() {
         return {
             map: null,
-            offlineEnabled: false,
+            offlineEnabled: true,
             hasOfflineMap: false,
             metadata: null,
             isUploading: false,
@@ -1152,6 +1187,7 @@ export default {
             currentCenter: [0, 0],
             currentZoom: 2,
             cursorCoords: null,
+            coordinateFormat: "wgs84",
             config: null,
             peers: {},
 
@@ -1334,6 +1370,15 @@ export default {
         displayCoords() {
             return this.cursorCoords || this.currentCenter;
         },
+        formattedDisplayCoords() {
+            const [lon, lat] = this.displayCoords || [0, 0];
+            const res = formatCoordinate(lon, lat, this.coordinateFormat, {
+                hasRef: true,
+                refLat: this.currentCenter?.[1] || 0,
+                refLon: this.currentCenter?.[0] || 0,
+            });
+            return res?.text || `${Number(lat).toFixed(6)}, ${Number(lon).toFixed(6)}`;
+        },
         northIndicatorRotateStyle() {
             const r = this.mapViewRotationRad || 0;
             return {
@@ -1447,6 +1492,7 @@ export default {
     },
     async mounted() {
         await this.getConfig();
+        await ensureGeoCoordsReady();
 
         // Load persisted map state
         try {
@@ -1652,6 +1698,8 @@ export default {
                 this.cachingEnabled =
                     this.config.map_tile_cache_enabled !== undefined ? this.config.map_tile_cache_enabled : true;
                 this.mbtilesDir = this.config.map_mbtiles_dir || "";
+                const fmt = normalizeCoordinateFormat(this.config.map_coordinate_format);
+                this.coordinateFormat = fmt;
                 if (this.config.map_tile_server_url) {
                     this.tileServerUrl = this.config.map_tile_server_url;
                 }
@@ -1660,6 +1708,24 @@ export default {
                 }
             } catch (e) {
                 console.error("Failed to load config", e);
+            }
+        },
+        async onCoordinateFormatChange() {
+            const fmt = normalizeCoordinateFormat(this.coordinateFormat);
+            this.coordinateFormat = fmt;
+            if (fmt !== "wgs84") {
+                await ensureGeoCoordsReady();
+                if (shouldWarnGeoWasmFallback()) {
+                    ToastUtils.warning(this.$t("map.geo_wasm_unavailable"));
+                }
+            }
+            try {
+                await window.api.patch("/api/v1/config", { map_coordinate_format: fmt });
+                if (this.config) {
+                    this.config.map_coordinate_format = fmt;
+                }
+            } catch (e) {
+                console.error("Failed to save coordinate format", e);
             }
         },
         async loadMBTilesList() {
@@ -1678,6 +1744,17 @@ export default {
                 ToastUtils.success(this.$t("map.source_updated"));
             } catch {
                 ToastUtils.error(this.$t("map.failed_set_active"));
+            }
+        },
+        async restoreStarterTiles() {
+            try {
+                await window.api.post("/api/v1/map/mbtiles/restore-starter", {});
+                await this.checkOfflineMap();
+                await this.loadMBTilesList();
+                ToastUtils.success(this.$t("map.starter_restored"));
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("map.failed_restore_starter"));
             }
         },
         async deleteMBTiles(filename) {
@@ -2929,7 +3006,20 @@ export default {
                         clearInterval(this.exportInterval);
                         this.isExporting = false;
                         if (this.exportStatus.status === "completed") {
-                            this.loadMBTilesList();
+                            await this.loadMBTilesList();
+                            const exportedName =
+                                this.exportStatus.filename ||
+                                (this.exportStatus.file_path
+                                    ? String(this.exportStatus.file_path).split(/[/\\]/).pop()
+                                    : this.exportId
+                                      ? `export_${this.exportId}.mbtiles`
+                                      : null);
+                            if (exportedName) {
+                                const useIt = await DialogUtils.confirm(this.$t("map.export_set_active_confirm"));
+                                if (useIt) {
+                                    await this.setActiveMBTiles(exportedName);
+                                }
+                            }
                         }
                     }
                 } catch {
@@ -3157,6 +3247,33 @@ export default {
         async performSearch() {
             if (!this.searchQuery || this.isSearching) return;
 
+            await ensureGeoCoordsReady();
+            const parsed = parseCoordinateQuery(this.searchQuery, {
+                hasRef: true,
+                refLat: this.currentCenter?.[1] || 0,
+                refLon: this.currentCenter?.[0] || 0,
+            });
+            if (parsed.ok && Number.isFinite(parsed.lat) && Number.isFinite(parsed.lon)) {
+                this.isSearching = false;
+                this.searchError = null;
+                this.searchResults = [];
+                this.selectSearchResult({
+                    display_name: parsed.kind || "coordinates",
+                    lat: parsed.lat,
+                    lon: parsed.lon,
+                    type: parsed.kind || "coords",
+                });
+                return;
+            }
+
+            if (parsed.error === "geo_wasm_unavailable") {
+                this.searchError = this.$t("map.geo_wasm_unavailable");
+                if (shouldWarnGeoWasmFallback()) {
+                    ToastUtils.warning(this.$t("map.geo_wasm_unavailable"));
+                }
+                return;
+            }
+
             const defaultNominatimUrl = "https://nominatim.openstreetmap.org";
             const isCustomLocal = this.isLocalUrl(this.nominatimApiUrl);
             const isDefaultOnline = this.isDefaultOnlineUrl(this.nominatimApiUrl);
@@ -3169,7 +3286,7 @@ export default {
                         return;
                     }
                 } else {
-                    this.searchError = this.$t("map.search_offline_error");
+                    this.searchError = this.$t("map.search_offline_coord_hint");
                     return;
                 }
             }
@@ -3984,7 +4101,16 @@ export default {
                 return;
             }
             const [lon, lat] = this.contextMenuCoord;
-            const text = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+            await ensureGeoCoordsReady();
+            const formatted = formatCoordinate(lon, lat, this.coordinateFormat, {
+                hasRef: true,
+                refLat: this.currentCenter?.[1] || lat,
+                refLon: this.currentCenter?.[0] || lon,
+            });
+            const text = formatted?.text || `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+            if (formatted?.fallback && shouldWarnGeoWasmFallback()) {
+                ToastUtils.warning(this.$t("map.geo_wasm_unavailable"));
+            }
             try {
                 if (navigator?.clipboard?.writeText) {
                     await navigator.clipboard.writeText(text);

@@ -67,7 +67,7 @@ exclude = ["tests*"]
 namespaces = false
 
 [tool.setuptools.package-data]
-meshchatx = ["public/**/*", "public/*", "src/backend/data/community_interfaces.json", "src/backend/data/licenses_frontend.json", "src/backend/data/licenses_backend.json", "src/backend/data/THIRD_PARTY_NOTICES.txt", "src/backend/data/plugins/**/*", "src/backend/data/interfaces/**/*", "src/frontend/public/repository-server-index.html"]
+meshchatx = ["public/**/*", "public/*", "src/backend/data/community_interfaces.json", "src/backend/data/licenses_frontend.json", "src/backend/data/licenses_backend.json", "src/backend/data/THIRD_PARTY_NOTICES.txt", "src/backend/data/plugins/**/*", "src/backend/data/interfaces/**/*", "src/backend/data/map/**/*", "src/frontend/public/repository-server-index.html"]
 
 [tool.setuptools.exclude-package-data]
 meshchatx = ["public/repository-server-bundled/**"]

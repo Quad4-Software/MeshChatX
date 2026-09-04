@@ -8,7 +8,7 @@
                 :value="modelValue"
                 type="text"
                 class="flex-1 px-4 py-2.5 bg-transparent text-sem-fg placeholder-gray-400 focus:outline-hidden focus:ring-0 border-0 text-sm"
-                :placeholder="$t('map.search_placeholder')"
+                :placeholder="placeholder || $t('map.search_placeholder')"
                 @input="onInput"
                 @keydown.enter="$emit('search')"
                 @focus="$emit('focus')"
@@ -67,6 +67,7 @@ export default {
         error: { type: String, default: null },
         searching: { type: Boolean, default: false },
         showResults: { type: Boolean, default: false },
+        placeholder: { type: String, default: "" },
     },
     emits: ["update:modelValue", "input", "search", "clear", "focus", "select"],
     methods: {

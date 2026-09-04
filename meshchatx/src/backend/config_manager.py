@@ -336,13 +336,16 @@ class ConfigManager:
         )
 
         # map config
-        self.map_offline_enabled = self.BoolConfig(self, "map_offline_enabled", False)
+        self.map_offline_enabled = self.BoolConfig(self, "map_offline_enabled", True)
         self.map_offline_path = self.StringConfig(self, "map_offline_path", None)
         self.map_mbtiles_dir = self.StringConfig(self, "map_mbtiles_dir", None)
         self.map_tile_cache_enabled = self.BoolConfig(
             self,
             "map_tile_cache_enabled",
             True,
+        )
+        self.map_coordinate_format = self.StringConfig(
+            self, "map_coordinate_format", "wgs84"
         )
         self.map_default_lat = self.StringConfig(self, "map_default_lat", "0.0")
         self.map_default_lon = self.StringConfig(self, "map_default_lon", "0.0")

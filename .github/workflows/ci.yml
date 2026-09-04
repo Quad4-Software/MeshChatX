@@ -76,11 +76,11 @@ jobs:
             - name: Harden runner
               uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
               with:
-                egress-policy: audit
+                  egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
-                persist-credentials: false
+                  persist-credentials: false
 
             - name: Set up development environment
               uses: ./.github/actions/setup-dev-environment
@@ -126,11 +126,11 @@ jobs:
             - name: Harden runner
               uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
               with:
-                egress-policy: audit
+                  egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
-                persist-credentials: false
+                  persist-credentials: false
 
             - name: Set up Go
               uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
@@ -162,6 +162,52 @@ jobs:
                   print("visualiser-wasm integrity OK", data["version"])
                   PY
 
+    geo-wasm:
+        name: Geo WASM (Go)
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        permissions:
+            contents: read
+        steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                  egress-policy: audit
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  persist-credentials: false
+
+            - name: Set up Go
+              uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+              with:
+                  go-version: ${{ env.GO_VERSION }}
+
+            - name: Setup Task
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
+              run: sh scripts/ci/setup-task.sh 3.49.1
+
+            - name: Run geo-wasm tests
+              run: task test:geo-wasm
+
+            - name: Build geo-wasm artifacts
+              run: task build:geo-wasm
+
+            - name: Verify integrity.json stamped
+              run: |
+                  set -euo pipefail
+                  test -f meshchatx/src/frontend/public/vendor/geo-wasm/integrity.json
+                  python3 - <<'PY'
+                  import json
+                  from pathlib import Path
+                  data = json.loads(Path("meshchatx/src/frontend/public/vendor/geo-wasm/integrity.json").read_text())
+                  assert data.get("version") == "1.0.0", data
+                  assert str(data.get("wasm", "")).startswith("sha384-"), data
+                  assert str(data.get("wasmExec", "")).startswith("sha384-"), data
+                  print("geo-wasm integrity OK", data["version"])
+                  PY
+
     backend-tests:
         name: Backend tests (Python 3.14) - Shard ${{ matrix.shard }} / 4
         runs-on: ubuntu-latest
@@ -176,11 +222,11 @@ jobs:
             - name: Harden runner
               uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
               with:
-                egress-policy: audit
+                  egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
-                persist-credentials: false
+                  persist-credentials: false
 
             - name: Set up development environment
               uses: ./.github/actions/setup-dev-environment
@@ -209,11 +255,11 @@ jobs:
             - name: Harden runner
               uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
               with:
-                egress-policy: audit
+                  egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
-                persist-credentials: false
+                  persist-credentials: false
 
             - name: Set up development environment
               uses: ./.github/actions/setup-dev-environment
@@ -243,11 +289,11 @@ jobs:
             - name: Harden runner
               uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
               with:
-                egress-policy: audit
+                  egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
-                persist-credentials: false
+                  persist-credentials: false
 
             - name: Smoke-test package bloat checker
               run: bash scripts/ci/verify-package-contents-smoke.sh
@@ -312,11 +358,11 @@ jobs:
             - name: Harden runner
               uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
               with:
-                egress-policy: audit
+                  egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
-                persist-credentials: false
+                  persist-credentials: false
 
             - name: Download Linux build-check artifact
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
@@ -378,11 +424,11 @@ jobs:
             - name: Harden runner
               uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
               with:
-                egress-policy: audit
+                  egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
-                persist-credentials: false
+                  persist-credentials: false
 
             - name: Set up Python and UV
               uses: ./.github/actions/setup-python-uv
@@ -458,11 +504,11 @@ jobs:
             - name: Harden runner
               uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
               with:
-                egress-policy: audit
+                  egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
-                persist-credentials: false
+                  persist-credentials: false
 
             - name: Set up development environment
               uses: ./.github/actions/setup-dev-environment
@@ -498,11 +544,11 @@ jobs:
             - name: Harden runner
               uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
               with:
-                egress-policy: audit
+                  egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
-                persist-credentials: false
+                  persist-credentials: false
 
             - name: Set up development environment
               uses: ./.github/actions/setup-dev-environment
@@ -551,11 +597,11 @@ jobs:
             - name: Harden runner
               uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
               with:
-                egress-policy: audit
+                  egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
-                persist-credentials: false
+                  persist-credentials: false
 
             - name: Set up development environment
               uses: ./.github/actions/setup-dev-environment

@@ -3,6 +3,7 @@
 #
 # Set MESHCHAT_ALTCHA_HMAC_KEY in Coolify before deploy (required below).
 # Showcase login password defaults to demo (override MESHCHAT_DEMO_AUTH_PASSWORD).
+# Offline map defaults on; starter low-zoom MBTiles are seeded into storage on first run.
 #
 # Assign a domain in Coolify with container port 8000, for example:
 #   https://meshchatx.example.com:8000

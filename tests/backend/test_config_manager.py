@@ -27,6 +27,8 @@ def test_config_manager_get_default(db):
     assert config.theme.get() == "light"
     assert config.lxmf_inbound_stamp_cost.get() == 8
     assert config.map_data_announce_enabled.get() is False
+    assert config.map_offline_enabled.get() is True
+    assert config.map_coordinate_format.get() == "wgs84"
 
 
 def test_config_manager_set_get(db):

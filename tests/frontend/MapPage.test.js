@@ -300,7 +300,9 @@ describe("MapPage.vue", () => {
         });
 
         const wrapper = mountMapPage();
-        await wrapper.vm.$nextTick();
+        await flushPromises();
+        wrapper.vm.offlineEnabled = false;
+        wrapper.vm.isSearchFocused = true;
 
         const searchInput = wrapper.find('input[type="text"]');
         await searchInput.trigger("focus");
@@ -309,14 +311,30 @@ describe("MapPage.vue", () => {
         // Trigger search by enter key
         await searchInput.trigger("keydown.enter");
 
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick(); // Wait for fetch
-        await wrapper.vm.$nextTick();
+        await flushPromises();
 
         expect(wrapper.text()).toContain("Result 1");
         expect(wrapper.text()).toContain("city");
 
         delete global.fetch;
+    });
+
+    it("parses WGS84 coordinates offline without Nominatim", async () => {
+        const wrapper = mountMapPage();
+        await flushPromises();
+        wrapper.vm.offlineEnabled = true;
+        wrapper.vm.isSearchFocused = true;
+        wrapper.vm.searchQuery = "1.234567, 2.345678";
+        const selectSpy = vi.spyOn(wrapper.vm, "selectSearchResult");
+
+        await wrapper.vm.performSearch();
+        await flushPromises();
+
+        expect(selectSpy).toHaveBeenCalled();
+        const arg = selectSpy.mock.calls[0][0];
+        expect(arg.lat).toBeCloseTo(1.234567, 5);
+        expect(arg.lon).toBeCloseTo(2.345678, 5);
+        expect(arg.type).toBe("wgs84");
     });
 
     it("uses stacked MBTiles only for default or known online tile presets, not local tile URLs", async () => {

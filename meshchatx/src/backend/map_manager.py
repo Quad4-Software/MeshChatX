@@ -73,6 +73,54 @@ class MapManager:
             return dir_path
         return self.storage_dir
 
+    def ensure_starter_mbtiles(self, force_restore=False):
+        """Seed a low-zoom starter basemap when the user has no offline map yet.
+
+        Returns the active offline path when seeding succeeds or an existing map
+        is already configured, else None.
+        """
+        from meshchatx.src.backend.map_starter_mbtiles import (
+            STARTER_FILENAME,
+            ensure_bundled_starter_file,
+        )
+
+        existing = self.get_offline_path()
+        if existing and os.path.exists(existing) and not force_restore:
+            return existing
+
+        try:
+            src = ensure_bundled_starter_file()
+        except Exception as e:
+            RNS.log(
+                f"MapManager: failed to prepare starter MBTiles: {e}", RNS.LOG_WARNING
+            )
+            return existing if existing and os.path.exists(existing) else None
+
+        if not src.is_file():
+            return None
+
+        mbtiles_dir = self.get_mbtiles_dir()
+        os.makedirs(mbtiles_dir, exist_ok=True)
+        dest = os.path.join(mbtiles_dir, STARTER_FILENAME)
+        if force_restore or not os.path.exists(dest):
+            import shutil
+
+            shutil.copy2(str(src), dest)
+
+        self.config.map_offline_path.set(dest)
+        if self.config.map_offline_enabled.get() is False and force_restore:
+            self.config.map_offline_enabled.set(True)
+        self._metadata_cache = None
+        # Drop cached connections so the new file is opened fresh.
+        if hasattr(self._local, "connections"):
+            for conn in list(self._local.connections.values()):
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+            self._local.connections = {}
+        return dest
+
     def list_mbtiles(self):
         mbtiles_dir = self.get_mbtiles_dir()
         files = []
