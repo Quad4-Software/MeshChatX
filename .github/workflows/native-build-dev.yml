@@ -116,6 +116,18 @@ jobs:
                       .cache/uv/python
                   key: venv-x64-${{ runner.os }}-${{ hashFiles('uv.lock', 'pyproject.toml', 'scripts/ci/github-install-macos-x64-python-deps.sh') }}
 
+            - name: Drop broken macOS x64 venv cache
+              if: matrix.label == 'macos'
+              run: |
+                  set -euo pipefail
+                  if [ ! -x .venv-x64/bin/python ]; then
+                    exit 0
+                  fi
+                  if ! arch -x86_64 .venv-x64/bin/python -c 'import sys; print(sys.version)'; then
+                    echo "Cached .venv-x64 is unusable on this runner; rebuilding."
+                    rm -rf .venv-x64
+                  fi
+
             - name: Install dependencies
               run: bash scripts/ci/github-install-deps.sh
 
