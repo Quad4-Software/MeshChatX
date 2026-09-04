@@ -2,454 +2,236 @@
 
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">
-        <ToolsPageHeader
-            icon="book-open-variant"
-            :title="$t('docs.title')"
-            :description="$t('docs.subtitle')"
-            accent="cyan"
-        />
-        <!-- Toolbar -->
-        <div class="p-2 md:p-3 border-b border-sem-border bg-sem-surface flex items-center gap-4 z-30 shrink-0">
-            <!-- Search & Navigation (Desktop) -->
-            <div class="hidden lg:flex flex-1 items-center gap-4 max-w-3xl">
-                <!-- Tabs -->
-                <div class="flex bg-sem-surface-muted p-0.5 rounded-lg shrink-0">
-                    <button
-                        class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center gap-1.5"
-                        :class="
-                            activeTab === 'meshchatx'
-                                ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
-                                : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
-                        "
-                        @click="activeTab = 'meshchatx'"
-                    >
-                        <img :src="meshchatxLogoUrl" alt="" class="w-3.5 h-3.5 object-contain shrink-0" />
-                        {{ $t("docs.tab_meshchatx") }}
-                    </button>
-                    <button
-                        class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center gap-1.5"
-                        :class="
-                            activeTab === 'reticulum'
-                                ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
-                                : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
-                        "
-                        @click="activeTab = 'reticulum'"
-                    >
-                        <img :src="reticulumLogoUrl" alt="" class="w-3.5 h-3.5 object-contain shrink-0" />
-                        {{ $t("docs.tab_reticulum") }}
-                    </button>
-                </div>
-
-                <!-- Search Input -->
-                <div v-if="status.has_docs || status.has_meshchatx_docs" class="relative flex-1">
-                    <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-                        <MaterialDesignIcon icon-name="magnify" class="h-3.5 w-3.5 text-gray-400" />
-                    </div>
-                    <input
-                        v-model="searchQuery"
-                        type="text"
-                        class="block w-full pl-8 pr-8 py-1.5 border border-sem-border rounded-lg bg-gray-50 dark:bg-zinc-800 text-sem-fg text-[11px] focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                        :placeholder="$t('docs.search_placeholder')"
-                        @input="debounceSearch"
-                    />
-                    <div v-if="isSearching" class="absolute inset-y-0 right-0 pr-2.5 flex items-center">
-                        <MaterialDesignIcon icon-name="loading" class="h-3 w-3 text-gray-400 animate-spin" />
-                    </div>
-                    <button
-                        v-else-if="searchQuery"
-                        class="absolute inset-y-0 right-0 pr-2.5 flex items-center"
-                        @click="clearSearch"
-                    >
-                        <MaterialDesignIcon
-                            icon-name="close"
-                            class="h-3 w-3 text-gray-400 hover:text-gray-600 hover:text-sem-fg cursor-pointer"
-                        />
-                    </button>
-                </div>
-            </div>
-
-            <!-- Actions Section -->
-            <div class="flex items-center space-x-1 md:space-x-2 ml-auto shrink-0">
-                <!-- Version Selector -->
-                <div
-                    v-if="activeTab === 'reticulum' && (status.has_docs || status.versions.length > 0)"
-                    class="relative"
-                >
-                    <button
-                        v-click-outside="() => (showVersions = false)"
-                        class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors flex items-center gap-1.5"
-                        :class="{ 'bg-sem-surface-muted': showVersions }"
-                        @click="showVersions = !showVersions"
-                    >
-                        <MaterialDesignIcon icon-name="history" class="w-4 h-4 md:w-5 md:h-5" />
-                        <span class="hidden xl:inline text-[10px] font-bold uppercase">{{
-                            status.current_version || $t("docs.default_version")
-                        }}</span>
-                    </button>
-                    <div
-                        v-if="showVersions"
-                        class="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 border border-sem-border rounded-xl shadow-xl z-50 overflow-hidden"
-                    >
-                        <div
-                            class="p-2 border-b border-gray-100 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-800/50"
-                        >
-                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{{
-                                $t("docs.versions")
-                            }}</span>
-                        </div>
-                        <div class="max-h-64 overflow-y-auto py-1">
-                            <button
-                                v-for="version in status.versions"
-                                :key="version"
-                                class="w-full px-4 py-2 text-left text-[11px] hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between group"
-                                :class="
-                                    status.current_version === version
-                                        ? 'text-sem-accent font-bold'
-                                        : 'text-sem-fg-muted'
-                                "
-                                @click="switchVersion(version)"
-                            >
-                                <span class="truncate">{{ version }}</span>
-                                <div class="flex items-center space-x-1">
-                                    <MaterialDesignIcon
-                                        v-if="status.current_version === version"
-                                        icon-name="check"
-                                        class="w-3.5 h-3.5"
-                                    />
-                                    <button
-                                        v-if="status.versions.length > 1"
-                                        type="button"
-                                        class="p-1 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        title="Delete this version"
-                                        @click.stop="deleteVersion(version)"
-                                    >
-                                        <MaterialDesignIcon icon-name="delete" class="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-                            </button>
-                            <div
-                                v-if="status.versions.length === 0"
-                                class="px-4 py-3 text-center text-gray-500 text-[10px]"
-                            >
-                                {{ $t("docs.no_versions") }}
-                            </div>
-                        </div>
-                        <div
-                            class="p-2 border-t border-gray-100 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-800/50"
-                        >
-                            <label
-                                class="flex items-center justify-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors text-[10px] font-bold uppercase"
-                            >
-                                <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
-                                <span>{{ $t("docs.upload_zip") }}</span>
-                                <input type="file" accept=".zip" class="hidden" @change="handleZipUpload" />
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Language Selector -->
-                <div v-if="activeTab === 'reticulum' && status.has_docs" class="relative">
-                    <button
-                        v-click-outside="() => (showLanguages = false)"
-                        class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors flex items-center gap-1.5"
-                        :class="{ 'bg-sem-surface-muted': showLanguages }"
-                        @click="showLanguages = !showLanguages"
-                    >
-                        <MaterialDesignIcon icon-name="translate" class="w-4 h-4 md:w-5 md:h-5" />
-                        <span class="hidden xl:inline text-[10px] font-bold uppercase">{{ currentLang }}</span>
-                    </button>
-                    <div
-                        v-if="showLanguages"
-                        class="absolute right-0 top-full mt-1 bg-sem-surface border border-sem-border rounded-lg shadow-xl p-1 min-w-[120px] z-20"
-                    >
-                        <button
-                            v-for="lang in allLanguages"
-                            :key="lang.code"
-                            class="flex items-center w-full px-3 py-2 text-[10px] font-bold uppercase hover:bg-sem-surface-muted rounded-md transition-colors"
-                            :class="lang.code === currentLang ? 'text-blue-500' : 'text-sem-fg-muted'"
-                            @click="setLanguage(lang.code)"
-                        >
-                            {{ lang.name }} ({{ lang.code }})
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Export Button -->
-                <button
-                    v-if="status.has_docs || status.has_meshchatx_docs"
-                    class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors"
-                    title="Export all documentation as ZIP"
-                    @click="exportDocs"
-                >
-                    <MaterialDesignIcon icon-name="download" class="w-4 h-4 md:w-5 md:h-5" />
-                </button>
-
-                <!-- Share Reticulum Manual (re-uploadable ZIP) -->
-                <button
-                    v-if="status.has_docs"
-                    class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors"
-                    :title="$t('docs.btn_share')"
-                    @click="exportReticulumDocs"
-                >
-                    <MaterialDesignIcon icon-name="share-variant" class="w-4 h-4 md:w-5 md:h-5" />
-                </button>
-
-                <!-- Upload Custom Manual -->
-                <label
-                    :class="{ 'opacity-50 pointer-events-none': status.status === 'extracting' }"
-                    class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors cursor-pointer"
-                    :title="$t('docs.btn_upload')"
-                >
-                    <MaterialDesignIcon
-                        :icon-name="status.status === 'extracting' ? 'loading' : 'upload'"
-                        :class="{ 'animate-spin': status.status === 'extracting' }"
-                        class="w-4 h-4 md:w-5 md:h-5"
-                    />
-                    <input
-                        type="file"
-                        accept=".zip"
-                        class="hidden"
-                        :disabled="status.status === 'extracting'"
-                        @change="handleZipUpload"
-                    />
-                </label>
-
-                <!-- Open External -->
-                <a
-                    v-if="status.has_docs"
-                    :href="localDocsUrl"
-                    target="_blank"
-                    class="hidden sm:flex items-center px-2.5 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:opacity-90 transition-opacity font-bold text-[10px] shadow-xs"
-                >
-                    <MaterialDesignIcon icon-name="open-in-new" class="w-3 h-3 mr-1.5" />
-                    {{ $t("docs.open_external") }}
-                </a>
-            </div>
-        </div>
-
-        <!-- Secondary Navigation (Mobile/Tablet) -->
-        <div
-            v-if="(status.has_docs || status.has_meshchatx_docs) && !isSearching"
-            class="lg:hidden px-3 py-2 bg-sem-surface border-b border-sem-border z-10"
-        >
-            <div class="flex flex-col lg:flex-row items-center gap-2 w-full">
-                <!-- Tabs -->
-                <div class="flex bg-sem-surface-muted p-0.5 rounded-lg w-full md:w-auto">
-                    <button
-                        class="flex-1 md:flex-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1.5"
-                        :class="
-                            activeTab === 'meshchatx'
-                                ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
-                                : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
-                        "
-                        @click="activeTab = 'meshchatx'"
-                    >
-                        <img :src="meshchatxLogoUrl" alt="" class="w-3.5 h-3.5 object-contain shrink-0" />
-                        {{ $t("docs.tab_meshchatx") }}
-                    </button>
-                    <button
-                        class="flex-1 md:flex-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1.5"
-                        :class="
-                            activeTab === 'reticulum'
-                                ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
-                                : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
-                        "
-                        @click="activeTab = 'reticulum'"
-                    >
-                        <img :src="reticulumLogoUrl" alt="" class="w-3.5 h-3.5 object-contain shrink-0" />
-                        {{ $t("docs.tab_reticulum") }}
-                    </button>
-                </div>
-
-                <!-- Search Input -->
-                <div class="relative w-full">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <MaterialDesignIcon icon-name="magnify" class="h-3.5 w-3.5 text-gray-400" />
-                    </div>
-                    <input
-                        v-model="searchQuery"
-                        type="text"
-                        class="block w-full pl-9 pr-9 py-2 border border-sem-border rounded-lg bg-gray-50 dark:bg-zinc-800 text-sem-fg text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                        :placeholder="$t('docs.search_placeholder_mobile')"
-                        @input="debounceSearch"
-                    />
-                    <div v-if="isSearching" class="absolute inset-y-0 right-0 pr-3 flex items-center">
-                        <MaterialDesignIcon icon-name="loading" class="h-3 w-3 text-gray-400 animate-spin" />
-                    </div>
-                    <button
-                        v-else-if="searchQuery"
-                        class="absolute inset-y-0 right-0 pr-3 flex items-center"
-                        @click="clearSearch"
-                    >
-                        <MaterialDesignIcon
-                            icon-name="close"
-                            class="h-3 w-3 text-gray-400 hover:text-gray-600 hover:text-sem-fg cursor-pointer"
-                        />
-                    </button>
-                </div>
-            </div>
-        </div>
-
         <!-- Progress Bar -->
         <div
             v-if="status.status === 'extracting'"
-            class="w-full h-1 bg-gray-200 dark:bg-zinc-800 overflow-hidden relative"
+            class="w-full h-1 bg-gray-200 dark:bg-zinc-800 overflow-hidden relative shrink-0"
         >
             <div class="bg-blue-500 h-full transition-all duration-300" :style="{ width: status.progress + '%' }"></div>
             <div class="absolute inset-0 bg-blue-500/30 animate-pulse"></div>
         </div>
 
-        <!-- Main Content (Iframe or Search Results) -->
-        <div class="flex-1 relative bg-sem-surface overflow-hidden">
-            <!-- Search Results Overlay -->
-            <div
-                v-if="searchResults.length > 0 && searchQuery"
-                class="absolute inset-0 z-20 bg-sem-surface overflow-y-auto"
+        <div class="flex-1 relative bg-sem-surface overflow-hidden flex min-h-0">
+            <!-- Docs control column -->
+            <aside
+                class="hidden lg:flex flex-col w-72 shrink-0 border-r border-sem-border bg-sem-canvas/80 dark:bg-zinc-950/80 z-30"
             >
-                <div class="max-w-2xl mx-auto p-6 space-y-6">
-                    <div class="flex items-center justify-between px-2">
-                        <h2 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                            {{ $t("docs.search_results") }}
-                        </h2>
-                        <span
-                            class="text-[10px] font-bold text-blue-500 px-2 py-0.5 bg-sem-surface-muted rounded-full"
-                            >{{ $t("docs.matches_count", { count: searchResults.length }) }}</span
-                        >
-                    </div>
-                    <div class="space-y-2">
-                        <div
-                            v-for="result in searchResults"
-                            :key="result.path"
-                            class="group p-4 hover:bg-sem-surface-muted/50 rounded-2xl cursor-pointer transition-colors border border-sem-border/50 hover:border-blue-200 dark:hover:border-blue-900/30"
-                            @click="navigateTo(result.path)"
-                        >
-                            <div class="flex items-start justify-between gap-4">
-                                <div
-                                    class="font-bold text-sm text-sem-fg group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
-                                >
-                                    {{ result.title }}
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <span
-                                        class="px-1.5 py-0.5 rounded-sm bg-sem-surface-muted text-[8px] font-bold text-gray-500 uppercase tracking-tighter"
-                                    >
-                                        {{ result.source }}
-                                    </span>
-                                    <div class="text-[9px] text-gray-400 uppercase font-mono mt-0.5 shrink-0">
-                                        {{ result.path.split("/").pop() }}
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- eslint-disable vue/no-v-html -- sanitized via highlightMatch -->
-                            <p
-                                class="mt-1.5 text-xs text-sem-fg-muted line-clamp-3 leading-relaxed"
-                                v-html="highlightMatch(result.snippet)"
-                            ></p>
-                            <!-- eslint-enable vue/no-v-html -->
-                        </div>
-                    </div>
-                </div>
-            </div>
+                <div class="p-3 border-b border-sem-border space-y-3 shrink-0">
+                    <RouterLink
+                        to="/tools"
+                        class="inline-flex items-center gap-0.5 rounded-lg -ml-1 pl-0 pr-1.5 py-1.5 text-sm font-medium text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
+                        :aria-label="$t('tools.back_to_tools')"
+                    >
+                        <MaterialDesignIcon icon-name="chevron-left" class="size-5 shrink-0" />
+                        <span class="truncate max-w-[8rem]">{{ $t("app.tools") }}</span>
+                    </RouterLink>
 
-            <!-- No Results State -->
-            <div
-                v-if="searchQuery && !isSearching && searchResults.length === 0 && !searchError"
-                class="absolute inset-0 z-20 bg-sem-surface flex flex-col items-center justify-center p-8 text-center"
-            >
-                <div
-                    class="w-16 h-16 bg-gray-50 dark:bg-zinc-800/50 rounded-full flex items-center justify-center mb-4"
-                >
-                    <MaterialDesignIcon icon-name="text-search" class="w-8 h-8 text-gray-300 dark:text-zinc-600" />
-                </div>
-                <h3 class="text-sm font-medium text-sem-fg">{{ $t("docs.no_results") }}</h3>
-                <p class="text-xs text-sem-fg-muted mt-1">{{ $t("docs.no_results_hint") }}</p>
-                <button
-                    class="mt-4 text-xs font-bold text-blue-500 hover:text-blue-600 transition-colors"
-                    @click="clearSearch"
-                >
-                    {{ $t("docs.clear_search") }}
-                </button>
-            </div>
-
-            <div
-                v-if="searchError && searchQuery"
-                class="absolute inset-0 z-20 bg-sem-surface flex flex-col items-center justify-center p-8 text-center"
-            >
-                <div class="w-16 h-16 bg-red-50 dark:bg-red-950/30 rounded-full flex items-center justify-center mb-4">
-                    <MaterialDesignIcon icon-name="alert-circle-outline" class="w-8 h-8 text-red-400" />
-                </div>
-                <h3 class="text-sm font-medium text-sem-fg">{{ $t("docs.search_failed") }}</h3>
-                <p class="text-xs text-sem-fg-muted mt-1 max-w-sm">{{ searchError }}</p>
-                <button
-                    class="mt-4 text-xs font-bold text-blue-500 hover:text-blue-600 transition-colors"
-                    @click="clearSearch"
-                >
-                    {{ $t("docs.clear_search") }}
-                </button>
-            </div>
-
-            <div
-                v-if="status.last_error"
-                class="absolute inset-0 z-10 flex items-center justify-center p-6 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xs"
-            >
-                <div
-                    class="max-w-md w-full p-6 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-2xl text-red-600 dark:text-red-400 text-center shadow-xl"
-                >
-                    <MaterialDesignIcon icon-name="alert-circle-outline" class="w-12 h-12 mx-auto mb-3" />
-                    <div class="text-lg font-bold mb-2">{{ $t("docs.error") }}</div>
-                    <div class="text-sm opacity-80">{{ status.last_error }}</div>
-                    <div class="flex flex-col gap-4 mt-6">
-                        <label
-                            class="w-full px-6 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:opacity-90 transition-opacity cursor-pointer flex items-center justify-center gap-2"
-                        >
-                            <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
-                            <span>{{ $t("docs.btn_upload") }}</span>
-                            <input type="file" accept=".zip" class="hidden" @change="handleZipUpload" />
-                        </label>
+                    <div class="flex bg-sem-surface-muted p-0.5 rounded-lg w-full">
                         <button
-                            class="text-[10px] font-bold text-red-500/60 hover:text-red-500 uppercase tracking-widest transition-colors"
-                            @click="dismissError"
+                            class="flex-1 px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1.5"
+                            :class="
+                                activeTab === 'meshchatx'
+                                    ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
+                                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
+                            "
+                            @click="activeTab = 'meshchatx'"
                         >
-                            {{ $t("docs.dismiss") }}
+                            <img :src="meshchatxLogoUrl" alt="" class="w-3.5 h-3.5 object-contain shrink-0" />
+                            {{ $t("docs.tab_meshchatx") }}
+                        </button>
+                        <button
+                            class="flex-1 px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1.5"
+                            :class="
+                                activeTab === 'reticulum'
+                                    ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
+                                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
+                            "
+                            @click="activeTab = 'reticulum'"
+                        >
+                            <img :src="reticulumLogoUrl" alt="" class="w-3.5 h-3.5 object-contain shrink-0" />
+                            {{ $t("docs.tab_reticulum") }}
                         </button>
                     </div>
-                </div>
-            </div>
 
-            <div
-                v-if="status.status === 'extracting'"
-                class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md"
-            >
-                <div class="relative w-24 h-24 mb-6">
-                    <div class="absolute inset-0 border-4 border-blue-100 dark:border-blue-900/30 rounded-full"></div>
-                    <div
-                        class="absolute inset-0 border-4 border-blue-600 rounded-full transition-all duration-300"
-                        :style="{ clipPath: `inset(0 0 0 0)`, transform: `rotate(${status.progress * 3.6}deg)` }"
-                        style="border-color: transparent; border-top-color: currentColor"
-                    ></div>
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <MaterialDesignIcon
-                            icon-name="folder-zip-outline"
-                            class="w-10 h-10 text-blue-600 animate-bounce"
+                    <div v-if="status.has_docs || status.has_meshchatx_docs" class="relative w-full">
+                        <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                            <MaterialDesignIcon icon-name="magnify" class="h-3.5 w-3.5 text-gray-400" />
+                        </div>
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            class="block w-full pl-8 pr-8 py-1.5 border border-sem-border rounded-lg bg-gray-50 dark:bg-zinc-800 text-sem-fg text-[11px] focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            :placeholder="$t('docs.search_placeholder')"
+                            @input="debounceSearch"
                         />
+                        <div v-if="isSearching" class="absolute inset-y-0 right-0 pr-2.5 flex items-center">
+                            <MaterialDesignIcon icon-name="loading" class="h-3 w-3 text-gray-400 animate-spin" />
+                        </div>
+                        <button
+                            v-else-if="searchQuery"
+                            class="absolute inset-y-0 right-0 pr-2.5 flex items-center"
+                            @click="clearSearch"
+                        >
+                            <MaterialDesignIcon
+                                icon-name="close"
+                                class="h-3 w-3 text-gray-400 hover:text-gray-600 hover:text-sem-fg cursor-pointer"
+                            />
+                        </button>
                     </div>
-                </div>
-                <h3 class="text-lg font-bold text-sem-fg mb-1">
-                    {{ $t("docs.status_extracting") }}
-                </h3>
-                <p class="text-sm text-sem-fg-muted">
-                    {{ $t("docs.complete_percent", { percent: status.progress }) }}
-                </p>
-            </div>
 
-            <!-- MeshChatX Docs View -->
-            <div v-if="activeTab === 'meshchatx' && !searchQuery" class="flex h-full overflow-hidden">
-                <!-- Section sidebar -->
-                <aside
-                    class="hidden lg:flex flex-col w-72 shrink-0 border-r border-sem-border bg-sem-canvas/80 dark:bg-zinc-950/80"
-                >
-                    <div class="p-4 border-b border-sem-border space-y-3">
+                    <div class="flex items-center flex-wrap gap-1">
+                        <div
+                            v-if="activeTab === 'reticulum' && (status.has_docs || status.versions.length > 0)"
+                            class="relative"
+                        >
+                            <button
+                                v-click-outside="() => (showVersions = false)"
+                                class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors flex items-center gap-1.5"
+                                :class="{ 'bg-sem-surface-muted': showVersions }"
+                                @click="showVersions = !showVersions"
+                            >
+                                <MaterialDesignIcon icon-name="history" class="w-4 h-4" />
+                                <span class="text-[10px] font-bold uppercase truncate max-w-[5rem]">{{
+                                    status.current_version || $t("docs.default_version")
+                                }}</span>
+                            </button>
+                            <div
+                                v-if="showVersions"
+                                class="absolute left-0 mt-2 w-48 bg-white dark:bg-zinc-800 border border-sem-border rounded-xl shadow-xl z-50 overflow-hidden"
+                            >
+                                <div
+                                    class="p-2 border-b border-gray-100 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-800/50"
+                                >
+                                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{{
+                                        $t("docs.versions")
+                                    }}</span>
+                                </div>
+                                <div class="max-h-64 overflow-y-auto py-1">
+                                    <button
+                                        v-for="version in status.versions"
+                                        :key="version"
+                                        class="w-full px-4 py-2 text-left text-[11px] hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between group"
+                                        :class="
+                                            status.current_version === version
+                                                ? 'text-sem-accent font-bold'
+                                                : 'text-sem-fg-muted'
+                                        "
+                                        @click="switchVersion(version)"
+                                    >
+                                        <span class="truncate">{{ version }}</span>
+                                        <div class="flex items-center space-x-1">
+                                            <MaterialDesignIcon
+                                                v-if="status.current_version === version"
+                                                icon-name="check"
+                                                class="w-3.5 h-3.5"
+                                            />
+                                            <button
+                                                v-if="status.versions.length > 1"
+                                                type="button"
+                                                class="p-1 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                title="Delete this version"
+                                                @click.stop="deleteVersion(version)"
+                                            >
+                                                <MaterialDesignIcon icon-name="delete" class="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    </button>
+                                    <div
+                                        v-if="status.versions.length === 0"
+                                        class="px-4 py-3 text-center text-gray-500 text-[10px]"
+                                    >
+                                        {{ $t("docs.no_versions") }}
+                                    </div>
+                                </div>
+                                <div
+                                    class="p-2 border-t border-gray-100 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-800/50"
+                                >
+                                    <label
+                                        class="flex items-center justify-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors text-[10px] font-bold uppercase"
+                                    >
+                                        <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
+                                        <span>{{ $t("docs.upload_zip") }}</span>
+                                        <input type="file" accept=".zip" class="hidden" @change="handleZipUpload" />
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-if="activeTab === 'reticulum' && status.has_docs" class="relative">
+                            <button
+                                v-click-outside="() => (showLanguages = false)"
+                                class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors flex items-center gap-1.5"
+                                :class="{ 'bg-sem-surface-muted': showLanguages }"
+                                @click="showLanguages = !showLanguages"
+                            >
+                                <MaterialDesignIcon icon-name="translate" class="w-4 h-4" />
+                                <span class="text-[10px] font-bold uppercase">{{ currentLang }}</span>
+                            </button>
+                            <div
+                                v-if="showLanguages"
+                                class="absolute left-0 top-full mt-1 bg-sem-surface border border-sem-border rounded-lg shadow-xl p-1 min-w-[120px] z-20"
+                            >
+                                <button
+                                    v-for="lang in allLanguages"
+                                    :key="lang.code"
+                                    class="flex items-center w-full px-3 py-2 text-[10px] font-bold uppercase hover:bg-sem-surface-muted rounded-md transition-colors"
+                                    :class="lang.code === currentLang ? 'text-blue-500' : 'text-sem-fg-muted'"
+                                    @click="setLanguage(lang.code)"
+                                >
+                                    {{ lang.name }} ({{ lang.code }})
+                                </button>
+                            </div>
+                        </div>
+
+                        <button
+                            v-if="status.has_docs || status.has_meshchatx_docs"
+                            class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors"
+                            title="Export all documentation as ZIP"
+                            @click="exportDocs"
+                        >
+                            <MaterialDesignIcon icon-name="download" class="w-4 h-4" />
+                        </button>
+
+                        <button
+                            v-if="status.has_docs"
+                            class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors"
+                            :title="$t('docs.btn_share')"
+                            @click="exportReticulumDocs"
+                        >
+                            <MaterialDesignIcon icon-name="share-variant" class="w-4 h-4" />
+                        </button>
+
+                        <label
+                            :class="{ 'opacity-50 pointer-events-none': status.status === 'extracting' }"
+                            class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors cursor-pointer"
+                            :title="$t('docs.btn_upload')"
+                        >
+                            <MaterialDesignIcon
+                                :icon-name="status.status === 'extracting' ? 'loading' : 'upload'"
+                                :class="{ 'animate-spin': status.status === 'extracting' }"
+                                class="w-4 h-4"
+                            />
+                            <input
+                                type="file"
+                                accept=".zip"
+                                class="hidden"
+                                :disabled="status.status === 'extracting'"
+                                @change="handleZipUpload"
+                            />
+                        </label>
+
+                        <a
+                            v-if="status.has_docs"
+                            :href="localDocsUrl"
+                            target="_blank"
+                            class="inline-flex items-center px-2 py-1 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:opacity-90 transition-opacity font-bold text-[10px] shadow-xs"
+                        >
+                            <MaterialDesignIcon icon-name="open-in-new" class="w-3 h-3 mr-1" />
+                            {{ $t("docs.open_external") }}
+                        </a>
+                    </div>
+
+                    <template v-if="activeTab === 'meshchatx' && !searchQuery">
                         <h3 class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest">
                             {{ $t("docs.sections_title") }}
                         </h3>
@@ -481,163 +263,416 @@
                                 {{ lang.code }}
                             </button>
                         </div>
-                    </div>
-                    <nav class="flex-1 overflow-y-auto p-3 space-y-5 custom-scroll">
-                        <div v-for="section in visibleDocSections" :key="section.id">
-                            <p class="px-2 mb-2 text-[10px] font-bold uppercase tracking-widest text-sem-fg-muted">
-                                {{ section.title }}
-                            </p>
-                            <div class="space-y-0.5">
-                                <button
-                                    v-for="item in section.items"
-                                    :key="item.path"
-                                    type="button"
-                                    class="w-full text-left px-3 py-2 rounded-xl text-xs transition-all flex items-center gap-2.5"
-                                    :class="
-                                        selectedDocPath === item.path
-                                            ? 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-300 font-semibold shadow-xs ring-1 ring-cyan-200/80 dark:ring-cyan-800/60'
-                                            : 'text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-fg'
-                                    "
-                                    @click="selectDoc(item.path)"
-                                >
-                                    <MaterialDesignIcon
-                                        :icon-name="
-                                            item.type === 'markdown' ? 'language-markdown' : 'file-document-outline'
-                                        "
-                                        class="w-4 h-4 shrink-0 opacity-70"
-                                    />
-                                    <span class="truncate">{{ item.title }}</span>
-                                </button>
-                            </div>
-                        </div>
-                    </nav>
-                </aside>
+                    </template>
+                </div>
 
-                <!-- Doc content -->
-                <div class="flex-1 flex min-w-0 bg-sem-surface dark:bg-zinc-900 overflow-hidden">
-                    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-                        <div class="lg:hidden p-3 border-b border-sem-border bg-sem-surface space-y-2">
-                            <label class="text-[10px] font-bold uppercase tracking-widest text-sem-fg-muted">{{
-                                $t("docs.sections_title")
-                            }}</label>
-                            <select
-                                v-model="selectedDocPath"
-                                class="w-full bg-sem-surface-muted border border-sem-border rounded-xl text-xs font-medium p-2.5 text-sem-fg"
-                                @change="selectDoc(selectedDocPath)"
+                <nav
+                    v-if="activeTab === 'meshchatx' && !searchQuery"
+                    class="flex-1 overflow-y-auto p-3 space-y-5 custom-scroll"
+                >
+                    <div v-for="section in visibleDocSections" :key="section.id">
+                        <p class="px-2 mb-2 text-[10px] font-bold uppercase tracking-widest text-sem-fg-muted">
+                            {{ section.title }}
+                        </p>
+                        <div class="space-y-0.5">
+                            <button
+                                v-for="item in section.items"
+                                :key="item.path"
+                                type="button"
+                                class="w-full text-left px-3 py-2 rounded-xl text-xs transition-all flex items-center gap-2.5"
+                                :class="
+                                    selectedDocPath === item.path
+                                        ? 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-300 font-semibold shadow-xs ring-1 ring-cyan-200/80 dark:ring-cyan-800/60'
+                                        : 'text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-fg'
+                                "
+                                @click="selectDoc(item.path)"
                             >
-                                <optgroup
-                                    v-for="section in visibleDocSections"
-                                    :key="section.id"
-                                    :label="section.title"
-                                >
-                                    <option v-for="item in section.items" :key="item.path" :value="item.path">
-                                        {{ item.title }}
-                                    </option>
-                                </optgroup>
-                            </select>
+                                <MaterialDesignIcon
+                                    :icon-name="
+                                        item.type === 'markdown' ? 'language-markdown' : 'file-document-outline'
+                                    "
+                                    class="w-4 h-4 shrink-0 opacity-70"
+                                />
+                                <span class="truncate">{{ item.title }}</span>
+                            </button>
                         </div>
+                    </div>
+                </nav>
+            </aside>
 
-                        <div
-                            v-if="selectedDocContent"
-                            ref="docContentScroller"
-                            class="flex-1 overflow-y-auto scroll-smooth custom-scroll"
+            <!-- Main content column -->
+            <div class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+                <!-- Mobile controls -->
+                <div class="lg:hidden p-3 border-b border-sem-border bg-sem-surface space-y-2 shrink-0 z-20">
+                    <div class="flex items-center gap-2">
+                        <RouterLink
+                            to="/tools"
+                            class="inline-flex items-center justify-center gap-0.5 rounded-lg pl-0 pr-1.5 py-1.5 min-h-9 min-w-9 text-sm font-medium text-sem-fg-muted hover:bg-sem-surface-muted transition-colors shrink-0"
+                            :aria-label="$t('tools.back_to_tools')"
                         >
-                            <div class="max-w-3xl mx-auto px-5 py-8 md:px-10 md:py-12">
-                                <!-- eslint-disable vue/no-v-html -- sanitized via MarkdownRenderer -->
-                                <article
-                                    ref="docsProse"
-                                    class="docs-prose max-w-none wrap-break-word"
-                                    @click="handleDocClick"
-                                    v-html="selectedDocContent.html"
-                                ></article>
+                            <MaterialDesignIcon icon-name="chevron-left" class="size-6 shrink-0" />
+                            <span class="hidden sm:inline truncate max-w-[8rem]">{{ $t("app.tools") }}</span>
+                        </RouterLink>
+                        <div class="flex items-center gap-1 ml-auto shrink-0">
+                            <button
+                                v-if="status.has_docs || status.has_meshchatx_docs"
+                                class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors"
+                                title="Export all documentation as ZIP"
+                                @click="exportDocs"
+                            >
+                                <MaterialDesignIcon icon-name="download" class="w-4 h-4" />
+                            </button>
+                            <label
+                                :class="{ 'opacity-50 pointer-events-none': status.status === 'extracting' }"
+                                class="p-1.5 text-gray-500 hover:bg-sem-surface-muted rounded-lg transition-colors cursor-pointer"
+                                :title="$t('docs.btn_upload')"
+                            >
+                                <MaterialDesignIcon
+                                    :icon-name="status.status === 'extracting' ? 'loading' : 'upload'"
+                                    :class="{ 'animate-spin': status.status === 'extracting' }"
+                                    class="w-4 h-4"
+                                />
+                                <input
+                                    type="file"
+                                    accept=".zip"
+                                    class="hidden"
+                                    :disabled="status.status === 'extracting'"
+                                    @change="handleZipUpload"
+                                />
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex bg-sem-surface-muted p-0.5 rounded-lg w-full">
+                        <button
+                            class="flex-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1.5"
+                            :class="
+                                activeTab === 'meshchatx'
+                                    ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
+                                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
+                            "
+                            @click="activeTab = 'meshchatx'"
+                        >
+                            <img :src="meshchatxLogoUrl" alt="" class="w-3.5 h-3.5 object-contain shrink-0" />
+                            {{ $t("docs.tab_meshchatx") }}
+                        </button>
+                        <button
+                            class="flex-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1.5"
+                            :class="
+                                activeTab === 'reticulum'
+                                    ? 'bg-white dark:bg-zinc-700 text-sem-accent shadow-xs'
+                                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
+                            "
+                            @click="activeTab = 'reticulum'"
+                        >
+                            <img :src="reticulumLogoUrl" alt="" class="w-3.5 h-3.5 object-contain shrink-0" />
+                            {{ $t("docs.tab_reticulum") }}
+                        </button>
+                    </div>
+
+                    <div v-if="status.has_docs || status.has_meshchatx_docs" class="relative w-full">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <MaterialDesignIcon icon-name="magnify" class="h-3.5 w-3.5 text-gray-400" />
+                        </div>
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            class="block w-full pl-9 pr-9 py-2 border border-sem-border rounded-lg bg-gray-50 dark:bg-zinc-800 text-sem-fg text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            :placeholder="$t('docs.search_placeholder_mobile')"
+                            @input="debounceSearch"
+                        />
+                        <div v-if="isSearching" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                            <MaterialDesignIcon icon-name="loading" class="h-3 w-3 text-gray-400 animate-spin" />
+                        </div>
+                        <button
+                            v-else-if="searchQuery"
+                            class="absolute inset-y-0 right-0 pr-3 flex items-center"
+                            @click="clearSearch"
+                        >
+                            <MaterialDesignIcon
+                                icon-name="close"
+                                class="h-3 w-3 text-gray-400 hover:text-gray-600 hover:text-sem-fg cursor-pointer"
+                            />
+                        </button>
+                    </div>
+
+                    <div
+                        v-if="activeTab === 'meshchatx' && !searchQuery && visibleDocSections.length"
+                        class="space-y-2"
+                    >
+                        <label class="text-[10px] font-bold uppercase tracking-widest text-sem-fg-muted">{{
+                            $t("docs.sections_title")
+                        }}</label>
+                        <select
+                            v-model="selectedDocPath"
+                            class="w-full bg-sem-surface-muted border border-sem-border rounded-xl text-xs font-medium p-2.5 text-sem-fg"
+                            @change="selectDoc(selectedDocPath)"
+                        >
+                            <optgroup v-for="section in visibleDocSections" :key="section.id" :label="section.title">
+                                <option v-for="item in section.items" :key="item.path" :value="item.path">
+                                    {{ item.title }}
+                                </option>
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Search Results Overlay -->
+                <div
+                    v-if="searchResults.length > 0 && searchQuery"
+                    class="absolute inset-0 z-20 bg-sem-surface overflow-y-auto"
+                >
+                    <div class="max-w-2xl mx-auto p-6 space-y-6">
+                        <div class="flex items-center justify-between px-2">
+                            <h2 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                {{ $t("docs.search_results") }}
+                            </h2>
+                            <span
+                                class="text-[10px] font-bold text-blue-500 px-2 py-0.5 bg-sem-surface-muted rounded-full"
+                                >{{ $t("docs.matches_count", { count: searchResults.length }) }}</span
+                            >
+                        </div>
+                        <div class="space-y-2">
+                            <div
+                                v-for="result in searchResults"
+                                :key="result.path"
+                                class="group p-4 hover:bg-sem-surface-muted/50 rounded-2xl cursor-pointer transition-colors border border-sem-border/50 hover:border-blue-200 dark:hover:border-blue-900/30"
+                                @click="navigateTo(result.path)"
+                            >
+                                <div class="flex items-start justify-between gap-4">
+                                    <div
+                                        class="font-bold text-sm text-sem-fg group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                                    >
+                                        {{ result.title }}
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <span
+                                            class="px-1.5 py-0.5 rounded-sm bg-sem-surface-muted text-[8px] font-bold text-gray-500 uppercase tracking-tighter"
+                                        >
+                                            {{ result.source }}
+                                        </span>
+                                        <div class="text-[9px] text-gray-400 uppercase font-mono mt-0.5 shrink-0">
+                                            {{ result.path.split("/").pop() }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- eslint-disable vue/no-v-html -- sanitized via highlightMatch -->
+                                <p
+                                    class="mt-1.5 text-xs text-sem-fg-muted line-clamp-3 leading-relaxed"
+                                    v-html="highlightMatch(result.snippet)"
+                                ></p>
                                 <!-- eslint-enable vue/no-v-html -->
                             </div>
                         </div>
-                        <div
-                            v-else-if="docLoadError"
-                            class="flex-1 flex flex-col items-center justify-center p-8 text-center"
-                        >
-                            <MaterialDesignIcon icon-name="alert-circle-outline" class="w-12 h-12 mb-4 text-red-400" />
-                            <h3 class="text-sm font-semibold text-sem-fg">{{ $t("docs.load_doc_failed") }}</h3>
-                            <p class="text-xs mt-2 max-w-sm text-sem-fg-muted">{{ docLoadError }}</p>
-                        </div>
-                        <div
-                            v-else-if="meshchatxDocs.length > 0"
-                            class="flex-1 flex flex-col items-center justify-center p-8 text-center text-sem-fg-muted"
-                        >
-                            <MaterialDesignIcon icon-name="book-open-outline" class="w-12 h-12 mb-4 opacity-40" />
-                            <h3 class="text-sm font-semibold text-sem-fg">{{ $t("docs.select_doc") }}</h3>
-                        </div>
-                        <div
-                            v-else
-                            class="flex-1 flex flex-col items-center justify-center p-8 text-center text-sem-fg-muted"
-                        >
-                            <MaterialDesignIcon icon-name="alert-circle-outline" class="w-12 h-12 mb-4 opacity-40" />
-                            <h3 class="text-sm font-semibold text-sem-fg">{{ $t("docs.no_docs_found") }}</h3>
-                            <p class="text-xs mt-1 max-w-xs">{{ $t("docs.no_docs_hint") }}</p>
+                    </div>
+                </div>
+
+                <!-- No Results State -->
+                <div
+                    v-if="searchQuery && !isSearching && searchResults.length === 0 && !searchError"
+                    class="absolute inset-0 z-20 bg-sem-surface flex flex-col items-center justify-center p-8 text-center"
+                >
+                    <div
+                        class="w-16 h-16 bg-gray-50 dark:bg-zinc-800/50 rounded-full flex items-center justify-center mb-4"
+                    >
+                        <MaterialDesignIcon icon-name="text-search" class="w-8 h-8 text-gray-300 dark:text-zinc-600" />
+                    </div>
+                    <h3 class="text-sm font-medium text-sem-fg">{{ $t("docs.no_results") }}</h3>
+                    <p class="text-xs text-sem-fg-muted mt-1">{{ $t("docs.no_results_hint") }}</p>
+                    <button
+                        class="mt-4 text-xs font-bold text-blue-500 hover:text-blue-600 transition-colors"
+                        @click="clearSearch"
+                    >
+                        {{ $t("docs.clear_search") }}
+                    </button>
+                </div>
+
+                <div
+                    v-if="searchError && searchQuery"
+                    class="absolute inset-0 z-20 bg-sem-surface flex flex-col items-center justify-center p-8 text-center"
+                >
+                    <div
+                        class="w-16 h-16 bg-red-50 dark:bg-red-950/30 rounded-full flex items-center justify-center mb-4"
+                    >
+                        <MaterialDesignIcon icon-name="alert-circle-outline" class="w-8 h-8 text-red-400" />
+                    </div>
+                    <h3 class="text-sm font-medium text-sem-fg">{{ $t("docs.search_failed") }}</h3>
+                    <p class="text-xs text-sem-fg-muted mt-1 max-w-sm">{{ searchError }}</p>
+                    <button
+                        class="mt-4 text-xs font-bold text-blue-500 hover:text-blue-600 transition-colors"
+                        @click="clearSearch"
+                    >
+                        {{ $t("docs.clear_search") }}
+                    </button>
+                </div>
+
+                <div
+                    v-if="status.last_error"
+                    class="absolute inset-0 z-10 flex items-center justify-center p-6 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xs"
+                >
+                    <div
+                        class="max-w-md w-full p-6 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-2xl text-red-600 dark:text-red-400 text-center shadow-xl"
+                    >
+                        <MaterialDesignIcon icon-name="alert-circle-outline" class="w-12 h-12 mx-auto mb-3" />
+                        <div class="text-lg font-bold mb-2">{{ $t("docs.error") }}</div>
+                        <div class="text-sm opacity-80">{{ status.last_error }}</div>
+                        <div class="flex flex-col gap-4 mt-6">
+                            <label
+                                class="w-full px-6 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:opacity-90 transition-opacity cursor-pointer flex items-center justify-center gap-2"
+                            >
+                                <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
+                                <span>{{ $t("docs.btn_upload") }}</span>
+                                <input type="file" accept=".zip" class="hidden" @change="handleZipUpload" />
+                            </label>
+                            <button
+                                class="text-[10px] font-bold text-red-500/60 hover:text-red-500 uppercase tracking-widest transition-colors"
+                                @click="dismissError"
+                            >
+                                {{ $t("docs.dismiss") }}
+                            </button>
                         </div>
                     </div>
+                </div>
 
-                    <!-- On-page table of contents -->
-                    <aside
-                        v-if="docToc.length > 0 && selectedDocContent"
-                        class="hidden xl:flex flex-col w-56 shrink-0 border-l border-sem-border bg-sem-canvas/50 dark:bg-zinc-950/50"
-                    >
-                        <div class="p-4 border-b border-sem-border">
-                            <h3 class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest">
-                                {{ $t("docs.on_this_page") }}
-                            </h3>
+                <div
+                    v-if="status.status === 'extracting'"
+                    class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md"
+                >
+                    <div class="relative w-24 h-24 mb-6">
+                        <div
+                            class="absolute inset-0 border-4 border-blue-100 dark:border-blue-900/30 rounded-full"
+                        ></div>
+                        <div
+                            class="absolute inset-0 border-4 border-blue-600 rounded-full transition-all duration-300"
+                            :style="{ clipPath: `inset(0 0 0 0)`, transform: `rotate(${status.progress * 3.6}deg)` }"
+                            style="border-color: transparent; border-top-color: currentColor"
+                        ></div>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <MaterialDesignIcon
+                                icon-name="folder-zip-outline"
+                                class="w-10 h-10 text-blue-600 animate-bounce"
+                            />
                         </div>
-                        <nav class="flex-1 overflow-y-auto p-3 space-y-1 custom-scroll">
-                            <a
-                                v-for="entry in docToc"
-                                :key="entry.id"
-                                :href="`#${entry.id}`"
-                                class="block py-1 text-xs text-sem-fg-muted hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
-                                :class="entry.level === 3 ? 'pl-3' : ''"
-                                @click.prevent="scrollToHeading(entry.id)"
-                            >
-                                {{ entry.text }}
-                            </a>
-                        </nav>
-                    </aside>
-                </div>
-            </div>
-
-            <!-- Reticulum Docs View -->
-            <iframe
-                v-if="activeTab === 'reticulum' && status.has_docs && !searchQuery"
-                :key="localDocsUrl"
-                ref="docsFrame"
-                :src="localDocsUrl"
-                class="w-full h-full border-none opacity-0 transition-opacity duration-1000"
-                @load="onReticulumFrameLoad"
-            ></iframe>
-
-            <div
-                v-else-if="
-                    activeTab === 'reticulum' && !status.has_docs && status.status !== 'extracting' && !searchQuery
-                "
-                class="h-full flex flex-col items-center justify-center p-8 text-center space-y-4"
-            >
-                <div class="w-16 h-16 bg-gray-50 dark:bg-zinc-800/50 rounded-full flex items-center justify-center">
-                    <MaterialDesignIcon icon-name="book-outline" class="w-8 h-8 text-gray-300 dark:text-zinc-600" />
-                </div>
-                <div>
-                    <h3 class="text-sm font-medium text-sem-fg">
-                        {{ $t("docs.reticulum_manual") }}
+                    </div>
+                    <h3 class="text-lg font-bold text-sem-fg mb-1">
+                        {{ $t("docs.status_extracting") }}
                     </h3>
-                    <p class="text-xs text-sem-fg-muted mt-1 max-w-[260px]">
-                        {{ $t("docs.empty_state_hint") }}
+                    <p class="text-sm text-sem-fg-muted">
+                        {{ $t("docs.complete_percent", { percent: status.progress }) }}
                     </p>
                 </div>
-                <label
-                    class="px-6 py-2 bg-blue-600 text-white rounded-full text-xs font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 cursor-pointer flex items-center gap-2"
+
+                <!-- MeshChatX Docs View -->
+                <div v-if="activeTab === 'meshchatx' && !searchQuery" class="flex flex-1 min-h-0 overflow-hidden">
+                    <div class="flex-1 flex min-w-0 bg-sem-surface dark:bg-zinc-900 overflow-hidden">
+                        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+                            <div
+                                v-if="selectedDocContent"
+                                ref="docContentScroller"
+                                class="flex-1 overflow-y-auto scroll-smooth custom-scroll"
+                            >
+                                <div class="max-w-3xl mx-auto px-5 py-8 md:px-10 md:py-12">
+                                    <!-- eslint-disable vue/no-v-html -- sanitized via MarkdownRenderer -->
+                                    <article
+                                        ref="docsProse"
+                                        class="docs-prose max-w-none wrap-break-word"
+                                        @click="handleDocClick"
+                                        v-html="selectedDocContent.html"
+                                    ></article>
+                                    <!-- eslint-enable vue/no-v-html -->
+                                </div>
+                            </div>
+                            <div
+                                v-else-if="docLoadError"
+                                class="flex-1 flex flex-col items-center justify-center p-8 text-center"
+                            >
+                                <MaterialDesignIcon
+                                    icon-name="alert-circle-outline"
+                                    class="w-12 h-12 mb-4 text-red-400"
+                                />
+                                <h3 class="text-sm font-semibold text-sem-fg">{{ $t("docs.load_doc_failed") }}</h3>
+                                <p class="text-xs mt-2 max-w-sm text-sem-fg-muted">{{ docLoadError }}</p>
+                            </div>
+                            <div
+                                v-else-if="meshchatxDocs.length > 0"
+                                class="flex-1 flex flex-col items-center justify-center p-8 text-center text-sem-fg-muted"
+                            >
+                                <MaterialDesignIcon icon-name="book-open-outline" class="w-12 h-12 mb-4 opacity-40" />
+                                <h3 class="text-sm font-semibold text-sem-fg">{{ $t("docs.select_doc") }}</h3>
+                            </div>
+                            <div
+                                v-else
+                                class="flex-1 flex flex-col items-center justify-center p-8 text-center text-sem-fg-muted"
+                            >
+                                <MaterialDesignIcon
+                                    icon-name="alert-circle-outline"
+                                    class="w-12 h-12 mb-4 opacity-40"
+                                />
+                                <h3 class="text-sm font-semibold text-sem-fg">{{ $t("docs.no_docs_found") }}</h3>
+                                <p class="text-xs mt-1 max-w-xs">{{ $t("docs.no_docs_hint") }}</p>
+                            </div>
+                        </div>
+
+                        <aside
+                            v-if="docToc.length > 0 && selectedDocContent"
+                            class="hidden xl:flex flex-col w-56 shrink-0 border-l border-sem-border bg-sem-canvas/50 dark:bg-zinc-950/50"
+                        >
+                            <div class="p-4 border-b border-sem-border">
+                                <h3 class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest">
+                                    {{ $t("docs.on_this_page") }}
+                                </h3>
+                            </div>
+                            <nav class="flex-1 overflow-y-auto p-3 space-y-1 custom-scroll">
+                                <a
+                                    v-for="entry in docToc"
+                                    :key="entry.id"
+                                    :href="`#${entry.id}`"
+                                    class="block py-1 text-xs text-sem-fg-muted hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                                    :class="entry.level === 3 ? 'pl-3' : ''"
+                                    @click.prevent="scrollToHeading(entry.id)"
+                                >
+                                    {{ entry.text }}
+                                </a>
+                            </nav>
+                        </aside>
+                    </div>
+                </div>
+
+                <!-- Reticulum Docs View -->
+                <iframe
+                    v-if="activeTab === 'reticulum' && status.has_docs && !searchQuery"
+                    :key="localDocsUrl"
+                    ref="docsFrame"
+                    :src="localDocsUrl"
+                    class="w-full flex-1 min-h-0 border-none opacity-0 transition-opacity duration-1000"
+                    @load="onReticulumFrameLoad"
+                ></iframe>
+
+                <div
+                    v-else-if="
+                        activeTab === 'reticulum' && !status.has_docs && status.status !== 'extracting' && !searchQuery
+                    "
+                    class="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4"
                 >
-                    <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
-                    <span>{{ $t("docs.btn_upload") }}</span>
-                    <input type="file" accept=".zip" class="hidden" @change="handleZipUpload" />
-                </label>
+                    <div class="w-16 h-16 bg-gray-50 dark:bg-zinc-800/50 rounded-full flex items-center justify-center">
+                        <MaterialDesignIcon icon-name="book-outline" class="w-8 h-8 text-gray-300 dark:text-zinc-600" />
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-medium text-sem-fg">
+                            {{ $t("docs.reticulum_manual") }}
+                        </h3>
+                        <p class="text-xs text-sem-fg-muted mt-1 max-w-[260px]">
+                            {{ $t("docs.empty_state_hint") }}
+                        </p>
+                    </div>
+                    <label
+                        class="px-6 py-2 bg-blue-600 text-white rounded-full text-xs font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 cursor-pointer flex items-center gap-2"
+                    >
+                        <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
+                        <span>{{ $t("docs.btn_upload") }}</span>
+                        <input type="file" accept=".zip" class="hidden" @change="handleZipUpload" />
+                    </label>
+                </div>
             </div>
         </div>
     </div>
@@ -648,12 +683,10 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 import { bundledReticulumDocsUrl } from "../../js/reticulumDocsEntryUrl.js";
-import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
 export default {
     components: {
         MaterialDesignIcon,
-        ToolsPageHeader,
     },
     data() {
         return {

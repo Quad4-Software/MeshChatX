@@ -111,7 +111,7 @@ describe("DocsPage.vue", () => {
                 },
                 stubs: {
                     MaterialDesignIcon: true,
-                    ToolsPageHeader: true,
+                    RouterLink: true,
                 },
             },
         });
