@@ -2111,6 +2111,9 @@
     .min-h-\[96px\] {
         min-height: 96px;
     }
+    .min-h-\[120px\] {
+        min-height: 120px;
+    }
     .min-h-\[140px\] {
         min-height: 140px;
     }
@@ -5185,6 +5188,9 @@
     }
     .bg-sky-600 {
         background-color: var(--color-sky-600);
+    }
+    .bg-sky-700 {
+        background-color: var(--color-sky-700);
     }
     .bg-sky-800 {
         background-color: var(--color-sky-800);

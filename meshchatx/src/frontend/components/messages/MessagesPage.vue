@@ -342,6 +342,8 @@ import {
     saveFeatureSidebarCollapsed,
 } from "../../js/browserLayoutStore";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import { isRetryableHttpError } from "../../js/httpRetry.js";
+import { runWhenIdentityHttpReady } from "../../js/identityHttpReady.js";
 
 export default {
     name: "MessagesPage",
@@ -536,6 +538,10 @@ export default {
         clearInterval(this.reloadInterval);
         clearTimeout(this.conversationRefreshTimeout);
         clearTimeout(this.peersRefreshTimeout);
+        if (typeof this._stopIdentityReadyLoads === "function") {
+            this._stopIdentityReadyLoads();
+            this._stopIdentityReadyLoads = null;
+        }
         if (this._onConversationsVisibility && typeof document !== "undefined") {
             document.removeEventListener("visibilitychange", this._onConversationsVisibility);
         }
@@ -575,14 +581,19 @@ export default {
         GlobalEmitter.on("websocket-reconnected", this.requestConversationsRefresh);
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
 
-        this.getConfig();
-        this.getConversations();
-        this.loadConversationPins();
-        this.getFolders();
+        this._stopIdentityReadyLoads = runWhenIdentityHttpReady(() => {
+            this.getConfig();
+            this.getConversations();
+            this.loadConversationPins();
+            this.getFolders();
+        });
 
         // Poll while visible. WS refresh-conversations covers most live updates.
         this.reloadInterval = setInterval(() => {
             if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+                return;
+            }
+            if (GlobalState.networkStarting && !GlobalState.networkReady && !GlobalState.networkDegraded) {
                 return;
             }
             this.getConversations();
@@ -1156,7 +1167,9 @@ export default {
                 const response = await window.api.get("/api/v1/lxmf/folders");
                 this.folders = response.data;
             } catch (e) {
-                console.error("Failed to load folders", e);
+                if (!isRetryableHttpError(e)) {
+                    console.error("Failed to load folders", e);
+                }
             }
         },
         async onCreateFolder(name) {

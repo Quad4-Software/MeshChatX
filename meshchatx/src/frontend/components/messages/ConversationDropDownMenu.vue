@@ -184,6 +184,8 @@ import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
 import AndroidBridge from "../../js/rnode/AndroidBridge.js";
+import { isRetryableHttpError } from "../../js/httpRetry.js";
+import { isIdentityHttpReady, runWhenIdentityHttpReady } from "../../js/identityHttpReady.js";
 
 export default {
     name: "ConversationDropDownMenu",
@@ -262,6 +264,10 @@ export default {
     },
     unmounted() {
         GlobalEmitter.off("contact-updated", this.onContactUpdated);
+        if (typeof this._stopContactReadyWatch === "function") {
+            this._stopContactReadyWatch();
+            this._stopContactReadyWatch = null;
+        }
     },
     methods: {
         onShareApk() {
@@ -277,6 +283,15 @@ export default {
         },
         async fetchContact() {
             if (!this.peer || !this.peer.destination_hash) return;
+            if (!isIdentityHttpReady()) {
+                if (!this._stopContactReadyWatch) {
+                    this._stopContactReadyWatch = runWhenIdentityHttpReady(() => {
+                        this._stopContactReadyWatch = null;
+                        this.fetchContact();
+                    });
+                }
+                return;
+            }
             try {
                 const response = await window.api.get(`/api/v1/telephone/contacts/check/${this.peer.destination_hash}`);
                 if (response.data.is_contact) {
@@ -285,7 +300,9 @@ export default {
                     this.contact = null;
                 }
             } catch (e) {
-                console.error("Failed to fetch contact", e);
+                if (!isRetryableHttpError(e)) {
+                    console.error("Failed to fetch contact", e);
+                }
             }
         },
         async onToggleTelemetryTrust() {
