@@ -229,6 +229,12 @@ class IdentityContext:
         self.archiver_manager = ArchiverManager(self.database)
         self.crawler_manager = CrawlerManager(self.database, self.config)
         self.map_manager = MapManager(self.config, self.app.storage_dir)
+        try:
+            self.map_manager.ensure_starter_mbtiles()
+        except Exception as e:
+            RNS.log(
+                f"IdentityContext: starter MBTiles seed failed: {e}", RNS.LOG_WARNING
+            )
         self.map_overlay_manager = None
         self.map_data_manager = None
         self.docs_manager = DocsManager(

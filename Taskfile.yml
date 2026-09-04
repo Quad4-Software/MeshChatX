@@ -558,7 +558,7 @@ tasks:
     build:frontend:
         aliases: [build:fe]
         desc: Build frontend assets
-        deps: [deps:frontend, build:visualiser-wasm]
+        deps: [deps:frontend, build:visualiser-wasm, build:geo-wasm, fetch:starter-mbtiles]
         cmds:
             - "{{.NPM}} run build-frontend"
 
@@ -567,6 +567,26 @@ tasks:
         desc: Build Go network visualiser WASM into frontend public vendor/
         cmds:
             - node scripts/build-visualiser-wasm.mjs
+
+    build:geo-wasm:
+        desc: Build Go map geo WASM (MGRS/OLC) into frontend public vendor/
+        cmds:
+            - node scripts/build-geo-wasm.mjs
+
+    fetch:starter-mbtiles:
+        desc: Generate or download starter world MBTiles into package data
+        cmds:
+            - node scripts/fetch-starter-mbtiles.mjs
+
+    test:geo-wasm:
+        desc: Run Go unit tests for geo-wasm
+        dir: geo-wasm
+        env:
+            GOCACHE: "{{.ROOT_DIR}}/.gocache"
+            GOTMPDIR: "{{.ROOT_DIR}}/.gotmp"
+        cmds:
+            - mkdir -p "{{.ROOT_DIR}}/.gocache" "{{.ROOT_DIR}}/.gotmp"
+            - go test ./mgrs ./olc ./internal/...
 
     test:visualiser-wasm:
         aliases: [test:viz-wasm]

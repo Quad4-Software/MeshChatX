@@ -16,14 +16,11 @@
 #   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
 #   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
 #
-# SLSA generator: pin by tag (@vX.Y.Z), not by commit SHA.
-# Prefer compile-generator: true. builder-fetch.sh only downloads prebuilts
-# when BUILDER_REF is refs/tags/vX.Y.Z. GitHub OIDC often reports a bare SHA
-# even for tag-pinned callers, so Generate builder fails quietly and attest
-# then exits 127 (slsa-generator-generic-linux-amd64 missing). Compiling from
-# source skips that download path. Upstream: slsa-github-generator#4216 #4503.
-#   slsa-framework/slsa-github-generator/generator_generic_slsa3.yml@v2.1.0
-#                                      (tag v2.1.0 = f7dd8c54c2067bafc12ca7a55595d5ee9b75204a)
+# SLSA generator: pin by commit SHA (repo requires Actions SHA pinning).
+# Keep compile-generator: true. See build-release.yml for OIDC/prebuilt notes.
+# Upstream: slsa-github-generator#4216 #4503.
+#   slsa-framework/slsa-github-generator/...@v2.1.0
+#     f7dd8c54c2067bafc12ca7a55595d5ee9b75204a
 #
 # Third-party pin (resolve before bumping release/v1):
 #   curl -sS "https://api.github.com/repos/pypa/gh-action-pypi-publish/commits/release/v1" | jq -r '.sha'
@@ -79,7 +76,7 @@ jobs:
             - name: Harden runner
               uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
               with:
-                egress-policy: audit
+                  egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
@@ -204,7 +201,7 @@ jobs:
             - name: Harden runner
               uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
               with:
-                egress-policy: audit
+                  egress-policy: audit
             - name: Download distributions
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
               with:

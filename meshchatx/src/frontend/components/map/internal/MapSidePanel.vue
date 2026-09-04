@@ -60,6 +60,7 @@
                 @save-dir="$emit('save-mbtiles-dir', $event)"
                 @clear-cache="$emit('clear-cache')"
                 @export-region="$emit('export-region')"
+                @restore-starter="$emit('restore-starter')"
             />
         </div>
     </div>
@@ -111,6 +112,7 @@ export default {
         "save-mbtiles-dir",
         "clear-cache",
         "export-region",
+        "restore-starter",
         "toggle-announce-listen",
     ],
     data() {

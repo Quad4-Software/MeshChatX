@@ -132,14 +132,31 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 
 
 def register_map_routes(routes, app):
-
     # get offline map metadata
     @routes.get("/api/v1/map/offline")
     async def get_map_offline_metadata(request):
         metadata = app.map_manager.get_metadata()
+        if not metadata:
+            app.map_manager.ensure_starter_mbtiles()
+            metadata = app.map_manager.get_metadata()
         if metadata:
             return web.json_response(metadata)
         return web.json_response({"loaded": False})
+
+    @routes.post("/api/v1/map/mbtiles/restore-starter")
+    async def restore_starter_mbtiles(request):
+        path = app.map_manager.ensure_starter_mbtiles(force_restore=True)
+        if not path:
+            return web.json_response(
+                {"error": "Could not restore starter tiles"}, status=500
+            )
+        return web.json_response(
+            {
+                "message": "Starter tiles restored",
+                "path": path,
+                "metadata": app.map_manager.get_metadata(),
+            },
+        )
 
     # get map tile
 

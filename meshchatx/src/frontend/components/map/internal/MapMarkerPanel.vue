@@ -97,22 +97,36 @@
             </div>
 
             <div v-if="marker.telemetry" class="space-y-3">
-                <div v-if="telemetryLocation" class="grid grid-cols-2 gap-4 text-sm">
+                <div v-if="telemetryLocation" class="space-y-2 text-sm">
                     <div>
-                        <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Latitude</div>
-                        <div class="tabular-nums">{{ formatFixed(telemetryLocation.latitude, 6) }}</div>
+                        <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
+                            {{ $t("map.coordinate_format") }}
+                        </div>
+                        <div class="tabular-nums break-all">{{ formattedTelemetryCoords }}</div>
                     </div>
-                    <div>
-                        <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Longitude</div>
-                        <div class="tabular-nums">{{ formatFixed(telemetryLocation.longitude, 6) }}</div>
-                    </div>
-                    <div>
-                        <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Altitude</div>
-                        <div class="tabular-nums">{{ formatFixed(telemetryLocation.altitude, 1) }}m</div>
-                    </div>
-                    <div>
-                        <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Speed</div>
-                        <div class="tabular-nums">{{ formatFixed(telemetryLocation.speed, 1) }}km/h</div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
+                                {{ $t("map.coord_lat") }}
+                            </div>
+                            <div class="tabular-nums">{{ formatFixed(telemetryLocation.latitude, 6) }}</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
+                                {{ $t("map.coord_lon") }}
+                            </div>
+                            <div class="tabular-nums">{{ formatFixed(telemetryLocation.longitude, 6) }}</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
+                                Altitude
+                            </div>
+                            <div class="tabular-nums">{{ formatFixed(telemetryLocation.altitude, 1) }}m</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Speed</div>
+                            <div class="tabular-nums">{{ formatFixed(telemetryLocation.speed, 1) }}km/h</div>
+                        </div>
                     </div>
                 </div>
                 <div v-else class="text-[11px] text-sem-fg-muted">Location unavailable</div>
@@ -152,6 +166,7 @@
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import MiniChat from "../MiniChat.vue";
 import { getDiscoveredIconName } from "./discoveredIcons.js";
+import { formatCoordinate } from "../../../js/mapGeoCoords.js";
 
 export default {
     name: "MapMarkerPanel",
@@ -159,6 +174,7 @@ export default {
     props: {
         marker: { type: Object, required: true },
         miniChatOpen: { type: Boolean, default: false },
+        coordinateFormat: { type: String, default: "wgs84" },
     },
     emits: ["close", "toggle-tracking", "toggle-mini-chat"],
     computed: {
@@ -171,6 +187,12 @@ export default {
                 return null;
             }
             return loc;
+        },
+        formattedTelemetryCoords() {
+            const loc = this.telemetryLocation;
+            if (!loc) return "";
+            const res = formatCoordinate(loc.longitude, loc.latitude, this.coordinateFormat);
+            return res?.text || `${this.formatFixed(loc.latitude, 6)}, ${this.formatFixed(loc.longitude, 6)}`;
         },
     },
     methods: {

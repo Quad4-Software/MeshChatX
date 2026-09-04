@@ -1,0 +1,16 @@
+{"mgrs":"38SMB4488","pairs":2,"zone":38,"north":true,"easting":444000,"northing":3688000,"source":"geographiclib-mgrs-doc","notes":"Khulani Sq Baghdad 1km"}
+{"mgrs":"BAN0000000000","pairs":5,"lat":-89.99999,"lon":45,"center":true,"tol_m":5,"source":"geographiclib-r-article","notes":"near south pole UPS"}
+{"mgrs":"BHP4301516908","pairs":5,"lat":-85,"lon":77.85,"center":true,"tol_m":5,"source":"geographiclib-r-article"}
+{"mgrs":"AQS2960244788","pairs":5,"lat":-82,"lon":-60,"center":true,"tol_m":5,"source":"geographiclib-r-article"}
+{"mgrs":"19TDJ3858897366","pairs":5,"decode_lat":44.226933333333335,"decode_lon":-69.76891944444445,"center":false,"tol_m":2,"encode":false,"source":"blue-marble","notes":"published catalog decode only"}
+{"mgrs":"19TDJ3858797365","pairs":5,"lat":44.226933333333335,"lon":-69.76891944444445,"center":false,"tol_m":5,"source":"blue-marble-encode","notes":"encode of Blue Marble literature point"}
+{"mgrs":"32VKM2128861953","pairs":5,"lat":60,"lon":4,"center":false,"tol_m":5,"source":"norway-zone-override"}
+{"mgrs":"33XVD1336225798","pairs":5,"lat":75,"lon":12,"center":false,"tol_m":5,"source":"svalbard-zone-override"}
+{"mgrs":"31UFU9559138152","pairs":5,"lat":52.658,"lon":5.892,"center":false,"tol_m":5,"source":"regression"}
+{"mgrs":"30UYC0821307246","pairs":5,"lat":51.478,"lon":-0.0015,"center":false,"tol_m":5,"source":"regression"}
+{"mgrs":"13SED0083198811","pairs":5,"lat":39.7392,"lon":-104.9903,"center":false,"tol_m":5,"source":"regression"}
+{"mgrs":"55HCU2070412911","pairs":5,"lat":-37.8136,"lon":144.9631,"center":false,"tol_m":5,"source":"regression"}
+{"mgrs":"23KPQ8347660687","pairs":5,"lat":-22.9519,"lon":-43.2105,"center":false,"tol_m":5,"source":"regression"}
+{"mgrs":"35WMU5618396786","pairs":5,"lat":71.1699,"lon":25.7836,"center":false,"tol_m":5,"source":"regression"}
+{"mgrs":"ZAB9645452981","pairs":5,"lat":85,"lon":10,"center":true,"tol_m":5,"source":"regression-ups-north"}
+{"mgrs":"BCL8851133427","pairs":5,"lat":-87,"lon":120,"center":true,"tol_m":5,"source":"regression-ups-south"}

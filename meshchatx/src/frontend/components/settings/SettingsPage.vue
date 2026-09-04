@@ -1365,6 +1365,24 @@
                                             "
                                         />
                                     </div>
+                                    <div>
+                                        <label class="setting-label">{{ $t("app.map_coordinate_format") }}</label>
+                                        <select
+                                            v-model="config.map_coordinate_format"
+                                            class="input-field"
+                                            @change="
+                                                updateConfig(
+                                                    { map_coordinate_format: config.map_coordinate_format },
+                                                    'map_coordinate_format'
+                                                )
+                                            "
+                                        >
+                                            <option value="wgs84">{{ $t("app.map_coordinate_format_wgs84") }}</option>
+                                            <option value="utm">{{ $t("app.map_coordinate_format_utm") }}</option>
+                                            <option value="mgrs">{{ $t("app.map_coordinate_format_mgrs") }}</option>
+                                            <option value="olc">{{ $t("app.map_coordinate_format_olc") }}</option>
+                                        </select>
+                                    </div>
                                     <label class="setting-toggle">
                                         <Toggle
                                             v-model="config.map_offline_enabled"
@@ -3170,8 +3188,9 @@ export default {
                 map_default_zoom: 2,
                 map_tile_server_url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                 map_nominatim_api_url: "https://nominatim.openstreetmap.org",
-                map_offline_enabled: false,
+                map_offline_enabled: true,
                 map_tile_cache_enabled: true,
+                map_coordinate_format: "wgs84",
                 map_overlay_max_bytes: 8 * 1024 * 1024,
                 map_overlay_max_features: 50000,
                 map_overlay_max_kmz_uncompressed_bytes: 16 * 1024 * 1024,

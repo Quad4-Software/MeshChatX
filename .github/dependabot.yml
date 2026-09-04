@@ -19,8 +19,9 @@ updates:
       schedule:
           interval: weekly
       open-pull-requests-limit: 0
-      # Keep slsa-github-generator on a release tag (@vX.Y.Z). Dependabot SHA
-      # pins break its prebuilt download path unless compile-generator is true.
+      # Pin slsa-github-generator by commit SHA (repo SHA-pinning required).
+      # Keep compile-generator: true in callers. Ignore Dependabot bumps here;
+      # bump the SHA in workflows when upgrading SLSA intentionally.
       ignore:
           - dependency-name: "slsa-framework/slsa-github-generator"
       groups:

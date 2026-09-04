@@ -130,8 +130,23 @@ function isVisualiserWasmBundledResolved() {
     }
 }
 
+function isGeoWasmBundledResolved() {
+    const wasmDir = path.join(__dirname, "meshchatx", "src", "frontend", "public", "vendor", "geo-wasm");
+    const wasmFile = path.join(wasmDir, "geo.wasm");
+    const execFile = path.join(wasmDir, "wasm_exec.js");
+    try {
+        if (!fs.existsSync(wasmFile) || !fs.existsSync(execFile)) {
+            return false;
+        }
+        return fs.statSync(wasmFile).size >= 8192 && fs.statSync(execFile).size >= 1024;
+    } catch {
+        return false;
+    }
+}
+
 const micronWasmBundled = isMicronWasmBundledResolved();
 const visualiserWasmBundled = isVisualiserWasmBundledResolved();
+const geoWasmBundled = isGeoWasmBundledResolved();
 
 function loadMicronWasmIntegrity() {
     if (!micronWasmBundled) return null;
@@ -174,8 +189,29 @@ function loadVisualiserWasmIntegrity() {
     }
 }
 
+function loadGeoWasmIntegrity() {
+    if (!geoWasmBundled) return null;
+    const integrityPath = path.join(
+        __dirname,
+        "meshchatx",
+        "src",
+        "frontend",
+        "public",
+        "vendor",
+        "geo-wasm",
+        "integrity.json"
+    );
+    try {
+        return JSON.parse(fs.readFileSync(integrityPath, "utf-8"));
+    } catch {
+        console.warn("vite: could not load geo-wasm integrity.json");
+        return null;
+    }
+}
+
 const micronWasmIntegrity = loadMicronWasmIntegrity();
 const visualiserWasmIntegrity = loadVisualiserWasmIntegrity();
+const geoWasmIntegrity = loadGeoWasmIntegrity();
 
 // Vite default plus opaque null (sandboxed crash-tab iframe without allow-same-origin).
 function isViteDevCorsOrigin(origin) {
@@ -238,10 +274,13 @@ export default defineConfig(({ command }) => {
             "import.meta.env.VITE_MICRON_WASM_BUNDLED": JSON.stringify(micronWasmBundled ? "true" : "false"),
             "import.meta.env.VITE_MICRON_PARSER_GO_RELEASE": JSON.stringify(MICRON_PARSER_GO_RELEASE_TAG),
             "import.meta.env.VITE_VISUALISER_WASM_BUNDLED": JSON.stringify(visualiserWasmBundled ? "true" : "false"),
+            "import.meta.env.VITE_GEO_WASM_BUNDLED": JSON.stringify(geoWasmBundled ? "true" : "false"),
             __MICRON_WASM_SRI_WASM__: JSON.stringify(micronWasmIntegrity?.wasm || ""),
             __MICRON_WASM_SRI_EXEC__: JSON.stringify(micronWasmIntegrity?.wasmExec || ""),
             __VISUALISER_WASM_SRI_WASM__: JSON.stringify(visualiserWasmIntegrity?.wasm || ""),
             __VISUALISER_WASM_SRI_EXEC__: JSON.stringify(visualiserWasmIntegrity?.wasmExec || ""),
+            __GEO_WASM_SRI_WASM__: JSON.stringify(geoWasmIntegrity?.wasm || ""),
+            __GEO_WASM_SRI_EXEC__: JSON.stringify(geoWasmIntegrity?.wasmExec || ""),
         },
         plugins: [
             tailwindcss(),

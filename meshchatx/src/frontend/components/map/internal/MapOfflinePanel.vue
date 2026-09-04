@@ -31,6 +31,22 @@
         >
             {{ $t("map.upload_mbtiles") }}
         </button>
+        <div
+            v-if="offlineEnabled && !hasOfflineMap"
+            class="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 space-y-2"
+        >
+            <div class="text-[11px] text-sem-fg leading-snug">{{ $t("map.offline_empty_hint") }}</div>
+            <button
+                type="button"
+                class="w-full py-1.5 text-[10px] font-semibold uppercase rounded-lg border border-sem-border"
+                @click="$emit('restore-starter')"
+            >
+                {{ $t("map.restore_starter_tiles") }}
+            </button>
+        </div>
+        <p v-if="offlineEnabled && hasOfflineMap" class="text-[10px] text-sem-fg-muted leading-snug">
+            {{ $t("map.starter_attribution") }}
+        </p>
         <button
             type="button"
             class="w-full py-2 text-[10px] font-semibold uppercase rounded-lg border border-sem-border"
@@ -99,6 +115,7 @@ export default {
         "save-dir",
         "clear-cache",
         "export-region",
+        "restore-starter",
     ],
 };
 </script>

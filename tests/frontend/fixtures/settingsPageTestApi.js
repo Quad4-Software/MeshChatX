@@ -67,6 +67,7 @@ export function buildFullServerConfig(overrides = {}) {
         map_offline_enabled: false,
         map_mbtiles_dir: "",
         map_tile_cache_enabled: true,
+        map_coordinate_format: "wgs84",
         map_default_lat: "0",
         map_default_lon: "0",
         map_default_zoom: 2,

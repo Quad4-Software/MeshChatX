@@ -11,7 +11,7 @@
     "scripts": {
         "dev": "vite dev",
         "watch": "pnpm run build-frontend -- --watch",
-        "prebuild-frontend": "node scripts/ensure-micron-parser-package.js && node scripts/fetch-micron-wasm.mjs && node scripts/build-visualiser-wasm.mjs && node scripts/build-electron-shell-css.mjs && node scripts/sync-meshchatx-docs.js",
+        "prebuild-frontend": "node scripts/ensure-micron-parser-package.js && node scripts/fetch-micron-wasm.mjs && node scripts/build-visualiser-wasm.mjs && node scripts/build-geo-wasm.mjs && node scripts/fetch-starter-mbtiles.mjs && node scripts/build-electron-shell-css.mjs && node scripts/sync-meshchatx-docs.js",
         "predev": "node scripts/sync-meshchatx-docs.js && node scripts/build-electron-shell-css.mjs",
         "build-frontend": "vite build",
         "build-backend": "node scripts/build-backend.js",
