@@ -260,7 +260,6 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 import Utils from "../../js/Utils";
-import { withRetryableHttp } from "../../js/httpRetry.js";
 
 export default {
     name: "BlockedPage",
@@ -331,7 +330,7 @@ export default {
         async loadBlockedDestinations() {
             this.isLoading = true;
             try {
-                const response = await withRetryableHttp(() => window.api.get("/api/v1/blocked-destinations"));
+                const response = await window.api.get("/api/v1/blocked-destinations");
                 const blockedHashes = response.data.blocked_destinations || [];
 
                 let reticulumBlackholed = {};

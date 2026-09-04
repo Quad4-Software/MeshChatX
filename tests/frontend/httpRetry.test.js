@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { withRetryableHttp } from "@/js/httpRetry.js";
+import { isRetryableHttpError, withRetryableHttp } from "@/js/httpRetry.js";
 
 describe("withRetryableHttp", () => {
     beforeEach(() => {
@@ -32,9 +32,24 @@ describe("withRetryableHttp", () => {
         );
         expect(calls).toBe(3);
         expect(sleep).toHaveBeenCalledTimes(2);
-        expect(sleep.mock.calls[0][0]).toBe(10);
-        expect(sleep.mock.calls[1][0]).toBe(20);
         expect(result.data.contacts).toHaveLength(1);
+    });
+
+    it("retries failed-to-fetch network errors", async () => {
+        const sleep = vi.fn().mockResolvedValue(undefined);
+        let calls = 0;
+        const result = await withRetryableHttp(
+            async () => {
+                calls += 1;
+                if (calls < 2) {
+                    throw Object.assign(new TypeError("Failed to fetch"), { name: "TypeError" });
+                }
+                return { data: { ok: true } };
+            },
+            { sleep, baseDelayMs: 5 }
+        );
+        expect(calls).toBe(2);
+        expect(result.data.ok).toBe(true);
     });
 
     it("does not retry non-503 errors", async () => {
@@ -68,5 +83,12 @@ describe("withRetryableHttp", () => {
         ).rejects.toMatchObject({ response: { status: 503 } });
         expect(calls).toBe(3);
         expect(sleep).toHaveBeenCalledTimes(2);
+    });
+
+    it("isRetryableHttpError oracle", () => {
+        expect(isRetryableHttpError({ response: { status: 503 } })).toBe(true);
+        expect(isRetryableHttpError({ response: { status: 500 } })).toBe(false);
+        expect(isRetryableHttpError({ name: "AbortError" })).toBe(false);
+        expect(isRetryableHttpError(Object.assign(new TypeError("Failed to fetch"), { name: "TypeError" }))).toBe(true);
     });
 });

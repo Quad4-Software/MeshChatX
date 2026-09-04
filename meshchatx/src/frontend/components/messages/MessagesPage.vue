@@ -901,29 +901,14 @@ export default {
                 }
 
                 const offset = append ? this.conversations.length : 0;
-                let response = null;
-                let attempt = 0;
-                while (attempt < 4) {
-                    try {
-                        response = await window.api.get(`/api/v1/lxmf/conversations`, {
-                            params: {
-                                ...this.buildConversationQueryParams(),
-                                limit: this.pageSize,
-                                offset: offset,
-                            },
-                            signal: myController.signal,
-                        });
-                        break;
-                    } catch (requestError) {
-                        const status = requestError?.response?.status;
-                        if (status === 503 && attempt < 3 && !myController.signal.aborted) {
-                            attempt += 1;
-                            await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
-                            continue;
-                        }
-                        throw requestError;
-                    }
-                }
+                const response = await window.api.get(`/api/v1/lxmf/conversations`, {
+                    params: {
+                        ...this.buildConversationQueryParams(),
+                        limit: this.pageSize,
+                        offset: offset,
+                    },
+                    signal: myController.signal,
+                });
                 if (!response) {
                     return;
                 }

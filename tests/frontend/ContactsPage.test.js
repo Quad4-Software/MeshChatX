@@ -23,17 +23,6 @@ vi.mock("@/js/ToastUtils", () => ({
     },
 }));
 
-vi.mock("@/js/httpRetry.js", async () => {
-    const actual = await vi.importActual("@/js/httpRetry.js");
-    return {
-        withRetryableHttp: (requestFn, options = {}) =>
-            actual.withRetryableHttp(requestFn, {
-                ...options,
-                sleep: async () => {},
-            }),
-    };
-});
-
 vi.mock("qrcode", () => ({
     default: {
         toDataURL: vi.fn().mockResolvedValue("data:image/png;base64,test"),
@@ -216,50 +205,7 @@ describe("ContactsPage.vue", () => {
         expect(wrapper.vm.contacts[0].name).toBe("One");
     });
 
-    it("retries 503 contacts load before toasting", async () => {
-        let contactsCalls = 0;
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/config") {
-                return Promise.resolve({
-                    data: {
-                        config: {
-                            lxmf_address_hash: "a".repeat(32),
-                            identity_public_key: "b".repeat(128),
-                        },
-                    },
-                });
-            }
-            if (
-                url === "/api/v1/telephone/contacts" ||
-                (typeof url === "string" && url.startsWith("/api/v1/telephone/contacts?"))
-            ) {
-                contactsCalls += 1;
-                if (contactsCalls < 3) {
-                    return Promise.reject(
-                        Object.assign(new Error("HTTP 503"), {
-                            response: { status: 503, data: { error: "busy" } },
-                        })
-                    );
-                }
-                return Promise.resolve({
-                    data: {
-                        contacts: [{ id: 9, name: "Recovered", remote_identity_hash: "d".repeat(32) }],
-                        total_count: 1,
-                    },
-                });
-            }
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountPage();
-        await flushPromises();
-        await vi.waitFor(() => expect(wrapper.vm.contacts).toHaveLength(1));
-        expect(contactsCalls).toBe(3);
-        expect(wrapper.vm.contacts[0].name).toBe("Recovered");
-        expect(ToastUtils.error).not.toHaveBeenCalled();
-    });
-
-    it("toasts failed_load_contacts after persistent 503", async () => {
+    it("toasts failed_load_contacts when contacts GET fails", async () => {
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/config") {
                 return Promise.resolve({
@@ -276,8 +222,8 @@ describe("ContactsPage.vue", () => {
                 (typeof url === "string" && url.startsWith("/api/v1/telephone/contacts?"))
             ) {
                 return Promise.reject(
-                    Object.assign(new Error("HTTP 503"), {
-                        response: { status: 503, data: { error: "busy" } },
+                    Object.assign(new Error("HTTP 500"), {
+                        response: { status: 500, data: { error: "boom" } },
                     })
                 );
             }

@@ -1671,7 +1671,6 @@ import AudioWaveformPlayer from "./AudioWaveformPlayer.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
-import { withRetryableHttp } from "../../js/httpRetry.js";
 import { showDeliveryHelptips } from "../../js/HelptipUtils.js";
 import { shouldShowDeliveryHelptips } from "../../js/helptipPolicy.js";
 import NotificationUtils from "../../js/NotificationUtils";
@@ -2649,7 +2648,7 @@ export default {
         },
         async fetchContacts() {
             try {
-                const response = await withRetryableHttp(() => window.api.get("/api/v1/telephone/contacts"));
+                const response = await window.api.get("/api/v1/telephone/contacts");
                 this.contacts = response.data?.contacts ?? (Array.isArray(response.data) ? response.data : []);
             } catch (e) {
                 console.log("Failed to fetch contacts:", e);
@@ -5609,7 +5608,7 @@ export default {
         },
         async openShareContactModal() {
             try {
-                const response = await withRetryableHttp(() => window.api.get("/api/v1/telephone/contacts"));
+                const response = await window.api.get("/api/v1/telephone/contacts");
                 this.contacts = response.data?.contacts ?? (Array.isArray(response.data) ? response.data : []);
 
                 if (this.contacts.length === 0) {

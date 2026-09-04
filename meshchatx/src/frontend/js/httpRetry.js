@@ -1,6 +1,39 @@
 /**
- * Retry GET-style helpers when the backend reports temporary unavailability.
+ * Retry helpers when the backend reports temporary unavailability.
  */
+
+/**
+ * @param {unknown} error
+ * @returns {boolean}
+ */
+export function isRetryableHttpError(error) {
+    if (!error || typeof error !== "object") {
+        return false;
+    }
+    const name = error.name;
+    if (name === "AbortError" || name === "CanceledError") {
+        return false;
+    }
+    const status = error.response?.status;
+    if (status === 503) {
+        return true;
+    }
+    // No HTTP response: transient backend restart / connection drop.
+    if (!error.response && (name === "TypeError" || name === "HttpError" || name === "Error")) {
+        const message = typeof error.message === "string" ? error.message.toLowerCase() : "";
+        if (
+            message.includes("failed to fetch") ||
+            message.includes("networkerror") ||
+            message.includes("network request failed") ||
+            message.includes("load failed") ||
+            message.includes("econnrefused") ||
+            message.includes("socket hang up")
+        ) {
+            return true;
+        }
+    }
+    return false;
+}
 
 /**
  * @param {() => Promise<any>} requestFn
@@ -31,9 +64,11 @@ export async function withRetryableHttp(requestFn, options = {}) {
         try {
             return await requestFn();
         } catch (requestError) {
-            const status = requestError?.response?.status;
             const canRetry =
-                status === 503 && attempt < maxAttempts - 1 && !options.signal?.aborted && !options.isAborted?.();
+                isRetryableHttpError(requestError) &&
+                attempt < maxAttempts - 1 &&
+                !options.signal?.aborted &&
+                !options.isAborted?.();
             if (!canRetry) {
                 throw requestError;
             }
