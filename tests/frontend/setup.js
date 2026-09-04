@@ -1,7 +1,21 @@
 import "fake-indexeddb/auto";
+import { readFileSync, existsSync } from "fs";
+import { join } from "path";
+import { beforeEach, vi } from "vitest";
+import { config } from "@vue/test-utils";
+import createDOMPurify from "dompurify";
 import { injectMeshchatThemeVariables } from "../../meshchatx/src/frontend/theme/designTokens.js";
+import GlobalState from "../../meshchatx/src/frontend/js/GlobalState.js";
 
 injectMeshchatThemeVariables(typeof document !== "undefined" ? document : undefined);
+
+// App shell tests assume auth is settled with auth disabled unless a case overrides.
+beforeEach(() => {
+    GlobalState.authSessionResolved = true;
+    GlobalState.authEnabled = false;
+    GlobalState.authenticated = false;
+    GlobalState.demoMode = false;
+});
 
 if (typeof Blob !== "undefined" && typeof Blob.prototype.stream !== "function") {
     Blob.prototype.stream = function streamPolyfill() {
@@ -15,12 +29,6 @@ if (typeof Blob !== "undefined" && typeof Blob.prototype.stream !== "function") 
         });
     };
 }
-
-import { readFileSync, existsSync } from "fs";
-import { join } from "path";
-import { vi } from "vitest";
-import { config } from "@vue/test-utils";
-import createDOMPurify from "dompurify";
 
 const EMOJI_PICKER_DATA_PATH = join(
     process.cwd(),

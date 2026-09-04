@@ -47,7 +47,7 @@
 
         <RouterView v-if="$route.name === 'auth'" />
 
-        <template v-else>
+        <template v-else-if="showMainShell">
             <div
                 v-if="isPopoutMode"
                 class="flex flex-1 h-full w-full overflow-hidden transition-colors"
@@ -699,6 +699,18 @@ export default {
         };
     },
     computed: {
+        showMainShell() {
+            if (!GlobalState.authSessionResolved) {
+                return false;
+            }
+            if (this.$route?.name === "auth") {
+                return false;
+            }
+            if (!GlobalState.authEnabled) {
+                return true;
+            }
+            return GlobalState.authenticated;
+        },
         fatalError() {
             return fatalErrorState.active;
         },

@@ -55,7 +55,7 @@ export default defineConfig({
         vue({
             template: {
                 compilerOptions: {
-                    isCustomElement: (tag) => tag === "emoji-picker",
+                    isCustomElement: (tag) => tag === "emoji-picker" || tag === "altcha-widget",
                 },
             },
         }),
