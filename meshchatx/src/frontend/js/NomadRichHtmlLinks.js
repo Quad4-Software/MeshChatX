@@ -14,9 +14,16 @@ function stopEvent(event) {
     event.stopPropagation?.();
 }
 
+function escapeCssIdent(id) {
+    if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+        return CSS.escape(id);
+    }
+    // Escape backslash before quote so selectors cannot break out of the quoted form.
+    return String(id).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
 function scrollToElementId(id, scrollRoot) {
-    const escapedId =
-        typeof CSS !== "undefined" && typeof CSS.escape === "function" ? CSS.escape(id) : id.replace(/"/g, '\\"');
+    const escapedId = escapeCssIdent(id);
     const el = scrollRoot ? scrollRoot.querySelector(`#${escapedId}`) : document.getElementById(id);
     if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "nearest" });
