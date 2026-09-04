@@ -781,6 +781,10 @@
             "path": "/api/v1/map/mbtiles/active"
         },
         {
+            "method": "POST",
+            "path": "/api/v1/map/mbtiles/restore-starter"
+        },
+        {
             "method": "DELETE",
             "path": "/api/v1/map/mbtiles/{filename}"
         },
