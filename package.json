@@ -258,6 +258,7 @@
             "sdk": "org.freedesktop.Sdk",
             "base": "org.electronjs.Electron2.BaseApp",
             "baseVersion": "25.08",
+            "branch": "stable",
             "category": "Network",
             "useWaylandFlags": true,
             "modules": [

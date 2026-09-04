@@ -22,9 +22,28 @@ fi
 export PLATFORM=linux
 export MESHCHATX_FRONTEND_PREBUILT=1
 
+# Flatpak commit ref-binding must match the OSTree branch we publish
+# (testing / beta / stable). electron-builder defaults to "master", which
+# makes flatpak install --from …-testing.flatpakref fail on pull.
+if [[ -n "${FLATPAK_BRANCH:-}" ]]; then
+    branch="${FLATPAK_BRANCH}"
+elif [[ -n "${GITHUB_REF_NAME:-}" ]]; then
+    branch="$(python3 "${ROOT}/scripts/ci/github_flatpak_channel.py" "${GITHUB_REF_NAME}")"
+else
+    branch="stable"
+fi
+case "$branch" in
+    testing | beta | stable) ;;
+    *)
+        echo "Invalid Flatpak branch: ${branch}" >&2
+        exit 1
+        ;;
+esac
+echo "Building Flatpak with branch=${branch}"
+
 bash scripts/ensure-flatpak-flathub-remote.sh
 
 DEBUG="${DEBUG:-@malept/flatpak-bundler*}" \
-    pnpm run dist:flatpak-prebuilt
+    pnpm run dist:flatpak-prebuilt -- -c.flatpak.branch="${branch}"
 
 bash scripts/ci/github-verify-electron-dist.sh flatpak

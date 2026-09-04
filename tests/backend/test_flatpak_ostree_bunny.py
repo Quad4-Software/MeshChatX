@@ -13,6 +13,8 @@ import pytest
 _CHANNEL = Path("scripts/ci/github_flatpak_channel.py")
 _OSTREE_UPLOAD = Path("scripts/ci/github-upload-bunny-flatpak-ostree.py")
 _EXPORT = Path("scripts/ci/github-flatpak-ostree-export.sh")
+_BUILD_FLATPAK = Path("scripts/ci/github-build-linux-flatpak.sh")
+_PACKAGE_JSON = Path("package.json")
 _WORKFLOW = Path(".github/workflows/build-release.yml")
 _PAGES_WORKFLOW = Path(".github/workflows/flatpak-repo.yml")
 _RELEASE_UPLOAD = Path("scripts/ci/github-upload-bunny-storage-release-assets.py")
@@ -198,6 +200,26 @@ def test_export_script_uses_cdn_meshchatx() -> None:
     assert "meshchatx-testing.flatpakref" in text
     assert "github.io" not in text
     assert "PAGES_URL" not in text
+    # Must not rename the import ref: that leaves ostree.ref-binding on
+    # master while publishing testing/beta/stable, which clients reject.
+    assert "build-import-bundle" in text
+    assert "build-import-bundle \\\n    --no-update-summary \\\n    --ref=" not in text
+    assert "ostree.ref-binding" in text
+    # ostree 2025+ rejects global --repo before the subcommand.
+    assert "ostree init --repo=" in text
+    assert "ostree remote add --repo=" in text
+    assert "ostree pull --repo=" in text
+    assert "ostree refs --repo=" in text
+    assert "ostree --repo=" not in text
+
+
+def test_flatpak_build_sets_channel_branch() -> None:
+    build = _BUILD_FLATPAK.read_text(encoding="utf-8")
+    assert "github_flatpak_channel.py" in build
+    assert "-c.flatpak.branch=" in build
+    assert 'FLATPAK_BRANCH' in build
+    pkg = _PACKAGE_JSON.read_text(encoding="utf-8")
+    assert '"branch": "stable"' in pkg
 
 
 def test_workflow_wires_flatpak_ostree_not_pages() -> None:

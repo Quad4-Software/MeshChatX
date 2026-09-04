@@ -56,18 +56,18 @@ if [[ "${REQUIRE_GPG:-0}" == "1" ]] && [[ -z "${GPG_FINGERPRINT:-}" ]]; then
 fi
 
 if [[ ! -f "${repo_path}/config" ]]; then
-    ostree --repo="${repo_path}" init --mode=archive-z2
+    ostree init --repo="${repo_path}" --mode=archive-z2
 fi
 
 if curl -sfL --max-time 120 -o /dev/null "${repo_url}/summary"; then
     echo "Pulling existing ostree repo from ${repo_url}"
-    ostree --repo="${repo_path}" remote-add --if-not-exists --no-gpg-verify meshchatx-prev "${repo_url}" || true
-    if ostree --repo="${repo_path}" pull meshchatx-prev --mirror --depth=-1 --commit-only 2>/dev/null; then
+    ostree remote add --repo="${repo_path}" --if-not-exists --no-gpg-verify meshchatx-prev "${repo_url}" || true
+    if ostree pull --repo="${repo_path}" meshchatx-prev --mirror --depth=-1 2>/dev/null; then
         echo "Restored prior ostree commits from live CDN"
     else
         echo "Live summary present but pull failed, continuing with local repo" >&2
     fi
-    ostree --repo="${repo_path}" remote-delete meshchatx-prev 2>/dev/null || true
+    ostree remote delete --repo="${repo_path}" meshchatx-prev 2>/dev/null || true
 fi
 
 gpg_args=()
@@ -88,22 +88,40 @@ case "$(uname -m)" in
 esac
 target_ref="app/${appid}/${arch}/${branch}"
 
-echo "Importing bundle as ${target_ref}"
+echo "Importing bundle (expected ref ${target_ref})"
 
+# Do not pass --ref to rename the branch. Flatpak commits carry
+# ostree.ref-binding from build-export; pointing a testing/beta/stable
+# ref at a master-bound commit makes clients reject the pull.
 flatpak build-import-bundle \
     --no-update-summary \
-    --ref="${target_ref}" \
     "${gpg_args[@]}" \
     "${repo_path}" \
     "${BUNDLE}"
 
-mapfile -t refs < <(ostree --repo="${repo_path}" refs | grep "^app/${appid}/" || true)
+mapfile -t refs < <(ostree refs --repo="${repo_path}" | grep "^app/${appid}/" || true)
 if [[ ${#refs[@]} -eq 0 ]]; then
     echo "No app/${appid}/ ref found after import" >&2
     exit 1
 fi
 
+if ! ostree rev-parse --repo="${repo_path}" "${target_ref}" >/dev/null 2>&1; then
+    echo "Expected ${target_ref} after import, but it is missing." >&2
+    echo "Bundle branch must match channel (${branch}). Repo app refs:" >&2
+    printf '  %s\n' "${refs[@]}" >&2
+    exit 1
+fi
+
+commit="$(ostree rev-parse --repo="${repo_path}" "${target_ref}")"
+binding="$(ostree show --repo="${repo_path}" --print-metadata-key=ostree.ref-binding "${commit}" 2>/dev/null || true)"
+if [[ -n "$binding" ]] && [[ "$binding" != *"${target_ref}"* ]]; then
+    echo "ostree.ref-binding does not include ${target_ref}:" >&2
+    echo "${binding}" >&2
+    exit 1
+fi
+
 echo "Target ref: ${target_ref}"
+echo "commit=${commit}"
 echo "appid=${appid}"
 echo "arch=${arch}"
 echo "branch=${branch}"
