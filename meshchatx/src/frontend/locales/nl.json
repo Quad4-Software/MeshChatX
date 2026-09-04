@@ -946,7 +946,14 @@
                     "startCollector": "Een mcx-bugs-v1-collector starten",
                     "stopCollector": "De bugrapport-collector stoppen",
                     "announce": "De bugrapport-collector announcen",
-                    "setCollectorName": "Weergavenaam van de bugrapport-collector instellen"
+                    "setCollectorName": "Weergavenaam van de bugrapport-collector instellen",
+                    "listIssues": "Lokale en ontvangen bug-issues weergeven",
+                    "getIssue": "Opgeslagen bug-issue lezen",
+                    "recordLocal": "Lokale bug-issue vastleggen",
+                    "setIssueStatus": "Status van een bug-issue bijwerken",
+                    "listPendingSends": "Wachtende bugrapportverzendingen weergeven",
+                    "enqueueSend": "Bugrapport in de wachtrij zetten voor mesh-verzending",
+                    "cancelPendingSend": "Wachtende bugrapportverzending annuleren"
                 },
                 "rnsLink": {
                     "open": "RNS-links openen naar bestemmingen",

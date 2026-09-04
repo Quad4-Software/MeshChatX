@@ -11,7 +11,7 @@
                         <!-- Logo & Title -->
                         <div class="flex items-center gap-6">
                             <img
-                                src="../../public/favicons/favicon-512x512.png"
+                                src="/favicons/favicon-512x512.png"
                                 class="h-20 w-20 shrink-0 object-contain"
                                 alt=""
                             />
@@ -793,7 +793,7 @@
                                         class="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-xs"
                                     >
                                         <img
-                                            src="../../public/favicons/favicon-512x512.png"
+                                            src="/favicons/favicon-512x512.png"
                                             class="w-7 h-7 object-contain"
                                         />
                                     </div>

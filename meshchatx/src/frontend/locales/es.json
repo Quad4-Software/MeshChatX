@@ -946,7 +946,14 @@
                     "startCollector": "Iniciar un recolector mcx-bugs-v1",
                     "stopCollector": "Detener el recolector de informes de errores",
                     "announce": "Anunciar el recolector de informes de errores",
-                    "setCollectorName": "Establecer el nombre visible del recolector de informes"
+                    "setCollectorName": "Establecer el nombre visible del recolector de informes",
+                    "listIssues": "Listar issues de errores locales y recibidos",
+                    "getIssue": "Leer un issue de error almacenado",
+                    "recordLocal": "Registrar un issue de error local",
+                    "setIssueStatus": "Actualizar el estado de un issue de error",
+                    "listPendingSends": "Listar envíos pendientes de informes de error",
+                    "enqueueSend": "Encolar un informe de error para envío por la malla",
+                    "cancelPendingSend": "Cancelar un envío pendiente de informe de error"
                 },
                 "rnsLink": {
                     "open": "Abrir enlaces RNS a destinos",

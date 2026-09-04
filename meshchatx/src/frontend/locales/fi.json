@@ -946,7 +946,14 @@
                     "startCollector": "Käynnistä mcx-bugs-v1-keräin",
                     "stopCollector": "Pysäytä bugiraporttikeräin",
                     "announce": "Ilmoita bugiraporttikeräin",
-                    "setCollectorName": "Aseta bugiraporttikeräimen näyttönimi"
+                    "setCollectorName": "Aseta bugiraporttikeräimen näyttönimi",
+                    "listIssues": "Listaa paikalliset ja vastaanotetut bugi-issuet",
+                    "getIssue": "Lue tallennettu bugi-issue",
+                    "recordLocal": "Tallenna paikallinen bugi-issue",
+                    "setIssueStatus": "Päivitä bugi-issuen tila",
+                    "listPendingSends": "Listaa odottavat bugiraporttien lähetykset",
+                    "enqueueSend": "Jonota bugiraportti mesh-lähetykseen",
+                    "cancelPendingSend": "Peruuta odottava bugiraportin lähetys"
                 },
                 "rnsLink": {
                     "open": "Avaa RNS-linkkejä kohteisiin",

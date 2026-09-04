@@ -946,7 +946,14 @@
                     "startCollector": "Démarrer un collecteur mcx-bugs-v1",
                     "stopCollector": "Arrêter le collecteur de rapports de bogues",
                     "announce": "Annoncer le collecteur de rapports de bogues",
-                    "setCollectorName": "Définir le nom affiché du collecteur de rapports"
+                    "setCollectorName": "Définir le nom affiché du collecteur de rapports",
+                    "listIssues": "Lister les issues de bugs locales et reçues",
+                    "getIssue": "Lire une issue de bug stockée",
+                    "recordLocal": "Enregistrer une issue de bug locale",
+                    "setIssueStatus": "Mettre à jour le statut d'une issue de bug",
+                    "listPendingSends": "Lister les envois de rapports de bugs en attente",
+                    "enqueueSend": "Mettre en file un rapport de bug pour envoi mesh",
+                    "cancelPendingSend": "Annuler un envoi de rapport de bug en attente"
                 },
                 "rnsLink": {
                     "open": "Ouvrir des liens RNS vers des destinations",

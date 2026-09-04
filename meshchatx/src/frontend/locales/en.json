@@ -946,7 +946,14 @@
                     "startCollector": "Start an mcx-bugs-v1 collector",
                     "stopCollector": "Stop the bug report collector",
                     "announce": "Announce the bug report collector",
-                    "setCollectorName": "Set the bug report collector display name"
+                    "setCollectorName": "Set the bug report collector display name",
+                    "listIssues": "List local and received bug issues",
+                    "getIssue": "Read a stored bug issue",
+                    "recordLocal": "Record a local bug issue",
+                    "setIssueStatus": "Update bug issue status",
+                    "listPendingSends": "List pending bug report sends",
+                    "enqueueSend": "Enqueue a bug report for mesh send",
+                    "cancelPendingSend": "Cancel a pending bug report send"
                 },
                 "rnsLink": {
                     "open": "Open RNS links to destinations",
