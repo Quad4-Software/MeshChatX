@@ -767,9 +767,11 @@ async def _build_probe_aio_app(app: Any):
         except Exception:
             pass
     routes = web.RouteTableDef()
-    auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw = app._define_routes(routes)
+    sqlite_mw, auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw = app._define_routes(
+        routes
+    )
     aio_app = web.Application(
-        middlewares=[auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw],
+        middlewares=[sqlite_mw, auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw, demo_mw],
     )
     setup_session(aio_app, app._encrypted_cookie_storage(use_https=False))
     aio_app.add_routes(routes)

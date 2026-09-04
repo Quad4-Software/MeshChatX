@@ -11,6 +11,7 @@ from meshchatx.src.backend.http.middleware import (
     create_ip_allowlist_middleware,
     create_mime_type_middleware,
     create_security_middleware,
+    create_sqlite_unavailable_middleware,
 )
 from meshchatx.src.backend.http.routes import register_extracted_routes
 
@@ -24,6 +25,7 @@ def register_all_routes(routes, app):
     """
     register_extracted_routes(routes, app)
     return (
+        create_sqlite_unavailable_middleware(app),
         create_auth_middleware(app),
         create_mime_type_middleware(app),
         create_security_middleware(app),
