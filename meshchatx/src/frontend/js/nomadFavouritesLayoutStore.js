@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: 0BSD
 
-import { withRetryableHttp } from "./httpRetry.js";
-
 export const NOMAD_FAVOURITES_LAYOUT_KEY = "meshchat.nomadnet.favourites.layout";
 export const NOMAD_FAVOURITES_LEGACY_ORDER_KEY = "meshchat.nomadnet.favourites";
 
@@ -211,7 +209,7 @@ export async function loadNomadFavouritesLayout(api) {
         return readLocalNomadFavouritesLayout();
     }
     try {
-        const response = await withRetryableHttp(() => api.get("/api/v1/favourites/layout"));
+        const response = await api.get("/api/v1/favourites/layout");
         const remote = normalizeNomadFavouritesLayout(response?.data?.layout);
         if (remote) {
             writeLocalLayout(remote);

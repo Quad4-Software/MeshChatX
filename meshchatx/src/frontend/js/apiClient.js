@@ -3,6 +3,7 @@
  */
 
 import { fetchCsrfToken, getCsrfToken } from "./csrfToken.js";
+import { withRetryableHttp } from "./httpRetry.js";
 
 export function isCancel(error) {
     if (!error) return false;
@@ -157,7 +158,16 @@ export function createApiClient(options = {}) {
 
     const api = {
         get(path, config) {
-            return request("GET", path, config || {});
+            const cfg = config || {};
+            return withRetryableHttp(() => request("GET", path, cfg), {
+                signal: cfg.signal,
+            });
+        },
+        head(path, config) {
+            const cfg = config || {};
+            return withRetryableHttp(() => request("HEAD", path, cfg), {
+                signal: cfg.signal,
+            });
         },
         post(path, data, config = {}) {
             return request("POST", path, { ...config, data });

@@ -573,7 +573,7 @@ export default {
                 let hasAccess = false;
                 try {
                     hasAccess = Boolean(bridge.hasAllFilesAccess());
-                } catch (_err) {
+                } catch {
                     hasAccess = false;
                 }
                 if (!hasAccess && typeof bridge.requestAllFilesAccess === "function") {

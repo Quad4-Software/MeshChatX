@@ -512,7 +512,6 @@ import WebSocketConnection from "../../js/WebSocketConnection";
 import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import DialogUtils from "../../js/DialogUtils";
-import { withRetryableHttp } from "../../js/httpRetry.js";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 import {
     attachStreamToVideo,
@@ -650,15 +649,13 @@ export default {
                 this.contactsOffset = 0;
             }
             try {
-                const response = await withRetryableHttp(() =>
-                    window.api.get("/api/v1/telephone/contacts", {
-                        params: {
-                            search: this.contactsSearch || undefined,
-                            limit: this.contactsPageSize,
-                            offset: this.contactsOffset,
-                        },
-                    })
-                );
+                const response = await window.api.get("/api/v1/telephone/contacts", {
+                    params: {
+                        search: this.contactsSearch || undefined,
+                        limit: this.contactsPageSize,
+                        offset: this.contactsOffset,
+                    },
+                });
                 const list = response.data?.contacts ?? (Array.isArray(response.data) ? response.data : []);
                 this.totalContactsCount = response.data?.total_count ?? list.length;
                 if (append) {
@@ -735,7 +732,7 @@ export default {
         },
         async exportContacts() {
             try {
-                const response = await withRetryableHttp(() => window.api.get("/api/v1/telephone/contacts/export"));
+                const response = await window.api.get("/api/v1/telephone/contacts/export");
                 const contacts = response.data?.contacts ?? [];
                 const blob = new Blob([JSON.stringify({ contacts }, null, 2)], {
                     type: "application/json",
@@ -904,14 +901,12 @@ export default {
             const destinationHash = (contact?.lxmf_address || contact?.remote_identity_hash || "").toLowerCase();
             if (!/^[0-9a-f]{32}$/.test(destinationHash)) return null;
             try {
-                const response = await withRetryableHttp(() =>
-                    window.api.get("/api/v1/announces", {
-                        params: {
-                            destination_hash: destinationHash,
-                            limit: 1,
-                        },
-                    })
-                );
+                const response = await window.api.get("/api/v1/announces", {
+                    params: {
+                        destination_hash: destinationHash,
+                        limit: 1,
+                    },
+                });
                 const announce = response.data?.announces?.[0];
                 const publicKeyBase64 = announce?.identity_public_key;
                 if (!publicKeyBase64) return null;
