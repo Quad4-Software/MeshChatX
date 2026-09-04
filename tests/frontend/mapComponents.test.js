@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 import { mount } from "@vue/test-utils";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import MapDrawingToolbar from "@/components/map/internal/MapDrawingToolbar.vue";
 import MapBearingInstructions from "@/components/map/internal/MapBearingInstructions.vue";
 import MapSearchBar from "@/components/map/internal/MapSearchBar.vue";
@@ -13,6 +13,7 @@ import MapClusterPanel from "@/components/map/internal/MapClusterPanel.vue";
 import MapMarkerPanel from "@/components/map/internal/MapMarkerPanel.vue";
 import MapVectorExchangePanel from "@/components/map/internal/MapVectorExchangePanel.vue";
 import MapSidePanel from "@/components/map/internal/MapSidePanel.vue";
+import * as mapGeoCoords from "@/js/mapGeoCoords.js";
 
 const DRAWING_TOOLS = [
     { type: "Select", icon: "cursor-default" },
@@ -347,6 +348,41 @@ describe("MapMarkerPanel", () => {
         });
         expect(wrapper.text()).toContain("aabbccdd");
         expect(wrapper.text()).toContain("Location unavailable");
+    });
+
+    it("formats telemetry coords with hasRef using map center", () => {
+        const spy = vi.spyOn(mapGeoCoords, "formatCoordinate").mockReturnValue({
+            ok: true,
+            text: "SHORT+CODE",
+        });
+        const marker = {
+            telemetry: {
+                destination_hash: "aabbccddeeff00112233445566778899",
+                timestamp: 1700000000,
+                telemetry: { location: { latitude: -1.286, longitude: 36.817 } },
+            },
+        };
+        const wrapper = mount(MapMarkerPanel, {
+            props: {
+                marker,
+                coordinateFormat: "olc",
+                refLat: -1.28,
+                refLon: 36.81,
+                geoWasmEpoch: 1,
+            },
+            global: {
+                mocks: { $t: t },
+                stubs: { MiniChat: { template: "<div class='mini-chat-stub'></div>" } },
+            },
+        });
+        expect(spy).toHaveBeenCalledWith(
+            36.817,
+            -1.286,
+            "olc",
+            expect.objectContaining({ hasRef: true, refLat: -1.28, refLon: 36.81 })
+        );
+        expect(wrapper.text()).toContain("SHORT+CODE");
+        spy.mockRestore();
     });
 });
 
