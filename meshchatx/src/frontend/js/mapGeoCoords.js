@@ -129,14 +129,15 @@ function tryParseWGS84Local(raw) {
 export function looksLikeAdvancedCoordinate(text) {
     const raw = String(text || "").trim();
     if (!raw) return false;
-    if (raw.includes("+")) return true;
+    const compact = raw.replace(/\s+/g, "");
+    // Plus Code shape (full or short), not arbitrary strings that happen to contain +.
+    if (/^[2-9CFGHJMPQRVWX]{2,8}\+[2-9CFGHJMPQRVWX]{2,}$/i.test(compact)) return true;
     const upper = raw.toUpperCase();
     if (upper.startsWith("UTM") || upper.startsWith("UPS")) return true;
     // Zone+hemi easting northing: 32N 458126 5411198
     if (/^\d{1,2}[A-Z]?\s+[NS]?\s*\d{3,}\s+\d{3,}/i.test(raw)) return true;
     if (/^\d{1,2}[NS]\s+\d{3,}E?\s+\d{3,}N?/i.test(raw)) return true;
     // Compact MGRS-ish (no spaces, digits+letters, length typical of MGRS)
-    const compact = raw.replace(/\s+/g, "");
     if (/^[0-9]{1,2}[C-HJ-NP-X][A-Z]{2}[0-9]{2,10}$/i.test(compact)) return true;
     if (/^[ABYZ][A-Z]{2}[0-9]{2,10}$/i.test(compact)) return true;
     return false;
