@@ -946,7 +946,14 @@
                     "startCollector": "启动 mcx-bugs-v1 收集器",
                     "stopCollector": "停止错误报告收集器",
                     "announce": "通告错误报告收集器",
-                    "setCollectorName": "设置错误报告收集器显示名称"
+                    "setCollectorName": "设置错误报告收集器显示名称",
+                    "listIssues": "列出本地与收到的问题工单",
+                    "getIssue": "读取已存储的问题工单",
+                    "recordLocal": "记录本地问题工单",
+                    "setIssueStatus": "更新问题工单状态",
+                    "listPendingSends": "列出待发送的错误报告",
+                    "enqueueSend": "将错误报告加入 mesh 发送队列",
+                    "cancelPendingSend": "取消待发送的错误报告"
                 },
                 "rnsLink": {
                     "open": "打开到目的地的RNS链接",

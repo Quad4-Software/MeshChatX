@@ -946,7 +946,14 @@
                     "startCollector": "Avvia un collector mcx-bugs-v1",
                     "stopCollector": "Ferma il collector dei bug report",
                     "announce": "Annuncia il collector dei bug report",
-                    "setCollectorName": "Imposta il nome visualizzato del collector dei bug report"
+                    "setCollectorName": "Imposta il nome visualizzato del collector dei bug report",
+                    "listIssues": "Elenca issue di bug locali e ricevute",
+                    "getIssue": "Leggi un issue di bug memorizzato",
+                    "recordLocal": "Registra un issue di bug locale",
+                    "setIssueStatus": "Aggiorna lo stato di un issue di bug",
+                    "listPendingSends": "Elenca invii report bug in sospeso",
+                    "enqueueSend": "Accoda un report bug per l'invio sulla mesh",
+                    "cancelPendingSend": "Annulla un invio report bug in sospeso"
                 },
                 "rnsLink": {
                     "open": "Apri collegamenti RNS verso destinazioni",

@@ -59,6 +59,33 @@ describe("pluginManifest", () => {
         expect(permissionLabel("custom:thing", (key) => key)).toBe("custom:thing");
     });
 
+    it("has en locale labels for every bugReport manager permission", async () => {
+        const en = (await import("../../meshchatx/src/frontend/locales/en.json")).default;
+        const bugReport = en.plugins.permissions.managers.bugReport;
+        const required = [
+            "listIssues",
+            "getIssue",
+            "recordLocal",
+            "setIssueStatus",
+            "listPendingSends",
+            "enqueueSend",
+            "cancelPendingSend",
+        ];
+        for (const key of required) {
+            expect(typeof bugReport[key]).toBe("string");
+            expect(bugReport[key].length).toBeGreaterThan(0);
+            const label = permissionLabel(`managers:bugReport.${key}`, (k) => {
+                const parts = k.split(".");
+                let cur = en;
+                for (const part of parts) {
+                    cur = cur?.[part];
+                }
+                return typeof cur === "string" ? cur : k;
+            });
+            expect(label).not.toBe(`managers:bugReport.${key}`);
+        }
+    });
+
     it("accepts backend.type python", () => {
         const manifest = validatePluginManifest({
             id: "com.example.python",

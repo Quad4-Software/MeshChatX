@@ -946,7 +946,14 @@
                     "startCollector": "Запустить сборщик mcx-bugs-v1",
                     "stopCollector": "Остановить сборщик отчётов об ошибках",
                     "announce": "Анонсировать сборщик отчётов об ошибках",
-                    "setCollectorName": "Задать отображаемое имя сборщика отчётов"
+                    "setCollectorName": "Задать отображаемое имя сборщика отчётов",
+                    "listIssues": "Список локальных и полученных bug-issues",
+                    "getIssue": "Читать сохранённый bug-issue",
+                    "recordLocal": "Записать локальный bug-issue",
+                    "setIssueStatus": "Обновить статус bug-issue",
+                    "listPendingSends": "Список отложенных отправок bug-отчётов",
+                    "enqueueSend": "Поставить bug-отчёт в очередь на отправку по mesh",
+                    "cancelPendingSend": "Отменить отложенную отправку bug-отчёта"
                 },
                 "rnsLink": {
                     "open": "Открывать ссылки RNS к назначениям",
