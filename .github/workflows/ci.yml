@@ -73,6 +73,10 @@ jobs:
                       timeout: 20
 
         steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
@@ -119,6 +123,10 @@ jobs:
         permissions:
             contents: read
         steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
@@ -165,6 +173,10 @@ jobs:
             matrix:
                 shard: [0, 1, 2, 3]
         steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
@@ -194,6 +206,10 @@ jobs:
         permissions:
             contents: read
         steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
@@ -224,6 +240,10 @@ jobs:
             FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
             MESHCHATX_FRONTEND_PREBUILT: "1"
         steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
@@ -289,6 +309,10 @@ jobs:
         permissions:
             contents: read
         steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
@@ -351,6 +375,10 @@ jobs:
             FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
             MESHCHATX_FRONTEND_PREBUILT: "1"
         steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
@@ -427,6 +455,10 @@ jobs:
         permissions:
             contents: read
         steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
@@ -463,6 +495,10 @@ jobs:
             MESHCHATX_FRONTEND_PREBUILT: "1"
             MESHCHAT_LH_SKIP_BUILD: "1"
         steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
@@ -512,6 +548,10 @@ jobs:
         permissions:
             contents: read
         steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:

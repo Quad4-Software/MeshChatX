@@ -68,6 +68,10 @@ jobs:
             FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
             API_LEVEL: ${{ github.event.inputs.api_level || '30' }}
         steps:
+            - name: Harden runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+              with:
+                egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
               with:
