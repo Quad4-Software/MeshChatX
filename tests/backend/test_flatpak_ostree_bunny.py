@@ -217,7 +217,7 @@ def test_flatpak_build_sets_channel_branch() -> None:
     build = _BUILD_FLATPAK.read_text(encoding="utf-8")
     assert "github_flatpak_channel.py" in build
     assert "-c.flatpak.branch=" in build
-    assert 'FLATPAK_BRANCH' in build
+    assert "FLATPAK_BRANCH" in build
     pkg = _PACKAGE_JSON.read_text(encoding="utf-8")
     assert '"branch": "stable"' in pkg
 
