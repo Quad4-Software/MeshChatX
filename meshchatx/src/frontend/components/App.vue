@@ -512,6 +512,7 @@ import Toast from "./Toast.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
 import PromptDialog from "./PromptDialog.vue";
 import ToastUtils from "../js/ToastUtils";
+import { withRetryableHttp } from "../js/httpRetry.js";
 import {
     CLIENT_HEAP_SAMPLE_INTERVAL_MS,
     MEMORY_WARNING_TOAST_KEY,
@@ -1738,9 +1739,11 @@ export default {
             }
             this._unreadCountTimeout = setTimeout(async () => {
                 try {
-                    const response = await window.api.get("/api/v1/notifications", {
-                        params: { unread: true, limit: 1 },
-                    });
+                    const response = await withRetryableHttp(() =>
+                        window.api.get("/api/v1/notifications", {
+                            params: { unread: true, limit: 1 },
+                        })
+                    );
                     GlobalState.unreadConversationsCount = response.data?.lxmf_total_unread_count ?? 0;
                 } catch (e) {
                     console.error("Failed to update unread conversations count", e);
@@ -2094,7 +2097,7 @@ export default {
         },
         async getBlockedDestinations() {
             try {
-                const response = await window.api.get("/api/v1/blocked-destinations");
+                const response = await withRetryableHttp(() => window.api.get("/api/v1/blocked-destinations"));
                 GlobalState.blockedDestinations = response.data.blocked_destinations || [];
             } catch (e) {
                 console.log("Failed to load blocked destinations:", e);

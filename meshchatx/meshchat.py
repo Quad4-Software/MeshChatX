@@ -7925,7 +7925,13 @@ class ReticulumMeshChat:
         id_norm = normalize_hex_identifier(identity_hash) if identity_hash else ""
         identity = self.recall_identity(identity_hash)
         if identity is not None:
-            return RNS.Destination.hash(identity, "lxmf", "delivery").hex()
+            try:
+                return RNS.Destination.hash(identity, "lxmf", "delivery").hex()
+            except Exception:
+                pass
+
+        if self.database is None:
+            return None
 
         # fallback to announces
         lookup_hash = id_norm or identity_hash
@@ -7943,18 +7949,19 @@ class ReticulumMeshChat:
 
     def get_lxst_telephony_hash_for_identity_hash(self, identity_hash: str):
         id_norm = normalize_hex_identifier(identity_hash) if identity_hash else ""
-        # Primary: use announces table for lxst.telephony aspect
         lookup_hash = id_norm or identity_hash
-        announces = self.database.announces.get_filtered_announces(
-            aspect="lxst.telephony",
-            identity_hash=lookup_hash,
-            limit=5,
-        )
-        if announces:
-            for announce in announces:
-                ann_id = announce.get("identity_hash") or ""
-                if ann_id and normalize_hex_identifier(ann_id) == id_norm:
-                    return announce.get("destination_hash")
+
+        if self.database is not None:
+            announces = self.database.announces.get_filtered_announces(
+                aspect="lxst.telephony",
+                identity_hash=lookup_hash,
+                limit=5,
+            )
+            if announces:
+                for announce in announces:
+                    ann_id = announce.get("identity_hash") or ""
+                    if ann_id and normalize_hex_identifier(ann_id) == id_norm:
+                        return announce.get("destination_hash")
 
         # Fallback: derive from identity if available (same identity, different aspect)
         identity = self.recall_identity(identity_hash)

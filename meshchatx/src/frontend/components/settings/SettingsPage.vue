@@ -2982,6 +2982,7 @@ import Utils from "../../js/Utils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
+import { withRetryableHttp } from "../../js/httpRetry.js";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 import { readTextFromClipboard } from "../../js/clipboardUtils.js";
 import { importMessagesFromFile } from "../../js/messageImport";
@@ -5645,7 +5646,7 @@ export default {
             }
             let favourites = [];
             try {
-                const response = await window.api.get("/api/v1/favourites");
+                const response = await withRetryableHttp(() => window.api.get("/api/v1/favourites"));
                 favourites = response.data.favourites || [];
             } catch {
                 // continue without favourite records

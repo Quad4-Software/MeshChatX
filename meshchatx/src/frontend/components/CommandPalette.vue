@@ -117,6 +117,7 @@ import LxmfUserIcon from "./LxmfUserIcon.vue";
 
 import GlobalEmitter from "../js/GlobalEmitter";
 import ToastUtils from "../js/ToastUtils";
+import { withRetryableHttp } from "../js/httpRetry.js";
 import { listCommands } from "../js/registries/commandRegistry.js";
 
 export default {
@@ -245,14 +246,14 @@ export default {
         },
         async loadPeersAndContacts() {
             try {
-                // fetch announces for "lxmf.delivery" aspect to get peers
-                const peerResponse = await window.api.get(`/api/v1/announces`, {
-                    params: { aspect: "lxmf.delivery", limit: 20 },
-                });
+                const peerResponse = await withRetryableHttp(() =>
+                    window.api.get(`/api/v1/announces`, {
+                        params: { aspect: "lxmf.delivery", limit: 20 },
+                    })
+                );
                 this.peers = peerResponse.data.announces;
 
-                // fetch telephone contacts
-                const contactResponse = await window.api.get("/api/v1/telephone/contacts");
+                const contactResponse = await withRetryableHttp(() => window.api.get("/api/v1/telephone/contacts"));
                 this.contacts =
                     contactResponse.data?.contacts ?? (Array.isArray(contactResponse.data) ? contactResponse.data : []);
             } catch (e) {

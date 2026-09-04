@@ -694,6 +694,7 @@ import NomadCrashTab from "./NomadCrashTab.vue";
 import Utils from "../../js/Utils";
 import DownloadUtils from "../../js/DownloadUtils";
 import ToastUtils from "../../js/ToastUtils";
+import { withRetryableHttp } from "../../js/httpRetry.js";
 import { openAppContextMenuUnlessTextSelection } from "../../js/contextMenuUtils.js";
 import { getDestinationPath, runDestinationPathFinder } from "../../js/reticulumPathfinding.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
@@ -1975,11 +1976,13 @@ export default {
         },
         async getFavourites() {
             try {
-                const response = await window.api.get("/api/v1/favourites", {
-                    params: {
-                        aspect: "nomadnetwork.node",
-                    },
-                });
+                const response = await withRetryableHttp(() =>
+                    window.api.get("/api/v1/favourites", {
+                        params: {
+                            aspect: "nomadnetwork.node",
+                        },
+                    })
+                );
                 this.favourites = response.data.favourites;
             } catch (e) {
                 // do nothing if failed to load favourites
