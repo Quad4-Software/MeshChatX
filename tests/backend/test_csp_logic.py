@@ -340,6 +340,36 @@ async def test_csp_privacy_mode_strips_external_sources(mock_rns_minimal, tmp_pa
         assert "connect-src 'self'" in csp
 
 
+@pytest.mark.asyncio
+async def test_csp_demo_mode_allows_map_tiles_with_privacy(mock_rns_minimal, tmp_path):
+    storage_dir = str(tmp_path / "storage")
+    config_dir = str(tmp_path / "config")
+
+    with patch("meshchatx.meshchat.generate_ssl_certificate"):
+        app_instance = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=storage_dir,
+            reticulum_config_dir=config_dir,
+            demo_mode=True,
+        )
+        app_instance.config.privacy_mode_enabled.set(True)
+
+        request = MagicMock(spec=web.Request)
+        request.path = "/"
+        request.app = {}
+
+        async def mock_handler(req):
+            return web.Response(text="test")
+
+        routes = web.RouteTableDef()
+        _, _, _, security_middleware, _, _, _ = app_instance._define_routes(routes)
+        response = await security_middleware(request, mock_handler)
+        csp = response.headers.get("Content-Security-Policy", "")
+        assert "tile.openstreetmap.org" in csp
+        assert "tiles.openfreemap.org" in csp
+        assert "api.example.com" not in csp
+
+
 def _script_src_directive(csp: str) -> str:
     m = re.search(r"script-src([^;]+);", csp)
     assert m is not None
