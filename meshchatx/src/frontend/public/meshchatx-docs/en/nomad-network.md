@@ -10,10 +10,10 @@ Supported page types:
 
 | Extension | Format                               |
 | --------- | ------------------------------------ |
-| .mu     | Micron markup (NomadNet default)     |
-| .md     | Markdown with GFM-oriented rendering |
-| .txt    | Plain text with preserved whitespace |
-| .html   | Static HTML with sanitised CSS       |
+| .mu       | Micron markup (NomadNet default)     |
+| .md       | Markdown with GFM-oriented rendering |
+| .txt      | Plain text with preserved whitespace |
+| .html     | Static HTML with sanitised CSS       |
 
 Follow links inside pages to browse further paths on the same node. Download files offered at /file/* paths.
 

@@ -6,7 +6,7 @@ MeshChatX can be installed in several ways. All release artifacts that ship the 
 
 | Component | Version                                            |
 | --------- | -------------------------------------------------- |
-| Python    | 3.11 or newer (pyproject.toml)                   |
+| Python    | 3.11 or newer (pyproject.toml)                     |
 | Node.js   | 24 or newer (development and frontend builds only) |
 | pnpm      | 11.1.2 (development)                               |
 | UV        | Used by Taskfile and CI                            |
@@ -15,18 +15,18 @@ MeshChatX can be installed in several ways. All release artifacts that ship the 
 
 ## Choose an install method
 
-| Method                       | Frontend included | Best for                                 |
-| ---------------------------- | ----------------- | ---------------------------------------- |
-| Docker image                 | Yes               | Fast server setup on Linux               |
+| Method                     | Frontend included | Best for                                 |
+| -------------------------- | ----------------- | ---------------------------------------- |
+| Docker image               | Yes               | Fast server setup on Linux               |
 | PyPI (reticulum-meshchatx) | Yes               | Headless install without building the UI |
-| Release wheel                | Yes               | Same as PyPI from a GitHub artifact      |
-| Linux AppImage               | Yes               | Portable desktop on x64 or arm64         |
-| Flatpak                      | Yes               | Desktop from cdn.meshchatx.com           |
+| Release wheel              | Yes               | Same as PyPI from a GitHub artifact      |
+| Linux AppImage             | Yes               | Portable desktop on x64 or arm64         |
+| Flatpak                    | Yes               | Desktop from cdn.meshchatx.com           |
 | Debian .deb                | Yes               | Debian and Ubuntu systems                |
-| RPM package                  | Yes               | Fedora, RHEL, openSUSE style systems     |
-| Electron desktop             | Yes               | Integrated desktop with bundled backend  |
-| Android APK                  | Yes               | Phones, tablets, Meta Quest sideload     |
-| From source                  | Built locally     | Development and custom builds            |
+| RPM package                | Yes               | Fedora, RHEL, openSUSE style systems     |
+| Electron desktop           | Yes               | Integrated desktop with bundled backend  |
+| Android APK                | Yes               | Phones, tablets, Meta Quest sideload     |
+| From source                | Built locally     | Development and custom builds            |
 
 Release images are published to Docker Hub (quad4io/meshchatx) and GHCR (ghcr.io/quad4-software/meshchatx). Tag suffixes: none for the standard Alpine image, -hardened for Chainguard/Wolfi, -extra for Alpine plus i2pd and yggdrasil (VARIANT=extra on the same Dockerfile).
 
@@ -198,10 +198,10 @@ Swap in `meshchatx-beta.flatpakref` or `meshchatx-testing.flatpakref` for those 
 
 The emoji picker uses system fonts through Electron/Chromium. Empty squares mean a color emoji package is missing. Install one and restart the app.
 
-| Distro               | Install command                         |
-| -------------------- | --------------------------------------- |
-| Arch, Artix, Manjaro | pacman -S noto-fonts-emoji              |
-| Debian, Ubuntu       | apt install fonts-noto-color-emoji      |
+| Distro               | Install command                           |
+| -------------------- | ----------------------------------------- |
+| Arch, Artix, Manjaro | pacman -S noto-fonts-emoji                |
+| Debian, Ubuntu       | apt install fonts-noto-color-emoji        |
 | Fedora               | dnf install google-noto-emoji-color-fonts |
 
 Example:
@@ -223,7 +223,7 @@ task install
 task dev
 ```
 
-task dev starts the HTTPS backend on 127.0.0.1:8000 and Vite on [http://127.0.0.1:5173](http://127.0.0.1:5173). Open that Vite URL. The [Vue DevTools](https://devtools.vuejs.org/) overlay is injected for this serve only. vite build / task run never ship it (__VUE_PROD_DEVTOOLS__ is false). Set MESHCHAT_VUE_DEVTOOLS=0 to hide the overlay. Click a component in the inspector to open it in the editor (LAUNCH_EDITOR, default code).
+task dev starts the HTTPS backend on 127.0.0.1:8000 and Vite on [http://127.0.0.1:5173](http://127.0.0.1:5173). Open that Vite URL. The [Vue DevTools](https://devtools.vuejs.org/) overlay is injected for this serve only. vite build / task run never ship it (**VUE_PROD_DEVTOOLS** is false). Set MESHCHAT_VUE_DEVTOOLS=0 to hide the overlay. Click a component in the inspector to open it in the editor (LAUNCH_EDITOR, default code).
 
 Python breakpoints: task debug is the same stack with [debugpy](https://github.com/microsoft/debugpy) listening on 127.0.0.1:5678 (never 0.0.0.0). Run **MeshChatX: Vite + Python** from the debugger, or start task debug and attach **Backend: Attach debugpy**. task debug:wait pauses the backend until that attach happens.
 
@@ -246,26 +246,26 @@ Open the UI at the host and port you chose. HTTPS is enabled by default with a s
 
 Common flags and environment variables:
 
-| Flag                     | Environment variable            | Default        | Description                                                                              |
-| ------------------------ | ------------------------------- | -------------- | ---------------------------------------------------------------------------------------- |
-| --host                 | MESHCHAT_HOST                 | 127.0.0.1    | Bind address                                                                             |
-| --port                 | MESHCHAT_PORT                 | 8000         | HTTP or HTTPS port                                                                       |
-| --no-https             | MESHCHAT_NO_HTTPS             | false          | Serve plain HTTP                                                                         |
-| --ssl-cert             | MESHCHAT_SSL_CERT             | auto           | TLS certificate path                                                                     |
-| --ssl-key              | MESHCHAT_SSL_KEY              | auto           | TLS private key path                                                                     |
-| --headless             | MESHCHAT_HEADLESS             | false          | Do not open a browser                                                                    |
-| --auth                 | MESHCHAT_AUTH                 | false          | Require HTTP basic auth for the UI                                                       |
-| --reset-password       | MESHCHAT_RESET_PASSWORD       | false          | Clear the stored password hash so a new one can be set in the UI                         |
-| --storage-dir          | MESHCHAT_STORAGE_DIR          | ./storage    | Application data directory                                                               |
-| --public-dir           | MESHCHAT_PUBLIC_DIR           | auto/bundled   | Frontend files. Needed for source installs without bundled assets.                       |
-| --reticulum-config-dir | MESHCHAT_RETICULUM_CONFIG_DIR | ~/.reticulum | Reticulum configuration                                                                  |
-| --data-dir             | MESHCHAT_DATA_DIR             | none           | Portable root (storage + .reticulum subdirs when the two paths above are unset)      |
-| --identity-file        | MESHCHAT_IDENTITY_FILE        | none           | Load identity from file                                                                  |
-| --rns-log-level        | MESHCHAT_RNS_LOG_LEVEL        | none           | Reticulum log level                                                                      |
-| (env only)               | MESHCHAT_RNS_LOG_DEST         | logging        | stdout keeps RNS on the console. With a log dir, default is the rotating Python logger |
-| --auto-recover         | MESHCHAT_AUTO_RECOVER         | false          | Attempt SQLite recovery on start                                                         |
-| --emergency            |                                 | false          | Start without database                                                                   |
-| --disable-plugins      |                                 | false          | Disable the plugin system                                                                |
+| Flag                   | Environment variable          | Default      | Description                                                                            |
+| ---------------------- | ----------------------------- | ------------ | -------------------------------------------------------------------------------------- |
+| --host                 | MESHCHAT_HOST                 | 127.0.0.1    | Bind address                                                                           |
+| --port                 | MESHCHAT_PORT                 | 8000         | HTTP or HTTPS port                                                                     |
+| --no-https             | MESHCHAT_NO_HTTPS             | false        | Serve plain HTTP                                                                       |
+| --ssl-cert             | MESHCHAT_SSL_CERT             | auto         | TLS certificate path                                                                   |
+| --ssl-key              | MESHCHAT_SSL_KEY              | auto         | TLS private key path                                                                   |
+| --headless             | MESHCHAT_HEADLESS             | false        | Do not open a browser                                                                  |
+| --auth                 | MESHCHAT_AUTH                 | false        | Require HTTP basic auth for the UI                                                     |
+| --reset-password       | MESHCHAT_RESET_PASSWORD       | false        | Clear the stored password hash so a new one can be set in the UI                       |
+| --storage-dir          | MESHCHAT_STORAGE_DIR          | ./storage    | Application data directory                                                             |
+| --public-dir           | MESHCHAT_PUBLIC_DIR           | auto/bundled | Frontend files. Needed for source installs without bundled assets.                     |
+| --reticulum-config-dir | MESHCHAT_RETICULUM_CONFIG_DIR | ~/.reticulum | Reticulum configuration                                                                |
+| --data-dir             | MESHCHAT_DATA_DIR             | none         | Portable root (storage + .reticulum subdirs when the two paths above are unset)        |
+| --identity-file        | MESHCHAT_IDENTITY_FILE        | none         | Load identity from file                                                                |
+| --rns-log-level        | MESHCHAT_RNS_LOG_LEVEL        | none         | Reticulum log level                                                                    |
+| (env only)             | MESHCHAT_RNS_LOG_DEST         | logging      | stdout keeps RNS on the console. With a log dir, default is the rotating Python logger |
+| --auto-recover         | MESHCHAT_AUTO_RECOVER         | false        | Attempt SQLite recovery on start                                                       |
+| --emergency            |                               | false        | Start without database                                                                 |
+| --disable-plugins      |                               | false        | Disable the plugin system                                                              |
 
 CLI flags override environment variables when both are set.
 
@@ -321,8 +321,8 @@ MeshChatX includes optional tooling to pull rns, lxmf, lxst, and the Reticulum m
 
 **Note:** Installing Python packages over RNS is slower than PyPI and fits mesh-only hosts with restricted clearnet. PyPI remains the default path for CI and standard development.
 
-| Remote                                                       | Purpose               |
-| ------------------------------------------------------------ | --------------------- |
+| Remote                                                     | Purpose               |
+| ---------------------------------------------------------- | --------------------- |
 | rns://7649a50d84610232d1416b41d2896aff/reticulum/reticulum | RNS package           |
 | rns://7649a50d84610232d1416b41d2896aff/reticulum/lxmf      | LXMF package          |
 | rns://7649a50d84610232d1416b41d2896aff/reticulum/lxst      | LXST package          |

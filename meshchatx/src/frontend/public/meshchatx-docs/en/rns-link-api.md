@@ -51,13 +51,13 @@ Cache notes:
 
 All messages need a unique request_id so replies can be matched.
 
-| type              | Required fields                                           | Optional              | Behaviour                                                                |
-| ------------------- | --------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------ |
-| rns.link.open     | destination_hash, aspect, request_id                | auto_identify       | Open or reuse a cached link. Streams phase then success / failure. |
-| rns.link.identify | destination_hash, aspect, request_id                |                       | Call link.identify(local_identity) on the cached link.                 |
-| rns.link.request  | destination_hash, aspect, path, request_id        | data_b64, timeout | Ensure the link is open, then link.request(path, data=...).              |
-| rns.link.send     | destination_hash, aspect, payload_b64, request_id |                       | Send a raw packet on the cached link.                                    |
-| rns.link.close    | destination_hash, aspect, request_id                |                       | Teardown and uncache the link.                                           |
+| type              | Required fields                                   | Optional          | Behaviour                                                          |
+| ----------------- | ------------------------------------------------- | ----------------- | ------------------------------------------------------------------ |
+| rns.link.open     | destination_hash, aspect, request_id              | auto_identify     | Open or reuse a cached link. Streams phase then success / failure. |
+| rns.link.identify | destination_hash, aspect, request_id              |                   | Call link.identify(local_identity) on the cached link.             |
+| rns.link.request  | destination_hash, aspect, path, request_id        | data_b64, timeout | Ensure the link is open, then link.request(path, data=...).        |
+| rns.link.send     | destination_hash, aspect, payload_b64, request_id |                   | Send a raw packet on the cached link.                              |
+| rns.link.close    | destination_hash, aspect, request_id              |                   | Teardown and uncache the link.                                     |
 
 Field details:
 
@@ -100,7 +100,7 @@ Example request:
 Per-request_id replies reuse the same type with a status:
 
 | status   | Meaning                                      |
-| ---------- | -------------------------------------------- |
+| -------- | -------------------------------------------- |
 | phase    | Progress step while opening or requesting    |
 | progress | Additional progress detail when available    |
 | success  | Operation finished                           |
@@ -108,10 +108,10 @@ Per-request_id replies reuse the same type with a status:
 
 Broadcast events (not tied to one request_id):
 
-| type           | event           | Notes                  |
-| ---------------- | ----------------- | ---------------------- |
+| type           | event           | Notes                |
+| -------------- | --------------- | -------------------- |
 | rns.link.event | packet_received | Includes payload_b64 |
-| rns.link.event | link_closed     | Cached link removed    |
+| rns.link.event | link_closed     | Cached link removed  |
 
 ```
 Inbound packet on a cached link
@@ -140,8 +140,8 @@ Plugin Worker
 
 Declare managers in plugin.json:
 
-| Manager            | Maps to                 |
-| ------------------ | ----------------------- |
+| Manager          | Maps to                 |
+| ---------------- | ----------------------- |
 | rnsLink.open     | Open or reuse link      |
 | rnsLink.identify | Identify on cached link |
 | rnsLink.request  | Request/response        |

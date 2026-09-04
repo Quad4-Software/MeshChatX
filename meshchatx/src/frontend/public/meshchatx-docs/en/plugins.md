@@ -23,12 +23,12 @@ Plugins cannot rewrite core MeshChatX. They do not get open-ended filesystem or 
 
 ## Runtimes
 
-| Runtime         | Where it runs             | Trust level                                     |
-| --------------- | ------------------------- | ----------------------------------------------- |
-| Frontend JS     | Browser Web Worker        | Medium. Sandboxed worker, capability grants     |
-| Backend WASM    | wasmtime on the server  | Medium. Fuel-metered, capability-gated host     |
-| Backend Python  | In-process with MeshChatX | High. Permission-checked in-process host        |
-| Sideband *.py | In-process, flat files    | Highest. Opt-in danger switch, full host access |
+| Runtime        | Where it runs             | Trust level                                     |
+| -------------- | ------------------------- | ----------------------------------------------- |
+| Frontend JS    | Browser Web Worker        | Medium. Sandboxed worker, capability grants     |
+| Backend WASM   | wasmtime on the server    | Medium. Fuel-metered, capability-gated host     |
+| Backend Python | In-process with MeshChatX | High. Permission-checked in-process host        |
+| Sideband *.py  | In-process, flat files    | Highest. Opt-in danger switch, full host access |
 
 A packaged plugin can ship frontend only, backend only, or both.
 
@@ -143,17 +143,17 @@ Nothing is available unless it is declared in the manifest and granted in the in
 
 ### Hooks
 
-| Hook                | When it fires                                               |
-| ------------------- | ----------------------------------------------------------- |
-| announce.received | A Reticulum announce arrives                                |
+| Hook              | When it fires                                           |
+| ----------------- | ------------------------------------------------------- |
+| announce.received | A Reticulum announce arrives                            |
 | rns.link.event    | Generic RNS Link traffic (packet_received, link_closed) |
 
 Hook events reach the UI as WebSocket plugin.event frames, then into the plugin Worker.
 
 ### Managers
 
-| Manager                | Purpose                       |
-| ---------------------- | ----------------------------- |
+| Manager              | Purpose                       |
+| -------------------- | ----------------------------- |
 | destinationPath.read | Read the Reticulum path table |
 | debugLog.read        | Read redacted debug logs      |
 | bugReport.*          | Bug report / collector APIs   |
@@ -167,8 +167,8 @@ Call managers from a plugin with POST /api/v1/plugins/{id}/invoke and method: "c
 
 ### Storage and network
 
-| Permission          | Effect                                                                |
-| ------------------- | --------------------------------------------------------------------- |
+| Permission        | Effect                                                                |
+| ----------------- | --------------------------------------------------------------------- |
 | storage: isolated | Private key-value store in the MeshChatX database                     |
 | storage: none     | No plugin storage                                                     |
 | network: fetch    | Outbound HTTP allowed (still blocked by Privacy mode when that is on) |
