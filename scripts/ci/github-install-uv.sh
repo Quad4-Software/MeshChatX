@@ -11,13 +11,39 @@ UV_INSTALL_DIR="${UV_INSTALL_DIR:-/usr/local/bin}"
 
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
+
+# Alpine/musl needs the musl release tarball. A glibc binary on musl exits 127
+# ("not found") because the dynamic linker path is missing.
+linux_libc() {
+    if [ -f /etc/alpine-release ]; then
+        echo musl
+        return
+    fi
+    if command -v ldd >/dev/null 2>&1; then
+        case "$(ldd --version 2>&1 | head -n1)" in
+            *[Mm]usl*)
+                echo musl
+                return
+                ;;
+        esac
+        if ldd /bin/sh 2>&1 | head -n1 | grep -qi musl; then
+            echo musl
+            return
+        fi
+    fi
+    echo gnu
+}
+
 case "${OS}" in
     linux)
-        case "${ARCH}" in
-            x86_64) TARGET="x86_64-unknown-linux-gnu" ;;
-            aarch64) TARGET="aarch64-unknown-linux-gnu" ;;
+        LIBC="$(linux_libc)"
+        case "${ARCH}-${LIBC}" in
+            x86_64-gnu) TARGET="x86_64-unknown-linux-gnu" ;;
+            x86_64-musl) TARGET="x86_64-unknown-linux-musl" ;;
+            aarch64-gnu) TARGET="aarch64-unknown-linux-gnu" ;;
+            aarch64-musl) TARGET="aarch64-unknown-linux-musl" ;;
             *)
-                echo "Unsupported Linux architecture: ${ARCH}" >&2
+                echo "Unsupported Linux arch/libc: ${ARCH}/${LIBC}" >&2
                 exit 1
                 ;;
         esac
@@ -139,4 +165,13 @@ else
 fi
 
 export PATH="${UV_INSTALL_DIR}:${PATH}"
-uv --version
+if [ "${EXT}" = "zip" ]; then
+    UV_CMD="${UV_INSTALL_DIR}/uv.exe"
+else
+    UV_CMD="${UV_INSTALL_DIR}/uv"
+fi
+if [ ! -x "${UV_CMD}" ]; then
+    echo "uv install failed: missing executable at ${UV_CMD}" >&2
+    exit 1
+fi
+"${UV_CMD}" --version

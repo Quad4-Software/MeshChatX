@@ -21,6 +21,8 @@ COPY scripts/micron-wasm-resolve-bundled.mjs scripts/micron-wasm-resolve-bundled
 COPY scripts/micron-parser-go-version.mjs scripts/micron-parser-go-version.mjs
 COPY scripts/vite-dx.mjs scripts/vite-dx.mjs
 COPY scripts/build-visualiser-wasm.mjs scripts/build-visualiser-wasm.mjs
+COPY scripts/build-geo-wasm.mjs scripts/build-geo-wasm.mjs
+COPY scripts/fetch-starter-mbtiles.mjs scripts/fetch-starter-mbtiles.mjs
 COPY scripts/build-electron-shell-css.mjs scripts/build-electron-shell-css.mjs
 COPY scripts/ensure-micron-parser-package.js scripts/ensure-micron-parser-package.js
 COPY scripts/sync-meshchatx-docs.js scripts/sync-meshchatx-docs.js
@@ -33,9 +35,11 @@ COPY scripts/build/generate_service_worker.mjs scripts/build/generate_service_wo
 COPY scripts/docker/build-frontend.sh scripts/docker/build-frontend.sh
 COPY docs ./docs
 COPY visualiser-wasm ./visualiser-wasm
+COPY geo-wasm ./geo-wasm
 COPY meshchatx/src/frontend ./meshchatx/src/frontend
 ENV GOCACHE=/tmp/go-cache
 ENV GOTMPDIR=/tmp/go-tmp
+ENV STARTER_MBTILES_SKIP=1
 RUN sh scripts/docker/build-frontend.sh
 
 FROM ${PYTHON_BUILD_IMAGE}@${PYTHON_BUILD_HASH} AS builder
