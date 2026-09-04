@@ -21,7 +21,8 @@
 # Or: task docker:dist:win
 
 ARG ELECTRON_BUILDER_IMAGE=electronuserland/builder:24-wine-05.26
-FROM ${ELECTRON_BUILDER_IMAGE}
+ARG ELECTRON_BUILDER_HASH=sha256:41ae540902461b6cbc988987db79547fcc10cda04d2a6c6367504f59d4b37c64
+FROM ${ELECTRON_BUILDER_IMAGE}@${ELECTRON_BUILDER_HASH}
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
@@ -52,9 +53,10 @@ RUN apt-get update -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Host-side uv downloads Windows wheels (Wine SSL to PyPI is flaky in this image).
-RUN curl -LsSf "https://astral.sh/uv/${UV_VERSION}/install.sh" | sh \
-    && ln -sf /root/.local/bin/uv /usr/local/bin/uv \
-    && uv --version
+COPY scripts/ci/github-install-uv.sh scripts/ci/priv.sh /tmp/ci/
+RUN UV_VERSION="${UV_VERSION}" UV_INSTALL_DIR=/usr/local/bin \
+    bash /tmp/ci/github-install-uv.sh \
+    && rm -rf /tmp/ci
 
 # Bake Wine Python into the image with the embeddable zip (no GUI installer).
 # Git for Windows is optional for packaging. Skip it in the image bake for speed.

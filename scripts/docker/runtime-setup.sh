@@ -22,9 +22,6 @@ extra)
 	;;
 esac
 
-python -m pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools" "jaraco.context>=6.1.0"
-rm -rf /root/.cache/pip
-
 addgroup -g 1000 meshchat
 adduser -u 1000 -G meshchat -S meshchat
 mkdir -p /config

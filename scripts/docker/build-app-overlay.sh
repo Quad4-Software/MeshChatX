@@ -7,7 +7,7 @@ set -eu
 VENV="${MESHCHATX_DOCKER_VENV:-/opt/venv}"
 OUT="${MESHCHATX_DOCKER_APP_OVERLAY:-/opt/app-overlay}"
 
-pip install --no-cache-dir .
+uv pip install --no-cache .
 
 PYVER="$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
 SP="${VENV}/lib/python${PYVER}/site-packages"

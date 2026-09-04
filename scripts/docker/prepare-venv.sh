@@ -10,7 +10,7 @@ VENV_DEPS="${MESHCHATX_DOCKER_VENV_DEPS:-/opt/venv-deps}"
 
 uv sync --no-group dev --no-install-project --inexact
 rm -rf /root/.cache/pip /root/.cache/uv
-pip install --no-cache-dir --upgrade "setuptools" "jaraco.context>=6.1.0"
+uv pip install --no-cache --upgrade "setuptools" "jaraco.context>=6.1.0"
 
 python scripts/patch_lxst_pyogg_ogg_ctypes.py
 python scripts/patch_lxst_codec2_optional.py

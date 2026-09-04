@@ -39,8 +39,6 @@ on:
 
 permissions:
     contents: read
-    packages: write
-    id-token: write
 
 concurrency:
     group: docker-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -53,6 +51,10 @@ jobs:
     build:
         runs-on: ubuntu-latest
         timeout-minutes: 120
+        permissions:
+            contents: read
+            packages: write
+            id-token: write
         strategy:
             fail-fast: false
             matrix:

@@ -41,12 +41,14 @@ RUN sh scripts/docker/build-frontend.sh
 FROM ${PYTHON_IMAGE}@${PYTHON_HASH} AS builder
 WORKDIR /build
 COPY scripts/docker/builder-apk-alpine.sh scripts/docker/builder-apk-alpine.sh
-RUN sh scripts/docker/builder-apk-alpine.sh
-RUN pip install --no-cache-dir --upgrade "pip>=26.0" uv setuptools wheel "jaraco.context>=6.1.0"
-RUN python -m venv /opt/venv
+COPY scripts/ci/github-install-uv.sh scripts/ci/priv.sh /tmp/ci/
+RUN sh scripts/docker/builder-apk-alpine.sh \
+    && UV_VERSION=0.11.15 sh /tmp/ci/github-install-uv.sh \
+    && rm -rf /tmp/ci
+RUN uv venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
-RUN pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools" "jaraco.context>=6.1.0"
+RUN uv pip install --no-cache "setuptools>=83.0.0" "wheel" "jaraco.context>=6.1.0"
 COPY pyproject.toml uv.lock README.md CHANGELOG.md ./
 COPY logo ./logo
 COPY vendor ./vendor

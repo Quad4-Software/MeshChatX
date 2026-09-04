@@ -4,10 +4,13 @@
 # Runtime uses opus (not Alpine opusfile). Voicemail without espeak-ng is optional.
 
 ARG NODE_IMAGE=cgr.dev/chainguard/node:latest-dev
+ARG NODE_HASH=sha256:585ddbb27d9250036a4248b5cd2ad76923ccfc66fa5d98fb37abdead3f09bf3d
 ARG PYTHON_BUILD_IMAGE=cgr.dev/chainguard/python:latest-dev
+ARG PYTHON_BUILD_HASH=sha256:afdbadf8d697739ab8e10a4d355d0850daa439cba3e6f0e39a73f7f2d3d839b7
 ARG PYTHON_RUNTIME_IMAGE=cgr.dev/chainguard/python:latest-dev
+ARG PYTHON_RUNTIME_HASH=sha256:afdbadf8d697739ab8e10a4d355d0850daa439cba3e6f0e39a73f7f2d3d839b7
 
-FROM --platform=linux/amd64 ${NODE_IMAGE} AS build-frontend
+FROM --platform=linux/amd64 ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 USER root
 WORKDIR /src
 RUN apk add --no-cache git python3 go
@@ -35,16 +38,19 @@ ENV GOCACHE=/tmp/go-cache
 ENV GOTMPDIR=/tmp/go-tmp
 RUN sh scripts/docker/build-frontend.sh
 
-FROM ${PYTHON_BUILD_IMAGE} AS builder
+FROM ${PYTHON_BUILD_IMAGE}@${PYTHON_BUILD_HASH} AS builder
 USER root
 WORKDIR /build
 COPY scripts/docker/builder-apk-chainguard.sh scripts/docker/builder-apk-chainguard.sh
-RUN sh scripts/docker/builder-apk-chainguard.sh
-RUN pip install --no-cache-dir --upgrade "pip>=26.0" uv setuptools wheel "jaraco.context>=6.1.0"
-RUN python -m venv /opt/venv
+COPY scripts/ci/github-install-uv.sh scripts/ci/priv.sh /tmp/ci/
+RUN sh scripts/docker/builder-apk-chainguard.sh \
+    && apk add --no-cache curl ca-certificates \
+    && UV_VERSION=0.11.15 sh /tmp/ci/github-install-uv.sh \
+    && rm -rf /tmp/ci
+RUN uv venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
-RUN pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools" "jaraco.context>=6.1.0"
+RUN uv pip install --no-cache "setuptools>=83.0.0" "wheel" "jaraco.context>=6.1.0"
 COPY pyproject.toml uv.lock README.md CHANGELOG.md ./
 COPY logo ./logo
 COPY vendor ./vendor
@@ -59,7 +65,7 @@ COPY meshchatx ./meshchatx
 COPY --from=build-frontend /src/meshchatx/public ./meshchatx/public
 RUN sh scripts/docker/build-app-overlay.sh
 
-FROM ${PYTHON_RUNTIME_IMAGE}
+FROM ${PYTHON_RUNTIME_IMAGE}@${PYTHON_RUNTIME_HASH}
 USER root
 COPY scripts/docker/runtime-setup-chainguard.sh /tmp/runtime-setup-chainguard.sh
 RUN sh /tmp/runtime-setup-chainguard.sh && rm /tmp/runtime-setup-chainguard.sh

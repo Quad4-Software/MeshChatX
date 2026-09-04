@@ -2,14 +2,14 @@
 #   actions/setup-python@v6.2.0  a309ff8b426b58ec0e2a45f0f869d46889d02405
 #   actions/cache@v4.2.0         1bd1e32a3bdc45362d1e726936510720a7c30a57
 name: Set up Python and UV
-description: Python runtime, pinned UV installer, and UV download cache
+description: Python runtime, checksum-verified UV binary, and UV download cache
 
 inputs:
     python-version:
         description: Python version
         required: true
     uv-version:
-        description: UV version installed from PyPI
+        description: UV version installed from GitHub releases
         required: false
         default: "0.11.15"
 
@@ -21,7 +21,7 @@ runs:
           with:
               python-version: ${{ inputs.python-version }}
 
-        - name: Install UV (PyPI pin)
+        - name: Install UV (release binary + SHA256)
           shell: bash
           env:
               UV_VERSION: ${{ inputs.uv-version }}

@@ -20,6 +20,8 @@ overrides:
     eslint>ajv: "6.14.0"
     "@eslint/eslintrc>ajv": "6.14.0"
     app-builder-lib>ajv: ^8.18.0
+    "@commitlint/config-validator>ajv": ">=8.18.0"
+    "@opentelemetry/core": ">=2.8.0"
     ansi-regex: ">=6.0.1"
     strip-ansi: "6.0.1"
     "strip-ansi>ansi-regex": "5.0.1"
@@ -36,7 +38,7 @@ overrides:
     ejs: ">=3.1.10"
     glob: ">=10.5.0"
     "@electron/asar>glob": "7.2.3"
-    "minimatch@3.1.4>brace-expansion": "1.1.17"
+    "minimatch@3.1.4>brace-expansion": "1.1.18"
     got: ">=11.8.6"
     hosted-git-info: ">=2.8.9"
     http-cache-semantics: ">=4.1.1"
