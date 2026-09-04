@@ -15,9 +15,19 @@ on:
     pull_request:
         branches:
             - dev
+        paths-ignore:
+            - "docs/**"
+            - ".agents/**"
+            - ".cursor/**"
+            - "**/*.md"
     push:
         branches:
             - dev
+        paths-ignore:
+            - "docs/**"
+            - ".agents/**"
+            - ".cursor/**"
+            - "**/*.md"
     workflow_dispatch:
         inputs:
             build_release:

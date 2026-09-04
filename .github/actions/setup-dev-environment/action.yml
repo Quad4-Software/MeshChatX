@@ -1,17 +1,19 @@
 name: Set up development environment
-description: Python/UV, Node/pnpm, and full project dependencies for CI jobs
+description: Python/UV, Node/pnpm, and project dependencies for CI jobs
 
 inputs:
     python-version:
-        description: Python version
-        required: true
+        description: Python version (used when install-python is true)
+        required: false
+        default: "3.14"
     uv-version:
-        description: UV version installed from PyPI
+        description: UV version installed from GitHub releases
         required: false
         default: "0.11.15"
     node-version:
-        description: Node.js version
-        required: true
+        description: Node.js version (used when install-node is true)
+        required: false
+        default: "24"
     pnpm-version:
         description: pnpm version activated through corepack
         required: false
@@ -24,6 +26,14 @@ inputs:
         description: Install go-task for Taskfile.yml targets
         required: false
         default: "true"
+    install-python:
+        description: Set up Python/UV and sync the project virtualenv
+        required: false
+        default: "true"
+    install-node:
+        description: Set up Node/pnpm and install frontend dependencies
+        required: false
+        default: "true"
     skip_tree_verify:
         description: Set to true to skip meshchatx.rsm byte-level verify
         required: false
@@ -32,67 +42,15 @@ inputs:
 runs:
     using: composite
     steps:
-        # Best-effort integrity check before dependency installs that may rewrite tracked files.
-        # Tree verify warns by default and does not fail the job.
-        - name: Ensure rnid for tree verify
-          if: inputs.skip_tree_verify != 'true'
-          shell: bash
-          run: |
-              set -u
-              if command -v rnid >/dev/null 2>&1; then
-                exit 0
-              fi
-              if [ -x .venv/bin/rnid ]; then
-                exit 0
-              fi
-              echo "Installing rns tools for tree verify (best effort)"
-              py=python3
-              if command -v python >/dev/null 2>&1; then
-                py=python
-              fi
-              if "$py" -m pip install --user 'rns>=1.4.1' 2>/dev/null; then
-                :
-              elif "$py" -m pip install --user --break-system-packages 'rns>=1.4.1' 2>/dev/null; then
-                :
-              else
-                echo "WARNING: could not install rnid via pip (tree verify may be skipped)" >&2
-                exit 0
-              fi
-              # Unix user scripts
-              if [ -d "$HOME/.local/bin" ]; then
-                echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-              fi
-              # Windows user Scripts (GitHub-hosted runners)
-              if [ -n "${APPDATA:-}" ]; then
-                for scripts_dir in "$APPDATA"/Python/Python*/Scripts; do
-                  if [ -d "$scripts_dir" ]; then
-                    echo "$scripts_dir" >> "$GITHUB_PATH"
-                  fi
-                done
-              fi
-              if [ -n "${LOCALAPPDATA:-}" ]; then
-                for scripts_dir in "$LOCALAPPDATA"/Programs/Python/Python*/Scripts; do
-                  if [ -d "$scripts_dir" ]; then
-                    echo "$scripts_dir" >> "$GITHUB_PATH"
-                  fi
-                done
-              fi
-
-        - name: Verify tree RSM
-          if: inputs.skip_tree_verify != 'true'
-          shell: bash
-          env:
-              RNS_REQUIRED_SIGNER: e46112d44649266d71fe2193e00a4710
-              RNS_INVENTORY_OUT: ${{ runner.temp }}/meshchatx-tree-inventory.txt
-          run: sh scripts/ci/verify-tree-rsm.sh
-
         - name: Set up Python and UV
+          if: inputs.install-python == 'true'
           uses: ./.github/actions/setup-python-uv
           with:
               python-version: ${{ inputs.python-version }}
               uv-version: ${{ inputs.uv-version }}
 
         - name: Set up Node and pnpm
+          if: inputs.install-node == 'true'
           uses: ./.github/actions/setup-node-pnpm
           with:
               node-version: ${{ inputs.node-version }}
@@ -100,7 +58,20 @@ runs:
 
         - name: Install dependencies
           shell: bash
+          env:
+              MESHCHATX_INSTALL_PYTHON: ${{ inputs.install-python }}
+              MESHCHATX_INSTALL_NODE: ${{ inputs.install-node }}
           run: bash scripts/ci/github-install-deps.sh
+
+        - name: Verify tree RSM
+          if: >-
+              inputs.skip_tree_verify != 'true' &&
+              inputs.install-python == 'true'
+          shell: bash
+          env:
+              RNS_REQUIRED_SIGNER: e46112d44649266d71fe2193e00a4710
+              RNS_INVENTORY_OUT: ${{ runner.temp }}/meshchatx-tree-inventory.txt
+          run: sh scripts/ci/verify-tree-rsm.sh
 
         - name: Setup Task
           if: inputs.install-task == 'true'

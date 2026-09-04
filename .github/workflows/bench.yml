@@ -1,4 +1,4 @@
-# Benchmarks and integrity checks (push to main branches and workflow_dispatch).
+# Benchmarks and integrity checks (path-filtered push to main branches and workflow_dispatch).
 # The suite runs 3 times; reported values are median-of-medians. A smart gate
 # (noise floor + absolute delta + adaptive ratio) decides regressions — flat
 # ratio alerts on sub-ms SQLite ops are useless on shared runners.
@@ -17,6 +17,16 @@ on:
         branches:
             - master
             - dev
+        paths:
+            - "meshchatx/**"
+            - "tests/backend/**"
+            - "uv.lock"
+            - "pyproject.toml"
+            - "Taskfile.yml"
+            - "scripts/ci/**"
+            - ".github/workflows/bench.yml"
+            - ".github/actions/setup-dev-environment/**"
+            - ".github/actions/setup-python-uv/**"
 
 concurrency:
     group: bench-${{ github.workflow }}-${{ github.ref }}
@@ -28,9 +38,7 @@ permissions:
 env:
     FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     PYTHON_VERSION: "3.14"
-    NODE_VERSION: "24"
     UV_VERSION: "0.11.15"
-    PNPM_VERSION: "11.1.2"
 
 jobs:
     bench:
@@ -54,18 +62,15 @@ jobs:
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
                   uv-version: ${{ env.UV_VERSION }}
-                  node-version: ${{ env.NODE_VERSION }}
-                  pnpm-version: ${{ env.PNPM_VERSION }}
+                  install-node: "false"
 
             - name: Restore benchmark baseline cache
               uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
               with:
                   path: ./cache
-                  key: ${{ runner.os }}-bench-baseline-v2-${{ github.ref_name }}-${{ github.sha }}
+                  key: ${{ runner.os }}-bench-baseline-v2-${{ github.ref_name }}
                   restore-keys: |
-                      ${{ runner.os }}-bench-baseline-v2-${{ github.ref_name }}-
-                      ${{ runner.os }}-bench-baseline-v2-
-                      ${{ runner.os }}-bench-baseline-
+                      ${{ runner.os }}-bench-baseline-v2-${{ github.ref_name }}
 
             - name: Run benchmarks (3 suite runs, median of medians)
               run: |

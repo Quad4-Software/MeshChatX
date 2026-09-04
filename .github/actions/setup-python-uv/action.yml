@@ -31,14 +31,6 @@ runs:
           uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
           with:
               path: ~/.cache/uv
-              key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
+              key: uv-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('uv.lock') }}
               restore-keys: |
-                  ${{ runner.os }}-uv-
-
-        - name: Cache project virtualenv
-          uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-          with:
-              path: .venv
-              key: venv-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('uv.lock', 'pyproject.toml') }}
-              restore-keys: |
-                  venv-${{ runner.os }}-${{ runner.arch }}-
+                  uv-${{ runner.os }}-${{ runner.arch }}-
