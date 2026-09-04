@@ -32,8 +32,8 @@ chore: bump version to 4.8.6 and refresh lockfiles
 
 ## Validation
 
-- **commit-msg hook**: `task hooks:install` then every `git commit` is checked by commitlint
-- **manual**: `pnpm exec commitlint --from origin/master --to HEAD`
+- **commit-msg hook**: `task hooks:install` then every `git commit` is checked by commitlint (local binary, merge/revert skipped)
+- **manual**: `task check:commits` or `./node_modules/.bin/commitlint --from origin/master --to HEAD`
 - **CI**: `task check:commits` on pull requests
 
 Skip locally when you must: `SKIP=commitlint git commit` or `SKIP_COMMITLINT=1`.

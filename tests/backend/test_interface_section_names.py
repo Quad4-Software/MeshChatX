@@ -5,8 +5,6 @@
 from __future__ import annotations
 
 import json
-import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -28,42 +26,36 @@ def test_sanitize_interface_section_name_strips_brackets():
     assert InterfaceEditor.sanitize_interface_section_name(None) == ""
 
 
-def test_configobj_write_succeeds_but_reload_fails_for_brackets():
+def test_configobj_write_succeeds_but_reload_fails_for_brackets(tmp_path):
     """RNS ConfigObj writes bracket section names, then NestingError on reload."""
-    path = Path(tempfile.mktemp(suffix=".cfg"))
-    try:
-        cfg = ConfigObj(str(path))
-        cfg["interfaces"] = {}
-        cfg["interfaces"]["MSK SZAO [HaLow Bridge]"] = {
-            "type": "TCPClientInterface",
-            "target_host": "example.com",
-            "target_port": "4242",
-        }
-        cfg.write()
-        with pytest.raises(Exception):
-            ConfigObj(str(path))
-    finally:
-        path.unlink(missing_ok=True)
+    path = tmp_path / "brackets.cfg"
+    cfg = ConfigObj(str(path))
+    cfg["interfaces"] = {}
+    cfg["interfaces"]["MSK SZAO [HaLow Bridge]"] = {
+        "type": "TCPClientInterface",
+        "target_host": "example.com",
+        "target_port": "4242",
+    }
+    cfg.write()
+    with pytest.raises(Exception):
+        ConfigObj(str(path))
 
 
-def test_configobj_accepts_sanitized_section_names():
-    path = Path(tempfile.mktemp(suffix=".cfg"))
-    try:
-        name = InterfaceEditor.sanitize_interface_section_name(
-            "MSK SZAO [HaLow Bridge]",
-        )
-        cfg = ConfigObj(str(path))
-        cfg["interfaces"] = {}
-        cfg["interfaces"][name] = {
-            "type": "TCPClientInterface",
-            "target_host": "example.com",
-            "target_port": "4242",
-        }
-        cfg.write()
-        reloaded = ConfigObj(str(path))
-        assert name in reloaded["interfaces"]
-    finally:
-        path.unlink(missing_ok=True)
+def test_configobj_accepts_sanitized_section_names(tmp_path):
+    path = tmp_path / "sanitized.cfg"
+    name = InterfaceEditor.sanitize_interface_section_name(
+        "MSK SZAO [HaLow Bridge]",
+    )
+    cfg = ConfigObj(str(path))
+    cfg["interfaces"] = {}
+    cfg["interfaces"][name] = {
+        "type": "TCPClientInterface",
+        "target_host": "example.com",
+        "target_port": "4242",
+    }
+    cfg.write()
+    reloaded = ConfigObj(str(path))
+    assert name in reloaded["interfaces"]
 
 
 def test_community_manager_normalizes_bracket_names(tmp_path):

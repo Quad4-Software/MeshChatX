@@ -12,13 +12,51 @@ export const TILE_PROVIDER_URLS = {
     "carto-light": "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
 };
 
+/**
+ * Parse tile template URLs for hostname and pathname.
+ * Leaflet placeholders like {z} are replaced so URL() accepts the string.
+ * @param {string} tileServerUrl
+ * @returns {{ host: string, path: string }}
+ */
+function tileUrlParts(tileServerUrl) {
+    const raw = String(tileServerUrl || "").trim();
+    if (!raw) {
+        return { host: "", path: "" };
+    }
+    try {
+        const normalized = raw.replace(/\{[^}]+\}/g, "0");
+        const parsed = new URL(normalized);
+        return {
+            host: String(parsed.hostname || "").toLowerCase(),
+            path: String(parsed.pathname || "").toLowerCase(),
+        };
+    } catch {
+        return { host: "", path: "" };
+    }
+}
+
 export function detectRasterTileProviderId(tileServerUrl) {
-    const u = (tileServerUrl || "").toLowerCase();
-    if (u.includes("tiles.openfreemap.org")) return "openfreemap";
-    if (u.includes("openstreetmap.org")) return "osm";
-    if (u.includes("basemaps.cartocdn.com/dark_all")) return "carto-dark";
-    if (u.includes("rastertiles/voyager")) return "carto-voyager";
-    if (u.includes("basemaps.cartocdn.com/light_all")) return "carto-light";
+    const { host, path } = tileUrlParts(tileServerUrl);
+    if (!host) {
+        return null;
+    }
+    if (host === "tiles.openfreemap.org") {
+        return "openfreemap";
+    }
+    if (host === "tile.openstreetmap.org" || host.endsWith(".openstreetmap.org")) {
+        return "osm";
+    }
+    if (host === "basemaps.cartocdn.com") {
+        if (path.includes("/dark_all")) {
+            return "carto-dark";
+        }
+        if (path.includes("/rastertiles/voyager")) {
+            return "carto-voyager";
+        }
+        if (path.includes("/light_all")) {
+            return "carto-light";
+        }
+    }
     return null;
 }
 

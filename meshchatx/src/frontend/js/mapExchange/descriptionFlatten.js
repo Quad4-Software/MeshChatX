@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
 const NULLISH_RE = /^(?:&lt;null&gt;|<null>|null|n\/?a|undefined|none|-)$/i;
-const SCRIPT_STYLE_RE = /<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi;
 const TABLE_ROW_RE = /<tr\b[^>]*>([\s\S]*?)<\/tr\s*>/gi;
 const CELL_RE = /<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]\s*>/gi;
 const BLOCK_BREAK_RE = /<\/(?:p|div|li|h[1-6]|br|tr)\s*>/gi;
@@ -62,6 +61,25 @@ function decodeBasicEntities(html) {
 }
 
 /**
+ * Drop script and style nodes before flattening to plain text.
+ * Uses the DOM when available so nested or malformed tags are not left behind
+ * by a single-pass regex replace.
+ * @param {string} html
+ * @returns {string}
+ */
+function dropScriptAndStyle(html) {
+    const s = String(html || "");
+    if (!s || typeof DOMParser === "undefined") {
+        return s;
+    }
+    const doc = new DOMParser().parseFromString(s, "text/html");
+    for (const el of doc.querySelectorAll("script, style")) {
+        el.remove();
+    }
+    return doc.body ? doc.body.innerHTML : s;
+}
+
+/**
  * @param {string} cellHtml
  * @returns {string}
  */
@@ -72,6 +90,7 @@ function cellPlain(cellHtml) {
 /**
  * Turn ArcGIS / balloon HTML descriptions into readable plain text.
  * Drops script and style blocks. Prefer table rows as "Key: Value" lines.
+ * Output is plain text (callers XML-escape when writing markup).
  * @param {string} html
  * @returns {string}
  */
@@ -80,7 +99,7 @@ export function flattenHtmlDescription(html) {
     if (!s.trim()) {
         return "";
     }
-    s = s.replace(SCRIPT_STYLE_RE, "");
+    s = dropScriptAndStyle(s);
     const rows = [];
     s.replace(TABLE_ROW_RE, (_full, rowInner) => {
         const cells = [];

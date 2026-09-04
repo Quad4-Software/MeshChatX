@@ -886,7 +886,7 @@ tasks:
     check:commits:
         desc: Validate commit messages (COMMITLINT_FROM defaults to origin/master)
         cmds:
-            - "{{.NPM}} exec commitlint --from ${COMMITLINT_FROM:-origin/master} --to HEAD"
+            - ./node_modules/.bin/commitlint --from ${COMMITLINT_FROM:-origin/master} --to HEAD
 
     tree-workspace-clean:
         desc: Recheck inventory (warn by default, RNS_TREE_VERIFY_STRICT=1 to fail)
