@@ -2,7 +2,7 @@ import { reactive } from "vue";
 
 // global state
 const globalState = reactive({
-    authSessionResolved: true,
+    authSessionResolved: false,
     authEnabled: false,
     isLoopbackBind: true,
     authenticated: false,

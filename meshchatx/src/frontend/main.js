@@ -334,8 +334,10 @@ pluginHost.attachRouter(router);
 
 window.api = createApiClient({
     onAuthError() {
+        GlobalState.authenticated = false;
+        GlobalState.authEnabled = true;
+        GlobalState.authSessionResolved = true;
         if (router.currentRoute.value.name !== "auth") {
-            GlobalState.authenticated = false;
             router.push("/auth");
         }
     },
