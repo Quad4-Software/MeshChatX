@@ -34,6 +34,22 @@ on:
         branches:
             - master
             - dev
+        # Branch pushes rebuild only when image inputs change. Tag pushes still
+        # run (GitHub does not apply path filters to tag pushes the same way).
+        paths:
+            - "Dockerfile"
+            - "Dockerfile.hardened"
+            - "Dockerfile.build"
+            - "meshchatx/**"
+            - "package.json"
+            - "pnpm-lock.yaml"
+            - "uv.lock"
+            - "pyproject.toml"
+            - "scripts/ci/docker-*.sh"
+            - "scripts/ci/verify-package-contents.sh"
+            - "scripts/ci/verify-package-contents-smoke.sh"
+            - ".github/workflows/docker.yml"
+            - ".github/workflows/frontend-build.yml"
         tags:
             - "*"
 
@@ -232,8 +248,8 @@ jobs:
                   platforms: linux/amd64,linux/arm64
                   push: true
                   tags: ${{ steps.all_tags.outputs.tags }}
-                  cache-from: type=gha,scope=${{ matrix.variant }}-${{ hashFiles('Dockerfile', 'Dockerfile.hardened', 'pnpm-lock.yaml', 'uv.lock') }}
-                  cache-to: type=gha,mode=max,scope=${{ matrix.variant }}-${{ hashFiles('Dockerfile', 'Dockerfile.hardened', 'pnpm-lock.yaml', 'uv.lock') }}
+                  cache-from: type=gha,scope=${{ matrix.variant }}
+                  cache-to: type=gha,mode=max,scope=${{ matrix.variant }}
                   build-args: |
                       OCI_REVISION=${{ github.sha }}
                       OCI_VERSION=${{ steps.oci.outputs.version }}

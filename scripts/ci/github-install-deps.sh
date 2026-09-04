@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# Install Python (UV) and Node (pnpm) dependencies for native Electron builds.
+# Install Python (UV) and/or Node (pnpm) dependencies for CI and native builds.
+#
+# Env (default true):
+#   MESHCHATX_INSTALL_PYTHON  sync the project virtualenv and system libs it needs
+#   MESHCHATX_INSTALL_NODE    pnpm install --frozen-lockfile
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -10,45 +14,49 @@ cd "$ROOT"
 
 export GIT_TERMINAL_PROMPT=0
 
-if [[ "$(uname -s)" == "Darwin" ]]; then
-    brew install codec2
-    _codec2_prefix="$(brew --prefix codec2)"
-    export CPPFLAGS="${CPPFLAGS:-} -I${_codec2_prefix}/include"
-    export LDFLAGS="${LDFLAGS:-} -L${_codec2_prefix}/lib"
-    if [[ -d "${_codec2_prefix}/lib/pkgconfig" ]]; then
-        export PKG_CONFIG_PATH="${_codec2_prefix}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+INSTALL_PYTHON="${MESHCHATX_INSTALL_PYTHON:-true}"
+INSTALL_NODE="${MESHCHATX_INSTALL_NODE:-true}"
+
+if [[ "$INSTALL_PYTHON" == "true" ]]; then
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        brew install codec2
+        _codec2_prefix="$(brew --prefix codec2)"
+        export CPPFLAGS="${CPPFLAGS:-} -I${_codec2_prefix}/include"
+        export LDFLAGS="${LDFLAGS:-} -L${_codec2_prefix}/lib"
+        if [[ -d "${_codec2_prefix}/lib/pkgconfig" ]]; then
+            export PKG_CONFIG_PATH="${_codec2_prefix}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+        fi
     fi
-fi
 
-# LXST/pyogg loads libopus (and libogg for Ogg muxing) at runtime. GitHub-hosted
-# Linux runners do not ship these by default, so backend Opus encode tests fail
-# with PyOggError until the shared libraries are present.
-if [[ "$(uname -s)" == "Linux" ]] && command -v apt-get >/dev/null 2>&1; then
-    run_priv apt-get update -y
-    run_priv apt-get install -y libopus0 libogg0
-fi
+    # LXST/pyogg loads libopus (and libogg for Ogg muxing) at runtime. GitHub-hosted
+    # Linux runners do not ship these by default, so backend Opus encode tests fail
+    # with PyOggError until the shared libraries are present.
+    if [[ "$(uname -s)" == "Linux" ]] && command -v apt-get >/dev/null 2>&1; then
+        run_priv apt-get update -y
+        run_priv apt-get install -y libopus0 libogg0
+    fi
 
-uv lock --check
-uv sync --group dev
-uv run python scripts/patch_lxst_pyogg_ogg_ctypes.py
-uv run python scripts/patch_lxst_codec2_optional.py
+    uv lock --check
+    uv sync --group dev
+    uv run python scripts/patch_lxst_pyogg_ogg_ctypes.py
+    uv run python scripts/patch_lxst_codec2_optional.py
 
-if [[ "$(uname -s)" == "Darwin" ]]; then
-    uv run python -c "
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        uv run python -c "
 import numpy
 from numpy._core._multiarray_umath import _add_newdoc_ufunc
 print('arm64 venv numpy', numpy.__version__, 'ok')
 "
-    # The published macOS wheel bundles libcodec2 under pycodec2/.dylibs/. Flatten
-    # it to pycodec2/libcodec2.dylib so this tree's relative layout matches the
-    # darwin-x64 slice built in scripts/ci/github-install-macos-x64-python-deps.sh,
-    # which scripts/unify-backend-plain-files.sh requires to merge the two trees.
-    bash "$(dirname "$0")/macos-normalize-pycodec2-dylib.sh" "${ROOT}/.venv/bin/python"
-fi
+        # The published macOS wheel bundles libcodec2 under pycodec2/.dylibs/. Flatten
+        # it to pycodec2/libcodec2.dylib so this tree's relative layout matches the
+        # darwin-x64 slice built in scripts/ci/github-install-macos-x64-python-deps.sh,
+        # which scripts/unify-backend-plain-files.sh requires to merge the two trees.
+        bash "$(dirname "$0")/macos-normalize-pycodec2-dylib.sh" "${ROOT}/.venv/bin/python"
+    fi
 
-if [[ "$(uname -s)" == "Darwin" ]]; then
-    if uv run python -c "import platform, sys; sys.exit(0 if platform.machine() == 'arm64' else 1)"; then
-        _miniaudio_state="$(uv run python -c "
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        if uv run python -c "import platform, sys; sys.exit(0 if platform.machine() == 'arm64' else 1)"; then
+            _miniaudio_state="$(uv run python -c "
 import importlib.util
 import pathlib
 import subprocess
@@ -74,28 +82,28 @@ elif has_arm and not has_x86:
 else:
     print('unknown')
 " 2>/dev/null || echo "missing")"
-        case "$_miniaudio_state" in
-            x86only)
-                echo "miniaudio _miniaudio.abi3.so is x86_64-only on arm64 venv; rebuilding from source." >&2
-                _need_rebuild=1
-                ;;
-            universal)
-                echo "miniaudio _miniaudio.abi3.so is universal2; rebuilding as arm64-only so @electron/universal can lipo with the x64 slice." >&2
-                _need_rebuild=1
-                ;;
-            *)
-                _need_rebuild=0
-                ;;
-        esac
-        if [[ "${_need_rebuild:-0}" == "1" ]]; then
-            (
-                export ARCHFLAGS="-arch arm64"
-                export CFLAGS="-arch arm64"
-                export CXXFLAGS="-arch arm64"
-                uv run python -m pip install --force-reinstall --no-cache-dir --no-binary miniaudio "miniaudio>=1.70,<2"
-            )
-        fi
-        if ! uv run python -c "
+            case "$_miniaudio_state" in
+                x86only)
+                    echo "miniaudio _miniaudio.abi3.so is x86_64-only on arm64 venv; rebuilding from source." >&2
+                    _need_rebuild=1
+                    ;;
+                universal)
+                    echo "miniaudio _miniaudio.abi3.so is universal2; rebuilding as arm64-only so @electron/universal can lipo with the x64 slice." >&2
+                    _need_rebuild=1
+                    ;;
+                *)
+                    _need_rebuild=0
+                    ;;
+            esac
+            if [[ "${_need_rebuild:-0}" == "1" ]]; then
+                (
+                    export ARCHFLAGS="-arch arm64"
+                    export CFLAGS="-arch arm64"
+                    export CXXFLAGS="-arch arm64"
+                    uv run python -m pip install --force-reinstall --no-cache-dir --no-binary miniaudio "miniaudio>=1.70,<2"
+                )
+            fi
+            if ! uv run python -c "
 import importlib.util
 import pathlib
 import subprocess
@@ -113,16 +121,24 @@ if 'arm64' not in out:
     sys.exit(1)
 sys.exit(0)
 "; then
-            if [[ "${MESHCHATX_MAC_UNIVERSAL_STRIP_AUDIO:-0}" == "1" ]]; then
-                echo "miniaudio native extension is not arm64-capable, but MESHCHATX_MAC_UNIVERSAL_STRIP_AUDIO=1 is set; continuing (the build will drop _miniaudio.abi3.so before lipo)." >&2
-            else
-                echo "miniaudio native extension is not arm64-capable; universal macOS builds will fail at lipo." >&2
-                echo "Re-run with MESHCHATX_MAC_UNIVERSAL_STRIP_AUDIO=1 to drop optional audio decoding for the DMG." >&2
-                exit 1
+                if [[ "${MESHCHATX_MAC_UNIVERSAL_STRIP_AUDIO:-0}" == "1" ]]; then
+                    echo "miniaudio native extension is not arm64-capable, but MESHCHATX_MAC_UNIVERSAL_STRIP_AUDIO=1 is set; continuing (the build will drop _miniaudio.abi3.so before lipo)." >&2
+                else
+                    echo "miniaudio native extension is not arm64-capable; universal macOS builds will fail at lipo." >&2
+                    echo "Re-run with MESHCHATX_MAC_UNIVERSAL_STRIP_AUDIO=1 to drop optional audio decoding for the DMG." >&2
+                    exit 1
+                fi
             fi
         fi
     fi
 fi
 
-pnpm config set verify-store-integrity true
-pnpm install --frozen-lockfile
+if [[ "$INSTALL_NODE" == "true" ]]; then
+    pnpm config set verify-store-integrity true
+    pnpm install --frozen-lockfile
+fi
+
+if [[ "$INSTALL_PYTHON" != "true" && "$INSTALL_NODE" != "true" ]]; then
+    echo "github-install-deps.sh: nothing to install (both MESHCHATX_INSTALL_PYTHON and MESHCHATX_INSTALL_NODE are false)" >&2
+    exit 1
+fi
