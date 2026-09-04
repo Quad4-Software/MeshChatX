@@ -31,9 +31,14 @@ jobs:
             commit_sha: ${{ steps.meta.outputs.commit_sha }}
             skip_release: ${{ steps.meta.outputs.skip_release }}
         steps:
+          - name: Harden runner
+            uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+            with:
+              egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
+                persist-credentials: false
                   ref: dev
                   fetch-depth: 0
 
@@ -76,9 +81,14 @@ jobs:
             contents: write
             actions: write
         steps:
+          - name: Harden runner
+            uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+            with:
+              egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
+                persist-credentials: false
                   ref: dev
                   fetch-depth: 0
 
@@ -123,8 +133,14 @@ jobs:
         permissions:
             contents: write
         steps:
+          - name: Harden runner
+            uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+            with:
+              egress-policy: audit
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+                with:
+                  persist-credentials: false
 
             - name: Keep newest Testing prereleases
               env:
