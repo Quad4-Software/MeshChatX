@@ -175,6 +175,9 @@ export default {
         marker: { type: Object, required: true },
         miniChatOpen: { type: Boolean, default: false },
         coordinateFormat: { type: String, default: "wgs84" },
+        geoWasmEpoch: { type: Number, default: 0 },
+        refLon: { type: Number, default: 0 },
+        refLat: { type: Number, default: 0 },
     },
     emits: ["close", "toggle-tracking", "toggle-mini-chat"],
     computed: {
@@ -189,9 +192,14 @@ export default {
             return loc;
         },
         formattedTelemetryCoords() {
+            void this.geoWasmEpoch;
             const loc = this.telemetryLocation;
             if (!loc) return "";
-            const res = formatCoordinate(loc.longitude, loc.latitude, this.coordinateFormat);
+            const res = formatCoordinate(loc.longitude, loc.latitude, this.coordinateFormat, {
+                hasRef: true,
+                refLat: this.refLat,
+                refLon: this.refLon,
+            });
             return res?.text || `${this.formatFixed(loc.latitude, 6)}, ${this.formatFixed(loc.longitude, 6)}`;
         },
     },
