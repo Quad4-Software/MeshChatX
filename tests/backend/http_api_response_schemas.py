@@ -486,6 +486,27 @@ MAP_OFFLINE_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+# Active MBTiles metadata (starter seed or user upload). Values are strings
+# because they come from the MBTiles metadata table.
+MAP_OFFLINE_METADATA_SCHEMA: dict = {
+    "type": "object",
+    "required": ["path"],
+    "properties": {
+        "path": _STRING,
+        "name": _STRING,
+        "format": _STRING,
+        "type": _STRING,
+        "version": _STRING,
+        "description": _STRING,
+        "attribution": _STRING,
+        "minzoom": _STRING,
+        "maxzoom": _STRING,
+        "bounds": _STRING,
+        "center": _STRING,
+    },
+    "additionalProperties": True,
+}
+
 MAP_MBTILES_SCHEMA: dict = {
     "type": "array",
     "items": _OBJECT,
