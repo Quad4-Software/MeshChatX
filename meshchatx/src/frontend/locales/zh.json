@@ -618,7 +618,12 @@
         "error_report_locally": "本地报告",
         "error_report_saved": "已保存到错误报告",
         "error_report_failed": "无法保存本地报告",
-        "error_details_heading": "技术详情"
+        "error_details_heading": "技术详情",
+        "map_coordinate_format": "Coordinate display format",
+        "map_coordinate_format_wgs84": "WGS84 (decimal degrees)",
+        "map_coordinate_format_utm": "UTM",
+        "map_coordinate_format_mgrs": "MGRS",
+        "map_coordinate_format_olc": "Plus Code"
     },
     "helptips": {
         "title_send_failed": "Things to try",
@@ -1818,7 +1823,25 @@
         "data_export_region": "Export region to MBTiles",
         "data_heard_hash": "Map node",
         "data_published_size": "{size}",
-        "data_unavailable": "Map data service is not ready"
+        "data_unavailable": "Map data service is not ready",
+        "online_sources": "Online sources",
+        "online_sources_hint": "Basemap styles and Nominatim need clearnet (or a local URL). Offline mode uses MBTiles.",
+        "search_placeholder_offline": "Paste WGS84, UTM, MGRS, or Plus Code...",
+        "search_offline_coord_hint": "Paste WGS84, UTM, MGRS, or a Plus Code. Place-name search needs online mode.",
+        "coordinate_format": "Format",
+        "coord_format_wgs84": "WGS84",
+        "coord_format_utm": "UTM",
+        "coord_format_mgrs": "MGRS",
+        "coord_format_olc": "Plus Code",
+        "coord_lat": "Lat",
+        "coord_lon": "Lon",
+        "geo_wasm_unavailable": "Advanced coordinate formats need the bundled geo WASM",
+        "offline_empty_hint": "No offline basemap is loaded. Restore the starter world tiles or upload an MBTiles file.",
+        "restore_starter_tiles": "Restore starter tiles",
+        "starter_attribution": "Starter tiles are a low-zoom (z0-z4) placeholder. Upload regional MBTiles for detail.",
+        "starter_restored": "Starter tiles restored",
+        "failed_restore_starter": "Failed to restore starter tiles",
+        "export_set_active_confirm": "Use the exported MBTiles as the offline basemap?"
     },
     "interface": {
         "disable": "禁用",
