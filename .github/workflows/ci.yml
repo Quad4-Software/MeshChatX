@@ -1,5 +1,5 @@
 # Primary CI: lint, tests, localization, Linux build check, E2E (master/dev).
-# Native Windows/macOS Electron builds live in native-build-dev.yml (path-filtered).
+# Native Windows/macOS Electron builds always run via native-build-dev.yml on dev.
 # Verify matrix steps delegate to Taskfile.yml (task lint, test:frontend, test:lang).
 # Live LXMF local-TCP suite: task test:lxmf:live (MESHCHAT_LIVE_RETICULUM=1).
 #

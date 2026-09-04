@@ -1,5 +1,6 @@
-# Native Electron builds for Windows and macOS on the dev branch.
-# Split from ci.yml so docs/agent-only changes skip the ~45m macOS critical path.
+# Native Electron builds for Windows and macOS on every push/PR to dev.
+# Kept separate from ci.yml so the main test suite can finish without waiting on
+# the macOS universal slice, while still always verifying both desktop targets.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
@@ -12,45 +13,9 @@ on:
     push:
         branches:
             - dev
-        paths:
-            - "meshchatx/**"
-            - "electron/**"
-            - "package.json"
-            - "pnpm-lock.yaml"
-            - "uv.lock"
-            - "pyproject.toml"
-            - "scripts/ci/github-build-windows.sh"
-            - "scripts/ci/github-build-macos.sh"
-            - "scripts/ci/github-install-deps.sh"
-            - "scripts/ci/github-install-macos-x64-python-deps.sh"
-            - "scripts/ci/github-ensure-macos-x86-64-homebrew.sh"
-            - "scripts/ci/github-macos-rust-x64-target.sh"
-            - "scripts/ci/macos-normalize-pycodec2-dylib.sh"
-            - "scripts/unify-backend-plain-files.sh"
-            - ".github/workflows/native-build-dev.yml"
-            - ".github/workflows/frontend-build.yml"
-            - ".github/actions/**"
     pull_request:
         branches:
             - dev
-        paths:
-            - "meshchatx/**"
-            - "electron/**"
-            - "package.json"
-            - "pnpm-lock.yaml"
-            - "uv.lock"
-            - "pyproject.toml"
-            - "scripts/ci/github-build-windows.sh"
-            - "scripts/ci/github-build-macos.sh"
-            - "scripts/ci/github-install-deps.sh"
-            - "scripts/ci/github-install-macos-x64-python-deps.sh"
-            - "scripts/ci/github-ensure-macos-x86-64-homebrew.sh"
-            - "scripts/ci/github-macos-rust-x64-target.sh"
-            - "scripts/ci/macos-normalize-pycodec2-dylib.sh"
-            - "scripts/unify-backend-plain-files.sh"
-            - ".github/workflows/native-build-dev.yml"
-            - ".github/workflows/frontend-build.yml"
-            - ".github/actions/**"
     workflow_dispatch:
 
 permissions:
@@ -130,8 +95,26 @@ jobs:
               with:
                   path: ~/.cache/electron-builder
                   key: electron-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
+
+            - name: Cache Cargo registry (macOS x64 rustc slices)
+              if: matrix.label == 'macos'
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: |
+                      ~/.cargo/registry
+                      ~/.cargo/git
+                  key: cargo-mac-x64-${{ hashFiles('uv.lock') }}
                   restore-keys: |
-                      electron-builder-${{ runner.os }}-${{ runner.arch }}-
+                      cargo-mac-x64-
+
+            - name: Cache macOS x64 Python env (universal cx_Freeze)
+              if: matrix.label == 'macos'
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: |
+                      .venv-x64
+                      .cache/uv/python
+                  key: venv-x64-${{ runner.os }}-${{ hashFiles('uv.lock', 'pyproject.toml', 'scripts/ci/github-install-macos-x64-python-deps.sh') }}
 
             - name: Install dependencies
               run: bash scripts/ci/github-install-deps.sh
