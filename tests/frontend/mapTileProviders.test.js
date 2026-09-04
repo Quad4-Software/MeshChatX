@@ -17,6 +17,10 @@ describe("mapTileProviders", () => {
     it("detects provider from URL", () => {
         expect(detectRasterTileProviderId("https://tiles.openfreemap.org/styles/bright")).toBe("openfreemap");
         expect(detectRasterTileProviderId("https://tile.openstreetmap.org/1/1/1.png")).toBe("osm");
+        expect(detectRasterTileProviderId("https://evil.example/tiles.openfreemap.org/x")).toBe(null);
+        expect(detectRasterTileProviderId("https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png")).toBe(
+            "carto-dark"
+        );
     });
 
     it("returns next provider not yet attempted", () => {
