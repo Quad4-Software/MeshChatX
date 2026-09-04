@@ -76,10 +76,6 @@ jobs:
                       oci_description: "MeshChatX all-in-one Reticulum client with i2pd and yggdrasil."
                       oci_licenses: "MIT AND 0BSD AND BSD-3-Clause AND LGPL-3.0-only"
         steps:
-          - name: Harden runner
-            uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
-            with:
-              egress-policy: audit
             - name: Verify action pins (GitHub API)
               env:
                   GH_TOKEN: ${{ github.token }}
@@ -116,8 +112,8 @@ jobs:
 
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
-                with:
-                  persist-credentials: false
+              with:
+                persist-credentials: false
 
             - name: OCI label timestamps and version
               id: oci
