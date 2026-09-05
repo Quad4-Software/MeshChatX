@@ -497,237 +497,313 @@
                 </div>
             </div>
 
-            <!-- Settings Navigation -->
-            <SettingsNav
-                activeTab={activeSettingsTab}
-                {matchCounts}
-                {isSearching}
-                {searchTabFilter}
-                {matchingSectionKeys}
-                onselecttab={onSelectTab}
-                onfiltertab={onFilterTab}
-            />
+            <!-- Settings Navigation + Sections -->
+            <div class="settings-panel">
+                <SettingsNav
+                    activeTab={activeSettingsTab}
+                    {matchCounts}
+                    {isSearching}
+                    onselecttab={onSelectTab}
+                />
 
-            <!-- Main Body: Sections -->
-            {#if !hasSearchResults}
-                <div class="py-12 text-center text-sem-fg-muted">
-                    <MaterialDesignIcon iconName="magnify-remove-outline" class="size-12 mx-auto mb-3 opacity-40" />
-                    <h3 class="text-lg font-semibold text-sem-fg">{t("settings.search_no_results")}</h3>
-                    <p class="mt-1 text-sm">{t("settings.search_no_match", { query: searchQuery })}</p>
-                    <button type="button" class="primary-chip mt-4 cursor-pointer" onclick={onClearSearch}>
-                        {t("settings.clear_search")}
-                    </button>
+                <div class="settings-panel__content">
+                    {#if !hasSearchResults}
+                        <div class="py-12 text-center text-sem-fg-muted">
+                            <MaterialDesignIcon
+                                iconName="magnify-remove-outline"
+                                class="size-12 mx-auto mb-3 opacity-40"
+                            />
+                            <h3 class="text-lg font-semibold text-sem-fg">{t("settings.search_no_results")}</h3>
+                            <p class="mt-1 text-sm">{t("settings.search_no_match", { query: searchQuery })}</p>
+                            <button type="button" class="primary-chip mt-4 cursor-pointer" onclick={onClearSearch}>
+                                {t("settings.clear_search")}
+                            </button>
+                        </div>
+                    {:else}
+                        <div class="space-y-0">
+                            <!-- General tab sections -->
+                            <LanguageSettingsSection
+                                visible={showSection("language")}
+                                language={config.language}
+                                onchange={onLanguageChange}
+                            />
+                            <AppearanceSettingsSection
+                                visible={showSection("appearance")}
+                                {config}
+                                detailedOutboundSendStatus={GlobalState.detailedOutboundSendStatus}
+                                outboundTransferProgressEnabled={GlobalState.outboundTransferProgressEnabled}
+                                messageTimestampGroupingEnabled={GlobalState.messageTimestampGroupingEnabled}
+                                onupdatefield={(d) => updateConfigField(d.key, d.value)}
+                                onresetappearancedefaults={resetAppearanceDefaults}
+                                ondetailedoutboundsendstatuschange={onDetailedOutboundSendStatusChange}
+                                onoutboundtransferprogressenabledchange={onOutboundTransferProgressEnabledChange}
+                                onmessagetimestampgroupingchange={onMessageTimestampGroupingChange}
+                            />
+                            <BatterySettingsSection visible={showSection("battery")} />
+                            <ExperimentalLiveSettingsSection
+                                visible={showSection("experimentalLive")}
+                                liveTransportMode={config.live_transport_mode}
+                                sidecarEnabled={Boolean(config.webtransport_sidecar_enabled)}
+                                onmodechange={(val) => updateConfigField("live_transport_mode", val)}
+                                onsidecarchange={(val) => updateConfigField("webtransport_sidecar_enabled", val)}
+                            />
+                            <DesktopSettingsSection
+                                visible={showSection("desktop")}
+                                {config}
+                                {desktopCloseSettings}
+                                onhardwareaccelerationchange={(val) =>
+                                    updateConfigField("desktop_hardware_acceleration_enabled", val)}
+                                ontrayenabledchange={onDesktopTrayEnabledChange}
+                                onclosebehaviorchange={onDesktopCloseBehaviorChange}
+                            />
+                            <AndroidSettingsSection visible={showSection("android")} />
+                            <ShortcutsSettingsSection visible={showSection("shortcuts")} />
+                            <LocationSettingsSection
+                                visible={showSection("location")}
+                                {config}
+                                onupdatefield={(d) => updateConfigField(d.key, d.value)}
+                            />
+
+                            <!-- Messages tab sections -->
+                            <StrangerProtectionSettingsSection
+                                visible={showSection("strangerProtection")}
+                                {config}
+                                onblockattachmentschange={(val) =>
+                                    updateConfigField("block_attachments_from_strangers", val)}
+                                onblockallchange={(val) => updateConfigField("block_all_from_strangers", val)}
+                                onunknownbannerchange={(val) => updateConfigField("show_unknown_contact_banner", val)}
+                                onwarnlinkschange={(val) => updateConfigField("warn_on_stranger_links", val)}
+                            />
+                            <MessagesSettingsSection
+                                visible={showSection("messages")}
+                                {config}
+                                {inboundStampsEnabled}
+                                onupdatefield={(d) => updateConfigField(d.key, d.value)}
+                                oninboundstampschange={onInboundStampsEnabledChange}
+                            />
+                            <NotificationSoundSettings
+                                showSection={showSection("notificationSounds")}
+                                {config}
+                                updateConfig={(patch) =>
+                                    Object.entries(patch).forEach(([k, v]) => updateConfigField(k, v))}
+                            />
+                            <PropagationSettingsSection
+                                visible={showSection("propagation")}
+                                {config}
+                                onupdatefield={(d) => updateConfigField(d.key, d.value)}
+                                onsavepreferredhash={savePreferredPropagationNodeHash}
+                                onclearpreferredhash={() => {
+                                    config.lxmf_preferred_propagation_node_destination_hash = "";
+                                    savePreferredPropagationNodeHash(true);
+                                }}
+                            />
+                            <StickersSettingsSection visible={showSection("stickers")} />
+                            <GifsSettingsSection visible={showSection("gifs")} />
+
+                            <!-- Network tab sections -->
+                            <TransportSettingsSection
+                                visible={showSection("transport")}
+                                {config}
+                                bind:reticulumInstance
+                                {reticulumInstanceSaving}
+                                onupdatefield={(d) => updateConfigField(d.key, d.value)}
+                                onupdatereticuluminstance={updateReticulumInstance}
+                                onsaveremotemanagementallowed={saveRemoteManagementAllowed}
+                            />
+                            <InterfacesSettingsSection
+                                visible={showSection("interfaces")}
+                                {config}
+                                onupdatefield={(d) => updateConfigField(d.key, d.value)}
+                            />
+                            <VisualiserSettingsSection
+                                visible={showSection("visualiser")}
+                                renderer={visualiserDisplayPrefs.renderer}
+                                viewMode={visualiserDisplayPrefs.viewMode}
+                                showDisabledInterfaces={visualiserDisplayPrefs.showDisabledInterfaces}
+                                showDiscoveredInterfaces={visualiserDisplayPrefs.showDiscoveredInterfaces}
+                                onrendererchange={onVisualiserRendererChange}
+                                onviewmodechange={onVisualiserViewModeChange}
+                                onshowdisabledchange={onVisualiserShowDisabledChange}
+                                onshowdiscoveredchange={onVisualiserShowDiscoveredChange}
+                            />
+                            <CrawlerSettingsSection
+                                visible={showSection("crawler")}
+                                {config}
+                                onupdatefield={(d) => updateConfigField(d.key, d.value)}
+                            />
+                            <NetworkSecuritySettingsSection
+                                visible={showSection("networkSecurity")}
+                                {config}
+                                onupdatefield={(d) => updateConfigField(d.key, d.value)}
+                            />
+                            <TelephonySettingsSection
+                                visible={showSection("telephony")}
+                                {config}
+                                onenabledchange={(val) => updateConfigField("telephone_enabled", val)}
+                            />
+
+                            <!-- Nomad tab sections -->
+                            <ArchiverSettingsSection
+                                visible={showSection("archiver")}
+                                {config}
+                                onenabledchange={(val) => updateConfigField("page_archiver_enabled", val)}
+                                onconfigchange={(patch) =>
+                                    Object.entries(patch).forEach(([k, v]) => updateConfigField(k, v))}
+                                onflush={flushArchivedPages}
+                            />
+                            <NomadRendererSettingsSection
+                                visible={showSection("nomadRenderer")}
+                                {config}
+                                micronWasmBundledInBuild={isWasmBundled}
+                                micronWasmReleaseLabel={micronReleaseLabel}
+                                onupdatefield={(d) => updateConfigField(d.key, d.value)}
+                                onopenmicronwasmmodal={() => (micronWasmUpdateModalOpen = true)}
+                            />
+
+                            <!-- Privacy tab sections -->
+                            <PrivacyDataSettingsSection
+                                visible={showSection("privacyData")}
+                                {config}
+                                {reticulumInstance}
+                                {reticulumInstanceSaving}
+                                {showWindowsScreenSecurity}
+                                bind:screenSecurityEnabled
+                                {screenSecuritySaving}
+                                {trustedTelemetryPeers}
+                                onupdatefield={(d) => updateConfigField(d.key, d.value)}
+                                onupdatereticuluminstance={updateReticulumInstance}
+                                onscreensecuritychange={onScreenSecurityChange}
+                                onrevoketelemetrypeer={revokeTelemetryTrust}
+                            />
+                            <BlockedSettingsSection visible={showSection("blocked")} />
+                            <BanishmentSettingsSection
+                                visible={showSection("banishment")}
+                                {config}
+                                onenabledchange={(val) => updateConfigField("banished_effect_enabled", val)}
+                                ontextchange={(val) => updateConfigField("banished_text", val)}
+                                oncolorchange={(val) => updateConfigField("banished_color", val)}
+                            />
+                            <AuthSettingsSection
+                                visible={showSection("auth")}
+                                {config}
+                                onauthenabledchange={(val) => updateConfigField("auth_enabled", val)}
+                            />
+                            <WebExposureSettingsSection
+                                visible={showSection("webExposure")}
+                                {serverSecurity}
+                                {exposureAckFirewall}
+                                {exposureAckVpn}
+                                onackfirewallchange={(val) => (exposureAckFirewall = val)}
+                                onackvpnchange={(val) => (exposureAckVpn = val)}
+                                onallowlistchange={(val) => {
+                                    serverSecurity.web_ui_ip_allowlist = val;
+                                    updateConfigField("web_ui_ip_allowlist", val);
+                                }}
+                            />
+                            <CspSettingsSection
+                                visible={showSection("csp")}
+                                {config}
+                                onupdatefield={(d) => updateConfigField(d.key, d.value)}
+                            />
+
+                            <!-- Maintenance tab sections -->
+                            <MaintenanceSettingsSection
+                                visible={showSection("maintenance")}
+                                {config}
+                                onupdatefield={(d) => updateConfigField(d.key, d.value)}
+                            />
+                            <SelftestSettingsSection visible={showSection("selftest")} />
+                            <InfrastructureSettingsSection
+                                visible={showSection("infrastructure")}
+                                {config}
+                                onupdatefield={(d) => updateConfigField(d.key, d.value)}
+                            />
+                            <ReticulumStackSettingsSection
+                                visible={showSection("maintenance")}
+                                {reloadingRns}
+                                {reloadRnsStatusMessage}
+                                onreloadrns={reloadRns}
+                            />
+
+                            <!-- Plugins tab sections -->
+                            <PluginsSettingsSection visible={showSection("plugins")} />
+                        </div>
+                    {/if}
                 </div>
-            {:else}
-                <div class="space-y-6">
-                    <!-- General tab sections -->
-                    <LanguageSettingsSection
-                        visible={showSection("language")}
-                        language={config.language}
-                        onchange={onLanguageChange}
-                    />
-                    <AppearanceSettingsSection
-                        visible={showSection("appearance")}
-                        {config}
-                        detailedOutboundSendStatus={GlobalState.detailedOutboundSendStatus}
-                        outboundTransferProgressEnabled={GlobalState.outboundTransferProgressEnabled}
-                        messageTimestampGroupingEnabled={GlobalState.messageTimestampGroupingEnabled}
-                        onupdatefield={(d) => updateConfigField(d.key, d.value)}
-                        onresetappearancedefaults={resetAppearanceDefaults}
-                        ondetailedoutboundsendstatuschange={onDetailedOutboundSendStatusChange}
-                        onoutboundtransferprogressenabledchange={onOutboundTransferProgressEnabledChange}
-                        onmessagetimestampgroupingchange={onMessageTimestampGroupingChange}
-                    />
-                    <BatterySettingsSection visible={showSection("battery")} />
-                    <ExperimentalLiveSettingsSection
-                        visible={showSection("experimentalLive")}
-                        liveTransportMode={config.live_transport_mode}
-                        sidecarEnabled={Boolean(config.webtransport_sidecar_enabled)}
-                        onmodechange={(val) => updateConfigField("live_transport_mode", val)}
-                        onsidecarchange={(val) => updateConfigField("webtransport_sidecar_enabled", val)}
-                    />
-                    <DesktopSettingsSection
-                        visible={showSection("desktop")}
-                        {config}
-                        {desktopCloseSettings}
-                        onhardwareaccelerationchange={(val) =>
-                            updateConfigField("desktop_hardware_acceleration_enabled", val)}
-                        ontrayenabledchange={onDesktopTrayEnabledChange}
-                        onclosebehaviorchange={onDesktopCloseBehaviorChange}
-                    />
-                    <AndroidSettingsSection visible={showSection("android")} />
-                    <ShortcutsSettingsSection visible={showSection("shortcuts")} />
-                    <LocationSettingsSection
-                        visible={showSection("location")}
-                        {config}
-                        onupdatefield={(d) => updateConfigField(d.key, d.value)}
-                    />
-
-                    <!-- Messages tab sections -->
-                    <StrangerProtectionSettingsSection
-                        visible={showSection("strangerProtection")}
-                        {config}
-                        onblockattachmentschange={(val) => updateConfigField("block_attachments_from_strangers", val)}
-                        onblockallchange={(val) => updateConfigField("block_all_from_strangers", val)}
-                        onunknownbannerchange={(val) => updateConfigField("show_unknown_contact_banner", val)}
-                        onwarnlinkschange={(val) => updateConfigField("warn_on_stranger_links", val)}
-                    />
-                    <MessagesSettingsSection
-                        visible={showSection("messages")}
-                        {config}
-                        {inboundStampsEnabled}
-                        onupdatefield={(d) => updateConfigField(d.key, d.value)}
-                        oninboundstampschange={onInboundStampsEnabledChange}
-                    />
-                    <NotificationSoundSettings
-                        showSection={showSection("notificationSounds")}
-                        {config}
-                        updateConfig={(patch) => Object.entries(patch).forEach(([k, v]) => updateConfigField(k, v))}
-                    />
-                    <PropagationSettingsSection
-                        visible={showSection("propagation")}
-                        {config}
-                        onupdatefield={(d) => updateConfigField(d.key, d.value)}
-                        onsavepreferredhash={savePreferredPropagationNodeHash}
-                        onclearpreferredhash={() => {
-                            config.lxmf_preferred_propagation_node_destination_hash = "";
-                            savePreferredPropagationNodeHash(true);
-                        }}
-                    />
-                    <StickersSettingsSection visible={showSection("stickers")} />
-                    <GifsSettingsSection visible={showSection("gifs")} />
-
-                    <!-- Network tab sections -->
-                    <TransportSettingsSection
-                        visible={showSection("transport")}
-                        {config}
-                        bind:reticulumInstance
-                        {reticulumInstanceSaving}
-                        onupdatefield={(d) => updateConfigField(d.key, d.value)}
-                        onupdatereticuluminstance={updateReticulumInstance}
-                        onsaveremotemanagementallowed={saveRemoteManagementAllowed}
-                    />
-                    <InterfacesSettingsSection
-                        visible={showSection("interfaces")}
-                        {config}
-                        onupdatefield={(d) => updateConfigField(d.key, d.value)}
-                    />
-                    <VisualiserSettingsSection
-                        visible={showSection("visualiser")}
-                        renderer={visualiserDisplayPrefs.renderer}
-                        viewMode={visualiserDisplayPrefs.viewMode}
-                        showDisabledInterfaces={visualiserDisplayPrefs.showDisabledInterfaces}
-                        showDiscoveredInterfaces={visualiserDisplayPrefs.showDiscoveredInterfaces}
-                        onrendererchange={onVisualiserRendererChange}
-                        onviewmodechange={onVisualiserViewModeChange}
-                        onshowdisabledchange={onVisualiserShowDisabledChange}
-                        onshowdiscoveredchange={onVisualiserShowDiscoveredChange}
-                    />
-                    <CrawlerSettingsSection
-                        visible={showSection("crawler")}
-                        {config}
-                        onupdatefield={(d) => updateConfigField(d.key, d.value)}
-                    />
-                    <NetworkSecuritySettingsSection
-                        visible={showSection("networkSecurity")}
-                        {config}
-                        onupdatefield={(d) => updateConfigField(d.key, d.value)}
-                    />
-                    <TelephonySettingsSection
-                        visible={showSection("telephony")}
-                        {config}
-                        onenabledchange={(val) => updateConfigField("telephone_enabled", val)}
-                    />
-
-                    <!-- Nomad tab sections -->
-                    <ArchiverSettingsSection
-                        visible={showSection("archiver")}
-                        {config}
-                        onenabledchange={(val) => updateConfigField("page_archiver_enabled", val)}
-                        onconfigchange={(patch) => Object.entries(patch).forEach(([k, v]) => updateConfigField(k, v))}
-                        onflush={flushArchivedPages}
-                    />
-                    <NomadRendererSettingsSection
-                        visible={showSection("nomadRenderer")}
-                        {config}
-                        micronWasmBundledInBuild={isWasmBundled}
-                        micronWasmReleaseLabel={micronReleaseLabel}
-                        onupdatefield={(d) => updateConfigField(d.key, d.value)}
-                        onopenmicronwasmmodal={() => (micronWasmUpdateModalOpen = true)}
-                    />
-
-                    <!-- Privacy tab sections -->
-                    <PrivacyDataSettingsSection
-                        visible={showSection("privacyData")}
-                        {config}
-                        {reticulumInstance}
-                        {reticulumInstanceSaving}
-                        {showWindowsScreenSecurity}
-                        bind:screenSecurityEnabled
-                        {screenSecuritySaving}
-                        {trustedTelemetryPeers}
-                        onupdatefield={(d) => updateConfigField(d.key, d.value)}
-                        onupdatereticuluminstance={updateReticulumInstance}
-                        onscreensecuritychange={onScreenSecurityChange}
-                        onrevoketelemetrypeer={revokeTelemetryTrust}
-                    />
-                    <BlockedSettingsSection visible={showSection("blocked")} />
-                    <BanishmentSettingsSection
-                        visible={showSection("banishment")}
-                        {config}
-                        onenabledchange={(val) => updateConfigField("banished_effect_enabled", val)}
-                        ontextchange={(val) => updateConfigField("banished_text", val)}
-                        oncolorchange={(val) => updateConfigField("banished_color", val)}
-                    />
-                    <AuthSettingsSection
-                        visible={showSection("auth")}
-                        {config}
-                        onauthenabledchange={(val) => updateConfigField("auth_enabled", val)}
-                    />
-                    <WebExposureSettingsSection
-                        visible={showSection("webExposure")}
-                        {serverSecurity}
-                        {exposureAckFirewall}
-                        {exposureAckVpn}
-                        onackfirewallchange={(val) => (exposureAckFirewall = val)}
-                        onackvpnchange={(val) => (exposureAckVpn = val)}
-                        onallowlistchange={(val) => {
-                            serverSecurity.web_ui_ip_allowlist = val;
-                            updateConfigField("web_ui_ip_allowlist", val);
-                        }}
-                    />
-                    <CspSettingsSection
-                        visible={showSection("csp")}
-                        {config}
-                        onupdatefield={(d) => updateConfigField(d.key, d.value)}
-                    />
-
-                    <!-- Maintenance tab sections -->
-                    <MaintenanceSettingsSection
-                        visible={showSection("maintenance")}
-                        {config}
-                        onupdatefield={(d) => updateConfigField(d.key, d.value)}
-                    />
-                    <SelftestSettingsSection visible={showSection("selftest")} />
-                    <InfrastructureSettingsSection
-                        visible={showSection("infrastructure")}
-                        {config}
-                        onupdatefield={(d) => updateConfigField(d.key, d.value)}
-                    />
-                    <ReticulumStackSettingsSection
-                        visible={showSection("maintenance")}
-                        {reloadingRns}
-                        {reloadRnsStatusMessage}
-                        onreloadrns={reloadRns}
-                    />
-
-                    <!-- Plugins tab sections -->
-                    <PluginsSettingsSection visible={showSection("plugins")} />
-                </div>
-            {/if}
+            </div>
         </div>
     </div>
 
     <!-- Modals -->
     <MicronWasmUpdateModal bind:open={micronWasmUpdateModalOpen} onsaved={onMicronWasmOverrideSaved} />
 </div>
+
+<style>
+    .settings-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    @media (min-width: 1024px) {
+        .settings-panel {
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 2rem;
+        }
+    }
+    .settings-panel__content {
+        flex: 1 1 0%;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    :global(.settings-section) {
+        width: 100%;
+        border-bottom: 1px solid var(--mc-border);
+        padding: 1.5rem 0;
+        display: flex;
+        flex-direction: column;
+        break-inside: avoid;
+    }
+    @media (min-width: 640px) {
+        :global(.settings-section) {
+            padding: 2rem 0;
+        }
+    }
+    :global(.settings-section__header) {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--mc-border);
+    }
+    :global(.settings-section__header h2) {
+        font-size: 1.125rem;
+        line-height: 1.75rem;
+        font-weight: 600;
+        color: var(--mc-text);
+    }
+    :global(.settings-section__header p) {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        color: var(--mc-text-muted);
+    }
+    :global(.settings-section__eyebrow) {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--mc-text-muted);
+    }
+    :global(.settings-section__body) {
+        padding-top: 1rem;
+        color: var(--mc-text);
+    }
+    .settings-panel__content :global(.settings-section:first-child) {
+        padding-top: 0;
+    }
+    .settings-panel__content :global(.settings-section:last-child) {
+        border-bottom-width: 0;
+    }
+</style>

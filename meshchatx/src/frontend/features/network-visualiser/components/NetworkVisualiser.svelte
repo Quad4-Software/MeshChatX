@@ -330,7 +330,7 @@
     });
 </script>
 
-<div class="flex-1 h-full min-w-0 relative dark:bg-zinc-950 overflow-hidden">
+<div class="flex-1 h-full min-h-0 min-w-0 relative dark:bg-zinc-950 overflow-hidden">
     <NetworkVisualiserViewport bind:networkContainer bind:webglCanvas {rendererMode} {hoverTooltip} />
 
     <NetworkVisualiserLoadingOverlay

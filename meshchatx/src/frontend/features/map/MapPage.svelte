@@ -32,7 +32,7 @@
     import TileCache from "../../js/TileCache.js";
     import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
     import { mapViewStateKey } from "../../js/mapStateKeys.js";
-    import { formatCoordinate } from "../../js/mapGeoCoords.js";
+    import { formatCoordinate, ensureGeoCoordsReady, parseCoordinateQuery } from "../../js/mapGeoCoords.js";
 
     import {
         createDrawingStyle,
@@ -171,7 +171,10 @@
         { type: "Text", icon: "format-text" },
     ];
 
-    let formattedDisplayCoords = $derived(formatCoordinate(centerCoords[1], centerCoords[0], coordinateFormat));
+    let formattedDisplayCoords = $derived(
+        formatCoordinate(centerCoords[0], centerCoords[1], coordinateFormat)?.text ||
+            `${Number(centerCoords[1]).toFixed(6)}, ${Number(centerCoords[0]).toFixed(6)}`
+    );
     let hasVectorDrawFeatures = $derived(Boolean(drawSource && drawSource.getFeatures().length > 0));
     let trackedPeersList = $derived(trackedHashes.map((h) => ({ destination_hash: h })));
     let contextMenuCoordRows = $derived(getContextMenuCoordRows(contextMenuMapCoord));
@@ -449,12 +452,38 @@
         isSearching = true;
         searchError = null;
         try {
+            await ensureGeoCoordsReady();
+            const parsed = parseCoordinateQuery(q.trim());
+            if (parsed?.ok && parsed.lat != null && parsed.lon != null) {
+                const label = `${parsed.kind || "coord"}: ${parsed.lat.toFixed(6)}, ${parsed.lon.toFixed(6)}`;
+                searchResults = [
+                    {
+                        display_name: label,
+                        lat: parsed.lat,
+                        lon: parsed.lon,
+                        type: parsed.kind || "coordinate",
+                    },
+                ];
+                if (map) {
+                    map.getView().animate({
+                        center: fromLonLat([parsed.lon, parsed.lat]),
+                        zoom: 12,
+                        duration: 600,
+                    });
+                }
+                return;
+            }
+            if (offlineEnabled) {
+                searchResults = [];
+                searchError = t("map.search_offline_coordinates_only");
+                return;
+            }
             const res = await fetch(`${nominatimApiUrl}?format=json&q=${encodeURIComponent(q)}&limit=5`);
             if (res.ok) {
                 searchResults = await res.json();
             }
         } catch (e: any) {
-            searchError = e.message || "Search failed";
+            searchError = e.message || t("map.search_error");
         } finally {
             isSearching = false;
         }
@@ -507,6 +536,7 @@
 
     onMount(async () => {
         initOpenLayers();
+        void ensureGeoCoordsReady();
         await loadSavedState();
         await reloadTelemetry();
         await loadMBTiles();
@@ -618,6 +648,10 @@
             displayCoords={centerCoords}
             {formattedDisplayCoords}
             {coordinateFormat}
+            oncoordinateformatchange={(fmt) => {
+                coordinateFormat = fmt;
+                saveState();
+            }}
             {settingsPanelPos}
             {isMobileScreen}
             onclose={() => (isSettingsOpen = false)}

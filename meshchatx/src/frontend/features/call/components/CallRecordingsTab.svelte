@@ -109,7 +109,7 @@
                         class="my-auto py-12"
                     />
                 {:else}
-                    <ul class="divide-y divide-sem-border-subtle">
+                    <ul class="divide-y divide-sem-border">
                         {#each recordings as recording (recording.id)}
                             <li class="px-4 py-4 hover:bg-sem-surface-muted/50 transition-colors">
                                 <div class="flex items-start space-x-4">

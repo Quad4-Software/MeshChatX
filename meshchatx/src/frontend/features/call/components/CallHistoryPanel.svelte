@@ -144,7 +144,7 @@
                 class="py-12"
             />
         {:else}
-            <ul class="divide-y divide-sem-border-subtle">
+            <ul class="divide-y divide-sem-border">
                 {#each callHistory as entry (entry.id)}
                     <li class="px-5 py-4 hover:bg-sem-surface-muted/50 transition-colors group">
                         <div class="flex items-center space-x-4">

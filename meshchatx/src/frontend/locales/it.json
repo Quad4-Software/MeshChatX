@@ -4558,6 +4558,7 @@
         "send_failed": "Invio del messaggio non riuscito",
         "action_failed": "Azione non riuscita",
         "room_required": "E richiesto un nome di stanza",
+        "tab_chat": "Chat",
         "tab_connect": "Connetti",
         "tab_host": "Ospita",
         "host_title": "Hub ospitati",

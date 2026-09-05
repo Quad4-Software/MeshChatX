@@ -49,8 +49,8 @@
 
     const statusChipClass = $derived(
         enabled
-            ? "inline-flex items-center rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-xs font-semibold"
-            : "inline-flex items-center rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-xs font-semibold"
+            ? "inline-flex items-center rounded-full bg-green-500/15 text-green-600 dark:text-green-400 px-2 py-0.5 text-xs font-semibold"
+            : "inline-flex items-center rounded-full bg-red-500/15 text-red-600 dark:text-red-400 px-2 py-0.5 text-xs font-semibold"
     );
 
     function isIfaceStatBytesZero(field: "txb" | "rxb"): boolean {
@@ -133,7 +133,11 @@
                     <div class="text-lg font-semibold text-sem-fg truncate min-w-0">
                         {iface._name}
                     </div>
-                    <span class="type-chip shrink-0">{iface.type}</span>
+                    <span
+                        class="inline-flex items-center rounded-full bg-sem-surface-muted px-2 py-0.5 text-xs font-semibold text-sem-fg shrink-0"
+                    >
+                        {iface.type}
+                    </span>
                     <span class="{statusChipClass} shrink-0">
                         {enabled ? t("app.enabled") : t("app.disabled")}
                     </span>
@@ -276,17 +280,13 @@
 <style>
     .interface-card {
         position: relative;
-        background-color: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(4px);
-        border: 1px solid var(--sem-border, #e5e7eb);
+        background-color: var(--mc-surface);
+        border: 1px solid var(--mc-border-card);
         border-radius: 1.5rem;
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         padding: 1rem;
         min-width: 0;
         overflow: visible;
-    }
-    :global(.dark) .interface-card {
-        background-color: rgba(24, 24, 27, 0.85);
     }
     .interface-card:hover {
         z-index: 10;
@@ -295,34 +295,17 @@
         width: 3rem;
         height: 3rem;
         border-radius: 1rem;
-        background-color: rgb(239 246 255);
-        color: rgb(37 99 235);
+        background-color: color-mix(in srgb, var(--mc-accent) 15%, transparent);
+        color: var(--mc-accent);
         display: flex;
         align-items: center;
         justify-content: center;
-    }
-    :global(.dark) .interface-card__icon {
-        background-color: rgba(30, 58, 138, 0.4);
-        color: rgb(191 219 254);
-    }
-    .type-chip {
-        display: inline-flex;
-        align-items: center;
-        border-radius: 9999px;
-        background-color: var(--sem-surface-muted, #f3f4f6);
-        padding: 0.125rem 0.5rem;
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: rgb(75 85 99);
-    }
-    :global(.dark) .type-chip {
-        color: rgb(229 231 235);
     }
     .stat-chip {
         display: inline-flex;
         align-items: center;
         border-radius: 9999px;
-        border: 1px solid var(--sem-border, #e5e7eb);
+        border: 1px solid var(--mc-border);
         padding: 0.125rem 0.5rem;
     }
     .stat-chip--zero-traffic {

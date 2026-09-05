@@ -48,6 +48,17 @@
         }
     });
 
+    $effect(() => {
+        if (settingsMgmtIdentityHash) {
+            const current = remoteManagementAllowedText.trim();
+            const lines = current ? current.split("\n").map((s) => s.trim()) : [];
+            if (!lines.includes(settingsMgmtIdentityHash)) {
+                lines.push(settingsMgmtIdentityHash);
+                remoteManagementAllowedText = lines.join("\n");
+            }
+        }
+    });
+
     const displayedRpcConfigSnippet = $derived.by(() => {
         const snippet = reticulumInstance?.rpc_config_snippet;
         if (!snippet) {
@@ -58,18 +69,6 @@
         }
         return snippet.replace(/(rpc_key\s*=\s*)([^\r\n]+)/g, "$1••••••••••••••••");
     });
-
-    function onSettingsMgmtIdentityHash(hash: string) {
-        settingsMgmtIdentityHash = hash;
-        if (hash) {
-            const current = remoteManagementAllowedText.trim();
-            const lines = current ? current.split("\n").map((s) => s.trim()) : [];
-            if (!lines.includes(hash)) {
-                lines.push(hash);
-                remoteManagementAllowedText = lines.join("\n");
-            }
-        }
-    }
 
     function handleSaveRemoteManagementAllowed() {
         const allowed = remoteManagementAllowedText
@@ -174,6 +173,7 @@
                         </button>
                         <ManagementIdentityPicker
                             bind:value={settingsMgmtIdentityPath}
+                            bind:identityHash={settingsMgmtIdentityHash}
                             class="min-w-[16rem] flex-1"
                             defaultName="mgmt"
                             onloaded={() => {}}

@@ -3680,6 +3680,7 @@
         "send_failed": "Viestin lähetys epäonnistui",
         "action_failed": "Toiminto epäonnistui",
         "room_required": "Huoneen nimi vaaditaan",
+        "tab_chat": "Chat",
         "tab_connect": "Yhdistä",
         "tab_host": "Isännöi",
         "host_title": "Isännöidyt keskukset",

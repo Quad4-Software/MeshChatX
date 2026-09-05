@@ -18,12 +18,16 @@
     }: Props = $props();
 </script>
 
-<div bind:this={networkContainer} id="network" class="w-full h-full {rendererMode === 'webgl' ? 'hidden' : ''}"></div>
+<div
+    bind:this={networkContainer}
+    id="network"
+    class="absolute inset-0 w-full h-full min-h-0 {rendererMode === 'webgl' ? 'hidden' : ''}"
+></div>
 
 <canvas
     bind:this={webglCanvas}
     id="network-webgl"
-    class="w-full h-full absolute inset-0 {rendererMode !== 'webgl' ? 'hidden' : ''}"
+    class="absolute inset-0 w-full h-full min-h-0 {rendererMode !== 'webgl' ? 'hidden' : ''}"
 ></canvas>
 
 {#if rendererMode === "webgl" && hoverTooltip}
