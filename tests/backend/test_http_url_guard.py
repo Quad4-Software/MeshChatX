@@ -156,3 +156,32 @@ def test_normalize_libretranslate_rejects_encoded_crlf_in_host():
         normalize_libretranslate_http_service_base(
             "http://127.0.0.1%0d%0a.evil.com:80/",
         )
+
+
+def test_oracle_h5_hostname_resolving_to_link_local_rejected(monkeypatch):
+    """H5: hostname that DNS-maps to link-local metadata must be rejected."""
+    import socket
+
+    def fake_getaddrinfo(host, *args, **kwargs):
+        assert host == "metadata.internal"
+        return [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("169.254.169.254", 0)),
+        ]
+
+    monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo)
+    with pytest.raises(UnsafeOutboundUrlError, match="link-local"):
+        normalize_libretranslate_http_service_base("http://metadata.internal/")
+
+
+def test_oracle_h5_hostname_resolving_to_public_ip_allowed(monkeypatch):
+    import socket
+
+    def fake_getaddrinfo(host, *args, **kwargs):
+        return [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 0)),
+        ]
+
+    monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo)
+    assert normalize_libretranslate_http_service_base("http://example.com:5000/") == (
+        "http://example.com:5000"
+    )

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Identity and bot key exports must be POST so CSRF middleware applies."""
+"""Identity, bot key, and database backup exports must be POST so CSRF applies."""
 
 
 def _handler(app, method: str, path: str):
@@ -16,6 +16,7 @@ def test_identity_and_bot_key_exports_are_post_not_get(mock_app):
         "/api/v1/identity/backup/download",
         "/api/v1/identity/backup/base32",
         "/api/v1/bots/export",
+        "/api/v1/database/backup/download",
     ]
     for path in mutators:
         assert _handler(mock_app, "POST", path) is not None, path

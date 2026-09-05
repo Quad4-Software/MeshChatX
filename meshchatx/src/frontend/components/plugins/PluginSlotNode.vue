@@ -279,7 +279,7 @@
         v-else-if="node.type === 'html-frame' && allowHtmlFrame"
         :plugin-id="pluginId"
         :frame-id="node.id || ''"
-        :src="safeImageSrc || node.src || ''"
+        :src="safeImageSrc"
         :srcdoc="node.srcdoc || ''"
         :title="node.title || ''"
         :min-height="node.minHeight || '12rem'"

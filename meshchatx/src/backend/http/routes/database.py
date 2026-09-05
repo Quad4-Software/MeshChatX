@@ -465,8 +465,9 @@ def register_database_routes(routes, app):
                 status=500,
             )
 
-    @routes.get("/api/v1/database/backup/download")
+    @routes.post("/api/v1/database/backup/download")
     async def database_backup_download(request):
+        # POST so CSRF middleware applies. Creating a zip is state-changing.
         try:
             backup_info = app.database.backup_database(app.storage_path)
             file_path = backup_info["path"]
