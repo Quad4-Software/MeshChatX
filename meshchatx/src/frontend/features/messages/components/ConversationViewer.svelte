@@ -1,4 +1,4 @@
-<!-- SPDX-License-Identifier: 0BSD AND MIT -->
+<!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
     import "../lib/conversationViewerGlobals.js";
@@ -11,7 +11,6 @@
     import ToastUtils from "../../../js/ToastUtils.js";
     import WebSocketConnection from "../../../js/WebSocketConnection.js";
     import { copyTextToClipboard } from "../../../js/clipboardUtils.js";
-    import { LXMF_REACTION_EMOJIS } from "../../../js/lxmfReactions.js";
     import { createOutboundQueue } from "../../../js/outboundSendQueue.js";
     import { offWsEvent, onWsEvent } from "../../../js/registries/wsEventRegistry.js";
     import { t } from "../../../js/i18n.js";
@@ -20,12 +19,8 @@
     import type { MessageDisplayEntry } from "./ConversationMessageEntry.svelte";
     import ConversationViewerListPane from "./ConversationViewerListPane.svelte";
     import ConversationViewerComposerHost from "./ConversationViewerComposerHost.svelte";
-    import ConversationViewerModalsHost from "./ConversationViewerModalsHost.svelte";
+    import ConversationViewerModalsBridge from "./ConversationViewerModalsBridge.svelte";
     import { loadTranslatorLanguages, translateText, type LangOption } from "../lib/conversationTranslate.js";
-    import {
-        lxmfContactResolvedIcon,
-        lxmfDeliveryDestinationHexFromContact,
-    } from "../lib/lxmf/contactDisplay.js";
     import {
         deleteWsMessage,
         fetchConversationPage,
@@ -52,6 +47,15 @@
     import { buildDisplayGroupsNewestFirst } from "../lib/conversationDisplayGroups.js";
     import { isNearBottom, scrollContainerToBottom, shouldLoadPreviousMessages } from "../lib/conversationScroll.js";
     import { createConversationViewerActions } from "../lib/conversationViewerActions.js";
+    import { latestConversationCards, buildAudioAttachmentUrlMap } from "../lib/conversationViewerUi.js";
+    import {
+        openContextMenu as openContextMenuFn,
+        toggleChatItemActions as toggleChatItemActionsFn,
+        replyToMessage as replyToMessageFn,
+        showRawMessage as showRawMessageFn,
+        openReactionPicker as openReactionPickerFn,
+        scrollToMessage as scrollToMessageFn,
+    } from "../lib/conversationViewerShellHandlers.js";
     import {
         sendReactionToMessage,
         deleteMessageItem,
@@ -74,6 +78,8 @@
         buildComposeAddressSuggestions,
         formatTimeAgo,
         isPeerBlockedInState,
+        prepareOpenConversationState,
+        runLoadPreviousPage,
     } from "../lib/conversationViewerSession.js";
     import {
         initialImageLightboxState,
@@ -138,14 +144,11 @@
         chatItem: null as ViewerChatItem | null,
         working: false,
     });
-    let bubbleShowOriginal = $state.raw<Record<string, boolean>>({});
     let reactionPicker = $state({
         open: false,
         style: "",
         chatItem: null as ViewerChatItem | null,
     });
-    let emojiPickerDataUrl = $state("");
-    let emojiPickerThemeClass = $state("");
     let peerPathSnapshot = $state<ViewerPathSnapshot | null>(null);
     let peerPathLoading = $state(false);
     let peerPathWarming = $state(false);
@@ -200,14 +203,7 @@
             conversations,
             myLxmfAddressHash,
             messageFontSize: Number(config?.message_font_size) || 14,
-            audioAttachmentUrls: Object.fromEntries(
-                selectedMessages
-                    .filter((item) => item.lxmf_message.hash && item.lxmf_message.fields?.audio)
-                    .map((item) => [
-                        String(item.lxmf_message.hash),
-                        `/api/v1/lxmf-messages/attachment/${item.lxmf_message.hash}/audio`,
-                    ])
-            ),
+            audioAttachmentUrls: buildAudioAttachmentUrlMap(selectedMessages),
             openImage,
             onMessageContextMenu: (event, item, suppressToggle) =>
                 openContextMenu(event, item as ViewerChatItem, suppressToggle),
@@ -232,6 +228,24 @@
             downloadMessageImage,
             downloadLxmfFileAttachment: (item, index, name) => downloadFile(item as ViewerChatItem, index, name),
             addContact: addSharedContact,
+            onupdatePeerTracking,
+            onSetBubbleMessageShowOriginal: (hash, showOriginal) => {
+                chatItems = chatItems.map((candidate) =>
+                    candidate.lxmf_message.hash === hash
+                        ? {
+                              ...candidate,
+                              lxmf_message: {
+                                  ...candidate.lxmf_message,
+                                  _translation: {
+                                      ...(candidate.lxmf_message as { _translation?: Record<string, unknown> })
+                                          ._translation,
+                                      showOriginal,
+                                  },
+                              },
+                          }
+                        : candidate
+                );
+            },
         })
     );
     const groupsNewestFirst = $derived(
@@ -246,19 +260,7 @@
             (item) => item.is_outbound && ["failed", "cancelled"].includes(String(item.lxmf_message.state || ""))
         )
     );
-    const latestConversations = $derived(
-        conversations
-            .filter((conversation) => Boolean(conversation.destination_hash))
-            .slice(0, 4)
-            .map((conversation) => {
-                const icon = (conversation as Record<string, unknown>).lxmf_user_icon;
-                return {
-                    ...conversation,
-                    destination_hash: String(conversation.destination_hash),
-                    lxmf_user_icon: icon && typeof icon === "object" ? icon : null,
-                };
-            })
-    );
+    const latestConversations = $derived(latestConversationCards(conversations));
     const composeSuggestions = $derived(
         buildComposeAddressSuggestions(contacts, conversations, composeAddress, isComposeInputFocused)
     );
@@ -309,16 +311,22 @@
         requestSequence += 1;
         loadPreviousPromise = null;
         isLoadingPrevious = false;
-        chatItems = [];
-        hasMorePrevious = true;
-        autoScrollOnNewMessage = true;
-        messagesViewportReady = !peerHash;
-        peerPathSnapshot = null;
-        selectedPeerLxmfStampInfo = null;
-        selectedPeerSignalMetrics = null;
-        strangerBannerDismissed = false;
-        newMessageText = peerHash ? loadDraft(peerHash, nextIdentity) : "";
-        isStrangerPeer = Boolean(peerHash) && !contacts.some((c) => sameHash(c.remote_identity_hash, peerHash));
+        const seed = prepareOpenConversationState({
+            peerHash,
+            nextIdentity,
+            contacts,
+            loadDraft,
+        });
+        chatItems = seed.chatItems;
+        hasMorePrevious = seed.hasMorePrevious;
+        autoScrollOnNewMessage = seed.autoScrollOnNewMessage;
+        messagesViewportReady = seed.messagesViewportReady;
+        peerPathSnapshot = seed.peerPathSnapshot;
+        selectedPeerLxmfStampInfo = seed.selectedPeerLxmfStampInfo;
+        selectedPeerSignalMetrics = seed.selectedPeerSignalMetrics;
+        strangerBannerDismissed = seed.strangerBannerDismissed;
+        newMessageText = seed.newMessageText;
+        isStrangerPeer = seed.isStrangerPeer;
         if (!peerHash) return;
         void refreshPeerNetwork(true);
         void markConversationAsRead(selectedPeer || { destination_hash: peerHash }, { force: true });
@@ -332,28 +340,23 @@
         if (!selectedHash || !hasMorePrevious || loadPreviousPromise) return;
         const peerHash = selectedHash;
         const seq = requestSequence;
-        const anchorHeight = messagesScroll?.scrollHeight || 0;
-        const anchorTop = messagesScroll?.scrollTop || 0;
         isLoadingPrevious = true;
         let pending: Promise<void> | null = null;
         pending = (async () => {
             try {
-                const page = await fetchConversationPage(
-                    window.api,
+                const result = await runLoadPreviousPage({
+                    api: window.api,
                     peerHash,
                     myLxmfAddressHash,
-                    oldestMessageId(chatItems, peerHash)
-                );
-                if (seq !== requestSequence || !sameHash(peerHash, selectedHash)) return;
-                const merged = prependConversationPage(chatItems, page.items);
-                chatItems = merged.items;
-                hasMorePrevious = page.hasMore && merged.added > 0;
-                await tick();
-                if (messagesScroll && anchorHeight > 0) {
-                    messagesScroll.scrollTop = anchorTop + messagesScroll.scrollHeight - anchorHeight;
-                }
-            } catch {
-                hasMorePrevious = false;
+                    chatItems,
+                    requestSequence: seq,
+                    currentSelectedHash: selectedHash,
+                    messagesScroll,
+                    tick,
+                });
+                if (!result || seq !== requestSequence) return;
+                chatItems = result.items;
+                hasMorePrevious = result.hasMorePrevious;
             } finally {
                 if (loadPreviousPromise === pending) {
                     isLoadingPrevious = false;
@@ -387,7 +390,7 @@
             chatItems = next;
             await refreshPeerNetwork(false);
         } catch {
-            return;
+            /* ignore soft resync errors */
         }
     }
 
@@ -525,19 +528,13 @@
     }
 
     async function openShareContactModal() {
-        try {
-            const response = await window.api.get("/api/v1/telephone/contacts");
-            const resData = response.data as { contacts?: unknown[] } | unknown[] | undefined;
-            contacts = (resData && !Array.isArray(resData) && Array.isArray(resData.contacts) ? resData.contacts : (Array.isArray(resData) ? resData : [])) as never[];
-            if (contacts.length === 0) {
-                ToastUtils.info(t("messages.no_contacts_telephone"));
-                return;
-            }
-            contactsSearch = "";
-            isShareContactModalOpen = true;
-        } catch {
-            ToastUtils.error(t("messages.failed_load_contacts"));
+        contacts = await fetchTelephoneContacts(window.api);
+        if (contacts.length === 0) {
+            ToastUtils.info(t("messages.no_contacts_telephone"));
+            return;
         }
+        contactsSearch = "";
+        isShareContactModalOpen = true;
     }
 
     function shareContact(contact) {
@@ -567,8 +564,10 @@
         });
     }
 
-
-    async function markConversationAsRead(conversation, opts = {}) {
+    async function markConversationAsRead(
+        conversation: Conversation | Peer | { destination_hash?: string; is_unread?: boolean } | null | undefined,
+        opts: { force?: boolean } = {}
+    ) {
         await markConversationAsReadSession(window.api, conversation, opts);
     }
 
@@ -583,8 +582,8 @@
         const ok = await addStrangerContact({
             api: window.api,
             destinationHash: selectedHash,
-            displayName: selectedPeer?.display_name,
-            identityHash: selectedPeer?.identity_hash,
+            displayName: selectedPeer?.display_name ? String(selectedPeer.display_name) : null,
+            identityHash: selectedPeer?.identity_hash ? String(selectedPeer.identity_hash) : null,
             onSuccess: () => {
                 isStrangerPeer = false;
                 onreloadConversations?.();
@@ -593,7 +592,12 @@
         void ok;
     }
 
-    async function addSharedContact(name, hash, lxmfAddress, lxstAddress) {
+    async function addSharedContact(
+        name?: string,
+        hash?: string,
+        lxmfAddress?: string,
+        lxstAddress?: string
+    ) {
         await addSharedContactEntry({
             api: window.api,
             name,
@@ -611,83 +615,63 @@
         });
     }
 
-    function openContextMenu(event: MouseEvent, item: ViewerChatItem, suppressToggle = false) {
-        event.preventDefault();
-        event.stopPropagation();
-        if (!suppressToggle) {
-            toggleChatItemActions(item as unknown as MessageChatItem);
-        }
-        contextMenu = {
-            show: true,
-            x: event.clientX,
-            y: event.clientY,
-            chatItem: item,
-            justOpened: true,
+    function shellBag() {
+        return {
+            chatItems,
+            setChatItems: (items) => {
+                chatItems = items;
+            },
+            contextMenu,
+            setContextMenu: (value) => {
+                contextMenu = value;
+            },
+            reactionPicker,
+            setReactionPicker: (value) => {
+                reactionPicker = value;
+            },
+            setReplyingTo: (item) => {
+                replyingTo = item;
+            },
+            setRawMessageData: (data) => {
+                rawMessageData = data;
+            },
+            setIsRawMessageModalOpen: (open) => {
+                isRawMessageModalOpen = open;
+            },
+            useVirtualMessageList,
+            listPane,
         };
-        queueMicrotask(() => {
-            contextMenu.justOpened = false;
-        });
+    }
+
+    function openContextMenu(event: MouseEvent, item: ViewerChatItem, suppressToggle = false) {
+        openContextMenuFn(shellBag(), event, item, suppressToggle, toggleChatItemActions);
     }
 
     function toggleChatItemActions(item: MessageChatItem) {
-        const hash = item.lxmf_message.hash;
-        chatItems = chatItems.map((candidate) =>
-            candidate.lxmf_message.hash === hash
-                ? ({
-                      ...candidate,
-                      is_actions_expanded: !item.is_actions_expanded,
-                  } as ViewerChatItem)
-                : candidate
-        );
+        toggleChatItemActionsFn(shellBag(), item);
     }
 
     function replyToMessage(item: MessageChatItem) {
-        replyingTo = item as ViewerChatItem;
-        contextMenu.show = false;
-        requestAnimationFrame(() => document.getElementById("message-input")?.focus());
+        replyToMessageFn(shellBag(), item);
     }
 
     function showRawMessage(item: MessageChatItem) {
-        rawMessageData = item.lxmf_message as LxmfMessage;
-        isRawMessageModalOpen = true;
-        contextMenu.show = false;
+        showRawMessageFn(shellBag(), item);
     }
 
     function openReactionPicker(item: MessageChatItem) {
-        const hash = item.lxmf_message.hash;
-        const bubble = hash ? document.getElementById(`message-${hash}`) : null;
-        const bounds = bubble?.getBoundingClientRect();
-        const top = Math.max(8, (bounds?.top ?? window.innerHeight / 2) - 8);
-        const left = Math.max(8, (bounds?.left ?? window.innerWidth / 2) - 8);
-        reactionPicker = {
-            open: true,
-            style: `top:${top}px;left:${left}px;`,
-            chatItem: item as ViewerChatItem,
-        };
-        contextMenu.show = false;
+        openReactionPickerFn(shellBag(), item);
     }
 
     function scrollToMessage(hash: string) {
-        const item = chatItems.find((candidate) => sameHash(candidate.lxmf_message.hash, hash));
-        if (!item) {
-            void DialogUtils.alert(t("messages.message_not_found_in_cache"));
-            return;
-        }
-        const element = document.getElementById(`message-${hash}`);
-        if (element) {
-            element.scrollIntoView({ behavior: "smooth", block: "center" });
-            return;
-        }
-        if (useVirtualMessageList) {
-            listPane?.scrollToMessageHash(hash);
-        }
+        scrollToMessageFn(shellBag(), hash);
     }
 
-    function openImage(src, gallery = [], items = []) {
+    function openImage(src: string, gallery: string[] = [], items: MessageChatItem[] = []) {
         imageLightbox = openImageLightboxState(src, gallery, items);
     }
 
-    function navigateImageLightbox(delta) {
+    function navigateImageLightbox(delta: number) {
         imageLightbox = navigateImageLightboxState(imageLightbox, delta);
     }
 
@@ -695,11 +679,15 @@
         imageLightbox = initialImageLightboxState();
     }
 
-    async function downloadMessageImage(item) {
+    async function downloadMessageImage(item: MessageChatItem) {
         await downloadMessageImageAttachment(window.api, item);
     }
 
-    async function sendReaction(emoji, targetItem = null) {
+    async function downloadFile(item: ViewerChatItem, index: number, name: string) {
+        await downloadMessageFileAttachment(window.api, item, index, name);
+    }
+
+    async function sendReaction(emoji: string, targetItem: ViewerChatItem | null = null) {
         const item = targetItem || contextMenu.chatItem;
         contextMenu.show = false;
         if (!item) return;
@@ -746,11 +734,7 @@
         });
     }
 
-    async function downloadFile(item, index, name) {
-        await downloadMessageFileAttachment(window.api, item, index, name);
-    }
-
-    function formatConversationTime(value) {
+    function formatConversationTime(value: unknown) {
         return formatTimeAgo(value);
     }
 
@@ -808,10 +792,7 @@
                               ...candidate,
                               lxmf_message: {
                                   ...candidate.lxmf_message,
-                                  _translation: {
-                                      translatedText: result.translatedText,
-                                      showOriginal: false,
-                                  },
+                                  _translation: { translatedText: result.translatedText, showOriginal: false },
                               },
                           }
                         : candidate
@@ -926,74 +907,60 @@
     />
 {/if}
 
-<ConversationViewerModalsHost
-    lightboxUrl={imageLightbox.url}
-    lightboxGallery={imageLightbox.gallery}
-    lightboxIndex={imageLightbox.index}
-    lightboxItems={imageLightbox.items}
+<ConversationViewerModalsBridge
+    {imageLightbox}
+    bind:contextMenu
+    bind:reactionPicker
+    bind:bubbleTranslate
+    bind:isRawMessageModalOpen
+    bind:rawMessageData
+    bind:isPaperMessageResultModalOpen
+    bind:generatedPaperMessageUri
+    bind:isShareContactModalOpen
+    bind:contactsSearch
+    bind:isTelemetryHistoryModalOpen
+    bind:showTelemetryInChat
+    {selectedHash}
+    {isSelectedPeerBlocked}
+    {translateOptions}
+    {filteredContacts}
+    {conversations}
+    {selectedPeerTelemetryItems}
+    emojiPickerDataUrl=""
+    emojiPickerThemeClass=""
     oncloselightbox={closeImageLightbox}
     onnavigatelightbox={navigateImageLightbox}
     ondownloadlightbox={() => {
         const item = imageLightbox.items?.[imageLightbox.index] || imageLightbox.items?.[0];
         if (item) void downloadMessageImage(item);
     }}
-    {contextMenu}
-    canLiftBanishment={isSelectedPeerBlocked}
-    reactionEmojis={LXMF_REACTION_EMOJIS}
-    onreplycontextmenu={() => {
+    onreply={() => {
         replyingTo = contextMenu.chatItem;
         contextMenu.show = false;
     }}
-    oncopycontextmenu={() => {
+    oncopy={() => {
         void copyTextToClipboard(String(contextMenu.chatItem?.lxmf_message.content || ""));
         contextMenu.show = false;
     }}
-    ontranslatecontextmenu={() => {
-        bubbleTranslate = {
-            open: true,
-            targetLang: bubbleTranslate.targetLang || "en",
-            chatItem: contextMenu.chatItem,
-            working: false,
-        };
-        contextMenu.show = false;
-    }}
-    onreactcontextmenu={(emoji) => void sendReaction(emoji)}
-    onopenreactionpickercontextmenu={() => {
+    onreact={(emoji) => void sendReaction(emoji)}
+    onopenreactionpicker={() => {
         if (contextMenu.chatItem) openReactionPicker(contextMenu.chatItem as MessageChatItem);
         contextMenu.show = false;
     }}
-    onviewrawcontextmenu={() => {
+    onviewraw={() => {
         rawMessageData = contextMenu.chatItem?.lxmf_message || {};
         isRawMessageModalOpen = true;
         contextMenu.show = false;
     }}
-    ondownloadimagecontextmenu={() => {
+    ondownloadimage={() => {
         if (contextMenu.chatItem) void downloadMessageImage(contextMenu.chatItem as MessageChatItem);
         contextMenu.show = false;
     }}
-    oncopyimagecontextmenu={() => {
-        contextMenu.show = false;
-    }}
-    onsavestickercontextmenu={() => {
-        contextMenu.show = false;
-    }}
-    onsavegifcontextmenu={() => {
-        contextMenu.show = false;
-    }}
-    oncancelsendcontextmenu={() => void cancelSending()}
-    onretrycontextmenu={() => void retryMessage()}
-    onliftbanishmentcontextmenu={() => void unbanishSelectedPeer()}
-    ondeletecontextmenu={() => void deleteMessage()}
-    onclosecontextmenu={() => {
-        contextMenu.show = false;
-    }}
-    {reactionPicker}
-    {emojiPickerDataUrl}
-    {emojiPickerThemeClass}
-    onclosereactionpicker={() => {
-        reactionPicker = { ...reactionPicker, open: false };
-    }}
-    onemojiclickreactionpicker={(event) => {
+    oncancelsend={() => void cancelSending()}
+    onretry={() => void retryMessage()}
+    onliftbanishment={() => void unbanishSelectedPeer()}
+    ondelete={() => void deleteMessage()}
+    onemojireaction={(event) => {
         const char =
             (event.detail as { unicode?: string })?.unicode ||
             (event.detail as { emoji?: { unicode?: string } })?.emoji?.unicode ||
@@ -1001,47 +968,7 @@
         if (char && reactionPicker.chatItem) void sendReaction(char, reactionPicker.chatItem);
         reactionPicker = { ...reactionPicker, open: false };
     }}
-    ondragstartreactionpicker={() => {}}
-    {isRawMessageModalOpen}
-    {rawMessageData}
-    oncloserawmessage={() => {
-        isRawMessageModalOpen = false;
-    }}
-    oncopyhashrawmessage={(hash) => void copyTextToClipboard(hash)}
-    oncopycontentrawmessage={() => void copyTextToClipboard(String(rawMessageData.content || ""))}
-    {isPaperMessageResultModalOpen}
-    {generatedPaperMessageUri}
-    {selectedHash}
-    onclosepapermessage={() => {
-        isPaperMessageResultModalOpen = false;
-        generatedPaperMessageUri = null;
-    }}
-    {isShareContactModalOpen}
-    bind:contactsSearch
-    filteredContacts={filteredContacts as never}
-    resolveContactIcon={(contact) => lxmfContactResolvedIcon(contact as never, conversations)}
-    destinationHexFromContact={(contact) => lxmfDeliveryDestinationHexFromContact(contact as never)}
-    onclosesharecontact={() => {
-        isShareContactModalOpen = false;
-    }}
     onsharecontact={(contact) => shareContact(contact)}
-    {isTelemetryHistoryModalOpen}
-    {selectedPeerTelemetryItems}
-    {showTelemetryInChat}
-    onopentelemetrychange={(open) => {
-        isTelemetryHistoryModalOpen = open;
-    }}
-    onclosetelemetry={() => {
-        isTelemetryHistoryModalOpen = false;
-    }}
-    onshowtelemetrychange={(show) => {
-        showTelemetryInChat = show;
-    }}
     onlocationclicktelemetry={viewLocationOnMap}
-    {bubbleTranslate}
-    {translateOptions}
     onconfirmbubbletranslate={() => void confirmBubbleTranslate()}
-    onclosebubbletranslate={() => {
-        bubbleTranslate = { ...bubbleTranslate, open: false };
-    }}
 />

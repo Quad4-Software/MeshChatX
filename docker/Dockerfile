@@ -9,7 +9,7 @@ ARG PYTHON_IMAGE=python:3.14.4-alpine3.23
 ARG PYTHON_HASH=sha256:dd4d2bd5b53d9b25a51da13addf2be586beebd5387e289e798e4083d94ca837a
 ARG VARIANT=standard
 ARG OCI_DESCRIPTION="MeshChatX is an all-in-one Reticulum client."
-ARG OCI_LICENSES="MIT AND 0BSD"
+ARG OCI_LICENSES="0BSD"
 
 FROM --platform=linux/amd64 ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 WORKDIR /src

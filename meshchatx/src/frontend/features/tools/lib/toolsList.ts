@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: 0BSD AND MIT
+// SPDX-License-Identifier: 0BSD
 
 import { listRoutes } from "../../../js/registries/routeRegistry.js";
 import { listTools } from "../../../js/registries/toolsRegistry.js";

@@ -1,4 +1,4 @@
-<!-- SPDX-License-Identifier: 0BSD AND MIT -->
+<!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
@@ -8,7 +8,7 @@
     import { t } from "../../../js/i18n.js";
 
     type ConversationPreview = {
-        destination_hash: string;
+        destination_hash?: string | null;
         display_name?: string | null;
         custom_display_name?: string | null;
         contact_image?: string | null;
@@ -140,7 +140,7 @@
             <div class="w-full mb-8">
                 <h2 class="text-xs font-medium text-sem-fg-muted mb-2">{t("messages.latest_conversations")}</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {#each latestConversations as chat (chat.destination_hash)}
+                    {#each latestConversations as chat (chat.destination_hash ?? "")}
                         <button
                             type="button"
                             class="group cursor-pointer p-3 bg-sem-surface border border-sem-border rounded-xl hover:border-blue-400/60 hover:bg-sem-surface-muted transition-colors flex items-center gap-3 text-left w-full"

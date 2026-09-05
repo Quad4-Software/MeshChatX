@@ -27,9 +27,8 @@
 //     review the diff before enabling either flag; third-party SPDX lines
 //     in vendored or generated files must not be silently stripped.
 //
-//  3. The default base license is "0BSD AND MIT", which means BOTH licenses
-//     apply simultaneously to their respective contributions. This is the
-//     safe default for files where provenance cannot be cleanly separated.
+//  3. The default base license is "0BSD". Files that still score at or above
+//     the mixed threshold are labeled "0BSD AND MIT" until rewritten.
 package main
 
 import (
@@ -379,7 +378,7 @@ func parseConfig() (config, error) {
 	flag.BoolVar(&cfg.allowPure0BSD, "allow-pure-0bsd", envBool("ALLOW_PURE_0BSD", false), "Allow pure 0BSD classification for files with very low similarity and no direct path match. Disabled by default because textual similarity is not a legal test for derivative-work status.")
 	flag.BoolVar(&cfg.pure0BSDConfirmNoDerivation, "pure-0bsd-confirm-no-derivation", envBool("PURE_0BSD_CONFIRM_NO_DERIVATION", false), "Required acknowledgement that files classified as pure 0BSD are not derivative works of upstream sources. Without this flag --allow-pure-0bsd is ignored.")
 	flag.Float64Var(&cfg.pure0BSDThreshold, "pure-0bsd-threshold", envFloat("PURE_0BSD_THRESHOLD", 1.0), "Max similarity percent for pure 0BSD")
-	flag.StringVar(&cfg.baseLicense, "base-license", envString("BASE_LICENSE", "0BSD AND MIT"), "Default SPDX license below mixed threshold")
+	flag.StringVar(&cfg.baseLicense, "base-license", envString("BASE_LICENSE", "0BSD"), "Default SPDX license below mixed threshold")
 	flag.IntVar(&cfg.maxNameCandidates, "max-name-candidates", envInt("MAX_NAME_CANDIDATES", 200), "Max basename candidates when direct path match missing")
 	flag.BoolVar(&cfg.writeHeaders, "write-headers", envBool("WRITE_HEADERS", false), "Write SPDX headers")
 	flag.BoolVar(&cfg.replaceExisting, "replace-existing", envBool("REPLACE_EXISTING", false), "Replace existing SPDX header")

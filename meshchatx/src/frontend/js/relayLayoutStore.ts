@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: 0BSD AND MIT
+// SPDX-License-Identifier: 0BSD
 
 const RELAY_LAYOUT_KEY = "meshchatx.relay.layout";
 

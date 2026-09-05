@@ -72,7 +72,9 @@
 
 <div class="flex flex-col min-h-0 flex-1 min-w-0" class:h-dvh={fullscreen} class:max-h-dvh={fullscreen}>
     <div
-        class="shrink-0 flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 border-b border-sem-border {fullscreen ? 'px-2 py-2 bg-zinc-900 safe-top' : 'px-2 sm:px-3 md:px-4 py-2 sm:py-2.5'}"
+        class="shrink-0 flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 border-b border-sem-border {fullscreen
+            ? 'px-2 py-2 bg-zinc-900 safe-top'
+            : 'px-2 sm:px-3 md:px-4 py-2 sm:py-2.5'}"
     >
         <div class="min-w-0 flex-1 flex items-center gap-1.5">
             {#if showSessionsToggle}
@@ -186,13 +188,17 @@
 
     <div
         bind:this={outputBox}
-        class="flex-1 min-h-0 bg-zinc-950 dark:bg-black text-zinc-100 font-mono whitespace-pre-wrap wrap-break-word overflow-auto custom-scrollbar {fullscreen ? 'text-[11px] leading-relaxed px-2 py-2' : 'text-xs px-2 sm:px-3 md:px-4 py-2 sm:py-3'}"
+        class="flex-1 min-h-0 bg-zinc-950 dark:bg-black text-zinc-100 font-mono whitespace-pre-wrap wrap-break-word overflow-auto custom-scrollbar {fullscreen
+            ? 'text-[11px] leading-relaxed px-2 py-2'
+            : 'text-xs px-2 sm:px-3 md:px-4 py-2 sm:py-3'}"
     >
         {output}
     </div>
 
     <form
-        class="shrink-0 flex gap-1.5 sm:gap-2 border-t border-sem-border bg-sem-canvas {fullscreen ? 'px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] safe-bottom' : 'px-2 sm:px-3 md:px-4 py-2 sm:py-2.5'}"
+        class="shrink-0 flex gap-1.5 sm:gap-2 border-t border-sem-border bg-sem-canvas {fullscreen
+            ? 'px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] safe-bottom'
+            : 'px-2 sm:px-3 md:px-4 py-2 sm:py-2.5'}"
         onsubmit={handleSubmit}
     >
         <input

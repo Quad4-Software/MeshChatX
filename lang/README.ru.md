@@ -42,5 +42,5 @@ make install && make build && make run
 ## Безопасность, лицензия, благодарности
 
 - [SECURITY.md](../SECURITY.md) · [LEGAL.md](../LEGAL.md) · [donate.md](../donate.md)
-- Собственный код: 0BSD. Части upstream MeshChat: MIT. Полный текст: [LICENSE](../LICENSE).
+- Собственный код: 0BSD. Сторонние вложения сохраняют свои лицензии. Полный текст: [LICENSE](../LICENSE).
 - Credits: [Liam Cottle](https://github.com/liamcottle), [RFnexus](https://github.com/RFnexus), [markqvist](https://github.com/markqvist).

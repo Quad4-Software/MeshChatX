@@ -42,8 +42,7 @@
             bind:value={form.allowed_hashes_text}
             rows="4"
             class="input-field font-mono text-xs"
-            placeholder={t("rnsh.allowed_hashes_placeholder")}
-        ></textarea>
+            placeholder={t("rnsh.allowed_hashes_placeholder")}></textarea>
     </div>
     <div>
         <label class="glass-label" for="rnsh-listen-command">{t("rnsh.default_command")}</label>
@@ -74,10 +73,7 @@
             {t("rnsh.no_auth")}
         </label>
     </div>
-    <button
-        type="submit"
-        class="primary-chip px-4 py-2 text-sm w-full sm:w-auto"
-    >
+    <button type="submit" class="primary-chip px-4 py-2 text-sm w-full sm:w-auto">
         <MaterialDesignIcon iconName="plus" class="size-4" />
         {t("rnsh.create_and_start")}
     </button>

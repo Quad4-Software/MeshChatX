@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: 0BSD AND MIT
+// SPDX-License-Identifier: 0BSD
 /**
  * Outbound LXMF bubble status icons and i18n title keys.
  *

@@ -1,4 +1,4 @@
-<!-- SPDX-License-Identifier: 0BSD AND MIT -->
+<!-- SPDX-License-Identifier: 0BSD -->
 
 <script>
     import { getMdiIconPath } from "../../js/mdiIconNames.js";

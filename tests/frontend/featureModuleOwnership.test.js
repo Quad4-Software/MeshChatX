@@ -5,6 +5,7 @@ import { existsSync } from "fs";
 import { join } from "path";
 import { clearRoutes, listRoutes } from "../../meshchatx/src/frontend/js/registries/routeRegistry.js";
 import { clearFeatureIds, listFeatureIds } from "../../meshchatx/src/frontend/js/registries/featureRegistry.js";
+import { registerArchivesFeature } from "../../meshchatx/src/frontend/features/archives/index.ts";
 import { registerBlockedFeature } from "../../meshchatx/src/frontend/features/blocked/index.ts";
 import { registerContactsFeature } from "../../meshchatx/src/frontend/features/contacts/index.ts";
 import { registerDebugLogsFeature } from "../../meshchatx/src/frontend/features/debug-logs/index.ts";
@@ -12,12 +13,16 @@ import { registerForwarderFeature } from "../../meshchatx/src/frontend/features/
 import { registerLicensesFeature } from "../../meshchatx/src/frontend/features/licenses/index.ts";
 import { registerMessageBlocklistFeature } from "../../meshchatx/src/frontend/features/message-blocklist/index.ts";
 import { registerMessagesFeature } from "../../meshchatx/src/frontend/features/messages/index.ts";
+import { registerPageNodesFeature } from "../../meshchatx/src/frontend/features/page-nodes/index.ts";
 import { registerPaperMessageFeature } from "../../meshchatx/src/frontend/features/paper-message/index.ts";
 import { registerPingFeature } from "../../meshchatx/src/frontend/features/ping/index.ts";
+import { registerRepositoryServerFeature } from "../../meshchatx/src/frontend/features/repository-server/index.ts";
 import { registerReticulumConfigEditorFeature } from "../../meshchatx/src/frontend/features/reticulum-config-editor/index.ts";
 import { registerRnpathFeature } from "../../meshchatx/src/frontend/features/rnpath/index.ts";
 import { registerRnpathTraceFeature } from "../../meshchatx/src/frontend/features/rnpath-trace/index.ts";
 import { registerRnprobeFeature } from "../../meshchatx/src/frontend/features/rnprobe/index.ts";
+import { registerRnshFeature } from "../../meshchatx/src/frontend/features/rnsh/index.ts";
+import { registerRnxFeature } from "../../meshchatx/src/frontend/features/rnx/index.ts";
 import { registerRNStatusFeature } from "../../meshchatx/src/frontend/features/rnstatus/index.ts";
 import { registerSieveFiltersFeature } from "../../meshchatx/src/frontend/features/sieve-filters/index.ts";
 import { registerToolsFeature } from "../../meshchatx/src/frontend/features/tools/index.ts";
@@ -226,6 +231,63 @@ const FEATURE_MODULE_OWNERS = [
             "meshchatx/src/frontend/features/translator/lib/constants.ts",
         ],
         route_name: "translator",
+        mount: "svelte",
+    },
+    {
+        id: "archives",
+        register: registerArchivesFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/archives/index.ts",
+            "meshchatx/src/frontend/features/archives/ArchivesPage.svelte",
+            "meshchatx/src/frontend/features/archives/lib/constants.ts",
+        ],
+        route_name: "archives",
+        mount: "svelte",
+    },
+    {
+        id: "repository-server",
+        register: registerRepositoryServerFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/repository-server/index.ts",
+            "meshchatx/src/frontend/features/repository-server/RepositoryServerPage.svelte",
+            "meshchatx/src/frontend/features/repository-server/lib/constants.ts",
+        ],
+        route_name: "repository-server",
+        mount: "svelte",
+    },
+    {
+        id: "page-nodes",
+        register: registerPageNodesFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/page-nodes/index.ts",
+            "meshchatx/src/frontend/features/page-nodes/PageNodesPage.svelte",
+            "meshchatx/src/frontend/features/page-nodes/lib/constants.ts",
+        ],
+        route_name: "mesh-server",
+        mount: "svelte",
+    },
+    {
+        id: "rnsh",
+        register: registerRnshFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/rnsh/index.ts",
+            "meshchatx/src/frontend/features/rnsh/RNSHPage.svelte",
+            "meshchatx/src/frontend/features/rnsh/lib/constants.ts",
+            "meshchatx/src/frontend/features/remote-shell/components/RemoteShellTerminal.svelte",
+        ],
+        route_name: "rnsh",
+        mount: "svelte",
+    },
+    {
+        id: "rnx",
+        register: registerRnxFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/rnx/index.ts",
+            "meshchatx/src/frontend/features/rnx/RNXPage.svelte",
+            "meshchatx/src/frontend/features/rnx/lib/constants.ts",
+            "meshchatx/src/frontend/features/remote-shell/components/RemoteShellTerminal.svelte",
+        ],
+        route_name: "rnx",
         mount: "svelte",
     },
     {

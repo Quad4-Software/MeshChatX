@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# SPDX-License-Identifier: 0BSD AND MIT
+# SPDX-License-Identifier: 0BSD
 
 import argparse
 import asyncio
@@ -86,6 +86,7 @@ from meshchatx.src.backend.appcontainer_sandbox import (
     is_appcontainer_child,
 )
 from meshchatx.src.backend.async_utils import AsyncUtils
+from meshchatx.src.backend.cli_identity import resolve_startup_identity
 from meshchatx.src.backend.auth_page_hint import auth_page_hint_from_env
 from meshchatx.src.backend.auto_resend_guard import (
     AUTO_RESEND_COOLDOWN_SECONDS,
@@ -5709,7 +5710,7 @@ class ReticulumMeshChat:
                     protocol = "https" if use_https else "http"
                     webbrowser.open(f"{protocol}://127.0.0.1:{port}")
                 except Exception:
-                    print("failed to launch web browser")
+                    print("could not open the system web browser")
 
             # start memory diagnostics periodic snapshot task
             if self._mem_diag and self._mem_diag.enabled:
@@ -9457,7 +9458,7 @@ class ReticulumMeshChat:
                                     context=ctx,
                                 )
             except Exception as e:
-                print("failed to update lxmf user icon from lxmf message")
+                print("LXMF user icon update from message fields failed")
                 print(e)
 
             sender_name = ctx.database.announces.get_custom_display_name(source_hash)
@@ -10854,7 +10855,7 @@ class ReticulumMeshChat:
                     )
 
                 except Exception as e:
-                    print("Error resending failed message: " + str(e))
+                    print(f"Resend of failed LXMF message aborted: {e}")
 
     def on_rrc_hub_announce_received(
         self,
@@ -11220,7 +11221,7 @@ def _maybe_run_embedded_module():
     return True
 
 
-# class to manage config stored in database
+# Process entrypoint for MeshChatX (CLI, identity resolve, then web server).
 def main():
     if _maybe_run_embedded_module():
         return
@@ -11268,7 +11269,7 @@ def main():
     install_rns_panic_containment()
     install_bounded_ratchet_persist()
 
-    parser = argparse.ArgumentParser(description="ReticulumMeshChat")
+    parser = argparse.ArgumentParser(description="MeshChatX")
     parser.add_argument(
         "--host",
         nargs="?",
@@ -11528,87 +11529,9 @@ def main():
     if args.test_exception_message is not None:
         raise Exception(args.test_exception_message)
 
-    # util to generate reticulum identity and save to file without using rnid
-    if args.generate_identity_file is not None:
-        # do not overwrite existing files, otherwise user could lose existing keys
-        if os.path.exists(args.generate_identity_file):
-            print(
-                "DANGER: the provided identity file path already exists, not overwriting!",
-            )
-            return
-
-        # generate a new identity and save to provided file path
-        identity = RNS.Identity(create_keys=True)
-        with open(args.generate_identity_file, "wb") as file:
-            file.write(identity.get_private_key())
-
-        print(
-            f"A new Reticulum Identity has been saved to: {args.generate_identity_file}",
-        )
+    identity, identity_file_path = resolve_startup_identity(args)
+    if identity is None:
         return
-
-    # util to generate reticulum identity as base64 without using rnid
-    if args.generate_identity_base64 is True:
-        identity = RNS.Identity(create_keys=True)
-        print(base64.b64encode(identity.get_private_key()).decode("utf-8"))
-        return
-
-    identity_file_path = None
-
-    # use provided identity, or fallback to a random one
-    if args.identity_file is not None:
-        identity = RNS.Identity(create_keys=False)
-        identity.load(args.identity_file)
-        identity_file_path = args.identity_file
-        print(
-            f"Reticulum Identity <{identity.hash.hex()}> has been loaded from file {args.identity_file}.",
-        )
-    elif args.identity_base64 is not None or args.identity_base32 is not None:
-        identity = RNS.Identity(create_keys=False)
-        if args.identity_base64 is not None:
-            identity.load_private_key(base64.b64decode(args.identity_base64))
-        else:
-            try:
-                identity.load_private_key(
-                    base64.b32decode(args.identity_base32, casefold=True),
-                )
-            except Exception as exc:
-                msg = f"Invalid base32 identity: {exc}"
-                raise ValueError(msg) from exc
-        base_storage_dir = args.storage_dir or os.path.join("storage")
-        os.makedirs(base_storage_dir, exist_ok=True)
-        default_identity_file = os.path.join(base_storage_dir, "identity")
-        if not os.path.exists(default_identity_file):
-            with open(default_identity_file, "wb") as file:
-                file.write(identity.get_private_key())
-        identity_file_path = default_identity_file
-        print(
-            f"Reticulum Identity <{identity.hash.hex()}> has been loaded from provided key.",
-        )
-    else:
-        # ensure provided storage dir exists, or the default storage dir exists
-        base_storage_dir = args.storage_dir or os.path.join("storage")
-        os.makedirs(base_storage_dir, exist_ok=True)
-
-        # configure path to default identity file
-        default_identity_file = os.path.join(base_storage_dir, "identity")
-
-        # if default identity file does not exist, generate a new identity and save it
-        if not os.path.exists(default_identity_file):
-            identity = RNS.Identity(create_keys=True)
-            with open(default_identity_file, "wb") as file:
-                file.write(identity.get_private_key())
-            print(
-                f"Reticulum Identity <{identity.hash.hex()}> has been randomly generated and saved to {default_identity_file}.",
-            )
-
-        # default identity file exists, load it
-        identity = RNS.Identity(create_keys=False)
-        identity.load(default_identity_file)
-        identity_file_path = default_identity_file
-        print(
-            f"Reticulum Identity <{identity.hash.hex()}> has been loaded from file {default_identity_file}.",
-        )
 
     # init app (allow optional one-shot backup/restore before running)
     rns_log_cli = (args.rns_log_level or "").strip() or None

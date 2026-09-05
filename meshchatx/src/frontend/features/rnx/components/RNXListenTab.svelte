@@ -42,8 +42,7 @@
             bind:value={form.allowed_hashes_text}
             rows="4"
             class="input-field font-mono text-xs"
-            placeholder={t("rnx.allowed_hashes_placeholder")}
-        ></textarea>
+            placeholder={t("rnx.allowed_hashes_placeholder")}></textarea>
     </div>
     <div>
         <label class="glass-label" for="rnx-listen-config">{t("rnx.config_dir")}</label>
@@ -64,10 +63,7 @@
             {t("rnx.no_auth")}
         </label>
     </div>
-    <button
-        type="submit"
-        class="primary-chip px-4 py-2 text-sm w-full sm:w-auto"
-    >
+    <button type="submit" class="primary-chip px-4 py-2 text-sm w-full sm:w-auto">
         <MaterialDesignIcon iconName="plus" class="size-4" />
         {t("rnx.create_and_start")}
     </button>

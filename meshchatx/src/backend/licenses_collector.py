@@ -205,6 +205,61 @@ def _bundled_rns_filesync_license_row(repo_root: Path) -> dict[str, Any] | None:
     )
 
 
+def _bundled_embed_rows(repo_root: Path) -> list[dict[str, Any]]:
+    """MIT embeds that are not Python/Node package dependencies."""
+    rows: list[dict[str, Any]] = []
+    able_init = (
+        repo_root / "android" / "app" / "src" / "main" / "python" / "able" / "__init__.py"
+    )
+    if able_init.is_file():
+        rows.append(
+            {
+                "name": "able (android embed)",
+                "version": "meshchatx-chaquopy",
+                "author": "able / Chaquopy Android BLE stack",
+                "license": "MIT",
+            },
+        )
+    usb4a_init = (
+        repo_root
+        / "android"
+        / "app"
+        / "src"
+        / "main"
+        / "python"
+        / "usb4a"
+        / "__init__.py"
+    )
+    if usb4a_init.is_file():
+        rows.append(
+            {
+                "name": "usb4a (android embed)",
+                "version": "0.3.0-meshchatx",
+                "author": "Quan Lin / MeshChatX Chaquopy port",
+                "license": "MIT",
+            },
+        )
+    flasher_license = (
+        repo_root
+        / "meshchatx"
+        / "src"
+        / "frontend"
+        / "public"
+        / "rnode-flasher"
+        / "LICENSE"
+    )
+    if flasher_license.is_file():
+        rows.append(
+            {
+                "name": "rnode-flasher",
+                "version": "bundled",
+                "author": "Liam Cottle",
+                "license": "MIT",
+            },
+        )
+    return rows
+
+
 def _merge_bundled_vendor_rows(
     repo_root: Path,
     rows: list[dict[str, Any]],
@@ -222,6 +277,12 @@ def _merge_bundled_vendor_rows(
             continue
         merged.append(row)
         existing.add(str(row.get("name") or "").lower())
+    for embed in _bundled_embed_rows(repo_root):
+        key = str(embed.get("name") or "").lower()
+        if key in existing:
+            continue
+        merged.append(embed)
+        existing.add(key)
     merged.sort(key=lambda r: str(r.get("name", "")).lower())
     return merged
 

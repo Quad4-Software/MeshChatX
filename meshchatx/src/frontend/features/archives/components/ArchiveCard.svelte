@@ -27,13 +27,7 @@
 
     const previewClassesList = $derived(previewClasses(archive).join(" "));
     const previewHtml = $derived(
-        cardPreviewHtml(
-            archive,
-            searchQuery,
-            cardPreviewCache,
-            nomadMicronWasmActive,
-            nomadRenderOptions
-        )
+        cardPreviewHtml(archive, searchQuery, cardPreviewCache, nomadMicronWasmActive, nomadRenderOptions)
     );
 </script>
 

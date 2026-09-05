@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: 0BSD AND MIT
+// SPDX-License-Identifier: 0BSD
 
 import { buildBitrateApplyPayload, loadBatterySaverPrefs, saveBatterySaverPrefs } from "./batterySaverPrefs.js";
 

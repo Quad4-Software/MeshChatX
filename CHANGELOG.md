@@ -27,9 +27,7 @@ All notable changes to this project will be documented in this file.
 - **UI**: Dropdown menus match the theme.
 - **Permissions-Policy**: Only microphone, camera, and autoplay are listed. Hardware and speaker-selection tokens are left to browser defaults so Brave and Chrome stop logging unrecognized feature warnings.
 
-### Changed
-
-- **Smart Crawler**: Finished crawls stay finished until you refresh. Fewer crawls run at once.
+- **Licensing**: First-party MeshChatX sources are 0BSD. MIT remains only for bundled third-party embeds (able, usb4a, rnode-flasher) and dependency notices.
 - **Reticulum**: RNS 1.5.2.
 - **WebTransport**: aioquic 1.3.0 is a normal dependency. Android builds ship aioquic and pylsqpack Chaquopy wheels.
 - **Micron**: Micron-Parser-Go WASM v1.1.0.

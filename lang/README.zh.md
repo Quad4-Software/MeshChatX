@@ -42,5 +42,5 @@ make install && make build && make run
 ## 安全、许可与致谢
 
 - [SECURITY.md](../SECURITY.md) · [LEGAL.md](../LEGAL.md) · [donate.md](../donate.md)
-- 本项目自有代码：0BSD。上游 MeshChat 部分：MIT。全文：[LICENSE](../LICENSE)。
+- 本项目自有代码：0BSD。捆绑第三方组件保留各自许可证。全文：[LICENSE](../LICENSE)。
 - 致谢：[Liam Cottle](https://github.com/liamcottle)、[RFnexus](https://github.com/RFnexus)、[markqvist](https://github.com/markqvist)。

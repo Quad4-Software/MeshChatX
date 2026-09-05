@@ -38,7 +38,8 @@
     {#each sessions as session (session.id)}
         <button
             type="button"
-            class="w-full text-left rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 transition-colors {session.id === selectedSessionId
+            class="w-full text-left rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 transition-colors {session.id ===
+            selectedSessionId
                 ? 'bg-indigo-100 dark:bg-indigo-900/35 text-indigo-950 dark:text-indigo-100'
                 : 'text-sem-fg hover:bg-sem-surface-muted/70'}"
             onclick={() => onselect(session.id)}
@@ -48,7 +49,9 @@
                     {session.name || t("rnx.unnamed_session")}
                 </div>
                 <span
-                    class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide shrink-0 {getSessionStatusClass(session)}"
+                    class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide shrink-0 {getSessionStatusClass(
+                        session
+                    )}"
                 >
                     {statusLabel(session)}
                 </span>

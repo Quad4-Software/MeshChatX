@@ -5,11 +5,7 @@ import type { ArchiveItem } from "./types.js";
 
 /** Router abstraction allowing Vue router or hash location fallback */
 export interface RouterLike {
-    push?: (location: {
-        name: string;
-        params?: Record<string, unknown>;
-        query?: Record<string, unknown>;
-    }) => void;
+    push?: (location: { name: string; params?: Record<string, unknown>; query?: Record<string, unknown> }) => void;
 }
 
 /** Open archive in NomadNet browser view */

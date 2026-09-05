@@ -5,14 +5,15 @@ import GlobalState from "../../../js/GlobalState.js";
 import NotificationUtils from "../../../js/NotificationUtils.js";
 import { fromNow } from "../../../libs/datetime.js";
 import { isTelemetryOnly } from "./conversationMessageHelpers.js";
+import {
+    fetchConversationPage,
+    oldestMessageId,
+    prependConversationPage,
+} from "./conversationViewerMessages.js";
 import type { LxmfMessage, ViewerChatItem } from "./conversationViewerCtx.js";
 import { sameHash } from "./conversationViewerCtx.js";
+import type { ApiClient } from "../../../js/apiClient.js";
 import type { Conversation, Peer } from "./types.js";
-
-type ApiClient = {
-    get: (url: string, opts?: unknown) => Promise<{ data?: unknown }>;
-    post: (url: string, body?: unknown, opts?: unknown) => Promise<{ data?: unknown }>;
-};
 
 export async function markConversationAsRead(
     api: ApiClient,
@@ -158,4 +159,86 @@ export function isPeerBlockedInState(blockedList: unknown, targetHash: string): 
                 : String((entry as Record<string, unknown>)?.destination_hash || "");
         return sameHash(hash, targetHash);
     });
+}
+
+
+export type OpenConversationSeed = {
+    chatItems: ViewerChatItem[];
+    hasMorePrevious: boolean;
+    autoScrollOnNewMessage: boolean;
+    messagesViewportReady: boolean;
+    peerPathSnapshot: null;
+    selectedPeerLxmfStampInfo: null;
+    selectedPeerSignalMetrics: null;
+    strangerBannerDismissed: boolean;
+    newMessageText: string;
+    isStrangerPeer: boolean;
+};
+
+export function prepareOpenConversationState(opts: {
+    peerHash: string;
+    nextIdentity: string;
+    contacts: Array<Record<string, unknown>>;
+    loadDraft: (peerHash: string, identity: string) => string;
+}): OpenConversationSeed {
+    const { peerHash, nextIdentity, contacts, loadDraft } = opts;
+    return {
+        chatItems: [],
+        hasMorePrevious: true,
+        autoScrollOnNewMessage: true,
+        messagesViewportReady: !peerHash,
+        peerPathSnapshot: null,
+        selectedPeerLxmfStampInfo: null,
+        selectedPeerSignalMetrics: null,
+        strangerBannerDismissed: false,
+        newMessageText: peerHash ? loadDraft(peerHash, nextIdentity) : "",
+        isStrangerPeer: Boolean(peerHash) && !contacts.some((c) => sameHash(c.remote_identity_hash, peerHash)),
+    };
+}
+
+
+export async function runLoadPreviousPage(opts: {
+    api: ApiClient;
+    peerHash: string;
+    myLxmfAddressHash: string;
+    chatItems: ViewerChatItem[];
+    requestSequence: number;
+    currentSelectedHash: string;
+    messagesScroll: HTMLElement | null | undefined;
+    tick: () => Promise<void>;
+}): Promise<{ items: ViewerChatItem[]; hasMorePrevious: boolean } | null> {
+    const {
+        api,
+        peerHash,
+        myLxmfAddressHash,
+        chatItems,
+        requestSequence,
+        currentSelectedHash,
+        messagesScroll,
+        tick,
+    } = opts;
+    const anchorHeight = messagesScroll?.scrollHeight || 0;
+    const anchorTop = messagesScroll?.scrollTop || 0;
+    try {
+        const page = await fetchConversationPage(
+            api,
+            peerHash,
+            myLxmfAddressHash,
+            oldestMessageId(chatItems, peerHash)
+        );
+        if (!sameHash(peerHash, currentSelectedHash)) {
+            return null;
+        }
+        const merged = prependConversationPage(chatItems, page.items);
+        await tick();
+        if (messagesScroll && anchorHeight > 0) {
+            messagesScroll.scrollTop = anchorTop + messagesScroll.scrollHeight - anchorHeight;
+        }
+        return {
+            items: merged.items,
+            hasMorePrevious: page.hasMore && merged.added > 0,
+        };
+    } catch {
+        return { items: chatItems, hasMorePrevious: false };
+    }
 }
