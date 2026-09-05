@@ -301,7 +301,7 @@ tasks:
             - "{{.NPM}} run test:ui:lighthouse:ci"
 
     test:quick:
-        desc: Fast dev loop - regression subset (set E2E=1 to include Playwright smoke)
+        desc: Fast dev loop - focused backend subset + full frontend unit suite (set E2E=1 for Playwright smoke)
         cmds:
             - task: test:quick:be
             - task: test:quick:fe
@@ -311,7 +311,7 @@ tasks:
                 fi
 
     test:quick:be:
-        desc: Backend regression subset (interface-stats, CSRF, LXMF send, nomad downloads, RNS link, EECT packs)
+        desc: Backend regression subset (auth/CSRF, LXMF/nomad/RNS link, filesync, EECT packs, privacy oracles)
         cmds:
             - >-
                 uv run pytest
@@ -323,7 +323,12 @@ tasks:
                 tests/backend/test_rns_link_fuzzing.py
                 tests/backend/test_rns_link_plugin.py
                 tests/backend/test_rns_filesync_security.py
-                -q
+                tests/backend/test_sensitive_export_csrf_methods.py
+                tests/backend/test_management_identities.py
+                tests/backend/test_telemetry_integration.py
+                tests/backend/test_websocket_config_guard.py
+                tests/backend/test_log_redaction.py
+                -q --tb=short
             - task: test:eect
 
     test:eect:
@@ -365,23 +370,12 @@ tasks:
             - uv run pytest tests/backend/eect/live/test_lv_ladder.py -m live_validation -k "l0" -q --tb=short
 
     test:quick:fe:
-        desc: Frontend regression subset (links, micron preview, stranger banner, interface stats, ownership contracts)
+        desc: Full frontend unit suite without coverage (excludes LoadTimePerformance and i18n, see test:lang)
         cmds:
             - >-
                 {{.NPM}} exec vitest run
-                tests/frontend/NomadRichHtmlLinks.test.js
-                tests/frontend/InterfacesPage.stats.test.js
-            - >-
-                {{.NPM}} exec vitest run
-                tests/frontend/MicronEditorPage.test.js
-                -t "onPreviewClick opens http"
-            - >-
-                {{.NPM}} exec vitest run
-                tests/frontend/ConversationViewer.test.js
-                -t "addStrangerAsContact"
-            - >-
-                {{.NPM}} exec vitest run
-                tests/frontend/frontendOwnershipContract.test.js
+                --exclude tests/frontend/LoadTimePerformance.test.js
+                --exclude tests/frontend/i18n.test.js
 
     test:backend:
         aliases: [test:be, test:be:full]
