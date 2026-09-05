@@ -28,6 +28,7 @@ const KNOWN_SECTIONS_FROM_SETTINGS_PAGE = [
     "crawler",
     "appearance",
     "battery",
+    "experimentalLive",
     "visualiser",
     "location",
     "language",
