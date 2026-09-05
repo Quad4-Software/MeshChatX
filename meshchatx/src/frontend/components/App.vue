@@ -390,7 +390,7 @@
                                         class="flex-1 min-w-0 h-full bg-sem-canvas"
                                     />
                                 </KeepAlive>
-                                <Transition name="route-view-fade" mode="out-in">
+                                <Transition name="route-view-fade">
                                     <component
                                         :is="Component"
                                         v-if="!route.meta.keepAlive"

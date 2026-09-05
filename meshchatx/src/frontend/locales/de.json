@@ -1522,6 +1522,7 @@
         "fixed_mtu_hint": "Optional. Falls gesetzt, mindestens {min} Bytes (Reticulum-Mindest-MTU).",
         "fixed_mtu_min": "Feste MTU muss mindestens {min} Bytes sein (Reticulum-Minimum).",
         "restart_required": "Neustart erforderlich",
+        "reticulum_offline": "Reticulum Offline",
         "restart_description": "Reticulum MeshChatX muss neu gestartet werden, damit Schnittstellenänderungen wirksam werden.",
         "restart_now": "Jetzt neu starten",
         "failed_enable": "Aktivieren der Schnittstelle fehlgeschlagen",

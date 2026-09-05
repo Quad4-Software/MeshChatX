@@ -97,7 +97,7 @@
                                         Online
                                     </span>
                                 {:else if communityIface.online === false}
-                                    <span class="text-red-500">Offline</span>
+                                    <span class="text-red-500">{t("app.offline")}</span>
                                 {/if}
                             </div>
                             {#if communityIface.description}

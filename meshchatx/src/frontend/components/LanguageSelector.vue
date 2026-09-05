@@ -5,8 +5,23 @@
 </template>
 
 <script>
-import { mount, unmount } from "svelte";
 import LanguageSelectorSvelte from "../ui/svelte/LanguageSelector.svelte";
+import { createThinSvelteHost } from "../js/svelteVueHost";
+
+const svelteHost = createThinSvelteHost({
+    component: LanguageSelectorSvelte,
+    buildProps(vm) {
+        return {
+            class: vm.$attrs.class || vm.class || "",
+            onlanguagechange: (code) => vm.$emit("language-change", code),
+        };
+    },
+    extraWatch: {
+        "$attrs.class"() {
+            this._syncSvelteProps();
+        },
+    },
+});
 
 /**
  * Thin Vue host for the Svelte LanguageSelector
@@ -20,34 +35,6 @@ export default {
         },
     },
     emits: ["language-change"],
-    mounted() {
-        this.remount();
-    },
-    updated() {
-        this.remount();
-    },
-    beforeUnmount() {
-        this.teardown();
-    },
-    methods: {
-        teardown() {
-            if (this._svelte) {
-                unmount(this._svelte);
-                this._svelte = null;
-            }
-        },
-        remount() {
-            this.teardown();
-            const root = this.$refs.root;
-            if (!root) return;
-            this._svelte = mount(LanguageSelectorSvelte, {
-                target: root,
-                props: {
-                    class: this.$attrs.class || this.class || "",
-                    onlanguagechange: (code) => this.$emit("language-change", code),
-                },
-            });
-        },
-    },
+    ...svelteHost,
 };
 </script>

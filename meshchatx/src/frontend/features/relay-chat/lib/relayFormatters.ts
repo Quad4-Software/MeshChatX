@@ -2,7 +2,12 @@
 
 import { DEFAULT_RRC_HUB_ICON, normalizeMdiIconName } from "../../../js/mdiIconNames.js";
 import { NAME_COLORS } from "./constants.js";
-import type { RrcHub, RrcMessage } from "./types.js";
+import type { RrcHub, RrcMember, RrcMessage } from "./types.js";
+
+export interface RelayOfflineMember {
+    hash: string;
+    name: string;
+}
 
 export function formatTime(ts: number): string {
     if (!ts) return "";
@@ -58,4 +63,27 @@ export function nameStyle(msg?: RrcMessage | null): string {
 export function displayName(msg?: RrcMessage | null): string {
     if (!msg) return "";
     return msg.nickname || msg.src?.substring(0, 8) || "Unknown";
+}
+
+export function deriveOfflineRelayMembers(
+    onlineMembers: RrcMember[],
+    messages: RrcMessage[]
+): RelayOfflineMember[] {
+    const onlineHashes = new Set(
+        onlineMembers
+            .map((member) => String(member.identity_hash || (member as { hash?: string }).hash || ""))
+            .filter(Boolean)
+    );
+    const seen = new Map<string, RelayOfflineMember>();
+    for (const msg of messages) {
+        if (!msg.src || onlineHashes.has(msg.src) || seen.has(msg.src)) {
+            continue;
+        }
+        const nick = msg.nickname || (msg as { nick?: string }).nick;
+        seen.set(msg.src, {
+            hash: msg.src,
+            name: nick || msg.src.slice(0, 12),
+        });
+    }
+    return Array.from(seen.values()).sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 }

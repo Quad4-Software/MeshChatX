@@ -1522,6 +1522,7 @@
         "fixed_mtu_hint": "Необязательно. Если задано, не менее {min} байт (минимальный MTU Reticulum).",
         "fixed_mtu_min": "Фиксированный MTU должен быть не менее {min} байт (минимум Reticulum).",
         "restart_required": "Требуется перезапуск",
+        "reticulum_offline": "Reticulum Offline",
         "restart_description": "Reticulum MeshChatX необходимо перезапустить, чтобы изменения вступили в силу.",
         "restart_now": "Перезапустить сейчас",
         "failed_enable": "не удалось включить интерфейс",

@@ -17,11 +17,26 @@ export default defineComponent({
         return {
             /** @type {Record<string, unknown> | null} */
             svelteApp: null,
+            svelteRemounting: false,
         };
     },
+    computed: {
+        featureRouteKey() {
+            const route = this.$route;
+            if (!route) {
+                return "";
+            }
+            const meta = route.meta || {};
+            const load = meta.featureLoad;
+            const loadKey = typeof load === "function" ? load.name || "featureLoad" : "";
+            return `${String(route.name || "")}:${JSON.stringify(route.params || {})}:${loadKey}`;
+        },
+    },
     watch: {
-        $route() {
-            this.remount();
+        featureRouteKey(newKey, oldKey) {
+            if (newKey !== oldKey) {
+                this.remount();
+            }
         },
     },
     mounted() {
@@ -46,30 +61,42 @@ export default defineComponent({
             }
         },
         async remount() {
-            this.teardown();
-            const meta = this.$route && this.$route.meta ? this.$route.meta : {};
-            const load = meta.featureLoad;
-            if (typeof load !== "function") {
-                console.error("FeaturePageHost: missing featureLoad on route", this.$route && this.$route.name);
+            if (this.svelteRemounting) {
                 return;
             }
-            const mod = await load();
-            const Comp = (mod && typeof mod === "object" && "default" in mod ? mod.default : mod) || mod;
-            if (!Comp) {
-                console.error("FeaturePageHost: load() returned no default export");
-                return;
+            this.svelteRemounting = true;
+            const routeKey = this.featureRouteKey;
+            try {
+                this.teardown();
+                const meta = this.$route && this.$route.meta ? this.$route.meta : {};
+                const load = meta.featureLoad;
+                if (typeof load !== "function") {
+                    console.error("FeaturePageHost: missing featureLoad on route", this.$route && this.$route.name);
+                    return;
+                }
+                const mod = await load();
+                if (routeKey !== this.featureRouteKey) {
+                    return;
+                }
+                const Comp = (mod && typeof mod === "object" && "default" in mod ? mod.default : mod) || mod;
+                if (!Comp) {
+                    console.error("FeaturePageHost: load() returned no default export");
+                    return;
+                }
+                const root = this.$refs.root;
+                if (!root) {
+                    return;
+                }
+                this.svelteApp = mount(Comp, {
+                    target: root,
+                    props: {
+                        ...(this.$route.params || {}),
+                        routeQuery: { ...(this.$route.query || {}) },
+                    },
+                });
+            } finally {
+                this.svelteRemounting = false;
             }
-            const root = this.$refs.root;
-            if (!root) {
-                return;
-            }
-            this.svelteApp = mount(Comp, {
-                target: root,
-                props: {
-                    ...(this.$route.params || {}),
-                    routeQuery: { ...(this.$route.query || {}) },
-                },
-            });
         },
     },
 });

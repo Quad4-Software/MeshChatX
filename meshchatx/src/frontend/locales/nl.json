@@ -1468,6 +1468,7 @@
         "fixed_mtu_hint": "Optioneel. Indien ingesteld, minimaal {min} bytes (Reticulum minimum-MTU).",
         "fixed_mtu_min": "Vaste MTU moet minimaal {min} bytes zijn (Reticulum-minimum).",
         "restart_required": "Herstarten vereist",
+        "reticulum_offline": "Reticulum Offline",
         "restart_description": "Reticulum MeshChatX moet opnieuw gestart worden om eventuele wijzigingen in de interface in werking te laten treden.",
         "restart_now": "Herstart nu",
         "failed_enable": "kon interface niet inschakelen",

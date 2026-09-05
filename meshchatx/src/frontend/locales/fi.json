@@ -1468,6 +1468,7 @@
         "fixed_mtu_hint": "Valinnainen. Jos asetettu, täytyy olla vähintään {min} tavua (Reticulumin vähimmäis-MTU).",
         "fixed_mtu_min": "Kiinteä MTU pitää olla vähintään {min} tavua (Reticulumin vähimmäisvaatimus).",
         "restart_required": "Uudelleenkäynnistys vaaditaan",
+        "reticulum_offline": "Reticulum Offline",
         "restart_description": "Reticulum MeshChatX on käynnistettävä uudelleen, jotta muutokset sovittimiin astuvat voimaan.",
         "restart_now": "Käynnistä uudelleen nyt",
         "failed_enable": "sovittimen liittäminen epäonnistui",

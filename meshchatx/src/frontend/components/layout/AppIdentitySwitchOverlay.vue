@@ -5,8 +5,18 @@
 </template>
 
 <script>
-import { mount, unmount } from "svelte";
 import AppIdentitySwitchOverlaySvelte from "../../features/app-shell/components/AppIdentitySwitchOverlay.svelte";
+import { createThinSvelteHost } from "../../js/svelteVueHost";
+
+const svelteHost = createThinSvelteHost({
+    component: AppIdentitySwitchOverlaySvelte,
+    buildProps(vm) {
+        return {
+            show: vm.show,
+            logoUrl: vm.logoUrl,
+        };
+    },
+});
 
 /**
  * Thin Vue host for the Svelte AppIdentitySwitchOverlay.
@@ -23,34 +33,6 @@ export default {
             required: true,
         },
     },
-    mounted() {
-        this.remount();
-    },
-    updated() {
-        this.remount();
-    },
-    beforeUnmount() {
-        this.teardown();
-    },
-    methods: {
-        teardown() {
-            if (this._svelte) {
-                unmount(this._svelte);
-                this._svelte = null;
-            }
-        },
-        remount() {
-            this.teardown();
-            const root = this.$refs.root;
-            if (!root) return;
-            this._svelte = mount(AppIdentitySwitchOverlaySvelte, {
-                target: root,
-                props: {
-                    show: this.show,
-                    logoUrl: this.logoUrl,
-                },
-            });
-        },
-    },
+    ...svelteHost,
 };
 </script>

@@ -5,8 +5,51 @@
 </template>
 
 <script>
-import { mount, unmount } from "svelte";
 import AppShellBannersSvelte from "../../features/app-shell/components/AppShellBanners.svelte";
+import { createThinSvelteHost } from "../../js/svelteVueHost";
+
+const svelteHost = createThinSvelteHost({
+    component: AppShellBannersSvelte,
+    buildProps(vm) {
+        return {
+            showEmergency: vm.showEmergency,
+            emergencyLabel: vm.emergencyLabel,
+            showDemo: vm.showDemo,
+            demoLabel: vm.demoLabel,
+            showWsDisconnected: vm.showWsDisconnected,
+            wsDisconnectedLabel: vm.wsDisconnectedLabel,
+            showBackendRecoveryActions: vm.showBackendRecoveryActions,
+            backendRestarting: vm.backendRestarting,
+            restartBackendLabel: vm.restartBackendLabel,
+            viewBackendLogsLabel: vm.viewBackendLogsLabel,
+            showWsReconnected: vm.showWsReconnected,
+            wsReconnectedLabel: vm.wsReconnectedLabel,
+            showNetworkStarting: vm.showNetworkStarting,
+            networkStartingLabel: vm.networkStartingLabel,
+            showLanBindNoAuth: vm.showLanBindNoAuth,
+            lanBindNoAuthLabel: vm.lanBindNoAuthLabel,
+            dismissLanBindNoAuthLabel: vm.dismissLanBindNoAuthLabel,
+            showNetworkDegraded: vm.showNetworkDegraded,
+            networkDegradedLabel: vm.networkDegradedLabel,
+            networkRecovering: vm.networkRecovering,
+            recoverNetworkLabel: vm.recoverNetworkLabel,
+            openSettingsLabel: vm.openSettingsLabel,
+            showOpenBackups: vm.showOpenBackups,
+            openBackupsLabel: vm.openBackupsLabel,
+            autoRecoverLabel: vm.autoRecoverLabel,
+            autoRecovering: vm.autoRecovering,
+            openInterfacesLabel: vm.openInterfacesLabel,
+            onrestartbackend: () => vm.$emit("restart-backend"),
+            onviewbackendlogs: () => vm.$emit("view-backend-logs"),
+            onrecovernetwork: () => vm.$emit("recover-network"),
+            onopensettings: () => vm.$emit("open-settings"),
+            ondismisslanbindnoauth: () => vm.$emit("dismiss-lan-bind-no-auth"),
+            onopenbackups: () => vm.$emit("open-backups"),
+            onautorecoverdatabase: () => vm.$emit("auto-recover-database"),
+            onopeninterfaces: () => vm.$emit("open-interfaces"),
+        };
+    },
+});
 
 /**
  * Thin Vue host for the Svelte AppShellBanners.
@@ -52,67 +95,6 @@ export default {
         "auto-recover-database",
         "open-interfaces",
     ],
-    mounted() {
-        this.remount();
-    },
-    updated() {
-        this.remount();
-    },
-    beforeUnmount() {
-        this.teardown();
-    },
-    methods: {
-        teardown() {
-            if (this._svelte) {
-                unmount(this._svelte);
-                this._svelte = null;
-            }
-        },
-        remount() {
-            this.teardown();
-            const root = this.$refs.root;
-            if (!root) return;
-            this._svelte = mount(AppShellBannersSvelte, {
-                target: root,
-                props: {
-                    showEmergency: this.showEmergency,
-                    emergencyLabel: this.emergencyLabel,
-                    showDemo: this.showDemo,
-                    demoLabel: this.demoLabel,
-                    showWsDisconnected: this.showWsDisconnected,
-                    wsDisconnectedLabel: this.wsDisconnectedLabel,
-                    showBackendRecoveryActions: this.showBackendRecoveryActions,
-                    backendRestarting: this.backendRestarting,
-                    restartBackendLabel: this.restartBackendLabel,
-                    viewBackendLogsLabel: this.viewBackendLogsLabel,
-                    showWsReconnected: this.showWsReconnected,
-                    wsReconnectedLabel: this.wsReconnectedLabel,
-                    showNetworkStarting: this.showNetworkStarting,
-                    networkStartingLabel: this.networkStartingLabel,
-                    showLanBindNoAuth: this.showLanBindNoAuth,
-                    lanBindNoAuthLabel: this.lanBindNoAuthLabel,
-                    dismissLanBindNoAuthLabel: this.dismissLanBindNoAuthLabel,
-                    showNetworkDegraded: this.showNetworkDegraded,
-                    networkDegradedLabel: this.networkDegradedLabel,
-                    networkRecovering: this.networkRecovering,
-                    recoverNetworkLabel: this.recoverNetworkLabel,
-                    openSettingsLabel: this.openSettingsLabel,
-                    showOpenBackups: this.showOpenBackups,
-                    openBackupsLabel: this.openBackupsLabel,
-                    autoRecoverLabel: this.autoRecoverLabel,
-                    autoRecovering: this.autoRecovering,
-                    openInterfacesLabel: this.openInterfacesLabel,
-                    onrestartbackend: () => this.$emit("restart-backend"),
-                    onviewbackendlogs: () => this.$emit("view-backend-logs"),
-                    onrecovernetwork: () => this.$emit("recover-network"),
-                    onopensettings: () => this.$emit("open-settings"),
-                    ondismisslanbindnoauth: () => this.$emit("dismiss-lan-bind-no-auth"),
-                    onopenbackups: () => this.$emit("open-backups"),
-                    onautorecoverdatabase: () => this.$emit("auto-recover-database"),
-                    onopeninterfaces: () => this.$emit("open-interfaces"),
-                },
-            });
-        },
-    },
+    ...svelteHost,
 };
 </script>

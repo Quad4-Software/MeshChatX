@@ -105,7 +105,7 @@
                     class="bg-red-500/90 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
                 >
                     <MaterialDesignIcon iconName="lan-disconnect" class="w-3.5 h-3.5" />
-                    <span>Reticulum Offline</span>
+                    <span>{t("interfaces.reticulum_offline")}</span>
                 </div>
             </div>
         {/if}

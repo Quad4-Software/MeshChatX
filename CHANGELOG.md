@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [4.9.0] - 2026-09-TBD [unreleased]
 
+## Major Refactors
+
+- **Vue/JS to Svelte/TS**: Major frontend refactor. All new pages and shared UI go Svelte 5 and TypeScript. This was done using AI Agents with proper planning and layers to prevent losing any functionality. The frontend is now more maintainable and readable.
+- **Some Python God-files Broken Down**: Python backend refactor to make code more maintainable and readable. This is still a work in progress till 5.0.0.
+
 ### Added
 
 - **Bug Reports Extension (off by default)**: Capture crashes and issues locally, group duplicates, and send a redacted report over the RNS when you choose. Crash screens can open or save into Bug Reports.
@@ -15,7 +20,7 @@ All notable changes to this project will be documented in this file.
 - **Nomad private tabs**: Ctrl+Shift+P opens a purple private tab that is not archived, favourited, or saved in history.
 - **Micron publish**: Publish can create a mesh server, upload the page, and open it in NomadNet in one step.
 - **Nomad identify-on-connect** (schema 58): Sticky per-favourite Identify when connecting, matching NomadNet. Auto-identifies on link before page requests. Fingerprint toggle and favourites import/export carry `identify_on_connect`.
-- **Android Auto**: LXMF message notifications use MessagingStyle with reply and mark-as-read so Android Auto can read and answer them from the car. Tap opens `meshchatx://app/messages/<hash>`.
+- **Android Auto**: LXMF message notifications use MessagingStyle with reply and mark-as-read so Android Auto can read and answer them from the car. Tap opens meshchatx://app/messages/<hash>.
 
 ### Fixed
 

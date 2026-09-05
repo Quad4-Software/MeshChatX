@@ -41,7 +41,7 @@
 </script>
 
 <div
-    class="flex min-h-10 shrink-0 items-center gap-1 overflow-x-auto border-b border-sem-border bg-sem-surface-muted px-1.5 py-1"
+    class="flex min-h-9 md:min-h-8 shrink-0 items-center gap-1 overflow-x-auto border-b border-sem-border bg-sem-surface-muted px-1.5 py-0.5 md:py-0.5"
     role="tablist"
 >
     {#each tabs as tab (tab.id)}
@@ -49,7 +49,7 @@
             role="tab"
             tabindex="0"
             aria-selected={tab.id === activeTabId}
-            class="group flex min-w-[7rem] max-w-[14rem] items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors cursor-pointer {tab.id ===
+            class="group flex min-w-[7rem] max-w-[14rem] items-center gap-1.5 rounded-lg px-2 py-1 md:py-0.5 text-sm transition-colors cursor-pointer {tab.id ===
             activeTabId
                 ? 'bg-sem-canvas font-medium text-sem-fg shadow-xs ring-1 ring-sem-border'
                 : 'text-sem-fg-muted hover:bg-sem-surface/80 hover:text-sem-fg'}"

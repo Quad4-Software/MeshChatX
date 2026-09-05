@@ -16,6 +16,8 @@
         mbtilesList?: MBTilesEntry[];
         mbtilesDir?: string;
         hasOfflineMap?: boolean;
+        announceListenEnabled?: boolean;
+        announceListenBusy?: boolean;
         ontoggleoffline?: (val: boolean) => void;
         ontogglecaching?: (val: boolean) => void;
         onsetactivembtiles?: (name: string) => void;
@@ -25,6 +27,18 @@
         onexportregion?: () => void;
         onstartexport?: () => void;
         onrestorestarter?: () => void;
+        onuploadmbtiles?: () => void;
+        onimportfeatures?: (detail: { features: any[]; merge: boolean }) => void;
+        onimporterror?: (err: any) => void;
+        onexportgeojson?: () => void;
+        onexportkml?: () => void;
+        onexportkmz?: () => void;
+        onexportgpx?: () => void;
+        onoverlayschanged?: (overlays?: any[]) => void;
+        onexportoverlay?: (detail: { id: string | number; format: string }) => void;
+        oncopyoverlaytodrawings?: (overlay: any) => void;
+        onoverlayerror?: (err: any) => void;
+        ontoggleannouncelisten?: (val: boolean) => void;
         onclose?: () => void;
     }
 
@@ -38,6 +52,8 @@
         mbtilesList = [],
         mbtilesDir = "",
         hasOfflineMap = false,
+        announceListenEnabled = false,
+        announceListenBusy = false,
         ontoggleoffline,
         ontogglecaching,
         onsetactivembtiles,
@@ -47,6 +63,18 @@
         onexportregion,
         onstartexport: _onstartexport,
         onrestorestarter,
+        onuploadmbtiles,
+        onimportfeatures,
+        onimporterror,
+        onexportgeojson,
+        onexportkml,
+        onexportkmz,
+        onexportgpx,
+        onoverlayschanged,
+        onexportoverlay,
+        oncopyoverlaytodrawings,
+        onoverlayerror,
+        ontoggleannouncelisten,
         onclose,
     }: Props = $props();
 </script>
@@ -77,15 +105,28 @@
                 {mbtilesList}
                 {mbtilesDir}
                 {hasOfflineMap}
+                {announceListenEnabled}
+                {announceListenBusy}
+                onOverlaysChanged={onoverlayschanged}
+                onImportFeatures={onimportfeatures}
+                onImportError={onimporterror}
+                onExportGeojson={onexportgeojson}
+                onExportKml={onexportkml}
+                onExportKmz={onexportkmz}
+                onExportGpx={onexportgpx}
+                onExportOverlay={onexportoverlay}
+                onCopyOverlayToDrawings={oncopyoverlaytodrawings}
+                onOverlayError={onoverlayerror}
                 onToggleOffline={ontoggleoffline}
                 onToggleCaching={ontogglecaching}
-                onUploadMbtiles={() => {}}
+                onUploadMbtiles={onuploadmbtiles}
                 onSetActiveMbtiles={onsetactivembtiles}
                 onDeleteMbtiles={ondeletembtiles}
                 onSaveMbtilesDir={onsavembtilesdir}
                 onClearCache={onclearcache}
                 onExportRegion={onexportregion}
                 onRestoreStarter={onrestorestarter}
+                onToggleAnnounceListen={ontoggleannouncelisten}
             />
         </div>
     </div>

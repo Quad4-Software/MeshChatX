@@ -26,12 +26,14 @@
         shareUri,
     } from "./lib/contactsActions.js";
     import ContactListRow from "./components/ContactListRow.svelte";
+    import ContactsWindowedList from "./components/ContactsWindowedList.svelte";
     import ContactsToolbar from "./components/ContactsToolbar.svelte";
     import ContactsAddDialog from "./components/ContactsAddDialog.svelte";
     import ContactsImportDialog from "./components/ContactsImportDialog.svelte";
     import ContactsMyIdentityDialog from "./components/ContactsMyIdentityDialog.svelte";
     import ContactsScannerDialog from "./components/ContactsScannerDialog.svelte";
     import ContactsContextMenu from "./components/ContactsContextMenu.svelte";
+    import { MIN_VIRTUAL_SIDEBAR_ITEMS } from "../../js/sidebarListVirtual.js";
 
     let contacts: Array<Record<string, unknown>> = $state([]);
     let contactsSearch = $state("");
@@ -64,10 +66,12 @@
         y: 0,
         contact: null,
     });
+    let listScrollEl = $state<HTMLDivElement | null>(null);
 
     const cameraSupported = isCameraSupported();
     const hasMoreContacts = $derived(contacts.length < totalContactsCount);
     const mergedContacts = $derived(mergeContactsByName(contacts));
+    const useVirtualContactList = $derived(mergedContacts.length >= MIN_VIRTUAL_SIDEBAR_ITEMS);
 
     async function getConfig() {
         try {
@@ -258,16 +262,38 @@
                 {:else if !isLoading && contacts.length === 0}
                     <EmptyState icon="account-multiple-outline" title={t("contacts.no_contacts")} />
                 {:else}
-                    <div class="divide-y divide-sem-border overflow-y-auto flex-1 min-h-0" role="list">
-                        {#each mergedContacts as contact (String(contact.id))}
-                            <ContactListRow
-                                {contact}
-                                onOpenConversation={openConversation}
-                                onCall={callContact}
-                                onContextMenu={openContextMenu}
-                                onCopyHash={(hash) => copyToClipboard(hash, t("common.copied"))}
-                            />
-                        {/each}
+                    <div
+                        bind:this={listScrollEl}
+                        class="divide-y divide-sem-border overflow-y-auto flex-1 min-h-0"
+                        role="list"
+                    >
+                        {#if useVirtualContactList}
+                            <ContactsWindowedList
+                                items={mergedContacts}
+                                getScrollElement={() => listScrollEl}
+                                itemKey={(contact) => String(contact.id)}
+                            >
+                                {#snippet children({ item: contact })}
+                                    <ContactListRow
+                                        {contact}
+                                        onOpenConversation={openConversation}
+                                        onCall={callContact}
+                                        onContextMenu={openContextMenu}
+                                        onCopyHash={(hash) => copyToClipboard(hash, t("common.copied"))}
+                                    />
+                                {/snippet}
+                            </ContactsWindowedList>
+                        {:else}
+                            {#each mergedContacts as contact (String(contact.id))}
+                                <ContactListRow
+                                    {contact}
+                                    onOpenConversation={openConversation}
+                                    onCall={callContact}
+                                    onContextMenu={openContextMenu}
+                                    onCopyHash={(hash) => copyToClipboard(hash, t("common.copied"))}
+                                />
+                            {/each}
+                        {/if}
                         {#if hasMoreContacts && !isLoadingMore}
                             <div class="pt-2 flex justify-center">
                                 <button

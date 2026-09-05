@@ -101,7 +101,11 @@ export function createMeasureStyle(): Style {
     });
 }
 
-export function createOnlineTileSource(tileServerUrl?: string | null, cachingEnabled: boolean = true): XYZ {
+export function createOnlineTileSource(
+    tileServerUrl?: string | null,
+    cachingEnabled: boolean = true,
+    onTileError?: () => void
+): XYZ {
     const url = resolveRasterTileUrl(tileServerUrl);
     return new XYZ({
         url,
@@ -109,6 +113,9 @@ export function createOnlineTileSource(tileServerUrl?: string | null, cachingEna
         maxZoom: 19,
         tileLoadFunction: (tile: any, src: string) => {
             const img = tile.getImage();
+            if (onTileError) {
+                img.onerror = () => onTileError();
+            }
             if (!cachingEnabled) {
                 img.src = src;
                 return;

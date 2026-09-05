@@ -76,6 +76,7 @@
     let didDisableStabilization = false;
     let physicsPausedForDrag = false;
     let unbindEvents: (() => void) | null = null;
+    let didInitRenderer = false;
 
     let pathFetchConcurrency = $derived(pickAdaptiveFetchConcurrency());
 
@@ -163,6 +164,12 @@
         await manualUpdate();
         restartAutoReloadInterval();
     }
+
+    $effect(() => {
+        if (didInitRenderer || networkContainer == null) return;
+        didInitRenderer = true;
+        void init();
+    });
 
     function scheduleUpdateLOD() {
         if (lodRafId != null) cancelAnimationFrame(lodRafId);
@@ -317,7 +324,6 @@
                 }
             },
         });
-        init();
     });
 
     onDestroy(() => {

@@ -69,7 +69,7 @@
 
 .route-view-fade-enter-active,
 .route-view-fade-leave-active {
-  transition: opacity 120ms ease;
+  transition: opacity 80ms ease;
 }
 
 .route-view-fade-enter-from,

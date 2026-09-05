@@ -5,8 +5,30 @@
 </template>
 
 <script>
-import { mount, unmount } from "svelte";
 import AppSidebarClassicNavSvelte from "../../features/app-shell/components/AppSidebarClassicNav.svelte";
+import { createThinSvelteHost } from "../../js/svelteVueHost";
+
+const svelteHost = createThinSvelteHost({
+    component: AppSidebarClassicNavSvelte,
+    buildProps(vm) {
+        return {
+            navItems: vm.navItems,
+            isCollapsed: vm.isCollapsed,
+            isEditing: vm.isEditing,
+            unreadConversationsCount: vm.unreadConversationsCount,
+            relayChatUnreadCount: vm.relayChatUnreadCount,
+            missedCallsCount: vm.missedCallsCount,
+            activeRouteName: vm.$route?.name || "",
+            oneditstart: () => vm.$emit("edit-start"),
+            onnavreorder: (payload) => vm.$emit("nav-reorder", payload),
+        };
+    },
+    extraWatch: {
+        "$route.name"() {
+            this._syncSvelteProps();
+        },
+    },
+});
 
 /**
  * Thin Vue host for the Svelte AppSidebarClassicNav
@@ -40,41 +62,6 @@ export default {
         },
     },
     emits: ["edit-start", "nav-reorder"],
-    mounted() {
-        this.remount();
-    },
-    updated() {
-        this.remount();
-    },
-    beforeUnmount() {
-        this.teardown();
-    },
-    methods: {
-        teardown() {
-            if (this._svelte) {
-                unmount(this._svelte);
-                this._svelte = null;
-            }
-        },
-        remount() {
-            this.teardown();
-            const root = this.$refs.root;
-            if (!root) return;
-            this._svelte = mount(AppSidebarClassicNavSvelte, {
-                target: root,
-                props: {
-                    navItems: this.navItems,
-                    isCollapsed: this.isCollapsed,
-                    isEditing: this.isEditing,
-                    unreadConversationsCount: this.unreadConversationsCount,
-                    relayChatUnreadCount: this.relayChatUnreadCount,
-                    missedCallsCount: this.missedCallsCount,
-                    activeRouteName: this.$route?.name || "",
-                    oneditstart: () => this.$emit("edit-start"),
-                    onnavreorder: (payload) => this.$emit("nav-reorder", payload),
-                },
-            });
-        },
-    },
+    ...svelteHost,
 };
 </script>

@@ -58,14 +58,13 @@ export async function fetchBasicVisualiserData(signal?: AbortSignal): Promise<Ba
             window.api.get("/api/v1/config", { signal }).catch(() => null),
             window.api.get("/api/v1/interfaces", { signal }).catch(() => null),
             window.api.get("/api/v1/lxmf/conversations", { signal, params: { limit: 2000 } }).catch(() => null),
-            window.api.get("/api/v1/discovered_interfaces", { signal }).catch(() => null),
+            window.api.get("/api/v1/reticulum/discovered-interfaces", { signal }).catch(() => null),
         ]);
 
         const config = (cfgRes as { data?: { config?: VisualiserConfig } } | null)?.data?.config || null;
         const interfaces = (ifaceRes as { data?: { interfaces?: InterfaceEntry[] } } | null)?.data?.interfaces || [];
         const discoveredInterfaces =
-            (discRes as { data?: { discovered_interfaces?: DiscoveredInterfaceEntry[] } } | null)?.data
-                ?.discovered_interfaces || [];
+            (discRes as { data?: { interfaces?: DiscoveredInterfaceEntry[] } } | null)?.data?.interfaces || [];
         const rawConvs =
             (convRes as { data?: { conversations?: ConversationEntry[] } } | null)?.data?.conversations || [];
 
@@ -301,8 +300,7 @@ export async function fetchVisualiserData(): Promise<Omit<VisualiserDataState, "
     const interfaces: InterfaceEntry[] =
         (interfacesRes as { data?: { interfaces?: InterfaceEntry[] } } | null)?.data?.interfaces || [];
     const discoveredInterfaces: DiscoveredInterfaceEntry[] =
-        (discoveredRes as { data?: { discovered_interfaces?: DiscoveredInterfaceEntry[] } } | null)?.data
-            ?.discovered_interfaces || [];
+        (discoveredRes as { data?: { interfaces?: DiscoveredInterfaceEntry[] } } | null)?.data?.interfaces || [];
     const discoveredActive: DiscoveredActiveEntry[] =
         (discoveredActiveRes as { data?: { discovered_active?: DiscoveredActiveEntry[] } } | null)?.data
             ?.discovered_active || [];

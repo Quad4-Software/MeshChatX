@@ -102,7 +102,7 @@
                 onclick={onreloadrns}
             >
                 <MaterialDesignIcon iconName="restart" class="w-4 h-4 {reloadingRns ? 'animate-spin' : ''}" />
-                <span>{reloadingRns ? t("app.reloading_rns") : "Restart RNS"}</span>
+                <span>{reloadingRns ? t("app.reloading_rns") : t("app.restart_rns")}</span>
             </button>
         </div>
     </div>
