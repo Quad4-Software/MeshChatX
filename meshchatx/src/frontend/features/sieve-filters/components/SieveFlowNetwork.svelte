@@ -199,7 +199,7 @@
             }
 
             const data = { nodes: new DataSet(nodes as any), edges: new DataSet(edges as any) };
-            network = new Network(hostEl, data, {
+            network = new Network(hostEl, data as any, {
                 layout: {
                     hierarchical: {
                         direction: "LR",

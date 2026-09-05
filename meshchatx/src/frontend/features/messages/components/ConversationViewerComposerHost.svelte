@@ -122,6 +122,10 @@
         text = text ? `${text}\n${extra}` : extra;
     }
 
+    export async function sendNow() {
+        await sendMessage();
+    }
+
     function releaseImageUrls() {
         for (const url of imageUrls) URL.revokeObjectURL(url);
     }
@@ -193,7 +197,7 @@
             });
             const type = String(sticker.image_type || "png").toLowerCase();
             const mime = type === "webm" ? "video/webm" : `image/${type}`;
-            const file = new File([response.data], `${sticker.name || "sticker"}.${type}`, { type: mime });
+            const file = new File([response.data as BlobPart], `${sticker.name || "sticker"}.${type}`, { type: mime });
             addImage(file);
             isEmojiPickerOpen = false;
         } catch {
@@ -206,7 +210,7 @@
             const response = await window.api.get(`/api/v1/gifs/${gif.id}/image`, {
                 responseType: "blob",
             });
-            const file = new File([response.data], `${gif.name || "gif"}.gif`, { type: "image/gif" });
+            const file = new File([response.data as BlobPart], `${gif.name || "gif"}.gif`, { type: "image/gif" });
             addImage(file);
             void window.api.post(`/api/v1/gifs/${gif.id}/use`);
             isEmojiPickerOpen = false;

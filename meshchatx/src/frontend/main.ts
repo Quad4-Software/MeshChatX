@@ -6,6 +6,7 @@ import { createI18n } from "vue-i18n";
 import vClickOutside from "./libs/clickOutside.js";
 import DOMPurify from "dompurify";
 import "./style.css";
+import "./css/nomad-page-chrome.css";
 import { injectMeshchatThemeVariables } from "./theme/designTokens.js";
 import { registerUiI18n } from "./js/localeLoader.js";
 import { registerTranslator, registerFallbackMessages } from "./js/i18n.js";

@@ -38,7 +38,7 @@
 
         try {
             const res = await window.api.get(`${RNPATH_TRACE_API_BASE}/${destinationHash}`);
-            const data = (res as { data?: ({ error?: string } & PathTraceResult) })?.data;
+            const data = res.data as ({ error?: string } & PathTraceResult) | undefined;
             if (data?.error) {
                 error = data.error;
             } else if (data) {

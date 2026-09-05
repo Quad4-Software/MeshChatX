@@ -39,8 +39,9 @@
     async function reload(): Promise<void> {
         try {
             const res = await window.api.get(API_MESSAGE_BLOCKLIST);
-            enabled = Boolean(res.data?.enabled);
-            blocklist = mapBlocklistFromApi(res.data?.blocklist || {});
+            const data = res.data as { enabled?: boolean; blocklist?: Record<string, unknown> } | undefined;
+            enabled = Boolean(data?.enabled);
+            blocklist = mapBlocklistFromApi(data?.blocklist || {});
         } catch (e) {
             console.error(e);
             ToastUtils.error(t("tools.message_blocklist.load_failed"));
@@ -55,8 +56,9 @@
                 blocklist: normalizeBlocklistForSave(blocklist),
             };
             const res = await window.api.put(API_MESSAGE_BLOCKLIST, payload);
-            enabled = Boolean(res.data?.enabled);
-            blocklist = mapBlocklistFromApi(res.data?.blocklist || {});
+            const data = res.data as { enabled?: boolean; blocklist?: Record<string, unknown> } | undefined;
+            enabled = Boolean(data?.enabled);
+            blocklist = mapBlocklistFromApi(data?.blocklist || {});
             ToastUtils.success(t("tools.message_blocklist.saved"));
         } catch (e: any) {
             const msg =
@@ -119,7 +121,8 @@
                 document,
                 merge,
             });
-            blocklist = mapBlocklistFromApi(res.data?.blocklist || {});
+            const data = res.data as { blocklist?: Record<string, unknown> } | undefined;
+            blocklist = mapBlocklistFromApi(data?.blocklist || {});
             ToastUtils.success(
                 merge
                     ? t("tools.message_blocklist.imported_merge")

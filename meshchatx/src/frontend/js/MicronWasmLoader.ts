@@ -7,10 +7,16 @@
 
 import { getMicronWasmRuntimeOverride } from "./MicronWasmRuntimeOverride.js";
 
-let resolvedPromise = null;
-let integrityHashes = null;
+let resolvedPromise: Promise<boolean> | null = null;
+let integrityHashes: { wasm?: string; wasmExec?: string } | null = null;
 
-let resolvedOverridePromise = null;
+let resolvedOverridePromise: Promise<{
+    source: string;
+    releaseTag: string;
+    wasmSri: string;
+    wasmBytes: any;
+    expectedSha256Hex: string | null;
+} | null> | null = null;
 function readRuntimeOverrideCached() {
     if (resolvedOverridePromise) {
         return resolvedOverridePromise;
@@ -23,9 +29,9 @@ function readRuntimeOverrideCached() {
     resolvedOverridePromise = (async () => {
         try {
             return await getMicronWasmRuntimeOverride();
-        } catch (e) {
+        } catch (e: any) {
             // Sandboxed crash-tab iframe (opaque null Origin) cannot open IndexedDB.
-            const name = e && e.name;
+            const name = e && typeof e === "object" && "name" in e ? e.name : null;
             if (name === "SecurityError" || name === "InvalidStateError") {
                 return null;
             }
@@ -102,11 +108,11 @@ function injectMicronWasmStyles() {
 }
 
 /** True when WASM artifacts were present at Vite build time (not runtime probing). */
-export function isMicronWasmBundled() {
+export function isMicronWasmBundled(): boolean {
     if (typeof globalThis !== "undefined" && typeof globalThis.__MESHCHATX_TEST_MICRON_WASM_BUNDLED__ === "boolean") {
         return globalThis.__MESHCHATX_TEST_MICRON_WASM_BUNDLED__;
     }
-    return import.meta.env.VITE_MICRON_WASM_BUNDLED === "true";
+    return Boolean((import.meta.env.VITE_MICRON_WASM_BUNDLED as string) === "true");
 }
 
 function baseUrl() {

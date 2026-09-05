@@ -14,7 +14,7 @@ export type BubbleTranslation = {
 };
 
 export async function loadTranslatorLanguages(
-    api: { get: (url: string, opts?: { params?: Record<string, unknown> }) => Promise<{ data?: Record<string, unknown> }> },
+    api: { get: (url: string, opts?: { params?: Record<string, unknown> }) => Promise<{ data?: unknown }> },
     libreUrl?: string
 ): Promise<{ languages: LangOption[]; hasTranslator: boolean }> {
     try {
@@ -23,7 +23,8 @@ export async function loadTranslatorLanguages(
             params.libretranslate_url = libreUrl;
         }
         const response = await api.get("/api/v1/translator/languages", { params });
-        const list = Array.isArray(response.data?.languages) ? response.data.languages : [];
+        const data = response.data as { languages?: unknown[]; has_argos?: boolean; libretranslate_reachable?: boolean } | undefined;
+        const list = Array.isArray(data?.languages) ? data.languages : [];
         const options: LangOption[] = list
             .map((item: unknown) => {
                 if (typeof item === "string") {
@@ -35,7 +36,7 @@ export async function loadTranslatorLanguages(
                 return { value: code, label: name };
             })
             .filter((opt: LangOption) => Boolean(opt.value));
-        const hasTranslator = options.length > 0 || Boolean(response.data?.has_argos || response.data?.libretranslate_reachable);
+        const hasTranslator = options.length > 0 || Boolean(data?.has_argos || data?.libretranslate_reachable);
         return { languages: options, hasTranslator };
     } catch {
         return { languages: [], hasTranslator: false };
@@ -43,7 +44,7 @@ export async function loadTranslatorLanguages(
 }
 
 export async function translateText(
-    api: { post: (url: string, body?: unknown) => Promise<{ data?: Record<string, unknown> }> },
+    api: { post: (url: string, body?: unknown) => Promise<{ data?: unknown }> },
     params: {
         text: string;
         targetLang: string;
@@ -66,7 +67,7 @@ export async function translateText(
         payload.libretranslate_api_key = params.libreApiKey;
     }
     const response = await api.post("/api/v1/translator/translate", payload);
-    const data = response.data || {};
+    const data = (response.data as { translated_text?: string; source_lang?: string } | undefined) || {};
     return {
         translatedText: String(data.translated_text || ""),
         sourceLang: String(data.source_lang || params.sourceLang || "auto"),
