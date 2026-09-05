@@ -10,8 +10,7 @@
     import { getCurrentRoute, subscribe } from "./hashRouter.js";
     import type { ActiveRoute } from "./hashRouter.js";
 
-    const CONTAINER_CLASS =
-        "feature-page-host flex flex-1 min-h-0 h-full min-w-0 w-full overflow-hidden bg-sem-canvas";
+    const CONTAINER_CLASS = "feature-page-host flex flex-1 min-h-0 h-full min-w-0 w-full overflow-hidden bg-sem-canvas";
 
     interface MountedPage {
         container: HTMLElement;

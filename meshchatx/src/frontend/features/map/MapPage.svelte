@@ -765,13 +765,21 @@
 
     function exportVectorGeoJson() {
         if (!drawSource || !hasVectorDrawFeatures) return;
-        downloadTextFile(exportFilename("geojson"), exportDrawFeaturesGeoJson(drawSource.getFeatures()), "application/geo+json");
+        downloadTextFile(
+            exportFilename("geojson"),
+            exportDrawFeaturesGeoJson(drawSource.getFeatures()),
+            "application/geo+json"
+        );
         ToastUtils.success(t("map.vector_export_ok"));
     }
 
     function exportVectorKml() {
         if (!drawSource || !hasVectorDrawFeatures) return;
-        downloadTextFile(exportFilename("kml"), exportDrawFeaturesKml(drawSource.getFeatures()), "application/vnd.google-earth.kml+xml");
+        downloadTextFile(
+            exportFilename("kml"),
+            exportDrawFeaturesKml(drawSource.getFeatures()),
+            "application/vnd.google-earth.kml+xml"
+        );
         ToastUtils.success(t("map.vector_export_ok"));
     }
 
@@ -974,7 +982,10 @@
                 const ll0 = toLonLat(origin);
                 const ll1 = toLonLat(evt.coordinate);
                 const metrics = computeSegmentMetrics(ll0[0], ll0[1], ll1[0], ll1[1]);
-                measureTooltipManager?.setMeasureHtml(buildBearingLiveTooltipHtml(metrics, (key) => t(key)), evt.coordinate);
+                measureTooltipManager?.setMeasureHtml(
+                    buildBearingLiveTooltipHtml(metrics, (key) => t(key)),
+                    evt.coordinate
+                );
             });
         }
     });
@@ -1057,7 +1068,7 @@
             <MapExportConfigPanel
                 minZoom={exportMinZoom}
                 maxZoom={exportMaxZoom}
-                estimatedTiles={estimatedTiles}
+                {estimatedTiles}
                 exporting={isExporting}
                 tileLimitExceeded={exportTileLimitExceeded}
                 onCancel={cancelExportSelection}

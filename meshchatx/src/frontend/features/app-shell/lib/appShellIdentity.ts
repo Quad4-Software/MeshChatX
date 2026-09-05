@@ -15,7 +15,11 @@ import {
 } from "../../../js/databaseHealthWarning.js";
 import { t } from "../../../js/i18n.js";
 import { fetchCsrfToken } from "../../../js/csrfToken.js";
-import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed, clearMessagePanes } from "../../../js/browserLayoutStore.js";
+import {
+    loadFeatureSidebarCollapsed,
+    saveFeatureSidebarCollapsed,
+    clearMessagePanes,
+} from "../../../js/browserLayoutStore.js";
 import { micronStorage } from "../../../js/MicronStorage.js";
 import { navigate, router, subscribe as subscribeRoute } from "../../../shell/hashRouter.js";
 import { IDENTITY_SAVE_DEBOUNCE_MS, apiClient } from "./appShellShared.js";
@@ -122,7 +126,6 @@ export async function applyIdentitySwitched(state: AppShellState, json: any): Pr
     }
     endSwitchUi(false);
 }
-
 
 // Identity footer
 // ------------------------------------------------------------------

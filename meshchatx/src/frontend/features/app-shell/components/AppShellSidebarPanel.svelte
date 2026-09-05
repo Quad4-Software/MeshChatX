@@ -80,9 +80,7 @@
         </div>
 
         <!-- mobile-only quick settings row (theme + language) -->
-        <div
-            class="sm:hidden flex items-center justify-between gap-2 px-3 py-2 border-b border-sem-border"
-        >
+        <div class="sm:hidden flex items-center justify-between gap-2 px-3 py-2 border-b border-sem-border">
             <button
                 type="button"
                 class="flex items-center gap-2 flex-1 rounded-lg px-2 py-1.5 text-sm font-medium text-sem-fg hover:bg-sem-surface-muted transition-colors"
@@ -135,8 +133,7 @@
                     onupdatedisplayname={(value) => onDisplayNameUpdate(shell, value)}
                     onsaveidentity={() => flushIdentitySave(shell)}
                     onsendannounce={() => void sendAnnounce(shell)}
-                    onannounceintervalchange={(seconds) =>
-                        void onAnnounceIntervalChange(shell, seconds)}
+                    onannounceintervalchange={(seconds) => void onAnnounceIntervalChange(shell, seconds)}
                     oncopyvalue={(value, label) => void copyValue(shell, value, label)}
                     onopenlxmfqr={() => void openLxmfQr(shell)}
                 />
@@ -150,8 +147,7 @@
                     onupdatedisplayname={(value) => onDisplayNameUpdate(shell, value)}
                     onsaveidentity={() => flushIdentitySave(shell)}
                     onsendannounce={() => void sendAnnounce(shell)}
-                    onannounceintervalchange={(seconds) =>
-                        void onAnnounceIntervalChange(shell, seconds)}
+                    onannounceintervalchange={(seconds) => void onAnnounceIntervalChange(shell, seconds)}
                     oncopyvalue={(value, label) => void copyValue(shell, value, label)}
                     onopenlxmfqr={() => void openLxmfQr(shell)}
                 />

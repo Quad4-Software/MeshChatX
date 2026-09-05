@@ -190,8 +190,8 @@ export function shouldShowCallOverlay(state: AppShellState) {
     const meta = (state.route?.meta || {}) as { isPopout?: boolean };
     return Boolean(
         (state.activeCall || state.isCallEnded || state.wasDeclined || state.initiationStatus) &&
-            !meta.isPopout &&
-            (!["call", "call-popout"].includes(state.routeName) || state.global.activeCallTab !== "phone") &&
-            (!state.config?.desktop_open_calls_in_separate_window || !ElectronUtils.isElectron())
+        !meta.isPopout &&
+        (!["call", "call-popout"].includes(state.routeName) || state.global.activeCallTab !== "phone") &&
+        (!state.config?.desktop_open_calls_in_separate_window || !ElectronUtils.isElectron())
     );
 }

@@ -8,7 +8,12 @@ import DialogUtils from "../../../js/DialogUtils.js";
 import ToastUtils from "../../../js/ToastUtils.js";
 import { t } from "../../../js/i18n.js";
 import { postRequestPath } from "../../../js/reticulumPathfinding.js";
-import { PROPAGATION_SYNC_TOAST_KEY, PROPAGATION_SYNC_POLL_TIMEOUT_MS, ACTIVE_SYNC_STATES, apiClient } from "./appShellShared.js";
+import {
+    PROPAGATION_SYNC_TOAST_KEY,
+    PROPAGATION_SYNC_POLL_TIMEOUT_MS,
+    ACTIVE_SYNC_STATES,
+    apiClient,
+} from "./appShellShared.js";
 import type { AppShellState } from "./appShellState.svelte.js";
 
 // Propagation node sync
@@ -56,9 +61,7 @@ export async function syncPropagationNode(state: AppShellState): Promise<void> {
     } catch (e) {
         state.userInitiatedPropagationSync = false;
         const error = e as { response?: { data?: { message?: string; error?: string } } };
-        ToastUtils.error(
-            error.response?.data?.message ?? error.response?.data?.error ?? t("app.sync_error_generic")
-        );
+        ToastUtils.error(error.response?.data?.message ?? error.response?.data?.error ?? t("app.sync_error_generic"));
         return;
     }
 

@@ -81,9 +81,7 @@ describe("hashRouter", () => {
     it("builds hrefs from named targets", () => {
         expect(resolveTarget({ name: "messages", params: { destinationHash: "ff00" } })).toBe("/messages/ff00");
         expect(resolveTarget({ name: "messages" })).toBe("/messages");
-        expect(resolveTarget({ name: "about", hash: "#about-database-backups" })).toBe(
-            "/about#about-database-backups"
-        );
+        expect(resolveTarget({ name: "about", hash: "#about-database-backups" })).toBe("/about#about-database-backups");
         expect(resolveTarget({ name: "map", query: { lat: 1, zoom: null } })).toBe("/map?lat=1");
     });
 

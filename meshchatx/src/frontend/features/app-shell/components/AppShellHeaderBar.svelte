@@ -49,11 +49,7 @@
                     class="flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-xl sm:h-12 sm:w-12"
                     onclick={() => onAppNameClick(shell, middleEl)}
                 >
-                    <img
-                        class="h-9 w-9 max-h-full max-w-full object-contain sm:h-11 sm:w-11"
-                        src={logoUrl}
-                        alt=""
-                    />
+                    <img class="h-9 w-9 max-h-full max-w-full object-contain sm:h-11 sm:w-11" src={logoUrl} alt="" />
                 </button>
             </div>
             <div class="hidden min-w-0 leading-tight sm:block">
@@ -78,10 +74,7 @@
             >
                 <MaterialDesignIcon iconName={shell.themeToggleIcon} class="w-5 h-5" />
             </button>
-            <LanguageSelector
-                class="hidden sm:block"
-                onlanguagechange={(code) => void onLanguageChange(shell, code)}
-            />
+            <LanguageSelector class="hidden sm:block" onlanguagechange={(code) => void onLanguageChange(shell, code)} />
             <button
                 type="button"
                 class="hidden sm:inline-flex rounded-full p-1.5 text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
@@ -106,9 +99,7 @@
                         <span
                             class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
                         >
-                            {shell.global.relayChatUnreadCount > 99
-                                ? "99+"
-                                : shell.global.relayChatUnreadCount}
+                            {shell.global.relayChatUnreadCount > 99 ? "99+" : shell.global.relayChatUnreadCount}
                         </span>
                     {/if}
                 </button>
@@ -151,11 +142,7 @@
                     <MaterialDesignIcon iconName="close-circle-outline" class="w-5 h-5" />
                 </button>
             {/if}
-            <button
-                type="button"
-                class="hidden sm:flex rounded-full"
-                onclick={() => void syncPropagationNode(shell)}
-            >
+            <button type="button" class="hidden sm:flex rounded-full" onclick={() => void syncPropagationNode(shell)}>
                 <span
                     class="flex text-sem-fg bg-sem-surface-raised border border-sem-border hover:border-sem-accent px-2.5 py-1 rounded-full shadow-xs transition"
                 >

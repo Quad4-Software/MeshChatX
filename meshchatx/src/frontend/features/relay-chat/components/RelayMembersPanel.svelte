@@ -131,7 +131,9 @@
                                     <button
                                         type="button"
                                         class="p-0.5 text-sem-fg-muted hover:text-blue-500 rounded"
-                                        title={member.is_operator ? t("relay_chat.demote_op") : t("relay_chat.promote_op")}
+                                        title={member.is_operator
+                                            ? t("relay_chat.demote_op")
+                                            : t("relay_chat.promote_op")}
                                         onclick={() => ontogglememberop?.(member)}
                                     >
                                         <MaterialDesignIcon iconName="shield-edit" class="size-3.5" />

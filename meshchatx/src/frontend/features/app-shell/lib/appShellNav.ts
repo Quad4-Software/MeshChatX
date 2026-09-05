@@ -11,7 +11,11 @@ import { isRetryableHttpError } from "../../../js/httpRetry.js";
 import ToastUtils from "../../../js/ToastUtils.js";
 import { t } from "../../../js/i18n.js";
 import { shouldShowMultiSessionToast } from "../../../js/activeSessions.js";
-import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed, clearMessagePanes } from "../../../js/browserLayoutStore.js";
+import {
+    loadFeatureSidebarCollapsed,
+    saveFeatureSidebarCollapsed,
+    clearMessagePanes,
+} from "../../../js/browserLayoutStore.js";
 import {
     applyNavLayout,
     captureNavLayout,
@@ -121,7 +125,6 @@ export function openCommandPalette(state: AppShellState): void {
     void state.hosts.commandPalette?.open();
 }
 
-
 // Counters
 // ------------------------------------------------------------------
 export function updateUnreadConversationsCount(state: AppShellState): void {
@@ -169,7 +172,12 @@ export function handleActiveSessionsUpdated(state: AppShellState, json: any): vo
         json?.warning_enabled !== undefined
             ? json.warning_enabled !== false
             : state.config?.multi_session_warning_enabled !== false;
-    const decision = shouldShowMultiSessionToast(count, warningEnabled, state.multiSessionWarningActive, json?.sessions);
+    const decision = shouldShowMultiSessionToast(
+        count,
+        warningEnabled,
+        state.multiSessionWarningActive,
+        json?.sessions
+    );
     state.multiSessionWarningActive = decision.warned;
     if (decision.show) {
         ToastUtils.warning(t("app.multi_session_warning", { count }));

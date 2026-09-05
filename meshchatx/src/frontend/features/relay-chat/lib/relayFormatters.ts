@@ -65,10 +65,7 @@ export function displayName(msg?: RrcMessage | null): string {
     return msg.nickname || msg.src?.substring(0, 8) || "Unknown";
 }
 
-export function deriveOfflineRelayMembers(
-    onlineMembers: RrcMember[],
-    messages: RrcMessage[]
-): RelayOfflineMember[] {
+export function deriveOfflineRelayMembers(onlineMembers: RrcMember[], messages: RrcMessage[]): RelayOfflineMember[] {
     const onlineHashes = new Set(
         onlineMembers
             .map((member) => String(member.identity_hash || (member as { hash?: string }).hash || ""))

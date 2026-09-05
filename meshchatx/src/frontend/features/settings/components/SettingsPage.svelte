@@ -585,12 +585,7 @@
 
             <!-- Settings Navigation + Sections -->
             <div class="settings-panel">
-                <SettingsNav
-                    activeTab={activeSettingsTab}
-                    {matchCounts}
-                    {isSearching}
-                    onselecttab={onSelectTab}
-                />
+                <SettingsNav activeTab={activeSettingsTab} {matchCounts} {isSearching} onselecttab={onSelectTab} />
 
                 <div class="settings-panel__content">
                     {#if !hasSearchResults}
