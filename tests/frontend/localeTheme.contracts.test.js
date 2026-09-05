@@ -149,11 +149,13 @@ describe("localeTheme adversarial / fuzz", () => {
     it("contract: security middleware sets Permissions-Policy for microphone", () => {
         const mw = readSource("meshchatx/src/backend/http/middleware.py");
         expect(mw).toContain("Permissions-Policy");
+        expect(mw).toContain("build_permissions_policy");
         expect(mw).toContain("microphone=(self)");
         expect(mw).toContain("autoplay=(self)");
         expect(mw).not.toContain('["Feature-Policy"]');
-        expect(mw).toContain("bluetooth=(self)");
-        expect(mw).toContain("serial=(self)");
-        expect(mw).toContain("usb=(self)");
+        // Hardware tokens are omitted on purpose (defaults are self). Listing
+        // them causes Brave/Chrome unrecognized-feature console noise.
+        expect(mw).not.toMatch(/Permissions-Policy[\s\S]*bluetooth=\(self\)/);
+        expect(mw).not.toMatch(/_PERMISSIONS_POLICY_CORE[\s\S]*bluetooth/);
     });
 });

@@ -85,8 +85,13 @@ async def test_csp_header_logic(mock_rns_minimal, tmp_path):
         assert "wss://[::1]" not in csp
         assert (
             response.headers.get("Permissions-Policy")
-            == "microphone=(self), camera=(self), autoplay=(self), speaker-selection=(self), "
-            "bluetooth=(self), serial=(self), usb=(self)"
+            == "microphone=(self), camera=(self), autoplay=(self)"
+        )
+        assert "bluetooth" not in (response.headers.get("Permissions-Policy") or "")
+        assert "serial" not in (response.headers.get("Permissions-Policy") or "")
+        assert "usb" not in (response.headers.get("Permissions-Policy") or "")
+        assert "speaker-selection" not in (
+            response.headers.get("Permissions-Policy") or ""
         )
         assert "Feature-Policy" not in response.headers
         m = re.search(r"script-src([^;]+);", csp)
