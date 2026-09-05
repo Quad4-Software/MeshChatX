@@ -241,3 +241,49 @@ async def test_websocket_broadcast_fanout_property(mock_app, n, payload):
             assert "seq" in out
         else:
             assert raw == payload
+
+
+@pytest.mark.asyncio
+async def test_websocket_broadcast_mixed_ws_and_wt_adapters(mock_app):
+    """WS clients and WtClientAdapter-like send_str targets share fan-out."""
+    mock_app.websocket_clients.clear()
+    ws_clients = [MagicWs() for _ in range(20)]
+    wt_like = [MagicWs() for _ in range(5)]
+    for c in wt_like:
+        c.transport_kind = "webtransport"
+    mock_app.websocket_clients.extend(ws_clients + wt_like)
+    real = _bind_real_websocket_broadcast(mock_app)
+    await real({"type": "config", "config": {}})
+    _assert_delivered(ws_clients + wt_like, expect_type="config")
+
+
+@pytest.mark.asyncio
+async def test_sync_subscribe_gap_concurrent_clients():
+    from meshchatx.src.backend.http.ws.dispatch import _handle_runtime_control
+    from meshchatx.src.backend.websocket_runtime import BroadcastSeqState
+
+    class App:
+        def __init__(self):
+            self.ws_seq_state = BroadcastSeqState()
+
+    app = App()
+    for i in range(10):
+        await app.ws_seq_state.stamp({"type": "tick", "i": i})
+
+    async def one():
+        client = MagicWs()
+        await _handle_runtime_control(
+            app,
+            client,
+            {"type": "sync.subscribe", "since_seq": 0, "request_id": "r1"},
+            "sync.subscribe",
+        )
+        raw = client.send_str.await_args[0][0]
+        return json.loads(raw)
+
+    replies = await asyncio.gather(*[one() for _ in range(25)])
+    for reply in replies:
+        assert reply["type"] == "sync.subscribe"
+        assert reply["status"] == "gap"
+        assert reply["resync"] is True
+        assert reply["current_seq"] == 10

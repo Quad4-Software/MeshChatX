@@ -9,6 +9,9 @@ test.describe("MeshChatX E2E (Vite + Python backend)", () => {
         expect(res.ok()).toBeTruthy();
         const body = await res.json();
         expect(body.status).toBe("ok");
+        expect(body.webtransport).toBeTruthy();
+        expect(body.webtransport.experimental).toBe(true);
+        expect(typeof body.webtransport.server_available).toBe("boolean");
     });
 
     test("backend /api/v1/self-test returns success for all checks", async ({ request }) => {
