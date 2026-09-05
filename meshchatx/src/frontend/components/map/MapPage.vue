@@ -1098,6 +1098,7 @@ import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import { publishPatchedConfig } from "../../js/settings/settingsConfigService.js";
 import {
+    COORD_FORMATS,
     ensureGeoCoordsReady,
     formatCoordinate,
     normalizeCoordinateFormat,
@@ -1166,6 +1167,7 @@ export default {
     components: {
         ContextMenuItem,
         ContextMenuPanel,
+        ContextMenuDivider,
         MaterialDesignIcon,
         MapClusterPanel,
         MapMarkerPanel,
@@ -1218,6 +1220,8 @@ export default {
             cursorCoords: null,
             coordinateFormat: "wgs84",
             geoWasmEpoch: 0,
+            tabToolbarHostReady: false,
+            contextMenuCoordRows: [],
             config: null,
             peers: {},
 
@@ -1411,6 +1415,15 @@ export default {
                 refLon: this.currentCenter?.[0] || 0,
             });
             return res?.text || `${Number(lat).toFixed(6)}, ${Number(lon).toFixed(6)}`;
+        },
+        showMapToolbar() {
+            if (!this.embedded) {
+                return true;
+            }
+            return this.isActiveTab;
+        },
+        useTabToolbar() {
+            return this.embedded && this.isActiveTab && this.tabToolbarHostReady;
         },
         northIndicatorRotateStyle() {
             const r = this.mapViewRotationRad || 0;

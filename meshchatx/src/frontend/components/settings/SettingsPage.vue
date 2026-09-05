@@ -134,11 +134,7 @@
                     root-class="py-12"
                 >
                     <template #action>
-                        <button
-                            type="button"
-                            class="primary-chip focus-ring-sem"
-                            @click="clearSettingsSearch"
-                        >
+                        <button type="button" class="primary-chip focus-ring-sem" @click="clearSettingsSearch">
                             {{ $t("settings.search_clear") }}
                         </button>
                     </template>
