@@ -194,6 +194,9 @@ def register_debug_routes(routes, app):
         snap["max_msg_size"] = int(
             getattr(app, "websocket_max_msg_size", 0) or 0,
         )
+        wt = getattr(app, "webtransport_state", None)
+        if wt is not None:
+            snap["webtransport"] = wt.status_dict()
         return web.json_response({"websocket": snap})
 
     @routes.get("/api/v1/debug/access-attempts")

@@ -691,6 +691,9 @@ class ReticulumMeshChat:
         self.ws_counters = WsRuntimeCounters()
         self.ws_seq_state = BroadcastSeqState()
         self._ws_coalesce = CoalesceBuffer(self._websocket_broadcast_coalesced)
+        from meshchatx.src.backend.webtransport_sidecar import WebTransportSidecarState
+
+        self.webtransport_state = WebTransportSidecarState()
         self._identity_hotswap_lock = asyncio.Lock()
         self.listen_host: str | None = None
         self.listen_port: int | None = None
@@ -1851,6 +1854,7 @@ class ReticulumMeshChat:
                 "plugins_enabled": self.plugins_enabled,
                 **demo_fields,
                 **self._landlock_status_dict(),
+                "webtransport": self._webtransport_status_dict(),
             }
             if self._startup_error:
                 payload["error"] = self._startup_error
@@ -1874,7 +1878,19 @@ class ReticulumMeshChat:
             "plugins_enabled": self.plugins_enabled,
             **demo_fields,
             **self._landlock_status_dict(),
+            "webtransport": self._webtransport_status_dict(),
         }
+
+    def _webtransport_status_dict(self) -> dict:
+        state = getattr(self, "webtransport_state", None)
+        if state is None:
+            from meshchatx.src.backend.webtransport_sidecar import (
+                WebTransportSidecarState,
+            )
+
+            state = WebTransportSidecarState()
+            self.webtransport_state = state
+        return state.status_dict()
 
     def wait_until_network_ready(self, timeout: float | None = None) -> bool:
         if (
@@ -5703,6 +5719,15 @@ class ReticulumMeshChat:
             if self._mem_diag and self._mem_diag.enabled:
                 asyncio.create_task(self._memory_diag_snapshot_loop())
 
+            try:
+                from meshchatx.src.backend.webtransport_sidecar import (
+                    try_start_webtransport_sidecar,
+                )
+
+                await try_start_webtransport_sidecar(self)
+            except Exception:
+                print("webtransport sidecar startup failed (non-fatal)")
+
         # create and run web app
         app = web.Application(
             client_max_size=1024 * 1024 * 256,
@@ -6741,6 +6766,25 @@ class ReticulumMeshChat:
             self.config.ui_glass_enabled.set(
                 self._parse_bool(data["ui_glass_enabled"]),
             )
+
+        if "live_transport_mode" in data:
+            mode = str(data["live_transport_mode"] or "auto").strip().lower()
+            if mode not in ("auto", "websocket", "webtransport"):
+                mode = "auto"
+            self.config.live_transport_mode.set(mode)
+
+        if "webtransport_sidecar_enabled" in data:
+            self.config.webtransport_sidecar_enabled.set(
+                self._parse_bool(data["webtransport_sidecar_enabled"]),
+            )
+            try:
+                from meshchatx.src.backend.webtransport_sidecar import (
+                    try_start_webtransport_sidecar,
+                )
+
+                AsyncUtils.run_async(try_start_webtransport_sidecar(self))
+            except Exception:
+                pass
 
         if "messages_multi_pane_enabled" in data:
             self.config.messages_multi_pane_enabled.set(
@@ -7824,6 +7868,8 @@ class ReticulumMeshChat:
             "message_icon_size": ctx.config.message_icon_size.get(),
             "ui_transparency": ctx.config.ui_transparency.get(),
             "ui_glass_enabled": ctx.config.ui_glass_enabled.get(),
+            "live_transport_mode": ctx.config.live_transport_mode.get(),
+            "webtransport_sidecar_enabled": ctx.config.webtransport_sidecar_enabled.get(),
             "message_outbound_bubble_color": ctx.config.message_outbound_bubble_color.get(),
             "message_inbound_bubble_color": ctx.config.message_inbound_bubble_color.get(),
             "message_failed_bubble_color": ctx.config.message_failed_bubble_color.get(),
