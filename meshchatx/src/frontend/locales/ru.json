@@ -1996,6 +1996,8 @@
         "downloading": "Загрузка",
         "hops": "{count} прыжков",
         "hops_away": "в {count} прыжках",
+        "path_hops_via": "{hops} через {iface}",
+        "path_hops_unknown_iface": "неизвестный интерфейс",
         "snr": "SNR {snr}",
         "stamp_cost": "Стоимость штампа {cost}",
         "stamp_ticket_valid": "Активный исходящий билет штампа (мгновенная отправка). Истекает {expires}.",

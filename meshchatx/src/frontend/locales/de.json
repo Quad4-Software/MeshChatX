@@ -1996,6 +1996,8 @@
         "downloading": "Wird heruntergeladen",
         "hops": "{count} Hops",
         "hops_away": "{count} Hops entfernt",
+        "path_hops_via": "{hops} über {iface}",
+        "path_hops_unknown_iface": "unbekannte Schnittstelle",
         "snr": "SNR {snr}",
         "stamp_cost": "Stempelkosten {cost}",
         "stamp_ticket_valid": "Ausgehendes Stempel-Ticket aktiv (sofortiger Versand). Läuft ab {expires}.",

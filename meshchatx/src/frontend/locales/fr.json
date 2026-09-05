@@ -1942,6 +1942,8 @@
         "downloading": "Téléchargement",
         "hops": "Houblon{count}",
         "hops_away": "{count}houblon loin",
+        "path_hops_via": "{hops} via {iface}",
+        "path_hops_unknown_iface": "interface inconnue",
         "snr": "SNR{snr}",
         "stamp_cost": "Coût du timbre{cost}",
         "stamp_ticket_valid": "Ticket de timbre sortant actif (envoi instantané). Expire {expires}.",

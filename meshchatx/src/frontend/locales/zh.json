@@ -1942,6 +1942,8 @@
         "downloading": "下载中",
         "hops": "{count} 跳",
         "hops_away": "{count} 跳远",
+        "path_hops_via": "{hops} 经 {iface}",
+        "path_hops_unknown_iface": "未知接口",
         "snr": "SNR {snr} dB",
         "stamp_cost": "邮戳成本 {cost}",
         "stamp_ticket_valid": "出站邮戳票据有效（即时发送）。将于 {expires} 过期。",

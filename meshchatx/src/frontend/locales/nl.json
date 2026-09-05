@@ -1942,6 +1942,8 @@
         "downloading": "Downloaden",
         "hops": "{count}hop",
         "hops_away": "{count}hop weg",
+        "path_hops_via": "{hops} via {iface}",
+        "path_hops_unknown_iface": "onbekende interface",
         "snr": "SNR{snr}",
         "stamp_cost": "Postzegelkosten{cost}",
         "stamp_ticket_valid": "Uitgaand postzegelticket actief (direct verzenden). Verloopt {expires}.",

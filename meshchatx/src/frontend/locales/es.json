@@ -1942,6 +1942,8 @@
         "downloading": "Descarga",
         "hops": "Umbrales{count}",
         "hops_away": "{count}salta lejos",
+        "path_hops_via": "{hops} vía {iface}",
+        "path_hops_unknown_iface": "interfaz desconocida",
         "snr": "SNR{snr}",
         "stamp_cost": "Costo de sello{cost}",
         "stamp_ticket_valid": "Boleto de sello saliente activo (envío instantáneo). Caduca {expires}.",

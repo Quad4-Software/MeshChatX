@@ -28,6 +28,13 @@
     import ConversationRawMessageModal from "./ConversationRawMessageModal.svelte";
     import ConversationStrangerBanner from "./ConversationStrangerBanner.svelte";
     import PaperMessageModal from "./modals/PaperMessageModal.svelte";
+    import ShareContactModal from "./modals/ShareContactModal.svelte";
+    import TelemetryHistoryModal from "./telemetry/TelemetryHistoryModal.svelte";
+    import {
+        lxmfContactResolvedIcon,
+        lxmfDeliveryDestinationHexFromContact,
+    } from "../lib/lxmf/contactDisplay.js";
+    import { isTelemetryOnly } from "../lib/conversationMessageHelpers.js";
     import {
         deleteWsMessage,
         fetchConversationPage,
@@ -141,6 +148,10 @@
     let audioRecordingTimer: ReturnType<typeof setInterval> | null = null;
     let generatedPaperMessageUri = $state<string | null>(null);
     let isPaperMessageResultModalOpen = $state(false);
+    let isShareContactModalOpen = $state(false);
+    let contactsSearch = $state("");
+    let isTelemetryHistoryModalOpen = $state(false);
+    let showTelemetryInChat = $state(false);
     let requestSequence = 0;
     let openedPeerHash = "";
     let openedIdentityKey = "";
@@ -149,8 +160,32 @@
     const selectedHash = $derived(String(selectedPeer?.destination_hash || ""));
     const identityKey = $derived(String(config?.identity_hash || myLxmfAddressHash || "_"));
     const selectedMessages = $derived(
-        visibleConversationItems(chatItems, selectedHash, Boolean(config?.show_telemetry_in_chat))
+        visibleConversationItems(chatItems, selectedHash, showTelemetryInChat)
     );
+    const filteredContacts = $derived.by(() => {
+        const q = contactsSearch.trim().toLowerCase();
+        if (!q) return contacts;
+        return contacts.filter((contact) => {
+            const name = String(contact.name || "").toLowerCase();
+            const hash = String(contact.remote_identity_hash || "").toLowerCase();
+            const lxmf = String(contact.lxmf_address || "").toLowerCase();
+            return name.includes(q) || hash.includes(q) || lxmf.includes(q);
+        });
+    });
+    const selectedPeerTelemetryItems = $derived.by(() => {
+        if (!selectedHash) return [];
+        const peer = selectedHash.toLowerCase();
+        return chatItems
+            .filter((chatItem) => {
+                if (chatItem.type !== "lxmf_message") return false;
+                const src = String(chatItem.lxmf_message.source_hash || "").toLowerCase();
+                const dst = String(chatItem.lxmf_message.destination_hash || "").toLowerCase();
+                if (src !== peer && dst !== peer) return false;
+                return isTelemetryOnly(chatItem.lxmf_message);
+            })
+            .slice()
+            .reverse();
+    });
     const actions = $derived(
         createConversationViewerActions({
             chatItems: selectedMessages as unknown as MessageChatItem[],
@@ -548,6 +583,51 @@
         } catch {
             await DialogUtils.alert(t("banishment.failed_lift_banishment"));
         }
+    }
+
+    async function deleteMessageHistory() {
+        if (!selectedHash) return;
+        if (!(await DialogUtils.confirm(t("messages.delete_history_confirm")))) return;
+        try {
+            await window.api.delete(`/api/v1/lxmf-messages/conversation/${selectedHash}`);
+            onreloadConversations?.();
+            onclose?.();
+        } catch {
+            await DialogUtils.alert(t("messages.failed_delete_history"));
+        }
+    }
+
+    async function openShareContactModal() {
+        try {
+            const response = await window.api.get("/api/v1/telephone/contacts");
+            contacts = response.data?.contacts ?? (Array.isArray(response.data) ? response.data : []);
+            if (contacts.length === 0) {
+                ToastUtils.info(t("messages.no_contacts_telephone"));
+                return;
+            }
+            contactsSearch = "";
+            isShareContactModalOpen = true;
+        } catch {
+            ToastUtils.error(t("messages.failed_load_contacts"));
+        }
+    }
+
+    function shareContact(contact: Record<string, unknown>) {
+        let sharedString = `Contact: ${contact.name} <${contact.remote_identity_hash}>`;
+        if (contact.lxmf_address) sharedString += ` [LXMF: ${contact.lxmf_address}]`;
+        if (contact.lxst_address) sharedString += ` [LXST: ${contact.lxst_address}]`;
+        newMessageText = sharedString;
+        isShareContactModalOpen = false;
+        void sendMessage();
+    }
+
+    function viewLocationOnMap(coords: { latitude: number; longitude: number }) {
+        const params = new URLSearchParams({
+            lat: String(coords.latitude),
+            lon: String(coords.longitude),
+            zoom: "15",
+        });
+        window.location.hash = `#/map?${params.toString()}`;
     }
 
     async function sendMessage() {
@@ -1069,17 +1149,21 @@
                         : `${Number.isFinite(hops) ? hops : "?"} ${t("app.hops_plural")}`;
                 const iface =
                     String(path?.next_hop_interface || "").trim() || t("messages.path_hops_unknown_iface");
-                ToastUtils.info(t("messages.path_hops_via", { hops: hopsText, iface }));
+                let message = t("messages.path_hops_via", { hops: hopsText, iface });
+                if (peerPathSnapshot?.path_stale) {
+                    message = `${message}\n${t("messages.path_stale_hint")}`;
+                }
+                if (peerPathSnapshot?.path_unresponsive) {
+                    message = `${message}\n${t("messages.path_unresponsive_hint")}`;
+                }
+                ToastUtils.info(message);
             }}
             onsignalmetricsclick={(metrics) => {
                 const detail = metrics as Record<string, unknown> | null;
                 void DialogUtils.alert(`RSSI: ${detail?.rssi ?? "?"}dBm\nSNR: ${detail?.snr ?? "?"}dB`);
             }}
             onstampinfoclick={(info) => void DialogUtils.alert(`Stamp cost: ${info?.stamp_cost ?? "?"}`)}
-            onconversationdeleted={() => {
-                onreloadConversations?.();
-                onclose?.();
-            }}
+            onconversationdeleted={() => void deleteMessageHistory()}
             onpopout={() => {
                 if (!isPopout) location.hash = `#/popout/messages/${selectedHash}`;
             }}
@@ -1092,7 +1176,11 @@
                     void retryMessage();
                 }
             }}
+            onopentelemetryhistory={() => {
+                isTelemetryHistoryModalOpen = true;
+            }}
             onstartcall={() => void window.api.post(`/api/v1/telephone/call/${selectedHash}`)}
+            onsharecontact={() => void openShareContactModal()}
             onping={() => void pingSelectedPeer()}
             onbanish={() => void banishSelectedPeer()}
             onunbanish={() => void unbanishSelectedPeer()}
@@ -1326,3 +1414,33 @@
         }}
     />
 {/if}
+
+<ShareContactModal
+    show={isShareContactModalOpen}
+    bind:search={contactsSearch}
+    contacts={filteredContacts as never}
+    resolveIcon={(contact) => lxmfContactResolvedIcon(contact, conversations)}
+    destinationHex={lxmfDeliveryDestinationHexFromContact}
+    onclose={() => {
+        isShareContactModalOpen = false;
+    }}
+    onshare={(contact) => shareContact(contact as Record<string, unknown>)}
+/>
+
+<TelemetryHistoryModal
+    open={isTelemetryHistoryModalOpen}
+    telemetryItems={selectedPeerTelemetryItems as never}
+    {showTelemetryInChat}
+    formatTimeAgo={(value) => fromNow(value as never)}
+    gradientIdSuffix={selectedHash || "peer"}
+    onopenchange={(open) => {
+        isTelemetryHistoryModalOpen = open;
+    }}
+    onclose={() => {
+        isTelemetryHistoryModalOpen = false;
+    }}
+    onshowtelemetrychange={(show) => {
+        showTelemetryInChat = show;
+    }}
+    onlocationclick={viewLocationOnMap}
+/>
