@@ -279,9 +279,10 @@ if (networkReady) {
     }
     try {
         const statusResponse = await apiClient.get("/api/v1/status");
-        GlobalState.demoMode = !!statusResponse.data?.demo_mode;
-        if (typeof statusResponse.data?.is_loopback_bind === "boolean") {
-            GlobalState.isLoopbackBind = statusResponse.data.is_loopback_bind;
+        const statusData = statusResponse.data as { demo_mode?: boolean; is_loopback_bind?: boolean } | undefined;
+        GlobalState.demoMode = !!statusData?.demo_mode;
+        if (typeof statusData?.is_loopback_bind === "boolean") {
+            GlobalState.isLoopbackBind = statusData.is_loopback_bind;
         }
     } catch {
         // status optional during early boot
@@ -484,7 +485,8 @@ if (networkReady) {
         }
         try {
             const response = await apiClient.get("/api/v1/plugins");
-            GlobalState.pluginsEnabled = response.data?.plugins_enabled !== false;
+            const pluginsData = response.data as { plugins_enabled?: boolean } | undefined;
+            GlobalState.pluginsEnabled = pluginsData?.plugins_enabled !== false;
             if (!GlobalState.pluginsEnabled) {
                 return;
             }
