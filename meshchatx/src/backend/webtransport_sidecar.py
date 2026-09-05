@@ -44,7 +44,7 @@ def env_webtransport_enabled() -> bool:
 
 def aioquic_available() -> bool:
     try:
-        import aioquic  # noqa: F401
+        import aioquic  # type: ignore[import-not-found]  # noqa: F401
 
         return True
     except ImportError:

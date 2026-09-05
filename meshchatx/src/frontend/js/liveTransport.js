@@ -8,6 +8,15 @@ import { clientSupportsWebTransport, encodeWtJsonLine, feedWtJsonLines } from ".
 const WT_CONNECT_BUDGET_MS = 4000;
 
 /**
+ * @param {{ send: (message: string) => boolean, sendQueued?: (message: string) => boolean, isOpen?: () => boolean } | null} bridge
+ */
+function setWsLiveSendBridge(bridge) {
+    if (typeof WebSocketConnection.setLiveSendBridge === "function") {
+        WebSocketConnection.setLiveSendBridge(bridge);
+    }
+}
+
+/**
  * @param {string} b64
  * @returns {Uint8Array | null}
  */
@@ -239,7 +248,7 @@ class LiveTransport {
                 });
                 this._usingWt = true;
                 this._active = this._wt;
-                WebSocketConnection.setLiveSendBridge({
+                setWsLiveSendBridge({
                     send: (message) => this._wt.send(message),
                     sendQueued: (message) => this._wt.send(message),
                     isOpen: () => this._wt.isOpen(),
@@ -250,7 +259,7 @@ class LiveTransport {
                 this._wt = null;
                 this._usingWt = false;
                 this._active = WebSocketConnection;
-                WebSocketConnection.setLiveSendBridge(null);
+                setWsLiveSendBridge(null);
                 this._forwardFrom(WebSocketConnection);
                 if (this._mode === "webtransport" || this._mode === "auto") {
                     this._fallbackNotified = true;
@@ -259,7 +268,7 @@ class LiveTransport {
             }
         }
 
-        WebSocketConnection.setLiveSendBridge(null);
+        setWsLiveSendBridge(null);
         if (typeof WebSocketConnection.connect === "function") {
             await WebSocketConnection.connect();
         } else {
@@ -291,7 +300,7 @@ class LiveTransport {
             this._wt = null;
             this._usingWt = false;
             this._active = WebSocketConnection;
-            WebSocketConnection.setLiveSendBridge(null);
+            setWsLiveSendBridge(null);
             this._forwardFrom(WebSocketConnection);
         }
         WebSocketConnection.reconnect();
@@ -308,7 +317,7 @@ class LiveTransport {
     destroy() {
         this._wt?.destroy();
         this._wt = null;
-        WebSocketConnection.setLiveSendBridge(null);
+        setWsLiveSendBridge(null);
         this._clearForwards();
         WebSocketConnection.destroy();
     }

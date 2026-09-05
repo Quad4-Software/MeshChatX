@@ -205,6 +205,35 @@ _DEMO_PUBLIC_STATUS_FIELDS: dict = {
     "auth_page_hint": {"type": ["string", "null"]},
 }
 
+_WEBTRANSPORT_STATUS_SCHEMA: dict = {
+    "webtransport": {
+        "type": "object",
+        "required": [
+            "experimental",
+            "server_available",
+            "url",
+            "cert_sha256_b64",
+            "reason",
+            "enabled_intent",
+            "listen_host",
+            "listen_port",
+            "client_probe_supported",
+        ],
+        "properties": {
+            "experimental": {"type": "boolean"},
+            "server_available": {"type": "boolean"},
+            "url": {"type": ["string", "null"]},
+            "cert_sha256_b64": {"type": ["string", "null"]},
+            "reason": {"type": ["string", "null"]},
+            "enabled_intent": {"type": "boolean"},
+            "listen_host": {"type": ["string", "null"]},
+            "listen_port": {"type": ["integer", "null"]},
+            "client_probe_supported": {"type": "boolean"},
+        },
+        "additionalProperties": False,
+    },
+}
+
 API_V1_STATUS_SCHEMA: dict = {
     "type": "object",
     "required": ["status", "stage", "network_ready"],
@@ -220,6 +249,7 @@ API_V1_STATUS_SCHEMA: dict = {
         "error": {"type": "string"},
         **_SERVER_BIND_STATUS_SCHEMA,
         **_DEMO_PUBLIC_STATUS_FIELDS,
+        **_WEBTRANSPORT_STATUS_SCHEMA,
     },
     "additionalProperties": False,
 }
