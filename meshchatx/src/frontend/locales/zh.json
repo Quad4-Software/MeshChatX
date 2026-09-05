@@ -4558,6 +4558,7 @@
         "send_failed": "发送消息失败",
         "action_failed": "操作失败",
         "room_required": "需要房间名称",
+        "tab_chat": "Chat",
         "tab_connect": "连接",
         "tab_host": "托管",
         "host_title": "托管的中枢",

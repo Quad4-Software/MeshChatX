@@ -6,7 +6,6 @@
     import LxmfUserIcon from "../../../ui/svelte/LxmfUserIcon.svelte";
     import ToastUtils from "../../../js/ToastUtils.js";
     import DialogUtils from "../../../js/DialogUtils.js";
-    import DownloadUtils from "../../../js/DownloadUtils.js";
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
     import { t } from "../../../js/i18n.js";
 

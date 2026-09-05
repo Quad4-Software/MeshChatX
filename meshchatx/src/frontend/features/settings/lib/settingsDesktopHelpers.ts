@@ -75,7 +75,7 @@ export async function applyDesktopTrayEnabledChange(
 
 export async function applyDesktopCloseBehaviorChange(
     value: string,
-    currentTrayEnabled = true
+    _currentTrayEnabled = true
 ): Promise<{ trayEnabled?: boolean; closeBehavior?: string } | null> {
     try {
         const settings = await ElectronUtils.setCloseSettings({ closeBehavior: value });

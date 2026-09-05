@@ -4558,6 +4558,7 @@
         "send_failed": "Echec de l'envoi du message",
         "action_failed": "Echec de l'action",
         "room_required": "Un nom de salon est requis",
+        "tab_chat": "Chat",
         "tab_connect": "Se connecter",
         "tab_host": "Héberger",
         "host_title": "Hubs hébergés",

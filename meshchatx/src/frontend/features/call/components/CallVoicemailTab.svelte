@@ -112,7 +112,7 @@
                             {t("call.messages")}
                         </span>
                     </div>
-                    <ul class="divide-y divide-sem-border-subtle">
+                    <ul class="divide-y divide-sem-border">
                         {#each props.voicemails as voicemail (voicemail.id)}
                             <li
                                 class="px-4 py-4 hover:bg-sem-surface-muted/50 transition-colors {getVoicemailItemClass(

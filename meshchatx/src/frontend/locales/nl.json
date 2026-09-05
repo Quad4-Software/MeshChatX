@@ -4558,6 +4558,7 @@
         "send_failed": "Bericht verzenden mislukt",
         "action_failed": "Actie mislukt",
         "room_required": "Een kamernaam is vereist",
+        "tab_chat": "Chat",
         "tab_connect": "Verbinden",
         "tab_host": "Hosten",
         "host_title": "Gehoste hubs",

@@ -8,23 +8,11 @@
         activeTab: string;
         matchCounts?: Record<string, number> | null;
         isSearching?: boolean;
-        searchTabFilter?: string | null;
-        matchingSectionKeys?: Set<string>;
         onselect?: (tabId: string) => void;
         onselecttab?: (tabId: string) => void;
-        onfiltertab?: (tabId: string | null) => void;
     }
 
-    let {
-        activeTab,
-        matchCounts = null,
-        isSearching = false,
-        searchTabFilter = null,
-        matchingSectionKeys = new Set(),
-        onselect,
-        onselecttab,
-        onfiltertab,
-    }: Props = $props();
+    let { activeTab, matchCounts = null, isSearching = false, onselect, onselecttab }: Props = $props();
 
     const tabs = SETTINGS_TABS;
     const searchActive = $derived(matchCounts != null || isSearching);

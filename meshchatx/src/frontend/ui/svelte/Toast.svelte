@@ -34,6 +34,10 @@
 
     function toastMessage(message: string): string {
         if (!message) return "";
+        // Callers often pass already-translated text. Only look up dotted i18n keys.
+        if (!/^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/i.test(message)) {
+            return message;
+        }
         try {
             return t(message);
         } catch {

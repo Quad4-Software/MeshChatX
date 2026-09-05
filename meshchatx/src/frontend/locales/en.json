@@ -3685,6 +3685,7 @@
         "send_failed": "Failed to send message",
         "action_failed": "Action failed",
         "room_required": "A room name is required",
+        "tab_chat": "Chat",
         "tab_connect": "Connect",
         "tab_host": "Host",
         "host_title": "Hosted Hubs",

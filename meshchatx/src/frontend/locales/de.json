@@ -4558,6 +4558,7 @@
         "send_failed": "Senden der Nachricht fehlgeschlagen",
         "action_failed": "Aktion fehlgeschlagen",
         "room_required": "Ein Raumname ist erforderlich",
+        "tab_chat": "Chat",
         "tab_connect": "Verbinden",
         "tab_host": "Hosten",
         "host_title": "Gehostete Hubs",

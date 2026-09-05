@@ -41,7 +41,7 @@
 </script>
 
 <div
-    class="flex min-h-9 shrink-0 items-center overflow-x-auto border-b border-sem-border bg-sem-surface-muted"
+    class="flex min-h-10 shrink-0 items-center gap-1 overflow-x-auto border-b border-sem-border bg-sem-surface-muted px-1.5 py-1"
     role="tablist"
 >
     {#each tabs as tab (tab.id)}
@@ -49,10 +49,10 @@
             role="tab"
             tabindex="0"
             aria-selected={tab.id === activeTabId}
-            class="group flex min-w-[7rem] max-w-[14rem] items-center gap-1.5 border-r border-sem-border px-3 text-sm transition-colors cursor-pointer {tab.id ===
+            class="group flex min-w-[7rem] max-w-[14rem] items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors cursor-pointer {tab.id ===
             activeTabId
-                ? 'bg-sem-canvas font-medium text-sem-fg'
-                : 'text-sem-fg-muted hover:bg-sem-surface/80'}"
+                ? 'bg-sem-canvas font-medium text-sem-fg shadow-xs ring-1 ring-sem-border'
+                : 'text-sem-fg-muted hover:bg-sem-surface/80 hover:text-sem-fg'}"
             onclick={() => onselect(tab.id)}
             onkeydown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
@@ -101,7 +101,10 @@
             <span
                 role="button"
                 tabindex="0"
-                class="shrink-0 rounded p-0.5 text-sem-fg-muted opacity-0 transition-opacity hover:bg-sem-surface hover:text-sem-fg group-hover:opacity-100 group-focus-within:opacity-100 cursor-pointer"
+                class="shrink-0 rounded-md p-0.5 text-sem-fg-muted opacity-0 transition-opacity hover:bg-sem-surface-muted hover:text-sem-fg group-hover:opacity-100 group-focus-within:opacity-100 cursor-pointer {tab.id ===
+                activeTabId
+                    ? 'opacity-70'
+                    : ''}"
                 title={t("common.cancel")}
                 onclick={(e) => {
                     e.stopPropagation();
@@ -121,7 +124,7 @@
     {/each}
     <button
         type="button"
-        class="flex w-9 shrink-0 items-center justify-center text-sem-fg-muted transition-colors hover:bg-sem-surface/80 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+        class="flex size-8 shrink-0 items-center justify-center rounded-lg text-sem-fg-muted transition-colors hover:bg-sem-surface/80 hover:text-sem-fg disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
         title={canAddTab ? t("map.new_tab_shortcut") : t("map.tab_limit_reached")}
         disabled={!canAddTab}
         onclick={onaddtab}

@@ -26,6 +26,7 @@
         onclose?: () => void;
         onsetasdefaultview?: () => void;
         ontogglecluster?: (enabled: boolean) => void;
+        oncoordinateformatchange?: (format: string) => void;
         onsettileserver?: (styleId: string) => void;
         onsavetileserverurl?: (url: string) => void;
         onsavenominatimurl?: (url: string) => void;
@@ -50,6 +51,7 @@
         onclose,
         onsetasdefaultview,
         ontogglecluster,
+        oncoordinateformatchange,
         onsettileserver,
         onsavetileserverurl,
         onsavenominatimurl,
@@ -269,7 +271,22 @@
             </div>
         </div>
 
-        <div class="p-2.5 bg-gray-50 dark:bg-zinc-800/50 border-t border-sem-border shrink-0">
+        <div class="p-2.5 bg-gray-50 dark:bg-zinc-800/50 border-t border-sem-border shrink-0 space-y-2">
+            <label class="flex items-center justify-between gap-2">
+                <span class="text-[10px] font-semibold text-sem-fg-muted uppercase tracking-wide">
+                    {t("map.coordinate_format")}
+                </span>
+                <select
+                    class="input-field py-1 px-2 text-[11px] min-w-0 max-w-[9rem]"
+                    value={coordinateFormat}
+                    onchange={(e) => oncoordinateformatchange?.((e.currentTarget as HTMLSelectElement).value)}
+                >
+                    <option value="wgs84">{t("map.coord_format_wgs84")}</option>
+                    <option value="utm">{t("map.coord_format_utm")}</option>
+                    <option value="mgrs">{t("map.coord_format_mgrs")}</option>
+                    <option value="olc">{t("map.coord_format_olc")}</option>
+                </select>
+            </label>
             <div class="grid grid-cols-3 gap-2">
                 <div class="flex flex-col items-center">
                     <span class="text-[8px] font-black text-gray-400 uppercase tracking-tighter mb-0.5"> Zoom </span>

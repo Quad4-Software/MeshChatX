@@ -110,7 +110,7 @@
         {:else}
             <div class="space-y-4">
                 <div class="border-b border-sem-border overflow-hidden">
-                    <ul class="divide-y divide-sem-border-subtle">
+                    <ul class="divide-y divide-sem-border">
                         {#each discoveryAnnounces as announce (announce.destination_hash)}
                             <li class="px-4 py-4 hover:bg-sem-surface-muted/50 transition-colors">
                                 <div class="flex items-center space-x-4">

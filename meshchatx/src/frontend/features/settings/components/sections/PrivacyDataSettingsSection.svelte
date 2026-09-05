@@ -4,8 +4,6 @@
     import SettingsSectionBlock from "../SettingsSectionBlock.svelte";
     import Toggle from "../Toggle.svelte";
     import MaterialDesignIcon from "../../../../ui/svelte/MaterialDesignIcon.svelte";
-    import DialogUtils from "../../../../js/DialogUtils.js";
-    import ToastUtils from "../../../../js/ToastUtils.js";
     import { t } from "../../../../js/i18n.js";
 
     interface Props {

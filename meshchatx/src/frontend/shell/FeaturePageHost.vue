@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div ref="root" class="contents feature-page-host"></div>
+    <div ref="root" class="feature-page-host flex flex-1 min-h-0 h-full min-w-0 w-full overflow-hidden"></div>
 </template>
 
 <script>
