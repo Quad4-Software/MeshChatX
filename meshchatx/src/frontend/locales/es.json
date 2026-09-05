@@ -687,7 +687,9 @@
         "clear": "Limpiar",
         "prompt_title": "Introduce un valor",
         "optional": "Opcional",
-        "back": "Atrás"
+        "back": "Atrás",
+        "all": "Todos",
+        "load_more": "Cargar más"
     },
     "stickers": {
         "settings_title": "Pegatinas",
@@ -1849,7 +1851,11 @@
         "starter_attribution": "Starter tiles are a low-zoom (z0-z4) placeholder. Upload regional MBTiles for detail.",
         "starter_restored": "Starter tiles restored",
         "failed_restore_starter": "Failed to restore starter tiles",
-        "export_set_active_confirm": "Use the exported MBTiles as the offline basemap?"
+        "export_set_active_confirm": "Use the exported MBTiles as the offline basemap?",
+        "copy_coords": "Copiar coordenadas",
+        "copy_coords_format": "Copiar {format}",
+        "context_coords": "Coordenadas",
+        "tab_limit_reached": "Límite de pestañas del mapa alcanzado (8)"
     },
     "interface": {
         "disable": "Inhabilitación",
@@ -2227,7 +2233,8 @@
         "paper_message_detected_desc": "Este mensaje contiene un URI LXMF firmado que puedes ingerir en tus conversaciones.",
         "paper_message_ingest": "Ingerir mensaje",
         "paper_message_ingested": "Mensaje en papel ingerido",
-        "paper_message_ingested_desc": "Este URI LXMF firmado se añadió a tus conversaciones."
+        "paper_message_ingested_desc": "Este URI LXMF firmado se añadió a tus conversaciones.",
+        "scroll_to_bottom": "Desplazarse al final"
     },
     "settings": {
         "shortcut_saved": "Guardado a mano",
@@ -2409,7 +2416,11 @@
         "logs_copied": "Registros en esta página copiados a portapapeles",
         "access_copied": "Los intentos de acceso copiados al portapapeles",
         "failed_copy_logs": "No se pudieron copiar los registros",
-        "failed_copy_access": "Sin copiar los intentos de acceso"
+        "failed_copy_access": "Sin copiar los intentos de acceso",
+        "copy_logs": "Copiar registros",
+        "copy_access": "Copiar intentos de acceso",
+        "level": "Nivel",
+        "outcome": "Resultado"
     },
     "visualiser": {
         "title": "Visualizador de red",

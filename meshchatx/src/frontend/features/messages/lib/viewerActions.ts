@@ -20,7 +20,7 @@ export type LxmfMessageLike = {
     state?: string;
     is_spam?: boolean;
     is_reaction?: boolean;
-    reply_to_hash?: string;
+    reply_to_hash?: string | null;
     reactions?: MessageReaction[];
     fields?: {
         image?: Record<string, unknown> & { image_type?: string };

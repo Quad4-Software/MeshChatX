@@ -687,7 +687,9 @@
         "clear": "Löschen",
         "prompt_title": "Wert eingeben",
         "optional": "Optional",
-        "back": "Zurück"
+        "back": "Zurück",
+        "all": "Alle",
+        "load_more": "Mehr laden"
     },
     "stickers": {
         "settings_title": "Sticker",
@@ -1903,7 +1905,11 @@
         "starter_attribution": "Starter tiles are a low-zoom (z0-z4) placeholder. Upload regional MBTiles for detail.",
         "starter_restored": "Starter tiles restored",
         "failed_restore_starter": "Failed to restore starter tiles",
-        "export_set_active_confirm": "Use the exported MBTiles as the offline basemap?"
+        "export_set_active_confirm": "Use the exported MBTiles as the offline basemap?",
+        "copy_coords": "Koordinaten kopieren",
+        "copy_coords_format": "{format} kopieren",
+        "context_coords": "Koordinaten",
+        "tab_limit_reached": "Karten-Tab-Limit erreicht (8)"
     },
     "interface": {
         "disable": "Deaktivieren",
@@ -2281,7 +2287,8 @@
         "paper_message_detected_desc": "Diese Nachricht enthält eine signierte LXMF-URI, die du in deine Unterhaltungen einlesen kannst.",
         "paper_message_ingest": "Nachricht einlesen",
         "paper_message_ingested": "Papiernachricht eingelesen",
-        "paper_message_ingested_desc": "Diese signierte LXMF-URI wurde zu deinen Unterhaltungen hinzugefügt."
+        "paper_message_ingested_desc": "Diese signierte LXMF-URI wurde zu deinen Unterhaltungen hinzugefügt.",
+        "scroll_to_bottom": "Nach unten scrollen"
     },
     "nomadnet": {
         "remove_favourite": "Favorit entfernen",
@@ -4181,7 +4188,11 @@
         "logs_copied": "Protokolle auf dieser Seite in die Zwischenablage kopiert",
         "access_copied": "Zugriffsversuche in die Zwischenablage kopiert",
         "failed_copy_logs": "Protokolle konnten nicht kopiert werden",
-        "failed_copy_access": "Zugriffsversuche konnten nicht kopiert werden"
+        "failed_copy_access": "Zugriffsversuche konnten nicht kopiert werden",
+        "copy_logs": "Logs kopieren",
+        "copy_access": "Zugriffsversuche kopieren",
+        "level": "Stufe",
+        "outcome": "Ergebnis"
     },
     "visualiser": {
         "title": "Netzwerk-Visualisierer",

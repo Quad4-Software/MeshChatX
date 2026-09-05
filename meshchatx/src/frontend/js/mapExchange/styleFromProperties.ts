@@ -154,7 +154,7 @@ export function styleFromMcxProperties(feature, resolution?) {
     const fillOpacity = num(p[MCX_FILL_OPACITY] ?? p["fill-opacity"], fillRaw ? 0.35 : 0);
 
     const stroke = new Stroke({
-        color: /** @type {import("ol/color").Color|string} */ (strokeRaw),
+        color: /** @type {import("ol/color").Color|string} */ strokeRaw,
         width: strokeWidth,
     });
 
@@ -170,7 +170,7 @@ export function styleFromMcxProperties(feature, resolution?) {
                     ? new Fill({
                           color: hexToRgba(fillRaw, fillOpacity > 0 ? fillOpacity : 0.35),
                       })
-                    : new Fill({ color: /** @type {import("ol/color").Color} */ (fillRaw) });
+                    : new Fill({ color: /** @type {import("ol/color").Color} */ fillRaw });
         } else {
             fill = new Fill({ color: "rgba(59, 130, 246, 0.2)" });
         }
@@ -178,7 +178,7 @@ export function styleFromMcxProperties(feature, resolution?) {
     }
 
     if (type === "Circle") {
-        const g = /** @type {import("ol/geom/Circle").default} */ (geom);
+        const g = /** @type {import("ol/geom/Circle").default} */ geom;
         const center = g.getCenter();
         const edge = [center[0] + g.getRadius(), center[1]];
         const line = new LineString([center, edge]);

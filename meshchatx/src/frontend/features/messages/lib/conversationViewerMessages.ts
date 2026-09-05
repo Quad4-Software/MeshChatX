@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: 0BSD
 
 import { mergeLxmfReactionRowsIntoMessages } from "../../../js/lxmfReactions.js";
+import type { ApiClient } from "../../../js/apiClient.js";
 import { CONVERSATION_MESSAGES_PAGE_SIZE } from "./conversationDisplayGroups.js";
 import { hasRenderableContent, isTelemetryOnly } from "./conversationMessageHelpers.js";
 import { normalizeLxmfMessage } from "./lxmf/normalize.js";
 import type { LxmfMessage, ViewerChatItem } from "./conversationViewerCtx.js";
 import { messageKey, sameHash } from "./conversationViewerCtx.js";
-
-type ApiClient = {
-    get: (url: string, options?: Record<string, unknown>) => Promise<{ data?: Record<string, unknown> }>;
-};
 
 export type ConversationPage = {
     items: ViewerChatItem[];
@@ -42,7 +39,8 @@ export async function fetchConversationPage(
             after_id: afterId,
         },
     });
-    const raw = asMessages(response.data?.lxmf_messages);
+    const data = response.data as { lxmf_messages?: unknown } | undefined;
+    const raw = asMessages(data?.lxmf_messages);
     const merged = mergeLxmfReactionRowsIntoMessages(raw) as LxmfMessage[];
     return {
         items: merged.map((message) => toChatItem(message, myHash)).reverse(),

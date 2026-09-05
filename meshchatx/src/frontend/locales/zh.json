@@ -687,7 +687,9 @@
         "clear": "清除",
         "prompt_title": "输入值",
         "optional": "可选",
-        "back": "返回"
+        "back": "返回",
+        "all": "全部",
+        "load_more": "加载更多"
     },
     "stickers": {
         "settings_title": "贴纸",
@@ -1849,7 +1851,11 @@
         "starter_attribution": "Starter tiles are a low-zoom (z0-z4) placeholder. Upload regional MBTiles for detail.",
         "starter_restored": "Starter tiles restored",
         "failed_restore_starter": "Failed to restore starter tiles",
-        "export_set_active_confirm": "Use the exported MBTiles as the offline basemap?"
+        "export_set_active_confirm": "Use the exported MBTiles as the offline basemap?",
+        "copy_coords": "复制坐标",
+        "copy_coords_format": "复制 {format}",
+        "context_coords": "坐标",
+        "tab_limit_reached": "地图标签页已达上限 (8)"
     },
     "interface": {
         "disable": "禁用",
@@ -2227,7 +2233,8 @@
         "paper_message_detected_desc": "此消息包含可导入会话的已签名 LXMF URI。",
         "paper_message_ingest": "导入消息",
         "paper_message_ingested": "已导入纸质消息",
-        "paper_message_ingested_desc": "此已签名 LXMF URI 已添加到你的会话。"
+        "paper_message_ingested_desc": "此已签名 LXMF URI 已添加到你的会话。",
+        "scroll_to_bottom": "滚动到底部"
     },
     "settings": {
         "shortcut_saved": "快捷键已保存",
@@ -2409,7 +2416,11 @@
         "logs_copied": "复制到剪贴板的页面日志",
         "access_copied": "访问复制到剪贴板的尝试",
         "failed_copy_logs": "复制日志失败",
-        "failed_copy_access": "复制访问尝试失败"
+        "failed_copy_access": "复制访问尝试失败",
+        "copy_logs": "复制日志",
+        "copy_access": "复制访问尝试",
+        "level": "级别",
+        "outcome": "结果"
     },
     "visualiser": {
         "title": "网络可视化工具",

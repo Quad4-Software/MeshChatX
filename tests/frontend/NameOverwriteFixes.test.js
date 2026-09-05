@@ -102,10 +102,9 @@ describe("ContactsPage edit contact name", () => {
         expect(api.patch).toHaveBeenCalledWith("/api/v1/telephone/contacts/42", {
             name: "Renamed Alice",
         });
-        expect(api.post).toHaveBeenCalledWith(
-            `/api/v1/destination/${"a".repeat(32)}/custom-display-name/update`,
-            { display_name: "Renamed Alice" }
-        );
+        expect(api.post).toHaveBeenCalledWith(`/api/v1/destination/${"a".repeat(32)}/custom-display-name/update`, {
+            display_name: "Renamed Alice",
+        });
     });
 
     it("does nothing when the prompt is cancelled or unchanged", async () => {
@@ -127,9 +126,8 @@ describe("ContactsPage edit contact name", () => {
 
         await editContactNameWithDuplicates(contact, [contact], async () => {});
 
-        expect(api.post).toHaveBeenCalledWith(
-            `/api/v1/destination/${"l".repeat(32)}/custom-display-name/update`,
-            { display_name: "Updated" }
-        );
+        expect(api.post).toHaveBeenCalledWith(`/api/v1/destination/${"l".repeat(32)}/custom-display-name/update`, {
+            display_name: "Updated",
+        });
     });
 });

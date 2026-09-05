@@ -206,7 +206,7 @@
 </script>
 
 <div class="flex-1 flex flex-col h-full overflow-hidden" data-testid="debug-logs-page">
-    <ToolsPageHeader icon="bug" title={t("debug.logs_title")} description={t("debug.logs_description")} accent="red">
+    <ToolsPageHeader icon="bug" title={t("debug.title")} description={t("debug.description")} accent="red">
         <button type="button" class="secondary-chip" onclick={copyActive}>
             <MaterialDesignIcon iconName="content-copy" class="w-4 h-4" />
             {activeTab === "logs" ? t("debug.copy_logs") : t("debug.copy_access")}
@@ -268,7 +268,7 @@
                             refreshLogs();
                         }}
                     >
-                        <option value="">{t("common.all")}</option>
+                        <option value="">{t("debug.level_all")}</option>
                         <option value="DEBUG">DEBUG</option>
                         <option value="INFO">INFO</option>
                         <option value="WARNING">WARNING</option>
@@ -320,7 +320,7 @@
                             refreshAccessAttempts();
                         }}
                     >
-                        <option value="">{t("common.all")}</option>
+                        <option value="">{t("debug.outcome_all")}</option>
                         <option value="success">success</option>
                         <option value="failed_password">failed_password</option>
                         <option value="failed_csrf">failed_csrf</option>
@@ -339,12 +339,12 @@
             {:else if activeTab === "logs" && logs.length === 0}
                 <div class="flex-1 flex flex-col items-center justify-center p-8 text-sem-fg-muted">
                     <MaterialDesignIcon iconName="text-box-search-outline" class="w-12 h-12 mb-2 opacity-50" />
-                    <p>{t("debug.no_logs_found")}</p>
+                    <p>{t("debug.no_logs")}</p>
                 </div>
             {:else if activeTab === "access" && accessAttempts.length === 0}
                 <div class="flex-1 flex flex-col items-center justify-center p-8 text-sem-fg-muted">
                     <MaterialDesignIcon iconName="shield-lock-outline" class="w-12 h-12 mb-2 opacity-50" />
-                    <p>{t("debug.no_access_attempts")}</p>
+                    <p>{t("debug.no_access")}</p>
                 </div>
             {:else if activeTab === "logs"}
                 <div class="flex-1 overflow-y-auto font-mono text-[10px] sm:text-xs debug-log-scroll">

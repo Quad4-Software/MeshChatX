@@ -70,7 +70,7 @@ export function nextLastSeqFromPayload(payload, lastSeq) {
     if (!payload || typeof payload !== "object") {
         return lastSeq;
     }
-    const seq = /** @type {{ seq?: unknown }} */ (payload).seq;
+    const seq = /** @type {{ seq?: unknown }} */ payload.seq;
     if (typeof seq !== "number" || !Number.isFinite(seq) || seq < 0) {
         return lastSeq;
     }

@@ -15,7 +15,7 @@ export function isIndexedDbAccessError(err) {
     if (!err || typeof err !== "object") {
         return false;
     }
-    const name = /** @type {{ name?: string }} */ (err).name;
+    const name = /** @type {{ name?: string }} */ err.name;
     return name === "SecurityError" || name === "InvalidStateError";
 }
 

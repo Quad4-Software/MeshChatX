@@ -79,7 +79,7 @@ describe("repository URL and print XSS oracles", () => {
             ),
             "utf8"
         );
-        expect(source).toContain('Utils.escapeHtml(dataUrl)');
+        expect(source).toContain("Utils.escapeHtml(dataUrl)");
         expect(source).toContain('Utils.escapeHtml(messageHash || "")');
     });
 });

@@ -687,7 +687,9 @@
         "clear": "Effacer",
         "prompt_title": "Saisir une valeur",
         "optional": "Facultatif",
-        "back": "Retour"
+        "back": "Retour",
+        "all": "Tous",
+        "load_more": "Charger plus"
     },
     "stickers": {
         "settings_title": "Autocollants",
@@ -1849,7 +1851,11 @@
         "starter_attribution": "Starter tiles are a low-zoom (z0-z4) placeholder. Upload regional MBTiles for detail.",
         "starter_restored": "Starter tiles restored",
         "failed_restore_starter": "Failed to restore starter tiles",
-        "export_set_active_confirm": "Use the exported MBTiles as the offline basemap?"
+        "export_set_active_confirm": "Use the exported MBTiles as the offline basemap?",
+        "copy_coords": "Copier les coordonnées",
+        "copy_coords_format": "Copier {format}",
+        "context_coords": "Coordonnées",
+        "tab_limit_reached": "Limite d'onglets carte atteinte (8)"
     },
     "interface": {
         "disable": "Désactiver",
@@ -2227,7 +2233,8 @@
         "paper_message_detected_desc": "Ce message contient un URI LXMF signé que vous pouvez ingérer dans vos conversations.",
         "paper_message_ingest": "Ingérer le message",
         "paper_message_ingested": "Message papier ingéré",
-        "paper_message_ingested_desc": "Cet URI LXMF signé a été ajouté à vos conversations."
+        "paper_message_ingested_desc": "Cet URI LXMF signé a été ajouté à vos conversations.",
+        "scroll_to_bottom": "Défiler vers le bas"
     },
     "settings": {
         "shortcut_saved": "Raccourci enregistré",
@@ -2409,7 +2416,11 @@
         "logs_copied": "Loges sur cette page copiées dans le presse-papiers",
         "access_copied": "Essais d'accès copiés dans le presse-papiers",
         "failed_copy_logs": "Impossible de copier les journaux",
-        "failed_copy_access": "Impossible de copier les tentatives d'accès"
+        "failed_copy_access": "Impossible de copier les tentatives d'accès",
+        "copy_logs": "Copier les journaux",
+        "copy_access": "Copier les tentatives d'accès",
+        "level": "Niveau",
+        "outcome": "Résultat"
     },
     "visualiser": {
         "title": "Visualiseur réseau",

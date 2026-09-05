@@ -36,7 +36,7 @@ export default class LinkUtils {
     }
 
     static protectAnchors(text) {
-        const anchors = [];
+        const anchors: string[] = [];
         const protectedText = text.replace(/<a\b[^>]*>[\s\S]*?<\/a>/gi, (anchor) => {
             const token = `[[ANCHOR_${anchors.length}]]`;
             anchors.push(anchor);

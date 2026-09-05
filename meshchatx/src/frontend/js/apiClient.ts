@@ -12,9 +12,37 @@ import {
 import GlobalState from "./GlobalState.js";
 import { withRetryableHttp } from "./httpRetry.js";
 
-export function isCancel(error) {
+export type ApiRequestConfig = {
+    params?: Record<string, unknown>;
+    data?: unknown;
+    signal?: AbortSignal;
+    headers?: Record<string, string>;
+    responseType?: "json" | "blob" | "arraybuffer" | "text";
+};
+
+export type ApiResponse<T = unknown> = {
+    data: T;
+    status: number;
+    headers: Headers;
+};
+
+export type ApiClient = {
+    get: (path: string, config?: ApiRequestConfig) => Promise<ApiResponse>;
+    head: (path: string, config?: ApiRequestConfig) => Promise<ApiResponse>;
+    post: (path: string, data?: unknown, config?: ApiRequestConfig) => Promise<ApiResponse>;
+    patch: (path: string, data?: unknown, config?: ApiRequestConfig) => Promise<ApiResponse>;
+    put: (path: string, data?: unknown, config?: ApiRequestConfig) => Promise<ApiResponse>;
+    delete: (path: string, config?: ApiRequestConfig) => Promise<ApiResponse>;
+    isCancel: (error: unknown) => boolean;
+};
+
+export type CreateApiClientOptions = {
+    onAuthError?: (err: Error & { response?: { status: number; data: unknown } }) => void;
+};
+
+export function isCancel(error: unknown): boolean {
     if (!error) return false;
-    return error.name === "AbortError" || error.name === "CanceledError";
+    return (error as { name?: string }).name === "AbortError" || (error as { name?: string }).name === "CanceledError";
 }
 
 function buildUrl(path, params) {
@@ -136,12 +164,18 @@ function tryDemoConfigPatch(data) {
 }
 
 /**
- * @param {{ onAuthError?: (err: Error & { response?: { status: number, data: unknown } }) => void }} options
+ * @param {CreateApiClientOptions} [options]
+ * @returns {ApiClient}
  */
-export function createApiClient(options: any = {}) {
+export function createApiClient(options: CreateApiClientOptions = {}): ApiClient {
     const { onAuthError } = options;
 
-    async function request(method, path, config: any = {}, csrfRetry = false) {
+    async function request(
+        method: string,
+        path: string,
+        config: ApiRequestConfig = {},
+        csrfRetry = false
+    ): Promise<ApiResponse> {
         const { params, data, signal, headers = {}, responseType } = config;
         const pathname = apiPathname(path);
 
@@ -160,7 +194,7 @@ export function createApiClient(options: any = {}) {
                 hdrs.set("X-CSRF-Token", csrf);
             }
         }
-        const init: any = { method, signal, headers: hdrs };
+        const init: RequestInit = { method, signal, headers: hdrs };
 
         if (data !== undefined && method !== "GET" && method !== "HEAD") {
             if (data instanceof FormData) {
@@ -168,7 +202,7 @@ export function createApiClient(options: any = {}) {
                 hdrs.delete("content-type");
                 init.body = data;
             } else if (typeof data === "string" || data instanceof Blob || data instanceof ArrayBuffer) {
-                init.body = data;
+                init.body = data as BodyInit;
             } else {
                 if (!hdrs.has("Content-Type")) {
                     hdrs.set("Content-Type", "application/json");
@@ -177,7 +211,7 @@ export function createApiClient(options: any = {}) {
             }
         }
 
-        let response;
+        let response: Response;
         try {
             response = await fetch(url, init);
         } catch (e) {
@@ -196,7 +230,7 @@ export function createApiClient(options: any = {}) {
             if (mutating && !csrfRetry && isCsrfRejection(response.status, errData)) {
                 try {
                     await fetchCsrfToken({
-                        get(csrfPath) {
+                        get(csrfPath: string) {
                             return request("GET", csrfPath, {});
                         },
                     });
@@ -227,7 +261,7 @@ export function createApiClient(options: any = {}) {
         return { data: dataOut, status: response.status, headers: response.headers };
     }
 
-    const api: any = {
+    const api: ApiClient = {
         get(path, config) {
             const cfg = config || {};
             return withRetryableHttp(() => request("GET", path, cfg), {
@@ -240,16 +274,16 @@ export function createApiClient(options: any = {}) {
                 signal: cfg.signal,
             });
         },
-        post(path, data, config: any = {}) {
+        post(path, data, config = {}) {
             return request("POST", path, { ...config, data });
         },
-        patch(path, data, config: any = {}) {
+        patch(path, data, config = {}) {
             return request("PATCH", path, { ...config, data });
         },
-        put(path, data, config: any = {}) {
+        put(path, data, config = {}) {
             return request("PUT", path, { ...config, data });
         },
-        delete(path, config: any = {}) {
+        delete(path, config = {}) {
             return request("DELETE", path, config || {});
         },
         isCancel,

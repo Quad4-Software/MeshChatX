@@ -687,7 +687,9 @@
         "clear": "Tyhjää",
         "prompt_title": "Anna arvo",
         "optional": "Valinnainen",
-        "back": "Takaisin"
+        "back": "Takaisin",
+        "all": "Kaikki",
+        "load_more": "Lataa lisää"
     },
     "stickers": {
         "settings_title": "Tarrat",
@@ -1849,7 +1851,11 @@
         "starter_attribution": "Starter tiles are a low-zoom (z0-z4) placeholder. Upload regional MBTiles for detail.",
         "starter_restored": "Starter tiles restored",
         "failed_restore_starter": "Failed to restore starter tiles",
-        "export_set_active_confirm": "Use the exported MBTiles as the offline basemap?"
+        "export_set_active_confirm": "Use the exported MBTiles as the offline basemap?",
+        "copy_coords": "Kopioi koordinaatit",
+        "copy_coords_format": "Kopioi {format}",
+        "context_coords": "Koordinaatit",
+        "tab_limit_reached": "Karttavälilehtien raja täynnä (8)"
     },
     "interface": {
         "disable": "Älä käytä",
@@ -2227,7 +2233,8 @@
         "paper_message_detected_desc": "Tämä viesti sisältää allekirjoitetun LXMF-URI:n, jonka voit lukea keskusteluihisi.",
         "paper_message_ingest": "Lue viesti",
         "paper_message_ingested": "Paperiviesti luettu",
-        "paper_message_ingested_desc": "Tämä allekirjoitettu LXMF-URI lisättiin keskusteluihisi."
+        "paper_message_ingested_desc": "Tämä allekirjoitettu LXMF-URI lisättiin keskusteluihisi.",
+        "scroll_to_bottom": "Vieritä alas"
     },
     "settings": {
         "tabs": {
@@ -2409,7 +2416,11 @@
         "logs_copied": "Sivun lokit kopioitu leikepöydälle",
         "access_copied": "Pääsy-yritykset kopioitu leikepöydälle",
         "failed_copy_logs": "Lokien kopiointi epäonnistui",
-        "failed_copy_access": "Pääsy-yritysten kopiointi epäonnistui"
+        "failed_copy_access": "Pääsy-yritysten kopiointi epäonnistui",
+        "copy_logs": "Kopioi lokit",
+        "copy_access": "Kopioi käyttöyritykset",
+        "level": "Taso",
+        "outcome": "Tulos"
     },
     "visualiser": {
         "title": "Verkon havainnollistaja",

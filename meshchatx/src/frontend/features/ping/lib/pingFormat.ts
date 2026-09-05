@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
+import { isDestinationHash } from "../../../js/meshValidate.js";
+
 export type PingResult = {
     rtt: number;
     hops_there: number;
@@ -21,7 +23,7 @@ export type PingSuccessSummary = {
 };
 
 export function isValidPingDestinationHash(hash: string | null | undefined): boolean {
-    return hash != null && String(hash).length === 32;
+    return isDestinationHash(hash);
 }
 
 export function isValidPingTimeout(timeout: unknown): boolean {

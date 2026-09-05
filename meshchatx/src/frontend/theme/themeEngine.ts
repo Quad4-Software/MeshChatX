@@ -767,9 +767,7 @@ export function applyAppearanceTheme(
     }
 
     try {
-        const electronBridge = windowObj?.electron as
-            | { setUiTheme?: (theme: string) => unknown }
-            | undefined;
+        const electronBridge = windowObj?.electron as { setUiTheme?: (theme: string) => unknown } | undefined;
         if (electronBridge && typeof electronBridge.setUiTheme === "function") {
             void electronBridge.setUiTheme(persistMode);
         }
@@ -778,9 +776,7 @@ export function applyAppearanceTheme(
     }
 
     try {
-        const bridge = windowObj?.MeshChatXAndroid as
-            | { setUiTheme?: (theme: string) => unknown }
-            | undefined;
+        const bridge = windowObj?.MeshChatXAndroid as { setUiTheme?: (theme: string) => unknown } | undefined;
         if (bridge && typeof bridge.setUiTheme === "function") {
             bridge.setUiTheme(effectiveMode);
         }

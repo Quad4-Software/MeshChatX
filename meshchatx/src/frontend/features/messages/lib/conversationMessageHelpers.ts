@@ -11,9 +11,10 @@ export type LxmfFields = {
 
 export type LxmfMessageLike = {
     content?: string;
-    reply_to_hash?: string;
+    reply_to_hash?: string | null;
     fields?: LxmfFields;
     hash?: string;
+    [key: string]: unknown;
 };
 
 export type ChatItemLike = {

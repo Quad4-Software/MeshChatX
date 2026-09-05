@@ -10,9 +10,18 @@ import { registerContactsFeature } from "../../meshchatx/src/frontend/features/c
 import { registerDebugLogsFeature } from "../../meshchatx/src/frontend/features/debug-logs/index.ts";
 import { registerForwarderFeature } from "../../meshchatx/src/frontend/features/forwarder/index.ts";
 import { registerLicensesFeature } from "../../meshchatx/src/frontend/features/licenses/index.ts";
+import { registerMessageBlocklistFeature } from "../../meshchatx/src/frontend/features/message-blocklist/index.ts";
 import { registerMessagesFeature } from "../../meshchatx/src/frontend/features/messages/index.ts";
+import { registerPaperMessageFeature } from "../../meshchatx/src/frontend/features/paper-message/index.ts";
 import { registerPingFeature } from "../../meshchatx/src/frontend/features/ping/index.ts";
+import { registerReticulumConfigEditorFeature } from "../../meshchatx/src/frontend/features/reticulum-config-editor/index.ts";
+import { registerRnpathFeature } from "../../meshchatx/src/frontend/features/rnpath/index.ts";
+import { registerRnpathTraceFeature } from "../../meshchatx/src/frontend/features/rnpath-trace/index.ts";
+import { registerRnprobeFeature } from "../../meshchatx/src/frontend/features/rnprobe/index.ts";
+import { registerRNStatusFeature } from "../../meshchatx/src/frontend/features/rnstatus/index.ts";
+import { registerSieveFiltersFeature } from "../../meshchatx/src/frontend/features/sieve-filters/index.ts";
 import { registerToolsFeature } from "../../meshchatx/src/frontend/features/tools/index.ts";
+import { registerTranslatorFeature } from "../../meshchatx/src/frontend/features/translator/index.ts";
 import { filterBlockedIdentities } from "../../meshchatx/src/frontend/features/blocked/lib/blockedList.ts";
 
 const repoRoot = process.cwd();
@@ -109,6 +118,114 @@ const FEATURE_MODULE_OWNERS = [
             "meshchatx/src/frontend/features/ping/lib/pingFormat.ts",
         ],
         route_name: "ping",
+        mount: "svelte",
+    },
+    {
+        id: "message-blocklist",
+        register: registerMessageBlocklistFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/message-blocklist/index.ts",
+            "meshchatx/src/frontend/features/message-blocklist/MessageBlocklistPage.svelte",
+            "meshchatx/src/frontend/features/message-blocklist/lib/blocklistRules.ts",
+            "meshchatx/src/frontend/features/message-blocklist/lib/constants.ts",
+        ],
+        route_name: "message-blocklist",
+        mount: "svelte",
+    },
+    {
+        id: "sieve-filters",
+        register: registerSieveFiltersFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/sieve-filters/index.ts",
+            "meshchatx/src/frontend/features/sieve-filters/SieveFiltersPage.svelte",
+            "meshchatx/src/frontend/features/sieve-filters/lib/sieveRules.ts",
+            "meshchatx/src/frontend/features/sieve-filters/lib/constants.ts",
+        ],
+        route_name: "sieve-filters",
+        mount: "svelte",
+    },
+    {
+        id: "paper-message",
+        register: registerPaperMessageFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/paper-message/index.ts",
+            "meshchatx/src/frontend/features/paper-message/PaperMessagePage.svelte",
+            "meshchatx/src/frontend/features/paper-message/lib/paperPrint.ts",
+            "meshchatx/src/frontend/features/paper-message/lib/constants.ts",
+        ],
+        route_name: "paper-message",
+        mount: "svelte",
+    },
+    {
+        id: "reticulum-config-editor",
+        register: registerReticulumConfigEditorFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/reticulum-config-editor/index.ts",
+            "meshchatx/src/frontend/features/reticulum-config-editor/ReticulumConfigEditorPage.svelte",
+            "meshchatx/src/frontend/features/reticulum-config-editor/lib/configFormat.ts",
+            "meshchatx/src/frontend/features/reticulum-config-editor/lib/constants.ts",
+        ],
+        route_name: "reticulum-config-editor",
+        mount: "svelte",
+    },
+    {
+        id: "rnprobe",
+        register: registerRnprobeFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/rnprobe/index.ts",
+            "meshchatx/src/frontend/features/rnprobe/RNProbePage.svelte",
+            "meshchatx/src/frontend/features/rnprobe/lib/probeFormat.ts",
+            "meshchatx/src/frontend/features/rnprobe/lib/constants.ts",
+        ],
+        route_name: "rnprobe",
+        mount: "svelte",
+    },
+    {
+        id: "rnpath-trace",
+        register: registerRnpathTraceFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/rnpath-trace/index.ts",
+            "meshchatx/src/frontend/features/rnpath-trace/RNPathTracePage.svelte",
+            "meshchatx/src/frontend/features/rnpath-trace/lib/traceFormat.ts",
+            "meshchatx/src/frontend/features/rnpath-trace/lib/constants.ts",
+        ],
+        route_name: "rnpath-trace",
+        mount: "svelte",
+    },
+    {
+        id: "rnpath",
+        register: registerRnpathFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/rnpath/index.ts",
+            "meshchatx/src/frontend/features/rnpath/RNPathPage.svelte",
+            "meshchatx/src/frontend/features/rnpath/lib/pathQuery.ts",
+            "meshchatx/src/frontend/features/rnpath/lib/constants.ts",
+        ],
+        route_name: "rnpath",
+        mount: "svelte",
+    },
+    {
+        id: "rnstatus",
+        register: registerRNStatusFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/rnstatus/index.ts",
+            "meshchatx/src/frontend/features/rnstatus/RNStatusPage.svelte",
+            "meshchatx/src/frontend/features/rnstatus/lib/statusFormat.ts",
+            "meshchatx/src/frontend/features/rnstatus/lib/constants.ts",
+        ],
+        route_name: "rnstatus",
+        mount: "svelte",
+    },
+    {
+        id: "translator",
+        register: registerTranslatorFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/translator/index.ts",
+            "meshchatx/src/frontend/features/translator/TranslatorPage.svelte",
+            "meshchatx/src/frontend/features/translator/lib/translatorEngine.ts",
+            "meshchatx/src/frontend/features/translator/lib/constants.ts",
+        ],
+        route_name: "translator",
         mount: "svelte",
     },
     {

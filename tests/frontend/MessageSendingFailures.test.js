@@ -62,8 +62,6 @@ describe("message sending failure contracts", () => {
         expect(peerPathNeedsRefresh(null)).toBe(true);
         expect(peerPathNeedsRefresh({ path: null, path_stale: false, path_unresponsive: false })).toBe(true);
         expect(peerPathNeedsRefresh({ path: { hops: 1 }, path_stale: true, path_unresponsive: false })).toBe(true);
-        expect(peerPathNeedsRefresh({ path: { hops: 1 }, path_stale: false, path_unresponsive: false })).toBe(
-            false
-        );
+        expect(peerPathNeedsRefresh({ path: { hops: 1 }, path_stale: false, path_unresponsive: false })).toBe(false);
     });
 });

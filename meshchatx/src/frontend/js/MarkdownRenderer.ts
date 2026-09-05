@@ -17,7 +17,7 @@ export default class MarkdownRenderer {
         text = Utils.escapeHtml(text);
 
         // Fenced code blocks - process these FIRST and replace with placeholders
-        const code_blocks = [];
+        const code_blocks: string[] = [];
         // eslint-disable-next-line security/detect-unsafe-regex -- bounded fenced block, lazy match
         text = text.replace(/```(\w+)?\n([\s\S]*?)\n```/g, (match, lang, code) => {
             const placeholder = `[[CB${code_blocks.length}]]`;
@@ -28,7 +28,7 @@ export default class MarkdownRenderer {
         });
 
         // Inline code before emphasis so snake_case inside `code` / code is safe.
-        const inline_codes = [];
+        const inline_codes: string[] = [];
         const pushInline = (code) => {
             const placeholder = `[[IC${inline_codes.length}]]`;
             inline_codes.push(
@@ -67,7 +67,7 @@ export default class MarkdownRenderer {
 
         // Paragraphs - double newline to p tag
         const parts = text.split(/\n\n+/);
-        const processed_parts = [];
+        const processed_parts: string[] = [];
         for (let part of parts) {
             part = part.trim();
             if (!part) continue;
@@ -103,7 +103,7 @@ export default class MarkdownRenderer {
         const { protectedText, anchors } = LinkUtils.protectAnchors(text);
         text = protectedText;
 
-        const inline_codes = [];
+        const inline_codes: string[] = [];
         const pushInline = (code) => {
             const placeholder = `[[IC${inline_codes.length}]]`;
             inline_codes.push(

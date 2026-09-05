@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
+import { isDestinationHash } from "../../../js/meshValidate.js";
+
 export type LxmaUriParts = {
     destinationHash: string;
     publicKeyHex: string;
@@ -31,7 +33,7 @@ export function parseLxmaUri(input: string): LxmaUriParts | null {
 
 export function extractDestinationHash(input: string): string | null {
     const raw = input.trim().toLowerCase();
-    if (/^[0-9a-f]{32}$/.test(raw)) {
+    if (isDestinationHash(raw)) {
         return raw;
     }
     const lxmfMatch = raw.match(/^lxmf:\/\/([0-9a-f]{32})$/);
@@ -78,7 +80,7 @@ export function publicKeyFromAnnounce(publicKeyBase64: string | null | undefined
 
 export function buildContactUri(contact: ContactUriFields, publicKeyHex: string | null): string | null {
     const destinationHash = (contact?.lxmf_address || contact?.remote_identity_hash || "").toLowerCase();
-    if (!/^[0-9a-f]{32}$/.test(destinationHash)) {
+    if (!isDestinationHash(destinationHash)) {
         return null;
     }
     if (publicKeyHex) {

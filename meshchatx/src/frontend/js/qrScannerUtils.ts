@@ -1,6 +1,6 @@
 import jsQR from "jsqr";
 
-let decodeCanvas = null;
+let decodeCanvas: HTMLCanvasElement | null = null;
 
 export function resetDecodeCanvasForTests() {
     decodeCanvas = null;
@@ -32,7 +32,7 @@ export function describeCameraError(error, messages) {
     return messages.failed;
 }
 
-function getDecodeCanvas() {
+function getDecodeCanvas(): HTMLCanvasElement {
     if (!decodeCanvas) {
         decodeCanvas = document.createElement("canvas");
     }

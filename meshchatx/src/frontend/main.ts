@@ -169,31 +169,6 @@ const router = createRouter({
             component: () => import("./components/tools/RNXManagerPage.vue"),
         },
         {
-            name: "rnstatus",
-            path: "/rnstatus",
-            component: () => import("./components/rnstatus/RNStatusPage.vue"),
-        },
-        {
-            name: "rnpath",
-            path: "/rnpath",
-            component: () => import("./components/tools/RNPathPage.vue"),
-        },
-        {
-            name: "rnpath-trace",
-            path: "/rnpath-trace",
-            component: () => import("./components/tools/RNPathTracePage.vue"),
-        },
-        {
-            name: "rnprobe",
-            path: "/rnprobe",
-            component: () => import("./components/rnprobe/RNProbePage.vue"),
-        },
-        {
-            name: "translator",
-            path: "/translator",
-            component: () => import("./components/translator/TranslatorPage.vue"),
-        },
-        {
             name: "bots",
             path: "/bots",
             component: () => import("./components/tools/BotsPage.vue"),
@@ -202,11 +177,6 @@ const router = createRouter({
             name: "micron-editor",
             path: "/micron-editor",
             component: () => import("./components/micron-editor/MicronEditorPage.vue"),
-        },
-        {
-            name: "reticulum-config-editor",
-            path: "/tools/reticulum-config-editor",
-            component: () => import("./components/tools/ReticulumConfigEditorPage.vue"),
         },
         {
             name: "mesh-server",
@@ -232,21 +202,6 @@ const router = createRouter({
             name: "identities",
             path: "/identities",
             component: () => import("./components/settings/IdentitiesPage.vue"),
-        },
-        {
-            name: "paper-message",
-            path: "/tools/paper-message",
-            component: () => import("./components/tools/PaperMessagePage.vue"),
-        },
-        {
-            name: "sieve-filters",
-            path: "/tools/sieve-filters",
-            component: () => import("./components/tools/SieveFiltersPage.vue"),
-        },
-        {
-            name: "message-blocklist",
-            path: "/tools/message-blocklist",
-            component: () => import("./components/tools/MessageBlocklistPage.vue"),
         },
         {
             name: "rnode-flasher",

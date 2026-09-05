@@ -687,7 +687,9 @@
         "clear": "Wissen",
         "prompt_title": "Voer een waarde in",
         "optional": "Optioneel",
-        "back": "Terug"
+        "back": "Terug",
+        "all": "Alles",
+        "load_more": "Meer laden"
     },
     "stickers": {
         "settings_title": "Stickers",
@@ -1849,7 +1851,11 @@
         "starter_attribution": "Starter tiles are a low-zoom (z0-z4) placeholder. Upload regional MBTiles for detail.",
         "starter_restored": "Starter tiles restored",
         "failed_restore_starter": "Failed to restore starter tiles",
-        "export_set_active_confirm": "Use the exported MBTiles as the offline basemap?"
+        "export_set_active_confirm": "Use the exported MBTiles as the offline basemap?",
+        "copy_coords": "Coördinaten kopiëren",
+        "copy_coords_format": "{format} kopiëren",
+        "context_coords": "Coördinaten",
+        "tab_limit_reached": "Kaarttabbladlimiet bereikt (8)"
     },
     "interface": {
         "disable": "Uitschakelen",
@@ -2227,7 +2233,8 @@
         "paper_message_detected_desc": "Dit bericht bevat een ondertekende LXMF-URI die je in je gesprekken kunt innemen.",
         "paper_message_ingest": "Bericht innemen",
         "paper_message_ingested": "Papierbericht ingenomen",
-        "paper_message_ingested_desc": "Deze ondertekende LXMF-URI is aan je gesprekken toegevoegd."
+        "paper_message_ingested_desc": "Deze ondertekende LXMF-URI is aan je gesprekken toegevoegd.",
+        "scroll_to_bottom": "Scroll naar beneden"
     },
     "settings": {
         "shortcut_saved": "Sneltoets opgeslagen",
@@ -2409,7 +2416,11 @@
         "logs_copied": "Logs op deze pagina gekopieerd naar klembord",
         "access_copied": "Toegang pogingen gekopieerd naar klembord",
         "failed_copy_logs": "Kon logs niet kopiëren",
-        "failed_copy_access": "Kon toegangspogingen niet kopiëren"
+        "failed_copy_access": "Kon toegangspogingen niet kopiëren",
+        "copy_logs": "Logs kopiëren",
+        "copy_access": "Toegangspogingen kopiëren",
+        "level": "Niveau",
+        "outcome": "Uitkomst"
     },
     "visualiser": {
         "title": "Netwerkvisualisatie",

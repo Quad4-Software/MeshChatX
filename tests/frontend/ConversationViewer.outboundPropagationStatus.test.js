@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 import { describe, expect, it } from "vitest";
-import {
-    outboundBubbleStatusIconName,
-    outboundBubbleStatusTitleKey,
-} from "@/js/outboundMessageStatus.js";
+import { outboundBubbleStatusIconName, outboundBubbleStatusTitleKey } from "@/js/outboundMessageStatus.js";
 import {
     outboundStateIconName,
     outboundStateTitle,
@@ -17,9 +14,7 @@ describe("ConversationViewer outbound propagation status", () => {
         expect(outboundBubbleStatusIconName({ method: "direct", state: "sent" })).toBe("check");
         expect(outboundBubbleStatusIconName({ method: "direct", state: "delivered" })).toBe("check-all");
         expect(outboundBubbleStatusIconName({ method: "propagated", state: "sent" })).toBe("email-outline");
-        expect(outboundBubbleStatusIconName({ method: "paper", state: "delivered" })).toBe(
-            "note-check-outline"
-        );
+        expect(outboundBubbleStatusIconName({ method: "paper", state: "delivered" })).toBe("note-check-outline");
     });
 
     it("maps propagation handoff to method-aware copy", () => {

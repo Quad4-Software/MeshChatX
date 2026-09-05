@@ -50,8 +50,8 @@ export default class ROM {
     static MODEL_C5 = 0xc5;
     static MODEL_CA = 0xca;
 
-    static declare PRODUCT_H32_V4: number;
-    static declare MODEL_C8: number;
+    declare static PRODUCT_H32_V4: number;
+    declare static MODEL_C8: number;
 
     static PRODUCT_HELTEC_T114 = 0xc2;
     static MODEL_C6 = 0xc6;

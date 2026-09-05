@@ -31,10 +31,10 @@ export function buildRouterRoutesFromRegistry(): RouteRecordRaw[] {
         record.component = () =>
             entry.load().then((mod) => {
                 const moduleValue = mod as { default?: Component } | Component | null;
-                    const Comp =
-                        moduleValue && typeof moduleValue === "object" && "default" in moduleValue
-                            ? moduleValue.default
-                            : moduleValue;
+                const Comp =
+                    moduleValue && typeof moduleValue === "object" && "default" in moduleValue
+                        ? moduleValue.default
+                        : moduleValue;
                 if (!Comp) {
                     throw new Error(`routeRegistry: vue load for "${entry.name}" has no default export`);
                 }

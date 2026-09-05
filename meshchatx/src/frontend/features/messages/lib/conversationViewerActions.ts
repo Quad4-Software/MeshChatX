@@ -1,13 +1,17 @@
 // SPDX-License-Identifier: 0BSD
 
 import MarkdownRenderer from "../../../js/MarkdownRenderer.js";
+import ToastUtils from "../../../js/ToastUtils.js";
 import Utils from "../../../js/Utils.js";
+import WebSocketConnection from "../../../js/WebSocketConnection.js";
 import { t } from "../../../js/i18n.js";
+import { findMapUriInContent, mapLinkKindFromMessage, parseMeshchatMapUri } from "../../../js/mapLinkUtils.js";
 import {
     isOpportunisticDeferredDelivery,
     outboundBubbleStatusIconName,
     outboundBubbleStatusTitleKey,
 } from "../../../js/outboundMessageStatus.js";
+import { applyRelayShareLink, findRelayUriInContent, parseMeshchatRelayUri } from "../../../js/relayLinkUtils.js";
 import { formatDate, fromNow } from "../../../libs/datetime.js";
 import { AUTO_IMAGE_CAPTION_MAX_CHARS, MESSAGE_BODY_MAX_DISPLAY_CHARS } from "./constants.js";
 import {
@@ -16,7 +20,9 @@ import {
     isImageOnlyMessage,
     type ChatItemLike,
 } from "./conversationMessageHelpers.js";
-import { outboundStateTitle, transferProgressPercent } from "./conversationOutboundUi.js";
+import { outboundStateTitle, outboundTransferStatsLabel, transferProgressPercent } from "./conversationOutboundUi.js";
+import { isPaperMessageIngested, markPaperMessageIngested } from "./conversationPaperIngest.js";
+import type { BubbleTranslation } from "./conversationTranslate.js";
 import type {
     ConversationViewerActions,
     LxmfMessageLike,
@@ -27,17 +33,19 @@ import type {
 
 export type ConversationViewerActionDeps = {
     chatItems: MessageChatItem[];
+    identityKey?: string;
     selectedPeer?: {
         destination_hash?: string;
-        display_name?: string;
-        custom_display_name?: string;
+        display_name?: string | null;
+        custom_display_name?: string | null;
         is_tracking?: boolean;
     } | null;
-    conversations?: Array<{ destination_hash?: string; display_name?: string; custom_display_name?: string }>;
+    conversations?: Array<{ destination_hash?: string; display_name?: string | null; custom_display_name?: string | null }>;
     myLxmfAddressHash?: string;
     messageFontSize?: number;
     expandedMessageInfo?: string | null;
     audioAttachmentUrls?: Readonly<Record<string, string>>;
+    translations?: Readonly<Record<string, BubbleTranslation>>;
     openImage: (src: string, gallery?: string[], items?: MessageChatItem[]) => void;
     onMessageContextMenu: (event: MouseEvent, chatItem: MessageChatItem, suppressToggle?: boolean) => void;
     onChatItemClick: (chatItem: MessageChatItem) => void;
@@ -52,6 +60,9 @@ export type ConversationViewerActionDeps = {
     downloadMessageImage: (chatItem: MessageChatItem) => void | Promise<void>;
     downloadLxmfFileAttachment: (chatItem: MessageChatItem, index: number, name: string) => void | Promise<void>;
     addContact: (name?: string, hash?: string, lxmfAddress?: string, lxstAddress?: string) => void | Promise<void>;
+    onSetBubbleMessageShowOriginal?: (hash: string, showOriginal: boolean) => void;
+    onupdatePeerTracking?: (payload: { destination_hash: string; is_tracking: boolean }) => void;
+    onPaperIngested?: (hash: string) => void;
 };
 
 function imageDataUrl(message: LxmfMessageLike): string {
@@ -132,6 +143,29 @@ function parseBasicItems(chatItem: MessageChatItem): ParsedMessageItems {
         parsed.paperMessage = paper;
         parsed.isOnlyPaperMessage = content.trim() === paper;
     }
+    const mapUri = findMapUriInContent(content);
+    if (mapUri) {
+        const parsedMap = parseMeshchatMapUri(mapUri);
+        if (parsedMap) {
+            parsed.mapLink = {
+                uri: mapUri,
+                parsed: parsedMap,
+                kind: mapLinkKindFromMessage(content, parsedMap),
+            };
+            parsed.isOnlyMapLink = content.trim() === mapUri;
+        }
+    }
+    const relayUri = findRelayUriInContent(content);
+    if (relayUri) {
+        const parsedRelay = parseMeshchatRelayUri(relayUri);
+        if (parsedRelay) {
+            parsed.relayLink = {
+                uri: relayUri,
+                parsed: parsedRelay,
+            };
+            parsed.isOnlyRelayLink = content.trim() === relayUri;
+        }
+    }
     return parsed;
 }
 
@@ -186,13 +220,50 @@ export function createConversationViewerActions(
             : 0;
     };
     const bubbleViewModel = (chatItem: MessageChatItem): MessageBubbleViewModel => {
-        const content = String(chatItem.lxmf_message.content || "");
+        const hash = chatItem.lxmf_message.hash;
+        const originalContent = String(chatItem.lxmf_message.content || "");
+        const translation = hash ? deps.translations?.[hash] : undefined;
+        if (translation?.loading) {
+            return {
+                kind: "loading",
+                messageHash: hash,
+            };
+        }
+        if (translation && !translation.showOriginal && translation.translatedText) {
+            return {
+                kind: "html",
+                textForRender: translation.translatedText,
+                singleEmoji:
+                    translation.translatedText.length < 64 &&
+                    MarkdownRenderer.isSingleEmojiMessage(translation.translatedText),
+                showFooter: true,
+                showOriginalLink: true,
+                showTranslationLink: false,
+                fromCode: translation.fromCode,
+                toCode: translation.toCode,
+                messageHash: hash,
+            };
+        }
+        if (translation && translation.showOriginal) {
+            return {
+                kind: "html",
+                textForRender: originalContent,
+                singleEmoji:
+                    originalContent.length < 64 && MarkdownRenderer.isSingleEmojiMessage(originalContent),
+                showFooter: true,
+                showOriginalLink: false,
+                showTranslationLink: true,
+                fromCode: translation.fromCode,
+                toCode: translation.toCode,
+                messageHash: hash,
+            };
+        }
         return {
             kind: "html",
-            textForRender: content,
-            singleEmoji: content.length < 64 && MarkdownRenderer.isSingleEmojiMessage(content),
+            textForRender: originalContent,
+            singleEmoji: originalContent.length < 64 && MarkdownRenderer.isSingleEmojiMessage(originalContent),
             showFooter: false,
-            messageHash: chatItem.lxmf_message.hash,
+            messageHash: hash,
         };
     };
 
@@ -255,7 +326,11 @@ export function createConversationViewerActions(
                 event.stopPropagation();
             }
         },
-        setBubbleMessageShowOriginal: () => {},
+        setBubbleMessageShowOriginal: (hash, showOriginal) => {
+            if (hash) {
+                deps.onSetBubbleMessageShowOriginal?.(hash, Boolean(showOriginal));
+            }
+        },
         copyOversizedMessageBody: (item) => void deps.copyText(String(item.lxmf_message.content || "")),
         downloadLxmfFileAttachment: (item, index) => {
             const name = String(item.lxmf_message.fields?.file_attachments?.[index]?.file_name || "download");
@@ -263,17 +338,82 @@ export function createConversationViewerActions(
         },
         addContact: (name, hash, lxmfAddress, lxstAddress) =>
             void deps.addContact(name, hash, lxmfAddress, lxstAddress),
-        ingestPaperMessage: () => {},
-        openMapShareFromParsed: () => {},
+        ingestPaperMessage: (paperMessage: unknown, hash?: string) => {
+            if (typeof paperMessage === "string" && paperMessage) {
+                WebSocketConnection.send(JSON.stringify({ type: "lxm.ingest_uri", uri: paperMessage }));
+                ToastUtils.loading(t("messages.paper_message_ingest"), 2000);
+            }
+            if (hash) {
+                markPaperMessageIngested(deps.identityKey, hash);
+                deps.onPaperIngested?.(hash);
+            }
+        },
+        openMapShareFromParsed: (parsed: unknown) => {
+            if (!parsed || typeof parsed !== "object") return;
+            const p = parsed as { lat?: number; lon?: number; zoom?: number; layers?: string; label?: string };
+            const lat = Number(p.lat);
+            const lon = Number(p.lon);
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+            const params = new URLSearchParams({
+                lat: String(lat),
+                lon: String(lon),
+                zoom: String(Math.round(Number(p.zoom ?? 15))),
+            });
+            if (p.layers) params.set("layers", p.layers);
+            if (p.label) params.set("label", p.label);
+            window.location.hash = `#/map?${params.toString()}`;
+        },
         copyMapShareUri: (uri) => {
-            if (uri) void deps.copyText(uri);
+            if (uri) {
+                void deps.copyText(uri);
+                ToastUtils.success(t("messages.map_link_copied"));
+            }
         },
-        openRelayShareFromParsed: () => {},
+        openRelayShareFromParsed: async (parsed: unknown) => {
+            if (!parsed || typeof parsed !== "object") return;
+            try {
+                await applyRelayShareLink(parsed, { api: window.api });
+                window.location.hash = "#/relay-chat";
+            } catch {
+                window.location.hash = "#/relay-chat";
+            }
+        },
         copyRelayShareUri: (uri) => {
-            if (uri) void deps.copyText(uri);
+            if (uri) {
+                void deps.copyText(uri);
+                ToastUtils.success(t("common.copied"));
+            }
         },
-        viewLocationOnMap: () => {},
-        toggleTracking: () => {},
+        viewLocationOnMap: (location: unknown) => {
+            if (!location || typeof location !== "object") return;
+            const loc = location as Record<string, unknown>;
+            const lat = Number(loc.latitude ?? loc.lat);
+            const lon = Number(loc.longitude ?? loc.lon);
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+            const params = new URLSearchParams({
+                lat: String(lat),
+                lon: String(lon),
+                zoom: "15",
+            });
+            window.location.hash = `#/map?${params.toString()}`;
+        },
+        toggleTracking: async () => {
+            const hash = deps.selectedPeer?.destination_hash;
+            if (!hash) return;
+            const current = Boolean(deps.selectedPeer?.is_tracking);
+            const next = !current;
+            try {
+                const response = await window.api.post(`/api/v1/telemetry/tracking/${hash}/toggle`, {
+                    is_tracking: next,
+                });
+                const data = response.data as { is_tracking?: boolean } | undefined;
+                const isTracking = Boolean(data?.is_tracking ?? next);
+                deps.onupdatePeerTracking?.({ destination_hash: hash, is_tracking: isTracking });
+                ToastUtils.success(isTracking ? t("map.tracking_enabled") : t("map.tracking_disabled"));
+            } catch {
+                ToastUtils.error(t("map.failed_update_tracking"));
+            }
+        },
         bubbleViewModel,
         renderMarkdown: (text) => MarkdownRenderer.render(text || ""),
         getParsedItems: parseBasicItems,
@@ -298,7 +438,10 @@ export function createConversationViewerActions(
         shouldHideAutoImageCaption,
         isMessageBodyTooLargeForDisplay: (item) =>
             String(item.lxmf_message.content || "").length > MESSAGE_BODY_MAX_DISPLAY_CHARS,
-        isPaperMessageIngested: () => false,
+        isPaperMessageIngested: (item) => {
+            const hash = item.lxmf_message.hash;
+            return hash ? isPaperMessageIngested(deps.identityKey, hash) : false;
+        },
         isThemeOutboundBubble: themedOutbound,
         isOutboundWaitingBubble: (item) => Boolean(item.is_outbound && item.lxmf_message._pendingPathfinding),
         isOutboundPendingForUi: pending,
@@ -308,7 +451,7 @@ export function createConversationViewerActions(
         showOutboundTransferProgress: (message) => progress(message) > 0,
         outboundTransferProgressPercent: progress,
         outboundSendingProgressLabel: (message) => `${progress(message)}%`,
-        outboundTransferStatsLabel: () => "",
+        outboundTransferStatsLabel: (message) => outboundTransferStatsLabel(message),
         outboundBubbleStatusIconName,
         outboundBubbleStatusTitle: (message) => {
             const key = outboundBubbleStatusTitleKey(message);

@@ -1,0 +1,18 @@
+{
+    "extends": "./tsconfig.svelte.json",
+    "compilerOptions": {
+        "strict": true,
+        "noImplicitAny": false
+    },
+    "include": [
+        "meshchatx/src/frontend/features/**/*.ts",
+        "meshchatx/src/frontend/features/**/*.svelte",
+        "meshchatx/src/frontend/ui/svelte/**/*.ts",
+        "meshchatx/src/frontend/ui/svelte/**/*.svelte",
+        "meshchatx/src/frontend/js/browser-globals.d.ts",
+        "meshchatx/src/frontend/js/apiClient.ts",
+        "meshchatx/src/frontend/js/meshValidate.ts",
+        "svelte.config.js"
+    ],
+    "exclude": ["node_modules", "meshchatx/public", "meshchatx/src/frontend/public", "build", "dist", "tests"]
+}

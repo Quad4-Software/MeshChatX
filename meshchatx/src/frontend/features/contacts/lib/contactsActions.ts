@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: 0BSD
 
-
 import ToastUtils from "../../../js/ToastUtils.js";
 import DownloadUtils from "../../../js/DownloadUtils.js";
 import DialogUtils from "../../../js/DialogUtils.js";

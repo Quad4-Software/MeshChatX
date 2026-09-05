@@ -64,7 +64,7 @@ export function sortConversationsPinnedFirst(conversations, pinnedHashes) {
         if (ap !== bp) {
             return ap ? -1 : 1;
         }
-        return idx.get(a.destination_hash) - idx.get(b.destination_hash);
+        return (idx.get(a.destination_hash) ?? 0) - (idx.get(b.destination_hash) ?? 0);
     });
 }
 
@@ -92,7 +92,7 @@ export function syncConversationListInPlace(existing, incoming) {
     }
 
     const existingByHash = new Map(existing.map((conversation) => [conversation.destination_hash, conversation]));
-    const nextRows = [];
+    const nextRows: any[] = [];
     for (const conversation of incoming) {
         const hash = conversation?.destination_hash;
         if (!hash) {

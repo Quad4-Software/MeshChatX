@@ -2,14 +2,10 @@
 
 import Utils from "../../../js/Utils.js";
 import { uuidv4 } from "../../../libs/uuid.js";
+import type { ApiClient } from "../../../js/apiClient.js";
 import { OUTBOUND_OVERSIZED_CONFIRM_BYTES } from "./constants.js";
 import type { LxmfFields, LxmfMessage, ViewerPathSnapshot } from "./conversationViewerCtx.js";
 import { warmOutboundPath } from "./conversationViewerPath.js";
-
-type ApiClient = {
-    get: (url: string, options?: Record<string, unknown>) => Promise<{ data?: Record<string, unknown> }>;
-    post: (url: string, body?: Record<string, unknown>) => Promise<{ data?: Record<string, unknown> }>;
-};
 
 export type ComposeAudio = {
     audio_blob: Blob;
@@ -152,7 +148,8 @@ export async function executeOutboundJob(input: {
                 fields,
             },
         });
-        const message = response.data?.lxmf_message as LxmfMessage | undefined;
+        const data = response.data as { lxmf_message?: LxmfMessage } | undefined;
+        const message = data?.lxmf_message;
         if (message) {
             job.messageHash = message.hash;
             sent.push(message);
@@ -166,5 +163,6 @@ export async function cancelOutbound(api: ApiClient, hash: string): Promise<Lxmf
         return null;
     }
     const response = await api.post(`/api/v1/lxmf-messages/${hash}/cancel`);
-    return (response.data?.lxmf_message as LxmfMessage | undefined) ?? null;
+    const data = response.data as { lxmf_message?: LxmfMessage } | undefined;
+    return data?.lxmf_message ?? null;
 }

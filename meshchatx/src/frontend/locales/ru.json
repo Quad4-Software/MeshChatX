@@ -687,7 +687,9 @@
         "clear": "Очистить",
         "prompt_title": "Введите значение",
         "optional": "Необязательно",
-        "back": "Назад"
+        "back": "Назад",
+        "all": "Все",
+        "load_more": "Загрузить ещё"
     },
     "stickers": {
         "settings_title": "Стикеры",
@@ -1903,7 +1905,11 @@
         "starter_attribution": "Starter tiles are a low-zoom (z0-z4) placeholder. Upload regional MBTiles for detail.",
         "starter_restored": "Starter tiles restored",
         "failed_restore_starter": "Failed to restore starter tiles",
-        "export_set_active_confirm": "Use the exported MBTiles as the offline basemap?"
+        "export_set_active_confirm": "Use the exported MBTiles as the offline basemap?",
+        "copy_coords": "Копировать координаты",
+        "copy_coords_format": "Копировать {format}",
+        "context_coords": "Координаты",
+        "tab_limit_reached": "Достигнут лимит вкладок карты (8)"
     },
     "interface": {
         "disable": "Выключить",
@@ -2281,7 +2287,8 @@
         "paper_message_detected_desc": "Это сообщение содержит подписанный LXMF URI, который можно добавить в ваши беседы.",
         "paper_message_ingest": "Принять сообщение",
         "paper_message_ingested": "Бумажное сообщение принято",
-        "paper_message_ingested_desc": "Этот подписанный LXMF URI добавлен в ваши беседы."
+        "paper_message_ingested_desc": "Этот подписанный LXMF URI добавлен в ваши беседы.",
+        "scroll_to_bottom": "Прокрутить вниз"
     },
     "nomadnet": {
         "remove_favourite": "Удалить из избранного",
@@ -4181,7 +4188,11 @@
         "logs_copied": "Журналы на этой странице скопированы в буфер",
         "access_copied": "Попытки доступа скопированы в буфер",
         "failed_copy_logs": "Не удалось скопировать журналы",
-        "failed_copy_access": "Не удалось скопировать попытки доступа"
+        "failed_copy_access": "Не удалось скопировать попытки доступа",
+        "copy_logs": "Копировать журналы",
+        "copy_access": "Копировать попытки доступа",
+        "level": "Уровень",
+        "outcome": "Результат"
     },
     "visualiser": {
         "title": "Визуализатор сети",

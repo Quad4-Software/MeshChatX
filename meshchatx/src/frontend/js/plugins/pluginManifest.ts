@@ -26,7 +26,7 @@ export function validatePluginManifest(manifest) {
     if (!manifest || typeof manifest !== "object") {
         throw new Error("Plugin manifest must be an object");
     }
-    const record = /** @type {Record<string, unknown>} */ (manifest);
+    const record = /** @type {Record<string, unknown>} */ manifest;
     if (typeof record.id !== "string" || !record.id.trim()) {
         throw new Error("Plugin manifest requires a non-empty id");
     }
@@ -38,7 +38,7 @@ export function validatePluginManifest(manifest) {
         throw new Error(`Plugin apiVersion must be ${SUPPORTED_API_VERSION}`);
     }
     if (record.frontend != null) {
-        const frontend = /** @type {Record<string, unknown>} */ (record.frontend);
+        const frontend = /** @type {Record<string, unknown>} */ record.frontend;
         if (typeof frontend.entry !== "string" || !frontend.entry.trim()) {
             throw new Error("Plugin frontend.entry is required when frontend is set");
         }
@@ -50,7 +50,7 @@ export function validatePluginManifest(manifest) {
         }
     }
     if (record.backend != null) {
-        const backend = /** @type {Record<string, unknown>} */ (record.backend);
+        const backend = /** @type {Record<string, unknown>} */ record.backend;
         if (typeof backend.entry !== "string" || !backend.entry.trim()) {
             throw new Error("Plugin backend.entry is required when backend is set");
         }
@@ -59,7 +59,7 @@ export function validatePluginManifest(manifest) {
         }
     }
     if (record.ui != null) {
-        const ui = /** @type {Record<string, unknown>} */ (record.ui);
+        const ui = /** @type {Record<string, unknown>} */ record.ui;
         if (ui.widgets != null) {
             if (!Array.isArray(ui.widgets)) {
                 throw new Error("Plugin ui.widgets must be an array");
@@ -76,7 +76,7 @@ export function validatePluginManifest(manifest) {
         throw new Error("Plugin permissions must be an object");
     }
     if (permissions && typeof permissions === "object") {
-        const uiPerm = /** @type {Record<string, unknown>} */ (permissions).ui;
+        const uiPerm = /** @type {Record<string, unknown>} */ permissions.ui;
         if (uiPerm != null && uiPerm !== "sandboxed-html" && uiPerm !== "none") {
             if (!Array.isArray(uiPerm) || uiPerm.some((v) => v !== "sandboxed-html")) {
                 throw new Error("Plugin permissions.ui must be none, sandboxed-html, or an array of those values");
@@ -86,7 +86,7 @@ export function validatePluginManifest(manifest) {
     if (record.network != null && typeof record.network !== "object") {
         throw new Error("Plugin network must be an object");
     }
-    return /** @type {PluginManifest} */ (manifest);
+    return /** @type {PluginManifest} */ manifest;
 }
 
 /**

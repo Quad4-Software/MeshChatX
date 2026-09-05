@@ -6,10 +6,7 @@ declare class AudioWorkletProcessor {
     readonly port: MessagePort;
 }
 
-declare function registerProcessor(
-    name: string,
-    processorCtor: new () => AudioWorkletProcessor
-): void;
+declare function registerProcessor(name: string, processorCtor: new () => AudioWorkletProcessor): void;
 
 class MicrophonePcmFloatProcessor extends AudioWorkletProcessor {
     process(inputs: Float32Array[][]) {
