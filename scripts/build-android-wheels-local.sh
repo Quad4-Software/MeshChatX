@@ -16,8 +16,9 @@ This script:
 7) Patches the rns wheel so its Android RNodeInterface never calls
    RNS.panic() (os._exit) when usbserial4a/jnius are missing
 8) Builds every recipe under android/chaquopy-recipes/ for each requested
-   ABI (currently: cryptography, miniaudio, aiohttp, cbor2, ...)
-9) Copies outputs to android/vendor
+   ABI (currently: cryptography, miniaudio, aiohttp, cbor2, aioquic, ...)
+9) Vendors aioquic pure-python runtime deps (pyopenssl, service-identity, attrs)
+10) Copies outputs to android/vendor
 
 Usage:
   scripts/build-android-wheels-local.sh [options]
@@ -65,6 +66,9 @@ LXST_VERSION="0.5.1"
 BLEAK_VERSION="3.0.2"
 HTTPX_VERSION="0.28.1"
 ALTCHA_VERSION="2.0.2"
+PYOPENSSL_VERSION="26.4.0"
+SERVICE_IDENTITY_VERSION="26.1.0"
+ATTRS_VERSION="26.1.0"
 RNS_VERSION="1.5.2"
 PATCH_LXST="1"
 PATCH_RNS="1"
@@ -381,6 +385,34 @@ cache_chaquopy_libffi_for_abi() {
     fi
     echo "Caching Chaquopy libffi wheel for ${abi}"
     curl -fsSL -o "${PYPIDIR}/dist/chaquopy-libffi/${name}" "${url}"
+}
+
+vendor_aioquic_pure_python_deps() {
+    echo "Fetching aioquic pure-python runtime deps"
+    local tmp_dir
+    tmp_dir="$(mktemp -d)"
+    "${VENV_DIR}/bin/pip" download \
+        --only-binary=:all: \
+        --no-deps \
+        "pyopenssl==${PYOPENSSL_VERSION}" \
+        "service-identity==${SERVICE_IDENTITY_VERSION}" \
+        "attrs==${ATTRS_VERSION}" \
+        --dest "${tmp_dir}" \
+        --index-url https://pypi.org/simple
+    for dep_wheel in "${tmp_dir}"/*.whl; do
+        cp -f "${dep_wheel}" "${OUT_DIR}/"
+    done
+    rm -rf "${tmp_dir}"
+    for required_name in \
+        "pyopenssl-${PYOPENSSL_VERSION}-" \
+        "service_identity-${SERVICE_IDENTITY_VERSION}-" \
+        "attrs-${ATTRS_VERSION}-"
+    do
+        if ! ls "${OUT_DIR}/${required_name}"*.whl >/dev/null 2>&1; then
+            echo "Expected ${required_name}*.whl in ${OUT_DIR} (aioquic runtime dep)" >&2
+            exit 1
+        fi
+    done
 }
 
 if [[ -z "${ONLY_RECIPES}" ]]; then
@@ -902,6 +934,12 @@ PY
         echo "Expected altcha-${ALTCHA_VERSION}-py3-none-any.whl in ${OUT_DIR}" >&2
         exit 1
     fi
+
+    vendor_aioquic_pure_python_deps
+fi
+
+if [[ -n "${ONLY_RECIPES}" && " ${ONLY_RECIPES//,/ } " == *" aioquic-1.3 "* ]]; then
+    vendor_aioquic_pure_python_deps
 fi
 
 if [[ "${PATCH_RNS}" == "1" && -z "${ONLY_RECIPES}" ]]; then
