@@ -1942,6 +1942,8 @@
         "downloading": "Ladataan",
         "hops": "{count} hyppyä",
         "hops_away": "{count} hypyn etäisyydellä",
+        "path_hops_via": "{hops} kautta {iface}",
+        "path_hops_unknown_iface": "tuntematon liitäntä",
         "snr": "SNR {snr}",
         "stamp_cost": "Leiman hinta {cost}",
         "stamp_ticket_valid": "Lähtevien viestien merkintä on voimassa (toimitus heti). Vanhenee {expires}.",

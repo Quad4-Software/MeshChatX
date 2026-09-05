@@ -1996,6 +1996,8 @@
         "downloading": "Scaricamento",
         "hops": "{count} salti",
         "hops_away": "{count} salti di distanza",
+        "path_hops_via": "{hops} via {iface}",
+        "path_hops_unknown_iface": "interfaccia sconosciuta",
         "snr": "SNR {snr}",
         "stamp_cost": "Costo Francobollo {cost}",
         "stamp_ticket_valid": "Biglietto di francobollo in uscita attivo (invio istantaneo). Scade {expires}.",
