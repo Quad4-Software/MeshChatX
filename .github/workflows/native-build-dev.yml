@@ -133,8 +133,12 @@ jobs:
               run: /usr/sbin/softwareupdate --install-rosetta --agree-to-license || true
 
             - name: Ensure x86_64 Homebrew (/usr/local) for universal slice
-              if: matrix.label == 'macos' && steps.x64_ready.outputs.ready != 'true'
+              if: matrix.label == 'macos'
               run: bash scripts/ci/github-ensure-macos-x86-64-homebrew.sh
+
+            - name: Ensure openssl@3 for cx_Freeze x64 slice
+              if: matrix.label == 'macos'
+              run: bash scripts/ci/github-ensure-macos-x64-openssl.sh
 
             - name: Set up Python x64 for cx_Freeze universal slice
               id: python_x64
