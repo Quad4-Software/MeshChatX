@@ -1,3 +1,11 @@
+export interface NotificationSoundStatus {
+    enabled?: boolean;
+    has_sound?: boolean;
+    id?: number | string | null;
+    filename?: string | null;
+    volume?: number;
+}
+
 class NotificationSoundUtils {
     static _player = null;
     static autoplayBlocked = false;
@@ -37,12 +45,12 @@ class NotificationSoundUtils {
         NotificationSoundUtils.autoplayBlocked = false;
     }
 
-    static async _fetchStatus() {
+    static async _fetchStatus(): Promise<NotificationSoundStatus | null> {
         if (typeof window === "undefined" || !window.api) {
             return null;
         }
         const response = await window.api.get("/api/v1/notification-sounds/status");
-        return response?.data ?? null;
+        return (response?.data as NotificationSoundStatus | undefined) ?? null;
     }
 
     static async play(config) {
