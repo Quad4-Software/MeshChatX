@@ -164,13 +164,7 @@ export function cardPreviewHtml(
     if (!source) {
         return "";
     }
-    let html = renderPreviewHtml(
-        archive.page_path,
-        source,
-        archive.destination_hash,
-        renderOptions,
-        wasmActive
-    );
+    let html = renderPreviewHtml(archive.page_path, source, archive.destination_hash, renderOptions, wasmActive);
     if (searchQuery && archive.snippet && !archive.preview) {
         html = highlightMatch(archive.snippet, searchQuery);
     }

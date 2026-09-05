@@ -1,4 +1,4 @@
-<!-- SPDX-License-Identifier: 0BSD AND MIT -->
+<!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
     <div ref="host" class="sieve-flow-host rounded-xl border border-sem-border bg-sem-surface" />

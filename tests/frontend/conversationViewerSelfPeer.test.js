@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: 0BSD AND MIT
+// SPDX-License-Identifier: 0BSD
 
 import { describe, expect, it } from "vitest";
 import { isSelfLxmfDestination } from "@/features/messages/lib/conversationPeer.ts";

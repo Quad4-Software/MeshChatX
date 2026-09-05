@@ -1,4 +1,4 @@
-<!-- SPDX-License-Identifier: 0BSD AND MIT -->
+<!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
     <div v-if="isShowing" class="fixed inset-0 bg-black/50 transition-opacity flex items-center justify-center">

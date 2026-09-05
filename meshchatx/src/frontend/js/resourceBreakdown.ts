@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: 0BSD AND MIT
+// SPDX-License-Identifier: 0BSD
 
 /**
  * Merge backend resource_breakdown with optional Electron private memory.

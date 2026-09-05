@@ -1,7 +1,6 @@
 BSD Zero Clause License (0BSD)
 
-Copyright (C) 2026 Quad4 (modifications and additions only;
-upstream Reticulum MeshChat portions remain under the MIT notice below)
+Copyright (C) 2026 Quad4
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted.
@@ -15,25 +14,21 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 -------------------------------------------------------------------------
-This project is a derivative of Reticulum MeshChat by Liam Cottle.
-The original portions are subject to the following notice:
+Attribution
 
-Copyright (c) 2024 Liam Cottle
+MeshChatX started as a fork of Reticulum MeshChat by Liam Cottle. First-party
+MeshChatX sources in this repository are licensed under 0BSD above. Historical
+credit to the original project remains.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+-------------------------------------------------------------------------
+Third-party MIT embeds shipped with this distribution
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The following bundled components remain under their original MIT licenses.
+Their copyright notices and permission texts are preserved in-tree (see also
+meshchatx/src/backend/data/THIRD_PARTY_NOTICES.txt):
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+- android/app/src/main/python/able/ (Android BLE / able)
+- android/app/src/main/python/usb4a/ (usb4a Android USB helpers)
+- meshchatx/src/frontend/public/rnode-flasher/ (Copyright (c) 2024 Liam Cottle)
+
+Other Python and Node dependencies are listed in THIRD_PARTY_NOTICES.txt.

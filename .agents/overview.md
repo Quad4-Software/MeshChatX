@@ -264,7 +264,8 @@ Details: `.agents/conventions/tests.md`, `.agents/skills/test-loop/SKILL.md`.
 
 ## License and contributions
 
-Prefer existing SPDX. Project-owned files typically `0BSD`. Preserve upstream MIT / dual marks.
+Prefer existing SPDX. Project-owned files are `0BSD`. Preserve third-party MIT
+headers on able, usb4a, rnode-flasher, and similar embeds.
 Flow: `CONTRIBUTING.md`. Generative AI: disclose and human-review. No unreviewed bulk churn.
 
 ## High-risk checklist

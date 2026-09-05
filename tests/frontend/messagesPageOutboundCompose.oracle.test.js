@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: 0BSD AND MIT
+// SPDX-License-Identifier: 0BSD
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { applyOutboundComposeEnqueued } from "@/features/messages/lib/conversationListApply.ts";

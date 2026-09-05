@@ -1,9 +1,12 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-09-05T13:40:29.383394Z
+Generated at: 2026-09-05T15:10:07.166624Z
 Frontend source: node_modules
 
 Python dependencies
 -------------------
+able (android embed) meshchatx-chaquopy
+  License: MIT
+  Author: able / Chaquopy Android BLE stack
 aiohappyeyeballs 2.7.1
   License: PSF-2.0
   Author: J. Nick Koston
@@ -107,8 +110,11 @@ pyserial 3.5
   License: BSD
   Author: Chris Liechti
 reticulum-meshchatx 4.8.6
-  License: 0BSD AND MIT
+  License: 0BSD
   Author: Quad4
+rnode-flasher bundled
+  License: MIT
+  Author: Liam Cottle
 rns 1.5.2
   License: Reticulum License
   Author: Mark Qvist
@@ -118,6 +124,9 @@ rns-filesync 1.0.0
 service-identity 26.1.0
   License: MIT
   Author: Hynek Schlawack <hs@ox.cx>
+usb4a (android embed) 0.3.0-meshchatx
+  License: MIT
+  Author: Quan Lin / MeshChatX Chaquopy port
 wasmtime 48.0.0
   License: Apache-2.0 WITH LLVM-exception
   Author: The Wasmtime Project Developers <hello@bytecodealliance.org>
@@ -859,6 +868,36 @@ Node dependencies
 @types/trusted-types 2.0.7
   License: MIT
   Author: Jakub Vrana
+@typescript-eslint/eslint-plugin 8.69.0
+  License: MIT
+  Author: -
+@typescript-eslint/parser 8.69.0
+  License: MIT
+  Author: -
+@typescript-eslint/project-service 8.69.0
+  License: MIT
+  Author: -
+@typescript-eslint/scope-manager 8.69.0
+  License: MIT
+  Author: -
+@typescript-eslint/tsconfig-utils 8.69.0
+  License: MIT
+  Author: -
+@typescript-eslint/type-utils 8.69.0
+  License: MIT
+  Author: -
+@typescript-eslint/types 8.69.0
+  License: MIT
+  Author: -
+@typescript-eslint/typescript-estree 8.69.0
+  License: MIT
+  Author: -
+@typescript-eslint/utils 8.69.0
+  License: MIT
+  Author: -
+@typescript-eslint/visitor-keys 8.69.0
+  License: MIT
+  Author: -
 @vitejs/plugin-vue 6.0.8
   License: MIT
   Author: Evan You
@@ -1612,6 +1651,9 @@ eslint-scope 8.4.0
 eslint-visitor-keys 3.4.3
   License: Apache-2.0
   Author: Toru Nagashima (https://github.com/mysticatea)
+eslint-visitor-keys 5.0.1
+  License: Apache-2.0
+  Author: Toru Nagashima (https://github.com/mysticatea)
 eslint-visitor-keys 4.2.0
   License: Apache-2.0
   Author: Toru Nagashima (https://github.com/mysticatea)
@@ -1960,6 +2002,9 @@ https-proxy-agent 7.0.6
 iconv-lite 0.6.2
   License: MIT
   Author: Alexander Shtuchkin <ashtuchkin@gmail.com>
+ignore 7.0.5
+  License: MIT
+  Author: kael
 ignore 5.3.2
   License: MIT
   Author: kael
@@ -3196,13 +3241,13 @@ tinyexec 1.3.0
 tinyexec 1.0.2
   License: MIT
   Author: James Garbutt (https://github.com/43081j)
+tinyglobby 0.2.15
+  License: MIT
+  Author: Superchupu
 tinyglobby 0.2.12
   License: MIT
   Author: Superchupu
 tinyglobby 0.2.17
-  License: MIT
-  Author: Superchupu
-tinyglobby 0.2.15
   License: MIT
   Author: Superchupu
 tinyqueue 3.0.0
@@ -3244,6 +3289,9 @@ tr46 6.0.0
 truncate-utf8-bytes 1.0.2
   License: WTFPL
   Author: Carl Xiong <xiongc05@gmail.com>
+ts-api-utils 2.5.0
+  License: MIT
+  Author: JoshuaKGoldberg <npm@joshuakgoldberg.com>
 tslib 2.8.1
   License: 0BSD
   Author: Microsoft Corp.
@@ -3277,6 +3325,9 @@ typed-query-selector 2.12.2
 typescript 6.0.3
   License: Apache-2.0
   Author: Microsoft Corp.
+typescript-eslint 8.69.0
+  License: MIT
+  Author: -
 uint8array-extras 1.5.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
@@ -3481,10 +3532,10 @@ wrap-ansi 9.0.2
 wrappy 1.0.2
   License: ISC
   Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
-ws 8.21.0
+ws 7.5.13
   License: MIT
   Author: Einar Otto Stangvik <einaros@gmail.com> (http://2x.io)
-ws 7.5.13
+ws 8.21.0
   License: MIT
   Author: Einar Otto Stangvik <einaros@gmail.com> (http://2x.io)
 wsl-utils 0.3.1

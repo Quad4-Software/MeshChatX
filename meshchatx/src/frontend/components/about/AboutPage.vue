@@ -1,4 +1,4 @@
-<!-- SPDX-License-Identifier: 0BSD AND MIT -->
+<!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas">

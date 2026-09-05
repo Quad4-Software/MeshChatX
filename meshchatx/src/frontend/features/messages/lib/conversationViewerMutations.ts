@@ -6,7 +6,7 @@ import ToastUtils from "../../../js/ToastUtils.js";
 import WebSocketConnection from "../../../js/WebSocketConnection.js";
 import { t } from "../../../js/i18n.js";
 import { applyWsMessage, deleteWsMessage, updateWsMessage } from "./conversationViewerMessages.js";
-import { cancelOutbound } from "./conversationViewerSend.js";
+import { cancelOutbound, executeOutboundJob, type OutboundJob } from "./conversationViewerSend.js";
 import type { ApiClient } from "../../../js/apiClient.js";
 import type { LxmfMessage, ViewerChatItem } from "./conversationViewerCtx.js";
 import { sameHash } from "./conversationViewerCtx.js";
@@ -238,7 +238,7 @@ export function buildMapLocationHash(coords: { latitude: number; longitude: numb
 
 export async function executeOutboundSendJob(opts: {
     api: ApiClient;
-    job: import("./conversationViewerSend.js").OutboundJob;
+    job: OutboundJob;
     peerPathSnapshot: unknown;
     chatItems: ViewerChatItem[];
     myLxmfAddressHash: string;
@@ -259,7 +259,6 @@ export async function executeOutboundSendJob(opts: {
         refreshPeerNetwork,
         getPropagationHash,
     } = opts;
-    const { executeOutboundJob } = await import("./conversationViewerSend.js");
     try {
         const sent = await executeOutboundJob({
             api,

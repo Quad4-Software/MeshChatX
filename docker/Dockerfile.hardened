@@ -83,7 +83,7 @@ ARG OCI_CREATED=""
 
 LABEL org.opencontainers.image.source="https://github.com/Quad4-Software/MeshChatX"
 LABEL org.opencontainers.image.description="MeshChatX is an all-in-one Reticulum client."
-LABEL org.opencontainers.image.licenses="MIT AND 0BSD"
+LABEL org.opencontainers.image.licenses="0BSD"
 LABEL org.opencontainers.image.authors="Quad4"
 LABEL org.opencontainers.image.revision="${OCI_REVISION}"
 LABEL org.opencontainers.image.version="${OCI_VERSION}"

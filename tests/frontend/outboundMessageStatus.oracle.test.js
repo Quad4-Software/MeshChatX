@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: 0BSD AND MIT
+// SPDX-License-Identifier: 0BSD
 /**
  * Oracle tests for outbound LXMF status icons and titles.
  *

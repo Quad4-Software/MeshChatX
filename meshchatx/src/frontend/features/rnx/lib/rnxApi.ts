@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-import type {
-    RnxExecuteForm,
-    RnxExecutePayload,
-    RnxListenForm,
-    RnxListenPayload,
-    RnxSession,
-} from "./types.js";
+import type { RnxExecuteForm, RnxExecutePayload, RnxListenForm, RnxListenPayload, RnxSession } from "./types.js";
 
 /**
  * Build execute or interactive session payload from form values
@@ -65,9 +59,7 @@ export async function fetchRnxSessions(): Promise<RnxSession[]> {
 /**
  * Create a new RNX session
  */
-export async function createRnxSession(
-    payload: RnxExecutePayload | RnxListenPayload
-): Promise<RnxSession | null> {
+export async function createRnxSession(payload: RnxExecutePayload | RnxListenPayload): Promise<RnxSession | null> {
     const response = await window.api.post("/api/v1/rnx/sessions", payload);
     const data = response.data as { session?: RnxSession } | undefined;
     return data?.session || null;

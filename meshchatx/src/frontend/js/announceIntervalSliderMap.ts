@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: 0BSD AND MIT
+// SPDX-License-Identifier: 0BSD
 
 /** High-resolution slider positions for smooth dragging (minutes 1..1440). */
 export const ANNOUNCE_SLIDER_POS_MAX = 2047;

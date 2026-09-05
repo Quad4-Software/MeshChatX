@@ -1,32 +1,19 @@
-<!-- SPDX-License-Identifier: 0BSD AND MIT -->
+<!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
     import { t } from "../../../js/i18n.js";
     import DialogUtils from "../../../js/DialogUtils.js";
     import ToastUtils from "../../../js/ToastUtils.js";
     import { buildMeshchatMapUri } from "../../../js/mapLinkUtils.js";
-    import ComposerEmojiStickerGifPicker, {
-        type ComposerGif,
-        type ComposerPickerTab,
-        type ComposerSticker,
-        type ComposerStickerPack,
-    } from "./ComposerEmojiStickerGifPicker.svelte";
     import ConversationComposer from "./ConversationComposer.svelte";
-    import ConversationTranslateBars from "./ConversationTranslateBars.svelte";
+    import ConversationViewerComposerPickerHost from "./ConversationViewerComposerPickerHost.svelte";
     import {
         startAudioRecordingSession,
         stopAudioRecordingSession,
         formatRecordingDuration,
         type ActiveAudioRecording,
     } from "../lib/conversationAudioRecorder.js";
-    import {
-        loadGifs,
-        loadStickerPacks,
-        loadStickers,
-        uploadGifFile,
-        uploadStickerFile,
-    } from "../lib/conversationStickersGifs.js";
-    import { translateText, type LangOption } from "../lib/conversationTranslate.js";
+    import type { LangOption } from "../lib/conversationTranslate.js";
     import {
         buildOutboundJob,
         optimisticMessage,
@@ -65,6 +52,7 @@
         onscrolltobottom?: () => void;
     } = $props();
 
+    let pickerHost: ConversationViewerComposerPickerHost | undefined = $state();
     let fileInput: HTMLInputElement | undefined = $state();
     let deliveryMethod = $state<string | null>(null);
     let images = $state.raw<File[]>([]);
@@ -72,19 +60,7 @@
     let files = $state.raw<File[]>([]);
     let audio = $state<ComposeAudio | null>(null);
 
-    let isEmojiPickerOpen = $state(false);
-    let activePickerTab = $state<ComposerPickerTab>("emoji");
-    let stickers = $state.raw<ComposerSticker[]>([]);
-    let stickerPacks = $state.raw<ComposerStickerPack[]>([]);
-    let activeStickerPackId = $state<string | number | null>(null);
-    let gifs = $state.raw<ComposerGif[]>([]);
-    let isStickerUploading = $state(false);
-    let isGifUploading = $state(false);
-    let stickerDropActive = $state(false);
-    let gifDropActive = $state(false);
-
     let isComposeTranslateOpen = $state(false);
-    let composeTranslateTargetLang = $state("en");
     let isTranslatingMessage = $state(false);
 
     let activeRecording = $state<ActiveAudioRecording | null>(null);
@@ -92,9 +68,7 @@
     let audioAttachmentRecordingDuration = $state("0:00");
     let audioRecordingTimer: ReturnType<typeof setInterval> | null = null;
 
-    const canSendMessage = $derived(
-        Boolean(selectedPeer && (text.trim() || images.length || files.length || audio))
-    );
+    const canSendMessage = $derived(Boolean(selectedPeer && (text.trim() || images.length || files.length || audio)));
 
     const composePlaceholder = $derived(
         deliveryMethod === "direct"
@@ -144,108 +118,10 @@
     }
 
     function onPaste(event: ClipboardEvent) {
-        const pastedFiles = Array.from(event.clipboardData?.files || []).filter((f) =>
-            f.type.startsWith("image/")
-        );
+        const pastedFiles = Array.from(event.clipboardData?.files || []).filter((f) => f.type.startsWith("image/"));
         if (pastedFiles.length > 0) {
             event.preventDefault();
             for (const f of pastedFiles) addImage(f);
-        }
-    }
-
-    async function ensureStickersLoaded() {
-        if (stickers.length === 0) {
-            stickers = await loadStickers(window.api);
-            stickerPacks = await loadStickerPacks(window.api);
-        }
-    }
-
-    async function ensureGifsLoaded() {
-        if (gifs.length === 0) {
-            gifs = await loadGifs(window.api);
-        }
-    }
-
-    async function toggleEmojiPicker() {
-        isEmojiPickerOpen = !isEmojiPickerOpen;
-        if (isEmojiPickerOpen) {
-            void ensureStickersLoaded();
-            void ensureGifsLoaded();
-        }
-    }
-
-    function onTabChange(tab: ComposerPickerTab) {
-        activePickerTab = tab;
-        if (tab === "stickers") void ensureStickersLoaded();
-        if (tab === "gifs") void ensureGifsLoaded();
-    }
-
-    function onEmojiClick(event: CustomEvent) {
-        const char =
-            (event.detail as { unicode?: string })?.unicode ||
-            (event.detail as { emoji?: { unicode?: string } })?.emoji?.unicode ||
-            String(event.detail || "");
-        if (char) {
-            text += char;
-        }
-    }
-
-    async function selectSticker(sticker: ComposerSticker) {
-        try {
-            const response = await window.api.get(`/api/v1/stickers/${sticker.id}/image`, {
-                responseType: "blob",
-            });
-            const type = String(sticker.image_type || "png").toLowerCase();
-            const mime = type === "webm" ? "video/webm" : `image/${type}`;
-            const file = new File([response.data as BlobPart], `${sticker.name || "sticker"}.${type}`, { type: mime });
-            addImage(file);
-            isEmojiPickerOpen = false;
-        } catch {
-            ToastUtils.error(t("stickers.save_failed"));
-        }
-    }
-
-    async function selectGif(gif: ComposerGif) {
-        try {
-            const response = await window.api.get(`/api/v1/gifs/${gif.id}/image`, {
-                responseType: "blob",
-            });
-            const file = new File([response.data as BlobPart], `${gif.name || "gif"}.gif`, { type: "image/gif" });
-            addImage(file);
-            void window.api.post(`/api/v1/gifs/${gif.id}/use`);
-            isEmojiPickerOpen = false;
-        } catch {
-            ToastUtils.error(t("gifs.save_failed"));
-        }
-    }
-
-    async function handleStickerFiles(uploadedFiles: FileList) {
-        isStickerUploading = true;
-        try {
-            for (const f of Array.from(uploadedFiles)) {
-                await uploadStickerFile(window.api, f, activeStickerPackId);
-            }
-            stickers = await loadStickers(window.api);
-            ToastUtils.success(t("stickers.uploaded_count", { count: uploadedFiles.length }));
-        } catch {
-            ToastUtils.error(t("stickers.save_failed"));
-        } finally {
-            isStickerUploading = false;
-        }
-    }
-
-    async function handleGifFiles(uploadedFiles: FileList) {
-        isGifUploading = true;
-        try {
-            for (const f of Array.from(uploadedFiles)) {
-                await uploadGifFile(window.api, f);
-            }
-            gifs = await loadGifs(window.api);
-            ToastUtils.success(t("gifs.uploaded_count", { count: uploadedFiles.length }));
-        } catch {
-            ToastUtils.error(t("gifs.save_failed"));
-        } finally {
-            isGifUploading = false;
         }
     }
 
@@ -283,9 +159,7 @@
         audioAttachmentRecordingDuration = "0:00";
         audioRecordingTimer = setInterval(() => {
             if (activeRecording) {
-                audioAttachmentRecordingDuration = formatRecordingDuration(
-                    Date.now() - activeRecording.startedAt
-                );
+                audioAttachmentRecordingDuration = formatRecordingDuration(Date.now() - activeRecording.startedAt);
             }
         }, 1000);
     }
@@ -300,26 +174,6 @@
             audio = result;
         }
         activeRecording = null;
-    }
-
-    async function translateCompose() {
-        if (!text.trim() || isTranslatingMessage) return;
-        isTranslatingMessage = true;
-        try {
-            const result = await translateText(window.api, {
-                text,
-                targetLang: composeTranslateTargetLang,
-            });
-            if (result.translatedText) {
-                text = result.translatedText;
-                isComposeTranslateOpen = false;
-                ToastUtils.success(t("translator.translate"));
-            }
-        } catch {
-            ToastUtils.error(t("translator.failed_translate"));
-        } finally {
-            isTranslatingMessage = false;
-        }
     }
 
     async function sendMessage() {
@@ -359,44 +213,13 @@
 </script>
 
 <div class="relative w-full">
-    <ComposerEmojiStickerGifPicker
-        open={isEmojiPickerOpen}
-        activeTab={activePickerTab}
-        {stickers}
-        {stickerPacks}
-        {activeStickerPackId}
-        {gifs}
-        {isStickerUploading}
-        {isGifUploading}
-        {stickerDropActive}
-        {gifDropActive}
-        ontabchange={onTabChange}
-        onpackchange={(packId) => {
-            activeStickerPackId = packId;
-        }}
-        onemojiclick={onEmojiClick}
-        onstickerselect={selectSticker}
-        ongifselect={selectGif}
-        onstickerfiles={handleStickerFiles}
-        ongiffiles={handleGifFiles}
-        onstickerdragactivechange={(act) => {
-            stickerDropActive = act;
-        }}
-        ongifdragactivechange={(act) => {
-            gifDropActive = act;
-        }}
-    />
-
-    <ConversationTranslateBars
-        mode="compose"
-        open={isComposeTranslateOpen}
-        options={translateOptions}
-        bind:value={composeTranslateTargetLang}
-        working={isTranslatingMessage}
-        onconfirm={translateCompose}
-        onclose={() => {
-            isComposeTranslateOpen = false;
-        }}
+    <ConversationViewerComposerPickerHost
+        bind:this={pickerHost}
+        bind:text
+        bind:isComposeTranslateOpen
+        bind:isTranslatingMessage
+        {translateOptions}
+        onaddimage={addImage}
     />
 
     <ConversationComposer
@@ -433,11 +256,9 @@
             replyingTo = null;
         }}
         onpaste={onPaste}
-        ontoggleemojipicker={toggleEmojiPicker}
+        ontoggleemojipicker={() => pickerHost?.toggleEmojiPicker()}
         ontogglelocation={toggleLocation}
-        ontoggletranslate={() => {
-            isComposeTranslateOpen = !isComposeTranslateOpen;
-        }}
+        ontoggletranslate={() => pickerHost?.toggleTranslate()}
         onsendpapercompose={() => onsendpapercompose?.()}
         onenter={composeEnter}
         onshiftenter={() => {

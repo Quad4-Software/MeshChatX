@@ -23,9 +23,7 @@ export function muExportFilename(archive?: Pick<ArchiveItem, "page_path"> | null
 }
 
 /** Determine disambiguated export filename with snapshot hash suffix */
-export function muExportFilenameDisambiguated(
-    archive?: Pick<ArchiveItem, "page_path" | "hash"> | null
-): string {
+export function muExportFilenameDisambiguated(archive?: Pick<ArchiveItem, "page_path" | "hash"> | null): string {
     const name = muExportFilename(archive);
     const match = name.match(/^(.+)(\.[^.]+)$/);
     const stem = match ? match[1] : name.replace(/\.[^.]+$/, "");
@@ -35,18 +33,13 @@ export function muExportFilenameDisambiguated(
 }
 
 /** Download string content as a plain text file */
-export async function downloadTextAsFile(
-    content?: string | null,
-    filename = "page.mu"
-): Promise<void> {
+export async function downloadTextAsFile(content?: string | null, filename = "page.mu"): Promise<void> {
     const blob = new Blob([content ?? ""], { type: "text/plain;charset=utf-8" });
     await DownloadUtils.downloadFile(filename, blob);
 }
 
 /** Export archive content using its computed filename */
-export async function exportArchiveAsMu(
-    archive?: ArchiveItem | null
-): Promise<void> {
+export async function exportArchiveAsMu(archive?: ArchiveItem | null): Promise<void> {
     if (!archive) {
         return;
     }

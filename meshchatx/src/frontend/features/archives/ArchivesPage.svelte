@@ -16,11 +16,7 @@
     import ArchiveCard from "./components/ArchiveCard.svelte";
     import ArchiveViewer from "./components/ArchiveViewer.svelte";
     import { exportArchiveAsMu } from "./lib/archiveExport.js";
-    import {
-        handleArchiveContentClick,
-        openInNomadnet,
-        type RouterLike,
-    } from "./lib/archiveNavigation.js";
+    import { handleArchiveContentClick, openInNomadnet, type RouterLike } from "./lib/archiveNavigation.js";
     import { renderFullContent, shortHash } from "./lib/archiveRender.js";
     import {
         API_NOMADNET_ARCHIVES,
@@ -70,13 +66,9 @@
         total_pages: 0,
     });
 
-    const rangeStart = $derived(
-        pagination.total_count > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0
-    );
+    const rangeStart = $derived(pagination.total_count > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0);
 
-    const rangeEnd = $derived(
-        Math.min(pagination.page * pagination.limit, pagination.total_count)
-    );
+    const rangeEnd = $derived(Math.min(pagination.page * pagination.limit, pagination.total_count));
 
     const nomadMicronWasmFeatureEffective: boolean = $derived(
         Boolean(isMicronWasmBundled()) && (GlobalState.config || {}).nomad_micron_wasm_enabled === true
@@ -87,7 +79,7 @@
             nomadMicronWasmFeatureEffective &&
             nomadMicronWasmReady &&
             typeof globalThis.micronConvert === "function" &&
-            ((GlobalState.config?.nomad_micron_default_engine || "js") === "wasm")
+            (GlobalState.config?.nomad_micron_default_engine || "js") === "wasm"
         )
     );
 
@@ -99,7 +91,7 @@
         nomad_micron_wasm_use:
             Boolean(nomadMicronWasmFeatureEffective) &&
             Boolean(nomadMicronWasmReady) &&
-            ((GlobalState.config?.nomad_micron_default_engine || "js") === "wasm"),
+            (GlobalState.config?.nomad_micron_default_engine || "js") === "wasm",
     });
 
     function updateWideSplit(): void {
@@ -319,12 +311,9 @@
             preloadNomadMicronWasm().then((ok) => {
                 nomadMicronWasmReady = ok === true;
                 cardPreviewCache = {};
-                if (viewingArchive && ok) {
-                    renderedContent = renderFullContent(
-                        viewingArchive,
-                        nomadRenderOptions,
-                        nomadMicronWasmActive
-                    );
+                const currentArchive = viewingArchive;
+                if (currentArchive && ok) {
+                    renderedContent = renderFullContent(currentArchive, nomadRenderOptions, nomadMicronWasmActive);
                 }
             });
         }
@@ -419,11 +408,7 @@
         </div>
     </div>
 
-    <div
-        class="mx-auto flex min-h-0 w-full max-w-6xl flex-1 overflow-hidden {isWideSplit
-            ? 'flex-row'
-            : 'flex-col'}"
-    >
+    <div class="mx-auto flex min-h-0 w-full max-w-6xl flex-1 overflow-hidden {isWideSplit ? 'flex-row' : 'flex-col'}">
         {#if !viewingArchive || isWideSplit}
             <div
                 class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden {isWideSplit && viewingArchive

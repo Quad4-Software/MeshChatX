@@ -80,19 +80,19 @@ jobs:
                       tag_suffix: ""
                       build_variant: standard
                       oci_description: "MeshChatX is an all-in-one Reticulum client."
-                      oci_licenses: "MIT AND 0BSD"
+                      oci_licenses: "0BSD"
                     - variant: hardened
                       dockerfile: ./docker/Dockerfile.hardened
                       tag_suffix: "-hardened"
                       build_variant: standard
                       oci_description: "MeshChatX is an all-in-one Reticulum client."
-                      oci_licenses: "MIT AND 0BSD"
+                      oci_licenses: "0BSD"
                     - variant: extra
                       dockerfile: ./docker/Dockerfile
                       tag_suffix: "-extra"
                       build_variant: extra
                       oci_description: "MeshChatX all-in-one Reticulum client with i2pd and yggdrasil."
-                      oci_licenses: "MIT AND 0BSD AND BSD-3-Clause AND LGPL-3.0-only"
+                      oci_licenses: "0BSD AND BSD-3-Clause AND LGPL-3.0-only"
         steps:
             - name: Harden runner
               uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: 0BSD AND MIT
+// SPDX-License-Identifier: 0BSD
 
 /**
  * Identity-scoped IndexedDB cache for the network visualiser.

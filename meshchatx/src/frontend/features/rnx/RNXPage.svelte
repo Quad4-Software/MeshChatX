@@ -10,6 +10,7 @@
     import { loadRnxLayout, saveRnxLayout } from "../../js/browserLayoutStore.js";
     import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
     import RemoteShellTerminal from "../remote-shell/components/RemoteShellTerminal.svelte";
+    import RemoteShellFullscreenDialog from "../remote-shell/components/RemoteShellFullscreenDialog.svelte";
     import { NARROW_BREAKPOINT_PX } from "../remote-shell/lib/constants.js";
     import {
         appendSessionOutput,
@@ -19,11 +20,7 @@
     import RNXSessionsList from "./components/RNXSessionsList.svelte";
     import RNXExecuteTab from "./components/RNXExecuteTab.svelte";
     import RNXListenTab from "./components/RNXListenTab.svelte";
-    import {
-        DEFAULT_RNX_EXECUTE_FORM,
-        DEFAULT_RNX_LISTEN_FORM,
-        RNX_VIEW_TABS,
-    } from "./lib/constants.js";
+    import { DEFAULT_RNX_EXECUTE_FORM, DEFAULT_RNX_LISTEN_FORM, RNX_VIEW_TABS } from "./lib/constants.js";
     import {
         buildRnxExecutePayload,
         buildRnxListenPayload,
@@ -35,12 +32,7 @@
         startRnxSession,
         stopRnxSession,
     } from "./lib/rnxApi.js";
-    import type {
-        RnxExecuteForm,
-        RnxListenForm,
-        RnxSession,
-        RnxTabId,
-    } from "./lib/types.js";
+    import type { RnxExecuteForm, RnxListenForm, RnxSession, RnxTabId } from "./lib/types.js";
 
     let activeTab = $state<RnxTabId>("sessions");
     let sessions = $state<RnxSession[]>([]);
@@ -54,11 +46,9 @@
     let sessionFullscreen = $state(false);
 
     let sessionTerminal = $state<ReturnType<typeof RemoteShellTerminal> | null>(null);
-    let fullscreenTerminal = $state<ReturnType<typeof RemoteShellTerminal> | null>(null);
+    let fullscreenTerminal = $state<ReturnType<typeof RemoteShellFullscreenDialog> | null>(null);
 
-    const selectedSession = $derived(
-        sessions.find((session) => session.id === selectedSessionId) || null
-    );
+    const selectedSession = $derived(sessions.find((session) => session.id === selectedSessionId) || null);
 
     const selectedOutput = $derived(
         formatTerminalOutput(
@@ -70,9 +60,7 @@
     );
 
     const selectedListenAddress = $derived(
-        selectedSession && selectedSession.mode === "listen"
-            ? selectedSession.listen_address || ""
-            : ""
+        selectedSession && selectedSession.mode === "listen" ? selectedSession.listen_address || "" : ""
     );
 
     const headerDescription = $derived(isNarrowScreen ? "" : t("rnx.description"));
@@ -85,9 +73,7 @@
               : "hidden"
     );
 
-    const terminalSectionClass = $derived(
-        isNarrowScreen && mobileSessionsOpen ? "hidden" : ""
-    );
+    const terminalSectionClass = $derived(isNarrowScreen && mobileSessionsOpen ? "hidden" : "");
 
     function updateViewport(): void {
         const narrow = typeof window !== "undefined" && window.innerWidth < NARROW_BREAKPOINT_PX;
@@ -153,10 +139,7 @@
             if (!selectedSessionId && sessions.length > 0) {
                 selectedSessionId = sessions[0].id;
             }
-            if (
-                selectedSessionId &&
-                !sessions.find((session) => session.id === selectedSessionId)
-            ) {
+            if (selectedSessionId && !sessions.find((session) => session.id === selectedSessionId)) {
                 selectedSessionId = sessions[0]?.id || null;
             }
             persistLayout();
@@ -164,9 +147,7 @@
                 scrollOutputToBottom();
             });
         } catch (error: any) {
-            ToastUtils.error(
-                error?.response?.data?.message || t("rnx.failed_to_load_sessions")
-            );
+            ToastUtils.error(error?.response?.data?.message || t("rnx.failed_to_load_sessions"));
         }
     }
 
@@ -192,9 +173,7 @@
                 ToastUtils.success(t("rnx.session_created"));
             }
         } catch (error: any) {
-            ToastUtils.error(
-                error?.response?.data?.message || t("rnx.failed_to_create_session")
-            );
+            ToastUtils.error(error?.response?.data?.message || t("rnx.failed_to_create_session"));
         }
     }
 
@@ -212,9 +191,7 @@
                 ToastUtils.success(t("rnx.session_created"));
             }
         } catch (error: any) {
-            ToastUtils.error(
-                error?.response?.data?.message || t("rnx.failed_to_create_session")
-            );
+            ToastUtils.error(error?.response?.data?.message || t("rnx.failed_to_create_session"));
         }
     }
 
@@ -225,9 +202,7 @@
             ToastUtils.success(t("rnx.session_started"));
             await loadSessions();
         } catch (error: any) {
-            ToastUtils.error(
-                error?.response?.data?.message || t("rnx.failed_to_start_session")
-            );
+            ToastUtils.error(error?.response?.data?.message || t("rnx.failed_to_start_session"));
         }
     }
 
@@ -238,9 +213,7 @@
             ToastUtils.success(t("rnx.session_stopped"));
             await loadSessions();
         } catch (error: any) {
-            ToastUtils.error(
-                error?.response?.data?.message || t("rnx.failed_to_stop_session")
-            );
+            ToastUtils.error(error?.response?.data?.message || t("rnx.failed_to_stop_session"));
         }
     }
 
@@ -254,9 +227,7 @@
             ToastUtils.success(t("rnx.session_removed"));
             await loadSessions();
         } catch (error: any) {
-            ToastUtils.error(
-                error?.response?.data?.message || t("rnx.failed_to_remove_session")
-            );
+            ToastUtils.error(error?.response?.data?.message || t("rnx.failed_to_remove_session"));
         }
     }
 
@@ -270,9 +241,7 @@
             }
             ToastUtils.success(t("rnx.output_cleared"));
         } catch (error: any) {
-            ToastUtils.error(
-                error?.response?.data?.message || t("rnx.failed_to_clear_output")
-            );
+            ToastUtils.error(error?.response?.data?.message || t("rnx.failed_to_clear_output"));
         }
     }
 
@@ -296,9 +265,7 @@
         try {
             await sendRnxSessionInput(selectedSession.id, text);
         } catch (error: any) {
-            ToastUtils.error(
-                error?.response?.data?.message || t("rnx.failed_to_send_input")
-            );
+            ToastUtils.error(error?.response?.data?.message || t("rnx.failed_to_send_input"));
         }
     }
 
@@ -456,33 +423,24 @@
     {/if}
 
     {#if sessionFullscreen}
-        <div
-            class="fixed inset-0 z-[220] flex flex-col bg-zinc-950"
-            role="dialog"
-            aria-modal="true"
-            aria-label={t("rnx.session_output")}
-        >
-            <RemoteShellTerminal
-                bind:this={fullscreenTerminal}
-                session={selectedSession}
-                output={selectedOutput}
-                {commandInput}
-                listenAddress={selectedListenAddress}
-                fullscreen
-                showSessionsToggle={isNarrowScreen}
-                sessionsOpen={mobileSessionsOpen}
-                compactHeader
-                i18nPrefix="rnx"
-                onupdateCommandInput={(val) => (commandInput = val)}
-                onsend={sendCommand}
-                onstart={startSelected}
-                onstop={stopSelected}
-                onclear={clearSelectedOutput}
-                onremove={removeSelected}
-                oncopyAddress={copyListenAddress}
-                ontoggleFullscreen={toggleSessionFullscreen}
-                ontoggleSessions={toggleMobileSessions}
-            />
-        </div>
+        <RemoteShellFullscreenDialog
+            bind:this={fullscreenTerminal}
+            session={selectedSession}
+            output={selectedOutput}
+            {commandInput}
+            listenAddress={selectedListenAddress}
+            showSessionsToggle={isNarrowScreen}
+            sessionsOpen={mobileSessionsOpen}
+            i18nPrefix="rnx"
+            onupdateCommandInput={(val) => (commandInput = val)}
+            onsend={sendCommand}
+            onstart={startSelected}
+            onstop={stopSelected}
+            onclear={clearSelectedOutput}
+            onremove={removeSelected}
+            oncopyAddress={copyListenAddress}
+            ontoggleFullscreen={toggleSessionFullscreen}
+            ontoggleSessions={toggleMobileSessions}
+        />
     {/if}
 </div>

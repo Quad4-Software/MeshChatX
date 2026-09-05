@@ -117,10 +117,7 @@
                 <MaterialDesignIcon iconName="refresh" class="size-8 animate-spin-reverse" />
             </div>
         {:else}
-            <div
-                class="h-full selection:bg-sem-accent/30 {viewerClassesList}"
-                onclickcapture={onContentClick}
-            >
+            <div class="h-full selection:bg-sem-accent/30 {viewerClassesList}" onclickcapture={onContentClick}>
                 <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                 {@html renderedContent}
             </div>

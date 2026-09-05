@@ -1,6 +1,7 @@
 import js from "@eslint/js";
 import pluginVue from "eslint-plugin-vue";
 import pluginSvelte from "eslint-plugin-svelte";
+import pluginVueA11y from "eslint-plugin-vuejs-accessibility";
 import pluginPrettier from "eslint-plugin-prettier/recommended";
 import pluginSecurity from "eslint-plugin-security";
 import globals from "globals";
@@ -73,6 +74,7 @@ export default [
     js.configs.recommended,
     ...pluginVue.configs["flat/recommended"],
     ...pluginSvelte.configs["flat/recommended"],
+    ...pluginVueA11y.configs["flat/recommended"],
     pluginPrettier,
     pluginSecurity.configs.recommended,
     {
@@ -84,6 +86,16 @@ export default [
             "no-console": "off",
             "security/detect-object-injection": "off",
             "security/detect-non-literal-fs-filename": "off",
+            // Noise floor for legacy Vue mega-pages; fix gradually, keep as warn in CI.
+            "vuejs-accessibility/click-events-have-key-events": "warn",
+            "vuejs-accessibility/interactive-supports-focus": "warn",
+            "vuejs-accessibility/label-has-for": "warn",
+            "vuejs-accessibility/form-control-has-label": "warn",
+            "vuejs-accessibility/anchor-has-content": "warn",
+            "vuejs-accessibility/media-has-caption": "warn",
+            "vuejs-accessibility/mouse-events-have-key-events": "warn",
+            "vuejs-accessibility/no-autofocus": "warn",
+            "vuejs-accessibility/no-static-element-interactions": "warn",
         },
     },
     {
@@ -119,7 +131,7 @@ export default [
         },
     },
     {
-        files: ["meshchatx/src/frontend/js/**/*.{js,mjs}"],
+        files: ["meshchatx/src/frontend/js/**/*.{js,mjs,ts}"],
         rules: {
             "no-restricted-imports": [
                 "error",

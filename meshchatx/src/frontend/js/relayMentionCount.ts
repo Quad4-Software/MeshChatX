@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: 0BSD AND MIT
+// SPDX-License-Identifier: 0BSD
 
 export function countRelayMentions(hubs) {
     if (!Array.isArray(hubs)) {

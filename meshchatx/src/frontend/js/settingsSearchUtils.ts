@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: 0BSD AND MIT
+// SPDX-License-Identifier: 0BSD
 
 const ZW_RE = /[\u200B-\u200D\uFEFF]/g;
 

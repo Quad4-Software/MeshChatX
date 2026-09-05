@@ -133,11 +133,6 @@ const router = createRouter({
             component: () => import("./components/relay/RelayChatPage.vue"),
         },
         {
-            name: "archives",
-            path: "/archives",
-            component: () => import("./components/archives/ArchivesPage.vue"),
-        },
-        {
             name: "nomadnetwork-popout",
             path: "/popout/nomadnetwork/:destinationHash?",
             props: true,
@@ -160,16 +155,6 @@ const router = createRouter({
             component: () => import("./components/filesync/RnsFilesyncPage.vue"),
         },
         {
-            name: "rnsh",
-            path: "/rnsh",
-            component: () => import("./components/tools/RNSHManagerPage.vue"),
-        },
-        {
-            name: "rnx",
-            path: "/rnx",
-            component: () => import("./components/tools/RNXManagerPage.vue"),
-        },
-        {
             name: "bots",
             path: "/bots",
             component: () => import("./components/tools/BotsPage.vue"),
@@ -178,11 +163,6 @@ const router = createRouter({
             name: "micron-editor",
             path: "/micron-editor",
             component: () => import("./components/micron-editor/MicronEditorPage.vue"),
-        },
-        {
-            name: "mesh-server",
-            path: "/mesh-server",
-            component: () => import("./components/page-nodes/PageNodesPage.vue"),
         },
         {
             name: "documentation",
@@ -208,11 +188,6 @@ const router = createRouter({
             name: "rnode-flasher",
             path: "/tools/rnode-flasher",
             component: () => import("./components/tools/RNodeFlasherPage.vue"),
-        },
-        {
-            name: "repository-server",
-            path: "/tools/repository-server",
-            component: () => import("./components/tools/RepositoryServerPage.vue"),
         },
         {
             name: "call",

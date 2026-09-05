@@ -76,7 +76,7 @@
         "dist:mac-universal": "bash scripts/build-macos-universal.sh",
         "start": "pnpm run electron"
     },
-    "license": "0BSD AND MIT",
+    "license": "0BSD",
     "engines": {
         "node": ">=24"
     },
@@ -106,11 +106,13 @@
         "eslint-plugin-security": "^3.0.1",
         "eslint-plugin-svelte": "^3.23.0",
         "eslint-plugin-vue": "^10.10.0",
+        "eslint-plugin-vuejs-accessibility": "^2.6.0",
         "fake-indexeddb": "^6.2.5",
         "globals": "^17.11.0",
         "jsdom": "^29.1.1",
         "knip": "^6.33.0",
         "lighthouse": "^13.4.1",
+        "madge": "^8.0.0",
         "micron-parser": "github:RFnexus/micron-parser-js#33feb1054c8b2cb3f5f05abbb8903360d3f0c098",
         "prettier": "^3.9.6",
         "prettier-plugin-svelte": "^4.1.1",

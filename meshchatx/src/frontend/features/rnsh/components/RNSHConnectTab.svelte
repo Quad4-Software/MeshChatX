@@ -80,10 +80,7 @@
             {t("rnsh.no_id")}
         </label>
     </div>
-    <button
-        type="submit"
-        class="primary-chip px-4 py-2 text-sm w-full sm:w-auto"
-    >
+    <button type="submit" class="primary-chip px-4 py-2 text-sm w-full sm:w-auto">
         <MaterialDesignIcon iconName="plus" class="size-4" />
         {t("rnsh.create_and_start")}
     </button>

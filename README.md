@@ -112,5 +112,5 @@ LXST calls, [RRC](https://rrc.kc1awv.net/0) relay chat, MBTiles map plus remote 
 ## Security, license, credits
 
 - [SECURITY.md](SECURITY.md) · [LEGAL.md](LEGAL.md) · [donate.md](donate.md)
-- Project-owned code is 0BSD. Upstream MeshChat portions remain MIT. Full text: [LICENSE](LICENSE).
+- Project-owned code is 0BSD. Bundled third-party embeds keep their own licenses. Full text: [LICENSE](LICENSE).
 - Credits: [Liam Cottle](https://github.com/liamcottle) (original MeshChat), [RFnexus](https://github.com/RFnexus) (micron parser JS), [markqvist](https://github.com/markqvist) (Reticulum, LXMF, LXST).

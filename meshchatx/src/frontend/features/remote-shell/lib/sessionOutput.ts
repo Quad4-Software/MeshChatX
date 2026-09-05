@@ -87,10 +87,7 @@ export function getSessionStatusClass(session: RemoteShellSession | null | undef
 /**
  * Resolve session display subtitle
  */
-export function getSessionSubtitle(
-    session: RemoteShellSession | null | undefined,
-    listenModeLabel: string
-): string {
+export function getSessionSubtitle(session: RemoteShellSession | null | undefined, listenModeLabel: string): string {
     if (!session) return "-";
     if (session.mode === "listen") {
         return session.listen_address || listenModeLabel;

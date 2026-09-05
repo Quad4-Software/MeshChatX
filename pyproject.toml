@@ -5,7 +5,7 @@ description = "A simple mesh network communications app powered by the Reticulum
 authors = [
   {name = "Quad4"}
 ]
-license = "0BSD AND MIT"
+license = "0BSD"
 readme = "README.md"
 requires-python = ">=3.11"
 keywords = ["reticulum", "meshchat", "meshchatx", "lxmf", "rns"]

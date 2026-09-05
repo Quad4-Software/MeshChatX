@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-import type {
-    RnshConnectForm,
-    RnshConnectPayload,
-    RnshListenForm,
-    RnshListenPayload,
-    RnshSession,
-} from "./types.js";
+import type { RnshConnectForm, RnshConnectPayload, RnshListenForm, RnshListenPayload, RnshSession } from "./types.js";
 
 /**
  * Build connect session payload from form values
@@ -54,9 +48,7 @@ export async function fetchRnshSessions(): Promise<RnshSession[]> {
 /**
  * Create a new RNSH session
  */
-export async function createRnshSession(
-    payload: RnshConnectPayload | RnshListenPayload
-): Promise<RnshSession | null> {
+export async function createRnshSession(payload: RnshConnectPayload | RnshListenPayload): Promise<RnshSession | null> {
     const response = await window.api.post("/api/v1/rnsh/sessions", payload);
     const data = response.data as { session?: RnshSession } | undefined;
     return data?.session || null;
