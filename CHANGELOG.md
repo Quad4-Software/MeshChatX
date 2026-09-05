@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 - **Smart Crawler**: Crawls less aggressively (about one request per node per day). Sites can opt out with # nocrawl or Archives settings.
 - **Nomad private tabs**: Ctrl+Shift+P opens a purple private tab that is not archived, favourited, or saved in history.
 - **Micron publish**: Publish can create a mesh server, upload the page, and open it in NomadNet in one step.
+- **Nomad identify-on-connect** (schema 58): Sticky per-favourite Identify when connecting, matching NomadNet. Auto-identifies on link before page requests. Fingerprint toggle and favourites import/export carry `identify_on_connect`.
 
 ### Fixed
 

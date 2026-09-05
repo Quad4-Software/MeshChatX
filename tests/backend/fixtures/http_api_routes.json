@@ -177,7 +177,7 @@
             "path": "/api/v1/database/backups/{filename}"
         },
         {
-            "method": "GET",
+            "method": "POST",
             "path": "/api/v1/database/backups/{filename}/download"
         },
         {
@@ -205,7 +205,7 @@
             "path": "/api/v1/database/snapshots/{filename}"
         },
         {
-            "method": "GET",
+            "method": "POST",
             "path": "/api/v1/database/snapshots/{filename}/download"
         },
         {
@@ -339,6 +339,10 @@
         {
             "method": "DELETE",
             "path": "/api/v1/favourites/{destination_hash}"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/favourites/{destination_hash}/identify-on-connect"
         },
         {
             "method": "POST",
@@ -677,7 +681,7 @@
             "path": "/api/v1/maintenance/messages/duplicates"
         },
         {
-            "method": "GET",
+            "method": "POST",
             "path": "/api/v1/maintenance/messages/export"
         },
         {

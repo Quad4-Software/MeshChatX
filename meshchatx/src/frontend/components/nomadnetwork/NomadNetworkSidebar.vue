@@ -387,6 +387,18 @@
                             <MaterialDesignIcon icon-name="pencil" class="size-4 text-gray-400" />
                             {{ $t("nomadnet.rename") }}
                         </ContextMenuItem>
+                        <ContextMenuItem @click="toggleIdentifyOnConnectFromContext">
+                            <MaterialDesignIcon
+                                icon-name="fingerprint"
+                                class="size-4"
+                                :class="favouriteContextIdentifiesOnConnect ? 'text-sem-accent' : 'text-gray-400'"
+                            />
+                            {{
+                                favouriteContextIdentifiesOnConnect
+                                    ? $t("nomadnet.identify_on_connect_on")
+                                    : $t("nomadnet.identify_on_connect_off")
+                            }}
+                        </ContextMenuItem>
                         <ContextMenuItem
                             v-if="!isBlocked(favouriteContextMenu.targetHash)"
                             item-class="text-red-600 dark:text-red-400"
@@ -877,6 +889,7 @@ export default {
         "rename-favourite",
         "remove-favourite",
         "add-favourite",
+        "toggle-identify-on-connect",
         "nodes-search-changed",
         "load-more-nodes",
         "toggle-collapse",
@@ -936,6 +949,10 @@ export default {
     computed: {
         effectiveCollapsed() {
             return this.collapsed && this.smUp;
+        },
+        favouriteContextIdentifiesOnConnect() {
+            const favourite = this.getFavouriteByHash(this.favouriteContextMenu.targetHash);
+            return Boolean(favourite?.identify_on_connect);
         },
         sidebarRootClass() {
             if (this.effectiveCollapsed) {
@@ -1722,6 +1739,14 @@ export default {
             }
             this.closeContextMenus();
             this.onRenameFavourite(favourite);
+        },
+        toggleIdentifyOnConnectFromContext() {
+            const hash = this.favouriteContextMenu.targetHash;
+            this.closeContextMenus();
+            if (!hash) {
+                return;
+            }
+            this.$emit("toggle-identify-on-connect", hash);
         },
         removeFavouriteFromContext() {
             const favourite = this.getFavouriteByHash(this.favouriteContextMenu.targetHash);

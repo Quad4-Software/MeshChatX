@@ -23,6 +23,8 @@ Rendering uses NomadPageRenderer.js with DOMPurify sanitization. Micron can use 
 
 Save frequent nodes as favourites. Link caching (nomadnet_cached_links) speeds up repeat visits on slow links.
 
+Browsing is anonymous by default (null identity on the RNS link), matching NomadNet. The fingerprint control is a sticky **Identify when connecting** toggle stored on the favourite. When it is on, MeshChatX calls `link.identify` with your identity before each page or file request on that node. Turning it off clears the cached link so the next visit is anonymous again. Private tabs never identify.
+
 ## Archives
 
 When **page archiver** is enabled, MeshChatX stores versioned snapshots of pages you visit. Open **Archives** to browse historical copies. An optional crawler can archive automatically.

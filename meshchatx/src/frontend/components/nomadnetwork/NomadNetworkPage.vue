@@ -19,6 +19,7 @@
             @rename-favourite="onRenameFavourite"
             @remove-favourite="onRemoveFavourite"
             @add-favourite="addFavourite"
+            @toggle-identify-on-connect="toggleIdentifyOnConnect"
             @bulk-remove-favourites="onBulkRemoveFavourites"
             @bulk-add-favourites="onBulkAddFavouritesFromAnnounces"
             @nodes-search-changed="onNodesSearchChanged"
@@ -254,9 +255,15 @@
 
                     <IconButton
                         v-if="!isPrivate"
-                        class="nomad-icon-btn shrink-0 text-sem-fg-muted lg:hidden"
-                        :title="$t('nomadnet.identify')"
-                        @click="identify(selectedNode.destination_hash)"
+                        class="nomad-icon-btn shrink-0 lg:hidden"
+                        :class="selectedNodeIdentifiesOnConnect ? 'text-sem-accent' : 'text-sem-fg-muted'"
+                        :title="
+                            selectedNodeIdentifiesOnConnect
+                                ? $t('nomadnet.identify_on_connect_on')
+                                : $t('nomadnet.identify_on_connect_off')
+                        "
+                        :aria-pressed="selectedNodeIdentifiesOnConnect ? 'true' : 'false'"
+                        @click="toggleIdentifyOnConnect(selectedNode.destination_hash)"
                     >
                         <MaterialDesignIcon icon-name="fingerprint" class="size-5" />
                     </IconButton>
@@ -264,9 +271,15 @@
                     <div class="hidden shrink-0 items-center gap-0 lg:flex">
                         <IconButton
                             v-if="!isPrivate"
-                            class="nomad-icon-btn text-sem-fg-muted"
-                            :title="$t('nomadnet.identify')"
-                            @click="identify(selectedNode.destination_hash)"
+                            class="nomad-icon-btn"
+                            :class="selectedNodeIdentifiesOnConnect ? 'text-sem-accent' : 'text-sem-fg-muted'"
+                            :title="
+                                selectedNodeIdentifiesOnConnect
+                                    ? $t('nomadnet.identify_on_connect_on')
+                                    : $t('nomadnet.identify_on_connect_off')
+                            "
+                            :aria-pressed="selectedNodeIdentifiesOnConnect ? 'true' : 'false'"
+                            @click="toggleIdentifyOnConnect(selectedNode.destination_hash)"
                         >
                             <MaterialDesignIcon icon-name="fingerprint" class="size-5" />
                         </IconButton>
@@ -853,6 +866,13 @@ export default {
         },
         standaloneContextHasActivePage() {
             return Boolean(this.selectedNode && this.nodePagePath);
+        },
+        selectedNodeIdentifiesOnConnect() {
+            const hash = this.selectedNode?.destination_hash;
+            if (!hash) {
+                return false;
+            }
+            return this.identifiesOnConnect(hash);
         },
         standaloneContextCanDownloadPage() {
             return Boolean(
@@ -2034,6 +2054,10 @@ export default {
                     return favourite.destination_hash === destinationHash;
                 }) != null
             );
+        },
+        identifiesOnConnect(destinationHash) {
+            const favourite = this.favourites.find((f) => f.destination_hash === destinationHash);
+            return Boolean(favourite?.identify_on_connect);
         },
         async addFavourite(node) {
             if (this.isPrivate) {
@@ -3366,23 +3390,44 @@ export default {
             }
         },
         async identify(destinationHash) {
+            await this.toggleIdentifyOnConnect(destinationHash);
+        },
+        async toggleIdentifyOnConnect(destinationHash) {
             if (this.isPrivate) {
                 ToastUtils.info(this.$t("nomadnet.private_browsing_hint"));
                 return;
             }
+            if (!destinationHash) {
+                return;
+            }
+            const currentlyOn = this.favourites.some(
+                (favourite) => favourite.destination_hash === destinationHash && Boolean(favourite.identify_on_connect)
+            );
+            const enable = !currentlyOn;
             try {
-                // ask user to confirm
-                if (!(await DialogUtils.confirm(this.$t("nomadnet.identify_confirm")))) {
-                    return;
+                if (enable) {
+                    if (!(await DialogUtils.confirm(this.$t("nomadnet.identify_confirm")))) {
+                        return;
+                    }
                 }
-
-                // identify self to nomadnetwork node
-                await window.api.post(`/api/v1/nomadnetwork/${destinationHash}/identify`);
-
-                // reload page
-                this.reloadNodePage();
+                const node = this.selectedNode?.destination_hash === destinationHash ? this.selectedNode : null;
+                const existing = this.favourites.find((favourite) => favourite.destination_hash === destinationHash);
+                const displayName = resolveFavouriteUpsertDisplayName(
+                    node || existing || { destination_hash: destinationHash },
+                    existing,
+                    this.$t("nomadnet.unknown_node")
+                );
+                await window.api.post(`/api/v1/favourites/${destinationHash}/identify-on-connect`, {
+                    enabled: enable,
+                    display_name: displayName,
+                    aspect: "nomadnetwork.node",
+                });
+                await this.getFavourites();
+                if (enable) {
+                    this.reloadNodePage();
+                }
             } catch (e) {
-                ToastUtils.error(e.response?.data?.message ?? "Failed to identify!");
+                ToastUtils.error(e.response?.data?.message ?? this.$t("nomadnet.identify_on_connect_failed"));
             }
         },
         getHashPopoutValue() {
