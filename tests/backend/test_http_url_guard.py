@@ -95,6 +95,13 @@ def test_normalize_libretranslate_private_and_loopback_ips():
     assert normalize_libretranslate_http_service_base("http://127.0.0.1:5000") == (
         "http://127.0.0.1:5000"
     )
+    # ::1 is reserved and loopback in ipaddress. Loopback must stay allowed.
+    assert normalize_libretranslate_http_service_base("http://[::1]:5000/") == (
+        "http://[::1]:5000"
+    )
+    assert normalize_libretranslate_http_service_base("http://localhost:5000") == (
+        "http://localhost:5000"
+    )
 
 
 @pytest.mark.parametrize(

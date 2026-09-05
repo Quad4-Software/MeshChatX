@@ -166,7 +166,7 @@ async def test_messages_export_with_icons(mock_rns_minimal, temp_dir):
         for route in app.get_routes():
             if (
                 route.path == "/api/v1/maintenance/messages/export"
-                and route.method == "GET"
+                and route.method == "POST"
             ):
                 handler = route.handler
                 break
@@ -228,7 +228,7 @@ async def test_messages_export_without_icons(mock_rns_minimal, temp_dir):
         for route in app.get_routes():
             if (
                 route.path == "/api/v1/maintenance/messages/export"
-                and route.method == "GET"
+                and route.method == "POST"
             ):
                 handler = route.handler
                 break
@@ -279,7 +279,7 @@ async def test_messages_import_export_roundtrip(mock_rns_minimal, temp_dir):
         for route in app.get_routes():
             if (
                 route.path == "/api/v1/maintenance/messages/export"
-                and route.method == "GET"
+                and route.method == "POST"
             ):
                 export_handler = route.handler
             if (
