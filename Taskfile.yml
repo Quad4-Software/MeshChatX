@@ -226,7 +226,7 @@ tasks:
 
     format:frontend:
         aliases: [fmt:fe, format:fe]
-        desc: Format frontend code (Prettier/ESLint)
+        desc: Format frontend code (Prettier incl. Svelte, ESLint --fix)
         cmds:
             - "{{.NPM}} run format"
             - "{{.NPM}} run lint:fix"
@@ -239,21 +239,27 @@ tasks:
             - uv run ruff check --fix .
 
     lint:
-        desc: Run all linters (ESLint, vue-tsc, knip, Ruff, basedpyright)
+        desc: Run all linters (ESLint, Prettier check, vue-tsc, svelte-check, knip, Ruff, basedpyright)
         aliases: [lint:all]
         deps: [lint:frontend, lint:backend]
 
     lint:frontend:
         aliases: [lint:fe]
-        desc: Lint frontend code (ESLint, vue-tsc, svelte-check, knip, format-token and git-dep pin checks)
+        desc: Lint frontend (ESLint, Prettier check, vue-tsc, svelte-check, knip, format-token and git-dep pins)
         cmds:
             - "{{.NPM}} run lint"
+            - "{{.NPM}} run format:check:svelte"
             - "{{.NPM}} run typecheck"
             - "{{.NPM}} run svelte-check"
             - "{{.NPM}} exec vue-tsc --noEmit -p tsconfig.libs.json"
             - "{{.NPM}} exec knip"
             - task: check:format-tokens
             - task: deps:git-pins
+
+    check:svelte:
+        desc: Run svelte-check (Svelte 5 runes)
+        cmds:
+            - "{{.NPM}} run svelte-check"
 
     lint:backend:
         aliases: [lint:be]

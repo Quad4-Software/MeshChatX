@@ -1,14 +1,50 @@
-import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import LicensesPage from "@/components/licenses/LicensesPage.vue";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, cleanup, fireEvent, waitFor, screen } from "@testing-library/svelte";
+import LicensesPage from "@/features/licenses/LicensesPage.svelte";
+import { filterLicenseRows } from "@/features/licenses/lib/licenseFilter.js";
+import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
 
 window.api = {
     get: vi.fn(),
 };
 
-describe("LicensesPage.vue", () => {
+describe("filterLicenseRows", () => {
+    it("filters by package blob", () => {
+        const rows = [
+            { name: "keep-be", version: "1", author: "x", license: "MIT" },
+            { name: "other-fe", version: "2", author: "y", license: "MIT" },
+        ];
+        expect(filterLicenseRows(rows, "keep-be")).toHaveLength(1);
+        expect(filterLicenseRows(rows, "other-fe")[0].name).toBe("other-fe");
+        expect(filterLicenseRows(rows, "")).toHaveLength(2);
+    });
+});
+
+describe("LicensesPage.svelte", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        registerTranslator(null);
+        registerFallbackMessages({
+            licenses: {
+                section_label: "licenses.section_label",
+                title: "licenses.title",
+                description: "licenses.description",
+                generated_at: "licenses.generated_at",
+                frontend_source: "licenses.frontend_source",
+                search_placeholder: "Search",
+                backend_section: "licenses.backend_section",
+                frontend_section: "licenses.frontend_section",
+                col_package: "Pkg",
+                col_version: "Ver",
+                col_author: "Auth",
+                col_license: "Lic",
+            },
+            common: { loading: "Loading", no_results: "None" },
+        });
+    });
+
+    afterEach(() => {
+        cleanup();
     });
 
     it("loads licenses from the API and renders rows", async () => {
@@ -23,24 +59,13 @@ describe("LicensesPage.vue", () => {
             },
         });
 
-        const wrapper = mount(LicensesPage, {
-            global: {
-                mocks: { $t: (key, params) => (params ? `${key}:${JSON.stringify(params)}` : key) },
-                stubs: {
-                    MaterialDesignIcon: {
-                        template: '<span class="mdi-stub" />',
-                        props: ["iconName"],
-                    },
-                },
-            },
+        render(LicensesPage);
+
+        await waitFor(() => {
+            expect(window.api.get).toHaveBeenCalledWith("/api/v1/licenses");
         });
-
-        await new Promise((resolve) => setTimeout(resolve, 10));
-        await wrapper.vm.$nextTick();
-
-        expect(window.api.get).toHaveBeenCalledWith("/api/v1/licenses");
-        expect(wrapper.text()).toContain("alpha-be");
-        expect(wrapper.text()).toContain("zebra-fe");
+        expect(await screen.findByText("alpha-be")).toBeTruthy();
+        expect(screen.getByText("zebra-fe")).toBeTruthy();
     });
 
     it("filters both sections with the search query", async () => {
@@ -52,27 +77,16 @@ describe("LicensesPage.vue", () => {
             },
         });
 
-        const wrapper = mount(LicensesPage, {
-            global: {
-                mocks: { $t: (key) => key },
-                stubs: {
-                    MaterialDesignIcon: {
-                        template: '<span class="mdi-stub" />',
-                        props: ["iconName"],
-                    },
-                },
-            },
-        });
+        render(LicensesPage);
+        await screen.findByText("keep-be");
 
-        await new Promise((resolve) => setTimeout(resolve, 10));
-        await wrapper.vm.$nextTick();
+        const input = screen.getByPlaceholderText("Search");
+        await fireEvent.input(input, { target: { value: "keep-be" } });
+        expect(screen.getByText("keep-be")).toBeTruthy();
+        expect(screen.queryByText("other-fe")).toBeNull();
 
-        await wrapper.find('input[type="search"]').setValue("keep-be");
-        expect(wrapper.vm.filteredBackend.length).toBe(1);
-        expect(wrapper.vm.filteredFrontend.length).toBe(0);
-
-        await wrapper.find('input[type="search"]').setValue("other-fe");
-        expect(wrapper.vm.filteredBackend.length).toBe(0);
-        expect(wrapper.vm.filteredFrontend.length).toBe(1);
+        await fireEvent.input(input, { target: { value: "other-fe" } });
+        expect(screen.getByText("other-fe")).toBeTruthy();
+        expect(screen.queryByText("keep-be")).toBeNull();
     });
 });

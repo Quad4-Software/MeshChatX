@@ -1,7 +1,9 @@
-import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import PingPage from "@/components/ping/PingPage.vue";
+import { render, cleanup, fireEvent, waitFor, screen } from "@testing-library/svelte";
+import PingPage from "@/features/ping/PingPage.svelte";
 import DialogUtils from "@/js/DialogUtils";
+import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
+import { formatPingSuccess, isValidPingDestinationHash, isValidPingTimeout } from "@/features/ping/lib/pingFormat.js";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
@@ -9,47 +11,88 @@ vi.mock("@/js/DialogUtils", () => ({
     },
 }));
 
-describe("PingPage.vue", () => {
+describe("pingFormat", () => {
+    it("validates hash and timeout", () => {
+        expect(isValidPingDestinationHash("a".repeat(32))).toBe(true);
+        expect(isValidPingDestinationHash("short")).toBe(false);
+        expect(isValidPingTimeout(10)).toBe(true);
+        expect(isValidPingTimeout(0)).toBe(false);
+    });
+
+    it("formats success lines", () => {
+        const { line, summary } = formatPingSuccess(
+            {
+                rtt: 0.1234,
+                hops_there: 1,
+                hops_back: 1,
+                rssi: -50,
+                snr: 5,
+                quality: 100,
+                receiving_interface: "UDP",
+            },
+            1
+        );
+        expect(line).toContain("duration=123.400ms");
+        expect(line).toContain("rssi=-50dBm");
+        expect(summary.duration).toBe("123.400ms");
+    });
+});
+
+describe("PingPage.svelte", () => {
     let axiosMock;
 
     beforeEach(() => {
         axiosMock = {
             get: vi.fn(),
             post: vi.fn(),
+            isCancel: vi.fn(() => false),
         };
         window.api = axiosMock;
+        registerTranslator(null);
+        registerFallbackMessages({
+            app: { tools: "Tools", interfaces: "via" },
+            tools: {
+                back_to_tools: "Back",
+                ping: { description: "tools.ping.description" },
+            },
+            ping: {
+                title: "ping.title",
+                description: "ping.description {code}",
+                destination_hash: "Hash",
+                timeout_seconds: "Timeout",
+                start_ping: "ping.start_ping",
+                stop: "ping.stop",
+                clear_results: "Clear",
+                drop_path: "ping.drop_path",
+                status: "Status",
+                running: "running",
+                idle: "idle",
+                last_rtt: "RTT",
+                last_error: "Err",
+                console_output: "Out",
+                streaming_responses: "stream",
+                no_pings_yet: "none",
+                invalid_hash: "ping.invalid_hash",
+                timeout_must_be_number: "bad timeout",
+            },
+            rnprobe: { hops: "hops", rssi: "rssi", snr: "snr", quality: "quality" },
+        });
     });
 
     afterEach(() => {
+        cleanup();
         delete window.api;
         vi.clearAllMocks();
     });
 
-    const mountPingPage = (query = {}) => {
-        return mount(PingPage, {
-            global: {
-                mocks: {
-                    $t: (key, params) => key + (params ? JSON.stringify(params) : ""),
-                    $route: { query },
-                },
-                stubs: {
-                    MaterialDesignIcon: {
-                        template: '<div class="mdi-stub" :data-icon-name="iconName"></div>',
-                        props: ["iconName"],
-                    },
-                },
-            },
-        });
-    };
-
     it("renders the ping page", () => {
-        const wrapper = mountPingPage();
-        expect(wrapper.text()).toContain("ping.title");
+        render(PingPage);
+        expect(screen.getByText("ping.title")).toBeTruthy();
     });
 
     it("shows alert for invalid hash when starting", async () => {
-        const wrapper = mountPingPage();
-        await wrapper.find("button").trigger("click");
+        render(PingPage);
+        await fireEvent.click(screen.getByText("ping.start_ping"));
         expect(DialogUtils.alert).toHaveBeenCalledWith("ping.invalid_hash");
     });
 
@@ -68,24 +111,18 @@ describe("PingPage.vue", () => {
             },
         });
 
-        const wrapper = mountPingPage();
-        await wrapper.setData({ destinationHash: "a".repeat(32) });
+        render(PingPage);
+        const hashInput = screen.getByPlaceholderText(/7b746057/);
+        await fireEvent.input(hashInput, { target: { value: "a".repeat(32) } });
+        await fireEvent.click(screen.getByText("ping.start_ping"));
 
-        // Mock sleep to resolve immediately
-        wrapper.vm.sleep = vi.fn().mockResolvedValue();
+        await waitFor(() => {
+            expect(screen.getByText(/duration=123.400ms/)).toBeTruthy();
+        });
+        expect(screen.getByText(/rssi=-50dBm/)).toBeTruthy();
+        expect(screen.getByText("seq #1")).toBeTruthy();
 
-        // Start pinging, but make sure it stops
-        const pingSpy = vi.spyOn(wrapper.vm, "ping");
-
-        // We trigger start and then immediately set isRunning to false in the next microtask
-        wrapper.vm.start();
-        await vi.waitFor(() => expect(pingSpy).toHaveBeenCalled());
-        wrapper.vm.isRunning = false;
-
-        expect(wrapper.vm.pingResults.length).toBeGreaterThan(0);
-        expect(wrapper.vm.pingResults[0]).toContain("duration=123.400ms");
-        expect(wrapper.vm.pingResults[0]).toContain("rssi=-50dBm");
-        expect(wrapper.text()).toContain("seq #1");
+        await fireEvent.click(screen.getByText("ping.stop"));
     });
 
     it("terminates previous loop when stop and start are called sequentially", async () => {
@@ -100,40 +137,26 @@ describe("PingPage.vue", () => {
             },
         });
 
-        const wrapper = mountPingPage();
-        await wrapper.setData({ destinationHash: "a".repeat(32) });
+        render(PingPage);
+        const hashInput = screen.getByPlaceholderText(/7b746057/);
+        await fireEvent.input(hashInput, { target: { value: "a".repeat(32) } });
 
-        // track calls
-        const pingSpy = vi.spyOn(wrapper.vm, "ping");
-
-        wrapper.vm.sleep = vi.fn().mockImplementation(() => new Promise((r) => setTimeout(r, 50)));
-
-        // Start 1st loop
-        wrapper.vm.start();
-        await vi.waitFor(() => expect(pingSpy).toHaveBeenCalledTimes(1));
-
-        // Stop 1st loop and start 2nd loop immediately
-        wrapper.vm.stop();
-        wrapper.vm.start();
-
-        // Wait a bit to let any concurrent loop run if it existed
+        await fireEvent.click(screen.getByText("ping.start_ping"));
+        await waitFor(() => expect(axiosMock.post).toHaveBeenCalled());
+        await fireEvent.click(screen.getByText("ping.stop"));
+        await fireEvent.click(screen.getByText("ping.start_ping"));
         await new Promise((r) => setTimeout(r, 120));
-
-        // Total runs should be 1 from the first loop (before stop) and then continuing on the second loop.
-        // If the first loop did not terminate, they would both be calling ping,
-        // resulting in more calls than expected.
-        expect(pingSpy.mock.calls.length).toBeLessThanOrEqual(4);
-
-        wrapper.vm.stop();
+        expect(axiosMock.post.mock.calls.length).toBeLessThanOrEqual(4);
+        await fireEvent.click(screen.getByText("ping.stop"));
     });
 
     it("calls drop path API", async () => {
         axiosMock.post.mockResolvedValue({ data: { message: "Path dropped" } });
-        const wrapper = mountPingPage();
-        await wrapper.setData({ destinationHash: "a".repeat(32) });
+        render(PingPage);
+        const hashInput = screen.getByPlaceholderText(/7b746057/);
+        await fireEvent.input(hashInput, { target: { value: "a".repeat(32) } });
 
-        const dropButton = wrapper.findAll("button").find((b) => b.text().includes("ping.drop_path"));
-        await dropButton.trigger("click");
+        await fireEvent.click(screen.getByText("ping.drop_path"));
 
         expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/destination/${"a".repeat(32)}/drop-path`);
         expect(DialogUtils.alert).toHaveBeenCalledWith("Path dropped");

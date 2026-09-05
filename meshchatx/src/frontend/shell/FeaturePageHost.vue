@@ -63,7 +63,10 @@ export default {
             }
             this.svelteApp = mount(Comp, {
                 target: root,
-                props: { ...(this.$route.params || {}) },
+                props: {
+                    ...(this.$route.params || {}),
+                    routeQuery: { ...(this.$route.query || {}) },
+                },
             });
         },
     },

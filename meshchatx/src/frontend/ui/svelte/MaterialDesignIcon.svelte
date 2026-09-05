@@ -3,8 +3,8 @@
 <script>
     import { getMdiIconPath } from "../../js/mdiIconNames.js";
 
-    /** @type {{ iconName?: string }} */
-    let { iconName = "" } = $props();
+    /** @type {{ iconName?: string, class?: string }} */
+    let { iconName = "", class: className = "" } = $props();
 
     const iconPath = $derived(getMdiIconPath(iconName));
 </script>
@@ -18,7 +18,7 @@
     width="20"
     height="20"
     style="display: block"
-    class="antialiased shrink-0"
+    class="antialiased shrink-0 {className}"
 >
     <path d={iconPath} fill="currentColor" />
 </svg>

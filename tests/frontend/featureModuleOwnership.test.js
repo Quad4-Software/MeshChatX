@@ -6,7 +6,12 @@ import { join } from "path";
 import { clearRoutes, listRoutes } from "../../meshchatx/src/frontend/js/registries/routeRegistry.js";
 import { clearFeatureIds, listFeatureIds } from "../../meshchatx/src/frontend/js/registries/featureRegistry.js";
 import { registerBlockedFeature } from "../../meshchatx/src/frontend/features/blocked/index.js";
+import { registerContactsFeature } from "../../meshchatx/src/frontend/features/contacts/index.js";
+import { registerDebugLogsFeature } from "../../meshchatx/src/frontend/features/debug-logs/index.js";
 import { registerForwarderFeature } from "../../meshchatx/src/frontend/features/forwarder/index.js";
+import { registerLicensesFeature } from "../../meshchatx/src/frontend/features/licenses/index.js";
+import { registerPingFeature } from "../../meshchatx/src/frontend/features/ping/index.js";
+import { registerToolsFeature } from "../../meshchatx/src/frontend/features/tools/index.js";
 import { filterBlockedIdentities } from "../../meshchatx/src/frontend/features/blocked/lib/blockedList.js";
 
 const repoRoot = process.cwd();
@@ -28,6 +33,30 @@ const FEATURE_MODULE_OWNERS = [
         mount: "svelte",
     },
     {
+        id: "contacts",
+        register: registerContactsFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/contacts/index.js",
+            "meshchatx/src/frontend/features/contacts/ContactsPage.svelte",
+            "meshchatx/src/frontend/features/contacts/lib/contactUri.js",
+            "meshchatx/src/frontend/features/contacts/lib/contactsActions.js",
+            "meshchatx/src/frontend/features/contacts/components/ContactListRow.svelte",
+        ],
+        route_name: "contacts",
+        mount: "svelte",
+    },
+    {
+        id: "debug-logs",
+        register: registerDebugLogsFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/debug-logs/index.js",
+            "meshchatx/src/frontend/features/debug-logs/DebugLogsPage.svelte",
+            "meshchatx/src/frontend/features/debug-logs/lib/debugFormat.js",
+        ],
+        route_name: "debug-logs",
+        mount: "svelte",
+    },
+    {
         id: "forwarder",
         register: registerForwarderFeature,
         required_paths: [
@@ -36,6 +65,40 @@ const FEATURE_MODULE_OWNERS = [
             "meshchatx/src/frontend/features/forwarder/lib/forwarderHash.js",
         ],
         route_name: "forwarder",
+        mount: "svelte",
+    },
+    {
+        id: "licenses",
+        register: registerLicensesFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/licenses/index.js",
+            "meshchatx/src/frontend/features/licenses/LicensesPage.svelte",
+            "meshchatx/src/frontend/features/licenses/lib/licenseFilter.js",
+        ],
+        route_name: "licenses",
+        mount: "svelte",
+    },
+    {
+        id: "ping",
+        register: registerPingFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/ping/index.js",
+            "meshchatx/src/frontend/features/ping/PingPage.svelte",
+            "meshchatx/src/frontend/features/ping/lib/pingFormat.js",
+        ],
+        route_name: "ping",
+        mount: "svelte",
+    },
+    {
+        id: "tools",
+        register: registerToolsFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/tools/index.js",
+            "meshchatx/src/frontend/features/tools/ToolsPage.svelte",
+            "meshchatx/src/frontend/features/tools/ToolsSection.svelte",
+            "meshchatx/src/frontend/features/tools/lib/toolsList.js",
+        ],
+        route_name: "tools",
         mount: "svelte",
     },
 ];

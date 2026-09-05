@@ -30,6 +30,7 @@
         "knip": "knip",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
+        "format:check:svelte": "prettier --check \"meshchatx/src/frontend/**/*.svelte\" \"meshchatx/src/frontend/features/**/*.js\" \"svelte.config.js\"",
         "commitlint": "commitlint --edit",
         "test": "vitest run --exclude tests/frontend/LoadTimePerformance.test.js && vitest run --config vitest.electron.config.js",
         "test:coverage": "vitest run --coverage --exclude tests/frontend/LoadTimePerformance.test.js && vitest run --config vitest.electron.config.js --coverage",

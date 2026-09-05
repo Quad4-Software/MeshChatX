@@ -26,9 +26,10 @@ describe("sidebar virtualization wiring oracle", () => {
         expect(src).toContain('@scroll="onNodesScroll"');
     });
 
-    it("ContactsPage virtualizes mergedContacts at the threshold", () => {
-        const src = readRepo("meshchatx/src/frontend/components/contacts/ContactsPage.vue");
-        expect(src).toContain("SidebarVirtualList");
-        expect(src).toContain("mergedContacts.length >= MIN_VIRTUAL_SIDEBAR_ITEMS");
+    it("ContactsPage uses paginated list (virtual list deferred for Svelte port)", () => {
+        const src = readRepo("meshchatx/src/frontend/features/contacts/ContactsPage.svelte");
+        expect(src).toContain("getContacts(true)");
+        expect(src).toContain("mergedContacts");
+        expect(src).not.toContain("SidebarVirtualList");
     });
 });

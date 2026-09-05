@@ -1,8 +1,9 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import MessagesPage from "@/components/messages/MessagesPage.vue";
-import ContactsPage from "@/components/contacts/ContactsPage.vue";
 import DialogUtils from "@/js/DialogUtils";
+import { editContactNameWithDuplicates } from "@/features/contacts/lib/contactsActions.js";
+import { registerTranslator } from "@/js/i18n.js";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
@@ -296,6 +297,7 @@ describe("ContactsPage edit contact name", () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        registerTranslator((key) => key);
         axiosMock = {
             get: vi.fn(),
             post: vi.fn(),
@@ -304,48 +306,17 @@ describe("ContactsPage edit contact name", () => {
         };
         window.api = axiosMock;
 
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/config")
-                return Promise.resolve({
-                    data: {
-                        config: {
-                            lxmf_address_hash: "a".repeat(32),
-                            identity_public_key: "b".repeat(128),
-                        },
-                    },
-                });
-            if (url === "/api/v1/telephone/contacts")
-                return Promise.resolve({ data: { contacts: [], total_count: 0 } });
-            return Promise.resolve({ data: {} });
-        });
-
         axiosMock.patch.mockResolvedValue({ data: { message: "Contact updated" } });
         axiosMock.post.mockResolvedValue({ data: { message: "OK" } });
     });
 
     afterEach(() => {
         delete window.api;
+        registerTranslator(null);
     });
-
-    const mountPage = () =>
-        mount(ContactsPage, {
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                    $router: { push: vi.fn() },
-                },
-                stubs: {
-                    MaterialDesignIcon: true,
-                    LxmfUserIcon: true,
-                },
-            },
-        });
 
     it("editContactName updates both contact and custom display name", async () => {
         DialogUtils.prompt.mockResolvedValue("Renamed Alice");
-
-        const wrapper = mountPage();
-        await wrapper.vm.$nextTick();
 
         const contact = {
             id: 42,
@@ -355,7 +326,7 @@ describe("ContactsPage edit contact name", () => {
             remote_destination_hash: "a".repeat(32),
         };
 
-        await wrapper.vm.editContactName(contact);
+        await editContactNameWithDuplicates(contact, [contact], async () => {});
 
         expect(axiosMock.patch).toHaveBeenCalledWith("/api/v1/telephone/contacts/42", {
             name: "Renamed Alice",
@@ -369,10 +340,7 @@ describe("ContactsPage edit contact name", () => {
     it("editContactName does nothing when user cancels prompt", async () => {
         DialogUtils.prompt.mockResolvedValue(null);
 
-        const wrapper = mountPage();
-        await wrapper.vm.$nextTick();
-
-        await wrapper.vm.editContactName({ id: 1, name: "Alice" });
+        await editContactNameWithDuplicates({ id: 1, name: "Alice" }, [], async () => {});
 
         expect(axiosMock.patch).not.toHaveBeenCalled();
         expect(axiosMock.post).not.toHaveBeenCalled();
@@ -381,19 +349,13 @@ describe("ContactsPage edit contact name", () => {
     it("editContactName does nothing when name unchanged", async () => {
         DialogUtils.prompt.mockResolvedValue("Alice");
 
-        const wrapper = mountPage();
-        await wrapper.vm.$nextTick();
-
-        await wrapper.vm.editContactName({ id: 1, name: "Alice" });
+        await editContactNameWithDuplicates({ id: 1, name: "Alice" }, [], async () => {});
 
         expect(axiosMock.patch).not.toHaveBeenCalled();
     });
 
     it("editContactName skips custom display name when no dest hash", async () => {
         DialogUtils.prompt.mockResolvedValue("New Name");
-
-        const wrapper = mountPage();
-        await wrapper.vm.$nextTick();
 
         const contact = {
             id: 99,
@@ -402,7 +364,7 @@ describe("ContactsPage edit contact name", () => {
             lxmf_address: null,
         };
 
-        await wrapper.vm.editContactName(contact);
+        await editContactNameWithDuplicates(contact, [contact], async () => {});
 
         expect(axiosMock.patch).toHaveBeenCalledWith("/api/v1/telephone/contacts/99", {
             name: "New Name",
@@ -413,9 +375,6 @@ describe("ContactsPage edit contact name", () => {
     it("editContactName uses lxmf_address when remote_destination_hash absent", async () => {
         DialogUtils.prompt.mockResolvedValue("Updated");
 
-        const wrapper = mountPage();
-        await wrapper.vm.$nextTick();
-
         const contact = {
             id: 10,
             name: "Old",
@@ -423,7 +382,7 @@ describe("ContactsPage edit contact name", () => {
             lxmf_address: "l".repeat(32),
         };
 
-        await wrapper.vm.editContactName(contact);
+        await editContactNameWithDuplicates(contact, [contact], async () => {});
 
         expect(axiosMock.post).toHaveBeenCalledWith(
             `/api/v1/destination/${"l".repeat(32)}/custom-display-name/update`,
@@ -435,21 +394,15 @@ describe("ContactsPage edit contact name", () => {
         DialogUtils.prompt.mockResolvedValue("Fail Name");
         axiosMock.patch.mockRejectedValue(new Error("Network error"));
 
-        const wrapper = mountPage();
-        await wrapper.vm.$nextTick();
-
         const contact = { id: 5, name: "Before", remote_identity_hash: "x".repeat(32) };
 
-        await wrapper.vm.editContactName(contact);
+        await editContactNameWithDuplicates(contact, [contact], async () => {});
 
         expect(axiosMock.patch).toHaveBeenCalled();
     });
 
     it("editContactName with empty string still calls patch but not custom display name", async () => {
         DialogUtils.prompt.mockResolvedValue("");
-
-        const wrapper = mountPage();
-        await wrapper.vm.$nextTick();
 
         const contact = {
             id: 7,
@@ -458,7 +411,7 @@ describe("ContactsPage edit contact name", () => {
             lxmf_address: "r".repeat(32),
         };
 
-        await wrapper.vm.editContactName(contact);
+        await editContactNameWithDuplicates(contact, [contact], async () => {});
 
         expect(axiosMock.patch).toHaveBeenCalledWith("/api/v1/telephone/contacts/7", {
             name: "",
@@ -467,10 +420,7 @@ describe("ContactsPage edit contact name", () => {
     });
 
     it("editContactName with no contact id does nothing", async () => {
-        const wrapper = mountPage();
-        await wrapper.vm.$nextTick();
-
-        await wrapper.vm.editContactName({});
+        await editContactNameWithDuplicates({}, [], async () => {});
 
         expect(DialogUtils.prompt).not.toHaveBeenCalled();
         expect(axiosMock.patch).not.toHaveBeenCalled();

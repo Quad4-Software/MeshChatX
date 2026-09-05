@@ -37,7 +37,8 @@ Cross-feature UI imports are forbidden. Share through kernel events, registries,
 
 ## Svelte
 
-- `pnpm run svelte-check` in lint. Runes mode only.
+- `pnpm run svelte-check` and `pnpm run format:check:svelte` in `task lint:frontend`. Runes mode only.
+- Prefer small `features/<id>/components/` and `lib/` pieces. Do not grow Svelte god pages.
 - Dual mount: route meta `mount: "vue" | "svelte"` with a lazy `load`.
 - Skill: `.agents/skills/svelte-feature-modules/SKILL.md`.
 
