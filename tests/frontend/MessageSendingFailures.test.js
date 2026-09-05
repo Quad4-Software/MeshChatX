@@ -114,7 +114,9 @@ describe("MessageSendingFailures.test.js", () => {
         );
 
         const pendingItems = wrapper.vm.chatItems.filter((item) => item.lxmf_message.hash.startsWith("pending-"));
-        expect(pendingItems).toHaveLength(0);
+        expect(pendingItems).toHaveLength(1);
+        expect(pendingItems[0].lxmf_message.state).toBe("failed");
+        expect(pendingItems[0].lxmf_message._send_error).toBe("Sending failed");
     });
 
     it("shows helptip toast after pre-send 503 when helptips enabled", async () => {

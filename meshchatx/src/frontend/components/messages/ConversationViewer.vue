@@ -4901,7 +4901,7 @@ export default {
                 return;
             }
             const item = this.chatItems.find(
-                (chatItem) => chatItem.is_outbound && this._hex.equal(chatItem.lxmf_message?.hash, hash)
+                (chatItem) => chatItem.is_outbound && this._hexEqual(chatItem.lxmf_message?.hash, hash),
             );
             if (!item?.lxmf_message) {
                 this.removePendingOutboundPlaceholder(hash);
