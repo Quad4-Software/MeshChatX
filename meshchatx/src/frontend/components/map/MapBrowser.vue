@@ -4,7 +4,7 @@
     <div class="flex flex-1 min-w-0 h-full flex-col overflow-hidden bg-sem-canvas text-sem-fg">
         <div
             v-if="showTabStrip"
-            class="flex h-9 shrink-0 items-stretch overflow-x-auto border-b border-sem-border bg-sem-surface-muted"
+            class="flex min-h-9 shrink-0 items-center overflow-x-auto border-b border-sem-border bg-sem-surface-muted"
             role="tablist"
         >
             <button
@@ -53,12 +53,17 @@
             </button>
             <button
                 type="button"
-                class="flex w-9 shrink-0 items-center justify-center text-sem-fg-muted transition-colors hover:bg-sem-surface/80"
-                :title="$t('map.new_tab_shortcut')"
+                class="flex w-9 shrink-0 items-center justify-center text-sem-fg-muted transition-colors hover:bg-sem-surface/80 disabled:opacity-40 disabled:pointer-events-none"
+                :title="canAddTab ? $t('map.new_tab_shortcut') : $t('map.tab_limit_reached')"
+                :disabled="!canAddTab"
                 @click="addTab()"
             >
                 <MaterialDesignIcon icon-name="plus" class="size-5" />
             </button>
+            <div
+                id="map-browser-toolbar-host"
+                class="ml-auto flex items-center gap-1.5 px-2 shrink-0 min-w-0 max-w-[min(100%,42rem)]"
+            ></div>
         </div>
 
         <div class="flex flex-1 min-h-0 min-w-0 overflow-hidden">
@@ -86,6 +91,7 @@ import { loadMapTabs, saveMapTabs } from "../../js/browserLayoutStore";
 import { LEGACY_MAP_STATE_KEY, legacyMapTabStateKey, mapViewStateKey } from "../../js/mapStateKeys.js";
 
 const DOUBLE_TAP_MS = 400;
+const MAX_MAP_TABS = 8;
 
 function createStorageId() {
     if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -118,6 +124,9 @@ export default {
     computed: {
         showTabStrip() {
             return this.isWideViewport && this.tabs.length > 0;
+        },
+        canAddTab() {
+            return this.tabs.length < MAX_MAP_TABS;
         },
         activeTab() {
             return this.tabs.find((tab) => tab.id === this.activeTabId) || null;
@@ -197,6 +206,9 @@ export default {
             return this.$t("map.tab_default_name", { number: tabNumber });
         },
         addTab(title = null, activate = true, storageId = null) {
+            if (this.tabs.length >= MAX_MAP_TABS) {
+                return null;
+            }
             const tabNumber = this.nextTabNumber++;
             const id = this.nextTabId++;
             const resolvedStorageId = storageId || createStorageId();
@@ -306,7 +318,9 @@ export default {
             if (mod && key === "t") {
                 event.preventDefault();
                 event.stopPropagation();
-                this.addTab();
+                if (this.canAddTab) {
+                    this.addTab();
+                }
                 return;
             }
             if (mod && key === "w") {
@@ -370,7 +384,7 @@ export default {
             }
 
             let maxTabNumber = 0;
-            this.tabs = saved.tabs.map((tab, index) => {
+            this.tabs = saved.tabs.slice(0, MAX_MAP_TABS).map((tab, index) => {
                 const tabNumber = Number.isInteger(tab.tabNumber) && tab.tabNumber > 0 ? tab.tabNumber : index + 1;
                 maxTabNumber = Math.max(maxTabNumber, tabNumber);
                 return {

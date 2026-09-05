@@ -429,7 +429,7 @@
                     Clear drawings
                 </ContextMenuItem>
                 <ContextMenuDivider />
-                <div class="px-3 py-2 border-t border-sem-border space-y-1 max-w-[18rem]">
+                <div class="px-3 py-2 space-y-1 max-w-[18rem]">
                     <div class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted mb-1">
                         {{ $t("map.context_coords") }}
                     </div>
@@ -1510,6 +1510,7 @@ export default {
         },
         isActiveTab(active) {
             if (active) {
+                this.$nextTick(() => this.refreshTabToolbarHost());
                 this.bootMap().then(() => {
                     if (this.map && typeof this.map.updateSize === "function") {
                         this.map.updateSize();
@@ -1620,6 +1621,8 @@ export default {
 
         document.addEventListener("keydown", this.onDeleteKey);
 
+        this.setupTabToolbarHostWatcher();
+
         // Update info every few seconds
         this.reloadInterval = setInterval(() => {
             if (this.shouldPollTelemetry()) {
@@ -1630,6 +1633,7 @@ export default {
     },
     beforeUnmount() {
         GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        this.teardownTabToolbarHostWatcher();
         if (this.map && this.map.getViewport()) {
             this.map.getViewport().removeEventListener("contextmenu", this.onContextMenu);
         }
@@ -1664,6 +1668,14 @@ export default {
         if (this._pointerMoveRaf != null) {
             cancelAnimationFrame(this._pointerMoveRaf);
             this._pointerMoveRaf = null;
+        }
+        if (this._cursorCoordsRaf != null) {
+            cancelAnimationFrame(this._cursorCoordsRaf);
+            this._cursorCoordsRaf = null;
+        }
+        if (this._cursorFormatTimer != null) {
+            clearTimeout(this._cursorFormatTimer);
+            this._cursorFormatTimer = null;
         }
         if (this.settingsPanelDrag?.rafId != null) {
             cancelAnimationFrame(this.settingsPanelDrag.rafId);
@@ -4130,9 +4142,73 @@ export default {
                 this.selectedFeature = markRaw(feature);
             }
             this.showContextMenu = true;
+            void this.refreshContextMenuCoordRows();
         },
         closeContextMenu() {
             this.showContextMenu = false;
+            this.contextMenuCoordRows = [];
+        },
+        coordFormatLabel(format) {
+            const key = {
+                wgs84: "map.coord_format_wgs84",
+                utm: "map.coord_format_utm",
+                mgrs: "map.coord_format_mgrs",
+                olc: "map.coord_format_olc",
+            }[format];
+            return key ? this.$t(key) : format;
+        },
+        async refreshContextMenuCoordRows() {
+            const coord = this.contextMenuCoord;
+            if (!coord) {
+                this.contextMenuCoordRows = [];
+                return;
+            }
+            const [lon, lat] = coord;
+            await ensureGeoCoordsReady();
+            this.geoWasmEpoch += 1;
+            const refLat = this.currentCenter?.[1] || lat;
+            const refLon = this.currentCenter?.[0] || lon;
+            this.contextMenuCoordRows = COORD_FORMATS.map((format) => {
+                const res = formatCoordinate(lon, lat, format, {
+                    hasRef: true,
+                    refLat,
+                    refLon,
+                });
+                return {
+                    format,
+                    label: this.coordFormatLabel(format),
+                    text: res?.text || `${lat.toFixed(6)}, ${lon.toFixed(6)}`,
+                };
+            });
+        },
+        async contextCopyCoordFormat(format) {
+            if (!this.contextMenuCoord) {
+                this.closeContextMenu();
+                return;
+            }
+            const [lon, lat] = this.contextMenuCoord;
+            await ensureGeoCoordsReady();
+            const formatted = formatCoordinate(lon, lat, format, {
+                hasRef: true,
+                refLat: this.currentCenter?.[1] || lat,
+                refLon: this.currentCenter?.[0] || lon,
+            });
+            const text = formatted?.text || `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+            if (formatted?.fallback && shouldWarnGeoWasmFallback()) {
+                ToastUtils.warning(this.$t("map.geo_wasm_unavailable"));
+            }
+            try {
+                if (navigator?.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(text);
+                    ToastUtils.success(this.$t("map.copied_coordinates"));
+                } else {
+                    ToastUtils.success(text);
+                }
+            } catch (e) {
+                console.error("Copy failed", e);
+                ToastUtils.warning(text);
+            }
+            this.closeContextMenu();
         },
         contextSelectFeature() {
             if (!this.contextMenuFeature || !this.select || !this.translate) {
@@ -4228,7 +4304,30 @@ export default {
         handleMapPointerMove(evt) {
             if (!this.map) return;
             const lonLat = toLonLat(evt.coordinate);
-            this.cursorCoords = [lonLat[0], lonLat[1]];
+            this._pendingCursorLonLat = [lonLat[0], lonLat[1]];
+            if (this._cursorCoordsRaf == null) {
+                this._cursorCoordsRaf = requestAnimationFrame(() => {
+                    this._cursorCoordsRaf = null;
+                    const pending = this._pendingCursorLonLat;
+                    if (!pending) {
+                        return;
+                    }
+                    // WGS84 readout is cheap. Advanced formats (MGRS/UTM/OLC) hit WASM
+                    // so throttle those updates to avoid stutter under dense layers.
+                    const fmt = this.coordinateFormat;
+                    if (fmt === "wgs84") {
+                        this.cursorCoords = pending;
+                    } else if (this._cursorFormatTimer == null) {
+                        this.cursorCoords = pending;
+                        this._cursorFormatTimer = setTimeout(() => {
+                            this._cursorFormatTimer = null;
+                            if (this._pendingCursorLonLat) {
+                                this.cursorCoords = this._pendingCursorLonLat;
+                            }
+                        }, 80);
+                    }
+                });
+            }
             if (this.isBearingMode && !evt.dragging) {
                 this.updateBearingPointerUi(evt);
             }
@@ -4277,6 +4376,41 @@ export default {
                     this.map.getTargetElement().style.cursor = "";
                 }
             });
+        },
+
+        setupTabToolbarHostWatcher() {
+            this.refreshTabToolbarHost();
+            if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+                return;
+            }
+            this._tabToolbarMq = window.matchMedia("(min-width: 768px)");
+            this._tabToolbarMqListener = () => {
+                this.$nextTick(() => this.refreshTabToolbarHost());
+            };
+            if (typeof this._tabToolbarMq.addEventListener === "function") {
+                this._tabToolbarMq.addEventListener("change", this._tabToolbarMqListener);
+            } else if (typeof this._tabToolbarMq.addListener === "function") {
+                this._tabToolbarMq.addListener(this._tabToolbarMqListener);
+            }
+        },
+        teardownTabToolbarHostWatcher() {
+            if (!this._tabToolbarMq || !this._tabToolbarMqListener) {
+                this.tabToolbarHostReady = false;
+                return;
+            }
+            if (typeof this._tabToolbarMq.removeEventListener === "function") {
+                this._tabToolbarMq.removeEventListener("change", this._tabToolbarMqListener);
+            } else if (typeof this._tabToolbarMq.removeListener === "function") {
+                this._tabToolbarMq.removeListener(this._tabToolbarMqListener);
+            }
+            this._tabToolbarMq = null;
+            this._tabToolbarMqListener = null;
+            this.tabToolbarHostReady = false;
+        },
+        refreshTabToolbarHost() {
+            this.tabToolbarHostReady = Boolean(
+                typeof document !== "undefined" && document.getElementById("map-browser-toolbar-host")
+            );
         },
 
         handleMapClick(evt) {
