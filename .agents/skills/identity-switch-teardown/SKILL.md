@@ -36,7 +36,7 @@ Identity **key** import vs database **zip** restore is covered by `identity-rest
 - `meshchatx/src/backend/identity_manager.py`
 - `meshchatx/meshchat.py` (switch endpoints, `identity_switched` broadcast)
 - `meshchatx/src/frontend/components/App.vue` (`identity_switched` handler)
-- `meshchatx/src/frontend/components/settings/IdentitiesPage.vue`
+- `meshchatx/src/frontend/features/settings/components/IdentitiesPage.svelte`
 
 ## Verification
 

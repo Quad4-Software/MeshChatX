@@ -7,7 +7,7 @@ import {
     PATH_STATE_UNRESPONSIVE,
     DESTINATION_HASH_HEX_LENGTH,
 } from "./constants.js";
-import type { PathEntry, RateEntry, RemoteQueryParams, PathQueryOptions } from "./types.js";
+import type { RateEntry, RemoteQueryParams, PathQueryOptions } from "./types.js";
 
 /** Build remote query params if a remote hash is provided */
 export function buildRemoteQueryParams(

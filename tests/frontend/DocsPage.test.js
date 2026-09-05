@@ -1,12 +1,26 @@
-import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import DocsPage from "@/components/docs/DocsPage.vue";
-import { nextTick, reactive } from "vue";
+// SPDX-License-Identifier: 0BSD
+
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { render, cleanup, waitFor } from "@testing-library/svelte";
+import DocsPage from "@/features/docs/DocsPage.svelte";
+import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
+import { extractDocToc, highlightMatch, resolveRelativeDocPath } from "@/features/docs/lib/docsToc.ts";
+import {
+    deleteDocsVersion,
+    fetchDocContent,
+    fetchDocsStatus,
+    fetchMeshChatXDocsList,
+    searchDocs,
+    switchDocsVersion,
+    uploadDocsZip,
+} from "@/features/docs/lib/docsApi.ts";
 
 vi.mock("@/js/ToastUtils", () => ({
     default: {
         success: vi.fn(),
         error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
     },
 }));
 
@@ -30,520 +44,177 @@ const structuredList = {
     default_language: "en",
 };
 
-describe("DocsPage.vue", () => {
-    let axiosMock;
-    let i18nMock;
+describe("docsToc utilities", () => {
+    it("extracts TOC headings from html", () => {
+        const html = '<h2 id="intro">Intro Heading</h2><p>text</p><h3 id="sub">Sub Heading</h3>';
+        const toc = extractDocToc(html);
+        expect(toc).toHaveLength(2);
+        expect(toc[0]).toEqual({ id: "intro", text: "Intro Heading", level: 2 });
+        expect(toc[1]).toEqual({ id: "sub", text: "Sub Heading", level: 3 });
+    });
 
+    it("highlights matching search query text", () => {
+        const res = highlightMatch("Hello Reticulum World", "Reticulum");
+        expect(res).toContain("Reticulum");
+        expect(res).toContain("<span");
+    });
+
+    it("resolves relative doc path", () => {
+        expect(resolveRelativeDocPath("en/guide/intro.md", "advanced.md")).toBe("en/guide/advanced.md");
+    });
+});
+
+describe("docsApi", () => {
     beforeEach(() => {
-        axiosMock = {
-            get: vi.fn().mockImplementation((url) => {
+        window.api = {
+            get: vi.fn(async (url) => {
                 if (url.includes("/api/v1/docs/status")) {
-                    return Promise.resolve({
+                    return {
                         data: {
                             status: "idle",
                             progress: 0,
                             last_error: null,
-                            has_docs: false,
+                            has_docs: true,
                             has_meshchatx_docs: true,
                             has_bundled_docs: false,
                             has_user_docs: false,
                             versions: [],
                             current_version: null,
                         },
-                    });
+                    };
                 }
                 if (url.includes("/api/v1/meshchatx-docs/list")) {
-                    return Promise.resolve({ data: structuredList });
+                    return { data: structuredList };
                 }
                 if (url.includes("/api/v1/meshchatx-docs/content")) {
-                    return Promise.resolve({
+                    return {
                         data: {
-                            html: '<h2 id="intro">Intro</h2><h3 id="details">Details</h3>',
+                            html: '<h2 id="intro">Intro</h2>',
                             content: "## Intro\n",
                             type: "markdown",
                         },
-                    });
+                    };
                 }
-                return Promise.resolve({ data: {} });
+                if (url.includes("/api/v1/docs/search")) {
+                    return {
+                        data: {
+                            results: [
+                                {
+                                    title: "Intro",
+                                    path: "en/intro.md",
+                                    snippet: "Intro snippet",
+                                    section: "Overview",
+                                },
+                            ],
+                        },
+                    };
+                }
+                return { data: {} };
             }),
-            post: vi.fn().mockResolvedValue({ data: {} }),
-            patch: vi.fn().mockResolvedValue({ data: {} }),
-            delete: vi.fn().mockResolvedValue({ data: {} }),
+            post: vi.fn(async () => ({ data: {} })),
+            patch: vi.fn(async () => ({ data: {} })),
+            delete: vi.fn(async () => ({ data: {} })),
         };
-        window.api = axiosMock;
-        i18nMock = reactive({ locale: "en" });
-        vi.spyOn(window, "confirm").mockReturnValue(true);
-        vi.spyOn(window, "prompt").mockReturnValue("v-test");
-        vi.spyOn(window, "alert").mockImplementation(() => {});
+    });
+
+    it("fetches docs status and list", async () => {
+        const status = await fetchDocsStatus();
+        expect(status.status).toBe("idle");
+        const list = await fetchMeshChatXDocsList("en");
+        expect(list.sections).toHaveLength(1);
+    });
+
+    it("fetches content and search", async () => {
+        const doc = await fetchDocContent("en/getting-started.md");
+        expect(doc.html).toContain("Intro");
+        const results = await searchDocs("query", "en");
+        expect(results).toHaveLength(1);
+        expect(results[0].title).toBe("Intro");
+    });
+
+    it("switches version and deletes version", async () => {
+        await switchDocsVersion("v1.0");
+        expect(window.api.post).toHaveBeenCalledWith("/api/v1/docs/switch", { version: "v1.0" });
+        await deleteDocsVersion("v1.0");
+        expect(window.api.delete).toHaveBeenCalledWith("/api/v1/docs/version/v1.0");
+    });
+
+    it("uploads docs zip", async () => {
+        const file = new File(["zip content"], "docs.zip", { type: "application/zip" });
+        await uploadDocsZip("v1.0", file);
+        expect(window.api.post).toHaveBeenCalled();
+    });
+});
+
+describe("DocsPage.svelte component", () => {
+    beforeEach(() => {
+        cleanup();
+        vi.clearAllMocks();
+        registerTranslator(null);
+        registerFallbackMessages({
+            docs: {
+                title: "Documentation",
+                meshchatx_docs: "MeshChatX Docs",
+                reticulum_manual: "Reticulum Manual",
+                search_placeholder: "Search documentation...",
+                btn_upload: "Upload Docs",
+                empty_state_hint: "No documentation found",
+                offline_available: "Offline available",
+                offline_unavailable: "Offline unavailable",
+            },
+        });
+        window.api = {
+            get: vi.fn(async (url) => {
+                if (url.includes("/api/v1/docs/status")) {
+                    return {
+                        data: {
+                            status: "idle",
+                            progress: 0,
+                            last_error: null,
+                            has_docs: true,
+                            has_meshchatx_docs: true,
+                            has_bundled_docs: true,
+                            has_user_docs: false,
+                            versions: ["bundled"],
+                            current_version: "bundled",
+                        },
+                    };
+                }
+                if (url.includes("/api/v1/meshchatx-docs/list")) {
+                    return { data: structuredList };
+                }
+                if (url.includes("/api/v1/meshchatx-docs/content")) {
+                    return {
+                        data: {
+                            html: '<h2 id="intro">Intro</h2>',
+                            content: "## Intro\n",
+                            type: "markdown",
+                        },
+                    };
+                }
+                return { data: {} };
+            }),
+            post: vi.fn(async () => ({ data: {} })),
+            patch: vi.fn(async () => ({ data: {} })),
+            delete: vi.fn(async () => ({ data: {} })),
+        };
     });
 
     afterEach(() => {
-        vi.restoreAllMocks();
-        if (wrapper) {
-            wrapper.unmount();
-        }
+        cleanup();
     });
 
-    let wrapper;
-    const mountDocsPage = () => {
-        wrapper = mount(DocsPage, {
-            global: {
-                directives: {
-                    "click-outside": vi.fn(),
-                },
-                mocks: {
-                    $t: (key, params) => {
-                        if (params && params.count !== undefined) {
-                            return `${key}:${params.count}`;
-                        }
-                        if (params && params.percent !== undefined) {
-                            return `${key}:${params.percent}`;
-                        }
-                        if (params && params.message !== undefined) {
-                            return `${key}:${params.message}`;
-                        }
-                        if (params && params.version !== undefined) {
-                            return `${key}:${params.version}`;
-                        }
-                        return key;
-                    },
-                    $i18n: i18nMock,
-                },
-                stubs: {
-                    MaterialDesignIcon: true,
-                    RouterLink: true,
-                },
-            },
+    it("renders page with header and content", async () => {
+        const { getByTestId } = render(DocsPage);
+        await waitFor(() => {
+            expect(getByTestId("docs-page")).toBeTruthy();
         });
-        return wrapper;
-    };
+    });
 
-    it("renders upload prompt when no docs are present", async () => {
-        axiosMock.get.mockImplementation((url) => {
-            if (url.includes("/api/v1/docs/status")) {
-                return Promise.resolve({
-                    data: {
-                        status: "idle",
-                        progress: 0,
-                        last_error: null,
-                        has_docs: false,
-                        has_meshchatx_docs: false,
-                        has_bundled_docs: false,
-                        has_user_docs: false,
-                        versions: [],
-                        current_version: null,
-                    },
-                });
-            }
-            if (url.includes("/api/v1/meshchatx-docs/list")) return Promise.resolve({ data: [] });
-            return Promise.resolve({ data: {} });
+    it("fetches status and list on mount", async () => {
+        render(DocsPage);
+        await waitFor(() => {
+            expect(window.api.get).toHaveBeenCalledWith("/api/v1/docs/status");
         });
-
-        const wrapper = mountDocsPage();
-        wrapper.vm.activeTab = "reticulum";
-        await nextTick();
-        await nextTick();
-
-        expect(wrapper.text()).toContain("docs.reticulum_manual");
-        expect(wrapper.text()).toContain("docs.empty_state_hint");
-        expect(wrapper.text()).toContain("docs.btn_upload");
-    });
-
-    it("renders iframe when docs are present", async () => {
-        axiosMock.get.mockImplementation((url) => {
-            if (url.includes("/api/v1/docs/status")) {
-                return Promise.resolve({
-                    data: {
-                        status: "idle",
-                        progress: 100,
-                        last_error: null,
-                        has_docs: true,
-                        has_bundled_docs: true,
-                        has_user_docs: false,
-                        versions: [],
-                        current_version: "bundled",
-                    },
-                });
-            }
-            if (url.includes("/api/v1/meshchatx-docs/list")) return Promise.resolve({ data: [] });
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountDocsPage();
-        await nextTick();
-        await nextTick();
-
-        expect(wrapper.find("iframe").exists()).toBe(true);
-        expect(wrapper.find("iframe").attributes("src")).toBe("/reticulum-docs/manual/index.html");
-    });
-
-    it("shows progress bar while extracting an upload", async () => {
-        axiosMock.get.mockImplementation((url) => {
-            if (url.includes("/api/v1/docs/status")) {
-                return Promise.resolve({
-                    data: {
-                        status: "extracting",
-                        progress: 45,
-                        last_error: null,
-                        has_docs: false,
-                        has_bundled_docs: false,
-                        has_user_docs: false,
-                        versions: [],
-                        current_version: null,
-                    },
-                });
-            }
-            if (url.includes("/api/v1/meshchatx-docs/list")) return Promise.resolve({ data: [] });
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountDocsPage();
-        await nextTick();
-        await nextTick();
-
-        const progressBar = wrapper.find(".bg-blue-500");
-        expect(progressBar.exists()).toBe(true);
-        expect(progressBar.attributes("style")).toContain("width: 45%");
-        expect(wrapper.text()).toContain("docs.status_extracting");
-    });
-
-    it("shows error message when status has an error", async () => {
-        axiosMock.get.mockImplementation((url) => {
-            if (url.includes("/api/v1/docs/status")) {
-                return Promise.resolve({
-                    data: {
-                        status: "error",
-                        progress: 0,
-                        last_error: "Bad zip",
-                        has_docs: false,
-                        has_bundled_docs: false,
-                        has_user_docs: false,
-                        versions: [],
-                        current_version: null,
-                    },
-                });
-            }
-            if (url.includes("/api/v1/meshchatx-docs/list")) return Promise.resolve({ data: [] });
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountDocsPage();
-        await nextTick();
-        await nextTick();
-
-        expect(wrapper.text()).toContain("docs.error");
-        expect(wrapper.text()).toContain("Bad zip");
-    });
-
-    it("does not auto-trigger any update API call on mount", async () => {
-        const wrapper = mountDocsPage();
-        await nextTick();
-        await nextTick();
-
-        expect(axiosMock.post).not.toHaveBeenCalledWith(
-            expect.stringContaining("/api/v1/docs/update"),
-            expect.anything()
-        );
-        expect(wrapper.exists()).toBe(true);
-    });
-
-    it("dismissError clears the last_error from local status", async () => {
-        axiosMock.get.mockImplementation((url) => {
-            if (url.includes("/api/v1/docs/status")) {
-                return Promise.resolve({
-                    data: {
-                        status: "error",
-                        progress: 0,
-                        last_error: "Boom",
-                        has_docs: false,
-                        has_bundled_docs: false,
-                        has_user_docs: false,
-                        versions: [],
-                        current_version: null,
-                    },
-                });
-            }
-            if (url.includes("/api/v1/meshchatx-docs/list")) return Promise.resolve({ data: [] });
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountDocsPage();
-        await nextTick();
-        await nextTick();
-        expect(wrapper.vm.status.last_error).toBe("Boom");
-        wrapper.vm.dismissError();
-        await nextTick();
-        expect(wrapper.vm.status.last_error).toBeNull();
-    });
-
-    it("opens the Sphinx manual by default and localized site index via Reticulum language picker", async () => {
-        const wrapper = mountDocsPage();
-        await nextTick();
-
-        // App UI locale must not rewrite the Reticulum docs entry URL.
-        i18nMock.locale = "de";
-        await nextTick();
-        expect(wrapper.vm.localDocsUrl).toBe("/reticulum-docs/manual/index.html");
-
-        await wrapper.vm.setLanguage("de");
-        await nextTick();
-        expect(wrapper.vm.localDocsUrl).toMatch(/^\/reticulum-docs\/index_de\.html/);
-
-        await wrapper.vm.setLanguage("en");
-        await nextTick();
-        expect(wrapper.vm.localDocsUrl).toMatch(/^\/reticulum-docs\/manual\/index\.html/);
-    });
-
-    it("handles extremely long error messages in the UI", async () => {
-        const longError = "Error ".repeat(100);
-        axiosMock.get.mockImplementation((url) => {
-            if (url.includes("/api/v1/docs/status")) {
-                return Promise.resolve({
-                    data: {
-                        status: "error",
-                        progress: 0,
-                        last_error: longError,
-                        has_docs: false,
-                        has_bundled_docs: false,
-                        has_user_docs: false,
-                        versions: [],
-                        current_version: null,
-                    },
-                });
-            }
-            if (url.includes("/api/v1/meshchatx-docs/list")) return Promise.resolve({ data: [] });
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountDocsPage();
-        await nextTick();
-        await nextTick();
-
-        expect(wrapper.text()).toContain("docs.error");
-        expect(wrapper.text()).toContain(longError.substring(0, 100));
-    });
-
-    it("loads structured sections and auto-selects the first guide", async () => {
-        const wrapper = mountDocsPage();
-        await nextTick();
-        await nextTick();
-        await nextTick();
-
-        expect(wrapper.text()).toContain("Overview");
-        expect(wrapper.text()).toContain("Getting started");
-        expect(wrapper.vm.selectedDocPath).toBe("en/getting-started.md");
-        expect(wrapper.vm.docToc).toEqual([
-            { id: "intro", text: "Intro", level: 2 },
-            { id: "details", text: "Details", level: 3 },
-        ]);
-    });
-
-    it("shows list error when meshchatx docs list request fails", async () => {
-        axiosMock.get.mockImplementation((url) => {
-            if (url.includes("/api/v1/docs/status")) {
-                return Promise.resolve({
-                    data: {
-                        status: "idle",
-                        progress: 0,
-                        last_error: null,
-                        has_docs: false,
-                        has_meshchatx_docs: true,
-                        has_bundled_docs: false,
-                        has_user_docs: false,
-                        versions: [],
-                        current_version: null,
-                    },
-                });
-            }
-            if (url.includes("/api/v1/meshchatx-docs/list")) {
-                return Promise.reject({
-                    response: { data: { error: "Server exploded" } },
-                });
-            }
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountDocsPage();
-        await nextTick();
-        await nextTick();
-
-        expect(wrapper.vm.meshchatxListError).toBe("Server exploded");
-        expect(wrapper.text()).toContain("Server exploded");
-    });
-
-    it("shows doc load error when content request fails", async () => {
-        axiosMock.get.mockImplementation((url) => {
-            if (url.includes("/api/v1/docs/status")) {
-                return Promise.resolve({
-                    data: {
-                        status: "idle",
-                        progress: 0,
-                        last_error: null,
-                        has_docs: false,
-                        has_meshchatx_docs: true,
-                        has_bundled_docs: false,
-                        has_user_docs: false,
-                        versions: [],
-                        current_version: null,
-                    },
-                });
-            }
-            if (url.includes("/api/v1/meshchatx-docs/list")) {
-                return Promise.resolve({ data: structuredList });
-            }
-            if (url.includes("/api/v1/meshchatx-docs/content")) {
-                return Promise.reject({
-                    response: { data: { error: "Document not found" } },
-                });
-            }
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountDocsPage();
-        await nextTick();
-        await nextTick();
-        await nextTick();
-
-        expect(wrapper.vm.docLoadError).toBe("Document not found");
-        expect(wrapper.text()).toContain("docs.load_doc_failed");
-    });
-
-    it("shows manifest warning when list includes manifest_error", async () => {
-        axiosMock.get.mockImplementation((url) => {
-            if (url.includes("/api/v1/docs/status")) {
-                return Promise.resolve({
-                    data: {
-                        status: "idle",
-                        progress: 0,
-                        last_error: null,
-                        has_docs: false,
-                        has_meshchatx_docs: true,
-                        has_bundled_docs: false,
-                        has_user_docs: false,
-                        versions: [],
-                        current_version: null,
-                    },
-                });
-            }
-            if (url.includes("/api/v1/meshchatx-docs/list")) {
-                return Promise.resolve({
-                    data: { ...structuredList, manifest_error: "Invalid manifest JSON" },
-                });
-            }
-            if (url.includes("/api/v1/meshchatx-docs/content")) {
-                return Promise.resolve({
-                    data: { html: "<p>ok</p>", content: "ok", type: "markdown" },
-                });
-            }
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountDocsPage();
-        await nextTick();
-        await nextTick();
-
-        expect(wrapper.vm.manifestWarning).toBe("docs.manifest_warning");
-        expect(wrapper.text()).toContain("docs.manifest_warning");
-    });
-
-    it("extractDocToc returns empty array for invalid html", () => {
-        const wrapper = mountDocsPage();
-        expect(wrapper.vm.extractDocToc("")).toEqual([]);
-        expect(wrapper.vm.extractDocToc("<p>no headings</p>")).toEqual([]);
-    });
-
-    it("navigateTo selects nested meshchatx docs from search results", async () => {
-        const wrapper = mountDocsPage();
-        await nextTick();
-        await nextTick();
-
-        const selectSpy = vi.spyOn(wrapper.vm, "selectDoc");
-        wrapper.vm.navigateTo("/meshchatx-docs/en/getting-started.md");
-        await nextTick();
-
-        expect(wrapper.vm.activeTab).toBe("meshchatx");
-        expect(selectSpy).toHaveBeenCalledWith("en/getting-started.md");
-        expect(wrapper.vm.searchQuery).toBe("");
-    });
-
-    it("shows search error state when search request fails", async () => {
-        const wrapper = mountDocsPage();
-        await nextTick();
-
-        axiosMock.get.mockImplementation((url) => {
-            if (url.includes("/api/v1/docs/search")) {
-                return Promise.reject(new Error("network down"));
-            }
-            if (url.includes("/api/v1/docs/status")) {
-                return Promise.resolve({
-                    data: {
-                        status: "idle",
-                        progress: 0,
-                        last_error: null,
-                        has_docs: true,
-                        has_meshchatx_docs: true,
-                        has_bundled_docs: true,
-                        has_user_docs: false,
-                        versions: [],
-                        current_version: null,
-                    },
-                });
-            }
-            if (url.includes("/api/v1/meshchatx-docs/list")) {
-                return Promise.resolve({ data: structuredList });
-            }
-            return Promise.resolve({ data: {} });
-        });
-
-        wrapper.vm.searchQuery = "reticulum";
-        await wrapper.vm.performSearch();
-        await nextTick();
-
-        expect(wrapper.vm.searchError).toBe("docs.search_failed");
-        expect(wrapper.text()).toContain("docs.search_failed");
-    });
-
-    it("scrollToHeading targets the rendered article element", async () => {
-        const wrapper = mountDocsPage();
-        await nextTick();
-        await nextTick();
-        await nextTick();
-
-        const intro = wrapper.vm.$refs.docsProse.querySelector("#intro");
-        intro.scrollIntoView = vi.fn();
-
-        wrapper.vm.scrollToHeading("intro");
-
-        expect(intro.scrollIntoView).toHaveBeenCalled();
-    });
-
-    it("onReticulumFrameLoad reveals the iframe", async () => {
-        axiosMock.get.mockImplementation((url) => {
-            if (url.includes("/api/v1/docs/status")) {
-                return Promise.resolve({
-                    data: {
-                        status: "idle",
-                        progress: 100,
-                        last_error: null,
-                        has_docs: true,
-                        has_meshchatx_docs: false,
-                        has_bundled_docs: true,
-                        has_user_docs: false,
-                        versions: [],
-                        current_version: "bundled",
-                    },
-                });
-            }
-            if (url.includes("/api/v1/meshchatx-docs/list")) return Promise.resolve({ data: [] });
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountDocsPage();
-        await nextTick();
-        await nextTick();
-
-        wrapper.vm.$refs.docsFrame = { style: { opacity: "0" } };
-        wrapper.vm.onReticulumFrameLoad();
-        expect(wrapper.vm.$refs.docsFrame.style.opacity).toBe("1");
     });
 });

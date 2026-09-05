@@ -1,29 +1,30 @@
 // SPDX-License-Identifier: 0BSD
 
-/**
- * @typedef {Object} ToolEntry
- * @property {string} name
- * @property {{ name: string } | null} [route]
- * @property {string | null} [icon]
- * @property {string} iconBg
- * @property {string} titleKey
- * @property {string} descriptionKey
- * @property {string} [title]
- * @property {string} [description]
- * @property {boolean} [alpha]
- * @property {boolean} [beta]
- * @property {boolean} [comingSoon]
- * @property {string} [customClass]
- * @property {string} [image]
- * @property {string} [imageClass]
- * @property {string} [imageAlt]
- * @property {{ href: string, target: string, icon: string }} [extraAction]
- * @property {string | null} [pluginId]
- * @property {'diagnostics' | 'transfer' | 'messaging' | 'network' | 'other'} [group]
- */
+export type ToolGroupKind = "diagnostics" | "transfer" | "messaging" | "network" | "other";
 
-/** @type {ToolEntry[]} */
-export const CORE_TOOLS_ENTRIES = [
+export interface ToolEntry {
+    name: string;
+    route?: { name: string } | null;
+    icon?: string | null;
+    iconBg: string;
+    titleKey: string;
+    descriptionKey: string;
+    title?: string;
+    description?: string;
+    alpha?: boolean;
+    beta?: boolean;
+    comingSoon?: boolean;
+    customClass?: string;
+    image?: string;
+    imageClass?: string;
+    imageAlt?: string;
+    extraAction?: { href: string; target: string; icon: string };
+    pluginId?: string | null;
+    group?: ToolGroupKind;
+    [key: string]: unknown;
+}
+
+export const CORE_TOOLS_ENTRIES: ToolEntry[] = [
     {
         name: "ping",
         route: { name: "ping" },

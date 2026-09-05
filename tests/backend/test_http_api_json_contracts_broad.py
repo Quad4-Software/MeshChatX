@@ -66,7 +66,7 @@ def contract_app(mock_rns_minimal, temp_dir):
         patch("importlib.metadata.version", return_value="1.2.3"),
         patch("meshchatx.meshchat.LXST") as mock_lxst,
         patch(
-            "meshchatx.src.backend.licenses_collector.build_licenses_payload",
+            "meshchatx.src.backend.licenses_collector.core.build_licenses_payload",
             return_value={
                 "backend": [{"name": "rns", "version": "1.0", "license": "MIT"}],
                 "frontend": [{"name": "vue", "version": "3.0", "license": "MIT"}],

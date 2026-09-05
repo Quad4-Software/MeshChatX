@@ -71,12 +71,11 @@
                 bind:value={content}
                 rows="4"
                 placeholder="Type your message here..."
-                class="input-field resize-none text-sm"
-            ></textarea>
+                class="input-field resize-none text-sm"></textarea>
         </div>
         <button
             type="button"
-            class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none text-sm"
+            class="primary-chip w-full justify-center focus-ring-sem disabled:opacity-50 disabled:pointer-events-none"
             disabled={!canGenerate || isGenerating}
             onclick={() => ongenerate?.()}
         >

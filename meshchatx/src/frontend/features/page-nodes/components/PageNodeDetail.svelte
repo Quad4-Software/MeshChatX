@@ -64,10 +64,10 @@
             {selectedNode.name}
         </div>
         <div class="flex items-center gap-2">
-            <button type="button" class="secondary-chip py-1! px-3! text-xs!" onclick={onRenameClick}>
+            <button type="button" class="secondary-chip focus-ring-sem py-1! px-3! text-xs!" onclick={onRenameClick}>
                 {t("tools.mesh_server.rename")}
             </button>
-            <button type="button" class="secondary-chip py-1! px-3! text-xs!" onclick={onClose}>
+            <button type="button" class="secondary-chip focus-ring-sem py-1! px-3! text-xs!" onclick={onClose}>
                 <MaterialDesignIcon iconName="close" class="w-3.5 h-3.5" />
             </button>
         </div>
@@ -82,7 +82,7 @@
                 {#if selectedNode.running}
                     <button
                         type="button"
-                        class="primary-chip py-0.5! px-2! text-xs!"
+                        class="primary-chip focus-ring-sem py-0.5! px-2! text-xs!"
                         onclick={() => onViewNode(selectedNode)}
                     >
                         <MaterialDesignIcon iconName="eye" class="w-3 h-3" />

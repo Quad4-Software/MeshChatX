@@ -35,10 +35,10 @@ function suggestionKeysFor(issue) {
 }
 
 function withTimeout(promise, ms, code) {
-    let timer = null;
+    let timer: any = null;
     const timeoutPromise = new Promise<any>((_, reject) => {
         timer = setTimeout(() => {
-            const err = new Error(code || "timeout");
+            const err: any = new Error(code || "timeout");
             (err as Error & { code?: string; status?: number; body?: unknown }).code = code || "TIMEOUT";
             reject(err);
         }, ms);
@@ -153,7 +153,7 @@ export async function diagnose(rnode, options: any = {}) {
         }
     }
 
-    let romDetails = null;
+    let romDetails: any = null;
     if (typeof rnode.getRomAsObject === "function") {
         try {
             const rom = await withTimeout(rnode.getRomAsObject(), timeoutMs, "READ_TIMEOUT");
@@ -220,10 +220,10 @@ export async function diagnose(rnode, options: any = {}) {
         board: result.board,
         mcu: result.mcu,
         is_provisioned: result.isProvisioned,
-        product: romDetails?.product ?? null,
-        model: romDetails?.model ?? null,
-        hardware_revision: romDetails?.hardware_revision ?? null,
-        serial_number: romDetails?.serial_number ?? null,
+        product: romDetails?.product !== undefined ? romDetails.product : null,
+        model: romDetails?.model !== undefined ? romDetails.model : null,
+        hardware_revision: romDetails?.hardware_revision !== undefined ? romDetails.hardware_revision : null,
+        serial_number: romDetails?.serial_number !== undefined ? romDetails.serial_number : null,
         firmware_hash: result.firmwareHash ? RNodeUtils.bytesToHex(result.firmwareHash) : null,
         target_firmware_hash: result.targetFirmwareHash ? RNodeUtils.bytesToHex(result.targetFirmwareHash) : null,
     };

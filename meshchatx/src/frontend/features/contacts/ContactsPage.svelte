@@ -1,10 +1,11 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
-<script>
+<script lang="ts">
     import { onMount } from "svelte";
     import QRCode from "qrcode";
     import EmptyState from "../../ui/svelte/EmptyState.svelte";
     import LoadingState from "../../ui/svelte/LoadingState.svelte";
+    import Skeleton from "../../ui/svelte/Skeleton.svelte";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
     import ToastUtils from "../../js/ToastUtils.js";
     import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
@@ -32,19 +33,17 @@
     import ContactsScannerDialog from "./components/ContactsScannerDialog.svelte";
     import ContactsContextMenu from "./components/ContactsContextMenu.svelte";
 
-    /** @type {Array<Record<string, unknown>>} */
-    let contacts = $state([]);
+    let contacts: Array<Record<string, unknown>> = $state([]);
     let contactsSearch = $state("");
     let isLoading = $state(false);
     let isLoadingMore = $state(false);
     let contactsOffset = $state(0);
     let totalContactsCount = $state(0);
-    /** @type {ReturnType<typeof setTimeout> | null} */
-    let searchDebounceTimeout = null;
+    let searchDebounceTimeout: ReturnType<typeof setTimeout> | null = null;
     const contactsPageSize = 30;
 
-    let myIdentityUri = $state(/** @type {string | null} */ (null));
-    let myQrDataUrl = $state(/** @type {string | null} */ (null));
+    let myIdentityUri: string | null = $state(null);
+    let myQrDataUrl: string | null = $state(null);
     let isMyIdentityDialogOpen = $state(false);
     let isAddDialogOpen = $state(false);
     let isSubmitting = $state(false);
@@ -53,12 +52,16 @@
     let isScannerDialogOpen = $state(false);
     let pendingLxmaImport = $state(false);
     let isImportDialogOpen = $state(false);
-    let importError = $state(/** @type {string | null} */ (null));
-    let contextMenu = $state({
+    let importError: string | null = $state(null);
+    let contextMenu: {
+        visible: boolean;
+        x: number;
+        y: number;
+        contact: Record<string, unknown> | null;
+    } = $state({
         visible: false,
         x: 0,
         y: 0,
-        /** @type {Record<string, unknown> | null} */
         contact: null,
     });
 
@@ -78,7 +81,6 @@
         }
     }
 
-    /** @param {boolean} [append] */
     async function getContacts(append = false) {
         if (append) isLoadingMore = true;
         else {
@@ -115,20 +117,17 @@
         contextMenu = { visible: false, x: 0, y: 0, contact: null };
     }
 
-    /** @param {MouseEvent} event @param {Record<string, unknown>} contact */
-    function openContextMenu(event, contact) {
+    function openContextMenu(event: MouseEvent, contact: Record<string, unknown>) {
         contextMenu = { visible: true, x: event.clientX, y: event.clientY, contact };
     }
 
-    /** @param {Record<string, unknown>} contact */
-    function openConversation(contact) {
+    function openConversation(contact: Record<string, unknown>) {
         closeContextMenu();
         const href = messagesHashHref(contact);
         if (href) location.hash = href;
     }
 
-    /** @param {Record<string, unknown>} contact */
-    function callContact(contact) {
+    function callContact(contact: Record<string, unknown>) {
         closeContextMenu();
         const href = callHashHref(contact);
         if (href) location.hash = href;
@@ -157,15 +156,14 @@
                 isAddDialogOpen = false;
                 pendingLxmaImport = false;
             }
-        } catch (e) {
+        } catch (e: any) {
             ToastUtils.error(e.response?.data?.message || t("contacts.failed_add_contact"));
         } finally {
             isSubmitting = false;
         }
     }
 
-    /** @param {{ status?: string, ingest_type?: string, message?: string }} json */
-    async function onLxmIngestUriResult(json) {
+    async function onLxmIngestUriResult(json: { status?: string; ingest_type?: string; message?: string }) {
         if (!pendingLxmaImport) return;
         pendingLxmaImport = false;
         isSubmitting = false;
@@ -178,8 +176,7 @@
         }
     }
 
-    /** @param {File} file */
-    function onImportFileSelected(file) {
+    function onImportFileSelected(file: File) {
         importError = null;
         const reader = new FileReader();
         reader.onload = async (e) => {
@@ -247,14 +244,21 @@
 
             <div class="min-w-0 flex-1 min-h-0 flex flex-col">
                 {#if isLoading && contacts.length === 0}
-                    <LoadingState message={t("contacts.loading")} />
+                    <div class="space-y-3 p-2" aria-busy="true">
+                        {#each Array(6) as _, i (i)}
+                            <div class="flex items-center gap-3">
+                                <Skeleton variant="avatar" />
+                                <div class="flex-1 space-y-2">
+                                    <Skeleton variant="line" class="w-2/3" />
+                                    <Skeleton variant="line" class="w-1/2" />
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
                 {:else if !isLoading && contacts.length === 0}
                     <EmptyState icon="account-multiple-outline" title={t("contacts.no_contacts")} />
                 {:else}
-                    <div
-                        class="divide-y divide-gray-100 dark:divide-zinc-800 overflow-y-auto flex-1 min-h-0"
-                        role="list"
-                    >
+                    <div class="divide-y divide-sem-border overflow-y-auto flex-1 min-h-0" role="list">
                         {#each mergedContacts as contact (String(contact.id))}
                             <ContactListRow
                                 {contact}
@@ -266,17 +270,17 @@
                         {/each}
                         {#if hasMoreContacts && !isLoadingMore}
                             <div class="pt-2 flex justify-center">
-                                <button type="button" class="secondary-chip" onclick={() => getContacts(true)}>
+                                <button
+                                    type="button"
+                                    class="secondary-chip focus-ring-sem"
+                                    onclick={() => getContacts(true)}
+                                >
                                     {t("contacts.load_more")}
                                 </button>
                             </div>
                         {/if}
                         {#if isLoadingMore}
-                            <div class="py-3 flex justify-center">
-                                <div
-                                    class="size-6 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"
-                                ></div>
-                            </div>
+                            <LoadingState class="py-3" />
                         {/if}
                     </div>
                 {/if}
@@ -286,7 +290,7 @@
 
     <button
         type="button"
-        class="sm:hidden fixed bottom-5 right-4 z-180 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg ring-1 ring-blue-400/30 transition active:scale-95"
+        class="sm:hidden fixed bottom-5 right-4 z-180 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg ring-1 ring-blue-400/30 transition active:scale-95 focus-ring-sem"
         title={t("contacts.add_contact")}
         onclick={openAddDialog}
     >

@@ -15,7 +15,7 @@ export default {
         "tests/**/*.{js,cjs,mjs}",
     ],
     ignore: ["meshchatx/src/frontend/public/**", "electron/assets/**", "**/*.worklet.js"],
-    ignoreDependencies: ["@tailwindcss/forms", "emoji-picker-element-data"],
+    ignoreDependencies: ["@tailwindcss/forms", "emoji-picker-element-data", "@fontsource/noto-sans", "ol-mapbox-style"],
     ignoreIssues: {
         "meshchatx/src/frontend/js/reticulumPathfinding.js": ["unlisted"],
         "meshchatx/src/frontend/js/reticulumPathfinding.ts": ["unlisted"],

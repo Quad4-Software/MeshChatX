@@ -5,19 +5,33 @@ import { existsSync } from "fs";
 import { join } from "path";
 import { clearRoutes, listRoutes } from "../../meshchatx/src/frontend/js/registries/routeRegistry.js";
 import { clearFeatureIds, listFeatureIds } from "../../meshchatx/src/frontend/js/registries/featureRegistry.js";
+import { registerAboutFeature } from "../../meshchatx/src/frontend/features/about/index.ts";
+import { registerAuthFeature } from "../../meshchatx/src/frontend/features/auth/index.ts";
+import { registerCallFeature } from "../../meshchatx/src/frontend/features/call/index.ts";
 import { registerArchivesFeature } from "../../meshchatx/src/frontend/features/archives/index.ts";
 import { registerBlockedFeature } from "../../meshchatx/src/frontend/features/blocked/index.ts";
+import { registerBotsFeature } from "../../meshchatx/src/frontend/features/bots/index.ts";
 import { registerContactsFeature } from "../../meshchatx/src/frontend/features/contacts/index.ts";
 import { registerDebugLogsFeature } from "../../meshchatx/src/frontend/features/debug-logs/index.ts";
+import { registerDocsFeature } from "../../meshchatx/src/frontend/features/docs/index.ts";
+import { registerFilesyncFeature } from "../../meshchatx/src/frontend/features/filesync/index.ts";
 import { registerForwarderFeature } from "../../meshchatx/src/frontend/features/forwarder/index.ts";
+import { registerInterfacesFeature } from "../../meshchatx/src/frontend/features/interfaces/index.ts";
 import { registerLicensesFeature } from "../../meshchatx/src/frontend/features/licenses/index.ts";
+import { registerMapFeature } from "../../meshchatx/src/frontend/features/map/index.ts";
 import { registerMessageBlocklistFeature } from "../../meshchatx/src/frontend/features/message-blocklist/index.ts";
 import { registerMessagesFeature } from "../../meshchatx/src/frontend/features/messages/index.ts";
+import { registerMicronEditorFeature } from "../../meshchatx/src/frontend/features/micron-editor/index.ts";
+import { registerNomadNetworkFeature } from "../../meshchatx/src/frontend/features/nomadnetwork/index.ts";
 import { registerPageNodesFeature } from "../../meshchatx/src/frontend/features/page-nodes/index.ts";
 import { registerPaperMessageFeature } from "../../meshchatx/src/frontend/features/paper-message/index.ts";
 import { registerPingFeature } from "../../meshchatx/src/frontend/features/ping/index.ts";
+import { registerProfileFeature } from "../../meshchatx/src/frontend/features/profile/index.ts";
+import { registerPropagationNodesFeature } from "../../meshchatx/src/frontend/features/propagation-nodes/index.ts";
+import { registerRelayChatFeature } from "../../meshchatx/src/frontend/features/relay-chat/index.ts";
 import { registerRepositoryServerFeature } from "../../meshchatx/src/frontend/features/repository-server/index.ts";
 import { registerReticulumConfigEditorFeature } from "../../meshchatx/src/frontend/features/reticulum-config-editor/index.ts";
+import { registerRncpFeature } from "../../meshchatx/src/frontend/features/rncp/index.ts";
 import { registerRnpathFeature } from "../../meshchatx/src/frontend/features/rnpath/index.ts";
 import { registerRnpathTraceFeature } from "../../meshchatx/src/frontend/features/rnpath-trace/index.ts";
 import { registerRnprobeFeature } from "../../meshchatx/src/frontend/features/rnprobe/index.ts";
@@ -36,6 +50,18 @@ const repoRoot = process.cwd();
  * Expand this list as pages migrate off the hardcoded main.js table.
  */
 const FEATURE_MODULE_OWNERS = [
+    {
+        id: "auth",
+        register: registerAuthFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/auth/index.ts",
+            "meshchatx/src/frontend/features/auth/AuthPage.svelte",
+            "meshchatx/src/frontend/features/auth/lib/authActions.ts",
+            "meshchatx/src/frontend/features/auth/lib/constants.ts",
+        ],
+        route_name: "auth",
+        mount: "svelte",
+    },
     {
         id: "blocked",
         register: registerBlockedFeature,
@@ -80,6 +106,42 @@ const FEATURE_MODULE_OWNERS = [
             "meshchatx/src/frontend/features/forwarder/lib/forwarderHash.ts",
         ],
         route_name: "forwarder",
+        mount: "svelte",
+    },
+    {
+        id: "interfaces",
+        register: registerInterfacesFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/interfaces/index.ts",
+            "meshchatx/src/frontend/features/interfaces/InterfacesPage.svelte",
+            "meshchatx/src/frontend/features/interfaces/AddInterfacePage.svelte",
+            "meshchatx/src/frontend/features/interfaces/lib/constants.ts",
+            "meshchatx/src/frontend/features/interfaces/lib/types.ts",
+            "meshchatx/src/frontend/features/interfaces/lib/interfacesApi.ts",
+            "meshchatx/src/frontend/features/interfaces/lib/interfacesFormat.ts",
+            "meshchatx/src/frontend/features/interfaces/lib/addInterfaceState.ts",
+            "meshchatx/src/frontend/features/interfaces/components/Toggle.svelte",
+            "meshchatx/src/frontend/features/interfaces/components/ExpandingSection.svelte",
+            "meshchatx/src/frontend/features/interfaces/components/BundledDocsHint.svelte",
+            "meshchatx/src/frontend/features/interfaces/components/ImportInterfacesModal.svelte",
+            "meshchatx/src/frontend/features/interfaces/components/InterfaceCard.svelte",
+            "meshchatx/src/frontend/features/interfaces/components/DiscoveredInterfaceCard.svelte",
+            "meshchatx/src/frontend/features/interfaces/components/DiscoverySettingsPanel.svelte",
+            "meshchatx/src/frontend/features/interfaces/components/AddInterfaceDiscoveryPanel.svelte",
+            "meshchatx/src/frontend/features/interfaces/components/AddInterfaceTypeSelector.svelte",
+            "meshchatx/src/frontend/features/interfaces/components/AddInterfaceTcpDetails.svelte",
+            "meshchatx/src/frontend/features/interfaces/components/AddInterfaceBackboneDetails.svelte",
+            "meshchatx/src/frontend/features/interfaces/components/AddInterfaceUdpDetails.svelte",
+            "meshchatx/src/frontend/features/interfaces/components/AddInterfaceI2pDetails.svelte",
+            "meshchatx/src/frontend/features/interfaces/components/AddInterfaceRNodeDetails.svelte",
+            "meshchatx/src/frontend/features/interfaces/components/AddInterfaceSerialDetails.svelte",
+            "meshchatx/src/frontend/features/interfaces/components/AddInterfaceAutoDetails.svelte",
+            "meshchatx/src/frontend/features/interfaces/components/AddInterfaceHttpDetails.svelte",
+            "meshchatx/src/frontend/features/interfaces/components/AddInterfaceExternalDetails.svelte",
+            "meshchatx/src/frontend/features/interfaces/components/AddInterfaceAdvancedPanel.svelte",
+            "meshchatx/src/frontend/features/interfaces/components/AddInterfaceSidebar.svelte",
+        ],
+        route_name: "interfaces",
         mount: "svelte",
     },
     {
@@ -234,6 +296,18 @@ const FEATURE_MODULE_OWNERS = [
         mount: "svelte",
     },
     {
+        id: "call",
+        register: registerCallFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/call/index.ts",
+            "meshchatx/src/frontend/features/call/CallPage.svelte",
+            "meshchatx/src/frontend/features/call/lib/constants.ts",
+            "meshchatx/src/frontend/features/call/components/CallOverlay.svelte",
+        ],
+        route_name: "call",
+        mount: "svelte",
+    },
+    {
         id: "archives",
         register: registerArchivesFeature,
         required_paths: [
@@ -302,6 +376,210 @@ const FEATURE_MODULE_OWNERS = [
         route_name: "tools",
         mount: "svelte",
     },
+    {
+        id: "rncp",
+        register: registerRncpFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/rncp/index.ts",
+            "meshchatx/src/frontend/features/rncp/RNCPPage.svelte",
+            "meshchatx/src/frontend/features/rncp/lib/types.ts",
+            "meshchatx/src/frontend/features/rncp/lib/constants.ts",
+            "meshchatx/src/frontend/features/rncp/lib/rncpPrefs.ts",
+            "meshchatx/src/frontend/features/rncp/lib/rncpApi.ts",
+            "meshchatx/src/frontend/features/rncp/components/RNCPSendTab.svelte",
+            "meshchatx/src/frontend/features/rncp/components/RNCPFetchTab.svelte",
+            "meshchatx/src/frontend/features/rncp/components/RNCPListenTab.svelte",
+        ],
+        route_name: "rncp",
+        mount: "svelte",
+    },
+    {
+        id: "bots",
+        register: registerBotsFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/bots/index.ts",
+            "meshchatx/src/frontend/features/bots/BotsPage.svelte",
+            "meshchatx/src/frontend/features/bots/lib/types.ts",
+            "meshchatx/src/frontend/features/bots/lib/botLxmfConfigForm.ts",
+            "meshchatx/src/frontend/features/bots/lib/botUtils.ts",
+            "meshchatx/src/frontend/features/bots/lib/botsApi.ts",
+            "meshchatx/src/frontend/features/bots/components/BotCard.svelte",
+            "meshchatx/src/frontend/features/bots/components/BotStartModal.svelte",
+            "meshchatx/src/frontend/features/bots/components/BotLxmfConfigModal.svelte",
+            "meshchatx/src/frontend/features/bots/components/BotProcessLogModal.svelte",
+            "meshchatx/src/frontend/features/bots/components/BotLxmfConfigFields.svelte",
+        ],
+        route_name: "bots",
+        mount: "svelte",
+    },
+    {
+        id: "filesync",
+        register: registerFilesyncFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/filesync/index.ts",
+            "meshchatx/src/frontend/features/filesync/RnsFilesyncPage.svelte",
+            "meshchatx/src/frontend/features/filesync/lib/types.ts",
+            "meshchatx/src/frontend/features/filesync/lib/constants.ts",
+            "meshchatx/src/frontend/features/filesync/lib/filesyncFormat.ts",
+            "meshchatx/src/frontend/features/filesync/lib/filesyncApi.ts",
+            "meshchatx/src/frontend/features/filesync/components/FilesyncFolderTab.svelte",
+            "meshchatx/src/frontend/features/filesync/components/FilesyncDevicesTab.svelte",
+            "meshchatx/src/frontend/features/filesync/components/FilesyncFileManager.svelte",
+            "meshchatx/src/frontend/features/filesync/components/FilesyncRemoteTab.svelte",
+            "meshchatx/src/frontend/features/filesync/components/FilesyncSharingTab.svelte",
+            "meshchatx/src/frontend/features/filesync/components/FilesyncDirectoryBrowserModal.svelte",
+        ],
+        route_name: "rns-filesync",
+        mount: "svelte",
+    },
+    {
+        id: "docs",
+        register: registerDocsFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/docs/index.ts",
+            "meshchatx/src/frontend/features/docs/DocsPage.svelte",
+            "meshchatx/src/frontend/features/docs/lib/types.ts",
+            "meshchatx/src/frontend/features/docs/lib/constants.ts",
+            "meshchatx/src/frontend/features/docs/lib/docsToc.ts",
+            "meshchatx/src/frontend/features/docs/lib/docsApi.ts",
+            "meshchatx/src/frontend/features/docs/components/DocsStatusOverlay.svelte",
+            "meshchatx/src/frontend/features/docs/components/DocsSearchResults.svelte",
+            "meshchatx/src/frontend/features/docs/components/DocsSidebar.svelte",
+            "meshchatx/src/frontend/features/docs/components/DocsMobileControls.svelte",
+            "meshchatx/src/frontend/features/docs/components/DocsProseView.svelte",
+            "meshchatx/src/frontend/features/docs/components/DocsReticulumView.svelte",
+        ],
+        route_name: "documentation",
+        mount: "svelte",
+    },
+    {
+        id: "propagation-nodes",
+        register: registerPropagationNodesFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/propagation-nodes/index.ts",
+            "meshchatx/src/frontend/features/propagation-nodes/PropagationNodesPage.svelte",
+            "meshchatx/src/frontend/features/propagation-nodes/lib/types.ts",
+            "meshchatx/src/frontend/features/propagation-nodes/lib/constants.ts",
+            "meshchatx/src/frontend/features/propagation-nodes/lib/propagationFormat.ts",
+            "meshchatx/src/frontend/features/propagation-nodes/lib/propagationSort.ts",
+            "meshchatx/src/frontend/features/propagation-nodes/lib/propagationApi.ts",
+            "meshchatx/src/frontend/features/propagation-nodes/components/PropagationHostedSection.svelte",
+            "meshchatx/src/frontend/features/propagation-nodes/components/PropagationPreferredSection.svelte",
+            "meshchatx/src/frontend/features/propagation-nodes/components/PropagationNodeList.svelte",
+        ],
+        route_name: "propagation-nodes",
+        mount: "svelte",
+    },
+    {
+        id: "micron-editor",
+        register: registerMicronEditorFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/micron-editor/index.ts",
+            "meshchatx/src/frontend/features/micron-editor/MicronEditorPage.svelte",
+            "meshchatx/src/frontend/features/micron-editor/lib/types.ts",
+            "meshchatx/src/frontend/features/micron-editor/lib/constants.ts",
+            "meshchatx/src/frontend/features/micron-editor/lib/defaultContent.ts",
+            "meshchatx/src/frontend/features/micron-editor/lib/guideContent.ts",
+            "meshchatx/src/frontend/features/micron-editor/lib/micronPublish.ts",
+            "meshchatx/src/frontend/features/micron-editor/lib/micronDownload.ts",
+            "meshchatx/src/frontend/features/micron-editor/components/MicronEditorTabBar.svelte",
+            "meshchatx/src/frontend/features/micron-editor/components/MicronPublishDropdown.svelte",
+            "meshchatx/src/frontend/features/micron-editor/components/MicronPreviewPane.svelte",
+        ],
+        route_name: "micron-editor",
+        mount: "svelte",
+    },
+    {
+        id: "profile",
+        register: registerProfileFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/profile/index.ts",
+            "meshchatx/src/frontend/features/profile/ProfileIconPage.svelte",
+            "meshchatx/src/frontend/features/profile/components/ColourPickerDropdown.svelte",
+            "meshchatx/src/frontend/features/profile/lib/profileIcon.ts",
+        ],
+        route_name: "profile.icon",
+        mount: "svelte",
+    },
+    {
+        id: "about",
+        register: registerAboutFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/about/index.ts",
+            "meshchatx/src/frontend/features/about/AboutPage.svelte",
+            "meshchatx/src/frontend/features/about/components/AboutHeroSection.svelte",
+            "meshchatx/src/frontend/features/about/components/AboutSecuritySection.svelte",
+            "meshchatx/src/frontend/features/about/components/AboutSessionsSection.svelte",
+            "meshchatx/src/frontend/features/about/components/AboutEnvironmentSection.svelte",
+            "meshchatx/src/frontend/features/about/components/AboutUsageSection.svelte",
+            "meshchatx/src/frontend/features/about/components/AboutDependencySection.svelte",
+            "meshchatx/src/frontend/features/about/components/AboutDatabaseSection.svelte",
+            "meshchatx/src/frontend/features/about/components/AboutSnapshotsSection.svelte",
+            "meshchatx/src/frontend/features/about/components/AboutAutoBackupsSection.svelte",
+            "meshchatx/src/frontend/features/about/lib/types.ts",
+            "meshchatx/src/frontend/features/about/lib/constants.ts",
+            "meshchatx/src/frontend/features/about/lib/aboutFormat.ts",
+            "meshchatx/src/frontend/features/about/lib/aboutApi.ts",
+            "meshchatx/src/frontend/features/about/lib/backupApi.ts",
+        ],
+        route_name: "about",
+        mount: "svelte",
+    },
+    {
+        id: "nomadnetwork",
+        register: registerNomadNetworkFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/nomadnetwork/index.ts",
+            "meshchatx/src/frontend/features/nomadnetwork/components/NomadNetworkBrowser.svelte",
+            "meshchatx/src/frontend/features/nomadnetwork/components/NomadNetworkPage.svelte",
+            "meshchatx/src/frontend/features/nomadnetwork/components/NomadNetworkSidebar.svelte",
+            "meshchatx/src/frontend/features/nomadnetwork/components/NomadCrashTab.svelte",
+            "meshchatx/src/frontend/features/nomadnetwork/components/NomadBrowserContextMenu.svelte",
+            "meshchatx/src/frontend/features/nomadnetwork/lib/types.ts",
+            "meshchatx/src/frontend/features/nomadnetwork/lib/constants.ts",
+            "meshchatx/src/frontend/features/nomadnetwork/lib/nomadBrowserTabs.ts",
+            "meshchatx/src/frontend/features/nomadnetwork/lib/nomadSidebarFavourites.ts",
+            "meshchatx/src/frontend/features/nomadnetwork/lib/nomadPageNavigation.ts",
+            "meshchatx/src/frontend/features/nomadnetwork/lib/nomadPageDownloads.ts",
+            "meshchatx/src/frontend/features/nomadnetwork/lib/nomadPageArchives.ts",
+        ],
+        route_name: "nomadnetwork",
+        mount: "svelte",
+    },
+    {
+        id: "relay-chat",
+        register: registerRelayChatFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/relay-chat/index.ts",
+            "meshchatx/src/frontend/features/relay-chat/components/RelayChatPage.svelte",
+            "meshchatx/src/frontend/features/relay-chat/components/RelayHostModerationPage.svelte",
+            "meshchatx/src/frontend/features/relay-chat/components/RelayMessageEntry.svelte",
+            "meshchatx/src/frontend/features/relay-chat/components/RelayMessageListVirtual.svelte",
+            "meshchatx/src/frontend/features/relay-chat/lib/types.ts",
+            "meshchatx/src/frontend/features/relay-chat/lib/constants.ts",
+            "meshchatx/src/frontend/features/relay-chat/lib/relayFormatters.ts",
+        ],
+        route_name: "relay-chat",
+        mount: "svelte",
+    },
+    {
+        id: "map",
+        register: registerMapFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/map/index.ts",
+            "meshchatx/src/frontend/features/map/MapPage.svelte",
+            "meshchatx/src/frontend/features/map/components/MapBrowser.svelte",
+            "meshchatx/src/frontend/features/map/components/MiniChat.svelte",
+            "meshchatx/src/frontend/features/map/lib/types.ts",
+            "meshchatx/src/frontend/features/map/lib/constants.ts",
+            "meshchatx/src/frontend/features/map/lib/markerStyles.ts",
+            "meshchatx/src/frontend/features/map/lib/clusterUtils.ts",
+            "meshchatx/src/frontend/features/map/lib/mapDedupe.ts",
+            "meshchatx/src/frontend/features/map/lib/discoveredIcons.ts",
+        ],
+        route_name: "map",
+        mount: "svelte",
+    },
 ];
 
 describe("feature module conveyor ownership", () => {
@@ -317,13 +595,14 @@ describe("feature module conveyor ownership", () => {
 
     it("each owned feature has required files and registers once", () => {
         for (const feature of FEATURE_MODULE_OWNERS) {
+            console.log("Checking feature:", feature?.id);
             for (const rel of feature.required_paths) {
                 expect(existsSync(join(repoRoot, rel)), `missing ${rel}`).toBe(true);
             }
             feature.register();
             expect(listFeatureIds()).toContain(feature.id);
             const route = listRoutes().find((r) => r.name === feature.route_name);
-            expect(route).toBeTruthy();
+            expect(route, `route for feature ${feature.id} named ${feature.route_name}`).toBeTruthy();
             expect(route.mount).toBe(feature.mount);
             expect(typeof route.load).toBe("function");
         }

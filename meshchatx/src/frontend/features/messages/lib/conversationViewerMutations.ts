@@ -9,7 +9,6 @@ import { applyWsMessage, deleteWsMessage, updateWsMessage } from "./conversation
 import { cancelOutbound, executeOutboundJob, type OutboundJob } from "./conversationViewerSend.js";
 import type { ApiClient } from "../../../js/apiClient.js";
 import type { LxmfMessage, ViewerChatItem } from "./conversationViewerCtx.js";
-import { sameHash } from "./conversationViewerCtx.js";
 import type { MessageChatItem } from "./viewerActions.js";
 
 type OutboundQueueLike = {
@@ -234,7 +233,6 @@ export function buildMapLocationHash(coords: { latitude: number; longitude: numb
     });
     return `#/map?${params.toString()}`;
 }
-
 
 export async function executeOutboundSendJob(opts: {
     api: ApiClient;

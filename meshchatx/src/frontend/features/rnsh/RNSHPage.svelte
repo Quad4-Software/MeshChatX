@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import { onMount, tick } from "svelte";
+    import { fade } from "svelte/transition";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
     import ToolsPageHeader from "../../ui/svelte/ToolsPageHeader.svelte";
     import ToastUtils from "../../js/ToastUtils.js";
@@ -47,6 +48,15 @@
 
     let sessionTerminal = $state<ReturnType<typeof RemoteShellTerminal> | null>(null);
     let fullscreenTerminal = $state<ReturnType<typeof RemoteShellFullscreenDialog> | null>(null);
+
+    function isReducedMotion(): boolean {
+        if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+            return false;
+        }
+        return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    }
+
+    const tabFadeMs = $derived(isReducedMotion() ? 0 : 120);
 
     const selectedSession = $derived(sessions.find((session) => session.id === selectedSessionId) || null);
 
@@ -375,7 +385,7 @@
 
         <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
             {#if activeTab === "sessions"}
-                <div class="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+                <div class="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden" in:fade={{ duration: tabFadeMs }}>
                     <aside
                         class="flex flex-col min-h-0 shrink-0 border-sem-border px-2 sm:px-3 md:px-4 py-2 sm:py-3 gap-2 sm:gap-3 {sessionsAsideClass}"
                     >
@@ -383,7 +393,7 @@
                             {sessions}
                             {selectedSessionId}
                             onselect={selectSession}
-                            onrefresh={loadSessions}
+                            onrefresh={() => void loadSessions()}
                         />
                     </aside>
 
@@ -399,21 +409,25 @@
                             compactHeader={isNarrowScreen}
                             i18nPrefix="rnsh"
                             onupdateCommandInput={(val) => (commandInput = val)}
-                            onsend={sendCommand}
-                            onstart={startSelected}
-                            onstop={stopSelected}
-                            onclear={clearSelectedOutput}
-                            onremove={removeSelected}
-                            oncopyAddress={copyListenAddress}
+                            onsend={() => void sendCommand()}
+                            onstart={() => void startSelected()}
+                            onstop={() => void stopSelected()}
+                            onclear={() => void clearSelectedOutput()}
+                            onremove={() => void removeSelected()}
+                            oncopyAddress={() => void copyListenAddress()}
                             ontoggleFullscreen={toggleSessionFullscreen}
                             ontoggleSessions={toggleMobileSessions}
                         />
                     </section>
                 </div>
             {:else if activeTab === "connect"}
-                <RNSHConnectTab bind:form={connectForm} onsubmit={createConnectSession} />
+                <div class="flex-1 flex flex-col min-h-0 overflow-hidden" in:fade={{ duration: tabFadeMs }}>
+                    <RNSHConnectTab bind:form={connectForm} onsubmit={createConnectSession} />
+                </div>
             {:else if activeTab === "listen"}
-                <RNSHListenTab bind:form={listenForm} onsubmit={createListenSession} />
+                <div class="flex-1 flex flex-col min-h-0 overflow-hidden" in:fade={{ duration: tabFadeMs }}>
+                    <RNSHListenTab bind:form={listenForm} onsubmit={createListenSession} />
+                </div>
             {/if}
         </div>
     {/if}
@@ -429,12 +443,12 @@
             sessionsOpen={mobileSessionsOpen}
             i18nPrefix="rnsh"
             onupdateCommandInput={(val) => (commandInput = val)}
-            onsend={sendCommand}
-            onstart={startSelected}
-            onstop={stopSelected}
-            onclear={clearSelectedOutput}
-            onremove={removeSelected}
-            oncopyAddress={copyListenAddress}
+            onsend={() => void sendCommand()}
+            onstart={() => void startSelected()}
+            onstop={() => void stopSelected()}
+            onclear={() => void clearSelectedOutput()}
+            onremove={() => void removeSelected()}
+            oncopyAddress={() => void copyListenAddress()}
             ontoggleFullscreen={toggleSessionFullscreen}
             ontoggleSessions={toggleMobileSessions}
         />

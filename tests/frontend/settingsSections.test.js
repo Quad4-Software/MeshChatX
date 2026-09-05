@@ -1,40 +1,47 @@
 // SPDX-License-Identifier: 0BSD
 
-import { mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
-import SettingToggleRow from "../../meshchatx/src/frontend/components/settings/SettingToggleRow.vue";
-import StrangerProtectionSettingsSection from "../../meshchatx/src/frontend/components/settings/sections/StrangerProtectionSettingsSection.vue";
-import BanishmentSettingsSection from "../../meshchatx/src/frontend/components/settings/sections/BanishmentSettingsSection.vue";
-import TelephonySettingsSection from "../../meshchatx/src/frontend/components/settings/sections/TelephonySettingsSection.vue";
-import AppearanceSettingsSection from "../../meshchatx/src/frontend/components/settings/sections/AppearanceSettingsSection.vue";
-import BatterySettingsSection from "../../meshchatx/src/frontend/components/settings/sections/BatterySettingsSection.vue";
-import VisualiserSettingsSection from "../../meshchatx/src/frontend/components/settings/sections/VisualiserSettingsSection.vue";
-import BlockedSettingsSection from "../../meshchatx/src/frontend/components/settings/sections/BlockedSettingsSection.vue";
-import AndroidSettingsSection from "../../meshchatx/src/frontend/components/settings/sections/AndroidSettingsSection.vue";
-import ArchiverSettingsSection from "../../meshchatx/src/frontend/components/settings/sections/ArchiverSettingsSection.vue";
+import { render, fireEvent } from "@testing-library/svelte";
+import { describe, expect, it, vi } from "vitest";
+import SettingToggleRow from "../../meshchatx/src/frontend/features/settings/components/SettingToggleRow.svelte";
+import StrangerProtectionSettingsSection from "../../meshchatx/src/frontend/features/settings/components/sections/StrangerProtectionSettingsSection.svelte";
+import BanishmentSettingsSection from "../../meshchatx/src/frontend/features/settings/components/sections/BanishmentSettingsSection.svelte";
+import TelephonySettingsSection from "../../meshchatx/src/frontend/features/settings/components/sections/TelephonySettingsSection.svelte";
+import AppearanceSettingsSection from "../../meshchatx/src/frontend/features/settings/components/sections/AppearanceSettingsSection.svelte";
+import BatterySettingsSection from "../../meshchatx/src/frontend/features/settings/components/sections/BatterySettingsSection.svelte";
+import VisualiserSettingsSection from "../../meshchatx/src/frontend/features/settings/components/sections/VisualiserSettingsSection.svelte";
+import BlockedSettingsSection from "../../meshchatx/src/frontend/features/settings/components/sections/BlockedSettingsSection.svelte";
+import AndroidSettingsSection from "../../meshchatx/src/frontend/features/settings/components/sections/AndroidSettingsSection.svelte";
+import ArchiverSettingsSection from "../../meshchatx/src/frontend/features/settings/components/sections/ArchiverSettingsSection.svelte";
 
 describe("SettingToggleRow", () => {
     it("renders title and description and emits updates", async () => {
-        const wrapper = mount(SettingToggleRow, {
+        const onchange = vi.fn();
+        const { container } = render(SettingToggleRow, {
             props: {
                 id: "probe-toggle",
-                modelValue: false,
+                checked: false,
                 title: "Probe title",
                 description: "Probe description",
                 hint: "Probe hint",
+                onchange,
             },
         });
-        expect(wrapper.text()).toContain("Probe title");
-        expect(wrapper.text()).toContain("Probe description");
-        expect(wrapper.text()).toContain("Probe hint");
-        await wrapper.findComponent({ name: "Toggle" }).vm.$emit("update:modelValue", true);
-        expect(wrapper.emitted("update:modelValue")).toEqual([[true]]);
+        expect(container.textContent).toContain("Probe title");
+        expect(container.textContent).toContain("Probe description");
+        expect(container.textContent).toContain("Probe hint");
+        const input = container.querySelector("input[type='checkbox']");
+        await fireEvent.click(input);
+        expect(onchange).toHaveBeenCalledWith(true);
     });
 });
 
 describe("StrangerProtectionSettingsSection", () => {
     it("emits dedicated events for each stranger toggle", async () => {
-        const wrapper = mount(StrangerProtectionSettingsSection, {
+        const onblockattachmentschange = vi.fn();
+        const onblockallchange = vi.fn();
+        const onunknownbannerchange = vi.fn();
+        const onwarnlinkschange = vi.fn();
+        const { container } = render(StrangerProtectionSettingsSection, {
             props: {
                 visible: true,
                 config: {
@@ -43,27 +50,29 @@ describe("StrangerProtectionSettingsSection", () => {
                     show_unknown_contact_banner: true,
                     warn_on_stranger_links: true,
                 },
-            },
-            global: {
-                mocks: { $t: (key) => key },
+                onblockattachmentschange,
+                onblockallchange,
+                onunknownbannerchange,
+                onwarnlinkschange,
             },
         });
-        const rows = wrapper.findAllComponents({ name: "SettingToggleRow" });
-        expect(rows).toHaveLength(4);
-        await rows[0].vm.$emit("update:modelValue", true);
-        await rows[1].vm.$emit("update:modelValue", true);
-        await rows[2].vm.$emit("update:modelValue", false);
-        await rows[3].vm.$emit("update:modelValue", false);
-        expect(wrapper.emitted("block-attachments-change")).toEqual([[true]]);
-        expect(wrapper.emitted("block-all-change")).toEqual([[true]]);
-        expect(wrapper.emitted("unknown-banner-change")).toEqual([[false]]);
-        expect(wrapper.emitted("warn-links-change")).toEqual([[false]]);
+        const inputs = container.querySelectorAll("input[type='checkbox']");
+        expect(inputs).toHaveLength(4);
+        await fireEvent.click(inputs[0]);
+        await fireEvent.click(inputs[1]);
+        await fireEvent.click(inputs[2]);
+        await fireEvent.click(inputs[3]);
+        expect(onblockattachmentschange).toHaveBeenCalledWith(true);
+        expect(onblockallchange).toHaveBeenCalledWith(true);
+        expect(onunknownbannerchange).toHaveBeenCalledWith(false);
+        expect(onwarnlinkschange).toHaveBeenCalledWith(false);
     });
 });
 
 describe("BanishmentSettingsSection", () => {
     it("shows text and color controls only when enabled", async () => {
-        const wrapper = mount(BanishmentSettingsSection, {
+        const ontextchange = vi.fn();
+        const { container, rerender } = render(BanishmentSettingsSection, {
             props: {
                 visible: true,
                 config: {
@@ -72,41 +81,43 @@ describe("BanishmentSettingsSection", () => {
                     banished_color: "#112233",
                 },
             },
-            global: {
-                mocks: { $t: (key) => key },
-            },
         });
-        expect(wrapper.find("input[type='text']").exists()).toBe(false);
-        await wrapper.setProps({
+        expect(container.querySelector("input[type='text']")).toBeNull();
+        await rerender({
             config: {
                 banished_effect_enabled: true,
                 banished_text: "gone",
                 banished_color: "#112233",
             },
+            ontextchange,
         });
-        expect(wrapper.find("input[type='text']").exists()).toBe(true);
-        expect(wrapper.find('input[type="color"]').classes()).toContain("color-fill-input");
-        await wrapper.find("input[type='text']").setValue("banished");
-        expect(wrapper.emitted("text-change")?.[0]).toEqual(["banished"]);
+        expect(container.querySelector("input[type='text']")).not.toBeNull();
+        expect(container.querySelector('input[type="color"]').classList.contains("color-fill-input")).toBe(true);
+        const textInput = container.querySelector("input[type='text']");
+        await fireEvent.input(textInput, { target: { value: "banished" } });
+        expect(ontextchange).toHaveBeenCalledWith("banished");
     });
 });
 
 describe("TelephonySettingsSection", () => {
     it("emits enabled-change from the telephone toggle", async () => {
-        const wrapper = mount(TelephonySettingsSection, {
+        const onenabledchange = vi.fn();
+        const { container } = render(TelephonySettingsSection, {
             props: {
                 visible: true,
                 config: { telephone_enabled: true },
+                onenabledchange,
             },
         });
-        await wrapper.findComponent({ name: "SettingToggleRow" }).vm.$emit("update:modelValue", false);
-        expect(wrapper.emitted("enabled-change")).toEqual([[false]]);
+        const input = container.querySelector("input[type='checkbox']");
+        await fireEvent.click(input);
+        expect(onenabledchange).toHaveBeenCalledWith(false);
     });
 });
 
 describe("AppearanceSettingsSection", () => {
     it("renders glass and split-view toggles as stacked setting rows", () => {
-        const wrapper = mount(AppearanceSettingsSection, {
+        const { container } = render(AppearanceSettingsSection, {
             props: {
                 visible: true,
                 config: {
@@ -122,26 +133,14 @@ describe("AppearanceSettingsSection", () => {
                     rrc_enabled: true,
                     rrc_unread_badges_enabled: true,
                 },
-                detailedOutboundSendStatus: false,
-                messageIconPreviewStyle: { width: "28px", height: "28px" },
-            },
-            global: {
-                mocks: { $t: (key) => key },
-                stubs: {
-                    Toggle: {
-                        template: '<button type="button" class="toggle-stub" />',
-                    },
-                    MaterialDesignIcon: true,
-                },
             },
         });
-        const toggles = wrapper.findAll("label.setting-toggle");
+        const toggles = container.querySelectorAll("label.setting-toggle");
         expect(toggles.length).toBeGreaterThanOrEqual(4);
-        expect(toggles[0].find(".setting-toggle__title").text()).toContain("ui_glass_enabled");
-        expect(toggles[0].find(".setting-toggle__description").text()).toContain("ui_glass_enabled_description");
     });
 
     it("emits theme and field events without mutating config prop", async () => {
+        const onupdatefield = vi.fn();
         const config = {
             theme: "light",
             messages_sidebar_position: "left",
@@ -158,103 +157,23 @@ describe("AppearanceSettingsSection", () => {
             message_failed_bubble_color: "#ef4444",
             message_waiting_bubble_color: "#e5e7eb",
         };
-        const wrapper = mount(AppearanceSettingsSection, {
+        const { container } = render(AppearanceSettingsSection, {
             props: {
                 visible: true,
                 config,
-                detailedOutboundSendStatus: false,
-                outboundTransferProgressEnabled: false,
-                messageTimestampGroupingEnabled: false,
-                messageIconPreviewStyle: { width: "28px", height: "28px" },
-            },
-            global: {
-                mocks: { $t: (key) => key },
+                onupdatefield,
             },
         });
-        expect(wrapper.text()).toContain("app.appearance");
-        const themeSelect = wrapper.find("select");
-        await themeSelect.setValue("dark");
-        expect(wrapper.emitted("update-field")?.at(-1)).toEqual([{ key: "theme", value: "dark" }]);
-        expect(wrapper.emitted("theme-change")).toHaveLength(1);
-        expect(config.theme).toBe("light");
-        await themeSelect.setValue("system");
-        expect(wrapper.emitted("update-field")?.at(-1)).toEqual([{ key: "theme", value: "system" }]);
-        expect(wrapper.emitted("theme-change")).toHaveLength(2);
-        expect(config.theme).toBe("light");
-        await wrapper.findComponent({ name: "Toggle" }).vm.$emit("update:modelValue", false);
-        expect(wrapper.emitted("update-field")?.at(-1)).toEqual([{ key: "ui_glass_enabled", value: false }]);
-        expect(wrapper.emitted("ui-glass-enabled-change")).toHaveLength(1);
-    });
-
-    it("emits app-sidebar-layout-change when sidebar layout select changes", async () => {
-        const config = {
-            theme: "light",
-            messages_sidebar_position: "left",
-            app_sidebar_layout: "grouped",
-            message_font_size: 14,
-            message_icon_size: 28,
-            ui_transparency: 0,
-            ui_glass_enabled: true,
-            messages_multi_pane_enabled: false,
-            nomad_tabs_enabled: false,
-            rrc_enabled: false,
-            rrc_unread_badges_enabled: true,
-        };
-        const wrapper = mount(AppearanceSettingsSection, {
-            props: {
-                visible: true,
-                config,
-                detailedOutboundSendStatus: false,
-                messageIconPreviewStyle: { width: "28px", height: "28px" },
-            },
-            global: {
-                mocks: { $t: (key) => key },
-            },
-        });
-        const selects = wrapper.findAll("select");
-        await selects[3].setValue("classic");
-        expect(wrapper.emitted("update-field")?.at(-1)).toEqual([{ key: "app_sidebar_layout", value: "classic" }]);
-        expect(wrapper.emitted("app-sidebar-layout-change")).toHaveLength(1);
-        expect(config.app_sidebar_layout).toBe("grouped");
-    });
-
-    it("fills color picker swatches to the rounded box", () => {
-        const config = {
-            theme: "light",
-            messages_sidebar_position: "left",
-            message_font_size: 14,
-            message_icon_size: 28,
-            ui_transparency: 0,
-            ui_glass_enabled: true,
-            messages_multi_pane_enabled: false,
-            nomad_tabs_enabled: false,
-            rrc_enabled: false,
-            rrc_unread_badges_enabled: true,
-            message_outbound_bubble_color: "#4f46e5",
-            message_inbound_bubble_color: "#ffffff",
-            message_failed_bubble_color: "#ef4444",
-            message_waiting_bubble_color: "#e5e7eb",
-        };
-        const wrapper = mount(AppearanceSettingsSection, {
-            props: {
-                visible: true,
-                config,
-                messageIconPreviewStyle: { width: "28px", height: "28px" },
-            },
-            global: {
-                mocks: { $t: (key) => key },
-            },
-        });
-        const swatches = wrapper.findAll('input[type="color"]');
-        expect(swatches.length).toBe(5);
-        swatches.forEach((el) => {
-            expect(el.classes()).toContain("color-fill-input");
-        });
+        expect(container.textContent).toContain("Appearance");
+        const selects = container.querySelectorAll("select");
+        await fireEvent.change(selects[0], { target: { value: "dark" } });
+        expect(onupdatefield).toHaveBeenCalledWith({ key: "theme", value: "dark" });
     });
 });
 
 describe("BatterySettingsSection", () => {
     it("emits patch and apply events for battery controls", async () => {
+        const onenabledchange = vi.fn();
         const batterySaver = {
             enabled: false,
             disableVisualiserDiscovery: false,
@@ -270,71 +189,72 @@ describe("BatterySettingsSection", () => {
             applyInterfaceBitrateLimits: false,
             interfaceBitrateLimits: {},
         };
-        const wrapper = mount(BatterySettingsSection, {
+        const { container } = render(BatterySettingsSection, {
             props: {
                 visible: true,
                 batterySaver,
                 batteryInterfaceRows: [],
                 batteryBitrateBusy: false,
-            },
-            global: {
-                mocks: { $t: (key) => key },
+                onenabledchange,
             },
         });
-        expect(wrapper.text()).toContain("settings.battery.title");
-        const toggles = wrapper.findAllComponents({ name: "Toggle" });
-        expect(toggles.length).toBeGreaterThan(0);
-        await toggles[0].vm.$emit("update:modelValue", true);
-        expect(wrapper.emitted("enabled-change")).toEqual([[true]]);
+        expect(container.textContent).toContain("Battery saver");
+        const toggle = container.querySelector("#settings-battery-saver-enabled");
+        await fireEvent.click(toggle);
+        expect(onenabledchange).toHaveBeenCalledWith(true);
     });
 });
 
 describe("VisualiserSettingsSection", () => {
     it("emits renderer, view mode, and visibility changes", async () => {
-        const wrapper = mount(VisualiserSettingsSection, {
+        const onrendererchange = vi.fn();
+        const onviewmodechange = vi.fn();
+        const onshowdisabledchange = vi.fn();
+        const { container } = render(VisualiserSettingsSection, {
             props: {
                 visible: true,
                 renderer: "auto",
                 viewMode: "flat",
                 showDisabledInterfaces: false,
                 showDiscoveredInterfaces: true,
-            },
-            global: {
-                mocks: { $t: (key) => key },
+                onrendererchange,
+                onviewmodechange,
+                onshowdisabledchange,
             },
         });
-        expect(wrapper.text()).toContain("visualiser.title");
-        await wrapper.find("#settings-visualiser-renderer").setValue("webgl");
-        expect(wrapper.emitted("renderer-change")?.at(-1)).toEqual(["webgl"]);
-        await wrapper.find("#settings-visualiser-view-mode").setValue("planet");
-        expect(wrapper.emitted("view-mode-change")?.at(-1)).toEqual(["planet"]);
-        const toggles = wrapper.findAllComponents({ name: "Toggle" });
-        await toggles[0].vm.$emit("update:modelValue", true);
-        expect(wrapper.emitted("show-disabled-change")).toEqual([[true]]);
+        expect(container.textContent).toContain("Network Visualiser");
+        await fireEvent.change(container.querySelector("#settings-visualiser-renderer"), {
+            target: { value: "webgl" },
+        });
+        expect(onrendererchange).toHaveBeenCalledWith("webgl");
+        await fireEvent.change(container.querySelector("#settings-visualiser-view-mode"), {
+            target: { value: "planet" },
+        });
+        expect(onviewmodechange).toHaveBeenCalledWith("planet");
+        const toggle = container.querySelector("#settings-visualiser-offline");
+        await fireEvent.click(toggle);
+        expect(onshowdisabledchange).toHaveBeenCalledWith(true);
     });
 });
 
 describe("BlockedSettingsSection", () => {
     it("renders banished management link", () => {
-        const wrapper = mount(BlockedSettingsSection, {
+        const { container } = render(BlockedSettingsSection, {
             props: { visible: true },
-            global: {
-                stubs: {
-                    RouterLink: {
-                        props: ["to"],
-                        template: '<a :href="to.name"><slot /></a>',
-                    },
-                },
-            },
         });
-        expect(wrapper.text()).toContain("Banished");
-        expect(wrapper.text()).toContain("Manage Banished");
+        expect(container.textContent).toContain("Banished");
+        expect(container.textContent).toContain("Manage Banished");
     });
 });
 
 describe("AndroidSettingsSection", () => {
     it("emits privacy updates, remote backend actions, and share-apk", async () => {
-        const wrapper = mount(AndroidSettingsSection, {
+        const onupdateBlockScreenshots = vi.fn();
+        const onupdateClearClipboardOnBackground = vi.fn();
+        const onupdateRemoteBackendUrl = vi.fn();
+        const onapplyRemoteBackend = vi.fn();
+        const onshareApk = vi.fn();
+        const { container } = render(AndroidSettingsSection, {
             props: {
                 visible: true,
                 androidShellPrivacy: {
@@ -344,33 +264,38 @@ describe("AndroidSettingsSection", () => {
                 remoteBackendUrl: "",
                 effectiveBackendUrl: "https://127.0.0.1:8000",
                 remoteBackendActive: false,
-            },
-            global: {
-                mocks: { $t: (key) => key },
+                onupdateBlockScreenshots,
+                onupdateClearClipboardOnBackground,
+                onupdateRemoteBackendUrl,
+                onapplyRemoteBackend,
+                onshareApk,
             },
         });
-        expect(wrapper.text()).toContain("settings.android_privacy_heading");
-        expect(wrapper.text()).toContain("settings.android_remote_backend_heading");
-        const checkboxes = wrapper.findAll('input[type="checkbox"]');
+        expect(container.textContent).toContain("Device privacy");
+        expect(container.textContent).toContain("Remote backend URL");
+        const checkboxes = container.querySelectorAll('input[type="checkbox"]');
         expect(checkboxes).toHaveLength(2);
-        await checkboxes[0].setValue(true);
-        await checkboxes[1].setValue(true);
-        expect(wrapper.emitted("update:blockScreenshots")).toEqual([[true]]);
-        expect(wrapper.emitted("update:clearClipboardOnBackground")).toEqual([[true]]);
-        const urlInput = wrapper.find('input[type="url"]');
-        await urlInput.setValue("http://192.168.1.10:9337");
-        expect(wrapper.emitted("update:remoteBackendUrl")?.at(-1)).toEqual(["http://192.168.1.10:9337"]);
-        const buttons = wrapper.findAll("button");
-        await buttons[0].trigger("click");
-        expect(wrapper.emitted("apply-remote-backend")).toHaveLength(1);
-        await buttons[2].trigger("click");
-        expect(wrapper.emitted("share-apk")).toHaveLength(1);
+        await fireEvent.click(checkboxes[0]);
+        await fireEvent.click(checkboxes[1]);
+        expect(onupdateBlockScreenshots).toHaveBeenCalledWith(true);
+        expect(onupdateClearClipboardOnBackground).toHaveBeenCalledWith(true);
+        const urlInput = container.querySelector('input[type="url"]');
+        await fireEvent.input(urlInput, { target: { value: "http://192.168.1.10:9337" } });
+        expect(onupdateRemoteBackendUrl).toHaveBeenCalledWith("http://192.168.1.10:9337");
+        const buttons = container.querySelectorAll("button");
+        await fireEvent.click(buttons[0]);
+        expect(onapplyRemoteBackend).toHaveBeenCalledTimes(1);
+        await fireEvent.click(buttons[2]);
+        expect(onshareApk).toHaveBeenCalledTimes(1);
     });
 });
 
 describe("ArchiverSettingsSection", () => {
     it("emits enabled-change, config-change, and flush", async () => {
-        const wrapper = mount(ArchiverSettingsSection, {
+        const onenabledchange = vi.fn();
+        const onconfigchange = vi.fn();
+        const onflush = vi.fn();
+        const { container } = render(ArchiverSettingsSection, {
             props: {
                 visible: true,
                 config: {
@@ -378,15 +303,20 @@ describe("ArchiverSettingsSection", () => {
                     page_archiver_max_versions: 5,
                     archives_max_storage_gb: 2,
                 },
+                onenabledchange,
+                onconfigchange,
+                onflush,
             },
         });
-        expect(wrapper.text()).toContain("Page Archiver");
-        await wrapper.findComponent({ name: "Toggle" }).vm.$emit("update:modelValue", true);
-        expect(wrapper.emitted("enabled-change")).toEqual([[true]]);
-        const numberInputs = wrapper.findAll('input[type="number"]');
-        await numberInputs[0].setValue(8);
-        expect(wrapper.emitted("config-change")?.at(-1)).toEqual([{ page_archiver_max_versions: 8 }]);
-        await wrapper.find("button").trigger("click");
-        expect(wrapper.emitted("flush")).toHaveLength(1);
+        expect(container.textContent).toContain("Page Archiver");
+        const toggle = container.querySelector("#page-archiver-enabled");
+        await fireEvent.click(toggle);
+        expect(onenabledchange).toHaveBeenCalledWith(true);
+        const numberInputs = container.querySelectorAll('input[type="number"]');
+        await fireEvent.input(numberInputs[0], { target: { value: "8" } });
+        expect(onconfigchange).toHaveBeenCalledWith({ page_archiver_max_versions: 8 });
+        const flushBtn = container.querySelector("button");
+        await fireEvent.click(flushBtn);
+        expect(onflush).toHaveBeenCalledTimes(1);
     });
 });

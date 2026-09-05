@@ -13,45 +13,53 @@ export const MAX_HASH_LEN = 64;
 
 const FORBIDDEN_SECTION_IDS = new Set(["__proto__", "constructor", "prototype"]);
 
-/**
- * @param {unknown} value
- * @param {number} maxLen
- * @returns {string}
- */
-function clipStr(value, maxLen) {
+export type NomadFavouriteSection = {
+    id: string;
+    name: string;
+    collapsed: boolean;
+};
+
+export type NomadFavouritesLayout = {
+    sections: NomadFavouriteSection[];
+    sectionOrder: string[];
+    favouritesBySection: Record<string, string[]>;
+};
+
+function clipStr(value: unknown, maxLen: number): string {
     if (typeof value !== "string") {
         return "";
     }
     return value.length <= maxLen ? value : value.slice(0, maxLen);
 }
 
-/**
- * @param {unknown} layout
- * @returns {{sections: object[], sectionOrder: string[], favouritesBySection: Record<string, string[]>}|null}
- */
-export function normalizeNomadFavouritesLayout(layout) {
-    if (!layout || typeof layout !== "object" || Array.isArray(layout) || !Array.isArray(layout.sections)) {
+export function normalizeNomadFavouritesLayout(layout: unknown): NomadFavouritesLayout | null {
+    if (!layout || typeof layout !== "object" || Array.isArray(layout)) {
         return null;
     }
-    const favouritesBySection =
-        layout.favouritesBySection &&
-        typeof layout.favouritesBySection === "object" &&
-        !Array.isArray(layout.favouritesBySection)
-            ? layout.favouritesBySection
+    const rawObj = layout as Record<string, unknown>;
+    if (!Array.isArray(rawObj.sections)) {
+        return null;
+    }
+    const favouritesBySection: Record<string, unknown> =
+        rawObj.favouritesBySection &&
+        typeof rawObj.favouritesBySection === "object" &&
+        !Array.isArray(rawObj.favouritesBySection)
+            ? (rawObj.favouritesBySection as Record<string, unknown>)
             : {};
-    const sections = [];
-    const sectionIds = new Set();
-    for (const section of layout.sections) {
+    const sections: NomadFavouriteSection[] = [];
+    const sectionIds = new Set<string>();
+    for (const section of rawObj.sections) {
         if (sections.length >= MAX_SECTIONS) {
             break;
         }
         if (!section || typeof section !== "object" || Array.isArray(section)) {
             continue;
         }
-        if (typeof section.id !== "string") {
+        const s = section as Record<string, unknown>;
+        if (typeof s.id !== "string") {
             continue;
         }
-        const sectionId = section.id.trim();
+        const sectionId = s.id.trim();
         if (
             !sectionId ||
             sectionId.length > MAX_SECTION_ID_LEN ||
@@ -63,16 +71,16 @@ export function normalizeNomadFavouritesLayout(layout) {
         sectionIds.add(sectionId);
         sections.push({
             id: sectionId,
-            name: clipStr(section.name, MAX_SECTION_NAME_LEN),
-            collapsed: section.collapsed === true,
+            name: clipStr(s.name, MAX_SECTION_NAME_LEN),
+            collapsed: s.collapsed === true,
         });
     }
     if (sections.length === 0) {
         return null;
     }
-    const sectionOrder = [];
-    if (Array.isArray(layout.sectionOrder)) {
-        for (const sid of layout.sectionOrder) {
+    const sectionOrder: string[] = [];
+    if (Array.isArray(rawObj.sectionOrder)) {
+        for (const sid of rawObj.sectionOrder) {
             if (typeof sid !== "string") {
                 continue;
             }
@@ -90,7 +98,7 @@ export function normalizeNomadFavouritesLayout(layout) {
             sectionOrder.push(section.id);
         }
     }
-    const sanitizedMap = Object.create(null);
+    const sanitizedMap: Record<string, string[]> = Object.create(null);
     let totalHashes = 0;
     for (const key of Object.keys(favouritesBySection)) {
         if (!sectionIds.has(key) || FORBIDDEN_SECTION_IDS.has(key)) {
@@ -100,8 +108,8 @@ export function normalizeNomadFavouritesLayout(layout) {
         if (!Array.isArray(arr)) {
             continue;
         }
-        const hashes = [];
-        const seen = new Set();
+        const hashes: string[] = [];
+        const seen = new Set<string>();
         for (const item of arr) {
             if (totalHashes >= MAX_TOTAL_HASHES || hashes.length >= MAX_HASHES_PER_SECTION) {
                 break;
@@ -127,12 +135,7 @@ export function normalizeNomadFavouritesLayout(layout) {
     return { sections, sectionOrder, favouritesBySection: sanitizedMap };
 }
 
-/**
- * Stable JSON for equality checks (avoids unnecessary PUTs).
- * @param {object|null} layout
- * @returns {string}
- */
-export function serializeNomadFavouritesLayout(layout) {
+export function serializeNomadFavouritesLayout(layout: unknown): string {
     const normalized = normalizeNomadFavouritesLayout(layout);
     if (!normalized) {
         return "";
@@ -140,7 +143,7 @@ export function serializeNomadFavouritesLayout(layout) {
     return JSON.stringify(normalized);
 }
 
-export function readLocalNomadFavouritesLayout() {
+export function readLocalNomadFavouritesLayout(): NomadFavouritesLayout | null {
     try {
         if (typeof window === "undefined" || !window.localStorage) {
             return null;
@@ -156,7 +159,9 @@ export function readLocalNomadFavouritesLayout() {
                 return normalizeNomadFavouritesLayout({
                     sections: [{ id: "default", name: "Favourites", collapsed: false }],
                     sectionOrder: ["default"],
-                    favouritesBySection: { default: parsedOrder.filter((h) => typeof h === "string") },
+                    favouritesBySection: {
+                        default: parsedOrder.filter((h: unknown): h is string => typeof h === "string"),
+                    },
                 });
             }
         }
@@ -166,7 +171,7 @@ export function readLocalNomadFavouritesLayout() {
     return null;
 }
 
-export function clearLocalNomadFavouritesLayout() {
+export function clearLocalNomadFavouritesLayout(): void {
     try {
         if (typeof window === "undefined" || !window.localStorage) {
             return;
@@ -180,7 +185,7 @@ export function clearLocalNomadFavouritesLayout() {
     pendingSaveLayout = null;
 }
 
-function writeLocalLayout(layout) {
+function writeLocalLayout(layout: unknown): void {
     try {
         if (typeof window === "undefined" || !window.localStorage) {
             return;
@@ -195,16 +200,11 @@ function writeLocalLayout(layout) {
     }
 }
 
-let saveInFlight = null;
-let pendingSaveLayout = null;
+let saveInFlight: Promise<void> | null = null;
+let pendingSaveLayout: NomadFavouritesLayout | null = null;
 let lastSavedSerialized = "";
 
-/**
- * Load favourite section layout from the identity DB, migrating localStorage once.
- * @param {*} api window.api-like client
- * @returns {Promise<object|null>}
- */
-export async function loadNomadFavouritesLayout(api) {
+export async function loadNomadFavouritesLayout(api: any): Promise<NomadFavouritesLayout | null> {
     if (!api?.get) {
         return readLocalNomadFavouritesLayout();
     }
@@ -217,13 +217,13 @@ export async function loadNomadFavouritesLayout(api) {
             return remote;
         }
     } catch {
-        // fall through to local
+        // fall back to local
     }
     const local = readLocalNomadFavouritesLayout();
     if (local && api?.put) {
         try {
-            const response = await api.put("/api/v1/favourites/layout", { layout: local });
-            const saved = normalizeNomadFavouritesLayout(response?.data?.layout) || local;
+            const pushRes = await api.put("/api/v1/favourites/layout", { layout: local });
+            const saved = normalizeNomadFavouritesLayout(pushRes?.data?.layout) || local;
             writeLocalLayout(saved);
             lastSavedSerialized = serializeNomadFavouritesLayout(saved);
             try {
@@ -242,7 +242,7 @@ export async function loadNomadFavouritesLayout(api) {
     return local;
 }
 
-async function flushPendingSave(api) {
+async function flushPendingSave(api: any): Promise<void> {
     while (pendingSaveLayout) {
         const layout = pendingSaveLayout;
         pendingSaveLayout = null;
@@ -252,7 +252,6 @@ async function flushPendingSave(api) {
         }
         try {
             const response = await api.put("/api/v1/favourites/layout", { layout });
-            // A newer save may have arrived while this PUT was in flight, so prefer that.
             if (pendingSaveLayout) {
                 continue;
             }
@@ -261,19 +260,11 @@ async function flushPendingSave(api) {
             lastSavedSerialized = serializeNomadFavouritesLayout(saved);
         } catch {
             writeLocalLayout(layout);
-            // Keep lastSavedSerialized unchanged so a later retry can push again.
         }
     }
 }
 
-/**
- * Persist favourite section layout to the identity DB (and local cache).
- * Coalesces concurrent saves and skips no-op PUTs.
- * @param {*} api window.api-like client
- * @param {object} layout
- * @returns {Promise<object|null>}
- */
-export async function saveNomadFavouritesLayout(api, layout) {
+export async function saveNomadFavouritesLayout(api: any, layout: unknown): Promise<NomadFavouritesLayout | null> {
     const normalized = normalizeNomadFavouritesLayout(layout);
     if (!normalized) {
         return null;
@@ -297,8 +288,7 @@ export async function saveNomadFavouritesLayout(api, layout) {
     return readLocalNomadFavouritesLayout() || normalized;
 }
 
-/** Test helper: reset coalescing state between cases. */
-export function _resetNomadFavouritesLayoutSaveStateForTests() {
+export function _resetNomadFavouritesLayoutSaveStateForTests(): void {
     saveInFlight = null;
     pendingSaveLayout = null;
     lastSavedSerialized = "";

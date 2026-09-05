@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: 0BSD
 
-import { describe, expect, it } from "vitest";
-import { mount } from "@vue/test-utils";
-import PluginSlotNode from "../../meshchatx/src/frontend/components/plugins/PluginSlotNode.vue";
+import { describe, expect, it, afterEach } from "vitest";
+import { render, cleanup } from "@testing-library/svelte";
+import PluginSlotNode from "../../meshchatx/src/frontend/features/plugins/components/PluginSlotNode.svelte";
 import {
     validateUiDescriptor,
     KNOWN_NODE_TYPES,
@@ -63,21 +63,16 @@ describe("pluginUiDescriptor", () => {
     });
 
     it("does not fall back to unsanitized html-frame src", async () => {
-        const PluginHtmlFrame = (await import("../../meshchatx/src/frontend/components/plugins/PluginHtmlFrame.vue"))
-            .default;
-        const wrapper = mount(PluginSlotNode, {
+        const { container } = render(PluginSlotNode, {
             props: {
                 node: { type: "html-frame", src: "https://evil.example/x", srcdoc: "" },
                 pluginId: "com.example.test",
                 allowHtmlFrame: true,
             },
-            global: {
-                stubs: { PluginHtmlFrame: false },
-            },
         });
-        const frame = wrapper.findComponent(PluginHtmlFrame);
-        expect(frame.exists()).toBe(true);
-        expect(frame.props("src")).toBe("");
+        const frame = container.querySelector("iframe");
+        expect(frame).toBeTruthy();
+        expect(frame?.getAttribute("src") || "").toBe("");
     });
 
     it("knows reviewed host widgets", () => {
@@ -87,28 +82,34 @@ describe("pluginUiDescriptor", () => {
 });
 
 describe("PluginSlotNode theming", () => {
+    afterEach(() => {
+        cleanup();
+    });
+
     it("uses semantic action classes instead of blue-600", () => {
-        const wrapper = mount(PluginSlotNode, {
+        const { container } = render(PluginSlotNode, {
             props: {
                 node: { type: "button", id: "go", label: "Go" },
                 pluginId: "com.example.test",
             },
         });
-        const cls = wrapper.find("button").classes().join(" ");
-        expect(cls).toContain("bg-sem-action-primary");
-        expect(cls).not.toContain("bg-blue-600");
+        const btn = container.querySelector("button");
+        expect(btn).toBeTruthy();
+        expect(btn?.className).toContain("bg-sem-action-primary");
+        expect(btn?.className).not.toContain("bg-blue-600");
     });
 
     it("renders code blocks with surface-muted styling", () => {
-        const wrapper = mount(PluginSlotNode, {
+        const { container } = render(PluginSlotNode, {
             props: {
                 node: { type: "code", value: "stack\nframe" },
                 pluginId: "com.example.test",
             },
         });
-        const cls = wrapper.find("pre").classes().join(" ");
-        expect(cls).toContain("bg-sem-surface-muted");
-        expect(wrapper.text()).toContain("stack");
+        const pre = container.querySelector("pre");
+        expect(pre).toBeTruthy();
+        expect(pre?.className).toContain("bg-sem-surface-muted");
+        expect(pre?.textContent).toContain("stack");
     });
 });
 

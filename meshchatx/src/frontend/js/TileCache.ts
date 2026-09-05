@@ -211,7 +211,7 @@ class TileCache {
             const transaction = this.db.transaction([META_STORE], "readonly");
             const store = transaction.objectStore(META_STORE);
             const request = store.openCursor();
-            const rows = [];
+            const rows: any[] = [];
             request.onsuccess = (event) => {
                 const cursor = event.target.result;
                 if (!cursor) {
@@ -246,7 +246,7 @@ class TileCache {
         }
 
         const ordered = meta.slice().sort((a, b) => (a.lastAccess || 0) - (b.lastAccess || 0));
-        const toDelete = [];
+        const toDelete: any[] = [];
         for (const row of ordered) {
             if (count <= MAX_TILES && totalBytes <= MAX_BYTES) {
                 break;

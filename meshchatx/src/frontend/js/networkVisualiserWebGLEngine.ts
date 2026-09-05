@@ -77,7 +77,7 @@ export function collectWebGLLabels(opts) {
     const labelByIndex = opts?.labelByIndex || [];
     const idByIndex = opts?.idByIndex || [];
     const hoverId = opts?.hoverId ? String(opts.hoverId) : null;
-    const out = [];
+    const out: any[] = [];
 
     for (let i = 0; i < sceneCount; i++) {
         const id = idByIndex[i] != null ? String(idByIndex[i]) : null;
@@ -231,7 +231,7 @@ function imageForNode(node, kind) {
  * @param {{width:number,height:number,camX?:number,camY?:number,zoom?:number}} view
  */
 export function graphToSceneRequest(graphNodes, graphEdges, view) {
-    const nodes = [];
+    const nodes: any[] = [];
     for (const n of graphNodes || []) {
         if (!n?.id) continue;
         const kind = kindForNode(n);
@@ -250,7 +250,7 @@ export function graphToSceneRequest(graphNodes, graphEdges, view) {
             a: 1,
         });
     }
-    const edges = [];
+    const edges: any[] = [];
     for (const e of graphEdges || []) {
         if (!e?.from || !e?.to) continue;
         const rgb = colorFromEdge(e);
@@ -297,27 +297,23 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
     const renderer = createNetworkVisualiserWebGL(canvas, gl);
     const metaById = new Map();
     const indexById = new Map();
-    /** @type {(string|null)[]} */
-    let imageByIndex = [];
-    /** @type {(string|null)[]} */
-    let labelByIndex = [];
-    /** @type {(string|null)[]} */
-    let idByIndex = [];
-    /** @type {{useTex:number,u:number,v:number}[]} */
-    let texMeta = [];
+    let imageByIndex: (string | null)[] = [];
+    let labelByIndex: (string | null)[] = [];
+    let idByIndex: (string | null)[] = [];
+    let texMeta: { useTex: number; u: number; v: number }[] = [];
     let drawNodeScratch = new Float32Array(0);
-    let rafId = null;
+    let rafId: any = null;
     let running = true;
     let dirty = true;
-    let pointerMode = null;
+    let pointerMode: "drag" | "pan" | "pinch" | null = null;
     let lastX = 0;
     let lastY = 0;
     let nodeCount = 0;
     let edgeCount = 0;
     /** @type {string|null} */
-    let hoverId = null;
+    let hoverId: string | null = null;
     /** @type {Map<number,{x:number,y:number}>} */
-    const pointers = new Map();
+    const pointers = new Map<number, { x: number; y: number }>();
     let pinchLastDist = 0;
     let iconLoadGen = 0;
     let viewMode = FLAT_VIEW;
@@ -325,16 +321,11 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
     let orbitPitch = DEFAULT_ORBIT_PITCH;
     let orbitDist = DEFAULT_ORBIT_DIST;
     let planetLayoutScale = 400;
-    /** @type {{id:string,sx:number,sy:number,size:number}[]} */
-    let planetPick = [];
-    /** @type {{sx:number,sy:number,size:number,facing:number,front:boolean,kind?:number}[]} */
-    let planetProjected = [];
-    /** @type {object[]} */
-    let lastPlanets = [];
-    /** @type {Record<string, string>} */
-    let planetHomeById = Object.create(null);
-    /** @type {number[]} */
-    let kindByIndexScratch = [];
+    let planetPick: any[] = [];
+    let planetProjected: any[] = [];
+    let lastPlanets: any[] = [];
+    let planetHomeById: Record<string, string> = Object.create(null);
+    let kindByIndexScratch: number[] = [];
 
     function cssPoint(ev) {
         const rect = canvas.getBoundingClientRect();
@@ -404,7 +395,7 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
         }
         const size = renderer.resize();
         const preserveCamera = viewOpts.preserveCamera !== false && nodeCount > 0;
-        let prevCam = null;
+        let prevCam: { x: number; y: number; zoom: number } | null = null;
         if (preserveCamera) {
             const buf = callScene("meshchatxVisualiserSceneGetDrawBuffers");
             if (buf && buf.ok !== false) {
@@ -573,7 +564,7 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
             lastPlanets = [];
         }
         const labelZoom = isPlanet() ? planetLodZoom(orbitDist) : camera.zoom;
-        let paintLabels;
+        let paintLabels: any[];
         if (isPlanet()) {
             paintLabels = [];
             const lod = lodLevelFromScale(labelZoom);

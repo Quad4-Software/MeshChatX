@@ -1,27 +1,25 @@
 // SPDX-License-Identifier: 0BSD
 
-/** @typedef {'unreadConversationsCount' | 'relayChatUnreadCount' | 'missedCallsCount'} NavBadgeSource */
+export type NavBadgeSource = "unreadConversationsCount" | "relayChatUnreadCount" | "missedCallsCount";
 
-/** @typedef {'primary' | 'more'} NavTier */
+export type NavTier = "primary" | "more";
 
-/** @typedef {'communicate' | 'explore' | 'network' | 'app'} NavGroup */
+export type NavGroup = "communicate" | "explore" | "network" | "app";
 
-/**
- * @typedef {Object} NavEntry
- * @property {string} id
- * @property {{ name: string }} route
- * @property {string} icon
- * @property {string} labelKey
- * @property {string} [label]
- * @property {{ source: NavBadgeSource, pill?: boolean, cap?: number } | null} [badge]
- * @property {'rrcEnabled' | null} [visibleWhen]
- * @property {string | null} [pluginId]
- * @property {NavTier} [navTier]
- * @property {NavGroup} [group]
- */
+export interface NavEntry {
+    id: string;
+    route: { name: string };
+    icon: string;
+    labelKey: string;
+    label?: string;
+    badge?: { source: NavBadgeSource; pill?: boolean; cap?: number } | null;
+    visibleWhen?: "rrcEnabled" | null;
+    pluginId?: string | null;
+    navTier?: NavTier;
+    group?: NavGroup;
+}
 
-/** @type {NavEntry[]} */
-export const CORE_NAV_ENTRIES = [
+export const CORE_NAV_ENTRIES: NavEntry[] = [
     {
         id: "messages",
         route: { name: "messages" },

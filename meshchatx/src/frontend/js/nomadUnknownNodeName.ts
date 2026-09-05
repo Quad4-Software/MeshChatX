@@ -19,12 +19,7 @@ export const UNKNOWN_NODE_DISPLAY_NAMES = Object.freeze([
 
 const UNKNOWN_NODE_NAME_SET = new Set(UNKNOWN_NODE_DISPLAY_NAMES.map((n) => n.toLowerCase()));
 
-/**
- * @param {unknown} name
- * @param {string} [localizedUnknown]
- * @returns {boolean}
- */
-export function isUnknownNodeDisplayName(name, localizedUnknown = "") {
+export function isUnknownNodeDisplayName(name: unknown, localizedUnknown = ""): boolean {
     if (typeof name !== "string") {
         return true;
     }
@@ -44,12 +39,16 @@ export function isUnknownNodeDisplayName(name, localizedUnknown = "") {
 /**
  * Prefer a meaningful name for favourite upserts; never send a localized
  * unknown sentinel that the backend would treat as a real rename.
- * @param {object|null|undefined} node
- * @param {object|null|undefined} existingFavourite
- * @param {string} [localizedUnknown]
- * @returns {string}
  */
-export function resolveFavouriteUpsertDisplayName(node, existingFavourite = null, localizedUnknown = "") {
+export function resolveFavouriteUpsertDisplayName(
+    node?: { custom_display_name?: string | null; display_name?: string | null; [key: string]: unknown } | null,
+    existingFavourite?: {
+        custom_display_name?: string | null;
+        display_name?: string | null;
+        [key: string]: unknown;
+    } | null,
+    localizedUnknown = ""
+): string {
     const candidate =
         (typeof node?.custom_display_name === "string" && node.custom_display_name) ||
         (typeof node?.display_name === "string" && node.display_name) ||

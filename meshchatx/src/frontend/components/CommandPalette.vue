@@ -1,327 +1,114 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <transition name="slide-down">
-        <div
-            v-if="isOpen"
-            class="fixed inset-x-0 top-0 z-200 flex items-start justify-center p-4 pt-[max(0.5rem,env(safe-area-inset-top))] pointer-events-none"
-        >
-            <div
-                v-click-outside="close"
-                class="w-full max-w-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-sem-border overflow-hidden flex flex-col max-h-[min(70dvh,70vh)] pointer-events-auto mt-2 sm:mt-8"
-            >
-                <!-- search input -->
-                <div class="relative flex items-center p-4 border-b border-sem-border">
-                    <MaterialDesignIcon icon-name="magnify" class="size-6 text-gray-400 mr-3" />
-                    <input
-                        ref="input"
-                        v-model="query"
-                        type="text"
-                        class="w-full bg-transparent border-none focus:ring-0 text-sem-fg placeholder-gray-400 text-lg"
-                        :placeholder="$t('command_palette.search_placeholder')"
-                        @keydown.down.prevent="moveHighlight(1)"
-                        @keydown.up.prevent="moveHighlight(-1)"
-                        @keydown.enter="executeAction"
-                        @keydown.esc="close"
-                    />
-                    <div class="flex items-center gap-1 ml-2">
-                        <kbd
-                            class="px-2 py-1 text-xs font-semibold text-gray-500 bg-sem-surface-muted border border-sem-border rounded-lg shadow-xs"
-                            >ESC</kbd
-                        >
-                    </div>
-                </div>
-
-                <!-- results -->
-                <div class="flex-1 overflow-y-auto p-2 min-h-0">
-                    <div v-if="filteredResults.length === 0" class="p-8 text-center text-sem-fg-muted">
-                        {{ $t("command_palette.no_results", { query: query }) }}
-                    </div>
-                    <div v-else class="space-y-1">
-                        <div v-for="(group, groupName) in groupedResults" :key="groupName">
-                            <div class="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                {{ $t(`command_palette.${groupName}`) }}
-                            </div>
-                            <button
-                                v-for="result in group"
-                                :key="result.id"
-                                type="button"
-                                class="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left group"
-                                :class="[
-                                    highlightedId === result.id
-                                        ? 'bg-sem-surface-muted text-sem-accent'
-                                        : 'hover:bg-sem-surface-muted/50 text-sem-fg-muted',
-                                ]"
-                                @click="executeResult(result)"
-                                @mousemove="highlightedId = result.id"
-                            >
-                                <div
-                                    class="size-10 rounded-xl flex items-center justify-center shrink-0 border transition-colors"
-                                    :class="[
-                                        highlightedId === result.id
-                                            ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-200 dark:border-blue-800'
-                                            : 'bg-sem-surface-muted border-sem-border',
-                                    ]"
-                                >
-                                    <LxmfUserIcon
-                                        v-if="result.type === 'contact' || result.type === 'peer'"
-                                        :custom-image="result.type === 'contact' ? result.contact.custom_image : ''"
-                                        :icon-name="result.icon"
-                                        :icon-foreground-colour="result.iconForeground"
-                                        :icon-background-colour="result.iconBackground"
-                                        icon-class="size-5"
-                                    />
-                                    <MaterialDesignIcon v-else :icon-name="result.icon" class="size-5" />
-                                </div>
-                                <div class="min-w-0 flex-1">
-                                    <div class="font-bold truncate">{{ result.title }}</div>
-                                    <div class="text-xs opacity-60 truncate">{{ result.description }}</div>
-                                </div>
-                                <MaterialDesignIcon
-                                    v-if="highlightedId === result.id"
-                                    icon-name="arrow-right"
-                                    class="size-4 animate-in slide-in-from-left-2"
-                                />
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- footer -->
-                <div
-                    class="p-3 bg-gray-50/50 dark:bg-zinc-900/50 border-t border-sem-border flex justify-center gap-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest"
-                >
-                    <div class="flex items-center gap-1.5">
-                        <kbd
-                            class="px-1.5 py-0.5 bg-white dark:bg-zinc-800 border border-sem-border rounded-sm shadow-xs"
-                            >↑↓</kbd
-                        >
-                        <span>{{ $t("command_palette.footer_navigate") }}</span>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <kbd
-                            class="px-1.5 py-0.5 bg-white dark:bg-zinc-800 border border-sem-border rounded-sm shadow-xs"
-                            >Enter</kbd
-                        >
-                        <span>{{ $t("command_palette.footer_select") }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </transition>
+    <div ref="root" class="contents"></div>
 </template>
 
 <script>
-import MaterialDesignIcon from "./MaterialDesignIcon.vue";
-import LxmfUserIcon from "./LxmfUserIcon.vue";
+import { mount, unmount } from "svelte";
+import CommandPaletteSvelte from "../features/app-shell/components/CommandPalette.svelte";
 
-import GlobalEmitter from "../js/GlobalEmitter";
-import ToastUtils from "../js/ToastUtils";
-import { listCommands } from "../js/registries/commandRegistry.js";
-
+/**
+ * Thin Vue host for the Svelte CommandPalette
+ */
 export default {
     name: "CommandPalette",
-    components: { MaterialDesignIcon, LxmfUserIcon },
-    data() {
-        return {
-            isOpen: false,
-            query: "",
-            highlightedId: null,
-            peers: [],
-            contacts: [],
-        };
-    },
-    computed: {
-        actions() {
-            return listCommands();
-        },
-        allResults() {
-            const results = this.actions.map((action) => ({
-                ...action,
-                title: this.$t(`command_palette.${action.title}`),
-                description: this.$t(`command_palette.${action.description}`),
-            }));
-
-            // add peers
-            if (Array.isArray(this.peers)) {
-                for (const peer of this.peers) {
-                    results.push({
-                        id: `peer-${peer.destination_hash}`,
-                        title: peer.custom_display_name ?? peer.display_name,
-                        description: peer.destination_hash,
-                        icon: peer.lxmf_user_icon?.icon_name ?? "account",
-                        iconForeground: peer.lxmf_user_icon?.foreground_colour,
-                        iconBackground: peer.lxmf_user_icon?.background_colour,
-                        type: "peer",
-                        peer: peer,
-                    });
-                }
-            }
-
-            // add contacts
-            if (Array.isArray(this.contacts)) {
-                for (const contact of this.contacts) {
-                    results.push({
-                        id: `contact-${contact.id}`,
-                        title: contact.name,
-                        description: this.$t("app.call") + ` ${contact.remote_identity_hash}`,
-                        icon: "phone",
-                        type: "contact",
-                        contact: contact,
-                    });
-                }
-            }
-
-            return results;
-        },
-        filteredResults() {
-            if (!this.query) return this.allResults.filter((r) => r.type === "navigation" || r.type === "action");
-            const q = this.query.toLowerCase();
-            return this.allResults.filter(
-                (r) => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q)
-            );
-        },
-        groupedResults() {
-            const groups = {};
-            for (const result of this.filteredResults) {
-                const groupName =
-                    result.type === "peer"
-                        ? "group_recent"
-                        : result.type === "contact"
-                          ? "group_contacts"
-                          : "group_actions";
-                if (!groups[groupName]) groups[groupName] = [];
-                groups[groupName].push(result);
-            }
-            return groups;
-        },
-    },
-    watch: {
-        filteredResults: {
-            handler(newResults) {
-                if (
-                    newResults.length > 0 &&
-                    (!this.highlightedId || !newResults.find((r) => r.id === this.highlightedId))
-                ) {
-                    this.highlightedId = newResults[0].id;
+    created() {
+        Object.defineProperty(this, "isOpen", {
+            get: () => Boolean(this._svelte?.getIsOpen?.()),
+            set: (val) => {
+                if (val) {
+                    this._svelte?.open?.();
+                } else {
+                    this._svelte?.close?.();
                 }
             },
-            immediate: true,
-        },
+            configurable: true,
+            enumerable: true,
+        });
+        Object.defineProperty(this, "query", {
+            get: () => "",
+            set: (val) => {
+                this._svelte?.setQuery?.(val);
+            },
+            configurable: true,
+            enumerable: true,
+        });
+        Object.defineProperty(this, "filteredResults", {
+            get: () => this._svelte?.getFilteredResults?.() || [],
+            configurable: true,
+            enumerable: true,
+        });
+        Object.defineProperty(this, "groupedResults", {
+            get: () => this._svelte?.getGroupedResults?.() || {},
+            configurable: true,
+            enumerable: true,
+        });
+        Object.defineProperty(this, "highlightedId", {
+            get: () => this._svelte?.getHighlightedId?.() || null,
+            set: (val) => {
+                this._svelte?.setHighlightedId?.(val);
+            },
+            configurable: true,
+            enumerable: true,
+        });
+        Object.defineProperty(this, "peers", {
+            get: () => [],
+            set: (val) => {
+                this._svelte?.setPeers?.(val);
+            },
+            configurable: true,
+            enumerable: true,
+        });
+        Object.defineProperty(this, "contacts", {
+            get: () => [],
+            set: (val) => {
+                this._svelte?.setContacts?.(val);
+            },
+            configurable: true,
+            enumerable: true,
+        });
     },
     mounted() {
-        window.addEventListener("keydown", this.handleGlobalKeydown, true);
-        GlobalEmitter.on("open-command-palette", this.open);
+        this._svelte = mount(CommandPaletteSvelte, {
+            target: this.$refs.root,
+            props: {
+                onnavigate: (route) => {
+                    if (route && this.$router) {
+                        this.$router.push(route);
+                    }
+                },
+                onexecuteaction: () => {
+                    this.executeAction();
+                },
+            },
+        });
     },
     beforeUnmount() {
-        window.removeEventListener("keydown", this.handleGlobalKeydown, true);
-        GlobalEmitter.off("open-command-palette", this.open);
+        if (this._svelte) {
+            unmount(this._svelte);
+            this._svelte = null;
+        }
     },
     methods: {
-        handleGlobalKeydown(e) {
-            if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-                e.preventDefault();
-                e.stopPropagation();
-                this.toggle();
-            }
-        },
-        async toggle() {
-            if (this.isOpen) {
-                this.close();
-            } else {
-                await this.open();
-            }
-        },
-        async open() {
-            this.query = "";
-            this.isOpen = true;
-            this.loadPeersAndContacts();
-            this.$nextTick(() => {
-                this.$refs.input?.focus();
-            });
+        open() {
+            return this._svelte?.open();
         },
         close() {
-            this.isOpen = false;
+            return this._svelte?.close();
         },
-        async loadPeersAndContacts() {
-            try {
-                const peerResponse = await window.api.get(`/api/v1/announces`, {
-                    params: { aspect: "lxmf.delivery", limit: 20 },
-                });
-                this.peers = peerResponse.data.announces;
-
-                const contactResponse = await window.api.get("/api/v1/telephone/contacts");
-                this.contacts =
-                    contactResponse.data?.contacts ?? (Array.isArray(contactResponse.data) ? contactResponse.data : []);
-            } catch (e) {
-                console.error("Failed to load command palette data:", e);
-            }
+        toggle() {
+            return this._svelte?.toggle();
         },
         moveHighlight(step) {
-            const index = this.filteredResults.findIndex((r) => r.id === this.highlightedId);
-            let nextIndex = index + step;
-            if (nextIndex < 0) nextIndex = this.filteredResults.length - 1;
-            if (nextIndex >= this.filteredResults.length) nextIndex = 0;
-            this.highlightedId = this.filteredResults[nextIndex].id;
+            return this._svelte?.moveHighlight?.(step);
+        },
+        executeResult(result) {
+            return this._svelte?.executeResult?.(result);
         },
         executeAction() {
-            const result = this.filteredResults.find((r) => r.id === this.highlightedId);
-            if (result) {
-                void this.executeResult(result);
-            }
-        },
-        async executeResult(result) {
-            this.close();
-            if (result.type === "navigation") {
-                this.$router.push(result.route);
-            } else if (result.type === "peer") {
-                this.$router.push({ name: "messages", params: { destinationHash: result.peer.destination_hash } });
-            } else if (result.type === "contact") {
-                this.dialContact(result.contact.remote_identity_hash);
-            } else if (result.type === "action") {
-                if (result.action === "sync") {
-                    GlobalEmitter.emit("sync-propagation-node");
-                } else if (result.action === "compose") {
-                    try {
-                        await this.$router.push({ name: "messages" });
-                    } catch {
-                        // already on messages, or navigation aborted
-                    }
-                    GlobalEmitter.emit("compose-new-message");
-                } else if (result.action === "show-tutorial") {
-                    GlobalEmitter.emit("show-tutorial");
-                } else if (result.action === "show-changelog") {
-                    GlobalEmitter.emit("show-changelog");
-                }
-            }
-        },
-        async dialContact(hash) {
-            try {
-                await window.api.post(`/api/v1/telephone/call/${hash}`);
-                if (this.$route.name !== "call") {
-                    this.$router.push({ name: "call" });
-                }
-            } catch (e) {
-                ToastUtils.error(e.response?.data?.message || "Failed to initiate call");
-            }
+            return this._svelte?.executeAction?.(true);
         },
     },
 };
 </script>
-
-<style scoped>
-.slide-down-enter-active,
-.slide-down-leave-active {
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.slide-down-enter-from,
-.slide-down-leave-to {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.98);
-}
-
-kbd {
-    font-family: inherit;
-}
-</style>

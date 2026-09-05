@@ -157,18 +157,13 @@
         description={t("tools.reticulum_config_editor.description")}
         accent="blue"
     >
-        <button
-            type="button"
-            class="secondary-chip py-1! px-3!"
-            disabled={loading}
-            onclick={loadConfig}
-        >
+        <button type="button" class="secondary-chip focus-ring-sem py-1! px-3!" disabled={loading} onclick={loadConfig}>
             <MaterialDesignIcon iconName="refresh" class="w-3.5 h-3.5" />
             <span class="hidden sm:inline">{t("tools.reticulum_config_editor.reload")}</span>
         </button>
         <button
             type="button"
-            class="secondary-chip py-1! px-3! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
+            class="danger-chip focus-ring-sem py-1! px-3!"
             disabled={loading || resetting}
             onclick={restoreDefaults}
         >
@@ -177,7 +172,7 @@
         </button>
         <button
             type="button"
-            class="secondary-chip py-1! px-3!"
+            class="secondary-chip focus-ring-sem py-1! px-3!"
             disabled={!isDirty || saving}
             onclick={discardChanges}
         >
@@ -186,8 +181,9 @@
         </button>
         <button
             type="button"
-            class="primary-chip py-1! px-3!"
+            class="primary-chip focus-ring-sem py-1! px-3!"
             disabled={!isDirty || saving}
+            title={!isDirty ? t("tools.reticulum_config_editor.saved") : undefined}
             onclick={saveConfig}
         >
             <MaterialDesignIcon iconName="content-save" class="w-3.5 h-3.5" />
@@ -223,7 +219,9 @@
                     </div>
                     <button
                         type="button"
-                        class="ml-auto inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-bold text-amber-600 hover:bg-white/90 transition shadow-xs disabled:opacity-50 {reloadingRns ? '' : 'animate-pulse motion-reduce:animate-none'}"
+                        class="ml-auto inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-bold text-amber-600 hover:bg-white/90 transition shadow-xs disabled:opacity-50 {reloadingRns
+                            ? ''
+                            : 'animate-pulse motion-reduce:animate-none'}"
                         disabled={reloadingRns}
                         onclick={reloadRns}
                     >
@@ -257,8 +255,7 @@
                         autocomplete="off"
                         placeholder={loading ? t("tools.reticulum_config_editor.loading") : ""}
                         class="absolute inset-0 w-full h-full bg-sem-surface text-sem-fg p-4 font-mono text-xs sm:text-sm resize-none focus:outline-hidden"
-                        onkeydown={handleKeyDown}
-                    ></textarea>
+                        onkeydown={handleKeyDown}></textarea>
                 </div>
             </div>
         </div>

@@ -6,15 +6,16 @@
 
 export type BlockedDestination = {
     destination_hash: string;
-    created_at?: string;
+    created_at?: string | null;
 };
 
 export type BlockedIdentity = {
     identity_hash: string;
-    display_name?: string;
+    display_name?: string | null;
     is_node?: boolean;
     is_rns_blackholed?: boolean;
     blocked_destinations?: BlockedDestination[];
+    [key: string]: unknown;
 };
 
 export type FilterBlockedOpts = {
@@ -28,7 +29,7 @@ export function identityBlockedAt(identity: BlockedIdentity): string | null {
     if (dates.length === 0) {
         return null;
     }
-    return dates.sort().reverse()[0];
+    return dates.sort().reverse()[0] || null;
 }
 
 export function compareBlockedAt(a: BlockedIdentity, b: BlockedIdentity): number {
@@ -42,10 +43,7 @@ export function compareBlockedAt(a: BlockedIdentity, b: BlockedIdentity): number
     return atA.localeCompare(atB);
 }
 
-export function filterBlockedIdentities(
-    identities: BlockedIdentity[],
-    opts: FilterBlockedOpts = {}
-): BlockedIdentity[] {
+export function filterBlockedIdentities<T extends BlockedIdentity>(identities: T[], opts: FilterBlockedOpts = {}): T[] {
     let list = [...identities];
     const query = String(opts.searchQuery || "")
         .trim()

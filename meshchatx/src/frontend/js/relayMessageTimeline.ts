@@ -143,10 +143,9 @@ export function buildRelayMessageTimeline(messages) {
     if (!Array.isArray(messages) || messages.length === 0) {
         return [];
     }
-    const out = [];
-    let prevDayKey = null;
-    /** @type {object[]} */
-    let presenceBuffer = [];
+    const out: any[] = [];
+    let prevDayKey: string | null = null;
+    let presenceBuffer: any[] = [];
 
     const flushPresence = () => {
         if (presenceBuffer.length === 0) {
@@ -161,7 +160,7 @@ export function buildRelayMessageTimeline(messages) {
     };
 
     for (const msg of messages) {
-        let dayKey = null;
+        let dayKey: string | null = null;
         if (msg?.ts != null) {
             const ms = typeof msg.ts === "number" ? msg.ts : Number(msg.ts);
             const d = new Date(ms);
@@ -228,7 +227,7 @@ export function filterUniqueOlderRelayMessages(older, existingMessages) {
             }
         }
     }
-    const out = [];
+    const out: any[] = [];
     for (const msg of older) {
         if (!msg) {
             continue;
@@ -268,8 +267,8 @@ export function prependRelayMessageTimeline(existingTimeline, prependedMessagesO
     if (prefixTimeline.length === 0) {
         return existing;
     }
-    const lastPrefix = prefixTimeline[prefixTimeline.length - 1];
-    const firstExisting = existing[0];
+    const lastPrefix = prefixTimeline[prefixTimeline.length - 1] as any;
+    const firstExisting = existing[0] as any;
     if (
         lastPrefix?.type === "dateDivider" &&
         firstExisting?.type === "dateDivider" &&

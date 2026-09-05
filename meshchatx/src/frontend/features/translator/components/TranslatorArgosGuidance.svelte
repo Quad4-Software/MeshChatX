@@ -18,25 +18,14 @@
         onInstallLanguages: (packageName: string) => void;
     }
 
-    let {
-        hasArgos,
-        hasArgosLanguages,
-        isInstallingLanguages,
-        onCopy,
-        onInstallLanguages,
-    }: Props = $props();
+    let { hasArgos, hasArgosLanguages, isInstallingLanguages, onCopy, onInstallLanguages }: Props = $props();
 </script>
 
 {#if !hasArgos}
-    <div
-        class="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-800/30"
-    >
+    <div class="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-800/30">
         <div class="flex items-start gap-3">
             <div class="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg shrink-0">
-                <MaterialDesignIcon
-                    iconName="information-outline"
-                    class="size-5 text-amber-600 dark:text-amber-400"
-                />
+                <MaterialDesignIcon iconName="information-outline" class="size-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div class="flex-1 text-sm text-amber-800 dark:text-amber-200 min-w-0">
                 <p class="font-bold mb-1">{t("translator.argos_not_detected")}</p>
@@ -59,9 +48,7 @@
                                 <MaterialDesignIcon iconName="content-copy" class="size-4" />
                             </button>
                         </div>
-                        <div
-                            class="bg-amber-100/50 dark:bg-black/30 p-2 rounded-sm font-mono text-xs break-all"
-                        >
+                        <div class="bg-amber-100/50 dark:bg-black/30 p-2 rounded-sm font-mono text-xs break-all">
                             {ARGOS_INSTALL_PIP_CMD}
                         </div>
                     </div>
@@ -80,9 +67,7 @@
                                 <MaterialDesignIcon iconName="content-copy" class="size-4" />
                             </button>
                         </div>
-                        <div
-                            class="bg-amber-100/50 dark:bg-black/30 p-2 rounded-sm font-mono text-xs break-all"
-                        >
+                        <div class="bg-amber-100/50 dark:bg-black/30 p-2 rounded-sm font-mono text-xs break-all">
                             {ARGOS_INSTALL_PIPX_CMD}
                         </div>
                     </div>
@@ -94,9 +79,7 @@
         </div>
     </div>
 {:else if !hasArgosLanguages}
-    <div
-        class="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-200/50 dark:border-blue-800/30"
-    >
+    <div class="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-200/50 dark:border-blue-800/30">
         <div class="flex items-start gap-3">
             <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg shrink-0">
                 <MaterialDesignIcon iconName="information-outline" class="size-5 text-sem-accent" />
@@ -127,7 +110,7 @@
                         <div class="flex gap-2">
                             <button
                                 type="button"
-                                class="primary-chip px-3 py-1.5 text-xs inline-flex items-center"
+                                class="primary-chip focus-ring-sem px-3 py-1.5 text-xs inline-flex items-center"
                                 disabled={isInstallingLanguages}
                                 onclick={() => onInstallLanguages("translate")}
                             >
@@ -138,7 +121,7 @@
                                 {:else}
                                     <MaterialDesignIcon iconName="download" class="w-3 h-3 mr-1" />
                                 {/if}
-                                Install All
+                                {t("translator.install_all_languages")}
                             </button>
                             <div
                                 class="bg-blue-100/50 dark:bg-black/30 p-2 rounded-sm font-mono text-xs break-all flex-1"
@@ -162,9 +145,7 @@
                                 <MaterialDesignIcon iconName="content-copy" class="size-4" />
                             </button>
                         </div>
-                        <div
-                            class="bg-blue-100/50 dark:bg-black/30 p-2 rounded-sm font-mono text-xs break-all"
-                        >
+                        <div class="bg-blue-100/50 dark:bg-black/30 p-2 rounded-sm font-mono text-xs break-all">
                             {ARGOSPM_INSTALL_PAIR_CMD}
                         </div>
                     </div>

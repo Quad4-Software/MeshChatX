@@ -80,28 +80,28 @@ def mock_rns():
 # 1. Test HTTPS/HTTP and WS/WSS configuration logic
 def test_run_https_logic(mock_rns, temp_dir):
     with (
-        patch("meshchatx.src.backend.identity_context.Database"),
+        patch("meshchatx.src.backend.identity_context.core.Database"),
         patch(
-            "meshchatx.src.backend.identity_context.ConfigManager",
+            "meshchatx.src.backend.identity_context.core.ConfigManager",
         ) as mock_config_class,
         patch("meshchatx.meshchat.generate_ssl_certificate") as mock_gen_cert,
         patch("ssl.SSLContext") as mock_ssl_context,
         patch("aiohttp.web.run_app") as mock_run_app,
         # Mock all handlers to avoid RNS/LXMF calls
-        patch("meshchatx.src.backend.identity_context.MessageHandler"),
-        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
-        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
-        patch("meshchatx.src.backend.identity_context.MapManager"),
-        patch("meshchatx.src.backend.identity_context.DocsManager"),
-        patch("meshchatx.src.backend.identity_context.NomadNetworkManager"),
-        patch("meshchatx.src.backend.identity_context.TelephoneManager"),
-        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
-        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
-        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
-        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
-        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
-        patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
+        patch("meshchatx.src.backend.identity_context.core.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.core.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.core.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.core.MapManager"),
+        patch("meshchatx.src.backend.identity_context.core.DocsManager"),
+        patch("meshchatx.src.backend.identity_context.core.NomadNetworkManager"),
+        patch("meshchatx.src.backend.identity_context.core.TelephoneManager"),
+        patch("meshchatx.src.backend.identity_context.core.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.core.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.core.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.core.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.core.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.core.TranslatorHandler"),
+        patch("meshchatx.src.backend.identity_context.core.CommunityInterfacesManager"),
     ):
         mock_config = mock_config_class.return_value
         # provide a real-looking secret key
@@ -144,26 +144,26 @@ def test_run_https_logic(mock_rns, temp_dir):
 # 2. Test specific database integrity failure recovery
 def test_database_integrity_recovery(mock_rns, temp_dir):
     with (
-        patch("meshchatx.src.backend.identity_context.Database") as mock_db_class,
+        patch("meshchatx.src.backend.identity_context.core.Database") as mock_db_class,
         patch(
-            "meshchatx.src.backend.identity_context.ConfigManager",
+            "meshchatx.src.backend.identity_context.core.ConfigManager",
         ) as mock_config_class,
-        patch("meshchatx.src.backend.identity_context.MessageHandler"),
-        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
-        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
-        patch("meshchatx.src.backend.identity_context.MapManager"),
-        patch("meshchatx.src.backend.identity_context.DocsManager"),
-        patch("meshchatx.src.backend.identity_context.NomadNetworkManager"),
-        patch("meshchatx.src.backend.identity_context.TelephoneManager"),
-        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
-        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
-        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
-        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
-        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
-        patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
+        patch("meshchatx.src.backend.identity_context.core.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.core.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.core.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.core.MapManager"),
+        patch("meshchatx.src.backend.identity_context.core.DocsManager"),
+        patch("meshchatx.src.backend.identity_context.core.NomadNetworkManager"),
+        patch("meshchatx.src.backend.identity_context.core.TelephoneManager"),
+        patch("meshchatx.src.backend.identity_context.core.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.core.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.core.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.core.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.core.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.core.TranslatorHandler"),
+        patch("meshchatx.src.backend.identity_context.core.CommunityInterfacesManager"),
         patch(
-            "meshchatx.src.backend.identity_context.IntegrityManager",
+            "meshchatx.src.backend.identity_context.core.IntegrityManager",
         ) as mock_im_class,
     ):
         mock_im_class.return_value.check_integrity.return_value = (True, [])
@@ -201,9 +201,9 @@ def test_database_integrity_recovery(mock_rns, temp_dir):
 # 3. Test missing critical files (identity)
 def test_identity_loading_fallback(mock_rns, temp_dir):
     with (
-        patch("meshchatx.src.backend.identity_context.Database"),
+        patch("meshchatx.src.backend.identity_context.core.Database"),
         patch(
-            "meshchatx.src.backend.identity_context.ConfigManager",
+            "meshchatx.src.backend.identity_context.core.ConfigManager",
         ) as mock_config_class,
         patch("RNS.Identity") as mock_id_class,
         patch("os.path.exists", return_value=False),  # Pretend files don't exist
@@ -249,26 +249,26 @@ def test_identity_loading_fallback(mock_rns, temp_dir):
 # 4. Database health issues set on setup and exposed to app
 def test_database_health_issues_set_on_setup(mock_rns, temp_dir):
     with (
-        patch("meshchatx.src.backend.identity_context.Database") as mock_db_class,
+        patch("meshchatx.src.backend.identity_context.core.Database") as mock_db_class,
         patch(
-            "meshchatx.src.backend.identity_context.ConfigManager",
+            "meshchatx.src.backend.identity_context.core.ConfigManager",
         ) as mock_config_class,
-        patch("meshchatx.src.backend.identity_context.MessageHandler"),
-        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
-        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
-        patch("meshchatx.src.backend.identity_context.MapManager"),
-        patch("meshchatx.src.backend.identity_context.DocsManager"),
-        patch("meshchatx.src.backend.identity_context.NomadNetworkManager"),
-        patch("meshchatx.src.backend.identity_context.TelephoneManager"),
-        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
-        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
-        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
-        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
-        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
-        patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
+        patch("meshchatx.src.backend.identity_context.core.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.core.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.core.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.core.MapManager"),
+        patch("meshchatx.src.backend.identity_context.core.DocsManager"),
+        patch("meshchatx.src.backend.identity_context.core.NomadNetworkManager"),
+        patch("meshchatx.src.backend.identity_context.core.TelephoneManager"),
+        patch("meshchatx.src.backend.identity_context.core.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.core.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.core.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.core.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.core.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.core.TranslatorHandler"),
+        patch("meshchatx.src.backend.identity_context.core.CommunityInterfacesManager"),
         patch(
-            "meshchatx.src.backend.identity_context.IntegrityManager",
+            "meshchatx.src.backend.identity_context.core.IntegrityManager",
         ) as mock_int_class,
         patch("aiohttp.web.run_app"),
     ):

@@ -322,7 +322,7 @@ export function drawImageToAtlasCell(ctx, source, sw, sh, dx, dy, dw, dh) {
     let curW = sw;
     let curH = sh;
     let cur = source;
-    const temps = [];
+    const temps: HTMLCanvasElement[] = [];
     try {
         while (curW > dw * 2 || curH > dh * 2) {
             const nextW = Math.max(dw, Math.ceil(curW / 2));
@@ -366,7 +366,7 @@ function createIconAtlas(gl) {
 
     const urlToSlot = new Map();
     const pending = new Map();
-    const freeSlots = [];
+    const freeSlots: number[] = [];
     let nextSlot = 0;
     const scratch = typeof document !== "undefined" ? document.createElement("canvas") : null;
     if (scratch) {
@@ -593,10 +593,8 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
     let edgeVertexCount = 0;
     let edgeScratch = new Float32Array(0);
 
-    /** @type {HTMLCanvasElement|null} */
-    let labelCanvas = null;
-    /** @type {CanvasRenderingContext2D|null} */
-    let labelCtx = null;
+    let labelCanvas: HTMLCanvasElement | null = null;
+    let labelCtx: CanvasRenderingContext2D | null = null;
     if (typeof document !== "undefined" && canvas?.parentElement) {
         labelCanvas = document.createElement("canvas");
         labelCanvas.className = "network-webgl-labels";

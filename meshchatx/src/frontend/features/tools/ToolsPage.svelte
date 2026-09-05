@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
-<script>
+<script lang="ts">
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
     import EmptyState from "../../ui/svelte/EmptyState.svelte";
     import { t } from "../../js/i18n.js";
@@ -15,20 +15,17 @@
         toolRowClass,
         translateTools,
     } from "./lib/toolsList.js";
+    import type { ToolRecord, ToolGroup } from "./lib/toolsList.js";
 
     let searchQuery = $state("");
-    /** @type {Record<string, boolean>} */
-    let collapsedSections = $state(loadCollapsedSections());
+    let collapsedSections = $state<Record<string, boolean>>(loadCollapsedSections());
 
     const toolsWithTranslations = $derived(translateTools(t));
     const filteredTools = $derived(filterTools(toolsWithTranslations, searchQuery));
-    const groupedToolSections = $derived(searchQuery.trim() ? null : groupTools(filteredTools));
+    const groupedToolSections = $derived<ToolGroup[] | null>(searchQuery.trim() ? null : groupTools(filteredTools));
     const toolsCount = $derived(toolsWithTranslations.length);
 
-    /**
-     * @param {string} sectionId
-     */
-    function toggleSection(sectionId) {
+    function toggleSection(sectionId: string): void {
         const next = { ...collapsedSections, [sectionId]: !collapsedSections[sectionId] };
         collapsedSections = next;
         saveCollapsedSections(next);
@@ -98,12 +95,7 @@
                                     <ToolListRow {tool} />
                                 </div>
                             {:else}
-                                <a
-                                    href={toolRouteHref(
-                                        /** @type {{ name?: string, path?: string } | string} */ (tool.route)
-                                    )}
-                                    class={toolRowClass(tool)}
-                                >
+                                <a href={toolRouteHref(tool.route)} class={toolRowClass(tool)}>
                                     <ToolListRow {tool} />
                                 </a>
                             {/if}

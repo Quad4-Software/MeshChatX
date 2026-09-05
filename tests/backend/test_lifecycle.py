@@ -92,12 +92,12 @@ def test_identity_context_teardown_completeness():
     mock_app.storage_dir = tempfile.mkdtemp()
 
     with (
-        patch("meshchatx.src.backend.identity_context.Database"),
-        patch("meshchatx.src.backend.identity_context.ConfigManager"),
-        patch("meshchatx.src.backend.identity_context.create_lxmf_router"),
-        patch("meshchatx.src.backend.identity_context.IntegrityManager"),
+        patch("meshchatx.src.backend.identity_context.core.Database"),
+        patch("meshchatx.src.backend.identity_context.core.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.core.create_lxmf_router"),
+        patch("meshchatx.src.backend.identity_context.core.IntegrityManager"),
         patch(
-            "meshchatx.src.backend.identity_context.AutoPropagationManager",
+            "meshchatx.src.backend.identity_context.core.AutoPropagationManager",
         ),
     ):
         context = IdentityContext(mock_identity, mock_app)
@@ -136,11 +136,11 @@ def test_teardown_timeout_does_not_leave_deferred_manager():
     dummy = MagicMock()
 
     with (
-        patch("meshchatx.src.backend.identity_context.Database"),
-        patch("meshchatx.src.backend.identity_context.ConfigManager"),
-        patch("meshchatx.src.backend.identity_context.create_lxmf_router"),
-        patch("meshchatx.src.backend.identity_context.IntegrityManager"),
-        patch("meshchatx.src.backend.identity_context.AutoPropagationManager"),
+        patch("meshchatx.src.backend.identity_context.core.Database"),
+        patch("meshchatx.src.backend.identity_context.core.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.core.create_lxmf_router"),
+        patch("meshchatx.src.backend.identity_context.core.IntegrityManager"),
+        patch("meshchatx.src.backend.identity_context.core.AutoPropagationManager"),
         patch("RNS.Transport"),
     ):
         context = IdentityContext(mock_identity, mock_app)
@@ -190,10 +190,10 @@ def test_identity_context_memory_leak():
 
     def run_lifecycle():
         with (
-            patch("meshchatx.src.backend.identity_context.Database"),
-            patch("meshchatx.src.backend.identity_context.ConfigManager"),
-            patch("meshchatx.src.backend.identity_context.create_lxmf_router"),
-            patch("meshchatx.src.backend.identity_context.IntegrityManager"),
+            patch("meshchatx.src.backend.identity_context.core.Database"),
+            patch("meshchatx.src.backend.identity_context.core.ConfigManager"),
+            patch("meshchatx.src.backend.identity_context.core.create_lxmf_router"),
+            patch("meshchatx.src.backend.identity_context.core.IntegrityManager"),
             patch("RNS.Transport"),
         ):
             context = IdentityContext(mock_identity, mock_app)
@@ -230,10 +230,10 @@ def test_identity_context_repeated_lifecycle(n):
     mock_app.storage_dir = tempfile.mkdtemp()
 
     with (
-        patch("meshchatx.src.backend.identity_context.Database"),
-        patch("meshchatx.src.backend.identity_context.ConfigManager"),
-        patch("meshchatx.src.backend.identity_context.create_lxmf_router"),
-        patch("meshchatx.src.backend.identity_context.IntegrityManager"),
+        patch("meshchatx.src.backend.identity_context.core.Database"),
+        patch("meshchatx.src.backend.identity_context.core.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.core.create_lxmf_router"),
+        patch("meshchatx.src.backend.identity_context.core.IntegrityManager"),
         patch("RNS.Transport"),
     ):
         for _ in range(n):

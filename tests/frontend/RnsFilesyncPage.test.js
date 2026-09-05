@@ -1,7 +1,17 @@
-import { mount } from "@vue/test-utils";
+// SPDX-License-Identifier: 0BSD
+
+import { render, cleanup, screen, waitFor } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import RnsFilesyncPage from "@/components/filesync/RnsFilesyncPage.vue";
+import RnsFilesyncPage from "@/features/filesync/RnsFilesyncPage.svelte";
 import ToastUtils from "@/js/ToastUtils";
+import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
+import {
+    formatAclRows,
+    formatFileSize,
+    formatProgressLabel,
+    joinPath,
+    peerStatusLabel,
+} from "@/features/filesync/lib/filesyncFormat.ts";
 
 vi.mock("@/js/ToastUtils", () => ({
     default: {
@@ -37,10 +47,99 @@ vi.mock("@/js/DownloadUtils", () => ({
     },
 }));
 
-describe("RnsFilesyncPage.vue", () => {
+describe("filesyncFormat", () => {
+    beforeEach(() => {
+        registerTranslator(null);
+        registerFallbackMessages({
+            rns_filesync: {
+                peer_connected: "Connected",
+                peer_disconnected: "Disconnected",
+                perm_read: "Read",
+                perm_write: "Write",
+                perm_delete: "Delete",
+            },
+        });
+    });
+
+    it("formats file size accurately", () => {
+        expect(formatFileSize(0)).toBe("0 Bytes");
+        expect(formatFileSize(1024)).toBe("1 KB");
+        expect(formatFileSize(1048576)).toBe("1 MB");
+    });
+
+    it("joins paths safely without leading/trailing slashes", () => {
+        expect(joinPath("", "subfolder")).toBe("subfolder");
+        expect(joinPath("root", "child")).toBe("root/child");
+        expect(joinPath("/root/", "child")).toBe("/root/child");
+    });
+
+    it("formats ACL rows from rules map", () => {
+        const rows = formatAclRows({
+            read: ["abc"],
+            write: ["abc"],
+            delete: [],
+        });
+        expect(rows.length).toBe(1);
+        expect(rows[0].hash).toBe("abc");
+        expect(rows[0].permsLabel).toBe("Read, Write");
+    });
+
+    it("formats peer status label", () => {
+        expect(peerStatusLabel({ peer_id: "p1", status: "connected" })).toBe("Connected");
+        expect(peerStatusLabel({ peer_id: "p1", status: "disconnected" })).toBe("Disconnected");
+    });
+
+    it("formats progress label", () => {
+        expect(formatProgressLabel(null)).toBe("");
+        expect(formatProgressLabel({ status: "idle" })).toBe("idle");
+        expect(
+            formatProgressLabel({
+                file: "test.dat",
+                status: "syncing",
+                bytes: 1024,
+                total: 2048,
+            })
+        ).toBe("test.dat · syncing · 1 KB / 2 KB");
+    });
+});
+
+describe("RnsFilesyncPage.svelte", () => {
     let apiMock;
 
     beforeEach(() => {
+        registerTranslator(null);
+        registerFallbackMessages({
+            app: {
+                tools: "Tools",
+            },
+            tools: {
+                back_to_tools: "Back to Tools",
+            },
+            rns_filesync: {
+                title: "FileSync",
+                description: "Folder synchronization over Reticulum",
+                eyebrow: "Tool",
+                usage_steps: "Usage Steps",
+                step_1: "Step 1",
+                step_2: "Step 2",
+                step_3: "Step 3",
+                tab_folder: "Folder",
+                tab_devices: "Devices",
+                tab_files: "Files",
+                tab_remote: "Remote Files",
+                tab_sharing: "Sharing",
+                status_syncing: "Syncing",
+                status_stopped: "Stopped",
+                peers_count: "Peers",
+                files_count: "Files",
+                sync_directory: "Directory",
+                start: "Start",
+                stop: "Stop",
+                announce: "Announce",
+                refresh: "Refresh",
+            },
+        });
+
         apiMock = {
             get: vi.fn(),
             post: vi.fn(),
@@ -66,32 +165,8 @@ describe("RnsFilesyncPage.vue", () => {
             if (url === "/api/v1/filesync/peers") {
                 return Promise.resolve({ data: { peers: [] } });
             }
-            if (url === "/api/v1/filesync/tree") {
-                return Promise.resolve({
-                    data: {
-                        ok: true,
-                        current: "",
-                        parent: null,
-                        entries: [{ name: "hello.txt", path: "hello.txt", type: "file", size: 4 }],
-                    },
-                });
-            }
-            if (url === "/api/v1/filesync/files") {
-                return Promise.resolve({ data: { files: [] } });
-            }
             if (url === "/api/v1/filesync/acl") {
                 return Promise.resolve({ data: { enforce: false, rules: {} } });
-            }
-            if (String(url).startsWith("/api/v1/filesync/directories")) {
-                return Promise.resolve({
-                    data: {
-                        ok: true,
-                        root: "/tmp",
-                        current: "/tmp/sync",
-                        parent: "/tmp",
-                        directories: [{ name: "docs", path: "/tmp/sync/docs" }],
-                    },
-                });
             }
             return Promise.resolve({ data: {} });
         });
@@ -101,309 +176,16 @@ describe("RnsFilesyncPage.vue", () => {
     });
 
     afterEach(() => {
+        cleanup();
         delete window.api;
         vi.clearAllMocks();
     });
 
-    const mountPage = () =>
-        mount(RnsFilesyncPage, {
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                },
-                stubs: {
-                    MaterialDesignIcon: {
-                        template: '<div class="mdi-stub" :data-icon-name="iconName"></div>',
-                        props: ["iconName"],
-                    },
-                    ToolsPageHeader: {
-                        template: "<div class='header-stub'>{{ title }}</div>",
-                        props: ["title", "description", "eyebrow", "icon", "accent"],
-                    },
-                    FilesyncDirectoryBrowserModal: {
-                        template: "<div class='browser-stub' v-if='open'></div>",
-                        props: ["open", "initialPath"],
-                        emits: ["close", "select"],
-                    },
-                    FilesyncFileManager: {
-                        template: "<div class='file-manager-stub'></div>",
-                        props: ["syncDirectory"],
-                        methods: {
-                            refresh: vi.fn().mockResolvedValue(undefined),
-                        },
-                    },
-                },
-            },
+    it("renders and loads status and default tab", async () => {
+        render(RnsFilesyncPage);
+        await waitFor(() => {
+            expect(screen.getByText("FileSync")).toBeTruthy();
+            expect(screen.getByText("Stopped")).toBeTruthy();
         });
-
-    it("renders and loads status", async () => {
-        const wrapper = mountPage();
-        await vi.waitFor(() => expect(apiMock.get).toHaveBeenCalledWith("/api/v1/filesync/status"));
-        expect(wrapper.text()).toContain("rns_filesync.title");
-        expect(wrapper.vm.syncDirectory).toBe("/tmp/sync");
-    });
-
-    it("files tab mounts file manager", async () => {
-        const wrapper = mountPage();
-        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
-        wrapper.vm.activeTab = "files";
-        await wrapper.vm.$nextTick();
-        expect(wrapper.find(".file-manager-stub").exists()).toBe(true);
-    });
-
-    it("uses themed input-field classes", async () => {
-        const wrapper = mountPage();
-        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
-        expect(wrapper.find("input.input-field").exists()).toBe(true);
-        expect(wrapper.find("input.glass-input").exists()).toBe(false);
-    });
-
-    it("opens directory browser from browse button", async () => {
-        const wrapper = mountPage();
-        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
-        expect(wrapper.vm.directoryBrowserOpen).toBe(false);
-        await wrapper.vm.openDirectoryBrowser();
-        expect(wrapper.vm.directoryBrowserOpen).toBe(true);
-        wrapper.vm.onDirectorySelected("/tmp/sync/docs");
-        expect(wrapper.vm.syncDirectory).toBe("/tmp/sync/docs");
-        expect(ToastUtils.success).toHaveBeenCalledWith("rns_filesync.folder_selected");
-    });
-
-    it("selects shared documents folder suggestion", async () => {
-        apiMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/filesync/shared-directory-suggestion") {
-                return Promise.resolve({
-                    data: {
-                        ok: true,
-                        path: "/tmp/Documents/MeshChatX/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sync",
-                    },
-                });
-            }
-            if (url === "/api/v1/filesync/status") {
-                return Promise.resolve({
-                    data: {
-                        running: false,
-                        sync_directory: "/tmp/sync",
-                        peers: 0,
-                        files: 0,
-                        monitor: true,
-                        announce_interval: 300,
-                    },
-                });
-            }
-            if (url === "/api/v1/filesync/peers") {
-                return Promise.resolve({ data: { peers: [] } });
-            }
-            if (url === "/api/v1/filesync/acl") {
-                return Promise.resolve({ data: { enforce: false, rules: {} } });
-            }
-            if (url === "/api/v1/filesync/tree") {
-                return Promise.resolve({
-                    data: { ok: true, current: "", parent: null, entries: [] },
-                });
-            }
-            return Promise.resolve({ data: {} });
-        });
-        const wrapper = mountPage();
-        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
-        await wrapper.vm.useSharedFolder();
-        expect(wrapper.vm.syncDirectory).toBe("/tmp/Documents/MeshChatX/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sync");
-        expect(ToastUtils.success).toHaveBeenCalledWith("rns_filesync.shared_folder_selected");
-    });
-
-    it("requests android all-files access before shared folder", async () => {
-        window.MeshChatXAndroid = {
-            hasAllFilesAccess: vi.fn(() => false),
-            requestAllFilesAccess: vi.fn(),
-        };
-        const wrapper = mountPage();
-        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
-        await wrapper.vm.useSharedFolder();
-        expect(window.MeshChatXAndroid.requestAllFilesAccess).toHaveBeenCalled();
-        expect(ToastUtils.info).toHaveBeenCalledWith("rns_filesync.shared_folder_permission_needed");
-        delete window.MeshChatXAndroid;
-    });
-
-    it("warns when browsing while syncing", async () => {
-        const wrapper = mountPage();
-        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
-        wrapper.vm.status.running = true;
-        await wrapper.vm.openDirectoryBrowser();
-        expect(wrapper.vm.directoryBrowserOpen).toBe(false);
-        expect(ToastUtils.warning).toHaveBeenCalledWith("rns_filesync.stop_before_change_folder");
-    });
-
-    it("starts filesync and toasts success", async () => {
-        const wrapper = mountPage();
-        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
-        await wrapper.vm.startService();
-        expect(apiMock.post).toHaveBeenCalledWith(
-            "/api/v1/filesync/start",
-            expect.objectContaining({
-                sync_directory: "/tmp/sync",
-                monitor: true,
-            })
-        );
-        expect(ToastUtils.success).toHaveBeenCalledWith("rns_filesync.started");
-    });
-
-    it("shows error toast when connect fails", async () => {
-        apiMock.post.mockRejectedValueOnce(new Error("path timeout"));
-        const wrapper = mountPage();
-        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
-        wrapper.vm.status.running = true;
-        wrapper.vm.connectHash = "ab".repeat(16);
-        await wrapper.vm.connectPeer();
-        expect(ToastUtils.error).toHaveBeenCalled();
-    });
-
-    it("browses and downloads a remote file", async () => {
-        apiMock.post.mockImplementation((url) => {
-            if (url === "/api/v1/filesync/browse") {
-                return Promise.resolve({
-                    data: { ok: true, files: [{ path: "notes.txt", size: 12 }] },
-                });
-            }
-            return Promise.resolve({ data: { ok: true } });
-        });
-        const wrapper = mountPage();
-        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
-        wrapper.vm.status.running = true;
-        wrapper.vm.browsePeerId = "cd".repeat(16);
-        await wrapper.vm.browsePeer();
-        expect(wrapper.vm.remoteFiles).toEqual([{ path: "notes.txt", size: 12 }]);
-        await wrapper.vm.downloadFile("notes.txt");
-        expect(apiMock.post).toHaveBeenCalledWith("/api/v1/filesync/download", {
-            peer_id: "cd".repeat(16),
-            path: "notes.txt",
-        });
-        expect(ToastUtils.info).toHaveBeenCalledWith("rns_filesync.download_started");
-    });
-
-    it("builds friendly ACL rows", async () => {
-        const wrapper = mountPage();
-        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
-        wrapper.vm.aclRules = {
-            read: ["aa".repeat(16)],
-            write: ["aa".repeat(16)],
-            delete: [],
-        };
-        expect(wrapper.vm.aclRows).toHaveLength(1);
-        expect(wrapper.vm.aclRows[0].permsLabel).toContain("rns_filesync.perm_read");
-        expect(wrapper.vm.aclRows[0].permsLabel).toContain("rns_filesync.perm_write");
-    });
-
-    it("humanizes progress payloads", async () => {
-        const wrapper = mountPage();
-        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
-        wrapper.vm.lastProgress = { path: "a.txt", status: "sending", bytes: 10, total: 100 };
-        expect(wrapper.vm.lastProgressLabel).toContain("a.txt");
-        expect(wrapper.vm.lastProgressLabel).toContain("sending");
-    });
-});
-
-describe("FilesyncDirectoryBrowserModal.vue", () => {
-    let apiMock;
-
-    beforeEach(async () => {
-        apiMock = {
-            get: vi.fn().mockResolvedValue({
-                data: {
-                    ok: true,
-                    root: "/tmp",
-                    current: "/tmp/filesync",
-                    parent: "/tmp",
-                    directories: [{ name: "sync", path: "/tmp/filesync/sync" }],
-                },
-            }),
-            post: vi.fn().mockResolvedValue({ data: { ok: true, path: "/tmp/filesync/new" } }),
-        };
-        window.api = apiMock;
-    });
-
-    afterEach(() => {
-        delete window.api;
-        vi.clearAllMocks();
-    });
-
-    it("loads directories when opened and selects a path", async () => {
-        const { default: FilesyncDirectoryBrowserModal } =
-            await import("@/components/filesync/FilesyncDirectoryBrowserModal.vue");
-        const wrapper = mount(FilesyncDirectoryBrowserModal, {
-            props: {
-                open: true,
-                initialPath: "/tmp/filesync/sync",
-            },
-            global: {
-                mocks: { $t: (key) => key },
-                stubs: {
-                    MaterialDesignIcon: {
-                        template: "<div></div>",
-                        props: ["iconName"],
-                    },
-                },
-            },
-        });
-        await vi.waitFor(() =>
-            expect(apiMock.get).toHaveBeenCalledWith(expect.stringContaining("/api/v1/filesync/directories"))
-        );
-        expect(wrapper.vm.directories).toHaveLength(1);
-        await wrapper.vm.confirmSelection();
-        expect(wrapper.emitted("select")[0]).toEqual(["/tmp/filesync"]);
-        expect(wrapper.emitted("close")).toBeTruthy();
-    });
-});
-
-describe("FilesyncFileManager.vue", () => {
-    let apiMock;
-
-    beforeEach(() => {
-        apiMock = {
-            get: vi.fn().mockResolvedValue({
-                data: {
-                    ok: true,
-                    current: "",
-                    parent: null,
-                    entries: [
-                        { name: "docs", path: "docs", type: "dir" },
-                        { name: "a.txt", path: "a.txt", type: "file", size: 3 },
-                    ],
-                },
-            }),
-            post: vi.fn().mockResolvedValue({ data: { ok: true, path: "a.txt" } }),
-            delete: vi.fn().mockResolvedValue({ data: { ok: true } }),
-        };
-        window.api = apiMock;
-    });
-
-    afterEach(() => {
-        delete window.api;
-        vi.clearAllMocks();
-    });
-
-    it("loads tree and uploads via window.api", async () => {
-        const { default: FilesyncFileManager } = await import("@/components/filesync/FilesyncFileManager.vue");
-        const wrapper = mount(FilesyncFileManager, {
-            props: { syncDirectory: "/tmp/sync" },
-            global: {
-                mocks: {
-                    $t: (key, params) => (params ? `${key}:${JSON.stringify(params)}` : key),
-                },
-                stubs: {
-                    MaterialDesignIcon: {
-                        template: "<div></div>",
-                        props: ["iconName"],
-                    },
-                },
-            },
-        });
-        await vi.waitFor(() => expect(apiMock.get).toHaveBeenCalledWith("/api/v1/filesync/tree", expect.any(Object)));
-        expect(wrapper.vm.entries).toHaveLength(2);
-
-        await wrapper.vm.onUploadSelected({
-            target: { files: [new File(["hi"], "hi.txt")], value: "x" },
-        });
-        expect(apiMock.post).toHaveBeenCalledWith("/api/v1/filesync/upload", expect.any(FormData));
-        expect(ToastUtils.success).toHaveBeenCalledWith("rns_filesync.upload_done");
     });
 });

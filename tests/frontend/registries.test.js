@@ -33,6 +33,8 @@ import {
     listPostInstallPrompts,
 } from "../../meshchatx/src/frontend/js/registries/postInstallPromptRegistry.js";
 import { CORE_POST_INSTALL_PROMPT_ENTRIES } from "../../meshchatx/src/frontend/js/registries/corePostInstallPromptEntries.js";
+import { registerAllFeatures } from "../../meshchatx/src/frontend/features/registerAllFeatures.js";
+import { buildRouterRoutesFromRegistry } from "../../meshchatx/src/frontend/shell/buildRouterRoutes.js";
 
 describe("registryCore", () => {
     it("registers and lists entries", () => {
@@ -159,12 +161,18 @@ describe("registerCoreContributions", () => {
     });
 
     it("nav, tools, and command route names exist in the hash router", () => {
+        registerAllFeatures();
         const mainSrc = readFileSync(join(process.cwd(), "meshchatx/src/frontend/main.ts"), "utf8");
         const routeNames = new Set();
         const pairRe = /name:\s*"([^"]+)",\s*\n\s*path:\s*"/g;
         let match;
         while ((match = pairRe.exec(mainSrc)) !== null) {
             routeNames.add(match[1]);
+        }
+        for (const r of buildRouterRoutesFromRegistry()) {
+            if (r.name) {
+                routeNames.add(r.name);
+            }
         }
         expect(routeNames.size).toBeGreaterThan(10);
 

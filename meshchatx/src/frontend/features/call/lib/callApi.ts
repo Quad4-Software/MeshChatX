@@ -166,11 +166,13 @@ export async function setPttActive(active: boolean): Promise<PttResponse> {
 /**
  * Fetches call history entries
  */
-export async function fetchCallHistory(options: {
-    limit?: number;
-    offset?: number;
-    search?: string;
-} = {}): Promise<HistoryResponse> {
+export async function fetchCallHistory(
+    options: {
+        limit?: number;
+        offset?: number;
+        search?: string;
+    } = {}
+): Promise<HistoryResponse> {
     const api = getApiClient();
     const limit = options.limit ?? DEFAULT_CALL_HISTORY_LIMIT;
     const offset = options.offset ?? 0;

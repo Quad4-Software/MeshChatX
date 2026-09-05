@@ -8,6 +8,8 @@
     import ToastUtils from "../../js/ToastUtils.js";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
     import ToolsPageHeader from "../../ui/svelte/ToolsPageHeader.svelte";
+    import EmptyState from "../../ui/svelte/EmptyState.svelte";
+    import LoadingState from "../../ui/svelte/LoadingState.svelte";
     import PageNodeCreateModal from "./components/PageNodeCreateModal.svelte";
     import PageNodeDetail from "./components/PageNodeDetail.svelte";
     import PageNodeItem from "./components/PageNodeItem.svelte";
@@ -298,7 +300,11 @@
         description={t("tools.mesh_server.description")}
         accent="amber"
     >
-        <button type="button" class="primary-chip px-4 py-2 text-sm shrink-0" onclick={() => (showCreateDialog = true)}>
+        <button
+            type="button"
+            class="primary-chip focus-ring-sem px-4 py-2 text-sm shrink-0"
+            onclick={() => (showCreateDialog = true)}
+        >
             <MaterialDesignIcon iconName="plus" class="w-4 h-4" />
             {t("tools.mesh_server.create_node")}
         </button>
@@ -307,16 +313,16 @@
     <div class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 md:px-5 lg:px-8 py-3 sm:py-4 min-w-0">
         <div class="space-y-0 w-full max-w-6xl xl:max-w-7xl mx-auto min-w-0">
             {#if loading}
-                <div class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-8 sm:py-12 text-center">
-                    <div class="text-sem-fg-muted">{t("tools.mesh_server.loading")}</div>
+                <div class="w-full py-8 sm:py-12">
+                    <LoadingState message={t("tools.mesh_server.loading")} />
                 </div>
             {:else if nodes.length === 0}
-                <div class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-8 sm:py-12 text-center">
-                    <MaterialDesignIcon iconName="server-network" class="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                    <div class="text-gray-600 dark:text-gray-400 mb-2">{t("tools.mesh_server.empty_title")}</div>
-                    <div class="text-sm text-gray-500 dark:text-gray-500">
-                        {t("tools.mesh_server.empty_description")}
-                    </div>
+                <div class="w-full py-8 sm:py-12">
+                    <EmptyState
+                        icon="server-network"
+                        title={t("tools.mesh_server.empty_title")}
+                        description={t("tools.mesh_server.empty_description")}
+                    />
                 </div>
             {:else}
                 <div class="w-full divide-y divide-gray-200/60 dark:divide-zinc-800/60">

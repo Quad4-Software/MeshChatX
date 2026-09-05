@@ -1,30 +1,33 @@
 // SPDX-License-Identifier: 0BSD
 
-import { mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
-import ColourPickerDropdown from "@/components/ColourPickerDropdown.vue";
+import { render, fireEvent, cleanup } from "@testing-library/svelte";
+import { describe, expect, it, afterEach, vi } from "vitest";
+import ColourPickerDropdown from "../../meshchatx/src/frontend/features/profile/components/ColourPickerDropdown.svelte";
 
-describe("ColourPickerDropdown.vue", () => {
-    it("uses native color input and swatches instead of Vuetify", async () => {
-        const wrapper = mount(ColourPickerDropdown, {
-            props: { colour: "#3b82f6" },
-        });
-        expect(wrapper.html()).not.toContain("v-color-picker");
-        wrapper.vm.showMenu();
-        await wrapper.vm.$nextTick();
-        expect(wrapper.find('input[type="color"]').exists()).toBe(true);
-        expect(wrapper.findAll("button[type='button']").length).toBeGreaterThan(0);
+describe("ColourPickerDropdown.svelte", () => {
+    afterEach(() => {
+        cleanup();
     });
 
-    it("emits normalized hex without alpha channel", async () => {
-        const wrapper = mount(ColourPickerDropdown, {
+    it("uses native color input and swatches instead of Vuetify", async () => {
+        const { container, getByLabelText } = render(ColourPickerDropdown, {
             props: { colour: "#3b82f6" },
         });
-        wrapper.vm.showMenu();
-        await wrapper.vm.$nextTick();
-        await wrapper.find('input[type="color"]').setValue("#ff0000");
-        const events = wrapper.emitted("update:colour");
-        expect(events).toBeTruthy();
-        expect(events.at(-1)).toEqual(["#ff0000"]);
+        expect(container.innerHTML).not.toContain("v-color-picker");
+        await fireEvent.click(getByLabelText("Pick color"));
+        expect(container.querySelector('input[type="color"]')).toBeTruthy();
+        expect(container.querySelectorAll("button[type='button']").length).toBeGreaterThan(0);
+    });
+
+    it("updates colour via onchange without alpha channel", async () => {
+        const onchange = vi.fn();
+        const { container, getByLabelText } = render(ColourPickerDropdown, {
+            props: { colour: "#3b82f6", onchange },
+        });
+        await fireEvent.click(getByLabelText("Pick color"));
+        const input = container.querySelector('input[type="color"]');
+        expect(input).toBeTruthy();
+        await fireEvent.input(input, { target: { value: "#ff0000" } });
+        expect(onchange).toHaveBeenCalledWith("#ff0000");
     });
 });

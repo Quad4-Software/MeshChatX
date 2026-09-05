@@ -4,7 +4,6 @@
     import { onMount } from "svelte";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
     import ToolsPageHeader from "../../ui/svelte/ToolsPageHeader.svelte";
-    import DialogUtils from "../../js/DialogUtils.js";
     import ToastUtils from "../../js/ToastUtils.js";
     import { t } from "../../js/i18n.js";
     import { DEFAULT_LIBRETRANSLATE_URL, LIBRE_PERSIST_DEBOUNCE_MS } from "./lib/constants.js";
@@ -118,7 +117,7 @@
             syncTranslationModeFromBackends();
         } catch (e) {
             console.error(e);
-            void DialogUtils.alert(t("translator.failed_load_languages"));
+            void ToastUtils.error(t("translator.failed_load_languages"));
         }
     }
 
@@ -322,9 +321,7 @@
         description={t("tools.translator.description")}
         accent="indigo"
     />
-    <div
-        class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
-    >
+    <div class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <div class="space-y-4 w-full max-w-4xl mx-auto">
             <div class="glass-card space-y-5">
                 <TranslatorBackendsCard
@@ -393,15 +390,15 @@
                         rows={6}
                         placeholder={t("translator.enter_text_placeholder")}
                         class="input-field"
-                        disabled={isTranslating}
-                    ></textarea>
+                        disabled={isTranslating}></textarea>
                 </div>
 
                 <div class="flex gap-2">
                     <button
                         type="button"
-                        class="primary-chip px-4 py-2 text-sm inline-flex items-center"
+                        class="primary-chip focus-ring-sem px-4 py-2 text-sm inline-flex items-center"
                         disabled={!canTranslateNow || isTranslating}
+                        title={!canTranslateNow ? t("translator.enter_text_placeholder") : t("translator.translate")}
                         onclick={translateText}
                     >
                         {#if isTranslating}
@@ -416,7 +413,7 @@
                     </button>
                     <button
                         type="button"
-                        class="secondary-chip px-4 py-2 text-sm inline-flex items-center gap-1.5"
+                        class="secondary-chip focus-ring-sem px-4 py-2 text-sm inline-flex items-center gap-1.5"
                         disabled={!targetLang || isTranslating}
                         onclick={swapLanguages}
                     >
@@ -425,7 +422,7 @@
                     </button>
                     <button
                         type="button"
-                        class="secondary-chip px-4 py-2 text-sm inline-flex items-center gap-1.5"
+                        class="secondary-chip focus-ring-sem px-4 py-2 text-sm inline-flex items-center gap-1.5"
                         onclick={clearText}
                     >
                         <MaterialDesignIcon iconName="broom" class="w-4 h-4" />
@@ -455,9 +452,7 @@
                 {/if}
 
                 {#if error}
-                    <div
-                        class="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300"
-                    >
+                    <div class="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300">
                         {error}
                     </div>
                 {/if}

@@ -1,17 +1,9 @@
 // SPDX-License-Identifier: 0BSD
 
 import { describe, it, expect, vi } from "vitest";
-import {
-    muExportBasename,
-} from "@/features/archives/lib/archiveExport.ts";
-import {
-    handleArchiveContentClick,
-    openInNomadnet,
-} from "@/features/archives/lib/archiveNavigation.ts";
-import {
-    pathViewerClasses,
-    renderFullContent,
-} from "@/features/archives/lib/archiveRender.ts";
+import { muExportBasename } from "@/features/archives/lib/archiveExport.ts";
+import { handleArchiveContentClick, openInNomadnet } from "@/features/archives/lib/archiveNavigation.ts";
+import { pathViewerClasses, renderFullContent } from "@/features/archives/lib/archiveRender.ts";
 
 function randText(len) {
     const alphabet = "abc<>\"'`\\/\u0000\n\r`topic_id=";

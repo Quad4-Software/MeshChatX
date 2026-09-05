@@ -2,28 +2,23 @@
 
 import { createRegistry } from "./registryCore.js";
 
-/**
- * @typedef {"vue" | "svelte"} PageMountKind
- */
+export type PageMountKind = "vue" | "svelte";
 
-/**
- * @typedef {Object} FeatureRouteEntry
- * @property {string} name
- * @property {string} path
- * @property {PageMountKind} mount
- * @property {() => Promise<unknown>} load
- * @property {boolean} [props]
- * @property {Record<string, unknown>} [meta]
- * @property {Record<string, unknown>} [routeProps]
- */
+export interface FeatureRouteEntry {
+    name: string;
+    path: string;
+    mount: PageMountKind;
+    load: () => Promise<unknown>;
+    props?: boolean;
+    meta?: Record<string, unknown>;
+    routeProps?: Record<string, unknown>;
+}
 
-/** @type {import('./registryCore.js').Registry<FeatureRouteEntry & { id: string }>} */
-export const routeRegistry = createRegistry("routeRegistry");
+export type RouteRegistryEntry = FeatureRouteEntry & { id: string };
 
-/**
- * @param {FeatureRouteEntry} entry
- */
-export function registerRoute(entry) {
+export const routeRegistry = createRegistry<RouteRegistryEntry>("routeRegistry");
+
+export function registerRoute(entry: FeatureRouteEntry) {
     if (!entry?.name || !entry?.path) {
         throw new Error("routeRegistry: entry requires name and path");
     }
@@ -40,17 +35,11 @@ export function registerRoute(entry) {
     });
 }
 
-/**
- * @param {string} name
- */
-export function unregisterRoute(name) {
+export function unregisterRoute(name: string) {
     routeRegistry.unregister(name);
 }
 
-/**
- * @returns {Array<FeatureRouteEntry & { id: string }>}
- */
-export function listRoutes() {
+export function listRoutes(): RouteRegistryEntry[] {
     return routeRegistry.list();
 }
 

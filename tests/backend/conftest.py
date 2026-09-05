@@ -89,7 +89,7 @@ def global_mocks():
     with (
         patch("meshchatx.meshchat.AsyncUtils") as mock_async_utils,
         patch(
-            "meshchatx.src.backend.identity_context.IdentityContext.start_background_threads",
+            "meshchatx.src.backend.identity_context.core.IdentityContext.start_background_threads",
             return_value=None,
         ),
         patch("meshchatx.meshchat.generate_ssl_certificate", return_value=None),
@@ -138,7 +138,7 @@ def stub_lxst_telephone_unless_real(request):
     mock_instance.active_call = None
     mock_instance.destination.hexhash = "test_telephone_hexhash"
     with patch(
-        "meshchatx.src.backend.telephone_manager.Telephone",
+        "meshchatx.src.backend.telephone_manager.core.Telephone",
         return_value=mock_instance,
     ):
         yield mock_instance
@@ -149,7 +149,10 @@ def temp_db(tmp_path):
     db_path = os.path.join(tmp_path, "test_meshchat.db")
     yield db_path
     if os.path.exists(db_path):
-        os.remove(db_path)
+        try:
+            os.remove(db_path)
+        except OSError:
+            pass
 
 
 @pytest.fixture
@@ -161,6 +164,9 @@ def db(temp_db):
     yield database
     database.close_all()
     provider.close_all()
+    if DatabaseProvider._instance:
+        DatabaseProvider._instance.close_all()
+        DatabaseProvider._instance = None
 
 
 def _stub_map_data_manager(app):
@@ -216,39 +222,43 @@ def mock_app(db, tmp_path, temp_db):
         stack.enter_context(patch("RNS.Transport"))
         stack.enter_context(patch("LXMF.LXMRouter"))
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TelephoneManager"),
+            patch("meshchatx.src.backend.identity_context.core.TelephoneManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.VoicemailManager"),
+            patch("meshchatx.src.backend.identity_context.core.VoicemailManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RingtoneManager"),
-        )
-        stack.enter_context(patch("meshchatx.src.backend.identity_context.RNCPHandler"))
-        stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RnsFilesyncHandler"),
+            patch("meshchatx.src.backend.identity_context.core.RingtoneManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
+            patch("meshchatx.src.backend.identity_context.core.RNCPHandler")
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
+            patch("meshchatx.src.backend.identity_context.core.RnsFilesyncHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
+            patch("meshchatx.src.backend.identity_context.core.RNStatusHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.ArchiverManager"),
-        )
-        stack.enter_context(patch("meshchatx.src.backend.identity_context.MapManager"))
-        stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.MapDataManager"),
+            patch("meshchatx.src.backend.identity_context.core.RNProbeHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.MessageHandler"),
+            patch("meshchatx.src.backend.identity_context.core.TranslatorHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.AnnounceManager"),
+            patch("meshchatx.src.backend.identity_context.core.ArchiverManager"),
+        )
+        stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.core.MapManager")
+        )
+        stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.core.MapDataManager"),
+        )
+        stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.core.MessageHandler"),
+        )
+        stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.core.AnnounceManager"),
         )
         stack.enter_context(patch("threading.Thread"))
         # threading.Thread is mocked to prevent background threads, but that also
@@ -312,6 +322,12 @@ def mock_app(db, tmp_path, temp_db):
             ),
         )
         stack.enter_context(
+            patch(
+                "meshchatx.src.backend.identity_context.core.IdentityContext.setup_deferred_services",
+                return_value=None,
+            ),
+        )
+        stack.enter_context(
             patch.object(
                 ReticulumMeshChat,
                 "send_config_to_websocket_clients",
@@ -339,6 +355,11 @@ def mock_app(db, tmp_path, temp_db):
 
         yield app
         app.teardown_identity()
+        if getattr(app, "database", None) is not None:
+            app.database.close_all()
+        if DatabaseProvider._instance:
+            DatabaseProvider._instance.close_all()
+            DatabaseProvider._instance = None
 
 
 async def fetch_api_csrf_headers(client):

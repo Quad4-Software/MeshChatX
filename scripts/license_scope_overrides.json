@@ -1,15 +1,15 @@
 {
-  "meshchatx/meshchat.py": "0BSD",
-  "meshchatx/src/__init__.py": "0BSD",
-  "meshchatx/src/backend/lxmf_message_fields.py": "0BSD",
-  "meshchatx/src/backend/sideband_commands.py": "0BSD",
-  "meshchatx/src/backend/colour_utils.py": "0BSD",
-  "meshchatx/src/backend/announce_handler.py": "0BSD",
-  "meshchatx/src/backend/async_utils.py": "0BSD",
-  "meshchatx/src/backend/cli_identity.py": "0BSD",
-  "meshchatx/src/backend/interface_config_parser.py": "0BSD",
-  "meshchatx/src/backend/interface_port_check.py": "0BSD",
-  "meshchatx/src/backend/interface_editor.py": "0BSD",
-  "meshchatx/src/backend/interfaces/WebsocketClientInterface.py": "0BSD",
-  "meshchatx/src/backend/interfaces/WebsocketServerInterface.py": "0BSD"
+    "meshchatx/meshchat.py": "0BSD",
+    "meshchatx/src/__init__.py": "0BSD",
+    "meshchatx/src/backend/lxmf_message_fields.py": "0BSD",
+    "meshchatx/src/backend/sideband_commands.py": "0BSD",
+    "meshchatx/src/backend/colour_utils.py": "0BSD",
+    "meshchatx/src/backend/announce_handler.py": "0BSD",
+    "meshchatx/src/backend/async_utils.py": "0BSD",
+    "meshchatx/src/backend/cli_identity.py": "0BSD",
+    "meshchatx/src/backend/interface_config_parser.py": "0BSD",
+    "meshchatx/src/backend/interface_port_check.py": "0BSD",
+    "meshchatx/src/backend/interface_editor.py": "0BSD",
+    "meshchatx/src/backend/interfaces/WebsocketClientInterface.py": "0BSD",
+    "meshchatx/src/backend/interfaces/WebsocketServerInterface.py": "0BSD"
 }

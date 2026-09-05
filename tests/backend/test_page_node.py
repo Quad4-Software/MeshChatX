@@ -19,7 +19,7 @@ def node_dir():
 
 @pytest.fixture
 def mock_rns():
-    with patch("meshchatx.src.backend.page_node.RNS") as mock:
+    with patch("meshchatx.src.backend.page_node.core.RNS") as mock:
         mock_identity = MagicMock()
         mock_identity.hash = b"\x01" * 16
         mock_identity.get_public_key.return_value = b"\x02" * 64
@@ -908,7 +908,7 @@ class TestPageNodeExecutablePages:
         script = "#!/usr/bin/env python3\nprint('windows-dynamic')\n"
         node.add_page("dyn.mu", script, executable=True)
         with patch(
-            "meshchatx.src.backend.page_node._is_windows_platform",
+            "meshchatx.src.backend.page_node.core._is_windows_platform",
             return_value=True,
         ):
             result = node.serve_page_content("dyn.mu")
@@ -921,7 +921,7 @@ class TestPageNodeExecutablePages:
         script = "#!/usr/bin/env python3\nprint('should-not-run')\n"
         node.add_page("static.mu", script)
         with patch(
-            "meshchatx.src.backend.page_node._is_windows_platform",
+            "meshchatx.src.backend.page_node.core._is_windows_platform",
             return_value=True,
         ):
             assert node.is_page_executable("static.mu") is False
@@ -934,7 +934,7 @@ class TestPageNodeExecutablePages:
         node.set_executable_pages_enabled(True)
         node.add_page("plain.mu", "Hello static\n", executable=True)
         with patch(
-            "meshchatx.src.backend.page_node._is_windows_platform",
+            "meshchatx.src.backend.page_node.core._is_windows_platform",
             return_value=True,
         ):
             result = node.serve_page_content("plain.mu")

@@ -18,7 +18,7 @@ import {
     peerBadgeStyle,
     relativeLuminance,
     shouldShowMarkerLabel,
-} from "@/components/map/internal/markerStyles.js";
+} from "@/features/map/lib/markerStyles.js";
 
 describe("relativeLuminance / contrastGlyphColor", () => {
     it("rates white brighter than black", () => {

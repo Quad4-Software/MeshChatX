@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import NetworkVisualiser from "../../meshchatx/src/frontend/components/network-visualiser/NetworkVisualiser.vue";
+import { resolveVisualiserIsDark } from "../../meshchatx/src/frontend/features/network-visualiser/lib/visualiserPrefs.js";
 import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
 import {
     bootThemeOracle,
@@ -86,7 +86,7 @@ describe("localeTheme oracles", () => {
         });
     });
 
-    describe("visualiserIsDarkOracle vs NetworkVisualiser.resolveVisualiserIsDark", () => {
+    describe("visualiserIsDarkOracle vs resolveVisualiserIsDark", () => {
         afterEach(() => {
             GlobalState.config = {};
             document.documentElement.classList.remove("dark");
@@ -107,7 +107,7 @@ describe("localeTheme oracles", () => {
                 document.documentElement.classList.remove("dark");
             }
             expect(visualiserIsDarkOracle(theme, htmlDark)).toBe(expected);
-            expect(NetworkVisualiser.methods.resolveVisualiserIsDark()).toBe(expected);
+            expect(resolveVisualiserIsDark()).toBe(expected);
         });
     });
 

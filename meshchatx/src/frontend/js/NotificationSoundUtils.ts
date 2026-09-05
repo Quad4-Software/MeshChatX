@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: 0BSD
+
 export interface NotificationSoundStatus {
     enabled?: boolean;
     has_sound?: boolean;
@@ -7,25 +9,25 @@ export interface NotificationSoundStatus {
 }
 
 class NotificationSoundUtils {
-    static _player = null;
+    static _player: HTMLAudioElement | null = null;
     static autoplayBlocked = false;
 
-    static isSupported() {
+    static isSupported(): boolean {
         return typeof window !== "undefined" && typeof Audio !== "undefined";
     }
 
-    static shouldPlay(config) {
+    static shouldPlay(config: any): boolean {
         return Boolean(config?.notification_sound_enabled);
     }
 
-    static _normalizeVolume(volume) {
+    static _normalizeVolume(volume: unknown): number {
         if (typeof volume !== "number" || Number.isNaN(volume)) {
             return 1;
         }
         return Math.min(1, Math.max(0, volume));
     }
 
-    static stop() {
+    static stop(): void {
         if (!NotificationSoundUtils._player) {
             return;
         }
@@ -38,7 +40,7 @@ class NotificationSoundUtils {
         NotificationSoundUtils._player = null;
     }
 
-    static unlockAutoplay() {
+    static unlockAutoplay(): void {
         if (!NotificationSoundUtils.autoplayBlocked) {
             return;
         }
@@ -53,7 +55,7 @@ class NotificationSoundUtils {
         return (response?.data as NotificationSoundStatus | undefined) ?? null;
     }
 
-    static async play(config) {
+    static async play(config: any): Promise<boolean> {
         if (!NotificationSoundUtils.isSupported()) {
             return false;
         }
@@ -87,7 +89,7 @@ class NotificationSoundUtils {
             NotificationSoundUtils._player = player;
             await player.play();
             return true;
-        } catch (error) {
+        } catch (error: any) {
             if (error?.name === "NotAllowedError") {
                 NotificationSoundUtils.autoplayBlocked = true;
                 return false;
@@ -97,7 +99,7 @@ class NotificationSoundUtils {
         }
     }
 
-    static async preview(soundId, volumePercent = 100) {
+    static async preview(soundId: number | string, volumePercent = 100): Promise<boolean> {
         if (!NotificationSoundUtils.isSupported() || !soundId) {
             return false;
         }
@@ -117,7 +119,7 @@ class NotificationSoundUtils {
             await player.play();
             NotificationSoundUtils.unlockAutoplay();
             return true;
-        } catch (error) {
+        } catch (error: any) {
             if (error?.name === "NotAllowedError") {
                 NotificationSoundUtils.autoplayBlocked = true;
                 return false;

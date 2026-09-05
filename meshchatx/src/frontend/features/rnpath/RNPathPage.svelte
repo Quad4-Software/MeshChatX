@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import { onMount } from "svelte";
+    import { fade } from "svelte/transition";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
     import ToolsPageHeader from "../../ui/svelte/ToolsPageHeader.svelte";
     import ToastUtils from "../../js/ToastUtils.js";
@@ -36,6 +37,15 @@
 
     const totalPages = $derived(Math.max(1, Math.ceil(totalItems / itemsPerPage)));
 
+    function isReducedMotion(): boolean {
+        if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+            return false;
+        }
+        return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    }
+
+    const tabFadeMs = $derived(isReducedMotion() ? 0 : 120);
+
     async function fetchPathTableData(): Promise<PathTableResponse> {
         let params: Record<string, unknown>;
         try {
@@ -53,7 +63,7 @@
             throw new Error(t("tools.rnpath.invalid_hops"));
         }
         const res = await window.api.get("/api/v1/rnpath/table", { params });
-        const data = res.data as PathTableResponse | undefined;
+        const data = (res as any)?.data as PathTableResponse | undefined;
         return (data || { table: [], total: 0, responsive: 0, unresponsive: 0 }) as PathTableResponse;
     }
 
@@ -65,11 +75,12 @@
                 fetchPathTableData(),
                 window.api.get("/api/v1/rnpath/rates", { params: remoteParams }),
                 window.api.get("/api/v1/reticulum/interfaces"),
-                window.api.get("/api/v1/reticulum/discovered-interfaces").catch(() => ({ data: {} })),
+                window.api.get("/api/v1/reticulum/discovered-interfaces").catch(() => ({ data: {} }) as any),
             ]);
-            const rateData = rateRes?.data as { remote?: string; rates?: RateEntry[] } | undefined;
-            const ifaceData = ifaceRes?.data as { interfaces?: Record<string, unknown> } | undefined;
-            const discData = discRes?.data as { active?: Array<{ name?: string }>; interfaces?: Array<{ name?: string } | string> } | undefined;
+            const rateData = (rateRes as any)?.data as { remote?: string; rates?: RateEntry[] } | undefined;
+            const ifaceData = (ifaceRes as any)?.data as { interfaces?: Record<string, unknown> } | undefined;
+            const discData = (discRes as any)?.data as
+                { active?: Array<{ name?: string }>; interfaces?: Array<{ name?: string } | string> } | undefined;
             pathTable = pathRes?.table || [];
             totalItems = pathRes?.total || 0;
             responsiveItems = pathRes?.responsive || 0;
@@ -106,18 +117,18 @@
 
     function handleFilterChange(): void {
         currentPage = 1;
-        refreshTable();
+        void refreshTable();
     }
 
     function handlePageChange(page: number): void {
         currentPage = page;
-        refreshTable();
+        void refreshTable();
     }
 
     function clearRemote(): void {
         remoteHash = "";
         activeRemoteHash = "";
-        refreshAll();
+        void refreshAll();
     }
 
     async function dropPath(hash: string): Promise<void> {
@@ -126,10 +137,10 @@
         }
         try {
             const res = await window.api.post("/api/v1/rnpath/drop", { destination_hash: hash });
-            const data = res.data as { success?: boolean } | undefined;
+            const data = (res as any)?.data as { success?: boolean } | undefined;
             if (data?.success) {
                 ToastUtils.success(t("tools.rnpath.path_dropped"));
-                refreshAll();
+                void refreshAll();
             } else {
                 ToastUtils.error(t("tools.rnpath.failed_drop"));
             }
@@ -155,10 +166,10 @@
             const res = await window.api.post("/api/v1/rnpath/drop-via", {
                 transport_instance_hash: hash,
             });
-            const data = res.data as { success?: boolean } | undefined;
+            const data = (res as any)?.data as { success?: boolean } | undefined;
             if (data?.success) {
                 ToastUtils.success(t("tools.rnpath.paths_dropped"));
-                refreshAll();
+                void refreshAll();
             }
         } catch {
             ToastUtils.error(t("tools.rnpath.failed_drop_paths"));
@@ -178,7 +189,7 @@
     }
 
     onMount(() => {
-        refreshAll();
+        void refreshAll();
     });
 </script>
 
@@ -193,7 +204,7 @@
             type="button"
             class="p-2 text-gray-500 hover:text-indigo-500 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors cursor-pointer"
             title="Refresh"
-            onclick={refreshAll}
+            onclick={() => void refreshAll()}
         >
             <MaterialDesignIcon iconName="refresh" class="size-6 {isLoading ? 'animate-spin-reverse' : ''}" />
         </button>
@@ -208,10 +219,10 @@
                 {#each RNPATH_TABS as tName (tName)}
                     <button
                         type="button"
-                        class="shrink-0 px-4 sm:px-6 py-3 text-sm font-semibold transition-colors border-b-2 -mb-px cursor-pointer {tab ===
+                        class="shrink-0 px-4 sm:px-6 py-3 text-sm font-semibold transition-colors border-b-2 -mb-px cursor-pointer focus-ring-sem {tab ===
                         tName
-                            ? 'text-indigo-600 border-indigo-500 dark:text-indigo-400 dark:border-indigo-400'
-                            : 'text-gray-500 border-transparent hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}"
+                            ? 'text-sem-accent border-sem-accent'
+                            : 'text-sem-fg-muted border-transparent hover:text-sem-fg'}"
                         onclick={() => (tab = tName)}
                     >
                         {tName.charAt(0).toUpperCase() + tName.slice(1)}
@@ -220,36 +231,40 @@
             </div>
         </div>
 
-        {#if tab === "table"}
-            <RNPathTableTab
-                {pathTable}
-                {totalItems}
-                {responsiveItems}
-                {unresponsiveItems}
-                {interfaces}
-                {totalPages}
-                bind:remoteHash
-                bind:identityPath
-                bind:remoteTimeout
-                {activeRemoteHash}
-                bind:searchQuery
-                bind:filterInterface
-                bind:filterHops
-                bind:currentPage
-                bind:itemsPerPage
-                onDropPath={dropPath}
-                onClearRemote={clearRemote}
-                onFilterChange={handleFilterChange}
-                onPageChange={handlePageChange}
-            />
-        {:else if tab === "rates"}
-            <RNPathRatesTab {rateTable} />
-        {:else if tab === "actions"}
-            <RNPathActionsTab
-                onRequestPath={requestPath}
-                onDropAllVia={dropAllVia}
-                onDropAnnounceQueues={dropAnnounceQueues}
-            />
-        {/if}
+        {#key tab}
+            <div in:fade={{ duration: tabFadeMs }}>
+                {#if tab === "table"}
+                    <RNPathTableTab
+                        {pathTable}
+                        {totalItems}
+                        {responsiveItems}
+                        {unresponsiveItems}
+                        {interfaces}
+                        {totalPages}
+                        bind:remoteHash
+                        bind:identityPath
+                        bind:remoteTimeout
+                        {activeRemoteHash}
+                        bind:searchQuery
+                        bind:filterInterface
+                        bind:filterHops
+                        bind:currentPage
+                        bind:itemsPerPage
+                        onDropPath={dropPath}
+                        onClearRemote={clearRemote}
+                        onFilterChange={handleFilterChange}
+                        onPageChange={handlePageChange}
+                    />
+                {:else if tab === "rates"}
+                    <RNPathRatesTab {rateTable} />
+                {:else if tab === "actions"}
+                    <RNPathActionsTab
+                        onRequestPath={(hash) => void requestPath(hash)}
+                        onDropAllVia={(hash) => void dropAllVia(hash)}
+                        onDropAnnounceQueues={() => void dropAnnounceQueues()}
+                    />
+                {/if}
+            </div>
+        {/key}
     </div>
 </div>

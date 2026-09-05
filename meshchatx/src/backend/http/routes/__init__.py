@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import importlib
+import pkgutil
 
 from meshchatx.src.backend.http.live_names import inject_meshchat_names
 from meshchatx.src.backend.http.routes.app_info import register_app_info_routes
@@ -137,6 +138,11 @@ def _inject_meshchat_namespace() -> None:
     for mod_name in _ROUTE_MODULES:
         mod = importlib.import_module(mod_name)
         inject_meshchat_names(mod.__dict__)
+        # Fat domains may be packages with slice modules that hold handlers.
+        if hasattr(mod, "__path__"):
+            for info in pkgutil.walk_packages(mod.__path__, mod.__name__ + "."):
+                sub = importlib.import_module(info.name)
+                inject_meshchat_names(sub.__dict__)
 
 
 def register_extracted_routes(routes, app) -> None:

@@ -5,15 +5,17 @@
 </template>
 
 <script>
+import { defineComponent } from "vue";
 import { mount, unmount } from "svelte";
 
 /**
- * Vue route host that mounts a Svelte page from route.meta.featureLoad.
+ * Vue route host that mounts a Svelte page from route.meta.featureLoad
  */
-export default {
+export default defineComponent({
     name: "FeaturePageHost",
     data() {
         return {
+            /** @type {Record<string, unknown> | null} */
             svelteApp: null,
         };
     },
@@ -52,7 +54,7 @@ export default {
                 return;
             }
             const mod = await load();
-            const Comp = mod && (mod.default || mod);
+            const Comp = (mod && typeof mod === "object" && "default" in mod ? mod.default : mod) || mod;
             if (!Comp) {
                 console.error("FeaturePageHost: load() returned no default export");
                 return;
@@ -70,5 +72,5 @@ export default {
             });
         },
     },
-};
+});
 </script>

@@ -143,7 +143,7 @@ export default class ROM {
     }
 
     getChecksum() {
-        const checksum = [];
+        const checksum: number[] = [];
         for (var i = 0; i < 16; i++) {
             checksum.push(this.eeprom[ROM.ADDR_CHKSUM + i]);
         }
@@ -151,7 +151,7 @@ export default class ROM {
     }
 
     getSignature() {
-        const signature = [];
+        const signature: number[] = [];
         for (var i = 0; i < 128; i++) {
             signature.push(this.eeprom[ROM.ADDR_SIGNATURE + i]);
         }

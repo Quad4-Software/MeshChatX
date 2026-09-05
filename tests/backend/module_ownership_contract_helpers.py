@@ -18,6 +18,7 @@ from pathlib import Path
 
 BACKEND_ROOT = "meshchatx/src/backend"
 FRONTEND_COMPONENTS_ROOT = "meshchatx/src/frontend/components"
+FRONTEND_ROOT = "meshchatx/src/frontend"
 
 _HEADER_KEY_MAP = {
     "domain": "domain",
@@ -142,4 +143,17 @@ def resolve_ws_module_paths(spans: list[str]) -> list[tuple[str, str]]:
 
 
 def resolve_frontend_page_paths(spans: list[str]) -> list[tuple[str, str]]:
-    return _resolve_spans(spans, FRONTEND_COMPONENTS_ROOT, carry_forward=True)
+    """Resolve frontend page spans under components/, or features/ under frontend/."""
+    resolved: list[tuple[str, str]] = []
+    feature_spans: list[str] = []
+    component_spans: list[str] = []
+    for span in spans:
+        if span.startswith("features/"):
+            feature_spans.append(span)
+        else:
+            component_spans.append(span)
+    resolved.extend(_resolve_spans(feature_spans, FRONTEND_ROOT))
+    resolved.extend(
+        _resolve_spans(component_spans, FRONTEND_COMPONENTS_ROOT, carry_forward=True),
+    )
+    return resolved

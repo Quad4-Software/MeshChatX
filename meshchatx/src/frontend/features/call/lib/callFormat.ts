@@ -132,9 +132,30 @@ export function formatSecondsWithoutAgo(seconds: number): string {
 /**
  * Formats a datetime string into relative time ago
  */
-export function formatTimeAgo(datetimeString: string | null | undefined): string {
-    if (!datetimeString) {
+export function formatTimeAgo(datetimeString?: string | number | null): string {
+    if (datetimeString == null || datetimeString === "") {
         return "unknown";
+    }
+    if (typeof datetimeString === "number") {
+        const ms = datetimeString > 1e11 ? datetimeString : datetimeString * 1000;
+        const now = Date.now();
+        const diffSec = Math.round((now - ms) / 1000);
+        if (diffSec < 60) {
+            return "just now";
+        }
+        const date = new Date(ms);
+        if (diffSec > 86400) {
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const month = monthNames[date.getMonth()] || "";
+            const day = date.getDate();
+            let hours = date.getHours();
+            const minutes = date.getMinutes().toString().padStart(2, "0");
+            const ampm = hours >= 12 ? "PM" : "AM";
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            return `${month} ${day}, ${hours}:${minutes} ${ampm}`;
+        }
+        return `${formatSecondsWithoutAgo(diffSec)} ago`;
     }
     let dateString = String(datetimeString).trim();
     if (!dateString.includes("Z") && !dateString.includes("+")) {

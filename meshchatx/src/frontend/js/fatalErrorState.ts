@@ -2,29 +2,31 @@
 
 import { reactive } from "vue";
 
-/** @typedef {"frontend" | "backend"} FatalErrorKind */
+export type FatalErrorKind = "frontend" | "backend";
 
-/**
- * @typedef {object} FatalErrorRecord
- * @property {FatalErrorKind} kind
- * @property {string} title
- * @property {string} message
- * @property {string} [details]
- * @property {string} [stack]
- * @property {string} [context]
- * @property {number} timestamp
- */
+export type FatalErrorRecord = {
+    kind: FatalErrorKind;
+    title: string;
+    message: string;
+    details?: string;
+    stack?: string;
+    context?: string;
+    timestamp: number;
+};
 
-const fatalErrorState = reactive({
+type FatalErrorState = {
+    active: FatalErrorRecord | null;
+    bootFailure: FatalErrorRecord | null;
+};
+
+const fatalErrorState = reactive<FatalErrorState>({
     active: null,
     bootFailure: null,
 });
 
-/**
- * @param {Partial<FatalErrorRecord> & { kind: FatalErrorKind, message: string }} payload
- * @returns {FatalErrorRecord}
- */
-export function buildFatalErrorRecord(payload) {
+export function buildFatalErrorRecord(
+    payload: Partial<FatalErrorRecord> & { kind: FatalErrorKind; message: string }
+): FatalErrorRecord {
     const message = String(payload.message || "Unknown error");
     return {
         kind: payload.kind,
@@ -37,18 +39,14 @@ export function buildFatalErrorRecord(payload) {
     };
 }
 
-/**
- * @param {Partial<FatalErrorRecord> & { kind: FatalErrorKind, message: string }} payload
- */
-export function reportFatalError(payload) {
+export function reportFatalError(payload: Partial<FatalErrorRecord> & { kind: FatalErrorKind; message: string }): void {
     fatalErrorState.active = buildFatalErrorRecord(payload);
     void recordFatalErrorLocally(fatalErrorState.active);
 }
 
-/**
- * @param {FatalErrorRecord | null | undefined} record
- */
-export async function recordFatalErrorLocally(record) {
+export async function recordFatalErrorLocally(
+    record: FatalErrorRecord | null | undefined
+): Promise<Record<string, unknown> | null> {
     if (!record || typeof window === "undefined" || !window.api?.post) {
         return null;
     }
@@ -74,25 +72,20 @@ export async function recordFatalErrorLocally(record) {
     }
 }
 
-/**
- * @param {Partial<FatalErrorRecord> & { kind: FatalErrorKind, message: string }} payload
- */
-export function reportBootFailure(payload) {
+export function reportBootFailure(
+    payload: Partial<FatalErrorRecord> & { kind: FatalErrorKind; message: string }
+): FatalErrorRecord {
     const record = buildFatalErrorRecord(payload);
     fatalErrorState.bootFailure = record;
     fatalErrorState.active = record;
     return record;
 }
 
-export function clearFatalError() {
+export function clearFatalError(): void {
     fatalErrorState.active = null;
 }
 
-/**
- * @param {FatalErrorRecord | null | undefined} record
- * @returns {string}
- */
-export function formatFatalErrorReport(record) {
+export function formatFatalErrorReport(record: FatalErrorRecord | null | undefined): string {
     if (!record) {
         return "";
     }

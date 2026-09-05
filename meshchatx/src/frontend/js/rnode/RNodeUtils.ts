@@ -11,7 +11,8 @@ export default class RNodeUtils {
     }
 
     static bytesToHex(bytes) {
-        for (var hex = [], i = 0; i < bytes.length; i++) {
+        var hex: string[] = [];
+        for (var i = 0; i < bytes.length; i++) {
             var current = bytes[i] < 0 ? bytes[i] + 256 : bytes[i];
             hex.push((current >>> 4).toString(16));
             hex.push((current & 0xf).toString(16));
@@ -23,9 +24,9 @@ export default class RNodeUtils {
         // We will use CryptoJS if available on window, or we might need to import it.
         // For now, let's assume we will import it or it will be provided.
         // In the original it was using CryptoJS.MD5
-        if (typeof window !== "undefined" && window.CryptoJS) {
-            var bytes = [];
-            const hash = window.CryptoJS.MD5(window.CryptoJS.enc.Hex.parse(this.bytesToHex(data)));
+        if (typeof window !== "undefined" && (window as any).CryptoJS) {
+            var bytes: number[] = [];
+            const hash = (window as any).CryptoJS.MD5((window as any).CryptoJS.enc.Hex.parse(this.bytesToHex(data)));
             for (var i = 0; i < hash.sigBytes; i++) {
                 bytes.push((hash.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff);
             }

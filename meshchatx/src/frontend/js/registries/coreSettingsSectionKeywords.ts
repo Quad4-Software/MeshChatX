@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-/** @type {Record<string, string[]>} */
-export const CORE_SETTINGS_SECTION_KEYWORDS: any = {
+export const CORE_SETTINGS_SECTION_KEYWORDS: Record<string, string[]> = {
     telephony: ["Telephony", "Telephone", "LXST", "Enable Telephone", "voice", "calling", "call", "mesh network"],
     strangerProtection: [
         "Security",

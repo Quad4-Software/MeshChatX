@@ -16,10 +16,7 @@ import {
     sanitizeBlocklistMatchMode,
     sanitizeBlocklistScope,
 } from "@/features/message-blocklist/lib/blocklistRules.ts";
-import {
-    API_MESSAGE_BLOCKLIST,
-    API_MESSAGE_BLOCKLIST_EXPORT,
-} from "@/features/message-blocklist/lib/constants.ts";
+import { API_MESSAGE_BLOCKLIST, API_MESSAGE_BLOCKLIST_EXPORT } from "@/features/message-blocklist/lib/constants.ts";
 import { registerMessageBlocklistFeature } from "@/features/message-blocklist/index.ts";
 import { clearRoutes, listRoutes } from "@/js/registries/routeRegistry.js";
 import { clearFeatureIds, listFeatureIds } from "@/js/registries/featureRegistry.js";
@@ -95,9 +92,7 @@ describe("message-blocklist lib helpers", () => {
             scope: "contacts",
             match_peer_fields: true,
             match_message: false,
-            entries: [
-                { id: "1", enabled: true, text: " hello ", match_mode: "substring" },
-            ],
+            entries: [{ id: "1", enabled: true, text: " hello ", match_mode: "substring" }],
         });
         expect(normalized.scope).toBe("contacts");
         expect(normalized.entries[0].text).toBe("hello");

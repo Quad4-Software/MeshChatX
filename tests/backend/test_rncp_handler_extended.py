@@ -38,9 +38,9 @@ def test_rncp_handler_init(rncp_handler, mock_reticulum, mock_identity):
     assert rncp_handler.active_transfers == {}
 
 
-@patch("meshchatx.src.backend.rncp_handler.RNS.Identity")
-@patch("meshchatx.src.backend.rncp_handler.RNS.Destination")
-@patch("meshchatx.src.backend.rncp_handler.RNS.Reticulum")
+@patch("meshchatx.src.backend.rncp_handler.core.RNS.Identity")
+@patch("meshchatx.src.backend.rncp_handler.core.RNS.Destination")
+@patch("meshchatx.src.backend.rncp_handler.core.RNS.Reticulum")
 def test_setup_receive_destination(
     mock_rns_reticulum,
     mock_dest,
@@ -107,10 +107,10 @@ def test_get_listener_status_not_listening(rncp_handler):
     assert s["allowed_hashes"] == []
 
 
-@patch("meshchatx.src.backend.rncp_handler.RNS.Transport")
-@patch("meshchatx.src.backend.rncp_handler.RNS.Identity")
-@patch("meshchatx.src.backend.rncp_handler.RNS.Destination")
-@patch("meshchatx.src.backend.rncp_handler.RNS.Reticulum")
+@patch("meshchatx.src.backend.rncp_handler.core.RNS.Transport")
+@patch("meshchatx.src.backend.rncp_handler.core.RNS.Identity")
+@patch("meshchatx.src.backend.rncp_handler.core.RNS.Destination")
+@patch("meshchatx.src.backend.rncp_handler.core.RNS.Reticulum")
 def test_teardown_receive_destination_deregisters(
     mock_rns_reticulum,
     mock_dest_class,
@@ -134,10 +134,10 @@ def test_teardown_receive_destination_deregisters(
     assert rncp_handler.receive_destination is None
 
 
-@patch("meshchatx.src.backend.rncp_handler.RNS.Transport")
-@patch("meshchatx.src.backend.rncp_handler.RNS.Identity")
-@patch("meshchatx.src.backend.rncp_handler.RNS.Destination")
-@patch("meshchatx.src.backend.rncp_handler.RNS.Reticulum")
+@patch("meshchatx.src.backend.rncp_handler.core.RNS.Transport")
+@patch("meshchatx.src.backend.rncp_handler.core.RNS.Identity")
+@patch("meshchatx.src.backend.rncp_handler.core.RNS.Destination")
+@patch("meshchatx.src.backend.rncp_handler.core.RNS.Reticulum")
 def test_setup_receive_destination_idempotent_restarts_listener(
     mock_rns_reticulum,
     mock_dest_class,
@@ -163,10 +163,10 @@ def test_setup_receive_destination_idempotent_restarts_listener(
     assert rncp_handler.receive_destination is second_dest
 
 
-@patch("meshchatx.src.backend.rncp_handler.RNS.Transport")
-@patch("meshchatx.src.backend.rncp_handler.RNS.Identity")
-@patch("meshchatx.src.backend.rncp_handler.RNS.Destination")
-@patch("meshchatx.src.backend.rncp_handler.RNS.Reticulum")
+@patch("meshchatx.src.backend.rncp_handler.core.RNS.Transport")
+@patch("meshchatx.src.backend.rncp_handler.core.RNS.Identity")
+@patch("meshchatx.src.backend.rncp_handler.core.RNS.Destination")
+@patch("meshchatx.src.backend.rncp_handler.core.RNS.Reticulum")
 def test_setup_receive_destination_empty_allowlist_clears_previous(
     mock_rns_reticulum,
     mock_dest_class,
@@ -213,9 +213,9 @@ def test_fetch_request_without_jail_is_denied(rncp_handler, tmp_path):
 
     link = _FakeLink(link_id=b"link-id")
     with (
-        patch("meshchatx.src.backend.rncp_handler.RNS.Transport") as transport,
+        patch("meshchatx.src.backend.rncp_handler.core.RNS.Transport") as transport,
         patch(
-            "meshchatx.src.backend.rncp_handler.RNS.Resource",
+            "meshchatx.src.backend.rncp_handler.core.RNS.Resource",
             _CapturingResource,
         ),
     ):
@@ -244,9 +244,9 @@ def test_fetch_request_jail_blocks_traversal(rncp_handler, tmp_path):
 
     link = _FakeLink(link_id=b"link-id")
     with (
-        patch("meshchatx.src.backend.rncp_handler.RNS.Transport") as transport,
+        patch("meshchatx.src.backend.rncp_handler.core.RNS.Transport") as transport,
         patch(
-            "meshchatx.src.backend.rncp_handler.RNS.Resource",
+            "meshchatx.src.backend.rncp_handler.core.RNS.Resource",
             _CapturingResource,
         ),
     ):
@@ -275,9 +275,9 @@ def test_fetch_request_jail_serves_file_inside_jail(rncp_handler, tmp_path):
 
     link = _FakeLink(link_id=b"link-id")
     with (
-        patch("meshchatx.src.backend.rncp_handler.RNS.Transport") as transport,
+        patch("meshchatx.src.backend.rncp_handler.core.RNS.Transport") as transport,
         patch(
-            "meshchatx.src.backend.rncp_handler.RNS.Resource",
+            "meshchatx.src.backend.rncp_handler.core.RNS.Resource",
             _CapturingResource,
         ),
     ):
@@ -303,9 +303,9 @@ def test_fetch_request_jail_blocks_null_byte(rncp_handler, tmp_path):
     _CapturingResource.served_path = None
     link = _FakeLink(link_id=b"link-null")
     with (
-        patch("meshchatx.src.backend.rncp_handler.RNS.Transport") as transport,
+        patch("meshchatx.src.backend.rncp_handler.core.RNS.Transport") as transport,
         patch(
-            "meshchatx.src.backend.rncp_handler.RNS.Resource",
+            "meshchatx.src.backend.rncp_handler.core.RNS.Resource",
             _CapturingResource,
         ),
     ):
@@ -322,9 +322,9 @@ def test_fetch_request_jail_blocks_null_byte(rncp_handler, tmp_path):
     assert _CapturingResource.served_path is None
 
 
-@patch("meshchatx.src.backend.rncp_handler.RNS.Identity")
-@patch("meshchatx.src.backend.rncp_handler.RNS.Destination")
-@patch("meshchatx.src.backend.rncp_handler.RNS.Reticulum")
+@patch("meshchatx.src.backend.rncp_handler.core.RNS.Identity")
+@patch("meshchatx.src.backend.rncp_handler.core.RNS.Destination")
+@patch("meshchatx.src.backend.rncp_handler.core.RNS.Reticulum")
 def test_setup_defaults_jail_when_fetch_enabled(
     mock_rns_reticulum,
     mock_dest_class,
@@ -434,9 +434,9 @@ def test_fetch_request_path_oracle(rncp_handler, tmp_path, data):
 
     link = _FakeLink(link_id=b"link-oracle")
     with (
-        patch("meshchatx.src.backend.rncp_handler.RNS.Transport") as transport,
+        patch("meshchatx.src.backend.rncp_handler.core.RNS.Transport") as transport,
         patch(
-            "meshchatx.src.backend.rncp_handler.RNS.Resource",
+            "meshchatx.src.backend.rncp_handler.core.RNS.Resource",
             _CapturingResource,
         ),
     ):

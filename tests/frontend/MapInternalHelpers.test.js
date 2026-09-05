@@ -4,9 +4,9 @@ import {
     buildClusterItems,
     getFeatureCoord,
     gridClusterCandidates,
-} from "@/components/map/internal/clusterUtils.js";
-import { getDiscoveredIconName } from "@/components/map/internal/discoveredIcons.js";
-import { dedupeDiscoveredMapNodes, dedupeTelemetryMarkersForMap } from "@/components/map/internal/mapDedupe.js";
+} from "@/features/map/lib/clusterUtils.js";
+import { getDiscoveredIconName } from "@/features/map/lib/discoveredIcons.js";
+import { dedupeDiscoveredMapNodes, dedupeTelemetryMarkersForMap } from "@/features/map/lib/mapDedupe.js";
 
 function feature(props, coord) {
     const geom = coord ? { getCoordinates: () => coord } : null;

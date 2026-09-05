@@ -16,7 +16,7 @@ const STORE_NAME = "snapshots";
 const CACHE_VERSION = 2;
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
-let dbPromise = null;
+let dbPromise: Promise<IDBDatabase> | null = null;
 
 function openDb() {
     if (dbPromise) {

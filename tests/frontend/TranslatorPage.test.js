@@ -242,10 +242,7 @@ describe("TranslatorPage.svelte", () => {
 
         await waitFor(() => {
             expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/config");
-            expect(axiosMock.get).toHaveBeenCalledWith(
-                "/api/v1/translator/languages",
-                expect.any(Object)
-            );
+            expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/translator/languages", expect.any(Object));
         });
 
         expect(await screen.findByText("Source Language")).toBeTruthy();

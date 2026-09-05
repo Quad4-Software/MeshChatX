@@ -69,7 +69,7 @@
             {#if !node.running}
                 <button
                     type="button"
-                    class="primary-chip py-1! px-2.5! text-xs!"
+                    class="primary-chip focus-ring-sem py-1! px-2.5! text-xs!"
                     onclick={(e) => {
                         e.stopPropagation();
                         onStart(node.node_id);
@@ -80,7 +80,7 @@
             {:else}
                 <button
                     type="button"
-                    class="secondary-chip py-1! px-2.5! text-xs! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
+                    class="secondary-chip focus-ring-sem py-1! px-2.5! text-xs! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
                     onclick={(e) => {
                         e.stopPropagation();
                         onStop(node.node_id);
@@ -92,7 +92,7 @@
             {#if node.running}
                 <button
                     type="button"
-                    class="secondary-chip py-1! px-2.5! text-xs!"
+                    class="secondary-chip focus-ring-sem py-1! px-2.5! text-xs!"
                     onclick={(e) => {
                         e.stopPropagation();
                         onAnnounce(node.node_id);
@@ -104,7 +104,7 @@
             {#if node.running && node.destination_hash}
                 <button
                     type="button"
-                    class="secondary-chip py-1! px-2.5! text-xs!"
+                    class="secondary-chip focus-ring-sem py-1! px-2.5! text-xs!"
                     onclick={(e) => {
                         e.stopPropagation();
                         onView(node);
@@ -116,7 +116,7 @@
             {/if}
             <button
                 type="button"
-                class="secondary-chip py-1! px-2.5! text-xs! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
+                class="secondary-chip focus-ring-sem py-1! px-2.5! text-xs! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
                 onclick={(e) => {
                     e.stopPropagation();
                     onDelete(node.node_id);

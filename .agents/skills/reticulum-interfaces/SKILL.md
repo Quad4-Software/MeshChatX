@@ -31,7 +31,7 @@ Packet size and delay belong in protocol design (stamps, attachments, RNCP, PTT)
 
 - Routes: `meshchatx/src/backend/http/routes/interfaces.py`
 - Serial listing: `meshchatx/src/backend/serial_comports.py` (`GET /api/v1/comports`). Landlock must allow `/sys` or pyserial raises TypeError on USB `idVendor`.
-- UI: `meshchatx/src/frontend/components/interfaces/`
+- UI: `meshchatx/src/frontend/features/interfaces/`
 - Ownership: `.agents/module-ownership.md` (Interfaces row)
 
 Do not add a WebSocket mutator that writes interface config. CSRF-protected HTTP via `window.api`.

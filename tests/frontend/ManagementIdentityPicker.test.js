@@ -1,8 +1,10 @@
+// SPDX-License-Identifier: 0BSD
+
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { mount, flushPromises } from "@vue/test-utils";
+import { render, fireEvent, waitFor } from "@testing-library/svelte";
 import DialogUtils from "@/js/DialogUtils";
 import ToastUtils from "@/js/ToastUtils";
-import ManagementIdentityPicker from "@/components/tools/ManagementIdentityPicker.vue";
+import ManagementIdentityPicker from "@/features/rnpath/components/ManagementIdentityPicker.svelte";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
@@ -41,38 +43,41 @@ describe("ManagementIdentityPicker", () => {
 
     it("asks for a name with the in-app prompt instead of window.prompt", async () => {
         DialogUtils.prompt.mockResolvedValue("ops");
-        const wrapper = mount(ManagementIdentityPicker, {
-            global: {
-                mocks: { $t: (key) => key },
-                stubs: {
-                    MaterialDesignIcon: { template: "<div></div>", props: ["iconName"] },
-                },
-            },
+        const { container } = render(ManagementIdentityPicker, {
+            props: { defaultName: "mgmt" },
         });
-        await flushPromises();
-        const createBtn = wrapper.findAll("button").at(1);
-        await createBtn.trigger("click");
-        await flushPromises();
-        expect(DialogUtils.prompt).toHaveBeenCalledWith("remote_mgmt.create_identity_prompt", "mgmt");
-        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/reticulum/management-identities", { name: "ops" });
-        wrapper.unmount();
+
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalled();
+        });
+
+        const buttons = container.querySelectorAll("button");
+        const createBtn = buttons[1];
+        await fireEvent.click(createBtn);
+
+        await waitFor(() => {
+            expect(DialogUtils.prompt).toHaveBeenCalledWith("Name for the new management identity file", "mgmt");
+            expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/reticulum/management-identities", { name: "ops" });
+        });
     });
 
     it("does not create an identity when the prompt is cancelled", async () => {
         DialogUtils.prompt.mockResolvedValue(null);
-        const wrapper = mount(ManagementIdentityPicker, {
-            global: {
-                mocks: { $t: (key) => key },
-                stubs: {
-                    MaterialDesignIcon: { template: "<div></div>", props: ["iconName"] },
-                },
-            },
+        const { container } = render(ManagementIdentityPicker, {
+            props: { defaultName: "mgmt" },
         });
-        await flushPromises();
-        const createBtn = wrapper.findAll("button").at(1);
-        await createBtn.trigger("click");
-        await flushPromises();
-        expect(axiosMock.post).not.toHaveBeenCalled();
-        wrapper.unmount();
+
+        await waitFor(() => {
+            expect(axiosMock.get).toHaveBeenCalled();
+        });
+
+        const buttons = container.querySelectorAll("button");
+        const createBtn = buttons[1];
+        await fireEvent.click(createBtn);
+
+        await waitFor(() => {
+            expect(DialogUtils.prompt).toHaveBeenCalled();
+            expect(axiosMock.post).not.toHaveBeenCalled();
+        });
     });
 });

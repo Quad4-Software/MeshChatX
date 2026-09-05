@@ -38,7 +38,7 @@ export async function loadPluginLabelMap(apiClient, pluginId, locale, manifest: 
     const i18n = manifest.i18n || {};
     const directory = i18n.directory || "locales";
     const defaultLocale = i18n.defaultLocale || "en";
-    const candidates = [];
+    const candidates: string[] = [];
     for (const code of [locale, defaultLocale, "en"]) {
         if (code && !candidates.includes(code)) {
             candidates.push(code);

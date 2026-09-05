@@ -25,7 +25,7 @@ describe("filesync packaging contracts", () => {
     });
 
     it("tools registry exposes filesync without comingSoon", () => {
-        const tools = readSource("meshchatx/src/frontend/js/registries/coreToolsEntries.js");
+        const tools = readSource("meshchatx/src/frontend/js/registries/coreToolsEntries.ts");
         expect(tools).toContain('name: "rns-filesync"');
         expect(tools).toContain('route: { name: "rns-filesync" }');
         const block = tools.slice(tools.indexOf('name: "rns-filesync"'), tools.indexOf('name: "rnsh"'));

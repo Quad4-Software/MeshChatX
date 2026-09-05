@@ -1,4 +1,3 @@
-
 // SPDX-License-Identifier: 0BSD
 
 import DialogUtils from "../../../js/DialogUtils.js";

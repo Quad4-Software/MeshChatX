@@ -61,8 +61,8 @@ let nodeScratch = new Float32Array(0);
 let edgeScratch = new Float32Array(0);
 const clipA: any = { x: 0, y: 0, z: 0, w: 0 };
 const clipB: any = { x: 0, y: 0, z: 0, w: 0 };
-let spriteScratch = [];
-let worldScratch = [];
+let spriteScratch: any[] = [];
+let worldScratch: any[] = [];
 
 /**
  * @param {unknown} raw
@@ -347,10 +347,10 @@ export function buildGlobeGrid(meridianCount = 12, parallelCount = 5, segs = 12)
     const key = `${m}:${p}:${g}`;
     const cached = globeGridCache.get(key);
     if (cached) return cached;
-    const lines = [];
+    const lines: any[] = [];
     for (let i = 0; i < m; i++) {
         const lon = (i / m) * Math.PI * 2;
-        let prev = null;
+        let prev: any = null;
         for (let s = 0; s <= g; s++) {
             const lat = Math.PI / 2 - (s / g) * Math.PI;
             const pt = sph(lon, lat);
@@ -362,7 +362,7 @@ export function buildGlobeGrid(meridianCount = 12, parallelCount = 5, segs = 12)
     }
     for (let j = 1; j <= p; j++) {
         const lat = Math.PI / 2 - (j / (p + 1)) * Math.PI;
-        let prev = null;
+        let prev: any = null;
         const first = sph(0, lat);
         for (let s = 1; s <= g; s++) {
             const lon = (s / g) * Math.PI * 2;
@@ -443,7 +443,7 @@ export function planetRadiusForPeers(n) {
 export function placePlanetCenters(count, maxPlanetRadius) {
     const n = Math.max(0, count | 0);
     const R = hubRadiusForPlanetCount(n, maxPlanetRadius);
-    const out = [];
+    const out: any[] = [];
     for (let i = 0; i < n; i++) {
         const ang = n === 1 ? 0 : (i / n) * Math.PI * 2;
         out.push({
@@ -616,7 +616,7 @@ function kindOf(i, kindByIndex, idByIndex) {
  */
 export function assignPlanetHomes(srcCount, kindByIndex, idByIndex, nodes, prevHomeById) {
     const home = new Int16Array(srcCount);
-    const ifaceIndices = [];
+    const ifaceIndices: number[] = [];
     for (let i = 0; i < srcCount; i++) {
         home[i] = -1;
         const k = kindOf(i, kindByIndex, idByIndex);
@@ -694,7 +694,7 @@ function paletteForId(id, offline, dark) {
 export function raycastPlanets(cssX, cssY, width, height, eye, planets) {
     if (!Array.isArray(planets) || !planets.length) return null;
     const ray = screenRay(cssX, cssY, width, height, eye);
-    let best = null;
+    let best: any = null;
     for (let i = 0; i < planets.length; i++) {
         const p = planets[i];
         const hit = raySphereAt(ray.origin, ray.dir, p.cx, p.cy, p.cz, p.radius);
@@ -725,7 +725,7 @@ export function pointerToLayout(cssX, cssY, width, height, eye, layoutScale, pla
     return sphereToLayout(hit.x, hit.y, hit.z, layoutScale);
 }
 
-export function layoutToWasmScreen(lx, ly, width, height, cam = null) {
+export function layoutToWasmScreen(lx: number, ly: number, width: number, height: number, cam: any = null) {
     const zoom = cam?.zoom > 0 ? cam.zoom : 1;
     return {
         x: (lx - (cam?.x || 0)) * zoom + width * 0.5,
@@ -896,7 +896,7 @@ export function projectPlanetScene(opts) {
     const viewProj = mat4Multiply(proj, view);
     const centers = placePlanetCenters(planetCount, maxPlanetR);
 
-    const planets = [];
+    const planets: any[] = [];
     for (let p = 0; p < planetCount; p++) {
         const ifaceIndex = assigned.fallback ? -1 : assigned.ifaceIndices[p];
         const c = centers[p] || { cx: 1.7, cy: 0.1, cz: 0 };
@@ -954,8 +954,8 @@ export function projectPlanetScene(opts) {
     }
 
     for (let p = 0; p < planetCount; p++) {
-        const idxs = [];
-        const locals = [];
+        const idxs: number[] = [];
+        const locals: any[] = [];
         const pl = planets[p];
         for (let i = 0; i < srcCount; i++) {
             if (assigned.home[i] !== p) continue;
@@ -1033,7 +1033,7 @@ export function projectPlanetScene(opts) {
     addSprite(0, 0, 0, 22, dark ? 0.95 : 0.9, dark ? 0.78 : 0.62, dark ? 0.28 : 0.16, 0.22, 0, 0, 0);
 
     const projected = new Array(srcCount);
-    const pick = [];
+    const pick: any[] = [];
     for (let i = 0; i < srcCount; i++) {
         const w = worldScratch[i];
         const o = i * NODE_STRIDE;
@@ -1150,7 +1150,7 @@ export function projectPlanetScene(opts) {
 
     const ringR = hub;
     const ringCol = dark ? [0.28, 0.4, 0.55, 0.22] : [0.45, 0.55, 0.7, 0.28];
-    let prevRing = null;
+    let prevRing: any = null;
     for (let s = 0; s <= ringSegs; s++) {
         const ang = (s / ringSegs) * Math.PI * 2;
         const pt: any = { x: ringR * Math.cos(ang), y: 0, z: ringR * Math.sin(ang) };
@@ -1271,7 +1271,7 @@ export function projectPlanetScene(opts) {
 
 export function pickPlanetNode(pick, cssX, cssY, pad = 10) {
     if (!Array.isArray(pick) || !pick.length) return null;
-    let best = null;
+    let best: any = null;
     let bestD = Infinity;
     for (let i = 0; i < pick.length; i++) {
         const n = pick[i];

@@ -1,8 +1,9 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
-<script>
+<script lang="ts">
     import { onMount } from "svelte";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
+    import EmptyState from "../../ui/svelte/EmptyState.svelte";
     import ToolsPageHeader from "../../ui/svelte/ToolsPageHeader.svelte";
     import WebSocketConnection from "../../js/WebSocketConnection.js";
     import GlobalEmitter from "../../js/GlobalEmitter.js";
@@ -12,20 +13,38 @@
     import { t } from "../../js/i18n.js";
     import { isValidForwarderDestinationHash } from "./lib/forwarderHash.js";
 
-    /** @type {Array<{ id: string, name?: string, forward_to_hash: string, source_filter_hash?: string, is_active?: boolean }>} */
-    let rules = $state([]);
-    let newRule = $state({
+    interface ForwardingRule {
+        id: string;
+        name?: string;
+        forward_to_hash: string;
+        source_filter_hash?: string;
+        is_active?: boolean;
+    }
+
+    interface NewForwardingRule {
+        name: string;
+        forward_to_hash: string;
+        source_filter_hash: string;
+        is_active: boolean;
+    }
+
+    interface ForwardingRulesWsPayload {
+        rules?: ForwardingRule[];
+    }
+
+    let rules = $state<ForwardingRule[]>([]);
+    let newRule = $state<NewForwardingRule>({
         name: "",
         forward_to_hash: "",
         source_filter_hash: "",
         is_active: true,
     });
 
-    function onWebsocketReconnected() {
+    function onWebsocketReconnected(): void {
         fetchRules();
     }
 
-    function fetchRules() {
+    function fetchRules(): void {
         WebSocketConnection.send(
             JSON.stringify({
                 type: "lxmf.forwarding.rules.get",
@@ -33,14 +52,11 @@
         );
     }
 
-    /**
-     * @param {{ rules?: typeof rules }} data
-     */
-    function onForwardingRules(data) {
+    function onForwardingRules(data: ForwardingRulesWsPayload): void {
         rules = Array.isArray(data?.rules) ? data.rules : [];
     }
 
-    function addRule() {
+    function addRule(): void {
         if (!newRule.forward_to_hash) {
             return;
         }
@@ -68,10 +84,7 @@
         ToastUtils.success(t("forwarder.rule_added"));
     }
 
-    /**
-     * @param {string} id
-     */
-    async function deleteRule(id) {
+    async function deleteRule(id: string): Promise<void> {
         if (!(await DialogUtils.confirm(t("forwarder.delete_confirm")))) {
             return;
         }
@@ -88,10 +101,7 @@
         ToastUtils.success(t("forwarder.rule_deleted"));
     }
 
-    /**
-     * @param {string} id
-     */
-    function toggleRule(id) {
+    function toggleRule(id: string): void {
         const sent = WebSocketConnection.send(
             JSON.stringify({
                 type: "lxmf.forwarding.rule.toggle",
@@ -137,7 +147,7 @@
                             bind:value={newRule.name}
                             type="text"
                             placeholder={t("forwarder.name_placeholder")}
-                            class="w-full px-4 py-2 rounded-xl border border-sem-border bg-sem-surface text-sem-fg focus:ring-2 focus:ring-blue-500 transition-all outline-hidden"
+                            class="input-field"
                         />
                     </div>
                     <div class="space-y-1">
@@ -149,7 +159,7 @@
                             bind:value={newRule.forward_to_hash}
                             type="text"
                             placeholder={t("forwarder.destination_placeholder")}
-                            class="w-full px-4 py-2 rounded-xl border border-sem-border bg-sem-surface text-sem-fg focus:ring-2 focus:ring-blue-500 transition-all outline-hidden"
+                            class="input-field"
                         />
                     </div>
                     <div class="space-y-1">
@@ -161,16 +171,12 @@
                             bind:value={newRule.source_filter_hash}
                             type="text"
                             placeholder={t("forwarder.source_filter_placeholder")}
-                            class="w-full px-4 py-2 rounded-xl border border-sem-border bg-sem-surface text-sem-fg focus:ring-2 focus:ring-blue-500 transition-all outline-hidden"
+                            class="input-field"
                         />
                     </div>
                 </div>
                 <div class="flex justify-end">
-                    <button
-                        type="button"
-                        class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
-                        onclick={addRule}
-                    >
+                    <button type="button" class="primary-chip focus-ring-sem" onclick={addRule}>
                         <MaterialDesignIcon iconName="plus" />
                         {t("forwarder.add_button")}
                     </button>
@@ -182,9 +188,7 @@
                     {t("forwarder.active_rules")}
                 </div>
                 {#if rules.length === 0}
-                    <div class="glass-card text-center py-12 text-sem-fg-muted">
-                        {t("forwarder.no_rules")}
-                    </div>
+                    <EmptyState icon="swap-horizontal" title={t("forwarder.no_rules")} />
                 {:else}
                     {#each rules as rule (rule.id)}
                         <div class="glass-card flex items-center justify-between gap-4">
@@ -230,7 +234,7 @@
                             <div class="flex items-center gap-2">
                                 <button
                                     type="button"
-                                    class="p-2 hover:bg-sem-surface-muted rounded-lg transition-colors {rule.is_active
+                                    class="p-2 hover:bg-sem-surface-muted rounded-lg transition-colors focus-ring-sem {rule.is_active
                                         ? 'text-blue-500'
                                         : 'text-gray-400'}"
                                     title={rule.is_active ? t("forwarder.disabled") : t("forwarder.active")}
@@ -242,7 +246,7 @@
                                 </button>
                                 <button
                                     type="button"
-                                    class="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 rounded-lg transition-colors"
+                                    class="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 rounded-lg transition-colors focus-ring-sem"
                                     title={t("common.delete")}
                                     onclick={() => deleteRule(rule.id)}
                                 >

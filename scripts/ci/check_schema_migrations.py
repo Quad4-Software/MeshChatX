@@ -11,6 +11,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = ROOT / "meshchatx/src/backend/database/schema.py"
+if not SCHEMA.is_file():
+    SCHEMA = ROOT / "meshchatx/src/backend/database/schema/core.py"
 FIXTURE_MANIFEST = ROOT / "tests/backend/fixtures/schema_versions/manifest.json"
 
 DESTRUCTIVE = re.compile(

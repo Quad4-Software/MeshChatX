@@ -3,6 +3,7 @@
 <script lang="ts">
     import { t } from "../../../js/i18n.js";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
+    import EmptyState from "../../../ui/svelte/EmptyState.svelte";
     import type { PageNodePageItem } from "../lib/types.js";
     import PageNodeToggle from "./PageNodeToggle.svelte";
 
@@ -61,9 +62,7 @@
     </div>
 
     {#if pages.length === 0}
-        <div class="text-sm text-sem-fg-muted py-4 text-center">
-            {t("tools.mesh_server.no_pages")}
-        </div>
+        <EmptyState plain icon="file-document-outline" title={t("tools.mesh_server.no_pages")} />
     {/if}
 
     {#each pages as page (page.name)}

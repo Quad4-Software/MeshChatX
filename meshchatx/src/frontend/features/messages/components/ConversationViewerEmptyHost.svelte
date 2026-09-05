@@ -47,15 +47,11 @@
     oncomposeenter={() => oncomposeenter?.()}
     oncomposeup={() => {
         selectedComposeSuggestionIndex =
-            selectedComposeSuggestionIndex > 0
-                ? selectedComposeSuggestionIndex - 1
-                : composeSuggestions.length - 1;
+            selectedComposeSuggestionIndex > 0 ? selectedComposeSuggestionIndex - 1 : composeSuggestions.length - 1;
     }}
     oncomposedown={() => {
         selectedComposeSuggestionIndex =
-            selectedComposeSuggestionIndex < composeSuggestions.length - 1
-                ? selectedComposeSuggestionIndex + 1
-                : 0;
+            selectedComposeSuggestionIndex < composeSuggestions.length - 1 ? selectedComposeSuggestionIndex + 1 : 0;
     }}
     oncomposebblur={() =>
         setTimeout(() => {

@@ -1,53 +1,41 @@
-import { mount } from "@vue/test-utils";
-import { describe, it, expect } from "vitest";
-import ThemePresetPicker from "../../meshchatx/src/frontend/components/settings/ThemePresetPicker.vue";
+// SPDX-License-Identifier: 0BSD
+
+import { render, fireEvent } from "@testing-library/svelte";
+import { describe, it, expect, vi } from "vitest";
+import ThemePresetPicker from "../../meshchatx/src/frontend/features/settings/components/ThemePresetPicker.svelte";
 import { THEME_PRESET_CATALOG } from "../../meshchatx/src/frontend/theme/themeEngine.js";
 
 describe("ThemePresetPicker", () => {
     it("lists every theme preset in the select and preview grid", () => {
-        const wrapper = mount(ThemePresetPicker, {
+        const { container } = render(ThemePresetPicker, {
             props: {
                 value: "default",
                 config: { theme: "light", theme_preset: "default" },
             },
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                },
-                stubs: {
-                    MaterialDesignIcon: { template: "<span />" },
-                },
-            },
         });
 
-        expect(wrapper.findAll("select option").length).toBe(THEME_PRESET_CATALOG.length);
-        expect(wrapper.findAll('[role="option"]').length).toBe(THEME_PRESET_CATALOG.length);
-        expect(wrapper.findAll(".theme-preset-swatch").length).toBe(THEME_PRESET_CATALOG.length + 1);
+        expect(container.querySelectorAll("select option").length).toBe(THEME_PRESET_CATALOG.length);
+        expect(container.querySelectorAll('[role="option"]').length).toBe(THEME_PRESET_CATALOG.length);
+        expect(container.querySelectorAll(".theme-preset-swatch").length).toBe(THEME_PRESET_CATALOG.length + 1);
     });
 
     it("emits change when a grid preset is clicked", async () => {
-        const wrapper = mount(ThemePresetPicker, {
+        const onchange = vi.fn();
+        const { container } = render(ThemePresetPicker, {
             props: {
                 value: "default",
                 config: { theme: "light", theme_preset: "default" },
-            },
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                },
-                stubs: {
-                    MaterialDesignIcon: { template: "<span />" },
-                },
+                onchange,
             },
         });
 
-        const gridButtons = wrapper.findAll('[role="option"]');
-        await gridButtons[2].trigger("click");
-        expect(wrapper.emitted("change")?.[0]?.[0]).toBe(THEME_PRESET_CATALOG[2].id);
+        const gridButtons = container.querySelectorAll('[role="option"]');
+        await fireEvent.click(gridButtons[2]);
+        expect(onchange).toHaveBeenCalledWith(THEME_PRESET_CATALOG[2].id);
     });
 
     it("grid swatches ignore user accent when previewing other presets", async () => {
-        const wrapper = mount(ThemePresetPicker, {
+        const { container } = render(ThemePresetPicker, {
             props: {
                 value: "default",
                 config: {
@@ -56,20 +44,12 @@ describe("ThemePresetPicker", () => {
                     accent_color: "#ff00ff",
                 },
             },
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                },
-                stubs: {
-                    MaterialDesignIcon: { template: "<span />" },
-                },
-            },
         });
 
-        const solarizedButton = wrapper.findAll('[role="option"]')[3];
-        const nordButton = wrapper.findAll('[role="option"]')[4];
-        const solarizedAccent = solarizedButton.findAll(".theme-preset-swatch__band")[2].element.style.backgroundColor;
-        const nordAccent = nordButton.findAll(".theme-preset-swatch__band")[2].element.style.backgroundColor;
+        const solarizedButton = container.querySelectorAll('[role="option"]')[3];
+        const nordButton = container.querySelectorAll('[role="option"]')[4];
+        const solarizedAccent = solarizedButton.querySelectorAll(".theme-preset-swatch__band")[2].style.backgroundColor;
+        const nordAccent = nordButton.querySelectorAll(".theme-preset-swatch__band")[2].style.backgroundColor;
         expect(solarizedAccent).not.toBe("rgb(255, 0, 255)");
         expect(nordAccent).not.toBe("rgb(255, 0, 255)");
         expect(solarizedAccent).not.toBe(nordAccent);

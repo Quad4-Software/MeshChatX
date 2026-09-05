@@ -10,12 +10,7 @@ import {
     TELEPHONE_VOICEMAIL_RECORD_STOP_ENDPOINT,
     TELEPHONE_VOICEMAIL_STATUS_ENDPOINT,
 } from "./constants.js";
-import type {
-    GenerateGreetingResponse,
-    RecordingsResponse,
-    VoicemailStatus,
-    VoicemailsResponse,
-} from "./types.js";
+import type { GenerateGreetingResponse, RecordingsResponse, VoicemailStatus, VoicemailsResponse } from "./types.js";
 
 declare const window: {
     api?: {
@@ -62,11 +57,13 @@ export async function stopRecordingGreetingMic(): Promise<{ message?: string }> 
 /**
  * Fetches voicemails list
  */
-export async function fetchVoicemails(options: {
-    search?: string;
-    limit?: number;
-    offset?: number;
-} = {}): Promise<VoicemailsResponse> {
+export async function fetchVoicemails(
+    options: {
+        search?: string;
+        limit?: number;
+        offset?: number;
+    } = {}
+): Promise<VoicemailsResponse> {
     const api = getApiClient();
     const params: Record<string, unknown> = {};
     if (options.search) params.search = options.search;
@@ -99,17 +96,27 @@ export async function deleteVoicemail(voicemailId: number | string): Promise<{ m
 /**
  * Generates voicemail greeting audio using text to speech
  */
-export async function generateVoicemailGreeting(): Promise<GenerateGreetingResponse> {
+export async function generateVoicemailGreeting(data?: Record<string, unknown>): Promise<GenerateGreetingResponse> {
     const api = getApiClient();
-    const response = await api.post(TELEPHONE_VOICEMAIL_GENERATE_GREETING_ENDPOINT);
+    const response = await api.post(TELEPHONE_VOICEMAIL_GENERATE_GREETING_ENDPOINT, data);
     return response.data as GenerateGreetingResponse;
 }
 
 /**
  * Uploads a custom greeting audio file
  */
-export async function uploadVoicemailGreeting(formData: FormData): Promise<{ message?: string; path?: string }> {
+export async function uploadVoicemailGreeting(
+    fileOrFormData: File | FormData
+): Promise<{ message?: string; path?: string }> {
     const api = getApiClient();
+    const formData =
+        fileOrFormData instanceof FormData
+            ? fileOrFormData
+            : (() => {
+                  const fd = new FormData();
+                  fd.append("audio_file", fileOrFormData);
+                  return fd;
+              })();
     const response = await api.post(TELEPHONE_VOICEMAIL_GREETING_UPLOAD_ENDPOINT, formData, {
         headers: { "Content-Type": "multipart/form-data" },
     });
@@ -128,11 +135,13 @@ export async function deleteVoicemailGreeting(): Promise<{ message?: string }> {
 /**
  * Fetches call recordings list
  */
-export async function fetchRecordings(options: {
-    search?: string;
-    limit?: number;
-    offset?: number;
-} = {}): Promise<RecordingsResponse> {
+export async function fetchRecordings(
+    options: {
+        search?: string;
+        limit?: number;
+        offset?: number;
+    } = {}
+): Promise<RecordingsResponse> {
     const api = getApiClient();
     const params: Record<string, unknown> = {};
     if (options.search) params.search = options.search;

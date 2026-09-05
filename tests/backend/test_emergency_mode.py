@@ -71,32 +71,32 @@ def mock_rns():
 def test_emergency_mode_startup_logic(mock_rns, temp_dir):
     """Test that emergency mode flag is correctly passed and used."""
     with (
-        patch("meshchatx.src.backend.identity_context.Database") as mock_db_class,
-        patch("meshchatx.src.backend.identity_context.ConfigManager"),
-        patch("meshchatx.src.backend.identity_context.MessageHandler"),
-        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
-        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
-        patch("meshchatx.src.backend.identity_context.MapManager"),
-        patch("meshchatx.src.backend.identity_context.DocsManager"),
-        patch("meshchatx.src.backend.identity_context.NomadNetworkManager"),
+        patch("meshchatx.src.backend.identity_context.core.Database") as mock_db_class,
+        patch("meshchatx.src.backend.identity_context.core.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.core.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.core.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.core.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.core.MapManager"),
+        patch("meshchatx.src.backend.identity_context.core.DocsManager"),
+        patch("meshchatx.src.backend.identity_context.core.NomadNetworkManager"),
         patch(
-            "meshchatx.src.backend.identity_context.TelephoneManager",
+            "meshchatx.src.backend.identity_context.core.TelephoneManager",
         ) as mock_tel_class,
-        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
-        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
-        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
-        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
-        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
-        patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
+        patch("meshchatx.src.backend.identity_context.core.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.core.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.core.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.core.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.core.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.core.TranslatorHandler"),
+        patch("meshchatx.src.backend.identity_context.core.CommunityInterfacesManager"),
         patch(
-            "meshchatx.src.backend.identity_context.IntegrityManager",
+            "meshchatx.src.backend.identity_context.core.IntegrityManager",
         ) as mock_integrity_class,
         patch(
-            "meshchatx.src.backend.identity_context.IdentityContext.start_background_threads",
+            "meshchatx.src.backend.identity_context.core.IdentityContext.start_background_threads",
         ),
         patch(
-            "meshchatx.src.backend.identity_context.IdentityContext.setup_deferred_services",
+            "meshchatx.src.backend.identity_context.core.IdentityContext.setup_deferred_services",
         ),
     ):
         # Initialize app in emergency mode
@@ -128,27 +128,27 @@ def test_emergency_mode_env_var(mock_rns, temp_dir):
     """Test that emergency mode can be engaged via environment variable."""
     with (
         patch.dict(os.environ, {"MESHCHAT_EMERGENCY": "1"}),
-        patch("meshchatx.src.backend.identity_context.Database"),
-        patch("meshchatx.src.backend.identity_context.ConfigManager"),
-        patch("meshchatx.src.backend.identity_context.MessageHandler"),
-        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
-        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
-        patch("meshchatx.src.backend.identity_context.MapManager"),
-        patch("meshchatx.src.backend.identity_context.DocsManager"),
-        patch("meshchatx.src.backend.identity_context.NomadNetworkManager"),
-        patch("meshchatx.src.backend.identity_context.TelephoneManager"),
-        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
-        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
-        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
-        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
-        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
-        patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
+        patch("meshchatx.src.backend.identity_context.core.Database"),
+        patch("meshchatx.src.backend.identity_context.core.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.core.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.core.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.core.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.core.MapManager"),
+        patch("meshchatx.src.backend.identity_context.core.DocsManager"),
+        patch("meshchatx.src.backend.identity_context.core.NomadNetworkManager"),
+        patch("meshchatx.src.backend.identity_context.core.TelephoneManager"),
+        patch("meshchatx.src.backend.identity_context.core.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.core.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.core.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.core.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.core.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.core.TranslatorHandler"),
+        patch("meshchatx.src.backend.identity_context.core.CommunityInterfacesManager"),
         patch(
-            "meshchatx.src.backend.identity_context.IdentityContext.start_background_threads",
+            "meshchatx.src.backend.identity_context.core.IdentityContext.start_background_threads",
         ),
         patch(
-            "meshchatx.src.backend.identity_context.IdentityContext.setup_deferred_services",
+            "meshchatx.src.backend.identity_context.core.IdentityContext.setup_deferred_services",
         ),
     ):
         # We need to simulate the argparse processing that happens in main()
@@ -170,29 +170,29 @@ def test_emergency_mode_env_var(mock_rns, temp_dir):
 def test_normal_mode_startup_logic(mock_rns, temp_dir):
     """Verify that normal mode (non-emergency) still works as expected."""
     with (
-        patch("meshchatx.src.backend.identity_context.Database") as mock_db_class,
-        patch("meshchatx.src.backend.identity_context.ConfigManager"),
-        patch("meshchatx.src.backend.identity_context.MessageHandler"),
-        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
-        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
-        patch("meshchatx.src.backend.identity_context.MapManager"),
-        patch("meshchatx.src.backend.identity_context.DocsManager"),
-        patch("meshchatx.src.backend.identity_context.NomadNetworkManager"),
+        patch("meshchatx.src.backend.identity_context.core.Database") as mock_db_class,
+        patch("meshchatx.src.backend.identity_context.core.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.core.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.core.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.core.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.core.MapManager"),
+        patch("meshchatx.src.backend.identity_context.core.DocsManager"),
+        patch("meshchatx.src.backend.identity_context.core.NomadNetworkManager"),
         patch(
-            "meshchatx.src.backend.identity_context.TelephoneManager",
+            "meshchatx.src.backend.identity_context.core.TelephoneManager",
         ) as mock_tel_class,
-        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
-        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
-        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
-        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
-        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
-        patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
+        patch("meshchatx.src.backend.identity_context.core.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.core.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.core.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.core.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.core.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.core.TranslatorHandler"),
+        patch("meshchatx.src.backend.identity_context.core.CommunityInterfacesManager"),
         patch(
-            "meshchatx.src.backend.identity_context.IntegrityManager",
+            "meshchatx.src.backend.identity_context.core.IntegrityManager",
         ) as mock_integrity_class,
         patch(
-            "meshchatx.src.backend.identity_context.IdentityContext.start_background_threads",
+            "meshchatx.src.backend.identity_context.core.IdentityContext.start_background_threads",
         ),
     ):
         # Configure mocks BEFORE instantiating app
@@ -233,9 +233,9 @@ def test_emergency_mode_memory_concurrency(mock_rns, temp_dir):
 
     with (
         patch(
-            "meshchatx.src.backend.identity_context.IdentityContext.start_background_threads",
+            "meshchatx.src.backend.identity_context.core.IdentityContext.start_background_threads",
         ),
-        patch("meshchatx.src.backend.identity_context.create_lxmf_router"),
+        patch("meshchatx.src.backend.identity_context.core.create_lxmf_router"),
         patch("meshchatx.meshchat.WebAudioBridge"),
         patch("meshchatx.meshchat.memory_log_handler"),
     ):

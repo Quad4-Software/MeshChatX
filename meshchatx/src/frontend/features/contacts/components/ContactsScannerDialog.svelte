@@ -1,8 +1,8 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
-<script>
+<script lang="ts">
     import { onDestroy } from "svelte";
-    import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
+    import Modal from "../../../ui/svelte/Modal.svelte";
     import {
         attachStreamToVideo,
         decodeQrFromVideo,
@@ -13,22 +13,20 @@
     import ToastUtils from "../../../js/ToastUtils.js";
     import { t } from "../../../js/i18n.js";
 
-    /**
-     * @type {{
-     *   open?: boolean,
-     *   onClose?: () => void,
-     *   onScanned?: (value: string) => void,
-     * }}
-     */
-    let { open = false, onClose, onScanned } = $props();
+    let {
+        open = $bindable(false),
+        onClose,
+        onScanned,
+    }: {
+        open?: boolean;
+        onClose?: () => void;
+        onScanned?: (value: string) => void;
+    } = $props();
 
-    /** @type {HTMLVideoElement | undefined} */
-    let scannerVideo = $state();
-    let scannerError = $state(/** @type {string | null} */ (null));
-    /** @type {MediaStream | null} */
-    let scannerStream = null;
-    /** @type {number | null} */
-    let scannerAnimationFrame = null;
+    let scannerVideo: HTMLVideoElement | undefined = $state();
+    let scannerError: string | null = $state(null);
+    let scannerStream: MediaStream | null = null;
+    let scannerAnimationFrame: number | null = null;
 
     const cameraSupported = isCameraSupported();
 
@@ -43,6 +41,12 @@
         }
     }
 
+    function handleClose() {
+        open = false;
+        stopScanner();
+        onClose?.();
+    }
+
     function detectQrLoop() {
         if (!open) {
             return;
@@ -55,7 +59,7 @@
                 if (qr) {
                     onScanned?.(qr);
                     ToastUtils.success(t("contacts.qr_scanned"));
-                    onClose?.();
+                    handleClose();
                     return;
                 }
                 scannerAnimationFrame = requestAnimationFrame(() => detectQrLoop());
@@ -115,38 +119,10 @@
     });
 </script>
 
-{#if open}
-    <div
-        class="fixed inset-0 z-220 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs"
-        onclick={(e) => {
-            if (e.target === e.currentTarget) onClose?.();
-        }}
-        onkeydown={(e) => {
-            if (e.key === "Escape") onClose?.();
-        }}
-        role="presentation"
-    >
-        <div
-            class="w-full max-w-xl rounded-2xl bg-sem-surface shadow-2xl overflow-hidden"
-            role="dialog"
-            aria-modal="true"
-        >
-            <div class="px-5 py-4 border-b border-sem-border flex items-center justify-between">
-                <h3 class="text-lg font-bold text-sem-fg">{t("contacts.scan_qr")}</h3>
-                <button type="button" class="text-sem-fg-muted hover:text-sem-fg" onclick={() => onClose?.()}>
-                    <MaterialDesignIcon iconName="close" class="size-5" />
-                </button>
-            </div>
-            <div class="p-5 space-y-3">
-                <video
-                    bind:this={scannerVideo}
-                    class="w-full rounded-xl bg-black max-h-[60vh]"
-                    autoplay
-                    playsinline
-                    muted
-                ></video>
-                <div class="text-sm text-sem-fg-muted">{scannerError || t("contacts.scanner_hint")}</div>
-            </div>
-        </div>
+<Modal bind:open title={t("contacts.scan_qr")} maxWidth={576} onClose={handleClose}>
+    <div class="p-5 space-y-3">
+        <video bind:this={scannerVideo} class="w-full rounded-xl bg-black max-h-[60vh]" autoplay playsinline muted
+        ></video>
+        <div class="text-sm text-sem-fg-muted">{scannerError || t("contacts.scanner_hint")}</div>
     </div>
-{/if}
+</Modal>

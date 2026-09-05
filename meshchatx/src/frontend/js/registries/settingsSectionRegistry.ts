@@ -2,62 +2,39 @@
 
 import { createRegistry } from "./registryCore.js";
 
-/**
- * @typedef {Object} SettingsSectionEntry
- * @property {string} id
- * @property {string[]} keywords
- * @property {import('vue').Component | null} [component]
- * @property {string | null} [pluginId]
- */
+export interface SettingsSectionEntry {
+    id: string;
+    keywords?: string[];
+    component?: any;
+    pluginId?: string | null;
+}
 
-/** @type {import('./registryCore.js').Registry<SettingsSectionEntry>} */
-export const settingsSectionRegistry = createRegistry("settingsSectionRegistry");
+export const settingsSectionRegistry = createRegistry<SettingsSectionEntry>("settingsSectionRegistry");
 
-/**
- * @param {Omit<SettingsSectionEntry, 'id'> & { id: string }} entry
- */
-export function registerSettingsSection(entry) {
+export function registerSettingsSection(entry: SettingsSectionEntry) {
     settingsSectionRegistry.register(entry);
 }
 
-/**
- * @param {string} id
- */
-export function unregisterSettingsSection(id) {
+export function unregisterSettingsSection(id: string) {
     settingsSectionRegistry.unregister(id);
 }
 
-/**
- * @returns {SettingsSectionEntry[]}
- */
-export function listSettingsSections() {
+export function listSettingsSections(): SettingsSectionEntry[] {
     return settingsSectionRegistry.list();
 }
 
-/**
- * @param {string} sectionKey
- * @returns {string[] | undefined}
- */
-export function getSettingsSectionKeywords(sectionKey) {
+export function getSettingsSectionKeywords(sectionKey: string): string[] | undefined {
     return settingsSectionRegistry.get(sectionKey)?.keywords;
 }
 
-/**
- * @returns {Record<string, string[]>}
- */
-export function getAllSettingsSectionKeywords() {
-    /** @type {Record<string, string[]>} */
-    const map: any = {};
+export function getAllSettingsSectionKeywords(): Record<string, string[] | undefined> {
+    const map: Record<string, string[] | undefined> = {};
     for (const entry of settingsSectionRegistry.list()) {
         map[entry.id] = entry.keywords;
     }
     return map;
 }
 
-/**
- * @param {string} sectionKey
- * @returns {import('vue').Component | null | undefined}
- */
-export function getSettingsSectionComponent(sectionKey) {
+export function getSettingsSectionComponent(sectionKey: string): any {
     return settingsSectionRegistry.get(sectionKey)?.component;
 }

@@ -3,6 +3,7 @@
 <script lang="ts">
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import LxmfUserIcon from "../../../ui/svelte/LxmfUserIcon.svelte";
+    import CallActiveSessionStats from "./CallActiveSessionStats.svelte";
     import { t } from "../../../js/i18n.js";
     import {
         formatDestinationHash as defaultFormatHash,
@@ -59,17 +60,19 @@
     >
         {#if activeCall?.is_recording}
             <div
-                class="absolute top-4 right-4 z-20 flex items-center gap-1.5 px-2 py-1 bg-red-500/10 rounded-full border border-red-500/20"
+                class="absolute top-4 right-4 z-20 flex items-center gap-1.5 px-2 py-1 bg-sem-danger/10 rounded-full border border-sem-danger/20"
             >
-                <div class="size-2 bg-red-500 rounded-full animate-pulse"></div>
-                <span class="text-[10px] font-bold text-red-500 uppercase tracking-wider">Recording</span>
+                <div class="size-2 bg-sem-danger rounded-full animate-pulse"></div>
+                <span class="text-[10px] font-bold text-sem-danger uppercase tracking-wider">{t("call.recording")}</span
+                >
             </div>
         {/if}
 
         <div class="relative mb-8">
             <div
-                class="size-32 mx-auto bg-sem-surface-muted rounded-full flex items-center justify-center border-4 border-white dark:border-zinc-900 shadow-2xl relative z-10 {activeCall?.status === 4
-                    ? 'ring-4 ring-blue-500/20 animate-pulse'
+                class="size-32 mx-auto bg-sem-surface-muted rounded-full flex items-center justify-center border-4 border-sem-surface shadow-2xl relative z-10 {activeCall?.status ===
+                4
+                    ? 'ring-4 ring-sem-accent/20 animate-pulse'
                     : ''}"
             >
                 <LxmfUserIcon
@@ -83,7 +86,7 @@
 
             {#if activeCall?.status === 6}
                 <div
-                    class="absolute -bottom-2 -right-2 bg-green-500 text-white p-2 rounded-full shadow-lg border-4 border-white dark:border-zinc-900 z-20"
+                    class="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-2 rounded-full shadow-lg border-4 border-sem-surface z-20"
                 >
                     <MaterialDesignIcon iconName="phone-in-talk" class="size-5" />
                 </div>
@@ -104,7 +107,8 @@
                     {#if activeCall.path_hops != null}
                         <span class="inline-flex items-center gap-1 rounded-full bg-sem-surface-muted px-2 py-0.5">
                             <MaterialDesignIcon iconName="sitemap-outline" class="size-4" />
-                            {activeCall.path_hops} hops
+                            {activeCall.path_hops}
+                            {t("call.hops")}
                         </span>
                     {/if}
                     {#if activeCall.path_interface}
@@ -117,28 +121,26 @@
                     {/if}
                 </div>
             {/if}
-            {#if currentPeer?.is_contact || !!initiationTargetName}
+            {#if currentPeer?.is_contact || Boolean(initiationTargetName)}
                 <div
-                    class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-sem-accent text-[10px] font-bold rounded-full uppercase tracking-wider"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 bg-sem-accent-subtle text-sem-accent text-[10px] font-bold rounded-full uppercase tracking-wider"
                 >
                     <MaterialDesignIcon iconName="check-decagram" class="size-3" />
-                    Contact
+                    {t("call.contact")}
                 </div>
             {/if}
         </div>
 
         <div class="relative z-10 mb-8">
-            <div
-                class="px-4 py-2 bg-gray-50 dark:bg-zinc-800/50 rounded-2xl inline-block border border-sem-border"
-            >
+            <div class="px-4 py-2 bg-sem-surface-muted/50 rounded-2xl inline-block border border-sem-border">
                 {#if wasDeclined}
-                    <span class="text-red-500 font-bold text-sm">{t("call.call_declined")}</span>
+                    <span class="text-sem-danger font-bold text-sm">{t("call.call_declined")}</span>
                 {:else if isCallEnded}
                     <span class="text-sem-fg-muted font-bold text-sm">{t("call.call_ended")}</span>
                 {:else if activeCall}
                     <div class="flex flex-col items-center">
                         {#if activeCall.is_voicemail}
-                            <span class="text-red-500 font-bold text-sm animate-pulse flex items-center gap-2">
+                            <span class="text-sem-danger font-bold text-sm animate-pulse flex items-center gap-2">
                                 <MaterialDesignIcon iconName="record" class="size-4" />
                                 {t("call.recording_voicemail")}
                             </span>
@@ -147,24 +149,24 @@
                         {:else}
                             <span class="text-sem-fg-muted font-bold text-sm flex items-center gap-2">
                                 {#if activeCall.status === 0}
-                                    <span>Busy...</span>
+                                    <span>{t("call.busy")}</span>
                                 {:else if activeCall.status === 1}
-                                    <span class="text-red-500">Rejected</span>
+                                    <span class="text-sem-danger">{t("call.rejected")}</span>
                                 {:else if activeCall.status === 2}
-                                    <span class="animate-pulse">Calling...</span>
+                                    <span class="animate-pulse">{t("call.calling")}</span>
                                 {:else if activeCall.status === 3}
-                                    <span>Available</span>
+                                    <span>{t("call.available")}</span>
                                 {:else if activeCall.status === 4}
-                                    <span class="animate-pulse">Ringing...</span>
+                                    <span class="animate-pulse">{t("call.ringing")}</span>
                                 {:else if activeCall.status === 5}
                                     <span>{t("call.establishing_link")}</span>
                                 {:else if activeCall.status === 6}
-                                    <span class="text-green-500 flex items-center gap-2">
-                                        <span class="size-2 bg-green-500 rounded-full animate-ping"></span>
-                                        Connected
+                                    <span class="text-emerald-500 flex items-center gap-2">
+                                        <span class="size-2 bg-emerald-500 rounded-full animate-ping"></span>
+                                        {t("call.connected")}
                                     </span>
                                 {:else}
-                                    <span>Status: {activeCall.status}</span>
+                                    <span>{t("call.status")}: {activeCall.status}</span>
                                 {/if}
                             </span>
 
@@ -175,39 +177,15 @@
                             {/if}
 
                             {#if activeCall.status === 6}
-                                <div class="mt-3 grid grid-cols-2 gap-2 text-xs w-full max-w-xs">
-                                    <div class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left">
-                                        <div class="text-[10px] text-sem-fg-muted">{t("call.tx_packets")}</div>
-                                        <div class="font-semibold text-sem-fg">{formatNumber(activeCall.tx_packets)}</div>
-                                    </div>
-                                    <div class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left">
-                                        <div class="text-[10px] text-sem-fg-muted">{t("call.rx_packets")}</div>
-                                        <div class="font-semibold text-sem-fg">{formatNumber(activeCall.rx_packets)}</div>
-                                    </div>
-                                    <div class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left">
-                                        <div class="text-[10px] text-sem-fg-muted">{t("call.tx_data")}</div>
-                                        <div class="font-semibold text-sem-fg">{formatBytes(activeCall.tx_bytes)}</div>
-                                    </div>
-                                    <div class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left">
-                                        <div class="text-[10px] text-sem-fg-muted">{t("call.rx_data")}</div>
-                                        <div class="font-semibold text-sem-fg">{formatBytes(activeCall.rx_bytes)}</div>
-                                    </div>
-                                    <div class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left">
-                                        <div class="text-[10px] text-sem-fg-muted">{t("call.tx_rate")}</div>
-                                        <div class="font-semibold text-sem-fg">{formatBitrate(activeCall.tx_bps)}</div>
-                                    </div>
-                                    <div class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left">
-                                        <div class="text-[10px] text-sem-fg-muted">{t("call.rx_rate")}</div>
-                                        <div class="font-semibold text-sem-fg">{formatBitrate(activeCall.rx_bps)}</div>
-                                    </div>
-                                </div>
-
+                                <CallActiveSessionStats {activeCall} {formatNumber} {formatBytes} {formatBitrate} />
                                 <div class="mt-2 text-[10px] font-semibold uppercase tracking-wider text-sem-fg-muted">
                                     {activeCall.is_half_duplex ? t("call.half_duplex") : t("call.full_duplex")}
                                     {#if activeCall.is_half_duplex}
-                                        <span>
-                                            · {localPttActive ? t("call.ptt_transmitting") : t("call.ptt_listening")}
-                                        </span>
+                                        <span
+                                            >· {localPttActive
+                                                ? t("call.ptt_transmitting")
+                                                : t("call.ptt_listening")}</span
+                                        >
                                     {/if}
                                 </div>
                             {/if}
@@ -224,19 +202,19 @@
 
             {#if isCallEnded && callDuration}
                 <div class="text-xs font-mono text-sem-fg-muted mt-2">
-                    Duration: {callDuration}
+                    {t("call.duration")}: {callDuration}
                 </div>
             {/if}
 
             {#if isCallEnded && wasVoicemail}
-                <div class="mt-6 animate-fade-in">
+                <div class="mt-6">
                     <button
                         type="button"
-                        class="px-6 py-3 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold flex items-center gap-2 shadow-lg shadow-blue-500/30 transition-all hover:scale-105"
+                        class="px-6 py-3 rounded-full bg-sem-accent hover:bg-sem-accent/90 text-white font-bold flex items-center gap-2 shadow-lg shadow-sem-accent/30 transition-all hover:scale-105 cursor-pointer focus-ring-sem"
                         onclick={() => onplaylatestvoicemail?.()}
                     >
                         <MaterialDesignIcon iconName={playingVoicemailId ? "stop" : "play"} class="size-6" />
-                        <span>{playingVoicemailId ? "Stop" : "Play Voicemail"}</span>
+                        <span>{playingVoicemailId ? t("call.stop") : t("call.play_voicemail")}</span>
                     </button>
                 </div>
             {/if}
@@ -269,32 +247,38 @@
                         <button
                             type="button"
                             title={isMicMuted ? t("call.unmute_mic") : t("call.mute_mic")}
-                            class="p-4 rounded-full shadow-lg transition-all duration-200 {isMicMuted
-                                ? 'bg-red-500 text-white shadow-red-500/20'
-                                : 'bg-sem-surface-muted text-sem-fg-secondary hover:bg-gray-200 hover:bg-sem-surface-muted shadow-gray-200/20 dark:shadow-black/20'}"
+                            class="p-4 rounded-full shadow-lg transition-all duration-200 cursor-pointer focus-ring-sem {isMicMuted
+                                ? 'bg-sem-danger text-white shadow-sem-danger/20'
+                                : 'bg-sem-surface-muted text-sem-fg hover:bg-sem-surface-subtle'}"
                             onclick={() => ontogglemic?.()}
                         >
-                            <MaterialDesignIcon iconName={isMicMuted ? "microphone-off" : "microphone"} class="size-6" />
+                            <MaterialDesignIcon
+                                iconName={isMicMuted ? "microphone-off" : "microphone"}
+                                class="size-6"
+                            />
                         </button>
 
                         <button
                             type="button"
                             title={isSpeakerMuted ? t("call.unmute_speaker") : t("call.mute_speaker")}
-                            class="p-4 rounded-full shadow-lg transition-all duration-200 {isSpeakerMuted
-                                ? 'bg-red-500 text-white shadow-red-500/20'
-                                : 'bg-sem-surface-muted text-sem-fg-secondary hover:bg-gray-200 hover:bg-sem-surface-muted shadow-gray-200/20 dark:shadow-black/20'}"
+                            class="p-4 rounded-full shadow-lg transition-all duration-200 cursor-pointer focus-ring-sem {isSpeakerMuted
+                                ? 'bg-sem-danger text-white shadow-sem-danger/20'
+                                : 'bg-sem-surface-muted text-sem-fg hover:bg-sem-surface-subtle'}"
                             onclick={() => ontogglespeaker?.()}
                         >
-                            <MaterialDesignIcon iconName={isSpeakerMuted ? "volume-off" : "volume-high"} class="size-6" />
+                            <MaterialDesignIcon
+                                iconName={isSpeakerMuted ? "volume-off" : "volume-high"}
+                                class="size-6"
+                            />
                         </button>
                     </div>
 
                     {#if isHalfDuplexCall}
                         <button
                             type="button"
-                            class="w-full flex items-center justify-center gap-2 rounded-2xl py-5 text-base font-bold text-white shadow-xl transition-all duration-150 select-none touch-none {localPttActive
+                            class="w-full flex items-center justify-center gap-2 rounded-2xl py-5 text-base font-bold text-white shadow-xl transition-all duration-150 select-none touch-none cursor-pointer focus-ring-sem {localPttActive
                                 ? 'bg-amber-500 shadow-amber-500/30 scale-[1.02]'
-                                : 'bg-blue-600 shadow-blue-600/20 hover:bg-blue-500'}"
+                                : 'bg-sem-accent shadow-sem-accent/20 hover:bg-sem-accent/90'}"
                             title={t("call.ptt_hold_hint")}
                             onpointerdown={(e) => {
                                 e.preventDefault();
@@ -329,7 +313,7 @@
                     <div class="flex gap-3">
                         <button
                             type="button"
-                            class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-green-600 py-4 text-sm font-bold text-white shadow-xl shadow-green-600/20 hover:bg-green-500 transition-all duration-200"
+                            class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-4 text-sm font-bold text-white shadow-xl shadow-emerald-600/20 hover:bg-emerald-500 transition-all duration-200 cursor-pointer focus-ring-sem"
                             onclick={() => onanswer?.()}
                         >
                             <MaterialDesignIcon iconName="phone" class="size-5" />
@@ -338,18 +322,18 @@
 
                         <button
                             type="button"
-                            class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-xl shadow-blue-600/20 hover:bg-blue-500 transition-all duration-200"
+                            class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-sem-accent py-4 text-sm font-bold text-white shadow-xl shadow-sem-accent/20 hover:bg-sem-accent/90 transition-all duration-200 cursor-pointer focus-ring-sem"
                             onclick={() => onsendtovoicemail?.()}
                         >
                             <MaterialDesignIcon iconName="voicemail" class="size-5" />
-                            <span>Voicemail</span>
+                            <span>{t("call.voicemail")}</span>
                         </button>
                     </div>
                 {/if}
 
                 <button
                     type="button"
-                    class="flex items-center justify-center gap-2 rounded-2xl bg-sem-surface-muted py-3 px-4 text-sm font-bold text-sem-fg-muted hover:bg-gray-200 hover:bg-sem-surface-muted transition-all duration-200"
+                    class="flex items-center justify-center gap-2 rounded-2xl bg-sem-surface-muted py-3 px-4 text-sm font-bold text-sem-fg-muted hover:bg-sem-surface-subtle hover:text-sem-fg transition-all duration-200 cursor-pointer focus-ring-sem"
                     onclick={() => onminimize?.()}
                 >
                     <MaterialDesignIcon iconName="chevron-down" class="size-5" />
@@ -358,14 +342,12 @@
 
                 <button
                     type="button"
-                    class="w-full flex items-center justify-center gap-2 rounded-2xl bg-red-600 py-4 text-sm font-bold text-white shadow-xl shadow-red-600/20 hover:bg-red-500 transition-all duration-200"
+                    class="w-full flex items-center justify-center gap-2 rounded-2xl bg-sem-danger py-4 text-sm font-bold text-white shadow-xl shadow-sem-danger/20 hover:bg-sem-danger/90 transition-all duration-200 cursor-pointer focus-ring-sem"
                     onclick={() => onhangup?.()}
                 >
                     <MaterialDesignIcon iconName="phone-hangup" class="size-5 rotate-135" />
                     <span>
-                        {activeCall.is_incoming && activeCall.status === 4
-                            ? t("call.decline")
-                            : t("call.hangup")}
+                        {activeCall.is_incoming && activeCall.status === 4 ? t("call.decline") : t("call.hangup")}
                     </span>
                 </button>
             </div>

@@ -14,7 +14,7 @@ import RNS
 def write_identity_private_key(path: str, identity: RNS.Identity) -> None:
     """Persist an identity private key to path (binary)."""
     with open(path, "wb") as handle:
-        handle.write(identity.get_private_key())
+        handle.write(identity.get_private_key() or b"")
 
 
 def generate_identity_to_file(path: str) -> RNS.Identity | None:
@@ -31,7 +31,7 @@ def generate_identity_to_file(path: str) -> RNS.Identity | None:
 def print_new_identity_base64() -> None:
     """Generate a throwaway identity and print its private key as base64."""
     identity = RNS.Identity(create_keys=True)
-    print(base64.b64encode(identity.get_private_key()).decode("utf-8"))
+    print(base64.b64encode(identity.get_private_key() or b"").decode("utf-8"))
 
 
 def load_identity_from_file(path: str) -> RNS.Identity:
@@ -51,7 +51,7 @@ def load_identity_from_encoded_key(
     identity = RNS.Identity(create_keys=False)
     if identity_base64 is not None:
         identity.load_private_key(base64.b64decode(identity_base64))
-    else:
+    elif identity_base32 is not None:
         try:
             identity.load_private_key(
                 base64.b32decode(identity_base32, casefold=True),
@@ -59,6 +59,8 @@ def load_identity_from_encoded_key(
         except Exception as exc:
             msg = f"Invalid base32 identity: {exc}"
             raise ValueError(msg) from exc
+    else:
+        raise ValueError("Must provide either base64 or base32 identity")
 
     base_storage = storage_dir or os.path.join("storage")
     os.makedirs(base_storage, exist_ok=True)

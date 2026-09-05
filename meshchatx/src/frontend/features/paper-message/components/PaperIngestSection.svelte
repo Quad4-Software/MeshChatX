@@ -27,9 +27,7 @@
         </h2>
     </div>
     <div class="px-4 py-4 space-y-3 text-gray-900 dark:text-gray-100">
-        <p class="text-xs text-gray-600 dark:text-gray-400">
-            Paste an LXMF, LXMA, or LXM URI to decode and ingest.
-        </p>
+        <p class="text-xs text-gray-600 dark:text-gray-400">Paste an LXMF, LXMA, or LXM URI to decode and ingest.</p>
         <div class="flex flex-col sm:flex-row gap-2">
             <input
                 bind:value={ingestUri}

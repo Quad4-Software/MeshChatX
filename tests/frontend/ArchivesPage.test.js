@@ -10,10 +10,7 @@ import {
     muExportFilename,
     muExportFilenameDisambiguated,
 } from "@/features/archives/lib/archiveExport.ts";
-import {
-    cardPreviewHtml,
-    renderFullContent,
-} from "@/features/archives/lib/archiveRender.ts";
+import { cardPreviewHtml, renderFullContent } from "@/features/archives/lib/archiveRender.ts";
 
 describe("ArchivesPage.svelte", () => {
     let createObjectURLSpy;

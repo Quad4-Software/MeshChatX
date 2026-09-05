@@ -40,8 +40,8 @@ export interface CallActiveSessionProps {
     callDuration?: string;
     elapsedTime?: string;
     initiationStatus?: string | null;
-    initiationTargetName?: string;
-    initiationTargetHash?: string;
+    initiationTargetName?: string | null;
+    initiationTargetHash?: string | null;
     audioProfiles?: AudioProfileOption[];
     callModes?: CallModeOption[];
     selectedAudioProfileId?: number | string;
@@ -80,16 +80,18 @@ export interface CallPhoneTabProps {
     callDuration?: string;
     elapsedTime?: string;
     initiationStatus?: string | null;
-    initiationTargetName?: string;
-    initiationTargetHash?: string;
+    initiationTargetName?: string | null;
+    initiationTargetHash?: string | null;
     callMinimized?: boolean;
     destinationHash?: string;
     suggestions?: SuggestionItem[];
     isCallInputFocused?: boolean;
     selectedSuggestionIndex?: number;
+    contacts?: any[];
     callHistory?: any[];
     hasMoreCallHistory?: boolean;
     callHistorySearch?: string;
+    isLoadingHistory?: boolean;
     audioProfiles?: AudioProfileOption[];
     callModes?: CallModeOption[];
     selectedAudioProfileId?: number | string;
@@ -142,4 +144,5 @@ export interface CallPhoneTabProps {
     onrefreshaudiodevices?: () => void;
     onrestartwebaudio?: () => void;
     onselectsuggestion?: (suggestion: SuggestionItem) => void;
+    [key: string]: unknown;
 }

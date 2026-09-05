@@ -207,16 +207,16 @@ class TestAudioProfilePassthroughRegression:
 
         with (
             patch(
-                "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+                "meshchatx.src.backend.telephone_manager.core.RNS.Identity.recall",
                 return_value=MagicMock(),
             ),
             patch(
-                "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+                "meshchatx.src.backend.telephone_manager.core.RNS.Transport.has_path",
                 return_value=True,
             ),
             patch.object(TelephoneManager, "codec2_available", return_value=True),
             patch(
-                "meshchatx.src.backend.telephone_manager.RNS.Destination",
+                "meshchatx.src.backend.telephone_manager.core.RNS.Destination",
             ) as dest_cls,
         ):
             dest_cls.return_value.hash = destination_hash
@@ -232,7 +232,7 @@ class TestAudioProfilePassthroughRegression:
 
         with (
             patch(
-                "meshchatx.src.backend.telephone_manager.Telephone",
+                "meshchatx.src.backend.telephone_manager.core.Telephone",
             ) as telephone_cls,
             patch.object(TelephoneManager, "codec2_available", return_value=True),
         ):

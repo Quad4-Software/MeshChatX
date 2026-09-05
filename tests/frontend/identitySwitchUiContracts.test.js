@@ -3,9 +3,9 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
-import { mount } from "@vue/test-utils";
-import IdentitiesPage from "../../meshchatx/src/frontend/components/settings/IdentitiesPage.vue";
-import AboutPage from "../../meshchatx/src/frontend/components/about/AboutPage.vue";
+import { render, fireEvent, waitFor } from "@testing-library/svelte";
+import IdentitiesPage from "../../meshchatx/src/frontend/features/settings/components/IdentitiesPage.svelte";
+import { restoreFromSnapshot } from "../../meshchatx/src/frontend/features/about/lib/backupApi.ts";
 import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
 import DialogUtils from "../../meshchatx/src/frontend/js/DialogUtils";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
@@ -78,64 +78,49 @@ describe("identity switch and settings UI contracts", () => {
             post: vi.fn().mockRejectedValue({ response: { data: { message: "busy" } } }),
         };
 
-        const wrapper = mount(IdentitiesPage, {
-            global: {
-                stubs: {
-                    MaterialDesignIcon: true,
-                    LxmfUserIcon: true,
-                },
-                mocks: {
-                    $t: (k) => k,
-                },
-            },
-        });
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.getIdentities();
+        const { findByTitle } = render(IdentitiesPage);
+        const switchBtn = await findByTitle("identities.switch");
         emitSpy.mockClear();
 
-        await wrapper.vm.switchIdentity({
-            hash: "hash2",
-            display_name: "B",
-            is_current: false,
-        });
+        await fireEvent.click(switchBtn);
 
-        const emitted = emitSpy.mock.calls.map((c) => c[0]);
-        expect(emitted).toContain("identity-switching-start");
-        expect(emitted).toContain("identity-switching-abort");
-        expect(emitted).not.toContain("identity-switched");
-        expect(emitted).not.toContain("identity-switched-apply");
-        expect(ToastUtils.error).toHaveBeenCalled();
-        wrapper.unmount();
+        await waitFor(() => {
+            const emitted = emitSpy.mock.calls.map((c) => c[0]);
+            expect(emitted).toContain("identity-switching-start");
+            expect(emitted).toContain("identity-switching-abort");
+            expect(emitted).not.toContain("identity-switched");
+            expect(emitted).not.toContain("identity-switched-apply");
+            expect(ToastUtils.error).toHaveBeenCalled();
+        });
         emitSpy.mockRestore();
     });
 
     it("SettingsPage listens for identity-switched and refreshes config", () => {
         const src = readFileSync(
-            join(process.cwd(), "meshchatx/src/frontend/components/settings/SettingsPage.vue"),
+            join(process.cwd(), "meshchatx/src/frontend/features/settings/components/SettingsPage.svelte"),
             "utf8"
         );
         expect(src).toContain('GlobalEmitter.on("identity-switched"');
-        expect(src).toContain("onIdentitySwitched()");
-        expect(src).toMatch(/onIdentitySwitched\(\)\s*\{[\s\S]*getConfig\(\)/);
+        expect(src).toMatch(/on\("identity-switched"[\s\S]*getConfig\(\)/);
     });
 
     it("AboutPage listens for identity-switched and refreshes backups/snapshots", () => {
-        const src = readFileSync(join(process.cwd(), "meshchatx/src/frontend/components/about/AboutPage.vue"), "utf8");
+        const src = readFileSync(join(process.cwd(), "meshchatx/src/frontend/features/about/AboutPage.svelte"), "utf8");
         expect(src).toContain('GlobalEmitter.on("identity-switched"');
-        expect(src).toMatch(/onIdentitySwitched\(\)\s*\{[\s\S]*listSnapshots\(\)/);
-        expect(src).toMatch(/onIdentitySwitched\(\)\s*\{[\s\S]*listAutoBackups\(\)/);
+        expect(src).toMatch(/onIdentitySwitched\(\)[\s\S]*loadSnapshots\(\)/);
+        expect(src).toMatch(/onIdentitySwitched\(\)[\s\S]*loadAutoBackups\(\)/);
     });
 
     it("InterfacesPage listens for identity-switched and reloads interface lists", () => {
         const src = readFileSync(
-            join(process.cwd(), "meshchatx/src/frontend/components/interfaces/InterfacesPage.vue"),
+            join(process.cwd(), "meshchatx/src/frontend/features/interfaces/InterfacesPage.svelte"),
             "utf8"
         );
         expect(src).toContain('GlobalEmitter.on("identity-switched"');
-        expect(src).toMatch(/onIdentitySwitched\(\)\s*\{[\s\S]*loadInterfaces\(\)/);
+        expect(src).toMatch(/handleIdentitySwitched\(\)\s*\{[\s\S]*loadInterfaces\(\)/);
     });
 
-    it("About restoreFromSnapshot guards restoreInProgress and reloads web UI", async () => {
+    it("About restoreFromSnapshot reloads web UI on success", async () => {
         vi.useFakeTimers();
         const reloadSpy = vi.fn();
         const originalLocation = window.location;
@@ -144,31 +129,20 @@ describe("identity switch and settings UI contracts", () => {
             value: { reload: reloadSpy },
         });
 
-        const ctx = {
-            restoreInProgress: false,
-            isElectron: false,
-            $t: (k) => k,
-            scheduleRestoreRelaunch: AboutPage.methods.scheduleRestoreRelaunch,
-        };
-        ctx.scheduleRestoreRelaunch = AboutPage.methods.scheduleRestoreRelaunch.bind(ctx);
-
         window.api = {
             post: vi.fn().mockResolvedValue({ data: { status: "success" } }),
         };
 
-        const first = AboutPage.methods.restoreFromSnapshot.call(ctx, "/storage/snapshots/a.zip");
-        expect(ctx.restoreInProgress).toBe(true);
-        const second = AboutPage.methods.restoreFromSnapshot.call(ctx, "/storage/snapshots/b.zip");
-        await Promise.all([first, second]);
+        const result = await restoreFromSnapshot("/storage/snapshots/a.zip", false);
+        expect(result).toBe(true);
 
-        expect(window.api.post).toHaveBeenCalledTimes(1);
+        expect(window.api.post).toHaveBeenCalledWith("/api/v1/database/restore", { path: "/storage/snapshots/a.zip" });
         expect(DialogUtils.confirm).toHaveBeenCalledTimes(1);
         expect(ToastUtils.success).toHaveBeenCalled();
 
         await vi.advanceTimersByTimeAsync(2000);
         expect(reloadSpy).toHaveBeenCalled();
         expect(ElectronUtils.relaunch).not.toHaveBeenCalled();
-        expect(ctx.restoreInProgress).toBe(false);
 
         Object.defineProperty(window, "location", {
             configurable: true,

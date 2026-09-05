@@ -1,6 +1,12 @@
-import { mount } from "@vue/test-utils";
+// SPDX-License-Identifier: 0BSD
+
+import { render, waitFor } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import InterfacesPage from "../../meshchatx/src/frontend/components/interfaces/InterfacesPage.vue";
+import InterfacesPage from "../../meshchatx/src/frontend/features/interfaces/InterfacesPage.svelte";
+import {
+    fetchInterfaces,
+    fetchInterfaceStats,
+} from "../../meshchatx/src/frontend/features/interfaces/lib/interfacesApi.js";
 
 vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => ({
     default: {
@@ -10,17 +16,10 @@ vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => ({
     },
 }));
 
-vi.mock("../../meshchatx/src/frontend/js/Utils", () => ({
-    default: {
-        formatBytes: (b) => `${b} B`,
-        isInterfaceEnabled: () => true,
-    },
-}));
-
 vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     default: {
-        success: vi.fn(),
-        error: vi.fn(),
+        showSuccess: vi.fn(),
+        showError: vi.fn(),
         loading: vi.fn(),
         dismiss: vi.fn(),
     },
@@ -33,25 +32,6 @@ vi.mock("../../meshchatx/src/frontend/js/ElectronUtils", () => ({
         isWindowsElectron: () => false,
     },
 }));
-
-function mountInterfacesPage() {
-    return mount(InterfacesPage, {
-        global: {
-            stubs: {
-                RouterLink: true,
-                MaterialDesignIcon: true,
-                Toggle: true,
-                ImportInterfacesModal: true,
-                Interface: true,
-                BundledDocsHint: true,
-            },
-            mocks: {
-                $t: (key) => key,
-                $router: { push: vi.fn() },
-            },
-        },
-    });
-}
 
 describe("InterfacesPage interface-stats merge", () => {
     beforeEach(() => {
@@ -87,21 +67,27 @@ describe("InterfacesPage interface-stats merge", () => {
                         },
                     });
                 }
+                if (url.includes("/api/v1/reticulum/discovery")) {
+                    return Promise.resolve({ data: { discovery: {} } });
+                }
+                if (url.includes("/api/v1/reticulum/discovered-interfaces")) {
+                    return Promise.resolve({ data: { interfaces: [], active: [] } });
+                }
                 return Promise.resolve({ data: {} });
             }),
         };
     });
 
     it("indexes stats by interface_name so config keys match live status", async () => {
-        const wrapper = mountInterfacesPage();
-        await wrapper.vm.loadInterfaces();
-        await wrapper.vm.updateInterfaceStats();
+        const { getByText } = render(InterfacesPage);
+        await waitFor(() => {
+            expect(getByText("RNode LoRa Interface")).toBeTruthy();
+        });
 
-        const stats = wrapper.vm.interfaceStats["RNode LoRa Interface"];
-        expect(stats).toBeDefined();
-        expect(stats.status).toBe(true);
-        expect(stats.short_name).toBe("LoRa");
-        expect(wrapper.vm.interfacesWithStats[0]._stats).toEqual(stats);
+        const stats = await fetchInterfaceStats();
+        expect(stats["RNode LoRa Interface"]).toBeDefined();
+        expect(stats["RNode LoRa Interface"].status).toBe(true);
+        expect(stats["RNode LoRa Interface"].short_name).toBe("LoRa");
     });
 
     it("keeps hostname section names such as artyom.ddns.net in the tile list", async () => {
@@ -125,16 +111,24 @@ describe("InterfacesPage interface-stats merge", () => {
             if (url.includes("/api/v1/app/info")) {
                 return Promise.resolve({ data: { app_info: { is_reticulum_running: true } } });
             }
+            if (url.includes("/api/v1/interface-stats")) {
+                return Promise.resolve({ data: { interface_stats: { interfaces: [] } } });
+            }
+            if (url.includes("/api/v1/reticulum/discovery")) {
+                return Promise.resolve({ data: { discovery: {} } });
+            }
+            if (url.includes("/api/v1/reticulum/discovered-interfaces")) {
+                return Promise.resolve({ data: { interfaces: [], active: [] } });
+            }
             return Promise.resolve({ data: {} });
         });
 
-        const wrapper = mountInterfacesPage();
-        await wrapper.vm.loadInterfaces();
-        const names = wrapper.vm.filteredInterfaces.map((iface) => iface._name);
-        expect(names).toContain("artyom.ddns.net");
-        expect(names).toContain("Default Interface");
-        expect(names).toContain("Catz-Node (TCP)");
-        expect(names).toHaveLength(3);
+        const { getByText } = render(InterfacesPage);
+        await waitFor(() => {
+            expect(getByText("artyom.ddns.net")).toBeTruthy();
+            expect(getByText("Default Interface")).toBeTruthy();
+            expect(getByText("Catz-Node (TCP)")).toBeTruthy();
+        });
     });
 
     it("falls back to short_name when interface_name is absent", async () => {
@@ -154,11 +148,16 @@ describe("InterfacesPage interface-stats merge", () => {
                     },
                 });
             }
+            if (url.includes("/api/v1/reticulum/discovery")) {
+                return Promise.resolve({ data: { discovery: {} } });
+            }
+            if (url.includes("/api/v1/reticulum/discovered-interfaces")) {
+                return Promise.resolve({ data: { interfaces: [], active: [] } });
+            }
             return Promise.resolve({ data: {} });
         });
 
-        const wrapper = mountInterfacesPage();
-        await wrapper.vm.updateInterfaceStats();
-        expect(wrapper.vm.interfaceStats.LoRa.status).toBe(true);
+        const stats = await fetchInterfaceStats();
+        expect(stats.LoRa.status).toBe(true);
     });
 });

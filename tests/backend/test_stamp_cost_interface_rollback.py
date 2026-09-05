@@ -57,7 +57,7 @@ async def test_oracle_block_all_restore_preserves_zero_stamp_cost():
 
 
 def test_oracle_enable_disable_pass_rollback_interfaces():
-    src = Path("meshchatx/src/backend/http/routes/interfaces.py").read_text(
+    src = Path("meshchatx/src/backend/http/routes/interfaces/crud.py").read_text(
         encoding="utf-8",
     )
     enable_idx = src.index("async def reticulum_interfaces_enable")
@@ -73,7 +73,7 @@ def test_oracle_enable_disable_pass_rollback_interfaces():
 
 def test_oracle_discovery_patch_reports_reload_failure():
     src = Path(
-        "meshchatx/src/backend/http/routes/reticulum_instance.py",
+        "meshchatx/src/backend/http/routes/reticulum_instance/discovery.py",
     ).read_text(encoding="utf-8")
     patch_idx = src.index("async def reticulum_discovery_patch")
     next_idx = src.index("async def reticulum_discovered_interfaces")
@@ -84,7 +84,7 @@ def test_oracle_discovery_patch_reports_reload_failure():
 
 def test_oracle_interface_stats_replace_map():
     src = Path(
-        "meshchatx/src/frontend/components/interfaces/InterfacesPage.vue",
+        "meshchatx/src/frontend/features/interfaces/lib/interfacesApi.ts",
     ).read_text(encoding="utf-8")
-    assert "this.interfaceStats = nextStats" in src
-    assert "const nextStats = {}" in src
+    assert "const nextStats" in src
+    assert "return nextStats" in src

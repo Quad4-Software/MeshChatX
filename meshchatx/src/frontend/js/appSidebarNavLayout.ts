@@ -7,16 +7,26 @@ export const NAV_EDIT_HOLD_MOVE_PX = 12;
 
 const FORBIDDEN_IDS = new Set(["__proto__", "constructor", "prototype"]);
 
-/**
- * @typedef {{ group: string, tier: "primary" | "more" }} NavPlacement
- * @typedef {{ version: number, groupOrder: string[], itemOrder: string[], placements: Record<string, NavPlacement> }} NavLayout
- */
+export type NavPlacement = {
+    group: string;
+    tier: "primary" | "more";
+};
 
-/**
- * @param {string} key
- * @returns {unknown}
- */
-function readJson(key) {
+export type NavLayout = {
+    version: number;
+    groupOrder: string[];
+    itemOrder: string[];
+    placements: Record<string, NavPlacement>;
+};
+
+export type NavItem = {
+    id: string;
+    group?: string;
+    navTier?: string;
+    [key: string]: unknown;
+};
+
+function readJson(key: string): unknown {
     try {
         if (typeof window === "undefined" || !window.localStorage) {
             return null;
@@ -31,11 +41,7 @@ function readJson(key) {
     }
 }
 
-/**
- * @param {string} key
- * @param {unknown} value
- */
-function writeJson(key, value) {
+function writeJson(key: string, value: unknown): void {
     try {
         if (typeof window === "undefined" || !window.localStorage) {
             return;
@@ -46,11 +52,7 @@ function writeJson(key, value) {
     }
 }
 
-/**
- * @param {unknown} id
- * @returns {string}
- */
-function cleanId(id) {
+function cleanId(id: unknown): string {
     if (typeof id !== "string") {
         return "";
     }
@@ -61,17 +63,14 @@ function cleanId(id) {
     return trimmed;
 }
 
-/**
- * @param {unknown} raw
- * @returns {NavLayout | null}
- */
-export function normalizeNavLayout(raw) {
+export function normalizeNavLayout(raw: unknown): NavLayout | null {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
         return null;
     }
-    const groupOrder = [];
-    if (Array.isArray(raw.groupOrder)) {
-        for (const value of raw.groupOrder) {
+    const rawObj = raw as Record<string, unknown>;
+    const groupOrder: string[] = [];
+    if (Array.isArray(rawObj.groupOrder)) {
+        for (const value of rawObj.groupOrder) {
             const id = cleanId(value);
             if (id && !groupOrder.includes(id)) {
                 groupOrder.push(id);
@@ -83,21 +82,22 @@ export function normalizeNavLayout(raw) {
             groupOrder.push(id);
         }
     }
-    const itemOrder = [];
-    if (Array.isArray(raw.itemOrder)) {
-        for (const value of raw.itemOrder) {
+    const itemOrder: string[] = [];
+    if (Array.isArray(rawObj.itemOrder)) {
+        for (const value of rawObj.itemOrder) {
             const id = cleanId(value);
             if (id && !itemOrder.includes(id)) {
                 itemOrder.push(id);
             }
         }
     }
-    const placements = Object.create(null);
-    const rawPlacements = raw.placements;
+    const placements: Record<string, NavPlacement> = Object.create(null);
+    const rawPlacements = rawObj.placements;
     if (rawPlacements && typeof rawPlacements === "object" && !Array.isArray(rawPlacements)) {
-        for (const key of Object.keys(rawPlacements)) {
+        const placementsObj = rawPlacements as Record<string, unknown>;
+        for (const key of Object.keys(placementsObj)) {
             const id = cleanId(key);
-            const entry = rawPlacements[key];
+            const entry = placementsObj[key] as Record<string, unknown> | undefined;
             if (!id || !entry || typeof entry !== "object" || Array.isArray(entry)) {
                 continue;
             }
@@ -116,17 +116,11 @@ export function normalizeNavLayout(raw) {
     };
 }
 
-/**
- * @returns {NavLayout | null}
- */
-export function loadAppSidebarNavLayout() {
+export function loadAppSidebarNavLayout(): NavLayout | null {
     return normalizeNavLayout(readJson(APP_SIDEBAR_NAV_LAYOUT_KEY));
 }
 
-/**
- * @param {NavLayout | null | undefined} layout
- */
-export function saveAppSidebarNavLayout(layout) {
+export function saveAppSidebarNavLayout(layout: NavLayout | null | undefined): void {
     const normalized = normalizeNavLayout(layout);
     if (!normalized) {
         return;
@@ -134,11 +128,7 @@ export function saveAppSidebarNavLayout(layout) {
     writeJson(APP_SIDEBAR_NAV_LAYOUT_KEY, normalized);
 }
 
-/**
- * @param {NavLayout | null | undefined} layout
- * @returns {NavLayout | null}
- */
-export function cloneNavLayout(layout) {
+export function cloneNavLayout(layout: NavLayout | null | undefined): NavLayout | null {
     const normalized = normalizeNavLayout(layout);
     if (!normalized) {
         return null;
@@ -151,23 +141,17 @@ export function cloneNavLayout(layout) {
     };
 }
 
-/**
- * @param {{ id?: string, group?: string, navTier?: string }} item
- * @returns {NavPlacement}
- */
-export function defaultNavPlacement(item) {
+export function defaultNavPlacement(item?: { group?: string; navTier?: string } | null): NavPlacement {
     return {
         group: item?.group || "app",
         tier: item?.navTier === "more" ? "more" : "primary",
     };
 }
 
-/**
- * @param {{ id: string, group?: string, navTier?: string }} item
- * @param {NavLayout | null | undefined} layout
- * @returns {NavPlacement}
- */
-function placementFor(item, layout) {
+function placementFor(
+    item: { id: string; group?: string; navTier?: string },
+    layout: NavLayout | null | undefined
+): NavPlacement {
     const saved = layout?.placements?.[item.id];
     if (saved && saved.group && saved.tier) {
         return saved;
@@ -175,15 +159,10 @@ function placementFor(item, layout) {
     return defaultNavPlacement(item);
 }
 
-/**
- * @param {Array<{ id: string, group?: string, navTier?: string }>} items
- * @param {NavLayout | null | undefined} layout
- * @returns {typeof items}
- */
-export function orderItemsByLayout(items, layout) {
+export function orderItemsByLayout<T extends { id: string }>(items: T[], layout?: NavLayout | null): T[] {
     const byId = new Map(items.map((item) => [item.id, item]));
-    const ordered = [];
-    const used = new Set();
+    const ordered: T[] = [];
+    const used = new Set<string>();
     const savedOrder = layout?.itemOrder || [];
     for (const id of savedOrder) {
         const item = byId.get(id);
@@ -201,17 +180,15 @@ export function orderItemsByLayout(items, layout) {
     return ordered;
 }
 
-/**
- * @param {Array<{ id: string, group?: string, navTier?: string }>} items
- * @param {NavLayout | null | undefined} layout
- * @param {{ includeEmptyGroups?: boolean }} [options]
- * @returns {{ primaryGroups: Array<{ id: string, items: typeof items }>, moreItems: typeof items }}
- */
-export function applyNavLayout(items, layout, options: any = {}) {
+export function applyNavLayout<T extends { id: string; group?: string; navTier?: string }>(
+    items: T[],
+    layout?: NavLayout | null,
+    options: { includeEmptyGroups?: boolean } = {}
+): { primaryGroups: Array<{ id: string; items: T[] }>; moreItems: T[] } {
     const includeEmptyGroups = options.includeEmptyGroups === true;
     const orderedItems = orderItemsByLayout(items, layout);
-    const primaryByGroup = Object.create(null);
-    const moreItems = [];
+    const primaryByGroup: Record<string, T[]> = Object.create(null);
+    const moreItems: T[] = [];
     for (const item of orderedItems) {
         const placement = placementFor(item, layout);
         if (placement.tier === "more") {
@@ -224,8 +201,8 @@ export function applyNavLayout(items, layout, options: any = {}) {
         }
         primaryByGroup[groupId].push(item);
     }
-    const groupOrder = [];
-    const seen = new Set();
+    const groupOrder: string[] = [];
+    const seen = new Set<string>();
     const savedGroups = layout?.groupOrder?.length ? layout.groupOrder : DEFAULT_NAV_GROUP_ORDER;
     for (const groupId of savedGroups) {
         if (!groupId || seen.has(groupId)) {
@@ -246,7 +223,7 @@ export function applyNavLayout(items, layout, options: any = {}) {
             seen.add(groupId);
         }
     }
-    const primaryGroups = [];
+    const primaryGroups: Array<{ id: string; items: T[] }> = [];
     for (const groupId of groupOrder) {
         const groupItems = primaryByGroup[groupId] || [];
         if (groupItems.length > 0 || includeEmptyGroups) {
@@ -256,15 +233,13 @@ export function applyNavLayout(items, layout, options: any = {}) {
     return { primaryGroups, moreItems };
 }
 
-/**
- * @param {Array<{ id: string, items: Array<{ id: string, group?: string }> }>} primaryGroups
- * @param {Array<{ id: string, group?: string }>} moreItems
- * @returns {NavLayout}
- */
-export function captureNavLayout(primaryGroups, moreItems) {
-    const groupOrder = [];
-    const itemOrder = [];
-    const placements = Object.create(null);
+export function captureNavLayout<T extends { id: string; group?: string }>(
+    primaryGroups: Array<{ id: string; items?: T[] }>,
+    moreItems?: T[]
+): NavLayout {
+    const groupOrder: string[] = [];
+    const itemOrder: string[] = [];
+    const placements: Record<string, NavPlacement> = Object.create(null);
     for (const group of primaryGroups || []) {
         const groupId = cleanId(group?.id);
         if (!groupId || groupOrder.includes(groupId)) {
@@ -304,35 +279,27 @@ export function captureNavLayout(primaryGroups, moreItems) {
     };
 }
 
-/**
- * @param {NavLayout} layout
- * @param {string} itemId
- * @param {NavPlacement} placement
- */
-function ensurePlacement(layout, itemId, placement) {
+function ensurePlacement(layout: NavLayout, itemId: string, placement: NavPlacement): void {
     layout.placements[itemId] = {
         group: placement.group || "app",
         tier: placement.tier === "more" ? "more" : "primary",
     };
 }
 
-/**
- * @param {Array<{ id: string, group?: string, navTier?: string }>} items
- * @param {NavLayout | null | undefined} layout
- * @returns {NavLayout}
- */
-function layoutFromItems(items, layout) {
+function layoutFromItems<T extends { id: string; group?: string; navTier?: string }>(
+    items: T[],
+    layout?: NavLayout | null
+): NavLayout {
     const view = applyNavLayout(items, layout);
     return captureNavLayout(view.primaryGroups, view.moreItems);
 }
 
-/**
- * @param {NavLayout} layout
- * @param {Array<{ id: string }>} items
- * @param {string} movingId
- * @param {number} insertAt
- */
-function moveIdInItemOrder(layout, items, movingId, insertAt) {
+function moveIdInItemOrder<T extends { id: string }>(
+    layout: NavLayout,
+    items: T[],
+    movingId: string,
+    insertAt: number
+): void {
     const ids = orderItemsByLayout(items, layout).map((item) => item.id);
     const without = ids.filter((id) => id !== movingId);
     const index = Math.max(0, Math.min(insertAt, without.length));
@@ -340,24 +307,20 @@ function moveIdInItemOrder(layout, items, movingId, insertAt) {
     layout.itemOrder = without;
 }
 
-/**
- * @param {NavLayout | null | undefined} layout
- * @param {Array<{ id: string, group?: string, navTier?: string }>} items
- * @returns {NavLayout}
- */
-function layoutOrDefault(layout, items) {
+function layoutOrDefault<T extends { id: string; group?: string; navTier?: string }>(
+    layout: NavLayout | null | undefined,
+    items: T[]
+): NavLayout {
     return cloneNavLayout(layout) || layoutFromItems(items || [], null);
 }
 
-/**
- * @param {NavLayout | null | undefined} layout
- * @param {string} itemId
- * @param {{ type: string, id?: string, position?: "before" | "after" }} target
- * @param {Array<{ id: string, group?: string, navTier?: string }>} items
- * @param {{ preservePlacement?: boolean }} [options]
- * @returns {NavLayout | null}
- */
-export function moveNavItem(layout, itemId, target, items, options: any = {}) {
+export function moveNavItem<T extends { id: string; group?: string; navTier?: string }>(
+    layout: NavLayout | null | undefined,
+    itemId: string,
+    target: { type: string; id?: string; position?: "before" | "after" },
+    items: T[],
+    options: { preservePlacement?: boolean } = {}
+): NavLayout | null {
     const next = layoutOrDefault(layout, items);
     const movingId = cleanId(itemId);
     if (!movingId || !target || typeof target !== "object") {
@@ -454,15 +417,13 @@ export function moveNavItem(layout, itemId, target, items, options: any = {}) {
     return next;
 }
 
-/**
- * @param {NavLayout | null | undefined} layout
- * @param {string} itemId
- * @param {number} delta
- * @param {Array<{ id: string, group?: string, navTier?: string }>} items
- * @param {{ preservePlacement?: boolean }} [options]
- * @returns {NavLayout | null}
- */
-export function moveNavItemByOffset(layout, itemId, delta, items, options: any = {}) {
+export function moveNavItemByOffset<T extends { id: string; group?: string; navTier?: string }>(
+    layout: NavLayout | null | undefined,
+    itemId: string,
+    delta: number,
+    items: T[],
+    options: { preservePlacement?: boolean } = {}
+): NavLayout | null {
     const movingId = cleanId(itemId);
     const step = delta > 0 ? 1 : delta < 0 ? -1 : 0;
     if (!movingId || step === 0) {
@@ -488,13 +449,11 @@ export function moveNavItemByOffset(layout, itemId, delta, items, options: any =
     );
 }
 
-/**
- * @param {NavLayout | null | undefined} layout
- * @param {string} groupId
- * @param {string | null | undefined} beforeGroupId
- * @returns {NavLayout | null}
- */
-export function moveNavGroup(layout, groupId, beforeGroupId) {
+export function moveNavGroup(
+    layout: NavLayout | null | undefined,
+    groupId: string,
+    beforeGroupId?: string | null
+): NavLayout | null {
     const next = cloneNavLayout(layout);
     if (!next) {
         return next;
@@ -506,7 +465,7 @@ export function moveNavGroup(layout, groupId, beforeGroupId) {
     if (!next.groupOrder.includes(movingId)) {
         next.groupOrder.push(movingId);
     }
-    const without = next.groupOrder.filter((id) => id !== movingId);
+    const without: string[] = next.groupOrder.filter((id) => id !== movingId);
     const beforeId = cleanId(beforeGroupId);
     if (!beforeId) {
         without.push(movingId);
@@ -523,13 +482,11 @@ export function moveNavGroup(layout, groupId, beforeGroupId) {
     return next;
 }
 
-/**
- * @param {NavLayout | null | undefined} layout
- * @param {string} groupId
- * @param {number} delta
- * @returns {NavLayout | null}
- */
-export function moveNavGroupByOffset(layout, groupId, delta) {
+export function moveNavGroupByOffset(
+    layout: NavLayout | null | undefined,
+    groupId: string,
+    delta: number
+): NavLayout | null {
     const next = cloneNavLayout(layout);
     if (!next) {
         return next;
@@ -547,7 +504,7 @@ export function moveNavGroupByOffset(layout, groupId, delta) {
     if (to < 0 || to >= next.groupOrder.length) {
         return next;
     }
-    const without = next.groupOrder.filter((id) => id !== movingId);
+    const without: string[] = next.groupOrder.filter((id) => id !== movingId);
     without.splice(to, 0, movingId);
     next.groupOrder = without;
     return next;

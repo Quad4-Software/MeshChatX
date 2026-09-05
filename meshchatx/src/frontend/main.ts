@@ -65,146 +65,8 @@ const router = createRouter({
     routes: [
         ...buildRouterRoutesFromRegistry(),
         {
-            name: "auth",
-            path: "/auth",
-            component: () => import("./components/auth/AuthPage.vue"),
-        },
-        {
             path: "/",
             redirect: "/messages",
-        },
-        {
-            name: "about",
-            path: "/about",
-            component: () => import("./components/about/AboutPage.vue"),
-        },
-        {
-            name: "interfaces",
-            path: "/interfaces",
-            component: () => import("./components/interfaces/InterfacesPage.vue"),
-        },
-        {
-            name: "interfaces.add",
-            path: "/interfaces/add",
-            component: () => import("./components/interfaces/AddInterfacePage.vue"),
-        },
-        {
-            name: "interfaces.edit",
-            path: "/interfaces/edit",
-            component: () => import("./components/interfaces/AddInterfacePage.vue"),
-            props: {
-                interface_name: String,
-            },
-        },
-        {
-            name: "map",
-            path: "/map",
-            meta: { keepAlive: true },
-            component: () => import("./components/map/MapBrowser.vue"),
-        },
-        {
-            name: "map-popout",
-            path: "/popout/map",
-            meta: { popoutType: "map", isPopout: true },
-            component: () => import("./components/map/MapPage.vue"),
-        },
-        {
-            name: "network-visualiser",
-            path: "/network-visualiser",
-            component: () => import("./components/network-visualiser/NetworkVisualiserPage.vue"),
-        },
-        {
-            name: "nomadnetwork",
-            path: "/nomadnetwork/:destinationHash?",
-            props: true,
-            meta: { keepAlive: true },
-            component: () => import("./components/nomadnetwork/NomadNetworkBrowser.vue"),
-        },
-        {
-            name: "relay-chat",
-            path: "/relay-chat",
-            component: () => import("./components/relay/RelayChatPage.vue"),
-        },
-        {
-            name: "relay-chat-popout",
-            path: "/popout/relay-chat/:hubHash/:room?",
-            props: true,
-            meta: { popoutType: "relay", isPopout: true },
-            component: () => import("./components/relay/RelayChatPage.vue"),
-        },
-        {
-            name: "nomadnetwork-popout",
-            path: "/popout/nomadnetwork/:destinationHash?",
-            props: true,
-            meta: { popoutType: "nomad", isPopout: true },
-            component: () => import("./components/nomadnetwork/NomadNetworkPage.vue"),
-        },
-        {
-            name: "propagation-nodes",
-            path: "/propagation-nodes",
-            component: () => import("./components/propagation-nodes/PropagationNodesPage.vue"),
-        },
-        {
-            name: "rncp",
-            path: "/rncp",
-            component: () => import("./components/rncp/RNCPPage.vue"),
-        },
-        {
-            name: "rns-filesync",
-            path: "/rns-filesync",
-            component: () => import("./components/filesync/RnsFilesyncPage.vue"),
-        },
-        {
-            name: "bots",
-            path: "/bots",
-            component: () => import("./components/tools/BotsPage.vue"),
-        },
-        {
-            name: "micron-editor",
-            path: "/micron-editor",
-            component: () => import("./components/micron-editor/MicronEditorPage.vue"),
-        },
-        {
-            name: "documentation",
-            path: "/documentation",
-            component: () => import("./components/docs/DocsPage.vue"),
-        },
-        {
-            name: "profile.icon",
-            path: "/profile/icon",
-            component: () => import("./components/profile/ProfileIconPage.vue"),
-        },
-        {
-            name: "settings",
-            path: "/settings",
-            component: () => import("./components/settings/SettingsPage.vue"),
-        },
-        {
-            name: "identities",
-            path: "/identities",
-            component: () => import("./components/settings/IdentitiesPage.vue"),
-        },
-        {
-            name: "rnode-flasher",
-            path: "/tools/rnode-flasher",
-            component: () => import("./components/tools/RNodeFlasherPage.vue"),
-        },
-        {
-            name: "call",
-            path: "/call",
-            component: () => import("./components/call/CallPage.vue"),
-        },
-        {
-            name: "call-popout",
-            path: "/popout/call",
-            meta: { isPopout: true },
-            component: () => import("./components/call/CallPage.vue"),
-        },
-        {
-            name: "plugin-mcx-bugs",
-            path: "/plugins/com.meshchatx.mcx-bugs",
-            component: () => import("./components/plugins/PluginPage.vue"),
-            props: { pluginId: "com.meshchatx.mcx-bugs" },
         },
         {
             name: "changelog",
@@ -379,7 +241,7 @@ if (networkReady) {
     function preloadCriticalRouteChunks(): void {
         void import("./features/messages/MessagesPage.svelte");
         void import("./features/contacts/ContactsPage.svelte");
-        void import("./components/interfaces/InterfacesPage.vue");
+        void import("./features/interfaces/InterfacesPage.svelte");
     }
 
     function bootstrap(): void {

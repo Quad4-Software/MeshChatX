@@ -106,7 +106,7 @@ export class PluginHost {
         const source =
             typeof sourceResponse.data === "string" ? sourceResponse.data : String(sourceResponse.data ?? "");
         const worker = new Worker(new URL("./pluginWorker.js", import.meta.url), { type: "module" });
-        const cleanup = [];
+        const cleanup: (() => void)[] = [];
 
         const ui = manifest.ui || {};
         const declaredWidgets = Array.isArray(ui.widgets) ? ui.widgets.filter((w) => isKnownHostWidget(w)) : [];
@@ -163,7 +163,7 @@ export class PluginHost {
             cleanup.push(() => offWsEvent("plugin.event", eventHandler));
         }
 
-        const requestHandler = async (message) => {
+        const requestHandler = async (message: any) => {
             if (!message || message.type !== "request") {
                 return;
             }
@@ -171,8 +171,8 @@ export class PluginHost {
                 let result;
                 if (message.kind === "invoke") {
                     const response = await apiClient.post(`/api/v1/plugins/${encodeURIComponent(pluginId)}/invoke`, {
-                        method: message.payload.method,
-                        args: message.payload.args,
+                        method: message.payload?.method,
+                        args: message.payload?.args,
                     });
                     result = response.data?.result;
                 } else if (message.kind === "manager") {
@@ -193,7 +193,7 @@ export class PluginHost {
                     result = getThemeSnapshot(GlobalState.config);
                 }
                 worker.postMessage({ requestId: message.requestId, result });
-            } catch (error) {
+            } catch (error: any) {
                 worker.postMessage({
                     requestId: message.requestId,
                     error: error?.message || String(error),
@@ -232,7 +232,10 @@ export class PluginHost {
         this.router.addRoute({
             name,
             path: pluginRoutePath(pluginId),
-            component: () => import("../../components/plugins/PluginPage.vue"),
+            component: () => import("../../shell/FeaturePageHost.vue"),
+            meta: {
+                featureLoad: () => import("../../features/plugins/PluginPage.svelte"),
+            },
             props: { pluginId },
         });
         return name;
@@ -311,7 +314,7 @@ export class PluginHost {
      * @param {Record<string, string>} labels
      */
     registerContributions(pluginId, manifest, labels) {
-        const cleanup = [];
+        const cleanup: (() => void)[] = [];
         const contributes = manifest.contributes || {};
         for (const item of contributes.navItems || []) {
             registerNavItem({

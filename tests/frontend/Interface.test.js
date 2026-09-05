@@ -1,6 +1,8 @@
-import { mount } from "@vue/test-utils";
+// SPDX-License-Identifier: 0BSD
+
+import { render, fireEvent } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import Interface from "../../meshchatx/src/frontend/components/interfaces/Interface.vue";
+import InterfaceCard from "../../meshchatx/src/frontend/features/interfaces/components/InterfaceCard.svelte";
 
 vi.mock("../../meshchatx/src/frontend/js/DialogUtils", () => ({
     default: { alert: vi.fn() },
@@ -13,99 +15,106 @@ const defaultIface = {
     discoverable: true,
 };
 
-function mountInterface(props = {}, options = {}) {
-    return mount(Interface, {
+function renderInterface(props = {}) {
+    return render(InterfaceCard, {
         props: { iface: { ...defaultIface, ...props }, isReticulumRunning: true },
-        global: {
-            mocks: { $t: (key) => key },
-            stubs: ["MaterialDesignIcon", "IconButton", "DropDownMenu", "DropDownMenuItem"],
-        },
-        ...options,
     });
 }
 
-describe("Interface.vue", () => {
+describe("InterfaceCard.svelte", () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
     it("renders interface name and type", () => {
-        const wrapper = mountInterface();
-        expect(wrapper.text()).toContain("Default Interface");
-        expect(wrapper.text()).toContain("AutoInterface");
+        const { getByText } = renderInterface();
+        expect(getByText("Default Interface")).toBeTruthy();
+        expect(getByText("AutoInterface")).toBeTruthy();
     });
 
-    it("emits disable when Disable button is clicked", async () => {
-        const wrapper = mountInterface();
-        const disableBtn = wrapper.find('button[title="interface.disable"]');
-        await disableBtn.trigger("click");
-        expect(wrapper.emitted("disable")).toHaveLength(1);
+    it("calls ondisable callback when Disable button is clicked", async () => {
+        const ondisable = vi.fn();
+        const { container } = render(InterfaceCard, {
+            props: { iface: defaultIface, isReticulumRunning: true, ondisable },
+        });
+        const disableBtn = container.querySelector('button[title="interface.disable"]');
+        expect(disableBtn).toBeTruthy();
+        if (disableBtn) {
+            await fireEvent.click(disableBtn);
+        }
+        expect(ondisable).toHaveBeenCalledTimes(1);
     });
 
-    it("emits enable when Enable button is clicked for disabled interface", async () => {
-        const wrapper = mountInterface({ enabled: false });
-        const enableBtn = wrapper.find('button[title="interface.enable"]');
-        await enableBtn.trigger("click");
-        expect(wrapper.emitted("enable")).toHaveLength(1);
+    it("calls onenable callback when Enable button is clicked for disabled interface", async () => {
+        const onenable = vi.fn();
+        const { container } = render(InterfaceCard, {
+            props: { iface: { ...defaultIface, enabled: false }, isReticulumRunning: true, onenable },
+        });
+        const enableBtn = container.querySelector('button[title="interface.enable"]');
+        expect(enableBtn).toBeTruthy();
+        if (enableBtn) {
+            await fireEvent.click(enableBtn);
+        }
+        expect(onenable).toHaveBeenCalledTimes(1);
     });
 
     it("has overflow containment classes on card and content", () => {
-        const wrapper = mountInterface();
-        const card = wrapper.find(".interface-card");
-        expect(card.classes()).toContain("min-w-0");
-        const contentArea = wrapper.find(".min-w-0.overflow-hidden");
-        expect(contentArea.exists()).toBe(true);
+        const { container } = renderInterface();
+        const card = container.querySelector(".interface-card");
+        expect(card?.classList.contains("min-w-0")).toBe(true);
+        const contentArea = container.querySelector(".min-w-0.space-y-2");
+        expect(contentArea).toBeTruthy();
     });
 
     it("has word-wrap on description for long host:port", () => {
-        const wrapper = mountInterface({
+        const { container } = renderInterface({
             _name: "RNS Testnet Amsterdam",
             type: "TCPClientInterface",
             target_host: "amsterdam.connect.reticulum.network",
             target_port: 4965,
         });
-        const desc = wrapper.find(".text-sm.text-sem-fg-muted");
-        expect(desc.classes()).toContain("wrap-break-word");
-        expect(desc.classes()).toContain("min-w-0");
+        const desc = container.querySelector(".text-sm.text-sem-fg-muted");
+        expect(desc?.classList.contains("wrap-break-word")).toBe(true);
+        expect(desc?.classList.contains("min-w-0")).toBe(true);
     });
 
     it("has responsive layout classes for stacking on small screens", () => {
-        const wrapper = mountInterface();
-        const outer = wrapper.find(".flex.flex-col.sm\\:flex-row");
-        expect(outer.exists()).toBe(true);
+        const { container } = renderInterface();
+        const outer = container.querySelector(".flex.flex-col.sm\\:flex-row");
+        expect(outer).toBeTruthy();
     });
 
     it("renders without overflow when given very long name and description", () => {
         const longName = "A".repeat(120);
-        const wrapper = mountInterface({
+        const { container } = renderInterface({
             _name: longName,
             type: "TCPClientInterface",
             target_host: "very-long-hostname-that-could-overflow-on-mobile.example.reticulum.network",
             target_port: 4242,
         });
-        const card = wrapper.find(".interface-card");
-        expect(card.exists()).toBe(true);
-        const contentWrapper = wrapper.find(".flex-1.min-w-0.space-y-2");
-        expect(contentWrapper.exists()).toBe(true);
-        const nameEl = wrapper.find(".truncate.min-w-0");
-        expect(nameEl.exists()).toBe(true);
+        const card = container.querySelector(".interface-card");
+        expect(card).toBeTruthy();
+        const contentWrapper = container.querySelector(".min-w-0.space-y-2");
+        expect(contentWrapper).toBeTruthy();
+        const nameEl = container.querySelector(".truncate.min-w-0");
+        expect(nameEl).toBeTruthy();
     });
 
     it("action buttons and dropdown have shrink-0 to prevent squashing", () => {
-        const wrapper = mountInterface();
-        const actionsCol = wrapper.find(
+        const { container } = renderInterface();
+        const actionsCol = container.querySelector(
             ".flex.flex-row.items-center.gap-1.sm\\:relative.sm\\:z-auto.sm\\:flex.sm\\:flex-row.sm\\:gap-2.sm\\:items-center.sm\\:shrink-0.sm\\:justify-end"
         );
-        expect(actionsCol.exists()).toBe(true);
-        expect(actionsCol.classes()).toContain("sm:shrink-0");
-        const btn = wrapper.find('button[title="interface.disable"]');
-        expect(btn.classes()).toContain("shrink-0");
-        const dropdown = wrapper.find(".relative.z-50.shrink-0");
-        expect(dropdown.exists()).toBe(true);
+        expect(actionsCol).toBeTruthy();
+        expect(actionsCol?.classList.contains("sm:shrink-0")).toBe(true);
+        const btn = container.querySelector('button[title="interface.disable"]');
+        expect(btn?.classList.contains("shrink-0")).toBe(true);
+        const dropdown = container.querySelector(".relative.z-50.shrink-0");
+        expect(dropdown).toBeTruthy();
     });
 
     it("detail-value has break-all for long addresses", () => {
-        const wrapper = mountInterface({
+        const { container } = renderInterface({
             _name: "UDP Test",
             type: "UDPInterface",
             listen_ip: "0.0.0.0",
@@ -113,27 +122,27 @@ describe("Interface.vue", () => {
             forward_ip: "192.168.1.100",
             forward_port: 4242,
         });
-        const detailValues = wrapper.findAll(".detail-value");
+        const detailValues = container.querySelectorAll(".detail-value");
         expect(detailValues.length).toBeGreaterThan(0);
         detailValues.forEach((el) => {
-            expect(el.classes()).toContain("break-all");
-            expect(el.classes()).toContain("min-w-0");
+            expect(el.classList.contains("break-all")).toBe(true);
+            expect(el.classList.contains("min-w-0")).toBe(true);
         });
     });
 
     it("shows public relay endpoint for non-IFAC BackboneInterface", () => {
-        const wrapper = mountInterface({
+        const { container } = renderInterface({
             _name: "0rbit Iceland",
             type: "BackboneInterface",
             remote: "iceland.example",
             target_port: 4242,
         });
-        expect(wrapper.text()).toContain("iceland.example:4242");
-        expect(wrapper.text()).not.toContain("IFAC tunnel");
+        expect(container.textContent).toContain("iceland.example:4242");
+        expect(container.textContent).not.toContain("IFAC tunnel");
     });
 
     it("shows IFAC tunnel label for BackboneInterface with passphrase", () => {
-        const wrapper = mountInterface({
+        const { container } = renderInterface({
             _name: "kin.earth",
             type: "BackboneInterface",
             remote: "rns.kin.earth",
@@ -141,30 +150,30 @@ describe("Interface.vue", () => {
             network_name: "kin.earth",
             passphrase: "secret",
         });
-        expect(wrapper.text()).toContain("Backbone (IFAC tunnel)");
+        expect(container.textContent).toContain("Backbone (IFAC tunnel)");
     });
 
     it("shows IFAC tunnel label when backbone stats include ifac_signature", () => {
-        const wrapper = mountInterface({
+        const { container } = renderInterface({
             _name: "kin.earth",
             type: "BackboneInterface",
             remote: "rns.kin.earth",
             target_port: 4242,
             _stats: { ifac_signature: "a".repeat(64), ifac_size: 16 },
         });
-        expect(wrapper.text()).toContain("Backbone (IFAC tunnel)");
+        expect(container.textContent).toContain("Backbone (IFAC tunnel)");
     });
 });
 
-describe("Interface.vue overflow at different viewports", () => {
+describe("InterfaceCard.svelte overflow at different viewports", () => {
     it("card has min-w-0 so it can shrink in grid", () => {
-        const wrapper = mountInterface();
-        expect(wrapper.find(".interface-card").classes()).toContain("min-w-0");
+        const { container } = renderInterface();
+        expect(container.querySelector(".interface-card")?.classList.contains("min-w-0")).toBe(true);
     });
 
     it("icon and chips have shrink-0 so they do not collapse", () => {
-        const wrapper = mountInterface();
-        expect(wrapper.find(".interface-card__icon").classes()).toContain("shrink-0");
-        expect(wrapper.find(".type-chip").classes()).toContain("shrink-0");
+        const { container } = renderInterface();
+        expect(container.querySelector(".interface-card__icon")?.classList.contains("shrink-0")).toBe(true);
+        expect(container.querySelector(".type-chip")?.classList.contains("shrink-0")).toBe(true);
     });
 });

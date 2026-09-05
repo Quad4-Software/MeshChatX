@@ -3,14 +3,7 @@
 /**
  * Tab identifiers supported by the Call view
  */
-export const CALL_TAB_IDS = [
-    "phone",
-    "phonebook",
-    "voicemail",
-    "contacts",
-    "ringtone",
-    "recordings",
-] as const;
+export const CALL_TAB_IDS = ["phone", "phonebook", "voicemail", "contacts", "ringtone", "recordings"] as const;
 
 /**
  * Call status numeric codes from Reticulum LXST

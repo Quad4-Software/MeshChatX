@@ -230,7 +230,9 @@ def test_sync_directory_allows_external_and_blocks_reserved(handler, tmp_path):
 
 
 def test_start_rejects_forbidden_system_sync_directory(handler):
-    with patch("meshchatx.src.backend.rns_filesync_handler.FileSyncService") as mocked:
+    with patch(
+        "meshchatx.src.backend.rns_filesync_handler.core.FileSyncService"
+    ) as mocked:
         result = handler.start(sync_directory="/etc")
         assert result["ok"] is False
         mocked.assert_not_called()
@@ -579,14 +581,14 @@ def test_relative_path_oracle_stays_under_storage(handler, rel):
     assert real == storage_real or real.startswith(storage_real + os.sep)
 
 
-@patch("meshchatx.src.backend.rns_filesync_handler.FileSyncService")
+@patch("meshchatx.src.backend.rns_filesync_handler.core.FileSyncService")
 def test_start_with_malicious_interval_rejected(mock_service_cls, handler):
     result = handler.start(announce_interval=1)
     assert result["ok"] is False
     mock_service_cls.assert_not_called()
 
 
-@patch("meshchatx.src.backend.rns_filesync_handler.FileSyncService")
+@patch("meshchatx.src.backend.rns_filesync_handler.core.FileSyncService")
 def test_start_wires_callbacks_and_reuses_host_reticulum(mock_service_cls, handler):
     service = MagicMock()
     service.start.return_value = "ab" * 16

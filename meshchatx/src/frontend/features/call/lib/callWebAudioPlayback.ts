@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-import {
-    DEFAULT_AUDIO_OUTPUT_DEVICE_ID,
-    DEFAULT_AUDIO_SAMPLE_RATE,
-    INT16_SAMPLE_MAX,
-} from "./constants.js";
+import { DEFAULT_AUDIO_OUTPUT_DEVICE_ID, DEFAULT_AUDIO_SAMPLE_RATE, INT16_SAMPLE_MAX } from "./constants.js";
 
 declare const window: {
     AudioContext?: typeof AudioContext;

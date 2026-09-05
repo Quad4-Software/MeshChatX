@@ -7,10 +7,9 @@
     import { t } from "../../js/i18n.js";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
     import ToolsPageHeader from "../../ui/svelte/ToolsPageHeader.svelte";
-    import {
-        DEFAULT_HTTP_HOST,
-        DEFAULT_HTTP_PORT,
-    } from "./lib/constants.js";
+    import EmptyState from "../../ui/svelte/EmptyState.svelte";
+    import LoadingState from "../../ui/svelte/LoadingState.svelte";
+    import { DEFAULT_HTTP_HOST, DEFAULT_HTTP_PORT } from "./lib/constants.js";
     import {
         buildHttpBody,
         computeBrowserRepoUrl,
@@ -42,10 +41,7 @@
         loading = true;
         lastUploadError = null;
         try {
-            const [s, list] = await Promise.all([
-                fetchRepositoryStatus(),
-                fetchRepositoryList(),
-            ]);
+            const [s, list] = await Promise.all([fetchRepositoryStatus(), fetchRepositoryList()]);
             status = s;
             entries = list;
             const synced = syncHttpFormFromStatus(status, httpHost, httpPort);
@@ -130,8 +126,7 @@
             ToastUtils.success(t("tools.repository_server.upload_ok"));
             await loadAll();
         } catch (e: any) {
-            lastUploadError =
-                e?.response?.data?.error || e?.message || t("tools.repository_server.upload_failed");
+            lastUploadError = e?.response?.data?.error || e?.message || t("tools.repository_server.upload_failed");
             ToastUtils.error(t("tools.repository_server.upload_failed"));
         }
     }
@@ -175,8 +170,9 @@
                             bind:value={httpHost}
                             type="text"
                             autocomplete="off"
-                            class="rounded-lg border border-sem-border bg-sem-surface px-2 py-1.5 text-sm text-sem-fg"
+                            class="input-field"
                             disabled={httpBusy || loading || httpRunning}
+                            title={httpRunning ? t("tools.repository_server.stop_before_edit") : undefined}
                         />
                     </label>
                     <label class="flex flex-col gap-1 text-xs w-24">
@@ -186,15 +182,17 @@
                             type="text"
                             inputmode="numeric"
                             autocomplete="off"
-                            class="rounded-lg border border-sem-border bg-sem-surface px-2 py-1.5 text-sm text-sem-fg"
+                            class="input-field"
                             disabled={httpBusy || loading || httpRunning}
+                            title={httpRunning ? t("tools.repository_server.stop_before_edit") : undefined}
                         />
                     </label>
                     <div class="flex flex-wrap gap-2">
                         <button
                             type="button"
-                            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:pointer-events-none"
+                            class="primary-chip focus-ring-sem disabled:opacity-50 disabled:pointer-events-none"
                             disabled={httpBusy || loading || httpRunning}
+                            title={httpRunning ? t("tools.repository_server.already_running") : undefined}
                             onclick={startHttp}
                         >
                             <MaterialDesignIcon iconName="play" class="size-4" />
@@ -202,8 +200,9 @@
                         </button>
                         <button
                             type="button"
-                            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 dark:border-zinc-600 bg-sem-surface text-sem-fg text-sm font-medium hover:bg-sem-surface-muted disabled:opacity-50 disabled:pointer-events-none"
+                            class="secondary-chip focus-ring-sem disabled:opacity-50 disabled:pointer-events-none"
                             disabled={httpBusy || loading || !httpRunning}
+                            title={!httpRunning ? t("tools.repository_server.not_running") : undefined}
                             onclick={stopHttp}
                         >
                             <MaterialDesignIcon iconName="stop" class="size-4" />
@@ -211,7 +210,7 @@
                         </button>
                         <button
                             type="button"
-                            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 dark:border-zinc-600 bg-sem-surface text-sem-fg text-sm font-medium hover:bg-sem-surface-muted disabled:opacity-50 disabled:pointer-events-none"
+                            class="secondary-chip focus-ring-sem disabled:opacity-50 disabled:pointer-events-none"
                             disabled={httpBusy || loading}
                             onclick={restartHttp}
                         >
@@ -246,9 +245,7 @@
                     {t("tools.repository_server.upload_heading")}
                 </h2>
                 <div class="flex flex-wrap items-center gap-3">
-                    <label
-                        class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-sky-600 text-white text-sm font-medium cursor-pointer hover:bg-sky-700 transition-colors"
-                    >
+                    <label class="primary-chip focus-ring-sem cursor-pointer">
                         <MaterialDesignIcon iconName="upload" class="size-4" />
                         {t("tools.repository_server.choose_file")}
                         <input type="file" class="hidden" onchange={onUpload} />
@@ -286,12 +283,12 @@
                     <span class="text-xs text-gray-500">{entries.length}</span>
                 </div>
                 {#if loading}
-                    <div class="text-center text-sm text-gray-500 py-6">
-                        {t("common.loading")}
+                    <div class="py-6">
+                        <LoadingState message={t("common.loading")} />
                     </div>
                 {:else if entries.length === 0}
-                    <div class="text-center text-sm text-gray-500 py-6">
-                        {t("tools.repository_server.empty")}
+                    <div class="py-6">
+                        <EmptyState icon="package-variant-closed" title={t("tools.repository_server.empty")} plain />
                     </div>
                 {:else}
                     <table class="w-full text-left text-xs">

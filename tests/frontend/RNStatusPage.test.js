@@ -47,10 +47,7 @@ describe("rnstatus lib helpers", () => {
         expect(hasStatusSummary({ link_count: 5 })).toBe(true);
         expect(hasStatusSummary({})).toBe(false);
 
-        const ifaces = [
-            { name: "if1", i2p_b32: "xyz.b32.i2p" },
-            { name: "if2" },
-        ];
+        const ifaces = [{ name: "if1", i2p_b32: "xyz.b32.i2p" }, { name: "if2" }];
         const filtered = filterI2pInterfaces(ifaces);
         expect(filtered).toHaveLength(1);
         expect(filtered[0].name).toBe("if1");
@@ -58,9 +55,7 @@ describe("rnstatus lib helpers", () => {
 
     it("extracts queue rows and builds stat rows", () => {
         const queueRows = extractQueueRows({
-            queues: [
-                { name: "total", pressure: 0.1, packets: 5, dropped: 0 },
-            ],
+            queues: [{ name: "total", pressure: 0.1, packets: 5, dropped: 0 }],
         });
         expect(queueRows).toHaveLength(1);
         expect(queueRows[0].key).toBe("total");
@@ -249,10 +244,7 @@ describe("RNStatusPage.svelte", () => {
         expect(screen.getByText("Network Diagnostics")).toBeTruthy();
 
         await waitFor(() => {
-            expect(axiosMock.get).toHaveBeenCalledWith(
-                "/api/v1/rnstatus",
-                expect.any(Object)
-            );
+            expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/rnstatus", expect.any(Object));
         });
 
         const ifaceElements = await screen.findAllByText("Interface 1");
@@ -293,16 +285,12 @@ describe("RNStatusPage.svelte", () => {
             expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/rnstatus", expect.any(Object));
         });
 
-        const statusCallsBefore = axiosMock.get.mock.calls.filter(
-            (c) => c[0] === "/api/v1/rnstatus"
-        ).length;
+        const statusCallsBefore = axiosMock.get.mock.calls.filter((c) => c[0] === "/api/v1/rnstatus").length;
         const refreshBtn = screen.getByText("Refresh");
         await fireEvent.click(refreshBtn);
 
         await waitFor(() => {
-            const statusCallsAfter = axiosMock.get.mock.calls.filter(
-                (c) => c[0] === "/api/v1/rnstatus"
-            ).length;
+            const statusCallsAfter = axiosMock.get.mock.calls.filter((c) => c[0] === "/api/v1/rnstatus").length;
             expect(statusCallsAfter).toBe(statusCallsBefore + 1);
         });
     });

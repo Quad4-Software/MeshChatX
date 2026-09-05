@@ -1,35 +1,39 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
-<script>
+<script lang="ts">
     import { onMount } from "svelte";
-    import DialogUtils from "../../js/DialogUtils.js";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
     import ToolsPageHeader from "../../ui/svelte/ToolsPageHeader.svelte";
+    import ToastUtils from "../../js/ToastUtils.js";
     import { t } from "../../js/i18n.js";
     import { formatPingSuccess, isValidPingDestinationHash, isValidPingTimeout } from "./lib/pingFormat.js";
+    import type { PingSuccessSummary } from "./lib/pingFormat.js";
 
-    /** @type {{ routeQuery?: Record<string, string> }} */
-    let { routeQuery = {} } = $props();
+    interface Props {
+        routeQuery?: Record<string, string>;
+    }
+
+    interface PingSummaryState extends Partial<PingSuccessSummary> {
+        error?: string;
+    }
+
+    let { routeQuery = {} }: Props = $props();
 
     let isRunning = $state(false);
-    let destinationHash = $state(/** @type {string | null} */ (null));
+    let destinationHash = $state<string | null>(null);
     let timeout = $state(10);
     let seq = $state(0);
-    /** @type {string[]} */
-    let pingResults = $state([]);
-    /** @type {AbortController | null} */
-    let abortController = $state(null);
-    /** @type {object | null} */
-    let lastPingSummary = $state(null);
+    let pingResults = $state<string[]>([]);
+    let abortController = $state<AbortController | null>(null);
+    let lastPingSummary = $state<PingSummaryState | null>(null);
     let currentSessionId = $state(0);
-    /** @type {HTMLElement | undefined} */
-    let resultsEl = $state();
+    let resultsEl = $state<HTMLElement | undefined>();
 
-    function sleep(millis) {
+    function sleep(millis: number): Promise<void> {
         return new Promise((resolve) => setTimeout(resolve, millis));
     }
 
-    function scrollPingResultsToBottom() {
+    function scrollPingResultsToBottom(): void {
         queueMicrotask(() => {
             setTimeout(() => {
                 if (resultsEl) {
@@ -39,12 +43,12 @@
         });
     }
 
-    function addPingResult(result) {
+    function addPingResult(result: string): void {
         pingResults = [...pingResults, result];
         scrollPingResultsToBottom();
     }
 
-    async function ping() {
+    async function ping(): Promise<void> {
         try {
             seq += 1;
             const response = await window.api.post(
@@ -59,7 +63,7 @@
             const formatted = formatPingSuccess(pingResult, seq);
             addPingResult(formatted.line);
             lastPingSummary = formatted.summary;
-        } catch (e) {
+        } catch (e: any) {
             if (window.api.isCancel?.(e)) {
                 return;
             }
@@ -72,16 +76,16 @@
         }
     }
 
-    async function start() {
+    async function start(): Promise<void> {
         if (isRunning) {
             return;
         }
         if (!isValidPingDestinationHash(destinationHash)) {
-            DialogUtils.alert(t("ping.invalid_hash"));
+            ToastUtils.error(t("ping.invalid_hash"));
             return;
         }
         if (!isValidPingTimeout(timeout)) {
-            DialogUtils.alert(t("ping.timeout_must_be_number"));
+            ToastUtils.error(t("ping.timeout_must_be_number"));
             return;
         }
         seq = 0;
@@ -97,30 +101,30 @@
         }
     }
 
-    function stop() {
+    function stop(): void {
         isRunning = false;
         if (abortController) {
             abortController.abort();
         }
     }
 
-    function clear() {
+    function clear(): void {
         pingResults = [];
         lastPingSummary = null;
     }
 
-    async function dropPath() {
+    async function dropPath(): Promise<void> {
         if (!isValidPingDestinationHash(destinationHash)) {
-            DialogUtils.alert(t("ping.invalid_hash"));
+            ToastUtils.error(t("ping.invalid_hash"));
             return;
         }
         try {
             const response = await window.api.post(`/api/v1/destination/${destinationHash}/drop-path`);
-            DialogUtils.alert(response.data.message);
-        } catch (e) {
+            ToastUtils.success(response.data.message);
+        } catch (e: any) {
             console.log(e);
             const message = e.response?.data?.message ?? `Failed to drop path: ${e}`;
-            DialogUtils.alert(message);
+            ToastUtils.error(message);
         }
     }
 
@@ -170,25 +174,25 @@
 
                 <div class="flex flex-wrap gap-2">
                     {#if !isRunning}
-                        <button type="button" class="primary-chip" onclick={start}>
+                        <button type="button" class="primary-chip focus-ring-sem" onclick={start}>
                             <MaterialDesignIcon iconName="play" />
                             {t("ping.start_ping")}
                         </button>
                     {:else}
                         <button
                             type="button"
-                            class="secondary-chip text-red-600! dark:text-red-300! border-red-200! dark:border-red-500/50!"
+                            class="secondary-chip focus-ring-sem text-red-600! dark:text-red-300! border-red-200! dark:border-red-500/50!"
                             onclick={stop}
                         >
                             <MaterialDesignIcon iconName="pause" />
                             {t("ping.stop")}
                         </button>
                     {/if}
-                    <button type="button" class="secondary-chip" onclick={clear}>
+                    <button type="button" class="secondary-chip focus-ring-sem" onclick={clear}>
                         <MaterialDesignIcon iconName="broom" />
                         {t("ping.clear_results")}
                     </button>
-                    <button type="button" class="danger-chip" onclick={dropPath}>
+                    <button type="button" class="danger-chip focus-ring-sem" onclick={dropPath}>
                         <MaterialDesignIcon iconName="link-variant-remove" />
                         {t("ping.drop_path")}
                     </button>

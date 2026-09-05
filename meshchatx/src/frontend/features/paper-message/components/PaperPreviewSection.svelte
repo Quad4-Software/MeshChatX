@@ -33,7 +33,9 @@
             </div>
 
             <div class="w-full space-y-3">
-                <div class="bg-gray-50 dark:bg-zinc-800/50 rounded-2xl p-3 border border-gray-100 dark:border-zinc-700/50">
+                <div
+                    class="bg-gray-50 dark:bg-zinc-800/50 rounded-2xl p-3 border border-gray-100 dark:border-zinc-700/50"
+                >
                     <label
                         class="block text-[9px] font-bold text-sem-fg-muted uppercase tracking-widest mb-1.5"
                         for="paper-generated-uri"
@@ -61,7 +63,7 @@
                 <div class="flex flex-col sm:flex-row gap-2 pt-1">
                     <button
                         type="button"
-                        class="flex-1 flex items-center justify-center gap-2 py-3 sm:py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-all active:scale-[0.98] text-sm min-h-[44px]"
+                        class="primary-chip flex-1 justify-center min-h-[44px] focus-ring-sem"
                         onclick={() => onprint?.()}
                     >
                         <MaterialDesignIcon iconName="printer" class="size-4" />

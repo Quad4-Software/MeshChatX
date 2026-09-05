@@ -12,7 +12,9 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const FRONTEND_ROOT = path.join(ROOT, "meshchatx", "src", "frontend");
-const DATETIME_LIB = path.join(FRONTEND_ROOT, "libs", "datetime.js");
+const DATETIME_LIB_JS = path.join(FRONTEND_ROOT, "libs", "datetime.js");
+const DATETIME_LIB_TS = path.join(FRONTEND_ROOT, "libs", "datetime.ts");
+const DATETIME_LIB = fs.existsSync(DATETIME_LIB_TS) ? DATETIME_LIB_TS : DATETIME_LIB_JS;
 
 const SCAN_EXTENSIONS = new Set([".js", ".mjs", ".cjs", ".vue", ".ts", ".tsx"]);
 
@@ -82,7 +84,7 @@ function main() {
 
     walk(FRONTEND_ROOT, (filePath) => {
         const rel = path.relative(ROOT, filePath).replace(/\\/g, "/");
-        if (rel.endsWith("libs/datetime.js")) {
+        if (rel.endsWith("libs/datetime.js") || rel.endsWith("libs/datetime.ts")) {
             return;
         }
         const text = fs.readFileSync(filePath, "utf8");

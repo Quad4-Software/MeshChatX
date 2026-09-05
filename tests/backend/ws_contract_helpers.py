@@ -15,7 +15,7 @@ _WS_SEND_STR_RE = re.compile(
     r"client\.send_str\s*\(\s*json\.dumps\s*\(\s*(\{[\s\S]*?\})\s*,?\s*\)",
 )
 _RNS_LINK_SEND_RE = re.compile(
-    r"_rns_link_send\s*\(\s*client\s*,\s*(\{[\s\S]*?\})\s*,?\s*\)",
+    r"(?:app\.)?_rns_link_send\s*\(\s*client\s*,\s*(\{[\s\S]*?\})\s*,?\s*\)",
 )
 _WS_TYPE_LITERAL_RE = re.compile(
     r"[\"']type[\"']\s*:\s*[\"']([^\"']+)[\"']",
@@ -102,7 +102,10 @@ def extract_client_inbound_types(meshchat_py: Path) -> list[str]:
         block = _dispatcher_block(text)
         if block:
             types.update(_CLIENT_HANDLER_RE.findall(block))
-        if "backend/http" not in path.as_posix():
+        if (
+            "backend/http" not in path.as_posix()
+            and "backend/lifecycle" not in path.as_posix()
+        ):
             continue
         if not block:
             types.update(_CLIENT_HANDLER_RE.findall(text))
@@ -148,7 +151,11 @@ def extract_client_direct_response_types(meshchat_py: Path) -> list[str]:
         text = path.read_text(encoding="utf-8")
         block = _direct_response_block(text)
         scan = block or text
-        if not block and "backend/http" not in path.as_posix():
+        if (
+            not block
+            and "backend/http" not in path.as_posix()
+            and "backend/lifecycle" not in path.as_posix()
+        ):
             continue
         for blob in _WS_SEND_STR_RE.findall(scan):
             msg_type = _extract_type_literals_from_dict_literal(blob)

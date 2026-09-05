@@ -181,7 +181,9 @@ def test_init_telephone_installs_hostless_when_required(tmp_path):
     identity = MagicMock()
     identity.hash = b"\x11" * 16
 
-    with patch("meshchatx.src.backend.telephone_manager.Telephone") as telephone_cls:
+    with patch(
+        "meshchatx.src.backend.telephone_manager.core.Telephone"
+    ) as telephone_cls:
         telephone = telephone_cls.return_value
         tm = TelephoneManager(
             identity=identity,
@@ -202,7 +204,7 @@ def test_init_telephone_skips_hostless_when_not_required(tmp_path):
     identity = MagicMock()
     identity.hash = b"\x22" * 16
 
-    with patch("meshchatx.src.backend.telephone_manager.Telephone"):
+    with patch("meshchatx.src.backend.telephone_manager.core.Telephone"):
         tm = TelephoneManager(
             identity=identity,
             config_manager=cfg,

@@ -1,30 +1,21 @@
 // SPDX-License-Identifier: 0BSD
 
 import { createRegistry } from "./registryCore.js";
+import type { ToolEntry } from "./coreToolsEntries.js";
 
-/** @typedef {import('./coreToolsEntries.js').ToolEntry} ToolEntry */
+export type { ToolEntry };
 
-/** @type {import('./registryCore.js').Registry<ToolEntry>} */
-export const toolsRegistry = createRegistry("toolsRegistry");
+export const toolsRegistry = createRegistry<ToolEntry & { id: string }>("toolsRegistry");
 
-/**
- * @param {ToolEntry} entry
- */
-export function registerTool(entry) {
+export function registerTool(entry: ToolEntry) {
     toolsRegistry.register({ ...entry, id: entry.name });
 }
 
-/**
- * @param {string} name
- */
-export function unregisterTool(name) {
+export function unregisterTool(name: string) {
     toolsRegistry.unregister(name);
 }
 
-/**
- * @returns {ToolEntry[]}
- */
-export function listTools() {
+export function listTools(): ToolEntry[] {
     return toolsRegistry.list().map((entry) => {
         const tool: any = { ...entry };
         delete tool.id;

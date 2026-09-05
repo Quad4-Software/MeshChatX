@@ -48,9 +48,7 @@ def is_port_in_use(host: str | None, port: object, *, kind: str = "tcp") -> bool
     if port_num is None or port_num == 0:
         return False
 
-    sock_type = (
-        socket.SOCK_DGRAM if str(kind).lower() == "udp" else socket.SOCK_STREAM
-    )
+    sock_type = socket.SOCK_DGRAM if str(kind).lower() == "udp" else socket.SOCK_STREAM
     host_text = _host_for_bind(host)
     targets: list[tuple[socket.AddressFamily, str]] = []
 

@@ -4,8 +4,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount } from "@vue/test-utils";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import Toast from "@/components/Toast.vue";
-import CallOverlay from "@/components/call/CallOverlay.vue";
+import ToastSvelte from "@/ui/svelte/Toast.svelte";
+import { render, fireEvent, waitFor } from "@testing-library/svelte";
 import GlobalEmitter from "@/js/GlobalEmitter";
 
 const src = (rel) => readFileSync(resolve(__dirname, "../../meshchatx/src/frontend", rel), "utf8");
@@ -21,7 +21,7 @@ describe("layout UX oracle-light", () => {
     });
 
     it("ConversationViewer message list uses overflow-y-auto and composer safe-area", () => {
-        const cv = src("features/messages/components/ConversationViewer.svelte");
+        const cv = src("features/messages/components/ConversationViewerListPane.svelte");
         const composer = src("features/messages/components/ConversationComposer.svelte");
         expect(cv).toContain('class="min-h-0 flex-1 overflow-y-auto bg-sem-canvas"');
         expect(cv).toContain('data-message-list-mode={useVirtualMessageList ? "virtual" : "flow"}');
@@ -38,93 +38,39 @@ describe("layout UX oracle-light", () => {
     });
 
     it("MicronEditor shows tab close on touch and splits at tablet width", () => {
-        const page = src("components/micron-editor/MicronEditorPage.vue");
-        expect(page).toContain("opacity-100 lg:opacity-0 lg:group-hover:opacity-100");
+        const page = src("features/micron-editor/MicronEditorPage.svelte");
+        const tab = src("features/micron-editor/components/MicronEditorTabBar.svelte");
+        expect(tab).toContain("opacity-100 lg:opacity-0 lg:group-hover:opacity-100");
         expect(page).toContain("window.innerWidth < 768");
     });
 
     it("Settings page scroll includes bottom safe-area", () => {
-        const page = src("components/settings/SettingsPage.vue");
+        const page = src("features/settings/components/SettingsPage.svelte");
         expect(page).toContain("pb-[max(1.5rem,env(safe-area-inset-bottom))]");
     });
 
     describe("Toast + CallOverlay stacking", () => {
-        let toastWrapper;
-        let callWrapper;
-
-        beforeEach(() => {
-            toastWrapper = mount(Toast, {
-                global: {
-                    mocks: { $t: (msg) => msg },
-                    stubs: {
-                        TransitionGroup: { template: "<div><slot /></div>" },
-                        MaterialDesignIcon: { template: '<div class="mdi-stub"></div>', props: ["iconName"] },
-                    },
-                },
-            });
-            callWrapper = mount(CallOverlay, {
-                props: {
-                    activeCall: {
-                        remote_identity_hash: "abcdef0123456789abcdef0123456789",
-                        remote_identity_name: "Peer",
-                        status: 6,
-                        is_incoming: false,
-                        is_voicemail: false,
-                        call_start_time: Date.now() / 1000,
-                        tx_bytes: 0,
-                        rx_bytes: 0,
-                    },
-                },
-                global: {
-                    mocks: {
-                        $t: (msg) => msg,
-                        $router: { push: vi.fn() },
-                    },
-                    stubs: {
-                        MaterialDesignIcon: true,
-                        LxmfUserIcon: true,
-                        AudioWaveformPlayer: true,
-                        Transition: { template: "<div><slot /></div>" },
-                    },
-                },
-            });
-        });
-
-        afterEach(() => {
-            toastWrapper?.unmount();
-            callWrapper?.unmount();
-        });
-
         it("mobile toast bottom clears compose FAB band", () => {
-            const cls = toastWrapper.find("[class*='fixed']").classes().join(" ");
-            expect(cls).toContain("max-sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))]");
+            const toastSrc = src("ui/svelte/Toast.svelte");
+            expect(toastSrc).toContain("max-sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))]");
         });
 
         it("call overlay uses safe-area bottom and responsive width", () => {
-            const root = callWrapper.find("[class*='fixed']");
-            expect(root.exists()).toBe(true);
-            const cls = root.classes().join(" ");
-            expect(cls).toContain("w-[min(20rem,calc(100%-1.5rem))]");
-            expect(cls).toContain("bottom-[max(1rem,env(safe-area-inset-bottom,0px))]");
-            expect(cls).toContain("max-sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))]");
+            const overlay = src("features/call/components/CallOverlay.svelte");
+            expect(overlay).toContain("w-[min(20rem,calc(100%-1.5rem))]");
+            expect(overlay).toContain("bottom-[max(1rem,env(safe-area-inset-bottom,0px))]");
+            expect(overlay).toContain("max-sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))]");
         });
     });
 
     it("toast dismiss key still works after touch-target change", async () => {
-        const wrapper = mount(Toast, {
-            global: {
-                mocks: { $t: (msg) => msg },
-                stubs: {
-                    TransitionGroup: { template: "<div><slot /></div>" },
-                    MaterialDesignIcon: { template: '<div class="mdi-stub"></div>', props: ["iconName"] },
-                },
-            },
-        });
+        const { container, findByText } = render(ToastSvelte);
         GlobalEmitter.emit("toast", { message: "X", duration: 0 });
-        await wrapper.vm.$nextTick();
-        await wrapper.find("button").trigger("click");
-        await wrapper.vm.$nextTick();
-        expect(wrapper.text()).not.toContain("X");
-        wrapper.unmount();
+        await findByText("X");
+        const btn = container.querySelector("button");
+        await fireEvent.click(btn);
+        await waitFor(() => {
+            expect(container.textContent).not.toContain("X");
+        });
     });
 });

@@ -1,16 +1,28 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
-<script>
+<script lang="ts">
     import { onMount } from "svelte";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
+    import PaginationBar from "../../ui/svelte/PaginationBar.svelte";
     import ToolsPageHeader from "../../ui/svelte/ToolsPageHeader.svelte";
     import ToastUtils from "../../js/ToastUtils.js";
     import { t } from "../../js/i18n.js";
     import { debugLevelClass, formatDebugTime, formatLogLine } from "./lib/debugFormat.js";
+    import type { DebugLogLine } from "./lib/debugFormat.js";
 
-    let activeTab = $state("logs");
-    /** @type {object[]} */
-    let logs = $state([]);
+    interface AccessAttemptRow {
+        id: string | number;
+        created_at?: unknown;
+        outcome?: string;
+        method?: string;
+        path?: string;
+        client_ip?: string;
+        user_agent?: string | null;
+        detail?: string | null;
+    }
+
+    let activeTab = $state<"logs" | "access">("logs");
+    let logs = $state<DebugLogLine[]>([]);
     let total = $state(0);
     let limit = $state(100);
     let offset = $state(0);
@@ -19,27 +31,21 @@
     let is_anomaly = $state(false);
     let loading = $state(false);
 
-    /** @type {object[]} */
-    let accessAttempts = $state([]);
+    let accessAttempts = $state<AccessAttemptRow[]>([]);
     let accessTotal = $state(0);
     let accessOffset = $state(0);
     let accessSearch = $state("");
     let accessOutcome = $state("");
     let accessLoading = $state(false);
 
-    /** @type {ReturnType<typeof setInterval> | null} */
-    let updateInterval = null;
-    /** @type {ReturnType<typeof setTimeout> | null} */
-    let searchTimeout = null;
-    /** @type {ReturnType<typeof setTimeout> | null} */
-    let accessSearchTimeout = null;
+    let updateInterval: ReturnType<typeof setInterval> | null = null;
+    let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+    let accessSearchTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const listOffset = $derived(activeTab === "logs" ? offset : accessOffset);
     const listTotal = $derived(activeTab === "logs" ? total : accessTotal);
-    const showingFrom = $derived(listTotal === 0 ? 0 : listOffset + 1);
-    const showingTo = $derived(Math.min(listOffset + limit, listTotal));
 
-    async function refreshLogs(silent = false) {
+    async function refreshLogs(silent = false): Promise<void> {
         if (!silent) loading = true;
         try {
             const params = {
@@ -50,8 +56,8 @@
                 is_anomaly: is_anomaly ? true : undefined,
             };
             const response = await window.api.get("/api/v1/debug/logs", { params });
-            logs = response.data.logs;
-            total = response.data.total;
+            logs = response.data.logs || [];
+            total = response.data.total || 0;
         } catch (e) {
             console.log("Failed to fetch logs", e);
             if (!silent) ToastUtils.error(t("debug.failed_fetch_logs"));
@@ -60,7 +66,7 @@
         }
     }
 
-    async function refreshAccessAttempts(silent = false) {
+    async function refreshAccessAttempts(silent = false): Promise<void> {
         if (!silent) accessLoading = true;
         try {
             const params = {
@@ -70,8 +76,8 @@
                 outcome: accessOutcome || undefined,
             };
             const response = await window.api.get("/api/v1/debug/access-attempts", { params });
-            accessAttempts = response.data.attempts;
-            accessTotal = response.data.total;
+            accessAttempts = response.data.attempts || [];
+            accessTotal = response.data.total || 0;
         } catch (e) {
             console.log("Failed to fetch access attempts", e);
             if (!silent) ToastUtils.error(t("debug.failed_fetch_access"));
@@ -80,19 +86,19 @@
         }
     }
 
-    function switchTab(tab) {
+    function switchTab(tab: "logs" | "access"): void {
         activeTab = tab;
         if (tab === "access" && accessAttempts.length === 0 && !accessLoading) {
             refreshAccessAttempts();
         }
     }
 
-    function refreshActive() {
+    function refreshActive(): void {
         if (activeTab === "logs") refreshLogs();
         else refreshAccessAttempts();
     }
 
-    function debouncedSearch() {
+    function debouncedSearch(): void {
         if (searchTimeout) clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
             offset = 0;
@@ -100,7 +106,7 @@
         }, 500);
     }
 
-    function debouncedAccessSearch() {
+    function debouncedAccessSearch(): void {
         if (accessSearchTimeout) clearTimeout(accessSearchTimeout);
         accessSearchTimeout = setTimeout(() => {
             accessOffset = 0;
@@ -108,7 +114,7 @@
         }, 500);
     }
 
-    function prevPage() {
+    function prevPage(): void {
         if (activeTab === "logs") {
             if (offset >= limit) {
                 offset -= limit;
@@ -120,7 +126,7 @@
         }
     }
 
-    function nextPage() {
+    function nextPage(): void {
         if (activeTab === "logs") {
             if (offset + limit < total) {
                 offset += limit;
@@ -132,7 +138,7 @@
         }
     }
 
-    async function copyActive() {
+    async function copyActive(): Promise<void> {
         if (activeTab === "logs") {
             const logText = logs.map((l) => formatLogLine(l)).join("\n");
             try {
@@ -162,7 +168,7 @@
         }
     }
 
-    async function copyLogLine(log) {
+    async function copyLogLine(log: DebugLogLine): Promise<void> {
         try {
             await navigator.clipboard.writeText(formatLogLine(log));
             ToastUtils.success(t("debug.logs_copied"));
@@ -171,7 +177,7 @@
         }
     }
 
-    async function copyAccessLine(row) {
+    async function copyAccessLine(row: AccessAttemptRow): Promise<void> {
         const line = [
             formatDebugTime(row.created_at),
             row.outcome,
@@ -207,11 +213,11 @@
 
 <div class="flex-1 flex flex-col h-full overflow-hidden" data-testid="debug-logs-page">
     <ToolsPageHeader icon="bug" title={t("debug.title")} description={t("debug.description")} accent="red">
-        <button type="button" class="secondary-chip" onclick={copyActive}>
+        <button type="button" class="secondary-chip focus-ring-sem" onclick={copyActive}>
             <MaterialDesignIcon iconName="content-copy" class="w-4 h-4" />
             {activeTab === "logs" ? t("debug.copy_logs") : t("debug.copy_access")}
         </button>
-        <button type="button" class="primary-chip" onclick={refreshActive}>
+        <button type="button" class="primary-chip focus-ring-sem" onclick={refreshActive}>
             <MaterialDesignIcon iconName="refresh" class="w-4 h-4" />
             {t("common.refresh")}
         </button>
@@ -368,7 +374,11 @@
                             >
                                 {formatDebugTime(log.timestamp)}
                             </div>
-                            <div class="font-bold w-12 sm:w-20 shrink-0 max-sm:text-[8px] {debugLevelClass(log.level)}">
+                            <div
+                                class="font-bold w-12 sm:w-20 shrink-0 max-sm:text-[8px] {debugLevelClass(
+                                    log.level || ''
+                                )}"
+                            >
                                 {log.level}
                             </div>
                             <div
@@ -431,59 +441,7 @@
                 </div>
             {/if}
 
-            <div class="px-4 py-3 flex items-center justify-between border-t border-sem-border bg-sem-surface-muted/50">
-                <div class="flex-1 flex justify-between sm:hidden">
-                    <button
-                        type="button"
-                        class="relative inline-flex items-center px-4 py-2 border border-sem-border text-sm font-medium rounded-md text-sem-fg bg-sem-surface hover:bg-sem-surface-muted disabled:opacity-50"
-                        disabled={listOffset === 0}
-                        onclick={prevPage}
-                    >
-                        Previous
-                    </button>
-                    <button
-                        type="button"
-                        class="ml-3 relative inline-flex items-center px-4 py-2 border border-sem-border text-sm font-medium rounded-md text-sem-fg bg-sem-surface hover:bg-sem-surface-muted disabled:opacity-50"
-                        disabled={listOffset + limit >= listTotal}
-                        onclick={nextPage}
-                    >
-                        Next
-                    </button>
-                </div>
-                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                    <div>
-                        <p class="text-sm text-sem-fg-muted font-mono">
-                            Showing
-                            <span class="font-bold">{showingFrom}</span>
-                            to
-                            <span class="font-bold">{showingTo}</span>
-                            of
-                            <span class="font-bold">{listTotal}</span>
-                            results
-                        </p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button
-                            type="button"
-                            class="secondary-chip px-3 py-1 text-xs disabled:opacity-50"
-                            disabled={listOffset === 0}
-                            onclick={prevPage}
-                        >
-                            <MaterialDesignIcon iconName="chevron-left" class="w-4 h-4" />
-                            Previous
-                        </button>
-                        <button
-                            type="button"
-                            class="secondary-chip px-3 py-1 text-xs disabled:opacity-50"
-                            disabled={listOffset + limit >= listTotal}
-                            onclick={nextPage}
-                        >
-                            Next
-                            <MaterialDesignIcon iconName="chevron-right" class="w-4 h-4" />
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <PaginationBar offset={listOffset} {limit} total={listTotal} onPrev={prevPage} onNext={nextPage} />
         </div>
     </div>
 </div>

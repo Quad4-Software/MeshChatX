@@ -83,15 +83,15 @@ for (const entry of chunkBudgets) {
         ok: sizeKiB <= maxKiB,
     });
     if (sizeKiB > maxKiB) {
-        failures.push(
-            `${prefix} ${largest.name} is ${sizeKiB.toFixed(2)} KiB (budget ${maxKiB} KiB)`
-        );
+        failures.push(`${prefix} ${largest.name} is ${sizeKiB.toFixed(2)} KiB (budget ${maxKiB} KiB)`);
     }
 }
 
 for (const row of report) {
     const mark = row.ok ? "ok" : "FAIL";
-    console.log(`${mark.padEnd(4)} ${row.prefix.padEnd(22)} ${String(row.sizeKiB).padStart(8)} / ${row.maxKiB} KiB  (${row.file})`);
+    console.log(
+        `${mark.padEnd(4)} ${row.prefix.padEnd(22)} ${String(row.sizeKiB).padStart(8)} / ${row.maxKiB} KiB  (${row.file})`
+    );
 }
 
 if (failures.length > 0) {

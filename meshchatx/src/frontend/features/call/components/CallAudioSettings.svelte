@@ -99,10 +99,10 @@
             onchange={(e) => onchange?.((e.target as HTMLInputElement).checked)}
         />
         <div
-            class="relative h-6 w-11 shrink-0 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 dark:peer-checked:bg-blue-600"
+            class="relative h-6 w-11 shrink-0 bg-sem-surface-muted peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-sem-accent/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-sem-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sem-accent"
         ></div>
         {#if label}
-            <span class="min-w-0 text-sm font-medium leading-snug text-gray-900 dark:text-gray-300">{label}</span>
+            <span class="min-w-0 text-sm font-medium leading-snug text-sem-fg">{label}</span>
         {/if}
     </label>
 {/snippet}
@@ -130,7 +130,7 @@
                 {@render toggleRow(
                     "telephone-announce-toggle",
                     Boolean(config?.telephone_announce_enabled),
-                    "Announce Telephone Presence (LXST)",
+                    t("call.announce_telephone_presence"),
                     false,
                     ontoggletelephoneannounce
                 )}
@@ -139,20 +139,17 @@
                     {@render toggleRow(
                         "web-audio-toggle",
                         webAudioBridgeEnabled,
-                        isAndroid ? "Native Audio Bridge" : "Web Audio Bridge",
+                        isAndroid ? t("call.native_audio_bridge") : t("call.web_audio_bridge"),
                         webAudioBridgeRequired,
                         ontogglewebaudio
                     )}
                     <div class="text-xs text-sem-fg-muted px-1">
                         {#if isAndroid}
-                            Always on for Android calls. Audio goes through the phone's native mic and speaker
-                            (AudioRecord and AudioTrack), never the WebView's browser microphone API.
+                            {t("call.android_audio_bridge_description")}
                         {:else if webAudioBridgeRequired}
-                            Required on this host (no LXST host audio device). Browser mic and speaker are used for
-                            calls.
+                            {t("call.web_audio_bridge_required_description")}
                         {:else}
-                            Web audio bridge allows web/electron to hook into LXST backend for passing microphone and
-                            audio streams to active telephone calls.
+                            {t("call.web_audio_bridge_description")}
                         {/if}
                     </div>
                 </div>
@@ -164,14 +161,14 @@
         <div class="flex flex-col gap-1">
             <label
                 for="telephone-audio-profile-select"
-                class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1"
+                class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest px-1"
             >
                 {t("call.default_quality")}
             </label>
             <select
                 id="telephone-audio-profile-select"
                 value={config?.telephone_audio_profile_id ?? ""}
-                class="input-field min-w-0 rounded-lg! border-gray-200! py-1! px-2! text-xs! dark:border-zinc-800! lg:min-w-[120px]"
+                class="input-field min-w-0 rounded-lg! border-sem-border! py-1! px-2! text-xs! lg:min-w-[120px]"
                 onchange={(e) => onchangeaudioprofile?.((e.target as HTMLSelectElement).value)}
             >
                 {#each audioProfiles as audioProfile (audioProfile.id)}
@@ -183,14 +180,14 @@
         <div class="flex flex-col gap-1">
             <label
                 for="telephone-call-mode-select"
-                class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1"
+                class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest px-1"
             >
                 {t("call.default_duplex")}
             </label>
             <select
                 id="telephone-call-mode-select"
                 value={config?.telephone_call_mode_id ?? ""}
-                class="input-field min-w-0 rounded-lg! border-gray-200! py-1! px-2! text-xs! dark:border-zinc-800! lg:min-w-[120px]"
+                class="input-field min-w-0 rounded-lg! border-sem-border! py-1! px-2! text-xs! lg:min-w-[120px]"
                 onchange={(e) => onchangecallmode?.((e.target as HTMLSelectElement).value)}
             >
                 {#each callModes as callMode (callMode.id)}
@@ -204,14 +201,14 @@
                 <div class="flex flex-col gap-1">
                     <label
                         for="telephone-mic-select"
-                        class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1"
+                        class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest px-1"
                     >
-                        Microphone
+                        {t("call.microphone")}
                     </label>
                     <select
                         id="telephone-mic-select"
                         value={selectedAudioInputId}
-                        class="input-field py-1! px-2! text-[10px]! rounded-lg! border-gray-200! dark:border-zinc-800! min-w-[120px]"
+                        class="input-field py-1! px-2! text-[10px]! rounded-lg! border-sem-border! min-w-[120px]"
                         onchange={(e) => {
                             const val = (e.target as HTMLSelectElement).value;
                             onselectaudioinput?.(val);
@@ -219,7 +216,7 @@
                         }}
                     >
                         {#each audioInputDevices as d, idx (d.deviceId || `in-${idx}`)}
-                            <option value={d.deviceId}>{d.label || "Microphone"}</option>
+                            <option value={d.deviceId}>{d.label || t("call.microphone")}</option>
                         {/each}
                     </select>
                 </div>
@@ -227,14 +224,14 @@
                 <div class="flex flex-col gap-1">
                     <label
                         for="telephone-speaker-select"
-                        class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1"
+                        class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest px-1"
                     >
-                        Speaker
+                        {t("call.speaker")}
                     </label>
                     <select
                         id="telephone-speaker-select"
                         value={selectedAudioOutputId}
-                        class="input-field py-1! px-2! text-[10px]! rounded-lg! border-gray-200! dark:border-zinc-800! min-w-[120px]"
+                        class="input-field py-1! px-2! text-[10px]! rounded-lg! border-sem-border! min-w-[120px]"
                         onchange={(e) => {
                             const val = (e.target as HTMLSelectElement).value;
                             onselectaudiooutput?.(val);
@@ -242,17 +239,17 @@
                         }}
                     >
                         {#each audioOutputDevices as d, idx (d.deviceId || `out-${idx}`)}
-                            <option value={d.deviceId}>{d.label || "Speaker"}</option>
+                            <option value={d.deviceId}>{d.label || t("call.speaker")}</option>
                         {/each}
                     </select>
                 </div>
 
                 <button
                     type="button"
-                    class="text-[10px] bg-gray-100 text-gray-600 dark:bg-zinc-800 text-sem-fg-muted py-1 rounded-lg font-bold uppercase tracking-wider hover:bg-gray-200 hover:bg-sem-surface-muted transition-colors"
+                    class="text-[10px] bg-sem-surface-muted text-sem-fg-muted py-1.5 px-3 rounded-lg font-bold uppercase tracking-wider hover:bg-sem-surface-subtle hover:text-sem-fg transition-colors focus-ring-sem cursor-pointer"
                     onclick={() => onrefreshaudiodevices?.()}
                 >
-                    Refresh Devices
+                    {t("call.refresh_devices")}
                 </button>
             </div>
         {/if}

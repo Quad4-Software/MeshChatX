@@ -32,10 +32,7 @@ export function isConfigDirty(content: string, originalContent: string): boolean
 /**
  * Determines whether the restart reminder banner should be shown.
  */
-export function shouldShowRestartReminder(
-    hasSavedChanges: boolean,
-    hasPendingInterfaceChanges: boolean
-): boolean {
+export function shouldShowRestartReminder(hasSavedChanges: boolean, hasPendingInterfaceChanges: boolean): boolean {
     return Boolean(hasSavedChanges || hasPendingInterfaceChanges);
 }
 

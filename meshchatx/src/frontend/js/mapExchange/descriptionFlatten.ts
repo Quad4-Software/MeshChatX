@@ -101,7 +101,7 @@ function cellPlain(cellHtml) {
  * @returns {string[]}
  */
 function extractFontFields(html) {
-    const rows = [];
+    const rows: string[] = [];
     String(html).replace(FONT_FIELD_RE, (_full, keyRaw, valRaw) => {
         const key = cellPlain(keyRaw);
         const val = cellPlain(valRaw);
@@ -141,7 +141,7 @@ function dropScriptLikePlainText(text) {
     s = s.replace(/(?:document|window)\.\w+\s*\([^;)\n]*\)\s*;?/gi, " ");
     s = s.replace(/getElementById\s*\([^)\n]*\)/gi, " ");
     const lines = s.split(/\n+/);
-    const kept = [];
+    const kept: string[] = [];
     for (const raw of lines) {
         const line = raw.replace(WS_RE, " ").trim();
         if (!line) {
@@ -168,9 +168,9 @@ export function flattenHtmlDescription(html) {
         return "";
     }
     s = dropScriptAndStyle(s);
-    const rows = [];
+    const rows: string[] = [];
     s.replace(TABLE_ROW_RE, (_full, rowInner) => {
-        const cells = [];
+        const cells: string[] = [];
         String(rowInner).replace(CELL_RE, (_c, cellInner) => {
             const plain = cellPlain(cellInner);
             if (plain) {
@@ -241,8 +241,8 @@ export function descriptionNeedsFlatten(text) {
  * @returns {{ leftover: string, pairs: { key: string, value: string }[] }}
  */
 export function extractKeyedDescriptionLines(description) {
-    const pairs = [];
-    const leftover = [];
+    const pairs: { key: string; value: string }[] = [];
+    const leftover: string[] = [];
     const normalized = unmashKeyedDescription(String(description || ""));
     for (const rawLine of normalized.split(/\n+/)) {
         const line = rawLine.trim();

@@ -6,8 +6,11 @@ import { config } from "@vue/test-utils";
 import createDOMPurify from "dompurify";
 import { injectMeshchatThemeVariables } from "../../meshchatx/src/frontend/theme/designTokens.js";
 import GlobalState from "../../meshchatx/src/frontend/js/GlobalState.js";
+import en from "../../meshchatx/src/frontend/locales/en.json";
+import { registerFallbackMessages } from "../../meshchatx/src/frontend/js/i18n.ts";
 
 injectMeshchatThemeVariables(typeof document !== "undefined" ? document : undefined);
+registerFallbackMessages(en);
 
 // App shell tests assume auth is settled with auth disabled unless a case overrides.
 beforeEach(() => {
@@ -16,6 +19,41 @@ beforeEach(() => {
     GlobalState.authenticated = false;
     GlobalState.demoMode = false;
 });
+
+if (typeof window !== "undefined" && typeof window.PointerEvent === "undefined") {
+    window.PointerEvent = class PointerEvent extends MouseEvent {
+        constructor(type, params = {}) {
+            super(type, { bubbles: true, cancelable: true, composed: true, ...params });
+            this.pointerType = params.pointerType || "mouse";
+            Object.defineProperty(this, "clientX", { value: params.clientX || 0, configurable: true });
+            Object.defineProperty(this, "clientY", { value: params.clientY || 0, configurable: true });
+            Object.defineProperty(this, "button", { value: params.button || 0, configurable: true });
+        }
+    };
+    global.PointerEvent = window.PointerEvent;
+}
+
+if (typeof Element !== "undefined" && !Element.prototype.animate) {
+    Element.prototype.animate = function () {
+        const anim = {
+            finished: Promise.resolve(),
+            cancel: () => {},
+            onfinish: null,
+            play: () => {},
+            pause: () => {},
+            reverse: () => {},
+            finish: () => {},
+        };
+        if (typeof setTimeout !== "undefined") {
+            setTimeout(() => {
+                if (typeof anim.onfinish === "function") {
+                    anim.onfinish();
+                }
+            }, 0);
+        }
+        return anim;
+    };
+}
 
 if (typeof Blob !== "undefined" && typeof Blob.prototype.stream !== "function") {
     Blob.prototype.stream = function streamPolyfill() {

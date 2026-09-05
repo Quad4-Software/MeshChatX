@@ -1,29 +1,20 @@
 // SPDX-License-Identifier: 0BSD
 
 import { createRegistry } from "./registryCore.js";
+import type { CommandEntry } from "./coreCommandEntries.js";
 
-/** @typedef {import('./coreCommandEntries.js').CommandEntry} CommandEntry */
+export type { CommandEntry };
 
-/** @type {import('./registryCore.js').Registry<CommandEntry>} */
-export const commandRegistry = createRegistry("commandRegistry");
+export const commandRegistry = createRegistry<CommandEntry>("commandRegistry");
 
-/**
- * @param {CommandEntry} entry
- */
-export function registerCommand(entry) {
+export function registerCommand(entry: CommandEntry) {
     commandRegistry.register(entry);
 }
 
-/**
- * @param {string} id
- */
-export function unregisterCommand(id) {
+export function unregisterCommand(id: string) {
     commandRegistry.unregister(id);
 }
 
-/**
- * @returns {CommandEntry[]}
- */
-export function listCommands() {
+export function listCommands(): CommandEntry[] {
     return commandRegistry.list();
 }

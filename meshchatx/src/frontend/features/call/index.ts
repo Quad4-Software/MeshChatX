@@ -3,7 +3,7 @@
 import { registerFeature } from "../../js/registries/featureRegistry.js";
 
 /**
- * Call / LXST telephone feature registration
+ * Register Call feature with main and popout routes
  */
 export function registerCallFeature(): void {
     registerFeature({

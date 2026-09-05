@@ -11,7 +11,15 @@ class ToastUtils {
         this.show(message, "success", duration, key);
     }
 
+    static showSuccess(message: unknown, duration = 5000, key: string | null = null): void {
+        this.show(message, "success", duration, key);
+    }
+
     static error(message: unknown, duration = 5000, key: string | null = null): void {
+        this.show(message, "error", duration, key);
+    }
+
+    static showError(message: unknown, duration = 5000, key: string | null = null): void {
         this.show(message, "error", duration, key);
     }
 

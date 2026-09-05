@@ -92,7 +92,7 @@ export function buildTimestampGroupedOldestFirst(groupsOldestFirst, options: any
     if (!groupingEnabled) {
         return onlyMsg.map((g) => ({ ...g, showTimestamp: true }));
     }
-    const showFlags = [];
+    const showFlags: boolean[] = [];
     for (let i = 0; i < onlyMsg.length; i++) {
         const g = onlyMsg[i];
         const next = onlyMsg[i + 1];
@@ -107,8 +107,8 @@ export function buildTimestampGroupedOldestFirst(groupsOldestFirst, options: any
         showFlags.push(show);
     }
 
-    const out = [];
-    let prevDayKey = null;
+    const out: any[] = [];
+    let prevDayKey: string | null = null;
     for (let i = 0; i < onlyMsg.length; i++) {
         const g = onlyMsg[i];
         const bounds = displayGroupSortBoundsMs(g);

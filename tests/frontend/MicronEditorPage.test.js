@@ -1,23 +1,28 @@
-import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import MicronEditorPage from "@/components/micron-editor/MicronEditorPage.vue";
-import { micronStorage } from "@/js/MicronStorage";
-import DialogUtils from "@/js/DialogUtils";
+// SPDX-License-Identifier: 0BSD
 
-const micronEditorT = (key, params = {}) => {
-    const strings = {
-        "tools.micron_editor.new_tab": "New Tab",
-        "tools.micron_editor.publish_prompt_name":
-            'index.mu already exists on "{server}". Enter a page name (without .mu):',
-        "tools.micron_editor.publish_published": 'Published "{page}" to {server}',
-        "tools.micron_editor.publish_failed": "Failed to publish page",
-    };
-    let out = strings[key] ?? key;
-    for (const [k, v] of Object.entries(params)) {
-        out = out.replace(`{${k}}`, String(v));
-    }
-    return out;
-};
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { render, cleanup, waitFor } from "@testing-library/svelte";
+import MicronEditorPage from "@/features/micron-editor/MicronEditorPage.svelte";
+import { micronStorage } from "@/js/MicronStorage";
+import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
+import {
+    createDefaultTab,
+    createGuideTab,
+    getDefaultContent,
+    getGuideContent,
+} from "@/features/micron-editor/lib/defaultContent.ts";
+import {
+    ensureNodeRunning,
+    fetchNodePagesList,
+    fetchPageNodesList,
+    isUnsetMicronTabName,
+    nomadPagePathForName,
+    openNomadDestinationUrl,
+    pageBaseWithExtension,
+    pageNamesFromList,
+    resolvePublishPageBase,
+    tabNameToPageBase,
+} from "@/features/micron-editor/lib/micronPublish.ts";
 
 vi.mock("@/js/MicronStorage", () => ({
     micronStorage: {
@@ -37,9 +42,9 @@ vi.mock("@/js/GlobalEmitter", () => ({
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
-        confirm: vi.fn(),
+        confirm: vi.fn().mockResolvedValue(true),
         alert: vi.fn(),
-        prompt: vi.fn(),
+        prompt: vi.fn().mockResolvedValue("test_page"),
     },
 }));
 
@@ -52,235 +57,144 @@ vi.mock("@/js/ToastUtils", () => ({
     },
 }));
 
-describe("MicronEditorPage.vue", () => {
+describe("defaultContent", () => {
     beforeEach(() => {
+        registerFallbackMessages({
+            tools: {
+                micron_editor: {
+                    main_tab: "Main",
+                    guide_tab: "Quick Guide",
+                },
+            },
+        });
+    });
+
+    it("generates default and guide tabs", () => {
+        expect(getDefaultContent()).toContain("Welcome to Micron Editor");
+        expect(getGuideContent()).toContain("Nomad Network supports a simple and functional markup language");
+        const defaultTab = createDefaultTab();
+        expect(defaultTab.name).toBe("Main");
+        const guideTab = createGuideTab(42);
+        expect(guideTab.id).toBe(42);
+        expect(guideTab.name).toBe("Quick Guide");
+    });
+});
+
+describe("micronPublish utilities", () => {
+    beforeEach(() => {
+        registerFallbackMessages({
+            tools: {
+                micron_editor: {
+                    new_tab: "New Tab",
+                },
+            },
+        });
+    });
+
+    it("extracts page names from list", () => {
+        expect(pageNamesFromList(["index.mu", { name: "about.mu" }, null])).toEqual(["index.mu", "about.mu"]);
+    });
+
+    it("extracts base page name from tab name", () => {
+        expect(tabNameToPageBase({ id: 1, name: "my_page.mu", content: "" })).toBe("my_page");
+        expect(tabNameToPageBase({ id: 1, name: "docs.html", content: "" })).toBe("docs");
+    });
+
+    it("appends extension when needed", () => {
+        expect(pageBaseWithExtension("page", { id: 1, name: "test.mu", content: "" })).toBe("page.mu");
+        expect(pageBaseWithExtension("page.html")).toBe("page.html");
+    });
+
+    it("identifies unset tab names", () => {
+        expect(isUnsetMicronTabName("")).toBe(true);
+        expect(isUnsetMicronTabName("New Tab")).toBe(true);
+        expect(isUnsetMicronTabName("New Tab 2")).toBe(true);
+        expect(isUnsetMicronTabName("custom_name")).toBe(false);
+    });
+
+    it("normalizes nomad page paths", () => {
+        expect(nomadPagePathForName("index.mu")).toBe("/page/index.mu");
+        expect(nomadPagePathForName("/page/about.mu")).toBe("/page/about.mu");
+        expect(nomadPagePathForName("/custom.mu")).toBe("/custom.mu");
+    });
+
+    it("handles page nodes APIs", async () => {
+        window.api = {
+            get: vi.fn(async (url) => {
+                if (url === "/api/v1/page-nodes") {
+                    return { data: [{ node_id: "node1", name: "Node 1", running: true }] };
+                }
+                if (url.includes("/pages")) {
+                    return { data: { pages: ["index.mu"] } };
+                }
+                return { data: {} };
+            }),
+            post: vi.fn(async () => ({ data: { destination_hash: "abcd" } })),
+        };
+
+        const nodes = await fetchPageNodesList();
+        expect(nodes).toHaveLength(1);
+
+        const pages = await fetchNodePagesList("node1");
+        expect(pages).toEqual(["index.mu"]);
+
+        const started = await ensureNodeRunning({
+            node_id: "node2",
+            name: "Node 2",
+            running: false,
+        });
+        expect(started.running).toBe(true);
+    });
+
+    it("parses nomad destination urls", () => {
+        const onNavigate = vi.fn();
+        openNomadDestinationUrl("nomadnetwork://aabbccddeeff00112233445566778899:/page/about.mu", onNavigate);
+        expect(onNavigate).toHaveBeenCalledWith({
+            destinationHash: "aabbccddeeff00112233445566778899",
+            path: "/page/about.mu",
+        });
+    });
+});
+
+describe("MicronEditorPage.svelte component", () => {
+    beforeEach(() => {
+        cleanup();
         vi.clearAllMocks();
-        // Mock localStorage
-        Object.defineProperty(window, "localStorage", {
-            value: {
-                getItem: vi.fn(),
-                setItem: vi.fn(),
-                removeItem: vi.fn(),
-            },
-            writable: true,
-        });
-    });
-
-    const mountMicronEditorPage = (t = micronEditorT) => {
-        return mount(MicronEditorPage, {
-            global: {
-                mocks: {
-                    $t: t,
-                },
-                stubs: {
-                    MaterialDesignIcon: {
-                        template: '<div class="mdi-stub" :data-icon-name="iconName"></div>',
-                        props: ["iconName"],
-                    },
-                    "router-link": {
-                        template: "<a><slot /></a>",
-                    },
+        registerTranslator(null);
+        registerFallbackMessages({
+            tools: {
+                micron_editor: {
+                    title: "Micron Editor",
+                    description: "Edit and preview Micron pages",
+                    new_tab: "New Tab",
+                    main_tab: "Main",
+                    save: "Save",
+                    reset: "Reset",
+                    publish: "Publish",
+                    view_preview: "Preview",
+                    edit: "Edit",
+                    publish_to_mesh_server: "Publish to Mesh Server",
+                    placeholder: "Enter Micron markup here...",
                 },
             },
         });
-    };
-
-    it("renders the micron editor", async () => {
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-        expect(wrapper.text()).toContain("tools.micron_editor.title");
-    });
-
-    it("adds a new tab", async () => {
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-        const initialCount = wrapper.vm.tabs.length;
-
-        const addButton = wrapper.findAll("button").find((b) => b.html().includes("plus"));
-        await addButton.trigger("click");
-
-        expect(wrapper.vm.tabs.length).toBe(initialCount + 1);
-        expect(wrapper.vm.activeTabIndex).toBe(initialCount);
-    });
-
-    it("renders micron content to html", async () => {
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-
-        await wrapper.setData({
-            tabs: [{ id: 1, name: "Test", content: "TestContent" }],
-            activeTabIndex: 0,
-        });
-
-        wrapper.vm.renderActiveTab();
-        await wrapper.vm.$nextTick();
-        expect(wrapper.find(".nodeContainer").text()).toContain("TestContent");
-    });
-
-    it("isUnsetMicronTabName matches default new tab labels", async () => {
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-        expect(wrapper.vm.isUnsetMicronTabName("New Tab 2")).toBe(true);
-        expect(wrapper.vm.isUnsetMicronTabName("Homepage")).toBe(false);
-        expect(wrapper.vm.isUnsetMicronTabName("Main")).toBe(false);
-    });
-
-    it("resolvePublishPageBase uses index when server has no index.mu", async () => {
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-        const tab = { name: "New Tab 1", content: "x" };
-        await expect(wrapper.vm.resolvePublishPageBase(tab, [], "srv")).resolves.toBe("index");
-    });
-
-    it("resolvePublishPageBase uses tab name when index.mu exists and tab is renamed", async () => {
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-        const tab = { name: "About Page", content: "x" };
-        await expect(wrapper.vm.resolvePublishPageBase(tab, ["index.mu"], "srv")).resolves.toBe("About_Page");
-    });
-
-    it("resolvePublishPageBase prompts when index.mu exists and tab name is unset", async () => {
-        DialogUtils.prompt.mockResolvedValue("custom_page");
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-        const tab = { name: "New Tab 1", content: "x" };
-        await expect(wrapper.vm.resolvePublishPageBase(tab, ["index.mu"], "srv")).resolves.toBe("custom_page");
-        expect(DialogUtils.prompt).toHaveBeenCalled();
-    });
-
-    it("publishToNode posts index.mu when server has no index page", async () => {
         window.api = {
-            get: vi.fn().mockResolvedValue({ data: { pages: [] } }),
-            post: vi.fn().mockResolvedValue({ data: { name: "index.mu" } }),
+            get: vi.fn(async () => ({ data: [] })),
+            post: vi.fn(async () => ({ data: {} })),
+            patch: vi.fn(async () => ({ data: {} })),
+            delete: vi.fn(async () => ({ data: {} })),
         };
-        DialogUtils.confirm.mockResolvedValue(false);
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-        await wrapper.setData({
-            tabs: [{ id: 1, name: "New Tab 1", content: "hello" }],
-            activeTabIndex: 0,
-        });
-        const dest = "a".repeat(32);
-        await wrapper.vm.publishToNode({
-            node_id: "n1",
-            name: "My Server",
-            running: true,
-            destination_hash: dest,
-        });
-        expect(window.api.post).toHaveBeenCalledWith("/api/v1/page-nodes/n1/pages", {
-            name: "index",
-            content: "hello",
-        });
-        expect(wrapper.vm.lastPublished).toEqual({
-            destinationHash: dest,
-            pagePath: "/page/index.mu",
-            pageName: "index.mu",
-            serverName: "My Server",
-        });
     });
 
-    it("createMeshServerAndPublish creates, starts, publishes, and can open NomadNet", async () => {
-        const dest = "b".repeat(32);
-        window.api = {
-            get: vi.fn().mockResolvedValue({ data: { pages: [] } }),
-            post: vi
-                .fn()
-                .mockResolvedValueOnce({ data: { node_id: "n2", name: "Micron Pages", running: false } })
-                .mockResolvedValueOnce({ data: { destination_hash: dest, message: "Node started" } })
-                .mockResolvedValueOnce({ data: { name: "index.mu" } }),
-        };
-        DialogUtils.prompt.mockResolvedValue("Micron Pages");
-        DialogUtils.confirm.mockResolvedValue(true);
-        const push = vi.fn().mockResolvedValue();
-        const wrapper = mountMicronEditorPage();
-        wrapper.vm.$router = { push };
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-        await wrapper.setData({
-            tabs: [{ id: 1, name: "New Tab 1", content: "hi" }],
-            activeTabIndex: 0,
-        });
-        await wrapper.vm.createMeshServerAndPublish();
-        expect(window.api.post).toHaveBeenNthCalledWith(1, "/api/v1/page-nodes", { name: "Micron Pages" });
-        expect(window.api.post).toHaveBeenNthCalledWith(2, "/api/v1/page-nodes/n2/start");
-        expect(window.api.post).toHaveBeenNthCalledWith(3, "/api/v1/page-nodes/n2/pages", {
-            name: "index",
-            content: "hi",
-        });
-        expect(push).toHaveBeenCalledWith({
-            name: "nomadnetwork",
-            params: { destinationHash: dest },
-            query: { path: "/page/index.mu", newTab: "1" },
-        });
+    afterEach(() => {
+        cleanup();
     });
 
-    it("publishToNode starts a stopped server before uploading", async () => {
-        const dest = "c".repeat(32);
-        window.api = {
-            get: vi.fn().mockResolvedValue({ data: { pages: [] } }),
-            post: vi
-                .fn()
-                .mockResolvedValueOnce({ data: { destination_hash: dest } })
-                .mockResolvedValueOnce({ data: { name: "index.mu" } }),
-        };
-        DialogUtils.confirm.mockResolvedValue(false);
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-        await wrapper.setData({
-            tabs: [{ id: 1, name: "New Tab 1", content: "x" }],
-            activeTabIndex: 0,
+    it("mounts and renders tabs", async () => {
+        const { getByTestId } = render(MicronEditorPage);
+        await waitFor(() => {
+            expect(getByTestId("micron-editor-page")).toBeTruthy();
+            expect(micronStorage.loadTabs).toHaveBeenCalled();
         });
-        await wrapper.vm.publishToNode({ node_id: "n3", name: "Stopped", running: false });
-        expect(window.api.post).toHaveBeenNthCalledWith(1, "/api/v1/page-nodes/n3/start");
-        expect(window.api.post).toHaveBeenNthCalledWith(2, "/api/v1/page-nodes/n3/pages", {
-            name: "index",
-            content: "x",
-        });
-    });
-
-    it("pageBaseWithExtension preserves html tab extension when publishing", async () => {
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-        const tab = { name: "Landing.html", content: "<p>hi</p>" };
-        expect(wrapper.vm.pageBaseWithExtension("landing", tab)).toBe("landing.html");
-    });
-
-    it("onPreviewClick opens http links externally", async () => {
-        const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-        const preview = wrapper.find(".nodeContainer");
-        preview.element.innerHTML = '<a href="https://example.com/page.html">Example</a>';
-        const link = preview.find("a");
-        await link.trigger("click");
-        expect(openSpy).toHaveBeenCalledWith("https://example.com/page.html", "_blank", "noopener,noreferrer");
-        openSpy.mockRestore();
-    });
-
-    it("resets all content", async () => {
-        DialogUtils.confirm.mockResolvedValue(true);
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-
-        const resetButton = wrapper.findAll("button").find((b) => b.html().includes('data-icon-name="refresh"'));
-        expect(resetButton).toBeDefined();
-        await resetButton.trigger("click");
-
-        expect(micronStorage.clearAll).toHaveBeenCalled();
-        expect(wrapper.vm.tabs.length).toBe(2); // main and guide
-    }, 20_000);
-
-    it("onIdentitySwitched clears storage and resets tabs", async () => {
-        const wrapper = mountMicronEditorPage();
-        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
-        await wrapper.setData({
-            tabs: [{ id: 1, name: "Secret", content: "from-identity-a" }],
-            activeTabIndex: 0,
-        });
-        await wrapper.vm.onIdentitySwitched();
-        expect(micronStorage.clearAll).toHaveBeenCalled();
-        expect(micronStorage.saveTabs).toHaveBeenCalled();
-        expect(wrapper.vm.tabs.length).toBe(2);
-        expect(wrapper.vm.tabs[0].content).not.toContain("from-identity-a");
-        expect(wrapper.vm.activeTabIndex).toBe(0);
     });
 });

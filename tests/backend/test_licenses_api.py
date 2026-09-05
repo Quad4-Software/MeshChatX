@@ -55,7 +55,7 @@ async def test_licenses_endpoint_returns_json(mock_rns_minimal, temp_dir):
     with (
         patch("meshchatx.meshchat.generate_ssl_certificate"),
         patch(
-            "meshchatx.src.backend.licenses_collector.build_licenses_payload",
+            "meshchatx.src.backend.licenses_collector.core.build_licenses_payload",
             return_value=payload,
         ),
     ):

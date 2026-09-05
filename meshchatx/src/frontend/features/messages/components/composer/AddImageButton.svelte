@@ -3,7 +3,7 @@
 <script lang="ts">
     import Compressor from "compressorjs";
     import MaterialDesignIcon from "../../../../ui/svelte/MaterialDesignIcon.svelte";
-    import DialogUtils from "../../../../js/DialogUtils.js";
+    import ToastUtils from "../../../../js/ToastUtils.js";
     import { t } from "../../../../js/i18n.js";
 
     let {
@@ -44,7 +44,7 @@
                     quality: 0.2,
                     mimeType: "image/webp",
                     success: (result) => emitCompressed(file, result),
-                    error: (err) => DialogUtils.alert(err.message),
+                    error: (err) => ToastUtils.error(err.message),
                 });
                 break;
             case "medium":
@@ -54,7 +54,7 @@
                     quality: 0.6,
                     mimeType: "image/webp",
                     success: (result) => emitCompressed(file, result),
-                    error: (err) => DialogUtils.alert(err.message),
+                    error: (err) => ToastUtils.error(err.message),
                 });
                 break;
             case "high":
@@ -64,14 +64,14 @@
                     quality: 0.75,
                     mimeType: "image/webp",
                     success: (result) => emitCompressed(file, result),
-                    error: (err) => DialogUtils.alert(err.message),
+                    error: (err) => ToastUtils.error(err.message),
                 });
                 break;
             case "original":
                 onaddimage?.(file);
                 break;
             default:
-                DialogUtils.alert(`Unsupported image quality: ${selectedImageQuality}`);
+                ToastUtils.warning(`Unsupported image quality: ${selectedImageQuality}`);
                 break;
         }
         clearImageInput();
@@ -92,7 +92,7 @@
 <div bind:this={rootEl} class="inline-flex">
     <button
         type="button"
-        class="my-auto inline-flex items-center gap-x-1 rounded-lg px-2 py-1.5 text-xs font-medium text-sem-fg-muted hover:bg-sem-surface-muted hover:text-gray-900 dark:hover:text-white transition-colors"
+        class="my-auto inline-flex items-center gap-x-1 rounded-lg px-2 py-1.5 text-xs font-medium text-sem-fg-muted hover:bg-sem-surface-muted hover:text-gray-900 dark:hover:text-white transition-colors focus-ring-sem"
         onclick={() => {
             isShowingMenu = true;
         }}

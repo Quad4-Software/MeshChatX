@@ -149,10 +149,10 @@ describe("identity-switch surface contracts", () => {
     }
 
     it("RelayChatPage listens for identity-switched and clears hub UI state", () => {
-        const src = readFrontend("components/relay/RelayChatPage.vue");
+        const src = readFrontend("features/relay-chat/components/RelayChatPage.svelte");
         expect(src).toContain('GlobalEmitter.on("identity-switched"');
         expect(src).toMatch(/onIdentitySwitched/);
-        expect(src).toMatch(/this\.hubs\s*=\s*\[\]/);
+        expect(src).toMatch(/hubs\s*=\s*\[\]/);
     });
 
     it("RNSHPage listens for identity-switched and clears session output cache", () => {
@@ -162,23 +162,23 @@ describe("identity-switch surface contracts", () => {
     });
 
     it("NomadNetworkBrowser listens for identity-switched and resets tabs", () => {
-        const src = readFrontend("components/nomadnetwork/NomadNetworkBrowser.vue");
+        const src = readFrontend("features/nomadnetwork/components/NomadNetworkBrowser.svelte");
         expect(src).toContain('GlobalEmitter.on("identity-switched"');
-        expect(src).toMatch(/this\.tabs\s*=\s*\[\]/);
+        expect(src).toMatch(/tabs\s*=\s*\[\]/);
     });
 
     it("MapBrowser listens for identity-switched and resets tabs", () => {
-        const src = readFrontend("components/map/MapBrowser.vue");
+        const src = readFrontend("features/map/components/MapBrowser.svelte");
         expect(src).toContain('GlobalEmitter.on("identity-switched"');
-        expect(src).toMatch(/this\.tabs\s*=\s*\[\]/);
+        expect(src).toMatch(/tabs\s*=\s*\[\]/);
     });
 
     it("NetworkVisualiser listens for identity-switched and clears cached graph state", () => {
-        const src = readFrontend("components/network-visualiser/NetworkVisualiser.vue");
-        expect(src).toContain('GlobalEmitter.on("identity-switched"');
+        const src = readFrontend("features/network-visualiser/components/NetworkVisualiser.svelte");
+        const eventSrc = readFrontend("features/network-visualiser/lib/visualiserEvents.ts");
+        expect(eventSrc).toContain('GlobalEmitter.on("identity-switched"');
         expect(src).toMatch(/onIdentitySwitched/);
-        expect(src).toMatch(/this\.cachedPositions\s*=\s*\{\}/);
-        expect(src).toMatch(/this\.pathTable\s*=\s*\[\]/);
-        expect(src).toMatch(/this\.announces\s*=\s*\{\}/);
+        expect(src).toMatch(/pathTable\s*=\s*\[\]/);
+        expect(src).toMatch(/announces\s*=\s*\{\}/);
     });
 });

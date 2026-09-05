@@ -56,6 +56,13 @@ def _ensure_meshchat_namespace() -> None:
     for mod_name in _HANDLER_MODULES:
         mod = __import__(mod_name, fromlist=["*"])
         inject_meshchat_names(mod.__dict__)
+        if hasattr(mod, "__path__"):
+            import importlib
+            import pkgutil
+
+            for info in pkgutil.walk_packages(mod.__path__, mod.__name__ + "."):
+                sub = importlib.import_module(info.name)
+                inject_meshchat_names(sub.__dict__)
     _NS_READY = True
 
 

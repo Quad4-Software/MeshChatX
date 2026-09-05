@@ -3,7 +3,13 @@
 <script lang="ts">
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import { t } from "../../../js/i18n.js";
-    import { formatInt, copyText, extractQueueRows, filterI2pInterfaces, hasStatusSummary } from "../lib/statusFormat.js";
+    import {
+        formatInt,
+        copyText,
+        extractQueueRows,
+        filterI2pInterfaces,
+        hasStatusSummary,
+    } from "../lib/statusFormat.js";
     import type { RNStatusResponse } from "../lib/types.js";
 
     interface Props {
@@ -210,7 +216,9 @@
 {/if}
 
 {#if i2pInterfaces.length > 0}
-    <div class="rounded-xl border border-violet-200 dark:border-violet-900/60 bg-violet-50 dark:bg-violet-950/30 p-4 space-y-3">
+    <div
+        class="rounded-xl border border-violet-200 dark:border-violet-900/60 bg-violet-50 dark:bg-violet-950/30 p-4 space-y-3"
+    >
         <h2 class="text-sm font-semibold text-violet-950 dark:text-violet-100">
             {t("rnstatus.i2p_address")}
         </h2>
@@ -244,7 +252,9 @@
                         {iface.i2p_connectable ? t("rnstatus.i2p_connectable_yes") : t("rnstatus.i2p_connectable_no")}
                     </span>
                     {#if iface.i2p_tunnel_state}
-                        <span class="rounded-full bg-white/70 dark:bg-zinc-900/70 px-2 py-0.5 font-medium text-violet-900 dark:text-violet-100">
+                        <span
+                            class="rounded-full bg-white/70 dark:bg-zinc-900/70 px-2 py-0.5 font-medium text-violet-900 dark:text-violet-100"
+                        >
                             {iface.i2p_tunnel_state}
                         </span>
                     {/if}

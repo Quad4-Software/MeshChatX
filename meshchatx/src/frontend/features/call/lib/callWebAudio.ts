@@ -23,13 +23,7 @@ import {
     requestMicPermission,
     setupMicCaptureNodes,
 } from "./callWebAudioMic.js";
-import {
-    computeSignalLevel,
-    extractInt16Samples,
-    getOrCreateAudioContext,
-    playRemotePcmBuffer,
-    resumeAudioContext,
-} from "./callWebAudioPlayback.js";
+import { getOrCreateAudioContext, playRemotePcmBuffer, resumeAudioContext } from "./callWebAudioPlayback.js";
 import type { AudioDeviceItem } from "./types.js";
 
 export { computeSignalLevel, extractInt16Samples } from "./callWebAudioPlayback.js";
@@ -103,9 +97,7 @@ export class CallWebAudioBridge {
 
     private logFailure(stage: string, error: unknown): void {
         const appImage = Boolean(
-            window.electron &&
-                typeof navigator?.userAgent === "string" &&
-                navigator.userAgent.includes("AppImage")
+            window.electron && typeof navigator?.userAgent === "string" && navigator.userAgent.includes("AppImage")
         );
         console.error(`[CallWebAudio] ${stage}`, { isElectron: Boolean(window.electron), isAppImage: appImage }, error);
         this.callbacks.onFailure?.(stage, error);
@@ -136,7 +128,7 @@ export class CallWebAudioBridge {
         }
     }
 
-    public async requestAudioPermission(): Promise<boolean> {
+    public async requestAudioPermission() {
         const ok = await requestMicPermission();
         if (ok) {
             this.webAudioMicReady = true;
@@ -146,6 +138,19 @@ export class CallWebAudioBridge {
         }
         this.webAudioStartBlocked = true;
         return false;
+    }
+
+    public async requestPermission(): Promise<boolean> {
+        return this.requestAudioPermission();
+    }
+
+    public async refreshDevices(): Promise<void> {
+        return this.refreshAudioDevices();
+    }
+
+    public async restart(): Promise<void> {
+        this.stop();
+        return this.start();
     }
 
     public async start(): Promise<void> {
@@ -161,7 +166,9 @@ export class CallWebAudioBridge {
             }
             const telMic = window.MeshChatXAndroid.isTelephoneNativeAudioAvailable;
             const micOk =
-                typeof telMic === "function" ? telMic() : window.MeshChatXAndroid.isNativePcmAudioAvailable?.() === true;
+                typeof telMic === "function"
+                    ? telMic()
+                    : window.MeshChatXAndroid.isNativePcmAudioAvailable?.() === true;
             if (!micOk) {
                 await this.disableWithError(
                     "call.microphone_permission_denied",

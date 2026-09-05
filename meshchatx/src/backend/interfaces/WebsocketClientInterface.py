@@ -75,7 +75,9 @@ class WebsocketClientInterface(Interface):
         try:
             self.websocket.send(data)
         except Exception as exc:
-            RNS.log(f"Exception occurred while transmitting via {self!s}", RNS.LOG_ERROR)
+            RNS.log(
+                f"Exception occurred while transmitting via {self!s}", RNS.LOG_ERROR
+            )
             RNS.log(f"The contained exception was: {exc!s}", RNS.LOG_ERROR)
             return
         self.txb += len(data)

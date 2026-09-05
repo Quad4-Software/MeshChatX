@@ -1,22 +1,22 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
-<script>
+<script lang="ts">
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
     import { t } from "../../js/i18n.js";
     import ToolListRow from "./ToolListRow.svelte";
     import { toolRouteHref, toolRowClass } from "./lib/toolsList.js";
+    import type { ToolRecord } from "./lib/toolsList.js";
 
-    /**
-     * @type {{
-     *   sectionId: string,
-     *   tools: Array<Record<string, unknown>>,
-     *   collapsed?: boolean,
-     *   onToggle?: (sectionId: string) => void,
-     * }}
-     */
-    let { sectionId, tools, collapsed = false, onToggle } = $props();
+    interface Props {
+        sectionId: string;
+        tools: ToolRecord[];
+        collapsed?: boolean;
+        onToggle?: (sectionId: string) => void;
+    }
 
-    function toggle() {
+    let { sectionId, tools, collapsed = false, onToggle }: Props = $props();
+
+    function toggle(): void {
         onToggle?.(sectionId);
     }
 </script>
@@ -48,10 +48,7 @@
                         <ToolListRow {tool} />
                     </div>
                 {:else}
-                    <a
-                        href={toolRouteHref(/** @type {{ name?: string, path?: string } | string} */ (tool.route))}
-                        class={toolRowClass(tool)}
-                    >
+                    <a href={toolRouteHref(tool.route)} class={toolRowClass(tool)}>
                         <ToolListRow {tool} />
                     </a>
                 {/if}

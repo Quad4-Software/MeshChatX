@@ -1,15 +1,14 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
-<script>
+<script lang="ts">
     import MaterialDesignIcon from "./MaterialDesignIcon.svelte";
 
-    /**
-     * @type {{
-     *   message?: string,
-     *   class?: string,
-     * }}
-     */
-    let { message = "", class: rootClass = "" } = $props();
+    interface Props {
+        message?: string;
+        class?: string;
+    }
+
+    let { message = "", class: rootClass = "" }: Props = $props();
 </script>
 
 <div class="flex flex-col items-center justify-center px-4 py-10 text-center {rootClass}">

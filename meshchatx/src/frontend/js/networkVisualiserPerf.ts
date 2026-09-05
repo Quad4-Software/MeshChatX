@@ -215,11 +215,11 @@ export function buildPathGraphJs(req) {
     const fontColor = darkMode ? "#ffffff" : "#000000";
     const matchesSearch = (text) => !searchLower || (text && String(text).toLowerCase().includes(searchLower));
 
-    const nodes = [];
-    const edges = [];
-    const iconQueue = [];
-    const processedNodeIds = [];
-    const processedEdgeIds = [];
+    const nodes: any[] = [];
+    const edges: any[] = [];
+    const iconQueue: any[] = [];
+    const processedNodeIds: any[] = [];
+    const processedEdgeIds: any[] = [];
 
     for (const entry of pathTable) {
         if (!entry || entry.hops == null || !entry.hash) continue;
@@ -386,7 +386,7 @@ export function buildFullGraph(req) {
     });
     return {
         ...path,
-        layout_nodes: (path.nodes || []).map((n) => ({
+        layout_nodes: ((path as any).nodes || []).map((n: any) => ({
             id: n.id,
             x: n.x,
             y: n.y,
@@ -394,7 +394,7 @@ export function buildFullGraph(req) {
             fixed: n.id === "me",
             radius: Number.isFinite(n.size) ? n.size : 22,
         })),
-        layout_edges: (path.edges || []).map((e) => ({
+        layout_edges: ((path as any).edges || []).map((e: any) => ({
             from: e.from,
             to: e.to,
             length: layoutSpringLength(e.width),
@@ -433,7 +433,7 @@ export function computeLodUpdatesJs(nodes, lod, darkMode) {
     const fontColor = darkMode ? "#ffffff" : "#000000";
     const blueBorder = "#3b82f6";
     const blueBg = darkMode ? "#1e40af" : "#eff6ff";
-    const updates = [];
+    const updates: any[] = [];
 
     for (const node of nodes) {
         if (!node || !node.id) continue;
@@ -515,5 +515,5 @@ export function lodLevelFromScale(scale) {
 
 /** Warm the WASM module early. Safe to ignore the result. */
 export function warmVisualiserWasm() {
-    return preloadVisualiserWasm().catch(() => false);
+    return preloadVisualiserWasm()?.catch(() => false) ?? Promise.resolve(false);
 }

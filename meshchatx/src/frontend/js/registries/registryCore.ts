@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: 0BSD
 
-/**
- * @template T
- * @typedef {Object} Registry
- * @property {(entry: T) => void} register
- * @property {(id: string) => void} unregister
- * @property {(id: string) => T | undefined} get
- * @property {() => T[]} list
- * @property {() => void} clear
- */
+export interface Registry<T> {
+    register: (entry: T) => void;
+    unregister: (id: string) => void;
+    get: (id: string) => T | undefined;
+    list: () => T[];
+    clear: () => void;
+}
 
-/**
- * @template {{ id: string }} T
- * @param {string} name
- * @returns {Registry<T>}
- */
-export function createRegistry(name) {
-    /** @type {Map<string, T>} */
-    const entries = new Map();
+export function createRegistry<
+    T extends { id: string; [key: string]: any } = {
+        id: string;
+        path?: string;
+        keywords?: string[];
+        component?: any;
+        [key: string]: any;
+    },
+>(name: string): Registry<T> {
+    const entries = new Map<string, T>();
 
     return {
         register(entry) {

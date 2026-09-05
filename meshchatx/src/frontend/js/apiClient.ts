@@ -27,12 +27,12 @@ export type ApiResponse<T = unknown> = {
 };
 
 export type ApiClient = {
-    get: (path: string, config?: ApiRequestConfig) => Promise<ApiResponse>;
-    head: (path: string, config?: ApiRequestConfig) => Promise<ApiResponse>;
-    post: (path: string, data?: unknown, config?: ApiRequestConfig) => Promise<ApiResponse>;
-    patch: (path: string, data?: unknown, config?: ApiRequestConfig) => Promise<ApiResponse>;
-    put: (path: string, data?: unknown, config?: ApiRequestConfig) => Promise<ApiResponse>;
-    delete: (path: string, config?: ApiRequestConfig) => Promise<ApiResponse>;
+    get: <T = any>(path: string, config?: ApiRequestConfig) => Promise<ApiResponse<T>>;
+    head: <T = any>(path: string, config?: ApiRequestConfig) => Promise<ApiResponse<T>>;
+    post: <T = any>(path: string, data?: unknown, config?: ApiRequestConfig) => Promise<ApiResponse<T>>;
+    patch: <T = any>(path: string, data?: unknown, config?: ApiRequestConfig) => Promise<ApiResponse<T>>;
+    put: <T = any>(path: string, data?: unknown, config?: ApiRequestConfig) => Promise<ApiResponse<T>>;
+    delete: <T = any>(path: string, config?: ApiRequestConfig) => Promise<ApiResponse<T>>;
     isCancel: (error: unknown) => boolean;
 };
 
@@ -170,19 +170,19 @@ function tryDemoConfigPatch(data) {
 export function createApiClient(options: CreateApiClientOptions = {}): ApiClient {
     const { onAuthError } = options;
 
-    async function request(
+    async function request<T = any>(
         method: string,
         path: string,
         config: ApiRequestConfig = {},
         csrfRetry = false
-    ): Promise<ApiResponse> {
+    ): Promise<ApiResponse<T>> {
         const { params, data, signal, headers = {}, responseType } = config;
         const pathname = apiPathname(path);
 
         if (method === "PATCH" && pathname === "/api/v1/config") {
             const demoResponse = tryDemoConfigPatch(data);
             if (demoResponse) {
-                return demoResponse;
+                return demoResponse as unknown as ApiResponse<T>;
             }
         }
 
@@ -258,33 +258,33 @@ export function createApiClient(options: CreateApiClientOptions = {}): ApiClient
         if (method === "GET" && pathname === "/api/v1/config") {
             dataOut = applyDemoConfigGetOverlay(dataOut);
         }
-        return { data: dataOut, status: response.status, headers: response.headers };
+        return { data: dataOut as T, status: response.status, headers: response.headers };
     }
 
     const api: ApiClient = {
-        get(path, config) {
+        get<T = any>(path: string, config?: ApiRequestConfig) {
             const cfg = config || {};
-            return withRetryableHttp(() => request("GET", path, cfg), {
+            return withRetryableHttp(() => request<T>("GET", path, cfg), {
                 signal: cfg.signal,
             });
         },
-        head(path, config) {
+        head<T = any>(path: string, config?: ApiRequestConfig) {
             const cfg = config || {};
-            return withRetryableHttp(() => request("HEAD", path, cfg), {
+            return withRetryableHttp(() => request<T>("HEAD", path, cfg), {
                 signal: cfg.signal,
             });
         },
-        post(path, data, config = {}) {
-            return request("POST", path, { ...config, data });
+        post<T = any>(path: string, data?: unknown, config = {}) {
+            return request<T>("POST", path, { ...config, data });
         },
-        patch(path, data, config = {}) {
-            return request("PATCH", path, { ...config, data });
+        patch<T = any>(path: string, data?: unknown, config = {}) {
+            return request<T>("PATCH", path, { ...config, data });
         },
-        put(path, data, config = {}) {
-            return request("PUT", path, { ...config, data });
+        put<T = any>(path: string, data?: unknown, config = {}) {
+            return request<T>("PUT", path, { ...config, data });
         },
-        delete(path, config = {}) {
-            return request("DELETE", path, config || {});
+        delete<T = any>(path: string, config = {}) {
+            return request<T>("DELETE", path, config || {});
         },
         isCancel,
     };

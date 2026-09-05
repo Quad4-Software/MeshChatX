@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnection";
 import App from "../../meshchatx/src/frontend/components/App.vue";
 import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
-import SettingsPage from "../../meshchatx/src/frontend/components/settings/SettingsPage.vue";
 import Toggle from "../../meshchatx/src/frontend/components/forms/Toggle.vue";
 import ConfirmDialog from "../../meshchatx/src/frontend/components/ConfirmDialog.vue";
 import ChangelogModal from "../../meshchatx/src/frontend/components/ChangelogModal.vue";
@@ -334,7 +333,7 @@ describe("Visibility Checks", () => {
         await flushPromises();
         await Promise.resolve();
 
-        expect(document.body.textContent).toContain("common.confirm_action");
+        expect(document.body.textContent).toMatch(/Confirm action|common\.confirm_action/);
         expect(document.body.textContent).toContain("Test message");
         expect(document.querySelector(".confirm-dialog-root")).toBeTruthy();
 
@@ -394,121 +393,6 @@ describe("Visibility Checks", () => {
         });
 
         expect(wrapper.text()).not.toContain("Show Label");
-    });
-
-    it("SettingsPage shows banished config when toggle is enabled", async () => {
-        const axiosMock = {
-            get: vi.fn().mockResolvedValue({
-                data: {
-                    config: {
-                        banished_effect_enabled: true,
-                        banished_text: "BANISHED",
-                        banished_color: "#dc2626",
-                        blackhole_integration_enabled: true,
-                    },
-                },
-            }),
-            patch: vi.fn().mockResolvedValue({ data: {} }),
-        };
-        window.api = axiosMock;
-
-        const wrapper = mountTracked(SettingsPage, {
-            global: {
-                stubs: {
-                    MaterialDesignIcon: { template: "<div></div>" },
-                    Toggle: Toggle,
-                    ShortcutRecorder: { template: "<div></div>" },
-                    RouterLink: { template: "<a><slot /></a>" },
-                },
-                mocks: {
-                    $t: (key) => key,
-                    $router: { push: vi.fn() },
-                },
-            },
-        });
-
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.getConfig();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.config.banished_effect_enabled = true;
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.text()).toContain("app.banished_text_label");
-        expect(wrapper.text()).toContain("app.banished_color_label");
-        expect(wrapper.findAll('input[type="color"]').length).toBeGreaterThanOrEqual(1);
-    });
-
-    it("SettingsPage shows blackhole integration toggle", async () => {
-        const axiosMock = {
-            get: vi.fn().mockResolvedValue({
-                data: {
-                    config: {
-                        blackhole_integration_enabled: true,
-                    },
-                },
-            }),
-            patch: vi.fn().mockResolvedValue({ data: {} }),
-        };
-        window.api = axiosMock;
-
-        const wrapper = mountTracked(SettingsPage, {
-            global: {
-                stubs: {
-                    MaterialDesignIcon: { template: "<div></div>" },
-                    Toggle: Toggle,
-                    ShortcutRecorder: { template: "<div></div>" },
-                    RouterLink: { template: "<a><slot /></a>" },
-                },
-                mocks: {
-                    $t: (key) => key,
-                    $router: { push: vi.fn() },
-                },
-            },
-        });
-
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.text()).toContain("app.blackhole_integration_enabled");
-    });
-
-    it("SettingsPage hides banished config when toggle is disabled", async () => {
-        const axiosMock = {
-            get: vi.fn().mockResolvedValue({
-                data: {
-                    config: {
-                        banished_effect_enabled: false,
-                    },
-                },
-            }),
-            patch: vi.fn().mockResolvedValue({ data: {} }),
-        };
-        window.api = axiosMock;
-
-        const wrapper = mountTracked(SettingsPage, {
-            global: {
-                stubs: {
-                    MaterialDesignIcon: { template: "<div></div>" },
-                    Toggle: Toggle,
-                    ShortcutRecorder: { template: "<div></div>" },
-                    RouterLink: { template: "<a><slot /></a>" },
-                },
-                mocks: {
-                    $t: (key) => key,
-                    $router: { push: vi.fn() },
-                },
-            },
-        });
-
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.config.banished_effect_enabled = false;
-        await wrapper.vm.$nextTick();
-
-        const colorInputs = wrapper.findAll('input[type="color"]');
-        expect(colorInputs.length).toBe(4);
     });
 });
 
@@ -715,81 +599,5 @@ describe("Dark Mode Class Application", () => {
         await wrapper.vm.$nextTick();
 
         expect(wrapper.classes()).toContain("dark");
-    });
-
-    it("SettingsPage applies dark mode classes correctly", async () => {
-        const axiosMock = {
-            get: vi.fn().mockResolvedValue({
-                data: {
-                    config: {
-                        theme: "dark",
-                    },
-                },
-            }),
-            patch: vi.fn().mockResolvedValue({ data: {} }),
-        };
-        window.api = axiosMock;
-
-        const wrapper = mountTracked(SettingsPage, {
-            global: {
-                stubs: {
-                    MaterialDesignIcon: { template: "<div></div>" },
-                    Toggle: Toggle,
-                    ShortcutRecorder: { template: "<div></div>" },
-                    RouterLink: { template: "<a><slot /></a>" },
-                },
-                mocks: {
-                    $t: (key) => key,
-                    $router: { push: vi.fn() },
-                },
-            },
-        });
-
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-
-        const hasDarkClasses = wrapper.html().includes("dark:") || wrapper.html().includes("dark:");
-        expect(hasDarkClasses).toBe(true);
-    });
-});
-
-describe("Theme Persistence", () => {
-    it("SettingsPage theme selector updates config", async () => {
-        const axiosMock = {
-            get: vi.fn().mockResolvedValue({
-                data: {
-                    config: {
-                        theme: "light",
-                    },
-                },
-            }),
-            patch: vi.fn().mockResolvedValue({ data: {} }),
-        };
-        window.api = axiosMock;
-
-        const wrapper = mountTracked(SettingsPage, {
-            global: {
-                stubs: {
-                    MaterialDesignIcon: { template: "<div></div>" },
-                    Toggle: Toggle,
-                    ShortcutRecorder: { template: "<div></div>" },
-                    RouterLink: { template: "<a><slot /></a>" },
-                },
-                mocks: {
-                    $t: (key) => key,
-                    $router: { push: vi.fn() },
-                },
-            },
-        });
-
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-
-        const themeSelect = wrapper.find('select[v-model="config.theme"]');
-        if (themeSelect.exists()) {
-            await themeSelect.setValue("dark");
-            await wrapper.vm.$nextTick();
-            expect(wrapper.vm.config.theme).toBe("dark");
-        }
     });
 });

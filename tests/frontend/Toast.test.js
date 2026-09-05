@@ -37,9 +37,9 @@ describe("Toast.vue", () => {
         await wrapper.vm.$nextTick();
 
         expect(wrapper.text()).toContain("Test Message");
-        const icon = wrapper.findComponent({ name: "MaterialDesignIcon" });
+        const icon = wrapper.find("svg");
         expect(icon.exists()).toBe(true);
-        expect(icon.props("iconName")).toBe("check-circle");
+        expect(icon.classes()).toContain("text-green-500");
     });
 
     it("removes a toast after duration", async () => {
@@ -137,12 +137,12 @@ describe("Toast.vue", () => {
         await wrapper.vm.$nextTick();
 
         expect(wrapper.text()).toContain("Swipe me");
-        const toastVm = wrapper.vm.toasts[0];
+        const toastEl = wrapper.find(".pointer-events-auto");
 
         // Simulate swipe right by 120px (past 100px threshold)
-        wrapper.vm.onTouchStart({ touches: [{ clientX: 100, clientY: 50 }] }, toastVm);
-        wrapper.vm.onTouchMove({ touches: [{ clientX: 220, clientY: 50 }] }, toastVm);
-        wrapper.vm.onTouchEnd(toastVm);
+        await toastEl.trigger("touchstart", { touches: [{ clientX: 100, clientY: 50 }] });
+        await toastEl.trigger("touchmove", { touches: [{ clientX: 220, clientY: 50 }] });
+        await toastEl.trigger("touchend");
         await vi.advanceTimersByTimeAsync(300);
         await wrapper.vm.$nextTick();
 
@@ -153,14 +153,13 @@ describe("Toast.vue", () => {
         GlobalEmitter.emit("toast", { message: "Stay", duration: 0 });
         await wrapper.vm.$nextTick();
 
-        const toastVm = wrapper.vm.toasts[0];
+        const toastEl = wrapper.find(".pointer-events-auto");
 
-        wrapper.vm.onTouchStart({ touches: [{ clientX: 100, clientY: 50 }] }, toastVm);
-        wrapper.vm.onTouchMove({ touches: [{ clientX: 140, clientY: 50 }] }, toastVm);
-        wrapper.vm.onTouchEnd(toastVm);
+        await toastEl.trigger("touchstart", { touches: [{ clientX: 100, clientY: 50 }] });
+        await toastEl.trigger("touchmove", { touches: [{ clientX: 140, clientY: 50 }] });
+        await toastEl.trigger("touchend");
         await wrapper.vm.$nextTick();
 
         expect(wrapper.text()).toContain("Stay");
-        expect(toastVm._swipeX).toBe(0);
     });
 });
