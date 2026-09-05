@@ -370,3 +370,6 @@ export interface GenerateGreetingResponse {
     message?: string;
     path?: string;
 }
+
+
+

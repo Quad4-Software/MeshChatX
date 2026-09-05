@@ -9,11 +9,7 @@
         ontabchange?: (tab: string) => void;
     }
 
-    let {
-        activeTab,
-        unreadVoicemailsCount = 0,
-        ontabchange,
-    }: Props = $props();
+    let { activeTab, unreadVoicemailsCount = 0, ontabchange }: Props = $props();
 
     function tabClass(tab: string): string {
         return activeTab === tab
