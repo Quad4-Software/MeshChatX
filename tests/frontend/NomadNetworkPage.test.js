@@ -25,34 +25,63 @@ vi.mock("@/js/DialogUtils", () => ({
 const wsMessageHandlers = [];
 const wsEventHandlers = {};
 
+function registerWsEventHandler(event, handler) {
+    if (event === "message") {
+        wsMessageHandlers.push(handler);
+        return;
+    }
+    if (!wsEventHandlers[event]) {
+        wsEventHandlers[event] = [];
+    }
+    wsEventHandlers[event].push(handler);
+}
+
+function unregisterWsEventHandler(event, handler) {
+    if (event === "message") {
+        const index = wsMessageHandlers.indexOf(handler);
+        if (index >= 0) {
+            wsMessageHandlers.splice(index, 1);
+        }
+        return;
+    }
+    const list = wsEventHandlers[event] || [];
+    const index = list.indexOf(handler);
+    if (index >= 0) {
+        list.splice(index, 1);
+    }
+}
+
 vi.mock("@/js/WebSocketConnection", () => ({
     default: {
         send: vi.fn(() => true),
         isOpen: vi.fn(() => true),
         on: vi.fn((event, handler) => {
-            if (event === "message") {
-                wsMessageHandlers.push(handler);
-                return;
-            }
-            if (!wsEventHandlers[event]) {
-                wsEventHandlers[event] = [];
-            }
-            wsEventHandlers[event].push(handler);
+            registerWsEventHandler(event, handler);
         }),
         off: vi.fn((event, handler) => {
-            if (event === "message") {
-                const index = wsMessageHandlers.indexOf(handler);
-                if (index >= 0) {
-                    wsMessageHandlers.splice(index, 1);
-                }
-                return;
-            }
-            const list = wsEventHandlers[event] || [];
-            const index = list.indexOf(handler);
-            if (index >= 0) {
-                list.splice(index, 1);
-            }
+            unregisterWsEventHandler(event, handler);
         }),
+        setLiveSendBridge: vi.fn(),
+        reconnect: vi.fn(),
+        connect: vi.fn(),
+        destroy: vi.fn(),
+    },
+}));
+
+vi.mock("@/js/liveTransport.js", () => ({
+    default: {
+        send: vi.fn(() => true),
+        isOpen: vi.fn(() => true),
+        on: vi.fn((event, handler) => {
+            registerWsEventHandler(event, handler);
+        }),
+        off: vi.fn((event, handler) => {
+            unregisterWsEventHandler(event, handler);
+        }),
+        connect: vi.fn(async () => ({ transport: "websocket", fellBack: false })),
+        destroy: vi.fn(),
+        configure: vi.fn(),
+        reconnect: vi.fn(),
     },
 }));
 
@@ -1272,9 +1301,11 @@ describe("NomadNetworkPage.vue", () => {
     describe("websocket send race", () => {
         it("queues primary download until websocket connects instead of hanging on Loading page", async () => {
             const WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
+            const LiveTransport = (await import("@/js/liveTransport.js")).default;
             WebSocketConnection.send.mockReset();
             WebSocketConnection.send.mockImplementationOnce(() => false).mockImplementation(() => true);
             WebSocketConnection.isOpen.mockReturnValue(false);
+            LiveTransport.isOpen.mockReturnValue(false);
 
             const wrapper = mountNomadNetworkPage({
                 destinationHash: "",
@@ -1298,6 +1329,7 @@ describe("NomadNetworkPage.vue", () => {
             expect(wsEventHandlers.connected?.length || 0).toBeGreaterThan(0);
 
             WebSocketConnection.isOpen.mockReturnValue(true);
+            LiveTransport.isOpen.mockReturnValue(true);
             for (const handler of [...(wsEventHandlers.connected || [])]) {
                 handler();
             }

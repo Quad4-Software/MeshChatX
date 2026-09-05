@@ -25,6 +25,7 @@
         "rns.link.send"
     ],
     "client_direct_responses": [
+        "config.set",
         "keyboard_shortcuts",
         "lxm.generate_paper_uri.result",
         "lxm.ingest_uri.result",
