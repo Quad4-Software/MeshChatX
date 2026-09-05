@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config";
 import vue from "@vitejs/plugin-vue";
+import { svelte } from "@sveltejs/vite-plugin-svelte";
 import path from "path";
 import fs from "fs";
 import { MICRON_PARSER_GO_RELEASE_TAG } from "./scripts/micron-parser-go-version.mjs";
@@ -59,6 +60,7 @@ export default defineConfig({
                 },
             },
         }),
+        svelte(),
     ],
     test: {
         execArgv: [
@@ -76,7 +78,7 @@ export default defineConfig({
             provider: "v8",
             reporter: ["text", "json-summary"],
             reportsDirectory: "./coverage",
-            include: ["meshchatx/src/frontend/**/*.{js,vue}"],
+            include: ["meshchatx/src/frontend/**/*.{js,vue,svelte}"],
             exclude: [
                 "meshchatx/src/frontend/**/*.d.ts",
                 "meshchatx/src/frontend/public/**",
@@ -86,6 +88,8 @@ export default defineConfig({
         },
     },
     resolve: {
+        dedupe: ["svelte"],
+        conditions: ["browser"],
         tsconfigPaths: true,
         alias: {
             "@": path.resolve(__dirname, "meshchatx", "src", "frontend"),

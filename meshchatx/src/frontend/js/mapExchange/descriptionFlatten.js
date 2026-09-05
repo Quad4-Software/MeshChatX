@@ -11,7 +11,6 @@ const ENTITY_RE = /&(#x?[0-9a-f]+|[a-z]+);/gi;
 const SCRIPT_LIKE_RE =
     /(?:^|\n)\s*function\s+\w+\s*\([^)]*\)\s*\{[\s\S]*?\n\s*\}|(?:document|window)\.\w+\s*\(|getElementById\s*\(/i;
 const MASHED_NULL_KEY_RE = /((?:&lt;Null&gt;|<Null>|null|&lt;null&gt;))\s*(?=[A-Za-z_][\w.-]{0,48}:)/gi;
-const MASHED_VALUE_KEY_RE = /([^\s:])([A-Z][A-Za-z0-9_]{1,40}:)/g;
 const FONT_FIELD_RE =
     /<(?:font|b|strong|span)\b[^>]*>\s*([^<:]{1,64}?)\s*:?\s*<\/(?:font|b|strong|span)>\s*:?\s*([^<]{0,200}?)(?=<|$)/gi;
 
@@ -115,18 +114,17 @@ function extractFontFields(html) {
 }
 
 /**
- * Insert newlines between mashed Key:valueKey:value runs (common after tag strip).
+ * Insert newlines between mashed Key:&lt;Null&gt;Key:value runs (common after tag strip).
+ * Only splits after nullish placeholders so CamelCase keys like AttackType stay intact.
  * @param {string} text
  * @returns {string}
  */
 export function unmashKeyedDescription(text) {
-    let s = String(text || "");
+    const s = String(text || "");
     if (!s) {
         return "";
     }
-    s = s.replace(MASHED_NULL_KEY_RE, "$1\n");
-    s = s.replace(MASHED_VALUE_KEY_RE, "$1\n$2");
-    return s;
+    return s.replace(MASHED_NULL_KEY_RE, "$1\n");
 }
 
 /**
@@ -135,25 +133,21 @@ export function unmashKeyedDescription(text) {
  * @returns {string}
  */
 function dropScriptLikePlainText(text) {
-    const lines = String(text || "").split(/\n+/);
+    let s = String(text || "");
+    if (!s) {
+        return "";
+    }
+    s = s.replace(/function\s+\w+\s*\([^)]*\)\s*\{[\s\S]*?\}/g, " ");
+    s = s.replace(/(?:document|window)\.\w+\s*\([^;)\n]*\)\s*;?/gi, " ");
+    s = s.replace(/getElementById\s*\([^)\n]*\)/gi, " ");
+    const lines = s.split(/\n+/);
     const kept = [];
-    let skippingBlock = false;
     for (const raw of lines) {
-        const line = raw.trim();
+        const line = raw.replace(WS_RE, " ").trim();
         if (!line) {
             continue;
         }
-        if (/^function\s+\w+\s*\(/.test(line)) {
-            skippingBlock = true;
-            continue;
-        }
-        if (skippingBlock) {
-            if (line === "}" || /^\}/.test(line)) {
-                skippingBlock = false;
-            }
-            continue;
-        }
-        if (SCRIPT_LIKE_RE.test(line)) {
+        if (/^function\s+\w+\s*\(/.test(line) || SCRIPT_LIKE_RE.test(line)) {
             continue;
         }
         kept.push(line);
@@ -225,7 +219,7 @@ export function descriptionNeedsFlatten(text) {
     if (!s.trim()) {
         return false;
     }
-    if (/<\/?[a-z][\s\S]*>/i.test(s)) {
+    if (/<\/?[a-z][\s\S]*>/i.test(s.replace(/<\/?null>/gi, ""))) {
         return true;
     }
     if (/&lt;|&gt;|&amp;nbsp;/i.test(s)) {

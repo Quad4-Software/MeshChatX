@@ -1,8 +1,10 @@
 import js from "@eslint/js";
 import pluginVue from "eslint-plugin-vue";
+import pluginSvelte from "eslint-plugin-svelte";
 import pluginPrettier from "eslint-plugin-prettier/recommended";
 import pluginSecurity from "eslint-plugin-security";
 import globals from "globals";
+import svelteConfig from "./svelte.config.js";
 
 export default [
     {
@@ -69,6 +71,7 @@ export default [
     },
     js.configs.recommended,
     ...pluginVue.configs["flat/recommended"],
+    ...pluginSvelte.configs["flat/recommended"],
     pluginPrettier,
     pluginSecurity.configs.recommended,
     {
@@ -80,6 +83,38 @@ export default [
             "no-console": "off",
             "security/detect-object-injection": "off",
             "security/detect-non-literal-fs-filename": "off",
+        },
+    },
+    {
+        files: ["**/*.svelte"],
+        languageOptions: {
+            globals: {
+                ...globals.browser,
+            },
+            parserOptions: {
+                svelteConfig,
+            },
+        },
+        rules: {
+            "no-unused-vars": "warn",
+            "no-console": "off",
+            "security/detect-object-injection": "off",
+        },
+    },
+    {
+        files: ["meshchatx/src/frontend/js/**/*.{js,mjs}"],
+        rules: {
+            "no-restricted-imports": [
+                "error",
+                {
+                    patterns: [
+                        {
+                            group: ["**/components/**", "**/ui/svelte/**", "**/features/**", "**/*.vue", "**/*.svelte"],
+                            message: "Kernel js/ must stay framework-free. Import only other kernel modules.",
+                        },
+                    ],
+                },
+            ],
         },
     },
 ];

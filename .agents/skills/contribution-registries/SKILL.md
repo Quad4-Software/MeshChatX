@@ -24,8 +24,12 @@ Wire nav, tools, commands, settings search, and WebSocket events through registr
 | `settingsSectionRegistry.js`              | Settings search / sections            |
 | `wsEventRegistry.js` + `wsEventBridge.js` | Typed WS handlers                     |
 | `postInstallPromptRegistry.js`            | Existing-user / after-install prompts |
+| `routeRegistry.js` + `featureRegistry.js` | Feature routes (`registerFeature`)    |
+| `features/registerAllFeatures.js`         | Boot hook for feature modules         |
 
 Core boot registers once via `registerCoreContributions.js` and `core*Entries.js` siblings.
+Feature modules register via `features/registerAllFeatures.js` (see `features/<id>/` and svelte-feature-modules skill).
+Shell builds registry routes with `shell/buildRouterRoutes.js`. Do not add new routes to the hardcoded table in `main.js`.
 
 ## Nav badges
 

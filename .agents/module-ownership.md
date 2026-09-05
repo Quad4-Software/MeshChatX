@@ -50,13 +50,15 @@ WS inbound handlers live in `ws/handlers_*.py` and are composed by `ws/dispatch.
 Placement for extracts. Follow `.agents/skills/vue-mega-page-split/SKILL.md`.
 Do not invent folders outside this table.
 
-| Kind                        | Put it here                                         | Example                             |
-| --------------------------- | --------------------------------------------------- | ----------------------------------- |
-| Page-private panel or UI    | `components/<feature>/internal/*.vue`               | MapSearchBar                        |
-| Settings chunk              | `components/settings/sections/*SettingsSection.vue` | TelephonySettingsSection            |
-| Pure logic                  | colocated `*.js` or `js/<feature>/`                 | clusterUtils, settingsConfigService |
-| Cross-feature primitive     | root `components/` or `components/forms/`           | ConfirmDialog, Toggle               |
-| Nav, tools, commands wiring | `js/registries/` only                               | never grow App.vue for discovery    |
+| Kind                            | Put it here                                               | Example                             |
+| ------------------------------- | --------------------------------------------------------- | ----------------------------------- |
+| Page-private panel or UI        | `components/<feature>/internal/*.vue`                     | MapSearchBar                        |
+| Settings chunk                  | `components/settings/sections/*SettingsSection.vue`       | TelephonySettingsSection            |
+| Pure logic                      | colocated `*.js` or `js/<feature>/`                       | clusterUtils, settingsConfigService |
+| Cross-feature primitive         | root `components/` or `components/forms/` or `ui/svelte/` | ConfirmDialog, Toggle               |
+| Feature module (new / migrated) | `features/<id>/` (page + `index.js` register)             | `features/blocked/`                 |
+| Nav, tools, commands, routes    | `js/registries/` only                                     | never grow App.vue / main.js tables |
+| Shell chrome / page host        | `shell/`                                                  | FeaturePageHost, buildRouterRoutes  |
 
 | Page shell                                 | On-disk child dirs                                                  | Planned child dirs                           | Shared JS                       | Primary tests                                                                    |
 | ------------------------------------------ | ------------------------------------------------------------------- | -------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------- |
