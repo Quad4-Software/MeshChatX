@@ -1990,13 +1990,15 @@ export default {
         GlobalEmitter.on("telephone-history-updated", this.getHistory);
         GlobalEmitter.on("telephone-history-updated", this.getVoicemails);
         GlobalEmitter.on("telephone-history-updated", this.markMissedCallsViewed);
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
 
-        // poll for status
-        this.statusInterval = setInterval(() => {
-            this.getStatus();
-            this.getVoicemailStatus();
-            this.getRingtoneStatus();
-        }, 1000);
+        this.startStatusPollInterval();
+        this._liveTransportReadyWatch = this.$watch(
+            () => GlobalState.liveTransportReady,
+            () => {
+                this.startStatusPollInterval();
+            }
+        );
 
         // poll for history/voicemails less frequently
         this.historyInterval = setInterval(() => {
@@ -2030,6 +2032,11 @@ export default {
         GlobalEmitter.off("telephone-history-updated", this.getHistory);
         GlobalEmitter.off("telephone-history-updated", this.getVoicemails);
         GlobalEmitter.off("telephone-history-updated", this.markMissedCallsViewed);
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        if (typeof this._liveTransportReadyWatch === "function") {
+            this._liveTransportReadyWatch();
+            this._liveTransportReadyWatch = null;
+        }
 
         if (this.statusInterval) clearInterval(this.statusInterval);
         if (this.historyInterval) clearInterval(this.historyInterval);
@@ -2049,6 +2056,24 @@ export default {
         this.stopWebAudio();
     },
     methods: {
+        startStatusPollInterval() {
+            if (this.statusInterval) {
+                clearInterval(this.statusInterval);
+                this.statusInterval = null;
+            }
+            const statusMs = GlobalState.liveTransportReady ? 15000 : 1000;
+            this.statusInterval = setInterval(() => {
+                this.getStatus();
+                this.getVoicemailStatus();
+                this.getRingtoneStatus();
+            }, statusMs);
+        },
+        onWebsocketReconnected() {
+            this.getStatus();
+            this.getHistory();
+            this.getVoicemails();
+            this.getVoicemailStatus();
+        },
         formatDestinationHash(hash) {
             return Utils.formatDestinationHash(hash);
         },

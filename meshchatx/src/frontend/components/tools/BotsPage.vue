@@ -473,6 +473,8 @@
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 import DownloadUtils from "../../js/DownloadUtils";
+import GlobalEmitter from "../../js/GlobalEmitter";
+import GlobalState from "../../js/GlobalState";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
 import LxmfConfigFields from "./internal/BotLxmfConfigFields.vue";
@@ -519,7 +521,14 @@ export default {
     },
     mounted() {
         this.getStatus();
-        this.refreshInterval = setInterval(this.getStatus, 5000);
+        this.startStatusPollInterval();
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+        this._liveTransportReadyWatch = this.$watch(
+            () => GlobalState.liveTransportReady,
+            () => {
+                this.startStatusPollInterval();
+            }
+        );
         this.relativeTimerInterval = setInterval(() => {
             this.relativeTimerTick += 1;
         }, 1000);
@@ -531,8 +540,24 @@ export default {
         if (this.relativeTimerInterval) {
             clearInterval(this.relativeTimerInterval);
         }
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        if (typeof this._liveTransportReadyWatch === "function") {
+            this._liveTransportReadyWatch();
+            this._liveTransportReadyWatch = null;
+        }
     },
     methods: {
+        onWebsocketReconnected() {
+            void this.getStatus();
+        },
+        startStatusPollInterval() {
+            if (this.refreshInterval) {
+                clearInterval(this.refreshInterval);
+                this.refreshInterval = null;
+            }
+            const pollMs = GlobalState.liveTransportReady ? 30000 : 5000;
+            this.refreshInterval = setInterval(this.getStatus, pollMs);
+        },
         async getStatus() {
             try {
                 const response = await window.api.get("/api/v1/bots/status");

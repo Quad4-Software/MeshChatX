@@ -1587,8 +1587,10 @@ export default {
                 this.fetchTelemetryMarkers();
             }
         }, 30000);
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
     },
     beforeUnmount() {
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
         if (this.map && this.map.getViewport()) {
             this.map.getViewport().removeEventListener("contextmenu", this.onContextMenu);
         }
@@ -1646,6 +1648,11 @@ export default {
         }
     },
     methods: {
+        onWebsocketReconnected() {
+            if (this.shouldPollTelemetry()) {
+                this.fetchTelemetryMarkers();
+            }
+        },
         shouldPollTelemetry() {
             return shouldPollKeepAliveEmbedded(this.embedded, this.isActiveTab);
         },

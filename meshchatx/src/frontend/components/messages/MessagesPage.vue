@@ -536,6 +536,10 @@ export default {
     },
     beforeUnmount() {
         clearInterval(this.reloadInterval);
+        if (typeof this._liveTransportReadyWatch === "function") {
+            this._liveTransportReadyWatch();
+            this._liveTransportReadyWatch = null;
+        }
         clearTimeout(this.conversationRefreshTimeout);
         clearTimeout(this.peersRefreshTimeout);
         if (typeof this._stopIdentityReadyLoads === "function") {
@@ -589,16 +593,13 @@ export default {
         });
 
         // Poll while visible. WS refresh-conversations covers most live updates.
-        this.reloadInterval = setInterval(() => {
-            if (typeof document !== "undefined" && document.visibilityState === "hidden") {
-                return;
+        this.startConversationsPollInterval();
+        this._liveTransportReadyWatch = this.$watch(
+            () => GlobalState.liveTransportReady,
+            () => {
+                this.startConversationsPollInterval();
             }
-            if (GlobalState.networkStarting && !GlobalState.networkReady && !GlobalState.networkDegraded) {
-                return;
-            }
-            this.getConversations();
-            this.getFolders();
-        }, 15000);
+        );
 
         this._onConversationsVisibility = () => {
             if (typeof document !== "undefined" && document.visibilityState === "visible") {
@@ -620,6 +621,23 @@ export default {
         }
     },
     methods: {
+        startConversationsPollInterval() {
+            if (this.reloadInterval) {
+                clearInterval(this.reloadInterval);
+                this.reloadInterval = null;
+            }
+            const pollMs = GlobalState.liveTransportReady ? 60000 : 15000;
+            this.reloadInterval = setInterval(() => {
+                if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+                    return;
+                }
+                if (GlobalState.networkStarting && !GlobalState.networkReady && !GlobalState.networkDegraded) {
+                    return;
+                }
+                this.getConversations();
+                this.getFolders();
+            }, pollMs);
+        },
         syncUnreadCount() {
             // Nav badge must track the server total from /api/v1/notifications.
             // Overwriting it with this page's loaded rows undercounts when there are
