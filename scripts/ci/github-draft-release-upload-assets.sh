@@ -4,25 +4,36 @@
 # repository has immutable releases enabled (assets cannot be added after publish).
 # Skips electron-builder builder-debug.yml (and cosign bundles), including collision-renamed
 # copies (e.g. win__builder-debug.yml). Requires: gh, GH_TOKEN. TAG from TAG or GITHUB_REF_NAME.
+#
+# Notes-only dry run (no gh upload):
+#   MESHCHATX_DRAFT_NOTES_ONLY=1 TAG=vX.Y.Z \
+#     bash scripts/ci/github-draft-release-upload-assets.sh /path/to/assets \
+#     > /tmp/notes.md
+#
+# SPDX-License-Identifier: 0BSD
 set -euo pipefail
 
 DIR="${1:?path to directory of files to upload}"
 TAG="${TAG:-${GITHUB_REF_NAME:?set TAG or GITHUB_REF_NAME}}"
+NOTES_ONLY="${MESHCHATX_DRAFT_NOTES_ONLY:-0}"
+ROOT="$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)"
 
-if ! command -v gh >/dev/null 2>&1; then
-    echo "gh is required" >&2
-    exit 1
-fi
+if [[ "$NOTES_ONLY" != "1" ]]; then
+    if ! command -v gh >/dev/null 2>&1; then
+        echo "gh is required" >&2
+        exit 1
+    fi
 
-if [ -z "${GH_TOKEN:-}" ]; then
-    echo "GH_TOKEN is required" >&2
-    exit 1
-fi
+    if [ -z "${GH_TOKEN:-}" ]; then
+        echo "GH_TOKEN is required" >&2
+        exit 1
+    fi
 
-export GH_TOKEN
+    export GH_TOKEN
 
-if [ -z "${GH_REPO:-}" ] && [ -n "${GITHUB_REPOSITORY:-}" ]; then
-    export GH_REPO="$GITHUB_REPOSITORY"
+    if [ -z "${GH_REPO:-}" ] && [ -n "${GITHUB_REPOSITORY:-}" ]; then
+        export GH_REPO="$GITHUB_REPOSITORY"
+    fi
 fi
 
 is_auto_prerelease_tag() {
@@ -105,6 +116,11 @@ mapfile -t files < <(find "$STAGE" -type f)
         echo "Automated Stable draft release. Review assets and provenance before publishing."
         echo
     fi
+
+    # Commit list since previous tag, then checksums / verify.
+    bash "$ROOT/scripts/ci/github-release-changelog.sh" "$TAG"
+    echo
+
     echo "## SHA256 Checksums"
     echo
     echo "| Asset | SHA256 |"
@@ -121,6 +137,11 @@ mapfile -t files < <(find "$STAGE" -type f)
     echo "- **SLSA provenance** (\`.intoto.jsonl\`) is available for supply-chain attestation."
     echo "- Or verify manually using the SHA256 table above."
 } > "$notes_file"
+
+if [[ "$NOTES_ONLY" == "1" ]]; then
+    cat "$notes_file"
+    exit 0
+fi
 
 release_exists=false
 is_draft=true
