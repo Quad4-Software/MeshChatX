@@ -2,9 +2,9 @@
 
 <template>
     <div v-if="config">
-        <div class="bg-white border-t border-sem-border dark:bg-zinc-950">
+        <div class="bg-sem-surface border-t border-sem-border">
             <div
-                class="flex text-gray-700 cursor-pointer"
+                class="flex text-sem-fg cursor-pointer"
                 :class="isCollapsed ? 'justify-center p-2' : 'p-3'"
                 @click="isShowingMyIdentitySection = !isShowingMyIdentitySection"
             >
@@ -18,13 +18,13 @@
                         />
                     </RouterLink>
                 </div>
-                <div v-if="!isCollapsed" class="my-auto min-w-0 flex-1 dark:text-white truncate" :title="identityLabel">
+                <div v-if="!isCollapsed" class="my-auto min-w-0 flex-1 text-sem-fg truncate" :title="identityLabel">
                     {{ identityLabel }}
                 </div>
             </div>
             <div
                 v-if="isShowingMyIdentitySection && !isCollapsed"
-                class="divide-y divide-gray-200 text-gray-900 border-t border-gray-200 dark:divide-zinc-800 text-sem-fg dark:border-zinc-800"
+                class="divide-y divide-sem-border text-sem-fg border-t border-sem-border"
             >
                 <div class="p-2">
                     <input
@@ -32,7 +32,7 @@
                         type="text"
                         data-testid="sidebar-display-name"
                         :placeholder="$t('app.display_name_placeholder')"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-800 dark:border-zinc-600 text-sem-fg dark:focus:ring-blue-400 dark:focus:border-blue-400"
+                        class="input-field w-full"
                         @input="$emit('update:displayName', $event.target.value)"
                         @keydown.enter.prevent="$emit('save-identity')"
                         @blur="$emit('save-identity')"

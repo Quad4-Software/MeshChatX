@@ -12,7 +12,12 @@ import {
     MCX_STROKE_COLOR,
     MCX_STROKE_WIDTH,
 } from "./constants.js";
-import { extractKeyedDescriptionLines, isNullishMapValue } from "./descriptionFlatten.js";
+import {
+    descriptionNeedsFlatten,
+    extractKeyedDescriptionLines,
+    flattenHtmlDescription,
+    isNullishMapValue,
+} from "./descriptionFlatten.js";
 import { isAllowedDataImageHref, isRemoteHref } from "./kmlSanitize.js";
 
 const SKIP_EXTENDED = new Set([
@@ -206,6 +211,9 @@ export function getDrawFeatureMetadataPayload(feature) {
     const name = String(props.name ?? "").trim();
     const rawDesc = props.description;
     let description = rawDesc == null ? "" : typeof rawDesc === "string" ? rawDesc : String(rawDesc);
+    if (description.trim() && descriptionNeedsFlatten(description)) {
+        description = flattenHtmlDescription(description);
+    }
     const iconSrc = safeFeatureIconSrc(props[MCX_ICON_DATA_URL] || props[MCX_ICON_HREF] || null);
     const extended = [];
     const seenKeys = new Set();

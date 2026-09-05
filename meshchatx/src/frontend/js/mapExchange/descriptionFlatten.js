@@ -8,6 +8,12 @@ const BR_RE = /<br\s*\/?>/gi;
 const TAG_RE = /<[^>]+>/g;
 const WS_RE = /\s+/g;
 const ENTITY_RE = /&(#x?[0-9a-f]+|[a-z]+);/gi;
+const SCRIPT_LIKE_RE =
+    /(?:^|\n)\s*function\s+\w+\s*\([^)]*\)\s*\{[\s\S]*?\n\s*\}|(?:document|window)\.\w+\s*\(|getElementById\s*\(/i;
+const MASHED_NULL_KEY_RE = /((?:&lt;Null&gt;|<Null>|null|&lt;null&gt;))\s*(?=[A-Za-z_][\w.-]{0,48}:)/gi;
+const MASHED_VALUE_KEY_RE = /([^\s:])([A-Z][A-Za-z0-9_]{1,40}:)/g;
+const FONT_FIELD_RE =
+    /<(?:font|b|strong|span)\b[^>]*>\s*([^<:]{1,64}?)\s*:?\s*<\/(?:font|b|strong|span)>\s*:?\s*([^<]{0,200}?)(?=<|$)/gi;
 
 /**
  * @param {string} value
@@ -69,14 +75,19 @@ function decodeBasicEntities(html) {
  */
 function dropScriptAndStyle(html) {
     const s = String(html || "");
-    if (!s || typeof DOMParser === "undefined") {
+    if (!s) {
         return s;
     }
-    const doc = new DOMParser().parseFromString(s, "text/html");
-    for (const el of doc.querySelectorAll("script, style")) {
-        el.remove();
+    if (typeof DOMParser !== "undefined") {
+        const doc = new DOMParser().parseFromString(s, "text/html");
+        for (const el of doc.querySelectorAll("script, style")) {
+            el.remove();
+        }
+        return doc.body ? doc.body.innerHTML : s;
     }
-    return doc.body ? doc.body.innerHTML : s;
+    return s
+        .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "")
+        .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, "");
 }
 
 /**
@@ -85,6 +96,71 @@ function dropScriptAndStyle(html) {
  */
 function cellPlain(cellHtml) {
     return decodeBasicEntities(String(cellHtml).replace(TAG_RE, " ").replace(WS_RE, " ").trim());
+}
+
+/**
+ * Pull ArcGIS FONT/BR balloon fields when no table rows are present.
+ * @param {string} html
+ * @returns {string[]}
+ */
+function extractFontFields(html) {
+    const rows = [];
+    String(html).replace(FONT_FIELD_RE, (_full, keyRaw, valRaw) => {
+        const key = cellPlain(keyRaw);
+        const val = cellPlain(valRaw);
+        if (key && !isNullishMapValue(val)) {
+            rows.push(`${key}: ${val}`);
+        }
+        return "";
+    });
+    return rows;
+}
+
+/**
+ * Insert newlines between mashed Key:valueKey:value runs (common after tag strip).
+ * @param {string} text
+ * @returns {string}
+ */
+export function unmashKeyedDescription(text) {
+    let s = String(text || "");
+    if (!s) {
+        return "";
+    }
+    s = s.replace(MASHED_NULL_KEY_RE, "$1\n");
+    s = s.replace(MASHED_VALUE_KEY_RE, "$1\n$2");
+    return s;
+}
+
+/**
+ * Drop leftover balloon script text that survived as plain text.
+ * @param {string} text
+ * @returns {string}
+ */
+function dropScriptLikePlainText(text) {
+    const lines = String(text || "").split(/\n+/);
+    const kept = [];
+    let skippingBlock = false;
+    for (const raw of lines) {
+        const line = raw.trim();
+        if (!line) {
+            continue;
+        }
+        if (/^function\s+\w+\s*\(/.test(line)) {
+            skippingBlock = true;
+            continue;
+        }
+        if (skippingBlock) {
+            if (line === "}" || /^\}/.test(line)) {
+                skippingBlock = false;
+            }
+            continue;
+        }
+        if (SCRIPT_LIKE_RE.test(line)) {
+            continue;
+        }
+        kept.push(line);
+    }
+    return kept.join("\n");
 }
 
 /**
@@ -122,15 +198,48 @@ export function flattenHtmlDescription(html) {
         return "";
     });
     if (rows.length) {
-        return rows.join("\n");
+        return dropScriptLikePlainText(rows.join("\n"));
+    }
+    const fontRows = extractFontFields(s);
+    if (fontRows.length) {
+        return dropScriptLikePlainText(fontRows.join("\n"));
     }
     s = s.replace(BR_RE, "\n").replace(BLOCK_BREAK_RE, "\n");
     s = decodeBasicEntities(s.replace(TAG_RE, " "));
-    return s
-        .split(/\n+/)
-        .map((line) => line.replace(WS_RE, " ").trim())
-        .filter((line) => line && !isNullishMapValue(line))
-        .join("\n");
+    s = unmashKeyedDescription(s);
+    s = dropScriptLikePlainText(
+        s
+            .split(/\n+/)
+            .map((line) => line.replace(WS_RE, " ").trim())
+            .filter((line) => line && !isNullishMapValue(line))
+            .join("\n")
+    );
+    return s;
+}
+
+/**
+ * True when description still looks like balloon HTML or mashed entity soup.
+ * @param {string} text
+ * @returns {boolean}
+ */
+export function descriptionNeedsFlatten(text) {
+    const s = String(text || "");
+    if (!s.trim()) {
+        return false;
+    }
+    if (/<\/?[a-z][\s\S]*>/i.test(s)) {
+        return true;
+    }
+    if (/&lt;|&gt;|&amp;nbsp;/i.test(s)) {
+        return true;
+    }
+    if (/function\s+\w+\s*\(|getElementById\s*\(/.test(s)) {
+        return true;
+    }
+    if (/[A-Za-z_][\w.-]{0,40}:(?:&lt;Null&gt;|<Null>|null)[A-Za-z_]/i.test(s)) {
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -142,7 +251,8 @@ export function flattenHtmlDescription(html) {
 export function extractKeyedDescriptionLines(description) {
     const pairs = [];
     const leftover = [];
-    for (const rawLine of String(description || "").split(/\n+/)) {
+    const normalized = unmashKeyedDescription(String(description || ""));
+    for (const rawLine of normalized.split(/\n+/)) {
         const line = rawLine.trim();
         if (!line) {
             continue;
@@ -150,14 +260,17 @@ export function extractKeyedDescriptionLines(description) {
         const m = line.match(/^([^:]{1,80}):\s*(.+)$/);
         if (m) {
             const key = m[1].trim();
-            const value = m[2].trim();
+            const value = decodeBasicEntities(m[2].trim());
             if (key && !isNullishMapValue(value) && isPlausiblePropertyKey(key, value)) {
                 pairs.push({ key, value });
                 continue;
             }
+            if (key && isNullishMapValue(value)) {
+                continue;
+            }
         }
-        if (!isNullishMapValue(line)) {
-            leftover.push(line);
+        if (!isNullishMapValue(line) && !SCRIPT_LIKE_RE.test(line)) {
+            leftover.push(decodeBasicEntities(line));
         }
     }
     return { leftover: leftover.join("\n"), pairs };

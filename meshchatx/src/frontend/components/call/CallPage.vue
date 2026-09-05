@@ -37,7 +37,7 @@
                                 </p>
                                 <button
                                     type="button"
-                                    class="flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3 px-6 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-500 transition-all duration-200"
+                                    class="primary-chip rounded-2xl! py-3! px-6! text-sm! focus-ring-sem"
                                     @click="updateConfig({ telephone_enabled: true })"
                                 >
                                     <MaterialDesignIcon icon-name="phone" class="size-5" />

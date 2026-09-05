@@ -179,14 +179,14 @@
                             autocorrect="off"
                             spellcheck="false"
                             :placeholder="$t('messages.mobile_compose_destination_placeholder')"
-                            class="block w-full rounded-xl border-0 py-2.5 px-3 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                            class="input-field w-full"
                             @keydown.enter="submitMobileCompose"
                         />
                     </div>
                     <div class="flex flex-col gap-2">
                         <button
                             type="button"
-                            class="w-full flex justify-center items-center gap-2 py-2.5 px-4 border border-transparent rounded-xl shadow-xs text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all disabled:opacity-50 disabled:pointer-events-none"
+                            class="primary-chip w-full! rounded-xl! py-2.5! text-sm! focus-ring-sem disabled:opacity-50 disabled:pointer-events-none"
                             :disabled="!mobileComposeAddress.trim()"
                             @click="submitMobileCompose"
                         >
@@ -194,7 +194,7 @@
                         </button>
                         <button
                             type="button"
-                            class="w-full flex justify-center items-center gap-2 py-2.5 px-4 rounded-xl border border-sem-border text-sm font-semibold text-sem-fg bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors"
+                            class="secondary-chip w-full! rounded-xl! py-2.5! text-sm! focus-ring-sem"
                             @click="openIngestFromMobileCompose"
                         >
                             <MaterialDesignIcon icon-name="qrcode" class="size-5 shrink-0" />
@@ -238,12 +238,12 @@
                                     v-model="ingestUri"
                                     type="text"
                                     placeholder="lxmf://... or lxma://..."
-                                    class="block w-full rounded-lg border-0 py-2 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                                    class="input-field flex-1 min-w-0"
                                     @keydown.enter="ingestPaperMessage"
                                 />
                                 <button
                                     type="button"
-                                    class="px-3 py-2 bg-sem-surface-muted text-sem-fg-muted rounded-lg hover:bg-gray-200 hover:bg-sem-surface-muted transition-colors"
+                                    class="px-3 py-2 bg-sem-surface-muted text-sem-fg-muted rounded-lg hover:bg-sem-surface-muted focus-ring-sem transition-colors"
                                     title="Paste from Clipboard"
                                     @click="pasteFromClipboard"
                                 >
@@ -252,7 +252,7 @@
                                 <button
                                     v-if="cameraSupported"
                                     type="button"
-                                    class="px-3 py-2 bg-sem-surface-muted text-sem-fg-muted rounded-lg hover:bg-gray-200 hover:bg-sem-surface-muted transition-colors"
+                                    class="px-3 py-2 bg-sem-surface-muted text-sem-fg-muted rounded-lg hover:bg-sem-surface-muted focus-ring-sem transition-colors"
                                     :title="$t('messages.scan_qr')"
                                     @click="openIngestScannerModal"
                                 >
@@ -262,7 +262,7 @@
                         </div>
                         <button
                             type="button"
-                            class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-xs text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
+                            class="primary-chip w-full! rounded-xl! py-2.5! text-sm! focus-ring-sem"
                             :disabled="!ingestUri"
                             @click="ingestPaperMessage"
                         >
