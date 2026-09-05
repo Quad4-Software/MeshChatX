@@ -1629,6 +1629,7 @@ export default {
         };
         GlobalEmitter.on(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
         this.sessionsWsHandler = (payload) => {
             this.applyActiveSessionsPayload(payload);
         };
@@ -1649,6 +1650,7 @@ export default {
             GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
         }
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
         if (this.sessionsWsHandler) {
             offWsEvent("app.sessions.updated", this.sessionsWsHandler);
             this.sessionsWsHandler = null;
@@ -1663,6 +1665,10 @@ export default {
             this.autoBackupsOffset = 0;
             this.listSnapshots();
             this.listAutoBackups();
+        },
+        onWebsocketReconnected() {
+            this.getAppInfo();
+            this.getActiveSessions();
         },
         scrollToDatabaseBackupsIfNeeded() {
             const hash = typeof this.$route?.hash === "string" ? this.$route.hash : "";

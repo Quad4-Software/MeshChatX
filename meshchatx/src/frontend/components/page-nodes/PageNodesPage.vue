@@ -470,6 +470,7 @@ import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 import Toggle from "../forms/Toggle.vue";
 import ToastUtils from "../../js/ToastUtils";
 import Utils from "../../js/Utils";
+import GlobalEmitter from "../../js/GlobalEmitter";
 
 const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900;
 const ANNOUNCE_INTERVAL_MIN_MINUTES = 1;
@@ -541,9 +542,16 @@ export default {
         },
     },
     async mounted() {
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
         await this.loadNodes();
     },
+    beforeUnmount() {
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+    },
     methods: {
+        onWebsocketReconnected() {
+            void this.loadNodes();
+        },
         async loadNodes() {
             this.loading = true;
             try {

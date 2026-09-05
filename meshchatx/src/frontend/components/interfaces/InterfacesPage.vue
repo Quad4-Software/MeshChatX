@@ -997,6 +997,11 @@ export default {
             GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
         }
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        if (typeof this._liveTransportReadyWatch === "function") {
+            this._liveTransportReadyWatch();
+            this._liveTransportReadyWatch = null;
+        }
     },
     mounted() {
         try {
@@ -1021,10 +1026,23 @@ export default {
         };
         GlobalEmitter.on(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+        this._liveTransportReadyWatch = this.$watch(
+            () => GlobalState.liveTransportReady,
+            () => {
+                this.startInterfacePollIntervals();
+            }
+        );
         this.startInterfacePollIntervals();
     },
     methods: {
         onIdentitySwitched() {
+            this.loadInterfaces();
+            this.updateInterfaceStats();
+            this.loadDiscoveryConfig();
+            this.loadDiscoveredInterfaces();
+        },
+        onWebsocketReconnected() {
             this.loadInterfaces();
             this.updateInterfaceStats();
             this.loadDiscoveryConfig();
@@ -1036,10 +1054,15 @@ export default {
             this.reloadInterval = null;
             this.discoveryInterval = null;
             const prefs = loadBatterySaverPrefs();
-            const statsMs =
+            const liveReady = GlobalState.liveTransportReady === true;
+            let statsMs =
                 prefs.enabled && prefs.reduceInterfacesDiscovery ? prefs.interfacesStatsPollSeconds * 1000 : 1000;
-            const discoveryMs =
+            let discoveryMs =
                 prefs.enabled && prefs.reduceInterfacesDiscovery ? prefs.interfacesDiscoveryPollSeconds * 1000 : 5000;
+            if (liveReady) {
+                statsMs = Math.max(statsMs, 15000);
+                discoveryMs = Math.max(discoveryMs, 30000);
+            }
             this.reloadInterval = setInterval(() => {
                 this.updateInterfaceStats();
             }, statsMs);

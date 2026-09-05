@@ -2384,6 +2384,8 @@ export default {
 
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
 
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+
         this.reloadIngestedPaperMessageHashes();
 
         // check translator
@@ -2445,6 +2447,7 @@ export default {
         GlobalEmitter.off("compose-new-message", this.onComposeNewMessageEvent);
         GlobalEmitter.off("contact-updated", this.onContactUpdatedForBanner);
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
         if (this.propagationStatusInterval) {
             clearInterval(this.propagationStatusInterval);
         }
@@ -3535,6 +3538,70 @@ export default {
                 await this.refreshPeerPath({ warm: true });
                 await this.getPeerLxmfStampInfo();
                 await this.getPeerSignalMetrics();
+            }
+        },
+        async onWebsocketReconnected() {
+            if (!this.selectedPeer?.destination_hash) {
+                return;
+            }
+            await this.softResyncOpenConversation();
+            await this.refreshPeerPath({ warm: false });
+            await this.getPeerSignalMetrics();
+            await this.getPeerLxmfStampInfo();
+        },
+        async softResyncOpenConversation() {
+            const peerHash = this.selectedPeer?.destination_hash;
+            if (!peerHash) {
+                return;
+            }
+            try {
+                const seq = ++this.lxmfMessagesRequestSequence;
+                const pageSize = CONVERSATION_MESSAGES_PAGE_SIZE;
+                const response = await window.api.get(`/api/v1/lxmf-messages/conversation/${peerHash}`, {
+                    params: {
+                        count: pageSize,
+                        order: "desc",
+                    },
+                });
+                if (seq !== this.lxmfMessagesRequestSequence) {
+                    return;
+                }
+                if (!this._hexEqual(this.selectedPeer?.destination_hash, peerHash)) {
+                    return;
+                }
+                const rawList = response.data?.lxmf_messages;
+                const lxmfMessages = mergeLxmfReactionRowsIntoMessages(Array.isArray(rawList) ? rawList : []);
+                const myHash = (this.myLxmfAddressHash || "").toLowerCase();
+                let added = false;
+                // API returns newest-first; apply oldest-first so append order stays chronological.
+                for (let i = lxmfMessages.length - 1; i >= 0; i--) {
+                    const lxmfMessage = lxmfMessages[i];
+                    if (!lxmfMessage?.hash) {
+                        continue;
+                    }
+                    if (lxmfMessage.is_reaction && lxmfMessage.reaction_to) {
+                        this.applyIncomingReaction(lxmfMessage);
+                        continue;
+                    }
+                    if (this.isLxmfMessageInUi(lxmfMessage.hash)) {
+                        this.onLxmfMessageUpdated(lxmfMessage);
+                        continue;
+                    }
+                    const src = (lxmfMessage.source_hash || "").toLowerCase();
+                    const isOutbound = myHash !== "" && myHash === src;
+                    if (isOutbound) {
+                        this.onLxmfMessageCreated(lxmfMessage);
+                    } else {
+                        this.onLxmfMessageReceived(lxmfMessage);
+                    }
+                    added = true;
+                }
+                this.reconcileOutboundPendingPlaceholders();
+                if (added && this.autoScrollOnNewMessage) {
+                    this.scrollMessagesToBottom();
+                }
+            } catch {
+                // REST resync is best-effort; next delivery/WS event will catch up.
             }
         },
         async onLxmfDeliveryEvent(json) {

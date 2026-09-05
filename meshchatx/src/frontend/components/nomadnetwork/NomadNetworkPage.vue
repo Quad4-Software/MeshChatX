@@ -700,6 +700,7 @@ import {
 } from "../../js/NomadPageRenderer";
 import DialogUtils from "../../js/DialogUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
+import LiveTransport from "../../js/liveTransport.js";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 import NomadNetworkSidebar from "./NomadNetworkSidebar.vue";
 import NomadBrowserContextMenu from "./NomadBrowserContextMenu.vue";
@@ -1295,6 +1296,11 @@ export default {
         }
         if (this.nodesRefreshTimeout) clearTimeout(this.nodesRefreshTimeout);
         clearInterval(this.reloadInterval);
+        if (typeof this._liveTransportReadyWatch === "function") {
+            this._liveTransportReadyWatch();
+            this._liveTransportReadyWatch = null;
+        }
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
         this.nodesListAbortController?.abort();
         this.nodeDetailAbortController?.abort();
         this.clearPartials();
@@ -1382,16 +1388,35 @@ export default {
         this.getFavourites();
         this.getNomadnetworkNodeAnnounces();
 
-        // update info every few seconds
-        this.reloadInterval = setInterval(() => {
-            if (this.shouldPollFavourites()) {
-                this.getFavourites();
+        // update info every few seconds (slower when live transport is ready)
+        this.startFavouritesPollInterval();
+        this._liveTransportReadyWatch = this.$watch(
+            () => GlobalState.liveTransportReady,
+            () => {
+                this.startFavouritesPollInterval();
             }
-        }, 5000);
+        );
 
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
         this.$nextTick(() => this.scheduleProcessPartials());
     },
     methods: {
+        onWebsocketReconnected() {
+            this.getFavourites();
+            this.getNomadnetworkNodeAnnounces();
+        },
+        startFavouritesPollInterval() {
+            if (this.reloadInterval) {
+                clearInterval(this.reloadInterval);
+                this.reloadInterval = null;
+            }
+            const pollMs = GlobalState.liveTransportReady ? 30000 : 5000;
+            this.reloadInterval = setInterval(() => {
+                if (this.shouldPollFavourites()) {
+                    this.getFavourites();
+                }
+            }, pollMs);
+        },
         shouldPollFavourites() {
             return shouldPollKeepAliveEmbedded(this.embedded, this.isActive);
         },
@@ -3506,8 +3531,8 @@ export default {
                     pendingTimer = null;
                 }
                 if (onWsRetry) {
-                    WebSocketConnection.off("connected", onWsRetry);
-                    WebSocketConnection.off("ready", onWsRetry);
+                    LiveTransport.off("connected", onWsRetry);
+                    LiveTransport.off("ready", onWsRetry);
                     onWsRetry = null;
                 }
             };
@@ -3573,15 +3598,15 @@ export default {
                         failNotConnected();
                     }
                 };
-                WebSocketConnection.on("connected", onWsRetry);
-                WebSocketConnection.on("ready", onWsRetry);
+                LiveTransport.on("connected", onWsRetry);
+                LiveTransport.on("ready", onWsRetry);
                 pendingTimer = setTimeout(() => {
                     pendingTimer = null;
                     if (!isCurrentEntry()) {
                         cancelPendingSend();
                         return;
                     }
-                    if (typeof WebSocketConnection.isOpen === "function" && WebSocketConnection.isOpen()) {
+                    if (typeof LiveTransport.isOpen === "function" && LiveTransport.isOpen()) {
                         onWsRetry();
                         return;
                     }
