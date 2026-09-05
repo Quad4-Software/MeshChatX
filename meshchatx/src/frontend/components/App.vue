@@ -491,7 +491,8 @@
 import { watch } from "vue";
 import SidebarLink from "./SidebarLink.vue";
 import DialogUtils from "../js/DialogUtils";
-import WebSocketConnection from "../js/WebSocketConnection";
+import LiveTransport from "../js/liveTransport.js";
+import { installWsLiveSync } from "../js/wsLiveSync.js";
 import { formatDisconnectedDuration, WS_DISCONNECT_BANNER_GRACE_MS } from "../js/wsConnectionSupport";
 import { applyAuthStatusToGlobalState, fetchAuthStatus } from "../js/authSessionSync.js";
 import GlobalState, { mergeGlobalConfig } from "../js/GlobalState";
@@ -634,6 +635,8 @@ export default {
             reloadInterval: null,
             appInfoInterval: null,
             unreadCountInterval: null,
+            liveTransportReady: false,
+            wsLiveSyncHandle: null,
             lastAnnouncedTick: 0,
 
             isSidebarOpen: false,
@@ -1194,10 +1197,18 @@ export default {
                 return;
             }
             this.shellRunning = true;
-            WebSocketConnection.connect();
-            WebSocketConnection.on("disconnected", this.onWsShellDisconnected);
-            WebSocketConnection.on("connected", this.onWsShellConnected);
-            WebSocketConnection.on("ready", this.onWsShellReady);
+            this.wsLiveSyncHandle = installWsLiveSync({
+                connection: LiveTransport,
+                onNeedsResync: async () => {
+                    await this.resyncShellAfterWebsocketReconnect();
+                },
+            });
+            LiveTransport.on("disconnected", this.onWsShellDisconnected);
+            LiveTransport.on("connected", this.onWsShellConnected);
+            LiveTransport.on("ready", this.onLiveTransportReady);
+            LiveTransport.on("queue_expired", this.onLiveQueueExpired);
+            LiveTransport.on("transport_fallback", this.onTransportFallback);
+            void this.bootstrapLiveTransport();
             this.registerShellWsHandlers();
             this.startClientHeapMemoryWatch();
             GlobalEmitter.on("toast-dismissed", this.onToastDismissedShell);
@@ -1227,6 +1238,32 @@ export default {
             this.updateUnreadConversationsCount();
             this.updateRelayChatUnreadCount();
         },
+        async bootstrapLiveTransport() {
+            try {
+                const status = await window.api.get("/api/v1/status");
+                const wt = status?.data?.webtransport || {};
+                const mode = this.config?.live_transport_mode || "auto";
+                LiveTransport.configure({ mode, webtransport: wt });
+            } catch {
+                LiveTransport.configure({
+                    mode: this.config?.live_transport_mode || "auto",
+                    webtransport: { server_available: false },
+                });
+            }
+            await LiveTransport.connect();
+        },
+        onLiveTransportReady() {
+            this.liveTransportReady = true;
+            GlobalState.liveTransportReady = true;
+            this.startShellPollIntervals();
+            this.onWsShellReady();
+        },
+        onLiveQueueExpired() {
+            ToastUtils.warning(this.$t("app.live_queue_expired"));
+        },
+        onTransportFallback() {
+            ToastUtils.warning(this.$t("app.live_transport_fallback_websocket"));
+        },
         startShellPollIntervals() {
             clearInterval(this.reloadInterval);
             clearInterval(this.appInfoInterval);
@@ -1238,26 +1275,30 @@ export default {
                 return;
             }
             const prefs = loadBatterySaverPrefs();
+            const ready = this.liveTransportReady === true;
+            const telephoneMs = ready ? 15000 : 1000;
+            const unreadMs = ready ? 30000 : 5000;
+            const appInfoMs = 15000;
             this.reloadInterval = setInterval(
                 () => {
                     this.updateTelephoneStatus();
                     this.updatePropagationNodeStatus();
                     this.lastAnnouncedTick += 1;
                 },
-                applyBackgroundPollInterval(1000, prefs)
+                applyBackgroundPollInterval(telephoneMs, prefs)
             );
             this.appInfoInterval = setInterval(
                 () => {
                     this.getAppInfo();
                 },
-                applyBackgroundPollInterval(15000, prefs)
+                applyBackgroundPollInterval(appInfoMs, prefs)
             );
             this.unreadCountInterval = setInterval(
                 () => {
                     this.updateUnreadConversationsCount();
                     this.updateRelayChatUnreadCount();
                 },
-                applyBackgroundPollInterval(5000, prefs)
+                applyBackgroundPollInterval(unreadMs, prefs)
             );
         },
         onBatterySaverPrefsChangedShell() {
@@ -1309,9 +1350,15 @@ export default {
             clearInterval(this.unreadCountInterval);
             this.unreadCountInterval = null;
             GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this.onBatterySaverPrefsChangedShell);
-            WebSocketConnection.off("disconnected", this.onWsShellDisconnected);
-            WebSocketConnection.off("connected", this.onWsShellConnected);
-            WebSocketConnection.off("ready", this.onWsShellReady);
+            LiveTransport.off("disconnected", this.onWsShellDisconnected);
+            LiveTransport.off("connected", this.onWsShellConnected);
+            LiveTransport.off("ready", this.onLiveTransportReady);
+            LiveTransport.off("queue_expired", this.onLiveQueueExpired);
+            LiveTransport.off("transport_fallback", this.onTransportFallback);
+            if (this.wsLiveSyncHandle) {
+                this.wsLiveSyncHandle.dispose();
+                this.wsLiveSyncHandle = null;
+            }
             this.unregisterShellWsHandlers();
             GlobalEmitter.off("identity-switching-start", this.onIdentitySwitchingStartShell);
             GlobalEmitter.off("identity-switching-abort", this.onIdentitySwitchingAbortShell);
@@ -1334,7 +1381,8 @@ export default {
             this.backendProcessExited = false;
             this.backendExitCode = null;
             this.backendRestarting = false;
-            WebSocketConnection.destroy();
+            this.liveTransportReady = false;
+            LiveTransport.destroy();
         },
         clearWsShellUiTimers() {
             if (this.wsDisconnectTickTimer != null) {
@@ -1499,6 +1547,9 @@ export default {
             if (!this.shellRunning) {
                 return;
             }
+            this.liveTransportReady = false;
+            GlobalState.liveTransportReady = false;
+            this.startShellPollIntervals();
             // Ignore brief reconnect blips (startup, Android resume). Only scare
             // the user if the socket stays down past the grace window.
             if (this.wsDisconnected) {
@@ -1668,6 +1719,9 @@ export default {
 
                 ToastUtils.success(this.$t("identities.switched"));
                 resetDatabaseHealthWarningState();
+                if (this.wsLiveSyncHandle) {
+                    this.wsLiveSyncHandle.clearCursor();
+                }
 
                 GlobalState.unreadConversationsCount = 0;
                 GlobalState.missedCallsCount = 0;
@@ -1841,12 +1895,46 @@ export default {
         },
         getShellWsHandlers() {
             return {
+                error: (json) => {
+                    const code = json?.code;
+                    if (code === "auth_required") {
+                        GlobalState.authenticated = false;
+                        if (this.$route?.name !== "auth") {
+                            this.$router.push("/auth");
+                        }
+                        ToastUtils.error(this.$t("app.live_auth_required"));
+                        return;
+                    }
+                    if (code === "rate_limited") {
+                        ToastUtils.warning(json?.message || this.$t("app.live_rate_limited"));
+                        return;
+                    }
+                    if (code === "config_set_failed") {
+                        ToastUtils.error(this.$t("common.save_failed"));
+                        return;
+                    }
+                    if (json?.message) {
+                        ToastUtils.warning(String(json.message));
+                    }
+                },
+                "config.set": (json) => {
+                    if (json?.status === "success" && json?.request_id && this._pendingConfigSet) {
+                        const pending = this._pendingConfigSet;
+                        if (pending.requestId === json.request_id) {
+                            pending.resolve(true);
+                            this._pendingConfigSet = null;
+                        }
+                    }
+                },
                 config: (json) => {
                     const next = json?.config;
                     if (next && typeof next === "object") {
                         mergeGlobalConfig(next);
                         this.config = next;
                         this.displayName = next.display_name;
+                        LiveTransport.configure({
+                            mode: next.live_transport_mode || "auto",
+                        });
                     }
                 },
                 "app.sessions.updated": (json) => {
@@ -1916,7 +2004,7 @@ export default {
                         this.$router.push({ name: "call", query: { tab: "phone" } });
                     }
                 },
-                telephone_call_ended: () => {
+                telephone_call_ended: async () => {
                     this.stopRingtone();
                     NotificationUtils.cancelIncomingCallNotification();
                     this.ringtonePlayer = null;
@@ -1924,7 +2012,7 @@ export default {
                         this.toneGenerator.setVolume(this.config.telephone_tone_generator_volume);
                         this.toneGenerator.playBusyTone();
                     }
-                    this.updateTelephoneStatus();
+                    await this.updateTelephoneStatus({ forceHistoryRefresh: true });
                 },
                 blocked_destinations: (json) => {
                     GlobalState.blockedDestinations = json.blocked_destinations || [];
@@ -2123,7 +2211,7 @@ export default {
             }
         },
         async getKeyboardShortcuts() {
-            WebSocketConnection.send(
+            LiveTransport.send(
                 JSON.stringify({
                     type: "keyboard_shortcuts.get",
                 })
@@ -2178,12 +2266,32 @@ export default {
                     mergeGlobalConfig(next);
                     this.config = { ...this.config, ...next };
                 } else {
-                    WebSocketConnection.send(
-                        JSON.stringify({
-                            type: "config.set",
-                            config: config,
-                        })
-                    );
+                    const requestId = `cfg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+                    const ok = await new Promise((resolve) => {
+                        const timer = setTimeout(() => {
+                            if (this._pendingConfigSet?.requestId === requestId) {
+                                this._pendingConfigSet = null;
+                            }
+                            resolve(false);
+                        }, 8000);
+                        this._pendingConfigSet = {
+                            requestId,
+                            resolve: (value) => {
+                                clearTimeout(timer);
+                                resolve(value);
+                            },
+                        };
+                        LiveTransport.sendQueued(
+                            JSON.stringify({
+                                type: "config.set",
+                                config: config,
+                                request_id: requestId,
+                            })
+                        );
+                    });
+                    if (!ok) {
+                        throw new Error("config.set failed or timed out");
+                    }
                     mergeGlobalConfig(config);
                     this.config = { ...this.config, ...config };
                 }
@@ -2521,7 +2629,7 @@ export default {
                 }
             }
         },
-        async updateTelephoneStatus() {
+        async updateTelephoneStatus(options = {}) {
             try {
                 // fetch status
                 const response = await window.api.get("/api/v1/telephone/status");
@@ -2541,26 +2649,31 @@ export default {
 
                 // Update call ended state if needed
                 const justEnded = oldCall != null && this.activeCall == null;
-                if (justEnded) {
-                    this.lastCall = oldCall;
-                    if (this.config?.telephone_tone_generator_enabled) {
-                        this.toneGenerator.setVolume(this.config.telephone_tone_generator_volume);
-                        this.toneGenerator.playBusyTone();
+                const forceHistory = options.forceHistoryRefresh === true;
+                if (justEnded || forceHistory) {
+                    if (justEnded) {
+                        this.lastCall = oldCall;
+                        if (this.config?.telephone_tone_generator_enabled) {
+                            this.toneGenerator.setVolume(this.config.telephone_tone_generator_volume);
+                            this.toneGenerator.playBusyTone();
+                        }
                     }
 
                     // Trigger history refresh
                     GlobalEmitter.emit("telephone-history-updated");
 
-                    if (!this.wasDeclined) {
+                    if (justEnded && !this.wasDeclined) {
                         this.isCallEnded = true;
                     }
 
-                    if (this.endedTimeout) clearTimeout(this.endedTimeout);
-                    this.endedTimeout = setTimeout(() => {
-                        this.isCallEnded = false;
-                        this.wasDeclined = false;
-                        this.lastCall = null;
-                    }, 5000);
+                    if (justEnded) {
+                        if (this.endedTimeout) clearTimeout(this.endedTimeout);
+                        this.endedTimeout = setTimeout(() => {
+                            this.isCallEnded = false;
+                            this.wasDeclined = false;
+                            this.lastCall = null;
+                        }, 5000);
+                    }
                 }
 
                 // Handle outgoing ringback tone
@@ -2742,7 +2855,7 @@ export default {
                     /* not a valid URL, continue */
                 }
                 if (/^(meshchatx|meshchat):\/\/map\b/i.test(normalizedUrl)) {
-                    WebSocketConnection.send(
+                    LiveTransport.send(
                         JSON.stringify({
                             type: "lxm.ingest_uri",
                             uri: normalizedUrl,
@@ -2768,7 +2881,7 @@ export default {
                     }
                 }
                 if (/^lxm(a|f)?:\/\//i.test(normalizedUrl)) {
-                    WebSocketConnection.send(
+                    LiveTransport.send(
                         JSON.stringify({
                             type: "lxm.ingest_uri",
                             uri: normalizedUrl,
