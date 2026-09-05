@@ -29,6 +29,16 @@ class WebSocketConnection {
         this._hasEventListeners = false;
         this._isForcedReconnect = false;
         this._outboundQueue = [];
+        // When LiveTransport uses WebTransport, page code that still calls
+        // WebSocketConnection.send must ride the active live channel.
+        this._liveSendBridge = null;
+    }
+
+    /**
+     * @param {{ send: (message: string) => boolean, sendQueued?: (message: string) => boolean, isOpen?: () => boolean } | null} bridge
+     */
+    setLiveSendBridge(bridge) {
+        this._liveSendBridge = bridge;
     }
 
     async connect() {
@@ -323,10 +333,16 @@ class WebSocketConnection {
     }
 
     isOpen() {
+        if (this._liveSendBridge && typeof this._liveSendBridge.isOpen === "function") {
+            return this._liveSendBridge.isOpen();
+        }
         return this.ws != null && this.ws.readyState === WebSocket.OPEN;
     }
 
     _flushOutboundQueue() {
+        if (this._liveSendBridge) {
+            return;
+        }
         if (!this.isOpen() || !this._outboundQueue.length) {
             return;
         }
@@ -355,6 +371,12 @@ class WebSocketConnection {
     sendQueued(message) {
         if (typeof message !== "string") {
             return false;
+        }
+        if (this._liveSendBridge) {
+            if (typeof this._liveSendBridge.sendQueued === "function") {
+                return this._liveSendBridge.sendQueued(message);
+            }
+            return this._liveSendBridge.send(message);
         }
         if (this.isOpen() && this._sessionReady) {
             try {
@@ -388,6 +410,9 @@ class WebSocketConnection {
     }
 
     send(message) {
+        if (this._liveSendBridge) {
+            return this._liveSendBridge.send(message);
+        }
         if (this.isOpen()) {
             this.ws.send(message);
             return true;

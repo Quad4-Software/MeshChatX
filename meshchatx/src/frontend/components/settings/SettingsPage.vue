@@ -1149,6 +1149,14 @@
                             @restore-bitrates="restoreBatteryBitrateLimitsNow"
                         />
 
+                        <ExperimentalLiveSettingsSection
+                            :visible="showSection('experimentalLive')"
+                            :live-transport-mode="config.live_transport_mode || 'auto'"
+                            :sidecar-enabled="config.webtransport_sidecar_enabled === true"
+                            @mode-change="onLiveTransportModeChange"
+                            @sidecar-change="onWebtransportSidecarChange"
+                        />
+
                         <VisualiserSettingsSection
                             :visible="showSection('visualiser')"
                             :renderer="visualiserRenderer"
@@ -3019,6 +3027,7 @@ import GifsSettingsSection from "./sections/GifsSettingsSection.vue";
 import TelephonySettingsSection from "./sections/TelephonySettingsSection.vue";
 import AppearanceSettingsSection from "./sections/AppearanceSettingsSection.vue";
 import BatterySettingsSection from "./sections/BatterySettingsSection.vue";
+import ExperimentalLiveSettingsSection from "./sections/ExperimentalLiveSettingsSection.vue";
 import VisualiserSettingsSection from "./sections/VisualiserSettingsSection.vue";
 import BlockedSettingsSection from "./sections/BlockedSettingsSection.vue";
 import AndroidSettingsSection from "./sections/AndroidSettingsSection.vue";
@@ -3102,6 +3111,7 @@ export default {
         TelephonySettingsSection,
         AppearanceSettingsSection,
         BatterySettingsSection,
+        ExperimentalLiveSettingsSection,
         VisualiserSettingsSection,
         BlockedSettingsSection,
         AndroidSettingsSection,
@@ -3173,6 +3183,8 @@ export default {
                 message_icon_size: 28,
                 ui_transparency: 0,
                 ui_glass_enabled: true,
+                live_transport_mode: "auto",
+                webtransport_sidecar_enabled: false,
                 message_outbound_bubble_color: "#4f46e5",
                 message_inbound_bubble_color: null,
                 message_failed_bubble_color: "#ef4444",
@@ -3625,6 +3637,16 @@ export default {
             } else if (!enabled && Object.keys(this.batterySaver.interfaceBitratePrevious || {}).length > 0) {
                 this.restoreBatteryBitrateLimitsNow();
             }
+        },
+        onLiveTransportModeChange(value) {
+            const mode = ["auto", "websocket", "webtransport"].includes(value) ? value : "auto";
+            this.config.live_transport_mode = mode;
+            this.updateConfig({ live_transport_mode: mode }, "live_transport_mode");
+        },
+        onWebtransportSidecarChange(value) {
+            const enabled = value === true;
+            this.config.webtransport_sidecar_enabled = enabled;
+            this.updateConfig({ webtransport_sidecar_enabled: enabled }, "webtransport_sidecar_enabled");
         },
         onBatteryBitrateLimitChange(name) {
             const limits = { ...(this.batterySaver.interfaceBitrateLimits || {}) };

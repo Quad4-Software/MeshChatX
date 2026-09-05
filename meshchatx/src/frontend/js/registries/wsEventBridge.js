@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-import WebSocketConnection from "../WebSocketConnection.js";
+import LiveTransport from "../liveTransport.js";
 import { dispatchWsEvent } from "./wsEventRegistry.js";
 
 let bridgeInstalled = false;
@@ -11,7 +11,7 @@ export function installWsEventBridge() {
     }
     bridgeInstalled = true;
 
-    WebSocketConnection.on("message", async (message) => {
+    LiveTransport.on("message", async (message) => {
         try {
             const json = JSON.parse(message.data);
             if (json && typeof json.type === "string") {

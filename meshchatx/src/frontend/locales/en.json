@@ -417,6 +417,10 @@
         "propagation_node": "Propagation Node",
         "sync_now": "Sync Now",
         "setting_auto_saved": "Setting {label} auto-saved",
+        "live_queue_expired": "A queued live update expired before the connection was ready.",
+        "live_transport_fallback_websocket": "WebTransport unavailable. Using WebSocket.",
+        "live_auth_required": "Live connection requires sign-in.",
+        "live_rate_limited": "Live connection rate limited. Try again shortly.",
         "backup_max_count": "Automatic backup limit",
         "message_font_size": "Message font size",
         "message_icon_size": "Icon size",
@@ -623,7 +627,9 @@
         "battery_unavailable": "Battery status unavailable",
         "battery_level_title": "Battery {percent}",
         "battery_charging_title": "Charging {percent}",
-        "battery_discharging_title": "On battery {percent}"
+        "battery_discharging_title": "On battery {percent}",
+        "live_transport_mode": "Live transport mode",
+        "webtransport_sidecar_enabled": "WebTransport sidecar"
     },
     "helptips": {
         "title_send_failed": "Things to try",
@@ -2327,6 +2333,18 @@
             "bitrates_none_restored": "No previous bitrates to restore",
             "bitrates_apply_failed": "Failed to apply interface bitrates",
             "bitrates_restore_failed": "Failed to restore interface bitrates"
+        },
+        "experimental": {
+            "eyebrow": "Experimental",
+            "title": "Live transport",
+            "description": "Prefer WebSocket for production. WebTransport is experimental and falls back to WebSocket automatically when unavailable.",
+            "webtransport_sidecar": "Enable WebTransport sidecar",
+            "webtransport_sidecar_desc": "Advertise an experimental QUIC WebTransport endpoint (requires HTTPS and optional aioquic).",
+            "live_transport_mode": "Live channel preference",
+            "live_transport_mode_desc": "Auto tries WebTransport when the server advertises it, then falls back to WebSocket.",
+            "mode_auto": "Auto (WebTransport then WebSocket)",
+            "mode_websocket": "WebSocket only",
+            "mode_webtransport": "Prefer WebTransport (fallback to WebSocket)"
         },
         "nomad_micron_wasm_title": "Micron (WASM)",
         "nomad_micron_wasm_desc_before_link": "Use a faster engine (",
