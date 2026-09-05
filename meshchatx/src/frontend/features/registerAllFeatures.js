@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 import { registerBlockedFeature } from "./blocked/index.js";
+import { registerForwarderFeature } from "./forwarder/index.js";
 
 let featuresRegistered = false;
 
@@ -22,4 +23,5 @@ export function registerAllFeatures() {
     }
     featuresRegistered = true;
     registerBlockedFeature();
+    registerForwarderFeature();
 }
