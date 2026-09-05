@@ -1984,11 +1984,6 @@ export default {
                 const isFailed = ["cancelled", "failed"].includes(m.state);
 
                 if (isFailed) {
-                    if (m.state === "failed" && m.method === "opportunistic") {
-                        styles["background-color"] = "#b45309";
-                        styles["color"] = "#ffffff";
-                        return styles;
-                    }
                     const color = cfg?.message_failed_bubble_color || "#ef4444";
                     styles["background-color"] = color;
                     styles["color"] = "#ffffff";
@@ -4900,6 +4895,29 @@ export default {
             this.chatItems = this.chatItems.filter((item) => !this._hexEqual(item.lxmf_message?.hash, hash));
             this._invalidateDisplayGroupsCache();
         },
+        _failPendingOutboundPlaceholder(job, error) {
+            const hash = job?.pendingHash;
+            if (!hash) {
+                return;
+            }
+            const item = this.chatItems.find(
+                (chatItem) => chatItem.is_outbound && this._hex.equal(chatItem.lxmf_message?.hash, hash)
+            );
+            if (!item?.lxmf_message) {
+                this.removePendingOutboundPlaceholder(hash);
+                return;
+            }
+            const method = job?.deliveryMethod || item.lxmf_message.method || "unknown";
+            item.lxmf_message.state = "failed";
+            item.lxmf_message.method = method;
+            item.lxmf_message.progress = 0;
+            item.lxmf_message._pendingPathfinding = false;
+            const detail = error?.response?.data?.message || error?.message;
+            if (detail) {
+                item.lxmf_message._send_error = String(detail);
+            }
+            this._invalidateDisplayGroupsCache();
+        },
         removeAllPendingOutboundPlaceholdersForPeer(destinationHash) {
             if (!destinationHash) {
                 return;
@@ -5913,8 +5931,17 @@ export default {
                 }
 
                 // Warm a stale/missing path before the blocking backend path wait.
-                // Propagated delivery does not require a peer path.
-                if (job.deliveryMethod !== "propagated") {
+                // Propagated delivery needs the preferred propagation node path.
+                if (job.deliveryMethod === "propagated") {
+                    const propHash = GlobalState?.config?.lxmf_preferred_propagation_node_destination_hash;
+                    if (propHash && typeof propHash === "string" && propHash.length === 32) {
+                        try {
+                            await warmPathIfNeeded(window.api, propHash, null);
+                        } catch (pathError) {
+                            console.error(pathError);
+                        }
+                    }
+                } else {
                     try {
                         await warmPathIfNeeded(window.api, job.destinationHash, this.peerPathSnapshot);
                         await this.refreshPeerPath({ warm: false });
@@ -6011,8 +6038,7 @@ export default {
                 this.scrollMessagesToBottom();
                 this.refreshPeerPath({ warm: false });
             } catch (e) {
-                this.removePendingOutboundPlaceholder(job.pendingHash);
-                this.removeAllPendingOutboundPlaceholdersForPeer(job.destinationHash);
+                this._failPendingOutboundPlaceholder(job, e);
                 const message = e.response?.data?.message ?? "failed to send message";
                 DialogUtils.alert(message);
                 await this._maybeShowDeliveryHelptips(job.destinationHash, "send_failed", {

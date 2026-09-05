@@ -51,11 +51,18 @@ SCENARIOS: tuple[Scenario, ...] = (
         summary="direct send raises recoverable TimeoutError and never outbound",
     ),
     Scenario(
-        id="path.propagated.skips_await",
+        id="path.propagated.awaits_prop_node",
         pack="MissingPathPack",
         gate="gate4-scarcity-async",
         taxonomy="timing",
-        summary="propagated delivery does not await peer path",
+        summary="propagated delivery awaits preferred propagation node path",
+    ),
+    Scenario(
+        id="path.propagated.blocks_when_prop_unavailable",
+        pack="MissingPathPack",
+        gate="gate4-scarcity-async",
+        taxonomy="timing",
+        summary="propagated send raises recoverable TimeoutError without prop path",
     ),
     Scenario(
         id="hostile.favourites.layout_fuzz",

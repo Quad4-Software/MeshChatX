@@ -640,6 +640,8 @@
         "peer_announce_stale": "This peer's announce is old. Use Path Finder or wait for a fresh announce.",
         "recall_failed": "MeshChat does not know this peer yet. Wait for an announce before sending again.",
         "no_path": "No route to this peer. Open Path Finder or request a path, then retry.",
+        "no_path_propagation_node": "No route to your preferred propagation node. Open Propagation Nodes or Path Finder, then retry.",
+        "no_propagation_node": "No preferred propagation node is set. Choose one in Settings or Propagation Nodes.",
         "path_stale": "The route may be stale. Request a fresh path from Path Finder.",
         "path_unresponsive": "The route looks unresponsive. Drop the path and request a new one.",
         "stamp_cost": "This peer requires a stamp (cost {cost}). Wait for the stamp solver or add a contact ticket.",

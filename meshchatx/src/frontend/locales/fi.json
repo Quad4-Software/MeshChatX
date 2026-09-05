@@ -644,7 +644,9 @@
         "path_unresponsive": "The route looks unresponsive. Drop the path and request a new one.",
         "stamp_cost": "This peer requires a stamp (cost {cost}). Wait for the stamp solver or add a contact ticket.",
         "propagation_off": "Direct delivery failed and propagation fallback is off. Enable it in Settings under Messages.",
-        "opportunistic_waiting": "Opportunistic delivery is waiting for a path. Leave the message queued or try direct send later."
+        "opportunistic_waiting": "Opportunistic delivery is waiting for a path. Leave the message queued or try direct send later.",
+        "no_path_propagation_node": "No route to your preferred propagation node. Open Propagation Nodes or Path Finder, then retry.",
+        "no_propagation_node": "No preferred propagation node is set. Choose one in Settings or Propagation Nodes."
     },
     "common": {
         "open": "Avaa",

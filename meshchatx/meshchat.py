@@ -9990,8 +9990,9 @@ class ReticulumMeshChat:
             destination_hash_bytes,
         )
 
-        # Direct/opportunistic need a live peer path. Propagated uses the
-        # propagation node, so skip the peer path wait (still record outcome).
+        # Direct/opportunistic need a live peer path. Propagated needs a path to
+        # the preferred propagation node (not the peer).
+        prop_node_bytes = None
         if is_local_self:
             path_outcome = reticulum_pathfinding.OutboundPathOutcome(
                 True,
@@ -9999,28 +10000,60 @@ class ReticulumMeshChat:
                 False,
             )
         elif wants_propagated:
-            path_outcome = reticulum_pathfinding.OutboundPathOutcome(
-                False,
-                "skipped_for_propagated",
-                False,
+            router = ctx.message_router
+            with contextlib.suppress(Exception):
+                prop_node_bytes = (
+                    router.get_outbound_propagation_node() if router else None
+                )
+            if (
+                not isinstance(prop_node_bytes, (bytes, bytearray))
+                or not prop_node_bytes
+            ):
+                msg = (
+                    "No preferred propagation node configured. "
+                    "Set one in Settings or Propagation Nodes, then try again."
+                )
+                raise ValueError(msg)
+            prop_node_bytes = bytes(prop_node_bytes)
+            local_propagation_destination = getattr(
+                router,
+                "propagation_destination",
+                None,
             )
+            local_propagation_hash = getattr(
+                local_propagation_destination,
+                "hash",
+                None,
+            )
+            if (
+                isinstance(local_propagation_hash, (bytes, bytearray))
+                and bytes(local_propagation_hash) == prop_node_bytes
+            ):
+                path_outcome = reticulum_pathfinding.OutboundPathOutcome(
+                    True,
+                    "local_propagation_node",
+                    False,
+                )
+            else:
+                path_outcome = await self._await_transport_path(prop_node_bytes)
         else:
             # Reticulum keeps a live path table, and entries expire when peers move or links drop.
             # We cannot replay "old" paths from the app layer. Transport.request_path refreshes discovery.
             # Wait on lxmf.delivery, not an identity hash or some other aspect dest.
             path_outcome = await self._await_transport_path(delivery_hash_bytes)
 
-        # Direct/opportunistic delivery needs a live transport path. Propagated
-        # delivery can proceed without a peer path (it uses the propagation node).
-        if (
-            not is_local_self
-            and not wants_propagated
-            and not path_outcome.path_available
-        ):
-            msg = (
-                "No path to destination. "
-                "Use Path Finder or wait for a route, then try again."
-            )
+        # Direct/opportunistic: peer path. Propagated: preferred propagation node path.
+        if not is_local_self and not path_outcome.path_available:
+            if wants_propagated:
+                msg = (
+                    "No path to preferred propagation node. "
+                    "Open Propagation Nodes or Path Finder, wait for a route, then try again."
+                )
+            else:
+                msg = (
+                    "No path to destination. "
+                    "Use Path Finder or wait for a route, then try again."
+                )
             raise TimeoutError(msg)
 
         # create destination for recipients lxmf delivery address
@@ -10231,15 +10264,19 @@ class ReticulumMeshChat:
 
         # upsert lxmf message to database
         if not no_display:
+            path_row_hex = None
+            if path_outcome.path_available:
+                if wants_propagated and isinstance(prop_node_bytes, (bytes, bytearray)):
+                    path_row_hex = bytes(prop_node_bytes).hex()
+                else:
+                    path_row_hex = delivery_hash_bytes.hex()
             self.db_upsert_lxmf_message(
                 lxmf_message,
                 context=ctx,
                 path_finding_measure=reticulum_pathfinding.format_outbound_path_finding_measure(
                     path_outcome,
                 ),
-                path_row_hash_hex=delivery_hash_bytes.hex()
-                if path_outcome.path_available
-                else None,
+                path_row_hash_hex=path_row_hex,
             )
 
         # tell all websocket clients that old failed message was deleted so it can remove from ui

@@ -49,6 +49,8 @@ def test_build_delivery_diagnostics_auto_announce_disabled(mock_app):
         data = build_delivery_diagnostics(mock_app, peer)
 
     assert data["self"]["auto_announce_enabled"] is False
+    assert "propagation_node" in data
+    assert data["propagation_node"]["configured"] is False
     print("DELIVERY_DIAG_AUTO_ANNOUNCE_OFF_ORACLE_PROVED")
 
 
@@ -120,7 +122,52 @@ def test_build_delivery_diagnostics_path_available(mock_app):
 
     assert data["path"]["has_path"] is True
     assert data["path"]["hops"] == 2
+    assert "propagation_node" in data
     print("DELIVERY_DIAG_PATH_AVAILABLE_ORACLE_PROVED")
+
+
+def test_build_delivery_diagnostics_propagation_node_path(mock_app):
+    prop = b"\x11" * 16
+    mock_app.recall_identity = MagicMock(return_value=None)
+    mock_app.get_lxmf_destination_hash_for_identity_hash = MagicMock(return_value=None)
+    mock_app.database.announces.get_announce_by_hash = MagicMock(return_value=None)
+    mock_app.database.announces.get_filtered_announces = MagicMock(return_value=[])
+    mock_app.message_router = MagicMock()
+    mock_app.message_router.get_outbound_ticket_expiry.return_value = None
+    mock_app.message_router.get_outbound_propagation_node.return_value = prop
+    mock_app.message_router.propagation_destination = MagicMock(hash=b"\x22" * 16)
+
+    peer = "ab" * 16
+
+    def _has_path(dest):
+        return bytes(dest) == prop
+
+    with (
+        patch(
+            "meshchatx.src.backend.delivery_diagnostics.RNS.Transport.has_path",
+            side_effect=_has_path,
+        ),
+        patch(
+            "meshchatx.src.backend.delivery_diagnostics.RNS.Transport.hops_to",
+            return_value=1,
+        ),
+        patch(
+            "meshchatx.src.backend.delivery_diagnostics.rp.path_metadata_for_api",
+            return_value={"path_stale": False, "path_unresponsive": False},
+        ),
+    ):
+        data = build_delivery_diagnostics(
+            mock_app,
+            peer,
+            failure_hint="no_path_propagation_node",
+        )
+
+    assert data["propagation_node"]["configured"] is True
+    assert data["propagation_node"]["destination_hash"] == prop.hex()
+    assert data["propagation_node"]["has_path"] is True
+    assert data["propagation_node"]["is_local"] is False
+    assert data["failure_hint"] == "no_path_propagation_node"
+    print("DELIVERY_DIAG_PROP_NODE_ORACLE_PROVED")
 
 
 @pytest.mark.asyncio
