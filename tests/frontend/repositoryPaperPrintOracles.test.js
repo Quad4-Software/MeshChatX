@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 import LinkUtils from "@/js/LinkUtils.js";
 import Utils from "@/js/Utils.js";
 import RepositoryServerPage from "@/components/tools/RepositoryServerPage.vue";
-import PaperMessagePage from "@/components/tools/PaperMessagePage.vue";
+import { printPaperQr } from "@/features/paper-message/lib/paperPrint.ts";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -43,7 +43,7 @@ describe("repository URL and print XSS oracles", () => {
         expect(LinkUtils.httpUrlHrefOrNull(href)).toBe(href);
     });
 
-    it("PaperMessagePage printQRCode escapes destinationHash in document.write", () => {
+    it("printPaperQr escapes destinationHash in document.write", () => {
         const writes = [];
         const printWindow = {
             document: {
@@ -52,20 +52,19 @@ describe("repository URL and print XSS oracles", () => {
             },
         };
         const openSpy = vi.spyOn(window, "open").mockReturnValue(printWindow);
-        const ctx = {
-            $refs: {
-                qrcode: {
-                    toDataURL: () => "data:image/png;base64,abc",
-                },
-            },
-            destinationHash: '</div><script>alert(1)</script><div class="x">',
-            $t: (k) => k,
+        const canvas = {
+            toDataURL: () => "data:image/png;base64,abc",
         };
-        PaperMessagePage.methods.printQRCode.call(ctx);
+        const destinationHash = '</div><script>alert(1)</script><div class="x">';
+        const ok = printPaperQr({
+            canvas,
+            destinationHash,
+        });
+        expect(ok).toBe(true);
         expect(writes.length).toBe(1);
         const html = writes[0];
         const recipient = html.match(/Recipient:\s*([^<]*)/);
-        expect(recipient?.[1]).toBe(Utils.escapeHtml(ctx.destinationHash));
+        expect(recipient?.[1]).toBe(Utils.escapeHtml(destinationHash));
         expect(html).toContain("&lt;script&gt;");
         expect(html).not.toMatch(/Recipient:\s*<\/div><script/i);
         openSpy.mockRestore();

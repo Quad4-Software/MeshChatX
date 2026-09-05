@@ -32,7 +32,8 @@ export async function fetchRNStatus(params: RNStatusQueryParams): Promise<RNStat
  */
 export async function fetchManagementIdentities(): Promise<ManagementIdentityItem[]> {
     const response = await window.api.get("/api/v1/reticulum/management-identities");
-    const list = response?.data?.identities;
+    const data = response?.data as { identities?: ManagementIdentityItem[] } | undefined;
+    const list = data?.identities;
     return Array.isArray(list) ? list : [];
 }
 
@@ -43,5 +44,6 @@ export async function createManagementIdentity(name: string): Promise<Management
     const response = await window.api.post("/api/v1/reticulum/management-identities", {
         name: name.trim(),
     });
-    return (response?.data?.identity as ManagementIdentityItem) || null;
+    const data = response?.data as { identity?: ManagementIdentityItem } | undefined;
+    return (data?.identity as ManagementIdentityItem) || null;
 }

@@ -52,27 +52,31 @@
         } catch {
             throw new Error(t("tools.rnpath.invalid_hops"));
         }
-        const res: any = await window.api.get("/api/v1/rnpath/table", { params });
-        return (res?.data || { table: [], total: 0, responsive: 0, unresponsive: 0 }) as PathTableResponse;
+        const res = await window.api.get("/api/v1/rnpath/table", { params });
+        const data = res.data as PathTableResponse | undefined;
+        return (data || { table: [], total: 0, responsive: 0, unresponsive: 0 }) as PathTableResponse;
     }
 
     export async function refreshAll(): Promise<void> {
         isLoading = true;
         try {
             const remoteParams = buildRemoteQueryParams(remoteHash, identityPath, remoteTimeout);
-            const [pathRes, rateRes, ifaceRes, discRes]: any = await Promise.all([
+            const [pathRes, rateRes, ifaceRes, discRes] = await Promise.all([
                 fetchPathTableData(),
                 window.api.get("/api/v1/rnpath/rates", { params: remoteParams }),
                 window.api.get("/api/v1/reticulum/interfaces"),
                 window.api.get("/api/v1/reticulum/discovered-interfaces").catch(() => ({ data: {} })),
             ]);
+            const rateData = rateRes?.data as { remote?: string; rates?: RateEntry[] } | undefined;
+            const ifaceData = ifaceRes?.data as { interfaces?: Record<string, unknown> } | undefined;
+            const discData = discRes?.data as { active?: Array<{ name?: string }>; interfaces?: Array<{ name?: string } | string> } | undefined;
             pathTable = pathRes?.table || [];
             totalItems = pathRes?.total || 0;
             responsiveItems = pathRes?.responsive || 0;
             unresponsiveItems = pathRes?.unresponsive || 0;
-            activeRemoteHash = pathRes?.remote || rateRes?.data?.remote || "";
-            rateTable = rateRes?.data?.rates || [];
-            interfaces = extractInterfaceNames(ifaceRes?.data, discRes?.data);
+            activeRemoteHash = pathRes?.remote || rateData?.remote || "";
+            rateTable = rateData?.rates || [];
+            interfaces = extractInterfaceNames(ifaceData, discData);
         } catch (e: any) {
             console.error(e);
             const detail = e?.response?.data?.message || e?.message || "";
@@ -121,8 +125,9 @@
             return;
         }
         try {
-            const res: any = await window.api.post("/api/v1/rnpath/drop", { destination_hash: hash });
-            if (res?.data?.success) {
+            const res = await window.api.post("/api/v1/rnpath/drop", { destination_hash: hash });
+            const data = res.data as { success?: boolean } | undefined;
+            if (data?.success) {
                 ToastUtils.success(t("tools.rnpath.path_dropped"));
                 refreshAll();
             } else {
@@ -147,10 +152,11 @@
             return;
         }
         try {
-            const res: any = await window.api.post("/api/v1/rnpath/drop-via", {
+            const res = await window.api.post("/api/v1/rnpath/drop-via", {
                 transport_instance_hash: hash,
             });
-            if (res?.data?.success) {
+            const data = res.data as { success?: boolean } | undefined;
+            if (data?.success) {
                 ToastUtils.success(t("tools.rnpath.paths_dropped"));
                 refreshAll();
             }

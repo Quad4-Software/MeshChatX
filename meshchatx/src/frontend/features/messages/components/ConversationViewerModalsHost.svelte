@@ -180,7 +180,7 @@
     canReact={!contextMenu.chatItem?.lxmf_message.is_reaction}
     hasImage={Boolean(contextMenu.chatItem?.lxmf_message.fields?.image)}
     canSaveAsGif={Boolean(
-        contextMenu.chatItem?.lxmf_message.fields?.image?.image_type?.toLowerCase() === "gif"
+        String((contextMenu.chatItem?.lxmf_message.fields?.image as Record<string, any>)?.image_type || "").toLowerCase() === "gif"
     )}
     canCancelSend={Boolean(
         contextMenu.chatItem?.is_outbound &&

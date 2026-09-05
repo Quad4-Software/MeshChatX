@@ -169,7 +169,7 @@ export function isolateNomadLinksInHtml(html, destinationHash) {
                 }
                 return;
             }
-            let full = null;
+            let full: string | null = null;
             if (/^[a-f0-9]{32}:/i.test(h)) {
                 full = h;
             } else if (h.startsWith("/page/") || h.startsWith("/file/")) {
@@ -236,7 +236,7 @@ function ensureNomadPurifyHooks() {
                 node.removeAttribute("src");
             }
         }
-        if (node.hasAttributes) {
+        if (node.attributes && node.attributes.length > 0) {
             const attrs = node.attributes;
             for (let i = attrs.length - 1; i >= 0; i--) {
                 const a = attrs[i].name;

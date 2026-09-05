@@ -42,7 +42,7 @@ export function renderTerminalOutput(raw) {
     }
 
     const cleaned = stripAnsi(raw);
-    const rows = [[]];
+    const rows: string[][] = [[]];
     let row = 0;
     let col = 0;
 

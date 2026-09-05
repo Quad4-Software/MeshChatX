@@ -36,8 +36,9 @@
     export async function loadIdentities(): Promise<void> {
         loading = true;
         try {
-            const response: any = await window.api.get("/api/v1/reticulum/management-identities");
-            identities = Array.isArray(response?.data?.identities) ? response.data.identities : [];
+            const response = await window.api.get("/api/v1/reticulum/management-identities");
+            const data = response.data as { identities?: ManagementIdentity[] } | undefined;
+            identities = Array.isArray(data?.identities) ? data.identities : [];
             onloaded?.(identities);
             if (value && !identities.some((item) => item.path === value)) {
                 value = "";
@@ -57,10 +58,11 @@
         }
         creating = true;
         try {
-            const response: any = await window.api.post("/api/v1/reticulum/management-identities", {
+            const response = await window.api.post("/api/v1/reticulum/management-identities", {
                 name: String(name).trim(),
             });
-            const identity = response?.data?.identity;
+            const data = response.data as { identity?: ManagementIdentity } | undefined;
+            const identity = data?.identity;
             await loadIdentities();
             if (identity?.path) {
                 value = identity.path;

@@ -35,30 +35,33 @@ export function isAllowedGifMime(mime: string): boolean {
     return /^image\/gif$/i.test(mime || "");
 }
 
-export async function loadStickers(api: { get: (url: string) => Promise<{ data?: Record<string, unknown> }> }): Promise<StickerItem[]> {
+export async function loadStickers(api: { get: (url: string) => Promise<{ data?: unknown }> }): Promise<StickerItem[]> {
     try {
         const response = await api.get("/api/v1/stickers");
-        const list = response.data?.stickers;
+        const data = response.data as { stickers?: unknown } | undefined;
+        const list = data?.stickers;
         return Array.isArray(list) ? (list as StickerItem[]) : [];
     } catch {
         return [];
     }
 }
 
-export async function loadStickerPacks(api: { get: (url: string) => Promise<{ data?: Record<string, unknown> }> }): Promise<StickerPackItem[]> {
+export async function loadStickerPacks(api: { get: (url: string) => Promise<{ data?: unknown }> }): Promise<StickerPackItem[]> {
     try {
         const response = await api.get("/api/v1/stickers/packs");
-        const list = response.data?.packs;
+        const data = response.data as { packs?: unknown } | undefined;
+        const list = data?.packs;
         return Array.isArray(list) ? (list as StickerPackItem[]) : [];
     } catch {
         return [];
     }
 }
 
-export async function loadGifs(api: { get: (url: string) => Promise<{ data?: Record<string, unknown> }> }): Promise<GifItem[]> {
+export async function loadGifs(api: { get: (url: string) => Promise<{ data?: unknown }> }): Promise<GifItem[]> {
     try {
         const response = await api.get("/api/v1/gifs");
-        const list = response.data?.gifs;
+        const data = response.data as { gifs?: unknown } | undefined;
+        const list = data?.gifs;
         return Array.isArray(list) ? (list as GifItem[]) : [];
     } catch {
         return [];
@@ -66,7 +69,7 @@ export async function loadGifs(api: { get: (url: string) => Promise<{ data?: Rec
 }
 
 export async function uploadStickerFile(
-    api: { post: (url: string, body?: unknown) => Promise<{ data?: Record<string, unknown> }> },
+    api: { post: (url: string, body?: unknown) => Promise<{ data?: unknown }> },
     file: File,
     packId?: string | number | null
 ): Promise<StickerItem | null> {
@@ -83,11 +86,12 @@ export async function uploadStickerFile(
         payload.pack_id = packId;
     }
     const response = await api.post("/api/v1/stickers", payload);
-    return (response.data?.sticker as StickerItem) || null;
+    const data = response.data as { sticker?: StickerItem } | undefined;
+    return data?.sticker || null;
 }
 
 export async function uploadGifFile(
-    api: { post: (url: string, body?: unknown) => Promise<{ data?: Record<string, unknown> }> },
+    api: { post: (url: string, body?: unknown) => Promise<{ data?: unknown }> },
     file: File
 ): Promise<GifItem | null> {
     const buffer = await file.arrayBuffer();
@@ -100,5 +104,6 @@ export async function uploadGifFile(
         image_type: extension,
     };
     const response = await api.post("/api/v1/gifs", payload);
-    return (response.data?.gif as GifItem) || null;
+    const data = response.data as { gif?: GifItem } | undefined;
+    return data?.gif || null;
 }

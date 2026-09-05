@@ -77,7 +77,7 @@
                 }
             );
 
-            const data = (response as { data?: ProbeApiResponse })?.data;
+            const data = response.data as ProbeApiResponse | undefined;
             results = data?.results || [];
             summary = parseProbeSummary(data || {});
         } catch (e: any) {

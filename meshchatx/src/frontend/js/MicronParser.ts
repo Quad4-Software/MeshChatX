@@ -219,8 +219,8 @@ export default class MicronParser extends BaseMicronParser {
             return [];
         }
         const lines = String(markup).split("\n");
-        const segments = [];
-        let buf = [];
+        const segments: Array<{ type: "mu"; text: string } | { type: "partial"; line: string }> = [];
+        let buf: string[] = [];
         for (const line of lines) {
             const trimmed = line.trim();
             if (MicronParser.PARTIAL_LINE_REGEX.test(trimmed)) {

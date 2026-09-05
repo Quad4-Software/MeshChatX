@@ -1,0 +1,35 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
+<script lang="ts">
+    interface Props {
+        id?: string;
+        checked?: boolean;
+        label?: string;
+        disabled?: boolean;
+        onchange?: (checked: boolean) => void;
+    }
+
+    let { id = "", checked = $bindable(false), label = "", disabled = false, onchange }: Props = $props();
+
+    function handleChange(event: Event) {
+        if (disabled) return;
+        const target = event.target as HTMLInputElement;
+        checked = target.checked;
+        onchange?.(target.checked);
+    }
+</script>
+
+<label
+    for={id || undefined}
+    class="relative inline-flex w-auto shrink-0 items-center gap-3 {disabled
+        ? 'opacity-50 cursor-not-allowed'
+        : 'cursor-pointer'}"
+>
+    <input {id} type="checkbox" {checked} {disabled} class="sr-only peer" onchange={handleChange} />
+    <div
+        class="relative h-6 w-11 shrink-0 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 dark:peer-checked:bg-blue-600"
+    ></div>
+    {#if label}
+        <span class="min-w-0 text-sm font-medium leading-snug text-gray-900 dark:text-gray-300">{label}</span>
+    {/if}
+</label>

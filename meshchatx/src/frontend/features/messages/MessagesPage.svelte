@@ -1130,10 +1130,10 @@
         destinationHashWatchReady = true;
 
         return () => {
-            clearInterval(reloadInterval || undefined);
+            if (reloadInterval) clearInterval(reloadInterval);
             clearInterval(livePoll);
-            clearTimeout(conversationRefreshTimeout || undefined);
-            clearTimeout(peersRefreshTimeout || undefined);
+            if (conversationRefreshTimeout) clearTimeout(conversationRefreshTimeout);
+            if (peersRefreshTimeout) clearTimeout(peersRefreshTimeout);
             stopIdentityReadyLoads?.();
             if (onConversationsVisibility) {
                 document.removeEventListener("visibilitychange", onConversationsVisibility);
