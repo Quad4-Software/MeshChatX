@@ -25,6 +25,10 @@ import { handleHealthWarningPayload } from "../../../js/healthMemoryWarning.js";
 import { handleLxmIngestUriResult } from "../../../js/ingestUriResultNavigation.js";
 import { navigate, router } from "../../../shell/hashRouter.js";
 import type { AppShellState } from "./appShellState.svelte.js";
+import { handleActiveSessionsUpdated } from "./appShellNav.js";
+import { applyAnnouncedEvent, resolvePendingConfigSet, setConfig } from "./appShellConfig.js";
+import { applyIdentitySwitched } from "./appShellIdentity.js";
+import { playRingtone, stopRingtone, updateTelephoneStatus } from "./appShellTelephony.js";
 
 type WsHandler = (payload: any) => void | Promise<void>;
 
@@ -57,25 +61,25 @@ export function createShellWsHandlers(state: AppShellState): Record<string, WsHa
         },
         "config.set": (json) => {
             if (json?.status === "success" && json?.request_id) {
-                state.resolvePendingConfigSet(json.request_id);
+                resolvePendingConfigSet(state, json.request_id);
             }
         },
         config: (json) => {
             const next = json?.config;
             if (next && typeof next === "object") {
                 mergeGlobalConfig(next);
-                state.setConfig(next);
+                setConfig(state, next);
                 LiveTransport.configure({ mode: next.live_transport_mode || "auto" });
             }
         },
         "app.sessions.updated": (json) => {
-            state.handleActiveSessionsUpdated(json);
+            handleActiveSessionsUpdated(state, json);
         },
         keyboard_shortcuts: (json) => {
             KeyboardShortcuts.setShortcuts(json.shortcuts);
         },
         announced: (json) => {
-            state.applyAnnouncedEvent(json);
+            applyAnnouncedEvent(state, json);
         },
         telephone_ringing: (json) => {
             if (state.config?.do_not_disturb_enabled) {
@@ -91,12 +95,12 @@ export function createShellWsHandlers(state: AppShellState): Record<string, WsHa
                 return;
             }
             NotificationUtils.showIncomingCallNotification(json.remote_identity_name || json.remote_identity_hash);
-            void state.updateTelephoneStatus();
-            state.playRingtone();
+            void updateTelephoneStatus(state);
+            playRingtone(state);
         },
         telephone_missed_call: (json) => {
             NotificationUtils.showMissedCallNotification(json.remote_identity_name || json.remote_identity_hash);
-            void state.updateTelephoneStatus();
+            void updateTelephoneStatus(state);
         },
         telephone_initiation_status: (json) => {
             state.initiationStatus = json.status;
@@ -114,14 +118,14 @@ export function createShellWsHandlers(state: AppShellState): Record<string, WsHa
         },
         new_voicemail: (json) => {
             NotificationUtils.showNewVoicemailNotification(json.remote_identity_name || json.remote_identity_hash);
-            void state.updateTelephoneStatus();
+            void updateTelephoneStatus(state);
         },
         telephone_call_established: () => {
-            state.stopRingtone();
+            stopRingtone(state);
             state.ringtonePlayer = null;
             state.toneGenerator.stop();
             NotificationUtils.cancelIncomingCallNotification();
-            void state.updateTelephoneStatus();
+            void updateTelephoneStatus(state);
             // Ensure CallPage is mounted so Android native audio / web audio can
             // attach after answering from the overlay or a notification.
             if (state.routeName !== "call" || state.route?.query?.tab !== "phone") {
@@ -129,14 +133,14 @@ export function createShellWsHandlers(state: AppShellState): Record<string, WsHa
             }
         },
         telephone_call_ended: async () => {
-            state.stopRingtone();
+            stopRingtone(state);
             NotificationUtils.cancelIncomingCallNotification();
             state.ringtonePlayer = null;
             if (state.config?.telephone_tone_generator_enabled) {
                 state.toneGenerator.setVolume(state.config.telephone_tone_generator_volume);
                 state.toneGenerator.playBusyTone();
             }
-            await state.updateTelephoneStatus({ forceHistoryRefresh: true });
+            await updateTelephoneStatus(state, { forceHistoryRefresh: true });
         },
         blocked_destinations: (json) => {
             GlobalState.blockedDestinations = json.blocked_destinations || [];
@@ -219,7 +223,7 @@ export function createShellWsHandlers(state: AppShellState): Record<string, WsHa
             handleHealthWarningPayload(json, ToastUtils);
         },
         identity_switched: async (json) => {
-            await state.applyIdentitySwitched(json);
+            await applyIdentitySwitched(state, json);
         },
         "rncp.receive.completed": (json) => {
             if (state.routeName !== "rncp") {

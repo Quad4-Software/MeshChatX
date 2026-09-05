@@ -67,6 +67,24 @@
   }
 }
 
+.banished-overlay {
+  @apply absolute inset-0 z-100 flex items-center justify-center overflow-hidden pointer-events-none rounded-[inherit];
+  background: rgba(220, 38, 38, 0.12);
+  backdrop-filter: blur(3px) saturate(180%);
+}
+
+.banished-text {
+  @apply font-black tracking-[0.3em] uppercase pointer-events-none opacity-40;
+  font-size: clamp(1.5rem, 8vw, 6rem);
+  color: #dc2626;
+  transform: rotate(-12deg);
+  text-shadow: 0 0 15px rgba(220, 38, 38, 0.4);
+  border: 0.2em solid #dc2626;
+  padding: 0.15em 0.4em;
+  border-radius: 0.15em;
+  background: rgba(255, 255, 255, 0.05);
+}
+
 .route-view-fade-enter-active,
 .route-view-fade-leave-active {
   transition: opacity 80ms ease;
