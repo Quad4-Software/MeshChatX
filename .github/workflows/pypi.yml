@@ -16,7 +16,8 @@
 #   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
 #   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
 #
-# SLSA generator: pin by commit SHA (repo requires Actions SHA pinning).
+# SLSA generator: SHA-pin this reusable workflow. Nested composite actions
+# inside it stay on tag v2.1.0, so repo Actions SHA pinning cannot be required.
 # Keep compile-generator: true. See build-release.yml for OIDC/prebuilt notes.
 # Upstream: slsa-github-generator#4216 #4503.
 #   slsa-framework/slsa-github-generator/...@v2.1.0
