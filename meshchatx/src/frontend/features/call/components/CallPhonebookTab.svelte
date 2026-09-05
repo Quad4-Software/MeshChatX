@@ -110,7 +110,10 @@
                                                         title="Message via LXMF"
                                                         onclick={(e) => e.stopPropagation()}
                                                     >
-                                                        <MaterialDesignIcon iconName="message-text-outline" class="size-4" />
+                                                        <MaterialDesignIcon
+                                                            iconName="message-text-outline"
+                                                            class="size-4"
+                                                        />
                                                     </a>
                                                 {/if}
                                             </div>

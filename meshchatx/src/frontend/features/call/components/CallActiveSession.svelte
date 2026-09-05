@@ -3,49 +3,14 @@
 <script lang="ts">
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import LxmfUserIcon from "../../../ui/svelte/LxmfUserIcon.svelte";
+    import { t } from "../../../js/i18n.js";
     import {
         formatDestinationHash as defaultFormatHash,
-        formatNumber as defaultFormatNum,
-        formatBytes as defaultFormatB,
-        formatBitrate as defaultFormatBr,
+        formatNumber as defaultFormatNumber,
+        formatBytes as defaultFormatBytes,
+        formatBitrate as defaultFormatBitrate,
     } from "../lib/callFormat.js";
-    import { t } from "../../../js/i18n.js";
-
-    interface Props {
-        activeCall?: Record<string, any> | null;
-        lastCall?: Record<string, any> | null;
-        isCallEnded?: boolean;
-        wasDeclined?: boolean;
-        wasVoicemail?: boolean;
-        callDuration?: string;
-        elapsedTime?: string;
-        initiationStatus?: string | null;
-        initiationTargetName?: string;
-        initiationTargetHash?: string;
-        audioProfiles?: Array<{ id: number | string; name: string }>;
-        callModes?: Array<{ id: number | string; name: string }>;
-        selectedAudioProfileId?: number | string;
-        selectedCallModeId?: number | string;
-        isMicMuted?: boolean;
-        isSpeakerMuted?: boolean;
-        localPttActive?: boolean;
-        isHalfDuplexCall?: boolean;
-        playingVoicemailId?: string | number | null;
-        formatDestinationHash?: (hash?: string) => string;
-        formatNumber?: (value?: number | null) => string;
-        formatBytes?: (bytes?: number | null) => string;
-        formatBitrate?: (bps?: number | null) => string;
-        onplaylatestvoicemail?: () => void;
-        onselectaudioprofile?: (id: number | string) => void;
-        onselectcallmode?: (id: number | string) => void;
-        ontogglemic?: () => void;
-        ontogglespeaker?: () => void;
-        onsetptt?: (active: boolean) => void;
-        onanswer?: () => void;
-        onsendtovoicemail?: () => void;
-        onminimize?: () => void;
-        onhangup?: () => void;
-    }
+    import type { CallActiveSessionProps } from "../lib/callUiTypes.js";
 
     let {
         activeCall = null,
@@ -68,9 +33,9 @@
         isHalfDuplexCall = false,
         playingVoicemailId = null,
         formatDestinationHash = defaultFormatHash,
-        formatNumber = defaultFormatNum,
-        formatBytes = defaultFormatB,
-        formatBitrate = defaultFormatBr,
+        formatNumber = defaultFormatNumber,
+        formatBytes = defaultFormatBytes,
+        formatBitrate = defaultFormatBitrate,
         onplaylatestvoicemail,
         onselectaudioprofile,
         onselectcallmode,
@@ -81,21 +46,12 @@
         onsendtovoicemail,
         onminimize,
         onhangup,
-    }: Props = $props();
+    }: CallActiveSessionProps = $props();
 
     const currentPeer = $derived(activeCall || lastCall);
     const peerName = $derived(currentPeer?.remote_identity_name || initiationTargetName || t("call.unknown"));
     const peerHash = $derived(currentPeer?.remote_identity_hash || initiationTargetHash || "");
 </script>
-
-{#snippet statCard(label: string, value: string)}
-    <div
-        class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
-    >
-        <div class="text-[10px] text-sem-fg-muted">{label}</div>
-        <div class="font-semibold text-sem-fg">{value}</div>
-    </div>
-{/snippet}
 
 <div class="flex-1 flex flex-col items-center justify-center py-12 px-4">
     <div
@@ -112,13 +68,12 @@
 
         <div class="relative mb-8">
             <div
-                class="size-32 mx-auto bg-sem-surface-muted rounded-full flex items-center justify-center border-4 border-white dark:border-zinc-900 shadow-2xl relative z-10 {activeCall?.status ===
-                4
+                class="size-32 mx-auto bg-sem-surface-muted rounded-full flex items-center justify-center border-4 border-white dark:border-zinc-900 shadow-2xl relative z-10 {activeCall?.status === 4
                     ? 'ring-4 ring-blue-500/20 animate-pulse'
                     : ''}"
             >
                 <LxmfUserIcon
-                    customImage={currentPeer?.custom_image}
+                    customImage={currentPeer?.custom_image || undefined}
                     iconName={currentPeer?.remote_icon?.icon_name || ""}
                     iconForegroundColour={currentPeer?.remote_icon?.foreground_colour || ""}
                     iconBackgroundColour={currentPeer?.remote_icon?.background_colour || ""}
@@ -136,7 +91,9 @@
         </div>
 
         <div class="relative z-10 space-y-1 mb-8 flex flex-col items-center text-center">
-            <h2 class="text-2xl font-bold text-sem-fg truncate max-w-[280px]">{peerName}</h2>
+            <h2 class="text-2xl font-bold text-sem-fg truncate max-w-[280px]">
+                {peerName}
+            </h2>
             {#if peerHash}
                 <div class="text-xs font-mono text-sem-fg-muted tracking-wider">
                     {formatDestinationHash(peerHash)}
@@ -212,17 +169,37 @@
                             </span>
 
                             {#if activeCall.status === 6 && elapsedTime}
-                                <div class="text-xs font-mono text-sem-fg-muted mt-1">{elapsedTime}</div>
+                                <div class="text-xs font-mono text-sem-fg-muted mt-1">
+                                    {elapsedTime}
+                                </div>
                             {/if}
 
                             {#if activeCall.status === 6}
                                 <div class="mt-3 grid grid-cols-2 gap-2 text-xs w-full max-w-xs">
-                                    {@render statCard(t("call.tx_packets"), formatNumber(activeCall.tx_packets))}
-                                    {@render statCard(t("call.rx_packets"), formatNumber(activeCall.rx_packets))}
-                                    {@render statCard(t("call.tx_data"), formatBytes(activeCall.tx_bytes))}
-                                    {@render statCard(t("call.rx_data"), formatBytes(activeCall.rx_bytes))}
-                                    {@render statCard(t("call.tx_rate"), formatBitrate(activeCall.tx_bps))}
-                                    {@render statCard(t("call.rx_rate"), formatBitrate(activeCall.rx_bps))}
+                                    <div class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left">
+                                        <div class="text-[10px] text-sem-fg-muted">{t("call.tx_packets")}</div>
+                                        <div class="font-semibold text-sem-fg">{formatNumber(activeCall.tx_packets)}</div>
+                                    </div>
+                                    <div class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left">
+                                        <div class="text-[10px] text-sem-fg-muted">{t("call.rx_packets")}</div>
+                                        <div class="font-semibold text-sem-fg">{formatNumber(activeCall.rx_packets)}</div>
+                                    </div>
+                                    <div class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left">
+                                        <div class="text-[10px] text-sem-fg-muted">{t("call.tx_data")}</div>
+                                        <div class="font-semibold text-sem-fg">{formatBytes(activeCall.tx_bytes)}</div>
+                                    </div>
+                                    <div class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left">
+                                        <div class="text-[10px] text-sem-fg-muted">{t("call.rx_data")}</div>
+                                        <div class="font-semibold text-sem-fg">{formatBytes(activeCall.rx_bytes)}</div>
+                                    </div>
+                                    <div class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left">
+                                        <div class="text-[10px] text-sem-fg-muted">{t("call.tx_rate")}</div>
+                                        <div class="font-semibold text-sem-fg">{formatBitrate(activeCall.tx_bps)}</div>
+                                    </div>
+                                    <div class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left">
+                                        <div class="text-[10px] text-sem-fg-muted">{t("call.rx_rate")}</div>
+                                        <div class="font-semibold text-sem-fg">{formatBitrate(activeCall.rx_bps)}</div>
+                                    </div>
                                 </div>
 
                                 <div class="mt-2 text-[10px] font-semibold uppercase tracking-wider text-sem-fg-muted">
@@ -238,13 +215,17 @@
                     </div>
                 {:else if initiationStatus}
                     <div class="flex flex-col items-center">
-                        <span class="text-sem-accent font-bold text-sm animate-pulse">{initiationStatus}</span>
+                        <span class="text-sem-accent font-bold text-sm animate-pulse">
+                            {initiationStatus}
+                        </span>
                     </div>
                 {/if}
             </div>
 
             {#if isCallEnded && callDuration}
-                <div class="text-xs font-mono text-sem-fg-muted mt-2">Duration: {callDuration}</div>
+                <div class="text-xs font-mono text-sem-fg-muted mt-2">
+                    Duration: {callDuration}
+                </div>
             {/if}
 
             {#if isCallEnded && wasVoicemail}
