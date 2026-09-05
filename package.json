@@ -33,7 +33,7 @@
         "check:bundle-budgets": "node scripts/ci/check-frontend-chunk-budgets.mjs",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
-        "format:check:svelte": "prettier --check \"meshchatx/src/frontend/**/*.svelte\" \"meshchatx/src/frontend/features/**/*.{js,ts}\" \"svelte.config.js\"",
+        "format:check:svelte": "prettier --check \"meshchatx/src/frontend/**/*.svelte\" \"meshchatx/src/frontend/features/**/*.{js,ts}\" \"svelte.config.mjs\"",
         "commitlint": "commitlint --edit",
         "test": "vitest run && vitest run --config vitest.electron.config.js",
         "test:coverage": "vitest run --coverage && vitest run --config vitest.electron.config.js --coverage",
