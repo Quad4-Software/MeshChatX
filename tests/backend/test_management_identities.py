@@ -40,7 +40,7 @@ def test_create_and_list_management_identities(tmp_path):
     assert any(item["name"] == "mgmt" for item in listed)
 
     resolved = resolve_identity_path(str(tmp_path), identity_name="mgmt")
-    assert resolved == created["path"]
+    assert resolved == os.path.realpath(created["path"])
 
     identity = RNS.Identity.from_file(resolved)
     assert identity is not None
@@ -50,3 +50,37 @@ def test_create_and_list_management_identities(tmp_path):
 def test_create_management_identity_rejects_bad_name(tmp_path):
     with pytest.raises(ValueError, match="Identity name"):
         create_management_identity(str(tmp_path), "../evil")
+
+
+def test_resolve_identity_path_jailed_to_identities_dir(tmp_path):
+    created = create_management_identity(str(tmp_path), "mgmt")
+    outside = tmp_path / "outside_identity"
+    RNS.Identity().to_file(str(outside))
+
+    assert resolve_identity_path(str(tmp_path), identity_path=created["path"]) == (
+        os.path.realpath(created["path"])
+    )
+
+    with pytest.raises((PermissionError, FileNotFoundError, ValueError)):
+        resolve_identity_path(str(tmp_path), identity_path=str(outside))
+
+    with pytest.raises((PermissionError, FileNotFoundError, ValueError)):
+        resolve_identity_path(
+            str(tmp_path),
+            identity_path=os.path.join(str(tmp_path), "..", "outside_identity"),
+        )
+
+
+def test_resolve_identity_path_rejects_symlink_escape(tmp_path):
+    create_management_identity(str(tmp_path), "mgmt")
+    identities = tmp_path / "storage" / "identities"
+    bait = tmp_path / "bait_key"
+    bait.write_bytes(b"not-a-real-key-but-a-file")
+    link = identities / "linked"
+    try:
+        link.symlink_to(bait)
+    except OSError:
+        pytest.skip("symlink not supported on this filesystem")
+
+    with pytest.raises((PermissionError, FileNotFoundError, ValueError, OSError)):
+        resolve_identity_path(str(tmp_path), identity_path=str(link))

@@ -145,6 +145,7 @@ async def test_websocket_read_rejected_without_session_when_auth_enabled(mock_ap
 async def test_websocket_config_set_ignores_auth_enabled(mock_app):
     mock_app.config.auth_enabled.set(True)
     mock_app.config.auth_password_hash.set("existing-hash")
+    mock_app.config.privacy_mode_enabled.set(True)
 
     client = object()
     with patch.object(mock_app, "_websocket_session_authorized", return_value=True):
@@ -156,10 +157,12 @@ async def test_websocket_config_set_ignores_auth_enabled(mock_app):
                     "display_name": "Updated Peer",
                     "auth_enabled": False,
                     "auth_password_hash": None,
+                    "privacy_mode_enabled": False,
                 },
             },
         )
 
     assert mock_app.config.auth_enabled.get() is True
     assert mock_app.config.auth_password_hash.get() == "existing-hash"
+    assert mock_app.config.privacy_mode_enabled.get() is True
     assert mock_app.config.display_name.get() == "Updated Peer"

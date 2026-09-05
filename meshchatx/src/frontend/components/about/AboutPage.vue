@@ -1727,7 +1727,7 @@ export default {
         async downloadSnapshot(filename) {
             try {
                 const downloadName = filename.endsWith(".zip") ? filename : `${filename}.zip`;
-                const response = await window.api.get(`/api/v1/database/snapshots/${filename}/download`, {
+                const response = await window.api.post(`/api/v1/database/snapshots/${filename}/download`, null, {
                     responseType: "arraybuffer",
                 });
                 await DownloadUtils.downloadFromApiResponse(response, downloadName);
@@ -1738,7 +1738,7 @@ export default {
         },
         async downloadBackupFile(filename) {
             try {
-                const response = await window.api.get(`/api/v1/database/backups/${filename}/download`, {
+                const response = await window.api.post(`/api/v1/database/backups/${filename}/download`, null, {
                     responseType: "arraybuffer",
                 });
                 await DownloadUtils.downloadFromApiResponse(response, filename);

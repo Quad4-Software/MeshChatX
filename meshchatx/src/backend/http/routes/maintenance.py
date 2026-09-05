@@ -132,7 +132,6 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 
 
 def register_maintenance_routes(routes, app):
-
     # maintenance - clear messages (all, or older than days / before date)
     @routes.delete("/api/v1/maintenance/messages")
     async def maintenance_clear_messages(request):
@@ -291,12 +290,20 @@ def register_maintenance_routes(routes, app):
     # maintenance - export messages (optional age filter for archive-before-purge)
 
     # maintenance - export messages (optional age filter for archive-before-purge)
-    @routes.get("/api/v1/maintenance/messages/export")
+    @routes.post("/api/v1/maintenance/messages/export")
     async def maintenance_export_messages(request):
         try:
+            body = await request.json() if request.can_read_body else {}
+        except Exception:
+            body = {}
+        if not isinstance(body, dict):
+            body = {}
+        try:
             cutoff = resolve_message_age_cutoff(
-                older_than_days=request.query.get("older_than_days"),
-                before=request.query.get("before"),
+                older_than_days=body.get(
+                    "older_than_days", request.query.get("older_than_days")
+                ),
+                before=body.get("before", request.query.get("before")),
             )
         except ValueError as e:
             return web.json_response({"message": str(e)}, status=400)

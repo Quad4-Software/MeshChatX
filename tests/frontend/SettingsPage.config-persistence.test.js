@@ -733,10 +733,10 @@ describe("SettingsPage: maintenance, exports, telemetry trust, RNS reload", () =
         expect(api.delete).toHaveBeenCalledWith("/api/v1/maintenance/docs/reticulum");
     });
 
-    it("exportMessages GETs export endpoint", async () => {
+    it("exportMessages POSTs export endpoint", async () => {
         const w = await mountSettingsPage(api);
         await w.vm.exportMessages();
-        expect(api.get).toHaveBeenCalledWith("/api/v1/maintenance/messages/export", undefined);
+        expect(api.post).toHaveBeenCalledWith("/api/v1/maintenance/messages/export", {});
     });
 
     it("purgeOldMessages DELETEs with older_than_days", async () => {
@@ -762,14 +762,14 @@ describe("SettingsPage: maintenance, exports, telemetry trust, RNS reload", () =
         expect(w.vm.messageAgePurgePreviewCount).toBe(4);
     });
 
-    it("exportOldMessagesArchive GETs filtered export", async () => {
+    it("exportOldMessagesArchive POSTs filtered export", async () => {
         const w = await mountSettingsPage(api);
         w.vm.messageAgePurgeMode = "days";
         w.vm.messageAgePurgeDays = 90;
-        api.get.mockResolvedValue({ data: { format: "meshchatx/messages/v2", messages: [] } });
+        api.post.mockResolvedValue({ data: { format: "meshchatx/messages/v2", messages: [] } });
         await w.vm.exportOldMessagesArchive();
-        expect(api.get).toHaveBeenCalledWith("/api/v1/maintenance/messages/export", {
-            params: { older_than_days: 90 },
+        expect(api.post).toHaveBeenCalledWith("/api/v1/maintenance/messages/export", {
+            older_than_days: 90,
         });
     });
 

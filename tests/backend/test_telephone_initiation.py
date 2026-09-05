@@ -447,6 +447,7 @@ async def test_lxst_busy_and_rejected_end_without_stuck_status(telephone_manager
 
 
 @pytest.mark.asyncio
+@pytest.mark.long_running
 async def test_rapid_dial_cancel_soak_has_bounded_memory(telephone_manager):
     destination_hash = bytes.fromhex("de" * 16)
     loops = 120

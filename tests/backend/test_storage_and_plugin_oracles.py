@@ -1,10 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Adversarial oracles from the 2026-08-15 exploratory hunt.
-
-Each test names an invariant, then checks the code matches it. Failures are
-confirmed bugs, not crash-only fuzz.
-"""
+"""Security oracles for storage path jails, plugin isolation, and RRC membership."""
 
 from __future__ import annotations
 

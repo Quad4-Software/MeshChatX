@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 from meshchatx.src.backend.meshchat_utils import message_fields_have_attachments
 
 
@@ -52,3 +54,24 @@ def test_message_fields_have_attachments_mixed():
         )
         is False
     )
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("/home/user/Documents/secret.pdf", "secret.pdf"),
+        (r"C:\Users\bob\passwords.txt", "passwords.txt"),
+        ("../../etc/passwd", "passwd"),
+        ("note.txt", "note.txt"),
+        ("", "attachment"),
+        (".", "attachment"),
+        ("..", "attachment"),
+    ],
+)
+def test_lxmf_file_attachment_name_is_basename_only(raw, expected):
+    from meshchatx.src.backend.lxmf_message_fields import LxmfFileAttachment
+
+    att = LxmfFileAttachment(raw, b"data")
+    assert att.file_name == expected
+    assert "/" not in att.file_name
+    assert "\\" not in att.file_name

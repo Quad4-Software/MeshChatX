@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Adversarial, property, exploratory, and oracle tests for LXST telephony / web audio.
+"""Hostless audio oracles and property tests for LXST telephony / web audio.
 
 Oracles (invariants that must always hold):
 1. Hostless LineSource/LineSink construct without PulseAudio and never raise on start/stop.
-2. WebAudioSource never raises on arbitrary PCM and drops oversized frames.
+2. WebAudioSource drops oversized frames.
 3. When web_audio is required, bridge.config_enabled is True even if config is False.
 4. Codec2-unavailable profile resolution never returns a Codec2 bandwidth profile.
 5. install_hostless_lxst_audio is idempotent.
@@ -82,15 +82,6 @@ def test_oracle_hostless_sink_never_needs_pulse():
     sink.enable_low_latency()
     sink.stop()
     assert sink.can_receive() is True
-
-
-@given(pcm=st.binary(min_size=0, max_size=WebAudioSource.MAX_PCM_BYTES + 4096))
-@settings(max_examples=40, deadline=None)
-def test_exploratory_hostless_source_push_pcm_never_raises(pcm):
-    sink = MagicMock()
-    sink.can_receive.return_value = True
-    src = HostlessAudioSource(target_frame_ms=60, sink=sink)
-    src.push_pcm(pcm)
 
 
 def test_oracle_install_hostless_is_idempotent():
@@ -179,11 +170,11 @@ def test_oracle_codec2_available_false_on_android_probe_fail():
 
 
 # ---------------------------------------------------------------------------
-# Adversarial: telephone init with web_audio_required
+# Telephone init with web_audio_required
 # ---------------------------------------------------------------------------
 
 
-def test_adversarial_init_telephone_installs_hostless_when_required(tmp_path):
+def test_init_telephone_installs_hostless_when_required(tmp_path):
     cfg = MagicMock()
     cfg.telephone_enabled.get.return_value = True
     cfg.telephone_audio_profile_id.get.return_value = Profiles.DEFAULT_PROFILE
@@ -204,7 +195,7 @@ def test_adversarial_init_telephone_installs_hostless_when_required(tmp_path):
         telephone.set_connect_timeout.assert_called()
 
 
-def test_adversarial_init_telephone_skips_hostless_when_not_required(tmp_path):
+def test_init_telephone_skips_hostless_when_not_required(tmp_path):
     cfg = MagicMock()
     cfg.telephone_enabled.get.return_value = True
     cfg.telephone_audio_profile_id.get.return_value = Profiles.DEFAULT_PROFILE

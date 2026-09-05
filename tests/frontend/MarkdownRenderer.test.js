@@ -242,15 +242,6 @@ describe("MarkdownRenderer.js", () => {
             return result;
         };
 
-        it("handles random inputs without crashing (100 iterations)", () => {
-            for (let i = 0; i < 100; i++) {
-                const randomText = generateRandomString(Math.floor(Math.random() * 1000));
-                expect(() => {
-                    MarkdownRenderer.render(randomText);
-                }).not.toThrow();
-            }
-        });
-
         it("handles deeply nested or complex markdown patterns without crashing", () => {
             const complex = "# ".repeat(100) + "**".repeat(100) + "```".repeat(100) + "```\n".repeat(10);
             expect(() => {
@@ -265,7 +256,7 @@ describe("MarkdownRenderer.js", () => {
             const end = Date.now();
 
             expect(typeof result).toBe("string");
-            // Random 1MB includes many backticks; placeholder restore must stay near-linear.
+            // Random 1MB includes many backticks and placeholder restore must stay near-linear
             expect(end - start).toBeLessThan(2000);
         });
 

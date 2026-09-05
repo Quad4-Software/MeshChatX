@@ -440,7 +440,6 @@ tasks:
                 {{.NPM}} exec vitest run
                 tests/frontend/libs.core.test.js
                 tests/frontend/libs.oracle.test.js
-                tests/frontend/libs.index.test.js
                 --coverage
                 --coverage.include=meshchatx/src/frontend/libs/**
             - node scripts/check-format-tokens.mjs

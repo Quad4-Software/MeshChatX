@@ -42,6 +42,12 @@ describe("download wiring through DownloadUtils", () => {
                         headers: { "content-disposition": 'attachment; filename="meshchatx-backup.zip"' },
                     });
                 }
+                if (String(url).includes("/database/backups/") && String(url).includes("/download")) {
+                    return Promise.resolve({
+                        data: new ArrayBuffer(8),
+                        headers: {},
+                    });
+                }
                 if (String(url).includes("/identity/backup/download")) {
                     return Promise.resolve({
                         data: new ArrayBuffer(2),
@@ -116,6 +122,11 @@ describe("download wiring through DownloadUtils", () => {
 
         await wrapper.vm.downloadBackupFile("auto-backup.zip");
 
+        expect(axiosMock.post).toHaveBeenCalledWith(
+            "/api/v1/database/backups/auto-backup.zip/download",
+            null,
+            expect.objectContaining({ responseType: "arraybuffer" })
+        );
         expect(DownloadUtils.downloadFromApiResponse).toHaveBeenCalledWith(
             expect.objectContaining({ data: expect.any(ArrayBuffer) }),
             "auto-backup.zip"

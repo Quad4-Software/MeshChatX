@@ -1,10 +1,9 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Adversarial oracles for XSS, auth bypass, RCE env injection, and privacy leaks.
+"""Oracles for HTML sanitization, auth verification, command environments, and privacy.
 
 Each test predicts accept or reject from the input (or from a fixed allowlist)
-and checks the implementation matches. Soft fuzz that only asserts no crash is
-not used here.
+and checks the implementation matches.
 """
 
 from __future__ import annotations

@@ -48,3 +48,30 @@ def test_redact_preserves_short_hash():
 def test_redact_empty():
     assert redact_diagnostic_text("") == ""
     assert redact_diagnostic_text(None) is None  # type: ignore[arg-type]
+
+
+def test_read_debug_logs_redacts_paths_and_hashes():
+    from unittest.mock import MagicMock
+
+    from meshchatx.src.backend.bug_report_manager import BugReportManager
+
+    app = MagicMock()
+    app.memory_log_handler = MagicMock()
+    secret = "/home/alice/.reticulum/storage/identities/deadbeef/identity"
+    hash64 = "a" * 64
+    app.memory_log_handler.get_logs.return_value = [
+        {
+            "timestamp": 1.0,
+            "level": "INFO",
+            "module": "mesh",
+            "message": f"loaded {secret} peer {hash64}",
+        },
+    ]
+    app.memory_log_handler.get_total_count.return_value = 1
+
+    result = BugReportManager(app).read_debug_logs(limit=10)
+    message = result["logs"][0]["message"]
+    assert secret not in message
+    assert hash64 not in message
+    assert REDACTED in message
+    assert redact_diagnostic_text(f"loaded {secret} peer {hash64}") == message

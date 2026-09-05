@@ -9,7 +9,7 @@ import MapPage from "../../meshchatx/src/frontend/components/map/MapPage.vue";
 import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
 import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
 
-describe("follow-up oracles from exploratory hunt", () => {
+describe("map, messages, and rnode integrity contracts", () => {
     it("RNode SRI key for zip.min.js matches integrity.json (not js/zip.min.js)", () => {
         const integrity = JSON.parse(
             readFileSync(join(process.cwd(), "meshchatx/src/frontend/public/rnode-flasher/js/integrity.json"), "utf8")
