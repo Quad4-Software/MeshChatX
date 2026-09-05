@@ -7,8 +7,6 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
-PY_X64="${PY_X64:?PY_X64 must point at an x86_64 Python 3.14 interpreter}"
-
 if [[ "$(uname -s)" != "Darwin" ]]; then
     echo "github-install-macos-x64-python-deps: skipping (not macOS)" >&2
     exit 0
@@ -18,6 +16,21 @@ export UV_PROJECT_ENVIRONMENT="${ROOT}/.venv-x64"
 export UV_PYTHON_INSTALL_DIR="${ROOT}/.cache/uv/python"
 
 uv lock --check
+
+# Warm CI cache: reuse .venv-x64 when numpy/pycodec2 already match uv.lock.
+_ready_out="$(mktemp)"
+GITHUB_OUTPUT="$_ready_out" bash "$(dirname "$0")/github-macos-x64-venv-ready.sh"
+_ready="$(grep -E '^ready=' "$_ready_out" | tail -n1 | cut -d= -f2 || true)"
+rm -f "$_ready_out"
+if [[ "$_ready" == "true" ]]; then
+    echo "github-install-macos-x64-python-deps: warm .venv-x64 reused (skip rebuild)" >&2
+    if [[ -n "${GITHUB_ENV:-}" ]]; then
+        echo "PYTHON_CMD_X64=${UV_PROJECT_ENVIRONMENT}/bin/python" >>"$GITHUB_ENV"
+    fi
+    exit 0
+fi
+
+PY_X64="${PY_X64:?PY_X64 must point at an x86_64 Python 3.14 interpreter}"
 
 # cryptography 49+ ships arm64-only macOS wheels, so the x64 slice builds from
 # sdist and needs a usable x86_64 OpenSSL. brew --prefix can still resolve when
