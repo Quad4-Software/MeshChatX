@@ -165,7 +165,7 @@
             "path": "/api/v1/database/backup"
         },
         {
-            "method": "GET",
+            "method": "POST",
             "path": "/api/v1/database/backup/download"
         },
         {

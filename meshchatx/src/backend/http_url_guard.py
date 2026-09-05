@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import ipaddress
 import re
+import socket
 from urllib.parse import unquote, urlparse, urlunparse
 
 
@@ -72,6 +73,48 @@ def _coerce_host_to_ip(
     return None
 
 
+def _reject_forbidden_outbound_ip(
+    addr: ipaddress.IPv4Address | ipaddress.IPv6Address,
+) -> None:
+    """Raise when addr is link-local, multicast, unspecified, or reserved."""
+    effective = addr.ipv4_mapped if getattr(addr, "ipv4_mapped", None) else addr
+    if effective.is_link_local or addr.is_link_local:
+        msg = "URL must not target a link-local address"
+        raise UnsafeOutboundUrlError(msg)
+    if (
+        effective.is_multicast
+        or effective.is_unspecified
+        or addr.is_multicast
+        or addr.is_unspecified
+    ):
+        msg = "URL must not target a multicast or unspecified address"
+        raise UnsafeOutboundUrlError(msg)
+    if effective.is_reserved or addr.is_reserved:
+        msg = "URL must not target a reserved address"
+        raise UnsafeOutboundUrlError(msg)
+
+
+def _reject_hostname_resolved_forbidden(host: str) -> None:
+    """Best-effort DNS check: reject hostnames that currently resolve to forbidden IPs.
+
+    Does not defeat DNS rebinding between check and connect. Unresolvable names are
+    left to the later HTTP client (same as before).
+    """
+    try:
+        infos = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+    except OSError:
+        return
+    for info in infos:
+        sockaddr = info[4]
+        if not sockaddr:
+            continue
+        try:
+            resolved = ipaddress.ip_address(sockaddr[0])
+        except ValueError:
+            continue
+        _reject_forbidden_outbound_ip(resolved)
+
+
 def normalize_libretranslate_http_service_base(url: str) -> str:
     """Return scheme://host:port with no path, query, or fragment.
 
@@ -79,7 +122,8 @@ def normalize_libretranslate_http_service_base(url: str) -> str:
     public API). Embedded credentials are rejected; non-http(s) schemes are rejected.
 
     Literal IPv4 link-local targets (169.254.0.0/16) are rejected as a common SSRF/metadata
-    path, including decimal and hex encodings of those addresses. Other private or loopback
+    path, including decimal and hex encodings of those addresses. Hostnames that resolve to
+    those addresses are also rejected at normalize time. Other private or loopback
     addresses are allowed so local servers and overlays (e.g. VPN mesh) continue to work.
     """
     if not url or not isinstance(url, str):
@@ -114,23 +158,9 @@ def normalize_libretranslate_http_service_base(url: str) -> str:
     host_for_ip_check = host_decoded.lower().strip("[]")
     addr = _coerce_host_to_ip(host_for_ip_check)
     if addr is not None:
-        # Apply policy to the effective IPv4 when the host is IPv4-mapped IPv6
-        # (::ffff:169.254.169.254), and reject native IPv6 link-local (fe80::/10).
-        effective = addr.ipv4_mapped if getattr(addr, "ipv4_mapped", None) else addr
-        if effective.is_link_local or addr.is_link_local:
-            msg = "URL must not target a link-local address"
-            raise UnsafeOutboundUrlError(msg)
-        if (
-            effective.is_multicast
-            or effective.is_unspecified
-            or addr.is_multicast
-            or addr.is_unspecified
-        ):
-            msg = "URL must not target a multicast or unspecified address"
-            raise UnsafeOutboundUrlError(msg)
-        if effective.is_reserved or addr.is_reserved:
-            msg = "URL must not target a reserved address"
-            raise UnsafeOutboundUrlError(msg)
+        _reject_forbidden_outbound_ip(addr)
+    else:
+        _reject_hostname_resolved_forbidden(host_decoded)
 
     authority = netloc
     origin = urlunparse((parsed.scheme, authority, "", "", "", ""))

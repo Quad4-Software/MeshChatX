@@ -101,21 +101,53 @@ def create_management_identity(
     return info
 
 
+def _path_under_identities_dir(path: str, directory: str) -> bool:
+    """True when path is the identities directory or a file directly inside it."""
+    try:
+        path_real = os.path.realpath(path)
+        dir_real = os.path.realpath(directory)
+    except OSError:
+        return False
+    if path_real == dir_real:
+        return False
+    prefix = dir_real + os.sep
+    if not path_real.startswith(prefix):
+        return False
+    # Management identities are single files in the identities directory, not nested.
+    rel = path_real[len(prefix) :]
+    return bool(rel) and os.sep not in rel and "/" not in rel and "\\" not in rel
+
+
 def resolve_identity_path(
     reticulum_config_dir: str | None,
     identity_path: str | None = None,
     identity_name: str | None = None,
 ) -> str:
-    """Resolve a management identity file path from path or short name."""
+    """Resolve a management identity file path from path or short name.
+
+    Paths must resolve to a regular file directly under the RNS identities
+    directory. Absolute paths outside that jail are rejected.
+    """
+    directory = identities_dir(reticulum_config_dir)
     if isinstance(identity_path, str) and identity_path.strip():
-        path = os.path.expanduser(identity_path.strip())
+        raw = identity_path.strip()
+        if "\x00" in raw:
+            raise ValueError("Identity path must not contain null bytes")
+        path = os.path.expanduser(raw)
+        if not os.path.isabs(path):
+            cleaned = _safe_name(os.path.basename(path.replace("\\", "/")))
+            path = os.path.join(directory, cleaned)
+        if not _path_under_identities_dir(path, directory):
+            raise PermissionError("Identity path outside management identities directory")
         if not os.path.isfile(path):
-            raise FileNotFoundError(f"Identity file not found: {path}")
-        return path
+            raise FileNotFoundError("Identity file not found")
+        return os.path.realpath(path)
     if isinstance(identity_name, str) and identity_name.strip():
         cleaned = _safe_name(identity_name.strip())
-        path = os.path.join(identities_dir(reticulum_config_dir), cleaned)
+        path = os.path.join(directory, cleaned)
         if not os.path.isfile(path):
             raise FileNotFoundError(f"Identity file not found: {cleaned}")
-        return path
+        if not _path_under_identities_dir(path, directory):
+            raise PermissionError("Identity path outside management identities directory")
+        return os.path.realpath(path)
     raise ValueError("identity_path or identity_name is required")

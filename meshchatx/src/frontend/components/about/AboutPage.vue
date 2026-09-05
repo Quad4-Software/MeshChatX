@@ -1948,7 +1948,7 @@ export default {
             this.backupMessage = "";
             this.backupError = "";
             try {
-                const response = await window.api.get("/api/v1/database/backup/download", {
+                const response = await window.api.post("/api/v1/database/backup/download", null, {
                     responseType: "arraybuffer",
                 });
                 const filename =

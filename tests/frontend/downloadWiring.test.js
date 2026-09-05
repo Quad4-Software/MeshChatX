@@ -27,12 +27,6 @@ describe("download wiring through DownloadUtils", () => {
         vi.clearAllMocks();
         axiosMock = {
             get: vi.fn().mockImplementation((url) => {
-                if (String(url).includes("/database/backup/download")) {
-                    return Promise.resolve({
-                        data: new ArrayBuffer(4),
-                        headers: { "content-disposition": 'attachment; filename="meshchatx-backup.zip"' },
-                    });
-                }
                 if (String(url).includes("/database/backups/")) {
                     return Promise.resolve({
                         data: new ArrayBuffer(8),
@@ -42,6 +36,12 @@ describe("download wiring through DownloadUtils", () => {
                 return Promise.resolve({ data: {}, headers: {} });
             }),
             post: vi.fn().mockImplementation((url) => {
+                if (String(url).includes("/database/backup/download")) {
+                    return Promise.resolve({
+                        data: new ArrayBuffer(4),
+                        headers: { "content-disposition": 'attachment; filename="meshchatx-backup.zip"' },
+                    });
+                }
                 if (String(url).includes("/identity/backup/download")) {
                     return Promise.resolve({
                         data: new ArrayBuffer(2),
@@ -91,8 +91,9 @@ describe("download wiring through DownloadUtils", () => {
 
         await wrapper.vm.backupDatabase();
 
-        expect(axiosMock.get).toHaveBeenCalledWith(
+        expect(axiosMock.post).toHaveBeenCalledWith(
             "/api/v1/database/backup/download",
+            null,
             expect.objectContaining({ responseType: "arraybuffer" })
         );
         expect(DownloadUtils.downloadFromApiResponse).toHaveBeenCalledWith(
