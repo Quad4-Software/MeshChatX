@@ -16,6 +16,7 @@
         violet: { wrap: "bg-violet-100 dark:bg-violet-900/30", icon: "text-violet-600 dark:text-violet-400" },
         amber: { wrap: "bg-amber-100 dark:bg-amber-900/30", icon: "text-amber-600 dark:text-amber-400" },
         sky: { wrap: "bg-sky-100 dark:bg-sky-900/30", icon: "text-sky-600 dark:text-sky-400" },
+        red: { wrap: "bg-red-100 dark:bg-red-900/30", icon: "text-red-600 dark:text-red-400" },
         zinc: { wrap: "bg-zinc-100 dark:bg-zinc-800", icon: "text-zinc-600 text-sem-fg-muted" },
     };
 

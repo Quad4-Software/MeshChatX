@@ -101,11 +101,6 @@ const router = createRouter({
             component: () => import("./components/messages/MessagesPage.vue"),
         },
         {
-            name: "contacts",
-            path: "/contacts",
-            component: () => import("./components/contacts/ContactsPage.vue"),
-        },
-        {
             name: "map",
             path: "/map",
             meta: { keepAlive: true },
@@ -164,11 +159,6 @@ const router = createRouter({
             name: "propagation-nodes",
             path: "/propagation-nodes",
             component: () => import("./components/propagation-nodes/PropagationNodesPage.vue"),
-        },
-        {
-            name: "ping",
-            path: "/ping",
-            component: () => import("./components/ping/PingPage.vue"),
         },
         {
             name: "rncp",
@@ -256,16 +246,6 @@ const router = createRouter({
             component: () => import("./components/settings/IdentitiesPage.vue"),
         },
         {
-            name: "tools",
-            path: "/tools",
-            component: () => import("./components/tools/ToolsPage.vue"),
-        },
-        {
-            name: "licenses",
-            path: "/licenses",
-            component: () => import("./components/licenses/LicensesPage.vue"),
-        },
-        {
             name: "paper-message",
             path: "/tools/paper-message",
             component: () => import("./components/tools/PaperMessagePage.vue"),
@@ -289,11 +269,6 @@ const router = createRouter({
             name: "repository-server",
             path: "/tools/repository-server",
             component: () => import("./components/tools/RepositoryServerPage.vue"),
-        },
-        {
-            name: "debug-logs",
-            path: "/debug/logs",
-            component: () => import("./components/debug/DebugLogsPage.vue"),
         },
         {
             name: "call",
@@ -482,7 +457,7 @@ if (networkReady) {
 
     function preloadCriticalRouteChunks() {
         void import("./components/messages/MessagesPage.vue");
-        void import("./components/contacts/ContactsPage.vue");
+        void import("./features/contacts/ContactsPage.svelte");
         void import("./components/interfaces/InterfacesPage.vue");
     }
 

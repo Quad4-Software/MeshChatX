@@ -37,7 +37,7 @@ describe("context menu styling", () => {
 
     it("uses ContextMenuPanel and ContextMenuItem on all right-click context menus", () => {
         const files = [
-            "meshchatx/src/frontend/components/contacts/ContactsPage.vue",
+            "meshchatx/src/frontend/features/contacts/components/ContactsContextMenu.svelte",
             "meshchatx/src/frontend/components/messages/MessagesSidebar.vue",
             "meshchatx/src/frontend/components/messages/ConversationViewer.vue",
             "meshchatx/src/frontend/components/nomadnetwork/NomadNetworkSidebar.vue",
@@ -45,8 +45,14 @@ describe("context menu styling", () => {
         ];
         for (const f of files) {
             const src = readProjectFile(f);
-            expect(src, f).toContain("ContextMenuPanel");
-            expect(src, f).toContain("ContextMenuItem");
+            if (f.endsWith(".svelte")) {
+                expect(src, f).toContain("context-menu-panel");
+                expect(src, f).toContain("context-item");
+                expect(src, f).toContain("clampFloatingToViewport");
+            } else {
+                expect(src, f).toContain("ContextMenuPanel");
+                expect(src, f).toContain("ContextMenuItem");
+            }
         }
     });
 });

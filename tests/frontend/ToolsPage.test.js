@@ -1,105 +1,119 @@
-import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi } from "vitest";
-import ToolsPage from "@/components/tools/ToolsPage.vue";
-import { createRouter, createWebHistory } from "vue-router";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, cleanup, fireEvent, waitFor, screen } from "@testing-library/svelte";
+import ToolsPage from "@/features/tools/ToolsPage.svelte";
+import {
+    filterTools,
+    groupTools,
+    loadCollapsedSections,
+    saveCollapsedSections,
+    toolRouteHref,
+} from "@/features/tools/lib/toolsList.js";
 import { registerCoreContributions } from "@/js/registries/registerCoreContributions.js";
+import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
 
-describe("ToolsPage.vue", () => {
-    registerCoreContributions();
-    const router = createRouter({
-        history: createWebHistory(),
-        routes: [
-            { path: "/ping", name: "ping", component: { template: "div" } },
-            { path: "/rnprobe", name: "rnprobe", component: { template: "div" } },
-            { path: "/rncp", name: "rncp", component: { template: "div" } },
-            { path: "/rns-filesync", name: "rns-filesync", component: { template: "div" } },
-            { path: "/rnsh", name: "rnsh", component: { template: "div" } },
-            { path: "/rnstatus", name: "rnstatus", component: { template: "div" } },
-            { path: "/rnpath", name: "rnpath", component: { template: "div" } },
-            { path: "/rnpath-trace", name: "rnpath-trace", component: { template: "div" } },
-            { path: "/translator", name: "translator", component: { template: "div" } },
-            { path: "/bots", name: "bots", component: { template: "div" } },
-            { path: "/propagation-nodes", name: "propagation-nodes", component: { template: "div" } },
-            { path: "/forwarder", name: "forwarder", component: { template: "div" } },
-            { path: "/documentation", name: "documentation", component: { template: "div" } },
-            { path: "/micron-editor", name: "micron-editor", component: { template: "div" } },
-            { path: "/tools/reticulum-config-editor", name: "reticulum-config-editor", component: { template: "div" } },
-            { path: "/paper-message", name: "paper-message", component: { template: "div" } },
-            { path: "/rnode-flasher", name: "rnode-flasher", component: { template: "div" } },
-            { path: "/debug-logs", name: "debug-logs", component: { template: "div" } },
-            { path: "/mesh-server", name: "mesh-server", component: { template: "div" } },
-            { path: "/tools/repository-server", name: "repository-server", component: { template: "div" } },
-            { path: "/tools/sieve-filters", name: "sieve-filters", component: { template: "div" } },
-        ],
+registerCoreContributions();
+
+describe("toolsList helpers", () => {
+    it("builds hash hrefs", () => {
+        expect(toolRouteHref({ name: "ping" })).toBe("#/ping");
+        expect(toolRouteHref({ name: "paper-message" })).toBe("#/tools/paper-message");
+        expect(toolRouteHref({ path: "/rncp" })).toBe("#/rncp");
     });
 
-    const mountToolsPage = () => {
-        return mount(ToolsPage, {
-            global: {
-                plugins: [router],
-                mocks: {
-                    $t: (key) => key,
+    it("filters and groups tools", () => {
+        const tools = [
+            { name: "ping", title: "Ping", description: "reach", group: "diagnostics" },
+            { name: "rncp", title: "RNCP", description: "copy", group: "transfer" },
+        ];
+        expect(filterTools(tools, "ping")).toHaveLength(1);
+        expect(groupTools(tools)?.map((s) => s.id)).toEqual(["diagnostics", "transfer"]);
+    });
+
+    it("persists collapsed sections", () => {
+        localStorage.clear();
+        saveCollapsedSections({ diagnostics: true });
+        expect(loadCollapsedSections()).toEqual({ diagnostics: true });
+    });
+});
+
+describe("ToolsPage.svelte", () => {
+    beforeEach(() => {
+        localStorage.clear();
+        registerTranslator(null);
+        registerFallbackMessages({
+            common: { search: "Search", no_results: "common.no_results" },
+            tools: {
+                power_tools: "tools.power_tools",
+                diagnostics_description: "desc",
+                alpha_badge: "tools.alpha_badge",
+                beta_badge: "beta",
+                coming_soon_badge: "soon",
+                group: {
+                    diagnostics: "Diagnostics",
+                    transfer: "Transfer",
+                    messaging: "Messaging",
+                    network: "Network",
+                    other: "Other",
                 },
-                stubs: {
-                    MaterialDesignIcon: {
-                        template: '<div class="mdi-stub" :data-icon-name="iconName"></div>',
-                        props: ["iconName"],
-                    },
-                },
+                ping: { title: "tools.ping.title", description: "d" },
+                rnsh: { title: "tools.rnsh.title", description: "d" },
+                rns_filesync: { title: "tools.rns_filesync.title", description: "d" },
             },
         });
-    };
-
-    it("renders the tools page header", () => {
-        const wrapper = mountToolsPage();
-        expect(wrapper.text()).toContain("tools.power_tools");
-        expect(wrapper.text()).not.toContain("tools.utilities");
     });
 
-    it("renders all tool rows", () => {
-        const wrapper = mountToolsPage();
-        const toolRows = wrapper.findAll(".tool-row");
-        expect(toolRows.length).toBe(wrapper.vm.tools.length);
+    afterEach(() => {
+        cleanup();
+    });
+
+    it("renders the tools page header", () => {
+        render(ToolsPage);
+        expect(screen.getByText("tools.power_tools")).toBeTruthy();
+        expect(screen.queryByText("tools.utilities")).toBeNull();
+    });
+
+    it("renders tool rows", () => {
+        const { container } = render(ToolsPage);
+        expect(container.querySelectorAll(".tool-row").length).toBeGreaterThan(5);
     });
 
     it("filters tools based on search query", async () => {
-        const wrapper = mountToolsPage();
-        const searchInput = wrapper.find("input");
-
-        await searchInput.setValue("ping");
-        expect(wrapper.vm.filteredTools.length).toBe(1);
-        expect(wrapper.vm.filteredTools[0].name).toBe("ping");
-
-        await searchInput.setValue("nonexistenttool");
-        expect(wrapper.vm.filteredTools.length).toBe(0);
-        expect(wrapper.text()).toContain("common.no_results");
+        render(ToolsPage);
+        const searchInput = screen.getByPlaceholderText("Search");
+        await fireEvent.input(searchInput, { target: { value: "ping" } });
+        await waitFor(() => {
+            expect(screen.getByText("tools.ping.title")).toBeTruthy();
+        });
+        await fireEvent.input(searchInput, { target: { value: "nonexistenttool" } });
+        expect(await screen.findByText("common.no_results")).toBeTruthy();
     });
 
     it("shows an alpha badge on the rnsh tool", () => {
-        const wrapper = mountToolsPage();
-        const rnsh = wrapper.vm.tools.find((tool) => tool.name === "rnsh");
-        expect(rnsh?.alpha).toBe(true);
-        const rnshRow = wrapper.findAll(".tool-row").find((row) => row.text().includes("tools.rnsh.title"));
-        expect(rnshRow?.text()).toContain("tools.alpha_badge");
+        render(ToolsPage);
+        const rnsh = screen.getByText("tools.rnsh.title").closest(".tool-row");
+        expect(rnsh?.textContent).toContain("tools.alpha_badge");
     });
 
     it("shows an alpha badge on the rns-filesync tool", () => {
-        const wrapper = mountToolsPage();
-        const filesync = wrapper.vm.tools.find((tool) => tool.name === "rns-filesync");
-        expect(filesync?.alpha).toBe(true);
-        const filesyncRow = wrapper.findAll(".tool-row").find((row) => row.text().includes("tools.rns_filesync.title"));
-        expect(filesyncRow?.text()).toContain("tools.alpha_badge");
+        render(ToolsPage);
+        const row = screen.getByText("tools.rns_filesync.title").closest(".tool-row");
+        expect(row?.textContent).toContain("tools.alpha_badge");
     });
 
     it("clears search query when close button is clicked", async () => {
-        const wrapper = mountToolsPage();
-        const searchInput = wrapper.find("input");
+        render(ToolsPage);
+        const searchInput = screen.getByPlaceholderText("Search");
+        await fireEvent.input(searchInput, { target: { value: "ping" } });
+        await fireEvent.click(screen.getByLabelText("Clear search"));
+        expect(searchInput.value).toBe("");
+    });
 
-        await searchInput.setValue("ping");
-        const clearButton = wrapper.find("button");
-        await clearButton.trigger("click");
-
-        expect(wrapper.vm.searchQuery).toBe("");
-        expect(wrapper.vm.filteredTools.length).toBe(wrapper.vm.tools.length);
+    it("collapses a tools section when its header is clicked", async () => {
+        render(ToolsPage);
+        const toggle = screen.getByRole("button", { name: /Diagnostics/i });
+        expect(toggle.getAttribute("aria-expanded")).toBe("true");
+        await fireEvent.click(toggle);
+        expect(toggle.getAttribute("aria-expanded")).toBe("false");
+        expect(loadCollapsedSections().diagnostics).toBe(true);
     });
 });
