@@ -1,27 +1,42 @@
-# SPDX-License-Identifier: 0BSD AND MIT
+# SPDX-License-Identifier: 0BSD
+
+"""RNS announce callback adapter that retains the aspect filter string."""
+
+from __future__ import annotations
 
 import logging
+from collections.abc import Callable
+from typing import Any
 
 _log = logging.getLogger("meshchatx.announce")
 
 
-# an announce handler that forwards announces to a provided callback for the provided aspect filter
-# this handler exists so we can have access to the original aspect, as this is not provided in the announce itself
 class AnnounceHandler:
-    def __init__(self, aspect_filter: str, received_announce_callback):
+    """Forwards RNS announce callbacks while injecting the aspect filter.
+
+    RNS does not include the registered aspect on the announce callback, so
+    callers register one handler instance per aspect and get the filter back
+    on every receive.
+    """
+
+    __slots__ = ("aspect_filter", "received_announce_callback")
+
+    def __init__(
+        self,
+        aspect_filter: str,
+        received_announce_callback: Callable[..., Any],
+    ) -> None:
         self.aspect_filter = aspect_filter
         self.received_announce_callback = received_announce_callback
 
-    # we will just pass the received announce back to the provided callback
     def received_announce(
         self,
-        destination_hash,
-        announced_identity,
-        app_data,
-        announce_packet_hash,
-    ):
+        destination_hash: Any,
+        announced_identity: Any,
+        app_data: Any,
+        announce_packet_hash: Any,
+    ) -> None:
         try:
-            # handle received announce
             self.received_announce_callback(
                 self.aspect_filter,
                 destination_hash,
@@ -29,6 +44,5 @@ class AnnounceHandler:
                 app_data,
                 announce_packet_hash,
             )
-        except Exception as e:
-            # ignore failure to handle received announce
-            _log.debug("Failed to handle received announce: %s", e)
+        except Exception as exc:
+            _log.debug("Failed to handle received announce: %s", exc)
