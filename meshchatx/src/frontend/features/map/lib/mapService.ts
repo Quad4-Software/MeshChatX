@@ -62,7 +62,7 @@ export async function deleteMBTiles(filename: string): Promise<any> {
 }
 
 export async function restoreStarterTiles(): Promise<any> {
-    return window.api.post("/api/v1/map/mbtiles/starter", {});
+    return window.api.post("/api/v1/map/mbtiles/restore-starter", {});
 }
 
 export async function saveMBTilesDir(directory: string): Promise<any> {

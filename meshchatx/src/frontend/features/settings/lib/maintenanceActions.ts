@@ -268,3 +268,75 @@ export function importNomadnetFavouritesFile(file: File, api = window.api): void
     };
     reader.readAsText(file);
 }
+
+export async function exportStickers(api = window.api): Promise<void> {
+    try {
+        const response = await api.get("/api/v1/stickers/export");
+        const dataStr = JSON.stringify(response.data, null, 2);
+        const exportFileDefaultName = `meshchat_stickers_${new Date().toISOString().slice(0, 10)}.json`;
+        await DownloadUtils.downloadFile(exportFileDefaultName, new Blob([dataStr], { type: "application/json" }));
+        ToastUtils.success(t("stickers.export_done"));
+    } catch {
+        ToastUtils.error(t("stickers.import_failed"));
+    }
+}
+
+export function importStickersFile(file: File, replaceDuplicates: boolean, api = window.api): void {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const data = JSON.parse(e.target?.result as string);
+            const response = await api.post("/api/v1/stickers/import", {
+                ...data,
+                replace_duplicates: replaceDuplicates,
+            });
+            const r = response.data || {};
+            ToastUtils.success(
+                t("stickers.import_success", {
+                    imported: r.imported ?? 0,
+                    skipped_duplicates: r.skipped_duplicates ?? 0,
+                    skipped_invalid: r.skipped_invalid ?? 0,
+                })
+            );
+        } catch {
+            ToastUtils.error(t("stickers.import_failed"));
+        }
+    };
+    reader.readAsText(file);
+}
+
+export async function exportGifs(api = window.api): Promise<void> {
+    try {
+        const response = await api.get("/api/v1/gifs/export");
+        const dataStr = JSON.stringify(response.data, null, 2);
+        const exportFileDefaultName = `meshchat_gifs_${new Date().toISOString().slice(0, 10)}.json`;
+        await DownloadUtils.downloadFile(exportFileDefaultName, new Blob([dataStr], { type: "application/json" }));
+        ToastUtils.success(t("gifs.export_done"));
+    } catch {
+        ToastUtils.error(t("gifs.import_failed"));
+    }
+}
+
+export function importGifsFile(file: File, replaceDuplicates: boolean, api = window.api): void {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const data = JSON.parse(e.target?.result as string);
+            const response = await api.post("/api/v1/gifs/import", {
+                ...data,
+                replace_duplicates: replaceDuplicates,
+            });
+            const r = response.data || {};
+            ToastUtils.success(
+                t("gifs.import_success", {
+                    imported: r.imported ?? 0,
+                    skipped_duplicates: r.skipped_duplicates ?? 0,
+                    skipped_invalid: r.skipped_invalid ?? 0,
+                })
+            );
+        } catch {
+            ToastUtils.error(t("gifs.import_failed"));
+        }
+    };
+    reader.readAsText(file);
+}

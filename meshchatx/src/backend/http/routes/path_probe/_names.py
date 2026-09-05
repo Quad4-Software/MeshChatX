@@ -215,3 +215,19 @@ def local_destination_hashes(app):
             if pdest is not None and getattr(pdest, "hash", None):
                 hashes.add(pdest.hash.hex())
     return hashes
+
+
+def maybe_resend_failed_for_current(app, destination_hash_str):
+    """Queue a resend of failed messages when a path to a peer appears."""
+    ctx = app.current_context
+    if (
+        ctx is not None
+        and ctx.running
+        and ctx.config.auto_resend_failed_messages_when_announce_received.get()
+    ):
+        AsyncUtils.run_async(
+            app.resend_failed_messages_for_destination(
+                destination_hash_str,
+                context=ctx,
+            ),
+        )

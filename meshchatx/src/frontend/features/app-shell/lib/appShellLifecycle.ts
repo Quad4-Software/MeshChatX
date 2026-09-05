@@ -5,10 +5,9 @@
  * Split out of appShellState so each module stays reviewable.
  */
 
-import { watch } from "vue";
 import LiveTransport from "../../../js/liveTransport.js";
 import { installWsLiveSync } from "../../../js/wsLiveSync.js";
-import GlobalState, { mergeGlobalConfig } from "../../../js/GlobalState.js";
+import GlobalState, { subscribeGlobalState } from "../../../js/GlobalState.js";
 import GlobalEmitter from "../../../js/GlobalEmitter.js";
 import NotificationUtils from "../../../js/NotificationUtils.js";
 import { listOpenDestinationHashes, subscribeOpenDestinationHashes } from "../../../js/activeConversationStore.js";
@@ -48,11 +47,8 @@ import {
 import {
     applyAppearanceTheme,
     resolveEffectiveTheme,
-    shellCanvasBackgroundStyle,
-    subscribeSystemTheme,
     systemPrefersDark,
 } from "../../../theme/themeEngine.js";
-import { navigate, router, subscribe as subscribeRoute } from "../../../shell/hashRouter.js";
 import { handleProtocolLink } from "./appShellLinks.js";
 import { apiClient, electronBridge } from "./appShellShared.js";
 import {
@@ -77,6 +73,32 @@ import { updatePropagationNodeStatus } from "./appShellPropagation.js";
 import { stopRingtone, updateRingtonePlayer, updateTelephoneStatus } from "./appShellTelephony.js";
 import type { AppShellState } from "./appShellState.svelte.js";
 
+function watchGlobal(getSnapshot: () => unknown, onChange: () => void, immediate = false): () => void {
+    let prev = "";
+    const tick = () => {
+        let next = "";
+        try {
+            next = JSON.stringify(getSnapshot());
+        } catch {
+            next = String(getSnapshot());
+        }
+        if (next !== prev) {
+            prev = next;
+            onChange();
+        }
+    };
+    if (immediate) {
+        tick();
+    } else {
+        try {
+            prev = JSON.stringify(getSnapshot());
+        } catch {
+            prev = String(getSnapshot());
+        }
+    }
+    return subscribeGlobalState(tick);
+}
+
 export function syncGlobalMirror(state: AppShellState): void {
     state.global.authSessionResolved = GlobalState.authSessionResolved;
     state.global.authEnabled = GlobalState.authEnabled;
@@ -84,7 +106,7 @@ export function syncGlobalMirror(state: AppShellState): void {
     state.global.isLoopbackBind = GlobalState.isLoopbackBind;
     state.global.demoMode = GlobalState.demoMode;
     state.global.networkDegraded = GlobalState.networkDegraded;
-    state.global.networkDegradedError = GlobalState.networkDegradedError;
+    state.global.networkDegradedError = String(GlobalState.networkDegradedError || "");
     state.global.networkStarting = GlobalState.networkStarting;
     state.global.networkReady = GlobalState.networkReady;
     state.global.unreadConversationsCount = GlobalState.unreadConversationsCount;
@@ -117,7 +139,7 @@ export function waitForMeshThenStartShell(state: AppShellState): void {
         return;
     }
     state.meshWaitStarted = true;
-    const stopWatch = watch(
+    const stopWatch = watchGlobal(
         () => [GlobalState.networkReady, GlobalState.networkDegraded, GlobalState.networkStarting],
         () => {
             if (GlobalState.networkReady || GlobalState.networkDegraded || !GlobalState.networkStarting) {
@@ -128,7 +150,7 @@ export function waitForMeshThenStartShell(state: AppShellState): void {
                 }
             }
         },
-        { immediate: true }
+        true
     );
 }
 
@@ -342,7 +364,7 @@ export function sampleClientHeapMemory(state: AppShellState): void {
 
 export function init(state: AppShellState): void {
     state.disposers.push(
-        watch(
+        watchGlobal(
             () => [
                 GlobalState.authSessionResolved,
                 GlobalState.authEnabled,
@@ -360,19 +382,16 @@ export function init(state: AppShellState): void {
                 GlobalState.config?.rrc_enabled,
             ],
             () => syncGlobalMirror(state),
-            { immediate: true }
+            true
         )
     );
 
     state.disposers.push(
-        watch(
-            () => fatalErrorState.active,
-            (next) => {
-                state.fatalError = next;
-            },
-            { immediate: true }
-        )
+        subscribeGlobalState(() => {
+            state.fatalError = fatalErrorState.active;
+        })
     );
+    state.fatalError = fatalErrorState.active;
 
     state.disposers.push(
         subscribeRoute((route) => {
@@ -412,7 +431,7 @@ export function init(state: AppShellState): void {
     }
 
     state.disposers.push(
-        watch(
+        watchGlobal(
             () => [GlobalState.networkDegraded, GlobalState.networkDegradedError],
             () => maybeNavigateNetworkRecovery(state)
         )

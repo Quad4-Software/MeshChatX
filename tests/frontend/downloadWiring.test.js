@@ -135,7 +135,7 @@ describe("download wiring through DownloadUtils", () => {
         });
 
         const { findByText } = render(IdentitiesPage);
-        const exportBtn = await findByText("identities.export_key_file");
+        const exportBtn = await findByText("Export backup file");
         await fireEvent.click(exportBtn);
 
         await waitFor(() => {

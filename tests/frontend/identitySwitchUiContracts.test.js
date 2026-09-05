@@ -79,7 +79,7 @@ describe("identity switch and settings UI contracts", () => {
         };
 
         const { findByTitle } = render(IdentitiesPage);
-        const switchBtn = await findByTitle("identities.switch");
+        const switchBtn = await findByTitle("Switch to this identity");
         emitSpy.mockClear();
 
         await fireEvent.click(switchBtn);
@@ -101,7 +101,7 @@ describe("identity switch and settings UI contracts", () => {
             "utf8"
         );
         expect(src).toContain('GlobalEmitter.on("identity-switched"');
-        expect(src).toMatch(/on\("identity-switched"[\s\S]*getConfig\(\)/);
+        expect(src).toMatch(/on\("identity-switched"[\s\S]*loadConfig/);
     });
 
     it("AboutPage listens for identity-switched and refreshes backups/snapshots", () => {

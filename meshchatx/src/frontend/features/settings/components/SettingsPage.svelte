@@ -102,6 +102,8 @@
         flushArchivedPages as flushArchivedPagesHelper,
         revokeTelemetryTrust as revokeTelemetryTrustHelper,
     } from "../lib/settingsPageHelpers.js";
+    import { exportStickers, importStickersFile, exportGifs, importGifsFile } from "../lib/maintenanceActions.js";
+    import { fetchStickerCount, fetchGifCount } from "../../../js/settings/settingsMaintenanceClient.js";
 
     let config = $state<Record<string, any>>(createDefaultConfig());
     let serverSecurity = $state<Record<string, any>>(createDefaultServerSecurity());
@@ -127,6 +129,10 @@
         closeBehavior: "ask",
     });
     let visualiserDisplayPrefs = $state(loadVisualiserDisplayPrefs());
+    let stickerCount = $state(0);
+    let gifCount = $state(0);
+    let stickerImportReplaceDuplicates = $state(false);
+    let gifImportReplaceDuplicates = $state(false);
 
     let lastRememberedInboundStampCost = $state(8);
     const inboundStampsEnabled = $derived(
@@ -206,11 +212,42 @@
 
     async function loadTelemetryPeers() {
         try {
-            const response = await window.api.get("/api/v1/telemetry/peers");
-            trustedTelemetryPeers = response.data?.peers || [];
+            const response = await window.api.get("/api/v1/telemetry/trusted-peers");
+            trustedTelemetryPeers = response.data?.trusted_peers || [];
         } catch (e) {
             console.error("Failed to load telemetry peers", e);
         }
+    }
+
+    async function loadMediaCounts() {
+        stickerCount = await fetchStickerCount(window.api);
+        gifCount = await fetchGifCount(window.api);
+    }
+
+    async function onExportStickers() {
+        await exportStickers(window.api);
+    }
+
+    function onImportStickers(event: Event) {
+        const input = event.target as HTMLInputElement;
+        const file = input?.files?.[0];
+        if (!file) return;
+        importStickersFile(file, stickerImportReplaceDuplicates, window.api);
+        input.value = "";
+        void loadMediaCounts();
+    }
+
+    async function onExportGifs() {
+        await exportGifs(window.api);
+    }
+
+    function onImportGifs(event: Event) {
+        const input = event.target as HTMLInputElement;
+        const file = input?.files?.[0];
+        if (!file) return;
+        importGifsFile(file, gifImportReplaceDuplicates, window.api);
+        input.value = "";
+        void loadMediaCounts();
     }
 
     async function updateConfigField(key: string, value: any) {
@@ -308,7 +345,7 @@
 
     async function onLanguageChange(lang: string) {
         config.language = lang;
-        await setLocale((window as any).__meshchatUiI18n, lang);
+        await setLocale(null, lang);
         await updateConfigField("language", lang);
     }
 
@@ -453,6 +490,7 @@
         loadServerSecurity();
         loadReticulumInstance();
         loadTelemetryPeers();
+        loadMediaCounts();
         loadDesktopCloseSettings();
         loadScreenSecuritySettings();
         isWasmBundled = isMicronWasmBundled();
@@ -678,8 +716,26 @@
                                     savePreferredPropagationNodeHash(true);
                                 }}
                             />
-                            <StickersSettingsSection visible={showSection("stickers")} />
-                            <GifsSettingsSection visible={showSection("gifs")} />
+                            <StickersSettingsSection
+                                visible={showSection("stickers")}
+                                {stickerCount}
+                                replaceDuplicates={stickerImportReplaceDuplicates}
+                                onexport={onExportStickers}
+                                onimport={onImportStickers}
+                                onupdateReplaceDuplicates={(val) => {
+                                    stickerImportReplaceDuplicates = val;
+                                }}
+                            />
+                            <GifsSettingsSection
+                                visible={showSection("gifs")}
+                                {gifCount}
+                                replaceDuplicates={gifImportReplaceDuplicates}
+                                onexport={onExportGifs}
+                                onimport={onImportGifs}
+                                onupdateReplaceDuplicates={(val) => {
+                                    gifImportReplaceDuplicates = val;
+                                }}
+                            />
 
                             <!-- Network tab sections -->
                             <TransportSettingsSection

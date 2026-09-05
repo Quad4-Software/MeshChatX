@@ -8,7 +8,6 @@ import {
     registerFeature,
 } from "../../meshchatx/src/frontend/js/registries/featureRegistry.js";
 import { registerBlockedFeature } from "../../meshchatx/src/frontend/features/blocked/index.ts";
-import { buildRouterRoutesFromRegistry } from "../../meshchatx/src/frontend/shell/buildRouterRoutes.js";
 
 describe("feature route registry", () => {
     beforeEach(() => {
@@ -58,13 +57,12 @@ describe("feature route registry", () => {
         expect(typeof blocked.load).toBe("function");
     });
 
-    it("buildRouterRoutesFromRegistry maps svelte loads to FeaturePageHost", () => {
+    it("registered svelte routes expose load for PageOutlet", () => {
         registerBlockedFeature();
-        const routes = buildRouterRoutesFromRegistry();
-        const blocked = routes.find((r) => r.name === "blocked");
+        const blocked = listRoutes().find((r) => r.name === "blocked");
         expect(blocked).toBeTruthy();
-        expect(blocked.component).toBeTruthy();
-        expect(blocked.meta.featureMount).toBe("svelte");
-        expect(typeof blocked.meta.featureLoad).toBe("function");
+        expect(blocked.mount).toBe("svelte");
+        expect(typeof blocked.load).toBe("function");
+        expect(blocked.path).toBe("/blocked");
     });
 });

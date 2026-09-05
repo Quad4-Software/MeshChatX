@@ -49,7 +49,7 @@ For a new badge:
 
 1. Add a `GlobalState` counter
 2. Add a `NavBadgeSource` value and `badge` on the nav entry
-3. Wire `getNavBadgeCount` in `App.vue`
+3. Wire `getNavBadgeCount` in `features/app-shell/` (GlobalState-backed)
 4. Refresh the count from the right API or WebSocket event
 5. Clear it when the user has actually seen the related UI
 

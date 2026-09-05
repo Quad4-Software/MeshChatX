@@ -34,7 +34,7 @@ import {
 } from "../../meshchatx/src/frontend/js/registries/postInstallPromptRegistry.js";
 import { CORE_POST_INSTALL_PROMPT_ENTRIES } from "../../meshchatx/src/frontend/js/registries/corePostInstallPromptEntries.js";
 import { registerAllFeatures } from "../../meshchatx/src/frontend/features/registerAllFeatures.js";
-import { buildRouterRoutesFromRegistry } from "../../meshchatx/src/frontend/shell/buildRouterRoutes.js";
+import { listRoutes } from "../../meshchatx/src/frontend/js/registries/routeRegistry.js";
 
 describe("registryCore", () => {
     it("registers and lists entries", () => {
@@ -169,7 +169,7 @@ describe("registerCoreContributions", () => {
         while ((match = pairRe.exec(mainSrc)) !== null) {
             routeNames.add(match[1]);
         }
-        for (const r of buildRouterRoutesFromRegistry()) {
+        for (const r of listRoutes()) {
             if (r.name) {
                 routeNames.add(r.name);
             }

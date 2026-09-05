@@ -1,81 +1,22 @@
 // SPDX-License-Identifier: 0BSD
 
+/**
+ * Locale pack loading for svelte-i18n.
+ */
+
+import { addMessages, getLocaleFromNavigator, init, locale, _ as translateStore } from "svelte-i18n";
+import { get } from "svelte/store";
+import { registerFallbackMessages, registerTranslator } from "./i18n.js";
+
 const localeModules = import.meta.glob("../locales/*.json");
 
-/**
- * Real vue-i18n Composer registered at app boot.
- * Options API this.$i18n under legacy:false is a locale-only proxy without
- * setLocaleMessage. Call sites pass that proxy, so loaders must fall back here.
- * @type {import("vue-i18n").Composer | null}
- */
-let registeredComposer = null;
+const loadedLocales = new Set<string>();
 
-/**
- * @param {unknown} obj
- * @returns {boolean}
- */
-function hasLocaleMessageApi(obj) {
-    return Boolean(obj && typeof obj.setLocaleMessage === "function");
-}
+const UI_LOCALE_ALIASES: Record<string, string> = {
+    "zh-cn": "zh",
+    zh_cn: "zh",
+};
 
-/**
- * @param {unknown} composer
- * @returns {string[]}
- */
-function listAvailableLocales(composer) {
-    const raw = composer?.availableLocales;
-    if (Array.isArray(raw)) {
-        return raw;
-    }
-    if (raw && typeof raw === "object" && Array.isArray(raw.value)) {
-        return raw.value;
-    }
-    return [];
-}
-
-/**
- * @param {import("vue-i18n").I18n | import("vue-i18n").Composer | null | undefined} i18nOrComposer
- * @returns {import("vue-i18n").Composer | null}
- */
-function resolveComposer(i18nOrComposer) {
-    if (i18nOrComposer) {
-        if (hasLocaleMessageApi(i18nOrComposer.global)) {
-            return i18nOrComposer.global;
-        }
-        if (hasLocaleMessageApi(i18nOrComposer)) {
-            return i18nOrComposer;
-        }
-    }
-    if (hasLocaleMessageApi(registeredComposer)) {
-        return registeredComposer;
-    }
-    return null;
-}
-
-/**
- * Register the app i18n instance so Options API this.$i18n proxies can load packs.
- * @param {import("vue-i18n").I18n | import("vue-i18n").Composer | null | undefined} i18nOrComposer
- */
-export function registerUiI18n(i18nOrComposer) {
-    if (!i18nOrComposer) {
-        registeredComposer = null;
-        return;
-    }
-    if (hasLocaleMessageApi(i18nOrComposer.global)) {
-        registeredComposer = i18nOrComposer.global;
-        return;
-    }
-    if (hasLocaleMessageApi(i18nOrComposer)) {
-        registeredComposer = i18nOrComposer;
-        return;
-    }
-    registeredComposer = null;
-}
-
-/**
- * Locale codes discovered from bundled JSON without loading message bodies.
- * @returns {string[]}
- */
 export function listLocaleCodes(): string[] {
     return Object.keys(localeModules)
         .map((filePath) => {
@@ -84,27 +25,13 @@ export function listLocaleCodes(): string[] {
         })
         .filter((code): code is string => Boolean(code))
         .sort((a, b) => {
-            if (a === "en") {
-                return -1;
-            }
-            if (b === "en") {
-                return 1;
-            }
+            if (a === "en") return -1;
+            if (b === "en") return 1;
             return a.localeCompare(b);
         });
 }
 
-const UI_LOCALE_ALIASES: any = {
-    "zh-cn": "zh",
-    zh_cn: "zh",
-};
-
-/**
- * Map stored or legacy locale codes to a bundled UI pack code.
- * @param {string | null | undefined} code
- * @returns {string}
- */
-export function normalizeUiLocaleCode(code) {
+export function normalizeUiLocaleCode(code: string | null | undefined): string {
     if (!code || typeof code !== "string") {
         return "en";
     }
@@ -132,58 +59,93 @@ export function normalizeUiLocaleCode(code) {
     return "en";
 }
 
-/**
- * Load a locale message pack into vue-i18n when missing.
- * @param {import("vue-i18n").I18n | import("vue-i18n").Composer} i18nOrComposer
- * @param {string} code
- * @returns {Promise<boolean>}
- */
-export async function ensureLocaleMessages(i18nOrComposer, code) {
+async function loadLocaleMessages(code: string): Promise<Record<string, unknown> | null> {
+    const loader = localeModules[`../locales/${code}.json`];
+    if (!loader) {
+        return null;
+    }
+    const mod = (await loader()) as { default?: Record<string, unknown> };
+    return (mod.default || mod) as Record<string, unknown>;
+}
+
+export async function ensureLocaleMessages(_unused: unknown, code: string): Promise<boolean> {
     if (!code || typeof code !== "string") {
         return false;
     }
-    const composer = resolveComposer(i18nOrComposer);
-    if (!composer) {
-        return false;
-    }
-    if (listAvailableLocales(composer).includes(code)) {
+    if (loadedLocales.has(code)) {
         return true;
     }
-    if (typeof composer.setLocaleMessage !== "function") {
+    const messages = await loadLocaleMessages(code);
+    if (!messages) {
         return false;
     }
-    const loader = localeModules[`../locales/${code}.json`];
-    if (!loader) {
-        return false;
-    }
-    const mod = (await loader()) as { default?: unknown };
-    composer.setLocaleMessage(code, mod.default || mod);
+    addMessages(code, messages as any);
+    loadedLocales.add(code);
     return true;
 }
 
-/**
- * Apply a locale after ensuring its messages are loaded.
- * @param {import("vue-i18n").I18n | import("vue-i18n").Composer} i18nOrComposer
- * @param {string} code
- * @returns {Promise<boolean>}
- */
-export async function setLocale(i18nOrComposer, code) {
+export async function setLocale(_unused: unknown, code: string): Promise<boolean> {
     const normalized = normalizeUiLocaleCode(code);
-    const ok = await ensureLocaleMessages(i18nOrComposer, normalized);
+    const ok = await ensureLocaleMessages(null, normalized);
     if (!ok) {
         return false;
     }
-    const composer = resolveComposer(i18nOrComposer);
-    if (!composer) {
-        return false;
-    }
-    if (composer.locale && typeof composer.locale === "object" && "value" in composer.locale) {
-        composer.locale.value = normalized;
-    } else {
-        composer.locale = normalized;
-    }
+    locale.set(normalized);
     if (typeof document !== "undefined") {
         document.documentElement.lang = normalized;
     }
     return true;
+}
+
+export function getCurrentUiLocale(): string {
+    try {
+        const code = get(locale);
+        return normalizeUiLocaleCode(typeof code === "string" ? code : "en");
+    } catch {
+        return "en";
+    }
+}
+
+/** @deprecated No-op kept for older call sites and tests. */
+export function registerUiI18n(_unused?: unknown): void {
+    // svelte-i18n is initialized via initSvelteI18n
+}
+
+export async function initSvelteI18n(enMessages: Record<string, unknown>): Promise<void> {
+    addMessages("en", enMessages as any);
+    loadedLocales.add("en");
+    registerFallbackMessages(enMessages);
+    registerTranslator((key, values) => {
+        const fn = get(translateStore);
+        if (typeof fn !== "function") {
+            return key;
+        }
+        try {
+            return String(
+                fn(key, values ? { values: values as Record<string, string | number | boolean | Date> } : undefined)
+            );
+        } catch {
+            return key;
+        }
+    });
+
+    const initial =
+        normalizeUiLocaleCode(
+            (typeof localStorage !== "undefined" && localStorage.getItem("meshchatx_ui_locale")) ||
+                getLocaleFromNavigator() ||
+                "en"
+        ) || "en";
+
+    if (initial !== "en") {
+        await ensureLocaleMessages(null, initial);
+    }
+
+    init({
+        fallbackLocale: "en",
+        initialLocale: initial,
+    });
+
+    if (typeof document !== "undefined") {
+        document.documentElement.lang = initial;
+    }
 }

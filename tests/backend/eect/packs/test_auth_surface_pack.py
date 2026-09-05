@@ -155,4 +155,7 @@ async def test_eect_mutating_with_csrf_accepted(mock_app, monkeypatch):
                 body_text = await resp.text()
                 assert_no_unexpected_http_500(resp.status, body_text)
                 assert resp.status != 403, f"{method} {path} still CSRF-blocked"
-                assert resp.status < 500
+                # 503 is retryable while RNS tools are mid-reload (oracle allows it)
+                assert resp.status < 500 or resp.status == 503, (
+                    f"{method} {path} unexpected status {resp.status}: {body_text}"
+                )

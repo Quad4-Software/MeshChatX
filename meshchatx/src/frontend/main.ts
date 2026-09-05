@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: 0BSD
 
 import { mount } from "svelte";
-import { createI18n } from "vue-i18n";
-import vClickOutside from "./libs/clickOutside.js";
 import DOMPurify from "dompurify";
 import "./style.css";
 import "./css/nomad-page-chrome.css";
 import { injectMeshchatThemeVariables } from "./theme/designTokens.js";
-import { registerUiI18n } from "./js/localeLoader.js";
-import { registerTranslator, registerFallbackMessages } from "./js/i18n.js";
+import { initSvelteI18n, getCurrentUiLocale } from "./js/localeLoader.js";
 
 injectMeshchatThemeVariables();
 
@@ -21,7 +18,6 @@ import { registerCoreContributions } from "./js/registries/registerCoreContribut
 import { registerAllFeatures } from "./features/registerAllFeatures.js";
 import { installWsEventBridge } from "./js/registries/wsEventBridge.js";
 import { getCurrentRoute, navigate, router, setNavigationGuard, start as startHashRouter } from "./shell/hashRouter.js";
-import { configureVueIslands } from "./shell/vueIsland.js";
 import { pluginHost } from "./js/plugins/PluginHost.js";
 import GlobalState from "./js/GlobalState.js";
 import { recoveryLocationForNetworkError } from "./js/networkRecovery.js";
@@ -42,22 +38,7 @@ installWsEventBridge();
 import App from "./features/app-shell/App.svelte";
 import enMessages from "./locales/en.json";
 
-const i18n = createI18n({
-    legacy: false,
-    locale: "en",
-    fallbackLocale: "en",
-    messages: {
-        en: enMessages,
-    },
-});
-registerUiI18n(i18n);
-registerFallbackMessages(enMessages);
-registerTranslator((key, values) => i18n.global.t(key, values));
-// Vue islands (Tutorial) still need $t and v-click-outside until they are ported.
-configureVueIslands({
-    i18n,
-    directives: { "click-outside": vClickOutside.directive },
-});
+await initSvelteI18n(enMessages as Record<string, unknown>);
 
 if (!window.location.hash || window.location.hash === "#") {
     history.replaceState(null, "", "#/messages");
@@ -136,7 +117,7 @@ if (networkReady) {
             const storedLang =
                 typeof localStorage !== "undefined" ? localStorage.getItem(DEMO_UI_LANGUAGE_STORAGE_KEY) : null;
             if (storedLang) {
-                await setLocale(i18n, storedLang);
+                await setLocale(null, storedLang);
             }
         } catch {
             // locale overlay optional
@@ -331,7 +312,7 @@ if (networkReady) {
             if (!GlobalState.pluginsEnabled) {
                 return;
             }
-            await pluginHost.loadEnabledPlugins(apiClient, i18n.global.locale.value);
+            await pluginHost.loadEnabledPlugins(apiClient, getCurrentUiLocale());
         } catch (error) {
             console.debug("Plugin host bootstrap failed:", error);
         }

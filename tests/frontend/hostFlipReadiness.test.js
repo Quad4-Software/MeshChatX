@@ -9,28 +9,30 @@ import { listRoutes } from "../../meshchatx/src/frontend/js/registries/routeRegi
 const repoRoot = process.cwd();
 
 /**
- * Host flip readiness: shell may move from Vue App.vue to Svelte when these
- * surfaces stay registry-driven. Do not flip while Vue pages still dominate.
+ * Host flip complete: live boot is App.svelte + hashRouter + PageOutlet.
+ * Registry routes must stay mount svelte.
  */
 describe("host flip readiness", () => {
-    it("shell helpers for registry routes exist", () => {
-        expect(existsSync(join(repoRoot, "meshchatx/src/frontend/shell/FeaturePageHost.vue"))).toBe(true);
-        expect(existsSync(join(repoRoot, "meshchatx/src/frontend/shell/buildRouterRoutes.ts"))).toBe(true);
+    it("svelte shell and hash router exist", () => {
+        expect(existsSync(join(repoRoot, "meshchatx/src/frontend/features/app-shell/App.svelte"))).toBe(true);
+        expect(existsSync(join(repoRoot, "meshchatx/src/frontend/shell/hashRouter.ts"))).toBe(true);
+        expect(existsSync(join(repoRoot, "meshchatx/src/frontend/shell/PageOutlet.svelte"))).toBe(true);
         expect(existsSync(join(repoRoot, "meshchatx/src/frontend/features/registerAllFeatures.ts"))).toBe(true);
     });
 
-    it("nav and route registries expose list APIs for a future Svelte shell", () => {
+    it("nav and route registries expose list APIs", () => {
         expect(typeof listNavItems).toBe("function");
         expect(typeof listRoutes).toBe("function");
         expect(Array.isArray(listNavItems())).toBe(true);
         expect(Array.isArray(listRoutes())).toBe(true);
     });
 
-    it("documents that Vue remains host until mount vue count is zero", () => {
-        // Intentional gate: a Svelte app shell replaces App.vue only after every
-        // route uses mount svelte (or is deleted). This test stays green while
-        // dual-stack runs.
-        const vueMounts = listRoutes().filter((r) => r.mount === "vue");
-        expect(vueMounts.every((r) => typeof r.load === "function")).toBe(true);
+    it("all registered routes mount as svelte", async () => {
+        const { registerAllFeatures } = await import("../../meshchatx/src/frontend/features/registerAllFeatures.js");
+        registerAllFeatures();
+        const routes = listRoutes();
+        expect(routes.length).toBeGreaterThan(0);
+        const nonSvelte = routes.filter((r) => r.mount !== "svelte");
+        expect(nonSvelte).toEqual([]);
     });
 });

@@ -134,6 +134,7 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     websocket_type_requires_auth,
     zipfile,
 )
+from meshchatx.src.backend.delivery_diagnostics import build_delivery_diagnostics  # noqa: F401
 from meshchatx.src.backend.path_utils import path_response_window
 
 # Same ceiling as RNProbeHandler.MAX_TIMEOUT_S

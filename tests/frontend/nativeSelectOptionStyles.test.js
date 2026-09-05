@@ -69,8 +69,12 @@ function collectOptionRules(css) {
 
 describe("native select option theming", () => {
     const styleCss = readFileSync(STYLE_CSS, "utf8");
-    const vueFiles = walkFiles(join(FRONTEND, "components"), [".vue"]);
-    const allSelects = vueFiles.flatMap((file) => extractSelects(file, readFileSync(file, "utf8")));
+    const uiFiles = [
+        ...walkFiles(join(FRONTEND, "components"), [".vue", ".svelte"]),
+        ...walkFiles(join(FRONTEND, "features"), [".svelte"]),
+        ...walkFiles(join(FRONTEND, "ui"), [".svelte"]),
+    ];
+    const allSelects = uiFiles.flatMap((file) => extractSelects(file, readFileSync(file, "utf8")));
 
     it("themes every native option via global select option rules", () => {
         expect(styleCss).toMatch(/select\s+option\s*\{[^}]*background-color:\s*var\(--mc-surface\)/s);
@@ -80,7 +84,7 @@ describe("native select option theming", () => {
 
     it("does not ship component option rules that force unthemed white surfaces", () => {
         const offenders = [];
-        for (const file of vueFiles) {
+        for (const file of uiFiles) {
             const source = readFileSync(file, "utf8");
             const styleBlocks = [...source.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]);
             for (const block of styleBlocks) {
@@ -100,7 +104,7 @@ describe("native select option theming", () => {
         expect(offenders).toEqual([]);
     });
 
-    it("finds native selects across the Vue UI", () => {
+    it("finds native selects across the Svelte UI", () => {
         expect(allSelects.length).toBeGreaterThan(20);
     });
 
@@ -114,7 +118,7 @@ describe("native select option theming", () => {
     it("keeps transparent selects covered by global option colors", () => {
         const transparent = allSelects.filter((sel) => sel.classes.includes("bg-transparent"));
         expect(transparent.length).toBeGreaterThan(0);
-        expect(transparent.some((sel) => sel.rel.includes("ThemePresetPicker.vue"))).toBe(true);
+        expect(transparent.some((sel) => sel.rel.includes("ThemePresetPicker.svelte"))).toBe(true);
         for (const sel of transparent) {
             expect(hasExplicitText(sel.classes), `${sel.rel}:${sel.line}`).toBe(true);
         }
@@ -125,7 +129,10 @@ describe("native select option theming", () => {
         const menu = readFileSync(join(FRONTEND, "components/DropDownMenu.vue"), "utf8");
         const item = readFileSync(join(FRONTEND, "components/DropDownMenuItem.vue"), "utf8");
         const visualiserMenu = readFileSync(
-            join(FRONTEND, "features/network-visualiser/components/NetworkVisualiserToolbar.svelte"),
+            join(
+                FRONTEND,
+                "features/network-visualiser/components/NetworkVisualiserToolbarEngineSelect.svelte"
+            ),
             "utf8"
         );
         expect(menu).toContain("dropdown-panel");

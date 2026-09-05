@@ -8,6 +8,11 @@ from __future__ import annotations
 
 from __future__ import annotations
 
+from meshchatx.src.backend.http.db_availability import (  # noqa: F401
+    http_for_database_exception,
+    require_database,
+)
+from meshchatx.src.backend.http.errors import http_bad_request  # noqa: F401
 from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     LOGIN_PATH,
     LXMF,

@@ -89,6 +89,13 @@ When you contrast two things, name the concrete difference that separates them. 
 
 Whenever you say A differs from B, name the part, the version, the date, the mechanism, or the supply-chain change that makes the difference real. If you do not have that detail, do not imply the difference exists.
 
+## Project prose reference
+
+For MeshChatX release notes and changelog-style prose, use the current `CHANGELOG.md` as the style reference. Entries are terse bullets, open with `**Area**:`, use the imperative mood, and end on a specific, checkable fact (a path, a status, a number, a version).
+
+- WRONG: "This is a very important improvement that makes things significantly better for users."
+- RIGHT: "**Python backend**: Move `websocket_broadcast` and RNS link handlers from `meshchat.py` to `websocket_runtime.py` and `rns_link_manager.py`. Contract and quick backend tests pass."
+
 ## Self-check before returning text
 
 Run this pass on every piece of prose before you hand it back. The full banned lists are in `references/ai-writing-detection.md`; check against them directly.

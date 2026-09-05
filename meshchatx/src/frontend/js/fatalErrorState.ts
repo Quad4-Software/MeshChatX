@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: 0BSD
 
-import { reactive } from "vue";
-
 export type FatalErrorKind = "frontend" | "backend";
 
 export type FatalErrorRecord = {
@@ -19,10 +17,10 @@ type FatalErrorState = {
     bootFailure: FatalErrorRecord | null;
 };
 
-const fatalErrorState = reactive<FatalErrorState>({
+const fatalErrorState: FatalErrorState = {
     active: null,
     bootFailure: null,
-});
+};
 
 export function buildFatalErrorRecord(
     payload: Partial<FatalErrorRecord> & { kind: FatalErrorKind; message: string }

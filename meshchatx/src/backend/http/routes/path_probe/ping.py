@@ -132,7 +132,7 @@ def register_path_probe_ping_routes(routes, app):
         rtt_milliseconds = round(rtt * 1000, 3)
         rtt_duration_string = f"{rtt_milliseconds} ms"
 
-        maybe_resend_failed_for_current(destination_hash_str)
+        maybe_resend_failed_for_current(app, destination_hash_str)
 
         return web.json_response(
             {

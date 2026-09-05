@@ -41,13 +41,13 @@ export function teardownSvelteHost(vm: VueHostVm, stateKey = "_svelte"): void {
 export function createThinSvelteHostMethods(options: ThinSvelteHostOptions) {
     const { component, buildProps, refKey = "root", stateKey = "_svelte" } = options;
 
-    return {
+    const methods = {
         _teardownSvelte(this: VueHostVm) {
             teardownSvelteHost(this, stateKey);
             this._sveltePropsSnapshot = null;
         },
         _ensureSvelteMounted(this: VueHostVm) {
-            this._syncSvelteProps(true);
+            methods._syncSvelteProps.call(this, true);
         },
         _syncSvelteProps(this: VueHostVm, force = false) {
             if (this._svelteMounting) {
@@ -77,6 +77,7 @@ export function createThinSvelteHostMethods(options: ThinSvelteHostOptions) {
             }
         },
     };
+    return methods;
 }
 
 export function createThinSvelteHost(options: ThinSvelteHostOptions) {

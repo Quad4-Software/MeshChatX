@@ -13,6 +13,8 @@ import time
 from collections import deque
 from typing import Any
 
+from aiohttp import WSCloseCode
+
 logger = logging.getLogger(__name__)
 
 # Inbound control: generous so normal UI never trips.
@@ -524,3 +526,86 @@ NOTIFY_WORTHY_TYPES = frozenset(
 WS_NOMAD_CHUNK_THRESHOLD = 256 * 1024
 WS_NOMAD_CHUNK_SIZE = 192 * 1024
 WS_CONTROL_MAX_MSG_SIZE = 2 * 1024 * 1024
+
+
+async def broadcast_to_websocket_clients(app, data, *, _skip_coalesce: bool = False):
+    """Fan a JSON payload out to all websocket clients that subscribe to its topic."""
+    payload_obj = None
+    if isinstance(data, dict):
+        payload_obj = data
+    elif isinstance(data, str):
+        try:
+            parsed = json.loads(data)
+            if isinstance(parsed, dict):
+                payload_obj = parsed
+        except (TypeError, ValueError, json.JSONDecodeError):
+            payload_obj = None
+    elif isinstance(data, list):
+        data = json.dumps(data)
+
+    if payload_obj is not None and not _skip_coalesce:
+        coalesce = getattr(app, "_ws_coalesce", None)
+        if coalesce is not None and coalesce.offer(dict(payload_obj)):
+            return
+
+    if payload_obj is not None:
+        seq_state = getattr(app, "ws_seq_state", None)
+        if seq_state is not None:
+            await seq_state.stamp(payload_obj)
+        data = json.dumps(payload_obj)
+    elif not isinstance(data, str):
+        data = json.dumps(data)
+
+    msg_type = payload_obj.get("type") if payload_obj else None
+    topic = topic_for_type(msg_type if isinstance(msg_type, str) else None)
+
+    # Serialize list mutation. Fan-out sends run in parallel so one slow
+    # client does not stall every other socket.
+    sessions_changed = False
+    async with app._websocket_broadcast_lock:
+        clients = list(app.websocket_clients)
+        targets = [c for c in clients if client_allows_topic(c, topic)]
+
+        async def _send_one(websocket_client):
+            try:
+                await asyncio.wait_for(
+                    websocket_client.send_str(data),
+                    timeout=WS_BROADCAST_SEND_TIMEOUT_SEC,
+                )
+                touch_client_activity(websocket_client)
+                counters = getattr(app, "ws_counters", None)
+                if counters is not None:
+                    counters.msgs_out += 1
+                return None
+            except Exception as e:
+                print(f"Failed to broadcast to websocket client: {e}")
+                counters = getattr(app, "ws_counters", None)
+                if counters is not None:
+                    counters.broadcast_failures += 1
+                    if isinstance(e, (TimeoutError, asyncio.TimeoutError)):
+                        counters.slow_drops += 1
+                return websocket_client
+
+        results = await asyncio.gather(
+            *[_send_one(c) for c in targets],
+            return_exceptions=True,
+        )
+        dead = []
+        for item in results:
+            if isinstance(item, BaseException):
+                continue
+            if item is not None:
+                dead.append(item)
+        for client in dead:
+            try:
+                app.websocket_clients.remove(client)
+            except ValueError:
+                pass
+            if app._detach_active_session(client):
+                sessions_changed = True
+            try:
+                await client.close(code=WSCloseCode.GOING_AWAY)
+            except Exception:
+                pass
+    if sessions_changed:
+        await app.send_active_sessions_to_websocket_clients()

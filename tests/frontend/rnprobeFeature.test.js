@@ -3,7 +3,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup, fireEvent, waitFor, screen } from "@testing-library/svelte";
 import RNProbePage from "@/features/rnprobe/RNProbePage.svelte";
-import DialogUtils from "@/js/DialogUtils";
+import ToastUtils from "@/js/ToastUtils";
 import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
 import {
     isValidProbeDestinationHash,
@@ -16,9 +16,12 @@ import { registerRnprobeFeature } from "@/features/rnprobe/index.ts";
 import { clearRoutes, listRoutes } from "@/js/registries/routeRegistry.js";
 import { clearFeatureIds, listFeatureIds } from "@/js/registries/featureRegistry.js";
 
-vi.mock("@/js/DialogUtils", () => ({
+vi.mock("@/js/ToastUtils", () => ({
     default: {
-        alert: vi.fn(),
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
     },
 }));
 
@@ -137,7 +140,7 @@ describe("RNProbePage.svelte", () => {
     it("alerts on invalid hash", async () => {
         render(RNProbePage);
         await fireEvent.click(screen.getByText("Start"));
-        expect(DialogUtils.alert).toHaveBeenCalledWith("Invalid Hash");
+        expect(ToastUtils.error).toHaveBeenCalledWith("Invalid Hash");
     });
 
     it("runs probe and displays results", async () => {

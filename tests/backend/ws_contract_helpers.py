@@ -146,8 +146,6 @@ def extract_client_direct_response_types(meshchat_py: Path) -> list[str]:
     repo_root = _repo_root_from_meshchat_py(meshchat_py)
     types: set[str] = set()
     for path in iter_ws_source_files(repo_root):
-        if path.name == "rns_link_manager.py":
-            continue
         text = path.read_text(encoding="utf-8")
         block = _direct_response_block(text)
         scan = block or text
@@ -155,6 +153,7 @@ def extract_client_direct_response_types(meshchat_py: Path) -> list[str]:
             not block
             and "backend/http" not in path.as_posix()
             and "backend/lifecycle" not in path.as_posix()
+            and path.name != "rns_link_manager.py"
         ):
             continue
         for blob in _WS_SEND_STR_RE.findall(scan):
@@ -181,7 +180,7 @@ def extract_server_broadcast_types(meshchat_py: Path) -> list[str]:
         if path.name == "rns_link_manager.py":
             for type_match in _WS_TYPE_LITERAL_RE.finditer(text):
                 msg_type = type_match.group(1)
-                if msg_type.startswith("rns.link."):
+                if msg_type == "rns.link.event":
                     types.add(msg_type)
         for fn_name in ("send_config_to_websocket_clients",):
             start = text.find(f"async def {fn_name}")
