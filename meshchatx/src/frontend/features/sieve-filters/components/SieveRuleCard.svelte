@@ -33,7 +33,7 @@
         <div class="flex items-center gap-1">
             <button
                 type="button"
-                class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-zinc-800 disabled:opacity-40"
+                class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-zinc-800 disabled:opacity-40 focus-ring-sem"
                 title={t("tools.sieve_filters.move_up")}
                 disabled={index === 0}
                 onclick={() => onMove(index, -1)}
@@ -42,7 +42,7 @@
             </button>
             <button
                 type="button"
-                class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-zinc-800 disabled:opacity-40"
+                class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-zinc-800 disabled:opacity-40 focus-ring-sem"
                 title={t("tools.sieve_filters.move_down")}
                 disabled={index === totalRules - 1}
                 onclick={() => onMove(index, 1)}
@@ -51,7 +51,7 @@
             </button>
             <button
                 type="button"
-                class="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
+                class="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 focus-ring-sem"
                 title={t("tools.sieve_filters.remove_rule")}
                 onclick={() => onRemove(index)}
             >

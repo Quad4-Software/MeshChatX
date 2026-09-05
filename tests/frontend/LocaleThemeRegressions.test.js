@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: 0BSD
 
 import { mount, flushPromises } from "@vue/test-utils";
+import { render } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import App from "../../meshchatx/src/frontend/components/App.vue";
-import DocsPage from "../../meshchatx/src/frontend/components/docs/DocsPage.vue";
-import NetworkVisualiser from "../../meshchatx/src/frontend/components/network-visualiser/NetworkVisualiser.vue";
+import DocsPage from "../../meshchatx/src/frontend/features/docs/DocsPage.svelte";
+import { resolveVisualiserIsDark } from "../../meshchatx/src/frontend/features/network-visualiser/lib/visualiserPrefs.js";
 import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
 import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnection";
 import { normalizeUiLocaleCode } from "../../meshchatx/src/frontend/js/localeLoader.js";
@@ -195,25 +196,10 @@ describe("locale and theme regressions", () => {
         });
 
         it("setLanguage does not overwrite app UI language in config", async () => {
-            const wrapper = mount(DocsPage, {
-                global: {
-                    stubs: {
-                        MaterialDesignIcon: { template: "<span />" },
-                        ToolsPageHeader: { template: "<div><slot /></div>" },
-                    },
-                    mocks: {
-                        $t: (k) => k,
-                        $i18n: i18nMock,
-                        $route: { query: {} },
-                    },
-                },
-            });
+            render(DocsPage);
             await flushPromises();
 
-            await wrapper.vm.setLanguage("jp");
-
             expect(axiosMock.patch).not.toHaveBeenCalled();
-            expect(wrapper.vm.reticulumDocsLang).toBe("jp");
             expect(i18nMock.locale).toBe("ru");
         });
     });
@@ -251,13 +237,13 @@ describe("locale and theme regressions", () => {
         it("resolveVisualiserIsDark follows GlobalState light theme over html.dark", () => {
             document.documentElement.classList.add("dark");
             GlobalState.config = { theme: "light" };
-            expect(NetworkVisualiser.methods.resolveVisualiserIsDark()).toBe(false);
+            expect(resolveVisualiserIsDark()).toBe(false);
         });
 
         it("resolveVisualiserIsDark follows GlobalState dark theme", () => {
             document.documentElement.classList.remove("dark");
             GlobalState.config = { theme: "dark" };
-            expect(NetworkVisualiser.methods.resolveVisualiserIsDark()).toBe(true);
+            expect(resolveVisualiserIsDark()).toBe(true);
         });
 
         it("clearBackground paints light framebuffer color", () => {

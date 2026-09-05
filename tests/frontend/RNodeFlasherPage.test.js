@@ -1,4 +1,6 @@
-import { mount, flushPromises } from "@vue/test-utils";
+// SPDX-License-Identifier: 0BSD
+
+import { render, cleanup, fireEvent, screen } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const { toastError, toastSuccess, toastInfo, toastWarning } = vi.hoisted(() => ({
@@ -17,9 +19,10 @@ vi.mock("@/js/ToastUtils.js", () => ({
     },
 }));
 
-import RNodeFlasherPage from "@/components/tools/RNodeFlasherPage.vue";
+import RNodeFlasherPage from "../../meshchatx/src/frontend/features/rnode-flasher/RNodeFlasherPage.svelte";
+import { t } from "../../meshchatx/src/frontend/js/i18n.js";
 
-describe("RNodeFlasherPage.vue", () => {
+describe("RNodeFlasherPage.svelte", () => {
     beforeEach(() => {
         toastError.mockClear();
         toastSuccess.mockClear();
@@ -28,66 +31,49 @@ describe("RNodeFlasherPage.vue", () => {
     });
 
     afterEach(() => {
+        cleanup();
         vi.restoreAllMocks();
     });
 
-    const mountRNodeFlasherPage = () => {
-        return mount(RNodeFlasherPage, {
-            global: {
-                mocks: {
-                    $t: (key, params) => key + (params ? JSON.stringify(params) : ""),
-                    $router: { push: vi.fn() },
-                },
-                stubs: {
-                    MaterialDesignIcon: {
-                        template: '<div class="mdi-stub" :data-icon-name="iconName"></div>',
-                        props: ["iconName"],
-                    },
-                    "v-icon": true,
-                    "v-progress-circular": true,
-                    "v-progress-linear": true,
-                },
-            },
-        });
-    };
-
     it("renders the flasher page", () => {
-        const wrapper = mountRNodeFlasherPage();
-        expect(wrapper.text()).toContain("tools.rnode_flasher.title");
-        expect(wrapper.text()).toContain("1. tools.rnode_flasher.select_device");
+        const { container } = render(RNodeFlasherPage);
+        expect(container.textContent).toContain(t("tools.rnode_flasher.title"));
+        expect(container.textContent).toContain(t("tools.rnode_flasher.select_device"));
     });
 
     it("toggles advanced mode", async () => {
-        const wrapper = mountRNodeFlasherPage();
-        expect(wrapper.vm.showAdvanced).toBe(false);
+        const { container } = render(RNodeFlasherPage);
+        expect(container.textContent).not.toContain(t("tools.rnode_flasher.advanced_tools"));
 
-        const advancedButton = wrapper.findAll("button").find((b) => b.text().includes("tools.rnode_flasher.advanced"));
-        await advancedButton.trigger("click");
+        const advancedButton = container.querySelector('[data-testid="rnode-advanced-toggle"]');
+        expect(advancedButton).toBeDefined();
+        expect(advancedButton).not.toBeNull();
+        if (advancedButton) {
+            await fireEvent.click(advancedButton);
+        }
 
-        expect(wrapper.vm.showAdvanced).toBe(true);
-        expect(wrapper.text()).toContain("tools.rnode_flasher.advanced_tools");
+        expect(container.textContent).toContain(t("tools.rnode_flasher.advanced_tools"));
     });
 
     it("switches connection method", async () => {
-        const wrapper = mountRNodeFlasherPage();
+        const { container } = render(RNodeFlasherPage);
 
-        const wifiButton = wrapper.findAll('[data-testid="rnode-transport-wifi"]')[0];
-        await wifiButton.trigger("click");
+        const wifiButton = container.querySelector('[data-testid="rnode-transport-wifi"]');
+        expect(wifiButton).toBeTruthy();
+        await fireEvent.click(wifiButton);
 
-        expect(wrapper.vm.connectionMethod).toBe("wifi");
-        expect(wrapper.find("input[type='text']").exists()).toBe(true);
+        expect(container.querySelector("input#rnf-wifi-host")).toBeTruthy();
     });
 
     it("loads products from products.js", () => {
-        const wrapper = mountRNodeFlasherPage();
-        expect(wrapper.vm.products.length).toBeGreaterThan(0);
-        const options = wrapper.findAll("select:first-of-type option");
+        const { container } = render(RNodeFlasherPage);
+        const options = container.querySelectorAll("select#rnf-product-select option");
         expect(options.length).toBeGreaterThan(1);
     });
 
     it("links footer firmware and flasher pages to GitHub", () => {
-        const wrapper = mountRNodeFlasherPage();
-        const html = wrapper.html();
+        const { container } = render(RNodeFlasherPage);
+        const html = container.innerHTML;
         expect(html).toContain('href="https://github.com/markqvist/RNode_Firmware"');
         expect(html).toContain('href="https://github.com/liamcottle/rnode-flasher"');
     });

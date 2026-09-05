@@ -1,6 +1,16 @@
 // SPDX-License-Identifier: 0BSD
 
-const FEATURES: any = {
+export type SandboxFeatureCard = {
+    id: string;
+    titleKey: string;
+    badgeKey: string;
+    noteKey: string;
+    active: boolean;
+    unavailable: boolean;
+    warn: boolean;
+};
+
+const FEATURES: Record<string, any> = {
     landlock: {
         active: "landlock_active",
         supported: "landlock_kernel_supported",
@@ -45,7 +55,7 @@ const FEATURES: any = {
     },
 };
 
-export function resolveSandboxFeature(info, feature) {
+export function resolveSandboxFeature(info: any, feature: string): SandboxFeatureCard {
     const spec = FEATURES[feature];
     const data = info || {};
     const active = !!data[spec.active];
@@ -82,9 +92,9 @@ export function resolveSandboxFeature(info, feature) {
     };
 }
 
-export function listSandboxFeatures(info) {
+export function listSandboxFeatures(info: any): SandboxFeatureCard[] {
     const data = info || {};
-    const rows = [];
+    const rows: SandboxFeatureCard[] = [];
     if (data.landlock_requested !== undefined) {
         rows.push(resolveSandboxFeature(data, "landlock"));
     }
@@ -97,7 +107,7 @@ export function listSandboxFeatures(info) {
     return rows;
 }
 
-export function sandboxSummaryType(info) {
+export function sandboxSummaryType(info: any): string {
     const data = info || {};
     const landlock = !!data.landlock_active;
     const seccomp = !!data.seccomp_active;
@@ -121,7 +131,7 @@ export function sandboxSummaryType(info) {
     return "about.sandbox_type_none";
 }
 
-export function sandboxSummaryActive(info) {
+export function sandboxSummaryActive(info: any): boolean {
     const data = info || {};
     return Boolean(data.landlock_active || data.seccomp_active || data.appcontainer_active || data.fs_sandbox_active);
 }

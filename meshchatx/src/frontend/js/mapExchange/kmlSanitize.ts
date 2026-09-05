@@ -66,7 +66,7 @@ function dropTagBlocks(text, blockRe, emptyRe) {
 }
 
 function rewriteHrefs(text, { zipLocalOk }) {
-    const stripped = [];
+    const stripped: string[] = [];
     const out = String(text).replace(/<href>\s*([^<]+?)\s*<\/href>/gi, (full, inner) => {
         const raw = String(inner).trim();
         if (isAllowedDataImageHref(raw)) {
@@ -86,7 +86,7 @@ function rewriteHrefs(text, { zipLocalOk }) {
 }
 
 function rewriteHrefAttrs(text, { zipLocalOk }) {
-    const stripped = [];
+    const stripped: string[] = [];
     const out = String(text).replace(/(\s(?:xlink:)?href\s*=\s*)(["'])([^"']+)\2/gi, (full, _prefix, _quote, inner) => {
         const raw = String(inner).trim();
         if (isAllowedDataImageHref(raw)) {
@@ -119,7 +119,7 @@ function looksLikeHtml(value) {
 }
 
 function stripDescriptionHtml(text) {
-    const stripped = [];
+    const stripped: string[] = [];
     const out = String(text).replace(/<description\b[^>]*>([\s\S]*?)<\/description>/gi, (full, inner) => {
         const content = unwrapDescriptionInner(inner);
         if (!looksLikeHtml(content) && !looksLikeHtml(inner)) {
@@ -142,7 +142,7 @@ export function sanitizeKmlText(text, opts: any = {}) {
     if (looksLikeDtd(text)) {
         throw new KmlSanitizeError("dtd_forbidden");
     }
-    const stripped = [];
+    const stripped: string[] = [];
     let out = String(text);
     const net = dropTagBlocks(out, /<NetworkLink\b[^>]*>[\s\S]*?<\/NetworkLink\s*>/gi, /<NetworkLink\b[^>]*\/>/gi);
     out = net.text;

@@ -55,10 +55,10 @@ describe("frontend mega-page ownership contracts", () => {
     it("ownership pages do not invent unknown top-level child roots", () => {
         const fixture = loadJsonFixture(repoRoot, ownershipFixtureRel);
         const allowedRoots = [
-            "meshchatx/src/frontend/components/settings",
-            "meshchatx/src/frontend/components/map",
+            "meshchatx/src/frontend/features/settings",
+            "meshchatx/src/frontend/features/map",
             "meshchatx/src/frontend/features/messages",
-            "meshchatx/src/frontend/components/call",
+            "meshchatx/src/frontend/features/call",
             "meshchatx/src/frontend/components/layout",
             "meshchatx/src/frontend/js",
         ];

@@ -2,10 +2,12 @@
 
 import type { ApiClient } from "../../../js/apiClient.js";
 
-type Api = ApiClient | {
-    post: (url: string, body?: any, opts?: any) => Promise<{ data?: any }>;
-    delete: (url: string, opts?: any) => Promise<any>;
-};
+type Api =
+    | ApiClient
+    | {
+          post: (url: string, body?: any, opts?: any) => Promise<{ data?: any }>;
+          delete: (url: string, opts?: any) => Promise<any>;
+      };
 
 type DialogUtilsLike = {
     alert: (message: string) => Promise<void> | void;

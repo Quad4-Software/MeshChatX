@@ -5,10 +5,7 @@ import type { TranslationMode, TranslatorConfig, TranslatorLanguage } from "./ty
 /**
  * Filter language pairs matching active translation backend
  */
-export function filterLanguagesByMode(
-    languages: TranslatorLanguage[],
-    mode: TranslationMode
-): TranslatorLanguage[] {
+export function filterLanguagesByMode(languages: TranslatorLanguage[], mode: TranslationMode): TranslatorLanguage[] {
     if (mode === "argos") {
         return languages.filter((lang) => lang.source === "argos");
     }
@@ -37,12 +34,7 @@ export function canTranslate(params: {
     const libreEnabled = Boolean(config?.translator_libretranslate_enabled);
     const backendReady = (mode === "argos" && argosEnabled) || (mode === "libretranslate" && libreEnabled);
 
-    return (
-        backendReady &&
-        inputText.trim().length > 0 &&
-        Boolean(targetLang) &&
-        targetLang !== sourceLang
-    );
+    return backendReady && inputText.trim().length > 0 && Boolean(targetLang) && targetLang !== sourceLang;
 }
 
 /**

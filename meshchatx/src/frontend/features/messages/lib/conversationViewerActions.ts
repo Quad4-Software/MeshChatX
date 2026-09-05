@@ -40,7 +40,11 @@ export type ConversationViewerActionDeps = {
         custom_display_name?: string | null;
         is_tracking?: boolean;
     } | null;
-    conversations?: Array<{ destination_hash?: string; display_name?: string | null; custom_display_name?: string | null }>;
+    conversations?: Array<{
+        destination_hash?: string;
+        display_name?: string | null;
+        custom_display_name?: string | null;
+    }>;
     myLxmfAddressHash?: string;
     messageFontSize?: number;
     expandedMessageInfo?: string | null;
@@ -248,8 +252,7 @@ export function createConversationViewerActions(
             return {
                 kind: "html",
                 textForRender: originalContent,
-                singleEmoji:
-                    originalContent.length < 64 && MarkdownRenderer.isSingleEmojiMessage(originalContent),
+                singleEmoji: originalContent.length < 64 && MarkdownRenderer.isSingleEmojiMessage(originalContent),
                 showFooter: true,
                 showOriginalLink: false,
                 showTranslationLink: true,

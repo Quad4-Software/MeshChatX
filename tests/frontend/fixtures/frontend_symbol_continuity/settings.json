@@ -1,6 +1,6 @@
 {
     "id": "settings",
-    "scan_dirs": ["meshchatx/src/frontend/components/settings", "meshchatx/src/frontend/js/settings"],
+    "scan_dirs": ["meshchatx/src/frontend/features/settings", "meshchatx/src/frontend/js/settings"],
     "required_strings": [
         "LanguageSettingsSection",
         "DesktopSettingsSection",

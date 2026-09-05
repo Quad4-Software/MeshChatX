@@ -3,8 +3,8 @@
  * Falls back silently when WebAssembly is unavailable or load fails.
  */
 
-let resolvedPromise = null;
-let integrityHashes = null;
+let resolvedPromise: Promise<boolean> | null = null;
+let integrityHashes: { wasm?: string; wasmExec?: string } | null = null;
 
 async function computeSriHash(buf) {
     const hash = await crypto.subtle.digest("SHA-384", buf);

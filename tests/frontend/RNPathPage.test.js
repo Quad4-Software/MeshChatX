@@ -247,14 +247,8 @@ describe("RNPathPage.svelte", () => {
         expect(screen.getByText("RNPath")).toBeTruthy();
 
         await waitFor(() => {
-            expect(axiosMock.get).toHaveBeenCalledWith(
-                "/api/v1/rnpath/table",
-                expect.any(Object)
-            );
-            expect(axiosMock.get).toHaveBeenCalledWith(
-                "/api/v1/rnpath/rates",
-                expect.any(Object)
-            );
+            expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/rnpath/table", expect.any(Object));
+            expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/rnpath/rates", expect.any(Object));
         });
 
         expect(await screen.findByText("Table")).toBeTruthy();

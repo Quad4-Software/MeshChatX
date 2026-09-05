@@ -39,8 +39,8 @@ describe("context menu styling", () => {
         const files = [
             "meshchatx/src/frontend/features/contacts/components/ContactsContextMenu.svelte",
             "meshchatx/src/frontend/features/messages/components/ConversationMessageContextMenu.svelte",
-            "meshchatx/src/frontend/components/nomadnetwork/NomadNetworkSidebar.vue",
-            "meshchatx/src/frontend/components/map/MapPage.vue",
+            "meshchatx/src/frontend/features/nomadnetwork/components/NomadBrowserContextMenu.svelte",
+            "meshchatx/src/frontend/features/map/components/MapContextMenu.svelte",
         ];
         for (const f of files) {
             const src = readProjectFile(f);

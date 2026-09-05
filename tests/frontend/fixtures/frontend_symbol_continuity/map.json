@@ -1,6 +1,6 @@
 {
     "id": "map",
-    "scan_dirs": ["meshchatx/src/frontend/components/map"],
+    "scan_dirs": ["meshchatx/src/frontend/features/map"],
     "required_strings": [
         "MapClusterPanel",
         "MapMarkerPanel",

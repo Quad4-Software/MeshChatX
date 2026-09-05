@@ -2,11 +2,35 @@
 
 <script lang="ts">
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
+    import IconButton from "../../../ui/svelte/IconButton.svelte";
+    import EmptyState from "../../../ui/svelte/EmptyState.svelte";
     import ManagementIdentityPicker from "./ManagementIdentityPicker.svelte";
     import { t } from "../../../js/i18n.js";
     import { getStateColor, getStateText, formatDate } from "../lib/pathQuery.js";
     import { ITEMS_PER_PAGE_OPTIONS } from "../lib/constants.js";
     import type { PathEntry } from "../lib/types.js";
+
+    interface Props {
+        pathTable?: PathEntry[];
+        totalItems?: number;
+        responsiveItems?: number;
+        unresponsiveItems?: number;
+        interfaces?: string[];
+        remoteHash?: string;
+        identityPath?: string;
+        remoteTimeout?: number;
+        activeRemoteHash?: string;
+        searchQuery?: string;
+        filterInterface?: string;
+        filterHops?: number | string | null;
+        currentPage?: number;
+        itemsPerPage?: number;
+        totalPages?: number;
+        onDropPath?: (hash: string) => void;
+        onClearRemote?: () => void;
+        onFilterChange?: () => void;
+        onPageChange?: (page: number) => void;
+    }
 
     let {
         pathTable = [],
@@ -28,27 +52,7 @@
         onClearRemote,
         onFilterChange,
         onPageChange,
-    }: {
-        pathTable?: PathEntry[];
-        totalItems?: number;
-        responsiveItems?: number;
-        unresponsiveItems?: number;
-        interfaces?: string[];
-        remoteHash?: string;
-        identityPath?: string;
-        remoteTimeout?: number;
-        activeRemoteHash?: string;
-        searchQuery?: string;
-        filterInterface?: string;
-        filterHops?: number | string | null;
-        currentPage?: number;
-        itemsPerPage?: number;
-        totalPages?: number;
-        onDropPath?: (hash: string) => void;
-        onClearRemote?: () => void;
-        onFilterChange?: () => void;
-        onPageChange?: (page: number) => void;
-    } = $props();
+    }: Props = $props();
 
     function prevPage(): void {
         if (currentPage > 1) {
@@ -127,17 +131,17 @@
                 value={searchQuery}
                 oninput={handleSearchInput}
                 type="text"
-                placeholder="Search Hash or Via..."
+                placeholder={t("tools.rnpath.search_placeholder")}
                 class="input-field pr-10"
                 autocomplete="off"
             />
             <MaterialDesignIcon
                 iconName="magnify"
-                class="pointer-events-none absolute right-3 top-1/2 size-5 -translate-y-1/2 text-gray-400"
+                class="pointer-events-none absolute right-3 top-1/2 size-5 -translate-y-1/2 text-sem-fg-muted"
             />
         </div>
         <select value={filterInterface} onchange={handleInterfaceChange} class="input-field">
-            <option value="">All Interfaces</option>
+            <option value="">{t("tools.rnpath.all_interfaces")}</option>
             {#each interfaces as iface (iface)}
                 <option value={iface}>
                     {iface}
@@ -145,14 +149,14 @@
             {/each}
         </select>
         <div class="flex items-center gap-2">
-            <span class="text-xs font-semibold text-gray-500 uppercase min-w-fit">Hops:</span>
+            <span class="text-xs font-semibold text-sem-fg-muted uppercase min-w-fit">{t("rnprobe.hops")}:</span>
             <input
                 value={filterHops ?? ""}
                 oninput={handleHopsInput}
                 type="number"
                 min="0"
                 max="128"
-                placeholder="Any"
+                placeholder={t("common.all")}
                 class="input-field"
             />
         </div>
@@ -160,24 +164,26 @@
             class="flex flex-wrap items-center justify-start sm:justify-end gap-x-4 gap-y-2 sm:flex-nowrap lg:col-span-1"
         >
             <div class="flex flex-col items-start sm:items-end">
-                <span class="text-[10px] font-bold text-gray-400 uppercase">Total</span>
-                <span class="text-sm font-bold">{totalItems}</span>
+                <span class="text-[10px] font-bold text-gray-400 uppercase">{t("tools.rnpath.total")}</span>
+                <span class="text-sm font-bold text-sem-fg">{totalItems}</span>
             </div>
             <div class="flex flex-col items-start sm:items-end">
-                <span class="text-[10px] font-bold text-green-500 uppercase">Responsive</span>
+                <span class="text-[10px] font-bold text-green-500 uppercase">{t("tools.rnpath.responsive")}</span>
                 <span class="text-sm font-bold text-green-600 dark:text-green-400">{responsiveItems}</span>
             </div>
             <div class="flex flex-col items-start sm:items-end">
-                <span class="text-[10px] font-bold text-red-500 uppercase">Unresponsive</span>
+                <span class="text-[10px] font-bold text-red-500 uppercase">{t("tools.rnpath.unresponsive")}</span>
                 <span class="text-sm font-bold text-red-600 dark:text-red-400">{unresponsiveItems}</span>
             </div>
         </div>
     </div>
 
     {#if pathTable.length === 0}
-        <div class="rounded-lg border border-sem-border bg-sem-surface p-8 sm:p-12 text-center text-gray-500">
-            No paths found matching your criteria.
-        </div>
+        <EmptyState
+            icon="map-marker-path"
+            title={t("tools.rnpath.no_paths_title")}
+            description={t("tools.rnpath.no_paths_desc")}
+        />
     {:else}
         <div class="grid gap-4">
             {#each pathTable as path (path.hash)}
@@ -212,17 +218,17 @@
                             via {path.via} on {path.interface}
                         </div>
                         <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[10px]">
-                            <div class="text-gray-400">
-                                <span class="font-semibold uppercase">Last Updated:</span>
+                            <div class="text-sem-fg-muted">
+                                <span class="font-semibold uppercase">{t("tools.rnpath.last_updated")}:</span>
                                 {path.timestamp ? formatDate(path.timestamp) : "Unknown"}
                             </div>
-                            <div class="text-gray-400">
-                                <span class="font-semibold uppercase">Expires:</span>
+                            <div class="text-sem-fg-muted">
+                                <span class="font-semibold uppercase">{t("tools.rnpath.expires")}:</span>
                                 {formatDate(path.expires)}
                             </div>
                             {#if path.announce_hash}
-                                <div class="text-gray-400">
-                                    <span class="font-semibold uppercase">Announce Hash:</span>
+                                <div class="text-sem-fg-muted">
+                                    <span class="font-semibold uppercase">{t("tools.rnpath.announce_hash")}:</span>
                                     {path.announce_hash}
                                 </div>
                             {/if}
@@ -230,10 +236,11 @@
                     </div>
                     <button
                         type="button"
-                        class="px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg transition-colors border border-red-200 dark:border-red-900/30 cursor-pointer"
+                        class="danger-chip focus-ring-sem px-3 py-1.5 text-xs justify-center shrink-0"
                         onclick={() => onDropPath?.(path.hash)}
                     >
-                        Drop Path
+                        <MaterialDesignIcon iconName="link-variant-remove" class="size-3.5" />
+                        {t("tools.rnpath.drop_path")}
                     </button>
                 </div>
             {/each}
@@ -246,28 +253,28 @@
             class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-sem-border bg-sem-surface p-3 sm:p-4"
         >
             <div class="flex items-center gap-2">
-                <button
-                    type="button"
-                    class="p-2 rounded-lg hover:bg-sem-surface-muted disabled:opacity-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                <IconButton
                     disabled={currentPage === 1}
                     onclick={prevPage}
-                    title="Previous page"
+                    title={t("common.previous")}
+                    class="size-9 min-w-9 min-h-9"
                 >
                     <MaterialDesignIcon iconName="chevron-left" class="size-5" />
-                </button>
-                <span class="text-sm font-medium"> Page {currentPage} of {totalPages} </span>
-                <button
-                    type="button"
-                    class="p-2 rounded-lg hover:bg-sem-surface-muted disabled:opacity-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                </IconButton>
+                <span class="text-sm font-medium text-sem-fg">
+                    {t("tools.rnpath.page_of", { current: currentPage, total: totalPages })}
+                </span>
+                <IconButton
                     disabled={currentPage === totalPages}
                     onclick={nextPage}
-                    title="Next page"
+                    title={t("common.next")}
+                    class="size-9 min-w-9 min-h-9"
                 >
                     <MaterialDesignIcon iconName="chevron-right" class="size-5" />
-                </button>
+                </IconButton>
             </div>
             <div class="flex items-center gap-2 justify-between sm:justify-end w-full sm:w-auto">
-                <span class="text-xs text-gray-500 uppercase font-semibold">Show:</span>
+                <span class="text-xs text-sem-fg-muted uppercase font-semibold">{t("tools.rnpath.show")}:</span>
                 <select
                     value={itemsPerPage}
                     onchange={handleItemsPerPageChange}

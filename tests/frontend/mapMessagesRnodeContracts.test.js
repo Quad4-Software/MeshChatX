@@ -4,7 +4,10 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { rnodeIntegrityKeyForSrc } from "../../meshchatx/src/frontend/js/rnode/rnodeIntegrityKey.js";
-import MapPage from "../../meshchatx/src/frontend/components/map/MapPage.vue";
+import {
+    resolveMyLocationWgs84,
+    handleRemoteOverlaysChanged,
+} from "../../meshchatx/src/frontend/features/map/lib/mapActions.js";
 
 describe("map, messages, and rnode integrity contracts", () => {
     it("RNode SRI key for zip.min.js matches integrity.json (not js/zip.min.js)", () => {
@@ -49,7 +52,7 @@ describe("map, messages, and rnode integrity contracts", () => {
             ],
         };
 
-        const loc = await MapPage.methods.resolveMyLocationWgs84.call(ctx);
+        const loc = await resolveMyLocationWgs84(ctx);
         expect(loc).toEqual({ lon: 11.1, lat: 22.2 });
     });
 
@@ -83,9 +86,7 @@ describe("map, messages, and rnode integrity contracts", () => {
                 this.remoteOverlayLoadGeneration = 2;
             },
         };
-        await MapPage.methods.onRemoteOverlaysChanged.call(ctx, [
-            { id: "ov1", visible: true, status: "ready", format: "geojson" },
-        ]);
+        await handleRemoteOverlaysChanged(ctx, [{ id: "ov1", visible: true, status: "ready", format: "geojson" }]);
         expect(removed).toEqual(["ov1"]);
         expect(ctx.remoteOverlayLayers.ov1).toBeUndefined();
     });

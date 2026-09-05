@@ -3,7 +3,7 @@ import {
     HOP_SLIDER_POS_ALL,
     hopSliderPosToMaxHops,
     hopMaxHopsToSliderPos,
-} from "@/components/network-visualiser/internal/hopMaxFilterSliderMap.js";
+} from "@/features/network-visualiser/lib/hopMaxFilterSliderMap.js";
 
 describe("hopMaxFilterSliderMap", () => {
     it("maps rightmost slider position to unlimited hops", () => {

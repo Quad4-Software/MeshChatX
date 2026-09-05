@@ -11,7 +11,7 @@ from meshchatx.src.backend.http.routes.telephone import first_multipart_file_fie
 from meshchatx.src.backend.telephone_manager import TelephoneManager
 
 
-@patch("meshchatx.src.backend.telephone_manager.Telephone")
+@patch("meshchatx.src.backend.telephone_manager.core.Telephone")
 def test_init_telephone_disables_auto_answer_and_applies_policy(
     mock_tel_class,
     tmp_path,
@@ -41,7 +41,7 @@ def test_init_telephone_disables_auto_answer_and_applies_policy(
     assert callable(phone.set_allowed.call_args[0][0])
 
 
-@patch("meshchatx.src.backend.telephone_manager.Telephone")
+@patch("meshchatx.src.backend.telephone_manager.core.Telephone")
 def test_refresh_call_policy_contacts_only_callback(mock_tel_class, tmp_path):
     storage_dir = tmp_path / "tel"
     storage_dir.mkdir()

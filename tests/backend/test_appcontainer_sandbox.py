@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from meshchatx.src.backend import appcontainer_launcher as launcher
-from meshchatx.src.backend import appcontainer_sandbox as ac
+from meshchatx.src.backend.appcontainer_sandbox import core as ac
 
 
 @pytest.fixture(autouse=True)
@@ -204,8 +204,8 @@ def test_main_skips_appcontainer_wrap_for_self_check(monkeypatch, tmp_path):
 
     with (
         patch("meshchatx.meshchat.ReticulumMeshChat") as mock_app_class,
-        patch("meshchatx.src.backend.identity_context.Database"),
-        patch("meshchatx.src.backend.identity_context.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.core.Database"),
+        patch("meshchatx.src.backend.identity_context.core.ConfigManager"),
         patch("aiohttp.web.run_app"),
         patch.object(meshchat_mod, "_maybe_run_embedded_module", return_value=False),
     ):

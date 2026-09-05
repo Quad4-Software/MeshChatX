@@ -27,7 +27,7 @@ function safeParseJson(raw, fallback) {
 
 export default class AndroidStorageBridge {
     declare android: any;
-    constructor(bridge = null, env = null) {
+    constructor(bridge: any = null, env: any = null) {
         this.android = new AndroidBridge(bridge, env || pickEnv());
     }
 

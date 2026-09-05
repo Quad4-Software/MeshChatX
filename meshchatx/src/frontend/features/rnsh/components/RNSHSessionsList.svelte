@@ -28,7 +28,7 @@
     <div class="text-xs sm:text-sm font-semibold text-sem-fg">
         {t("rnsh.sessions")}
     </div>
-    <button type="button" class="secondary-chip text-xs px-2 py-1.5" onclick={onrefresh}>
+    <button type="button" class="secondary-chip focus-ring-sem text-xs px-2 py-1.5" onclick={onrefresh}>
         <MaterialDesignIcon iconName="refresh" class="size-4" />
         <span class="hidden sm:inline">{t("rnsh.refresh")}</span>
     </button>
@@ -38,7 +38,7 @@
     {#each sessions as session (session.id)}
         <button
             type="button"
-            class="w-full text-left rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 transition-colors {session.id ===
+            class="w-full text-left rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 transition-colors focus-ring-sem {session.id ===
             selectedSessionId
                 ? 'bg-indigo-100 dark:bg-indigo-900/35 text-indigo-950 dark:text-indigo-100'
                 : 'text-sem-fg hover:bg-sem-surface-muted/70'}"

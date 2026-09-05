@@ -96,6 +96,35 @@ export default [
             "vuejs-accessibility/mouse-events-have-key-events": "warn",
             "vuejs-accessibility/no-autofocus": "warn",
             "vuejs-accessibility/no-static-element-interactions": "warn",
+            "vuejs-accessibility/alt-text": "warn",
+            "vuejs-accessibility/iframe-has-title": "warn",
+        },
+    },
+    {
+        files: ["**/*.ts", "**/*.mts", "**/*.cts"],
+        languageOptions: {
+            globals: {
+                ...globals.browser,
+                ...globals.node,
+            },
+            parser: tseslint.parser,
+        },
+        plugins: {
+            "@typescript-eslint": tseslint.plugin,
+        },
+        rules: {
+            "no-undef": "off",
+            "no-unused-vars": "off",
+            "@typescript-eslint/no-unused-vars": [
+                "warn",
+                {
+                    argsIgnorePattern: "^_",
+                    varsIgnorePattern: "^_",
+                    caughtErrorsIgnorePattern: "^_",
+                },
+            ],
+            "no-console": "off",
+            "security/detect-object-injection": "off",
         },
     },
     {
@@ -114,6 +143,7 @@ export default [
             "@typescript-eslint": tseslint.plugin,
         },
         rules: {
+            "no-undef": "off",
             // espree no-unused-vars false-positives on typed $props callback params
             "no-unused-vars": "off",
             "@typescript-eslint/no-unused-vars": [

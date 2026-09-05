@@ -5,12 +5,8 @@ import GlobalState from "../../../js/GlobalState.js";
 import NotificationUtils from "../../../js/NotificationUtils.js";
 import { fromNow } from "../../../libs/datetime.js";
 import { isTelemetryOnly } from "./conversationMessageHelpers.js";
-import {
-    fetchConversationPage,
-    oldestMessageId,
-    prependConversationPage,
-} from "./conversationViewerMessages.js";
-import type { LxmfMessage, ViewerChatItem } from "./conversationViewerCtx.js";
+import { fetchConversationPage, oldestMessageId, prependConversationPage } from "./conversationViewerMessages.js";
+import type { ViewerChatItem } from "./conversationViewerCtx.js";
 import { sameHash } from "./conversationViewerCtx.js";
 import type { ApiClient } from "../../../js/apiClient.js";
 import type { Conversation, Peer } from "./types.js";
@@ -74,10 +70,7 @@ export function filterContactsList(
     });
 }
 
-export function filterSelectedPeerTelemetry(
-    chatItems: ViewerChatItem[],
-    selectedHash: string
-): ViewerChatItem[] {
+export function filterSelectedPeerTelemetry(chatItems: ViewerChatItem[], selectedHash: string): ViewerChatItem[] {
     if (!selectedHash) {
         return [];
     }
@@ -120,11 +113,7 @@ export function buildComposeAddressSuggestions(
     for (const contact of contacts) {
         const hash = String(contact.remote_identity_hash || "");
         const name = String(contact.name || hash);
-        if (
-            hash &&
-            !seen.includes(hash) &&
-            (!search || name.toLowerCase().includes(search) || hash.includes(search))
-        ) {
+        if (hash && !seen.includes(hash) && (!search || name.toLowerCase().includes(search) || hash.includes(search))) {
             suggestions.push({ hash, name, icon: "account", type: "contact" });
             seen.push(hash);
         }
@@ -132,11 +121,7 @@ export function buildComposeAddressSuggestions(
     for (const conversation of conversations) {
         const hash = String(conversation.destination_hash || "");
         const name = String(conversation.custom_display_name || conversation.display_name || hash);
-        if (
-            hash &&
-            !seen.includes(hash) &&
-            (!search || name.toLowerCase().includes(search) || hash.includes(search))
-        ) {
+        if (hash && !seen.includes(hash) && (!search || name.toLowerCase().includes(search) || hash.includes(search))) {
             suggestions.push({ hash, name, icon: "history", type: "recent" });
             seen.push(hash);
         }
@@ -154,13 +139,10 @@ export function isPeerBlockedInState(blockedList: unknown, targetHash: string): 
     }
     return blockedList.some((entry: unknown) => {
         const hash =
-            typeof entry === "string"
-                ? entry
-                : String((entry as Record<string, unknown>)?.destination_hash || "");
+            typeof entry === "string" ? entry : String((entry as Record<string, unknown>)?.destination_hash || "");
         return sameHash(hash, targetHash);
     });
 }
-
 
 export type OpenConversationSeed = {
     chatItems: ViewerChatItem[];
@@ -196,7 +178,6 @@ export function prepareOpenConversationState(opts: {
     };
 }
 
-
 export async function runLoadPreviousPage(opts: {
     api: ApiClient;
     peerHash: string;
@@ -207,16 +188,7 @@ export async function runLoadPreviousPage(opts: {
     messagesScroll: HTMLElement | null | undefined;
     tick: () => Promise<void>;
 }): Promise<{ items: ViewerChatItem[]; hasMorePrevious: boolean } | null> {
-    const {
-        api,
-        peerHash,
-        myLxmfAddressHash,
-        chatItems,
-        requestSequence,
-        currentSelectedHash,
-        messagesScroll,
-        tick,
-    } = opts;
+    const { api, peerHash, myLxmfAddressHash, chatItems, currentSelectedHash, messagesScroll, tick } = opts;
     const anchorHeight = messagesScroll?.scrollHeight || 0;
     const anchorTop = messagesScroll?.scrollTop || 0;
     try {

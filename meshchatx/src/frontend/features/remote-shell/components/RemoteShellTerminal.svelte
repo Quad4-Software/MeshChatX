@@ -80,7 +80,7 @@
             {#if showSessionsToggle}
                 <button
                     type="button"
-                    class="secondary-chip text-xs px-2 py-1.5 shrink-0 lg:hidden"
+                    class="secondary-chip focus-ring-sem text-xs px-2 py-1.5 shrink-0 lg:hidden"
                     aria-label={sessionsOpen ? tKey("hide_sessions") : tKey("show_sessions")}
                     onclick={ontoggleSessions}
                 >
@@ -105,7 +105,7 @@
         <div class="flex flex-wrap items-center gap-1 sm:gap-2 shrink-0">
             <button
                 type="button"
-                class="secondary-chip text-xs p-1.5 sm:px-2 sm:py-1.5"
+                class="secondary-chip focus-ring-sem text-xs p-1.5 sm:px-2 sm:py-1.5"
                 disabled={!session}
                 title={tKey("start")}
                 aria-label={tKey("start")}
@@ -116,7 +116,7 @@
             </button>
             <button
                 type="button"
-                class="secondary-chip text-xs p-1.5 sm:px-2 sm:py-1.5 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/40"
+                class="secondary-chip focus-ring-sem text-xs p-1.5 sm:px-2 sm:py-1.5 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/40"
                 disabled={!session}
                 title={tKey("stop")}
                 aria-label={tKey("stop")}
@@ -127,7 +127,7 @@
             </button>
             <button
                 type="button"
-                class="secondary-chip text-xs p-1.5 sm:px-2 sm:py-1.5"
+                class="secondary-chip focus-ring-sem text-xs p-1.5 sm:px-2 sm:py-1.5"
                 disabled={!session}
                 title={tKey("clear")}
                 aria-label={tKey("clear")}
@@ -138,7 +138,7 @@
             </button>
             <button
                 type="button"
-                class="secondary-chip text-xs p-1.5 sm:px-2 sm:py-1.5 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/40"
+                class="secondary-chip focus-ring-sem text-xs p-1.5 sm:px-2 sm:py-1.5 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/40"
                 disabled={!session}
                 title={tKey("remove")}
                 aria-label={tKey("remove")}
@@ -149,7 +149,7 @@
             </button>
             <button
                 type="button"
-                class="secondary-chip text-xs p-1.5 sm:px-2 sm:py-1.5"
+                class="secondary-chip focus-ring-sem text-xs p-1.5 sm:px-2 sm:py-1.5"
                 title={fullscreen ? tKey("exit_fullscreen") : tKey("fullscreen")}
                 aria-label={fullscreen ? tKey("exit_fullscreen") : tKey("fullscreen")}
                 onclick={ontoggleFullscreen}
@@ -174,7 +174,7 @@
             {#if listenAddress}
                 <button
                     type="button"
-                    class="secondary-chip text-xs p-1 sm:px-2 sm:py-1 shrink-0"
+                    class="secondary-chip focus-ring-sem text-xs p-1 sm:px-2 sm:py-1 shrink-0"
                     title={tKey("copy_address")}
                     aria-label={tKey("copy_address")}
                     onclick={oncopyAddress}
@@ -214,7 +214,7 @@
         />
         <button
             type="submit"
-            class="primary-chip px-2.5 sm:px-3 py-2 text-xs shrink-0"
+            class="primary-chip focus-ring-sem px-2.5 sm:px-3 py-2 text-xs shrink-0"
             disabled={!session || !commandInput.trim()}
             aria-label={tKey("send_line")}
         >

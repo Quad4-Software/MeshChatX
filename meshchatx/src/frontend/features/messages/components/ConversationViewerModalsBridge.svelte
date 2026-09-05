@@ -4,10 +4,7 @@
     import ConversationViewerModalsHost from "./ConversationViewerModalsHost.svelte";
     import { copyTextToClipboard } from "../../../js/clipboardUtils.js";
     import { LXMF_REACTION_EMOJIS } from "../../../js/lxmfReactions.js";
-    import {
-        lxmfContactResolvedIcon,
-        lxmfDeliveryDestinationHexFromContact,
-    } from "../lib/lxmf/contactDisplay.js";
+    import { lxmfContactResolvedIcon, lxmfDeliveryDestinationHexFromContact } from "../lib/lxmf/contactDisplay.js";
     import type { LxmfMessage, ViewerChatItem } from "../lib/conversationViewerCtx.js";
     import type { LangOption } from "../lib/conversationTranslate.js";
     import type { Conversation } from "../lib/types.js";
@@ -38,7 +35,12 @@
         imageLightbox,
         contextMenu = $bindable({ show: false, x: 0, y: 0, chatItem: null, justOpened: false } as ContextMenuState),
         reactionPicker = $bindable({ open: false, style: "", chatItem: null } as ReactionPickerState),
-        bubbleTranslate = $bindable({ open: false, targetLang: "en", chatItem: null, working: false } as BubbleTranslateState),
+        bubbleTranslate = $bindable({
+            open: false,
+            targetLang: "en",
+            chatItem: null,
+            working: false,
+        } as BubbleTranslateState),
         isRawMessageModalOpen = $bindable(false),
         rawMessageData = $bindable({} as LxmfMessage),
         isPaperMessageResultModalOpen = $bindable(false),

@@ -67,9 +67,7 @@ describe("reticulum-config-editor lib helpers", () => {
     });
 
     it("extracts error message from various error formats", () => {
-        expect(extractErrorMessage({ response: { data: { error: "Custom err" } } }, "fallback")).toBe(
-            "Custom err"
-        );
+        expect(extractErrorMessage({ response: { data: { error: "Custom err" } } }, "fallback")).toBe("Custom err");
         expect(extractErrorMessage({ message: "Network fail" }, "fallback")).toBe("Network fail");
         expect(extractErrorMessage("String error", "fallback")).toBe("String error");
         expect(extractErrorMessage(null, "fallback")).toBe("fallback");

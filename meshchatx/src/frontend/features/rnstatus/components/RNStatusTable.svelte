@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
+    import EmptyState from "../../../ui/svelte/EmptyState.svelte";
     import { t } from "../../../js/i18n.js";
     import { buildInterfaceStatRows, copyText } from "../lib/statusFormat.js";
     import type { RNStatusInterface } from "../lib/types.js";
@@ -12,19 +13,11 @@
         reloadingRns?: boolean;
     }
 
-    let {
-        interfaces = [],
-        isLoading = false,
-        reloadingRns = false,
-    }: Props = $props();
+    let { interfaces = [], isLoading = false, reloadingRns = false }: Props = $props();
 </script>
 
 {#if interfaces.length === 0 && !isLoading && !reloadingRns}
-    <div
-        class="rounded-xl border border-dashed border-gray-300 dark:border-zinc-700 py-12 text-center text-sm text-sem-fg-muted"
-    >
-        {t("rnstatus.no_interfaces_found")}
-    </div>
+    <EmptyState icon="lan-disconnect" title={t("rnstatus.no_interfaces_found")} />
 {:else}
     <div class="space-y-3">
         {#each interfaces as iface (iface.name)}
@@ -50,7 +43,8 @@
                         {/if}
                     </div>
                     <span
-                        class="shrink-0 rounded-full px-3 py-1 text-xs font-semibold {iface.status && String(iface.status).startsWith('Up')
+                        class="shrink-0 rounded-full px-3 py-1 text-xs font-semibold {iface.status &&
+                        String(iface.status).startsWith('Up')
                             ? 'bg-green-100 text-green-800 dark:bg-green-900/45 dark:text-green-100'
                             : 'bg-red-100 text-red-800 dark:bg-red-900/45 dark:text-red-100'}"
                     >
@@ -62,7 +56,11 @@
                     <div class="address-card">
                         <div class="address-card__label">{t("rnstatus.i2p_address")}</div>
                         <div class="address-card__value monospace-field">{iface.i2p_b32}</div>
-                        <button type="button" class="address-card__action" onclick={() => copyText(iface.i2p_b32)}>
+                        <button
+                            type="button"
+                            class="address-card__action focus-ring-sem"
+                            onclick={() => copyText(iface.i2p_b32)}
+                        >
                             <MaterialDesignIcon iconName="content-copy" class="w-3.5 h-3.5" />
                             {t("common.copy")}
                         </button>

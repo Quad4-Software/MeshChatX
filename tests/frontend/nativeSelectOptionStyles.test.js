@@ -125,7 +125,7 @@ describe("native select option theming", () => {
         const menu = readFileSync(join(FRONTEND, "components/DropDownMenu.vue"), "utf8");
         const item = readFileSync(join(FRONTEND, "components/DropDownMenuItem.vue"), "utf8");
         const visualiserMenu = readFileSync(
-            join(FRONTEND, "components/network-visualiser/internal/NetworkVisualiserToolbar.vue"),
+            join(FRONTEND, "features/network-visualiser/components/NetworkVisualiserToolbar.svelte"),
             "utf8"
         );
         expect(menu).toContain("dropdown-panel");

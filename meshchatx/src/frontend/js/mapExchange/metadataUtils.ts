@@ -174,7 +174,7 @@ export function splitTextWithLinks(text) {
     if (!raw) {
         return [];
     }
-    const parts = [];
+    const parts: any[] = [];
     let last = 0;
     URL_RE.lastIndex = 0;
     let m;
@@ -216,7 +216,7 @@ export function getDrawFeatureMetadataPayload(feature) {
         description = flattenHtmlDescription(description);
     }
     const iconSrc = safeFeatureIconSrc(props[MCX_ICON_DATA_URL] || props[MCX_ICON_HREF] || null);
-    const extended = [];
+    const extended: { key: string; value: string }[] = [];
     const seenKeys = new Set();
     for (const [k, v] of Object.entries(props)) {
         if (k === "geometry" || k.startsWith("_")) {

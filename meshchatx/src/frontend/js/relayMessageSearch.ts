@@ -10,7 +10,7 @@ const DATE_TOKEN_RE = /\bDATE:("([^"]+)"|(\S+))/gi;
  * @returns {string[]}
  */
 export function tokenizeSearchTerms(raw) {
-    const out = [];
+    const out: string[] = [];
     const re = /[^\s"]+|"([^"]*)"/g;
     let m;
     while ((m = re.exec(raw)) !== null) {
@@ -56,7 +56,7 @@ export function parseDateSearchToken(token) {
  */
 export function parseSearchClause(clauseText) {
     let text = clauseText.trim();
-    let dateKey = null;
+    let dateKey: string | null = null;
     text = text.replace(DATE_TOKEN_RE, (_, _q, quoted, bare) => {
         const parsed = parseDateSearchToken(quoted !== undefined ? quoted : bare);
         if (parsed) {

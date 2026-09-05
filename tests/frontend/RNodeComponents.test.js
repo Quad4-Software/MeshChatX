@@ -1,60 +1,62 @@
-import { mount } from "@vue/test-utils";
-import { describe, it, expect } from "vitest";
-import RNodeCapabilitiesBanner from "@/components/rnode/RNodeCapabilitiesBanner.vue";
-import RNodeDeviceSelector from "@/components/rnode/RNodeDeviceSelector.vue";
-import RNodeFlashAction from "@/components/rnode/RNodeFlashAction.vue";
-import RNodeAdvancedTools from "@/components/rnode/RNodeAdvancedTools.vue";
-import RNodeDiagnosticsPanel from "@/components/rnode/RNodeDiagnosticsPanel.vue";
-import { detectCapabilities } from "@/js/rnode/Capabilities.js";
+// SPDX-License-Identifier: 0BSD
 
-const mountWith = (Component, props = {}) =>
-    mount(Component, {
-        props,
-        global: {
-            mocks: { $t: (k, params) => k + (params ? JSON.stringify(params) : "") },
-            stubs: {
-                MaterialDesignIcon: {
-                    template: '<i class="mdi-stub" :data-icon-name="iconName"></i>',
-                    props: ["iconName"],
-                },
-                "v-progress-circular": true,
-                "v-progress-linear": true,
-                "v-icon": true,
-            },
-        },
-    });
+import { render, cleanup, fireEvent } from "@testing-library/svelte";
+import { describe, it, expect, afterEach } from "vitest";
+import RNodeCapabilitiesBanner from "../../meshchatx/src/frontend/features/rnode-flasher/components/RNodeCapabilitiesBanner.svelte";
+import RNodeDeviceSelector from "../../meshchatx/src/frontend/features/rnode-flasher/components/RNodeDeviceSelector.svelte";
+import RNodeFlashAction from "../../meshchatx/src/frontend/features/rnode-flasher/components/RNodeFlashAction.svelte";
+import RNodeAdvancedTools from "../../meshchatx/src/frontend/features/rnode-flasher/components/RNodeAdvancedTools.svelte";
+import RNodeDiagnosticsPanel from "../../meshchatx/src/frontend/features/rnode-flasher/components/RNodeDiagnosticsPanel.svelte";
+import { detectCapabilities } from "../../meshchatx/src/frontend/js/rnode/Capabilities.js";
+import { t } from "../../meshchatx/src/frontend/js/i18n.js";
 
 describe("RNodeCapabilitiesBanner", () => {
+    afterEach(() => {
+        cleanup();
+    });
+
     it("renders nothing when all transports are available", () => {
         const env = { isSecureContext: true, navigator: { userAgent: "x", serial: {}, bluetooth: {} } };
         const caps = detectCapabilities({ env });
-        const wrapper = mountWith(RNodeCapabilitiesBanner, { capabilities: caps });
-        expect(wrapper.html()).toBe("<!--v-if-->");
+        const { container } = render(RNodeCapabilitiesBanner, { props: { capabilities: caps } });
+        expect(container.textContent?.trim()).toBe("");
     });
 
     it("shows a serial warning with load polyfill action when polyfill missing", async () => {
         const env = { isSecureContext: true, navigator: { userAgent: "x", usb: {} } };
         const caps = detectCapabilities({ env });
-        const wrapper = mountWith(RNodeCapabilitiesBanner, { capabilities: caps });
-        expect(wrapper.text()).toContain("tools.rnode_flasher.support.serial.title");
-        const button = wrapper.findAll("button").find((b) => b.text().includes("load_polyfill"));
+        let actionEmitted = null;
+        const { container } = render(RNodeCapabilitiesBanner, {
+            props: {
+                capabilities: caps,
+                onaction: (a) => {
+                    actionEmitted = a;
+                },
+            },
+        });
+        expect(container.textContent).toContain(t("tools.rnode_flasher.support.serial.title"));
+        const button = Array.from(container.querySelectorAll("button")).find((b) =>
+            b.textContent?.includes(t("tools.rnode_flasher.support.actions.load_polyfill"))
+        );
         expect(button).toBeDefined();
-        await button.trigger("click");
-        expect(wrapper.emitted("action")[0]).toEqual(["load-polyfill"]);
+        if (button) await fireEvent.click(button);
+        expect(actionEmitted).toBe("load-polyfill");
     });
 
     it("shows bluetooth warning with android actions when bridge available", () => {
         const env = { isSecureContext: true, navigator: { userAgent: "Android" } };
         const caps = detectCapabilities({ env });
-        const wrapper = mountWith(RNodeCapabilitiesBanner, {
-            capabilities: caps,
-            androidAvailable: true,
+        const { container } = render(RNodeCapabilitiesBanner, {
+            props: {
+                capabilities: caps,
+                androidAvailable: true,
+            },
         });
-        expect(wrapper.text()).toContain("tools.rnode_flasher.support.bluetooth.title");
-        const labels = wrapper.findAll("button").map((b) => b.text());
-        expect(labels.some((l) => l.includes("open_native"))).toBe(true);
-        expect(labels.some((l) => l.includes("open_settings"))).toBe(true);
-        expect(labels.some((l) => l.includes("request_bluetooth"))).toBe(false);
+        expect(container.textContent).toContain(t("tools.rnode_flasher.support.bluetooth.title"));
+        const labels = Array.from(container.querySelectorAll("button")).map((b) => b.textContent || "");
+        expect(labels.some((l) => l.includes(t("tools.rnode_flasher.support.actions.open_native")))).toBe(true);
+        expect(labels.some((l) => l.includes(t("tools.rnode_flasher.support.actions.open_settings")))).toBe(true);
+        expect(labels.some((l) => l.includes(t("tools.rnode_flasher.support.actions.request_bluetooth")))).toBe(false);
     });
 
     it("shows request bluetooth when android permission is required", () => {
@@ -64,115 +66,171 @@ describe("RNodeCapabilitiesBanner", () => {
             MeshChatXAndroid: { hasBluetoothPermissions: () => false },
         };
         const caps = detectCapabilities({ env });
-        const wrapper = mountWith(RNodeCapabilitiesBanner, {
-            capabilities: caps,
-            androidAvailable: true,
+        const { container } = render(RNodeCapabilitiesBanner, {
+            props: {
+                capabilities: caps,
+                androidAvailable: true,
+            },
         });
-        const labels = wrapper.findAll("button").map((b) => b.text());
-        expect(labels.some((l) => l.includes("request_bluetooth"))).toBe(true);
-        expect(labels.some((l) => l.includes("open_settings"))).toBe(true);
+        const labels = Array.from(container.querySelectorAll("button")).map((b) => b.textContent || "");
+        expect(labels.some((l) => l.includes(t("tools.rnode_flasher.support.actions.request_bluetooth")))).toBe(true);
+        expect(labels.some((l) => l.includes(t("tools.rnode_flasher.support.actions.open_settings")))).toBe(true);
     });
 
     it("shows desktop Try Bluetooth and Recheck actions when Web Bluetooth is missing", () => {
         const env = { isSecureContext: true, navigator: { userAgent: "Mozilla/5.0 Brave/1.0" } };
         const caps = detectCapabilities({ env });
-        const wrapper = mountWith(RNodeCapabilitiesBanner, {
-            capabilities: caps,
-            androidAvailable: false,
+        const { container } = render(RNodeCapabilitiesBanner, {
+            props: {
+                capabilities: caps,
+                androidAvailable: false,
+            },
         });
         expect(caps.transports.bluetooth.reason).toBe("brave_flag_disabled");
-        const labels = wrapper.findAll("button").map((b) => b.text());
-        expect(labels.some((l) => l.includes("probe_bluetooth"))).toBe(true);
-        expect(labels.some((l) => l.includes("recheck_capabilities"))).toBe(true);
+        const labels = Array.from(container.querySelectorAll("button")).map((b) => b.textContent || "");
+        expect(labels.some((l) => l.includes(t("tools.rnode_flasher.support.actions.probe_bluetooth")))).toBe(true);
+        expect(labels.some((l) => l.includes(t("tools.rnode_flasher.support.actions.recheck_capabilities")))).toBe(
+            true
+        );
     });
 });
 
 describe("RNodeDeviceSelector", () => {
+    afterEach(() => {
+        cleanup();
+    });
+
     it("disables transports that are not available", () => {
         const caps = detectCapabilities({ env: { isSecureContext: true, navigator: { userAgent: "Android" } } });
-        const wrapper = mountWith(RNodeDeviceSelector, {
-            connectionMethod: "wifi",
-            wifiHost: "192.168.1.50",
-            selectedProduct: null,
-            selectedModel: null,
-            products: [{ id: 1, name: "Test", platform: 0x80, models: [{ id: 1, name: "M" }] }],
-            capabilities: caps,
+        const { container } = render(RNodeDeviceSelector, {
+            props: {
+                connectionMethod: "wifi",
+                wifiHost: "192.168.1.50",
+                selectedProduct: null,
+                selectedModel: null,
+                products: [{ id: 1, name: "Test", platform: 0x80, models: [{ id: 1, name: "M" }] }],
+                capabilities: caps,
+            },
         });
-        const serialBtn = wrapper.find('[data-testid="rnode-transport-serial"]');
-        const wifiBtn = wrapper.find('[data-testid="rnode-transport-wifi"]');
-        expect(serialBtn.attributes("disabled")).toBeDefined();
-        expect(wifiBtn.attributes("disabled")).toBeUndefined();
+        const serialBtn = container.querySelector('[data-testid="rnode-transport-serial"]');
+        const wifiBtn = container.querySelector('[data-testid="rnode-transport-wifi"]');
+        expect(serialBtn?.hasAttribute("disabled")).toBe(true);
+        expect(wifiBtn?.hasAttribute("disabled")).toBe(false);
     });
 
     it("shows DFU mode button only for nRF52 + serial", () => {
         const caps = detectCapabilities({ env: { isSecureContext: true, navigator: { userAgent: "x", serial: {} } } });
         const product = { id: 1, name: "P", platform: 0x70, models: [] };
-        const wrapper = mountWith(RNodeDeviceSelector, {
-            connectionMethod: "serial",
-            wifiHost: "",
-            selectedProduct: product,
-            selectedModel: null,
-            products: [product],
-            capabilities: caps,
+        const { container } = render(RNodeDeviceSelector, {
+            props: {
+                connectionMethod: "serial",
+                wifiHost: "",
+                selectedProduct: product,
+                selectedModel: null,
+                products: [product],
+                capabilities: caps,
+            },
         });
-        expect(wrapper.text()).toContain("tools.rnode_flasher.enter_dfu_mode");
+        expect(container.textContent).toContain(t("tools.rnode_flasher.enter_dfu_mode"));
     });
 });
 
 describe("RNodeFlashAction", () => {
+    afterEach(() => {
+        cleanup();
+    });
+
     it("disables flash button when canFlash=false", () => {
-        const wrapper = mountWith(RNodeFlashAction, { canFlash: false });
-        const btn = wrapper.find('[data-testid="rnode-flash-btn"]');
-        expect(btn.attributes("disabled")).toBeDefined();
+        const { container } = render(RNodeFlashAction, { props: { canFlash: false } });
+        const btn = container.querySelector('[data-testid="rnode-flash-btn"]');
+        expect(btn?.hasAttribute("disabled")).toBe(true);
     });
+
     it("renders error message when provided", () => {
-        const wrapper = mountWith(RNodeFlashAction, { errorMessage: "boom" });
-        expect(wrapper.text()).toContain("boom");
+        const { container } = render(RNodeFlashAction, { props: { errorMessage: "boom" } });
+        expect(container.textContent).toContain("boom");
     });
+
     it("emits flash event when button clicked", async () => {
-        const wrapper = mountWith(RNodeFlashAction, { canFlash: true });
-        await wrapper.find('[data-testid="rnode-flash-btn"]').trigger("click");
-        expect(wrapper.emitted("flash")).toBeTruthy();
+        let flashed = false;
+        const { container } = render(RNodeFlashAction, {
+            props: {
+                canFlash: true,
+                onflash: () => {
+                    flashed = true;
+                },
+            },
+        });
+        const btn = container.querySelector('[data-testid="rnode-flash-btn"]');
+        if (btn) await fireEvent.click(btn);
+        expect(flashed).toBe(true);
     });
 });
 
 describe("RNodeAdvancedTools", () => {
-    it("hides actions listed in disabledActions", () => {
-        const wrapper = mountWith(RNodeAdvancedTools, {
-            disabledActions: ["dump-eeprom", "wipe-eeprom"],
-        });
-        expect(wrapper.text()).not.toContain("tools.rnode_flasher.dump_eeprom");
-        expect(wrapper.text()).not.toContain("tools.rnode_flasher.wipe_eeprom");
-        expect(wrapper.text()).toContain("tools.rnode_flasher.detect_rnode");
+    afterEach(() => {
+        cleanup();
     });
+
+    it("hides actions listed in disabledActions", () => {
+        const { container } = render(RNodeAdvancedTools, {
+            props: {
+                disabledActions: ["dump-eeprom", "wipe-eeprom"],
+            },
+        });
+        expect(container.textContent).not.toContain(t("tools.rnode_flasher.dump_eeprom"));
+        expect(container.textContent).not.toContain(t("tools.rnode_flasher.wipe_eeprom"));
+        expect(container.textContent).toContain(t("tools.rnode_flasher.detect_rnode"));
+    });
+
     it("emits action with action id", async () => {
-        const wrapper = mountWith(RNodeAdvancedTools);
-        const btn = wrapper.findAll("button").find((b) => b.text().includes("detect_rnode"));
-        await btn.trigger("click");
-        expect(wrapper.emitted("action")[0]).toEqual(["detect"]);
+        let emittedAction = null;
+        const { container } = render(RNodeAdvancedTools, {
+            props: {
+                onaction: (a) => {
+                    emittedAction = a;
+                },
+            },
+        });
+        const btn = Array.from(container.querySelectorAll("button")).find((b) =>
+            b.textContent?.includes(t("tools.rnode_flasher.detect_rnode"))
+        );
+        expect(btn).toBeDefined();
+        if (btn) await fireEvent.click(btn);
+        expect(emittedAction).toBe("detect");
     });
 });
 
 describe("RNodeDiagnosticsPanel", () => {
+    afterEach(() => {
+        cleanup();
+    });
+
     it("renders nothing when no diagnostics", () => {
-        const wrapper = mountWith(RNodeDiagnosticsPanel, { diagnostics: null });
-        expect(wrapper.html()).toBe("<!--v-if-->");
+        const { container } = render(RNodeDiagnosticsPanel, { props: { diagnostics: null } });
+        expect(container.textContent?.trim()).toBe("");
     });
+
     it("shows healthy badge when no issues", () => {
-        const wrapper = mountWith(RNodeDiagnosticsPanel, {
-            diagnostics: { issues: [], suggestionKeys: [], summary: { firmware_version: "1.80" } },
-        });
-        expect(wrapper.text()).toContain("tools.rnode_flasher.diagnostics.healthy");
-    });
-    it("shows issues list and needs_attention badge when issues exist", () => {
-        const wrapper = mountWith(RNodeDiagnosticsPanel, {
-            diagnostics: {
-                issues: ["not_provisioned"],
-                suggestionKeys: ["tools.rnode_flasher.diagnostics.suggestions.not_provisioned"],
-                summary: { firmware_version: "1.80" },
+        const { container } = render(RNodeDiagnosticsPanel, {
+            props: {
+                diagnostics: { issues: [], suggestionKeys: [], summary: { firmware_version: "1.80" } },
             },
         });
-        expect(wrapper.text()).toContain("tools.rnode_flasher.diagnostics.needs_attention");
-        expect(wrapper.text()).toContain("tools.rnode_flasher.diagnostics.suggestions.not_provisioned");
+        expect(container.textContent).toContain(t("tools.rnode_flasher.diagnostics.healthy"));
+    });
+
+    it("shows issues list and needs_attention badge when issues exist", () => {
+        const { container } = render(RNodeDiagnosticsPanel, {
+            props: {
+                diagnostics: {
+                    issues: ["not_provisioned"],
+                    suggestionKeys: ["tools.rnode_flasher.diagnostics.suggestions.not_provisioned"],
+                    summary: { firmware_version: "1.80" },
+                },
+            },
+        });
+        expect(container.textContent).toContain(t("tools.rnode_flasher.diagnostics.needs_attention"));
+        expect(container.textContent).toContain(t("tools.rnode_flasher.diagnostics.suggestions.not_provisioned"));
     });
 });

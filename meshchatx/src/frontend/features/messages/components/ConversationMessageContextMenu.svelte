@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import { tick } from "svelte";
+    import { fade } from "svelte/transition";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import { clampFloatingToViewport } from "../../../js/clampFloatingToViewport.js";
     import { t } from "../../../js/i18n.js";
@@ -73,6 +74,15 @@
     let adjustedTop = $state(0);
     let panelMaxHeight: number | null = $state(null);
 
+    function isReducedMotion(): boolean {
+        if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+            return false;
+        }
+        return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    }
+
+    const transitionDuration = $derived(isReducedMotion() ? 0 : 120);
+
     async function reposition() {
         await tick();
         if (!panel || !show) return;
@@ -113,6 +123,7 @@
         tabindex="-1"
         onclick={(e) => e.stopPropagation()}
         onkeydown={(e) => e.stopPropagation()}
+        transition:fade={{ duration: transitionDuration }}
     >
         <button type="button" class="context-item" role="menuitem" onclick={() => onreply?.()}>
             <MaterialDesignIcon iconName="reply" class="size-4 text-indigo-500" />

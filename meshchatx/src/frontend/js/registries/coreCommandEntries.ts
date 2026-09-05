@@ -1,19 +1,17 @@
 // SPDX-License-Identifier: 0BSD
 
-/**
- * @typedef {Object} CommandEntry
- * @property {string} id
- * @property {string} title
- * @property {string} description
- * @property {string} icon
- * @property {'navigation' | 'action'} type
- * @property {{ name: string }} [route]
- * @property {'sync' | 'compose' | 'show-tutorial' | 'show-changelog'} [action]
- * @property {string | null} [pluginId]
- */
+export interface CommandEntry {
+    id: string;
+    title: string;
+    description: string;
+    icon: string;
+    type: "navigation" | "action";
+    route?: { name: string };
+    action?: "sync" | "compose" | "show-tutorial" | "show-changelog" | string;
+    pluginId?: string | null;
+}
 
-/** @type {CommandEntry[]} */
-export const CORE_COMMAND_ENTRIES = [
+export const CORE_COMMAND_ENTRIES: CommandEntry[] = [
     {
         id: "nav-messages",
         title: "nav_messages",

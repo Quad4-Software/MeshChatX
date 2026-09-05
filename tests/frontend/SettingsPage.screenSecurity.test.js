@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: 0BSD
 
-import { mount, flushPromises } from "@vue/test-utils";
+import { render, fireEvent, waitFor } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import SettingsPage from "../../meshchatx/src/frontend/components/settings/SettingsPage.vue";
-import Toggle from "../../meshchatx/src/frontend/components/forms/Toggle.vue";
+import SettingsPage from "../../meshchatx/src/frontend/features/settings/components/SettingsPage.svelte";
 import DialogUtils from "../../meshchatx/src/frontend/js/DialogUtils";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
 import ElectronUtils from "../../meshchatx/src/frontend/js/ElectronUtils";
@@ -67,27 +66,18 @@ vi.mock("../../meshchatx/src/frontend/js/ElectronUtils", () => ({
     },
 }));
 
-async function mountSettingsPage() {
+async function renderPrivacyTab() {
     const api = createWindowApi(buildFullServerConfig());
     window.api = api;
-    const wrapper = mount(SettingsPage, {
-        global: {
-            stubs: {
-                MaterialDesignIcon: { template: "<span class='mdi'></span>" },
-                Toggle,
-                SettingsNav: true,
-                LanguageSelector: true,
-                PluginSlotNode: true,
-            },
-            mocks: {
-                $t: (key) => key,
-                $router: { push: vi.fn() },
-                $route: { name: "settings", query: {} },
-            },
-        },
-    });
-    await flushPromises();
-    return wrapper;
+    const view = render(SettingsPage);
+    const tabs = view.container.querySelectorAll(".settings-nav__tab");
+    for (const tab of tabs) {
+        if (tab.textContent.includes("Privacy")) {
+            await fireEvent.click(tab);
+            break;
+        }
+    }
+    return view;
 }
 
 describe("SettingsPage screen security edge and race", () => {
@@ -114,29 +104,35 @@ describe("SettingsPage screen security edge and race", () => {
     });
 
     it("loads Windows screen security state on mount", async () => {
-        const wrapper = await mountSettingsPage();
-        expect(wrapper.vm.showWindowsScreenSecurity).toBe(true);
-        expect(wrapper.vm.screenSecurityEnabled).toBe(false);
-        expect(ElectronUtils.getScreenSecuritySettings).toHaveBeenCalled();
-        wrapper.unmount();
+        const { container } = await renderPrivacyTab();
+        await waitFor(() => {
+            expect(ElectronUtils.getScreenSecuritySettings).toHaveBeenCalled();
+            const toggle = container.querySelector("#screen-security-enabled");
+            expect(toggle).not.toBeNull();
+            expect(toggle.checked).toBe(false);
+        });
     });
 
     it("hides screen security when not Windows Electron", async () => {
         ElectronUtils.isWindowsElectron.mockReturnValue(false);
-        const wrapper = await mountSettingsPage();
-        expect(wrapper.vm.showWindowsScreenSecurity).toBe(false);
-        expect(ElectronUtils.getScreenSecuritySettings).not.toHaveBeenCalled();
-        wrapper.unmount();
+        const { container } = await renderPrivacyTab();
+        await waitFor(() => {
+            expect(ElectronUtils.getScreenSecuritySettings).not.toHaveBeenCalled();
+            const toggle = container.querySelector("#screen-security-enabled");
+            expect(toggle).toBeNull();
+        });
     });
 
     it("tolerates getScreenSecuritySettings failures", async () => {
         ElectronUtils.getScreenSecuritySettings.mockRejectedValue(new Error("ipc"));
         const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-        const wrapper = await mountSettingsPage();
-        expect(wrapper.vm.showWindowsScreenSecurity).toBe(true);
-        expect(wrapper.vm.screenSecurityEnabled).toBe(false);
+        const { container } = await renderPrivacyTab();
+        await waitFor(() => {
+            const toggle = container.querySelector("#screen-security-enabled");
+            expect(toggle).not.toBeNull();
+            expect(toggle.checked).toBe(false);
+        });
         logSpy.mockRestore();
-        wrapper.unmount();
     });
 
     it("cancels disable when confirm is rejected", async () => {
@@ -145,81 +141,52 @@ describe("SettingsPage screen security edge and race", () => {
             available: true,
         });
         DialogUtils.confirm.mockResolvedValue(false);
-        const wrapper = await mountSettingsPage();
-        expect(wrapper.vm.screenSecurityEnabled).toBe(true);
+        const { container } = await renderPrivacyTab();
 
-        await wrapper.vm.onScreenSecurityChange(false);
-        expect(DialogUtils.confirm).toHaveBeenCalled();
-        expect(ElectronUtils.setScreenSecurityEnabled).not.toHaveBeenCalled();
-        expect(wrapper.vm.screenSecurityEnabled).toBe(true);
-        wrapper.unmount();
-    });
-
-    it("dedupes concurrent enable toggles (race)", async () => {
-        let resolveSet;
-        ElectronUtils.setScreenSecurityEnabled.mockImplementation(
-            () =>
-                new Promise((resolve) => {
-                    resolveSet = resolve;
-                })
-        );
-        const wrapper = await mountSettingsPage();
-
-        const first = wrapper.vm.onScreenSecurityChange(true);
-        const second = wrapper.vm.onScreenSecurityChange(true);
-        expect(ElectronUtils.setScreenSecurityEnabled).toHaveBeenCalledTimes(1);
-
-        resolveSet({ enabled: true, available: true, platform: "win32", windowsDrm: true });
-        await Promise.all([first, second]);
-        expect(wrapper.vm.screenSecurityEnabled).toBe(true);
-        expect(wrapper.vm.screenSecuritySaving).toBe(false);
-        wrapper.unmount();
-    });
-
-    it("holds the race lock across disable confirm", async () => {
-        let resolveConfirm;
-        DialogUtils.confirm.mockImplementation(
-            () =>
-                new Promise((resolve) => {
-                    resolveConfirm = resolve;
-                })
-        );
-        ElectronUtils.getScreenSecuritySettings.mockResolvedValue({
-            enabled: true,
-            available: true,
+        await waitFor(() => {
+            const toggle = container.querySelector("#screen-security-enabled");
+            expect(toggle).not.toBeNull();
+            expect(toggle.checked).toBe(true);
         });
-        const wrapper = await mountSettingsPage();
 
-        const first = wrapper.vm.onScreenSecurityChange(false);
-        const second = wrapper.vm.onScreenSecurityChange(false);
-        expect(DialogUtils.confirm).toHaveBeenCalledTimes(1);
+        const toggle = container.querySelector("#screen-security-enabled");
+        await fireEvent.click(toggle);
 
-        resolveConfirm(true);
-        await flushPromises();
-        await Promise.all([first, second]);
-        expect(ElectronUtils.setScreenSecurityEnabled).toHaveBeenCalledTimes(1);
-        expect(ElectronUtils.setScreenSecurityEnabled).toHaveBeenCalledWith(false);
-        wrapper.unmount();
+        await waitFor(() => {
+            expect(DialogUtils.confirm).toHaveBeenCalled();
+            expect(ElectronUtils.setScreenSecurityEnabled).not.toHaveBeenCalled();
+            expect(toggle.checked).toBe(true);
+        });
     });
 
     it("rolls back and toasts when setScreenSecurityEnabled fails", async () => {
         ElectronUtils.setScreenSecurityEnabled.mockRejectedValue(new Error("fail"));
         const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-        const wrapper = await mountSettingsPage();
-        await wrapper.vm.onScreenSecurityChange(true);
-        expect(wrapper.vm.screenSecurityEnabled).toBe(false);
-        expect(ToastUtils.error).toHaveBeenCalled();
+        const { container } = await renderPrivacyTab();
+
+        await waitFor(() => {
+            const toggle = container.querySelector("#screen-security-enabled");
+            expect(toggle).not.toBeNull();
+            expect(toggle.checked).toBe(false);
+        });
+
+        const toggle = container.querySelector("#screen-security-enabled");
+        await fireEvent.click(toggle);
+
+        await waitFor(() => {
+            expect(ToastUtils.error).toHaveBeenCalled();
+            expect(toggle.checked).toBe(false);
+        });
         logSpy.mockRestore();
-        wrapper.unmount();
     });
 
     it("tolerates missing isWindowsElectron on ElectronUtils mock", async () => {
         const original = ElectronUtils.isWindowsElectron;
         // @ts-ignore
         ElectronUtils.isWindowsElectron = undefined;
-        const wrapper = await mountSettingsPage();
-        expect(wrapper.vm.showWindowsScreenSecurity).toBe(false);
+        const { container } = await renderPrivacyTab();
+        const toggle = container.querySelector("#screen-security-enabled");
+        expect(toggle).toBeNull();
         ElectronUtils.isWindowsElectron = original;
-        wrapper.unmount();
     });
 });

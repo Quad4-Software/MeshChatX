@@ -1,30 +1,32 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
-<script>
+<script lang="ts">
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import LxmfUserIcon from "../../../ui/svelte/LxmfUserIcon.svelte";
     import Utils from "../../../js/Utils.js";
     import { t } from "../../../js/i18n.js";
 
-    /**
-     * @type {{
-     *   contact: Record<string, unknown>,
-     *   onOpenConversation?: (contact: Record<string, unknown>) => void,
-     *   onCall?: (contact: Record<string, unknown>) => void,
-     *   onContextMenu?: (event: MouseEvent, contact: Record<string, unknown>) => void,
-     *   onCopyHash?: (hash: string) => void,
-     * }}
-     */
-    let { contact, onOpenConversation, onCall, onContextMenu, onCopyHash } = $props();
+    let {
+        contact,
+        onOpenConversation,
+        onCall,
+        onContextMenu,
+        onCopyHash,
+    }: {
+        contact: Record<string, unknown>;
+        onOpenConversation?: (contact: Record<string, unknown>) => void;
+        onCall?: (contact: Record<string, unknown>) => void;
+        onContextMenu?: (event: MouseEvent, contact: Record<string, unknown>) => void;
+        onCopyHash?: (hash: string) => void;
+    } = $props();
 
     const remoteIcon = $derived(
-        contact.remote_icon && typeof contact.remote_icon === "object" ? contact.remote_icon : null
+        contact.remote_icon && typeof contact.remote_icon === "object"
+            ? (contact.remote_icon as Record<string, unknown>)
+            : null
     );
 
-    /**
-     * @param {MouseEvent} event
-     */
-    function handleContextMenu(event) {
+    function handleContextMenu(event: MouseEvent) {
         event.preventDefault();
         onContextMenu?.(event, contact);
     }
@@ -55,7 +57,7 @@
                     />
                     <button
                         type="button"
-                        class="text-xs font-mono text-sem-fg-muted truncate hover:text-blue-600 dark:hover:text-blue-400 text-left"
+                        class="text-xs font-mono text-sem-fg-muted truncate hover:text-blue-600 dark:hover:text-blue-400 text-left focus-ring-sem rounded"
                         title={String(contact.remote_destination_hash)}
                         onclick={(e) => {
                             e.stopPropagation();
@@ -87,7 +89,7 @@
     <div class="flex items-center gap-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
         <button
             type="button"
-            class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:text-blue-600 dark:hover:text-blue-400 transition-colors focus-ring-sem"
             title={t("contacts.send_message")}
             onclick={(e) => {
                 e.stopPropagation();
@@ -98,7 +100,7 @@
         </button>
         <button
             type="button"
-            class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-green-100 dark:hover:bg-green-900/40 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+            class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-green-100 dark:hover:bg-green-900/40 hover:text-green-600 dark:hover:text-green-400 transition-colors focus-ring-sem"
             title={t("contacts.call_contact")}
             onclick={(e) => {
                 e.stopPropagation();
@@ -110,7 +112,7 @@
     </div>
     <button
         type="button"
-        class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-fg transition-colors"
+        class="p-1.5 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-fg transition-colors focus-ring-sem"
         title={t("contacts.actions")}
         onclick={(e) => {
             e.stopPropagation();

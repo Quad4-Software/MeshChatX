@@ -2,6 +2,7 @@
 
 <script lang="ts">
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
+    import IconButton from "../../../ui/svelte/IconButton.svelte";
     import LxmfUserIcon from "../../../ui/svelte/LxmfUserIcon.svelte";
     import Utils from "../../../js/Utils.js";
     import GlobalState from "../../../js/GlobalState.js";
@@ -184,7 +185,7 @@
     <div class="min-w-0 flex-1 flex flex-col justify-center">
         <button
             type="button"
-            class="flex items-center cursor-pointer min-w-0 group text-left"
+            class="flex items-center cursor-pointer min-w-0 group text-left rounded-md focus-ring-sem"
             onclick={() => oneditdisplayname?.()}
         >
             {#if selectedPeer.custom_display_name != null}
@@ -205,7 +206,7 @@
         <div class="text-xs text-sem-fg-muted mt-0.5 flex items-center gap-2 min-w-0">
             <button
                 type="button"
-                class="cursor-pointer hover:text-blue-500 transition-colors truncate max-w-[min(40vw,12rem)] sm:max-w-none shrink-0"
+                class="cursor-pointer hover:text-blue-500 transition-colors truncate max-w-[min(40vw,12rem)] sm:max-w-none shrink-0 rounded-sm focus-ring-sem"
                 title={selectedPeer.destination_hash}
                 onclick={() => oncopyhash?.(String(selectedPeer.destination_hash || ""))}
             >
@@ -219,7 +220,7 @@
                         {#if showPeerPathRow}
                             <button
                                 type="button"
-                                class="flex items-center gap-1 shrink-0 {peerPathRowClass}"
+                                class="flex items-center gap-1 shrink-0 rounded-sm focus-ring-sem {peerPathRowClass}"
                                 title={peerPathRowTitle}
                                 onclick={() => {
                                     if (selectedPeerPath) ondestinationpathclick?.(selectedPeerPath);
@@ -236,7 +237,7 @@
                                 <span class="text-gray-300 dark:text-zinc-700 opacity-50">•</span>
                                 <button
                                     type="button"
-                                    class="cursor-pointer hover:text-sem-fg"
+                                    class="cursor-pointer hover:text-sem-fg rounded-sm focus-ring-sem"
                                     title="Signal quality"
                                     onclick={() => onsignalmetricsclick?.(selectedPeerSignalMetrics)}
                                 >
@@ -260,7 +261,7 @@
                                 {#if selectedPeerLxmfStampInfo?.stamp_cost}
                                     <button
                                         type="button"
-                                        class="cursor-pointer hover:text-sem-fg"
+                                        class="cursor-pointer hover:text-sem-fg rounded-sm focus-ring-sem"
                                         title="LXMF stamp requirement"
                                         onclick={() => onstampinfoclick?.(selectedPeerLxmfStampInfo)}
                                     >
@@ -278,9 +279,7 @@
     <div class="ml-auto flex items-center gap-0.5 sm:gap-1.5 min-w-0 shrink-0">
         {#if !compactPeerActions}
             <div bind:this={pathMenuRoot} class="relative shrink-0" data-testid="conversation-path-ops">
-                <button
-                    type="button"
-                    class="inline-flex items-center justify-center size-11 rounded-xl text-sem-fg-muted hover:bg-sem-surface-muted focus-ring-sem"
+                <IconButton
                     title={t("nomadnet.path_finder")}
                     disabled={pathfinderInProgress}
                     onclick={() => {
@@ -291,14 +290,14 @@
                         iconName={pathfinderInProgress ? "loading" : "map-marker-path"}
                         class="size-5 {pathfinderInProgress ? 'animate-spin' : ''}"
                     />
-                </button>
+                </IconButton>
                 {#if pathMenuOpen}
                     <div
                         class="absolute right-0 top-full mt-1 z-30 min-w-[14rem] rounded-xl bg-sem-surface shadow-lg ring-1 ring-sem-border overflow-hidden"
                     >
                         <button
                             type="button"
-                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-sem-surface-muted"
+                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-sem-surface-muted focus-ring-sem"
                             onclick={() => {
                                 pathMenuOpen = false;
                                 onpathfinderquick?.();
@@ -309,7 +308,7 @@
                         </button>
                         <button
                             type="button"
-                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-sem-surface-muted"
+                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-sem-surface-muted focus-ring-sem"
                             onclick={() => {
                                 pathMenuOpen = false;
                                 onpathfinderforce?.();
@@ -320,7 +319,7 @@
                         </button>
                         <button
                             type="button"
-                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-sem-surface-muted"
+                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-sem-surface-muted focus-ring-sem"
                             onclick={() => {
                                 pathMenuOpen = false;
                                 onpathfinderdrop?.();
@@ -335,23 +334,21 @@
         {/if}
 
         <div bind:this={moreMenuRoot} class="relative shrink-0">
-            <button
-                type="button"
-                class="inline-flex items-center justify-center size-11 rounded-xl text-sem-fg-muted hover:bg-sem-surface-muted focus-ring-sem"
+            <IconButton
                 title={t("messages.more_actions")}
                 onclick={() => {
                     moreMenuOpen = !moreMenuOpen;
                 }}
             >
                 <MaterialDesignIcon iconName="dots-vertical" class="size-5" />
-            </button>
+            </IconButton>
             {#if moreMenuOpen}
                 <div
                     class="absolute right-0 top-full mt-1 z-30 min-w-[14rem] rounded-xl bg-sem-surface shadow-lg ring-1 ring-sem-border overflow-hidden py-1"
                 >
                     <button
                         type="button"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted focus-ring-sem"
                         onclick={() => {
                             moreMenuOpen = false;
                             oneditdisplayname?.();
@@ -362,7 +359,7 @@
                     </button>
                     <button
                         type="button"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted focus-ring-sem"
                         onclick={() => {
                             moreMenuOpen = false;
                             onstartcall?.();
@@ -373,7 +370,7 @@
                     </button>
                     <button
                         type="button"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted focus-ring-sem"
                         onclick={() => {
                             moreMenuOpen = false;
                             onsharecontact?.();
@@ -384,7 +381,7 @@
                     </button>
                     <button
                         type="button"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted focus-ring-sem"
                         onclick={() => {
                             moreMenuOpen = false;
                             onping?.();
@@ -395,7 +392,7 @@
                     </button>
                     <button
                         type="button"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted focus-ring-sem"
                         onclick={() => {
                             moreMenuOpen = false;
                             onopentelemetryhistory?.();
@@ -406,7 +403,7 @@
                     </button>
                     <button
                         type="button"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-sem-fg hover:bg-sem-surface-muted focus-ring-sem"
                         onclick={() => {
                             moreMenuOpen = false;
                             onpopout?.();
@@ -418,7 +415,7 @@
                     {#if hasFailedOrCancelledMessages}
                         <button
                             type="button"
-                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-amber-600 hover:bg-sem-surface-muted"
+                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-amber-600 hover:bg-sem-surface-muted focus-ring-sem"
                             onclick={() => {
                                 moreMenuOpen = false;
                                 onretryfailed?.();
@@ -432,7 +429,7 @@
                     {#if isPeerBlocked}
                         <button
                             type="button"
-                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-emerald-600 hover:bg-sem-surface-muted"
+                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-emerald-600 hover:bg-sem-surface-muted focus-ring-sem"
                             onclick={() => {
                                 moreMenuOpen = false;
                                 onunbanish?.();
@@ -444,7 +441,7 @@
                     {:else}
                         <button
                             type="button"
-                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-red-600 hover:bg-sem-surface-muted"
+                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-red-600 hover:bg-sem-surface-muted focus-ring-sem"
                             onclick={() => {
                                 moreMenuOpen = false;
                                 onbanish?.();
@@ -456,7 +453,7 @@
                     {/if}
                     <button
                         type="button"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-red-600 hover:bg-sem-surface-muted"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-red-600 hover:bg-sem-surface-muted focus-ring-sem"
                         onclick={() => {
                             moreMenuOpen = false;
                             onconversationdeleted?.();
@@ -469,14 +466,12 @@
             {/if}
         </div>
 
-        <button
-            type="button"
+        <IconButton
             data-testid="conversation-close"
             title={compactPeerActions ? t("messages.back_to_list") : t("common.close")}
-            class="inline-flex items-center justify-center size-11 rounded-xl text-sem-fg-muted hover:bg-sem-surface-muted focus-ring-sem shrink-0"
             onclick={() => onclose?.()}
         >
             <MaterialDesignIcon iconName={compactPeerActions ? "arrow-left" : "close"} class="size-5" />
-        </button>
+        </IconButton>
     </div>
 </div>

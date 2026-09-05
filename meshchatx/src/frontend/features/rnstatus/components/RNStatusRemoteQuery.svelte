@@ -32,9 +32,7 @@
     let loadingIdentities = $state(false);
     let creatingIdentity = $state(false);
 
-    const selectedHash = $derived(
-        identities.find((item) => item.path === identityPath)?.hash || ""
-    );
+    const selectedHash = $derived(identities.find((item) => item.path === identityPath)?.hash || "");
 
     async function loadIdentities() {
         loadingIdentities = true;
@@ -73,7 +71,7 @@
     }
 
     onMount(() => {
-        loadIdentities();
+        void loadIdentities();
     });
 </script>
 
@@ -101,14 +99,7 @@
             <span class="text-xs font-medium text-sem-fg-muted">
                 {t("rnstatus.remote_timeout")}
             </span>
-            <input
-                bind:value={remoteTimeout}
-                type="number"
-                min="1"
-                step="1"
-                class="input-field text-sm"
-                {disabled}
-            />
+            <input bind:value={remoteTimeout} type="number" min="1" step="1" class="input-field text-sm" {disabled} />
         </label>
     </div>
 
@@ -135,7 +126,7 @@
                 type="button"
                 class="secondary-chip px-3 py-2 text-xs"
                 disabled={disabled || loadingIdentities}
-                onclick={loadIdentities}
+                onclick={() => void loadIdentities()}
                 aria-label="Refresh management identities"
             >
                 <MaterialDesignIcon iconName="refresh" class="size-4" />
@@ -144,7 +135,7 @@
                 type="button"
                 class="secondary-chip px-3 py-2 text-xs"
                 disabled={disabled || creatingIdentity}
-                onclick={handleCreateIdentity}
+                onclick={() => void handleCreateIdentity()}
             >
                 <MaterialDesignIcon iconName="plus" class="size-4" />
                 {t("remote_mgmt.create_identity")}

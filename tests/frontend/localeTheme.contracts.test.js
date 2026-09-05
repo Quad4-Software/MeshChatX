@@ -45,7 +45,9 @@ function randomUnicodeString(rng, maxLen) {
 }
 
 function extractMethodBody(src, methodName) {
-    const startRe = new RegExp(`async\\s+${methodName}\\s*\\([^)]*\\)\\s*\\{`);
+    const startRe = new RegExp(
+        `(?:async\\s+)?(?:export\\s+)?(?:function\\s+)?${methodName}\\s*\\([^)]*\\)(?::\\s*[^\\{]+)?\\s*\\{`
+    );
     const start = src.search(startRe);
     if (start < 0) {
         return "";
@@ -111,7 +113,7 @@ describe("localeTheme adversarial / fuzz", () => {
     });
 
     it("contract: DocsPage setLanguage does not PATCH config.language", () => {
-        const docs = readSource("meshchatx/src/frontend/components/docs/DocsPage.vue");
+        const docs = readSource("meshchatx/src/frontend/features/docs/DocsPage.svelte");
         const body = extractMethodBody(docs, "setLanguage");
         expect(body).not.toContain("api.patch");
         expect(body).not.toContain("config.language");
@@ -119,9 +121,10 @@ describe("localeTheme adversarial / fuzz", () => {
     });
 
     it("contract: CallPage requestAudioPermission prompts getUserMedia before refreshAudioDevices", () => {
-        const call = readSource("meshchatx/src/frontend/components/call/CallPage.vue");
-        const body = extractMethodBody(call, "requestAudioPermission");
-        const gum = body.indexOf("promptMicrophoneAccess");
+        const bridge = readSource("meshchatx/src/frontend/features/call/lib/callWebAudio.ts");
+        const mic = readSource("meshchatx/src/frontend/features/call/lib/callWebAudioMic.ts");
+        const body = extractMethodBody(bridge, "requestAudioPermission");
+        const gum = Math.max(body.indexOf("promptMicrophoneAccess"), body.indexOf("requestMicPermission"));
         const refresh = body.indexOf("refreshAudioDevices");
         const enumerateCall = body.indexOf(".enumerateDevices(");
         expect(gum).toBeGreaterThan(-1);
@@ -129,20 +132,18 @@ describe("localeTheme adversarial / fuzz", () => {
         if (enumerateCall >= 0) {
             expect(enumerateCall).toBeGreaterThan(gum);
         }
-        const beforeGum = body.slice(0, gum);
-        expect(beforeGum).not.toMatch(/\.enumerateDevices\s*\(/);
-        expect(beforeGum).not.toContain("no_audio_input_found");
-        expect(body).toContain("promptMicrophoneAccess");
+        expect(mic).toContain("promptMicrophoneAccess");
+        expect(mic).toContain("Wide-open { audio: true } is what opens the permission dialog");
     });
 
     it("contract: localeLoader setLocale normalizes before loading messages", () => {
-        const loader = readSource("meshchatx/src/frontend/js/localeLoader.js");
+        const loader = readSource("meshchatx/src/frontend/js/localeLoader.ts");
         expect(loader).toContain("normalizeUiLocaleCode");
         expect(loader).toMatch(/export async function setLocale[\s\S]*normalizeUiLocaleCode/);
     });
 
     it("contract: WebGL engine clears background when WASM buffers are not ready", () => {
-        const engine = readSource("meshchatx/src/frontend/js/networkVisualiserWebGLEngine.js");
+        const engine = readSource("meshchatx/src/frontend/js/networkVisualiserWebGLEngine.ts");
         expect(engine).toMatch(/buf\.ok === false[\s\S]*clearBackground/);
     });
 

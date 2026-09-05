@@ -1,29 +1,20 @@
 // SPDX-License-Identifier: 0BSD
 
 import { createRegistry } from "./registryCore.js";
+import type { NavEntry } from "./coreNavEntries.js";
 
-/** @typedef {import('./coreNavEntries.js').NavEntry} NavEntry */
+export type { NavEntry };
 
-/** @type {import('./registryCore.js').Registry<NavEntry>} */
-export const navRegistry = createRegistry("navRegistry");
+export const navRegistry = createRegistry<NavEntry>("navRegistry");
 
-/**
- * @param {NavEntry} entry
- */
-export function registerNavItem(entry) {
+export function registerNavItem(entry: NavEntry) {
     navRegistry.register(entry);
 }
 
-/**
- * @param {string} id
- */
-export function unregisterNavItem(id) {
+export function unregisterNavItem(id: string) {
     navRegistry.unregister(id);
 }
 
-/**
- * @returns {NavEntry[]}
- */
-export function listNavItems() {
+export function listNavItems(): NavEntry[] {
     return navRegistry.list();
 }

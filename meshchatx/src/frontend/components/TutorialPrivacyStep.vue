@@ -77,7 +77,7 @@ import ElectronUtils from "../js/ElectronUtils.js";
 import AndroidBridge from "../js/rnode/AndroidBridge.js";
 import ToastUtils from "../js/ToastUtils";
 import GlobalState from "../js/GlobalState.js";
-import SettingToggleRow from "./settings/SettingToggleRow.vue";
+import SettingToggleRow from "./forms/SettingToggleRow.vue";
 
 export default {
     name: "TutorialPrivacyStep",

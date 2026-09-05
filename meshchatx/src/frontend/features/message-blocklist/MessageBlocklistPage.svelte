@@ -7,6 +7,7 @@
     import ToastUtils from "../../js/ToastUtils.js";
     import { t } from "../../js/i18n.js";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
+    import EmptyState from "../../ui/svelte/EmptyState.svelte";
     import ToolsPageHeader from "../../ui/svelte/ToolsPageHeader.svelte";
     import {
         createDefaultBlocklistConfig,
@@ -61,10 +62,7 @@
             blocklist = mapBlocklistFromApi(data?.blocklist || {});
             ToastUtils.success(t("tools.message_blocklist.saved"));
         } catch (e: any) {
-            const msg =
-                e?.response?.data?.message ||
-                e?.message ||
-                t("tools.message_blocklist.save_failed");
+            const msg = e?.response?.data?.message || e?.message || t("tools.message_blocklist.save_failed");
             ToastUtils.error(msg);
         } finally {
             isSaving = false;
@@ -78,9 +76,7 @@
                 blocklist: normalizeBlocklistForSave(blocklist),
             });
             ToastUtils.success(
-                enabled
-                    ? t("tools.message_blocklist.enabled_toast")
-                    : t("tools.message_blocklist.disabled_toast")
+                enabled ? t("tools.message_blocklist.enabled_toast") : t("tools.message_blocklist.disabled_toast")
             );
         } catch {
             enabled = !enabled;
@@ -124,15 +120,10 @@
             const data = res.data as { blocklist?: Record<string, unknown> } | undefined;
             blocklist = mapBlocklistFromApi(data?.blocklist || {});
             ToastUtils.success(
-                merge
-                    ? t("tools.message_blocklist.imported_merge")
-                    : t("tools.message_blocklist.imported_replace")
+                merge ? t("tools.message_blocklist.imported_merge") : t("tools.message_blocklist.imported_replace")
             );
         } catch (e: any) {
-            const msg =
-                e?.response?.data?.message ||
-                e?.message ||
-                t("tools.message_blocklist.import_failed");
+            const msg = e?.response?.data?.message || e?.message || t("tools.message_blocklist.import_failed");
             ToastUtils.error(msg);
         }
     }
@@ -185,27 +176,17 @@
                 </p>
             </div>
 
-            <div
-                class="rounded-xl border border-sem-border bg-sem-surface p-4 space-y-4 {enabled ? '' : 'opacity-60'}"
-            >
+            <div class="rounded-xl border border-sem-border bg-sem-surface p-4 space-y-4 {enabled ? '' : 'opacity-60'}">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <h2 class="text-base font-semibold text-sem-fg">
                         {t("tools.message_blocklist.entries_heading")}
                     </h2>
                     <div class="flex flex-wrap items-center gap-2">
-                        <button
-                            type="button"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-sem-border text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors"
-                            onclick={exportList}
-                        >
+                        <button type="button" class="secondary-chip focus-ring-sem" onclick={exportList}>
                             <MaterialDesignIcon iconName="export" class="size-4" />
                             {t("tools.message_blocklist.export")}
                         </button>
-                        <button
-                            type="button"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-sem-border text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors"
-                            onclick={triggerImport}
-                        >
+                        <button type="button" class="secondary-chip focus-ring-sem" onclick={triggerImport}>
                             <MaterialDesignIcon iconName="import" class="size-4" />
                             {t("tools.message_blocklist.import")}
                         </button>
@@ -216,11 +197,7 @@
                             class="hidden"
                             onchange={onImportFile}
                         />
-                        <button
-                            type="button"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-rose-600 text-white hover:bg-rose-700 transition-colors"
-                            onclick={addEntry}
-                        >
+                        <button type="button" class="primary-chip focus-ring-sem" onclick={addEntry}>
                             <MaterialDesignIcon iconName="plus" class="size-4" />
                             {t("tools.message_blocklist.add_entry")}
                         </button>
@@ -275,9 +252,7 @@
                 </div>
 
                 {#if blocklist.entries.length === 0}
-                    <div class="text-sm text-sem-fg-muted py-6 text-center">
-                        {t("tools.message_blocklist.empty_entries")}
-                    </div>
+                    <EmptyState plain icon="filter-off" title={t("tools.message_blocklist.empty_entries")} />
                 {:else}
                     <div class="space-y-3">
                         {#each blocklist.entries as entry, index (entry.id)}
@@ -285,7 +260,9 @@
                                 class="rounded-lg border border-sem-border p-3 space-y-3 bg-gray-50/80 dark:bg-zinc-900/40"
                             >
                                 <div class="flex flex-wrap items-center justify-between gap-2">
-                                    <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                                    <label
+                                        class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200"
+                                    >
                                         <input
                                             bind:checked={entry.enabled}
                                             type="checkbox"
@@ -296,7 +273,7 @@
                                     <div class="flex items-center gap-1">
                                         <button
                                             type="button"
-                                            class="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
+                                            class="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 focus-ring-sem"
                                             title={t("tools.message_blocklist.remove_entry")}
                                             onclick={() => removeEntry(index)}
                                         >
@@ -308,12 +285,12 @@
                                     <input
                                         bind:value={entry.text}
                                         type="text"
-                                        class="w-full px-3 py-2 rounded-lg border border-sem-border bg-sem-surface text-sm text-sem-fg font-mono"
+                                        class="w-full px-3 py-2 rounded-lg border border-sem-border bg-sem-surface text-sm text-sem-fg font-mono focus-ring-sem"
                                         placeholder={t("tools.message_blocklist.entry_placeholder")}
                                     />
                                     <select
                                         bind:value={entry.match_mode}
-                                        class="px-3 py-2 rounded-lg border border-sem-border bg-sem-surface text-sm text-sem-fg"
+                                        class="px-3 py-2 rounded-lg border border-sem-border bg-sem-surface text-sm text-sem-fg focus-ring-sem"
                                     >
                                         <option value="substring">
                                             {t("tools.message_blocklist.match_mode_substring")}
@@ -331,7 +308,7 @@
                 <div class="flex flex-wrap items-center gap-2 pt-2">
                     <button
                         type="button"
-                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50 transition-colors"
+                        class="primary-chip focus-ring-sem disabled:opacity-50"
                         disabled={isSaving}
                         onclick={save}
                     >
@@ -342,11 +319,7 @@
                             <span>{t("tools.message_blocklist.save")}</span>
                         {/if}
                     </button>
-                    <button
-                        type="button"
-                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-sem-border text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors"
-                        onclick={reload}
-                    >
+                    <button type="button" class="secondary-chip focus-ring-sem" onclick={reload}>
                         <MaterialDesignIcon iconName="refresh" class="size-4" />
                         {t("tools.message_blocklist.revert")}
                     </button>

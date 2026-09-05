@@ -37,9 +37,7 @@
 
 {#if config}
     <div class="space-y-3">
-        <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">
-            Translation backends
-        </div>
+        <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">Translation backends</div>
         {#if hasArgos}
             <label
                 class="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-slate-100/80 dark:hover:bg-zinc-900/40"
@@ -88,7 +86,8 @@
         {/if}
         {#if libreClientAvailable && !libretranslateReachable}
             <p class="text-xs text-amber-800/90 dark:text-amber-200/80 px-2 -mt-1">
-                No response from the LibreTranslate URL yet. Check the address, start the service, and tap Refresh languages.
+                No response from the LibreTranslate URL yet. Check the address, start the service, and tap Refresh
+                languages.
             </p>
         {/if}
     </div>
@@ -111,7 +110,8 @@
             {#if libreClientAvailable}
                 <button
                     type="button"
-                    class="px-4 py-2 text-sm font-semibold border-b-2 transition-colors {translationMode === 'libretranslate'
+                    class="px-4 py-2 text-sm font-semibold border-b-2 transition-colors {translationMode ===
+                    'libretranslate'
                         ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300'
                         : 'border-transparent text-sem-fg-muted hover:text-gray-700 dark:hover:text-gray-300'}"
                     onclick={() => onModeChange("libretranslate")}

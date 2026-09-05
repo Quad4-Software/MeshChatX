@@ -3,16 +3,16 @@
     "domains": [
         {
             "domain": "Identity",
-            "manager_modules": ["identity_context.py", "identity_manager.py"],
-            "http_route_module": ["http/routes/identities.py"],
+            "manager_modules": ["identity_context/", "identity_manager.py"],
+            "http_route_module": ["identities/"],
             "ws_module": ["http/ws/dispatch.py"],
             "primary_tests": ["test_identity_*"],
-            "frontend_page": []
+            "frontend_page": ["features/settings/components/IdentitiesPage.svelte"]
         },
         {
             "domain": "Status / startup",
             "manager_modules": ["lifecycle/deferred_network.py", "rns_startup_recovery.py"],
-            "http_route_module": ["http/routes/status.py"],
+            "http_route_module": ["status/"],
             "ws_module": [],
             "primary_tests": ["test_deferred_network_startup.py", "test_api_json_contracts.py"],
             "frontend_page": []
@@ -20,87 +20,90 @@
         {
             "domain": "Auth / CSRF",
             "manager_modules": ["csrf.py", "app_security_settings.py", "ip_allowlist.py"],
-            "http_route_module": ["http/routes/auth.py"],
+            "http_route_module": ["auth/"],
             "ws_module": ["http/ws/dispatch.py"],
             "primary_tests": ["test_csrf*", "test_access_attempts_*"],
             "frontend_page": ["App.vue"]
         },
         {
             "domain": "Messages / LXMF",
-            "manager_modules": ["message_handler.py", "lxmf_utils.py", "database/messages.py"],
-            "http_route_module": ["http/routes/messages.py", "lxmf.py"],
+            "manager_modules": ["message_handler.py", "lxmf_utils/", "database/messages/"],
+            "http_route_module": ["messages/", "lxmf/"],
             "ws_module": ["http/ws/dispatch.py"],
             "primary_tests": [],
-            "frontend_page": ["features/messages/MessagesPage.svelte", "components/ConversationViewer.svelte"]
+            "frontend_page": [
+                "features/messages/MessagesPage.svelte",
+                "features/messages/components/ConversationViewer.svelte"
+            ]
         },
         {
             "domain": "Telephone / LXST",
-            "manager_modules": ["telephone_manager.py", "database/telephone.py"],
-            "http_route_module": ["http/routes/telephone.py", "contacts.py"],
+            "manager_modules": ["telephone_manager/", "database/telephone.py"],
+            "http_route_module": ["telephone/", "contacts/"],
             "ws_module": ["http/ws/dispatch.py"],
             "primary_tests": [],
-            "frontend_page": ["call/CallPage.vue"]
+            "frontend_page": ["features/call/CallPage.svelte"]
         },
         {
             "domain": "RRC",
-            "manager_modules": ["rrc/manager.py", "rrc/server.py"],
-            "http_route_module": ["http/routes/rrc.py"],
+            "manager_modules": ["rrc/manager/", "rrc/server/"],
+            "http_route_module": ["rrc/"],
             "ws_module": ["http/ws/dispatch.py"],
             "primary_tests": [],
-            "frontend_page": ["relay/RelayChatPage.vue"]
+            "frontend_page": ["features/relay-chat/components/RelayChatPage.svelte"]
         },
         {
             "domain": "Map",
-            "manager_modules": ["map_manager.py", "map_overlay_manager.py", "map_data_manager.py"],
-            "http_route_module": ["http/routes/map.py"],
+            "manager_modules": ["map_manager.py", "map_overlay_manager/", "map_data_manager/"],
+            "http_route_module": ["map/"],
             "ws_module": [],
             "primary_tests": [],
             "frontend_page": ["map/MapPage.vue"]
         },
         {
             "domain": "Plugins",
-            "manager_modules": ["plugin_manager.py", "plugin_permissions.py"],
-            "http_route_module": ["http/routes/plugins.py", "sideband.py"],
+            "manager_modules": ["plugin_manager/", "plugin_permissions.py"],
+            "http_route_module": ["plugins/", "sideband/"],
             "ws_module": ["http/ws/dispatch.py"],
             "primary_tests": [],
-            "frontend_page": ["settings/PluginsSettingsSection.vue"]
+            "frontend_page": ["features/settings/components/sections/PluginsSettingsSection.svelte"]
         },
         {
             "domain": "FileSync",
-            "manager_modules": ["rns_filesync_handler.py"],
-            "http_route_module": ["http/routes/filesync.py"],
+            "manager_modules": ["rns_filesync_handler/"],
+            "http_route_module": ["filesync/"],
             "ws_module": [],
             "primary_tests": [],
-            "frontend_page": ["filesync/"]
+            "frontend_page": ["features/filesync/"]
         },
         {
             "domain": "Interfaces",
             "manager_modules": ["interface_editor.py", "interface_config_parser.py"],
-            "http_route_module": ["http/routes/interfaces.py"],
+            "http_route_module": ["interfaces/"],
             "ws_module": [],
             "primary_tests": [],
-            "frontend_page": ["interfaces/InterfacesPage.vue"]
+            "frontend_page": ["features/interfaces/InterfacesPage.svelte"]
         },
         {
             "domain": "Database / backup",
             "manager_modules": ["database/*", "recovery/*"],
-            "http_route_module": ["http/routes/database.py", "maintenance.py"],
+            "http_route_module": ["database/", "maintenance/"],
             "ws_module": [],
             "primary_tests": [],
             "frontend_page": []
         },
         {
             "domain": "Docs",
-            "manager_modules": ["docs_manager.py"],
-            "http_route_module": ["http/routes/docs.py"],
+            "manager_modules": ["docs_manager/"],
+            "http_route_module": ["docs/"],
             "ws_module": [],
             "primary_tests": [],
-            "frontend_page": ["docs/DocsPage.vue"]
+            "frontend_page": ["features/docs/DocsPage.svelte"]
         },
         {
             "domain": "Sandbox",
-            "manager_modules": ["landlock_sandbox.py", "seccomp_sandbox.py"],
-            "http_route_module": ["http/routes/status.py"],
+            "manager_modules": ["landlock_sandbox.py", "seccomp_sandbox.py", "appcontainer_sandbox/"],
+            "http_route_module": ["status/"],
             "ws_module": [],
             "primary_tests": ["test_landlock_sandbox.py", "test_landlock_integration_surfaces.py"],
             "frontend_page": []
@@ -115,11 +118,11 @@
         },
         {
             "domain": "Config",
-            "manager_modules": ["config_manager.py"],
-            "http_route_module": ["http/routes/config.py"],
+            "manager_modules": ["config_manager/"],
+            "http_route_module": ["config/"],
             "ws_module": ["http/ws/dispatch.py"],
             "primary_tests": [],
-            "frontend_page": ["settings/SettingsPage.vue"]
+            "frontend_page": ["features/settings/components/SettingsPage.svelte"]
         }
     ]
 }

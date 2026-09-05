@@ -1,0 +1,1835 @@
+# SPDX-License-Identifier: 0BSD
+
+import re
+
+from ..provider import DatabaseProvider
+
+_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+class DatabaseMigrationError(RuntimeError):
+    pass
+
+
+class PreMigrationBackupError(RuntimeError):
+    pass
+
+
+class PostMigrationVerificationError(RuntimeError):
+    pass
+
+
+class DatabaseTooNewError(RuntimeError):
+    pass
+
+
+def _validate_identifier(name: str, label: str = "identifier") -> str:
+    if not _IDENTIFIER_RE.match(name):
+        msg = f"Invalid SQL {label}: {name!r}"
+        raise ValueError(msg)
+    return name
+
+
+class DatabaseSchema:
+    LATEST_VERSION = 58
+
+    def __init__(self, provider: DatabaseProvider):
+        self.provider = provider
+        self._strict_migrations = False
+        self._migration_errors: list[str] = []
+
+    def _safe_execute(self, query, params=None):
+        try:
+            return self.provider.execute(query, params)
+        except Exception as e:
+            err_msg = str(e).lower()
+            if "duplicate column name" in err_msg or "already exists" in err_msg:
+                return None
+            if self._strict_migrations:
+                self._migration_errors.append(str(e))
+            print(f"Database operation failed: {query[:100]}... Error: {e}")
+            return None
+
+    def initialize(self):
+        # Create core tables if they don't exist
+        self._create_initial_tables()
+
+        # Run migrations
+        current_version = self._get_current_version()
+        self.migrate(current_version)
+
+    def _ensure_column(self, table_name, column_name, column_type):
+        """Add a column to a table if it doesn't exist."""
+        _validate_identifier(table_name, "table name")
+        _validate_identifier(column_name, "column name")
+
+        cursor = self.provider.connection.cursor()
+        try:
+            cursor.execute(f"PRAGMA table_info({table_name})")
+            columns = [row[1] for row in cursor.fetchall()]
+        finally:
+            cursor.close()
+
+        if column_name not in columns:
+            try:
+                stmt_type = column_type
+                forbidden_defaults = [
+                    "CURRENT_TIMESTAMP",
+                    "CURRENT_TIME",
+                    "CURRENT_DATE",
+                ]
+                for forbidden in forbidden_defaults:
+                    if f"DEFAULT {forbidden}" in stmt_type.upper():
+                        stmt_type = re.sub(
+                            f"DEFAULT\\s+{forbidden}",
+                            "",
+                            stmt_type,
+                            flags=re.IGNORECASE,
+                        ).strip()
+
+                res = self._safe_execute(
+                    f"ALTER TABLE {table_name} ADD COLUMN {column_name} {stmt_type}",
+                )
+                return res is not None
+            except Exception as e:
+                # Log but don't crash, we might be able to continue
+                print(
+                    f"Unexpected error adding column {column_name} to {table_name}: {e}",
+                )
+                return False
+        return True
+
+    def _sync_table_columns(self, table_name, create_sql):
+        """Parse CREATE TABLE and add any missing columns to match the declaration.
+
+        Finds the column list between the first ( and last ), splits on
+        commas outside nested parentheses (e.g. DECIMAL(10,2)), then ensures
+        each column exists on the actual table.
+        """
+        start_idx = create_sql.find("(")
+        end_idx = create_sql.rfind(")")
+
+        if start_idx == -1 or end_idx == -1:
+            return
+
+        inner_content = create_sql[start_idx + 1 : end_idx]
+
+        definitions = []
+        depth = 0
+        current = ""
+        for char in inner_content:
+            if char == "(":
+                depth += 1
+            elif char == ")":
+                depth -= 1
+
+            if char == "," and depth == 0:
+                definitions.append(current.strip())
+                current = ""
+            else:
+                current += char
+        if current.strip():
+            definitions.append(current.strip())
+
+        for definition in definitions:
+            definition = definition.strip()
+            # Skip table-level constraints
+            if not definition or definition.upper().startswith(
+                ("PRIMARY KEY", "FOREIGN KEY", "UNIQUE", "CHECK"),
+            ):
+                continue
+
+            parts = definition.split(None, 1)
+            if not parts:
+                continue
+
+            column_name = parts[0].strip('"').strip("`").strip("[").strip("]")
+            column_type = parts[1] if len(parts) > 1 else "TEXT"
+
+            # Special case for column types that are already PRIMARY KEY
+            if "PRIMARY KEY" in column_type.upper() and column_name.upper() != "ID":
+                # We usually don't want to ALTER TABLE ADD COLUMN with PRIMARY KEY
+                # unless it's the main ID which should already exist
+                continue
+
+            self._ensure_column(table_name, column_name, column_type)
+
+    def get_current_version(self) -> int:
+        return self._get_current_version()
+
+    def _get_current_version(self):
+        try:
+            row = self.provider.fetchone(
+                "SELECT value FROM config WHERE key = ?",
+                ("database_version",),
+            )
+            if row:
+                return int(row["value"])
+        except Exception as e:
+            print(f"Failed to get database version: {e}")
+        return 0
+
+    def _create_initial_tables(self):
+        # We create the config table first so we can track version
+        config_sql = """
+            CREATE TABLE IF NOT EXISTS config (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                key TEXT UNIQUE,
+                value TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """
+        self._safe_execute(config_sql)
+        self._sync_table_columns("config", config_sql)
+
+        # Other essential tables that were present from version 1
+        # Peewee automatically creates tables if they don't exist.
+        tables = {
+            "announces": """
+                CREATE TABLE IF NOT EXISTS announces (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT UNIQUE,
+                    aspect TEXT,
+                    identity_hash TEXT,
+                    identity_public_key TEXT,
+                    app_data TEXT,
+                    rssi INTEGER,
+                    snr REAL,
+                    quality REAL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "custom_destination_display_names": """
+                CREATE TABLE IF NOT EXISTS custom_destination_display_names (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT UNIQUE,
+                    display_name TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "favourite_destinations": """
+                CREATE TABLE IF NOT EXISTS favourite_destinations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT UNIQUE,
+                    display_name TEXT,
+                    aspect TEXT,
+                    identify_on_connect INTEGER NOT NULL DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "lxmf_messages": """
+                CREATE TABLE IF NOT EXISTS lxmf_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    hash TEXT UNIQUE,
+                    source_hash TEXT,
+                    destination_hash TEXT,
+                    peer_hash TEXT,
+                    state TEXT,
+                    progress REAL,
+                    is_incoming INTEGER,
+                    method TEXT,
+                    delivery_attempts INTEGER DEFAULT 0,
+                    next_delivery_attempt_at REAL,
+                    title TEXT,
+                    content TEXT,
+                    fields TEXT,
+                    fields_meta TEXT,
+                    has_image INTEGER,
+                    has_audio INTEGER,
+                    has_files INTEGER,
+                    has_reaction INTEGER,
+                    has_telemetry INTEGER,
+                    timestamp REAL,
+                    rssi INTEGER,
+                    snr REAL,
+                    quality REAL,
+                    is_spam INTEGER DEFAULT 0,
+                    reply_to_hash TEXT,
+                    path_hops_at_send INTEGER,
+                    path_interface_at_send TEXT,
+                    path_finding_measure TEXT,
+                    path_row_hash_hex TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "lxmf_conversation_read_state": """
+                CREATE TABLE IF NOT EXISTS lxmf_conversation_read_state (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT UNIQUE,
+                    last_read_at DATETIME,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "lxmf_user_icons": """
+                CREATE TABLE IF NOT EXISTS lxmf_user_icons (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT UNIQUE,
+                    icon_name TEXT,
+                    foreground_colour TEXT,
+                    background_colour TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "blocked_destinations": """
+                CREATE TABLE IF NOT EXISTS blocked_destinations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT UNIQUE,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "spam_keywords": """
+                CREATE TABLE IF NOT EXISTS spam_keywords (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    keyword TEXT UNIQUE,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "archived_pages": """
+                CREATE TABLE IF NOT EXISTS archived_pages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT,
+                    page_path TEXT,
+                    content TEXT,
+                    hash TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "crawl_tasks": """
+                CREATE TABLE IF NOT EXISTS crawl_tasks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT,
+                    page_path TEXT,
+                    retry_count INTEGER DEFAULT 0,
+                    last_retry_at DATETIME,
+                    next_retry_at DATETIME,
+                    status TEXT DEFAULT 'pending',
+                    depth INTEGER DEFAULT 0,
+                    priority REAL DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(destination_hash, page_path)
+                )
+            """,
+            "crawl_opt_outs": """
+                CREATE TABLE IF NOT EXISTS crawl_opt_outs (
+                    destination_hash TEXT PRIMARY KEY,
+                    reason TEXT,
+                    source TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "crawl_node_stats": """
+                CREATE TABLE IF NOT EXISTS crawl_node_stats (
+                    destination_hash TEXT PRIMARY KEY,
+                    pages_indexed INTEGER DEFAULT 0,
+                    last_request_at DATETIME,
+                    last_rtt_ms REAL,
+                    last_hops INTEGER,
+                    skipped_reason TEXT,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "lxmf_forwarding_rules": """
+                CREATE TABLE IF NOT EXISTS lxmf_forwarding_rules (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT,
+                    identity_hash TEXT,
+                    forward_to_hash TEXT,
+                    source_filter_hash TEXT,
+                    is_active INTEGER DEFAULT 1,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "lxmf_forwarding_mappings": """
+                CREATE TABLE IF NOT EXISTS lxmf_forwarding_mappings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    alias_identity_private_key TEXT,
+                    alias_hash TEXT UNIQUE,
+                    original_sender_hash TEXT,
+                    final_recipient_hash TEXT,
+                    original_destination_hash TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "call_history": """
+                CREATE TABLE IF NOT EXISTS call_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    remote_identity_hash TEXT,
+                    remote_identity_name TEXT,
+                    is_incoming INTEGER,
+                    status TEXT,
+                    duration_seconds INTEGER,
+                    timestamp REAL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "voicemails": """
+                CREATE TABLE IF NOT EXISTS voicemails (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    remote_identity_hash TEXT,
+                    remote_identity_name TEXT,
+                    filename TEXT,
+                    duration_seconds INTEGER,
+                    is_read INTEGER DEFAULT 0,
+                    timestamp REAL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "notification_viewed_state": """
+                CREATE TABLE IF NOT EXISTS notification_viewed_state (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT UNIQUE,
+                    last_viewed_at DATETIME,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "lxmf_telemetry": """
+                CREATE TABLE IF NOT EXISTS lxmf_telemetry (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT,
+                    timestamp REAL,
+                    data BLOB,
+                    received_from TEXT,
+                    physical_link TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(destination_hash, timestamp)
+                )
+            """,
+            "telemetry_tracking": """
+                CREATE TABLE IF NOT EXISTS telemetry_tracking (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT UNIQUE,
+                    is_tracking INTEGER DEFAULT 1,
+                    interval_seconds INTEGER DEFAULT 60,
+                    last_request_at REAL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "ringtones": """
+                CREATE TABLE IF NOT EXISTS ringtones (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    filename TEXT,
+                    display_name TEXT,
+                    storage_filename TEXT,
+                    is_primary INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "notification_sounds": """
+                CREATE TABLE IF NOT EXISTS notification_sounds (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    filename TEXT,
+                    display_name TEXT,
+                    storage_filename TEXT,
+                    is_primary INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "contacts": """
+                CREATE TABLE IF NOT EXISTS contacts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT,
+                    remote_identity_hash TEXT UNIQUE,
+                    lxmf_address TEXT,
+                    lxst_address TEXT,
+                    custom_image TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "notifications": """
+                CREATE TABLE IF NOT EXISTS notifications (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    type TEXT,
+                    remote_hash TEXT,
+                    title TEXT,
+                    content TEXT,
+                    is_viewed INTEGER DEFAULT 0,
+                    timestamp REAL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "keyboard_shortcuts": """
+                CREATE TABLE IF NOT EXISTS keyboard_shortcuts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT,
+                    action TEXT,
+                    keys TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(identity_hash, action)
+                )
+            """,
+            "map_drawings": """
+                CREATE TABLE IF NOT EXISTS map_drawings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT,
+                    name TEXT,
+                    data TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "map_overlay_sources": """
+                CREATE TABLE IF NOT EXISTS map_overlay_sources (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT NOT NULL,
+                    kind TEXT NOT NULL,
+                    destination_hash TEXT NOT NULL,
+                    path_or_repo_path TEXT NOT NULL,
+                    ref TEXT NOT NULL DEFAULT 'HEAD',
+                    group_name TEXT,
+                    repository TEXT,
+                    name TEXT NOT NULL,
+                    enabled INTEGER NOT NULL DEFAULT 1,
+                    visible INTEGER NOT NULL DEFAULT 1,
+                    refresh_interval_seconds INTEGER NOT NULL DEFAULT 0,
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    last_error TEXT,
+                    last_fetched_at DATETIME,
+                    next_refresh_at DATETIME,
+                    content_sha256 TEXT,
+                    resolved_ref TEXT,
+                    format TEXT,
+                    byte_size INTEGER,
+                    cache_relpath TEXT,
+                    job_id TEXT,
+                    generation INTEGER NOT NULL DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(identity_hash, kind, destination_hash, path_or_repo_path, ref)
+                )
+            """,
+            "user_stickers": """
+                CREATE TABLE IF NOT EXISTS user_stickers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT NOT NULL,
+                    name TEXT,
+                    image_type TEXT NOT NULL,
+                    image_blob BLOB NOT NULL,
+                    content_hash TEXT NOT NULL,
+                    source_message_hash TEXT,
+                    created_at REAL NOT NULL,
+                    updated_at REAL NOT NULL,
+                    UNIQUE(identity_hash, content_hash)
+                )
+            """,
+            "user_gifs": """
+                CREATE TABLE IF NOT EXISTS user_gifs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT NOT NULL,
+                    name TEXT,
+                    image_type TEXT NOT NULL,
+                    image_blob BLOB NOT NULL,
+                    content_hash TEXT NOT NULL,
+                    source_message_hash TEXT,
+                    usage_count INTEGER NOT NULL DEFAULT 0,
+                    last_used_at REAL,
+                    created_at REAL NOT NULL,
+                    updated_at REAL NOT NULL,
+                    UNIQUE(identity_hash, content_hash)
+                )
+            """,
+            "lxmf_last_sent_icon_hashes": """
+                CREATE TABLE IF NOT EXISTS lxmf_last_sent_icon_hashes (
+                    destination_hash TEXT PRIMARY KEY,
+                    icon_hash TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "debug_logs": """
+                CREATE TABLE IF NOT EXISTS debug_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp REAL,
+                    level TEXT,
+                    module TEXT,
+                    message TEXT,
+                    is_anomaly INTEGER DEFAULT 0,
+                    anomaly_type TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "lxmf_folders": """
+                CREATE TABLE IF NOT EXISTS lxmf_folders (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "lxmf_conversation_folders": """
+                CREATE TABLE IF NOT EXISTS lxmf_conversation_folders (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    peer_hash TEXT UNIQUE,
+                    folder_id INTEGER,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (folder_id) REFERENCES lxmf_folders(id) ON DELETE CASCADE
+                )
+            """,
+            "lxmf_conversation_summaries": """
+                CREATE TABLE IF NOT EXISTS lxmf_conversation_summaries (
+                    peer_hash TEXT PRIMARY KEY NOT NULL,
+                    latest_message_id INTEGER NOT NULL,
+                    latest_message_hash TEXT,
+                    source_hash TEXT,
+                    destination_hash TEXT,
+                    state TEXT,
+                    progress REAL,
+                    is_incoming INTEGER,
+                    title TEXT,
+                    content_preview TEXT,
+                    timestamp REAL,
+                    is_spam INTEGER,
+                    reply_to_hash TEXT,
+                    created_at TEXT,
+                    updated_at TEXT,
+                    has_image INTEGER,
+                    has_audio INTEGER,
+                    has_files INTEGER,
+                    has_reaction INTEGER,
+                    has_telemetry INTEGER,
+                    failed_count INTEGER NOT NULL DEFAULT 0
+                )
+            """,
+            "map_published": """
+                CREATE TABLE IF NOT EXISTS map_published (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT NOT NULL,
+                    map_id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    format TEXT NOT NULL,
+                    size INTEGER NOT NULL,
+                    sha256 TEXT NOT NULL,
+                    bbox TEXT,
+                    feature_count INTEGER NOT NULL DEFAULT 0,
+                    path TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(identity_hash, map_id)
+                )
+            """,
+        }
+
+        for table_name, create_sql in tables.items():
+            self._safe_execute(create_sql)
+
+            # Robust self-healing: Ensure existing tables have all modern columns
+            self._sync_table_columns(table_name, create_sql)
+
+            # Create indexes that were present
+            if table_name == "announces":
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_announces_aspect ON announces(aspect)",
+                )
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_announces_identity_hash ON announces(identity_hash)",
+                )
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_announces_updated_at ON announces(updated_at)",
+                )
+            elif table_name == "lxmf_messages":
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_source_hash ON lxmf_messages(source_hash)",
+                )
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_destination_hash ON lxmf_messages(destination_hash)",
+                )
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_peer_hash ON lxmf_messages(peer_hash)",
+                )
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_timestamp ON lxmf_messages(timestamp)",
+                )
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_peer_ts ON lxmf_messages(peer_hash, timestamp)",
+                )
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_peer_id ON lxmf_messages(peer_hash, id DESC)",
+                )
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_reply_to_hash ON lxmf_messages(reply_to_hash)",
+                )
+            elif table_name == "blocked_destinations":
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_blocked_destinations_hash ON blocked_destinations(destination_hash)",
+                )
+            elif table_name == "spam_keywords":
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_spam_keywords_keyword ON spam_keywords(keyword)",
+                )
+            elif table_name == "notification_viewed_state":
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_notification_viewed_state_destination_hash ON notification_viewed_state(destination_hash)",
+                )
+                self._safe_execute(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_viewed_state_dest_hash_unique ON notification_viewed_state(destination_hash)",
+                )
+            elif table_name == "lxmf_telemetry":
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_destination_hash ON lxmf_telemetry(destination_hash)",
+                )
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_timestamp ON lxmf_telemetry(timestamp)",
+                )
+                self._safe_execute(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_telemetry_dest_ts_unique ON lxmf_telemetry(destination_hash, timestamp)",
+                )
+            elif table_name == "debug_logs":
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_debug_logs_timestamp ON debug_logs(timestamp)",
+                )
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_debug_logs_level ON debug_logs(level)",
+                )
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_debug_logs_anomaly ON debug_logs(is_anomaly)",
+                )
+            elif table_name == "lxmf_conversation_summaries":
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_conversation_summaries_latest_id "
+                    "ON lxmf_conversation_summaries(latest_message_id DESC)",
+                )
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_conversation_summaries_timestamp "
+                    "ON lxmf_conversation_summaries(timestamp DESC)",
+                )
+            elif table_name == "map_published":
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_map_published_identity "
+                    "ON map_published(identity_hash)",
+                )
+                self._safe_execute(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_map_published_identity_map "
+                    "ON map_published(identity_hash, map_id)",
+                )
+
+    def migrate(
+        self,
+        current_version,
+        target_version: int | None = None,
+        *,
+        update_version: bool = True,
+    ):
+        target = (
+            self.LATEST_VERSION
+            if target_version is None
+            else min(max(0, int(target_version)), self.LATEST_VERSION)
+        )
+        self._strict_migrations = True
+        self._migration_errors = []
+        try:
+            self._run_migrations(current_version, target)
+        finally:
+            self._strict_migrations = False
+        if self._migration_errors:
+            first = self._migration_errors[0]
+            raise DatabaseMigrationError(
+                f"{len(self._migration_errors)} migration step(s) failed: {first}",
+            )
+        if update_version:
+            self._update_database_version_to(target)
+
+    def migrate_up_to(self, version: int) -> None:
+        """Apply migrations up to version (for fixtures and tests)."""
+        current = self.get_current_version()
+        self.migrate(current, target_version=version)
+
+    def _update_database_version_to(self, version: int) -> None:
+        self.provider.execute(
+            """
+            INSERT INTO config (key, value, created_at, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT(key) DO UPDATE SET
+                value = EXCLUDED.value,
+                updated_at = EXCLUDED.updated_at
+            """,
+            ("database_version", str(version)),
+        )
+
+    def _update_database_version(self):
+        self._update_database_version_to(self.LATEST_VERSION)
+
+    def _run_migrations(self, current_version, target_version: int | None = None):
+        if target_version is None:
+            target_version = self.LATEST_VERSION
+        if current_version < 7 and target_version >= 7:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS archived_pages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT,
+                    page_path TEXT,
+                    content TEXT,
+                    hash TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_archived_pages_destination_hash ON archived_pages(destination_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_archived_pages_page_path ON archived_pages(page_path)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_archived_pages_hash ON archived_pages(hash)",
+            )
+
+        if current_version < 8 and target_version >= 8:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS crawl_tasks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT,
+                    page_path TEXT,
+                    retry_count INTEGER DEFAULT 0,
+                    last_retry_at DATETIME,
+                    next_retry_at DATETIME,
+                    status TEXT DEFAULT 'pending',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_crawl_tasks_destination_hash ON crawl_tasks(destination_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_crawl_tasks_page_path ON crawl_tasks(page_path)",
+            )
+
+        if current_version < 9 and target_version >= 9:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS lxmf_forwarding_rules (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT,
+                    identity_hash TEXT,
+                    forward_to_hash TEXT,
+                    source_filter_hash TEXT,
+                    is_active INTEGER DEFAULT 1,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_forwarding_rules_identity_hash ON lxmf_forwarding_rules(identity_hash)",
+            )
+
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS lxmf_forwarding_mappings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    alias_identity_private_key TEXT,
+                    alias_hash TEXT UNIQUE,
+                    original_sender_hash TEXT,
+                    final_recipient_hash TEXT,
+                    original_destination_hash TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_forwarding_mappings_alias_hash ON lxmf_forwarding_mappings(alias_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_forwarding_mappings_sender_hash ON lxmf_forwarding_mappings(original_sender_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_forwarding_mappings_recipient_hash ON lxmf_forwarding_mappings(final_recipient_hash)",
+            )
+
+        if current_version < 10 and target_version >= 10:
+            # Ensure unique constraints exist for ON CONFLICT clauses
+            # SQLite doesn't support adding UNIQUE constraints via ALTER TABLE,
+            # but a UNIQUE index works for ON CONFLICT.
+
+            # Clean up duplicates before adding unique indexes
+            self._safe_execute(
+                "DELETE FROM announces WHERE id NOT IN (SELECT MAX(id) FROM announces GROUP BY destination_hash)",
+            )
+            self._safe_execute(
+                "DELETE FROM crawl_tasks WHERE id NOT IN (SELECT MAX(id) FROM crawl_tasks GROUP BY destination_hash, page_path)",
+            )
+            self._safe_execute(
+                "DELETE FROM custom_destination_display_names WHERE id NOT IN (SELECT MAX(id) FROM custom_destination_display_names GROUP BY destination_hash)",
+            )
+            self._safe_execute(
+                "DELETE FROM favourite_destinations WHERE id NOT IN (SELECT MAX(id) FROM favourite_destinations GROUP BY destination_hash)",
+            )
+            self._safe_execute(
+                "DELETE FROM lxmf_user_icons WHERE id NOT IN (SELECT MAX(id) FROM lxmf_user_icons GROUP BY destination_hash)",
+            )
+            self._safe_execute(
+                "DELETE FROM lxmf_conversation_read_state WHERE id NOT IN (SELECT MAX(id) FROM lxmf_conversation_read_state GROUP BY destination_hash)",
+            )
+            self._safe_execute(
+                "DELETE FROM lxmf_messages WHERE id NOT IN (SELECT MAX(id) FROM lxmf_messages GROUP BY hash)",
+            )
+
+            self._safe_execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_announces_destination_hash_unique ON announces(destination_hash)",
+            )
+            self._safe_execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_crawl_tasks_destination_path_unique ON crawl_tasks(destination_hash, page_path)",
+            )
+            self._safe_execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_custom_display_names_dest_hash_unique ON custom_destination_display_names(destination_hash)",
+            )
+            self._safe_execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_favourite_destinations_dest_hash_unique ON favourite_destinations(destination_hash)",
+            )
+            self._safe_execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_messages_hash_unique ON lxmf_messages(hash)",
+            )
+            self._safe_execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_user_icons_dest_hash_unique ON lxmf_user_icons(destination_hash)",
+            )
+            self._safe_execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_conversation_read_state_dest_hash_unique ON lxmf_conversation_read_state(destination_hash)",
+            )
+
+        if current_version < 11 and target_version >= 11:
+            # Add is_spam column to lxmf_messages if it doesn't exist
+            self._safe_execute(
+                "ALTER TABLE lxmf_messages ADD COLUMN is_spam INTEGER DEFAULT 0",
+            )
+
+        if current_version < 12 and target_version >= 12:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS call_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    remote_identity_hash TEXT,
+                    remote_identity_name TEXT,
+                    is_incoming INTEGER,
+                    status TEXT,
+                    duration_seconds INTEGER,
+                    timestamp REAL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_call_history_remote_hash ON call_history(remote_identity_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_call_history_timestamp ON call_history(timestamp)",
+            )
+
+        if current_version < 13 and target_version >= 13:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS voicemails (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    remote_identity_hash TEXT,
+                    remote_identity_name TEXT,
+                    filename TEXT,
+                    duration_seconds INTEGER,
+                    is_read INTEGER DEFAULT 0,
+                    timestamp REAL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_voicemails_remote_hash ON voicemails(remote_identity_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_voicemails_timestamp ON voicemails(timestamp)",
+            )
+
+        if current_version < 14 and target_version >= 14:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS notification_viewed_state (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT UNIQUE,
+                    last_viewed_at DATETIME,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_notification_viewed_state_destination_hash ON notification_viewed_state(destination_hash)",
+            )
+            self._safe_execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_viewed_state_dest_hash_unique ON notification_viewed_state(destination_hash)",
+            )
+
+        if current_version < 15 and target_version >= 15:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS lxmf_telemetry (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT,
+                    timestamp REAL,
+                    data BLOB,
+                    received_from TEXT,
+                    physical_link TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(destination_hash, timestamp)
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_destination_hash ON lxmf_telemetry(destination_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_timestamp ON lxmf_telemetry(timestamp)",
+            )
+            self._safe_execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_telemetry_dest_ts_unique ON lxmf_telemetry(destination_hash, timestamp)",
+            )
+
+        if current_version < 16 and target_version >= 16:
+            self._safe_execute(
+                "ALTER TABLE lxmf_forwarding_rules ADD COLUMN name TEXT",
+            )
+
+        if current_version < 17 and target_version >= 17:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS ringtones (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    filename TEXT,
+                    display_name TEXT,
+                    storage_filename TEXT,
+                    is_primary INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+        if current_version < 18 and target_version >= 18:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS contacts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT,
+                    remote_identity_hash TEXT UNIQUE,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_contacts_name ON contacts(name)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_contacts_remote_identity_hash ON contacts(remote_identity_hash)",
+            )
+
+        if current_version < 19 and target_version >= 19:
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_call_history_remote_name ON call_history(remote_identity_name)",
+            )
+
+        if current_version < 20 and target_version >= 20:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS notifications (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    type TEXT,
+                    remote_hash TEXT,
+                    title TEXT,
+                    content TEXT,
+                    is_viewed INTEGER DEFAULT 0,
+                    timestamp REAL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_notifications_remote_hash ON notifications(remote_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_notifications_timestamp ON notifications(timestamp)",
+            )
+
+        if current_version < 21 and target_version >= 21:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS keyboard_shortcuts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT,
+                    action TEXT,
+                    keys TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(identity_hash, action)
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_keyboard_shortcuts_identity_hash ON keyboard_shortcuts(identity_hash)",
+            )
+
+        if current_version < 22 and target_version >= 22:
+            # Optimize fetching conversations and favorites
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_timestamp ON lxmf_messages(timestamp)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_favourite_destinations_aspect ON favourite_destinations(aspect)",
+            )
+            # Add index for faster searching in announces
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_announces_updated_at ON announces(updated_at)",
+            )
+
+        if current_version < 23 and target_version >= 23:
+            # Further optimize conversation fetching
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_conv_optim ON lxmf_messages(source_hash, destination_hash, timestamp DESC)",
+            )
+            # Add index for unread message filtering
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_state_incoming ON lxmf_messages(state, is_incoming)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_announces_aspect ON announces(aspect)",
+            )
+
+        if current_version < 24 and target_version >= 24:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS call_recordings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    remote_identity_hash TEXT,
+                    remote_identity_name TEXT,
+                    filename_rx TEXT,
+                    filename_tx TEXT,
+                    duration_seconds INTEGER,
+                    timestamp REAL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_call_recordings_remote_hash ON call_recordings(remote_identity_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_call_recordings_timestamp ON call_recordings(timestamp)",
+            )
+
+        if current_version < 25 and target_version >= 25:
+            # Add docs_downloaded to config if not exists
+            self._safe_execute(
+                "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
+                ("docs_downloaded", "0"),
+            )
+
+        if current_version < 26 and target_version >= 26:
+            # Add initial_docs_download_attempted to config if not exists
+            self._safe_execute(
+                "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
+                ("initial_docs_download_attempted", "0"),
+            )
+
+        if current_version < 28 and target_version >= 28:
+            # Add preferred_ringtone_id to contacts
+            self._safe_execute(
+                "ALTER TABLE contacts ADD COLUMN preferred_ringtone_id INTEGER DEFAULT NULL",
+            )
+
+        if current_version < 29 and target_version >= 29:
+            # Performance optimization indexes
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_peer_hash ON lxmf_messages(peer_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_timestamp ON lxmf_messages(timestamp)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_peer_ts ON lxmf_messages(peer_hash, timestamp)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_announces_updated_at ON announces(updated_at)",
+            )
+
+        if current_version < 30 and target_version >= 30:
+            # Add custom_image to contacts
+            self._safe_execute(
+                "ALTER TABLE contacts ADD COLUMN custom_image TEXT DEFAULT NULL",
+            )
+
+        if current_version < 31 and target_version >= 31:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS lxmf_last_sent_icon_hashes (
+                    destination_hash TEXT PRIMARY KEY,
+                    icon_hash TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+        if current_version < 32 and target_version >= 32:
+            # Add tutorial_seen and changelog_seen_version to config
+            self._safe_execute(
+                "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
+                ("tutorial_seen", "false"),
+            )
+            self._safe_execute(
+                "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
+                ("changelog_seen_version", "0.0.0"),
+            )
+
+        if current_version < 33 and target_version >= 33:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS debug_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp REAL,
+                    level TEXT,
+                    module TEXT,
+                    message TEXT,
+                    is_anomaly INTEGER DEFAULT 0,
+                    anomaly_type TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_debug_logs_timestamp ON debug_logs(timestamp)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_debug_logs_level ON debug_logs(level)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_debug_logs_anomaly ON debug_logs(is_anomaly)",
+            )
+
+        if current_version < 34 and target_version >= 34:
+            # Add updated_at to crawl_tasks
+            self._safe_execute(
+                "ALTER TABLE crawl_tasks ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP",
+            )
+
+        if current_version < 35 and target_version >= 35:
+            # Add lxmf_address and lxst_address to contacts
+            self._safe_execute(
+                "ALTER TABLE contacts ADD COLUMN lxmf_address TEXT DEFAULT NULL",
+            )
+            self._safe_execute(
+                "ALTER TABLE contacts ADD COLUMN lxst_address TEXT DEFAULT NULL",
+            )
+
+        if current_version < 36 and target_version >= 36:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS lxmf_folders (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS lxmf_conversation_folders (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    peer_hash TEXT UNIQUE,
+                    folder_id INTEGER,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (folder_id) REFERENCES lxmf_folders(id) ON DELETE CASCADE
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_conversation_folders_peer_hash ON lxmf_conversation_folders(peer_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_conversation_folders_folder_id ON lxmf_conversation_folders(folder_id)",
+            )
+
+        if current_version < 37 and target_version >= 37:
+            # Add is_telemetry_trusted to contacts
+            self._safe_execute(
+                "ALTER TABLE contacts ADD COLUMN is_telemetry_trusted INTEGER DEFAULT 0",
+            )
+            # Ensure telemetry_enabled exists in config and is false by default
+            self._safe_execute(
+                "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
+                ("telemetry_enabled", "false"),
+            )
+
+        if current_version < 38 and target_version >= 38:
+            self._safe_execute(
+                "ALTER TABLE lxmf_messages ADD COLUMN reply_to_hash TEXT",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_reply_to_hash ON lxmf_messages(reply_to_hash)",
+            )
+
+        if current_version < 39 and target_version >= 39:
+            # Indexes for contacts JOIN columns (used in message_handler.get_conversations
+            # and announce_manager.get_filtered_announces OR-based JOINs)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_contacts_lxmf_address ON contacts(lxmf_address)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_contacts_lxst_address ON contacts(lxst_address)",
+            )
+            # Notifications: filter by is_viewed
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_notifications_is_viewed ON notifications(is_viewed)",
+            )
+            # Map drawings: lookup by identity_hash
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_map_drawings_identity_hash ON map_drawings(identity_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_map_drawings_identity_name ON map_drawings(identity_hash, name)",
+            )
+            # Voicemails: filter by is_read
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_voicemails_is_read ON voicemails(is_read)",
+            )
+            # Archived pages: ORDER BY created_at for cleanup queries
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_archived_pages_created_at ON archived_pages(created_at)",
+            )
+            # Conversation message state+peer: for failed_count subquery
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_state_peer ON lxmf_messages(state, peer_hash)",
+            )
+
+        if current_version < 40 and target_version >= 40:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS crash_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp REAL,
+                    error_type TEXT,
+                    error_message TEXT,
+                    diagnosed_cause TEXT,
+                    symptoms TEXT,
+                    probability INTEGER,
+                    entropy REAL,
+                    divergence REAL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_crash_history_timestamp ON crash_history(timestamp)",
+            )
+
+        if current_version < 41 and target_version >= 41:
+            self._safe_execute(
+                "ALTER TABLE lxmf_messages ADD COLUMN attachments_stripped INTEGER DEFAULT 0",
+            )
+
+        if current_version < 42 and target_version >= 42:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS access_attempts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at REAL NOT NULL,
+                    identity_hash TEXT NOT NULL,
+                    client_ip TEXT NOT NULL,
+                    user_agent TEXT,
+                    user_agent_hash TEXT NOT NULL,
+                    path TEXT NOT NULL,
+                    method TEXT NOT NULL,
+                    outcome TEXT NOT NULL,
+                    detail TEXT
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_access_attempts_created ON access_attempts(created_at)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_access_attempts_ip_time ON access_attempts(client_ip, created_at)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_access_attempts_identity_time ON access_attempts(identity_hash, created_at)",
+            )
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS trusted_login_clients (
+                    identity_hash TEXT NOT NULL,
+                    client_ip TEXT NOT NULL,
+                    user_agent_hash TEXT NOT NULL,
+                    last_success_at REAL NOT NULL,
+                    created_at REAL NOT NULL,
+                    PRIMARY KEY (identity_hash, client_ip, user_agent_hash)
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_trusted_login_identity ON trusted_login_clients(identity_hash)",
+            )
+
+        if current_version < 43 and target_version >= 43:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS lxmf_conversation_pins (
+                    peer_hash TEXT PRIMARY KEY NOT NULL,
+                    pinned_at INTEGER NOT NULL
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_conversation_pins_pinned_at ON lxmf_conversation_pins(pinned_at)",
+            )
+
+        if current_version < 44 and target_version >= 44:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS user_stickers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT NOT NULL,
+                    name TEXT,
+                    image_type TEXT NOT NULL,
+                    image_blob BLOB NOT NULL,
+                    content_hash TEXT NOT NULL,
+                    source_message_hash TEXT,
+                    created_at REAL NOT NULL,
+                    updated_at REAL NOT NULL,
+                    UNIQUE(identity_hash, content_hash)
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_user_stickers_identity ON user_stickers(identity_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_user_stickers_identity_updated ON user_stickers(identity_hash, updated_at)",
+            )
+
+        if current_version < 45 and target_version >= 45:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS user_gifs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT NOT NULL,
+                    name TEXT,
+                    image_type TEXT NOT NULL,
+                    image_blob BLOB NOT NULL,
+                    content_hash TEXT NOT NULL,
+                    source_message_hash TEXT,
+                    usage_count INTEGER NOT NULL DEFAULT 0,
+                    last_used_at REAL,
+                    created_at REAL NOT NULL,
+                    updated_at REAL NOT NULL,
+                    UNIQUE(identity_hash, content_hash)
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_user_gifs_identity ON user_gifs(identity_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_user_gifs_identity_usage ON user_gifs(identity_hash, usage_count, last_used_at)",
+            )
+
+        if current_version < 46 and target_version >= 46:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS user_sticker_packs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    short_name TEXT,
+                    description TEXT,
+                    pack_type TEXT NOT NULL DEFAULT 'mixed',
+                    author TEXT,
+                    is_strict INTEGER NOT NULL DEFAULT 1,
+                    cover_sticker_id INTEGER,
+                    sort_order INTEGER NOT NULL DEFAULT 0,
+                    created_at REAL NOT NULL,
+                    updated_at REAL NOT NULL
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_user_sticker_packs_identity ON user_sticker_packs(identity_hash, sort_order)",
+            )
+            self._safe_execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_user_sticker_packs_short_name ON user_sticker_packs(identity_hash, short_name) WHERE short_name IS NOT NULL",
+            )
+            self._ensure_column("user_stickers", "pack_id", "INTEGER")
+            self._ensure_column("user_stickers", "emoji", "TEXT")
+            self._ensure_column("user_stickers", "width", "INTEGER")
+            self._ensure_column("user_stickers", "height", "INTEGER")
+            self._ensure_column("user_stickers", "duration_ms", "INTEGER")
+            self._ensure_column("user_stickers", "fps", "REAL")
+            self._ensure_column(
+                "user_stickers",
+                "is_animated",
+                "INTEGER NOT NULL DEFAULT 0",
+            )
+            self._ensure_column(
+                "user_stickers",
+                "is_video",
+                "INTEGER NOT NULL DEFAULT 0",
+            )
+            self._ensure_column(
+                "user_stickers",
+                "is_strict",
+                "INTEGER NOT NULL DEFAULT 0",
+            )
+            self._ensure_column(
+                "user_stickers",
+                "sort_order",
+                "INTEGER NOT NULL DEFAULT 0",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_user_stickers_pack ON user_stickers(pack_id, sort_order)",
+            )
+
+        if current_version < 47 and target_version >= 47:
+            self._ensure_column("lxmf_messages", "path_hops_at_send", "INTEGER")
+            self._ensure_column("lxmf_messages", "path_interface_at_send", "TEXT")
+
+        if current_version < 48 and target_version >= 48:
+            self._ensure_column("lxmf_messages", "path_finding_measure", "TEXT")
+            self._ensure_column("lxmf_messages", "path_row_hash_hex", "TEXT")
+
+        if current_version < 49 and target_version >= 49:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS notification_sounds (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    filename TEXT,
+                    display_name TEXT,
+                    storage_filename TEXT,
+                    is_primary INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+        if current_version < 50 and target_version >= 50:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS map_overlay_sources (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT NOT NULL,
+                    kind TEXT NOT NULL,
+                    destination_hash TEXT NOT NULL,
+                    path_or_repo_path TEXT NOT NULL,
+                    ref TEXT NOT NULL DEFAULT 'HEAD',
+                    group_name TEXT,
+                    repository TEXT,
+                    name TEXT NOT NULL,
+                    enabled INTEGER NOT NULL DEFAULT 1,
+                    visible INTEGER NOT NULL DEFAULT 1,
+                    refresh_interval_seconds INTEGER NOT NULL DEFAULT 0,
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    last_error TEXT,
+                    last_fetched_at DATETIME,
+                    next_refresh_at DATETIME,
+                    content_sha256 TEXT,
+                    resolved_ref TEXT,
+                    format TEXT,
+                    byte_size INTEGER,
+                    cache_relpath TEXT,
+                    job_id TEXT,
+                    generation INTEGER NOT NULL DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(identity_hash, kind, destination_hash, path_or_repo_path, ref)
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_map_overlay_sources_identity "
+                "ON map_overlay_sources(identity_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_map_overlay_sources_refresh "
+                "ON map_overlay_sources(enabled, next_refresh_at)",
+            )
+
+        if current_version < 51 and target_version >= 51:
+            # Slim conversation list/thread loads: persist attachment flags and
+            # fields_meta (fields without base64 payloads) so queries never need
+            # to instr()/SELECT multi-MB fields blobs on the hot path.
+            self._ensure_column("lxmf_messages", "fields_meta", "TEXT")
+            self._ensure_column("lxmf_messages", "has_image", "INTEGER")
+            self._ensure_column("lxmf_messages", "has_audio", "INTEGER")
+            self._ensure_column("lxmf_messages", "has_files", "INTEGER")
+            self._ensure_column("lxmf_messages", "has_reaction", "INTEGER")
+            self._ensure_column("lxmf_messages", "has_telemetry", "INTEGER")
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_peer_id "
+                "ON lxmf_messages(peer_hash, id DESC)",
+            )
+            # Fresh installs have an empty messages table. Skip backfill UPDATEs
+            # so Database Initialization stays fast. Upsert fills flags going forward.
+            has_messages = self.provider.fetchone(
+                "SELECT 1 AS ok FROM lxmf_messages LIMIT 1",
+            )
+            if has_messages:
+                # Backfill flags for the latest message of each conversation only.
+                # That is the row the sidebar query reads. Full-table instr would be
+                # too expensive on large histories.
+                self._safe_execute(
+                    """
+                    UPDATE lxmf_messages SET
+                        has_image = CASE
+                            WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                             AND (instr(fields, '"image"') > 0 OR instr(fields, '"0x05"') > 0)
+                            THEN 1 ELSE 0 END,
+                        has_audio = CASE
+                            WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                             AND (instr(fields, '"audio"') > 0 OR instr(fields, '"0x06"') > 0)
+                            THEN 1 ELSE 0 END,
+                        has_files = CASE
+                            WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                             AND (instr(fields, '"file_attachments"') > 0
+                                  OR instr(fields, '"0x07"') > 0)
+                            THEN 1 ELSE 0 END,
+                        has_reaction = CASE
+                            WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                             AND (instr(fields, '"reaction"') > 0 OR instr(fields, '"0x40"') > 0)
+                            THEN 1 ELSE 0 END,
+                        has_telemetry = CASE
+                            WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                             AND (instr(fields, '"telemetry"') > 0
+                                  OR instr(fields, '"0x08"') > 0
+                                  OR instr(fields, '"telemetry_stream"') > 0)
+                            THEN 1 ELSE 0 END
+                    WHERE id IN (
+                        SELECT MAX(id) FROM lxmf_messages
+                        WHERE peer_hash IS NOT NULL
+                        GROUP BY peer_hash
+                    )
+                    """,
+                )
+                # Also flag oversized fields rows (almost always attachments). This keeps
+                # heavy conversation opens from SELECT-ing multi-MB blobs without meta.
+                self._safe_execute(
+                    """
+                    UPDATE lxmf_messages SET
+                        has_image = CASE
+                            WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                             AND (instr(fields, '"image"') > 0 OR instr(fields, '"0x05"') > 0)
+                            THEN 1 ELSE 0 END,
+                        has_audio = CASE
+                            WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                             AND (instr(fields, '"audio"') > 0 OR instr(fields, '"0x06"') > 0)
+                            THEN 1 ELSE 0 END,
+                        has_files = CASE
+                            WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                             AND (instr(fields, '"file_attachments"') > 0
+                                  OR instr(fields, '"0x07"') > 0)
+                            THEN 1 ELSE 0 END,
+                        has_reaction = CASE
+                            WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                             AND (instr(fields, '"reaction"') > 0 OR instr(fields, '"0x40"') > 0)
+                            THEN 1 ELSE 0 END,
+                        has_telemetry = CASE
+                            WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                             AND (instr(fields, '"telemetry"') > 0
+                                  OR instr(fields, '"0x08"') > 0
+                                  OR instr(fields, '"telemetry_stream"') > 0)
+                            THEN 1 ELSE 0 END
+                    WHERE has_image IS NULL
+                      AND length(COALESCE(fields, '')) > 16384
+                    """,
+                )
+                # Small fields can be copied as-is into fields_meta for thread loads.
+                self._safe_execute(
+                    """
+                    UPDATE lxmf_messages
+                    SET fields_meta = fields
+                    WHERE (fields_meta IS NULL OR fields_meta = '')
+                      AND fields IS NOT NULL AND fields != ''
+                      AND length(fields) <= 16384
+                    """,
+                )
+                # Large attachment blobs: store a tiny synthetic meta from flags.
+                self._safe_execute(
+                    """
+                    UPDATE lxmf_messages
+                    SET fields_meta = CASE
+                        WHEN COALESCE(has_image, 0) = 1 THEN
+                            '{"image":{"image_type":"png","image_size":0,"image_bytes":null}}'
+                        WHEN COALESCE(has_audio, 0) = 1 THEN
+                            '{"audio":{"audio_mode":0,"audio_size":0,"audio_bytes":null}}'
+                        WHEN COALESCE(has_files, 0) = 1 THEN
+                            '{"file_attachments":[{"file_name":"attachment","file_size":0,"file_bytes":null}]}'
+                        WHEN COALESCE(has_reaction, 0) = 1 THEN
+                            '{"reaction":{}}'
+                        WHEN COALESCE(has_telemetry, 0) = 1 THEN
+                            '{"telemetry":{}}'
+                        ELSE '{}'
+                    END
+                    WHERE (fields_meta IS NULL OR fields_meta = '')
+                      AND fields IS NOT NULL AND length(fields) > 16384
+                    """,
+                )
+
+        if current_version < 52 and target_version >= 52:
+            # Materialized per-peer latest row so conversation list queries do not
+            # GROUP BY the full lxmf_messages table on every refresh.
+            self._safe_execute(
+                """
+                CREATE TABLE IF NOT EXISTS lxmf_conversation_summaries (
+                    peer_hash TEXT PRIMARY KEY NOT NULL,
+                    latest_message_id INTEGER NOT NULL,
+                    latest_message_hash TEXT,
+                    source_hash TEXT,
+                    destination_hash TEXT,
+                    state TEXT,
+                    progress REAL,
+                    is_incoming INTEGER,
+                    title TEXT,
+                    content_preview TEXT,
+                    timestamp REAL,
+                    is_spam INTEGER,
+                    reply_to_hash TEXT,
+                    created_at TEXT,
+                    updated_at TEXT,
+                    has_image INTEGER,
+                    has_audio INTEGER,
+                    has_files INTEGER,
+                    has_reaction INTEGER,
+                    has_telemetry INTEGER,
+                    failed_count INTEGER NOT NULL DEFAULT 0
+                )
+                """,
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_conversation_summaries_latest_id "
+                "ON lxmf_conversation_summaries(latest_message_id DESC)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_conversation_summaries_timestamp "
+                "ON lxmf_conversation_summaries(timestamp DESC)",
+            )
+            has_messages = self.provider.fetchone(
+                "SELECT 1 AS ok FROM lxmf_messages LIMIT 1",
+            )
+            if has_messages:
+                self._safe_execute(
+                    """
+                    INSERT OR REPLACE INTO lxmf_conversation_summaries (
+                        peer_hash, latest_message_id, latest_message_hash,
+                        source_hash, destination_hash, state, progress, is_incoming,
+                        title, content_preview, timestamp, is_spam, reply_to_hash,
+                        created_at, updated_at,
+                        has_image, has_audio, has_files, has_reaction, has_telemetry,
+                        failed_count
+                    )
+                    SELECT
+                        m.peer_hash,
+                        m.id,
+                        m.hash,
+                        m.source_hash,
+                        m.destination_hash,
+                        m.state,
+                        m.progress,
+                        m.is_incoming,
+                        m.title,
+                        substr(COALESCE(m.content, ''), 1, 240),
+                        m.timestamp,
+                        m.is_spam,
+                        m.reply_to_hash,
+                        m.created_at,
+                        m.updated_at,
+                        COALESCE(m.has_image, 0),
+                        COALESCE(m.has_audio, 0),
+                        COALESCE(m.has_files, 0),
+                        COALESCE(m.has_reaction, 0),
+                        COALESCE(m.has_telemetry, 0),
+                        COALESCE(fc.failed_count, 0)
+                    FROM lxmf_messages m
+                    INNER JOIN (
+                        SELECT peer_hash, MAX(id) AS max_id
+                        FROM lxmf_messages
+                        WHERE peer_hash IS NOT NULL
+                        GROUP BY peer_hash
+                    ) latest ON latest.peer_hash = m.peer_hash AND latest.max_id = m.id
+                    LEFT JOIN (
+                        SELECT peer_hash, COUNT(*) AS failed_count
+                        FROM lxmf_messages
+                        WHERE state = 'failed'
+                        GROUP BY peer_hash
+                    ) fc ON fc.peer_hash = m.peer_hash
+                    """,
+                )
+
+        if current_version < 53 and target_version >= 53:
+            # Encrypted client-side RRC room keys for +k rooms (identity-scoped).
+            self._safe_execute(
+                """
+                CREATE TABLE IF NOT EXISTS rrc_room_keys (
+                    hub_hash TEXT NOT NULL,
+                    dest_name TEXT NOT NULL,
+                    room TEXT NOT NULL,
+                    nonce BLOB NOT NULL,
+                    ciphertext BLOB NOT NULL,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (hub_hash, dest_name, room)
+                )
+                """,
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_rrc_room_keys_hub "
+                "ON rrc_room_keys(hub_hash, dest_name)",
+            )
+
+        if current_version < 54 and target_version >= 54:
+            # v54: version alignment for databases already stamped at 54 without
+            # additional structural changes beyond v53.
+            pass
+
+        if current_version < 55 and target_version >= 55:
+            self._safe_execute(
+                """
+                CREATE TABLE IF NOT EXISTS map_published (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT NOT NULL,
+                    map_id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    format TEXT NOT NULL,
+                    size INTEGER NOT NULL,
+                    sha256 TEXT NOT NULL,
+                    bbox TEXT,
+                    feature_count INTEGER NOT NULL DEFAULT 0,
+                    path TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(identity_hash, map_id)
+                )
+                """,
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_map_published_identity "
+                "ON map_published(identity_hash)",
+            )
+            self._safe_execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_map_published_identity_map "
+                "ON map_published(identity_hash, map_id)",
+            )
+
+        if current_version < 56 and target_version >= 56:
+            self._safe_execute(
+                "ALTER TABLE crawl_tasks ADD COLUMN depth INTEGER DEFAULT 0",
+            )
+            self._safe_execute(
+                "ALTER TABLE crawl_tasks ADD COLUMN priority REAL DEFAULT 0",
+            )
+            self._safe_execute(
+                """
+                CREATE TABLE IF NOT EXISTS crawl_opt_outs (
+                    destination_hash TEXT PRIMARY KEY,
+                    reason TEXT,
+                    source TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+                """,
+            )
+            self._safe_execute(
+                """
+                CREATE TABLE IF NOT EXISTS crawl_node_stats (
+                    destination_hash TEXT PRIMARY KEY,
+                    pages_indexed INTEGER DEFAULT 0,
+                    last_request_at DATETIME,
+                    last_rtt_ms REAL,
+                    last_hops INTEGER,
+                    skipped_reason TEXT,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+                """,
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_crawl_tasks_priority "
+                "ON crawl_tasks(status, priority, next_retry_at)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_archived_pages_dest_path "
+                "ON archived_pages(destination_hash, page_path)",
+            )
+
+        if current_version < 57 and target_version >= 57:
+            self._safe_execute(
+                "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
+                ("channel_prompt_seen", ""),
+            )
+
+        if current_version < 58 and target_version >= 58:
+            self._ensure_column(
+                "favourite_destinations",
+                "identify_on_connect",
+                "INTEGER NOT NULL DEFAULT 0",
+            )

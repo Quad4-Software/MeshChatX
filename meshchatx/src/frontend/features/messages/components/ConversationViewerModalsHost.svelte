@@ -1,7 +1,6 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
-    import { t } from "../../../js/i18n.js";
     import ConversationImageLightbox from "./ConversationImageLightbox.svelte";
     import ConversationMessageContextMenu from "./ConversationMessageContextMenu.svelte";
     import ConversationReactionPicker from "./ConversationReactionPicker.svelte";
@@ -41,7 +40,7 @@
         lightboxUrl = "",
         lightboxGallery = null as string[] | null,
         lightboxIndex = 0,
-        lightboxItems = null as MessageChatItem[] | null,
+        lightboxItems: _lightboxItems = null as MessageChatItem[] | null,
         oncloselightbox,
         onnavigatelightbox,
         ondownloadlightbox,
@@ -180,7 +179,9 @@
     canReact={!contextMenu.chatItem?.lxmf_message.is_reaction}
     hasImage={Boolean(contextMenu.chatItem?.lxmf_message.fields?.image)}
     canSaveAsGif={Boolean(
-        String((contextMenu.chatItem?.lxmf_message.fields?.image as Record<string, any>)?.image_type || "").toLowerCase() === "gif"
+        String(
+            (contextMenu.chatItem?.lxmf_message.fields?.image as Record<string, any>)?.image_type || ""
+        ).toLowerCase() === "gif"
     )}
     canCancelSend={Boolean(
         contextMenu.chatItem?.is_outbound &&

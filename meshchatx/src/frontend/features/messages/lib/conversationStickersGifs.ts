@@ -46,7 +46,9 @@ export async function loadStickers(api: { get: (url: string) => Promise<{ data?:
     }
 }
 
-export async function loadStickerPacks(api: { get: (url: string) => Promise<{ data?: unknown }> }): Promise<StickerPackItem[]> {
+export async function loadStickerPacks(api: {
+    get: (url: string) => Promise<{ data?: unknown }>;
+}): Promise<StickerPackItem[]> {
     try {
         const response = await api.get("/api/v1/stickers/packs");
         const data = response.data as { packs?: unknown } | undefined;

@@ -22,11 +22,7 @@ export async function pingPeer(api: ApiClient, destinationHash: string): Promise
     const pingToastKey = "conversation-ping";
     ToastUtils.loading(t("messages.ping_in_progress"), 0, pingToastKey);
     try {
-        const response = await api.post(
-            `/api/v1/ping/${hash}/lxmf.delivery`,
-            {},
-            { params: { timeout: 30 } }
-        );
+        const response = await api.post(`/api/v1/ping/${hash}/lxmf.delivery`, {}, { params: { timeout: 30 } });
         const pingResult = (response.data?.ping_result || {}) as Record<string, unknown>;
         const rttMilliseconds = ((Number(pingResult.rtt) || 0) * 1000).toFixed(3);
         const info = [
@@ -118,10 +114,7 @@ export async function addPeerContact(
     }
 }
 
-export async function updatePeerDisplayName(
-    api: ApiClient,
-    destinationHash: string
-): Promise<string | null> {
+export async function updatePeerDisplayName(api: ApiClient, destinationHash: string): Promise<string | null> {
     const hash = String(destinationHash || "").trim();
     if (!hash) return null;
     const displayName = await DialogUtils.prompt(t("messages.enter_display_name"));

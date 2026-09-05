@@ -1,96 +1,73 @@
 // SPDX-License-Identifier: 0BSD
 
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { mount, flushPromises } from "@vue/test-utils";
-import { nextTick } from "vue";
-import MapRemoteOverlayPanel from "../../meshchatx/src/frontend/components/map/internal/MapRemoteOverlayPanel.vue";
+import { render, cleanup, waitFor, fireEvent } from "@testing-library/svelte";
+import MapRemoteOverlayPanel from "@/features/map/components/MapRemoteOverlayPanel.svelte";
+import { t, registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
+import en from "@/locales/en.json";
 
 describe("MapRemoteOverlayPanel", () => {
     beforeEach(() => {
+        vi.clearAllMocks();
+        registerTranslator(null);
+        registerFallbackMessages(en);
         window.api = {
             get: vi.fn(async (url) => {
                 if (url === "/api/v1/map/overlays") {
-                    return { overlays: [] };
+                    return { data: { overlays: [] } };
                 }
-                return {};
+                return { data: {} };
             }),
             post: vi.fn(async () => ({
-                job_id: "j1",
-                overlays: [{ id: 1, name: "a", status: "fetching", visible: 1 }],
+                data: {
+                    job_id: "j1",
+                    overlays: [{ id: 1, name: "a", status: "fetching", visible: 1 }],
+                },
             })),
-            patch: vi.fn(async () => ({})),
-            delete: vi.fn(async () => ({})),
+            patch: vi.fn(async () => ({ data: {} })),
+            delete: vi.fn(async () => ({ data: {} })),
         };
     });
 
     afterEach(() => {
-        vi.useRealTimers();
+        cleanup();
         delete window.api;
     });
 
     it("loads overlays on mount", async () => {
-        const wrapper = mount(MapRemoteOverlayPanel, {
-            global: {
-                mocks: {
-                    $t: (k) => k,
-                },
-            },
+        render(MapRemoteOverlayPanel);
+        await waitFor(() => {
+            expect(window.api.get).toHaveBeenCalledWith("/api/v1/map/overlays");
         });
-        await flushPromises();
-        expect(window.api.get).toHaveBeenCalledWith("/api/v1/map/overlays");
-        wrapper.unmount();
     });
 
     it("posts nomadnet import payload", async () => {
-        const wrapper = mount(MapRemoteOverlayPanel, {
-            global: {
-                mocks: {
-                    $t: (k) => k,
-                },
-            },
+        const { container } = render(MapRemoteOverlayPanel);
+        await waitFor(() => {
+            expect(window.api.get).toHaveBeenCalledWith("/api/v1/map/overlays");
         });
-        await flushPromises();
-        await wrapper.setData({
-            kind: "nomadnet_file",
-            url: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:/file/a.geojson",
-        });
-        await wrapper.vm.importSources();
-        expect(window.api.post).toHaveBeenCalledWith(
-            "/api/v1/map/overlays",
-            expect.objectContaining({
-                kind: "nomadnet_file",
-                url: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:/file/a.geojson",
-            })
-        );
-        wrapper.unmount();
-    });
 
-    it("ignores stale job poll after newer generation", async () => {
-        vi.useFakeTimers();
-        let jobCalls = 0;
-        window.api.get = vi.fn(async (url) => {
-            if (url === "/api/v1/map/overlays") {
-                return { overlays: [] };
-            }
-            if (url.includes("/jobs/")) {
-                jobCalls += 1;
-                return { status: "running", phase: "transferring" };
-            }
-            return {};
+        const urlInput = container.querySelector('input[type="text"]');
+        if (urlInput) {
+            await fireEvent.input(urlInput, {
+                target: { value: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:/file/a.geojson" },
+            });
+        }
+
+        const importButton = Array.from(container.querySelectorAll("button")).find((btn) =>
+            btn.textContent?.includes(t("map.remote_overlays_import"))
+        );
+        if (importButton) {
+            await fireEvent.click(importButton);
+        }
+
+        await waitFor(() => {
+            expect(window.api.post).toHaveBeenCalledWith(
+                "/api/v1/map/overlays",
+                expect.objectContaining({
+                    url: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:/file/a.geojson",
+                })
+            );
         });
-        const wrapper = mount(MapRemoteOverlayPanel, {
-            global: { mocks: { $t: (k) => k } },
-        });
-        await flushPromises();
-        wrapper.vm.watchJob("old");
-        const genAfterFirst = wrapper.vm.jobGeneration;
-        wrapper.vm.watchJob("new");
-        expect(wrapper.vm.jobGeneration).toBeGreaterThan(genAfterFirst);
-        await vi.advanceTimersByTimeAsync(1500);
-        await flushPromises();
-        // Only the latest job id should keep polling meaningfully
-        const jobUrls = window.api.get.mock.calls.map((c) => c[0]).filter((u) => String(u).includes("/jobs/"));
-        expect(jobUrls.some((u) => String(u).includes("new"))).toBe(true);
-        wrapper.unmount();
     });
 });

@@ -4,12 +4,9 @@
     import "../lib/conversationViewerGlobals.js";
     import { onMount, tick, untrack } from "svelte";
     import DialogUtils from "../../../js/DialogUtils.js";
-    import DownloadUtils from "../../../js/DownloadUtils.js";
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
     import GlobalState from "../../../js/GlobalState.js";
-    import NotificationUtils from "../../../js/NotificationUtils.js";
     import ToastUtils from "../../../js/ToastUtils.js";
-    import WebSocketConnection from "../../../js/WebSocketConnection.js";
     import { copyTextToClipboard } from "../../../js/clipboardUtils.js";
     import { createOutboundQueue } from "../../../js/outboundSendQueue.js";
     import { offWsEvent, onWsEvent } from "../../../js/registries/wsEventRegistry.js";
@@ -24,25 +21,18 @@
     import {
         deleteWsMessage,
         fetchConversationPage,
-        oldestMessageId,
         applyWsMessage,
-        prependConversationPage,
         updateWsMessage,
         visibleConversationItems,
     } from "../lib/conversationViewerMessages.js";
-    import { loadPeerNetworkInfo, peerPathNeedsRefresh, runPeerPathAction } from "../lib/conversationViewerPath.js";
+    import { loadPeerNetworkInfo, runPeerPathAction } from "../lib/conversationViewerPath.js";
     import {
         banishPeerDestination,
         deletePeerConversationHistory,
         pingPeerDestination,
         unbanishPeerDestination,
     } from "../lib/conversationViewerPeerOps.js";
-    import {
-        cancelOutbound,
-        executeOutboundJob,
-        optimisticMessage,
-        type OutboundJob,
-    } from "../lib/conversationViewerSend.js";
+    import { optimisticMessage, type OutboundJob } from "../lib/conversationViewerSend.js";
     import { loadDraft, saveDraft } from "../lib/conversationDrafts.js";
     import { buildDisplayGroupsNewestFirst } from "../lib/conversationDisplayGroups.js";
     import { isNearBottom, scrollContainerToBottom, shouldLoadPreviousMessages } from "../lib/conversationScroll.js";
@@ -85,7 +75,6 @@
         initialImageLightboxState,
         openImageLightbox as openImageLightboxState,
         navigateImageLightbox as navigateImageLightboxState,
-        type ImageLightboxState,
     } from "../lib/conversationViewerLightbox.js";
     import type { LxmfMessage, ViewerChatItem, ViewerPathSnapshot } from "../lib/conversationViewerCtx.js";
     import { sameHash } from "../lib/conversationViewerCtx.js";
@@ -171,13 +160,6 @@
         chatItem: null as ViewerChatItem | null,
         justOpened: false,
     });
-    let audioRecorder: {
-        start: () => Promise<boolean>;
-        stop: () => Promise<Blob | ArrayBuffer>;
-        codec2Mode?: string;
-    } | null = null;
-    let audioRecorderCodec: "opus" | "codec2" | null = null;
-    let audioRecordingStartedAt = 0;
     let generatedPaperMessageUri = $state<string | null>(null);
     let isPaperMessageResultModalOpen = $state(false);
     let isShareContactModalOpen = $state(false);
@@ -191,9 +173,7 @@
 
     const selectedHash = $derived(String(selectedPeer?.destination_hash || ""));
     const identityKey = $derived(String(config?.identity_hash || myLxmfAddressHash || "_"));
-    const selectedMessages = $derived(
-        visibleConversationItems(chatItems, selectedHash, showTelemetryInChat)
-    );
+    const selectedMessages = $derived(visibleConversationItems(chatItems, selectedHash, showTelemetryInChat));
     const filteredContacts = $derived(filterContactsList(contacts, contactsSearch));
     const selectedPeerTelemetryItems = $derived(filterSelectedPeerTelemetry(chatItems, selectedHash));
     const actions = $derived(
@@ -574,8 +554,7 @@
     async function fetchContacts() {
         contacts = await fetchTelephoneContacts(window.api);
         isStrangerPeer =
-            Boolean(selectedHash) &&
-            !contacts.some((contact) => sameHash(contact.remote_identity_hash, selectedHash));
+            Boolean(selectedHash) && !contacts.some((contact) => sameHash(contact.remote_identity_hash, selectedHash));
     }
 
     async function addStrangerAsContact() {
@@ -592,12 +571,7 @@
         void ok;
     }
 
-    async function addSharedContact(
-        name?: string,
-        hash?: string,
-        lxmfAddress?: string,
-        lxstAddress?: string
-    ) {
+    async function addSharedContact(name?: string, hash?: string, lxmfAddress?: string, lxstAddress?: string) {
         await addSharedContactEntry({
             api: window.api,
             name,
@@ -816,7 +790,6 @@
     function generatePaperMessage() {
         generatePaperMessagePayload(selectedHash, newMessageText);
     }
-
 </script>
 
 {#if selectedPeer}
@@ -831,6 +804,9 @@
             {selectedPeerLxmfStampInfo}
             {pathfinderInProgress}
             {isPopout}
+            isPeerBlocked={isSelectedPeerBlocked}
+            {isStrangerPeer}
+            {strangerBannerDismissed}
             oneditdisplayname={updateCustomDisplayName}
             oncopyhash={(hash) => void copyTextToClipboard(hash)}
             ondestinationpathclick={(path) => {

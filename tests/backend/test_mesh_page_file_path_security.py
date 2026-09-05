@@ -27,7 +27,7 @@ def node_dir():
 
 @pytest.fixture
 def mock_rns():
-    with patch("meshchatx.src.backend.page_node.RNS") as mock:
+    with patch("meshchatx.src.backend.page_node.core.RNS") as mock:
         mock_identity = MagicMock()
         mock_identity.hash = b"\x01" * 16
         mock_identity.get_public_key.return_value = b"\x02" * 64

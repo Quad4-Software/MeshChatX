@@ -29,7 +29,7 @@
     export function onReloadStatus(json: { in_progress?: boolean; level?: string }): void {
         reloadingRns = json?.in_progress !== false;
         if (json?.in_progress === false && json?.level !== "error") {
-            refreshStatus();
+            void refreshStatus();
         }
     }
 
@@ -60,13 +60,13 @@
     }
 
     function onWebsocketReconnected(): void {
-        refreshStatus();
+        void refreshStatus();
     }
 
     export function clearRemote(): void {
         remoteHash = "";
         statusData = { ...statusData, remote: "" };
-        refreshStatus();
+        void refreshStatus();
     }
 
     export async function refreshStatus(): Promise<void> {
@@ -88,9 +88,7 @@
             const err = e as { response?: { data?: { message?: string } }; message?: string };
             console.error(err);
             const detail = err?.response?.data?.message || err?.message || "";
-            ToastUtils.error(
-                detail ? `${t("rnstatus.failed_refresh")}: ${detail}` : t("rnstatus.failed_refresh")
-            );
+            ToastUtils.error(detail ? `${t("rnstatus.failed_refresh")}: ${detail}` : t("rnstatus.failed_refresh"));
         } finally {
             isLoading = false;
         }
@@ -98,14 +96,14 @@
 
     function handleFilterChange(): void {
         if (!reloadingRns) {
-            refreshStatus();
+            void refreshStatus();
         }
     }
 
     onMount(() => {
         onWsEvent("reticulum_reload_status", onReloadStatus);
         GlobalEmitter.on("websocket-reconnected", onWebsocketReconnected);
-        refreshStatus();
+        void refreshStatus();
         return () => {
             offWsEvent("reticulum_reload_status", onReloadStatus);
             GlobalEmitter.off("websocket-reconnected", onWebsocketReconnected);
@@ -123,9 +121,9 @@
     >
         <button
             type="button"
-            class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-600 text-white text-sm font-medium hover:bg-orange-700 disabled:opacity-50 disabled:pointer-events-none"
+            class="primary-chip disabled:opacity-50 disabled:pointer-events-none focus-ring-sem"
             disabled={isLoading || reloadingRns}
-            onclick={refreshStatus}
+            onclick={() => void refreshStatus()}
         >
             <MaterialDesignIcon
                 iconName="refresh"
@@ -158,11 +156,7 @@
 
             <RNStatusSummary {statusData} />
 
-            <RNStatusTable
-                interfaces={statusData.interfaces || []}
-                {isLoading}
-                {reloadingRns}
-            />
+            <RNStatusTable interfaces={statusData.interfaces || []} {isLoading} {reloadingRns} />
         </div>
     </div>
 </div>

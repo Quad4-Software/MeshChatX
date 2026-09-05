@@ -492,7 +492,7 @@
                 <div class="text-[10px] font-mono break-all">{parsedItems.relayLink.parsed?.hub}</div>
                 <button
                     type="button"
-                    class="w-full py-2 bg-violet-600 text-white rounded-lg text-xs font-bold"
+                    class="primary-chip w-full justify-center text-xs focus-ring-sem"
                     onclick={() => actions.openRelayShareFromParsed(parsedItems.relayLink?.parsed)}
                 >
                     {t("messages.relay_link_join")}

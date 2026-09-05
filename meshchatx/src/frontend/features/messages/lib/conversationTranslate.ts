@@ -23,7 +23,8 @@ export async function loadTranslatorLanguages(
             params.libretranslate_url = libreUrl;
         }
         const response = await api.get("/api/v1/translator/languages", { params });
-        const data = response.data as { languages?: unknown[]; has_argos?: boolean; libretranslate_reachable?: boolean } | undefined;
+        const data = response.data as
+            { languages?: unknown[]; has_argos?: boolean; libretranslate_reachable?: boolean } | undefined;
         const list = Array.isArray(data?.languages) ? data.languages : [];
         const options: LangOption[] = list
             .map((item: unknown) => {

@@ -6,7 +6,7 @@
         class="h-dvh min-h-0 w-full flex flex-col transition-colors"
         :style="shellCanvasStyle"
     >
-        <FatalErrorPage v-if="fatalError" :error="fatalError" />
+        <div ref="fatalErrorRoot" class="contents"></div>
         <AppShellBanners
             :show-emergency="Boolean(appInfo?.emergency)"
             :emergency-label="$t('app.emergency_mode_active')"
@@ -404,24 +404,7 @@
                 </div>
             </template>
         </template>
-        <CallOverlay
-            v-if="
-                (activeCall || isCallEnded || wasDeclined || initiationStatus) &&
-                !$route.meta.isPopout &&
-                (!['call', 'call-popout'].includes($route.name) || activeCallTab !== 'phone') &&
-                (!config?.desktop_open_calls_in_separate_window || !ElectronUtils.isElectron())
-            "
-            :active-call="activeCall || lastCall"
-            :is-ended="isCallEnded"
-            :was-declined="wasDeclined"
-            :voicemail-status="voicemailStatus"
-            :initiation-status="initiationStatus"
-            :initiation-target-hash="initiationTargetHash"
-            :initiation-target-name="initiationTargetName"
-            @hangup="onOverlayHangup"
-            @toggle-mic="onToggleMic"
-            @toggle-speaker="onToggleSpeaker"
-        />
+        <div ref="callOverlayRoot" class="contents"></div>
         <Toast />
         <ConfirmDialog />
         <PromptDialog />
@@ -489,7 +472,6 @@
 
 <script>
 import { watch } from "vue";
-import SidebarLink from "./SidebarLink.vue";
 import DialogUtils from "../js/DialogUtils";
 import LiveTransport from "../js/liveTransport.js";
 import { installWsLiveSync } from "../js/wsLiveSync.js";
@@ -509,7 +491,6 @@ import {
     shouldShowOsMessageNotification,
 } from "../js/notificationPolicy.js";
 import { listOpenDestinationHashes, subscribeOpenDestinationHashes } from "../js/activeConversationStore.js";
-import LxmfUserIcon from "./LxmfUserIcon.vue";
 import Toast from "./Toast.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
 import PromptDialog from "./PromptDialog.vue";
@@ -526,7 +507,9 @@ import { showDatabaseHealthIssuesToastIfNeeded, resetDatabaseHealthWarningState 
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import QRCode from "qrcode";
 import LanguageSelector from "./LanguageSelector.vue";
-import CallOverlay from "./call/CallOverlay.vue";
+import { mount, unmount } from "svelte";
+import CallOverlaySvelte from "../features/call/components/CallOverlay.svelte";
+import FatalErrorPageSvelte from "../features/fatal-error/FatalErrorPage.svelte";
 import CommandPalette from "./CommandPalette.vue";
 import IntegrityWarningModal from "./IntegrityWarningModal.vue";
 import ChangelogModal from "./ChangelogModal.vue";
@@ -546,7 +529,6 @@ import AppSidebarAccountFooter from "./layout/AppSidebarAccountFooter.vue";
 import AppSidebarNav from "./layout/AppSidebarNav.vue";
 import AppSidebarClassicNav from "./layout/AppSidebarClassicNav.vue";
 import AppSidebarClassicFooter from "./layout/AppSidebarClassicFooter.vue";
-import FatalErrorPage from "./FatalErrorPage.vue";
 import fatalErrorState from "../js/fatalErrorState.js";
 import KeyboardShortcuts from "../js/KeyboardShortcuts";
 import ElectronUtils from "../js/ElectronUtils";
@@ -600,14 +582,11 @@ const IDENTITY_SAVE_DEBOUNCE_MS = 500;
 export default {
     name: "App",
     components: {
-        LxmfUserIcon,
-        SidebarLink,
         Toast,
         ConfirmDialog,
         PromptDialog,
         MaterialDesignIcon,
         LanguageSelector,
-        CallOverlay,
         CommandPalette,
         IntegrityWarningModal,
         ChangelogModal,
@@ -621,7 +600,6 @@ export default {
         AppSidebarNav,
         AppSidebarClassicNav,
         AppSidebarClassicFooter,
-        FatalErrorPage,
     },
     setup() {
         return {
@@ -676,6 +654,8 @@ export default {
             initiationStatus: null,
             initiationTargetHash: null,
             initiationTargetName: null,
+            svelteCallOverlay: null,
+            svelteFatalError: null,
             isCallWindowOpen: false,
 
             wsDisconnected: false,
@@ -929,6 +909,14 @@ export default {
             }
             return this.isDarkTheme ? this.$t("app.light_theme") : this.$t("app.dark_theme");
         },
+        shouldShowCallOverlay() {
+            return Boolean(
+                (this.activeCall || this.isCallEnded || this.wasDeclined || this.initiationStatus) &&
+                !this.$route?.meta?.isPopout &&
+                (!["call", "call-popout"].includes(this.$route?.name) || this.activeCallTab !== "phone") &&
+                (!this.config?.desktop_open_calls_in_separate_window || !ElectronUtils.isElectron())
+            );
+        },
     },
     watch: {
         $route(to, from) {
@@ -937,6 +925,40 @@ export default {
             if (from && from.name && this.$refs.tutorialModal && this.$refs.tutorialModal.visible) {
                 this.$refs.tutorialModal.visible = false;
             }
+            this.syncCallOverlay();
+        },
+        shouldShowCallOverlay() {
+            this.syncCallOverlay();
+        },
+        fatalError() {
+            this.syncFatalError();
+        },
+        activeCall: {
+            deep: true,
+            handler() {
+                this.syncCallOverlay();
+            },
+        },
+        isCallEnded() {
+            this.syncCallOverlay();
+        },
+        wasDeclined() {
+            this.syncCallOverlay();
+        },
+        initiationStatus() {
+            this.syncCallOverlay();
+        },
+        initiationTargetHash() {
+            this.syncCallOverlay();
+        },
+        initiationTargetName() {
+            this.syncCallOverlay();
+        },
+        voicemailStatus: {
+            deep: true,
+            handler() {
+                this.syncCallOverlay();
+            },
         },
         config: {
             handler(newConfig) {
@@ -999,6 +1021,8 @@ export default {
             this.unsubscribeSystemTheme();
             this.unsubscribeSystemTheme = null;
         }
+        this.unmountCallOverlay();
+        this.unmountFatalError();
     },
     mounted() {
         try {
@@ -1050,6 +1074,8 @@ export default {
         window.addEventListener("meshchatx-intent-uri", this.onAndroidIntentUri);
         window.addEventListener("pointerdown", this.onRingtoneUnlockGesture, true);
         window.addEventListener("keydown", this.onRingtoneUnlockGesture, true);
+        this.syncCallOverlay();
+        this.syncFatalError();
         this._unsubOpenConversations = subscribeOpenDestinationHashes((hashes) => {
             NotificationUtils.syncAndroidNotificationContext(hashes, Boolean(this.config?.do_not_disturb_enabled));
         });
@@ -2778,6 +2804,84 @@ export default {
             if (this.activeCall && this.activeCall.is_incoming && this.activeCall.status === 4) {
                 this.wasDeclined = true;
             }
+        },
+        unmountCallOverlay() {
+            if (this.svelteCallOverlay) {
+                try {
+                    unmount(this.svelteCallOverlay);
+                } catch {
+                    /* already gone */
+                }
+                this.svelteCallOverlay = null;
+            }
+            const root = this.$refs.callOverlayRoot;
+            if (root) {
+                root.replaceChildren();
+            }
+        },
+        unmountFatalError() {
+            if (this.svelteFatalError) {
+                try {
+                    unmount(this.svelteFatalError);
+                } catch {
+                    /* already gone */
+                }
+                this.svelteFatalError = null;
+            }
+            const root = this.$refs.fatalErrorRoot;
+            if (root) {
+                root.replaceChildren();
+            }
+        },
+        syncFatalError() {
+            this.$nextTick(() => {
+                const root = this.$refs.fatalErrorRoot;
+                if (!root) {
+                    return;
+                }
+                if (!this.fatalError) {
+                    this.unmountFatalError();
+                    return;
+                }
+                this.unmountFatalError();
+                this.svelteFatalError = mount(FatalErrorPageSvelte, {
+                    target: root,
+                    props: {
+                        error: this.fatalError,
+                        router: this.$router,
+                    },
+                });
+            });
+        },
+        syncCallOverlay() {
+            this.$nextTick(() => {
+                const root = this.$refs.callOverlayRoot;
+                if (!root) {
+                    return;
+                }
+                if (!this.shouldShowCallOverlay) {
+                    this.unmountCallOverlay();
+                    return;
+                }
+                this.unmountCallOverlay();
+                this.svelteCallOverlay = mount(CallOverlaySvelte, {
+                    target: root,
+                    props: {
+                        activeCall: this.activeCall || this.lastCall,
+                        isEnded: this.isCallEnded,
+                        wasDeclined: this.wasDeclined,
+                        voicemailStatus: this.voicemailStatus,
+                        initiationStatus: this.initiationStatus,
+                        initiationTargetHash: this.initiationTargetHash,
+                        initiationTargetName: this.initiationTargetName,
+                        router: this.$router,
+                        route: this.$route,
+                        onhangup: () => this.onOverlayHangup(),
+                        ontogglemic: (muted) => this.onToggleMic(muted),
+                        ontogglespeaker: (muted) => this.onToggleSpeaker(muted),
+                    },
+                });
+            });
         },
         onToggleMic(isMuted) {
             this.isMicMuting = true;

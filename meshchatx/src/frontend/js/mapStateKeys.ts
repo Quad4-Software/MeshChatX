@@ -6,7 +6,7 @@
 
 export const LEGACY_MAP_STATE_KEY = "last_view";
 
-export function mapViewStateKey(identityHash, tabStorageId = null) {
+export function mapViewStateKey(identityHash: string | null = null, tabStorageId: string | null = null): string {
     const id = String(identityHash || "anon")
         .toLowerCase()
         .replace(/[^0-9a-f]/g, "")
@@ -18,6 +18,6 @@ export function mapViewStateKey(identityHash, tabStorageId = null) {
     return `last_view_${scoped}`;
 }
 
-export function legacyMapTabStateKey(tabStorageId) {
+export function legacyMapTabStateKey(tabStorageId: string | null = null): string {
     return `map_tab_${tabStorageId}`;
 }

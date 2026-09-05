@@ -54,7 +54,7 @@ export function toolRouteHref(route: ToolRouteRef): string {
         return "";
     }
     try {
-        const registered = listRoutes().find((entry: { name?: string; path?: string }) => entry.name === name);
+        const registered = listRoutes().find((entry) => entry.name === name);
         if (registered?.path) {
             const path = registered.path.startsWith("/") ? registered.path : `/${registered.path}`;
             return `#${path}`;

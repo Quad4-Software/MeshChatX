@@ -1,30 +1,32 @@
 // SPDX-License-Identifier: 0BSD
 
 import { createRegistry } from "./registryCore.js";
-import { registerRoute } from "./routeRegistry.js";
+import { registerRoute, type FeatureRouteEntry } from "./routeRegistry.js";
 import { registerNavItem } from "./navRegistry.js";
 import { registerTool } from "./toolsRegistry.js";
 import { registerCommand } from "./commandRegistry.js";
-import { registerSettingsSection } from "./settingsSectionRegistry.js";
+import { registerSettingsSection, type SettingsSectionEntry } from "./settingsSectionRegistry.js";
+import type { NavEntry } from "./coreNavEntries.js";
+import type { ToolEntry } from "./coreToolsEntries.js";
+import type { CommandEntry } from "./coreCommandEntries.js";
 
-/**
- * @typedef {Object} FeatureDefinition
- * @property {string} id
- * @property {import('./routeRegistry.js').FeatureRouteEntry[]} [routes]
- * @property {import('./coreNavEntries.js').NavEntry[]} [nav]
- * @property {import('./coreToolsEntries.js').ToolEntry[]} [tools]
- * @property {import('./coreCommandEntries.js').CommandEntry[]} [commands]
- * @property {{ id: string, keywords?: string[] }[]} [settingsSections]
- */
+export interface FeatureDefinition {
+    id: string;
+    routes?: FeatureRouteEntry[];
+    nav?: NavEntry[];
+    tools?: ToolEntry[];
+    commands?: CommandEntry[];
+    settingsSections?: SettingsSectionEntry[];
+}
 
 /** @type {import('./registryCore.js').Registry<{ id: string }>} */
-const featureRegistry = createRegistry("featureRegistry");
+const featureRegistry = createRegistry<{ id: string }>("featureRegistry");
 
 /**
  * Register a feature module: routes plus optional contribution lists.
  * @param {FeatureDefinition} feature
  */
-export function registerFeature(feature) {
+export function registerFeature(feature: FeatureDefinition) {
     if (!feature?.id) {
         throw new Error("featureRegistry: feature requires an id");
     }
@@ -50,7 +52,7 @@ export function registerFeature(feature) {
 /**
  * @returns {string[]}
  */
-export function listFeatureIds() {
+export function listFeatureIds(): string[] {
     return featureRegistry.list().map((entry) => entry.id);
 }
 

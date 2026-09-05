@@ -4,8 +4,8 @@
  * Artifacts live under /vendor/visualiser-wasm/ (built via task build:visualiser-wasm).
  */
 
-let resolvedPromise = null;
-let integrityHashes = null;
+let resolvedPromise: Promise<boolean> | null = null;
+let integrityHashes: { wasm?: string; wasmExec?: string } | null = null;
 
 /** Computes SHA-384 hash of ArrayBuffer for SRI verification. */
 async function computeSriHash(buf) {

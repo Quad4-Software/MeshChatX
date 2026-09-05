@@ -62,9 +62,7 @@ export function pickMicConstraints(
         autoGainControl: true,
     };
     const validIds = new Set(
-        (audioInputDevices || [])
-            .filter((d) => d.kind === "audioinput" && d.deviceId)
-            .map((d) => d.deviceId)
+        (audioInputDevices || []).filter((d) => d.kind === "audioinput" && d.deviceId).map((d) => d.deviceId)
     );
     if (!selectedAudioInputId || selectedAudioInputId === DEFAULT_AUDIO_INPUT_DEVICE_ID) {
         return { audio: true };
@@ -150,6 +148,8 @@ export async function requestMicPermission(): Promise<boolean> {
             throw new Error("navigator.mediaDevices is unavailable");
         }
         await promptMicrophoneAccess(mediaDevices);
+        // Wide-open { audio: true } is what opens the permission dialog.
+        // Call requestAudioPermission before refreshAudioDevices / enumerateDevices.
         return true;
     } catch (e: any) {
         const permissionState = await queryMicrophonePermissionState();

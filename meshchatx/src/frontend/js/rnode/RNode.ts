@@ -122,7 +122,7 @@ export default class RNode {
 
     async readLoop() {
         try {
-            let buffer = [];
+            let buffer: number[] = [];
             let inFrame = false;
             while (true) {
                 const { value, done } = await this.reader.read();
@@ -176,7 +176,7 @@ export default class RNode {
     }
 
     decodeKissFrame(frame) {
-        const data = [];
+        const data: number[] = [];
         let escaping = false;
 
         for (const byte of frame) {

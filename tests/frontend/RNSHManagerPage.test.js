@@ -12,10 +12,7 @@ import {
     createRnshSession,
     sendRnshSessionInput,
 } from "@/features/rnsh/lib/rnshApi.ts";
-import {
-    appendSessionOutput,
-    ingestSessionOutput,
-} from "@/features/remote-shell/lib/sessionOutput.ts";
+import { appendSessionOutput, ingestSessionOutput } from "@/features/remote-shell/lib/sessionOutput.ts";
 
 vi.mock("@/js/ToastUtils", () => ({
     default: {

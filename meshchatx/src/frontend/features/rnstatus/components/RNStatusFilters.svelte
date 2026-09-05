@@ -42,13 +42,7 @@
         <label
             class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-sem-border bg-sem-canvas px-3 py-2 text-sm text-sem-fg"
         >
-            <input
-                type="checkbox"
-                class="rounded-sm"
-                bind:checked={showAll}
-                {disabled}
-                onchange={handleChange}
-            />
+            <input type="checkbox" class="rounded-sm" bind:checked={showAll} {disabled} onchange={handleChange} />
             <span>{t("rnstatus.show_all_interfaces")}</span>
         </label>
         <div class="flex min-w-0 flex-wrap items-center gap-2">

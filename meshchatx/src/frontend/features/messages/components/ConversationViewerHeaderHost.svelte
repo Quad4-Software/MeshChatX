@@ -70,9 +70,7 @@
         ondismissstranger?: () => void;
     } = $props();
 
-    const showStrangerBanner = $derived(
-        (isStrangerPeer || !selectedPeer.is_known_contact) && !strangerBannerDismissed
-    );
+    const showStrangerBanner = $derived((isStrangerPeer || !selectedPeer.is_known_contact) && !strangerBannerDismissed);
 </script>
 
 <ConversationPeerHeader
@@ -106,8 +104,5 @@
 />
 
 {#if showStrangerBanner}
-    <ConversationStrangerBanner
-        onadd={() => onaddstranger?.()}
-        ondismiss={() => ondismissstranger?.()}
-    />
+    <ConversationStrangerBanner onadd={() => onaddstranger?.()} ondismiss={() => ondismissstranger?.()} />
 {/if}

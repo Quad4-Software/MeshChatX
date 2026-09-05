@@ -1,258 +1,46 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div>
-        <div
-            v-if="showEmergency"
-            class="relative z-100 bg-red-600 text-white px-4 py-2 text-center text-sm font-bold shadow-md animate-pulse"
-        >
-            <div class="flex items-center justify-center gap-2">
-                <MaterialDesignIcon icon-name="alert-decagram" class="size-5" />
-                <span>{{ emergencyLabel }}</span>
-            </div>
-        </div>
-
-        <div
-            v-if="showDemo"
-            class="relative z-100 bg-amber-600 text-white px-4 py-2 text-center text-sm font-medium shadow-md border-b border-amber-700/80"
-            role="status"
-        >
-            {{ demoLabel }}
-        </div>
-
-        <div
-            v-if="showWsDisconnected"
-            class="relative z-100 bg-red-700 text-white px-4 py-3 text-center text-sm font-medium shadow-md border-b border-red-800/80"
-            role="status"
-            aria-live="polite"
-        >
-            <p>{{ wsDisconnectedLabel }}</p>
-            <div v-if="showBackendRecoveryActions" class="mt-2 flex flex-wrap items-center justify-center gap-2">
-                <button
-                    type="button"
-                    class="rounded-md bg-white/15 px-3 py-1 text-xs font-semibold hover:bg-white/25 disabled:opacity-60"
-                    :disabled="backendRestarting"
-                    @click="$emit('restart-backend')"
-                >
-                    {{ restartBackendLabel }}
-                </button>
-                <button
-                    type="button"
-                    class="rounded-md bg-white/10 px-3 py-1 text-xs font-semibold hover:bg-white/20"
-                    @click="$emit('view-backend-logs')"
-                >
-                    {{ viewBackendLogsLabel }}
-                </button>
-            </div>
-        </div>
-        <div
-            v-if="showWsReconnected"
-            class="relative z-100 bg-emerald-700 text-white px-4 py-2 text-center text-sm font-medium shadow-md border-b border-emerald-800/80 transition-opacity duration-300"
-            role="status"
-            aria-live="polite"
-        >
-            {{ wsReconnectedLabel }}
-        </div>
-        <div
-            v-if="showNetworkStarting"
-            class="relative z-100 bg-sky-800 text-white px-4 py-2 text-center text-sm font-medium shadow-md border-b border-sky-900/80"
-            role="status"
-            aria-live="polite"
-        >
-            {{ networkStartingLabel }}
-        </div>
-        <div
-            v-if="showLanBindNoAuth"
-            class="relative z-100 bg-amber-700 text-white px-4 py-3 text-center text-sm font-medium shadow-md border-b border-amber-800/80"
-            role="status"
-            aria-live="polite"
-        >
-            <p>{{ lanBindNoAuthLabel }}</p>
-            <div class="mt-2 flex flex-wrap items-center justify-center gap-2">
-                <button
-                    type="button"
-                    class="rounded-md bg-white/15 px-3 py-1 text-xs font-semibold hover:bg-white/25"
-                    @click="$emit('open-settings')"
-                >
-                    {{ openSettingsLabel }}
-                </button>
-                <button
-                    type="button"
-                    class="rounded-md bg-white/10 px-3 py-1 text-xs font-semibold hover:bg-white/20"
-                    @click="$emit('dismiss-lan-bind-no-auth')"
-                >
-                    {{ dismissLanBindNoAuthLabel }}
-                </button>
-            </div>
-        </div>
-        <div
-            v-if="showNetworkDegraded"
-            class="relative z-100 bg-amber-700 text-white px-4 py-3 text-center text-sm font-medium shadow-md border-b border-amber-800/80"
-            role="status"
-            aria-live="polite"
-        >
-            <p>{{ networkDegradedLabel }}</p>
-            <div class="mt-2 flex flex-wrap items-center justify-center gap-2">
-                <button
-                    type="button"
-                    class="rounded-md bg-white/15 px-3 py-1 text-xs font-semibold hover:bg-white/25 disabled:opacity-60"
-                    :disabled="networkRecovering"
-                    @click="$emit('recover-network')"
-                >
-                    {{ recoverNetworkLabel }}
-                </button>
-                <button
-                    v-if="!showOpenBackups"
-                    type="button"
-                    class="rounded-md bg-white/10 px-3 py-1 text-xs font-semibold hover:bg-white/20"
-                    @click="$emit('open-settings')"
-                >
-                    {{ openSettingsLabel }}
-                </button>
-                <button
-                    v-if="showOpenBackups"
-                    type="button"
-                    class="rounded-md bg-white/15 px-3 py-1 text-xs font-semibold hover:bg-white/25 disabled:opacity-60"
-                    :disabled="autoRecovering"
-                    @click="$emit('auto-recover-database')"
-                >
-                    {{ autoRecoverLabel }}
-                </button>
-                <button
-                    v-if="showOpenBackups"
-                    type="button"
-                    class="rounded-md bg-white/15 px-3 py-1 text-xs font-semibold hover:bg-white/25"
-                    @click="$emit('open-backups')"
-                >
-                    {{ openBackupsLabel }}
-                </button>
-                <button
-                    type="button"
-                    class="rounded-md bg-white/10 px-3 py-1 text-xs font-semibold hover:bg-white/20"
-                    @click="$emit('open-interfaces')"
-                >
-                    {{ openInterfacesLabel }}
-                </button>
-            </div>
-        </div>
-    </div>
+    <div ref="root" class="contents"></div>
 </template>
 
 <script>
-import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import { mount, unmount } from "svelte";
+import AppShellBannersSvelte from "../../features/app-shell/components/AppShellBanners.svelte";
 
+/**
+ * Thin Vue host for the Svelte AppShellBanners.
+ */
 export default {
     name: "AppShellBanners",
-    components: { MaterialDesignIcon },
     props: {
-        showEmergency: {
-            type: Boolean,
-            default: false,
-        },
-        emergencyLabel: {
-            type: String,
-            default: "",
-        },
-        showDemo: {
-            type: Boolean,
-            default: false,
-        },
-        demoLabel: {
-            type: String,
-            default: "",
-        },
-        showWsDisconnected: {
-            type: Boolean,
-            default: false,
-        },
-        wsDisconnectedLabel: {
-            type: String,
-            default: "",
-        },
-        showBackendRecoveryActions: {
-            type: Boolean,
-            default: false,
-        },
-        backendRestarting: {
-            type: Boolean,
-            default: false,
-        },
-        restartBackendLabel: {
-            type: String,
-            default: "",
-        },
-        viewBackendLogsLabel: {
-            type: String,
-            default: "",
-        },
-        showWsReconnected: {
-            type: Boolean,
-            default: false,
-        },
-        wsReconnectedLabel: {
-            type: String,
-            default: "",
-        },
-        showNetworkStarting: {
-            type: Boolean,
-            default: false,
-        },
-        networkStartingLabel: {
-            type: String,
-            default: "",
-        },
-        showLanBindNoAuth: {
-            type: Boolean,
-            default: false,
-        },
-        lanBindNoAuthLabel: {
-            type: String,
-            default: "",
-        },
-        dismissLanBindNoAuthLabel: {
-            type: String,
-            default: "",
-        },
-        showNetworkDegraded: {
-            type: Boolean,
-            default: false,
-        },
-        networkDegradedLabel: {
-            type: String,
-            default: "",
-        },
-        networkRecovering: {
-            type: Boolean,
-            default: false,
-        },
-        recoverNetworkLabel: {
-            type: String,
-            default: "",
-        },
-        openSettingsLabel: {
-            type: String,
-            default: "",
-        },
-        showOpenBackups: {
-            type: Boolean,
-            default: false,
-        },
-        openBackupsLabel: {
-            type: String,
-            default: "",
-        },
-        autoRecoverLabel: {
-            type: String,
-            default: "",
-        },
-        autoRecovering: {
-            type: Boolean,
-            default: false,
-        },
-        openInterfacesLabel: {
-            type: String,
-            default: "",
-        },
+        showEmergency: { type: Boolean, default: false },
+        emergencyLabel: { type: String, default: "" },
+        showDemo: { type: Boolean, default: false },
+        demoLabel: { type: String, default: "" },
+        showWsDisconnected: { type: Boolean, default: false },
+        wsDisconnectedLabel: { type: String, default: "" },
+        showBackendRecoveryActions: { type: Boolean, default: false },
+        backendRestarting: { type: Boolean, default: false },
+        restartBackendLabel: { type: String, default: "" },
+        viewBackendLogsLabel: { type: String, default: "" },
+        showWsReconnected: { type: Boolean, default: false },
+        wsReconnectedLabel: { type: String, default: "" },
+        showNetworkStarting: { type: Boolean, default: false },
+        networkStartingLabel: { type: String, default: "" },
+        showLanBindNoAuth: { type: Boolean, default: false },
+        lanBindNoAuthLabel: { type: String, default: "" },
+        dismissLanBindNoAuthLabel: { type: String, default: "" },
+        showNetworkDegraded: { type: Boolean, default: false },
+        networkDegradedLabel: { type: String, default: "" },
+        networkRecovering: { type: Boolean, default: false },
+        recoverNetworkLabel: { type: String, default: "" },
+        openSettingsLabel: { type: String, default: "" },
+        showOpenBackups: { type: Boolean, default: false },
+        openBackupsLabel: { type: String, default: "" },
+        autoRecoverLabel: { type: String, default: "" },
+        autoRecovering: { type: Boolean, default: false },
+        openInterfacesLabel: { type: String, default: "" },
     },
     emits: [
         "restart-backend",
@@ -264,5 +52,67 @@ export default {
         "auto-recover-database",
         "open-interfaces",
     ],
+    mounted() {
+        this.remount();
+    },
+    updated() {
+        this.remount();
+    },
+    beforeUnmount() {
+        this.teardown();
+    },
+    methods: {
+        teardown() {
+            if (this._svelte) {
+                unmount(this._svelte);
+                this._svelte = null;
+            }
+        },
+        remount() {
+            this.teardown();
+            const root = this.$refs.root;
+            if (!root) return;
+            this._svelte = mount(AppShellBannersSvelte, {
+                target: root,
+                props: {
+                    showEmergency: this.showEmergency,
+                    emergencyLabel: this.emergencyLabel,
+                    showDemo: this.showDemo,
+                    demoLabel: this.demoLabel,
+                    showWsDisconnected: this.showWsDisconnected,
+                    wsDisconnectedLabel: this.wsDisconnectedLabel,
+                    showBackendRecoveryActions: this.showBackendRecoveryActions,
+                    backendRestarting: this.backendRestarting,
+                    restartBackendLabel: this.restartBackendLabel,
+                    viewBackendLogsLabel: this.viewBackendLogsLabel,
+                    showWsReconnected: this.showWsReconnected,
+                    wsReconnectedLabel: this.wsReconnectedLabel,
+                    showNetworkStarting: this.showNetworkStarting,
+                    networkStartingLabel: this.networkStartingLabel,
+                    showLanBindNoAuth: this.showLanBindNoAuth,
+                    lanBindNoAuthLabel: this.lanBindNoAuthLabel,
+                    dismissLanBindNoAuthLabel: this.dismissLanBindNoAuthLabel,
+                    showNetworkDegraded: this.showNetworkDegraded,
+                    networkDegradedLabel: this.networkDegradedLabel,
+                    networkRecovering: this.networkRecovering,
+                    recoverNetworkLabel: this.recoverNetworkLabel,
+                    openSettingsLabel: this.openSettingsLabel,
+                    showOpenBackups: this.showOpenBackups,
+                    openBackupsLabel: this.openBackupsLabel,
+                    autoRecoverLabel: this.autoRecoverLabel,
+                    autoRecovering: this.autoRecovering,
+                    openInterfacesLabel: this.openInterfacesLabel,
+                    onrestartbackend: () => this.$emit("restart-backend"),
+                    onviewbackendlogs: () => this.$emit("view-backend-logs"),
+                    onrecovernetwork: () => this.$emit("recover-network"),
+                    onopensettings: () => this.$emit("open-settings"),
+                    ondismisslanbindnoauth: () => this.$emit("dismiss-lan-bind-no-auth"),
+                    onopenbackups: () => this.$emit("open-backups"),
+                    onautorecoverdatabase: () => this.$emit("auto-recover-database"),
+                    onopeninterfaces: () => this.$emit("open-interfaces"),
+                },
+            });
+        },
+    },
 };
 </script>

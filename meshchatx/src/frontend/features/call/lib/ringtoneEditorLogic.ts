@@ -170,8 +170,7 @@ export async function fetchAndDecodeAudio(
     const arrayBuffer = await response.arrayBuffer();
 
     const AudioContextClass =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const audioContext = new AudioContextClass();
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 

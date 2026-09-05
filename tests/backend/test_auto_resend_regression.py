@@ -291,22 +291,29 @@ def test_source_keeps_auto_resend_and_duplicate_guards():
     sources = [root / "meshchatx" / "meshchat.py"]
     routes_dir = root / "meshchatx" / "src" / "backend" / "http" / "routes"
     if routes_dir.is_dir():
-        sources.extend(sorted(routes_dir.glob("*.py")))
+        sources.extend(sorted(routes_dir.rglob("*.py")))
+    lifecycle_dir = root / "meshchatx" / "src" / "backend" / "lifecycle"
+    if lifecycle_dir.is_dir():
+        sources.extend(sorted(lifecycle_dir.rglob("*.py")))
     blob = "\n".join(p.read_text(encoding="utf-8") for p in sources if p.is_file())
     guard_src = (
         root / "meshchatx" / "src" / "backend" / "auto_resend_guard.py"
     ).read_text(encoding="utf-8")
-    messages = (
-        root / "meshchatx" / "src" / "backend" / "database" / "messages.py"
-    ).read_text(encoding="utf-8")
+    messages_path = root / "meshchatx" / "src" / "backend" / "database" / "messages.py"
+    if not messages_path.is_file():
+        messages_path = (
+            root / "meshchatx" / "src" / "backend" / "database" / "messages" / "dao.py"
+        )
+    messages = messages_path.read_text(encoding="utf-8")
     settings = (
         root
         / "meshchatx"
         / "src"
         / "frontend"
-        / "components"
+        / "features"
         / "settings"
-        / "SettingsPage.vue"
+        / "lib"
+        / "maintenanceActions.ts"
     ).read_text(encoding="utf-8")
 
     assert "AutoResendCoordinator" in blob

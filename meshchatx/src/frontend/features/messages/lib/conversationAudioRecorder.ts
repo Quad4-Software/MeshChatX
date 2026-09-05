@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 import DialogUtils from "../../../js/DialogUtils.js";
+import ToastUtils from "../../../js/ToastUtils.js";
 import MicrophoneRecorder from "../../../js/MicrophoneRecorder.js";
 import { t } from "../../../js/i18n.js";
 import type { ComposeAudio } from "./conversationViewerSend.js";
@@ -62,14 +63,12 @@ export async function startAudioRecordingSession(args: {
             startedAt: Date.now(),
         };
     } catch (error) {
-        await DialogUtils.alert((error as Error).message);
+        ToastUtils.error((error as Error).message);
         return null;
     }
 }
 
-export async function stopAudioRecordingSession(
-    active: ActiveAudioRecording
-): Promise<ComposeAudio | null> {
+export async function stopAudioRecordingSession(active: ActiveAudioRecording): Promise<ComposeAudio | null> {
     try {
         const audio = await active.recorder.stop();
         if (active.codec === "codec2") {
@@ -102,7 +101,7 @@ export async function stopAudioRecordingSession(
             }
         }
     } catch (error) {
-        await DialogUtils.alert((error as Error).message);
+        ToastUtils.error((error as Error).message);
     }
     return null;
 }

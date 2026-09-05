@@ -31,38 +31,44 @@ def mock_app(temp_dir):
             self.hexhash = self.hash.hex()
 
     with ExitStack() as stack:
-        stack.enter_context(patch("meshchatx.src.backend.identity_context.Database"))
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.ConfigManager"),
+            patch("meshchatx.src.backend.identity_context.core.Database")
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.MessageHandler"),
+            patch("meshchatx.src.backend.identity_context.core.ConfigManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.AnnounceManager"),
+            patch("meshchatx.src.backend.identity_context.core.MessageHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.ArchiverManager"),
-        )
-        stack.enter_context(patch("meshchatx.src.backend.identity_context.MapManager"))
-        stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TelephoneManager"),
+            patch("meshchatx.src.backend.identity_context.core.AnnounceManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.VoicemailManager"),
+            patch("meshchatx.src.backend.identity_context.core.ArchiverManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RingtoneManager"),
-        )
-        stack.enter_context(patch("meshchatx.src.backend.identity_context.RNCPHandler"))
-        stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
+            patch("meshchatx.src.backend.identity_context.core.MapManager")
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
+            patch("meshchatx.src.backend.identity_context.core.TelephoneManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
+            patch("meshchatx.src.backend.identity_context.core.VoicemailManager"),
+        )
+        stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.core.RingtoneManager"),
+        )
+        stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.core.RNCPHandler")
+        )
+        stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.core.RNStatusHandler"),
+        )
+        stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.core.RNProbeHandler"),
+        )
+        stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.core.TranslatorHandler"),
         )
         stack.enter_context(patch("LXMF.LXMRouter"))
         stack.enter_context(patch("RNS.Identity", MockIdentityClass))

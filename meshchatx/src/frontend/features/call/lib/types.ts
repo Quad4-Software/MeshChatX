@@ -130,17 +130,19 @@ export interface Ringtone {
     display_name: string;
     is_primary: boolean;
     created_at?: string;
+    [key: string]: unknown;
 }
 
 /**
  * Ringtone service status
  */
 export interface RingtoneStatus {
-    has_custom_ringtone: boolean;
-    enabled: boolean;
+    has_custom_ringtone?: boolean;
+    enabled?: boolean;
     filename?: string | null;
     id?: number | null;
     volume?: number;
+    [key: string]: unknown;
 }
 
 /**
@@ -155,6 +157,7 @@ export interface Recording {
     filename_tx?: string;
     duration?: number;
     created_at: string;
+    [key: string]: unknown;
 }
 
 /**
@@ -248,9 +251,14 @@ export interface TelephoneConfig {
     voicemail_tts_pitch?: number;
     voicemail_tts_word_gap?: number;
     voicemail_tts_voice?: string;
+    voicemail_auto_answer_delay_seconds?: number;
+    voicemail_max_recording_seconds?: number;
     ringtone_preferred_id?: number | null;
     custom_ringtone_enabled?: boolean;
     ringtone_volume?: number;
+    telephone_tone_generator_enabled?: boolean;
+    telephone_tone_generator_volume?: number;
+    [key: string]: unknown;
 }
 
 /**
@@ -370,6 +378,3 @@ export interface GenerateGreetingResponse {
     message?: string;
     path?: string;
 }
-
-
-

@@ -1,9 +1,13 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
+    import { fade } from "svelte/transition";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
     import LxmfUserIcon from "../../../ui/svelte/LxmfUserIcon.svelte";
+    import EmptyState from "../../../ui/svelte/EmptyState.svelte";
+    import Skeleton from "../../../ui/svelte/Skeleton.svelte";
     import { t } from "../../../js/i18n.js";
+    import type { DiscoveryAnnounce } from "../lib/types.js";
 
     export interface CallDiscoveryIcon {
         icon_name?: string;
@@ -26,9 +30,10 @@
         active?: boolean;
         discoverySearch?: string;
         totalDiscoveryCount?: number;
-        discoveryAnnounces?: CallDiscoveryAnnounce[];
+        discoveryAnnounces?: (CallDiscoveryAnnounce | DiscoveryAnnounce)[];
         hasMoreDiscovery?: boolean;
-        formatTimeAgo: (timestamp?: number | string) => string;
+        isLoading?: boolean;
+        formatTimeAgo?: (timestamp?: number | string | null) => string;
         formatDestinationHash: (hash?: string) => string;
         onsearchinput?: (value: string) => void;
         oncopyhash?: (hash: string) => void;
@@ -39,16 +44,21 @@
     let {
         active = false,
         discoverySearch = "",
-        totalDiscoveryCount = 0,
+        totalDiscoveryCount: _totalDiscoveryCount = 0,
         discoveryAnnounces = [],
         hasMoreDiscovery = false,
-        formatTimeAgo,
+        isLoading = false,
+        formatTimeAgo = (ts?: number | string | null) => (ts ? String(ts) : ""),
         formatDestinationHash,
         onsearchinput,
         oncopyhash,
         onloadmore,
         oncall,
     }: Props = $props();
+
+    const transitionDuration = $derived(
+        typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 120
+    );
 
     function handleSearchInput(event: Event): void {
         const value = (event.target as HTMLInputElement).value;
@@ -57,40 +67,56 @@
 </script>
 
 {#if active}
-    <div class="flex-1 flex flex-col max-w-3xl mx-auto w-full pt-2">
+    <div class="flex-1 flex flex-col max-w-3xl mx-auto w-full pt-2" transition:fade={{ duration: transitionDuration }}>
         <div class="mb-4">
             <div class="relative">
                 <input
                     value={discoverySearch}
                     type="text"
-                    placeholder={`Search phonebook (${totalDiscoveryCount})...`}
-                    class="block w-full rounded-lg border-0 py-2 pl-10 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                    placeholder={t("call.search_phonebook")}
+                    class="input-field w-full pl-10"
                     oninput={handleSearchInput}
                 />
                 <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <MaterialDesignIcon iconName="magnify" class="size-5 text-gray-400" />
+                    <MaterialDesignIcon iconName="magnify" class="size-5 text-sem-fg-muted" />
                 </div>
             </div>
         </div>
 
-        {#if discoveryAnnounces.length === 0}
-            <div class="my-auto text-center">
-                <div class="bg-gray-200 dark:bg-zinc-800 p-6 rounded-full inline-block mb-4">
-                    <MaterialDesignIcon iconName="satellite-uplink" class="size-12 text-gray-400" />
+        {#if isLoading && discoveryAnnounces.length === 0}
+            <div class="space-y-4 p-4">
+                <div class="flex items-center gap-4">
+                    <Skeleton variant="avatar" />
+                    <div class="flex-1 space-y-2">
+                        <Skeleton variant="line" class="w-1/3" />
+                        <Skeleton variant="line" class="w-1/2" />
+                    </div>
                 </div>
-                <h3 class="text-lg font-medium text-sem-fg">No Telephony Peers</h3>
-                <p class="text-sem-fg-muted">Waiting for announces on the mesh.</p>
+                <div class="flex items-center gap-4">
+                    <Skeleton variant="avatar" />
+                    <div class="flex-1 space-y-2">
+                        <Skeleton variant="line" class="w-1/4" />
+                        <Skeleton variant="line" class="w-2/3" />
+                    </div>
+                </div>
             </div>
+        {:else if discoveryAnnounces.length === 0}
+            <EmptyState
+                icon="satellite-uplink"
+                title={t("call.no_telephony_peers")}
+                description={t("call.waiting_for_announces")}
+                class="my-auto py-12"
+            />
         {:else}
             <div class="space-y-4">
                 <div class="border-b border-sem-border overflow-hidden">
-                    <ul class="divide-y divide-gray-100 dark:divide-zinc-800">
+                    <ul class="divide-y divide-sem-border-subtle">
                         {#each discoveryAnnounces as announce (announce.destination_hash)}
                             <li class="px-4 py-4 hover:bg-sem-surface-muted/50 transition-colors">
                                 <div class="flex items-center space-x-4">
                                     <div class="shrink-0">
                                         <LxmfUserIcon
-                                            customImage={announce.contact_image}
+                                            customImage={announce.contact_image ?? undefined}
                                             iconName={announce.lxmf_user_icon?.icon_name || ""}
                                             iconForegroundColour={announce.lxmf_user_icon?.foreground_colour || ""}
                                             iconBackgroundColour={announce.lxmf_user_icon?.background_colour || ""}
@@ -101,13 +127,13 @@
                                         <div class="flex items-center justify-between">
                                             <div class="flex items-center min-w-0">
                                                 <p class="text-sm font-bold text-sem-fg truncate">
-                                                    {announce.display_name || "Anonymous Peer"}
+                                                    {announce.display_name || t("call.anonymous_peer")}
                                                 </p>
                                                 {#if announce.lxmf_destination_hash}
                                                     <a
                                                         href={`/#/messages/${announce.lxmf_destination_hash}`}
-                                                        class="ml-2 p-1 text-gray-400 hover:text-blue-500 transition-colors"
-                                                        title="Message via LXMF"
+                                                        class="ml-2 p-1 text-sem-fg-muted hover:text-sem-accent transition-colors focus-ring-sem rounded-md"
+                                                        title={t("call.message_via_lxmf")}
                                                         onclick={(e) => e.stopPropagation()}
                                                     >
                                                         <MaterialDesignIcon
@@ -125,7 +151,7 @@
                                             <div class="flex items-center space-x-2 min-w-0">
                                                 <button
                                                     type="button"
-                                                    class="text-[10px] text-left text-sem-fg-muted font-mono truncate cursor-pointer hover:text-blue-500 transition-colors"
+                                                    class="text-[10px] text-left text-sem-fg-muted font-mono truncate cursor-pointer hover:text-sem-accent transition-colors focus-ring-sem"
                                                     title={announce.destination_hash}
                                                     onclick={(e) => {
                                                         e.stopPropagation();
@@ -135,17 +161,18 @@
                                                     {formatDestinationHash(announce.destination_hash)}
                                                 </button>
                                                 {#if announce.hops != null}
-                                                    <span class="text-[10px] text-gray-400 dark:text-zinc-600">
-                                                        • {announce.hops} hops
+                                                    <span class="text-[10px] text-sem-fg-muted">
+                                                        &bull; {announce.hops}
+                                                        {t("call.hops")}
                                                     </span>
                                                 {/if}
                                             </div>
                                             <button
                                                 type="button"
-                                                class="text-[10px] bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors shrink-0"
+                                                class="text-[10px] bg-sem-accent-subtle text-sem-accent px-3 py-1 rounded-full font-bold uppercase tracking-wider hover:bg-sem-accent-subtle/80 transition-colors shrink-0 focus-ring-sem cursor-pointer"
                                                 onclick={() => oncall?.(announce.destination_hash)}
                                             >
-                                                Call
+                                                {t("call.call_action")}
                                             </button>
                                         </div>
                                     </div>
@@ -157,7 +184,7 @@
                         <div class="p-3 border-t border-sem-border text-center">
                             <button
                                 type="button"
-                                class="text-xs text-blue-500 hover:text-blue-600 font-bold uppercase tracking-widest"
+                                class="text-xs text-sem-accent hover:underline font-bold uppercase tracking-widest focus-ring-sem cursor-pointer"
                                 onclick={() => onloadmore?.()}
                             >
                                 {t("call.load_more")}

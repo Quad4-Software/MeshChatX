@@ -3,6 +3,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
+    import EmptyState from "../../ui/svelte/EmptyState.svelte";
     import ToolsPageHeader from "../../ui/svelte/ToolsPageHeader.svelte";
     import ToastUtils from "../../js/ToastUtils.js";
     import { t } from "../../js/i18n.js";
@@ -126,11 +127,7 @@
                             <h2 class="text-base font-semibold text-sem-fg">
                                 {t("tools.sieve_filters.rules_heading")}
                             </h2>
-                            <button
-                                type="button"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors"
-                                onclick={addRule}
-                            >
+                            <button type="button" class="primary-chip focus-ring-sem" onclick={addRule}>
                                 <MaterialDesignIcon iconName="plus" />
                                 {t("tools.sieve_filters.add_rule")}
                             </button>
@@ -140,9 +137,11 @@
                         </p>
 
                         {#if filters.length === 0}
-                            <div class="text-sm text-sem-fg-muted py-6 text-center">
-                                {t("tools.sieve_filters.empty_rules")}
-                            </div>
+                            <EmptyState
+                                icon="filter-variant-remove"
+                                title={t("tools.sieve_filters.empty_rules")}
+                                plain
+                            />
                         {:else}
                             <div class="space-y-3">
                                 {#each filters as rule, index (rule.id)}
@@ -163,7 +162,7 @@
                         <div class="flex flex-wrap gap-2 pt-2">
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90"
+                                class="primary-chip focus-ring-sem disabled:opacity-50"
                                 disabled={isSaving}
                                 onclick={save}
                             >
@@ -178,7 +177,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 dark:border-zinc-600 text-gray-800 dark:text-gray-200 hover:bg-sem-surface-muted"
+                                class="secondary-chip focus-ring-sem disabled:opacity-50"
                                 disabled={isSaving}
                                 onclick={reload}
                             >

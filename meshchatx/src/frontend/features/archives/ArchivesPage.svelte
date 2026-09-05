@@ -5,11 +5,7 @@
     import { SvelteMap } from "svelte/reactivity";
     import DialogUtils from "../../js/DialogUtils.js";
     import GlobalState from "../../js/GlobalState.js";
-    import {
-        invalidateNomadMicronWasmPreload,
-        isMicronWasmBundled,
-        preloadNomadMicronWasm,
-    } from "../../js/MicronWasmLoader.js";
+    import { isMicronWasmBundled, preloadNomadMicronWasm } from "../../js/MicronWasmLoader.js";
     import ToastUtils from "../../js/ToastUtils.js";
     import { t } from "../../js/i18n.js";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";

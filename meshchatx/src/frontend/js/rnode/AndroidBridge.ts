@@ -37,7 +37,7 @@ export default class AndroidBridge {
     static PERM_USB = PERM_USB;
     declare bridge: any;
     declare env: any;
-    constructor(bridge = null, env = null) {
+    constructor(bridge: any = null, env: any = null) {
         this.env = env || pickEnv();
         this.bridge = bridge || this.env.MeshChatXAndroid || null;
     }

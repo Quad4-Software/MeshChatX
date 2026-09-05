@@ -1,40 +1,63 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
-<script>
+<script lang="ts">
     import { onMount } from "svelte";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
+    import EmptyState from "../../ui/svelte/EmptyState.svelte";
     import DialogUtils from "../../js/DialogUtils.js";
     import ToastUtils from "../../js/ToastUtils.js";
     import Utils from "../../js/Utils.js";
     import { t } from "../../js/i18n.js";
     import { filterBlockedIdentities, identityBlockedAt } from "./lib/blockedList.js";
+    import type { BlockedIdentity } from "./lib/blockedList.js";
 
-    /** @type {Record<string, object>} */
-    let blockedIdentities = $state({});
+    interface BlockedDestinationEntry {
+        destination_hash: string;
+        created_at: string | null;
+    }
+
+    interface BlockedIdentityItem extends BlockedIdentity {
+        identity_hash: string;
+        display_name: string | null;
+        is_node: boolean;
+        blocked_destinations: BlockedDestinationEntry[];
+        is_rns_blackholed: boolean;
+        rns_source: string | null;
+        rns_reason: string | null;
+        rns_until: string | null;
+    }
+
+    interface BlackholeEntry {
+        source?: string;
+        reason?: string;
+        until?: string;
+    }
+
+    let blockedIdentities = $state<Record<string, BlockedIdentityItem>>({});
     let isLoading = $state(false);
     let searchQuery = $state("");
     let selectMode = $state(false);
-    /** @type {string[]} */
-    let selectedIdentities = $state([]);
+    let selectedIdentities = $state<string[]>([]);
     let typeFilter = $state("all");
     let dateSort = $state("newest");
 
     const allBlockedIdentities = $derived(Object.values(blockedIdentities));
     const filteredBlockedIdentities = $derived(
-        filterBlockedIdentities(allBlockedIdentities, { searchQuery, typeFilter, dateSort })
+        filterBlockedIdentities(allBlockedIdentities, { searchQuery, typeFilter, dateSort }) as BlockedIdentityItem[]
     );
     const isAllSelected = $derived(
         filteredBlockedIdentities.length > 0 &&
             filteredBlockedIdentities.every((identity) => selectedIdentities.includes(identity.identity_hash))
     );
 
-    async function loadBlockedDestinations() {
+    async function loadBlockedDestinations(): Promise<void> {
         isLoading = true;
         try {
             const response = await window.api.get("/api/v1/blocked-destinations");
-            const blockedHashes = response.data.blocked_destinations || [];
+            const blockedHashes: Array<{ destination_hash: string; created_at?: string | null }> =
+                response.data.blocked_destinations || [];
 
-            let reticulumBlackholed = {};
+            let reticulumBlackholed: Record<string, BlackholeEntry> = {};
             try {
                 const rnsResponse = await window.api.get("/api/v1/reticulum/blackhole");
                 reticulumBlackholed = rnsResponse.data.blackholed_identities || {};
@@ -42,10 +65,9 @@
                 console.error("Failed to load Reticulum blackhole", e);
             }
 
-            /** @type {Record<string, object>} */
-            const identityMap = {};
+            const identityMap: Record<string, BlockedIdentityItem> = {};
 
-            const ensureIdentity = (identityHash) => {
+            const ensureIdentity = (identityHash: string): BlockedIdentityItem => {
                 if (!identityMap[identityHash]) {
                     identityMap[identityHash] = {
                         identity_hash: identityHash,
@@ -61,10 +83,10 @@
                 return identityMap[identityHash];
             };
 
-            const processBlockedHash = async (blocked) => {
+            const processBlockedHash = async (blocked: { destination_hash: string; created_at?: string | null }) => {
                 const hash = blocked.destination_hash;
                 let identityHash = hash;
-                let displayName = null;
+                let displayName: string | null = null;
                 let isNode = false;
 
                 try {
@@ -133,7 +155,7 @@
         }
     }
 
-    async function unblockIdentity(identity) {
+    async function unblockIdentity(identity: BlockedIdentityItem): Promise<void> {
         const targetHash =
             identity.blocked_destinations.length > 0
                 ? identity.blocked_destinations[0].destination_hash
@@ -141,7 +163,7 @@
         await window.api.delete(`/api/v1/blocked-destinations/${targetHash}`);
     }
 
-    async function onUnblock(identity) {
+    async function onUnblock(identity: BlockedIdentityItem): Promise<void> {
         if (
             !(await DialogUtils.confirm(
                 t("banishment.lift_banishment_confirm", {
@@ -162,7 +184,7 @@
         }
     }
 
-    async function onUnblockSelected() {
+    async function onUnblockSelected(): Promise<void> {
         if (selectedIdentities.length === 0) {
             return;
         }
@@ -191,7 +213,7 @@
         }
     }
 
-    function toggleSelectAll() {
+    function toggleSelectAll(): void {
         if (isAllSelected) {
             selectedIdentities = [];
             return;
@@ -199,12 +221,12 @@
         selectedIdentities = filteredBlockedIdentities.map((identity) => identity.identity_hash);
     }
 
-    function exitSelectMode() {
+    function exitSelectMode(): void {
         selectMode = false;
         selectedIdentities = [];
     }
 
-    function toggleSelected(hash, checked) {
+    function toggleSelected(hash: string, checked: boolean): void {
         if (checked) {
             if (!selectedIdentities.includes(hash)) {
                 selectedIdentities = [...selectedIdentities, hash];
@@ -338,16 +360,14 @@
                     {/each}
                 </div>
             {:else if filteredBlockedIdentities.length === 0}
-                <div class="flex flex-col items-center justify-center py-16 text-center sm:py-20">
-                    <div class="mb-4 rounded-full bg-sem-surface-muted p-4 text-sem-fg-muted">
-                        <MaterialDesignIcon iconName="check-circle" />
-                    </div>
-                    <h3 class="text-lg font-semibold">
-                        {t("banishment.no_items")}
-                    </h3>
-                    <p class="mx-auto mt-1 max-w-sm text-sm text-sem-fg-muted">
-                        {searchQuery ? t("nomadnet.no_search_results_peers") : t("nomadnet.no_announces_yet")}
-                    </p>
+                <div class="py-12 sm:py-16">
+                    <EmptyState
+                        icon="check-circle"
+                        title={t("banishment.no_items")}
+                        description={searchQuery
+                            ? t("nomadnet.no_search_results_peers")
+                            : t("nomadnet.no_announces_yet")}
+                    />
                 </div>
             {:else}
                 <div class="grid grid-cols-1 gap-3 py-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

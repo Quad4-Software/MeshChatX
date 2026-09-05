@@ -74,7 +74,7 @@ export function buildMeshchatRelayUri({ hub, room = "", name = "", aspect = "" }
     return `meshchatx://relay?${parts.join("&")}`;
 }
 
-export function buildRelayShareMessage({ hub, room = "", name = "", aspect = "" }: any = {}) {
+export function buildRelayShareMessage({ hub, room = "", name = "", aspect = "" }: any = {}): string | null {
     const uri = buildMeshchatRelayUri({ hub, room, name, aspect });
     if (!uri) {
         return null;

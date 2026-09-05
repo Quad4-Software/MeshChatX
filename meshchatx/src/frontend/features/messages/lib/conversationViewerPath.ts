@@ -33,11 +33,17 @@ export async function loadPeerNetworkInfo(api: ApiClient, hash: string, warm: bo
         path: (path || normalizePathSnapshot(null)) as ViewerPathSnapshot,
         stampInfo:
             stamp.status === "fulfilled"
-                ? (((stamp.value.data as { lxmf_stamp_info?: Record<string, unknown> })?.lxmf_stamp_info as Record<string, unknown>) ?? null)
+                ? (((stamp.value.data as { lxmf_stamp_info?: Record<string, unknown> })?.lxmf_stamp_info as Record<
+                      string,
+                      unknown
+                  >) ?? null)
                 : null,
         signalMetrics:
             signal.status === "fulfilled"
-                ? (((signal.value.data as { signal_metrics?: Record<string, unknown> })?.signal_metrics as Record<string, unknown>) ?? null)
+                ? (((signal.value.data as { signal_metrics?: Record<string, unknown> })?.signal_metrics as Record<
+                      string,
+                      unknown
+                  >) ?? null)
                 : null,
     };
 }

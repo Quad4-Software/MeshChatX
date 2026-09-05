@@ -1,71 +1,18 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <AppUpdatePrompt
-        :model-value="visible"
-        :title="promptTitle"
-        :description="promptDescription"
-        :primary-label="primaryLabel"
-        :secondary-label="secondaryLabel"
-        :busy="busy"
-        :busy-text="$t('android_storage.working')"
-        :primary-disabled="setupMode && !selectedSetupMode"
-        @update:model-value="onVisibleUpdate"
-        @primary="onPrimary"
-        @secondary="onSecondary"
-    >
-        <div v-if="setupMode" class="space-y-2 text-left">
-            <label
-                class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors"
-                :class="
-                    selectedSetupMode === 'external'
-                        ? 'border-blue-500 bg-blue-50/80 dark:bg-blue-950/30'
-                        : 'border-sem-border'
-                "
-            >
-                <input v-model="selectedSetupMode" type="radio" class="mt-1" value="external" />
-                <span>
-                    <span class="font-medium text-sem-fg block">
-                        {{ $t("android_storage.setup_external_title") }}
-                    </span>
-                    <span class="text-xs text-sem-fg-muted">
-                        {{ $t("android_storage.setup_external_desc") }}
-                    </span>
-                </span>
-            </label>
-            <label
-                class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors"
-                :class="
-                    selectedSetupMode === 'internal'
-                        ? 'border-blue-500 bg-blue-50/80 dark:bg-blue-950/30'
-                        : 'border-sem-border'
-                "
-            >
-                <input v-model="selectedSetupMode" type="radio" class="mt-1" value="internal" />
-                <span>
-                    <span class="font-medium text-sem-fg block">
-                        {{ $t("android_storage.setup_internal_title") }}
-                    </span>
-                    <span class="text-xs text-sem-fg-muted">
-                        {{ $t("android_storage.setup_internal_desc") }}
-                    </span>
-                </span>
-            </label>
-        </div>
-        <p v-if="status?.active_path" class="text-[10px] font-mono text-sem-fg-muted break-all">
-            {{ status.active_path }}
-        </p>
-    </AppUpdatePrompt>
+    <div ref="root" class="contents"></div>
 </template>
 
 <script>
-import AppUpdatePrompt from "./AppUpdatePrompt.vue";
-import AndroidStorageBridge from "../js/AndroidStorageBridge.js";
-import ToastUtils from "../js/ToastUtils.js";
+import { mount, unmount } from "svelte";
+import AndroidStorageChoicePromptSvelte from "../features/app-shell/components/AndroidStorageChoicePrompt.svelte";
 
+/**
+ * Thin Vue host for the Svelte AndroidStorageChoicePrompt
+ */
 export default {
     name: "AndroidStorageChoicePrompt",
-    components: { AppUpdatePrompt },
     props: {
         variant: {
             type: String,
@@ -77,122 +24,68 @@ export default {
     data() {
         return {
             visible: false,
-            busy: false,
-            status: null,
-            selectedSetupMode: "external",
-            storageBridge: null,
         };
     },
-    computed: {
-        setupMode() {
-            return this.variant === "setup";
-        },
-        promptTitle() {
-            return this.setupMode ? this.$t("android_storage.setup_title") : this.$t("android_storage.upgrade_title");
-        },
-        promptDescription() {
-            return this.setupMode ? this.$t("android_storage.setup_desc") : this.$t("android_storage.upgrade_desc");
-        },
-        primaryLabel() {
-            return this.setupMode ? this.$t("android_storage.setup_continue") : this.$t("android_storage.upgrade_copy");
-        },
-        secondaryLabel() {
-            return this.setupMode ? "" : this.$t("android_storage.upgrade_stay_internal");
-        },
+    mounted() {
+        this.remount();
     },
-    created() {
-        this.storageBridge = new AndroidStorageBridge();
+    updated() {
+        this.remount();
+    },
+    beforeUnmount() {
+        this.teardown();
     },
     methods: {
-        ensureStorageBridge() {
-            if (!this.storageBridge) {
-                this.storageBridge = new AndroidStorageBridge();
+        teardown() {
+            if (this._svelte) {
+                unmount(this._svelte);
+                this._svelte = null;
             }
-            return this.storageBridge;
+        },
+        remount() {
+            this.teardown();
+            const root = this.$refs.root;
+            if (!root) return;
+            this._svelte = mount(AndroidStorageChoicePromptSvelte, {
+                target: root,
+                props: {
+                    variant: this.variant,
+                    oncompleted: (payload) => this.$emit("completed", payload),
+                    ondismissed: () => {
+                        this.visible = false;
+                        this.$emit("dismissed");
+                    },
+                },
+            });
         },
         refreshStatus() {
-            this.status = this.ensureStorageBridge().getStatus();
-            return this.status;
+            return this._svelte?.refreshStatus();
         },
         shouldShowSetup() {
-            const s = this.refreshStatus();
-            return Boolean(s?.needs_setup_choice);
+            return this._svelte?.shouldShowSetup();
         },
         shouldShowUpgrade() {
-            const s = this.refreshStatus();
-            return Boolean(s?.needs_upgrade_prompt);
+            return this._svelte?.shouldShowUpgrade();
         },
         showSetup() {
-            if (!this.shouldShowSetup()) {
-                return false;
-            }
-            this.selectedSetupMode = "external";
-            this.visible = true;
-            return true;
+            const shown = this._svelte?.showSetup();
+            this.visible = Boolean(shown);
+            return Boolean(shown);
         },
         showUpgrade() {
-            if (!this.shouldShowUpgrade()) {
-                return false;
-            }
-            this.visible = true;
-            return true;
+            const shown = this._svelte?.showUpgrade();
+            this.visible = Boolean(shown);
+            return Boolean(shown);
         },
         hide() {
+            this._svelte?.hide();
             this.visible = false;
         },
-        onVisibleUpdate(val) {
-            this.visible = val;
-            if (!val) {
-                this.$emit("dismissed");
-            }
-        },
         async onPrimary() {
-            if (this.busy) {
-                return;
-            }
-            this.busy = true;
-            try {
-                if (this.setupMode) {
-                    const mode = this.selectedSetupMode || "external";
-                    const result = this.ensureStorageBridge().applySetupChoice(mode, this.status);
-                    this.hide();
-                    this.$emit("completed", { action: "setup", mode, restarted: result.restarted });
-                    if (result.restarted) {
-                        ToastUtils.success(this.$t("android_storage.restart_to_apply"));
-                    }
-                    return;
-                }
-                if (!this.ensureStorageBridge().scheduleCopyToExternalAndRestart()) {
-                    ToastUtils.error(this.$t("android_storage.failed"));
-                    return;
-                }
-                ToastUtils.success(this.$t("android_storage.copy_restart_hint"));
-                this.ensureStorageBridge().restartApp();
-            } catch (e) {
-                console.error(e);
-                ToastUtils.error(this.$t("android_storage.failed"));
-            } finally {
-                this.busy = false;
-            }
+            await this._svelte?.onPrimary();
         },
         async onSecondary() {
-            if (this.busy || this.setupMode) {
-                return;
-            }
-            this.busy = true;
-            try {
-                if (!this.ensureStorageBridge().keepInternalAndDismiss()) {
-                    ToastUtils.error(this.$t("android_storage.failed"));
-                    return;
-                }
-                this.hide();
-                this.$emit("completed", { action: "stay_internal" });
-            } catch (e) {
-                console.error(e);
-                ToastUtils.error(this.$t("android_storage.failed"));
-            } finally {
-                this.busy = false;
-            }
+            await this._svelte?.onSecondary();
         },
     },
 };

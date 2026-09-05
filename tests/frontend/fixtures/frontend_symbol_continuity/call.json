@@ -1,6 +1,6 @@
 {
     "id": "call",
-    "scan_dirs": ["meshchatx/src/frontend/components/call"],
+    "scan_dirs": ["meshchatx/src/frontend/features/call"],
     "required_strings": [
         "CallOverlay",
         "RingtoneEditor",

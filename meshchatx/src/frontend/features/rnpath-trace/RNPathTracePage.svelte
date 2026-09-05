@@ -4,6 +4,9 @@
     import { onMount } from "svelte";
     import ToastUtils from "../../js/ToastUtils.js";
     import { t } from "../../js/i18n.js";
+    import EmptyState from "../../ui/svelte/EmptyState.svelte";
+    import LoadingState from "../../ui/svelte/LoadingState.svelte";
+    import IconButton from "../../ui/svelte/IconButton.svelte";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
     import ToolsPageHeader from "../../ui/svelte/ToolsPageHeader.svelte";
     import { RNPATH_TRACE_API_BASE } from "./lib/constants.js";
@@ -84,14 +87,12 @@
         accent="blue"
     >
         {#if traceResult}
-            <button
-                type="button"
-                class="p-2 text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors shrink-0"
-                title="Refresh Trace"
-                onclick={runTrace}
-            >
-                <MaterialDesignIcon iconName="refresh" class="size-5 {isLoading ? 'animate-spin' : ''}" />
-            </button>
+            <IconButton title={t("common.refresh")} disabled={isLoading} onclick={runTrace}>
+                <MaterialDesignIcon
+                    iconName="refresh"
+                    class="size-5 {isLoading ? 'animate-spin motion-reduce:animate-none' : ''}"
+                />
+            </IconButton>
         {/if}
     </ToolsPageHeader>
 
@@ -119,16 +120,13 @@
                     </div>
                     <button
                         type="button"
-                        class="w-full sm:w-auto sm:min-w-12 h-12 sm:h-14 px-4 sm:px-0 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-50 shrink-0"
+                        class="primary-chip w-full sm:w-auto sm:min-w-12 h-12 sm:h-14 px-4 focus-ring-sem disabled:opacity-50 shrink-0"
                         disabled={!isValidHash || isLoading}
-                        title="Trace Path"
+                        title={!isValidHash ? t("tools.rnpath_trace.invalid_hash_hint") : t("tools.rnpath_trace.trace")}
                         onclick={runTrace}
                     >
                         {#if !isLoading}
-                            <MaterialDesignIcon
-                                iconName="keyboard-return"
-                                class="size-6 sm:size-7"
-                            />
+                            <MaterialDesignIcon iconName="keyboard-return" class="size-6 sm:size-7" />
                         {:else}
                             <MaterialDesignIcon iconName="loading" class="size-6 animate-spin" />
                         {/if}
@@ -140,17 +138,8 @@
             {#if traceResult || isLoading || error}
                 <div class="space-y-6">
                     {#if isLoading}
-                        <div
-                            class="rounded-lg border border-sem-border bg-sem-surface p-8 sm:p-12 flex flex-col items-center justify-center gap-4"
-                        >
-                            <div class="relative">
-                                <div
-                                    class="w-12 h-12 border-4 border-indigo-200 dark:border-indigo-900/30 border-t-indigo-600 rounded-full animate-spin"
-                                ></div>
-                            </div>
-                            <div class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                {t("tools.rnpath_trace.tracing")}
-                            </div>
+                        <div class="rounded-lg border border-sem-border bg-sem-surface p-8 sm:p-12">
+                            <LoadingState message={t("tools.rnpath_trace.tracing")} />
                         </div>
                     {:else if error}
                         <div
@@ -159,7 +148,7 @@
                             <div class="flex items-start gap-3 text-red-600 dark:text-red-400">
                                 <MaterialDesignIcon iconName="alert-circle" class="size-5 md:size-6 shrink-0 mt-0.5" />
                                 <div class="space-y-1">
-                                    <div class="font-bold text-sm md:text-base">Trace Error</div>
+                                    <div class="font-bold text-sm md:text-base">{t("common.error")}</div>
                                     <div class="text-xs md:text-sm opacity-90 break-all whitespace-pre-wrap font-mono">
                                         {error}
                                     </div>
@@ -167,16 +156,16 @@
                             </div>
                         </div>
                     {:else if traceResult}
-                        <div
-                            class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500"
-                        >
+                        <div class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div class="rounded-lg border border-sem-border bg-sem-surface p-1 overflow-hidden">
                                 <div class="flex flex-wrap items-center divide-x divide-gray-100 dark:divide-zinc-800">
                                     <div class="flex-1 min-w-[120px] p-3 md:p-4 flex flex-col items-center text-center">
                                         <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
                                             {t("tools.rnpath_trace.total_hops")}
                                         </div>
-                                        <div class="text-xl md:text-2xl font-black text-indigo-600 dark:text-indigo-400">
+                                        <div
+                                            class="text-xl md:text-2xl font-black text-indigo-600 dark:text-indigo-400"
+                                        >
                                             {traceResult.hops}
                                         </div>
                                     </div>
@@ -184,7 +173,9 @@
                                         <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
                                             {t("tools.rnpath_trace.interface")}
                                         </div>
-                                        <div class="text-xs md:text-sm font-bold text-sem-fg-secondary truncate max-w-full">
+                                        <div
+                                            class="text-xs md:text-sm font-bold text-sem-fg-secondary truncate max-w-full"
+                                        >
                                             {traceResult.interface || "None"}
                                         </div>
                                     </div>
@@ -208,7 +199,9 @@
                                     {#each traceResult.path as node, idx (`desktop-${idx}-${node.hash || node.type}`)}
                                         <div class="flex flex-col items-center group relative w-32 shrink-0">
                                             <div
-                                                class="w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-md group-hover:shadow-indigo-500/20 group-hover:scale-110 z-10 {getNodeClass(node)}"
+                                                class="w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-md group-hover:shadow-indigo-500/20 group-hover:scale-110 z-10 {getNodeClass(
+                                                    node
+                                                )}"
                                             >
                                                 <MaterialDesignIcon iconName={getNodeIcon(node)} class="size-7" />
                                             </div>
@@ -217,7 +210,9 @@
                                                     {node.name ||
                                                         formatTraceHash(node.hash) ||
                                                         (node.type === "unknown"
-                                                            ? t("tools.rnpath_trace.unknown_hops", { count: node.count })
+                                                            ? t("tools.rnpath_trace.unknown_hops", {
+                                                                  count: node.count,
+                                                              })
                                                             : "")}
                                                 </div>
                                                 {#if node.interface}
@@ -239,11 +234,11 @@
                                         </div>
 
                                         {#if idx < traceResult.path.length - 1}
-                                            <div
-                                                class="flex-1 min-w-[40px] max-w-[100px] mt-7 h-0.5 relative"
-                                            >
+                                            <div class="flex-1 min-w-[40px] max-w-[100px] mt-7 h-0.5 relative">
                                                 <div
-                                                    class="absolute inset-0 {isUnknownTraceNode(traceResult.path[idx + 1]) || isUnknownTraceNode(node)
+                                                    class="absolute inset-0 {isUnknownTraceNode(
+                                                        traceResult.path[idx + 1]
+                                                    ) || isUnknownTraceNode(node)
                                                         ? 'border-t-2 border-dashed border-indigo-300 dark:border-indigo-800 bg-transparent h-0'
                                                         : 'bg-indigo-500/30'}"
                                                 ></div>
@@ -262,13 +257,17 @@
                                         <div class="flex gap-4">
                                             <div class="flex flex-col items-center w-10 shrink-0">
                                                 <div
-                                                    class="w-10 h-10 rounded-xl flex items-center justify-center shadow-md z-10 {getNodeClass(node)}"
+                                                    class="w-10 h-10 rounded-xl flex items-center justify-center shadow-md z-10 {getNodeClass(
+                                                        node
+                                                    )}"
                                                 >
                                                     <MaterialDesignIcon iconName={getNodeIcon(node)} class="size-5" />
                                                 </div>
                                                 {#if idx < traceResult.path.length - 1}
                                                     <div
-                                                        class="w-0.5 flex-1 min-h-[40px] my-1 {isUnknownTraceNode(traceResult.path[idx + 1]) || isUnknownTraceNode(node)
+                                                        class="w-0.5 flex-1 min-h-[40px] my-1 {isUnknownTraceNode(
+                                                            traceResult.path[idx + 1]
+                                                        ) || isUnknownTraceNode(node)
                                                             ? 'border-l-2 border-dashed border-indigo-300 dark:border-indigo-800'
                                                             : 'bg-indigo-500/30'}"
                                                     ></div>
@@ -279,7 +278,9 @@
                                                 <div class="font-bold text-sm text-sem-fg truncate">
                                                     {node.name ||
                                                         (node.type === "unknown"
-                                                            ? t("tools.rnpath_trace.unknown_hops", { count: node.count })
+                                                            ? t("tools.rnpath_trace.unknown_hops", {
+                                                                  count: node.count,
+                                                              })
                                                             : formatTraceHash(node.hash))}
                                                 </div>
                                                 {#if node.hash}
@@ -306,7 +307,7 @@
                             <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
                                 <button
                                     type="button"
-                                    class="w-full sm:w-auto px-6 py-3 bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-2xl font-bold transition flex items-center justify-center gap-2 text-sm"
+                                    class="secondary-chip focus-ring-sem w-full sm:w-auto px-6 py-3 font-bold text-sm"
                                     onclick={pingDestination}
                                 >
                                     <MaterialDesignIcon iconName="radar" class="size-5" />
@@ -314,7 +315,7 @@
                                 </button>
                                 <button
                                     type="button"
-                                    class="w-full sm:w-auto px-6 py-3 bg-sem-surface border border-sem-border hover:bg-sem-surface-muted text-sem-fg-muted rounded-2xl font-bold transition flex items-center justify-center gap-2 text-sm"
+                                    class="secondary-chip focus-ring-sem w-full sm:w-auto px-6 py-3 font-bold text-sm"
                                     onclick={copyDestinationHash}
                                 >
                                     <MaterialDesignIcon iconName="content-copy" class="size-5" />
@@ -324,6 +325,12 @@
                         </div>
                     {/if}
                 </div>
+            {:else}
+                <EmptyState
+                    icon="map-marker-path"
+                    title={t("tools.rnpath_trace.ready_title")}
+                    description={t("tools.rnpath_trace.ready_desc")}
+                />
             {/if}
         </div>
     </div>

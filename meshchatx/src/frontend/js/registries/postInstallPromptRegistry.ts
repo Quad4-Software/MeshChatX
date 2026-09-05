@@ -2,36 +2,22 @@
 
 import { createRegistry } from "./registryCore.js";
 
-/**
- * @typedef {Object} PostInstallPromptEntry
- * @property {string} id
- * Stable prompt id. Do not rename casually.
- * @property {number} revision
- * Monotonic. Bump to re-prompt users who dismissed an older revision.
- * @property {string} titleKey
- * i18n key for the dialog title.
- * @property {string} [descriptionKey]
- * i18n key for the body text.
- * @property {string} [primaryLabelKey]
- * i18n key for the primary button. Defaults to common.continue.
- * @property {string} [secondaryLabelKey]
- * i18n key for the secondary button. Omit for primary-only.
- * @property {number} [priority]
- * Higher runs first among pending prompts. Default 0.
- * @property {() => boolean | Promise<boolean>} [shouldShow]
- * Extra gate after revision check. Return false to skip.
- * @property {(ctx: { entry: PostInstallPromptEntry }) => boolean | void | Promise<boolean | void>} [onPrimary]
- * Return false to keep the dialog open and skip dismiss.
- * @property {(ctx: { entry: PostInstallPromptEntry }) => boolean | void | Promise<boolean | void>} [onSecondary]
- * Return false to keep the dialog open and skip dismiss.
- * @property {boolean} [dismissOnPrimary]
- * Mark seen after a successful primary action. Default true.
- * @property {boolean} [dismissOnSecondary]
- * Mark seen after a successful secondary action. Default true.
- */
+export interface PostInstallPromptEntry {
+    id: string;
+    revision: number;
+    titleKey: string;
+    descriptionKey?: string;
+    primaryLabelKey?: string;
+    secondaryLabelKey?: string;
+    priority?: number;
+    shouldShow?: () => boolean | Promise<boolean>;
+    onPrimary?: (ctx: { entry: PostInstallPromptEntry }) => boolean | void | Promise<boolean | void>;
+    onSecondary?: (ctx: { entry: PostInstallPromptEntry }) => boolean | void | Promise<boolean | void>;
+    dismissOnPrimary?: boolean;
+    dismissOnSecondary?: boolean;
+}
 
-/** @type {import('./registryCore.js').Registry<PostInstallPromptEntry>} */
-export const postInstallPromptRegistry = createRegistry("postInstallPromptRegistry");
+export const postInstallPromptRegistry = createRegistry<PostInstallPromptEntry>("postInstallPromptRegistry");
 
 /**
  * @param {PostInstallPromptEntry} entry

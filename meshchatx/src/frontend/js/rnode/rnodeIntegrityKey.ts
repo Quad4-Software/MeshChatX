@@ -16,7 +16,7 @@ export function rnodeIntegrityKeyForSrc(src, integrity) {
     if (parts.length === 0) {
         return "";
     }
-    const candidates = [];
+    const candidates: string[] = [];
     for (let n = Math.min(3, parts.length); n >= 1; n -= 1) {
         candidates.push(parts.slice(-n).join("/"));
     }

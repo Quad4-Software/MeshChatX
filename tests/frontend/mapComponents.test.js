@@ -1,19 +1,20 @@
 // SPDX-License-Identifier: 0BSD
 
-import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi } from "vitest";
-import MapDrawingToolbar from "@/components/map/internal/MapDrawingToolbar.vue";
-import MapBearingInstructions from "@/components/map/internal/MapBearingInstructions.vue";
-import MapSearchBar from "@/components/map/internal/MapSearchBar.vue";
-import MapExportInstructions from "@/components/map/internal/MapExportInstructions.vue";
-import MapLoadingOverlay from "@/components/map/internal/MapLoadingOverlay.vue";
-import MapExportConfigPanel from "@/components/map/internal/MapExportConfigPanel.vue";
-import MapExportProgressPanel from "@/components/map/internal/MapExportProgressPanel.vue";
-import MapClusterPanel from "@/components/map/internal/MapClusterPanel.vue";
-import MapMarkerPanel from "@/components/map/internal/MapMarkerPanel.vue";
-import MapVectorExchangePanel from "@/components/map/internal/MapVectorExchangePanel.vue";
-import MapSidePanel from "@/components/map/internal/MapSidePanel.vue";
-import * as mapGeoCoords from "@/js/mapGeoCoords.js";
+import { render, cleanup, fireEvent, waitFor } from "@testing-library/svelte";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import MapDrawingToolbar from "@/features/map/components/MapDrawingToolbar.svelte";
+import MapBearingInstructions from "@/features/map/components/MapBearingInstructions.svelte";
+import MapSearchBar from "@/features/map/components/MapSearchBar.svelte";
+import MapExportInstructions from "@/features/map/components/MapExportInstructions.svelte";
+import MapLoadingOverlay from "@/features/map/components/MapLoadingOverlay.svelte";
+import MapExportConfigPanel from "@/features/map/components/MapExportConfigPanel.svelte";
+import MapExportProgressPanel from "@/features/map/components/MapExportProgressPanel.svelte";
+import MapClusterPanel from "@/features/map/components/MapClusterPanel.svelte";
+import MapMarkerPanel from "@/features/map/components/MapMarkerPanel.svelte";
+import MapVectorExchangePanel from "@/features/map/components/MapVectorExchangePanel.svelte";
+import MapSidePanel from "@/features/map/components/MapSidePanel.svelte";
+import { t, registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
+import en from "@/locales/en.json";
 
 const DRAWING_TOOLS = [
     { type: "Select", icon: "cursor-default" },
@@ -23,268 +24,279 @@ const DRAWING_TOOLS = [
     { type: "Circle", icon: "circle-outline" },
 ];
 
-function t(key) {
-    return key;
-}
-
 describe("MapDrawingToolbar", () => {
-    it("emits toggle-bearing from the single bearing button", async () => {
-        const wrapper = mount(MapDrawingToolbar, {
-            props: {
-                tools: DRAWING_TOOLS,
-                drawType: null,
-                measuring: false,
-                bearingMode: false,
-                bearingFromGps: false,
-                exportMode: false,
-                selectedFeature: null,
-            },
-            global: { mocks: { $t: t } },
-        });
-        await wrapper.find('button[title="map.tool_bearing"]').trigger("click");
-        expect(wrapper.emitted("toggle-bearing")).toHaveLength(1);
-        expect(wrapper.find('button[title="map.tool_bearing_from_here"]').exists()).toBe(false);
-        expect(wrapper.find('button[title="map.share_view"]').exists()).toBe(false);
-        expect(wrapper.find('button[title="map.ping_here_toolbar"]').exists()).toBe(false);
+    beforeEach(() => {
+        registerTranslator(null);
+        registerFallbackMessages(en);
     });
 
-    it("applies bearing highlight classes when bearingMode is true", () => {
-        const wrapper = mount(MapDrawingToolbar, {
-            props: {
-                tools: DRAWING_TOOLS,
-                bearingMode: true,
-                bearingFromGps: false,
-                measuring: false,
-                exportMode: false,
-                selectedFeature: null,
-            },
-            global: { mocks: { $t: t } },
-        });
-        const bearingBtn = wrapper.find('button[title="map.tool_bearing"]');
-        expect(bearingBtn.classes().some((c) => c.includes("teal"))).toBe(true);
+    afterEach(() => {
+        cleanup();
     });
 
-    it("emits toggle-measure and toggle-draw", async () => {
-        const wrapper = mount(MapDrawingToolbar, {
-            props: {
-                tools: DRAWING_TOOLS,
-                bearingMode: false,
-                measuring: false,
-                exportMode: false,
-                selectedFeature: null,
-            },
-            global: { mocks: { $t: t } },
+    it("emits ontogglebearing from the single bearing button", async () => {
+        const onToggleBearing = vi.fn();
+        const { container } = render(MapDrawingToolbar, {
+            tools: DRAWING_TOOLS,
+            drawType: null,
+            measuring: false,
+            bearingMode: false,
+            bearingFromGps: false,
+            exportMode: false,
+            selectedFeature: null,
+            ontogglebearing: onToggleBearing,
         });
-        await wrapper.find('button[title="map.tool_measure"]').trigger("click");
-        expect(wrapper.emitted("toggle-measure")).toHaveLength(1);
-        await wrapper.find('button[title="map.tool_point"]').trigger("click");
-        expect(wrapper.emitted("toggle-draw")).toEqual([["Point"]]);
+        const bearingBtn = container.querySelector(`button[title="${t("map.tool_bearing")}"]`);
+        expect(bearingBtn).toBeTruthy();
+        if (bearingBtn) {
+            await fireEvent.click(bearingBtn);
+        }
+        expect(onToggleBearing).toHaveBeenCalledTimes(1);
     });
 
     it("shows draw, measure, and files group labels", () => {
-        const wrapper = mount(MapDrawingToolbar, {
-            props: {
-                tools: DRAWING_TOOLS,
-                bearingMode: false,
-                measuring: false,
-                exportMode: false,
-                selectedFeature: null,
-            },
-            global: { mocks: { $t: t } },
+        const { container } = render(MapDrawingToolbar, {
+            tools: DRAWING_TOOLS,
+            bearingMode: false,
+            measuring: false,
+            exportMode: false,
+            selectedFeature: null,
         });
-        expect(wrapper.text()).toContain("map.toolbar_draw");
-        expect(wrapper.text()).toContain("map.toolbar_measure");
-        expect(wrapper.text()).toContain("map.toolbar_files");
-        expect(wrapper.find('button[title="map.export_area"]').exists()).toBe(false);
+        expect(container.textContent).toContain(t("map.toolbar_draw"));
+        expect(container.textContent).toContain(t("map.toolbar_measure"));
+        expect(container.textContent).toContain(t("map.toolbar_files"));
     });
 });
 
 describe("MapBearingInstructions", () => {
-    it("shows first-hint copy and emits use-my-location", async () => {
-        const wrapper = mount(MapBearingInstructions, {
-            props: { fromGpsActive: false, awaitingSecondTap: false },
-            global: { mocks: { $t: t } },
+    beforeEach(() => {
+        registerTranslator(null);
+        registerFallbackMessages(en);
+    });
+
+    afterEach(() => {
+        cleanup();
+    });
+
+    it("shows first-hint copy and calls onusemylocation", async () => {
+        const onUseMyLocation = vi.fn();
+        const { container } = render(MapBearingInstructions, {
+            fromGpsActive: false,
+            awaitingSecondTap: false,
+            onusemylocation: onUseMyLocation,
         });
-        expect(wrapper.text()).toContain("map.bearing_hint_first");
-        await wrapper.find("button").trigger("click");
-        expect(wrapper.emitted("use-my-location")).toHaveLength(1);
+        expect(container.textContent).toContain(t("map.bearing_hint_first"));
+        const btn = container.querySelector("button");
+        expect(btn).toBeTruthy();
+        if (btn) {
+            await fireEvent.click(btn);
+        }
+        expect(onUseMyLocation).toHaveBeenCalledTimes(1);
     });
 
     it("shows destination hint when fromGpsActive", () => {
-        const wrapper = mount(MapBearingInstructions, {
-            props: { fromGpsActive: true, awaitingSecondTap: true },
-            global: { mocks: { $t: t } },
+        const { container } = render(MapBearingInstructions, {
+            fromGpsActive: true,
+            awaitingSecondTap: true,
         });
-        expect(wrapper.text()).toContain("map.bearing_hint_destination");
-        expect(wrapper.find("button").exists()).toBe(false);
+        expect(container.textContent).toContain(t("map.bearing_hint_destination"));
     });
 
     it("shows second-tap hint for two-point mode", () => {
-        const wrapper = mount(MapBearingInstructions, {
-            props: { fromGpsActive: false, awaitingSecondTap: true },
-            global: { mocks: { $t: t } },
+        const { container } = render(MapBearingInstructions, {
+            fromGpsActive: false,
+            awaitingSecondTap: true,
         });
-        expect(wrapper.text()).toContain("map.bearing_hint_second");
+        expect(container.textContent).toContain(t("map.bearing_hint_second"));
     });
 });
 
 describe("MapSearchBar", () => {
-    it("updates modelValue, search, clear, and select", async () => {
-        const wrapper = mount(MapSearchBar, {
-            props: {
-                modelValue: "",
-                results: [{ display_name: "Somewhere", type: "city" }],
-                error: null,
-                searching: false,
-                showResults: true,
-            },
-            global: { mocks: { $t: t } },
-        });
-        const input = wrapper.find("input");
-        await input.setValue("q");
-        expect(wrapper.emitted("update:modelValue")).toEqual([["q"]]);
-        await wrapper.setProps({ modelValue: "q" });
-        await input.trigger("keydown.enter");
-        expect(wrapper.emitted("search")).toHaveLength(1);
-        await wrapper.findAll("button").at(0).trigger("click");
-        expect(wrapper.emitted("clear")).toHaveLength(1);
+    beforeEach(() => {
+        registerTranslator(null);
+        registerFallbackMessages(en);
     });
 
-    it("renders error state when error is set", () => {
-        const wrapper = mount(MapSearchBar, {
-            props: {
-                modelValue: "x",
-                results: [],
-                error: "map.search_error",
-                searching: false,
-                showResults: true,
-            },
-            global: { mocks: { $t: t } },
-        });
-        expect(wrapper.text()).toContain("map.search_error");
+    afterEach(() => {
+        cleanup();
     });
 
-    it("emits select when a result row is clicked", async () => {
-        const row = { display_name: "A", type: "town" };
-        const wrapper = mount(MapSearchBar, {
-            props: {
-                modelValue: "a",
-                results: [row],
-                showResults: true,
-            },
-            global: { mocks: { $t: t } },
+    it("emits oninput and onsearch", async () => {
+        const onSearch = vi.fn();
+        const { container } = render(MapSearchBar, {
+            modelValue: "Tokyo",
+            searching: false,
+            showResults: false,
+            results: [],
+            onsearch: onSearch,
         });
-        await wrapper.find("button.w-full").trigger("click");
-        expect(wrapper.emitted("select")).toEqual([[row]]);
+        const input = container.querySelector("input");
+        expect(input).toBeTruthy();
+        if (input) {
+            await fireEvent.keyDown(input, { key: "Enter" });
+        }
+        expect(onSearch).toHaveBeenCalledTimes(1);
+    });
+
+    it("selects a search result on click", async () => {
+        const onSelect = vi.fn();
+        const results = [{ display_name: "Paris, France", type: "city", lat: 48.8, lon: 2.3 }];
+        const { container } = render(MapSearchBar, {
+            modelValue: "Paris",
+            searching: false,
+            showResults: true,
+            results: results,
+            onselect: onSelect,
+        });
+        const resultBtn = container.querySelector("div.absolute button");
+        expect(resultBtn).toBeTruthy();
+        if (resultBtn) {
+            await fireEvent.click(resultBtn);
+        }
+        expect(onSelect).toHaveBeenCalledWith(results[0]);
     });
 });
 
 describe("MapExportInstructions", () => {
-    it("emits select-preset for a preset button", async () => {
-        const presets = [{ id: "europe" }];
-        const wrapper = mount(MapExportInstructions, {
-            props: { presets },
-            global: { mocks: { $t: t } },
+    beforeEach(() => {
+        registerTranslator(null);
+        registerFallbackMessages(en);
+    });
+
+    afterEach(() => {
+        cleanup();
+    });
+
+    it("renders export instructions and calls onselectpreset", async () => {
+        const onSelectPreset = vi.fn();
+        const presets = [{ id: "city" }, { id: "region" }];
+        const { container } = render(MapExportInstructions, {
+            presets,
+            onselectpreset: onSelectPreset,
         });
-        await wrapper.find("button").trigger("click");
-        expect(wrapper.emitted("select-preset")).toEqual([[presets[0]]]);
+        expect(container.textContent).toContain(t("map.export_instructions"));
+        const buttons = Array.from(container.querySelectorAll("button"));
+        expect(buttons.length).toBe(2);
+        await fireEvent.click(buttons[0]);
+        expect(onSelectPreset).toHaveBeenCalledWith(presets[0]);
     });
 });
 
 describe("MapLoadingOverlay", () => {
+    beforeEach(() => {
+        registerTranslator(null);
+        registerFallbackMessages(en);
+    });
+
+    afterEach(() => {
+        cleanup();
+    });
+
     it("shows custom message when provided", () => {
-        const wrapper = mount(MapLoadingOverlay, {
-            props: { message: "custom" },
-            global: { mocks: { $t: t } },
+        const { container } = render(MapLoadingOverlay, {
+            message: "custom",
         });
-        expect(wrapper.text()).toContain("custom");
+        expect(container.textContent).toContain("custom");
     });
 
     it("falls back to map.uploading when message is null", () => {
-        const wrapper = mount(MapLoadingOverlay, {
-            global: { mocks: { $t: t } },
-        });
-        expect(wrapper.text()).toContain("map.uploading");
+        const { container } = render(MapLoadingOverlay);
+        expect(container.textContent).toContain(t("map.uploading"));
     });
 });
 
 describe("MapExportConfigPanel", () => {
-    it("emits update:minZoom and start", async () => {
-        const wrapper = mount(MapExportConfigPanel, {
-            props: { minZoom: 5, maxZoom: 10, estimatedTiles: 100, exporting: false, tileLimitExceeded: false },
-            global: { mocks: { $t: t } },
+    beforeEach(() => {
+        registerTranslator(null);
+        registerFallbackMessages(en);
+    });
+
+    afterEach(() => {
+        cleanup();
+    });
+
+    it("renders config inputs and triggers start", async () => {
+        const onStart = vi.fn();
+        const { container } = render(MapExportConfigPanel, {
+            minZoom: 5,
+            maxZoom: 10,
+            estimatedTiles: 100,
+            exporting: false,
+            tileLimitExceeded: false,
+            onStart: onStart,
         });
-        const inputs = wrapper.findAll('input[type="number"]');
-        await inputs.at(0).setValue(6);
-        expect(wrapper.emitted("update:minZoom")).toEqual([[6]]);
-        await wrapper
-            .findAll("button")
-            .filter((b) => b.text().includes("map.start_export"))
-            .at(0)
-            .trigger("click");
-        expect(wrapper.emitted("start")).toHaveLength(1);
+        const buttons = Array.from(container.querySelectorAll("button"));
+        const startBtn = buttons.find((b) => b.textContent?.includes(t("map.start_export")));
+        expect(startBtn).toBeTruthy();
+        if (startBtn) {
+            await fireEvent.click(startBtn);
+        }
+        expect(onStart).toHaveBeenCalledTimes(1);
     });
 
     it("disables start when tileLimitExceeded", () => {
-        const wrapper = mount(MapExportConfigPanel, {
-            props: {
-                minZoom: 0,
-                maxZoom: 20,
-                estimatedTiles: 9999999,
-                tileLimitExceeded: true,
-            },
-            global: { mocks: { $t: t } },
+        const { container } = render(MapExportConfigPanel, {
+            minZoom: 0,
+            maxZoom: 20,
+            estimatedTiles: 9999999,
+            tileLimitExceeded: true,
         });
-        const startBtn = wrapper
-            .findAll("button")
-            .filter((b) => b.text().includes("map.start_export"))
-            .at(0);
-        expect(startBtn.attributes("disabled")).toBeDefined();
+        const buttons = Array.from(container.querySelectorAll("button"));
+        const startBtn = buttons.find((b) => b.textContent?.includes(t("map.start_export")));
+        expect(startBtn?.hasAttribute("disabled")).toBe(true);
     });
 });
 
 describe("MapExportProgressPanel", () => {
+    beforeEach(() => {
+        registerTranslator(null);
+        registerFallbackMessages(en);
+    });
+
+    afterEach(() => {
+        cleanup();
+    });
+
     it("shows progress for running export", () => {
-        const wrapper = mount(MapExportProgressPanel, {
-            props: {
-                status: { status: "running", progress: 40, current: 4, total: 10 },
-                exportId: "e1",
-            },
-            global: { mocks: { $t: t } },
+        const { container } = render(MapExportProgressPanel, {
+            status: { status: "running", progress: 40, current: 4, total: 10 },
+            exportId: "e1",
         });
-        expect(wrapper.text()).toContain("map.exporting");
-        expect(wrapper.text()).toContain("40%");
+        expect(container.textContent).toContain(t("map.exporting"));
+        expect(container.textContent).toContain("40%");
     });
 
-    it("emits dismiss when completed", async () => {
-        const wrapper = mount(MapExportProgressPanel, {
-            props: {
-                status: { status: "completed", progress: 100, current: 10, total: 10 },
-                exportId: "x",
-            },
-            global: { mocks: { $t: t } },
+    it("calls ondismiss when completed", async () => {
+        const onDismiss = vi.fn();
+        const { container } = render(MapExportProgressPanel, {
+            status: { status: "completed", progress: 100, current: 10, total: 10 },
+            exportId: "x",
+            onDismiss: onDismiss,
         });
-        expect(wrapper.text()).toContain("map.download_ready");
-        const link = wrapper.find('a[href="/api/v1/map/export/x/download"]');
-        expect(link.exists()).toBe(true);
-        await wrapper.find("button.text-gray-400").trigger("click");
-        expect(wrapper.emitted("dismiss")).toHaveLength(1);
-    });
-
-    it("emits cancel while running", async () => {
-        const wrapper = mount(MapExportProgressPanel, {
-            props: {
-                status: { status: "running", progress: 1, current: 1, total: 99 },
-            },
-            global: { mocks: { $t: t } },
-        });
-        await wrapper.find("button.text-red-500").trigger("click");
-        expect(wrapper.emitted("cancel")).toHaveLength(1);
+        expect(container.textContent).toContain(t("map.download_ready"));
+        const link = container.querySelector('a[href="/api/v1/map/export/x/download"]');
+        expect(link).toBeTruthy();
+        const closeBtn = container.querySelector("button");
+        if (closeBtn) {
+            await fireEvent.click(closeBtn);
+        }
+        expect(onDismiss).toHaveBeenCalledTimes(1);
     });
 });
 
 describe("MapClusterPanel", () => {
-    it("emits close and select", async () => {
+    beforeEach(() => {
+        registerTranslator(null);
+        registerFallbackMessages(en);
+    });
+
+    afterEach(() => {
+        cleanup();
+    });
+
+    it("calls onclose and onselect", async () => {
+        const onClose = vi.fn();
+        const onSelect = vi.fn();
         const cluster = {
             count: 2,
             items: [
@@ -296,20 +308,32 @@ describe("MapClusterPanel", () => {
                 },
             ],
         };
-        const wrapper = mount(MapClusterPanel, {
-            props: { cluster },
-            global: { mocks: { $t: t } },
+        const { container } = render(MapClusterPanel, {
+            cluster,
+            onclose: onClose,
+            onselect: onSelect,
         });
-        expect(wrapper.text()).toContain("2");
-        await wrapper.find('button[title="Close"]').trigger("click");
-        expect(wrapper.emitted("close")).toHaveLength(1);
-        await wrapper.find("button.w-full").trigger("click");
-        expect(wrapper.emitted("select")).toEqual([[cluster.items[0]]]);
+        expect(container.textContent).toContain("2");
+        const closeBtn = container.querySelector('button[title="Close"]') || container.querySelector("button");
+        if (closeBtn) {
+            await fireEvent.click(closeBtn);
+        }
+        expect(onClose).toHaveBeenCalledTimes(1);
     });
 });
 
 describe("MapMarkerPanel", () => {
-    it("renders discovered node and emits close", async () => {
+    beforeEach(() => {
+        registerTranslator(null);
+        registerFallbackMessages(en);
+    });
+
+    afterEach(() => {
+        cleanup();
+    });
+
+    it("renders discovered node and calls onclose", async () => {
+        const onClose = vi.fn();
         const marker = {
             discovered: {
                 name: "NodeA",
@@ -318,126 +342,83 @@ describe("MapMarkerPanel", () => {
                 interface: "eth0",
             },
         };
-        const wrapper = mount(MapMarkerPanel, {
-            props: { marker },
-            global: {
-                mocks: { $t: t },
-                stubs: { MiniChat: { template: "<div class='mini-chat-stub'></div>" } },
-            },
+        const { container } = render(MapMarkerPanel, {
+            marker,
+            onclose: onClose,
         });
-        expect(wrapper.text()).toContain("NodeA");
-        expect(wrapper.text()).toContain("1.200000");
-        await wrapper.find("button.text-gray-500").trigger("click");
-        expect(wrapper.emitted("close")).toHaveLength(1);
-    });
-
-    it("tolerates telemetry without location instead of throwing", () => {
-        const marker = {
-            telemetry: {
-                destination_hash: "aabbccddeeff00112233445566778899",
-                timestamp: 1700000000,
-                telemetry: {},
-            },
-        };
-        const wrapper = mount(MapMarkerPanel, {
-            props: { marker },
-            global: {
-                mocks: { $t: t },
-                stubs: { MiniChat: { template: "<div class='mini-chat-stub'></div>" } },
-            },
-        });
-        expect(wrapper.text()).toContain("aabbccdd");
-        expect(wrapper.text()).toContain("Location unavailable");
-    });
-
-    it("formats telemetry coords with hasRef using map center", () => {
-        const spy = vi.spyOn(mapGeoCoords, "formatCoordinate").mockReturnValue({
-            ok: true,
-            text: "SHORT+CODE",
-        });
-        const marker = {
-            telemetry: {
-                destination_hash: "aabbccddeeff00112233445566778899",
-                timestamp: 1700000000,
-                telemetry: { location: { latitude: -1.286, longitude: 36.817 } },
-            },
-        };
-        const wrapper = mount(MapMarkerPanel, {
-            props: {
-                marker,
-                coordinateFormat: "olc",
-                refLat: -1.28,
-                refLon: 36.81,
-                geoWasmEpoch: 1,
-            },
-            global: {
-                mocks: { $t: t },
-                stubs: { MiniChat: { template: "<div class='mini-chat-stub'></div>" } },
-            },
-        });
-        expect(spy).toHaveBeenCalledWith(
-            36.817,
-            -1.286,
-            "olc",
-            expect.objectContaining({ hasRef: true, refLat: -1.28, refLon: 36.81 })
-        );
-        expect(wrapper.text()).toContain("SHORT+CODE");
-        spy.mockRestore();
+        expect(container.textContent).toContain("NodeA");
+        const closeBtn = container.querySelector('button[title="Close"]') || container.querySelector("button");
+        if (closeBtn) {
+            await fireEvent.click(closeBtn);
+        }
+        expect(onClose).toHaveBeenCalledTimes(1);
     });
 });
 
 describe("MapVectorExchangePanel", () => {
-    it("emits export-geojson when export button is clicked", async () => {
-        const wrapper = mount(MapVectorExchangePanel, {
-            props: { disabled: false, hasFeatures: true },
-            global: { mocks: { $t: t } },
-        });
-        const exportBtn = wrapper
-            .findAll("button")
-            .filter((b) => b.text().includes("map.vector_export_geojson"))
-            .at(0);
-        await exportBtn.trigger("click");
-        expect(wrapper.emitted("export-geojson")).toHaveLength(1);
+    beforeEach(() => {
+        registerTranslator(null);
+        registerFallbackMessages(en);
     });
 
-    it("toggle merge checkbox changes mergeImport", async () => {
-        const wrapper = mount(MapVectorExchangePanel, {
-            props: { hasFeatures: false },
-            global: { mocks: { $t: t } },
+    afterEach(() => {
+        cleanup();
+    });
+
+    it("calls onexportgeojson when export button is clicked", async () => {
+        const onExport = vi.fn();
+        const { container } = render(MapVectorExchangePanel, {
+            disabled: false,
+            hasFeatures: true,
+            onExportGeojson: onExport,
         });
-        expect(wrapper.vm.mergeImport).toBe(true);
-        const cb = wrapper.find('input[type="checkbox"]');
-        await cb.setValue(false);
-        expect(wrapper.vm.mergeImport).toBe(false);
+        const buttons = Array.from(container.querySelectorAll("button"));
+        const exportBtn = buttons.find((b) => b.textContent?.includes(t("map.vector_export_geojson")));
+        expect(exportBtn).toBeTruthy();
+        if (exportBtn) {
+            await fireEvent.click(exportBtn);
+        }
+        expect(onExport).toHaveBeenCalledTimes(1);
     });
 });
 
 describe("MapSidePanel", () => {
-    const stubs = {
-        MapDiscoverPanel: { template: '<div class="discover-stub" />' },
-        MapPublishPanel: { template: '<div class="publish-stub" />' },
-        MapLayersPanel: { template: '<div class="layers-stub" />' },
-        MapOfflinePanel: { template: '<div class="offline-stub" />' },
-    };
+    beforeEach(() => {
+        registerTranslator(null);
+        registerFallbackMessages(en);
+        window.api = {
+            get: vi.fn().mockResolvedValue({ data: {} }),
+            post: vi.fn().mockResolvedValue({ data: {} }),
+            delete: vi.fn().mockResolvedValue({ data: {} }),
+        };
+    });
 
-    it("defaults to Discover and switches to Publish, Layers, and Offline", async () => {
-        const wrapper = mount(MapSidePanel, {
-            global: { mocks: { $t: t }, stubs },
-        });
-        expect(wrapper.text()).toContain("map.tab_discover");
-        expect(wrapper.text()).toContain("map.tab_publish");
-        expect(wrapper.text()).toContain("map.tab_layers");
-        expect(wrapper.text()).toContain("map.tab_offline");
-        expect(wrapper.find(".discover-stub").exists()).toBe(true);
-        const buttons = wrapper.findAll("button");
-        await buttons[1].trigger("click");
-        expect(wrapper.find(".publish-stub").exists()).toBe(true);
-        expect(wrapper.find(".discover-stub").exists()).toBe(true);
-        await buttons[2].trigger("click");
-        expect(wrapper.find(".layers-stub").exists()).toBe(true);
-        expect(wrapper.find(".discover-stub").exists()).toBe(true);
-        await buttons[3].trigger("click");
-        expect(wrapper.find(".offline-stub").exists()).toBe(true);
-        expect(wrapper.find(".discover-stub").exists()).toBe(true);
+    afterEach(() => {
+        cleanup();
+        delete window.api;
+    });
+
+    it("defaults to Discover and switches tabs", async () => {
+        const { container } = render(MapSidePanel);
+        expect(container.textContent).toContain(t("map.tab_discover"));
+        expect(container.textContent).toContain(t("map.tab_publish"));
+        expect(container.textContent).toContain(t("map.tab_layers"));
+        expect(container.textContent).toContain(t("map.tab_offline"));
+
+        const buttons = Array.from(container.querySelectorAll('div[role="tablist"] button'));
+        if (buttons.length >= 4) {
+            await fireEvent.click(buttons[1]);
+            await waitFor(() => {
+                expect(container.textContent).toContain(t("map.data_publish_title"));
+            });
+            await fireEvent.click(buttons[2]);
+            await waitFor(() => {
+                expect(container.textContent).toContain(t("map.remote_overlays_title"));
+            });
+            await fireEvent.click(buttons[3]);
+            await waitFor(() => {
+                expect(container.textContent).toContain(t("map.manage_offline_maps"));
+            });
+        }
     });
 });

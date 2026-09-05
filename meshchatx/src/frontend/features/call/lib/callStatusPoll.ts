@@ -110,6 +110,10 @@ export class CallStatusPoller {
         }, ELAPSED_TIME_INTERVAL_MS);
     }
 
+    startElapsedTick(): void {
+        this.startElapsedTicker();
+    }
+
     /**
      * Stops the elapsed time ticker
      */

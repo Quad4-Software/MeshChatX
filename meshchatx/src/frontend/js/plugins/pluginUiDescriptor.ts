@@ -134,7 +134,7 @@ export function validateUiDescriptor(descriptor, options: any = {}) {
             }
         }
 
-        const childLists = [];
+        const childLists: any[][] = [];
         if (Array.isArray(node.children)) {
             childLists.push(node.children);
         }

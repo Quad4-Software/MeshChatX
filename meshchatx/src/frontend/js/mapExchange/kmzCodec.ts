@@ -89,7 +89,7 @@ export function resolveHrefToZipPath(kmlPathInZip, href) {
     const base = kmlPathInZip.includes("/") ? kmlPathInZip.slice(0, kmlPathInZip.lastIndexOf("/") + 1) : "";
     const combined = (base + h).replace(/\\/g, "/");
     const segments = combined.split("/").filter((s) => s.length && s !== ".");
-    const out = [];
+    const out: string[] = [];
     for (const s of segments) {
         if (s === "..") {
             if (!out.length) {

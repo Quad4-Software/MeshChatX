@@ -228,9 +228,7 @@ export async function executeAnswerCall(params: {
     }
 }
 
-export async function executeHangupCall(params: {
-    onhangup?: () => void | Promise<void>;
-}): Promise<void> {
+export async function executeHangupCall(params: { onhangup?: () => void | Promise<void> }): Promise<void> {
     try {
         if (params.onhangup) {
             await params.onhangup();
@@ -299,9 +297,16 @@ export async function executeToggleDuplexMode(
     if (!activeCall || activeCall.status !== 6) return null;
     const nextMode = isHalfDuplex ? 1 : 2;
     try {
-        const api = (window as unknown as {
-            api: { post: (url: string, data?: unknown) => Promise<{ data?: { is_ptt_active?: boolean; is_half_duplex?: boolean } }> };
-        }).api;
+        const api = (
+            window as unknown as {
+                api: {
+                    post: (
+                        url: string,
+                        data?: unknown
+                    ) => Promise<{ data?: { is_ptt_active?: boolean; is_half_duplex?: boolean } }>;
+                };
+            }
+        ).api;
         const response = await api.post(`/api/v1/telephone/switch-call-mode/${nextMode}`);
         return {
             isPttActive: Boolean(response.data?.is_ptt_active),

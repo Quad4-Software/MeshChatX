@@ -149,8 +149,7 @@ export function hydrateContactVisuals(params: {
 
     const applyImage = (target: ActiveCall | null | undefined): void => {
         if (!target) return;
-        const key =
-            target.remote_identity_hash || target.remote_destination_hash || target.remote_telephony_hash;
+        const key = target.remote_identity_hash || target.remote_destination_hash || target.remote_telephony_hash;
         if (key && imageMap[key.toLowerCase()]) {
             target.custom_image = imageMap[key.toLowerCase()];
         }
@@ -160,8 +159,7 @@ export function hydrateContactVisuals(params: {
     applyImage(lastCall);
 
     const updatedHistory = callHistory.map((entry) => {
-        const key =
-            entry.remote_identity_hash || entry.remote_destination_hash || entry.remote_telephony_hash;
+        const key = entry.remote_identity_hash || entry.remote_destination_hash || entry.remote_telephony_hash;
         if (key && imageMap[key.toLowerCase()]) {
             return { ...entry, contact_image: imageMap[key.toLowerCase()] };
         }
@@ -183,12 +181,8 @@ export function filterCallHistory(history: CallHistoryEntry[], search: string): 
     const query = (search || "").toLowerCase().trim();
     if (!query) return history;
     return history.filter((entry) => {
-        const nameMatch = entry.remote_identity_name
-            ? entry.remote_identity_name.toLowerCase().includes(query)
-            : false;
-        const hashMatch = entry.remote_identity_hash
-            ? entry.remote_identity_hash.toLowerCase().includes(query)
-            : false;
+        const nameMatch = entry.remote_identity_name ? entry.remote_identity_name.toLowerCase().includes(query) : false;
+        const hashMatch = entry.remote_identity_hash ? entry.remote_identity_hash.toLowerCase().includes(query) : false;
         return nameMatch || hashMatch;
     });
 }

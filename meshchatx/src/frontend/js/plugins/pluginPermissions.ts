@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: 0BSD
 
-/**
- * @param {string} permissionId
- * @param {(key: string, values?: Record<string, unknown>) => string} t
- * @returns {string}
- */
-export function permissionLabel(permissionId, t) {
+export function permissionLabel(
+    permissionId: string,
+    t: (key: string, values?: Record<string, unknown>) => string
+): string {
     const key = `plugins.permissions.${String(permissionId).replaceAll(":", ".")}`;
     const translated = t(key);
     if (translated && translated !== key) {
@@ -14,14 +12,9 @@ export function permissionLabel(permissionId, t) {
     return permissionId;
 }
 
-/**
- * @param {Record<string, unknown> | null | undefined} manifest
- * @returns {string[]}
- */
-export function declaredPermissionIds(manifest) {
+export function declaredPermissionIds(manifest: Record<string, any> | null | undefined): string[] {
     const permissions = manifest?.permissions || {};
-    /** @type {string[]} */
-    const ids = [];
+    const ids: string[] = [];
     if (Array.isArray(permissions.hooks)) {
         for (const hook of permissions.hooks) {
             if (typeof hook === "string" && hook.trim()) {
@@ -50,12 +43,10 @@ export function declaredPermissionIds(manifest) {
     return [...new Set(ids)];
 }
 
-/**
- * @param {Record<string, unknown> | null | undefined} manifest
- * @param {(key: string, values?: Record<string, unknown>) => string} t
- * @returns {string[]}
- */
-export function manifestPermissionSummary(manifest, t = (key) => key) {
+export function manifestPermissionSummary(
+    manifest: Record<string, any> | null | undefined,
+    t: (key: string, values?: Record<string, unknown>) => string = (key) => key
+): string[] {
     const ids =
         Array.isArray(manifest?.declared_permissions) && manifest.declared_permissions.length
             ? manifest.declared_permissions

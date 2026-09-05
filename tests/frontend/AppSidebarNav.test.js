@@ -40,6 +40,7 @@ const groups = [
 
 function mountGrouped(props = {}) {
     return mount(AppSidebarNav, {
+        attachTo: document.body,
         props: {
             primaryNavGroups: groups,
             moreNavItems: [{ id: "about", route: { name: "about" }, icon: "information", labelKey: "app.about" }],
@@ -58,17 +59,32 @@ function mountGrouped(props = {}) {
     });
 }
 
-function holdEvent(overrides = {}) {
-    return {
+function dispatchHoldPointerDown(wrapperOrElement, overrides = {}) {
+    const el = wrapperOrElement.element || wrapperOrElement;
+    const evt = new PointerEvent("pointerdown", {
+        bubbles: true,
+        cancelable: true,
         pointerType: "touch",
-        button: 0,
         clientX: 10,
         clientY: 10,
-        currentTarget: { setPointerCapture() {} },
-        preventDefault() {},
-        stopPropagation() {},
         ...overrides,
-    };
+    });
+    el.dispatchEvent(evt);
+    return evt;
+}
+
+function dispatchHoldPointerMove(wrapperOrElement, overrides = {}) {
+    const el = wrapperOrElement.element || wrapperOrElement;
+    const evt = new PointerEvent("pointermove", {
+        bubbles: true,
+        cancelable: true,
+        pointerType: "touch",
+        clientX: 10,
+        clientY: 10,
+        ...overrides,
+    });
+    el.dispatchEvent(evt);
+    return evt;
 }
 
 describe("AppSidebarNav edit hold", () => {
@@ -79,8 +95,9 @@ describe("AppSidebarNav edit hold", () => {
     it("emits edit-start after a hold on an expanded nav item", async () => {
         vi.useFakeTimers();
         const wrapper = mountGrouped();
-        wrapper.vm.onNavHoldPointerDown(holdEvent());
-        await vi.advanceTimersByTimeAsync(NAV_EDIT_HOLD_MS);
+        const item = wrapper.get('[data-nav-item-id="messages"]');
+        dispatchHoldPointerDown(item);
+        vi.advanceTimersByTime(NAV_EDIT_HOLD_MS + 10);
         expect(wrapper.emitted("edit-start")).toHaveLength(1);
         wrapper.unmount();
     });
@@ -102,8 +119,9 @@ describe("AppSidebarNav edit hold", () => {
     it("does not emit edit-start when the sidebar is collapsed", async () => {
         vi.useFakeTimers();
         const wrapper = mountGrouped({ isCollapsed: true });
-        wrapper.vm.onNavHoldPointerDown(holdEvent());
-        await vi.advanceTimersByTimeAsync(NAV_EDIT_HOLD_MS);
+        const item = wrapper.get('[data-nav-item-id="messages"]');
+        dispatchHoldPointerDown(item);
+        vi.advanceTimersByTime(NAV_EDIT_HOLD_MS + 10);
         expect(wrapper.emitted("edit-start")).toBeUndefined();
         wrapper.unmount();
     });
@@ -111,9 +129,10 @@ describe("AppSidebarNav edit hold", () => {
     it("cancels hold when the pointer moves", async () => {
         vi.useFakeTimers();
         const wrapper = mountGrouped();
-        wrapper.vm.onNavHoldPointerDown(holdEvent());
-        wrapper.vm.onNavHoldPointerMove(holdEvent({ clientX: 40, clientY: 40 }));
-        await vi.advanceTimersByTimeAsync(NAV_EDIT_HOLD_MS);
+        const item = wrapper.get('[data-nav-item-id="messages"]');
+        dispatchHoldPointerDown(item);
+        dispatchHoldPointerMove(item, { clientX: 40, clientY: 40 });
+        vi.advanceTimersByTime(NAV_EDIT_HOLD_MS + 10);
         expect(wrapper.emitted("edit-start")).toBeUndefined();
         wrapper.unmount();
     });
@@ -121,9 +140,10 @@ describe("AppSidebarNav edit hold", () => {
     it("emits edit-start after a hold on a section header", async () => {
         vi.useFakeTimers();
         const wrapper = mountGrouped();
-        expect(wrapper.get('[data-group-id="communicate"]').exists()).toBe(true);
-        wrapper.vm.onNavHoldPointerDown(holdEvent());
-        await vi.advanceTimersByTimeAsync(NAV_EDIT_HOLD_MS);
+        const header = wrapper.get('[data-group-id="communicate"]');
+        expect(header.exists()).toBe(true);
+        dispatchHoldPointerDown(header);
+        vi.advanceTimersByTime(NAV_EDIT_HOLD_MS + 10);
         expect(wrapper.emitted("edit-start")).toHaveLength(1);
         wrapper.unmount();
     });
@@ -171,6 +191,7 @@ describe("AppSidebarNav edit hold", () => {
     it("classic nav also holds to edit when expanded", async () => {
         vi.useFakeTimers();
         const wrapper = mount(AppSidebarClassicNav, {
+            attachTo: document.body,
             props: {
                 navItems: groups[0].items,
                 isCollapsed: false,
@@ -184,17 +205,19 @@ describe("AppSidebarNav edit hold", () => {
                 },
             },
         });
-        await wrapper.get('[data-nav-item-id="messages"]');
-        wrapper.vm.onNavHoldPointerDown(holdEvent());
-        await vi.advanceTimersByTimeAsync(NAV_EDIT_HOLD_MS);
+        const item = wrapper.get('[data-nav-item-id="messages"]');
+        dispatchHoldPointerDown(item);
+        vi.advanceTimersByTime(NAV_EDIT_HOLD_MS + 10);
         expect(wrapper.emitted("edit-start")).toHaveLength(1);
         wrapper.unmount();
     });
 
-    it("does not capture the pointer on hold", () => {
+    it("does not capture the pointer on hold", async () => {
         const wrapper = mountGrouped();
         const setPointerCapture = vi.fn();
-        wrapper.vm.onNavHoldPointerDown(holdEvent({ currentTarget: { setPointerCapture } }));
+        const item = wrapper.get('[data-nav-item-id="messages"]');
+        item.element.setPointerCapture = setPointerCapture;
+        dispatchHoldPointerDown(item);
         expect(setPointerCapture).not.toHaveBeenCalled();
         wrapper.unmount();
     });
@@ -202,27 +225,32 @@ describe("AppSidebarNav edit hold", () => {
     it("does not swallow clicks after edit mode ends", async () => {
         vi.useFakeTimers();
         const wrapper = mountGrouped();
-        wrapper.vm.onNavHoldPointerDown(holdEvent());
-        await vi.advanceTimersByTimeAsync(NAV_EDIT_HOLD_MS);
-        expect(wrapper.vm.navHoldArmed).toBe(true);
+        const item = wrapper.get('[data-nav-item-id="messages"]');
+        dispatchHoldPointerDown(item);
+        vi.advanceTimersByTime(NAV_EDIT_HOLD_MS + 10);
+        expect(wrapper.emitted("edit-start")).toHaveLength(1);
         await wrapper.setProps({ isEditing: true });
         await wrapper.setProps({ isEditing: false });
-        expect(wrapper.vm.navHoldArmed).toBe(false);
-        const event = { preventDefault: vi.fn(), stopPropagation: vi.fn() };
-        wrapper.vm.onNavHoldClickCapture(event);
-        expect(event.preventDefault).not.toHaveBeenCalled();
-        expect(event.stopPropagation).not.toHaveBeenCalled();
+        const updatedItem = wrapper.get('[data-nav-item-id="messages"]');
+        const clickEvt = new MouseEvent("click", { bubbles: true, cancelable: true });
+        const preventDefault = vi.spyOn(clickEvt, "preventDefault");
+        updatedItem.element.dispatchEvent(clickEvt);
+        expect(preventDefault).not.toHaveBeenCalled();
         wrapper.unmount();
     });
 
     it("clears the hold click guard so later clicks can navigate", async () => {
         vi.useFakeTimers();
         const wrapper = mountGrouped();
-        wrapper.vm.onNavHoldPointerDown(holdEvent());
-        await vi.advanceTimersByTimeAsync(NAV_EDIT_HOLD_MS);
-        expect(wrapper.vm.navHoldArmed).toBe(true);
-        await vi.advanceTimersByTimeAsync(NAV_EDIT_CLICK_GUARD_MS);
-        expect(wrapper.vm.navHoldArmed).toBe(false);
+        const item = wrapper.get('[data-nav-item-id="messages"]');
+        dispatchHoldPointerDown(item);
+        vi.advanceTimersByTime(NAV_EDIT_HOLD_MS + 10);
+        expect(wrapper.emitted("edit-start")).toHaveLength(1);
+        vi.advanceTimersByTime(NAV_EDIT_CLICK_GUARD_MS + 10);
+        const clickEvt = new MouseEvent("click", { bubbles: true, cancelable: true });
+        const preventDefault = vi.spyOn(clickEvt, "preventDefault");
+        item.element.dispatchEvent(clickEvt);
+        expect(preventDefault).not.toHaveBeenCalled();
         wrapper.unmount();
     });
 });

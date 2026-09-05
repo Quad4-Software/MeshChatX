@@ -9,19 +9,23 @@
     import { shortHash } from "../lib/pathQuery.js";
     import type { ManagementIdentity } from "../lib/types.js";
 
+    interface Props {
+        value?: string;
+        identityHash?: string;
+        disabled?: boolean;
+        defaultName?: string;
+        class?: string;
+        onloaded?: (identities: ManagementIdentity[]) => void;
+    }
+
     let {
         value = $bindable(""),
         identityHash = $bindable(""),
         disabled = false,
         defaultName = "mgmt",
+        class: className = "",
         onloaded,
-    }: {
-        value?: string;
-        identityHash?: string;
-        disabled?: boolean;
-        defaultName?: string;
-        onloaded?: (identities: ManagementIdentity[]) => void;
-    } = $props();
+    }: Props = $props();
 
     let identities = $state<ManagementIdentity[]>([]);
     let loading = $state(false);
@@ -37,7 +41,7 @@
         loading = true;
         try {
             const response = await window.api.get("/api/v1/reticulum/management-identities");
-            const data = response.data as { identities?: ManagementIdentity[] } | undefined;
+            const data = (response as any).data as { identities?: ManagementIdentity[] } | undefined;
             identities = Array.isArray(data?.identities) ? data.identities : [];
             onloaded?.(identities);
             if (value && !identities.some((item) => item.path === value)) {
@@ -76,7 +80,7 @@
     }
 
     onMount(() => {
-        loadIdentities();
+        void loadIdentities();
     });
 </script>
 
@@ -97,7 +101,7 @@
             type="button"
             class="secondary-chip px-3 py-2 text-xs cursor-pointer disabled:cursor-not-allowed"
             disabled={disabled || loading}
-            onclick={loadIdentities}
+            onclick={() => void loadIdentities()}
             title={t("common.refresh")}
         >
             <MaterialDesignIcon iconName="refresh" class="size-4" />
@@ -106,7 +110,7 @@
             type="button"
             class="secondary-chip px-3 py-2 text-xs cursor-pointer disabled:cursor-not-allowed"
             disabled={disabled || creating}
-            onclick={createIdentity}
+            onclick={() => void createIdentity()}
         >
             <MaterialDesignIcon iconName="plus" class="size-4" />
             {t("remote_mgmt.create_identity")}

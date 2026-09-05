@@ -72,15 +72,15 @@ export default class BluetoothTransport extends Transport {
                 filters: options.filters || [{ services: [NUS_SERVICE_UUID] }],
                 optionalServices: [NUS_SERVICE_UUID, ...(options.optionalServices || [])],
             });
-        } catch (cause) {
+        } catch (cause: any) {
             const message = cause?.message || String(cause);
             if (cause?.name === "NotFoundError" || /User cancelled/i.test(message)) {
-                const err = new Error("no_device_selected");
+                const err: any = new Error("no_device_selected");
                 (err as Error & { code?: string; status?: number; body?: unknown }).code = "NO_DEVICE_SELECTED";
                 err.cause = cause;
                 throw err;
             }
-            const err = new Error(message);
+            const err: any = new Error(message);
             (err as Error & { code?: string; status?: number; body?: unknown }).code = "DEVICE_REQUEST_FAILED";
             err.cause = cause;
             throw err;

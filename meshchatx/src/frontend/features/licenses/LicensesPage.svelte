@@ -1,25 +1,30 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
-<script>
+<script lang="ts">
     import { onMount } from "svelte";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
+    import EmptyState from "../../ui/svelte/EmptyState.svelte";
+    import LoadingState from "../../ui/svelte/LoadingState.svelte";
     import { t } from "../../js/i18n.js";
     import { filterLicenseRows } from "./lib/licenseFilter.js";
+    import type { LicenseRow } from "./lib/licenseFilter.js";
+
+    interface LicenseMeta {
+        generated_at?: string;
+        frontend_source?: string;
+    }
 
     let loading = $state(true);
-    let loadError = $state(/** @type {string | null} */ (null));
+    let loadError = $state<string | null>(null);
     let searchQuery = $state("");
-    /** @type {Array<{ name: string, version: string, author: string, license: string }>} */
-    let backend = $state([]);
-    /** @type {typeof backend} */
-    let frontend = $state([]);
-    /** @type {{ generated_at?: string, frontend_source?: string } | null} */
-    let meta = $state(null);
+    let backend = $state<LicenseRow[]>([]);
+    let frontend = $state<LicenseRow[]>([]);
+    let meta = $state<LicenseMeta | null>(null);
 
     const filteredBackend = $derived(filterLicenseRows(backend, searchQuery));
     const filteredFrontend = $derived(filterLicenseRows(frontend, searchQuery));
 
-    async function load() {
+    async function load(): Promise<void> {
         loading = true;
         loadError = null;
         try {
@@ -27,7 +32,7 @@
             backend = res.data.backend || [];
             frontend = res.data.frontend || [];
             meta = res.data.meta || null;
-        } catch (e) {
+        } catch (e: any) {
             loadError = e.response?.data?.error || e.message || "Failed to load licenses";
         } finally {
             loading = false;
@@ -105,9 +110,8 @@
             {/if}
 
             {#if loading}
-                <div class="flex flex-col items-center justify-center py-16 gap-3 text-sem-fg-muted">
-                    <span class="animate-spin inline-flex"><MaterialDesignIcon iconName="loading" /></span>
-                    <span>{t("common.loading")}</span>
+                <div class="py-16">
+                    <LoadingState message={t("common.loading")} />
                 </div>
             {:else}
                 <div class="license-grid grid grid-cols-1 gap-4 xl:grid-cols-2 xl:gap-6 xl:items-start">
@@ -168,7 +172,9 @@
                                     </tbody>
                                 </table>
                                 {#if section.rows.length === 0}
-                                    <p class="text-center py-8 text-sem-fg-muted text-sm">{t("common.no_results")}</p>
+                                    <div class="py-6">
+                                        <EmptyState icon="text-search" title={t("common.no_results")} plain />
+                                    </div>
                                 {/if}
                             </div>
                         </details>

@@ -1,11 +1,15 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
-<script>
+<script lang="ts">
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
     import { t } from "../../js/i18n.js";
+    import type { ToolRecord } from "./lib/toolsList.js";
 
-    /** @type {{ tool: Record<string, unknown> }} */
-    let { tool } = $props();
+    interface Props {
+        tool: ToolRecord;
+    }
+
+    let { tool }: Props = $props();
 
     const iconShellClass = $derived(
         [
@@ -58,7 +62,7 @@
 {#if !tool.comingSoon}
     <div class="shrink-0 flex items-center gap-1">
         {#if tool.extraAction && typeof tool.extraAction === "object"}
-            {@const action = tool.extraAction}
+            {@const action = tool.extraAction as { href?: string; target?: string; icon?: string }}
             <div class="flex items-center gap-2">
                 <a
                     href={String(action.href || "#")}

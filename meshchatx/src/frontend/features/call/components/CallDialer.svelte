@@ -71,7 +71,7 @@
         formatDestinationHash = (h?: string) => h || "",
         ondestinationchange,
         oncall,
-        oncopyhash,
+        oncopyhash: _oncopyhash,
         ontogglednd,
         ontogglecontactsonly,
         ontoggletelephoneannounce,
@@ -137,12 +137,12 @@
 
 <div class="w-full border-b border-sem-border py-2">
     <div class="flex items-center gap-3 mb-6">
-        <div class="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-2xl">
+        <div class="bg-sem-accent-subtle p-2.5 rounded-2xl">
             <MaterialDesignIcon iconName="phone-plus" class="size-6 text-sem-accent" />
         </div>
         <div>
-            <h2 class="text-lg font-bold text-sem-fg leading-tight">New Call</h2>
-            <p class="text-xs text-sem-fg-muted">Enter an identity to call.</p>
+            <h2 class="text-lg font-bold text-sem-fg leading-tight">{t("call.new_call")}</h2>
+            <p class="text-xs text-sem-fg-muted">{t("call.enter_identity_hash_to_call")}</p>
         </div>
     </div>
 
@@ -153,6 +153,13 @@
                     <input
                         value={destinationHash}
                         type="text"
+                        role="combobox"
+                        aria-autocomplete="list"
+                        aria-expanded={isCallInputFocused && newCallSuggestions.length > 0}
+                        aria-controls="call-dialer-suggestions"
+                        aria-activedescendant={selectedSuggestionIndex >= 0
+                            ? `call-dialer-opt-${selectedSuggestionIndex}`
+                            : undefined}
                         placeholder={t("call.identity_or_name")}
                         class="input-field"
                         oninput={(e) => setDestination((e.currentTarget as HTMLInputElement).value)}
@@ -166,6 +173,9 @@
                             } else if (e.key === "ArrowDown") {
                                 e.preventDefault();
                                 handleCallInputDown();
+                            } else if (e.key === "Escape") {
+                                isCallInputFocused = false;
+                                selectedSuggestionIndex = -1;
                             }
                         }}
                         onfocus={() => (isCallInputFocused = true)}
@@ -173,22 +183,21 @@
                     />
                     {#if isCallInputFocused && newCallSuggestions.length > 0}
                         <div
+                            id="call-dialer-suggestions"
+                            role="listbox"
+                            aria-label={t("call.suggestions")}
                             class="absolute z-50 left-0 right-0 mt-1 bg-sem-surface border border-sem-border rounded-xl shadow-xl overflow-hidden"
                         >
                             {#each newCallSuggestions as suggestion, index (suggestion.hash)}
-                                <div
-                                    class="px-4 py-2.5 flex items-center gap-3 cursor-pointer transition-colors {index ===
+                                <button
+                                    type="button"
+                                    role="option"
+                                    id={`call-dialer-opt-${index}`}
+                                    aria-selected={index === selectedSuggestionIndex}
+                                    class="w-full text-left px-4 py-2.5 flex items-center gap-3 cursor-pointer transition-colors focus-ring-sem {index ===
                                     selectedSuggestionIndex
-                                        ? 'bg-blue-50 dark:bg-blue-900/30 text-sem-accent'
+                                        ? 'bg-sem-accent-subtle text-sem-accent'
                                         : 'hover:bg-sem-surface-muted/50 text-sem-fg-muted'}"
-                                    role="button"
-                                    tabindex="0"
-                                    onkeydown={(e) => {
-                                        if (e.key === "Enter" || e.key === " ") {
-                                            e.preventDefault();
-                                            selectSuggestion(suggestion);
-                                        }
-                                    }}
                                     onmousedown={(e) => {
                                         e.preventDefault();
                                         selectSuggestion(suggestion);
@@ -197,42 +206,37 @@
                                     <div
                                         class="shrink-0 size-8 rounded-full flex items-center justify-center text-xs {suggestion.type ===
                                         'contact'
-                                            ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600'
-                                            : 'bg-sem-surface-muted text-gray-500'}"
+                                            ? 'bg-sem-accent-subtle text-sem-accent'
+                                            : 'bg-sem-surface-muted text-sem-fg-muted'}"
                                     >
                                         <MaterialDesignIcon iconName={suggestion.icon} class="size-4" />
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <div class="text-sm font-bold truncate">{suggestion.name}</div>
-                                        <button
-                                            type="button"
-                                            class="text-[10px] font-mono opacity-50 truncate hover:text-blue-500 transition-colors cursor-pointer text-left block"
+                                        <span
+                                            class="text-[10px] font-mono opacity-50 truncate block text-left"
                                             title={suggestion.hash}
-                                            onmousedown={(e) => {
-                                                e.stopPropagation();
-                                                oncopyhash?.(suggestion.hash);
-                                            }}
                                         >
                                             {formatDestinationHash(suggestion.hash)}
-                                        </button>
+                                        </span>
                                     </div>
                                     {#if suggestion.type === "contact"}
                                         <div class="text-[10px] uppercase font-bold tracking-widest opacity-30">
-                                            Contact
+                                            {t("call.contact")}
                                         </div>
                                     {/if}
-                                </div>
+                                </button>
                             {/each}
                         </div>
                     {/if}
                 </div>
                 <button
                     type="button"
-                    class="bg-blue-600 hover:bg-blue-500 text-white px-6 rounded-2xl font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2"
+                    class="primary-chip px-6! rounded-2xl! focus-ring-sem cursor-pointer flex items-center gap-2"
                     onclick={() => oncall?.(destinationHash)}
                 >
                     <MaterialDesignIcon iconName="phone" class="size-5" />
-                    Call
+                    {t("call.call_action")}
                 </button>
             </div>
         </div>

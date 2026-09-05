@@ -76,13 +76,13 @@ export function registerUiI18n(i18nOrComposer) {
  * Locale codes discovered from bundled JSON without loading message bodies.
  * @returns {string[]}
  */
-export function listLocaleCodes() {
+export function listLocaleCodes(): string[] {
     return Object.keys(localeModules)
         .map((filePath) => {
             const match = filePath.match(/\/([^/]+)\.json$/);
             return match ? match[1] : null;
         })
-        .filter(Boolean)
+        .filter((code): code is string => Boolean(code))
         .sort((a, b) => {
             if (a === "en") {
                 return -1;

@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: 0BSD
+
+export const DEVELOPER_LXMF_PRIMARY = "f489752fbef161c64d65e385a4e9fc74";
+export const DEVELOPER_LXMF_ALTERNATE = "43d3309adf27fc446556121b553b56a6";
+export const MONERO_DONATE_ADDRESS =
+    "83SUg6mmkkVGwCycckLEgRfdmXNm7H9XtVjbGXp5kko71N6pTefYURJeS7WdEGHrz2aagmt4nF3dWg6mHcYs6yu4EokwhTh";
+
+export const SNAPSHOTS_PAGE_LIMIT = 3;
+export const AUTOBACKUPS_PAGE_LIMIT = 4;
+
+export const ABOUT_INFO_POLL_INTERVAL_MS = 5000;
+export const ABOUT_HEALTH_POLL_INTERVAL_MS = 30000;

@@ -217,7 +217,7 @@
             <div class="hidden sm:flex h-10 shrink-0 items-center justify-center border-b border-sem-border px-2">
                 <button
                     type="button"
-                    class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 text-sem-fg-muted dark:hover:bg-zinc-800 transition-colors"
+                    class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 text-sem-fg-muted dark:hover:bg-zinc-800 transition-colors focus-ring-sem"
                     onclick={() => ontoggleCollapse?.()}
                 >
                     <MaterialDesignIcon iconName={isRightSidebar ? "chevron-left" : "chevron-right"} class="size-5" />
@@ -226,7 +226,7 @@
             <div class="flex flex-col items-center gap-1 py-2 px-1 border-b border-sem-border">
                 <button
                     type="button"
-                    class="p-2 rounded-xl transition-colors {tab === 'conversations'
+                    class="p-2 rounded-xl transition-colors focus-ring-sem {tab === 'conversations'
                         ? 'bg-sem-accent text-white'
                         : 'text-sem-fg-muted hover:bg-sem-surface-muted'}"
                     onclick={() => (tab = "conversations")}
@@ -235,7 +235,7 @@
                 </button>
                 <button
                     type="button"
-                    class="p-2 rounded-xl transition-colors {tab === 'announces'
+                    class="p-2 rounded-xl transition-colors focus-ring-sem {tab === 'announces'
                         ? 'bg-sem-accent text-white'
                         : 'text-sem-fg-muted hover:bg-sem-surface-muted'}"
                     onclick={() => (tab = "announces")}
@@ -250,7 +250,7 @@
                     {#each sortedConversations.slice(0, 40) as c (c.destination_hash)}
                         <button
                             type="button"
-                            class="shrink-0 p-0.5 rounded-xl transition-colors {selectedDestinationHash ===
+                            class="shrink-0 p-0.5 rounded-xl transition-colors focus-ring-sem {selectedDestinationHash ===
                             c.destination_hash
                                 ? 'ring-2 ring-sem-accent'
                                 : 'hover:bg-white/10'}"
@@ -276,7 +276,7 @@
                 <div class="flex min-w-0 flex-1">
                     <button
                         type="button"
-                        class="flex w-full cursor-pointer items-center justify-center border-b-2 px-1 text-center text-sm font-medium transition {tab ===
+                        class="flex w-full cursor-pointer items-center justify-center border-b-2 px-1 text-center text-sm font-medium transition focus-ring-sem {tab ===
                         'conversations'
                             ? 'border-sem-accent text-sem-accent'
                             : 'border-transparent text-sem-fg-muted hover:border-sem-border hover:text-sem-fg'}"
@@ -286,7 +286,7 @@
                     </button>
                     <button
                         type="button"
-                        class="flex w-full cursor-pointer items-center justify-center border-b-2 px-1 text-center text-sm font-medium transition {tab ===
+                        class="flex w-full cursor-pointer items-center justify-center border-b-2 px-1 text-center text-sm font-medium transition focus-ring-sem {tab ===
                         'announces'
                             ? 'border-sem-accent text-sem-accent'
                             : 'border-transparent text-sem-fg-muted hover:border-sem-border hover:text-sem-fg'}"
@@ -297,7 +297,7 @@
                 </div>
                 <button
                     type="button"
-                    class="hidden sm:flex shrink-0 items-center border-b-2 border-transparent px-1.5 text-gray-500 hover:bg-gray-100 text-sem-fg-muted dark:hover:bg-zinc-800 transition-colors"
+                    class="hidden sm:flex shrink-0 items-center border-b-2 border-transparent px-1.5 text-gray-500 hover:bg-gray-100 text-sem-fg-muted dark:hover:bg-zinc-800 transition-colors focus-ring-sem"
                     onclick={() => ontoggleCollapse?.()}
                 >
                     <MaterialDesignIcon iconName={isRightSidebar ? "chevron-right" : "chevron-left"} class="size-5" />
@@ -318,7 +318,7 @@
                     >
                         <button
                             type="button"
-                            class="flex items-center gap-2 min-w-0 flex-1 text-left"
+                            class="flex items-center gap-2 min-w-0 flex-1 text-left rounded-md focus-ring-sem"
                             onclick={() => (foldersExpanded = !foldersExpanded)}
                         >
                             <MaterialDesignIcon
@@ -330,7 +330,7 @@
                         <div class="flex gap-1 shrink-0">
                             <button
                                 type="button"
-                                class="p-1 text-gray-400 hover:text-sem-accent hover:bg-sem-surface-muted rounded-lg transition-colors"
+                                class="p-1 text-gray-400 hover:text-sem-accent hover:bg-sem-surface-muted rounded-lg transition-colors focus-ring-sem"
                                 title={t("messages.create_folder")}
                                 onclick={(e) => {
                                     e.stopPropagation();
@@ -342,7 +342,7 @@
                             <div bind:this={folderMenuRoot} class="relative">
                                 <button
                                     type="button"
-                                    class="p-1 text-sem-fg-muted hover:text-sem-fg hover:bg-sem-surface-muted rounded-lg transition-colors"
+                                    class="p-1 text-sem-fg-muted hover:text-sem-fg hover:bg-sem-surface-muted rounded-lg transition-colors focus-ring-sem"
                                     onclick={(e) => {
                                         e.stopPropagation();
                                         folderMenuShow = !folderMenuShow;
@@ -356,7 +356,7 @@
                                     >
                                         <button
                                             type="button"
-                                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
+                                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors focus-ring-sem"
                                             onclick={() => {
                                                 folderMenuShow = false;
                                                 onexportFolders?.();
@@ -367,7 +367,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors"
+                                            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-sem-fg-muted hover:bg-sem-surface-muted transition-colors focus-ring-sem"
                                             onclick={() => {
                                                 folderMenuShow = false;
                                                 onimportFolders?.();
@@ -385,7 +385,7 @@
                         <div class="flex flex-col max-h-48 overflow-y-auto overscroll-y-contain pb-1">
                             <button
                                 type="button"
-                                class="px-3 py-1.5 flex items-center gap-2 text-sm text-left transition-colors {selectedFolderId ===
+                                class="px-3 py-1.5 flex items-center gap-2 text-sm text-left transition-colors focus-ring-sem {selectedFolderId ===
                                 null
                                     ? 'bg-sem-accent/15 text-sem-fg font-semibold'
                                     : 'text-sem-fg-muted hover:bg-sem-surface-muted'}"
@@ -403,7 +403,7 @@
                                 >
                                     <button
                                         type="button"
-                                        class="flex min-w-0 flex-1 items-center gap-2 text-left"
+                                        class="flex min-w-0 flex-1 items-center gap-2 text-left rounded-sm focus-ring-sem"
                                         onclick={() => onfolderClick?.(folder.id ?? null)}
                                     >
                                         <MaterialDesignIcon iconName="folder" class="size-4 shrink-0" />
@@ -412,7 +412,7 @@
                                     <div class="hidden group-hover:flex items-center gap-0.5 shrink-0">
                                         <button
                                             type="button"
-                                            class="p-1 hover:text-sem-accent hover:bg-sem-surface-muted rounded-lg transition-colors"
+                                            class="p-1 hover:text-sem-accent hover:bg-sem-surface-muted rounded-lg transition-colors focus-ring-sem"
                                             title={t("messages.rename_folder")}
                                             onclick={() => void renameFolder(folder)}
                                         >
@@ -420,7 +420,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="p-1 hover:text-red-500 hover:bg-sem-surface-muted rounded-lg transition-colors"
+                                            class="p-1 hover:text-red-500 hover:bg-sem-surface-muted rounded-lg transition-colors focus-ring-sem"
                                             title={t("messages.delete_folder")}
                                             onclick={() => void deleteFolder(folder)}
                                         >
@@ -446,7 +446,7 @@
                         />
                         <button
                             type="button"
-                            class="p-2 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted"
+                            class="p-2 rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted focus-ring-sem"
                             title={t("messages.ingest_paper_message")}
                             onclick={() => oningestPaperMessage?.()}
                         >
@@ -456,7 +456,7 @@
                     <div class="flex flex-wrap gap-1">
                         <button
                             type="button"
-                            class="secondary-chip text-xs! py-1! px-2! {filterUnreadOnly
+                            class="secondary-chip text-xs! py-1! px-2! focus-ring-sem {filterUnreadOnly
                                 ? 'ring-1 ring-sem-accent'
                                 : ''}"
                             onclick={() => onconversationFilterChanged?.("unread")}
@@ -465,7 +465,7 @@
                         </button>
                         <button
                             type="button"
-                            class="secondary-chip text-xs! py-1! px-2! {filterFailedOnly
+                            class="secondary-chip text-xs! py-1! px-2! focus-ring-sem {filterFailedOnly
                                 ? 'ring-1 ring-sem-accent'
                                 : ''}"
                             onclick={() => onconversationFilterChanged?.("failed")}
@@ -474,7 +474,7 @@
                         </button>
                         <button
                             type="button"
-                            class="secondary-chip text-xs! py-1! px-2! {filterHasAttachmentsOnly
+                            class="secondary-chip text-xs! py-1! px-2! focus-ring-sem {filterHasAttachmentsOnly
                                 ? 'ring-1 ring-sem-accent'
                                 : ''}"
                             onclick={() => onconversationFilterChanged?.("attachments")}
@@ -504,7 +504,7 @@
                                     >
                                         <button
                                             type="button"
-                                            class="flex min-w-0 flex-1 gap-2 items-center text-left"
+                                            class="flex min-w-0 flex-1 gap-2 items-center text-left rounded-sm focus-ring-sem"
                                             onclick={() => onconversationClick?.(c)}
                                         >
                                             <LxmfUserIcon
@@ -534,7 +534,7 @@
                                         {#if c.destination_hash}
                                             <button
                                                 type="button"
-                                                class="p-1 text-sem-fg-muted hover:text-sem-fg rounded-lg transition-opacity opacity-0 group-hover:opacity-100 focus-visible:opacity-100 {selectedDestinationHash ===
+                                                class="p-1 text-sem-fg-muted hover:text-sem-fg rounded-lg transition-opacity opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-ring-sem {selectedDestinationHash ===
                                                 c.destination_hash
                                                     ? 'opacity-100'
                                                     : ''}"
@@ -556,7 +556,7 @@
                         {:else if hasMoreConversations}
                             <button
                                 type="button"
-                                class="w-full p-3 text-xs text-sem-accent hover:bg-sem-surface-muted"
+                                class="w-full p-3 text-xs text-sem-accent hover:bg-sem-surface-muted focus-ring-sem"
                                 onclick={() => onloadMore?.()}
                             >
                                 {t("common.load_more") || "Load more"}
@@ -594,7 +594,7 @@
                                 <li>
                                     <button
                                         type="button"
-                                        class="w-full text-left px-3 py-2 flex gap-2 items-center hover:bg-sem-surface-muted {selectedDestinationHash ===
+                                        class="w-full text-left px-3 py-2 flex gap-2 items-center hover:bg-sem-surface-muted focus-ring-sem {selectedDestinationHash ===
                                         p.destination_hash
                                             ? 'bg-sem-accent/10'
                                             : ''}"
@@ -623,7 +623,7 @@
                         {:else if hasMoreAnnounces}
                             <button
                                 type="button"
-                                class="w-full p-3 text-xs text-sem-accent hover:bg-sem-surface-muted"
+                                class="w-full p-3 text-xs text-sem-accent hover:bg-sem-surface-muted focus-ring-sem"
                                 onclick={() => onloadMoreAnnounces?.()}
                             >
                                 {t("common.load_more") || "Load more"}

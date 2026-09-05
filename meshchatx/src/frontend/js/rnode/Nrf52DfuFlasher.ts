@@ -154,7 +154,7 @@ export default class Nrf52DfuFlasher {
     }
 
     slipEncodeEscChars(dataIn) {
-        let result = [];
+        let result: number[] = [];
         for (let i = 0; i < dataIn.length; i++) {
             let char = dataIn[i];
             if (char === 0xc0) {
@@ -219,7 +219,7 @@ export default class Nrf52DfuFlasher {
     }
 
     async sendFirmware(firmware, progressCallback) {
-        const packets = [];
+        const packets: any[] = [];
         var packetsSent = 0;
 
         for (let i = 0; i < firmware.length; i += this.DFU_PACKET_MAX_SIZE) {

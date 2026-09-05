@@ -14,14 +14,8 @@
         onInstallLanguages: (packageName: string) => void;
     }
 
-    let {
-        languages,
-        translationMode,
-        hasArgos,
-        isInstallingLanguages,
-        onLoadLanguages,
-        onInstallLanguages,
-    }: Props = $props();
+    let { languages, translationMode, hasArgos, isInstallingLanguages, onLoadLanguages, onInstallLanguages }: Props =
+        $props();
 </script>
 
 <div class="glass-card space-y-3">
@@ -33,9 +27,7 @@
     </div>
     <div class="flex flex-wrap gap-2">
         {#each languages as lang (lang.code)}
-            <span
-                class="px-2 py-1 rounded-sm text-xs bg-sem-surface-muted text-gray-700 dark:text-gray-300"
-            >
+            <span class="px-2 py-1 rounded-sm text-xs bg-sem-surface-muted text-gray-700 dark:text-gray-300">
                 {lang.name} ({lang.code})
                 <span class="text-gray-500 dark:text-gray-500">- {lang.source}</span>
             </span>
@@ -44,7 +36,7 @@
     <div class="flex gap-2 mt-2">
         <button
             type="button"
-            class="secondary-chip px-4 py-2 text-sm inline-flex items-center gap-1.5"
+            class="secondary-chip focus-ring-sem px-4 py-2 text-sm inline-flex items-center gap-1.5"
             onclick={onLoadLanguages}
         >
             <MaterialDesignIcon iconName="refresh" class="w-4 h-4" />
@@ -53,7 +45,7 @@
         {#if translationMode === "argos" && hasArgos}
             <button
                 type="button"
-                class="primary-chip px-4 py-2 text-sm inline-flex items-center gap-1.5"
+                class="primary-chip focus-ring-sem px-4 py-2 text-sm inline-flex items-center gap-1.5"
                 disabled={isInstallingLanguages}
                 onclick={() => onInstallLanguages("translate")}
             >
@@ -64,7 +56,7 @@
                 {:else}
                     <MaterialDesignIcon iconName="download" class="w-4 h-4" />
                 {/if}
-                Install All Languages
+                {t("translator.install_all_languages")}
             </button>
         {/if}
     </div>

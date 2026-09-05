@@ -2,10 +2,10 @@
 
 <script lang="ts">
     import { onMount } from "svelte";
-    import DialogUtils from "../../js/DialogUtils.js";
     import { t } from "../../js/i18n.js";
     import MaterialDesignIcon from "../../ui/svelte/MaterialDesignIcon.svelte";
     import ToolsPageHeader from "../../ui/svelte/ToolsPageHeader.svelte";
+    import ToastUtils from "../../js/ToastUtils.js";
     import {
         DEFAULT_PROBE_COUNT,
         DEFAULT_PROBE_FULL_NAME,
@@ -48,12 +48,12 @@
         }
 
         if (!isValidProbeDestinationHash(destinationHash)) {
-            DialogUtils.alert(t("rnprobe.invalid_hash"));
+            ToastUtils.error(t("rnprobe.invalid_hash"));
             return;
         }
 
         if (!isValidProbeFullName(fullName)) {
-            DialogUtils.alert(t("rnprobe.provide_full_name"));
+            ToastUtils.error(t("rnprobe.provide_full_name"));
             return;
         }
 
@@ -77,13 +77,13 @@
                 }
             );
 
-            const data = response.data as ProbeApiResponse | undefined;
+            const data = (response as any)?.data as ProbeApiResponse | undefined;
             results = data?.results || [];
             summary = parseProbeSummary(data || {});
         } catch (e: any) {
             if (!window.api.isCancel?.(e)) {
                 console.error(e);
-                DialogUtils.alert(e.response?.data?.message || t("rnprobe.failed_to_probe"));
+                ToastUtils.error(e.response?.data?.message || t("rnprobe.failed_to_probe"));
             }
         } finally {
             isRunning = false;
@@ -121,9 +121,7 @@
         eyebrow={t("rnprobe.network_diagnostics")}
         accent="purple"
     />
-    <div
-        class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
-    >
+    <div class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <div class="space-y-4 w-full max-w-4xl mx-auto">
             <div class="glass-card space-y-5">
                 <div class="grid lg:grid-cols-2 gap-4">
@@ -189,8 +187,8 @@
                     {#if !isRunning}
                         <button
                             type="button"
-                            class="primary-chip px-4 py-2 text-sm"
-                            onclick={startProbe}
+                            class="primary-chip focus-ring-sem px-4 py-2 text-sm"
+                            onclick={() => void startProbe()}
                         >
                             <MaterialDesignIcon iconName="radar" class="w-4 h-4" />
                             {t("rnprobe.start_probe")}
@@ -198,14 +196,18 @@
                     {:else}
                         <button
                             type="button"
-                            class="secondary-chip px-4 py-2 text-sm text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/50"
+                            class="secondary-chip focus-ring-sem px-4 py-2 text-sm text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/50"
                             onclick={stopProbe}
                         >
                             <MaterialDesignIcon iconName="stop" class="w-4 h-4" />
                             {t("rnprobe.stop")}
                         </button>
                     {/if}
-                    <button type="button" class="secondary-chip px-4 py-2 text-sm" onclick={clearResults}>
+                    <button
+                        type="button"
+                        class="secondary-chip focus-ring-sem px-4 py-2 text-sm"
+                        onclick={clearResults}
+                    >
                         <MaterialDesignIcon iconName="broom" class="w-4 h-4" />
                         {t("rnprobe.clear_results")}
                     </button>
@@ -215,7 +217,9 @@
                     <div class="p-3 rounded-lg bg-sem-surface-muted text-blue-700 dark:text-blue-300">
                         <div class="font-semibold">{t("rnprobe.summary")}:</div>
                         <div class="text-sm mt-1">
-                            {t("rnprobe.sent")}: {summary.sent}, {t("rnprobe.delivered")}: {summary.delivered}, {t("rnprobe.timeouts")}: {summary.timeouts}, {t("rnprobe.failed")}: {summary.failed}
+                            {t("rnprobe.sent")}: {summary.sent}, {t("rnprobe.delivered")}: {summary.delivered}, {t(
+                                "rnprobe.timeouts"
+                            )}: {summary.timeouts}, {t("rnprobe.failed")}: {summary.failed}
                         </div>
                     </div>
                 {/if}
@@ -270,7 +274,9 @@
                                                     <span>{t("rnprobe.snr")}: {result.reception_stats.snr} dB</span>
                                                 {/if}
                                                 {#if result.reception_stats.quality != null}
-                                                    <span>{t("rnprobe.quality")}: {result.reception_stats.quality}%</span>
+                                                    <span
+                                                        >{t("rnprobe.quality")}: {result.reception_stats.quality}%</span
+                                                    >
                                                 {/if}
                                             </div>
                                         {/if}

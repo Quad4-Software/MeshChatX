@@ -1,7 +1,7 @@
-import { mount } from "@vue/test-utils";
+import { render, fireEvent, waitFor } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import AboutPage from "@/components/about/AboutPage.vue";
-import IdentitiesPage from "@/components/settings/IdentitiesPage.vue";
+import { backupDatabase, downloadBackupFile } from "@/features/about/lib/backupApi.ts";
+import IdentitiesPage from "@/features/settings/components/IdentitiesPage.svelte";
 import DownloadUtils from "@/js/DownloadUtils";
 import ToastUtils from "@/js/ToastUtils";
 
@@ -87,15 +87,8 @@ describe("download wiring through DownloadUtils", () => {
         delete window.electron;
     });
 
-    it("AboutPage.backupDatabase saves through DownloadUtils instead of anchor click", async () => {
-        const wrapper = mount(AboutPage, {
-            global: {
-                mocks: { $t: (key) => key },
-                stubs: { MaterialDesignIcon: true },
-            },
-        });
-
-        await wrapper.vm.backupDatabase();
+    it("About backupDatabase saves through DownloadUtils instead of anchor click", async () => {
+        await backupDatabase();
 
         expect(axiosMock.post).toHaveBeenCalledWith(
             "/api/v1/database/backup/download",
@@ -112,15 +105,8 @@ describe("download wiring through DownloadUtils", () => {
         );
     });
 
-    it("AboutPage.downloadBackupFile saves through DownloadUtils", async () => {
-        const wrapper = mount(AboutPage, {
-            global: {
-                mocks: { $t: (key) => key },
-                stubs: { MaterialDesignIcon: true },
-            },
-        });
-
-        await wrapper.vm.downloadBackupFile("auto-backup.zip");
+    it("About downloadBackupFile saves through DownloadUtils", async () => {
+        await downloadBackupFile("auto-backup.zip");
 
         expect(axiosMock.post).toHaveBeenCalledWith(
             "/api/v1/database/backups/auto-backup.zip/download",
@@ -135,23 +121,33 @@ describe("download wiring through DownloadUtils", () => {
     });
 
     it("IdentitiesPage.downloadIdentityFile saves through DownloadUtils", async () => {
-        const wrapper = mount(IdentitiesPage, {
-            global: {
-                mocks: { $t: (key) => key },
-                stubs: { MaterialDesignIcon: true, LxmfUserIcon: true },
+        axiosMock.get = vi.fn().mockResolvedValue({
+            data: {
+                identities: [
+                    {
+                        hash: "hash1",
+                        display_name: "Identity 1",
+                        is_current: true,
+                        lxmf_address: "a1b2c3d4e5f6",
+                    },
+                ],
             },
         });
 
-        await wrapper.vm.downloadIdentityFile();
+        const { findByText } = render(IdentitiesPage);
+        const exportBtn = await findByText("identities.export_key_file");
+        await fireEvent.click(exportBtn);
 
-        expect(axiosMock.post).toHaveBeenCalledWith(
-            "/api/v1/identity/backup/download",
-            {},
-            expect.objectContaining({ responseType: "arraybuffer" })
-        );
-        expect(DownloadUtils.downloadFromApiResponse).toHaveBeenCalledWith(
-            expect.objectContaining({ data: expect.any(ArrayBuffer) }),
-            "identity"
-        );
+        await waitFor(() => {
+            expect(axiosMock.post).toHaveBeenCalledWith(
+                "/api/v1/identity/backup/download",
+                {},
+                expect.objectContaining({ responseType: "arraybuffer" })
+            );
+            expect(DownloadUtils.downloadFromApiResponse).toHaveBeenCalledWith(
+                expect.objectContaining({ data: expect.any(ArrayBuffer) }),
+                "identity.bin"
+            );
+        });
     });
 });

@@ -1,0 +1,368 @@
+# SPDX-License-Identifier: 0BSD
+"""HTTP routes: messages/notifications."""
+
+from __future__ import annotations
+
+from typing import Any
+
+# ruff: noqa: F401, F403, F405
+from meshchatx.src.backend.http.routes.messages._names import *  # noqa: F403
+
+
+def register_messages_notifications_routes(routes: Any, app: Any) -> None:
+    @routes.post("/api/v1/notifications/mark-as-viewed")
+    async def notifications_mark_as_viewed(request):
+        data = await request.json()
+        destination_hashes = data.get("destination_hashes", [])
+        notification_ids = data.get("notification_ids", [])
+
+        if destination_hashes:
+            # mark LXMF conversations as viewed
+            app.database.messages.mark_all_notifications_as_viewed(
+                destination_hashes,
+            )
+            # Keep conversation read state in sync
+            app.database.messages.mark_conversations_as_read(destination_hashes)
+        else:
+            # mark all LXMF conversations as viewed if no hashes provided
+            # (this happens when "Clear All" is clicked)
+            app.database.messages.mark_all_notifications_as_viewed()
+            # Also mark all conversations as read
+            app.database.messages.mark_all_conversations_as_read()
+
+        if notification_ids:
+            # mark system notifications as viewed
+            app.database.misc.mark_notifications_as_viewed(notification_ids)
+        else:
+            # mark all system notifications as viewed if no ids provided
+            app.database.misc.mark_notifications_as_viewed()
+
+        return web.json_response(
+            {
+                "message": "ok",
+            },
+        )
+
+    @routes.get("/api/v1/notifications")
+    async def notifications_get(request):
+        not_ready = app._require_identity_context_ready()
+        if not_ready is not None:
+            return not_ready
+        try:
+            filter_unread = parse_bool_query_param(
+                request.query.get("unread", "false"),
+            )
+            try:
+                limit = int(request.query.get("limit", 50))
+            except (TypeError, ValueError):
+                limit = 50
+            if limit < 0:
+                limit = 0
+            elif limit > 500:
+                limit = 500
+
+            # 1. Fetch system notifications
+            system_notifications = app.database.misc.get_notifications(
+                filter_unread=filter_unread,
+                limit=limit,
+            )
+
+            # 2. Fetch unread LXMF conversations if requested
+            conversations = []
+            user_facing_peer_hashes = set()
+            total_unread_peer_hashes = set()
+            if filter_unread:
+                local_hash = app.local_lxmf_destination.hexhash
+                db_conversations = app.message_handler.get_conversations(
+                    local_hash,
+                    filter_unread=True,
+                )
+                conv_rows = [
+                    dict(db_message) if not isinstance(db_message, dict) else db_message
+                    for db_message in db_conversations
+                ]
+                peer_hashes = []
+                for db_message in conv_rows:
+                    if db_message["source_hash"] == local_hash:
+                        peer_hashes.append(db_message["destination_hash"])
+                    else:
+                        peer_hashes.append(db_message["source_hash"])
+                viewed_map = app.database.messages.get_notification_last_viewed_at_map(
+                    peer_hashes,
+                )
+                for db_message in conv_rows:
+                    # determine other user hash
+                    if db_message["source_hash"] == local_hash:
+                        other_user_hash = db_message["destination_hash"]
+                    else:
+                        other_user_hash = db_message["source_hash"]
+
+                    if not app._lxmf_sieve_suppresses_notifications(
+                        other_user_hash,
+                        message_title=db_message.get("title"),
+                        message_content=db_message.get("content"),
+                    ):
+                        if not app.database.messages.notification_viewed_covers(
+                            viewed_map.get(other_user_hash),
+                            db_message["timestamp"],
+                        ):
+                            total_unread_peer_hashes.add(other_user_hash)
+
+                    latest_for_preview = db_message
+                    if not is_user_facing_lxmf_payload(
+                        db_message.get("fields"),
+                        db_message.get("content"),
+                        db_message.get("title"),
+                    ):
+                        latest_user_facing = app.database.messages.get_latest_user_facing_incoming_message(
+                            other_user_hash,
+                        )
+                        if latest_user_facing is None:
+                            continue
+                        # Compare against last_read_at on the original row
+                        last_read_at_raw = db_message.get("last_read_at")
+                        if last_read_at_raw:
+                            try:
+                                last_read_dt = datetime.fromisoformat(
+                                    last_read_at_raw,
+                                )
+                                if last_read_dt.tzinfo is None:
+                                    last_read_dt = last_read_dt.replace(
+                                        tzinfo=UTC,
+                                    )
+                                if (
+                                    latest_user_facing["timestamp"]
+                                    <= last_read_dt.timestamp()
+                                ):
+                                    continue
+                            except (ValueError, TypeError):
+                                pass
+                        latest_for_preview = latest_user_facing
+
+                    if app._lxmf_sieve_suppresses_notifications(
+                        other_user_hash,
+                        message_title=latest_for_preview.get("title"),
+                        message_content=latest_for_preview.get("content"),
+                    ):
+                        continue
+
+                    # Check if notification has been viewed
+                    if app.database.messages.notification_viewed_covers(
+                        viewed_map.get(other_user_hash),
+                        latest_for_preview["timestamp"],
+                    ):
+                        continue
+
+                    user_facing_peer_hashes.add(other_user_hash)
+
+                    # Determine display name
+                    display_name = app.get_lxmf_conversation_name(
+                        other_user_hash,
+                    )
+                    custom_display_name = (
+                        app.database.announces.get_custom_display_name(
+                            other_user_hash,
+                        )
+                    )
+
+                    # Determine latest message data
+                    latest_message_data = {
+                        "content": latest_for_preview.get("content", ""),
+                        "timestamp": latest_for_preview.get("timestamp", 0),
+                        "is_incoming": latest_for_preview.get("is_incoming") == 1,
+                    }
+
+                    icon = app.database.misc.get_user_icon(other_user_hash)
+
+                    peer_preview_name = (
+                        custom_display_name or display_name or "Anonymous Peer"
+                    )
+
+                    conversations.append(
+                        {
+                            "type": "lxmf_message",
+                            "destination_hash": other_user_hash,
+                            "display_name": display_name,
+                            "custom_display_name": custom_display_name,
+                            "lxmf_user_icon": dict(icon) if icon else None,
+                            "latest_message_preview": (
+                                lxmf_sidebar_preview_for_conversation_latest_row(
+                                    dict(latest_for_preview),
+                                    local_hash=local_hash,
+                                    peer_display_name=peer_preview_name,
+                                )[:100]
+                            ),
+                            "updated_at": datetime.fromtimestamp(
+                                latest_message_data["timestamp"] or 0,
+                                UTC,
+                            ).isoformat(),
+                        },
+                    )
+
+            # Combine and sort by timestamp
+            all_notifications = []
+
+            for n in system_notifications:
+                # Convert to dict if needed
+                if not isinstance(n, dict):
+                    n = dict(n)
+
+                # Get remote user info if possible
+                display_name = "Unknown"
+                icon = None
+                if n["type"] == "rrc_mention":
+                    display_name = n.get("title") or "Relay Chat"
+                elif n["remote_hash"]:
+                    # Try to find associated LXMF hash for telephony identity hash
+                    lxmf_hash = app.get_lxmf_destination_hash_for_identity_hash(
+                        n["remote_hash"],
+                    )
+                    if not lxmf_hash:
+                        # Fallback to direct name lookup by identity hash
+                        display_name = (
+                            app.get_name_for_identity_hash(n["remote_hash"])
+                            or n["remote_hash"]
+                        )
+                    else:
+                        display_name = app.get_lxmf_conversation_name(
+                            lxmf_hash,
+                        )
+                        icon = app.database.misc.get_user_icon(lxmf_hash)
+
+                all_notifications.append(
+                    {
+                        "id": n["id"],
+                        "type": n["type"],
+                        "destination_hash": n["remote_hash"],
+                        "display_name": display_name,
+                        "lxmf_user_icon": dict(icon) if icon else None,
+                        "title": n["title"],
+                        "content": n["content"],
+                        "is_viewed": n["is_viewed"] == 1,
+                        "updated_at": datetime.fromtimestamp(
+                            n["timestamp"] or 0,
+                            UTC,
+                        ).isoformat(),
+                    },
+                )
+
+            all_notifications.extend(conversations)
+
+            # Sort by updated_at descending
+            all_notifications.sort(key=lambda x: x["updated_at"], reverse=True)
+
+            # Calculate actual unread count
+            unread_count = app.database.misc.get_unread_notification_count()
+
+            # Add LXMF unread count using the same user-facing filter as
+            # the listing above so the badge can never disagree with the
+            # dropdown contents (no false bell triggers from reactions,
+            # telemetry, icon updates, or empty payloads).
+            lxmf_unread_count = 0
+            lxmf_total_unread_count = 0
+            local_hash = app.local_lxmf_destination.hexhash
+            if filter_unread:
+                # Already computed during the listing pass.
+                lxmf_unread_count = len(user_facing_peer_hashes)
+                lxmf_total_unread_count = len(total_unread_peer_hashes)
+            else:
+                unread_conversations = app.message_handler.get_conversations(
+                    local_hash,
+                    filter_unread=True,
+                )
+                count_rows = [
+                    dict(conv) if not isinstance(conv, dict) else conv
+                    for conv in unread_conversations or []
+                ]
+                count_hashes = []
+                for conv in count_rows:
+                    if conv["source_hash"] == local_hash:
+                        count_hashes.append(conv["destination_hash"])
+                    else:
+                        count_hashes.append(conv["source_hash"])
+                viewed_map = app.database.messages.get_notification_last_viewed_at_map(
+                    count_hashes,
+                )
+                for conv in count_rows:
+                    if conv["source_hash"] == local_hash:
+                        other_user_hash = conv["destination_hash"]
+                    else:
+                        other_user_hash = conv["source_hash"]
+
+                    # Total unread count (regardless of user-facing)
+                    if not app._lxmf_sieve_suppresses_notifications(
+                        other_user_hash,
+                        message_title=conv.get("title"),
+                        message_content=conv.get("content"),
+                    ):
+                        if not app.database.messages.notification_viewed_covers(
+                            viewed_map.get(other_user_hash),
+                            conv["timestamp"],
+                        ):
+                            lxmf_total_unread_count += 1
+
+                    latest_for_check = conv
+                    if not is_user_facing_lxmf_payload(
+                        conv.get("fields"),
+                        conv.get("content"),
+                        conv.get("title"),
+                    ):
+                        latest_user_facing = app.database.messages.get_latest_user_facing_incoming_message(
+                            other_user_hash,
+                        )
+                        if latest_user_facing is None:
+                            continue
+                        last_read_at_raw = conv.get("last_read_at")
+                        if last_read_at_raw:
+                            try:
+                                last_read_dt = datetime.fromisoformat(
+                                    last_read_at_raw,
+                                )
+                                if last_read_dt.tzinfo is None:
+                                    last_read_dt = last_read_dt.replace(
+                                        tzinfo=UTC,
+                                    )
+                                if (
+                                    latest_user_facing["timestamp"]
+                                    <= last_read_dt.timestamp()
+                                ):
+                                    continue
+                            except (ValueError, TypeError):
+                                pass
+                        latest_for_check = latest_user_facing
+
+                    if app._lxmf_sieve_suppresses_notifications(
+                        other_user_hash,
+                        message_title=latest_for_check.get("title"),
+                        message_content=latest_for_check.get("content"),
+                    ):
+                        continue
+
+                    if not app.database.messages.notification_viewed_covers(
+                        viewed_map.get(other_user_hash),
+                        latest_for_check["timestamp"],
+                    ):
+                        lxmf_unread_count += 1
+
+            total_unread_count = unread_count + lxmf_unread_count
+
+            return web.json_response(
+                {
+                    "notifications": all_notifications[:limit],
+                    "unread_count": total_unread_count,
+                    "lxmf_total_unread_count": lxmf_total_unread_count,
+                },
+            )
+        except Exception as e:
+            RNS.log(f"Error in notifications_get: {e}", RNS.LOG_ERROR)
+            status = 503 if sqlite_error_is_retryable(e) else 500
+            return web.json_response(
+                {
+                    "error": (
+                        "Database temporarily unavailable. Retry shortly."
+                        if status == 503
+                        else "Internal error"
+                    ),
+                },
+                status=status,
+            )

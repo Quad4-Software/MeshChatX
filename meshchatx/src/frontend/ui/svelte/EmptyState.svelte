@@ -1,19 +1,19 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
-<script>
+<script lang="ts">
+    import type { Snippet } from "svelte";
     import MaterialDesignIcon from "./MaterialDesignIcon.svelte";
 
-    /**
-     * @type {{
-     *   icon?: string,
-     *   title?: string,
-     *   description?: string,
-     *   plain?: boolean,
-     *   class?: string,
-     *   children?: import('svelte').Snippet,
-     * }}
-     */
-    let { icon = "", title = "", description = "", plain = false, class: rootClass = "", children } = $props();
+    interface Props {
+        icon?: string;
+        title?: string;
+        description?: string;
+        plain?: boolean;
+        class?: string;
+        children?: Snippet;
+    }
+
+    let { icon = "", title = "", description = "", plain = false, class: rootClass = "", children }: Props = $props();
 
     const iconClass = $derived(
         plain ? "w-8 h-8 mx-auto mb-2 text-sem-fg-muted" : "w-12 h-12 mx-auto mb-4 text-sem-fg-muted"

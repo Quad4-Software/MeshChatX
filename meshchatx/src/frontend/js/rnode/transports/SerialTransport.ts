@@ -49,15 +49,15 @@ export default class SerialTransport extends Transport {
             port = await env.navigator.serial.requestPort({
                 filters: options.filters || [],
             });
-        } catch (cause) {
+        } catch (cause: any) {
             const message = cause?.message || String(cause);
             if (cause?.name === "NotFoundError" || /No port selected/i.test(message)) {
-                const err = new Error("no_port_selected");
+                const err: any = new Error("no_port_selected");
                 (err as Error & { code?: string; status?: number; body?: unknown }).code = "NO_PORT_SELECTED";
                 err.cause = cause;
                 throw err;
             }
-            const err = new Error(message);
+            const err: any = new Error(message);
             (err as Error & { code?: string; status?: number; body?: unknown }).code = "PORT_REQUEST_FAILED";
             err.cause = cause;
             throw err;

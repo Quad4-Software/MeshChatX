@@ -34,7 +34,7 @@ Implement or harden Reticulum Relay Chat (RRC) hubs and clients without breaking
 | rooms.toml        | `meshchatx/src/backend/rrc/rooms_toml.py`         |
 | Client key crypto | `meshchatx/src/backend/rrc/room_key_crypto.py`    |
 | Key DAO           | `meshchatx/src/backend/database/rrc_room_keys.py` |
-| UI                | `meshchatx/src/frontend/components/relay/`        |
+| UI                | `meshchatx/src/frontend/features/relay-chat/`     |
 
 ## Non-negotiables
 

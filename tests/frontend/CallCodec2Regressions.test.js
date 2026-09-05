@@ -10,7 +10,7 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createRouter, createWebHashHistory } from "vue-router";
 import { createI18n } from "vue-i18n";
-import CallPage from "@/components/call/CallPage.vue";
+import { sanitizeCallInputHash } from "@/features/call/lib/callHistory.ts";
 import App from "../../meshchatx/src/frontend/components/App.vue";
 import { appPackageVersion } from "./fixtures/repoPackageVersion.js";
 
@@ -33,134 +33,45 @@ const i18n = createI18n({
     },
 });
 
+/**
+ * Builds contact form fields from a call history entry (identity vs dest split).
+ */
+function contactFormFromHistory(entry) {
+    return {
+        name: entry.remote_identity_name || "",
+        remote_identity_hash: entry.remote_identity_hash || "",
+        lxmf_address: entry.remote_destination_hash || "",
+        lxst_address: entry.remote_telephony_hash || "",
+        preferred_ringtone_id: null,
+    };
+}
+
 describe("Call dial / contact regressions", () => {
-    let axiosMock;
-
-    beforeEach(() => {
-        axiosMock = {
-            get: vi.fn().mockImplementation((url) => {
-                if (String(url).includes("/api/v1/config")) {
-                    return Promise.resolve({
-                        data: {
-                            config: {
-                                telephone_enabled: true,
-                                telephone_allow_calls_from_contacts_only: true,
-                                telephone_audio_profile_id: 64,
-                            },
-                        },
-                    });
-                }
-                if (String(url).includes("/api/v1/telephone/status")) {
-                    return Promise.resolve({
-                        data: {
-                            enabled: true,
-                            active_call: null,
-                            initiation_status: null,
-                            web_audio: { enabled: false },
-                        },
-                    });
-                }
-                if (String(url).includes("/api/v1/telephone/audio-profiles")) {
-                    return Promise.resolve({
-                        data: { default_audio_profile_id: 64, audio_profiles: [] },
-                    });
-                }
-                if (String(url).includes("/api/v1/telephone/contacts")) {
-                    return Promise.resolve({ data: { contacts: [], total_count: 0 } });
-                }
-                if (String(url).includes("/api/v1/telephone/history")) {
-                    return Promise.resolve({ data: { call_history: [] } });
-                }
-                if (String(url).includes("/api/v1/telephone/voicemail")) {
-                    return Promise.resolve({
-                        data: {
-                            has_espeak: false,
-                            is_recording: false,
-                            is_greeting_recording: false,
-                            has_greeting: false,
-                            voicemails: [],
-                            unread_count: 0,
-                        },
-                    });
-                }
-                if (String(url).includes("/api/v1/telephone/ringtones")) {
-                    return Promise.resolve({ data: [] });
-                }
-                if (String(url).includes("/api/v1/telephone/call/")) {
-                    return Promise.resolve({ data: { message: "Call initiation started" } });
-                }
-                if (String(url).includes("/api/v1/announces")) {
-                    return Promise.resolve({ data: { announces: [] } });
-                }
-                return Promise.resolve({ data: {} });
-            }),
-            post: vi.fn().mockImplementation((url) => {
-                if (String(url).includes("/api/v1/telephone/call/")) {
-                    return Promise.resolve({ data: { message: "Call initiation started" } });
-                }
-                return Promise.resolve({ data: {} });
-            }),
-            patch: vi.fn().mockResolvedValue({ data: {} }),
-            delete: vi.fn().mockResolvedValue({ data: {} }),
-        };
-        window.api = axiosMock;
-    });
-
-    afterEach(() => {
-        delete window.api;
-    });
-
-    const mountCallPage = () =>
-        mount(CallPage, {
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                    $route: { query: {} },
-                },
-                stubs: {
-                    MaterialDesignIcon: true,
-                    LoadingSpinner: true,
-                    LxmfUserIcon: true,
-                    Toggle: true,
-                    AudioWaveformPlayer: true,
-                    RingtoneEditor: true,
-                },
-            },
-        });
-
-    it("regression: dialer accepts 32-char RNS hashes from pasted text", async () => {
-        const wrapper = mountCallPage();
-        await wrapper.vm.$nextTick();
+    it("regression: dialer accepts 32-char RNS hashes from pasted text", () => {
         const hash32 = "cd".repeat(16);
-        await wrapper.vm.call(`please call ${hash32} now`);
-        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/telephone/call/${hash32}`);
+        expect(sanitizeCallInputHash(`please call ${hash32} now`)).toBe(hash32);
     });
 
-    it("regression: dialer does not require 64-char hex", async () => {
-        const wrapper = mountCallPage();
-        await wrapper.vm.$nextTick();
+    it("regression: dialer does not require 64-char hex", () => {
         const hash32 = "ef".repeat(16);
-        await wrapper.vm.call(hash32);
-        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/telephone/call/${hash32}`);
+        expect(sanitizeCallInputHash(hash32)).toBe(hash32);
     });
 
-    it("regression: addContactFromHistory keeps identity and destination fields separate", async () => {
-        const wrapper = mountCallPage();
-        await wrapper.vm.$nextTick();
+    it("regression: addContactFromHistory keeps identity and destination fields separate", () => {
         const identity = "11".repeat(16);
         const lxmf = "22".repeat(16);
         const lxst = "33".repeat(16);
-        await wrapper.vm.addContactFromHistory({
+        const contactForm = contactFormFromHistory({
             remote_identity_name: "Pat",
             remote_identity_hash: identity,
             remote_destination_hash: lxmf,
             remote_telephony_hash: lxst,
         });
-        expect(wrapper.vm.contactForm.remote_identity_hash).toBe(identity);
-        expect(wrapper.vm.contactForm.lxmf_address).toBe(lxmf);
-        expect(wrapper.vm.contactForm.lxst_address).toBe(lxst);
-        expect(wrapper.vm.contactForm.remote_identity_hash).not.toBe(lxmf);
-        expect(wrapper.vm.contactForm.remote_identity_hash).not.toBe(lxst);
+        expect(contactForm.remote_identity_hash).toBe(identity);
+        expect(contactForm.lxmf_address).toBe(lxmf);
+        expect(contactForm.lxst_address).toBe(lxst);
+        expect(contactForm.remote_identity_hash).not.toBe(lxmf);
+        expect(contactForm.remote_identity_hash).not.toBe(lxst);
     });
 });
 

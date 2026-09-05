@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from meshchatx.src.backend import self_check
+from meshchatx.src.backend.self_check import core as self_check
 
 
 def test_check_python_runtime_ok():
