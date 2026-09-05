@@ -311,7 +311,10 @@
                         {t("identities.active_identity")}
                     </div>
                     <div class="flex items-center gap-3 sm:gap-4">
-                        <div class="shrink-0" style="width: {identityIconStyle.width}; height: {identityIconStyle.height}">
+                        <div
+                            class="shrink-0"
+                            style="width: {identityIconStyle.width}; height: {identityIconStyle.height}"
+                        >
                             <LxmfUserIcon
                                 iconName={currentIdentity.icon_name}
                                 iconForegroundColour={currentIdentity.icon_foreground_colour}
@@ -410,7 +413,10 @@
                                 class="identity-row group py-3 px-1 transition-colors hover:bg-gray-50/80 dark:hover:bg-zinc-900/70"
                             >
                                 <div class="flex items-center gap-3">
-                                    <div class="shrink-0" style="width: {identityIconStyle.width}; height: {identityIconStyle.height}">
+                                    <div
+                                        class="shrink-0"
+                                        style="width: {identityIconStyle.width}; height: {identityIconStyle.height}"
+                                    >
                                         <LxmfUserIcon
                                             iconName={identity.icon_name}
                                             iconForegroundColour={identity.icon_foreground_colour}

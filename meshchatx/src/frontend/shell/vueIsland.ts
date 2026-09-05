@@ -35,11 +35,7 @@ export interface VueIsland {
 /**
  * Create and mount a Vue island into target.
  */
-export function mountVueIsland(
-    component: Component,
-    target: Element,
-    props: Record<string, unknown> = {}
-): VueIsland {
+export function mountVueIsland(component: Component, target: Element, props: Record<string, unknown> = {}): VueIsland {
     const app = createApp(component, { ...props });
     if (islandPlugins.i18n) {
         app.use(islandPlugins.i18n);

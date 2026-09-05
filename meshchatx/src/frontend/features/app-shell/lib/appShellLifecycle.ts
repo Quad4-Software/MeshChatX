@@ -23,7 +23,11 @@ import {
 import { t } from "../../../js/i18n.js";
 import ElectronUtils from "../../../js/ElectronUtils.js";
 import fatalErrorState from "../../../js/fatalErrorState.js";
-import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed, clearMessagePanes } from "../../../js/browserLayoutStore.js";
+import {
+    loadFeatureSidebarCollapsed,
+    saveFeatureSidebarCollapsed,
+    clearMessagePanes,
+} from "../../../js/browserLayoutStore.js";
 import {
     applyNavLayout,
     captureNavLayout,
@@ -51,8 +55,23 @@ import {
 import { navigate, router, subscribe as subscribeRoute } from "../../../shell/hashRouter.js";
 import { handleProtocolLink } from "./appShellLinks.js";
 import { apiClient, electronBridge } from "./appShellShared.js";
-import { clearWsShellUiTimers, maybeNavigateNetworkRecovery, onBackendProcessExited, onWsShellReady, registerShellWsHandlers, resyncShellAfterWebsocketReconnect, unregisterShellWsHandlers } from "./appShellRecovery.js";
-import { applyAppearanceThemeFromConfig, applyShellAppearance, getAppInfo, getBlockedDestinations, getConfig, getKeyboardShortcuts } from "./appShellConfig.js";
+import {
+    clearWsShellUiTimers,
+    maybeNavigateNetworkRecovery,
+    onBackendProcessExited,
+    onWsShellReady,
+    registerShellWsHandlers,
+    resyncShellAfterWebsocketReconnect,
+    unregisterShellWsHandlers,
+} from "./appShellRecovery.js";
+import {
+    applyAppearanceThemeFromConfig,
+    applyShellAppearance,
+    getAppInfo,
+    getBlockedDestinations,
+    getConfig,
+    getKeyboardShortcuts,
+} from "./appShellConfig.js";
 import { updateRelayChatUnreadCount, updateUnreadConversationsCount } from "./appShellNav.js";
 import { updatePropagationNodeStatus } from "./appShellPropagation.js";
 import { stopRingtone, updateRingtonePlayer, updateTelephoneStatus } from "./appShellTelephony.js";
@@ -254,18 +273,27 @@ export function startShellPollIntervals(state: AppShellState): void {
     const telephoneMs = ready ? 15000 : 1000;
     const unreadMs = ready ? 30000 : 5000;
     const appInfoMs = 15000;
-    state.reloadInterval = setInterval(() => {
-        void updateTelephoneStatus(state);
-        void updatePropagationNodeStatus(state);
-        state.lastAnnouncedTick += 1;
-    }, applyBackgroundPollInterval(telephoneMs, prefs));
-    state.appInfoInterval = setInterval(() => {
-        void getAppInfo(state);
-    }, applyBackgroundPollInterval(appInfoMs, prefs));
-    state.unreadCountInterval = setInterval(() => {
-        updateUnreadConversationsCount(state);
-        updateRelayChatUnreadCount(state);
-    }, applyBackgroundPollInterval(unreadMs, prefs));
+    state.reloadInterval = setInterval(
+        () => {
+            void updateTelephoneStatus(state);
+            void updatePropagationNodeStatus(state);
+            state.lastAnnouncedTick += 1;
+        },
+        applyBackgroundPollInterval(telephoneMs, prefs)
+    );
+    state.appInfoInterval = setInterval(
+        () => {
+            void getAppInfo(state);
+        },
+        applyBackgroundPollInterval(appInfoMs, prefs)
+    );
+    state.unreadCountInterval = setInterval(
+        () => {
+            updateUnreadConversationsCount(state);
+            updateRelayChatUnreadCount(state);
+        },
+        applyBackgroundPollInterval(unreadMs, prefs)
+    );
 }
 
 export function onBatterySaverPrefsChangedShell(state: AppShellState): void {
@@ -311,7 +339,6 @@ export function sampleClientHeapMemory(state: AppShellState): void {
 
 // WebSocket connection banners
 // ------------------------------------------------------------------
-
 
 export function init(state: AppShellState): void {
     state.disposers.push(

@@ -73,7 +73,10 @@ export function stopRingtone(state: AppShellState): void {
     }
 }
 
-export async function updateTelephoneStatus(state: AppShellState, options: { forceHistoryRefresh?: boolean } = {}): Promise<void> {
+export async function updateTelephoneStatus(
+    state: AppShellState,
+    options: { forceHistoryRefresh?: boolean } = {}
+): Promise<void> {
     try {
         const response = await apiClient().get("/api/v1/telephone/status");
         const oldCall = state.activeCall;

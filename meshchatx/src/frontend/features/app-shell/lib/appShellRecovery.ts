@@ -167,7 +167,6 @@ export async function resyncShellAfterWebsocketReconnect(state: AppShellState): 
     GlobalEmitter.emit("websocket-reconnected");
 }
 
-
 // Banner actions
 // ------------------------------------------------------------------
 export async function onRestartBackend(state: AppShellState): Promise<void> {

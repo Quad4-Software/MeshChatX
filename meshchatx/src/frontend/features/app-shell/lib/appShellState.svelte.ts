@@ -224,7 +224,6 @@ export class AppShellState {
 
     boundRingtoneUnlock = () => onRingtoneUnlockGesture(this);
 
-
     // ------------------------------------------------------------------
     // Derived shell chrome
     // ------------------------------------------------------------------
@@ -293,7 +292,6 @@ export class AppShellState {
 
     readonly themeToggleTitle = $derived.by(() => derived.themeToggleTitle(this));
 
-
     // ------------------------------------------------------------------
     // Banner derivations
     // ------------------------------------------------------------------
@@ -336,7 +334,6 @@ export class AppShellState {
 
     readonly shouldShowCallOverlay = $derived.by(() => derived.shouldShowCallOverlay(this));
 
-
     // ------------------------------------------------------------------
     // Lifecycle
     // ------------------------------------------------------------------
@@ -353,17 +350,20 @@ export class AppShellState {
 
     readonly onBatterySaverPrefsChangedShell = (): void => lifecycle.onBatterySaverPrefsChangedShell(this);
 
-    readonly onToastDismissedShell = (payload: { key?: string }): void => lifecycle.onToastDismissedShell(this, payload);
+    readonly onToastDismissedShell = (payload: { key?: string }): void =>
+        lifecycle.onToastDismissedShell(this, payload);
 
     readonly onWsShellDisconnected = (): void => recovery.onWsShellDisconnected(this);
 
-    readonly onWsShellConnected = async (payload: { isReconnect?: boolean } = {}): Promise<void> => recovery.onWsShellConnected(this, payload);
+    readonly onWsShellConnected = async (payload: { isReconnect?: boolean } = {}): Promise<void> =>
+        recovery.onWsShellConnected(this, payload);
 
     readonly onIdentitySwitchingStartShell = (): void => identity.onIdentitySwitchingStartShell(this);
 
     readonly onIdentitySwitchingAbortShell = (): void => identity.onIdentitySwitchingAbortShell(this);
 
-    readonly onIdentitySwitchedApplyShell = (payload: unknown): void => identity.onIdentitySwitchedApplyShell(this, payload);
+    readonly onIdentitySwitchedApplyShell = (payload: unknown): void =>
+        identity.onIdentitySwitchedApplyShell(this, payload);
 
     readonly onSyncPropagationNodeShell = (): void => commands.onSyncPropagationNodeShell(this);
 
@@ -379,7 +379,8 @@ export class AppShellState {
 
     readonly onChangelogClosedShell = (): void => commands.onChangelogClosedShell(this);
 
-    readonly onConfigUpdatedExternally = (newConfig: ShellConfig): void => config.onConfigUpdatedExternally(this, newConfig);
+    readonly onConfigUpdatedExternally = (newConfig: ShellConfig): void =>
+        config.onConfigUpdatedExternally(this, newConfig);
 
     readonly updateUnreadConversationsCount = (): void => nav.updateUnreadConversationsCount(this);
 

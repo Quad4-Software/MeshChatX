@@ -26,9 +26,9 @@
 </script>
 
 <div
-    class="{compact
-        ? 'flex flex-wrap items-center gap-x-1.5 gap-y-1 min-w-0 justify-end'
-        : 'flex flex-wrap items-center gap-x-1.5 gap-y-2 px-3 py-2 sm:px-4 border-b border-sem-border bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10 relative sm:justify-end min-w-0'}"
+    class={compact
+        ? "flex flex-wrap items-center gap-x-1.5 gap-y-1 min-w-0 justify-end"
+        : "flex flex-wrap items-center gap-x-1.5 gap-y-2 px-3 py-2 sm:px-4 border-b border-sem-border bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10 relative sm:justify-end min-w-0"}
 >
     <div class="flex items-center bg-sem-surface-muted rounded-lg p-0.5 sm:p-1 min-w-0 max-w-full">
         <button

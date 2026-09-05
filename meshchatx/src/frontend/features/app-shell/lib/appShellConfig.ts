@@ -193,7 +193,11 @@ export async function getKeyboardShortcuts(state: AppShellState): Promise<void> 
     LiveTransport.send(JSON.stringify({ type: "keyboard_shortcuts.get" }));
 }
 
-export async function updateConfig(state: AppShellState, config: Record<string, unknown>, label: string | null = null): Promise<void> {
+export async function updateConfig(
+    state: AppShellState,
+    config: Record<string, unknown>,
+    label: string | null = null
+): Promise<void> {
     try {
         const api = apiClient();
         if (api?.patch) {
@@ -255,7 +259,6 @@ export function resolvePendingConfigSet(state: AppShellState, requestId: string)
         state.pendingConfigSet = null;
     }
 }
-
 
 // Theme, locale, navigation helpers
 // ------------------------------------------------------------------

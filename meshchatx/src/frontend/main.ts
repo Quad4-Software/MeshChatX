@@ -20,13 +20,7 @@ import { fetchCsrfToken } from "./js/csrfToken.js";
 import { registerCoreContributions } from "./js/registries/registerCoreContributions.js";
 import { registerAllFeatures } from "./features/registerAllFeatures.js";
 import { installWsEventBridge } from "./js/registries/wsEventBridge.js";
-import {
-    getCurrentRoute,
-    navigate,
-    router,
-    setNavigationGuard,
-    start as startHashRouter,
-} from "./shell/hashRouter.js";
+import { getCurrentRoute, navigate, router, setNavigationGuard, start as startHashRouter } from "./shell/hashRouter.js";
 import { configureVueIslands } from "./shell/vueIsland.js";
 import { pluginHost } from "./js/plugins/PluginHost.js";
 import GlobalState from "./js/GlobalState.js";
