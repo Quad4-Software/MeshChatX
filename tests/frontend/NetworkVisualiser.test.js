@@ -64,6 +64,8 @@ HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({
     drawImage: vi.fn(),
 });
 
+globalThis.__MESHCHATX_TEST_VISUALISER_WASM_BUNDLED__ = false;
+
 import NetworkVisualiser from "@/components/network-visualiser/NetworkVisualiser.vue";
 
 describe("NetworkVisualiser.vue", () => {
@@ -137,6 +139,7 @@ describe("NetworkVisualiser.vue", () => {
             isCancel: vi.fn().mockReturnValue(false),
         };
         window.api = axiosMock;
+        globalThis.__MESHCHATX_TEST_VISUALISER_WASM_BUNDLED__ = false;
 
         // Mock URL.createObjectURL and URL.revokeObjectURL
         global.URL.createObjectURL = vi.fn().mockReturnValue("blob:mock-url");
@@ -145,6 +148,7 @@ describe("NetworkVisualiser.vue", () => {
 
     afterEach(() => {
         delete window.api;
+        globalThis.__MESHCHATX_TEST_VISUALISER_WASM_BUNDLED__ = false;
         vi.clearAllMocks();
     });
 
