@@ -55,7 +55,7 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
     describe("downloads", () => {
         const downloadSurfaces = [
             ["backupApi.ts", "meshchatx/src/frontend/features/about/lib/backupApi.ts"],
-            ["IdentitiesPage.svelte", "meshchatx/src/frontend/features/settings/components/IdentitiesPage.svelte"],
+            ["identityService.ts", "meshchatx/src/frontend/features/settings/lib/identityService.ts"],
             [
                 "conversationViewerMutations.ts",
                 "meshchatx/src/frontend/features/messages/lib/conversationViewerMutations.ts",
@@ -70,7 +70,7 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
         it("backup and identity exports do not use browser-only anchor downloads", () => {
             for (const relativePath of [
                 "meshchatx/src/frontend/features/about/lib/backupApi.ts",
-                "meshchatx/src/frontend/features/settings/components/IdentitiesPage.svelte",
+                "meshchatx/src/frontend/features/settings/lib/identityService.ts",
             ]) {
                 const src = readSource(relativePath);
                 expect(src).not.toMatch(/link\.setAttribute\(\s*["']download["']/);
@@ -473,24 +473,24 @@ describe("behavior contracts: network visualiser performance", () => {
 });
 
 describe("behavior contracts: locale, theme, and call audio", () => {
-    it("App persists shell config through HTTP PATCH helpers", () => {
-        const app = readSource("meshchatx/src/frontend/components/App.vue");
-        expect(app).toContain("patchServerConfig");
-        expect(app).toContain("normalizeUiLocaleCode");
-        expect(app).toContain("async applyLocale(");
-        expect(app).toContain("setLocale(this.$i18n");
+    it("App shell persists config through HTTP PATCH helpers", () => {
+        const appConfig = readSource("meshchatx/src/frontend/features/app-shell/lib/appShellConfig.ts");
+        expect(appConfig).toContain("patchServerConfig");
+        expect(appConfig).toContain("normalizeUiLocaleCode");
+        expect(appConfig).toContain("setLocale(");
     });
 
-    it("main.js registers the real i18n composer for Options API locale switches", () => {
+    it("main.ts boots svelte-i18n for the Svelte shell", () => {
         const main = readSource("meshchatx/src/frontend/main.ts");
-        expect(main).toContain("registerUiI18n");
-        expect(main).toContain("registerUiI18n(i18n)");
-        const loader = readSource("meshchatx/src/frontend/js/localeLoader.js");
-        expect(loader).toContain("export function registerUiI18n");
-        expect(loader).toContain("hasLocaleMessageApi");
+        expect(main).toContain("initSvelteI18n");
+        expect(main).toContain("getCurrentUiLocale");
+        expect(main).not.toContain('from "vue-i18n"');
+        const loader = readSource("meshchatx/src/frontend/js/localeLoader.ts");
+        expect(loader).toContain("export async function initSvelteI18n");
+        expect(loader).toContain("export function getCurrentUiLocale");
     });
 
-    it("Settings language change applies vue-i18n locale after PATCH", () => {
+    it("Settings language change applies locale after PATCH", () => {
         const settings = readSource("meshchatx/src/frontend/features/settings/components/SettingsPage.svelte");
         expect(settings).toContain("async function onLanguageChange(");
         expect(settings).toContain("setLocale(");

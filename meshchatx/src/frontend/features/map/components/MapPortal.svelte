@@ -1,6 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
+    /* eslint-disable svelte/no-dom-manipulating -- portal into external map chrome host */
     interface Props {
         targetId: string;
         enabled?: boolean;

@@ -172,9 +172,15 @@ describe("RNPathPage.svelte", () => {
                     expires: "Expires",
                     drop: "Drop",
                     request_path: "Request Path",
+                    request_path_desc: "Broadcast a path request for a destination hash.",
                     request_button: "Request",
+                    request_btn: "Request",
                     drop_via_button: "Drop Paths Via",
                     purge_queues_button: "Purge Announce Queues",
+                },
+                rnpath_trace: {
+                    placeholder: "Enter 32-char destination hash...",
+                    invalid_hash_hint: "Enter a valid destination hash",
                 },
             },
         });
@@ -264,11 +270,11 @@ describe("RNPathPage.svelte", () => {
 
         const ratesTab = screen.getByText("Rates");
         await fireEvent.click(ratesTab);
-        expect(ratesTab.className).toContain("text-indigo-600");
+        expect(ratesTab.className).toContain("text-sem-accent");
 
         const actionsTab = screen.getByText("Actions");
         await fireEvent.click(actionsTab);
-        expect(actionsTab.className).toContain("text-indigo-600");
+        expect(actionsTab.className).toContain("text-sem-accent");
     });
 
     it("calls request path API on Actions tab", async () => {

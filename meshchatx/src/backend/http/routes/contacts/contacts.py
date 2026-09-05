@@ -8,6 +8,64 @@ from typing import Any
 # ruff: noqa: F401, F403, F405
 from meshchatx.src.backend.http.routes.contacts._names import *  # noqa: F403
 
+CONTACTS_DEFAULT_LIMIT = 100
+CONTACTS_MAX_LIMIT = 500
+
+
+def parse_contacts_pagination(query, default_limit=CONTACTS_DEFAULT_LIMIT):
+    """Parse limit/offset from a MultiDict-like query.
+
+    Returns (limit, offset) with limit clamped to [1, CONTACTS_MAX_LIMIT]
+    and offset >= 0. Returns None when limit or offset is not an integer.
+    """
+    try:
+        limit = int(query.get("limit", default_limit))
+        offset = int(query.get("offset", 0))
+    except (TypeError, ValueError):
+        return None
+    if limit < 1:
+        limit = 1
+    elif limit > CONTACTS_MAX_LIMIT:
+        limit = CONTACTS_MAX_LIMIT
+    if offset < 0:
+        offset = 0
+    return limit, offset
+
+
+def enrich_contact_row(app, row):
+    """Copy a contacts DAO row and attach LXMF/LXST hashes plus icon when known.
+
+    Enrichment failures for one peer must not fail the whole list.
+    """
+    d = dict(row)
+    remote_identity_hash = d.get("remote_identity_hash")
+    if not remote_identity_hash:
+        return d
+    try:
+        lxmf_hash = app.get_lxmf_destination_hash_for_identity_hash(
+            remote_identity_hash,
+        )
+        tele_hash = app.get_lxst_telephony_hash_for_identity_hash(
+            remote_identity_hash,
+        )
+        if lxmf_hash:
+            d["remote_destination_hash"] = lxmf_hash
+            try:
+                icon = app.database.misc.get_user_icon(lxmf_hash)
+            except Exception:
+                icon = None
+            if icon:
+                d["remote_icon"] = dict(icon)
+        if tele_hash:
+            d["remote_telephony_hash"] = tele_hash
+    except Exception:
+        logger.debug(
+            "Contact enrichment skipped for %s",
+            remote_identity_hash,
+            exc_info=True,
+        )
+    return d
+
 
 def register_contacts_contacts_routes(routes: Any, app: Any) -> None:
     # contacts routes

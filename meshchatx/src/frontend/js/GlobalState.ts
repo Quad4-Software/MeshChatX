@@ -1,8 +1,49 @@
-import { reactive } from "vue";
+// SPDX-License-Identifier: 0BSD
+
 import { notifyAppStateListeners } from "./appState.js";
 
-// global state
-const globalState = reactive({
+type Listener = () => void;
+
+const listeners = new Set<Listener>();
+
+function notify(): void {
+    for (const listener of listeners) {
+        try {
+            listener();
+        } catch {
+            /* ignore */
+        }
+    }
+    notifyAppStateListeners(globalState);
+}
+
+/** Subscribe to GlobalState mutations. Returns unsubscribe. */
+export function subscribeGlobalState(listener: Listener): () => void {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+}
+
+function wrapDeep<T extends object>(value: T): T {
+    return new Proxy(value, {
+        get(target, prop, receiver) {
+            const result = Reflect.get(target, prop, receiver);
+            if (result && typeof result === "object" && !(result instanceof Set)) {
+                return wrapDeep(result as object);
+            }
+            return result;
+        },
+        set(target, prop, next, receiver) {
+            const prev = Reflect.get(target, prop, receiver);
+            const ok = Reflect.set(target, prop, next, receiver);
+            if (ok && prev !== next) {
+                notify();
+            }
+            return ok;
+        },
+    }) as T;
+}
+
+const rawState = {
     authSessionResolved: false,
     authEnabled: false,
     isLoopbackBind: true,
@@ -15,11 +56,11 @@ const globalState = reactive({
     relayChatUnreadCount: 0,
     missedCallsCount: 0,
     activeCallTab: "phone",
-    blockedDestinations: [],
-    modifiedInterfaceNames: new Set(),
+    blockedDestinations: [] as unknown[],
+    modifiedInterfaceNames: new Set<string>(),
     hasPendingInterfaceChanges: false,
     networkDegraded: false,
-    networkDegradedError: null,
+    networkDegradedError: null as string | null,
     networkStarting: false,
     networkReady: true,
     liveTransportReady: false,
@@ -30,7 +71,7 @@ const globalState = reactive({
         banished_text: "BANISHED",
         banished_color: "#dc2626",
         message_outbound_bubble_color: "#4f46e5",
-        message_inbound_bubble_color: null,
+        message_inbound_bubble_color: null as string | null,
         message_failed_bubble_color: "#ef4444",
         message_waiting_bubble_color: "#e5e7eb",
         nomad_render_markdown_enabled: true,
@@ -51,16 +92,18 @@ const globalState = reactive({
         rrc_unread_badges_enabled: true,
         live_transport_mode: "auto",
         webtransport_sidecar_enabled: false,
-    },
-});
+    } as Record<string, unknown>,
+};
 
-export function mergeGlobalConfig(next) {
+const globalState = wrapDeep(rawState);
+
+export function mergeGlobalConfig(next: Record<string, unknown> | null | undefined): void {
     if (!next || typeof next !== "object") {
         return;
     }
     const prev = globalState.config && typeof globalState.config === "object" ? globalState.config : {};
     globalState.config = { ...prev, ...next };
-    notifyAppStateListeners(globalState);
+    notify();
 }
 
 export default globalState;

@@ -215,6 +215,15 @@ def register_debug_debug_routes(routes: Any, app: Any) -> None:
         await asyncio.to_thread(app._mem_diag.start)
         return web.json_response({"status": "ok", "message": "Diagnostics reset"})
 
+    def _bug_manager():
+        manager = getattr(app, "bug_report_manager", None)
+        if manager is None:
+            from meshchatx.src.backend.bug_report_manager import BugReportManager
+
+            manager = BugReportManager(app)
+            app.bug_report_manager = manager
+        return manager
+
     @routes.get("/api/v1/bug-reports/issues")
     async def list_bug_issues(request):
         manager = _bug_manager()

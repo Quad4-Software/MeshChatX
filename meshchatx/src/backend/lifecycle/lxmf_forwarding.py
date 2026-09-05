@@ -6,6 +6,22 @@ from __future__ import annotations
 
 from typing import Any
 
+from meshchatx.src.backend.lxmf_message_fields import (  # noqa: F401
+    LxmfAudioField,
+    LxmfFileAttachment,
+    LxmfFileAttachmentsField,
+    LxmfImageField,
+)
+from meshchatx.src.backend.lxmf_utils.constants import (  # noqa: F401
+    LXMF_APP_EXTENSIONS_FIELD,
+)
+from meshchatx.src.backend.meshchat_utils import (  # noqa: F401
+    lxmf_signature_validated,
+    parse_lxmf_audio_field_value,
+    parse_lxmf_file_attachments_field_value,
+    parse_lxmf_image_field_value,
+)
+
 # ruff: noqa: F821
 
 

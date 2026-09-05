@@ -10,6 +10,75 @@ from meshchatx.src.backend.http.routes.path_probe._names import *  # noqa: F403,
 
 def register_path_probe_destination_routes(routes, app):
 
+    def local_path_response(destination_hash_hex):
+        return web.json_response(
+            {
+                "path": {
+                    "hops": 0,
+                    "next_hop": destination_hash_hex,
+                    "next_hop_interface": "Local",
+                },
+                "path_stale": False,
+                "path_unresponsive": False,
+            },
+        )
+
+    def destination_path_snapshot(destination_hash):
+        if not RNS.Transport.has_path(destination_hash):
+            pm = reticulum_pathfinding.path_metadata_for_api(destination_hash)
+            return web.json_response(
+                {
+                    "path": None,
+                    **pm,
+                },
+            )
+
+        hops = RNS.Transport.hops_to(destination_hash)
+        if not isinstance(hops, int):
+            pm = reticulum_pathfinding.path_metadata_for_api(destination_hash)
+            return web.json_response(
+                {
+                    "path": None,
+                    **pm,
+                },
+            )
+        next_hop_bytes = None
+        if hasattr(app, "reticulum") and app.reticulum:
+            next_hop_bytes = app.reticulum.get_next_hop(destination_hash)
+        if next_hop_bytes is not None and not isinstance(
+            next_hop_bytes,
+            (bytes, bytearray),
+        ):
+            next_hop_bytes = None
+
+        if next_hop_bytes is None:
+            pm = reticulum_pathfinding.path_metadata_for_api(destination_hash)
+            return web.json_response(
+                {
+                    "path": None,
+                    **pm,
+                },
+            )
+
+        next_hop = next_hop_bytes.hex()
+        next_hop_interface = (
+            app.reticulum.get_next_hop_if_name(destination_hash)
+            if hasattr(app, "reticulum") and app.reticulum
+            else None
+        )
+
+        pm = reticulum_pathfinding.path_metadata_for_api(destination_hash)
+        return web.json_response(
+            {
+                "path": {
+                    "hops": hops,
+                    "next_hop": next_hop,
+                    "next_hop_interface": next_hop_interface,
+                },
+                **pm,
+            },
+        )
+
     @routes.get("/api/v1/destination/{destination_hash}/path")
     async def destination_path(request):
         destination_hash = request.match_info.get("destination_hash", "")
@@ -77,7 +146,7 @@ def register_path_probe_destination_routes(routes, app):
             await asyncio.sleep(0.1)
 
         if RNS.Transport.has_path(destination_hash_bytes):
-            maybe_resend_failed_for_current(destination_hash)
+            maybe_resend_failed_for_current(app, destination_hash)
 
         return destination_path_snapshot(destination_hash_bytes)
 
@@ -135,7 +204,7 @@ def register_path_probe_destination_routes(routes, app):
         )
 
         if RNS.Transport.has_path(destination_hash_bytes):
-            maybe_resend_failed_for_current(destination_hash)
+            maybe_resend_failed_for_current(app, destination_hash)
 
         return web.json_response(
             {

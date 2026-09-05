@@ -232,7 +232,6 @@ export class PluginHost {
         this.router.addRoute({
             name,
             path: pluginRoutePath(pluginId),
-            component: () => import("../../shell/FeaturePageHost.vue"),
             meta: {
                 featureLoad: () => import("../../features/plugins/PluginPage.svelte"),
             },

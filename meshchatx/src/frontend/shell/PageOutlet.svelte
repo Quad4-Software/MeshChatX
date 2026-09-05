@@ -158,6 +158,7 @@
             if (entry && entry.key === key) {
                 syncProps(entry, nextProps);
                 if (!entry.container.isConnected) {
+                    // eslint-disable-next-line svelte/no-dom-manipulating -- keepAlive host reattach
                     root.appendChild(entry.container);
                 }
                 entry.container.style.display = "";
@@ -185,6 +186,7 @@
                 keepAliveCache.set(route.name, entry);
             }
             if (!entry.container.isConnected) {
+                // eslint-disable-next-line svelte/no-dom-manipulating -- keepAlive host attach
                 root.appendChild(entry.container);
             }
             entry.container.style.display = "";
@@ -205,6 +207,7 @@
             props: createProps(nextProps),
         };
         transient = page;
+        // eslint-disable-next-line svelte/no-dom-manipulating -- PageOutlet mounts feature hosts
         root.appendChild(page.container);
         await mountPage(page, route, token);
         if (token !== renderToken && transient === page) {

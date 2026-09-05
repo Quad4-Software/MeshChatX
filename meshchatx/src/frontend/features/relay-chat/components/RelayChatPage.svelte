@@ -333,7 +333,26 @@
         GlobalEmitter.off("ws-message", handleWsMessage);
         GlobalEmitter.off("identity-switched", onIdentitySwitched);
         persistLayout();
+        window.api.post("/api/v1/rrc/active/clear").catch(() => {});
     });
+
+    async function onReorderHubs(fromIdx: number, toIdx: number) {
+        if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= hubs.length || toIdx >= hubs.length) {
+            return;
+        }
+        const next = [...hubs];
+        const [moved] = next.splice(fromIdx, 1);
+        next.splice(toIdx, 0, moved);
+        hubs = next;
+        try {
+            await window.api.put("/api/v1/rrc/hubs/order", {
+                hub_hashes: hubs.map((h) => h.hub_hash),
+            });
+        } catch (e: any) {
+            ToastUtils.error(e?.response?.data?.message || t("relay_chat.action_failed"));
+            await fetchHubs();
+        }
+    }
 </script>
 
 <div class="flex flex-col flex-1 min-w-0 h-full bg-sem-canvas text-sem-fg">
@@ -406,6 +425,7 @@
                         ontogglehubexpanded={(hHash) => {
                             expandedHubs[hHash] = !expandedHubs[hHash];
                         }}
+                        onreorderhubs={onReorderHubs}
                     />
                 {/if}
 

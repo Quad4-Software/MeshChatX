@@ -137,7 +137,7 @@ describe("RNPathTracePage.svelte", () => {
         const input = screen.getByPlaceholderText("input destination hash");
         await fireEvent.input(input, { target: { value: hash } });
 
-        const traceBtn = screen.getByTitle("Trace Path");
+        const traceBtn = screen.getByTitle("Trace");
         await fireEvent.click(traceBtn);
 
         await waitFor(() => {
@@ -161,7 +161,7 @@ describe("RNPathTracePage.svelte", () => {
         const input = screen.getByPlaceholderText("input destination hash");
         await fireEvent.input(input, { target: { value: hash } });
 
-        const traceBtn = screen.getByTitle("Trace Path");
+        const traceBtn = screen.getByTitle("Trace");
         await fireEvent.click(traceBtn);
 
         await waitFor(() => {

@@ -4717,110 +4717,25 @@ class ReticulumMeshChat:
 
     @staticmethod
     def _rns_link_parse_dest_aspect(data):
-        dest_hex = data.get("destination_hash")
-        aspect = data.get("aspect")
-        if not dest_hex or not aspect:
-            return None, None, "missing_destination_or_aspect"
-        dest = hex_identifier_to_bytes(dest_hex if isinstance(dest_hex, str) else None)
-        if dest is None or len(dest) != 16:
-            return None, None, "invalid_destination_hash"
-        return dest, aspect, None
+        from meshchatx.src.backend.rns_link_manager import _rns_link_parse_dest_aspect
+
+        return _rns_link_parse_dest_aspect(data)
 
     @staticmethod
     async def _rns_link_send(client, payload):
-        try:
-            await client.send_str(json.dumps(payload))
-        except Exception as e:
-            print(f"rns.link reply failed: {e}")
+        from meshchatx.src.backend.rns_link_manager import _rns_link_send
+
+        return await _rns_link_send(client, payload)
 
     async def _handle_rns_link_open(self, client, data):
-        request_id = data.get("request_id")
-        dest_hash, aspect, err = self._rns_link_parse_dest_aspect(data)
-        if err:
-            await self._rns_link_send(
-                client,
-                {
-                    "type": "rns.link.open",
-                    "request_id": request_id,
-                    "status": "failure",
-                    "failure_reason": err,
-                },
-            )
-            return
-        auto_identify = bool(data.get("auto_identify", False))
+        from meshchatx.src.backend.rns_link_manager import _handle_rns_link_open
 
-        def on_phase(phase):
-            AsyncUtils.run_async(
-                self._rns_link_send(
-                    client,
-                    {
-                        "type": "rns.link.open",
-                        "request_id": request_id,
-                        "status": "phase",
-                        "phase": phase,
-                        "destination_hash": dest_hash.hex(),
-                        "aspect": aspect,
-                    },
-                ),
-            )
-
-        link, identified, failure_reason = await self.rns_link_manager.open_link(
-            dest_hash,
-            aspect,
-            auto_identify=auto_identify,
-            on_phase=on_phase,
-        )
-        if link is None:
-            await self._rns_link_send(
-                client,
-                {
-                    "type": "rns.link.open",
-                    "request_id": request_id,
-                    "status": "failure",
-                    "failure_reason": failure_reason or "unknown",
-                    "destination_hash": dest_hash.hex(),
-                    "aspect": aspect,
-                },
-            )
-            return
-        await self._rns_link_send(
-            client,
-            {
-                "type": "rns.link.open",
-                "request_id": request_id,
-                "status": "success",
-                "identified": identified,
-                "destination_hash": dest_hash.hex(),
-                "aspect": aspect,
-            },
-        )
+        return await _handle_rns_link_open(self, client, data)
 
     async def _handle_rns_link_identify(self, client, data):
-        request_id = data.get("request_id")
-        dest_hash, aspect, err = self._rns_link_parse_dest_aspect(data)
-        if err:
-            await self._rns_link_send(
-                client,
-                {
-                    "type": "rns.link.identify",
-                    "request_id": request_id,
-                    "status": "failure",
-                    "failure_reason": err,
-                },
-            )
-            return
-        ok, failure_reason = self.rns_link_manager.identify(dest_hash, aspect)
-        await self._rns_link_send(
-            client,
-            {
-                "type": "rns.link.identify",
-                "request_id": request_id,
-                "status": "success" if ok else "failure",
-                "failure_reason": failure_reason,
-                "destination_hash": dest_hash.hex(),
-                "aspect": aspect,
-            },
-        )
+        from meshchatx.src.backend.rns_link_manager import _handle_rns_link_identify
+
+        return await _handle_rns_link_identify(self, client, data)
 
     async def _handle_rns_link_request(self, client, data):
         from meshchatx.src.backend.lifecycle.rns_link_request import (
@@ -4830,80 +4745,14 @@ class ReticulumMeshChat:
         return await handle_rns_link_request(self, client, data)
 
     async def _handle_rns_link_send(self, client, data):
-        import base64
+        from meshchatx.src.backend.rns_link_manager import _handle_rns_link_send
 
-        request_id = data.get("request_id")
-        dest_hash, aspect, err = self._rns_link_parse_dest_aspect(data)
-        if err:
-            await self._rns_link_send(
-                client,
-                {
-                    "type": "rns.link.send",
-                    "request_id": request_id,
-                    "status": "failure",
-                    "failure_reason": err,
-                },
-            )
-            return
-        payload_b64 = data.get("payload_b64", "")
-        try:
-            payload = (
-                base64.b64decode(payload_b64, validate=True) if payload_b64 else b""
-            )
-        except Exception:
-            await self._rns_link_send(
-                client,
-                {
-                    "type": "rns.link.send",
-                    "request_id": request_id,
-                    "status": "failure",
-                    "failure_reason": "invalid_payload_b64",
-                },
-            )
-            return
-        ok, failure_reason = self.rns_link_manager.send_packet(
-            dest_hash,
-            aspect,
-            payload,
-        )
-        await self._rns_link_send(
-            client,
-            {
-                "type": "rns.link.send",
-                "request_id": request_id,
-                "status": "success" if ok else "failure",
-                "failure_reason": failure_reason,
-                "destination_hash": dest_hash.hex(),
-                "aspect": aspect,
-            },
-        )
+        return await _handle_rns_link_send(self, client, data)
 
     async def _handle_rns_link_close(self, client, data):
-        request_id = data.get("request_id")
-        dest_hash, aspect, err = self._rns_link_parse_dest_aspect(data)
-        if err:
-            await self._rns_link_send(
-                client,
-                {
-                    "type": "rns.link.close",
-                    "request_id": request_id,
-                    "status": "failure",
-                    "failure_reason": err,
-                },
-            )
-            return
-        ok = self.rns_link_manager.close(dest_hash, aspect)
-        await self._rns_link_send(
-            client,
-            {
-                "type": "rns.link.close",
-                "request_id": request_id,
-                "status": "success" if ok else "failure",
-                "failure_reason": None if ok else "no_active_link",
-                "destination_hash": dest_hash.hex(),
-                "aspect": aspect,
-            },
-        )
+        from meshchatx.src.backend.rns_link_manager import _handle_rns_link_close
+
+        return await _handle_rns_link_close(self, client, data)
 
     def _broadcast_to_websocket_clients(self, payload: dict) -> None:
         """Thread-safe fire-and-forget broadcast from RNS callback threads."""
@@ -4913,102 +4762,21 @@ class ReticulumMeshChat:
             print(f"websocket broadcast failed: {e}")
 
     def _on_rns_link_broadcast(self, payload: dict) -> None:
-        self._broadcast_to_websocket_clients(payload)
-        if payload.get("type") == "rns.link.event":
-            plugin_manager = getattr(self, "plugin_manager", None)
-            if plugin_manager is not None:
-                plugin_manager.on_rns_link_event(payload)
+        from meshchatx.src.backend.rns_link_manager import _on_rns_link_broadcast
+
+        return _on_rns_link_broadcast(self, payload)
 
     async def _websocket_broadcast_coalesced(self, payload: dict) -> None:
         await self.websocket_broadcast(payload, _skip_coalesce=True)
 
     async def websocket_broadcast(self, data, *, _skip_coalesce: bool = False):
-        from meshchatx.src.backend.websocket_runtime import (
-            WS_BROADCAST_SEND_TIMEOUT_SEC,
-            client_allows_topic,
-            topic_for_type,
-            touch_client_activity,
+        from meshchatx.src.backend import websocket_runtime
+
+        return await websocket_runtime.broadcast_to_websocket_clients(
+            self,
+            data,
+            _skip_coalesce=_skip_coalesce,
         )
-
-        payload_obj = None
-        if isinstance(data, dict):
-            payload_obj = data
-        elif isinstance(data, str):
-            try:
-                parsed = json.loads(data)
-                if isinstance(parsed, dict):
-                    payload_obj = parsed
-            except (TypeError, ValueError, json.JSONDecodeError):
-                payload_obj = None
-        elif isinstance(data, list):
-            data = json.dumps(data)
-
-        if payload_obj is not None and not _skip_coalesce:
-            coalesce = getattr(self, "_ws_coalesce", None)
-            if coalesce is not None and coalesce.offer(dict(payload_obj)):
-                return
-
-        if payload_obj is not None:
-            seq_state = getattr(self, "ws_seq_state", None)
-            if seq_state is not None:
-                await seq_state.stamp(payload_obj)
-            data = json.dumps(payload_obj)
-        elif not isinstance(data, str):
-            data = json.dumps(data)
-
-        msg_type = payload_obj.get("type") if payload_obj else None
-        topic = topic_for_type(msg_type if isinstance(msg_type, str) else None)
-
-        # Serialize list mutation. Fan-out sends run in parallel so one slow
-        # client does not stall every other socket.
-        sessions_changed = False
-        async with self._websocket_broadcast_lock:
-            clients = list(self.websocket_clients)
-            targets = [c for c in clients if client_allows_topic(c, topic)]
-
-            async def _send_one(websocket_client):
-                try:
-                    await asyncio.wait_for(
-                        websocket_client.send_str(data),
-                        timeout=WS_BROADCAST_SEND_TIMEOUT_SEC,
-                    )
-                    touch_client_activity(websocket_client)
-                    counters = getattr(self, "ws_counters", None)
-                    if counters is not None:
-                        counters.msgs_out += 1
-                    return None
-                except Exception as e:
-                    print(f"Failed to broadcast to websocket client: {e}")
-                    counters = getattr(self, "ws_counters", None)
-                    if counters is not None:
-                        counters.broadcast_failures += 1
-                        if isinstance(e, (TimeoutError, asyncio.TimeoutError)):
-                            counters.slow_drops += 1
-                    return websocket_client
-
-            results = await asyncio.gather(
-                *[_send_one(c) for c in targets],
-                return_exceptions=True,
-            )
-            dead = []
-            for item in results:
-                if isinstance(item, BaseException):
-                    continue
-                if item is not None:
-                    dead.append(item)
-            for client in dead:
-                try:
-                    self.websocket_clients.remove(client)
-                except ValueError:
-                    pass
-                if self._detach_active_session(client):
-                    sessions_changed = True
-                try:
-                    await client.close(code=WSCloseCode.GOING_AWAY)
-                except Exception:
-                    pass
-        if sessions_changed:
-            await self.send_active_sessions_to_websocket_clients()
 
     async def on_websocket_binary_received(self, client, data: bytes):
         """Optional binary rns.link frames (msgpack). JSON path remains default."""

@@ -4,7 +4,7 @@
  * Ringtone playback and telephone status polling for the shell call chrome.
  */
 
-import GlobalState, { mergeGlobalConfig } from "../../../js/GlobalState.js";
+import GlobalState from "../../../js/GlobalState.js";
 import GlobalEmitter from "../../../js/GlobalEmitter.js";
 import NotificationSoundUtils from "../../../js/NotificationSoundUtils.js";
 import ElectronUtils from "../../../js/ElectronUtils.js";

@@ -78,24 +78,24 @@ function mountSendMessageButton(options = {}) {
     };
     const vm = {
         get isShowingMenu() {
-            return view.container.textContent?.includes("messages.send_automatically") === true;
+            return view.container.textContent?.includes("Send automatically") === true;
         },
         showMenu() {
             flushSync(() => view.container.querySelectorAll("button")[1]?.click());
         },
         setDeliveryMethod(method) {
             const labels = {
-                direct: "messages.send_over_direct_link",
-                opportunistic: "messages.send_opportunistically",
-                propagated: "messages.send_to_propagation_node",
+                direct: "Send over direct link",
+                opportunistic: "Send opportunistically",
+                propagated: "Send to propagation node",
             };
-            clickMenuItem(labels[method] || "messages.send_automatically");
+            clickMenuItem(labels[method] || "Send automatically");
         },
         emitCommandOrRequest() {
-            clickMenuItem("messages.send_menu_telemetry_request");
+            clickMenuItem("Send as Command or Request");
         },
         emitPaperCompose() {
-            clickMenuItem("messages.send_menu_paper_compose");
+            clickMenuItem("Paper message from composition (LXM)");
         },
         $nextTick: tick,
     };
@@ -136,36 +136,31 @@ describe("DropDownMenuItem Component", () => {
 });
 
 describe("SendMessageButton Component", () => {
-    const sendBtnGlobal = { mocks: { $t: (k) => k } };
-
     it("renders send button with correct text when enabled", () => {
         const wrapper = mount(SendMessageButton, {
-            global: sendBtnGlobal,
             props: {
                 canSendMessage: true,
                 isSendingMessage: false,
                 deliveryMethod: null,
             },
         });
-        expect(wrapper.text()).toContain("messages.send");
+        expect(wrapper.text()).toContain("Send");
     });
 
     it("shows sending state when isSendingMessage is true", () => {
         const wrapper = mount(SendMessageButton, {
-            global: sendBtnGlobal,
             props: {
                 canSendMessage: true,
                 isSendingMessage: true,
                 deliveryMethod: null,
             },
         });
-        expect(wrapper.text()).toContain("messages.send");
+        expect(wrapper.text()).toContain("Send");
         expect(wrapper.html()).toContain("opacity-60");
     });
 
     it("disables button when canSendMessage is false", () => {
         const wrapper = mount(SendMessageButton, {
-            global: sendBtnGlobal,
             props: {
                 canSendMessage: false,
                 isSendingMessage: false,
@@ -178,19 +173,17 @@ describe("SendMessageButton Component", () => {
 
     it("shows delivery method in button text", () => {
         const wrapper = mount(SendMessageButton, {
-            global: sendBtnGlobal,
             props: {
                 canSendMessage: true,
                 isSendingMessage: false,
                 deliveryMethod: "direct",
             },
         });
-        expect(wrapper.text()).toContain("messages.send_direct");
+        expect(wrapper.text()).toContain("Send (Direct)");
     });
 
     it("emits send event when send button is clicked", async () => {
         const wrapper = mount(SendMessageButton, {
-            global: sendBtnGlobal,
             props: {
                 canSendMessage: true,
                 isSendingMessage: false,
@@ -204,7 +197,6 @@ describe("SendMessageButton Component", () => {
 
     it("opens dropdown menu when dropdown button is clicked", async () => {
         const wrapper = mount(SendMessageButton, {
-            global: sendBtnGlobal,
             props: {
                 canSendMessage: true,
                 isSendingMessage: false,
@@ -218,7 +210,6 @@ describe("SendMessageButton Component", () => {
 
     it("emits delivery-method-changed when delivery method is selected", async () => {
         const wrapper = mount(SendMessageButton, {
-            global: sendBtnGlobal,
             props: {
                 canSendMessage: true,
                 isSendingMessage: false,
@@ -234,7 +225,6 @@ describe("SendMessageButton Component", () => {
 
     it("closes menu after selecting delivery method", async () => {
         const wrapper = mount(SendMessageButton, {
-            global: sendBtnGlobal,
             props: {
                 canSendMessage: true,
                 isSendingMessage: false,
@@ -249,7 +239,6 @@ describe("SendMessageButton Component", () => {
 
     it("emits send-command-or-request from menu", async () => {
         const wrapper = mount(SendMessageButton, {
-            global: sendBtnGlobal,
             props: {
                 canSendMessage: false,
                 canOpenSendMenu: true,
@@ -266,7 +255,6 @@ describe("SendMessageButton Component", () => {
 
     it("emits send-paper-compose from menu", async () => {
         const wrapper = mount(SendMessageButton, {
-            global: sendBtnGlobal,
             props: {
                 canSendMessage: true,
                 canOpenSendMenu: true,
@@ -449,7 +437,6 @@ describe("Button Interactions and Accessibility", () => {
 
     it("SendMessageButton respects disabled state for keyboard", () => {
         const wrapper = mount(SendMessageButton, {
-            global: { mocks: { $t: (k) => k } },
             props: {
                 canSendMessage: false,
                 canOpenSendMenu: false,

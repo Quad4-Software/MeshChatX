@@ -107,7 +107,9 @@ def register_archives_pages_routes(routes: Any, app: Any) -> None:
                 },
             )
         except Exception as exc:
-            return http_for_database_exception(exc, unexpected_message="Failed to load archives")
+            return http_for_database_exception(
+                exc, unexpected_message="Failed to load archives"
+            )
 
     @routes.get("/api/v1/nomadnet/archives/{archive_id}")
     async def get_archived_page(request):
@@ -127,7 +129,9 @@ def register_archives_pages_routes(routes: Any, app: Any) -> None:
                     "archive": {
                         "id": archive["id"],
                         "destination_hash": archive["destination_hash"],
-                        "node_name": resolve_node_name(app, archive["destination_hash"]),
+                        "node_name": resolve_node_name(
+                            app, archive["destination_hash"]
+                        ),
                         "page_path": archive["page_path"],
                         "content": archive["content"],
                         "hash": archive["hash"],
@@ -137,7 +141,9 @@ def register_archives_pages_routes(routes: Any, app: Any) -> None:
                 },
             )
         except Exception as exc:
-            return http_for_database_exception(exc, unexpected_message="Failed to load archive")
+            return http_for_database_exception(
+                exc, unexpected_message="Failed to load archive"
+            )
 
     @routes.delete("/api/v1/nomadnet/archives")
     async def delete_archived_pages(request):
@@ -158,7 +164,9 @@ def register_archives_pages_routes(routes: Any, app: Any) -> None:
         try:
             app.database.misc.delete_archived_pages(ids=ids)
         except Exception as exc:
-            return http_for_database_exception(exc, unexpected_message="Failed to delete archives")
+            return http_for_database_exception(
+                exc, unexpected_message="Failed to delete archives"
+            )
 
         return web.json_response(
             {

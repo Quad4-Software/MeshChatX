@@ -48,7 +48,7 @@ export function hubDisplayName(hub?: RrcHub | null): string {
     return hub.custom_display_name || hub.display_name || hub.name || hub.hub_hash?.substring(0, 16) || "";
 }
 
-export function nameStyle(msg?: RrcMessage | null): string {
+export function nameStyle(msg?: { src?: string; nickname?: string } | null): string {
     if (!msg?.src && !msg?.nickname) return "color: var(--sem-fg);";
     const seed = msg.nickname || msg.src || "";
     let hash = 0;

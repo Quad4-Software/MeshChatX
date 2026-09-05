@@ -1,18 +1,20 @@
 // SPDX-License-Identifier: 0BSD
 
-import { describe, expect, it, afterEach } from "vitest";
-import { createI18n } from "vue-i18n";
+import { describe, expect, it, beforeAll } from "vitest";
+import { get } from "svelte/store";
+import { locale } from "svelte-i18n";
 import {
     ensureLocaleMessages,
+    getCurrentUiLocale,
+    initSvelteI18n,
     listLocaleCodes,
     normalizeUiLocaleCode,
-    registerUiI18n,
     setLocale,
 } from "../../meshchatx/src/frontend/js/localeLoader.js";
 
 describe("localeLoader", () => {
-    afterEach(() => {
-        registerUiI18n(null);
+    beforeAll(async () => {
+        await initSvelteI18n({ hi: "hi", _languageName: "English" });
     });
 
     it("lists locale codes with english first", () => {
@@ -23,46 +25,33 @@ describe("localeLoader", () => {
     });
 
     it("ensureLocaleMessages rejects bad codes without throwing", async () => {
-        const i18n = createI18n({ legacy: false, locale: "en", messages: { en: { hi: "hi" } } });
         for (const bad of [null, undefined, "", 12, {}, [], "nope-xx"]) {
-            await expect(ensureLocaleMessages(i18n, bad)).resolves.toBe(false);
+            await expect(ensureLocaleMessages(null, bad)).resolves.toBe(false);
         }
     });
 
     it("ensureLocaleMessages is idempotent for already-loaded locales", async () => {
-        const i18n = createI18n({ legacy: false, locale: "en", messages: { en: { hi: "hi" } } });
-        expect(await ensureLocaleMessages(i18n, "en")).toBe(true);
-        expect(await ensureLocaleMessages(i18n, "en")).toBe(true);
+        expect(await ensureLocaleMessages(null, "en")).toBe(true);
+        expect(await ensureLocaleMessages(null, "en")).toBe(true);
     });
 
-    it("loads a non-english locale into the composer", async () => {
-        const i18n = createI18n({ legacy: false, locale: "en", messages: { en: { hi: "hi" } } });
-        expect(i18n.global.availableLocales).not.toContain("de");
-        expect(await ensureLocaleMessages(i18n, "de")).toBe(true);
-        expect(i18n.global.availableLocales).toContain("de");
-        expect(i18n.global.getLocaleMessage("de")._languageName).toBeTruthy();
+    it("loads a non-english locale pack", async () => {
+        expect(await ensureLocaleMessages(null, "de")).toBe(true);
+        expect(await ensureLocaleMessages(null, "de")).toBe(true);
     });
 
-    it("setLocale updates locale.value for composition i18n", async () => {
-        const i18n = createI18n({ legacy: false, locale: "en", messages: { en: { hi: "hi" } } });
-        expect(await setLocale(i18n, "fr")).toBe(true);
-        expect(i18n.global.locale.value).toBe("fr");
+    it("setLocale updates svelte-i18n locale store", async () => {
+        expect(await setLocale(null, "fr")).toBe(true);
+        expect(get(locale)).toBe("fr");
+        expect(getCurrentUiLocale()).toBe("fr");
+        expect(await setLocale(null, "en")).toBe(true);
+        expect(get(locale)).toBe("en");
     });
 
-    it("setLocale works when given the composer directly", async () => {
-        const i18n = createI18n({ legacy: false, locale: "en", messages: { en: { hi: "hi" } } });
-        expect(await setLocale(i18n.global, "es")).toBe(true);
-        expect(i18n.global.locale.value).toBe("es");
-    });
-
-    it("ensureLocaleMessages returns false when setLocaleMessage is missing", async () => {
-        const fake = { availableLocales: [], setLocaleMessage: undefined };
-        expect(await ensureLocaleMessages(fake, "de")).toBe(false);
-    });
-
-    it("adversarial: ensureLocaleMessages(null) is false", async () => {
-        expect(await ensureLocaleMessages(null, "en")).toBe(false);
-        expect(await setLocale(undefined, "en")).toBe(false);
+    it("setLocale normalizes unknown packs to en", async () => {
+        expect(await setLocale(null, "nope-xx")).toBe(true);
+        expect(get(locale)).toBe("en");
+        expect(await ensureLocaleMessages(null, "nope-xx")).toBe(false);
     });
 
     it("normalizeUiLocaleCode maps aliases and rejects unknown packs", () => {
@@ -73,23 +62,9 @@ describe("localeLoader", () => {
     });
 
     it("fuzz: random codes never throw", async () => {
-        const i18n = createI18n({ legacy: false, locale: "en", messages: { en: {} } });
-        const junk = ["", "en", "de", "../en", "EN", "en.json", "🚀", "a".repeat(200), "zh-CN", "pt"];
+        const junk = ["", "en", "de", "../en", "EN", "en.json", "a".repeat(200), "zh-CN", "pt"];
         for (const code of junk) {
-            await expect(ensureLocaleMessages(i18n, code)).resolves.toBeTypeOf("boolean");
+            await expect(ensureLocaleMessages(null, code)).resolves.toBeTypeOf("boolean");
         }
-    });
-
-    it("registerUiI18n lets setLocale recover from a locale-only proxy", async () => {
-        const i18n = createI18n({ legacy: false, locale: "en", messages: { en: { hi: "hi" } } });
-        const proxy = {
-            locale: "en",
-            availableLocales: ["en"],
-            fallbackLocale: "en",
-        };
-        expect(await setLocale(proxy, "de")).toBe(false);
-        registerUiI18n(i18n);
-        expect(await setLocale(proxy, "de")).toBe(true);
-        expect(i18n.global.locale.value).toBe("de");
     });
 });

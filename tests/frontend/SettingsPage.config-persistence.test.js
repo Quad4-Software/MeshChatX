@@ -119,11 +119,15 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
     });
 
     it("onLanguageChange PATCHes language", async () => {
+        const setLocaleSpy = vi.spyOn(localeLoader, "setLocale").mockResolvedValue(true);
         const { view, api } = await renderSettings();
         const select = view.container.querySelector("#language-select");
         expect(select).not.toBeNull();
         await fireEvent.change(select, { target: { value: "de" } });
-        expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { language: "de" });
+        await waitFor(() => {
+            expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { language: "de" });
+        });
+        setLocaleSpy.mockRestore();
     });
 
     it("onLanguageChange applies setLocale before PATCH", async () => {
@@ -131,7 +135,7 @@ describe("SettingsPage: config persistence (PATCH and related)", () => {
         const { view, api } = await renderSettings();
         const select = view.container.querySelector("#language-select");
         await fireEvent.change(select, { target: { value: "ru" } });
-        expect(setLocaleSpy).toHaveBeenCalledWith(undefined, "ru");
+        expect(setLocaleSpy).toHaveBeenCalledWith(null, "ru");
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { language: "ru" });
         setLocaleSpy.mockRestore();
     });

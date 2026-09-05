@@ -10,6 +10,10 @@ from meshchatx.src.backend.map_overlay_export import OverlayExportError  # noqa:
 from meshchatx.src.backend.map_overlay_sources import (
     OverlaySourceParseError,  # noqa: F401
 )
+from meshchatx.src.backend.meshchat_utils import (  # noqa: F401
+    cancel_inbound_deliveries,
+    list_inbound_deliveries,
+)
 from meshchatx.src.backend.plugin_guard import PluginSecurityError  # noqa: F401
 from meshchatx.src.backend.privacy_mode import OutboundHttpBlockedError  # noqa: F401
 
@@ -49,7 +53,6 @@ build_blocklist_export_document = LiveMeshchatName("build_blocklist_export_docum
 build_export_document = LiveMeshchatName("build_export_document")
 build_messages_export_bundle = LiveMeshchatName("build_messages_export_bundle")
 cache_stats = LiveMeshchatName("cache_stats")
-cancel_inbound_deliveries = LiveMeshchatName("cancel_inbound_deliveries")
 cast = LiveMeshchatName("cast")
 compute_lxmf_conversation_unread_from_latest_row = LiveMeshchatName(
     "compute_lxmf_conversation_unread_from_latest_row",
@@ -93,7 +96,6 @@ is_port_in_use = LiveMeshchatName("is_port_in_use")
 is_user_facing_lxmf_payload = LiveMeshchatName("is_user_facing_lxmf_payload")
 json = LiveMeshchatName("json")
 list_host_network_interfaces = LiveMeshchatName("list_host_network_interfaces")
-list_inbound_deliveries = LiveMeshchatName("list_inbound_deliveries")
 list_ports = LiveMeshchatName("list_ports")
 load_app_security_settings = LiveMeshchatName("load_app_security_settings")
 logger = LiveMeshchatName("logger")

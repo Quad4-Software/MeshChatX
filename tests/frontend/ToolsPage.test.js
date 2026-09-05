@@ -41,9 +41,13 @@ describe("ToolsPage.svelte", () => {
         localStorage.clear();
         registerTranslator(null);
         registerFallbackMessages({
-            common: { search: "Search", no_results: "common.no_results" },
+            common: {
+                search: "Search",
+                no_results: "common.no_results",
+            },
             tools: {
                 power_tools: "tools.power_tools",
+                search_placeholder: "Search {count} tools",
                 diagnostics_description: "desc",
                 alpha_badge: "tools.alpha_badge",
                 beta_badge: "beta",
@@ -79,7 +83,7 @@ describe("ToolsPage.svelte", () => {
 
     it("filters tools based on search query", async () => {
         render(ToolsPage);
-        const searchInput = screen.getByPlaceholderText("Search");
+        const searchInput = screen.getByPlaceholderText(/Search \d+ tools/);
         await fireEvent.input(searchInput, { target: { value: "ping" } });
         await waitFor(() => {
             expect(screen.getByText("tools.ping.title")).toBeTruthy();
@@ -102,7 +106,7 @@ describe("ToolsPage.svelte", () => {
 
     it("clears search query when close button is clicked", async () => {
         render(ToolsPage);
-        const searchInput = screen.getByPlaceholderText("Search");
+        const searchInput = screen.getByPlaceholderText(/Search \d+ tools/);
         await fireEvent.input(searchInput, { target: { value: "ping" } });
         await fireEvent.click(screen.getByLabelText("Clear search"));
         expect(searchInput.value).toBe("");
