@@ -47,8 +47,11 @@ export function mountVueIsland(
     for (const [name, directive] of Object.entries(islandPlugins.directives || {})) {
         app.directive(name, directive);
     }
-    app.config.globalProperties.$router = router;
-    Object.defineProperty(app.config.globalProperties, "$route", {
+    // Options API code reaches for $router / $route. hashRouter covers the
+    // members MeshChatX uses, so the vue-router shape is deliberately partial.
+    const globals = app.config.globalProperties as unknown as Record<string, unknown>;
+    globals.$router = router;
+    Object.defineProperty(globals, "$route", {
         configurable: true,
         get: () => getCurrentRoute() ?? { name: "", params: {}, query: {}, meta: {}, hash: "" },
     });

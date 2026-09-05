@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 import { registerAboutFeature } from "./about/index.js";
+import { registerAppShellFeature } from "./app-shell/index.js";
 import { registerAuthFeature } from "./auth/index.js";
 import { registerBotsFeature } from "./bots/index.js";
 import { registerCallFeature } from "./call/index.js";
@@ -39,6 +40,7 @@ import { registerRNStatusFeature } from "./rnstatus/index.js";
 import { registerSettingsFeature } from "./settings/index.js";
 import { registerSieveFiltersFeature } from "./sieve-filters/index.js";
 import { registerToolsFeature } from "./tools/index.js";
+import { registerTutorialFeature } from "./tutorial/index.js";
 import { registerTranslatorFeature } from "./translator/index.js";
 
 let featuresRegistered = false;
@@ -61,6 +63,7 @@ export function registerAllFeatures(): void {
     }
     featuresRegistered = true;
     registerAboutFeature();
+    registerAppShellFeature();
     registerAuthFeature();
     registerBotsFeature();
     registerCallFeature();
@@ -99,5 +102,6 @@ export function registerAllFeatures(): void {
     registerSettingsFeature();
     registerSieveFiltersFeature();
     registerToolsFeature();
+    registerTutorialFeature();
     registerTranslatorFeature();
 }

@@ -33,7 +33,7 @@ export interface ActiveRoute {
     matched: boolean;
 }
 
-export type NavigationDecision = { allow: true } | { allow: false; redirect: string };
+export type NavigationDecision = { allow: boolean; redirect?: string };
 export type NavigationGuard = (to: ActiveRoute) => Promise<NavigationDecision> | NavigationDecision;
 export type RouteListener = (route: ActiveRoute | null) => void;
 
@@ -291,50 +291,69 @@ function currentHashBody(): string {
     return `${parsed.path}${parsed.search ? `?${parsed.search}` : ""}${parsed.hash}`;
 }
 
+const MAX_REDIRECT_HOPS = 8;
+
+/**
+ * Rewrite the hash in place. Returns false when the location already matches,
+ * which is how the resolve loop detects a redirect that would spin forever.
+ */
+function replaceHashSilently(target: RouteTarget | string): boolean {
+    const resolved = resolveTarget(target);
+    if (currentHashBody() === resolved) {
+        return false;
+    }
+    history.replaceState(null, "", `#${resolved}`);
+    return true;
+}
+
 async function applyLocation(): Promise<void> {
     const token = ++resolveToken;
-    const parsed = parseHashLocation(window.location.hash);
-    const redirect = REDIRECTS[parsed.path];
-    if (redirect) {
-        writeHash(`${redirect}${parsed.search ? `?${parsed.search}` : ""}${parsed.hash}`, true);
-        return;
-    }
-    const next = resolveRoute(parsed.path, parsed.search, parsed.hash);
-    if (navigationGuard) {
-        let decision: NavigationDecision = { allow: true };
-        try {
-            decision = await navigationGuard(next);
-        } catch (error) {
-            console.error("hashRouter guard failed", error);
+    for (let hop = 0; hop < MAX_REDIRECT_HOPS; hop += 1) {
+        const parsed = parseHashLocation(window.location.hash);
+        const redirect = REDIRECTS[parsed.path];
+        if (redirect) {
+            const body = `${redirect}${parsed.search ? `?${parsed.search}` : ""}${parsed.hash}`;
+            if (replaceHashSilently(body)) {
+                continue;
+            }
+        }
+        const next = resolveRoute(parsed.path, parsed.search, parsed.hash);
+        if (navigationGuard) {
+            let decision: NavigationDecision = { allow: true };
+            try {
+                decision = await navigationGuard(next);
+            } catch (error) {
+                console.error("hashRouter guard failed", error);
+            }
+            if (token !== resolveToken) {
+                return;
+            }
+            if (!decision.allow && decision.redirect && replaceHashSilently(decision.redirect)) {
+                continue;
+            }
         }
         if (token !== resolveToken) {
             return;
         }
-        if (!decision.allow) {
-            writeHash(decision.redirect, true);
-            return;
-        }
-    }
-    if (token !== resolveToken) {
+        currentRoute = next;
+        notify();
         return;
     }
-    currentRoute = next;
-    notify();
+    console.error("hashRouter: redirect loop at", window.location.hash);
 }
 
 function writeHash(body: string, replace: boolean): void {
     const resolved = resolveTarget(body);
-    const nextHash = `#${resolved}`;
     if (currentHashBody() === resolved) {
         void applyLocation();
         return;
     }
     if (replace) {
-        history.replaceState(null, "", nextHash);
+        history.replaceState(null, "", `#${resolved}`);
         void applyLocation();
         return;
     }
-    window.location.hash = nextHash;
+    window.location.hash = `#${resolved}`;
 }
 
 /**

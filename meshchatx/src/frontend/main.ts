@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-import { createApp } from "vue";
-import { createRouter, createWebHashHistory } from "vue-router";
+import { mount } from "svelte";
 import { createI18n } from "vue-i18n";
 import vClickOutside from "./libs/clickOutside.js";
 import DOMPurify from "dompurify";
@@ -21,7 +20,14 @@ import { fetchCsrfToken } from "./js/csrfToken.js";
 import { registerCoreContributions } from "./js/registries/registerCoreContributions.js";
 import { registerAllFeatures } from "./features/registerAllFeatures.js";
 import { installWsEventBridge } from "./js/registries/wsEventBridge.js";
-import { buildRouterRoutesFromRegistry } from "./shell/buildRouterRoutes.js";
+import {
+    getCurrentRoute,
+    navigate,
+    router,
+    setNavigationGuard,
+    start as startHashRouter,
+} from "./shell/hashRouter.js";
+import { configureVueIslands } from "./shell/vueIsland.js";
 import { pluginHost } from "./js/plugins/PluginHost.js";
 import GlobalState from "./js/GlobalState.js";
 import { recoveryLocationForNetworkError } from "./js/networkRecovery.js";
@@ -39,9 +45,7 @@ registerCoreContributions();
 registerAllFeatures();
 installWsEventBridge();
 
-import App from "./components/App.vue";
-import ChangelogModal from "./components/ChangelogModal.vue";
-import TutorialModal from "./components/TutorialModal.vue";
+import App from "./features/app-shell/App.svelte";
 import enMessages from "./locales/en.json";
 
 const i18n = createI18n({
@@ -55,33 +59,15 @@ const i18n = createI18n({
 registerUiI18n(i18n);
 registerFallbackMessages(enMessages);
 registerTranslator((key, values) => i18n.global.t(key, values));
+// Vue islands (Tutorial) still need $t and v-click-outside until they are ported.
+configureVueIslands({
+    i18n,
+    directives: { "click-outside": vClickOutside.directive },
+});
 
 if (!window.location.hash || window.location.hash === "#") {
     history.replaceState(null, "", "#/messages");
 }
-
-const router = createRouter({
-    history: createWebHashHistory(),
-    routes: [
-        ...buildRouterRoutesFromRegistry(),
-        {
-            path: "/",
-            redirect: "/messages",
-        },
-        {
-            name: "changelog",
-            path: "/changelog",
-            component: ChangelogModal,
-            meta: { isPage: true },
-        },
-        {
-            name: "tutorial",
-            path: "/tutorial",
-            component: TutorialModal,
-            meta: { isPage: true },
-        },
-    ],
-});
 
 pluginHost.attachRouter(router);
 
@@ -90,8 +76,8 @@ const apiClient = createApiClient({
         GlobalState.authenticated = false;
         GlobalState.authEnabled = true;
         GlobalState.authSessionResolved = true;
-        if (router.currentRoute.value.name !== "auth") {
-            router.push("/auth");
+        if (getCurrentRoute()?.name !== "auth") {
+            void navigate("/auth");
         }
     },
 });
@@ -168,13 +154,12 @@ if (networkReady) {
         // CSRF token will be retried on the next mutating request if needed.
     }
 
-    router.beforeEach(async (to, _from, next) => {
+    setNavigationGuard(async (to) => {
         const decision = await resolveAuthNavigation(to, apiClient);
         if (decision.allow) {
-            next();
-            return;
+            return { allow: true };
         }
-        next(decision.redirect);
+        return { allow: false, redirect: decision.redirect };
     });
 
     function registerMeshchatServiceWorker(): void {
@@ -247,36 +232,36 @@ if (networkReady) {
     function bootstrap(): void {
         registerMeshchatServiceWorker();
         const splash = typeof document !== "undefined" ? document.getElementById("meshchatx-boot-splash") : null;
-        const app = createApp(App);
-        app.config.errorHandler = (err, _instance, info) => {
-            console.error("MeshChatX render error:", err, info);
-            const renderError = err instanceof Error ? err : new Error(String(err));
+        // Svelte has no app level error handler like Vue did. Only uncaught
+        // exceptions carry event.error, so resource load failures stay silent.
+        window.addEventListener("error", (event) => {
+            if (!(event.error instanceof Error)) {
+                return;
+            }
+            console.error("MeshChatX render error:", event.error);
             reportFatalError({
                 kind: "frontend",
-                message: renderError.message,
-                stack: renderError.stack,
-                context: typeof info === "string" ? info : "",
-            });
-        };
-        router.onError((error) => {
-            console.error("MeshChatX router error:", error);
-            reportFatalError({
-                kind: "frontend",
-                message: error?.message || String(error),
-                stack: error?.stack,
-                context: "router",
+                message: event.error.message,
+                stack: event.error.stack,
+                context: "window",
             });
         });
         try {
-            app.use(router).use(i18n).use(vClickOutside).mount("#app");
+            startHashRouter();
+            const target = document.getElementById("app");
+            if (!target) {
+                throw new Error("missing #app mount target");
+            }
+            mount(App, { target });
         } catch (e) {
+            const error = e as { message?: string; stack?: string };
             console.error("MeshChatX bootstrap failed:", e);
             showBootSplashFatalError({
                 kind: "frontend",
                 title: "Failed to start",
                 message: "Failed to start. Try reloading the page.",
-                details: e?.message ? String(e.message) : "",
-                stack: e?.stack,
+                details: error?.message ? String(error.message) : "",
+                stack: error?.stack,
             });
             return;
         }

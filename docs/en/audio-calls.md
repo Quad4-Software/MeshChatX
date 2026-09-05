@@ -27,7 +27,7 @@ While connected, the Call screen shows link stats (packets, bytes, approximate b
 
 ## Audio path
 
-The frontend loads Codec2 assets for voice encoding (Codec2Loader.js). Browser and Electron builds use a Web Audio bridge at /ws/telephone/audio. Packaged desktop builds bundle the backend that negotiates LXST sessions.
+The frontend loads Codec2 assets for voice encoding (Codec2Loader.ts). Browser and Electron builds use a Web Audio bridge at /ws/telephone/audio. Packaged desktop builds bundle the backend that negotiates LXST sessions.
 
 ## Voicemail
 
