@@ -138,7 +138,9 @@ def resolve_identity_path(
             cleaned = _safe_name(os.path.basename(path.replace("\\", "/")))
             path = os.path.join(directory, cleaned)
         if not _path_under_identities_dir(path, directory):
-            raise PermissionError("Identity path outside management identities directory")
+            raise PermissionError(
+                "Identity path outside management identities directory"
+            )
         if not os.path.isfile(path):
             raise FileNotFoundError("Identity file not found")
         return os.path.realpath(path)
@@ -148,6 +150,8 @@ def resolve_identity_path(
         if not os.path.isfile(path):
             raise FileNotFoundError(f"Identity file not found: {cleaned}")
         if not _path_under_identities_dir(path, directory):
-            raise PermissionError("Identity path outside management identities directory")
+            raise PermissionError(
+                "Identity path outside management identities directory"
+            )
         return os.path.realpath(path)
     raise ValueError("identity_path or identity_name is required")

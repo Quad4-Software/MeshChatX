@@ -17,6 +17,7 @@ def test_sanitize_websocket_config_update_strips_auth_keys():
         "display_name": "Peer",
         "auth_enabled": False,
         "auth_password_hash": "deadbeef",
+        "privacy_mode_enabled": False,
         "theme": "dark",
     }
 

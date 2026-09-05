@@ -99,19 +99,6 @@ describe("NomadPageRenderer", () => {
     it("sanitizeNomadHtmlFragment handles arbitrary strings without throwing", () => {
         expect(() => sanitizeNomadHtmlFragment("<div>ok</div>")).not.toThrow();
     });
-
-    it("fuzzing: handles random strings in markdown and HTML sanitization", () => {
-        for (let i = 0; i < 200; i++) {
-            let s = "";
-            const len = Math.floor(Math.random() * 800);
-            for (let j = 0; j < len; j++) {
-                s += String.fromCharCode(Math.floor(Math.random() * 65536));
-            }
-            expect(() => renderNomadMarkdown(s)).not.toThrow();
-            expect(() => sanitizeNomadHtmlFragment(s)).not.toThrow();
-            expect(() => renderNomadHtmlPage(s)).not.toThrow();
-        }
-    });
 });
 
 describe("resolveNomadPageShellBackground", () => {

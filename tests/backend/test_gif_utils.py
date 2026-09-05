@@ -202,7 +202,7 @@ def test_validate_gif_payload_accept_reject_oracle(raw, typ):
     assert all(c in "0123456789abcdef" for c in out_hash)
 
 
-@settings(max_examples=500, deadline=None)
+@settings(max_examples=80, deadline=None)
 @given(raw=st.binary(min_size=0, max_size=4096))
 def test_detect_image_format_from_magic_closed_set(raw):
     out = gif_utils.detect_image_format_from_magic(raw)

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Oracle and exploratory tests for RRC hub/client membership and ACL bugs."""
+"""Oracles and contract tests for RRC hub/client membership and ACL rules."""
 
 from __future__ import annotations
 

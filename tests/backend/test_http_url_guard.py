@@ -158,8 +158,9 @@ def test_normalize_libretranslate_rejects_encoded_crlf_in_host():
         )
 
 
-def test_oracle_h5_hostname_resolving_to_link_local_rejected(monkeypatch):
-    """H5: hostname that DNS-maps to link-local metadata must be rejected."""
+def test_normalize_libretranslate_hostname_resolving_to_link_local_rejected(
+    monkeypatch,
+):
     import socket
 
     def fake_getaddrinfo(host, *args, **kwargs):
@@ -173,7 +174,7 @@ def test_oracle_h5_hostname_resolving_to_link_local_rejected(monkeypatch):
         normalize_libretranslate_http_service_base("http://metadata.internal/")
 
 
-def test_oracle_h5_hostname_resolving_to_public_ip_allowed(monkeypatch):
+def test_normalize_libretranslate_hostname_resolving_to_public_ip_allowed(monkeypatch):
     import socket
 
     def fake_getaddrinfo(host, *args, **kwargs):

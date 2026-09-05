@@ -57,7 +57,7 @@ vi.mock("../../meshchatx/src/frontend/js/deviceBattery.js", () => ({
     isNativeBatteryStatus: () => false,
 }));
 
-describe("settings/about/interfaces/identities exploratory oracles", () => {
+describe("identity switch and settings UI contracts", () => {
     afterEach(() => {
         vi.clearAllMocks();
         vi.useRealTimers();

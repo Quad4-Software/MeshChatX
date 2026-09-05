@@ -13,10 +13,12 @@ describe("tgsDecode", () => {
     });
 
     it("decodes raw JSON without gzip header", async () => {
-        const json = '{"a":1}';
+        const json = JSON.stringify({ v: "5.5.7", fr: 60, ip: 0, op: 0, w: 512, h: 512, layers: [], a: 1 });
         const enc = new TextEncoder();
         const data = await decodeTgsBuffer(enc.encode(json).buffer);
         expect(data.a).toBe(1);
+        expect(data.v).toBe("5.5.7");
+        expect(data.w).toBe(512);
     });
 
     it("rejects invalid JSON after gzip", async () => {

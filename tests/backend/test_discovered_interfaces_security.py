@@ -177,3 +177,18 @@ def test_filter_discovered_interfaces_list_fuzzing(interfaces):
     )
     assert isinstance(out, list)
     json.dumps(out)
+
+
+@settings(max_examples=100, deadline=None)
+@given(value=st.one_of(st.text(), st.lists(st.text(), min_size=0, max_size=20)))
+def test_discovery_pattern_sanitization_never_emits_unsafe_tokens(value):
+    patterns = ReticulumMeshChat.sanitize_discovery_patterns(value)
+    assert isinstance(patterns, list)
+    assert len(patterns) <= 128
+    for token in patterns:
+        assert token
+        assert len(token) <= 128
+        assert "," not in token
+        assert "\n" not in token
+        assert "\r" not in token
+        assert token.strip() == token

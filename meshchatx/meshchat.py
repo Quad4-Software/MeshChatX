@@ -10318,16 +10318,18 @@ class ReticulumMeshChat:
             print(f"Error processing incoming telemetry: {e}")
 
     def _resolve_location_for_telemetry(self):
+        """Return coords for mesh telemetry auto-reply, or (None, None).
+
+        Only explicit manual coordinates may be answered over LXMF. Browser
+        geolocation is client-side only. Map default center must never be
+        shipped as if it were the operator's location.
+        """
         location_source = self.config.location_source.get()
-        if location_source == "disabled":
-            return None, None
         if location_source == "manual":
             lat = self.config.location_manual_lat.get()
             lon = self.config.location_manual_lon.get()
-        else:
-            lat = self.database.config.get("map_default_lat")
-            lon = self.database.config.get("map_default_lon")
-        return lat, lon
+            return lat, lon
+        return None, None
 
     def handle_telemetry_request(self, to_addr_hash: str):
         lat, lon = self._resolve_location_for_telemetry()

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 /**
- * Oracles for FE hunt fixes: repo URL href gate and paper-print HTML escaping.
+ * Oracles for repository URL href guards and paper print HTML escaping.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -11,7 +11,7 @@ import RepositoryServerPage from "@/components/tools/RepositoryServerPage.vue";
 import PaperMessagePage from "@/components/tools/PaperMessagePage.vue";
 import PaperMessageModal from "@/components/messages/modals/PaperMessageModal.vue";
 
-describe("FE hunt URL and print XSS oracles", () => {
+describe("repository URL and print XSS oracles", () => {
     it("browserRepoUrl only returns http(s) without credentials", () => {
         const cases = [
             ["javascript:alert(1)", null],

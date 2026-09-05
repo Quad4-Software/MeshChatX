@@ -106,7 +106,8 @@ async def test_process_incoming_telemetry_stream(mock_app):
 
 
 @pytest.mark.asyncio
-async def test_telemetry_request_parsing(mock_app):
+async def test_telemetry_request_browser_location_does_not_auto_reply(mock_app):
+    """Browser GPS is client-only. Map defaults must not go out over LXMF."""
     mock_lxmf_message = MagicMock()
     mock_lxmf_message.get_fields.return_value = {0x01: [{0x01: int(time.time())}]}
     mock_lxmf_message.source_hash = b"source_hash_bytes"
@@ -114,6 +115,11 @@ async def test_telemetry_request_parsing(mock_app):
     mock_lxmf_message.destination_hash = b"dest_hash"
 
     mock_app.handle_telemetry_request = MagicMock()
+    mock_app.config = MagicMock()
+    mock_app.config.location_source.get.return_value = "browser"
+    mock_app.config.telemetry_enabled = (
+        mock_app.current_context.config.telemetry_enabled
+    )
 
     mock_app.on_lxmf_delivery = ReticulumMeshChat.on_lxmf_delivery.__get__(
         mock_app,
@@ -126,17 +132,43 @@ async def test_telemetry_request_parsing(mock_app):
         "is_telemetry_trusted": True,
     }
     mock_app.database.messages.get_lxmf_message_by_hash.return_value = {}
-    mock_app.database.config.set("map_default_lat", 50.0)
-    mock_app.database.config.set("map_default_lon", 10.0)
+    mock_app.database.config.get.side_effect = lambda key, default=None: {
+        "map_default_lat": 50.0,
+        "map_default_lon": 10.0,
+    }.get(key, default)
     mock_app.current_context.config.location_source.get.return_value = "browser"
     mock_lxmf_message.signature_validated = True
     mock_lxmf_message.unverified_reason = None
 
     mock_app.on_lxmf_delivery(mock_lxmf_message)
 
-    mock_app.handle_telemetry_request.assert_called_with(
-        "736f757263655f686173685f6279746573",
+    mock_app.handle_telemetry_request.assert_not_called()
+
+
+def test_resolve_location_for_telemetry_manual_only():
+    app = MagicMock(spec=ReticulumMeshChat)
+    app.config = MagicMock()
+    app.config.location_manual_lat.get.return_value = "51.5"
+    app.config.location_manual_lon.get.return_value = "-0.1"
+    app.database = MagicMock()
+    app.database.config.get.side_effect = lambda key, default=None: {
+        "map_default_lat": "40.7128",
+        "map_default_lon": "-74.0060",
+    }.get(key, default)
+
+    resolve = ReticulumMeshChat._resolve_location_for_telemetry.__get__(
+        app,
+        ReticulumMeshChat,
     )
+
+    app.config.location_source.get.return_value = "browser"
+    assert resolve() == (None, None)
+
+    app.config.location_source.get.return_value = "disabled"
+    assert resolve() == (None, None)
+
+    app.config.location_source.get.return_value = "manual"
+    assert resolve() == ("51.5", "-0.1")
 
 
 @pytest.mark.asyncio

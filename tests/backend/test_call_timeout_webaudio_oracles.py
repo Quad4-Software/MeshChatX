@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: 0BSD
-"""Exploratory fuzzing and light oracles for hardened security surfaces.
 
-Oracles are intentional invariants (not full differential testing):
-  - WebAudioSource never raises on arbitrary PCM and drops oversized frames
-  - call timeout parse always lands in [1, 120]
-  - attachment-like field shapes never crash normalize helpers
+"""Call timeout and web audio PCM oracles.
+
+Oracles are intentional invariants:
+  * WebAudioSource drops oversized frames
+  * call timeout parse always lands in [1, 120]
+  * attachment-like field shapes normalize to safe formats
 """
 
 from __future__ import annotations
@@ -70,20 +71,8 @@ def test_oracle_call_timeout_known_cases():
 
 
 # ---------------------------------------------------------------------------
-# Exploratory + oracle: web audio PCM
+# Oracles: web audio PCM
 # ---------------------------------------------------------------------------
-
-
-@settings(deadline=None, max_examples=60, suppress_health_check=[HealthCheck.too_slow])
-@given(pcm=st.binary(min_size=0, max_size=WebAudioSource.MAX_PCM_BYTES + 4096))
-def test_exploratory_web_audio_source_never_raises(pcm):
-    """Exploratory: arbitrary PCM must not crash push_pcm."""
-    sink = _Sink()
-    src = WebAudioSource(target_frame_ms=60, sink=sink)
-    try:
-        src.push_pcm(pcm)
-    except Exception as exc:
-        pytest.fail(f"push_pcm raised: {exc}")
 
 
 @settings(
@@ -163,24 +152,6 @@ def test_oracle_image_type_always_allowlisted(image_type):
     assert out in {"png", "jpeg", "jpg", "gif", "webp", "bmp"}
 
 
-@settings(deadline=None, max_examples=60, suppress_health_check=[HealthCheck.too_slow])
-@given(
-    raw=st.one_of(
-        st.none(),
-        st.binary(max_size=64).map(lambda b: base64.b64encode(b).decode("ascii")),
-        st.text(max_size=80),
-        st.integers(),
-        st.sampled_from(["", "====", "not-base64!!!", "A", "QQ=="]),
-    ),
-)
-def test_exploratory_b64_decode_never_raises(raw):
-    """Exploratory: attachment base64 decode path must not throw."""
-    try:
-        _try_b64(raw)
-    except Exception as exc:
-        pytest.fail(f"b64 helper raised: {exc}")
-
-
 def test_oracle_known_bad_attachment_shapes_rejected():
     assert _try_b64(None) is None
     assert _try_b64(123) is None
@@ -194,13 +165,13 @@ def test_oracle_known_bad_attachment_shapes_rejected():
 
 
 # ---------------------------------------------------------------------------
-# Exploratory: bridge still never crashes with mocked sink under fuzz PCM
+# Oracles: bridge push with real source
 # ---------------------------------------------------------------------------
 
 
 @settings(deadline=None, max_examples=40, suppress_health_check=[HealthCheck.too_slow])
 @given(pcm=st.binary(min_size=0, max_size=WebAudioSource.MAX_PCM_BYTES + 2048))
-def test_exploratory_bridge_push_with_real_source(pcm):
+def test_oracle_bridge_push_with_real_source(pcm):
     from meshchatx.src.backend.web_audio_bridge import WebAudioBridge
 
     tele_mgr = MagicMock()

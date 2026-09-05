@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 /**
- * Regression tests for bugs found by exploratory probing of hot paths.
+ * Regression tests for rendering and download hot paths.
  */
 
 import { describe, expect, it } from "vitest";
@@ -9,7 +9,7 @@ import MicronParser from "@/js/MicronParser.js";
 import { renderNomadHtmlPage, stripOverlayFromCss } from "@/js/NomadPageRenderer.js";
 import DownloadUtils from "@/js/DownloadUtils.js";
 
-describe("hot-path bug regressions", () => {
+describe("hot-path regressions", () => {
     it("strips absolute full-bleed overlays and rejects svg data images", () => {
         const css = stripOverlayFromCss(".x{position:absolute;top:0;left:0;width:100%;height:100%;z-index:9}");
         expect(css.toLowerCase()).not.toMatch(/position\s*:\s*absolute/);

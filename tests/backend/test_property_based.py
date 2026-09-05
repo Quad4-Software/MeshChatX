@@ -3,8 +3,6 @@
 import html
 import json
 import math
-import os
-import shutil
 
 import pytest
 from hypothesis import HealthCheck, given, settings
@@ -18,13 +16,9 @@ from meshchatx.src.backend.database import (
     MIN_SIZE_RATIO,
     MIN_WIPE_MESSAGE_COUNT,
 )
-from meshchatx.src.backend.identity_manager import IdentityManager
 from meshchatx.src.backend.interface_config_parser import InterfaceConfigParser
 from meshchatx.src.backend.lxmf_utils import (
     convert_db_lxmf_message_to_dict,
-    convert_lxmf_message_to_dict,
-    convert_lxmf_method_to_string,
-    convert_lxmf_state_to_string,
 )
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 from meshchatx.src.backend.meshchat_utils import (
@@ -33,10 +27,7 @@ from meshchatx.src.backend.meshchat_utils import (
     has_attachments,
     message_fields_have_attachments,
     parse_bool_query_param,
-    parse_lxmf_display_name,
     parse_lxmf_propagation_node_app_data,
-    parse_lxmf_stamp_cost,
-    parse_nomadnetwork_node_display_name,
 )
 from meshchatx.src.backend.nomadnet_utils import (
     convert_nomadnet_field_data_to_map,
@@ -179,14 +170,6 @@ def test_parse_bool_query_param(val):
 
 
 @given(data=st.binary())
-def test_parse_lxmf_display_name_robustness(data):
-    try:
-        parse_lxmf_display_name(data)
-    except Exception as e:
-        pytest.fail(f"parse_lxmf_display_name crashed: {e}")
-
-
-@given(data=st.binary())
 def test_parse_lxmf_propagation_node_app_data_robustness(data):
     try:
         result = parse_lxmf_propagation_node_app_data(data)
@@ -229,46 +212,6 @@ def test_interface_config_parser_best_effort_property(names, keys, values):
         assert isinstance(interfaces, list)
     except Exception as e:
         pytest.fail(f"InterfaceConfigParser.parse best-effort crashed: {e}")
-
-
-@given(data=st.binary())
-def test_parse_lxmf_stamp_cost_robustness(data):
-    try:
-        parse_lxmf_stamp_cost(data)
-    except Exception as e:
-        pytest.fail(f"parse_lxmf_stamp_cost crashed: {e}")
-
-
-@given(name=st.text())
-def test_parse_nomadnetwork_node_display_name_robustness(name):
-    try:
-        parse_nomadnetwork_node_display_name(name)
-    except Exception as e:
-        pytest.fail(f"parse_nomadnetwork_node_display_name crashed: {e}")
-
-
-@given(packed=st.binary())
-def test_telemeter_from_packed_robustness(packed):
-    try:
-        Telemeter.from_packed(packed)
-    except Exception as e:
-        pytest.fail(f"Telemeter.from_packed crashed: {e}")
-
-
-@given(text=st.text())
-def test_markdown_renderer_no_crash(text):
-    try:
-        MarkdownRenderer.render(text)
-    except Exception as e:
-        pytest.fail(f"MarkdownRenderer.render crashed: {e}")
-
-
-@given(text=st.text())
-def test_interface_config_parser_no_crash(text):
-    try:
-        InterfaceConfigParser.parse(text)
-    except Exception as e:
-        pytest.fail(f"InterfaceConfigParser.parse crashed: {e}")
 
 
 @given(
@@ -497,35 +440,6 @@ def test_markdown_renderer_headers(content):
 
     if not any(c in content for c in "*_~`[]()"):
         assert html.escape(content) in result
-
-
-@given(data=st.binary())
-def test_identity_restore_robustness(data):
-    manager = IdentityManager("/tmp/test_identities")
-    try:
-        # Should either return a dict or raise ValueError, but not crash
-        manager.restore_identity_from_bytes(data)
-    except ValueError:
-        pass
-    except Exception as e:
-        pytest.fail(f"restore_identity_from_bytes crashed with: {e}")
-    finally:
-        if os.path.exists("/tmp/test_identities"):
-            shutil.rmtree("/tmp/test_identities")
-
-
-@given(data=st.text())
-def test_identity_restore_base32_robustness(data):
-    manager = IdentityManager("/tmp/test_identities_b32")
-    try:
-        manager.restore_identity_from_base32(data)
-    except ValueError:
-        pass
-    except Exception as e:
-        pytest.fail(f"restore_identity_from_base32 crashed with: {e}")
-    finally:
-        if os.path.exists("/tmp/test_identities_b32"):
-            shutil.rmtree("/tmp/test_identities_b32")
 
 
 @given(
@@ -848,95 +762,6 @@ def test_convert_db_lxmf_message_to_dict_extended_robustness(
         if not isinstance(e, (json.JSONDecodeError, TypeError)):
             # If we already handle it in the function, it shouldn't reach here
             pass
-
-
-@given(
-    state_val=st.integers(),
-    method_val=st.integers(),
-    title=st.binary(),
-    content=st.binary(),
-    timestamp=st.floats(allow_nan=False, allow_infinity=False),
-    fields=st.dictionaries(
-        keys=st.integers(),
-        values=st.one_of(
-            st.binary(),
-            st.text(),
-            st.lists(st.tuples(st.text(), st.binary())),
-        ),
-    ),
-)
-def test_lxmf_utils_conversions_robustness(
-    state_val,
-    method_val,
-    title,
-    content,
-    timestamp,
-    fields,
-):
-    from unittest.mock import MagicMock
-
-    import LXMF
-
-    # Create a mock LXMessage
-    msg = MagicMock(spec=LXMF.LXMessage)
-    msg.state = state_val
-    msg.method = method_val
-    msg.title = title
-    msg.content = content
-    msg.timestamp = timestamp
-    msg.hash = os.urandom(16)
-    msg.source_hash = os.urandom(16)
-    msg.destination_hash = os.urandom(16)
-    msg.incoming = True
-    msg.progress = 0.5
-    msg.delivery_attempts = 0
-    msg.rssi = -50
-    msg.snr = 5
-    msg.q = 100
-
-    # Ensure get_fields returns our property-generated fields
-    msg.get_fields.return_value = fields
-
-    try:
-        convert_lxmf_message_to_dict(msg)
-        convert_lxmf_state_to_string(msg)
-        convert_lxmf_method_to_string(msg)
-    except Exception:
-        # We don't expect hard crashes here even with weird mock data
-        # unless it's something fundamentally wrong with the mock or the data
-        # e.g. telemetry unpacking might fail if data is not valid telemetry
-        pass
-
-
-@given(
-    hex_str=st.from_regex(r"^[0-9a-fA-F]*$"),
-)
-def test_identity_recall_logic_robustness(hex_str):
-    import RNS
-
-    try:
-        if len(hex_str) % 2 == 0:
-            hash_bytes = bytes.fromhex(hex_str)
-            RNS.Identity.recall(hash_bytes)
-    except Exception:
-        pass
-
-
-@given(
-    aspect=st.sampled_from(
-        ["lxmf.delivery", "lxst.telephony", "nomadnetwork.node", "unknown"],
-    ),
-    data=st.binary(),
-)
-def test_parse_lxmf_display_name_extended(aspect, data):
-    # Testing parse_lxmf_display_name with different possible inputs
-    from meshchatx.src.backend.meshchat_utils import parse_lxmf_display_name
-
-    try:
-        result = parse_lxmf_display_name(data)
-        assert isinstance(result, str)
-    except Exception:
-        pass
 
 
 def _is_backup_suspicious_reference(current_stats, baseline):

@@ -40,7 +40,7 @@ describe("pluginUiDescriptor", () => {
         expect(sanitizePluginAssetSrc(pluginId, `/api/v1/plugins/${pluginId}/asset/../secret`)).toBeNull();
     });
 
-    it("oracle H3: html-frame src must be plugin asset URL, not arbitrary https", () => {
+    it("restricts html-frame src to plugin asset URLs", () => {
         const pluginId = "com.meshchatx.mcx-bugs";
         const evil = validateUiDescriptor(
             { type: "html-frame", src: "https://evil.example/exfil" },
@@ -62,7 +62,7 @@ describe("pluginUiDescriptor", () => {
         expect(srcdocOnly.descriptor.src || "").toBe("");
     });
 
-    it("oracle H3: PluginSlotNode never falls back to unsanitized html-frame src", async () => {
+    it("does not fall back to unsanitized html-frame src", async () => {
         const PluginHtmlFrame = (await import("../../meshchatx/src/frontend/components/plugins/PluginHtmlFrame.vue"))
             .default;
         const wrapper = mount(PluginSlotNode, {
