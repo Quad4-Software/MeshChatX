@@ -21,7 +21,11 @@
 #   actions/setup-java@v4.7.1          c5195efecf7bdfc987ee8bae7a71cb8b11521c00
 #   crazy-max/ghaction-import-gpg@v6   e89d40939c28e39f97cf32126055eeae86ba74ec
 #
-# SLSA generator: pin by commit SHA (repo requires Actions SHA pinning).
+# SLSA generator: SHA-pin this reusable workflow. Nested composite actions inside
+# generator_generic_slsa3.yml are tag-pinned at v2.1.0 (detect-workflow-js,
+# generate-builder, secure-download-artifact, secure-builder-checkout). Repo
+# Actions policy must allow slsa-framework/slsa-github-generator/.github/actions/*
+# and must not require SHA pinning, or the workflow fails at startup before jobs.
 # Keep compile-generator: true. builder-fetch.sh only downloads prebuilts when
 # BUILDER_REF is refs/tags/vX.Y.Z. OIDC often reports a bare SHA, so tag pins
 # can still miss prebuilts. Compiling from source skips that path.
