@@ -113,7 +113,7 @@ async def test_messages_export_includes_contacts_names_and_read_state(
         for route in app.get_routes():
             if (
                 route.path == "/api/v1/maintenance/messages/export"
-                and route.method == "GET"
+                and route.method == "POST"
             ):
                 handler = route.handler
                 break

@@ -89,7 +89,11 @@ def _reject_forbidden_outbound_ip(
     ):
         msg = "URL must not target a multicast or unspecified address"
         raise UnsafeOutboundUrlError(msg)
-    if effective.is_reserved or addr.is_reserved:
+    if (effective.is_reserved or addr.is_reserved) and not (
+        effective.is_loopback or addr.is_loopback
+    ):
+        # IPv6 ::1 is both loopback and reserved in Python's ipaddress module.
+        # Loopback remains allowed for local LibreTranslate and overlays.
         msg = "URL must not target a reserved address"
         raise UnsafeOutboundUrlError(msg)
 
