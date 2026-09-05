@@ -25,7 +25,7 @@ export function processDirectiveArguments(bindingValue) {
     if (!isFunction && (bindingValue == null || typeof bindingValue !== "object")) {
         throw new Error("v-click-outside: Binding value must be a function or an object");
     }
-    const value = /** @type {Record<string, unknown>} */ (isFunction ? {} : bindingValue);
+    const value = /** @type {Record<string, unknown>} */ isFunction ? {} : bindingValue;
     const handler = isFunction ? bindingValue : value.handler;
     if (typeof handler !== "function") {
         throw new Error("v-click-outside: handler must be a function");
@@ -57,8 +57,8 @@ export function bindingsEqual(a, b) {
     if (!a || !b || typeof a !== "object" || typeof b !== "object") {
         return false;
     }
-    const left = /** @type {Record<string, unknown>} */ (a);
-    const right = /** @type {Record<string, unknown>} */ (b);
+    const left = /** @type {Record<string, unknown>} */ a;
+    const right = /** @type {Record<string, unknown>} */ b;
     return (
         left.handler === right.handler &&
         left.middleware === right.middleware &&

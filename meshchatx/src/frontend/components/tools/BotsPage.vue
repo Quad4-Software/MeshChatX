@@ -475,6 +475,7 @@ import DialogUtils from "../../js/DialogUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import GlobalState from "../../js/GlobalState";
+import { isDestinationHash } from "../../js/meshValidate.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
 import LxmfConfigFields from "./internal/BotLxmfConfigFields.vue";
@@ -740,7 +741,7 @@ export default {
                 return "";
             }
             const h = raw.trim().toLowerCase();
-            return h.length === 32 && /^[0-9a-f]+$/.test(h) ? h : "";
+            return isDestinationHash(h) ? h : "";
         },
         openChatWithBot(bot) {
             const h = this.lxmfAddressFor(bot);

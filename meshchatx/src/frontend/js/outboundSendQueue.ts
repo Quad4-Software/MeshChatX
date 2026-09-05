@@ -19,9 +19,9 @@ function jobMatches(job, match) {
 }
 
 export function createOutboundQueue(processJob) {
-    const queue = [];
+    const queue: any[] = [];
     let running = false;
-    let currentJob = null;
+    let currentJob: any = null;
 
     async function run() {
         if (running) {

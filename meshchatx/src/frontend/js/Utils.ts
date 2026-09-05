@@ -226,7 +226,7 @@ class Utils {
         return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
     }
 
-    static lxmfMessageTransferTotalBytes(lxmfMessage, base64ByteLength = null) {
+    static lxmfMessageTransferTotalBytes(lxmfMessage: any, base64ByteLength: any = null) {
         if (!lxmfMessage) {
             return 0;
         }

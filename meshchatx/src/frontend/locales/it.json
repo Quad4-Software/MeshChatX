@@ -687,7 +687,9 @@
         "clear": "Cancella",
         "prompt_title": "Inserisci un valore",
         "optional": "Facoltativo",
-        "back": "Indietro"
+        "back": "Indietro",
+        "all": "Tutti",
+        "load_more": "Carica altro"
     },
     "stickers": {
         "settings_title": "Sticker",
@@ -1903,7 +1905,11 @@
         "starter_attribution": "Starter tiles are a low-zoom (z0-z4) placeholder. Upload regional MBTiles for detail.",
         "starter_restored": "Starter tiles restored",
         "failed_restore_starter": "Failed to restore starter tiles",
-        "export_set_active_confirm": "Use the exported MBTiles as the offline basemap?"
+        "export_set_active_confirm": "Use the exported MBTiles as the offline basemap?",
+        "copy_coords": "Copia coordinate",
+        "copy_coords_format": "Copia {format}",
+        "context_coords": "Coordinate",
+        "tab_limit_reached": "Limite schede mappa raggiunto (8)"
     },
     "interface": {
         "disable": "Disabilita",
@@ -2281,7 +2287,8 @@
         "paper_message_detected_desc": "Questo messaggio contiene un URI LXMF firmato che puoi ingerire nelle conversazioni.",
         "paper_message_ingest": "Ingerisci messaggio",
         "paper_message_ingested": "Messaggio cartaceo ingerito",
-        "paper_message_ingested_desc": "Questo URI LXMF firmato è stato aggiunto alle tue conversazioni."
+        "paper_message_ingested_desc": "Questo URI LXMF firmato è stato aggiunto alle tue conversazioni.",
+        "scroll_to_bottom": "Scorri in basso"
     },
     "settings": {
         "shortcut_saved": "Scorciatoia salvata",
@@ -2463,7 +2470,11 @@
         "logs_copied": "I log in questa pagina sono stati copiati negli appunti",
         "access_copied": "Tentativi di accesso copiati negli appunti",
         "failed_copy_logs": "Impossibile copiare i log",
-        "failed_copy_access": "Impossibile copiare i tentativi di accesso"
+        "failed_copy_access": "Impossibile copiare i tentativi di accesso",
+        "copy_logs": "Copia log",
+        "copy_access": "Copia tentativi di accesso",
+        "level": "Livello",
+        "outcome": "Esito"
     },
     "visualiser": {
         "title": "Visualizzatore di Rete",

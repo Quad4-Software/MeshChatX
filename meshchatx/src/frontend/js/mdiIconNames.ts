@@ -16,7 +16,7 @@ const MATERIAL_SYMBOL_ALIASES: any = {
     "emoji-objects": "lightbulb-on",
 };
 
-let cachedIconNames = null;
+let cachedIconNames: string[] | null = null;
 
 function isKebabCaseIconName(name) {
     if (!name || name.length > 64) {

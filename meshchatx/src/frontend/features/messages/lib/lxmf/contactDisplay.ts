@@ -11,7 +11,7 @@ export type ContactLike = {
 
 export type ConversationLike = {
     destination_hash?: string;
-    lxmf_user_icon?: { icon_name?: string; foreground_colour?: string; background_colour?: string };
+    lxmf_user_icon?: { icon_name?: string; foreground_colour?: string; background_colour?: string } | null;
 };
 
 export function lxmfDeliveryDestinationHexFromContact(contact: ContactLike | null | undefined): string {

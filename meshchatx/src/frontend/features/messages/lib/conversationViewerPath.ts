@@ -7,12 +7,9 @@ import {
     runDestinationPathFinder,
     warmPathIfNeeded,
 } from "../../../js/reticulumPathfinding.js";
+import { isDestinationHash } from "../../../js/meshValidate.js";
+import type { ApiClient } from "../../../js/apiClient.js";
 import type { ViewerPathSnapshot } from "./conversationViewerCtx.js";
-
-type ApiClient = {
-    get: (url: string, options?: Record<string, unknown>) => Promise<{ data?: Record<string, unknown> }>;
-    post: (url: string, body?: Record<string, unknown>) => Promise<{ data?: Record<string, unknown> }>;
-};
 
 export type PeerNetworkInfo = {
     path: ViewerPathSnapshot;
@@ -36,11 +33,11 @@ export async function loadPeerNetworkInfo(api: ApiClient, hash: string, warm: bo
         path: (path || normalizePathSnapshot(null)) as ViewerPathSnapshot,
         stampInfo:
             stamp.status === "fulfilled"
-                ? ((stamp.value.data?.lxmf_stamp_info as Record<string, unknown>) ?? null)
+                ? (((stamp.value.data as { lxmf_stamp_info?: Record<string, unknown> })?.lxmf_stamp_info as Record<string, unknown>) ?? null)
                 : null,
         signalMetrics:
             signal.status === "fulfilled"
-                ? ((signal.value.data?.signal_metrics as Record<string, unknown>) ?? null)
+                ? (((signal.value.data as { signal_metrics?: Record<string, unknown> })?.signal_metrics as Record<string, unknown>) ?? null)
                 : null,
     };
 }
@@ -53,7 +50,7 @@ export async function warmOutboundPath(
     propagationHash?: unknown
 ): Promise<void> {
     if (deliveryMethod === "propagated") {
-        if (typeof propagationHash === "string" && propagationHash.length === 32) {
+        if (typeof propagationHash === "string" && isDestinationHash(propagationHash)) {
             await warmPathIfNeeded(api, propagationHash, null);
         }
         return;

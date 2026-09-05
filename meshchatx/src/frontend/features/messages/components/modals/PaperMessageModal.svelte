@@ -52,7 +52,8 @@
         try {
             isLoading = true;
             const response = await window.api.get(`/api/v1/lxmf-messages/${messageHash}/uri`);
-            uri = response.data.uri;
+            const data = response.data as { uri?: string } | undefined;
+            uri = data?.uri || "";
             if (uri) {
                 await tick();
                 await renderQRCode();
@@ -136,11 +137,12 @@
                 delivery_method: "opportunistic",
                 lxmf_message,
             });
-            if (response.data.lxmf_message) {
+            const data = response.data as { lxmf_message?: unknown; message?: string } | undefined;
+            if (data?.lxmf_message) {
                 ToastUtils.success(t("messages.paper_message_sent"));
                 close();
             } else {
-                ToastUtils.error(response.data.message || "Failed to send paper message");
+                ToastUtils.error(data?.message || "Failed to send paper message");
             }
         } catch (err) {
             console.error("Failed to send paper message:", err);

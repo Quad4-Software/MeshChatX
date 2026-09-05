@@ -172,5 +172,5 @@ export function validateUiDescriptor(descriptor, options: any = {}) {
     if (error) {
         return { ok: false, error };
     }
-    return { ok: true, descriptor: /** @type {object} */ (descriptor) };
+    return { ok: true, descriptor: /** @type {object} */ descriptor };
 }

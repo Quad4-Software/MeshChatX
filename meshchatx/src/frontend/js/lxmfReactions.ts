@@ -24,8 +24,8 @@ export function mergeLxmfReactionRowsIntoMessages(messages) {
     if (messages.length === 0) {
         return [];
     }
-    const parents = [];
-    const reactions = [];
+    const parents: any[] = [];
+    const reactions: any[] = [];
     for (const m of messages) {
         if (!m || typeof m !== "object") {
             continue;

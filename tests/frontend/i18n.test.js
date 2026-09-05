@@ -58,18 +58,24 @@ describe("i18n Localization Tests", () => {
         });
     });
 
-    it("should find all $t usage in components and ensure they exist in en.json", () => {
+    it("should find all $t and t() usage in components and ensure they exist in en.json", () => {
         const frontendDir = path.resolve(__dirname, "../../meshchatx/src/frontend");
         const files = [];
+        const skipDirs = new Set(["node_modules", "dist", "assets", "public", "locales"]);
 
         function walkDir(dir) {
             fs.readdirSync(dir).forEach((file) => {
                 const fullPath = path.join(dir, file);
                 if (fs.statSync(fullPath).isDirectory()) {
-                    if (file !== "node_modules" && file !== "dist" && file !== "assets") {
+                    if (!skipDirs.has(file)) {
                         walkDir(fullPath);
                     }
-                } else if (file.endsWith(".vue") || file.endsWith(".js")) {
+                } else if (
+                    file.endsWith(".vue") ||
+                    file.endsWith(".js") ||
+                    file.endsWith(".ts") ||
+                    file.endsWith(".svelte")
+                ) {
                     files.push(fullPath);
                 }
             });
@@ -78,9 +84,8 @@ describe("i18n Localization Tests", () => {
         walkDir(frontendDir);
 
         const foundKeys = new Set();
-        // Regex to find $t('key') or $t("key") or $t(`key`) or $t('key', ...)
-        // Also supports {{ $t('key') }}
-        const tRegex = /\$t\s*\(\s*['"`]([^'"`]+)['"`]/g;
+        // Vue $t('key') and framework-free t('key') from js/i18n (Svelte / feature libs)
+        const tRegex = /(?:\$t|\bt)\s*\(\s*['"`]([^'"`]+)['"`]/g;
 
         files.forEach((file) => {
             const content = fs.readFileSync(file, "utf8");
@@ -91,7 +96,6 @@ describe("i18n Localization Tests", () => {
         });
 
         const missingInEn = Array.from(foundKeys).filter((key) => {
-            // Check if key exists in nested object 'en'
             const parts = key.split(".");
             let current = en;
             for (const part of parts) {
@@ -107,9 +111,6 @@ describe("i18n Localization Tests", () => {
         if (nonDynamicMissing.length > 0) {
             console.warn("Keys used in code but missing in en.json:", nonDynamicMissing);
         }
-        // Some keys might be dynamic, so we might want to be careful with this test
-        // But for now, let's see what it finds.
-        // We expect some false positives if keys are constructed dynamically.
         expect(nonDynamicMissing.length).toBe(0);
     });
 

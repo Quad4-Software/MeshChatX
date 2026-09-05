@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: 0BSD
 
-/** Pure outbound / transfer UI label helpers used by conversation bubbles. */
+import Utils from "../../../js/Utils.js";
+
+/** Pure outbound and transfer UI label helpers used by conversation bubbles */
 
 export function transferProgressPercent(loaded: number, total: number): number {
     if (!total || total <= 0) {
@@ -26,4 +28,25 @@ export function outboundStateIconName(state: string | null | undefined): string 
     if (s === "cancelled") return "cancel";
     if (s === "sending") return "loading";
     return "clock-outline";
+}
+
+export function outboundTransferStatsLabel(message?: Record<string, unknown> | null): string {
+    if (!message || typeof message !== "object") {
+        return "";
+    }
+    const transferred = Number(message.transferred_bytes ?? message.bytes_transferred ?? 0);
+    const total = Number(message.total_bytes ?? message.size ?? 0);
+    const speed = Number(message.transfer_speed ?? message.speed ?? 0);
+    const parts: string[] = [];
+    if (total > 0) {
+        if (transferred > 0) {
+            parts.push(`${Utils.formatBytes(transferred)} / ${Utils.formatBytes(total)}`);
+        } else {
+            parts.push(Utils.formatBytes(total));
+        }
+    }
+    if (speed > 0) {
+        parts.push(`${Utils.formatBytes(speed)}/s`);
+    }
+    return parts.join(" / ");
 }

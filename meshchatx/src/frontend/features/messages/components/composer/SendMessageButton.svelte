@@ -180,7 +180,10 @@
                     class="w-full flex items-center gap-2 px-4 py-2 text-sm text-sem-fg hover:bg-sem-surface-muted whitespace-nowrap"
                     onclick={() => setDeliveryMethod("direct")}
                 >
-                    <MaterialDesignIcon iconName="transit-connection-variant" class="size-5 shrink-0 text-sem-fg-muted" />
+                    <MaterialDesignIcon
+                        iconName="transit-connection-variant"
+                        class="size-5 shrink-0 text-sem-fg-muted"
+                    />
                     <span>{t("messages.send_over_direct_link")}</span>
                 </button>
                 <button

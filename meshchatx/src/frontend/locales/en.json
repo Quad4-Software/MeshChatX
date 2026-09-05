@@ -687,7 +687,9 @@
         "clear": "Clear",
         "prompt_title": "Enter a value",
         "optional": "Optional",
-        "back": "Back"
+        "back": "Back",
+        "all": "All",
+        "load_more": "Load more"
     },
     "stickers": {
         "settings_title": "Stickers",
@@ -2231,7 +2233,8 @@
         "conversation_file_other": "{name} sent a file",
         "conversation_files_you": "You sent {count} files",
         "conversation_files_other": "{name} sent {count} files",
-        "message_not_found_in_cache": "Message not found in cache"
+        "message_not_found_in_cache": "Message not found in cache",
+        "scroll_to_bottom": "Scroll to bottom"
     },
     "settings": {
         "tabs": {
@@ -2413,7 +2416,11 @@
         "logs_copied": "Logs on this page copied to clipboard",
         "access_copied": "Access attempts copied to clipboard",
         "failed_copy_logs": "Failed to copy logs",
-        "failed_copy_access": "Failed to copy access attempts"
+        "failed_copy_access": "Failed to copy access attempts",
+        "copy_logs": "Copy logs",
+        "copy_access": "Copy access attempts",
+        "level": "Level",
+        "outcome": "Outcome"
     },
     "visualiser": {
         "title": "Network Visualiser",

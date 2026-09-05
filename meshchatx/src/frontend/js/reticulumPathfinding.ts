@@ -12,7 +12,7 @@ export function normalizePathSnapshot(data) {
     if (!data || typeof data !== "object") {
         return { path: null, path_stale: true, path_unresponsive: false };
     }
-    const row = /** @type {{ path?: object | null, path_stale?: boolean, path_unresponsive?: boolean }} */ (data);
+    const row = /** @type {{ path?: object | null, path_stale?: boolean, path_unresponsive?: boolean }} */ data;
     const path = row.path ?? null;
     return {
         path,

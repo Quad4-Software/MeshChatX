@@ -6,8 +6,9 @@
  * (meshchat://relay is accepted as an alias.)
  */
 
+import { isDestinationHash } from "./meshValidate.js";
+
 const RELAY_URI_IN_TEXT_RE = /(?:meshchatx|meshchat):\/\/relay\?[^\s<>]*/gi;
-const HUB_HASH_RE = /^[a-fA-F0-9]{32}$/;
 
 export function findRelayUriInContent(text) {
     if (!text || typeof text !== "string") {
@@ -30,7 +31,7 @@ export function parseMeshchatRelayUri(uri) {
         const hub = String(u.searchParams.get("hub") || "")
             .trim()
             .toLowerCase();
-        if (!HUB_HASH_RE.test(hub)) {
+        if (!isDestinationHash(hub)) {
             return null;
         }
         const room = String(u.searchParams.get("room") || "").trim();
@@ -54,7 +55,7 @@ export function buildMeshchatRelayUri({ hub, room = "", name = "", aspect = "" }
     const h = String(hub || "")
         .trim()
         .toLowerCase();
-    if (!HUB_HASH_RE.test(h)) {
+    if (!isDestinationHash(h)) {
         return null;
     }
     const parts = [`hub=${encodeURIComponent(h)}`];
@@ -88,15 +89,18 @@ export function buildRelayShareMessage({ hub, room = "", name = "", aspect = "" 
  * Add (or reuse) a client hub from a parsed relay URI and optionally join a room.
  * Returns { hub_hash, room } on success.
  */
-export async function applyRelayShareLink(parsed, { api = typeof window !== "undefined" ? window.api : null }: any = {}) {
+export async function applyRelayShareLink(
+    parsed,
+    { api = typeof window !== "undefined" ? window.api : null }: any = {}
+) {
     if (!parsed?.hub || !api) {
         throw new Error("invalid relay share");
     }
     const hubHash = parsed.hub;
-    let hubs = [];
+    let hubs: any[] = [];
     try {
         const list = await api.get("/api/v1/rrc/hubs");
-        hubs = list.data?.hubs || [];
+        hubs = (list.data as any)?.hubs || [];
     } catch {
         hubs = [];
     }

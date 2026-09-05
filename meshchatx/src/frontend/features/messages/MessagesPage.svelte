@@ -22,6 +22,7 @@
     import { isRetryableHttpError } from "../../js/httpRetry.js";
     import { runWhenIdentityHttpReady } from "../../js/identityHttpReady.js";
     import { t } from "../../js/i18n.js";
+    import { isDestinationHash } from "../../js/meshValidate.js";
     import {
         applyOutboundComposeEnqueued,
         applyOutboundMessageCreated,
@@ -794,7 +795,7 @@
             dismissUnreadForOpenDestination(destinationHashNorm);
             return;
         }
-        if (destinationHashNorm.length !== 32) {
+        if (!isDestinationHash(destinationHashNorm)) {
             DialogUtils.alert(t("common.invalid_address"));
             return;
         }
@@ -861,7 +862,7 @@
 
     function openConversationInPane(paneId: number, dest: string) {
         const normalized = Utils.normalizeMeshchatHashHex(dest || "");
-        if (normalized.length !== 32) {
+        if (!isDestinationHash(normalized)) {
             return;
         }
         focusedPaneId = paneId;

@@ -250,11 +250,13 @@ tasks:
         desc: Lint frontend (ESLint, Prettier check, vue-tsc, svelte-check, knip, format-token and git-dep pins)
         cmds:
             - "{{.NPM}} run lint"
-            - "{{.NPM}} run format:check:svelte"
+            - "{{.NPM}} run format:check"
             - "{{.NPM}} run typecheck"
             - "{{.NPM}} run svelte-check"
+            - "{{.NPM}} run typecheck:features"
             - "{{.NPM}} exec vue-tsc --noEmit -p tsconfig.libs.json"
-            - "{{.NPM}} exec knip"
+            - "{{.NPM}} run knip"
+            - "{{.NPM}} run deps:cycles"
             - task: check:format-tokens
             - task: deps:git-pins
 
@@ -379,11 +381,10 @@ tasks:
             - uv run pytest tests/backend/eect/live/test_lv_ladder.py -m live_validation -k "l0" -q --tb=short
 
     test:quick:fe:
-        desc: Full frontend unit suite without coverage (excludes LoadTimePerformance and i18n, see test:lang)
+        desc: Full frontend unit suite without coverage (excludes i18n, see test:lang)
         cmds:
             - >-
                 {{.NPM}} exec vitest run
-                --exclude tests/frontend/LoadTimePerformance.test.js
                 --exclude tests/frontend/i18n.test.js
 
     test:backend:
@@ -449,20 +450,15 @@ tasks:
 
     test:frontend:
         aliases: [test:fe]
-        desc: Run frontend + Electron shell unit tests (vitest with coverage, excludes i18n, see test:lang, excludes LoadTimePerformance, use test:fe:loadtime locally)
+        desc: Run frontend + Electron shell unit tests (vitest with coverage, excludes i18n, see test:lang)
         cmds:
-            - "{{.NPM}} exec vitest run --coverage --exclude tests/frontend/LoadTimePerformance.test.js --exclude tests/frontend/i18n.test.js"
+            - "{{.NPM}} exec vitest run --coverage --exclude tests/frontend/i18n.test.js"
             - "{{.NPM}} exec vitest run --config vitest.electron.config.js --coverage"
 
     test:fe:ui:
         desc: Vitest UI runner for frontend unit tests
         cmds:
             - "{{.NPM}} run test:ui"
-
-    test:fe:loadtime:
-        desc: Optional frontend load-time / sidebar performance tests (not run in CI)
-        cmds:
-            - "{{.NPM}} run test:loadtime"
 
     test:be:media-fuzz:
         desc: Hypothesis fuzz tests for stickers, TGS/Lottie JSON, WebM, GIFs, pack exports

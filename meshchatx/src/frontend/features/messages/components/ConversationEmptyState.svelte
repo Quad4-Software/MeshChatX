@@ -9,17 +9,18 @@
 
     type ConversationPreview = {
         destination_hash: string;
-        display_name?: string;
+        display_name?: string | null;
         custom_display_name?: string | null;
-        contact_image?: string;
+        contact_image?: string | null;
         lxmf_user_icon?: {
             icon_name?: string;
             foreground_colour?: string;
             background_colour?: string;
         } | null;
         updated_at?: unknown;
-        latest_message_preview?: string;
-        latest_message_title?: string;
+        latest_message_preview?: string | null;
+        latest_message_title?: string | null;
+        [key: string]: unknown;
     };
 
     type ComposeSuggestion = {

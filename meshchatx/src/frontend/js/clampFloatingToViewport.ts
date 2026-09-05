@@ -26,7 +26,7 @@ export function clampFloatingToViewport(preferredLeft, preferredTop, width, heig
         left = margin;
     }
 
-    let maxHeight = null;
+    let maxHeight: number | null = null;
     if (height <= maxH) {
         top = Math.min(Math.max(margin, top), vh - height - margin);
     } else {

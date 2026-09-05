@@ -18,12 +18,12 @@ Applies when editing `meshchatx/src/frontend/**/*.{vue,js,ts,svelte}`.
 
 ## Layers
 
-| Layer    | Location                                           | May import                          |
-| -------- | -------------------------------------------------- | ----------------------------------- |
+| Layer    | Location                                                    | May import                          |
+| -------- | ----------------------------------------------------------- | ----------------------------------- |
 | Kernel   | `js/` (api, registries, toast, theme, state, i18n) as `.ts` | other kernel only                   |
-| UI       | `ui/svelte/`, shared Vue primitives                | kernel                              |
-| Features | `features/<id>/`                                   | kernel, ui, own files               |
-| Shell    | `App.vue`, boot (`main.js`)                        | kernel, registries, page mount host |
+| UI       | `ui/svelte/`, shared Vue primitives                         | kernel                              |
+| Features | `features/<id>/`                                            | kernel, ui, own files               |
+| Shell    | `App.vue`, boot (`main.js`)                                 | kernel, registries, page mount host |
 
 Cross-feature UI imports are forbidden. Share through kernel events, registries, or `ui/`.
 

@@ -89,27 +89,27 @@ export function getFeatureAnchorCoordinate(feature) {
     }
     const t = g.getType();
     if (t === "Point") {
-        return /** @type {import("ol/geom/Point").default} */ (g).getCoordinates();
+        return /** @type {import("ol/geom/Point").default} */ g.getCoordinates();
     }
     if (t === "MultiPoint") {
-        return /** @type {import("ol/geom/MultiPoint").default} */ (g).getPoint(0).getCoordinates();
+        return /** @type {import("ol/geom/MultiPoint").default} */ g.getPoint(0).getCoordinates();
     }
     if (t === "Polygon") {
-        return /** @type {import("ol/geom/Polygon").default} */ (g).getInteriorPoint().getCoordinates();
+        return /** @type {import("ol/geom/Polygon").default} */ g.getInteriorPoint().getCoordinates();
     }
     if (t === "MultiPolygon") {
-        const mp = /** @type {import("ol/geom/MultiPolygon").default} */ (g);
+        const mp = /** @type {import("ol/geom/MultiPolygon").default} */ g;
         return mp.getPolygon(0).getInteriorPoint().getCoordinates();
     }
     if (t === "LineString") {
-        const c = /** @type {import("ol/geom/LineString").default} */ (g).getCoordinates();
+        const c = /** @type {import("ol/geom/LineString").default} */ g.getCoordinates();
         if (!c.length) {
             return null;
         }
         return c[Math.floor(c.length / 2)];
     }
     if (t === "MultiLineString") {
-        const ml = /** @type {import("ol/geom/MultiLineString").default} */ (g);
+        const ml = /** @type {import("ol/geom/MultiLineString").default} */ g;
         const line = ml.getLineString(0);
         const c = line.getCoordinates();
         if (!c.length) {
