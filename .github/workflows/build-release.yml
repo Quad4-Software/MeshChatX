@@ -470,13 +470,40 @@ jobs:
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
-            - name: Cache electron-builder toolsets
+            - name: Cache electron downloads and builder toolsets
               uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
               with:
-                  path: ~/.cache/electron-builder
-                  key: electron-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
+                  path: |
+                      ~/.cache/electron
+                      ~/.cache/electron-builder
+                      ~/Library/Caches/electron
+                      ~/Library/Caches/electron-builder
+                  key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
+
+            - name: Cache Cargo registry (macOS x64 rustc slices)
+              if: matrix.label == 'macos'
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: |
+                      ~/.cargo/registry
+                      ~/.cargo/git
+                  key: cargo-mac-x64-${{ hashFiles('uv.lock') }}
                   restore-keys: |
-                      electron-builder-${{ runner.os }}-${{ runner.arch }}-
+                      cargo-mac-x64-
+
+            - name: Cache macOS x64 Python env (universal cx_Freeze)
+              if: matrix.label == 'macos'
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: |
+                      .venv-x64
+                      .cache/uv/python
+                  key: venv-x64-${{ runner.os }}-${{ hashFiles('uv.lock', 'pyproject.toml', 'scripts/ci/github-install-macos-x64-python-deps.sh', 'scripts/ci/github-macos-x64-venv-ready.sh') }}
+
+            - name: Check cached macOS x64 env
+              id: x64_ready
+              if: matrix.label == 'macos'
+              run: bash scripts/ci/github-macos-x64-venv-ready.sh
 
             - name: Install dependencies
               run: bash scripts/ci/github-install-deps.sh
@@ -486,12 +513,12 @@ jobs:
               run: /usr/sbin/softwareupdate --install-rosetta --agree-to-license || true
 
             - name: Ensure x86_64 Homebrew (/usr/local) for universal slice
-              if: matrix.label == 'macos'
+              if: matrix.label == 'macos' && steps.x64_ready.outputs.ready != 'true'
               run: bash scripts/ci/github-ensure-macos-x86-64-homebrew.sh
 
             - name: Set up Python x64 for cx_Freeze universal slice
               id: python_x64
-              if: matrix.label == 'macos'
+              if: matrix.label == 'macos' && steps.x64_ready.outputs.ready != 'true'
               uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
@@ -499,7 +526,7 @@ jobs:
                   update-environment: false
 
             - name: Install x86_64 libyaml for universal cx_Freeze slice
-              if: matrix.label == 'macos'
+              if: matrix.label == 'macos' && steps.x64_ready.outputs.ready != 'true'
               run: |
                   set -euo pipefail
                   # x86_64 libyaml for the darwin-x64 cx_Freeze slice (see
@@ -508,10 +535,14 @@ jobs:
                   arch -x86_64 /usr/local/bin/brew install libyaml || true
 
             - name: Install x86_64 codec2 for pycodec2 (universal slice)
-              if: matrix.label == 'macos'
+              if: matrix.label == 'macos' && steps.x64_ready.outputs.ready != 'true'
               run: |
                   set -euo pipefail
-                  arch -x86_64 /usr/local/bin/brew install codec2
+                  if arch -x86_64 /usr/local/bin/brew list --versions codec2 >/dev/null 2>&1; then
+                    echo "codec2 already installed under x86_64 Homebrew"
+                  else
+                    arch -x86_64 /usr/local/bin/brew install codec2
+                  fi
                   _codec2="$(arch -x86_64 /usr/local/bin/brew --prefix codec2)"
                   test -f "${_codec2}/include/codec2/codec2.h"
                   shopt -s nullglob
@@ -522,11 +553,11 @@ jobs:
                   fi
 
             - name: Install Rust x86_64-apple-darwin target (cbor2 x64 slice)
-              if: matrix.label == 'macos'
+              if: matrix.label == 'macos' && steps.x64_ready.outputs.ready != 'true'
               run: bash scripts/ci/github-macos-rust-x64-target.sh
 
             - name: Install project deps into x64 Python (mac universal cx_Freeze)
-              if: matrix.label == 'macos'
+              if: matrix.label == 'macos' && steps.x64_ready.outputs.ready != 'true'
               env:
                   PY_X64: ${{ steps.python_x64.outputs.python-path }}
               run: bash scripts/ci/github-install-macos-x64-python-deps.sh
