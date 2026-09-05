@@ -7,7 +7,7 @@
 import { describe, expect, it, vi } from "vitest";
 import LinkUtils from "@/js/LinkUtils.js";
 import Utils from "@/js/Utils.js";
-import RepositoryServerPage from "@/components/tools/RepositoryServerPage.vue";
+import { computeBrowserRepoUrl } from "@/features/repository-server/lib/repositoryServer.ts";
 import { printPaperQr } from "@/features/paper-message/lib/paperPrint.ts";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -24,9 +24,7 @@ describe("repository URL and print XSS oracles", () => {
             ["https://example.com/repo", "https://example.com/repo"],
         ];
         for (const [raw, expected] of cases) {
-            const href = RepositoryServerPage.computed.browserRepoUrl.call({
-                status: { http: { url: raw } },
-            });
+            const href = computeBrowserRepoUrl(raw);
             expect(href).toBe(expected);
             if (expected) {
                 expect(LinkUtils.httpUrlHrefOrNull(href)).toBe(href);
@@ -35,9 +33,7 @@ describe("repository URL and print XSS oracles", () => {
     });
 
     it("browserRepoUrl rewrites 0.0.0.0 then still requires http(s)", () => {
-        const href = RepositoryServerPage.computed.browserRepoUrl.call({
-            status: { http: { url: "http://0.0.0.0:9999/x" } },
-        });
+        const href = computeBrowserRepoUrl("http://0.0.0.0:9999/x");
         expect(href).toMatch(/^http:\/\/[^/]+:9999\/x$/);
         expect(href).not.toContain("0.0.0.0");
         expect(LinkUtils.httpUrlHrefOrNull(href)).toBe(href);

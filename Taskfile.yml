@@ -247,7 +247,7 @@ tasks:
 
     lint:frontend:
         aliases: [lint:fe]
-        desc: Lint frontend (ESLint, Prettier check, vue-tsc, svelte-check, knip, format-token and git-dep pins)
+        desc: Lint frontend (ESLint incl. Vue a11y warns, Prettier, vue-tsc, svelte-check, features strict check, knip, dpdm cycles, format-token and git-dep pins)
         cmds:
             - "{{.NPM}} run lint"
             - "{{.NPM}} run format:check"
@@ -264,6 +264,11 @@ tasks:
         desc: Run svelte-check (Svelte 5 runes)
         cmds:
             - "{{.NPM}} run svelte-check"
+
+    check:frontend-bundle:
+        desc: Assert Vite chunk size budgets (requires prior build-frontend)
+        cmds:
+            - "{{.NPM}} run check:bundle-budgets"
 
     lint:backend:
         aliases: [lint:be]

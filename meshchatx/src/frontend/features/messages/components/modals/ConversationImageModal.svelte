@@ -48,6 +48,9 @@
 </script>
 
 {#if url}
+    <!-- lightbox overlay: focus trap + click-outside close -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <div
         bind:this={overlay}
         tabindex="0"
@@ -57,6 +60,7 @@
         onkeydown={onKeydown}
         role="dialog"
         aria-modal="true"
+        aria-label={t("messages.save_image_to_device")}
     >
         <div
             class="relative max-w-7xl max-h-full group/image-modal"

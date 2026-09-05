@@ -1,27 +1,17 @@
 // SPDX-License-Identifier: 0BSD
 
-import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi } from "vitest";
-import ArchivesPage from "@/components/archives/ArchivesPage.vue";
-
-function mountArchives() {
-    const routerPush = vi.fn();
-    return {
-        wrapper: mount(ArchivesPage, {
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                    $router: { push: routerPush },
-                    $route: { query: {} },
-                },
-                stubs: {
-                    MaterialDesignIcon: true,
-                },
-            },
-        }),
-        routerPush,
-    };
-}
+import {
+    muExportBasename,
+} from "@/features/archives/lib/archiveExport.ts";
+import {
+    handleArchiveContentClick,
+    openInNomadnet,
+} from "@/features/archives/lib/archiveNavigation.ts";
+import {
+    pathViewerClasses,
+    renderFullContent,
+} from "@/features/archives/lib/archiveRender.ts";
 
 function randText(len) {
     const alphabet = "abc<>\"'`\\/\u0000\n\r`topic_id=";
@@ -40,6 +30,14 @@ function assertNoDangerousHtmlPatterns(html) {
     expect(lower).not.toMatch(/<[^>]*\bonerror\s*=/);
     expect(lower).not.toMatch(/<[^>]*\bonload\s*=/);
 }
+
+const defaultRenderOptions = {
+    renderMarkdown: true,
+    renderHtml: true,
+    renderPlaintext: true,
+    nomadDestinationHash: null,
+    nomad_micron_wasm_use: false,
+};
 
 describe("Archives page viewing-archive surface (security / fuzz)", () => {
     const nastyPaths = [
@@ -61,33 +59,41 @@ describe("Archives page viewing-archive surface (security / fuzz)", () => {
     ];
 
     it("renderFullContent sanitizes .html archives", () => {
-        const { wrapper } = mountArchives();
-        const out = wrapper.vm.renderFullContent({
-            page_path: "/page/evil.html",
-            content: '<body><img src=x onerror=alert(1)><a href="javascript:alert(1)">x</a></body>',
-            destination_hash: "a".repeat(32),
-            hash: "b".repeat(32),
-            id: 1,
-        });
+        const out = renderFullContent(
+            {
+                page_path: "/page/evil.html",
+                content: '<body><img src=x onerror=alert(1)><a href="javascript:alert(1)">x</a></body>',
+                destination_hash: "a".repeat(32),
+                hash: "b".repeat(32),
+                id: 1,
+            },
+            defaultRenderOptions,
+            false
+        );
         assertNoDangerousHtmlPatterns(out);
     });
 
     it("heuristic micron archives isolate http and mesh links", () => {
-        const { wrapper } = mountArchives();
         const hash = "aa".repeat(16);
-        const out = wrapper.vm.renderFullContent({
-            page_path: "/forum/thread",
-            content:
-                "`Hi`\n`[Phish`http://evil.example/login]`\n`[Node`bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:/page/index.mu]`",
-            destination_hash: hash,
-            id: 2,
-        });
+        const out = renderFullContent(
+            {
+                page_path: "/forum/thread",
+                content:
+                    "`Hi`\n`[Phish`http://evil.example/login]`\n`[Node`bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:/page/index.mu]`",
+                destination_hash: hash,
+                id: 2,
+            },
+            {
+                ...defaultRenderOptions,
+                nomadDestinationHash: hash,
+            },
+            false
+        );
         expect(out.toLowerCase()).not.toMatch(/href\s*=\s*["']?\s*https?:/i);
         expect(out).toMatch(/data-action\s*=\s*["']openNode["']/i);
     });
 
     it("renderFullContent never throws; returns a string for fuzzed paths and bodies", () => {
-        const { wrapper } = mountArchives();
         for (let i = 0; i < 90; i++) {
             const page_path = nastyPaths[i % nastyPaths.length] + randText(i % 7);
             const content = nastyContents[i % nastyContents.length] + randText(40);
@@ -98,8 +104,8 @@ describe("Archives page viewing-archive surface (security / fuzz)", () => {
                 hash: "b".repeat(64),
                 id: i + 1,
             };
-            expect(() => wrapper.vm.renderFullContent(archive)).not.toThrow();
-            const out = wrapper.vm.renderFullContent(archive);
+            expect(() => renderFullContent(archive, defaultRenderOptions, false)).not.toThrow();
+            const out = renderFullContent(archive, defaultRenderOptions, false);
             expect(typeof out).toBe("string");
             if ((archive.page_path || "").split("`")[0].toLowerCase().endsWith(".html")) {
                 assertNoDangerousHtmlPatterns(out);
@@ -107,8 +113,7 @@ describe("Archives page viewing-archive surface (security / fuzz)", () => {
         }
     });
 
-    it("archiveViewerClasses picks safe viewer classes for adversarial page_path values", () => {
-        const { wrapper } = mountArchives();
+    it("pathViewerClasses picks safe viewer classes for adversarial page_path values", () => {
         const cases = [
             { page_path: "/page/article.mu`topic_id=40", expectRich: true },
             { page_path: "/page/readme.html", expectRich: true, expectHtml: true },
@@ -116,8 +121,7 @@ describe("Archives page viewing-archive surface (security / fuzz)", () => {
             { page_path: "../../../etc/passwd", expectRich: false },
         ];
         for (const { page_path, expectRich, expectHtml } of cases) {
-            wrapper.vm.viewingArchive = { page_path };
-            const classes = wrapper.vm.archiveViewerClasses;
+            const classes = pathViewerClasses(page_path);
             expect(Array.isArray(classes)).toBe(true);
             expect(classes).toContain("wrap-break-word");
             expect(classes.includes("nomad-page-rich")).toBe(expectRich);
@@ -125,16 +129,18 @@ describe("Archives page viewing-archive surface (security / fuzz)", () => {
                 expect(classes).toContain("nomad-page-html-host");
             }
         }
-        wrapper.vm.viewingArchive = null;
     });
 
     it("openInNomadnet uses router.push with nomadnetwork route and query only", () => {
-        const { wrapper, routerPush } = mountArchives();
-        wrapper.vm.openInNomadnet({
-            id: 40,
-            destination_hash: "deadbeef",
-            page_path: "/page/article.mu`topic_id=40",
-        });
+        const routerPush = vi.fn();
+        openInNomadnet(
+            {
+                id: 40,
+                destination_hash: "deadbeef",
+                page_path: "/page/article.mu`topic_id=40",
+            },
+            { push: routerPush }
+        );
         expect(routerPush).toHaveBeenCalledWith({
             name: "nomadnetwork",
             params: { destinationHash: "deadbeef" },
@@ -146,8 +152,7 @@ describe("Archives page viewing-archive surface (security / fuzz)", () => {
     });
 
     it("muExportBasename neutralizes path separators in the basename", () => {
-        const { wrapper } = mountArchives();
-        const base = wrapper.vm.muExportBasename({
+        const base = muExportBasename({
             page_path: "../../../secret/x.mu",
             hash: "abc",
         });
@@ -156,7 +161,7 @@ describe("Archives page viewing-archive surface (security / fuzz)", () => {
     });
 
     it("onArchiveContentClick routes nomadnet links and scrolls fragment anchors", () => {
-        const { wrapper, routerPush } = mountArchives();
+        const routerPush = vi.fn();
         const holder = document.createElement("div");
         holder.innerHTML =
             '<a class="nomadnet-link" data-nomadnet-url="abc123:/p.mu`q=1">n</a>' +
@@ -170,7 +175,7 @@ describe("Archives page viewing-archive surface (security / fuzz)", () => {
             const clickOn = (el) => {
                 const ev = new MouseEvent("click", { bubbles: true, cancelable: true });
                 Object.defineProperty(ev, "target", { value: el });
-                wrapper.vm.onArchiveContentClick(ev);
+                handleArchiveContentClick(ev, { push: routerPush });
                 return ev;
             };
             const nomadEv = clickOn(nomadA);
@@ -190,12 +195,11 @@ describe("Archives page viewing-archive surface (security / fuzz)", () => {
         const noop = document.createElement("div");
         const noopEv = new MouseEvent("click");
         Object.defineProperty(noopEv, "target", { value: noop });
-        expect(() => wrapper.vm.onArchiveContentClick(noopEv)).not.toThrow();
+        expect(() => handleArchiveContentClick(noopEv, { push: routerPush })).not.toThrow();
     });
 
     it("onArchiveContentClick opens http links externally", async () => {
         const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
-        const { wrapper } = mountArchives();
         const holder = document.createElement("div");
         holder.innerHTML = '<a href="https://example.com/page">Example</a>';
         document.body.appendChild(holder);
@@ -203,7 +207,7 @@ describe("Archives page viewing-archive surface (security / fuzz)", () => {
             const link = holder.querySelector("a");
             const ev = new MouseEvent("click", { bubbles: true, cancelable: true });
             Object.defineProperty(ev, "target", { value: link });
-            wrapper.vm.onArchiveContentClick(ev);
+            handleArchiveContentClick(ev, {});
             expect(openSpy).toHaveBeenCalledWith("https://example.com/page", "_blank", "noopener,noreferrer");
             expect(ev.defaultPrevented).toBe(true);
         } finally {
@@ -214,7 +218,7 @@ describe("Archives page viewing-archive surface (security / fuzz)", () => {
 
     it("onArchiveContentClick blocks javascript: anchors without opening a window", () => {
         const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
-        const { wrapper, routerPush } = mountArchives();
+        const routerPush = vi.fn();
         const holder = document.createElement("div");
         holder.innerHTML = '<a href="javascript:alert(1)">bad</a>';
         document.body.appendChild(holder);
@@ -222,7 +226,7 @@ describe("Archives page viewing-archive surface (security / fuzz)", () => {
             const link = holder.querySelector("a");
             const ev = new MouseEvent("click", { bubbles: true, cancelable: true });
             Object.defineProperty(ev, "target", { value: link });
-            wrapper.vm.onArchiveContentClick(ev);
+            handleArchiveContentClick(ev, { push: routerPush });
             expect(ev.defaultPrevented).toBe(true);
             expect(openSpy).not.toHaveBeenCalled();
             expect(routerPush).not.toHaveBeenCalled();

@@ -1,9 +1,16 @@
-import { readFileSync, readdirSync, statSync } from "fs";
+import { readFileSync, readdirSync, statSync, existsSync } from "fs";
 import { join } from "path";
 import { describe, it, expect } from "vitest";
 
 function readSource(relativePath) {
-    return readFileSync(join(process.cwd(), relativePath), "utf8");
+    const full = join(process.cwd(), relativePath);
+    if (!existsSync(full)) {
+        const tsPath = full.replace(/\.js$/, ".ts");
+        if (existsSync(tsPath)) {
+            return readFileSync(tsPath, "utf8");
+        }
+    }
+    return readFileSync(full, "utf8");
 }
 
 function readSources(relativePaths) {
@@ -23,9 +30,10 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
 
         it("ConversationViewer and send helpers implement local and persisted cancellation", () => {
             const viewer = readSource("meshchatx/src/frontend/features/messages/components/ConversationViewer.svelte");
+            const mutations = readSource("meshchatx/src/frontend/features/messages/lib/conversationViewerMutations.ts");
             const send = readSource("meshchatx/src/frontend/features/messages/lib/conversationViewerSend.ts");
             expect(viewer).toContain("async function cancelSending()");
-            expect(viewer).toContain("outboundQueue.cancelJob");
+            expect(mutations).toContain("outboundQueue.cancelJob");
             expect(send).toContain("export async function cancelOutbound");
             expect(send).toContain("/lxmf-messages/${hash}/cancel");
         });
@@ -163,7 +171,7 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
         const surfaces = [
             ["MicronEditorPage.vue", "meshchatx/src/frontend/components/micron-editor/MicronEditorPage.vue"],
             ["NomadNetworkPage.vue", "meshchatx/src/frontend/components/nomadnetwork/NomadNetworkPage.vue"],
-            ["ArchivesPage.vue", "meshchatx/src/frontend/components/archives/ArchivesPage.vue"],
+            ["archiveNavigation.ts", "meshchatx/src/frontend/features/archives/lib/archiveNavigation.ts"],
             ["RNCPPage.vue", "meshchatx/src/frontend/components/rncp/RNCPPage.vue"],
         ];
 

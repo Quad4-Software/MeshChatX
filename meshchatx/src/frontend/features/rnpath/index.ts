@@ -2,7 +2,7 @@
 
 import { registerFeature } from "../../js/registries/featureRegistry.js";
 
-export function registerRNPathFeature(): void {
+export function registerRnpathFeature(): void {
     registerFeature({
         id: "rnpath",
         routes: [
@@ -15,5 +15,3 @@ export function registerRNPathFeature(): void {
         ],
     });
 }
-
-export const registerRnpathFeature = registerRNPathFeature;

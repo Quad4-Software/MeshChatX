@@ -18,5 +18,3 @@ export function registerRnxFeature(): void {
         ],
     });
 }
-
-export const registerRNXFeature = registerRnxFeature;

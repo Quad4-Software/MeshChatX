@@ -98,7 +98,7 @@
             class="secondary-chip px-3 py-2 text-xs cursor-pointer disabled:cursor-not-allowed"
             disabled={disabled || loading}
             onclick={loadIdentities}
-            title={t("app.refresh") || "Refresh"}
+            title={t("common.refresh")}
         >
             <MaterialDesignIcon iconName="refresh" class="size-4" />
         </button>

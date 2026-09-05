@@ -18,5 +18,3 @@ export function registerRnshFeature(): void {
         ],
     });
 }
-
-export const registerRNSHFeature = registerRnshFeature;

@@ -28,7 +28,9 @@ Makefile targets call the same Taskfile commands:
 | make run             | task run           | Run MeshChatX via UV                                        |
 | make build           | task build         | Build frontend and backend artifacts                        |
 | make format          | task format        | Format frontend and backend                                 |
-| make lint            | task lint          | ESLint, vue-tsc, knip, Ruff, basedpyright                   |
+| make lint            | task lint          | ESLint, vue-tsc, svelte-check, knip, dpdm cycles, Ruff, basedpyright |
+
+`task lint:frontend` also runs `typecheck:features` (strict Svelte/features), full Prettier `format:check`, and circular-dep analysis via dpdm. After `pnpm run build-frontend`, run `task check:frontend-bundle` (or `pnpm run check:bundle-budgets`) to enforce Vite chunk size budgets.
 | make test            | task test          | Frontend and backend tests                                  |
 | make clean           | task clean         | Remove build artifacts and node_modules                     |
 | make tree-rsm-verify | (shell)            | Verify meshchatx.rsm signature and hashes                   |
