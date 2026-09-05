@@ -30,7 +30,7 @@ MeshChatX ships as one Python service that serves both the API and the built fro
 Browser or Electron window
     |
     v
-Vue 3 frontend (hash routes such as #/messages)
+Svelte frontend (hash routes such as #/messages)
     |
     |  REST under /api/v1/*  and  WebSocket at /ws
     v

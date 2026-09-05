@@ -7,14 +7,14 @@ MeshChatX is a fork of Reticulum MeshChat with LXST telephony, RRC relay chat, N
 - Keep a local-first runtime that works on desktop, mobile, containers, and single-board computers.
 - Preserve Reticulum and LXMF semantics while improving usability and operational tooling.
 - Support multiple identities in one process without cross-identity data leakage.
-- Keep the Python backend and Vue frontend independently testable.
+- Keep the Python backend and Svelte frontend independently testable.
 - Run in constrained environments with predictable SQLite behaviour.
 
 Mesh features should follow Reticulum's post-IP design patterns (portable identity hashes, announces, store-and-forward, transport-agnostic APIs, scarce payloads). Agent and contributor gates live in .agents/conventions/reticulum-zen.md and .agents/skills/reticulum-design-gates/SKILL.md, derived from the [Zen of Reticulum](https://reticulum.network/manual/zen.html).
 
 ## Process overview
 
-One Python process owns the web server, Reticulum stack, and all per-identity managers. The Vue frontend is static assets served from meshchatx/public/ after a Vite build.
+One Python process owns the web server, Reticulum stack, and all per-identity managers. The Svelte frontend is static assets served from meshchatx/public/ after a Vite build.
 
 ```
 ReticulumMeshChat (meshchat.py)
@@ -94,11 +94,11 @@ Routes are registered through backend/http/register.py into aiohttp route tables
 - Map overlays and map-data-v1 publish/discover
 - Documentation and maintenance
 
-The frontend uses fetch via apiClient.js with CSRF tokens on mutating requests.
+The frontend uses fetch via apiClient.ts with CSRF tokens on mutating requests.
 
 ## WebSockets
 
-The UI connects to /ws for low-latency updates. Event types include new LXMF messages, identity switches, telephone state, RRC activity, Nomad download progress, RNCP transfers, and plugin events. Handlers are registered in wsEventRegistry.js and dispatched through wsEventBridge.js.
+The UI connects to /ws for low-latency updates. Event types include new LXMF messages, identity switches, telephone state, RRC activity, Nomad download progress, RNCP transfers, and plugin events. Handlers are registered in wsEventRegistry.ts and dispatched through wsEventBridge.ts.
 
 Audio calls can use /ws/telephone/audio for browser-side codec bridging.
 
@@ -142,7 +142,7 @@ Frontend build output always lands in meshchatx/public/ so runtime behaviour mat
 MeshChatX supports plugins with separate frontend and backend runtimes:
 
 - **Contribution registries** under meshchatx/src/frontend/js/registries/ for navigation, tools, commands, settings, and WebSocket events.
-- **Frontend plugins** run in dedicated Workers (PluginHost.js) with declarative UI slots.
+- **Frontend plugins** run in dedicated Workers (PluginHost.ts) with declarative UI slots.
 - **Backend WASM plugins** run in wasmtime with fuel metering and capability-gated host functions.
 - **Backend Python plugins** (backend.type: "python") run in-process with a permission-checked host (log, managers, storage, network flag).
 - **WASM bundles** embed manifest/files/signature in custom sections and unpack on install.

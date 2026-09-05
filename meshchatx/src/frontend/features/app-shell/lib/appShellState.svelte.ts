@@ -56,6 +56,8 @@ import { listNavItems } from "../../../js/registries/navRegistry.js";
 import { onWsEvent, offWsEvent } from "../../../js/registries/wsEventRegistry.js";
 import { shouldShowMultiSessionToast } from "../../../js/activeSessions.js";
 import { isDatabaseRecoveryError, recoveryLocationForNetworkError } from "../../../js/networkRecovery.js";
+import fatalErrorState from "../../../js/fatalErrorState.js";
+import type { FatalErrorRecord } from "../../../js/fatalErrorState.js";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed, clearMessagePanes } from "../../../js/browserLayoutStore.js";
 import { micronStorage } from "../../../js/MicronStorage.js";
 import {
@@ -70,6 +72,7 @@ import {
     orderItemsByLayout,
     saveAppSidebarNavLayout,
 } from "../../../js/appSidebarNavLayout.js";
+import type { NavLayout } from "../../../js/appSidebarNavLayout.js";
 import {
     applyBackgroundPollInterval,
     BATTERY_SAVER_CHANGED_EVENT,
@@ -163,6 +166,7 @@ export class AppShellState {
 
     route = $state<ActiveRoute | null>(null);
     localeVersion = $state(0);
+    fatalError = $state<FatalErrorRecord | null>(null);
 
     config = $state<ShellConfig | null>(null);
     appInfo = $state<ShellAppInfo | null>(null);
@@ -172,8 +176,8 @@ export class AppShellState {
     isSidebarCollapsed = $state(false);
     isShowingMoreNav = $state(false);
     isSidebarNavEditing = $state(false);
-    sidebarNavLayoutSaved = $state<unknown>(null);
-    sidebarNavLayoutDraft = $state<unknown>(null);
+    sidebarNavLayoutSaved = $state<NavLayout | null>(null);
+    sidebarNavLayoutDraft = $state<NavLayout | null>(null);
 
     isSwitchingIdentity = $state(false);
     shellRunning = $state(false);
@@ -503,6 +507,16 @@ export class AppShellState {
                     GlobalState.config?.rrc_enabled,
                 ],
                 () => this.syncGlobalMirror(),
+                { immediate: true }
+            )
+        );
+
+        this.disposers.push(
+            watch(
+                () => fatalErrorState.active,
+                (next) => {
+                    this.fatalError = next;
+                },
                 { immediate: true }
             )
         );
