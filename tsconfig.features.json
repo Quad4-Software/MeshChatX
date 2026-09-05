@@ -14,7 +14,7 @@
         "meshchatx/src/frontend/vite-env.d.ts",
         "meshchatx/src/frontend/js/apiClient.ts",
         "meshchatx/src/frontend/js/meshValidate.ts",
-        "svelte.config.js"
+        "svelte.config.mjs"
     ],
     "exclude": ["node_modules", "meshchatx/public", "meshchatx/src/frontend/public", "build", "dist", "tests"]
 }

@@ -6,7 +6,7 @@ import pluginPrettier from "eslint-plugin-prettier/recommended";
 import pluginSecurity from "eslint-plugin-security";
 import globals from "globals";
 import tseslint from "typescript-eslint";
-import svelteConfig from "./svelte.config.js";
+import svelteConfig from "./svelte.config.mjs";
 
 export default [
     {
