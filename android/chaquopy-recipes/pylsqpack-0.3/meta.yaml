@@ -1,0 +1,6 @@
+package:
+    name: pylsqpack
+    version: "0.3.24"
+
+build:
+    number: 0
