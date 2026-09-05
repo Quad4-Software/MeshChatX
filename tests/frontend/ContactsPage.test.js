@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup, waitFor, screen } from "@testing-library/svelte";
 import ContactsPage from "@/features/contacts/ContactsPage.svelte";
-import { parseLxmaUri, extractDestinationHash } from "@/features/contacts/lib/contactUri.js";
-import { mergeContactsByName } from "@/features/contacts/lib/mergeContacts.js";
+import { parseLxmaUri, extractDestinationHash } from "@/features/contacts/lib/contactUri.ts";
+import { mergeContactsByName } from "@/features/contacts/lib/mergeContacts.ts";
 import {
     addContactFromInput,
     exportContactsFile,
     importContactsList,
-} from "@/features/contacts/lib/contactsActions.js";
+} from "@/features/contacts/lib/contactsActions.ts";
 import WebSocketConnection from "@/js/WebSocketConnection";
 import ToastUtils from "@/js/ToastUtils";
 import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";

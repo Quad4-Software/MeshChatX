@@ -1,7 +1,9 @@
-import { mount } from "@vue/test-utils";
+import { mount as mountVue } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { cleanup, render } from "@testing-library/svelte";
+import { flushSync, tick } from "svelte";
 import IconButton from "../../meshchatx/src/frontend/components/IconButton.vue";
-import SendMessageButton from "../../meshchatx/src/frontend/components/messages/composer/SendMessageButton.vue";
+import SendMessageButton from "../../meshchatx/src/frontend/features/messages/components/composer/SendMessageButton.svelte";
 import Toggle from "../../meshchatx/src/frontend/components/forms/Toggle.vue";
 import FormLabel from "../../meshchatx/src/frontend/components/forms/FormLabel.vue";
 import FormSubLabel from "../../meshchatx/src/frontend/components/forms/FormSubLabel.vue";
@@ -48,6 +50,72 @@ vi.mock("../../meshchatx/src/frontend/js/ElectronUtils", () => ({
         isWindowsElectron: vi.fn(() => false),
     },
 }));
+
+function mountSendMessageButton(options = {}) {
+    const emitted = {};
+    const emit = (name, value) => {
+        emitted[name] ||= [];
+        emitted[name].push(value === undefined ? [] : [value]);
+    };
+    const view = render(SendMessageButton, {
+        ...(options.props || {}),
+        onsend: () => emit("send"),
+        ondeliverymethodchanged: (method) => emit("delivery-method-changed", method),
+        onsendcommandorrequest: () => emit("send-command-or-request"),
+        onsendpapercompose: () => emit("send-paper-compose"),
+    });
+    const wrapButton = (element) => ({
+        trigger: async (eventName) => {
+            flushSync(() => element.dispatchEvent(new Event(eventName, { bubbles: true })));
+            await tick();
+        },
+        attributes: (name) => element.getAttribute(name) ?? undefined,
+    });
+    const clickMenuItem = (text) => {
+        const button = [...view.container.querySelectorAll("button")].find(
+            (entry) => entry.textContent?.trim() === text
+        );
+        flushSync(() => button?.click());
+    };
+    const vm = {
+        get isShowingMenu() {
+            return view.container.textContent?.includes("messages.send_automatically") === true;
+        },
+        showMenu() {
+            flushSync(() => view.container.querySelectorAll("button")[1]?.click());
+        },
+        setDeliveryMethod(method) {
+            const labels = {
+                direct: "messages.send_over_direct_link",
+                opportunistic: "messages.send_opportunistically",
+                propagated: "messages.send_to_propagation_node",
+            };
+            clickMenuItem(labels[method] || "messages.send_automatically");
+        },
+        emitCommandOrRequest() {
+            clickMenuItem("messages.send_menu_telemetry_request");
+        },
+        emitPaperCompose() {
+            clickMenuItem("messages.send_menu_paper_compose");
+        },
+        $nextTick: tick,
+    };
+    return {
+        vm,
+        text: () => view.container.textContent || "",
+        html: () => view.container.innerHTML,
+        find: (selector) => wrapButton(view.container.querySelector(selector)),
+        findAll: (selector) => [...view.container.querySelectorAll(selector)].map(wrapButton),
+        emitted: (name) => emitted[name],
+        unmount: view.unmount,
+    };
+}
+
+function mount(component, options) {
+    return component === SendMessageButton ? mountSendMessageButton(options) : mountVue(component, options);
+}
+
+afterEach(() => cleanup());
 
 describe("DropDownMenuItem Component", () => {
     it("renders slot content", () => {

@@ -201,7 +201,6 @@ _SERVER_BIND_STATUS_SCHEMA: dict = {
 
 _DEMO_PUBLIC_STATUS_FIELDS: dict = {
     "demo_mode": {"type": "boolean"},
-    "altcha_enabled": {"type": "boolean"},
     "auth_page_hint": {"type": ["string", "null"]},
 }
 
@@ -379,23 +378,6 @@ AUTH_STATUS_SCHEMA: dict = {
         **_DEMO_PUBLIC_STATUS_FIELDS,
     },
     "additionalProperties": False,
-}
-
-ALTCHA_CHALLENGE_SCHEMA: dict = {
-    "type": "object",
-    "required": ["parameters", "signature"],
-    "properties": {
-        "parameters": {
-            "type": "object",
-            "required": ["algorithm"],
-            "properties": {
-                "algorithm": {"type": "string"},
-            },
-            "additionalProperties": True,
-        },
-        "signature": {"type": "string"},
-    },
-    "additionalProperties": True,
 }
 
 TELEPHONE_VOICEMAIL_STATUS_SCHEMA: dict = {

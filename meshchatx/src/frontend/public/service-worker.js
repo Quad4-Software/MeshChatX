@@ -328,7 +328,7 @@ function createShellRuntime(options) {
      * @param {{ preloadResponse?: Promise<Response|null> }} [eventExtras]
      * @returns {Promise<Response>|null} null means network bypass (do not respondWith)
      */
-    function resolveFetch(request, eventExtras = {}) {
+    function resolveFetch(request, eventExtras: any = {}) {
         let url;
         try {
             url = new URL(request.url);
@@ -414,7 +414,7 @@ function shouldAttachNavigationPreload(request, origin) {
  * @returns {boolean} true when respondWith was called
  */
 function handleFetchEvent(event, runtime, origin) {
-    const extras = {};
+    const extras: any = {};
     if (shouldAttachNavigationPreload(event.request, origin)) {
         extras.preloadResponse = event.preloadResponse;
     }
@@ -430,7 +430,7 @@ function handleFetchEvent(event, runtime, origin) {
 /* global ["/","/boot-theme.js","/manifest.json","/favicons/favicon-512x512.png"], cacheNameForBuild, createShellRuntime, handleFetchEvent, SHELL_FALLBACK_URL, NAV_NETWORK_TIMEOUT_MS, UPDATE_MESSAGE_TYPE */
 /**
  * MeshChatX app-shell service worker bootstrap.
- * Preceded at build time by inlined swCachePolicy.js + swShellRuntime.js.
+ * Preceded at build time by inlined swCachePolicy.ts + swShellRuntime.ts.
  * Placeholders dev and ["/","/boot-theme.js","/manifest.json","/favicons/favicon-512x512.png"] are replaced.
  */
 

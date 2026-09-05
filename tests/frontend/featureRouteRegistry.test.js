@@ -7,7 +7,7 @@ import {
     listFeatureIds,
     registerFeature,
 } from "../../meshchatx/src/frontend/js/registries/featureRegistry.js";
-import { registerBlockedFeature } from "../../meshchatx/src/frontend/features/blocked/index.js";
+import { registerBlockedFeature } from "../../meshchatx/src/frontend/features/blocked/index.ts";
 import { buildRouterRoutesFromRegistry } from "../../meshchatx/src/frontend/shell/buildRouterRoutes.js";
 
 describe("feature route registry", () => {

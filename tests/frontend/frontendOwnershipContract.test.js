@@ -57,7 +57,7 @@ describe("frontend mega-page ownership contracts", () => {
         const allowedRoots = [
             "meshchatx/src/frontend/components/settings",
             "meshchatx/src/frontend/components/map",
-            "meshchatx/src/frontend/components/messages",
+            "meshchatx/src/frontend/features/messages",
             "meshchatx/src/frontend/components/call",
             "meshchatx/src/frontend/components/layout",
             "meshchatx/src/frontend/js",

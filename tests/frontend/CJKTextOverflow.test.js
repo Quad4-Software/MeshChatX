@@ -28,7 +28,7 @@ describe("CJK Text Overflow UI CSS Tests", () => {
 
         const content = wrapper.find(".content");
 
-        // Ensure the class attributes exactly match how we configure ConversationMessageEntry.vue
+        // Match the classes used by ConversationMessageEntry.svelte.
         expect(content.classes()).toContain("wrap-break-word");
         expect(content.classes()).toContain("[word-break:break-word]");
         expect(content.classes()).toContain("min-w-0");

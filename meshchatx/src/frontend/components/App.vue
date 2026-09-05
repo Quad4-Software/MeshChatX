@@ -2820,6 +2820,25 @@ export default {
                     return;
                 }
                 if (/^meshchatx:\/\/app\/messages\/?/i.test(normalizedUrl)) {
+                    let destinationHash = "";
+                    try {
+                        const u = new URL(normalizedUrl);
+                        const parts = String(u.pathname || "")
+                            .split("/")
+                            .filter((p) => p.length > 0);
+                        if (parts.length >= 2 && parts[0].toLowerCase() === "messages") {
+                            destinationHash = String(parts[1] || "").trim();
+                        }
+                    } catch {
+                        /* keep destinationHash empty */
+                    }
+                    if (/^[0-9a-fA-F]{8,64}$/.test(destinationHash)) {
+                        this.$router.push({
+                            name: "messages",
+                            params: { destinationHash: destinationHash.toLowerCase() },
+                        });
+                        return;
+                    }
                     this.$router.push({ name: "messages" });
                     return;
                 }

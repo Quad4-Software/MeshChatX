@@ -7,7 +7,7 @@ import {
     loadCollapsedSections,
     saveCollapsedSections,
     toolRouteHref,
-} from "@/features/tools/lib/toolsList.js";
+} from "@/features/tools/lib/toolsList.ts";
 import { registerCoreContributions } from "@/js/registries/registerCoreContributions.js";
 import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
 

@@ -253,7 +253,6 @@ jobs:
                       "anyio-*-py3-none-any.whl"
                       "hpack-*-py3-none-any.whl"
                       "hyperframe-*-py3-none-any.whl"
-                      "altcha-2.0.2-py3-none-any.whl"
                       "pyopenssl-26.4.0-py3-none-any.whl"
                       "service_identity-26.1.0-py3-none-any.whl"
                       "attrs-26.1.0-py3-none-any.whl"

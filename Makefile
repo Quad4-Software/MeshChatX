@@ -6,6 +6,7 @@ TASK ?= task
 
 .PHONY: install install-offline run dev dev-fe build format lint test test-be-perf clean help dist-linux dist-linux-x64
 .PHONY: tree-manifest tree-rsm-sign tree-rsm-verify hooks-install
+.PHONY: docker-build docker-run docker-run-dev
 
 install:
 	@$(TASK) install
@@ -46,6 +47,15 @@ dist-linux:
 dist-linux-x64:
 	@$(TASK) dist:linux-x64
 
+docker-build:
+	@$(TASK) docker:build
+
+docker-run:
+	@$(TASK) docker:run
+
+docker-run-dev:
+	@$(TASK) docker:run:dev
+
 tree-manifest:
 	sh scripts/ci/tree-manifest.sh generate
 
@@ -63,4 +73,7 @@ help:
 	@echo "  make tree-rsm-verify  Verify meshchatx.rsm (no Task required)"
 	@echo "  make tree-rsm-sign    Sign tree inventory (requires RNS_ID_PATH)"
 	@echo "  make hooks-install    Enable .githooks pre-commit"
+	@echo "  make docker-build     Build image (docker/Dockerfile via task)"
+	@echo "  make docker-run       Compose up (docker/docker-compose.yml)"
+	@echo "  make docker-run-dev   Compose up with build (docker/docker-compose.dev.yml)"
 	@$(TASK) --list

@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
-# Smoke-test docker-compose.demo.yml (Coolify-shaped demo stack).
+# Smoke-test docker/docker-compose.demo.yml (Coolify-shaped demo stack).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
 IMAGE="${MESHCHAT_DOCKER_DEMO_IMAGE:-reticulum-meshchatx:local}"
-COMPOSE_FILE="docker-compose.demo.yml"
+COMPOSE_FILE="docker/docker-compose.demo.yml"
 OVERRIDE_FILE="${TMPDIR:-/tmp}/meshchatx-demo-smoke-ports.yml"
-KEY="${MESHCHAT_ALTCHA_HMAC_KEY:-demo-smoke-hmac-key-change-me}"
 
 STATUS_JSON="${TMPDIR:-/tmp}/meshchatx-demo-smoke-status.json"
 cleanup() {
-    MESHCHAT_IMAGE="$IMAGE" MESHCHAT_ALTCHA_HMAC_KEY="$KEY" \
+    MESHCHAT_IMAGE="$IMAGE" \
         docker compose -f "$COMPOSE_FILE" -f "$OVERRIDE_FILE" down >/dev/null 2>&1 || true
     rm -f "$OVERRIDE_FILE" "$STATUS_JSON"
 }
@@ -27,10 +26,10 @@ EOF
 
 if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
     echo "Building $IMAGE..."
-    docker build -f Dockerfile -t "$IMAGE" .
+    docker build -f docker/Dockerfile -t "$IMAGE" .
 fi
 
-MESHCHAT_IMAGE="$IMAGE" MESHCHAT_ALTCHA_HMAC_KEY="$KEY" \
+MESHCHAT_IMAGE="$IMAGE" \
     docker compose -f "$COMPOSE_FILE" -f "$OVERRIDE_FILE" up -d --pull never
 
 demo_status_ready() {
@@ -38,7 +37,7 @@ demo_status_ready() {
     python3 -c '
 import json,sys
 d=json.load(open(sys.argv[1], encoding="utf-8"))
-sys.exit(0 if d.get("demo_mode") and d.get("altcha_enabled") else 1)
+sys.exit(0 if d.get("demo_mode") else 1)
 ' "$STATUS_JSON"
 }
 
@@ -55,7 +54,6 @@ python3 -c '
 import json,sys
 d=json.load(open(sys.argv[1], encoding="utf-8"))
 assert d.get("demo_mode") is True
-assert d.get("altcha_enabled") is True
 print("demo status ok", d.get("status"))
 ' "$STATUS_JSON"
 

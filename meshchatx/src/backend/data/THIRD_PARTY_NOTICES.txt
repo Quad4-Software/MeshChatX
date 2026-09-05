@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-09-05T11:20:02.826137Z
+Generated at: 2026-09-05T13:40:29.383394Z
 Frontend source: node_modules
 
 Python dependencies
@@ -19,9 +19,6 @@ aioquic 1.3.0
 aiosignal 1.4.0
   License: Apache 2.0
   Author: aiohttp team <team@aiohttp.org>
-altcha 2.1.0
-  License: OSI Approved :: MIT License
-  Author: Daniel Regeci
 anyio 4.14.2
   License: MIT
   Author: Alex Grönholm <alex.gronholm@nextday.fi>
@@ -133,6 +130,9 @@ yarl 1.24.5
 
 Node dependencies
 -----------------
+@ampproject/remapping 2.3.0
+  License: Apache-2.0
+  Author: Justin Ridgewell <jridgewell@google.com>
 @asamuzakjp/css-color 5.1.11
   License: MIT
   Author: asamuzaK
@@ -247,6 +247,9 @@ Node dependencies
 @babel/plugin-transform-typescript 7.29.7
   License: MIT
   Author: The Babel Team (https://babel.dev/team)
+@babel/runtime 7.12.5
+  License: MIT
+  Author: Sebastian McKenzie <sebmck@gmail.com>
 @babel/template 7.29.7
   License: MIT
   Author: The Babel Team (https://babel.dev/team)
@@ -499,10 +502,10 @@ Node dependencies
 @jridgewell/sourcemap-codec 1.4.15
   License: MIT
   Author: Rich Harris
-@jridgewell/trace-mapping 0.3.28
+@jridgewell/trace-mapping 0.3.24
   License: MIT
   Author: Justin Ridgewell <justin@ridgewell.name>
-@jridgewell/trace-mapping 0.3.24
+@jridgewell/trace-mapping 0.3.28
   License: MIT
   Author: Justin Ridgewell <justin@ridgewell.name>
 @jridgewell/trace-mapping 0.3.9
@@ -751,6 +754,12 @@ Node dependencies
 @standard-schema/spec 1.1.0
   License: MIT
   Author: Colin McDonnell
+@sveltejs/load-config 0.2.3
+  License: MIT
+  Author: -
+@sveltejs/vite-plugin-svelte 7.3.0
+  License: MIT
+  Author: -
 @tailwindcss/cli 4.3.3
   License: MIT
   Author: -
@@ -775,6 +784,18 @@ Node dependencies
 @tanstack/vue-virtual 3.13.36
   License: MIT
   Author: Tanner Linsley
+@testing-library/dom 10.4.1
+  License: MIT
+  Author: Kent C. Dodds <me@kentcdodds.com> (https://kentcdodds.com)
+@testing-library/svelte 5.4.2
+  License: MIT
+  Author: -
+@testing-library/svelte-core 1.1.3
+  License: MIT
+  Author: -
+@types/aria-query 5.0.4
+  License: MIT
+  Author: Sebastian Silbermann
 @types/chai 5.2.2
   License: MIT
   Author: Bart van der Schoor
@@ -787,10 +808,10 @@ Node dependencies
 @types/deep-eql 4.0.0
   License: MIT
   Author: Rodrigo Pietnechuk
-@types/estree 1.0.0
+@types/estree 1.0.6
   License: MIT
   Author: RReverser
-@types/estree 1.0.6
+@types/estree 1.0.0
   License: MIT
   Author: RReverser
 @types/fs-extra 9.0.13
@@ -961,6 +982,9 @@ acorn-import-attributes 1.9.5
 acorn-jsx 5.3.2
   License: MIT
   Author: -
+acorn-typescript 1.4.13
+  License: MIT
+  Author: tyrealhu
 agent-base 7.1.0
   License: MIT
   Author: Nathan Rajlich <nathan@tootallnate.net> (http://n8.io/)
@@ -979,13 +1003,13 @@ ajv 8.18.0
 alien-signals 3.2.1
   License: MIT
   Author: -
-altcha 3.2.2
-  License: MIT
-  Author: Daniel Regeci
 ansi-colors 4.1.3
   License: MIT
   Author: Brian Woodward (https://github.com/doowb)
 ansi-regex 5.0.1
+  License: MIT
+  Author: Sindre Sorhus <sindresorhus@gmail.com>
+ansi-regex 6.0.1
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
 ansi-styles 3.1.0
@@ -1003,6 +1027,9 @@ ansi-styles 4.3.0
 ansi-styles 4.1.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
+ansi-styles 5.0.0
+  License: MIT
+  Author: Sindre Sorhus <sindresorhus@gmail.com>
 ansi-styles 6.2.1
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
@@ -1018,6 +1045,12 @@ argparse 2.0.1
 argue-cli 3.1.0
   License: MIT
   Author: dangreen
+aria-query 5.3.0
+  License: Apache-2.0
+  Author: Jesse Beach <splendidnoise@gmail.com>
+aria-query 5.3.1
+  License: Apache-2.0
+  Author: Jesse Beach <splendidnoise@gmail.com>
 array-buffer-byte-length 1.0.2
   License: MIT
   Author: Jordan Harband <ljharb@gmail.com>
@@ -1051,6 +1084,9 @@ aws4 1.13.2
 axe-core 4.13.0
   License: MPL-2.0
   Author: David Sturley
+axobject-query 4.1.0
+  License: Apache-2.0
+  Author: Jesse Beach <splendidnoise@gmail.com>
 balanced-match 1.0.0
   License: MIT
   Author: Julian Gruber <mail@juliangruber.com>
@@ -1171,6 +1207,9 @@ chalk 4.1.2
 chalk 4.0.0
   License: MIT
   Author: -
+chokidar 4.0.1
+  License: MIT
+  Author: Paul Miller (https://paulmillr.com)
 chownr 3.0.0
   License: BlueOak-1.0.0
   Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
@@ -1339,6 +1378,9 @@ decompress-response 10.0.0
 deep-is 0.1.4
   License: MIT
   Author: Thorsten Lorenz <thlorenz@gmx.de>
+deepmerge 4.3.1
+  License: MIT
+  Author: -
 default-browser 5.5.1
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
@@ -1360,6 +1402,9 @@ define-properties 1.2.1
 delayed-stream 1.0.0
   License: MIT
   Author: Felix Geisendörfer <felix@debuggable.com> (http://debuggable.com/)
+dequal 2.0.3
+  License: MIT
+  Author: Luke Edwards <luke.edwards05@gmail.com>
 detect-libc 1.0.3
   License: Apache-2.0
   Author: Lovell Fuller <npm@lovell.info>
@@ -1390,6 +1435,9 @@ dist 1.0.0
 dmg-builder 26.15.3
   License: MIT
   Author: Vladimir Krivosheev
+dom-accessibility-api 0.5.16
+  License: MIT
+  Author: -
 dompurify 3.4.14
   License: (MPL-2.0 OR Apache-2.0)
   Author: Dr.-Ing. Mario Heiderich, Cure53 <mario@cure53.de> (https://cure53.de/)
@@ -1549,24 +1597,30 @@ eslint-plugin-prettier 5.5.6
 eslint-plugin-security 3.0.1
   License: Apache-2.0
   Author: Node Security Project
+eslint-plugin-svelte 3.23.0
+  License: MIT
+  Author: Yosuke Ota (https://github.com/ota-meshi)
 eslint-plugin-vue 10.10.0
   License: MIT
   Author: Toru Nagashima (https://github.com/mysticatea)
-eslint-scope 8.4.0
+eslint-scope 8.2.0
   License: BSD-2-Clause
   Author: -
-eslint-scope 8.2.0
+eslint-scope 8.4.0
   License: BSD-2-Clause
   Author: -
 eslint-visitor-keys 3.4.3
   License: Apache-2.0
   Author: Toru Nagashima (https://github.com/mysticatea)
-eslint-visitor-keys 4.2.1
-  License: Apache-2.0
-  Author: Toru Nagashima (https://github.com/mysticatea)
 eslint-visitor-keys 4.2.0
   License: Apache-2.0
   Author: Toru Nagashima (https://github.com/mysticatea)
+eslint-visitor-keys 4.2.1
+  License: Apache-2.0
+  Author: Toru Nagashima (https://github.com/mysticatea)
+esm-env 1.0.0
+  License: MIT
+  Author: Ben McCann (https://www.benmccann.com)
 espree 10.4.0
   License: BSD-2-Clause
   Author: Nicholas C. Zakas <nicholas+npm@nczconsulting.com>
@@ -1579,13 +1633,16 @@ esquery 1.7.0
 esquery 1.6.0
   License: BSD-3-Clause
   Author: Joel Feenstra <jrfeenst+esquery@gmail.com>
+esrap 1.2.2
+  License: MIT
+  Author: -
 esrecurse 4.3.0
   License: BSD-2-Clause
   Author: -
-estraverse 5.3.0
+estraverse 5.2.0
   License: BSD-2-Clause
   Author: -
-estraverse 5.2.0
+estraverse 5.3.0
   License: BSD-2-Clause
   Author: -
 estraverse 5.1.0
@@ -1597,11 +1654,11 @@ estree-walker 3.0.3
 estree-walker 2.0.2
   License: MIT
   Author: Rich Harris
-esutils 2.0.3
-  License: BSD-2-Clause
-  Author: -
 esutils 2.0.2
   License: BSD
+  Author: -
+esutils 2.0.3
+  License: BSD-2-Clause
   Author: -
 expect-type 1.3.0
   License: Apache-2.0
@@ -1780,6 +1837,9 @@ global-directory 5.0.0
 globals 14.0.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
+globals 16.0.0
+  License: MIT
+  Author: Sindre Sorhus <sindresorhus@gmail.com>
 globals 17.11.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
@@ -1849,9 +1909,6 @@ has-tostringtag 1.0.2
 has-tostringtag 1.0.0
   License: MIT
   Author: Jordan Harband <ljharb@gmail.com>
-hash-wasm 4.12.0
-  License: MIT
-  Author: Dani Biró <danibiro93@gmail.com> (https://danibiro.com)
 hasown 2.0.4
   License: MIT
   Author: Jordan Harband <ljharb@gmail.com>
@@ -2053,6 +2110,9 @@ is-plain-obj 4.1.0
 is-potential-custom-element-name 1.0.1
   License: MIT
   Author: Mathias Bynens
+is-reference 3.0.2
+  License: MIT
+  Author: Rich Harris
 is-regex 1.2.1
   License: MIT
   Author: Jordan Harband <ljharb@gmail.com>
@@ -2221,6 +2281,9 @@ keyv 5.6.0
 knip 6.33.0
   License: ISC
   Author: Lars Kappert <lars@webpro.nl>
+known-css-properties 0.37.0
+  License: MIT
+  Author: Viorel Cojocaru <vio@beanon.com>
 kolorist 1.8.0
   License: MIT
   Author: Marvin Hagemeister <hello@marvinh.dev>
@@ -2260,12 +2323,18 @@ lightningcss-linux-x64-gnu 1.32.0
 lightningcss-linux-x64-gnu 1.33.0
   License: MPL-2.0
   Author: -
+lilconfig 2.0.5
+  License: MIT
+  Author: antonk52
 lines-and-columns 1.1.6
   License: MIT
   Author: Brian Donovan <me@brian-donovan.com>
 ljharb-monorepo-symlink-test 0.0.0
   License: MIT
   Author: -
+locate-character 3.0.0
+  License: MIT
+  Author: Rich Harris
 locate-path 6.0.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
@@ -2311,6 +2380,12 @@ lru-cache 11.0.0
 lru-cache 6.0.0
   License: ISC
   Author: Isaac Z. Schlueter <i@izs.me>
+lz-string 1.5.0
+  License: MIT
+  Author: pieroxy <pieroxy@pieroxy.net>
+magic-string 1.0.0
+  License: MIT
+  Author: Rich Harris
 magic-string 0.30.21
   License: MIT
   Author: Rich Harris
@@ -2665,6 +2740,15 @@ postcss 8.5.23
 postcss 8.5.26
   License: MIT
   Author: Andrey Sitnik <andrey@sitnik.es>
+postcss-load-config 3.1.4
+  License: MIT
+  Author: Michael Ciniawky <michael.ciniawsky@gmail.com>
+postcss-safe-parser 7.1.0
+  License: MIT
+  Author: Andrey Sitnik <andrey@sitnik.es>
+postcss-scss 4.0.9
+  License: MIT
+  Author: Andrey Sitnik <andrey@sitnik.ru>
 postcss-selector-parser 7.1.5
   License: MIT
   Author: Maxime Thirouin
@@ -2695,6 +2779,12 @@ prettier 3.9.6
 prettier-linter-helpers 1.0.1
   License: MIT
   Author: Ben Scott
+prettier-plugin-svelte 4.1.1
+  License: MIT
+  Author: James Birtles <jameshbirtles@gmail.com>
+pretty-format 27.5.1
+  License: MIT
+  Author: James Kyle <me@thejameskyle.com>
 proc-log 5.0.0
   License: ISC
   Author: GitHub Inc.
@@ -2752,6 +2842,9 @@ quickselect 2.0.0
 rbush 4.0.0
   License: MIT
   Author: Volodymyr Agafonkin
+react-is 17.0.1
+  License: MIT
+  Author: -
 read-binary-file-arch 1.0.6
   License: MIT
   Author: Samuel Maddock
@@ -2761,6 +2854,9 @@ readable-stream 2.0.2
 readable-stream 2.3.8
   License: MIT
   Author: -
+readdirp 4.0.1
+  License: MIT
+  Author: Thorsten Lorenz <thlorenz@gmx.de> (thlorenz.com)
 reference-spec-reader 0.2.0
   License: MIT
   Author: manzt <trevor.j.manz@gmail.com>
@@ -2770,6 +2866,9 @@ reflect.getprototypeof 1.0.9
 reflect.getprototypeof 1.0.6
   License: MIT
   Author: Jordan Harband <ljharb@gmail.com>
+regenerator-runtime 0.13.11
+  License: MIT
+  Author: Ben Newman <bn@cs.stanford.edu>
 regexp-tree 0.1.27
   License: MIT
   Author: Dmitry Soshnikov
@@ -2833,6 +2932,9 @@ rolldown 1.2.4
 run-applescript 7.1.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
+sade 1.7.4
+  License: MIT
+  Author: Luke Edwards <luke.edwards05@gmail.com>
 safe-array-concat 1.1.3
   License: MIT
   Author: Jordan Harband <ljharb@gmail.com>
@@ -3040,6 +3142,15 @@ supports-color 7.1.0
 supports-preserve-symlinks-flag 1.0.0
   License: MIT
   Author: Jordan Harband <ljharb@gmail.com>
+svelte 5.0.0
+  License: MIT
+  Author: -
+svelte-check 4.7.6
+  License: MIT
+  Author: The Svelte Community
+svelte-eslint-parser 1.8.1
+  License: MIT
+  Author: Yosuke Ota (https://github.com/ota-meshi)
 symbol-tree 3.2.4
   License: MIT
   Author: Joris van der Wel <joris@jorisvanderwel.com>
@@ -3253,6 +3364,9 @@ vite-plugin-vue-devtools 8.2.1
 vite-plugin-vue-inspector 6.0.0
   License: MIT
   Author: webfansplz
+vitefu 1.1.2
+  License: MIT
+  Author: -
 vitest 4.1.11
   License: MIT
   Author: Anthony Fu <anthonyfu117@hotmail.com>
@@ -3367,10 +3481,10 @@ wrap-ansi 9.0.2
 wrappy 1.0.2
   License: ISC
   Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
-ws 7.5.13
+ws 8.21.0
   License: MIT
   Author: Einar Otto Stangvik <einaros@gmail.com> (http://2x.io)
-ws 8.21.0
+ws 7.5.13
   License: MIT
   Author: Einar Otto Stangvik <einaros@gmail.com> (http://2x.io)
 wsl-utils 0.3.1
@@ -3409,6 +3523,9 @@ yallist 5.0.0
 yallist 4.0.0
   License: ISC
   Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
+yaml 1.10.2
+  License: ISC
+  Author: Eemeli Aro <eemeli@gmail.com>
 yaml 2.9.0
   License: ISC
   Author: Eemeli Aro <eemeli@gmail.com>
@@ -3431,6 +3548,9 @@ yocto-queue 0.1.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
 zarrita 0.7.1
+  License: MIT
+  Author: -
+zimmerframe 1.1.2
   License: MIT
   Author: -
 zod 3.24.1

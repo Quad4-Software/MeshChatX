@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup, fireEvent, waitFor, screen } from "@testing-library/svelte";
 import DebugLogsPage from "@/features/debug-logs/DebugLogsPage.svelte";
-import { formatLogLine, debugLevelClass } from "@/features/debug-logs/lib/debugFormat.js";
+import { formatLogLine, debugLevelClass } from "@/features/debug-logs/lib/debugFormat.ts";
 import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
 import ToastUtils from "@/js/ToastUtils";
 

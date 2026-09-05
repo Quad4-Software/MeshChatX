@@ -4,6 +4,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -12,6 +13,13 @@ import android.text.TextUtils;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.Person;
+import androidx.core.app.RemoteInput;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class AndroidNotificationBridge {
     private static final int NOTIFY_BASE_ID = 0x4d434800;
@@ -30,6 +38,7 @@ public final class AndroidNotificationBridge {
     private static final int REQ_CALL_FULL = 0x4c32;
     private static final int REQ_CALL_ANSWER = 0x4c33;
     private static final int REQ_CALL_DECLINE = 0x4c34;
+    private static final int MAX_CACHED_MESSAGES = 8;
 
     private static final Object CONTEXT_LOCK = new Object();
     private static final Object TRUSTED_CALL_LOCK = new Object();
@@ -38,8 +47,35 @@ public final class AndroidNotificationBridge {
     private static volatile String pendingTrustedCallAction = null;
     private static final java.util.Set<Integer> postedMessageNotificationIds =
         java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+    private static final Map<String, List<CachedInboundMessage>> conversationMessageCache =
+        new ConcurrentHashMap<>();
 
     private AndroidNotificationBridge() {
+    }
+
+    private static final class CachedInboundMessage {
+        final String senderName;
+        final String body;
+        final long timestampMs;
+
+        CachedInboundMessage(String senderName, String body, long timestampMs) {
+            this.senderName = senderName;
+            this.body = body;
+            this.timestampMs = timestampMs;
+        }
+    }
+
+    public static void clearConversationMessageCache(@Nullable String destinationHash) {
+        String hash = LocalApiClient.normalizeDestinationHash(destinationHash);
+        if (hash == null) {
+            return;
+        }
+        conversationMessageCache.remove(hash);
+    }
+
+    /** Test helper: drop all cached MessagingStyle lines. */
+    public static void clearAllConversationMessageCacheForTests() {
+        conversationMessageCache.clear();
     }
 
     /**
@@ -162,6 +198,7 @@ public final class AndroidNotificationBridge {
         if (ctx == null) {
             return;
         }
+        clearConversationMessageCache(destinationHash);
         new Handler(Looper.getMainLooper()).post(
             () -> {
                 NotificationManager nm = ctx.getSystemService(NotificationManager.class);
@@ -183,6 +220,7 @@ public final class AndroidNotificationBridge {
         if (ctx == null) {
             return;
         }
+        conversationMessageCache.clear();
         new Handler(Looper.getMainLooper()).post(
             () -> {
                 NotificationManager nm = ctx.getSystemService(NotificationManager.class);
@@ -409,16 +447,10 @@ public final class AndroidNotificationBridge {
             return;
         }
 
-        Intent open = new Intent(ctx, MainActivity.class);
-        open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent pi = PendingIntent.getActivity(
-            ctx,
-            0,
-            open,
-            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
+        String hash = LocalApiClient.normalizeDestinationHash(destinationHash);
+        PendingIntent pi = openConversationPendingIntent(ctx, hash);
 
-        int id = messageNotificationId(dedupeHex, destinationHash);
+        int id = messageNotificationId(dedupeHex, hash != null ? hash : destinationHash);
 
         try {
             nm.cancel(id);
@@ -429,7 +461,6 @@ public final class AndroidNotificationBridge {
             .setSmallIcon(R.drawable.ic_stat_meshchatx)
             .setContentTitle(title)
             .setContentText(body)
-            .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
             .setContentIntent(pi)
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
@@ -437,10 +468,129 @@ public final class AndroidNotificationBridge {
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setOnlyAlertOnce(false);
 
+        if (hash != null) {
+            List<CachedInboundMessage> messages = appendCachedMessage(hash, title, body);
+            Person user = new Person.Builder()
+                .setName(ctx.getString(R.string.notification_messaging_self_name))
+                .setKey("self")
+                .build();
+            NotificationCompat.MessagingStyle style = new NotificationCompat.MessagingStyle(user)
+                .setConversationTitle(title)
+                .setGroupConversation(false);
+            for (CachedInboundMessage msg : messages) {
+                Person sender = new Person.Builder()
+                    .setName(msg.senderName)
+                    .setKey(hash)
+                    .build();
+                style.addMessage(msg.body, msg.timestampMs, sender);
+            }
+            b.setStyle(style);
+            b.addAction(buildReplyAction(ctx, hash));
+            b.addInvisibleAction(buildMarkAsReadAction(ctx, hash));
+        } else {
+            b.setStyle(new NotificationCompat.BigTextStyle().bigText(body));
+        }
+
         try {
             nm.notify(id, b.build());
             postedMessageNotificationIds.add(id);
         } catch (SecurityException ignored) {
         }
+    }
+
+    private static List<CachedInboundMessage> appendCachedMessage(
+        String destinationHash,
+        String senderName,
+        String body
+    ) {
+        List<CachedInboundMessage> next = new ArrayList<>();
+        List<CachedInboundMessage> prior = conversationMessageCache.get(destinationHash);
+        if (prior != null) {
+            next.addAll(prior);
+        }
+        next.add(new CachedInboundMessage(senderName, body, System.currentTimeMillis()));
+        while (next.size() > MAX_CACHED_MESSAGES) {
+            next.remove(0);
+        }
+        conversationMessageCache.put(destinationHash, next);
+        return next;
+    }
+
+    private static PendingIntent openConversationPendingIntent(
+        Context ctx,
+        @Nullable String destinationHash
+    ) {
+        Intent open = new Intent(ctx, MainActivity.class);
+        open.setAction(Intent.ACTION_VIEW);
+        open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        if (destinationHash != null) {
+            open.setData(Uri.parse("meshchatx://app/messages/" + destinationHash));
+        } else {
+            open.setData(Uri.parse("meshchatx://app/messages"));
+        }
+        int requestCode = destinationHash == null
+            ? 0
+            : (0x5a000000 | (stableHash16(destinationHash) & 0xffff));
+        return PendingIntent.getActivity(
+            ctx,
+            requestCode,
+            open,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+    }
+
+    private static NotificationCompat.Action buildReplyAction(Context ctx, String destinationHash) {
+        RemoteInput remoteInput =
+            new RemoteInput.Builder(MessagingReplyService.REMOTE_INPUT_RESULT_KEY)
+                .setLabel(ctx.getString(R.string.notification_reply_label))
+                .build();
+        PendingIntent replyPi = PendingIntent.getService(
+            ctx,
+            replyRequestCode(destinationHash),
+            MessagingReplyService.replyIntent(ctx, destinationHash),
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE
+        );
+        return new NotificationCompat.Action.Builder(
+                0,
+                ctx.getString(R.string.notification_reply),
+                replyPi
+            )
+            .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
+            .setShowsUserInterface(false)
+            .addRemoteInput(remoteInput)
+            .build();
+    }
+
+    private static NotificationCompat.Action buildMarkAsReadAction(
+        Context ctx,
+        String destinationHash
+    ) {
+        PendingIntent markPi = PendingIntent.getService(
+            ctx,
+            markAsReadRequestCode(destinationHash),
+            MessagingReplyService.markAsReadIntent(ctx, destinationHash),
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+        return new NotificationCompat.Action.Builder(
+                0,
+                ctx.getString(R.string.notification_mark_as_read),
+                markPi
+            )
+            .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_MARK_AS_READ)
+            .setShowsUserInterface(false)
+            .build();
+    }
+
+    static int replyRequestCode(String destinationHash) {
+        return 0x72000000 | (stableHash16(destinationHash) & 0xffff);
+    }
+
+    static int markAsReadRequestCode(String destinationHash) {
+        return 0x73000000 | (stableHash16(destinationHash) & 0xffff);
+    }
+
+    private static int stableHash16(String destinationHash) {
+        String hash = destinationHash == null ? "" : destinationHash.toLowerCase(Locale.ROOT);
+        return hash.hashCode() & 0xffff;
     }
 }

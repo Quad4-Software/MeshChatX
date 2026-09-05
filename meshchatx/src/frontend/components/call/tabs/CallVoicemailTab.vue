@@ -391,7 +391,7 @@
 <script>
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import LxmfUserIcon from "../../LxmfUserIcon.vue";
-import AudioWaveformPlayer from "../../messages/AudioWaveformPlayer.vue";
+import AudioWaveformPlayer from "../../AudioWaveformPlayer.vue";
 
 export default {
     name: "CallVoicemailTab",

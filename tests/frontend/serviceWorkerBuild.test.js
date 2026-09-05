@@ -70,7 +70,7 @@ describe("service worker build", () => {
     });
 
     it("main.js uses client register helpers and skips Electron", () => {
-        const main = readFileSync(resolve(ROOT, "meshchatx/src/frontend/main.js"), "utf8");
+        const main = readFileSync(resolve(ROOT, "meshchatx/src/frontend/main.ts"), "utf8");
         expect(main).toContain("ElectronUtils.isElectron()");
         expect(main).toContain("decideControllerChangeReload");
         expect(main).toContain("serviceWorkerRegisterOptions");

@@ -6,7 +6,7 @@ import {
     prependDisplayGroupsNewestFirst,
     displayGroupHashesOldestFirst,
     incrementalPrependMatchesFullRebuild,
-} from "@/components/messages/conversationDisplayGroups.js";
+} from "@/features/messages/lib/conversationDisplayGroups.ts";
 
 function mulberry32(seed) {
     let t = seed >>> 0;

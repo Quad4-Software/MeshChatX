@@ -15,8 +15,8 @@ const repoRoot = process.cwd();
 describe("host flip readiness", () => {
     it("shell helpers for registry routes exist", () => {
         expect(existsSync(join(repoRoot, "meshchatx/src/frontend/shell/FeaturePageHost.vue"))).toBe(true);
-        expect(existsSync(join(repoRoot, "meshchatx/src/frontend/shell/buildRouterRoutes.js"))).toBe(true);
-        expect(existsSync(join(repoRoot, "meshchatx/src/frontend/features/registerAllFeatures.js"))).toBe(true);
+        expect(existsSync(join(repoRoot, "meshchatx/src/frontend/shell/buildRouterRoutes.ts"))).toBe(true);
+        expect(existsSync(join(repoRoot, "meshchatx/src/frontend/features/registerAllFeatures.ts"))).toBe(true);
     });
 
     it("nav and route registries expose list APIs for a future Svelte shell", () => {

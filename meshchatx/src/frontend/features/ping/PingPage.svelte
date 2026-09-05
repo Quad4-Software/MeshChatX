@@ -141,9 +141,7 @@
         <div class="space-y-4 w-full max-w-4xl mx-auto">
             <div class="glass-card space-y-5">
                 <div class="text-sm text-sem-fg-muted">
-                    {@html t("ping.description", {
-                        code: "<code class='font-mono text-xs'>lxmf.delivery</code>",
-                    })}
+                    {t("ping.description")}
                 </div>
 
                 <div class="grid md:grid-cols-2 gap-4">

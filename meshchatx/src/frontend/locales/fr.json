@@ -2817,9 +2817,9 @@
         "col_license": "Licence"
     },
     "tools": {
-        "utilities": "Services publics",
-        "power_tools": "Services publics",
-        "diagnostics_description": "Utilitaires mesh et Reticulum au même endroit : joignabilité, chemins, transfert de fichiers, traduction, documentation et aides matérielles. Ouvrez une ligne pour l'outil complet.",
+        "utilities": "Outils",
+        "power_tools": "Outils",
+        "diagnostics_description": "Joignabilité, chemins, transfert de fichiers, traduction, docs et matériel.",
         "back_to_tools": "Retour aux outils",
         "beta_badge": "Bêta",
         "alpha_badge": "Alpha",
@@ -3486,7 +3486,8 @@
         "rnx": {
             "title": "RNX",
             "description": "Exécution distante de commandes sur Reticulum"
-        }
+        },
+        "search_placeholder": "Rechercher {count} outils"
     },
     "ping": {
         "title": "Ping des pairs Mesh",
@@ -4619,7 +4620,6 @@
         "set_password": "Définir le mot de passe",
         "login": "Connexion",
         "passwords_mismatch": "Les mots de passe ne correspondent pas",
-        "altcha_required": "Terminez d'abord le défi de vérification",
         "status_check_failed": "Impossible de vérifier l'état d'authentification",
         "failed": "Échec de l'authentification"
     },

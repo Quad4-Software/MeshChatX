@@ -2817,9 +2817,9 @@
         "col_license": "Licencia"
     },
     "tools": {
-        "utilities": "Utilidades",
-        "power_tools": "Utilidades",
-        "diagnostics_description": "Utilidades de malla y Reticulum en un mismo sitio: alcance, rutas, transferencia de archivos, traducción, documentación y ayudas de hardware. Abra una fila para la herramienta completa.",
+        "utilities": "Herramientas",
+        "power_tools": "Herramientas",
+        "diagnostics_description": "Alcance, rutas, transferencia de archivos, traducción, docs y hardware.",
         "back_to_tools": "Volver a herramientas",
         "beta_badge": "Beta",
         "alpha_badge": "Alfa",
@@ -3486,7 +3486,8 @@
         "rnx": {
             "title": "RNX",
             "description": "Ejecución remota de comandos sobre Reticulum"
-        }
+        },
+        "search_placeholder": "Buscar {count} herramientas"
     },
     "ping": {
         "title": "Hacer ping a pares de Mesh",
@@ -4619,7 +4620,6 @@
         "set_password": "Establecer contraseña",
         "login": "Iniciar sesión",
         "passwords_mismatch": "Las contraseñas no coinciden",
-        "altcha_required": "Complete primero el desafío de verificación",
         "status_check_failed": "No se pudo comprobar el estado de autenticación",
         "failed": "Error de autenticación"
     },

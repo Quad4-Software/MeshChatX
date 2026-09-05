@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.8.6] - 2026-09-06 [unreleased]
+## [4.9.0] - 2026-09-TBD [unreleased]
 
 ### Added
 
@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 - **Nomad private tabs**: Ctrl+Shift+P opens a purple private tab that is not archived, favourited, or saved in history.
 - **Micron publish**: Publish can create a mesh server, upload the page, and open it in NomadNet in one step.
 - **Nomad identify-on-connect** (schema 58): Sticky per-favourite Identify when connecting, matching NomadNet. Auto-identifies on link before page requests. Fingerprint toggle and favourites import/export carry `identify_on_connect`.
+- **Android Auto**: LXMF message notifications use MessagingStyle with reply and mark-as-read so Android Auto can read and answer them from the car. Tap opens `meshchatx://app/messages/<hash>`.
 
 ### Fixed
 
@@ -33,6 +34,8 @@ All notable changes to this project will be documented in this file.
 - **WebTransport**: aioquic 1.3.0 is a normal dependency. Android builds ship aioquic and pylsqpack Chaquopy wheels.
 - **Micron**: Micron-Parser-Go WASM v1.1.0.
 - **Docs**: Short READMEs at the repo root. Full install and contributor guides under docs/en/.
+- **Auth**: ALTCHA proof-of-work on login/setup is removed (npm, Python, Android wheel, challenge API, and env flags).
+- **Docker**: Dockerfiles and compose files live under docker/ (build with -f docker/Dockerfile, compose -f docker/docker-compose.yml).
 
 ## [4.8.5] - 2026-08-21 [released]
 
@@ -94,7 +97,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - **Local developer tooling**: [Vue DevTools](https://devtools.vuejs.org/) overlay on task dev (localhost Vite only, MESHCHAT_VUE_DEVTOOLS=0 to disable). task debug attaches debugpy on 127.0.0.1:5678. Debugger launch config: MeshChatX: Vite + Python. Playwright e2e keeps DevTools off.
-- **Public demo mode**: Read-only mesh showcase via MESHCHAT_DEMO_MODE or --demo. Optional ALTCHA on login/setup, login page hint text, and [docker-compose.demo.yml](docker-compose.demo.yml) for Coolify.
+- **Public demo mode**: Read-only mesh showcase via MESHCHAT_DEMO_MODE or --demo. Login page hint text and [docker/docker-compose.demo.yml](docker/docker-compose.demo.yml) for Coolify.
 - **Database upgrades**: Automatic zip backup before schema migrations (skip with MESHCHAT_SKIP_PRE_MIGRATE_BACKUP=1). CLI --list-backups and --export-backup for rollback. Post-migrate checks, retention of five pre-migrate zips by default, storage lock for single-writer volumes, and N-1/N-2 upgrade tests.
 - **App sidebar**: Grouped layout is the default (Communicate, Explore, Network, App, plus More). Appearance can switch back to Classic. Compact identity footer with announce, QR, and auto-announce interval. Press and hold to reorder links and groups while expanded.
 - **Tools page**: Tools are listed under Diagnostics, Transfer, Messaging, Network, and Other instead of one ungrouped grid.

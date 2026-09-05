@@ -44,11 +44,11 @@ describe("boot and load smoothness", () => {
     });
 
     it("main.js defers splash removal and preloads critical routes", () => {
-        const main = readFileSync(resolve(ROOT, "meshchatx/src/frontend/main.js"), "utf8");
+        const main = readFileSync(resolve(ROOT, "meshchatx/src/frontend/main.ts"), "utf8");
         expect(main).toContain("removeBootSplash");
         expect(main).toContain("requestAnimationFrame");
         expect(main).toContain("preloadCriticalRouteChunks");
-        expect(main).toContain('import("./components/messages/MessagesPage.vue")');
+        expect(main).toContain('import("./features/messages/MessagesPage.svelte")');
         expect(main).toContain("ElectronUtils.isElectron()");
         expect(main).toContain("serviceWorkerRegisterOptions");
         expect(main).toContain("decideControllerChangeReload");
@@ -58,7 +58,7 @@ describe("boot and load smoothness", () => {
 
     it("App.vue fades non-keepAlive route swaps on canvas background", () => {
         const app = readFileSync(resolve(ROOT, "meshchatx/src/frontend/components/App.vue"), "utf8");
-        const themeEngine = readFileSync(resolve(ROOT, "meshchatx/src/frontend/theme/themeEngine.js"), "utf8");
+        const themeEngine = readFileSync(resolve(ROOT, "meshchatx/src/frontend/theme/themeEngine.ts"), "utf8");
         expect(app).toContain('name="route-view-fade"');
         expect(app).toContain("bg-sem-canvas");
         expect(themeEngine).toContain("setUiTheme");

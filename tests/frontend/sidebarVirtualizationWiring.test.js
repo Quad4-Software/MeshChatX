@@ -11,12 +11,11 @@ function readRepo(relPath) {
 }
 
 describe("sidebar virtualization wiring oracle", () => {
-    it("MessagesSidebar virtualizes conversations at MIN_VIRTUAL_SIDEBAR_ITEMS", () => {
-        const src = readRepo("meshchatx/src/frontend/components/messages/MessagesSidebar.vue");
-        expect(src).toContain("SidebarVirtualList");
-        expect(src).toContain("displayedConversations.length >= MIN_VIRTUAL_SIDEBAR_ITEMS");
-        expect(src).toContain('@scroll="onConversationsScroll"');
-        expect(src).toContain("MIN_VIRTUAL_SIDEBAR_ITEMS");
+    it("MessagesSidebar renders keyed conversations and keeps incremental loading wired", () => {
+        const src = readRepo("meshchatx/src/frontend/features/messages/components/MessagesSidebar.svelte");
+        expect(src).toContain("{#each sortedConversations as c (c.destination_hash)}");
+        expect(src).toContain("onscroll={onConversationsScroll}");
+        expect(src).toContain("onloadMore?.()");
     });
 
     it("NomadNetworkSidebar virtualizes searched nodes at the threshold", () => {

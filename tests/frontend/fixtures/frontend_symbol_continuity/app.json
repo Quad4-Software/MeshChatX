@@ -3,7 +3,7 @@
     "scan_dirs": [
         "meshchatx/src/frontend/components/App.vue",
         "meshchatx/src/frontend/components/layout",
-        "meshchatx/src/frontend/main.js",
+        "meshchatx/src/frontend/main.ts",
         "meshchatx/src/frontend/js/registries"
     ],
     "required_strings": [

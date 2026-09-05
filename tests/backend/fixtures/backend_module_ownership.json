@@ -31,7 +31,7 @@
             "http_route_module": ["http/routes/messages.py", "lxmf.py"],
             "ws_module": ["http/ws/dispatch.py"],
             "primary_tests": [],
-            "frontend_page": ["messages/MessagesPage.vue", "ConversationViewer.vue"]
+            "frontend_page": ["features/messages/MessagesPage.svelte", "components/ConversationViewer.svelte"]
         },
         {
             "domain": "Telephone / LXST",

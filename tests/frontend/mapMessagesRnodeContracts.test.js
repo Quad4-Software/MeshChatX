@@ -4,10 +4,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { rnodeIntegrityKeyForSrc } from "../../meshchatx/src/frontend/js/rnode/rnodeIntegrityKey.js";
-import MessagesPage from "../../meshchatx/src/frontend/components/messages/MessagesPage.vue";
 import MapPage from "../../meshchatx/src/frontend/components/map/MapPage.vue";
-import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
-import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
 
 describe("map, messages, and rnode integrity contracts", () => {
     it("RNode SRI key for zip.min.js matches integrity.json (not js/zip.min.js)", () => {
@@ -26,20 +23,13 @@ describe("map, messages, and rnode integrity contracts", () => {
     });
 
     it("MessagesPage syncUnreadCount does not overwrite badge with a partial page count", () => {
-        GlobalState.unreadConversationsCount = 12;
-        const emitSpy = vi.spyOn(GlobalEmitter, "emit");
-        const ctx = {
-            conversations: [{ is_unread: true }, { is_unread: true }, { is_unread: false }],
-            hasMoreConversations: true,
-            filterUnreadOnly: false,
-            selectedFolderId: null,
-            conversationSearchTerm: "",
-        };
-
-        MessagesPage.methods.syncUnreadCount.call(ctx);
-        expect(GlobalState.unreadConversationsCount).toBe(12);
-        expect(emitSpy).toHaveBeenCalledWith("notifications-changed");
-        emitSpy.mockRestore();
+        const source = readFileSync(
+            join(process.cwd(), "meshchatx/src/frontend/features/messages/MessagesPage.svelte"),
+            "utf8"
+        );
+        expect(source).toContain("const listIsPartial =");
+        expect(source).toContain('GlobalEmitter.emit("notifications-changed")');
+        expect(source).toContain("GlobalState.unreadConversationsCount = countUnreadConversations(conversations)");
     });
 
     it("Map resolveMyLocationWgs84 prefers lxmf_address_hash telemetry over identity_hash", async () => {

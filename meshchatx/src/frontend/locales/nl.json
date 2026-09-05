@@ -2819,7 +2819,7 @@
     "tools": {
         "utilities": "Hulpmiddelen",
         "power_tools": "Hulpmiddelen",
-        "diagnostics_description": "Mesh- en Reticulumhulpprogramma's op één plek: bereikbaarheid, paden, bestandsoverdracht, vertaling, documentatie en hardwarehulpen. Open een rij voor de volledige tool.",
+        "diagnostics_description": "Bereikbaarheid, paden, bestandsoverdracht, vertaling, docs en hardware.",
         "back_to_tools": "Terug naar gereedschap",
         "beta_badge": "Bèta",
         "alpha_badge": "Alpha",
@@ -3486,7 +3486,8 @@
         "rnx": {
             "title": "RNX",
             "description": "Externe opdrachtuitvoering over Reticulum"
-        }
+        },
+        "search_placeholder": "Zoek {count} hulpmiddelen"
     },
     "ping": {
         "title": "Ping Mesh Peers",
@@ -4619,7 +4620,6 @@
         "set_password": "Wachtwoord instellen",
         "login": "Inloggen",
         "passwords_mismatch": "Wachtwoorden komen niet overeen",
-        "altcha_required": "Voltooi eerst de verificatie-uitdaging",
         "status_check_failed": "Authenticatiestatus kon niet worden gecontroleerd",
         "failed": "Authenticatie mislukt"
     },

@@ -4,9 +4,9 @@ import {
     displayGroupsOldestFirst,
     estimateGroupHeight,
     findDisplayGroupIndexForMessageHash,
-} from "@/components/messages/messageListVirtual.js";
+} from "@/features/messages/lib/messageListVirtual.ts";
 
-describe("messageListVirtual.js", () => {
+describe("messageListVirtual.ts", () => {
     it("displayGroupsOldestFirst reverses newest-first groups", () => {
         const g = [
             { type: "single", key: "a", chatItem: { lxmf_message: { hash: "a" } } },

@@ -2819,7 +2819,7 @@
     "tools": {
         "utilities": "Työkalut",
         "power_tools": "Työkalut",
-        "diagnostics_description": "Mesh- ja Reticulum-apuohjelmat yhdessä paikassa: saavutettavuus, polut, tiedostonsiirto, käännös, dokumentaatio ja laiteapu. Avaa mikä tahansa rivi saadaksesi koko työkalun.",
+        "diagnostics_description": "Saavutettavuus, polut, tiedostonsiirto, käännös, docs ja laiteapu.",
         "back_to_tools": "Takaisin työkaluihin",
         "beta_badge": "Beta",
         "alpha_badge": "Alpha",
@@ -3486,7 +3486,8 @@
         "rnx": {
             "title": "RNX",
             "description": "Etäkomentojen suoritus Reticulumissa"
-        }
+        },
+        "search_placeholder": "Hae {count} työkalua"
     },
     "ping": {
         "title": "Luotaa verkon vertaisia",
@@ -4619,7 +4620,6 @@
         "set_password": "Aseta salasana",
         "login": "Kirjaudu",
         "passwords_mismatch": "Salasanat eivät täsmää",
-        "altcha_required": "Suorita ensin vahvistustehtävä",
         "status_check_failed": "Tunnistautumistilan tarkistus epäonnistui",
         "failed": "Tunnistautuminen epäonnistui"
     },

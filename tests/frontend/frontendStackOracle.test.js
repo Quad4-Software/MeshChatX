@@ -49,7 +49,7 @@ describe("frontend stack migration oracle", () => {
     });
 
     it("main.js bootstraps Vue without Vuetify or MDI font CSS", () => {
-        const main = readRepo("meshchatx/src/frontend/main.js");
+        const main = readRepo("meshchatx/src/frontend/main.ts");
         expect(main).not.toContain("createVuetify");
         expect(main).not.toContain("@mdi/font");
         expect(main).not.toContain(".use(vuetify)");
@@ -71,10 +71,10 @@ describe("frontend stack migration oracle", () => {
     });
 
     it("theme engine no longer syncs Vuetify theme colors", () => {
-        const theme = readRepo("meshchatx/src/frontend/theme/themeEngine.js");
+        const theme = readRepo("meshchatx/src/frontend/theme/themeEngine.ts");
         expect(theme).not.toContain("syncVuetifyThemeColors");
         expect(theme).not.toContain("vuetifyTheme");
-        const tokens = readRepo("meshchatx/src/frontend/theme/designTokens.js");
+        const tokens = readRepo("meshchatx/src/frontend/theme/designTokens.ts");
         expect(tokens).not.toContain("vuetifyThemesFromTokens");
     });
 

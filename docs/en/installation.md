@@ -35,7 +35,7 @@ Release images are published to Docker Hub (quad4io/meshchatx) and GHCR (ghcr.io
 Quick start with Compose:
 
 ```bash
-docker compose up -d
+docker compose -f docker/docker-compose.yml up -d
 ```
 
 Basic run:
@@ -88,7 +88,7 @@ Run only **one** MeshChatX instance per /config volume. Startup takes an exclusi
 
 ### Public demo instance (Coolify)
 
-For a read-only mesh showcase on [Coolify](https://coolify.io/docs/knowledge-base/docker/compose), deploy [docker-compose.demo.yml](../../docker-compose.demo.yml). For a normal (non-demo) Coolify deployment, use [docker-compose.coolify.yml](../../docker-compose.coolify.yml).
+For a read-only mesh showcase on [Coolify](https://coolify.io/docs/knowledge-base/docker/compose), deploy [docker/docker-compose.demo.yml](../../docker/docker-compose.demo.yml). For a normal (non-demo) Coolify deployment, use [docker/docker-compose.coolify.yml](../../docker/docker-compose.coolify.yml).
 
 Demo compose expects settings like:
 
@@ -97,11 +97,9 @@ MESHCHAT_DEMO_MODE=1
 MESHCHAT_AUTH=1
 MESHCHAT_DEMO_AUTH_PASSWORD=demo   # default showcase password
 MESHCHAT_AUTH_PAGE_HINT=...        # optional login-page text
-MESHCHAT_ALTCHA_ENABLED=1
-MESHCHAT_ALTCHA_HMAC_KEY=...       # strong secret (compose can require via :?)
 ```
 
-MESHCHAT_DEMO_MODE=1 blocks outbound mesh actions and almost all API mutations. Optional MESHCHAT_AUTH_PAGE_HINT shows custom text on the login page (for example Username: demo and Password: demo). The UI uses ALTCHA widget v3 with PBKDF2/SHA-256 challenges from /api/v1/auth/altcha/challenge. Assign a domain with container port **8000**, for example https://meshchatx.example.com:8000. Do not set MESHCHAT_AUTH_BYPASS=1 on a public host.
+MESHCHAT_DEMO_MODE=1 blocks outbound mesh actions and almost all API mutations. Optional MESHCHAT_AUTH_PAGE_HINT shows custom text on the login page (for example Username: demo and Password: demo). Assign a domain with container port **8000**, for example https://meshchatx.example.com:8000. Do not set MESHCHAT_AUTH_BYPASS=1 on a public host.
 
 ## Python package (PyPI or release wheel)
 

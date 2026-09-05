@@ -1,9 +1,10 @@
 # Frontend conventions
 
-Applies when editing `meshchatx/src/frontend/**/*.{vue,js,svelte}`.
+Applies when editing `meshchatx/src/frontend/**/*.{vue,js,ts,svelte}`.
 
 - Vue 3 Options API remains the pattern for existing `.vue` files. Match the file you edit.
 - New greenfield pages and shared UI go Svelte 5 (runes only) under `ui/svelte/` or `features/<id>/`.
+- Feature modules, `ui/svelte/`, and the `js/` kernel use TypeScript (`.ts`, `lang="ts"` in `.svelte`). Keep `allowJs` only for remaining Vue SFC scripts and third-party bits. Do not grow new plain `.js` under `js/` or `features/`.
 - New routes use `registerFeature` / `routeRegistry`. Do not add one-off routes to the hardcoded table in `main.js`.
 - API calls go through `window.api` (not ad-hoc axios imports in pages).
 - Toasts: `ToastUtils.success|error|warning|info|loading|dismiss`.
@@ -19,7 +20,7 @@ Applies when editing `meshchatx/src/frontend/**/*.{vue,js,svelte}`.
 
 | Layer    | Location                                           | May import                          |
 | -------- | -------------------------------------------------- | ----------------------------------- |
-| Kernel   | `js/` (api, registries, toast, theme, state, i18n) | other kernel only                   |
+| Kernel   | `js/` (api, registries, toast, theme, state, i18n) as `.ts` | other kernel only                   |
 | UI       | `ui/svelte/`, shared Vue primitives                | kernel                              |
 | Features | `features/<id>/`                                   | kernel, ui, own files               |
 | Shell    | `App.vue`, boot (`main.js`)                        | kernel, registries, page mount host |
@@ -39,6 +40,7 @@ Cross-feature UI imports are forbidden. Share through kernel events, registries,
 
 - `pnpm run svelte-check` and `pnpm run format:check:svelte` in `task lint:frontend`. Runes mode only.
 - Prefer small `features/<id>/components/` and `lib/` pieces. Do not grow Svelte god pages.
+- Feature `lib/` and `index` files are TypeScript. Svelte scripts use `lang="ts"`.
 - Dual mount: route meta `mount: "vue" | "svelte"` with a lazy `load`.
 - Skill: `.agents/skills/svelte-feature-modules/SKILL.md`.
 

@@ -159,7 +159,7 @@ describe("registerCoreContributions", () => {
     });
 
     it("nav, tools, and command route names exist in the hash router", () => {
-        const mainSrc = readFileSync(join(process.cwd(), "meshchatx/src/frontend/main.js"), "utf8");
+        const mainSrc = readFileSync(join(process.cwd(), "meshchatx/src/frontend/main.ts"), "utf8");
         const routeNames = new Set();
         const pairRe = /name:\s*"([^"]+)",\s*\n\s*path:\s*"/g;
         let match;

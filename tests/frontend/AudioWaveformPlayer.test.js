@@ -1,8 +1,7 @@
-import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import AudioWaveformPlayer from "../../meshchatx/src/frontend/components/messages/AudioWaveformPlayer.vue";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import AudioWaveformPlayer from "../../meshchatx/src/frontend/features/messages/components/AudioWaveformPlayer.svelte";
 
-// Mock AudioContext
 class MockAudioContext {
     constructor() {
         this.state = "suspended";
@@ -35,7 +34,6 @@ class MockAudioContext {
     }
 }
 
-// Mock fetch
 global.fetch = vi.fn(() =>
     Promise.resolve({
         ok: true,
@@ -43,7 +41,6 @@ global.fetch = vi.fn(() =>
     })
 );
 
-// Mock Canvas
 HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
     scale: vi.fn(),
     clearRect: vi.fn(),
@@ -53,65 +50,36 @@ HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
     stroke: vi.fn(),
 }));
 
-describe("AudioWaveformPlayer.vue", () => {
+describe("AudioWaveformPlayer.svelte", () => {
     beforeEach(() => {
         vi.stubGlobal("AudioContext", MockAudioContext);
         vi.stubGlobal("webkitAudioContext", MockAudioContext);
     });
 
+    afterEach(() => {
+        cleanup();
+        vi.clearAllMocks();
+        vi.unstubAllGlobals();
+    });
+
     it("renders and loads audio", async () => {
-        const wrapper = mount(AudioWaveformPlayer, {
-            props: {
-                src: "test-audio.wav",
-            },
-            global: {
-                stubs: {
-                    MaterialDesignIcon: true,
-                },
-            },
-        });
-
-        expect(wrapper.find(".audio-waveform-player").exists()).toBe(true);
-
-        // Wait for audio to load
-        await vi.waitFor(() => expect(wrapper.vm.loading).toBe(false));
-
-        expect(wrapper.vm.totalDuration).toBe(10);
-        expect(wrapper.find("canvas").isVisible()).toBe(true);
+        const { container } = render(AudioWaveformPlayer, { props: { src: "test-audio.wav" } });
+        expect(container.querySelector(".audio-waveform-player")).toBeTruthy();
+        await waitFor(() => expect(screen.getByText("0:00 / 0:10")).toBeTruthy());
+        expect(container.querySelector("canvas")?.hidden).toBe(false);
     });
 
-    it("toggles playback", async () => {
-        const wrapper = mount(AudioWaveformPlayer, {
-            props: {
-                src: "test-audio.wav",
-            },
-            global: {
-                stubs: {
-                    MaterialDesignIcon: true,
-                },
-            },
-        });
-
-        await vi.waitFor(() => expect(wrapper.vm.loading).toBe(false));
-
-        const playButton = wrapper.find("button");
-        await playButton.trigger("click");
-
-        expect(wrapper.vm.isPlaying).toBe(true);
-        expect(wrapper.emitted("play")).toBeTruthy();
-
-        await playButton.trigger("click");
-        expect(wrapper.vm.isPlaying).toBe(false);
+    it("starts playback", async () => {
+        const onplay = vi.fn();
+        render(AudioWaveformPlayer, { props: { src: "test-audio.wav", onplay } });
+        await waitFor(() => expect(screen.getByText("0:00 / 0:10")).toBeTruthy());
+        const playButton = screen.getByRole("button");
+        await fireEvent.click(playButton);
+        expect(onplay).toHaveBeenCalledOnce();
     });
 
-    it("formats time correctly", () => {
-        const wrapper = mount(AudioWaveformPlayer, {
-            props: { src: "" },
-            global: { stubs: { MaterialDesignIcon: true } },
-        });
-
-        expect(wrapper.vm.formatTime(65)).toBe("1:05");
-        expect(wrapper.vm.formatTime(10)).toBe("0:10");
-        expect(wrapper.vm.formatTime(3600)).toBe("60:00");
+    it("formats unloaded time", () => {
+        render(AudioWaveformPlayer, { props: { src: "" } });
+        expect(screen.getByText("0:00 / 0:00")).toBeTruthy();
     });
 });

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
     normalizeLxmfMessage,
     normalizeSidebandCommandKey,
-} from "../../meshchatx/src/frontend/components/messages/lxmf/normalize.js";
+} from "../../meshchatx/src/frontend/features/messages/lib/lxmf/normalize.ts";
 
 describe("normalizeLxmfMessage", () => {
     it("oracle: copies msg and leaves created_at when already set", () => {

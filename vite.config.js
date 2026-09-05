@@ -297,7 +297,7 @@ export default defineConfig(({ command }) => {
             vue({
                 template: {
                     compilerOptions: {
-                        isCustomElement: (tag) => tag === "emoji-picker" || tag === "altcha-widget",
+                        isCustomElement: (tag) => tag === "emoji-picker",
                     },
                 },
             }),
@@ -326,7 +326,7 @@ export default defineConfig(({ command }) => {
                 },
             },
             warmup: {
-                clientFiles: ["./main.js", "./components/App.vue", "./components/messages/MessagesPage.vue"],
+                clientFiles: ["./main.ts", "./components/App.vue", "./features/messages/MessagesPage.svelte"],
             },
             proxy: {
                 "/api": {

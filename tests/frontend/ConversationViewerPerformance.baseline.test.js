@@ -1,181 +1,36 @@
-import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import ConversationViewer from "@/components/messages/ConversationViewer.vue";
+// SPDX-License-Identifier: 0BSD
 
-vi.mock("@/js/DialogUtils", () => ({
-    default: {
-        confirm: vi.fn(() => Promise.resolve(true)),
-        alert: vi.fn(),
-        prompt: vi.fn(() => Promise.resolve(null)),
-    },
-}));
+import { describe, expect, it } from "vitest";
+import { buildDisplayGroupsNewestFirst } from "@/features/messages/lib/conversationDisplayGroups.ts";
+import { displayGroupsOldestFirst } from "@/features/messages/lib/messageListVirtual.ts";
+import { visibleConversationItems } from "@/features/messages/lib/conversationViewerMessages.ts";
 
-vi.mock("@/js/WebSocketConnection", () => ({
-    default: {
-        on: vi.fn(),
-        off: vi.fn(),
-        connect: vi.fn(),
-        destroy: vi.fn(),
-    },
-}));
-
-vi.mock("@/js/GlobalEmitter", () => ({
-    default: {
-        on: vi.fn(),
-        off: vi.fn(),
-        emit: vi.fn(),
-    },
-}));
-
-function makeChatItems(count, myHash, peerHash) {
-    return Array.from({ length: count }, (_, i) => ({
-        type: "lxmf_message",
-        is_outbound: i % 2 === 0,
-        lxmf_message: {
-            hash: `msg_${i}`.padEnd(32, "0"),
-            source_hash: i % 2 === 0 ? myHash : peerHash,
-            destination_hash: i % 2 === 0 ? peerHash : myHash,
-            content: `Message content ${i}.`,
-            created_at: new Date().toISOString(),
-            state: "delivered",
-            method: "direct",
-            progress: 1.0,
-            delivery_attempts: 1,
-            id: i,
-        },
-    }));
-}
-
-function groupSignature(vm) {
-    return vm.selectedPeerChatDisplayGroups.map((g) => `${g.type}:${g.key}`);
-}
-
-describe("ConversationViewer performance baselines", () => {
-    const myLxmfAddressHash = "my_hash".padEnd(32, "0");
-    const peerHash = "peer_hash".padEnd(32, "0");
-    const selectedPeer = {
-        destination_hash: peerHash,
-        display_name: "Peer Name",
-    };
-
-    beforeEach(() => {
-        window.api = {
-            get: vi.fn(() => Promise.resolve({ data: {} })),
-            post: vi.fn(() => Promise.resolve({ data: {} })),
-        };
-    });
-
-    const mountViewer = () =>
-        mount(ConversationViewer, {
-            props: {
-                myLxmfAddressHash,
-                selectedPeer,
-                conversations: [selectedPeer],
-                config: { theme: "light", lxmf_address_hash: myLxmfAddressHash },
-            },
-            global: {
-                components: {
-                    MaterialDesignIcon: { template: "<span></span>" },
-                    ConversationDropDownMenu: { template: "<div></div>" },
-                    SendMessageButton: { template: "<div></div>" },
-                    IconButton: { template: "<button></button>" },
-                    AddImageButton: { template: "<div></div>" },
-                    AddAudioButton: { template: "<div></div>" },
-                    PaperMessageModal: { template: "<div></div>" },
-                    AudioWaveformPlayer: { template: "<div></div>" },
-                    LxmfUserIcon: { template: "<div></div>" },
-                },
-                directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
-                mocks: {
-                    $t: (key) => key,
-                    $i18n: { locale: "en" },
-                },
-                stubs: {
-                    MarkdownRenderer: true,
-                },
-            },
-        });
-
-    it("selectedPeerChatDisplayGroups signature is stable for a fixed thread (regression guard)", async () => {
-        const wrapper = mountViewer();
-        const items = makeChatItems(24, myLxmfAddressHash, peerHash);
-        await wrapper.setData({ chatItems: items });
-        await wrapper.vm.$nextTick();
-        const sig = groupSignature(wrapper.vm);
-        expect(sig.length).toBe(24);
-        expect(sig[0]).toMatch(/^single:msg_/);
-    });
-
-    it("bulk chatItems update: baseline ceiling (detect regressions)", async () => {
-        const wrapper = mountViewer();
-        const n = 800;
-        const items = makeChatItems(n, myLxmfAddressHash, peerHash);
-
-        const t0 = performance.now();
-        await wrapper.setData({ chatItems: items });
-        await wrapper.vm.$nextTick();
-        const ms = performance.now() - t0;
-
-        expect(wrapper.vm.selectedPeerChatDisplayGroups.length).toBe(n);
-        expect(ms).toBeLessThan(15000);
-    }, 60_000);
-
-    it("incremental append: baseline ceiling when thread already large", async () => {
-        const wrapper = mountViewer();
-        const n = 600;
-        await wrapper.setData({ chatItems: makeChatItems(n, myLxmfAddressHash, peerHash) });
-        await wrapper.vm.$nextTick();
-
-        const newMsg = {
+describe("ConversationViewer performance baseline", () => {
+    it("groups and filters one thousand messages within the unit-test budget", () => {
+        const peerHash = "aa".repeat(16);
+        const myHash = "bb".repeat(16);
+        const items = Array.from({ length: 1000 }, (_, index) => ({
             type: "lxmf_message",
-            is_outbound: true,
+            is_outbound: false,
             lxmf_message: {
-                hash: "newmsg".padEnd(32, "0"),
-                source_hash: myLxmfAddressHash,
-                destination_hash: peerHash,
-                content: "New",
-                created_at: new Date().toISOString(),
-                state: "delivered",
-                method: "direct",
-                progress: 1.0,
-                delivery_attempts: 1,
-                id: n,
+                id: index,
+                hash: `message-${index}`,
+                source_hash: peerHash,
+                destination_hash: myHash,
+                content: `message ${index}`,
+                created_at: index,
+                fields: {},
             },
-        };
+        }));
 
-        const t0 = performance.now();
-        wrapper.vm.chatItems.push(newMsg);
-        await wrapper.vm.$nextTick();
-        const ms = performance.now() - t0;
+        const started = performance.now();
+        const visible = visibleConversationItems(items, peerHash, false);
+        const groups = buildDisplayGroupsNewestFirst(visible, () => false);
+        const oldestFirst = displayGroupsOldestFirst(groups);
+        const elapsed = performance.now() - started;
 
-        expect(wrapper.vm.selectedPeerChatDisplayGroups.length).toBe(n + 1);
-        expect(ms).toBeLessThan(8000);
-    }, 60_000);
-
-    it("incremental prepend display groups stays bounded when thread already large", async () => {
-        const wrapper = mountViewer();
-        const n = 1500;
-        await wrapper.setData({ chatItems: makeChatItems(n, myLxmfAddressHash, peerHash) });
-        await wrapper.vm.$nextTick();
-        void wrapper.vm.selectedPeerChatDisplayGroups;
-
-        const t0 = performance.now();
-        for (let page = 0; page < 10; page++) {
-            const batch = makeChatItems(50, myLxmfAddressHash, peerHash).map((item, i) => ({
-                ...item,
-                lxmf_message: {
-                    ...item.lxmf_message,
-                    hash: `older_${page}_${i}`.padEnd(32, "0"),
-                    id: -(page * 50 + i + 1),
-                },
-            }));
-            wrapper.vm.chatItems = batch.concat(wrapper.vm.chatItems);
-            await wrapper.vm.$nextTick();
-            void wrapper.vm.selectedPeerChatDisplayGroups;
-        }
-        const ms = performance.now() - t0;
-
-        expect(wrapper.vm.selectedPeerChatDisplayGroups.length).toBeGreaterThan(1500);
-        expect(ms).toBeLessThan(12000);
-    }, 60_000);
+        expect(visible).toHaveLength(1000);
+        expect(oldestFirst.length).toBeGreaterThan(0);
+        expect(elapsed).toBeLessThan(250);
+    });
 });

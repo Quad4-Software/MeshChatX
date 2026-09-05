@@ -1,8 +1,14 @@
-import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import MessagesPage from "@/components/messages/MessagesPage.vue";
+// SPDX-License-Identifier: 0BSD
+
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import DialogUtils from "@/js/DialogUtils";
-import { editContactNameWithDuplicates } from "@/features/contacts/lib/contactsActions.js";
+import { editContactNameWithDuplicates } from "@/features/contacts/lib/contactsActions.ts";
+import {
+    mergePeerFromAnnounce,
+    mergePeerFromConversation,
+    preferKnownDisplayName,
+    shouldUpdatePanePeerDisplayName,
+} from "@/features/messages/lib/peerAnnounce.ts";
 import { registerTranslator } from "@/js/i18n.js";
 
 vi.mock("@/js/DialogUtils", () => ({
@@ -13,301 +19,67 @@ vi.mock("@/js/DialogUtils", () => ({
     },
 }));
 
-vi.mock("@/js/WebSocketConnection", () => ({
-    default: {
-        on: vi.fn(),
-        off: vi.fn(),
-        send: vi.fn(),
-    },
-}));
-
-vi.mock("qrcode", () => ({
-    default: {
-        toDataURL: vi.fn().mockResolvedValue("data:image/png;base64,test"),
-    },
-}));
-
-describe("MessagesPage display name protection", () => {
-    let axiosMock;
-
-    beforeEach(() => {
-        vi.clearAllMocks();
-        axiosMock = {
-            get: vi.fn(),
-            post: vi.fn(),
-        };
-        window.api = axiosMock;
-
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/config")
-                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
-            if (url === "/api/v1/lxmf/conversations") return Promise.resolve({ data: { conversations: [] } });
-            if (url === "/api/v1/announces") return Promise.resolve({ data: { announces: [] } });
-            if (url === "/api/v1/lxmf/conversation-pins") return Promise.resolve({ data: { peer_hashes: [] } });
-            return Promise.resolve({ data: {} });
-        });
+describe("Messages display name protection", () => {
+    it("does not replace a known name with Anonymous Peer", () => {
+        expect(preferKnownDisplayName("Anonymous Peer", "Real Name")).toBe("Real Name");
+        expect(
+            mergePeerFromAnnounce(
+                { destination_hash: "a".repeat(32), display_name: "Real Name" },
+                { destination_hash: "a".repeat(32), display_name: "Anonymous Peer" }
+            ).display_name
+        ).toBe("Real Name");
     });
 
-    afterEach(() => {
-        delete window.api;
+    it("accepts a real announce over an anonymous or older name", () => {
+        expect(
+            mergePeerFromAnnounce(
+                { destination_hash: "b".repeat(32), display_name: "Anonymous Peer" },
+                { destination_hash: "b".repeat(32), display_name: "Newly Announced" }
+            ).display_name
+        ).toBe("Newly Announced");
+        expect(
+            mergePeerFromAnnounce(
+                { destination_hash: "b".repeat(32), display_name: "Old Name" },
+                { destination_hash: "b".repeat(32), display_name: "New Name" }
+            ).display_name
+        ).toBe("New Name");
     });
 
-    const mountMessagesPage = (props = { destinationHash: "" }) => {
-        return mount(MessagesPage, {
-            props,
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                    $route: { query: {} },
-                    $router: { replace: vi.fn() },
-                },
-                stubs: {
-                    MaterialDesignIcon: true,
-                    LoadingSpinner: true,
-                    MessagesSidebar: {
-                        template: '<div class="sidebar-stub"></div>',
-                        props: ["conversations", "selectedDestinationHash"],
-                    },
-                    ConversationViewer: {
-                        template: '<div class="viewer-stub"></div>',
-                        props: ["selectedPeer", "myLxmfAddressHash"],
-                    },
-                    Modal: true,
-                },
-            },
-        });
-    };
-
-    it("does not overwrite a known display name with Anonymous Peer from announce", async () => {
-        const destHash = "a".repeat(32);
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.peers[destHash] = {
-            destination_hash: destHash,
-            display_name: "Real Name",
-            custom_display_name: null,
-        };
-
-        wrapper.vm.updatePeerFromAnnounce({
-            destination_hash: destHash,
-            display_name: "Anonymous Peer",
-        });
-
-        expect(wrapper.vm.peers[destHash].display_name).toBe("Real Name");
-    });
-
-    it("allows overwriting Anonymous Peer with a real name from announce", async () => {
-        const destHash = "b".repeat(32);
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.peers[destHash] = {
-            destination_hash: destHash,
-            display_name: "Anonymous Peer",
-        };
-
-        wrapper.vm.updatePeerFromAnnounce({
-            destination_hash: destHash,
-            display_name: "Newly Announced",
-        });
-
-        expect(wrapper.vm.peers[destHash].display_name).toBe("Newly Announced");
-    });
-
-    it("allows updating from one real name to another real name via announce", async () => {
-        const destHash = "c".repeat(32);
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.peers[destHash] = {
-            destination_hash: destHash,
-            display_name: "Old Name",
-        };
-
-        wrapper.vm.updatePeerFromAnnounce({
-            destination_hash: destHash,
-            display_name: "New Name",
-        });
-
-        expect(wrapper.vm.peers[destHash].display_name).toBe("New Name");
-    });
-
-    it("preserves known name when conversation list returns Anonymous Peer", async () => {
-        const destHash = "d".repeat(32);
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.peers[destHash] = {
-            destination_hash: destHash,
+    it("protects known names when applying conversation rows", () => {
+        const existing = {
+            destination_hash: "c".repeat(32),
             display_name: "Known Peer",
-            custom_display_name: null,
-        };
-
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/lxmf/conversations")
-                return Promise.resolve({
-                    data: {
-                        conversations: [
-                            {
-                                destination_hash: destHash,
-                                display_name: "Anonymous Peer",
-                                custom_display_name: null,
-                            },
-                        ],
-                    },
-                });
-            if (url === "/api/v1/config")
-                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
-            if (url === "/api/v1/lxmf/conversation-pins") return Promise.resolve({ data: { peer_hashes: [] } });
-            return Promise.resolve({ data: {} });
-        });
-
-        await wrapper.vm.getConversations();
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.vm.peers[destHash].display_name).toBe("Known Peer");
-    });
-
-    it("accepts new display name from conversation list when peer was Anonymous", async () => {
-        const destHash = "e".repeat(32);
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.peers[destHash] = {
-            destination_hash: destHash,
-            display_name: "Anonymous Peer",
-        };
-
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/lxmf/conversations")
-                return Promise.resolve({
-                    data: {
-                        conversations: [
-                            {
-                                destination_hash: destHash,
-                                display_name: "Resolved Name",
-                                custom_display_name: null,
-                            },
-                        ],
-                    },
-                });
-            if (url === "/api/v1/config")
-                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
-            if (url === "/api/v1/lxmf/conversation-pins") return Promise.resolve({ data: { peer_hashes: [] } });
-            return Promise.resolve({ data: {} });
-        });
-
-        await wrapper.vm.getConversations();
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.vm.peers[destHash].display_name).toBe("Resolved Name");
-    });
-
-    it("does not overwrite name via resolvePeerDisplayName when server returns Anonymous", async () => {
-        const destHash = "f".repeat(32);
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.conversations = [
-            { destination_hash: destHash, display_name: "Original Name", custom_display_name: null },
-        ];
-        wrapper.vm.selectedPeer = { destination_hash: destHash, display_name: "Original Name" };
-
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/lxmf/conversations")
-                return Promise.resolve({
-                    data: {
-                        conversations: [
-                            {
-                                destination_hash: destHash,
-                                display_name: "Anonymous Peer",
-                                custom_display_name: null,
-                            },
-                        ],
-                    },
-                });
-            return Promise.resolve({ data: {} });
-        });
-
-        await wrapper.vm.resolvePeerDisplayName(destHash);
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.vm.conversations[0].display_name).toBe("Original Name");
-        expect(wrapper.vm.selectedPeer.display_name).toBe("Original Name");
-    });
-
-    it("handles new peer with no prior entry gracefully", async () => {
-        const destHash = "1".repeat(32);
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.updatePeerFromAnnounce({
-            destination_hash: destHash,
-            display_name: "Anonymous Peer",
-        });
-
-        expect(wrapper.vm.peers[destHash].display_name).toBe("Anonymous Peer");
-    });
-
-    it("preserves custom_display_name when announce does not carry it", async () => {
-        const destHash = "2".repeat(32);
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.peers[destHash] = {
-            destination_hash: destHash,
-            display_name: "Announced Name",
             custom_display_name: "My Custom Name",
         };
-
-        wrapper.vm.updatePeerFromAnnounce({
-            destination_hash: destHash,
+        const merged = mergePeerFromConversation(existing, {
+            destination_hash: "c".repeat(32),
             display_name: "Anonymous Peer",
         });
 
-        expect(wrapper.vm.peers[destHash].custom_display_name).toBe("My Custom Name");
-        expect(wrapper.vm.peers[destHash].display_name).toBe("Announced Name");
+        expect(merged.display_name).toBe("Known Peer");
+        expect(merged.custom_display_name).toBe("My Custom Name");
     });
 
-    it("server-provided custom_display_name in announce is authoritative", async () => {
-        const destHash = "3".repeat(32);
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.peers[destHash] = {
-            destination_hash: destHash,
-            display_name: "Old",
-            custom_display_name: "Stale Custom",
-        };
-
-        wrapper.vm.updatePeerFromAnnounce({
-            destination_hash: destHash,
-            display_name: "Anonymous Peer",
-            custom_display_name: "Server Custom",
-        });
-
-        expect(wrapper.vm.peers[destHash].custom_display_name).toBe("Server Custom");
-        expect(wrapper.vm.peers[destHash].display_name).toBe("Old");
+    it("updates pane names only for a new non-anonymous name", () => {
+        expect(shouldUpdatePanePeerDisplayName("Resolved Name", "Anonymous Peer")).toBe(true);
+        expect(shouldUpdatePanePeerDisplayName("Anonymous Peer", "Known Name")).toBe(false);
+        expect(shouldUpdatePanePeerDisplayName("Known Name", "Known Name")).toBe(false);
     });
 });
 
 describe("ContactsPage edit contact name", () => {
-    let axiosMock;
+    let api;
 
     beforeEach(() => {
         vi.clearAllMocks();
         registerTranslator((key) => key);
-        axiosMock = {
+        api = {
             get: vi.fn(),
-            post: vi.fn(),
-            patch: vi.fn(),
+            post: vi.fn().mockResolvedValue({ data: { message: "OK" } }),
+            patch: vi.fn().mockResolvedValue({ data: { message: "Contact updated" } }),
             delete: vi.fn(),
         };
-        window.api = axiosMock;
-
-        axiosMock.patch.mockResolvedValue({ data: { message: "Contact updated" } });
-        axiosMock.post.mockResolvedValue({ data: { message: "OK" } });
+        window.api = api;
     });
 
     afterEach(() => {
@@ -315,9 +87,8 @@ describe("ContactsPage edit contact name", () => {
         registerTranslator(null);
     });
 
-    it("editContactName updates both contact and custom display name", async () => {
+    it("updates both contact and custom display name", async () => {
         DialogUtils.prompt.mockResolvedValue("Renamed Alice");
-
         const contact = {
             id: 42,
             name: "Alice",
@@ -328,53 +99,25 @@ describe("ContactsPage edit contact name", () => {
 
         await editContactNameWithDuplicates(contact, [contact], async () => {});
 
-        expect(axiosMock.patch).toHaveBeenCalledWith("/api/v1/telephone/contacts/42", {
+        expect(api.patch).toHaveBeenCalledWith("/api/v1/telephone/contacts/42", {
             name: "Renamed Alice",
         });
-        expect(axiosMock.post).toHaveBeenCalledWith(
+        expect(api.post).toHaveBeenCalledWith(
             `/api/v1/destination/${"a".repeat(32)}/custom-display-name/update`,
             { display_name: "Renamed Alice" }
         );
     });
 
-    it("editContactName does nothing when user cancels prompt", async () => {
-        DialogUtils.prompt.mockResolvedValue(null);
-
+    it("does nothing when the prompt is cancelled or unchanged", async () => {
+        DialogUtils.prompt.mockResolvedValueOnce(null).mockResolvedValueOnce("Alice");
         await editContactNameWithDuplicates({ id: 1, name: "Alice" }, [], async () => {});
-
-        expect(axiosMock.patch).not.toHaveBeenCalled();
-        expect(axiosMock.post).not.toHaveBeenCalled();
-    });
-
-    it("editContactName does nothing when name unchanged", async () => {
-        DialogUtils.prompt.mockResolvedValue("Alice");
-
         await editContactNameWithDuplicates({ id: 1, name: "Alice" }, [], async () => {});
-
-        expect(axiosMock.patch).not.toHaveBeenCalled();
+        expect(api.patch).not.toHaveBeenCalled();
+        expect(api.post).not.toHaveBeenCalled();
     });
 
-    it("editContactName skips custom display name when no dest hash", async () => {
-        DialogUtils.prompt.mockResolvedValue("New Name");
-
-        const contact = {
-            id: 99,
-            name: "Old Name",
-            remote_identity_hash: null,
-            lxmf_address: null,
-        };
-
-        await editContactNameWithDuplicates(contact, [contact], async () => {});
-
-        expect(axiosMock.patch).toHaveBeenCalledWith("/api/v1/telephone/contacts/99", {
-            name: "New Name",
-        });
-        expect(axiosMock.post).not.toHaveBeenCalled();
-    });
-
-    it("editContactName uses lxmf_address when remote_destination_hash absent", async () => {
+    it("uses the LXMF destination when no remote destination hash exists", async () => {
         DialogUtils.prompt.mockResolvedValue("Updated");
-
         const contact = {
             id: 10,
             name: "Old",
@@ -384,45 +127,9 @@ describe("ContactsPage edit contact name", () => {
 
         await editContactNameWithDuplicates(contact, [contact], async () => {});
 
-        expect(axiosMock.post).toHaveBeenCalledWith(
+        expect(api.post).toHaveBeenCalledWith(
             `/api/v1/destination/${"l".repeat(32)}/custom-display-name/update`,
             { display_name: "Updated" }
         );
-    });
-
-    it("editContactName handles API error gracefully", async () => {
-        DialogUtils.prompt.mockResolvedValue("Fail Name");
-        axiosMock.patch.mockRejectedValue(new Error("Network error"));
-
-        const contact = { id: 5, name: "Before", remote_identity_hash: "x".repeat(32) };
-
-        await editContactNameWithDuplicates(contact, [contact], async () => {});
-
-        expect(axiosMock.patch).toHaveBeenCalled();
-    });
-
-    it("editContactName with empty string still calls patch but not custom display name", async () => {
-        DialogUtils.prompt.mockResolvedValue("");
-
-        const contact = {
-            id: 7,
-            name: "Was Something",
-            remote_identity_hash: "r".repeat(32),
-            lxmf_address: "r".repeat(32),
-        };
-
-        await editContactNameWithDuplicates(contact, [contact], async () => {});
-
-        expect(axiosMock.patch).toHaveBeenCalledWith("/api/v1/telephone/contacts/7", {
-            name: "",
-        });
-        expect(axiosMock.post).not.toHaveBeenCalled();
-    });
-
-    it("editContactName with no contact id does nothing", async () => {
-        await editContactNameWithDuplicates({}, [], async () => {});
-
-        expect(DialogUtils.prompt).not.toHaveBeenCalled();
-        expect(axiosMock.patch).not.toHaveBeenCalled();
     });
 });

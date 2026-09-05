@@ -26,6 +26,7 @@ Gradual Vue to Svelte 5 migration with pluggable feature modules.
 8. One feature or primitive per PR series. No god-file rewrites.
 9. SPDX on new project files (`0BSD` unless the file already differs).
 10. Run `pnpm run svelte-check` for touched Svelte surfaces.
+11. Feature modules, `ui/svelte/`, and the `js/` kernel use TypeScript: `index.ts`, `lib/*.ts`, kernel `.ts`, and `<script lang="ts">` in `.svelte`. Vue SFC scripts may remain JS until those pages migrate.
 
 ## Layout
 
@@ -40,7 +41,7 @@ meshchatx/src/frontend/
 
 ## Register a feature
 
-```js
+```ts
 import { registerFeature } from "../../js/registries/featureRegistry.js";
 
 export function registerBlockedFeature() {
@@ -58,12 +59,13 @@ export function registerBlockedFeature() {
 }
 ```
 
-Call registers from `features/registerAllFeatures.js` at boot after `registerCoreContributions`.
+Call registers from `features/registerAllFeatures.ts` at boot after `registerCoreContributions`.
 
 ## Checks
 
 ```bash
 pnpm run svelte-check
-pnpm exec vitest run tests/frontend/<Name>.svelte.test.js
-pnpm exec vitest run tests/frontend/featureRouteRegistry.test.js
+pnpm run format:check:svelte
+pnpm exec vitest run tests/frontend/<Name>.test.js
+pnpm exec vitest run tests/frontend/featureModuleOwnership.test.js
 ```

@@ -8,7 +8,7 @@ import {
     isImageOnlyMessage,
     collectImageFilesFromDataTransfer,
     extractClipboardImageFiles,
-} from "../../meshchatx/src/frontend/components/messages/conversationMessageHelpers.js";
+} from "../../meshchatx/src/frontend/features/messages/lib/conversationMessageHelpers.ts";
 
 describe("conversationMessageHelpers", () => {
     it("hasRenderableContent detects text and attachments", () => {

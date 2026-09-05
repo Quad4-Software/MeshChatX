@@ -27,7 +27,7 @@ describe("conversation list API caps", () => {
     });
 
     it("MessagesPage skips poll when document is hidden and uses a longer interval", () => {
-        const src = readFileSync(resolve(ROOT, "meshchatx/src/frontend/components/messages/MessagesPage.vue"), "utf8");
+        const src = readFileSync(resolve(ROOT, "meshchatx/src/frontend/features/messages/MessagesPage.svelte"), "utf8");
         expect(src).toMatch(/visibilityState === "hidden"/);
         expect(src).toMatch(/15000/);
         expect(src).not.toMatch(

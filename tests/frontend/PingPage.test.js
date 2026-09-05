@@ -3,7 +3,7 @@ import { render, cleanup, fireEvent, waitFor, screen } from "@testing-library/sv
 import PingPage from "@/features/ping/PingPage.svelte";
 import DialogUtils from "@/js/DialogUtils";
 import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
-import { formatPingSuccess, isValidPingDestinationHash, isValidPingTimeout } from "@/features/ping/lib/pingFormat.js";
+import { formatPingSuccess, isValidPingDestinationHash, isValidPingTimeout } from "@/features/ping/lib/pingFormat.ts";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
