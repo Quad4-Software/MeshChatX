@@ -8,14 +8,14 @@
     >
         <div class="space-y-4">
             <div
-                class="rounded-xl border-2 border-dashed border-gray-300 dark:border-zinc-700 bg-sem-surface-muted/40 p-6 text-center transition-colors"
+                class="rounded-xl border-2 border-dashed border-sem-border bg-sem-surface-muted/40 p-6 text-center transition-colors"
                 :class="dragActive ? 'border-blue-500 bg-blue-50/60 dark:bg-blue-950/20' : ''"
                 @dragenter.prevent="dragActive = true"
                 @dragover.prevent="dragActive = true"
                 @dragleave.prevent="dragActive = false"
                 @drop.prevent="onDropArchive"
             >
-                <p class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                <p class="text-sm font-medium text-sem-fg">
                     {{ $t("plugins.settings.drag_drop") }}
                 </p>
                 <p class="mt-1 text-xs text-sem-fg-muted">
@@ -45,7 +45,7 @@
 
             <div
                 v-if="!plugins.length"
-                class="rounded-lg border border-sem-border px-4 py-8 text-center text-sm text-gray-600 dark:text-gray-400"
+                class="rounded-lg border border-sem-border px-4 py-8 text-center text-sm text-sem-fg-muted"
             >
                 {{ $t("plugins.settings.empty_state") }}
             </div>
@@ -54,7 +54,7 @@
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div class="min-w-0 space-y-2">
                         <div class="flex flex-wrap items-center gap-2">
-                            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ plugin.name }}</h3>
+                            <h3 class="text-base font-semibold text-sem-fg">{{ plugin.name }}</h3>
                             <span
                                 class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide"
                                 :class="
@@ -118,8 +118,8 @@
                                 {{ $t("plugins.settings.badge_tampered") }}
                             </span>
                         </div>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ plugin.description }}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-500">{{ plugin.id }} · v{{ plugin.version }}</p>
+                        <p class="text-sm text-sem-fg-muted">{{ plugin.description }}</p>
+                        <p class="text-xs text-sem-fg-muted">{{ plugin.id }} · v{{ plugin.version }}</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
                         <button
@@ -150,16 +150,13 @@
                         </button>
                     </div>
                 </div>
-                <div v-if="permissionLines(plugin).length" class="text-sm text-gray-700 dark:text-gray-300">
+                <div v-if="permissionLines(plugin).length" class="text-sm text-sem-fg">
                     <p class="font-medium">{{ $t("plugins.settings.permissions") }}</p>
                     <ul class="list-disc pl-5">
                         <li v-for="line in permissionLines(plugin)" :key="line">{{ line }}</li>
                     </ul>
                 </div>
-                <div
-                    v-if="(plugin.network_endpoints || []).length"
-                    class="text-sm text-gray-700 dark:text-gray-300 space-y-1"
-                >
+                <div v-if="(plugin.network_endpoints || []).length" class="text-sm text-sem-fg space-y-1">
                     <p class="font-medium">{{ $t("plugins.settings.network_endpoints") }}</p>
                     <ul class="list-disc pl-5">
                         <li
@@ -178,43 +175,43 @@
 
             <section class="rounded-lg border border-amber-300 dark:border-amber-800 p-4 space-y-3">
                 <div>
-                    <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    <h3 class="text-sm font-semibold text-sem-fg">
                         {{ $t("plugins.sideband.title") }}
                     </h3>
-                    <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    <p class="text-xs text-sem-fg-muted mt-1">
                         {{ $t("plugins.sideband.description") }}
                     </p>
                 </div>
-                <label class="flex items-start gap-2 text-sm text-gray-800 dark:text-gray-200">
+                <label class="flex items-start gap-2 text-sm text-sem-fg">
                     <input
                         v-model="sidebandConfig.service_plugins_enabled"
                         type="checkbox"
-                        class="mt-1 rounded border-gray-300"
+                        class="mt-1 rounded border-sem-border"
                         @change="onSidebandMasterToggle"
                     />
                     <span>{{ $t("plugins.sideband.master_enable") }}</span>
                 </label>
-                <label class="flex items-start gap-2 text-sm text-gray-800 dark:text-gray-200">
+                <label class="flex items-start gap-2 text-sm text-sem-fg">
                     <input
                         v-model="sidebandConfig.command_plugins_enabled"
                         type="checkbox"
-                        class="mt-1 rounded border-gray-300"
+                        class="mt-1 rounded border-sem-border"
                         :disabled="!sidebandConfig.service_plugins_enabled"
                     />
                     <span>{{ $t("plugins.sideband.command_enable") }}</span>
                 </label>
-                <label class="block text-sm text-gray-800 dark:text-gray-200 space-y-1">
+                <label class="block text-sm text-sem-fg space-y-1">
                     <span>{{ $t("plugins.sideband.path") }}</span>
                     <div class="flex flex-col sm:flex-row gap-2">
                         <input
                             v-model="sidebandConfig.command_plugins_path"
                             type="text"
-                            class="w-full rounded-md border border-gray-300 dark:border-zinc-700 bg-sem-surface px-3 py-1.5 text-sm min-w-0"
+                            class="w-full rounded-md border border-sem-border bg-sem-surface px-3 py-1.5 text-sm min-w-0"
                             :disabled="!sidebandConfig.service_plugins_enabled"
                         />
                         <button
                             type="button"
-                            class="px-3 py-1.5 rounded-md border border-gray-300 dark:border-zinc-600 text-sm shrink-0 min-h-[44px]"
+                            class="px-3 py-1.5 rounded-md border border-sem-border text-sm shrink-0 min-h-[44px]"
                             :disabled="!sidebandConfig.service_plugins_enabled || sidebandBusy"
                             :title="$t('plugins.sideband.browse_title')"
                             @click="pickSidebandPluginsDirectory"
@@ -234,7 +231,7 @@
                     </button>
                     <button
                         type="button"
-                        class="px-3 py-1.5 rounded-md border border-gray-300 dark:border-zinc-600 text-sm"
+                        class="px-3 py-1.5 rounded-md border border-sem-border text-sm"
                         :disabled="sidebandBusy"
                         @click="reloadSideband"
                     >
@@ -242,7 +239,7 @@
                     </button>
                 </div>
                 <div v-if="sidebandPlugins.length" class="space-y-2">
-                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <p class="text-sm font-medium text-sem-fg">
                         {{ $t("plugins.sideband.loaded") }}
                     </p>
                     <ul class="space-y-2">
@@ -251,15 +248,12 @@
                             :key="item.path"
                             class="rounded-md border border-sem-border px-3 py-2 text-xs space-y-1"
                         >
-                            <p class="font-medium text-gray-800 dark:text-gray-200">
+                            <p class="font-medium text-sem-fg">
                                 {{ item.name }}
                                 <span class="uppercase text-gray-500">({{ item.type }})</span>
                             </p>
                             <p v-if="item.error" class="text-red-600 dark:text-red-400">{{ item.error }}</p>
-                            <ul
-                                v-if="(item.security_findings || []).length"
-                                class="list-disc pl-4 text-gray-600 dark:text-gray-400"
-                            >
+                            <ul v-if="(item.security_findings || []).length" class="list-disc pl-4 text-sem-fg-muted">
                                 <li v-for="finding in item.security_findings" :key="finding.id">
                                     {{ finding.message }}
                                 </li>

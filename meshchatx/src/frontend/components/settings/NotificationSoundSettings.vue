@@ -10,7 +10,7 @@
             </div>
         </header>
         <div class="settings-section__body space-y-4">
-            <div class="rounded-2xl border border-sem-border bg-white/70 dark:bg-zinc-900/70 px-3 py-3">
+            <div class="rounded-2xl border border-sem-border bg-sem-surface px-3 py-3">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0 flex-1 space-y-1">
                         <div class="text-sm font-semibold text-sem-fg">
@@ -35,14 +35,14 @@
                         <label class="text-sm font-semibold text-sem-fg-muted">
                             {{ $t("app.notification_sound_volume") }}
                         </label>
-                        <span class="text-xs font-mono text-gray-400">{{ config.notification_sound_volume }}%</span>
+                        <span class="text-xs font-mono text-sem-fg-muted">{{ config.notification_sound_volume }}%</span>
                     </div>
                     <input
                         :value="config.notification_sound_volume"
                         type="range"
                         min="0"
                         max="100"
-                        class="w-full h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                        class="w-full h-1.5 bg-sem-surface-muted rounded-lg appearance-none cursor-pointer accent-blue-600"
                         @input="onVolumeChange"
                     />
                 </div>

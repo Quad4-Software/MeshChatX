@@ -25,7 +25,7 @@
             </label>
 
             <div class="space-y-2">
-                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <div class="text-sm font-medium text-sem-fg">
                     {{ $t("settings.experimental.live_transport_mode") }}
                 </div>
                 <p class="text-xs text-sem-fg-muted">

@@ -18,7 +18,7 @@
 
         <div v-if="config.banished_effect_enabled" class="space-y-4">
             <div class="space-y-2">
-                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <div class="text-sm font-medium text-sem-fg">
                     {{ $t("app.banished_text_label") }}
                 </div>
                 <input
@@ -27,13 +27,13 @@
                     class="input-field"
                     @input="$emit('text-change', $event.target.value)"
                 />
-                <div class="text-xs text-gray-600 dark:text-gray-400">
+                <div class="text-xs text-sem-fg-muted">
                     {{ $t("app.banished_text_description") }}
                 </div>
             </div>
 
             <div class="space-y-2">
-                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <div class="text-sm font-medium text-sem-fg">
                     {{ $t("app.banished_color_label") }}
                 </div>
                 <div class="flex gap-2">
@@ -50,7 +50,7 @@
                         @input="$emit('color-change', $event.target.value)"
                     />
                 </div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">
+                <div class="text-xs text-sem-fg-muted">
                     {{ $t("app.banished_color_description") }}
                 </div>
             </div>

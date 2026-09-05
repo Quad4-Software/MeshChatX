@@ -22,7 +22,7 @@
                 </span>
             </label>
 
-            <div class="text-sm font-medium text-gray-900 dark:text-gray-100 pt-2">
+            <div class="text-sm font-medium text-sem-fg pt-2">
                 {{ $t("settings.battery.options_heading") }}
             </div>
 
@@ -55,7 +55,7 @@
             </label>
 
             <div class="space-y-2">
-                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <div class="text-sm font-medium text-sem-fg">
                     {{ $t("settings.battery.max_visualiser_interfaces") }}
                 </div>
                 <p class="text-xs text-sem-fg-muted">
@@ -76,7 +76,7 @@
             </div>
 
             <div class="space-y-2">
-                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <div class="text-sm font-medium text-sem-fg">
                     {{ $t("settings.battery.visualiser_reload_seconds") }}
                 </div>
                 <p class="text-xs text-sem-fg-muted">
@@ -127,7 +127,7 @@
             </label>
 
             <div class="space-y-2">
-                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <div class="text-sm font-medium text-sem-fg">
                     {{ $t("settings.battery.background_poll_multiplier") }}
                 </div>
                 <p class="text-xs text-sem-fg-muted">
@@ -163,7 +163,7 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="space-y-2">
-                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <div class="text-sm font-medium text-sem-fg">
                         {{ $t("settings.battery.interfaces_stats_poll_seconds") }}
                     </div>
                     <input
@@ -180,7 +180,7 @@
                     />
                 </div>
                 <div class="space-y-2">
-                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <div class="text-sm font-medium text-sem-fg">
                         {{ $t("settings.battery.interfaces_discovery_poll_seconds") }}
                     </div>
                     <input
@@ -226,7 +226,7 @@
                     :key="row.name"
                     class="grid grid-cols-1 sm:grid-cols-[1fr_10rem] gap-2 items-center"
                 >
-                    <div class="text-sm text-gray-900 dark:text-gray-100 truncate" :title="row.name">
+                    <div class="text-sm text-sem-fg truncate" :title="row.name">
                         {{ row.name }}
                         <span class="text-xs text-sem-fg-muted"> ({{ row.type || "?" }}) </span>
                     </div>

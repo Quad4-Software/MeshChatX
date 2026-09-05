@@ -197,10 +197,10 @@
                         <div class="text-gray-600 dark:text-gray-400 break-all pl-0 max-sm:text-[8px]">
                             <span class="text-gray-500">IP</span> {{ row.client_ip }}
                         </div>
-                        <div class="text-gray-600 dark:text-gray-400 break-all max-sm:text-[8px]">
-                            <span class="text-gray-500">UA</span> {{ row.user_agent || "-" }}
+                        <div class="text-sem-fg-muted break-all max-sm:text-[8px]">
+                            <span class="text-sem-fg-muted">UA</span> {{ row.user_agent || "-" }}
                         </div>
-                        <div v-if="row.detail" class="text-gray-500 max-sm:text-[8px] sm:text-[10px]">
+                        <div v-if="row.detail" class="text-sem-fg-muted max-sm:text-[8px] sm:text-[10px]">
                             {{ row.detail }}
                         </div>
                     </div>
@@ -211,14 +211,14 @@
                 >
                     <div class="flex-1 flex justify-between sm:hidden">
                         <button
-                            class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                            class="relative inline-flex items-center px-4 py-2 border border-sem-border text-sm font-medium rounded-md text-sem-fg bg-sem-surface hover:bg-sem-surface-muted disabled:opacity-50"
                             :disabled="listOffset === 0"
                             @click="prevPage"
                         >
                             Previous
                         </button>
                         <button
-                            class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                            class="ml-3 relative inline-flex items-center px-4 py-2 border border-sem-border text-sm font-medium rounded-md text-sem-fg bg-sem-surface hover:bg-sem-surface-muted disabled:opacity-50"
                             :disabled="listOffset + limit >= listTotal"
                             @click="nextPage"
                         >
@@ -227,7 +227,7 @@
                     </div>
                     <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                         <div>
-                            <p class="text-sm text-gray-700 dark:text-gray-400 font-mono">
+                            <p class="text-sm text-sem-fg-muted font-mono">
                                 Showing
                                 <span class="font-bold">{{ listTotal === 0 ? 0 : listOffset + 1 }}</span>
                                 to
