@@ -1,13 +1,17 @@
-# SPDX-License-Identifier: 0BSD AND MIT
+# SPDX-License-Identifier: 0BSD
+
+"""Validate and normalize Reticulum interface options before config write."""
+
+from __future__ import annotations
 
 import os
 import re
+from typing import Any
 
 import RNS
 
 _IPV4_HOST_PORT = re.compile(r"^(\d{1,3}(?:\.\d{1,3}){3}):(\d{1,5})$")
 
-# Canonical Reticulum interface mode strings (RNS 1.3.7+ includes internal).
 ALLOWED_INTERFACE_MODES = frozenset(
     {
         "full",
@@ -24,8 +28,7 @@ ALLOWED_INTERFACE_MODES = frozenset(
     },
 )
 
-# Prefer writing the long form when aliases are supplied via the API.
-_INTERFACE_MODE_CANONICAL = {
+_MODE_ALIASES = {
     "gw": "gateway",
     "accesspoint": "access_point",
     "ap": "access_point",
@@ -33,91 +36,80 @@ _INTERFACE_MODE_CANONICAL = {
     "ptp": "pointtopoint",
 }
 
-_YES_NO_TRUE = frozenset({"true", "yes", "1", "y", "on"})
-_YES_NO_FALSE = frozenset({"false", "no", "0", "n", "off"})
+_TRUTHY = frozenset({"true", "yes", "1", "y", "on"})
+_FALSY = frozenset({"false", "no", "0", "n", "off"})
 
-# location_cmd is executed by RNS Discovery via subprocess.run([path]).
-# Reject shell metacharacters and relative traversal before persisting.
-_LOCATION_CMD_FORBIDDEN = re.compile(r"[\x00-\x1f\x7f;&|`$<>\\\"'*?\[\]{}()!#]")
+# RNS Discovery runs location_cmd via subprocess.run([path]).
+_UNSAFE_LOCATION_CMD = re.compile(r"[\x00-\x1f\x7f;&|`$<>\\\"'*?\[\]{}()!#]")
+
+RNODE_TXPOWER_MIN = 0
+RNODE_TXPOWER_MAX = 37
 
 
 def normalize_rnode_tcp_port(port: str) -> str:
-    """Normalize RNodeInterface port when using tcp://.
+    """Strip embedded :port from tcp:// URLs for RNode TCPConnection.
 
-    Reticulum's TCPConnection (RNS/Interfaces/RNodeInterface.py) calls
-    socket.getaddrinfo(target_host, 7633). The first argument must be a hostname or IP **only**; an embedded :port
-    breaks resolution. Config may list legacy tcp://host:7633 or tcp://host:;
-    strip those so storage matches tcp://<host>.
+    RNS getaddrinfo expects host only. Legacy configs may use tcp://host:7633.
     """
     raw = str(port).strip()
     low = raw.lower()
-    scheme = "tcp://"
-    if not low.startswith(scheme):
+    prefix = "tcp://"
+    if not low.startswith(prefix):
         return raw
-    rest = raw[len(scheme) :].strip()
+    rest = raw[len(prefix) :].strip()
     while rest.endswith(":"):
         rest = rest[:-1]
     if not rest:
-        return scheme
+        return prefix
     if rest.startswith("["):
         close = rest.find("]")
         if close != -1 and len(rest) > close + 1 and rest[close + 1] == ":":
             tail = rest[close + 2 :]
             if tail.isdigit() and 1 <= int(tail) <= 65535:
                 rest = rest[: close + 1]
-        return scheme + rest
-    m = _IPV4_HOST_PORT.match(rest)
-    if m and int(m.group(2)) <= 65535:
-        rest = m.group(1)
+        return prefix + rest
+    match = _IPV4_HOST_PORT.match(rest)
+    if match and int(match.group(2)) <= 65535:
+        rest = match.group(1)
     elif rest.count(":") == 1:
         head, tail = rest.split(":", 1)
         if tail.isdigit() and 1 <= int(tail) <= 65535:
             rest = head
-    return scheme + rest
+    return prefix + rest
 
 
-def coerce_rnode_frequency_hz(value):
-    """Return RNode carrier frequency as integer Hz for Reticulum config.
-
-    Reticulum reads frequency with int(); MHz-style decimals (868.825)
-    must not be stored verbatim or they truncate to invalid values. Accepts
-    Hz integers, bare MHz-style numbers below 1e6, and strings with optional
-    ghz/mhz/khz/hz suffix (ASCII, case-insensitive).
-    """
+def coerce_rnode_frequency_hz(value: Any) -> Any:
+    """Convert UI frequency input to integer Hz for RNodeInterface config."""
     if value is None or value == "":
         return value
     raw = str(value).strip()
-    s = raw.lower().replace("_", "")
-    mult = 1.0
-    for suffix, m in (("ghz", 1e9), ("mhz", 1e6), ("khz", 1e3), ("hz", 1.0)):
-        if s.endswith(suffix):
-            s = s[: -len(suffix)].strip()
-            mult = m
+    text = raw.lower().replace("_", "")
+    scale = 1.0
+    for suffix, factor in (("ghz", 1e9), ("mhz", 1e6), ("khz", 1e3), ("hz", 1.0)):
+        if text.endswith(suffix):
+            text = text[: -len(suffix)].strip()
+            scale = factor
             break
-    f = float(s) * mult
-    if f <= 0:
-        return int(round(f))
-    if f >= 1_000_000:
-        return int(round(f))
-    is_integer = abs(f - round(f)) < 1e-9
-    if (not is_integer) or (is_integer and f < 10_000):
-        f *= 1_000_000.0
-    return int(round(f))
+    hz = float(text) * scale
+    if hz <= 0:
+        return int(round(hz))
+    if hz >= 1_000_000:
+        return int(round(hz))
+    whole = abs(hz - round(hz)) < 1e-9
+    if (not whole) or (whole and hz < 10_000):
+        hz *= 1_000_000.0
+    return int(round(hz))
 
 
-RNODE_TXPOWER_MIN = 0
-RNODE_TXPOWER_MAX = 37
-
-
-def normalize_rnode_txpower(value):
-    """Return integer dBm for Reticulum RNodeInterface config."""
+def normalize_rnode_txpower(value: Any) -> Any:
+    """Parse TX power as integer dBm."""
     if value is None or value == "":
         return value
     return int(float(str(value).strip()))
 
 
-def validate_rnode_txpower(value) -> str | None:
-    """Return an API error message when TX power is invalid for Reticulum."""
+def validate_rnode_txpower(value: Any) -> str | None:
+    """Return an error string when TX power is out of RNS range."""
     if value is None or value == "":
         return "TX power is required"
     try:
@@ -135,6 +127,8 @@ def validate_rnode_txpower(value) -> str | None:
 
 
 class InterfaceEditor:
+    """API-facing helpers for mutating Reticulum interface config dicts."""
+
     coerce_rnode_frequency_hz = staticmethod(coerce_rnode_frequency_hz)
     normalize_rnode_tcp_port = staticmethod(normalize_rnode_tcp_port)
     normalize_rnode_txpower = staticmethod(normalize_rnode_txpower)
@@ -142,11 +136,7 @@ class InterfaceEditor:
 
     @staticmethod
     def sanitize_interface_section_name(name: str | None) -> str:
-        """Make a name safe for Reticulum/ConfigObj [[section]] headers.
-
-        Square brackets break ConfigObj nesting and can leave the in-memory
-        interfaces map dirty after a failed write, blocking later adds.
-        """
+        """Strip characters that break ConfigObj [[section]] headers."""
         cleaned = str(name or "").strip()
         if not cleaned:
             return ""
@@ -168,7 +158,7 @@ class InterfaceEditor:
 
     @staticmethod
     def apply_fixed_mtu(interface_details: dict, data: dict) -> str | None:
-        """Persist fixed_mtu when valid; return an API error message otherwise."""
+        """Apply fixed_mtu from request data or clear it. Return error or None."""
         value = data.get("fixed_mtu")
         if value is None or value == "":
             interface_details.pop("fixed_mtu", None)
@@ -177,39 +167,34 @@ class InterfaceEditor:
             mtu = int(value)
         except (TypeError, ValueError):
             return "fixed_mtu must be a positive integer"
-        min_mtu = InterfaceEditor.minimum_fixed_mtu()
-        if mtu < min_mtu:
+        floor = InterfaceEditor.minimum_fixed_mtu()
+        if mtu < floor:
             return (
-                f"fixed_mtu must be at least {min_mtu} bytes "
+                f"fixed_mtu must be at least {floor} bytes "
                 f"(Reticulum minimum MTU; values below this prevent startup)"
             )
         interface_details["fixed_mtu"] = mtu
         return None
 
     @staticmethod
-    def update_value(interface_details: dict, data: dict, key: str):
-        # update value if provided and not empty
+    def update_value(interface_details: dict, data: dict, key: str) -> None:
         value = data.get(key)
         if value is not None and value != "":
             interface_details[key] = value
             return
-
-        # otherwise remove existing value
         interface_details.pop(key, None)
 
     @staticmethod
-    def normalize_interface_mode(value) -> str | None:
-        """Return a canonical Reticulum mode string, or None when unset."""
+    def normalize_interface_mode(value: Any) -> str | None:
         if value is None or value == "":
             return None
         mode = str(value).strip().lower()
         if mode not in ALLOWED_INTERFACE_MODES:
             return None
-        return _INTERFACE_MODE_CANONICAL.get(mode, mode)
+        return _MODE_ALIASES.get(mode, mode)
 
     @staticmethod
     def apply_interface_mode(interface_details: dict, data: dict) -> str | None:
-        """Persist mode when valid. Return an API error message otherwise."""
         if "mode" not in data:
             return None
         value = data.get("mode")
@@ -226,16 +211,15 @@ class InterfaceEditor:
         return None
 
     @staticmethod
-    def request_yes_no(value) -> str | None:
-        """Map common truthy/falsey request values to Reticulum yes/no."""
+    def request_yes_no(value: Any) -> str | None:
         if value is None or value == "":
             return None
         if isinstance(value, bool):
             return "yes" if value else "no"
-        s = str(value).strip().lower()
-        if s in _YES_NO_TRUE:
+        text = str(value).strip().lower()
+        if text in _TRUTHY:
             return "yes"
-        if s in _YES_NO_FALSE:
+        if text in _FALSY:
             return "no"
         return None
 
@@ -247,11 +231,6 @@ class InterfaceEditor:
         *,
         default_when_missing: str | None = None,
     ) -> str | None:
-        """Persist a Reticulum yes/no option. Return error text on bad input.
-
-        When the key is absent from data, leave existing config alone unless
-        default_when_missing is set (then write that yes/no or pop when None).
-        """
         if key not in data:
             if default_when_missing is None:
                 return None
@@ -271,14 +250,13 @@ class InterfaceEditor:
         return None
 
     @staticmethod
-    def validate_location_cmd(value) -> str | None:
-        """Return an error when location_cmd is unsafe for RNS Discovery exec."""
+    def validate_location_cmd(value: Any) -> str | None:
         if value is None or value == "":
             return None
         raw = str(value).strip()
         if not raw:
             return None
-        if _LOCATION_CMD_FORBIDDEN.search(raw):
+        if _UNSAFE_LOCATION_CMD.search(raw):
             return (
                 "location_cmd must be an absolute executable path without "
                 "shell metacharacters or control characters"
@@ -292,7 +270,6 @@ class InterfaceEditor:
 
     @staticmethod
     def apply_location_cmd(interface_details: dict, data: dict) -> str | None:
-        """Persist discovery location_cmd when valid."""
         if "location_cmd" not in data:
             return None
         value = data.get("location_cmd")
@@ -317,7 +294,6 @@ class InterfaceEditor:
         minimum: float = 0,
         maximum: float | None = None,
     ) -> str | None:
-        """Persist a numeric option with bounds. Return error text if invalid."""
         if key not in data:
             return None
         value = data.get(key)
@@ -340,7 +316,6 @@ class InterfaceEditor:
         interface_details: dict,
         data: dict,
     ) -> str | None:
-        """Persist BackboneInterface fast-flapping options (RNS 1.4.0)."""
         err = InterfaceEditor.apply_yes_no_option(
             interface_details,
             data,
@@ -348,38 +323,32 @@ class InterfaceEditor:
         )
         if err:
             return err
-        err = InterfaceEditor.apply_positive_number(
-            interface_details,
-            data,
-            "fast_flapping_block_time",
-            as_int=True,
-            minimum=1,
-            maximum=60 * 24 * 30,
-        )
-        if err:
-            return err
-        err = InterfaceEditor.apply_positive_number(
-            interface_details,
-            data,
-            "fast_flapping_threshold",
-            as_int=False,
-            minimum=0.1,
-            maximum=3600,
-        )
-        if err:
-            return err
-        return InterfaceEditor.apply_positive_number(
-            interface_details,
-            data,
-            "fast_flapping_grace",
-            as_int=True,
-            minimum=0,
-            maximum=10_000,
-        )
+        for key, kwargs in (
+            (
+                "fast_flapping_block_time",
+                {"as_int": True, "minimum": 1, "maximum": 60 * 24 * 30},
+            ),
+            (
+                "fast_flapping_threshold",
+                {"as_int": False, "minimum": 0.1, "maximum": 3600},
+            ),
+            (
+                "fast_flapping_grace",
+                {"as_int": True, "minimum": 0, "maximum": 10_000},
+            ),
+        ):
+            err = InterfaceEditor.apply_positive_number(
+                interface_details,
+                data,
+                key,
+                **kwargs,
+            )
+            if err:
+                return err
+        return None
 
     @staticmethod
     def sanitize_imported_rns_options(iface_body: dict) -> str | None:
-        """Normalize/validate RNS 1.3.7+ options on import. Return error or None."""
         if "mode" in iface_body:
             mode = InterfaceEditor.normalize_interface_mode(iface_body.get("mode"))
             if mode is None:
