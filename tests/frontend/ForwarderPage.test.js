@@ -6,7 +6,7 @@ import ToastUtils from "@/js/ToastUtils";
 import DialogUtils from "@/js/DialogUtils";
 import { dispatchWsEvent } from "@/js/registries/wsEventRegistry.js";
 import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
-import { isValidForwarderDestinationHash } from "@/features/forwarder/lib/forwarderHash.js";
+import { isValidForwarderDestinationHash } from "@/features/forwarder/lib/forwarderHash.ts";
 
 vi.mock("@/js/WebSocketConnection", () => ({
     default: {

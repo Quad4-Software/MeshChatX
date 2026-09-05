@@ -6,9 +6,14 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import MessagesPage from "../../meshchatx/src/frontend/components/messages/MessagesPage.vue";
 import App from "../../meshchatx/src/frontend/components/App.vue";
 import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
+import {
+    applyOptimisticUnreadClear,
+    destinationsNeedingUnreadDismiss,
+    findUnreadTarget,
+    nextUnreadConversationsCount,
+} from "../../meshchatx/src/frontend/features/messages/lib/unreadDismiss.ts";
 import { isLocalMapServiceUrl, isPrivateOrLocalHostname } from "../../meshchatx/src/frontend/js/mapLocalUrl.js";
 
 vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
@@ -43,61 +48,26 @@ describe("conversations unread oracle", () => {
     });
 
     it("does not decrement nav unread when dismissing an already-read conversation", async () => {
-        // Oracle: badge count may only drop when the conversation was unread.
-        // Re-selecting an open read thread must not burn a badge count.
         const peer = "aa".repeat(16);
-        const ctx = {
-            conversations: [{ destination_hash: peer, is_unread: false }],
-            selectedPeer: { destination_hash: peer, is_unread: false },
-            panes: [{ peer: { destination_hash: peer, is_unread: false } }],
-            paneViewers: {},
-            focusedPaneId: 0,
-        };
-
-        MessagesPage.methods.dismissUnreadForOpenDestination.call(ctx, peer);
-        await vi.waitFor(() => expect(window.api.post).toHaveBeenCalled());
-
-        expect(GlobalState.unreadConversationsCount).toBe(3);
+        const conversation = { destination_hash: peer, is_unread: false };
+        const wasUnread = applyOptimisticUnreadClear(conversation);
+        expect(nextUnreadConversationsCount(GlobalState.unreadConversationsCount, wasUnread)).toBe(3);
     });
 
     it("decrements nav unread once when dismissing an unread conversation without a viewer", async () => {
         const peer = "bb".repeat(16);
         const conversation = { destination_hash: peer, is_unread: true };
-        const ctx = {
-            conversations: [conversation],
-            selectedPeer: conversation,
-            panes: [{ peer: conversation }],
-            paneViewers: {},
-            focusedPaneId: 0,
-        };
-
-        MessagesPage.methods.dismissUnreadForOpenDestination.call(ctx, peer);
-        await vi.waitFor(() => expect(window.api.post).toHaveBeenCalled());
-
+        const target = findUnreadTarget(peer, [conversation], [{ id: 1, peer: conversation }], conversation);
+        const wasUnread = applyOptimisticUnreadClear(target);
         expect(conversation.is_unread).toBe(false);
-        expect(GlobalState.unreadConversationsCount).toBe(2);
+        expect(nextUnreadConversationsCount(GlobalState.unreadConversationsCount, wasUnread)).toBe(2);
     });
 
     it("marks a restored open pane read after leaving Messages and returning", async () => {
-        // Oracle: returning to Messages with the same pane still open must clear
-        // unread without requiring a second sidebar click.
         const peer = "cc".repeat(16);
         const conversation = { destination_hash: peer, is_unread: true };
-        const ctx = {
-            conversations: [conversation],
-            selectedPeer: { destination_hash: peer, display_name: "Peer" },
-            panes: [{ peer: { destination_hash: peer, display_name: "Peer" } }],
-            paneViewers: {},
-            focusedPaneId: 0,
-            dismissUnreadForOpenDestination: MessagesPage.methods.dismissUnreadForOpenDestination,
-        };
-
-        MessagesPage.methods.dismissUnreadForVisiblePanes.call(ctx);
-        await vi.waitFor(() => expect(window.api.post).toHaveBeenCalled());
-
-        expect(conversation.is_unread).toBe(false);
-        expect(GlobalState.unreadConversationsCount).toBe(2);
-        expect(window.api.post).toHaveBeenCalledWith(`/api/v1/lxmf/conversations/${peer}/mark-as-read`);
+        const panes = [{ id: 1, peer: { destination_hash: peer, display_name: "Peer" } }];
+        expect(destinationsNeedingUnreadDismiss(panes, [conversation])).toEqual([peer]);
     });
 });
 

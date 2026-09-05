@@ -30,12 +30,6 @@
         "license": "Apache 2.0"
     },
     {
-        "name": "altcha",
-        "version": "2.1.0",
-        "author": "Daniel Regeci",
-        "license": "OSI Approved :: MIT License"
-    },
-    {
         "name": "anyio",
         "version": "4.14.2",
         "author": "Alex Grönholm <alex.gronholm@nextday.fi>",

@@ -91,6 +91,22 @@ describe("App.vue deep link protocol handling (security-oriented)", () => {
         expect(push).not.toHaveBeenCalled();
     });
 
+    it("routes meshchatx://app/messages/<hash> to that conversation", () => {
+        const push = vi.fn();
+        const h = "abcdef0123456789abcdef0123456789";
+        App.methods.handleProtocolLink.call({ $router: { push } }, `meshchatx://app/messages/${h}`);
+        expect(push).toHaveBeenCalledWith({
+            name: "messages",
+            params: { destinationHash: h },
+        });
+        push.mockClear();
+        App.methods.handleProtocolLink.call({ $router: { push } }, "meshchatx://app/messages");
+        expect(push).toHaveBeenCalledWith({ name: "messages" });
+        push.mockClear();
+        App.methods.handleProtocolLink.call({ $router: { push } }, "meshchatx://app/messages/not-hex!!");
+        expect(push).toHaveBeenCalledWith({ name: "messages" });
+    });
+
     it("onWebsocketMessage map_view passes label and layers as opaque query strings", async () => {
         const push = vi.fn().mockResolvedValue(undefined);
         const marker = "<svg/onload=alert(1)>";

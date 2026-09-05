@@ -361,7 +361,7 @@ def _frontend_source_available() -> bool:
         package_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         frontend = os.path.join(package_dir, "src", "frontend")
         return os.path.isdir(frontend) and os.path.isfile(
-            os.path.join(frontend, "main.js"),
+            os.path.join(frontend, "main.ts"),
         )
     except Exception:
         return False

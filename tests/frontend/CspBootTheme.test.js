@@ -38,7 +38,7 @@ describe("main app CSP and boot theme", () => {
         expect(existsSync(BOOT_THEME_JS)).toBe(true);
         expect(html).toContain('src="/boot-theme.js"');
         const bootIdx = html.indexOf('src="/boot-theme.js"');
-        const mainIdx = html.indexOf('src="main.js"');
+        const mainIdx = html.indexOf('src="main.ts"');
         expect(bootIdx).toBeGreaterThan(-1);
         expect(mainIdx).toBeGreaterThan(bootIdx);
     });
@@ -48,7 +48,7 @@ describe("main app CSP and boot theme", () => {
         const srcs = [...html.matchAll(SCRIPT_SRC_RE)].map((m) => m[1]);
         expect(srcs.length).toBeGreaterThan(0);
         for (const src of srcs) {
-            if (src === "main.js" || src.endsWith("/main.js")) {
+            if (src === "main.ts" || src.endsWith("/main.ts")) {
                 continue;
             }
             const rel = src.replace(/^\//, "");

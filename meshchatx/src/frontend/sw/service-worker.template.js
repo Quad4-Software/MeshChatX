@@ -2,7 +2,7 @@
 /* global __MESHCHATX_SW_PRECACHE_JSON__, cacheNameForBuild, createShellRuntime, handleFetchEvent, SHELL_FALLBACK_URL, NAV_NETWORK_TIMEOUT_MS, UPDATE_MESSAGE_TYPE */
 /**
  * MeshChatX app-shell service worker bootstrap.
- * Preceded at build time by inlined swCachePolicy.js + swShellRuntime.js.
+ * Preceded at build time by inlined swCachePolicy.ts + swShellRuntime.ts.
  * Placeholders __MESHCHATX_SW_BUILD_ID__ and __MESHCHATX_SW_PRECACHE_JSON__ are replaced.
  */
 

@@ -1,0 +1,56 @@
+services:
+    reticulum-meshchatx:
+        build:
+            context: ..
+            dockerfile: docker/Dockerfile
+        container_name: reticulum-meshchatx
+        image: reticulum-meshchatx:local
+        restart: unless-stopped
+        init: true
+        user: "1000:1000"
+        security_opt:
+            - no-new-privileges:true
+        cap_drop:
+            - ALL
+        read_only: true
+        tmpfs:
+            - /tmp:noexec,nosuid,size=256m
+            - /home/meshchat:nosuid,size=64m
+        ports:
+            - 127.0.0.1:8000:8000
+        volumes:
+            - meshchatx-config:/config
+        ulimits:
+            nofile:
+                soft: 65536
+                hard: 65536
+        logging:
+            driver: json-file
+            options:
+                max-size: "10m"
+                max-file: "5"
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import ssl, urllib.request; urllib.request.urlopen('https://127.0.0.1:8000/api/v1/status', context=ssl._create_unverified_context())",
+                ]
+            interval: 30s
+            timeout: 5s
+            retries: 3
+            start_period: 90s
+        deploy:
+            resources:
+                limits:
+                    cpus: "2.0"
+                    memory: 1G
+                    pids: 512
+                reservations:
+                    cpus: "0.25"
+                    memory: 256M
+
+volumes:
+    meshchatx-config:
+        name: meshchatx-config

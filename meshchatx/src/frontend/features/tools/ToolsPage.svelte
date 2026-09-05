@@ -23,6 +23,7 @@
     const toolsWithTranslations = $derived(translateTools(t));
     const filteredTools = $derived(filterTools(toolsWithTranslations, searchQuery));
     const groupedToolSections = $derived(searchQuery.trim() ? null : groupTools(filteredTools));
+    const toolsCount = $derived(toolsWithTranslations.length);
 
     /**
      * @param {string} sectionId
@@ -36,20 +37,20 @@
 
 <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas" data-testid="tools-page">
     <div class="flex-1 overflow-y-auto w-full pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div class="border-b border-sem-border px-4 py-4 md:px-6 md:py-5">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
-                <div class="space-y-2 min-w-0 flex-1">
-                    <div class="text-2xl md:text-3xl font-black text-sem-fg tracking-tight">
+        <div class="border-b border-sem-border px-4 py-2.5 md:px-6 md:py-3">
+            <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                <div class="min-w-0 flex-1">
+                    <div class="text-xl md:text-2xl font-bold text-sem-fg tracking-tight">
                         {t("tools.power_tools")}
                     </div>
-                    <div class="text-sm text-sem-fg-muted leading-relaxed max-w-xl">
+                    <div class="text-xs sm:text-sm text-sem-fg-muted leading-snug max-w-xl mt-0.5">
                         {t("tools.diagnostics_description")}
                     </div>
                 </div>
 
-                <div class="w-full lg:max-w-sm shrink-0">
+                <div class="w-full sm:max-w-sm shrink-0">
                     <div class="relative group">
-                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <MaterialDesignIcon
                                 iconName="magnify"
                                 class="size-5 text-gray-400 group-focus-within:text-sem-accent transition-colors"
@@ -58,8 +59,8 @@
                         <input
                             bind:value={searchQuery}
                             type="text"
-                            placeholder={t("common.search")}
-                            class="input-field w-full pl-12! pr-10 py-3!"
+                            placeholder={t("tools.search_placeholder", { count: toolsCount })}
+                            class="input-field w-full pl-10! pr-10 py-2!"
                         />
                         {#if searchQuery}
                             <button

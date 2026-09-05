@@ -17,6 +17,10 @@
     <string name="notification_background_title">MeshChatX is running</string>
     <string name="notification_background_text">Reticulum stack active in the background. Tap to return.</string>
     <string name="notification_new_message_fallback">New message</string>
+    <string name="notification_reply">Reply</string>
+    <string name="notification_reply_label">Reply</string>
+    <string name="notification_mark_as_read">Mark as read</string>
+    <string name="notification_messaging_self_name">Me</string>
     <string name="shortcut_messages_short">Messages</string>
     <string name="shortcut_messages_long">Open messages</string>
     <string name="shortcut_call_short">Call</string>

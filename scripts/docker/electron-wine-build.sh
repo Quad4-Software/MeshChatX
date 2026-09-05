@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Host helper: build MeshChatX Windows Electron artifacts with Dockerfile.electron-wine.
+# Host helper: build MeshChatX Windows Electron artifacts with docker/Dockerfile.electron-wine.
 # Optional path. GitHub Actions windows-latest remains the release default.
 set -euo pipefail
 
@@ -7,7 +7,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
 IMAGE="${MESHCHATX_ELECTRON_WINE_IMAGE:-meshchatx-electron-wine:local}"
-FILE="${MESHCHATX_ELECTRON_WINE_DOCKERFILE:-Dockerfile.electron-wine}"
+FILE="${MESHCHATX_ELECTRON_WINE_DOCKERFILE:-docker/Dockerfile.electron-wine}"
 TARGETS="${MESHCHATX_ELECTRON_WINE_TARGETS:-win}"
 OUT_DIR="${MESHCHATX_ELECTRON_WINE_OUT:-./meshchatx-artifacts-win}"
 BASE_IMAGE="${ELECTRON_BUILDER_IMAGE:-electronuserland/builder:24-wine-05.26}"

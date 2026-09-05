@@ -7,7 +7,7 @@ import {
     markPaperMessageIngested,
     normalizePaperIngestMessageHash,
     shouldMarkPaperIngestFromResultStatus,
-} from "@/components/messages/conversationPaperIngest.js";
+} from "@/features/messages/lib/conversationPaperIngest.ts";
 
 describe("conversationPaperIngest", () => {
     beforeEach(() => {

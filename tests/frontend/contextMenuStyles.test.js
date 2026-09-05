@@ -38,8 +38,7 @@ describe("context menu styling", () => {
     it("uses ContextMenuPanel and ContextMenuItem on all right-click context menus", () => {
         const files = [
             "meshchatx/src/frontend/features/contacts/components/ContactsContextMenu.svelte",
-            "meshchatx/src/frontend/components/messages/MessagesSidebar.vue",
-            "meshchatx/src/frontend/components/messages/ConversationViewer.vue",
+            "meshchatx/src/frontend/features/messages/components/ConversationMessageContextMenu.svelte",
             "meshchatx/src/frontend/components/nomadnetwork/NomadNetworkSidebar.vue",
             "meshchatx/src/frontend/components/map/MapPage.vue",
         ];

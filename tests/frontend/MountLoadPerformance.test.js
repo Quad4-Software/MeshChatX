@@ -1,6 +1,7 @@
 import { mount, flushPromises } from "@vue/test-utils";
+import { cleanup, render } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import MessagesPage from "@/components/messages/MessagesPage.vue";
+import MessagesPage from "@/features/messages/MessagesPage.svelte";
 import NomadNetworkBrowser from "@/components/nomadnetwork/NomadNetworkBrowser.vue";
 import { conversationListSignature, syncConversationListInPlace } from "@/js/lxmfConversationListSync";
 
@@ -73,43 +74,23 @@ describe("Mount load performance regressions", () => {
         });
 
         afterEach(() => {
+            cleanup();
             delete window.api;
         });
 
         const mountMessagesPage = () =>
-            mount(MessagesPage, {
-                props: { destinationHash: "" },
-                global: {
-                    mocks: {
-                        $t: (key) => key,
-                        $route: { query: {} },
-                        $router: { replace: vi.fn() },
-                    },
-                    stubs: {
-                        MaterialDesignIcon: MaterialDesignIconStub,
-                        LoadingSpinner: true,
-                        MessagesSidebar: {
-                            template: '<div class="sidebar-stub"></div>',
-                            props: ["conversations", "selectedDestinationHash"],
-                        },
-                        ConversationViewer: {
-                            template: '<div class="viewer-stub"></div>',
-                            props: ["selectedPeer", "myLxmfAddressHash"],
-                        },
-                        Modal: true,
-                    },
-                },
+            render(MessagesPage, {
+                props: { destinationHash: "", routeQuery: {} },
             });
 
         it("does not fetch lxmf delivery announces on initial mount", async () => {
-            const wrapper = mountMessagesPage();
+            mountMessagesPage();
             await flushPromises();
 
             const announceCalls = axiosMock.get.mock.calls.filter(
                 (call) => call[0] === "/api/v1/announces" && call[1]?.params?.aspect === "lxmf.delivery"
             );
             expect(announceCalls).toHaveLength(0);
-            expect(wrapper.vm.announcesLoaded).toBe(false);
         });
 
         it("mounts within the messages page budget", async () => {

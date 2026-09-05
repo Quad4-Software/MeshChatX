@@ -21,25 +21,20 @@ describe("layout UX oracle-light", () => {
     });
 
     it("ConversationViewer message list uses overflow-y-auto and composer safe-area", () => {
-        const cv = src("components/messages/ConversationViewer.vue");
-        expect(cv).toContain("overflow-y-auto bg-sem-canvas");
-        expect(cv).not.toMatch(/id="messages"[\s\S]{0,200}overflow-y-scroll/);
-        expect(cv).toContain("composerChromeStyle");
-        expect(cv).toContain("updateKeyboardInset");
-        expect(cv).toContain("env(safe-area-inset-bottom");
-        expect(cv).toContain("flex-col gap-3 text-sm sm:flex-row sm:items-center");
-        // Non-virtual list must use oldest-first normal flow. Nested flex-col-reverse
-        // caused attachment image loads to yank scroll on wide viewports.
-        expect(cv).toContain("data-message-list-mode=\"useVirtualMessageList ? 'virtual' : 'flow'\"");
-        expect(cv).toContain("selectedPeerChatDisplayGroupsOldestFirstAugmented");
-        expect(cv).not.toMatch(/v-if="!useVirtualMessageList"[\s\S]{0,400}flex-col-reverse/);
+        const cv = src("features/messages/components/ConversationViewer.svelte");
+        const composer = src("features/messages/components/ConversationComposer.svelte");
+        expect(cv).toContain('class="min-h-0 flex-1 overflow-y-auto bg-sem-canvas"');
+        expect(cv).toContain('data-message-list-mode={useVirtualMessageList ? "virtual" : "flow"}');
+        expect(cv).not.toContain("flex-col-reverse");
+        expect(composer).toContain("env(safe-area-inset-bottom");
     });
 
     it("MessagesPage mobile compose FAB and sheet clear safe-area and use dvh", () => {
-        const page = src("components/messages/MessagesPage.vue");
+        const page = src("features/messages/MessagesPage.svelte");
+        const compose = src("features/messages/components/MessagesMobileCompose.svelte");
         expect(page).toContain("bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))]");
-        expect(page).toContain("max-h-[90dvh]");
-        expect(page).not.toContain("max-h-[90vh]");
+        expect(compose).toContain("max-h-[90dvh]");
+        expect(compose).not.toContain("max-h-[90vh]");
     });
 
     it("MicronEditor shows tab close on touch and splits at tablet width", () => {

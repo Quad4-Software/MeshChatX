@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup, fireEvent, waitFor, screen } from "@testing-library/svelte";
 import LicensesPage from "@/features/licenses/LicensesPage.svelte";
-import { filterLicenseRows } from "@/features/licenses/lib/licenseFilter.js";
+import { filterLicenseRows } from "@/features/licenses/lib/licenseFilter.ts";
 import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
 
 window.api = {

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run inside Dockerfile.build after COPY. Writes outputs to /artifacts.
+# Run inside docker/Dockerfile.build after COPY. Writes outputs to /artifacts.
 # Env: MESHCHATX_BUILD_TARGETS = all | wheel | electron (electron = Linux packages, no wheel)
 # Env: MESHCHATX_LINUX_FORMATS = comma list of appimage,deb,rpm,apk (default: all four)
 set -euo pipefail

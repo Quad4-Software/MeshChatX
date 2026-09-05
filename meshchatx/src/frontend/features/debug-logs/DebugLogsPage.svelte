@@ -207,16 +207,14 @@
 
 <div class="flex-1 flex flex-col h-full overflow-hidden" data-testid="debug-logs-page">
     <ToolsPageHeader icon="bug" title={t("debug.logs_title")} description={t("debug.logs_description")} accent="red">
-        {#snippet children()}
-            <button type="button" class="secondary-chip" onclick={copyActive}>
-                <MaterialDesignIcon iconName="content-copy" class="w-4 h-4" />
-                {activeTab === "logs" ? t("debug.copy_logs") : t("debug.copy_access")}
-            </button>
-            <button type="button" class="primary-chip" onclick={refreshActive}>
-                <MaterialDesignIcon iconName="refresh" class="w-4 h-4" />
-                {t("common.refresh")}
-            </button>
-        {/snippet}
+        <button type="button" class="secondary-chip" onclick={copyActive}>
+            <MaterialDesignIcon iconName="content-copy" class="w-4 h-4" />
+            {activeTab === "logs" ? t("debug.copy_logs") : t("debug.copy_access")}
+        </button>
+        <button type="button" class="primary-chip" onclick={refreshActive}>
+            <MaterialDesignIcon iconName="refresh" class="w-4 h-4" />
+            {t("common.refresh")}
+        </button>
     </ToolsPageHeader>
 
     <div class="px-4 md:px-6 pt-2 flex gap-2 border-b border-sem-border bg-sem-surface">

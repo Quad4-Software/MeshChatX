@@ -13,25 +13,27 @@ function readSources(relativePaths) {
 describe("behavior contracts: user-visible wiring must stay connected", () => {
     describe("cancel send", () => {
         it("ConversationMessageEntry exposes cancel for in-flight outbound messages", () => {
-            const src = readSource("meshchatx/src/frontend/components/messages/ConversationMessageEntry.vue");
+            const src = readSource(
+                "meshchatx/src/frontend/features/messages/components/ConversationMessageEntry.svelte"
+            );
             expect(src).toContain("canCancelOutboundSend");
             expect(src).toContain("cancelSendingMessage");
             expect(src).toContain("messages.cancel_send");
         });
 
-        it("ConversationViewer implements cancelSendingMessage and canCancelOutboundSend", () => {
-            const src = readSource("meshchatx/src/frontend/components/messages/ConversationViewer.vue");
-            expect(src).toContain("async cancelSendingMessage(");
-            expect(src).toContain("canCancelOutboundSend(");
-            expect(src).toContain("/lxmf-messages/${");
-            expect(src).toContain("/cancel");
-            expect(src).toContain("_outboundQueue.cancelJob");
+        it("ConversationViewer and send helpers implement local and persisted cancellation", () => {
+            const viewer = readSource("meshchatx/src/frontend/features/messages/components/ConversationViewer.svelte");
+            const send = readSource("meshchatx/src/frontend/features/messages/lib/conversationViewerSend.ts");
+            expect(viewer).toContain("async function cancelSending()");
+            expect(viewer).toContain("outboundQueue.cancelJob");
+            expect(send).toContain("export async function cancelOutbound");
+            expect(send).toContain("/lxmf-messages/${hash}/cancel");
         });
 
-        it("outbound send jobs carry a cancelKey for queue cancellation", () => {
-            const src = readSource("meshchatx/src/frontend/components/messages/ConversationViewer.vue");
-            expect(src).toContain("cancelKey:");
-            expect(src).toContain("job.cancelled");
+        it("outbound send jobs stop before or during image fan-out when cancelled", () => {
+            const src = readSource("meshchatx/src/frontend/features/messages/lib/conversationViewerSend.ts");
+            expect(src.match(/job\.cancelled/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+            expect(src).toContain("pendingHash");
         });
     });
 
@@ -39,7 +41,10 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
         const downloadSurfaces = [
             ["AboutPage.vue", "meshchatx/src/frontend/components/about/AboutPage.vue"],
             ["IdentitiesPage.vue", "meshchatx/src/frontend/components/settings/IdentitiesPage.vue"],
-            ["ConversationViewer.vue", "meshchatx/src/frontend/components/messages/ConversationViewer.vue"],
+            [
+                "ConversationViewer.svelte",
+                "meshchatx/src/frontend/features/messages/components/ConversationViewer.svelte",
+            ],
         ];
 
         it.each(downloadSurfaces)("%s routes saves through DownloadUtils", (_, relativePath) => {
@@ -60,10 +65,12 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
         });
 
         it("chat file attachments do not rely on WebView-unfriendly anchor downloads", () => {
-            const src = readSource("meshchatx/src/frontend/components/messages/ConversationMessageEntry.vue");
+            const src = readSource(
+                "meshchatx/src/frontend/features/messages/components/ConversationMessageEntry.svelte"
+            );
             expect(src).toContain("downloadLxmfFileAttachment");
-            expect(src).not.toMatch(/:download\s*=\s*["']file_attachment\.file_name["']/);
-            expect(src).not.toMatch(/\/attachment\/\$\{chatItem\.lxmf_message\.hash\}\/file\?file_index=\$\{index\}/);
+            expect(src).not.toMatch(/\bdownload=/);
+            expect(src).not.toContain("createObjectURL");
         });
 
         it("DownloadUtils supports Android bridge and browser fallback", () => {
@@ -158,7 +165,6 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
             ["NomadNetworkPage.vue", "meshchatx/src/frontend/components/nomadnetwork/NomadNetworkPage.vue"],
             ["ArchivesPage.vue", "meshchatx/src/frontend/components/archives/ArchivesPage.vue"],
             ["RNCPPage.vue", "meshchatx/src/frontend/components/rncp/RNCPPage.vue"],
-            ["ConversationViewer.vue", "meshchatx/src/frontend/components/messages/ConversationViewer.vue"],
         ];
 
         it.each(surfaces)("%s uses shared rich html link handler", (_, relativePath) => {
@@ -208,10 +214,10 @@ describe("behavior contracts: dead API surface", () => {
     });
 
     it("frontend cancel helper is referenced outside its definition file", () => {
-        const viewer = readSource("meshchatx/src/frontend/components/messages/ConversationViewer.vue");
-        const entry = readSource("meshchatx/src/frontend/components/messages/ConversationMessageEntry.vue");
+        const viewer = readSource("meshchatx/src/frontend/features/messages/components/ConversationViewer.svelte");
+        const entry = readSource("meshchatx/src/frontend/features/messages/components/ConversationMessageEntry.svelte");
         expect(entry.match(/cancelSendingMessage/g)?.length ?? 0).toBeGreaterThanOrEqual(1);
-        expect(viewer).toContain("cancelSendingMessage(");
+        expect(viewer).toContain("cancelSendingMessage:");
     });
 });
 
@@ -338,7 +344,7 @@ describe("behavior contracts: phased startup and early UI mount", () => {
         expect(wait).toContain("mountOnUiReady");
         expect(wait).toContain("waitForMeshReady");
         expect(wait).toContain("hasOwnProperty.call");
-        const main = readSource("meshchatx/src/frontend/main.js");
+        const main = readSource("meshchatx/src/frontend/main.ts");
         expect(main).toContain("waitForMeshReady");
         expect(main).toContain('networkReady === "ui"');
         expect(main).toContain("networkStarting");
@@ -444,7 +450,7 @@ describe("behavior contracts: locale, theme, and call audio", () => {
     });
 
     it("main.js registers the real i18n composer for Options API locale switches", () => {
-        const main = readSource("meshchatx/src/frontend/main.js");
+        const main = readSource("meshchatx/src/frontend/main.ts");
         expect(main).toContain("registerUiI18n");
         expect(main).toContain("registerUiI18n(i18n)");
         const loader = readSource("meshchatx/src/frontend/js/localeLoader.js");

@@ -4,6 +4,7 @@ import pluginSvelte from "eslint-plugin-svelte";
 import pluginPrettier from "eslint-plugin-prettier/recommended";
 import pluginSecurity from "eslint-plugin-security";
 import globals from "globals";
+import tseslint from "typescript-eslint";
 import svelteConfig from "./svelte.config.js";
 
 export default [
@@ -86,19 +87,35 @@ export default [
         },
     },
     {
-        files: ["**/*.svelte"],
+        files: ["**/*.svelte", "**/*.svelte.ts", "**/*.svelte.js"],
         languageOptions: {
             globals: {
                 ...globals.browser,
             },
             parserOptions: {
+                parser: tseslint.parser,
+                extraFileExtensions: [".svelte"],
                 svelteConfig,
             },
         },
+        plugins: {
+            "@typescript-eslint": tseslint.plugin,
+        },
         rules: {
-            "no-unused-vars": "warn",
+            // espree no-unused-vars false-positives on typed $props callback params
+            "no-unused-vars": "off",
+            "@typescript-eslint/no-unused-vars": [
+                "warn",
+                {
+                    argsIgnorePattern: "^_",
+                    varsIgnorePattern: "^_",
+                    caughtErrorsIgnorePattern: "^_",
+                },
+            ],
             "no-console": "off",
             "security/detect-object-injection": "off",
+            // One-shot URLSearchParams builders are not reactive $state.
+            "svelte/prefer-svelte-reactivity": "off",
         },
     },
     {

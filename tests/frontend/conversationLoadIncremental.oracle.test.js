@@ -1,206 +1,95 @@
 // SPDX-License-Identifier: 0BSD
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import ConversationViewer from "@/components/messages/ConversationViewer.vue";
-import WebSocketConnection from "@/js/WebSocketConnection";
-import GlobalState from "@/js/GlobalState";
-import { CONVERSATION_MESSAGES_PAGE_SIZE } from "@/components/messages/conversationDisplayGroups.js";
-import { mount, flushPromises } from "@vue/test-utils";
+import { describe, expect, it, vi } from "vitest";
+import { CONVERSATION_MESSAGES_PAGE_SIZE } from "@/features/messages/lib/conversationDisplayGroups.ts";
+import {
+    fetchConversationPage,
+    oldestMessageId,
+    prependConversationPage,
+} from "@/features/messages/lib/conversationViewerMessages.ts";
 
-vi.mock("@/js/DialogUtils", () => ({
-    default: {
-        confirm: vi.fn(() => Promise.resolve(true)),
-        alert: vi.fn(),
-        prompt: vi.fn(() => Promise.resolve(null)),
-    },
-}));
+const peerHash = "ab".repeat(16);
+const myHash = "cd".repeat(16);
 
-describe("conversation incremental load smoke", () => {
-    let axiosMock;
-    let wrappers;
-    const peerHash = "ab".repeat(16);
-
-    const viewerStubs = {
-        MaterialDesignIcon: true,
-        AddImageButton: true,
-        AddAudioButton: true,
-        SendMessageButton: true,
-        ConversationDropDownMenu: true,
-        PaperMessageModal: true,
-        AudioWaveformPlayer: true,
-        LxmfUserIcon: true,
+function message(id, overrides = {}) {
+    return {
+        id,
+        hash: `hash-${id}`,
+        source_hash: peerHash,
+        destination_hash: myHash,
+        content: `message-${id}`,
+        fields: {},
+        ...overrides,
     };
+}
 
-    function mountViewer() {
-        const wrapper = mount(ConversationViewer, {
-            props: {
-                selectedPeer: { destination_hash: peerHash, display_name: "Peer" },
-                myLxmfAddressHash: "my-hash",
-                conversations: [],
-            },
-            global: {
-                directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
-                mocks: { $t: (k) => k, $route: { meta: {} }, $router: { push: vi.fn() } },
-                stubs: viewerStubs,
-            },
-        });
-        wrappers.push(wrapper);
-        return wrapper;
-    }
-
-    beforeEach(() => {
-        wrappers = [];
-        GlobalState.config.theme = "light";
-        GlobalState.config.message_list_virtualization = false;
-        WebSocketConnection.connect();
-        axiosMock = {
-            get: vi.fn(),
-            post: vi.fn().mockResolvedValue({ data: {} }),
-            delete: vi.fn().mockResolvedValue({ data: {} }),
+describe("conversation incremental load oracle", () => {
+    it("requests one descending page at the configured size", async () => {
+        const api = {
+            get: vi.fn().mockResolvedValue({ data: { lxmf_messages: [message(2), message(1)] } }),
         };
-        window.api = axiosMock;
-        vi.stubGlobal("localStorage", {
-            getItem: vi.fn(() => null),
-            setItem: vi.fn(),
-            removeItem: vi.fn(),
+
+        const page = await fetchConversationPage(api, peerHash, myHash, null);
+
+        expect(api.get).toHaveBeenCalledWith(`/api/v1/lxmf-messages/conversation/${peerHash}`, {
+            params: {
+                count: CONVERSATION_MESSAGES_PAGE_SIZE,
+                order: "desc",
+                after_id: null,
+            },
         });
+        expect(page.items.map((item) => item.lxmf_message.id)).toEqual([1, 2]);
+        expect(page.hasMore).toBe(false);
     });
 
-    afterEach(async () => {
-        for (const wrapper of wrappers.splice(0)) {
-            try {
-                wrapper.unmount();
-            } catch {
-                /* ignore teardown races */
-            }
-        }
-        await flushPromises();
-        delete window.api;
-        vi.unstubAllGlobals();
-        WebSocketConnection.destroy();
-    });
-
-    function lxmfRow(id) {
-        const hash = `hash_${String(id).padStart(4, "0")}`.padEnd(32, "0");
-        return {
-            id,
-            hash,
-            source_hash: peerHash,
-            destination_hash: "my-hash",
-            content: `m-${id}`,
-            state: "delivered",
-            timestamp: 1700000000 + id,
-            fields: {},
-        };
-    }
-
-    function stubSideGets() {
-        axiosMock.get.mockImplementation((url) => {
-            if (url.includes("/path")) return Promise.resolve({ data: { path: [] } });
-            if (url.includes("/stamp-info")) return Promise.resolve({ data: { stamp_info: {} } });
-            if (url.includes("/signal-metrics")) return Promise.resolve({ data: { signal_metrics: {} } });
-            if (url.includes("/contacts/check/")) return Promise.resolve({ data: {} });
-            return Promise.resolve({ data: {} });
-        });
-    }
-
-    it("smoke: initial open requests one page at configured size", async () => {
-        const conversationGet = vi.fn().mockResolvedValue({ data: { lxmf_messages: [lxmfRow(1)] } });
-        axiosMock.get.mockImplementation((url, config) => {
-            if (url.includes("/lxmf-messages/conversation/")) {
-                return conversationGet(url, config);
-            }
-            if (url.includes("/path")) return Promise.resolve({ data: { path: [] } });
-            if (url.includes("/stamp-info")) return Promise.resolve({ data: { stamp_info: {} } });
-            if (url.includes("/signal-metrics")) return Promise.resolve({ data: { signal_metrics: {} } });
-            if (url.includes("/contacts/check/")) return Promise.resolve({ data: {} });
-            return Promise.resolve({ data: {} });
-        });
-
-        mountViewer();
-        await flushPromises();
-
-        expect(conversationGet).toHaveBeenCalledTimes(1);
-        expect(conversationGet.mock.calls[0][1].params.count).toBe(CONVERSATION_MESSAGES_PAGE_SIZE);
-    });
-
-    it("smoke: second page prepends older rows in ascending id order", async () => {
-        const page2OldestFirst = Array.from({ length: 50 }, (_, i) => lxmfRow(51 + i));
-        const page1ApiDesc = Array.from({ length: 50 }, (_, i) => lxmfRow(1 + i)).reverse();
-
-        stubSideGets();
-        axiosMock.get.mockImplementation((url) => {
-            if (url.includes("/lxmf-messages/conversation/")) {
-                return Promise.resolve({ data: { lxmf_messages: [] } });
-            }
-            if (url.includes("/path")) return Promise.resolve({ data: { path: [] } });
-            if (url.includes("/stamp-info")) return Promise.resolve({ data: { stamp_info: {} } });
-            if (url.includes("/signal-metrics")) return Promise.resolve({ data: { signal_metrics: {} } });
-            if (url.includes("/contacts/check/")) return Promise.resolve({ data: {} });
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountViewer();
-        await flushPromises();
-
-        wrapper.vm.chatItems = page2OldestFirst.map((row) => ({
+    it("prepends only unseen older messages", () => {
+        const current = [message(3), message(4)].map((lxmf_message) => ({
             type: "lxmf_message",
             is_outbound: false,
-            lxmf_message: row,
+            lxmf_message,
         }));
-        wrapper.vm.hasMorePrevious = true;
-        wrapper.vm._rebuildDisplayGroupsCache();
+        const page = [message(1), message(2), message(3)].map((lxmf_message) => ({
+            type: "lxmf_message",
+            is_outbound: false,
+            lxmf_message,
+        }));
 
-        axiosMock.get.mockImplementation((url) => {
-            if (url.includes("/lxmf-messages/conversation/")) {
-                return Promise.resolve({ data: { lxmf_messages: page1ApiDesc } });
-            }
-            if (url.includes("/path")) return Promise.resolve({ data: { path: [] } });
-            if (url.includes("/stamp-info")) return Promise.resolve({ data: { stamp_info: {} } });
-            if (url.includes("/signal-metrics")) return Promise.resolve({ data: { signal_metrics: {} } });
-            if (url.includes("/contacts/check/")) return Promise.resolve({ data: {} });
-            return Promise.resolve({ data: {} });
-        });
+        const result = prependConversationPage(current, page);
 
-        await wrapper.vm.loadPrevious();
-        await flushPromises();
-
-        expect(wrapper.vm.chatItems).toHaveLength(100);
-        const ids = wrapper.vm.chatItems.map((c) => c.lxmf_message.id);
-        for (let i = 1; i < ids.length; i++) {
-            expect(ids[i]).toBeGreaterThan(ids[i - 1]);
-        }
+        expect(result.added).toBe(2);
+        expect(result.items.map((item) => item.lxmf_message.id)).toEqual([1, 2, 3, 4]);
     });
 
-    it("adversarial: duplicate full page stops further pagination fetches", async () => {
-        const duplicatePage = Array.from({ length: CONVERSATION_MESSAGES_PAGE_SIZE }, (_, i) =>
-            lxmfRow(100 + i)
-        ).reverse();
-        stubSideGets();
-        let fetches = 0;
-        axiosMock.get.mockImplementation((url) => {
-            if (url.includes("/lxmf-messages/conversation/")) {
-                fetches += 1;
-                return Promise.resolve({ data: { lxmf_messages: duplicatePage } });
-            }
-            if (url.includes("/path")) return Promise.resolve({ data: { path: [] } });
-            if (url.includes("/stamp-info")) return Promise.resolve({ data: { stamp_info: {} } });
-            if (url.includes("/signal-metrics")) return Promise.resolve({ data: { signal_metrics: {} } });
-            if (url.includes("/contacts/check/")) return Promise.resolve({ data: {} });
-            return Promise.resolve({ data: {} });
-        });
+    it("stops pagination when a full page contributes no unseen rows", () => {
+        const current = Array.from({ length: CONVERSATION_MESSAGES_PAGE_SIZE }, (_, index) => ({
+            type: "lxmf_message",
+            is_outbound: false,
+            lxmf_message: message(index + 1),
+        }));
 
-        const wrapper = mountViewer();
-        await flushPromises();
-        expect(fetches).toBe(1);
+        const result = prependConversationPage(current, current);
+        expect(result.added).toBe(0);
+    });
 
-        await wrapper.vm.loadPrevious();
-        await flushPromises();
-        expect(fetches).toBe(2);
-        expect(wrapper.vm.hasMorePrevious).toBe(false);
+    it("finds the oldest message id for the selected peer only", () => {
+        const items = [
+            {
+                type: "lxmf_message",
+                is_outbound: false,
+                lxmf_message: message(8),
+            },
+            {
+                type: "lxmf_message",
+                is_outbound: false,
+                lxmf_message: message(3),
+            },
+            {
+                type: "lxmf_message",
+                is_outbound: false,
+                lxmf_message: message(1, { source_hash: "ef".repeat(16), destination_hash: myHash }),
+            },
+        ];
 
-        await wrapper.vm.loadPrevious();
-        await flushPromises();
-        expect(fetches).toBe(2);
+        expect(oldestMessageId(items, peerHash)).toBe(3);
     });
 });

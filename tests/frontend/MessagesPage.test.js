@@ -1,840 +1,138 @@
-import { mount, flushPromises } from "@vue/test-utils";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import MessagesPage from "@/components/messages/MessagesPage.vue";
-import GlobalEmitter from "@/js/GlobalEmitter";
-import NotificationUtils from "@/js/NotificationUtils";
+// SPDX-License-Identifier: 0BSD
 
-vi.mock("@/js/GlobalEmitter", () => ({
-    default: {
-        on: vi.fn(),
-        off: vi.fn(),
-        emit: vi.fn(),
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, waitFor } from "@testing-library/svelte";
+import MessagesPage from "@/features/messages/MessagesPage.svelte";
+import {
+    applyOutboundMessageCreated,
+    applyOutboundMessageStateUpdated,
+} from "@/features/messages/lib/conversationListApply.ts";
+import { buildConversationQueryParams } from "@/features/messages/lib/conversationQuery.ts";
+import {
+    applyOptimisticUnreadClear,
+    destinationsNeedingUnreadDismiss,
+    nextUnreadConversationsCount,
+} from "@/features/messages/lib/unreadDismiss.ts";
+
+vi.mock("@/js/identityHttpReady.js", () => ({
+    runWhenIdentityHttpReady: (callback) => {
+        callback();
+        return () => {};
     },
 }));
 
-vi.mock("@/js/NotificationUtils", () => ({
-    default: {
-        clearMessageNotifications: vi.fn(),
-        clearAllMessageNotifications: vi.fn(),
-        showNewMessageNotification: vi.fn(),
-        syncAndroidNotificationContext: vi.fn(),
-    },
-}));
+function mediaQuery(matches = false) {
+    return {
+        matches,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+    };
+}
 
-describe("MessagesPage.vue", () => {
-    let axiosMock;
+describe("MessagesPage.svelte", () => {
+    let api;
 
     beforeEach(() => {
         localStorage.clear();
-        axiosMock = {
-            get: vi.fn(),
+        window.matchMedia = vi.fn(() => mediaQuery(false));
+        api = {
+            get: vi.fn((url) => {
+                if (url === "/api/v1/config") {
+                    return Promise.resolve({ data: { config: { lxmf_address_hash: "a".repeat(32) } } });
+                }
+                if (url === "/api/v1/lxmf/conversations") {
+                    return Promise.resolve({ data: { conversations: [] } });
+                }
+                if (url === "/api/v1/lxmf/conversation-pins") {
+                    return Promise.resolve({ data: { peer_hashes: [] } });
+                }
+                if (url === "/api/v1/lxmf/folders") {
+                    return Promise.resolve({ data: [] });
+                }
+                return Promise.resolve({ data: {} });
+            }),
             post: vi.fn().mockResolvedValue({ data: {} }),
+            patch: vi.fn().mockResolvedValue({ data: {} }),
+            delete: vi.fn().mockResolvedValue({ data: {} }),
+            isCancel: vi.fn(() => false),
         };
-        window.api = axiosMock;
-
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/config")
-                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
-            if (url === "/api/v1/lxmf/conversations") return Promise.resolve({ data: { conversations: [] } });
-            if (url === "/api/v1/announces") return Promise.resolve({ data: { announces: [] } });
-            return Promise.resolve({ data: {} });
-        });
+        window.api = api;
     });
 
     afterEach(() => {
+        cleanup();
+        vi.useRealTimers();
         delete window.api;
     });
 
-    const mountMessagesPage = (props = { destinationHash: "" }) => {
-        return mount(MessagesPage, {
-            props,
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                    $route: { query: {} },
-                    $router: { replace: vi.fn() },
-                },
-                stubs: {
-                    MaterialDesignIcon: true,
-                    LoadingSpinner: true,
-                    MessagesSidebar: {
-                        template: '<div class="sidebar-stub"></div>',
-                        props: ["conversations", "selectedDestinationHash"],
-                    },
-                    ConversationViewer: {
-                        template: '<div class="viewer-stub"></div>',
-                        props: ["selectedPeer", "myLxmfAddressHash"],
-                    },
-                    Modal: true,
-                },
-            },
+    it("loads configuration, conversations, pins, and folders on mount", async () => {
+        render(MessagesPage, { destinationHash: "" });
+
+        await waitFor(() => {
+            expect(api.get).toHaveBeenCalledWith("/api/v1/config");
+            expect(api.get).toHaveBeenCalledWith("/api/v1/lxmf/conversations", expect.any(Object));
+            expect(api.get).toHaveBeenCalledWith("/api/v1/lxmf/conversation-pins");
+            expect(api.get).toHaveBeenCalledWith("/api/v1/lxmf/folders");
         });
-    };
-
-    it("fetches config and conversations on mount", async () => {
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/config");
-        expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/lxmf/conversations", expect.any(Object));
     });
 
-    it("skips periodic conversation poll while the document is hidden", async () => {
-        vi.useFakeTimers();
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-        axiosMock.get.mockClear();
-
-        const previousVisibility = Object.getOwnPropertyDescriptor(document, "visibilityState");
-        Object.defineProperty(document, "visibilityState", {
-            configurable: true,
-            get: () => "hidden",
-        });
-
-        await vi.advanceTimersByTimeAsync(15000);
-        const hiddenCalls = axiosMock.get.mock.calls.filter((c) => c[0] === "/api/v1/lxmf/conversations");
-        expect(hiddenCalls).toHaveLength(0);
-
-        if (previousVisibility) {
-            Object.defineProperty(document, "visibilityState", previousVisibility);
-        } else {
-            delete document.visibilityState;
-        }
-        vi.useRealTimers();
-        wrapper.unmount();
-    });
-
-    it("keeps conversations usable when contact_image is omitted from list payload", async () => {
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/config")
-                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
-            if (url === "/api/v1/lxmf/conversations") {
-                return Promise.resolve({
-                    data: {
-                        conversations: [
-                            {
-                                destination_hash: "aabbccddeeff00112233445566778899",
-                                display_name: "Peer",
-                                contact_image: null,
-                                has_contact_image: true,
-                                is_unread: false,
-                                failed_messages_count: 0,
-                                has_attachments: false,
-                                latest_message_preview: "hi",
-                                latest_message_created_at: new Date().toISOString(),
-                                is_contact: true,
-                            },
-                        ],
-                    },
-                });
-            }
-            if (url === "/api/v1/lxmf/conversation-pins") return Promise.resolve({ data: { peer_hashes: [] } });
-            if (url === "/api/v1/lxmf/folders") return Promise.resolve({ data: [] });
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountMessagesPage();
-        await flushPromises();
-        expect(wrapper.vm.conversations.length).toBeGreaterThanOrEqual(1);
-        expect(wrapper.vm.conversations[0].contact_image).toBeNull();
-        expect(wrapper.vm.conversations[0].has_contact_image).toBe(true);
-        wrapper.unmount();
-    });
-
-    it("does not fetch lxmf delivery announces until the announces tab is opened", async () => {
-        mountMessagesPage();
-        await flushPromises();
-
-        const announceCalls = axiosMock.get.mock.calls.filter(
-            (call) => call[0] === "/api/v1/announces" && call[1]?.params?.aspect === "lxmf.delivery"
-        );
-        expect(announceCalls).toHaveLength(0);
-    });
-
-    it("debounces conversation search and sends search param to conversations API", async () => {
-        vi.useFakeTimers();
-        axiosMock.isCancel = vi.fn(() => false);
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-        axiosMock.get.mockClear();
-
-        wrapper.vm.onConversationSearchChanged("findme");
-        await vi.advanceTimersByTimeAsync(100);
-        expect(axiosMock.get.mock.calls.filter((c) => c[0] === "/api/v1/lxmf/conversations")).toHaveLength(0);
-
-        await vi.advanceTimersByTimeAsync(200);
-        const convCalls = axiosMock.get.mock.calls.filter((c) => c[0] === "/api/v1/lxmf/conversations");
-        expect(convCalls.length).toBeGreaterThanOrEqual(1);
-        expect(convCalls[convCalls.length - 1][1].params.search).toBe("findme");
-        vi.useRealTimers();
-    });
-
-    it("debounces peers search and sends search param to announces API", async () => {
-        vi.useFakeTimers();
-        axiosMock.isCancel = vi.fn(() => false);
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-        axiosMock.get.mockClear();
-
-        wrapper.vm.onPeersSearchChanged("peerq");
-        await vi.advanceTimersByTimeAsync(400);
+    it("builds filtered conversation query parameters without component internals", () => {
         expect(
-            axiosMock.get.mock.calls.filter(
-                (c) => c[0] === "/api/v1/announces" && c[1]?.params?.aspect === "lxmf.delivery"
-            )
-        ).toHaveLength(0);
-
-        await vi.advanceTimersByTimeAsync(200);
-        const ann = axiosMock.get.mock.calls.filter(
-            (c) => c[0] === "/api/v1/announces" && c[1]?.params?.aspect === "lxmf.delivery"
-        );
-        expect(ann.length).toBeGreaterThanOrEqual(1);
-        expect(ann[ann.length - 1][1].params.search).toBe("peerq");
-        vi.useRealTimers();
-    });
-
-    it("tracks isSearchingAnnounces while the debounce and request are pending, clearing it once resolved", async () => {
-        vi.useFakeTimers();
-        axiosMock.isCancel = vi.fn(() => false);
-
-        let resolveAnnounces;
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/config")
-                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
-            if (url === "/api/v1/lxmf/conversations") return Promise.resolve({ data: { conversations: [] } });
-            if (url === "/api/v1/announces") {
-                return new Promise((resolve) => {
-                    resolveAnnounces = resolve;
-                });
-            }
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.isSearchingAnnounces).toBe(false);
-
-        wrapper.vm.onPeersSearchChanged("peerq");
-        expect(wrapper.vm.isSearchingAnnounces).toBe(true);
-
-        await vi.advanceTimersByTimeAsync(500);
-        expect(wrapper.vm.isSearchingAnnounces).toBe(true);
-
-        resolveAnnounces({ data: { announces: [], total_count: 0 } });
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.isSearchingAnnounces).toBe(false);
-
-        vi.useRealTimers();
-    });
-
-    it("does not clear isSearchingAnnounces for a stale request superseded by a newer search", async () => {
-        vi.useFakeTimers();
-        axiosMock.isCancel = vi.fn((e) => e?.isCancelled === true);
-
-        const pending = [];
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/config")
-                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
-            if (url === "/api/v1/lxmf/conversations") return Promise.resolve({ data: { conversations: [] } });
-            if (url === "/api/v1/announces") {
-                return new Promise((resolve, reject) => {
-                    pending.push({ resolve, reject });
-                });
-            }
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.onPeersSearchChanged("first");
-        await vi.advanceTimersByTimeAsync(500);
-        expect(pending.length).toBe(1);
-
-        wrapper.vm.onPeersSearchChanged("second");
-        await vi.advanceTimersByTimeAsync(500);
-        expect(pending.length).toBe(2);
-        pending[0].reject({ isCancelled: true });
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.vm.isSearchingAnnounces).toBe(true);
-
-        pending[1].resolve({ data: { announces: [], total_count: 0 } });
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.isSearchingAnnounces).toBe(false);
-
-        vi.useRealTimers();
-    });
-
-    it("does not prematurely clear isLoadingConversations when a superseded request aborts", async () => {
-        vi.useFakeTimers();
-        axiosMock.isCancel = vi.fn((e) => e?.isCancelled === true);
-
-        const pending = [];
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/config")
-                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
-            if (url === "/api/v1/lxmf/conversations") {
-                return new Promise((resolve, reject) => {
-                    pending.push({ resolve, reject });
-                });
-            }
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-        expect(pending.length).toBe(1);
-
-        // start a new request that aborts the previous one
-        wrapper.vm.getConversations();
-        expect(pending.length).toBe(2);
-
-        // reject the first request with a cancelled error
-        pending[0].reject({ isCancelled: true });
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-
-        // isLoadingConversations should remain true because the second request is still in-flight
-        expect(wrapper.vm.isLoadingConversations).toBe(true);
-
-        // resolve the second request
-        pending[1].resolve({ data: { conversations: [] } });
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.vm.isLoadingConversations).toBe(false);
-        vi.useRealTimers();
-    });
-
-    it("does not prematurely clear isLoadingMoreAnnounces when a superseded announces request aborts", async () => {
-        vi.useFakeTimers();
-        axiosMock.isCancel = vi.fn((e) => e?.isCancelled === true);
-
-        const pending = [];
-        axiosMock.get.mockImplementation((url, config) => {
-            if (url === "/api/v1/config")
-                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
-            if (url === "/api/v1/announces") {
-                return new Promise((resolve, reject) => {
-                    pending.push({ resolve, reject });
-                });
-            }
-            if (url === "/api/v1/lxmf/conversations") return Promise.resolve({ data: { conversations: [] } });
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.isLoadingMoreAnnounces = true;
-        wrapper.vm.getLxmfDeliveryAnnounces();
-        expect(pending.length).toBe(1);
-
-        wrapper.vm.getLxmfDeliveryAnnounces();
-        expect(pending.length).toBe(2);
-
-        pending[0].reject({ isCancelled: true });
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.vm.isLoadingMoreAnnounces).toBe(true);
-
-        pending[1].resolve({ data: { announces: [] } });
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.vm.isLoadingMoreAnnounces).toBe(false);
-        vi.useRealTimers();
-    });
-
-    it("opens ingest paper message modal", async () => {
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        // Find button to ingest paper message
-        const buttons = wrapper.findAll("button");
-        const ingestButton = buttons.find((b) => b.html().includes('icon-name="note-plus"'));
-        if (ingestButton) {
-            await ingestButton.trigger("click");
-            expect(wrapper.vm.isShowingIngestPaperMessageModal).toBe(true);
-        }
-    });
-
-    it("composes new message when destinationHash prop is provided", async () => {
-        const destHash = "0123456789abcdef0123456789abcdef";
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/announces")
-                return Promise.resolve({
-                    data: { announces: [{ destination_hash: destHash, display_name: "Test Peer" }] },
-                });
-            if (url === "/api/v1/lxmf/conversations") return Promise.resolve({ data: { conversations: [] } });
-            if (url === "/api/v1/config")
-                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountMessagesPage({ destinationHash: destHash });
-        // Ensure conversations is initialized as array to avoid filter error in watcher
-        wrapper.vm.conversations = [];
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick(); // Wait for fetch
-
-        expect(wrapper.vm.selectedPeer.destination_hash).toBe(destHash);
-    });
-
-    it("routes to compose when ingest result is lxma contact", async () => {
-        const wrapper = mountMessagesPage();
-        const composeSpy = vi.spyOn(wrapper.vm, "onComposeNewMessage").mockResolvedValue(undefined);
-
-        await wrapper.vm.onWebsocketMessage({
-            data: JSON.stringify({
-                type: "lxm.ingest_uri.result",
-                status: "success",
-                ingest_type: "lxma_contact",
-                destination_hash: "f".repeat(32),
-            }),
-        });
-
-        expect(composeSpy).toHaveBeenCalledWith("f".repeat(32));
-    });
-
-    it("updates existing conversation in-place without API call on lxmf_message_created", async () => {
-        const destHash = "a".repeat(32);
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.conversations = [
-            {
-                destination_hash: destHash,
-                display_name: "Test Peer",
-                latest_message_preview: "old msg",
-                updated_at: "2025-01-01T00:00:00Z",
-            },
-        ];
-
-        axiosMock.get.mockClear();
-
-        await wrapper.vm.onWebsocketMessage({
-            data: JSON.stringify({
-                type: "lxmf_message_created",
-                lxmf_message: {
-                    hash: "abc",
-                    source_hash: "my-hash",
-                    destination_hash: destHash,
-                    is_incoming: false,
-                    content: "new msg",
-                    title: "",
-                    timestamp: 1700000000,
-                },
-            }),
-        });
-
-        expect(wrapper.vm.conversations[0].latest_message_preview).toBe("new msg");
-        const convCalls = axiosMock.get.mock.calls.filter((c) => c[0] === "/api/v1/lxmf/conversations");
-        expect(convCalls).toHaveLength(0);
-    });
-
-    it("sets sidebar preview i18n key for outbound telemetry location on lxmf_message_created", async () => {
-        const destHash = "a".repeat(32);
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.conversations = [
-            {
-                destination_hash: destHash,
-                display_name: "Test Peer",
-                latest_message_preview: "old",
-                updated_at: "2025-01-01T00:00:00Z",
-            },
-        ];
-
-        axiosMock.get.mockClear();
-
-        await wrapper.vm.onWebsocketMessage({
-            data: JSON.stringify({
-                type: "lxmf_message_created",
-                lxmf_message: {
-                    hash: "loc1",
-                    source_hash: "my-hash",
-                    destination_hash: destHash,
-                    is_incoming: false,
-                    content: "",
-                    title: "",
-                    timestamp: 1700000000,
-                    fields: { telemetry: { location: { latitude: 1, longitude: 2 } } },
-                },
-            }),
-        });
-
-        expect(wrapper.vm.conversations[0].latest_message_preview).toBe("messages.conversation_location_share_you");
-        const convCalls = axiosMock.get.mock.calls.filter((c) => c[0] === "/api/v1/lxmf/conversations");
-        expect(convCalls).toHaveLength(0);
-    });
-
-    it("resolves display name for new conversation only", async () => {
-        const destHash = "d".repeat(32);
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.conversations = [];
-        wrapper.vm.selectedPeer = { destination_hash: destHash, display_name: "Anonymous Peer" };
-
-        axiosMock.get.mockClear();
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/lxmf/conversations")
-                return Promise.resolve({
-                    data: {
-                        conversations: [
-                            {
-                                destination_hash: destHash,
-                                display_name: "Resolved Name",
-                                custom_display_name: null,
-                            },
-                        ],
-                    },
-                });
-            return Promise.resolve({ data: {} });
-        });
-
-        await wrapper.vm.onWebsocketMessage({
-            data: JSON.stringify({
-                type: "lxmf_message_created",
-                lxmf_message: {
-                    hash: "new1",
-                    source_hash: "my-hash",
-                    destination_hash: destHash,
-                    is_incoming: false,
-                    content: "hello",
-                    title: "",
-                    timestamp: 1700000000,
-                },
-            }),
-        });
-
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.conversations[0].display_name).toBe("Resolved Name");
-        expect(wrapper.vm.selectedPeer.display_name).toBe("Resolved Name");
-
-        const convCalls = axiosMock.get.mock.calls.filter((c) => c[0] === "/api/v1/lxmf/conversations");
-        expect(convCalls).toHaveLength(1);
-        expect(convCalls[0][1].params.search).toBe(destHash);
-        expect(convCalls[0][1].params.limit).toBe(1);
-    });
-
-    it("updates failed_messages_count on state transition to failed", async () => {
-        const destHash = "e".repeat(32);
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.conversations = [{ destination_hash: destHash, failed_messages_count: 0 }];
-
-        await wrapper.vm.onWebsocketMessage({
-            data: JSON.stringify({
-                type: "lxmf_message_state_updated",
-                lxmf_message: {
-                    hash: "f1",
-                    source_hash: "my-hash",
-                    destination_hash: destHash,
-                    is_incoming: false,
-                    state: "failed",
-                },
-            }),
-        });
-
-        expect(wrapper.vm.conversations[0].failed_messages_count).toBe(1);
-    });
-
-    it("does not trigger API call on state updates", async () => {
-        const destHash = "f".repeat(32);
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.conversations = [{ destination_hash: destHash, failed_messages_count: 0 }];
-
-        axiosMock.get.mockClear();
-
-        for (const state of ["outbound", "sending", "sent", "delivered"]) {
-            await wrapper.vm.onWebsocketMessage({
-                data: JSON.stringify({
-                    type: "lxmf_message_state_updated",
-                    lxmf_message: {
-                        hash: "s1",
-                        source_hash: "my-hash",
-                        destination_hash: destHash,
-                        is_incoming: false,
-                        state,
-                    },
-                }),
-            });
-        }
-
-        const convCalls = axiosMock.get.mock.calls.filter((c) => c[0] === "/api/v1/lxmf/conversations");
-        expect(convCalls).toHaveLength(0);
-    });
-
-    it("mutates existing conversation object without replacing array entry", async () => {
-        const destHash = "a".repeat(32);
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.conversations = [
-            {
-                destination_hash: destHash,
-                display_name: "Peer",
-                latest_message_preview: "old",
-                updated_at: "2025-01-01T00:00:00Z",
-            },
-        ];
-
-        const lengthBefore = wrapper.vm.conversations.length;
-
-        await wrapper.vm.onWebsocketMessage({
-            data: JSON.stringify({
-                type: "lxmf_message_created",
-                lxmf_message: {
-                    hash: "abc",
-                    source_hash: "my-hash",
-                    destination_hash: destHash,
-                    is_incoming: false,
-                    content: "new",
-                    title: "",
-                    timestamp: 1700000000,
-                },
-            }),
-        });
-
-        expect(wrapper.vm.conversations.length).toBe(lengthBefore);
-        expect(wrapper.vm.conversations[0].latest_message_preview).toBe("new");
-        expect(wrapper.vm.conversations[0].display_name).toBe("Peer");
-    });
-
-    it("does not reload the conversation when the route hash matches the selected peer", async () => {
-        const destHash = "b".repeat(32);
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        // simulate a conversation already opened in the focused pane (as onPeerClick does)
-        wrapper.vm.selectedPeer = { destination_hash: destHash, display_name: "Peer", is_unread: true };
-        wrapper.vm.conversations = [{ destination_hash: destHash, display_name: "Peer", is_unread: true }];
-        await wrapper.vm.$nextTick();
-
-        const composeSpy = vi.spyOn(wrapper.vm, "onComposeNewMessage");
-        const dismissSpy = vi.spyOn(wrapper.vm, "dismissUnreadForOpenDestination");
-
-        // simulate router.replace propagating the same hash back into the prop
-        await wrapper.setProps({ destinationHash: destHash });
-        await wrapper.vm.$nextTick();
-
-        expect(composeSpy).not.toHaveBeenCalled();
-        expect(dismissSpy).toHaveBeenCalledWith(destHash);
-    });
-
-    it("force-dismisses unread for a restored pane when remounting /messages with no route hash", async () => {
-        const destHash = "d".repeat(32);
-        localStorage.setItem(
-            "meshchatx.messages.panes",
-            JSON.stringify({
-                panes: [{ destination_hash: destHash, display_name: "Restored Peer" }],
-                sizes: [1],
-                focusedIndex: 0,
+            buildConversationQueryParams({
+                conversationSearchTerm: " findme ",
+                filterUnreadOnly: true,
+                filterFailedOnly: true,
+                filterHasAttachmentsOnly: true,
+                selectedFolderId: 7,
             })
-        );
-
-        const dismissSpy = vi.spyOn(MessagesPage.methods, "dismissUnreadForVisiblePanes");
-        const wrapper = mountMessagesPage({ destinationHash: "" });
-        await flushPromises();
-
-        expect(wrapper.vm.selectedPeer?.destination_hash).toBe(destHash);
-        expect(dismissSpy).toHaveBeenCalledWith({ force: true });
-        expect(wrapper.vm.$router.replace).toHaveBeenCalledWith(
-            expect.objectContaining({
-                name: "messages",
-                params: { destinationHash: destHash },
-            })
-        );
-        dismissSpy.mockRestore();
-        wrapper.unmount();
+        ).toEqual({
+            search: "findme",
+            filter_unread: true,
+            filter_failed: true,
+            filter_has_attachments: true,
+            folder_id: 7,
+        });
     });
 
-    it("dismissUnreadForVisiblePanes marks open unread conversations after list refresh", async () => {
-        const destHash = "e".repeat(32);
-        const conversation = { destination_hash: destHash, display_name: "Peer", is_unread: true };
-        const wrapper = mountMessagesPage();
-        await flushPromises();
+    it("applies websocket-created previews without reloading the list", () => {
+        const peerHash = "b".repeat(32);
+        const conversations = [{ destination_hash: peerHash, latest_message_preview: "old" }];
 
-        wrapper.vm.selectedPeer = { destination_hash: destHash, display_name: "Peer" };
-        wrapper.vm.conversations = [conversation];
-        wrapper.vm.paneViewers = {};
-        axiosMock.post.mockClear();
-        GlobalEmitter.emit.mockClear();
-        NotificationUtils.clearMessageNotifications.mockClear();
+        const result = applyOutboundMessageCreated(
+            conversations,
+            {
+                hash: "message",
+                destination_hash: peerHash,
+                is_incoming: false,
+                content: "new message",
+                timestamp: 1700000000,
+            },
+            { myLxmfAddressHash: "a".repeat(32), t: (key) => key }
+        );
 
-        wrapper.vm.dismissUnreadForVisiblePanes();
-        await flushPromises();
+        expect(result).toBe("updated");
+        expect(conversations[0].latest_message_preview).toBe("new message");
+    });
 
-        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/lxmf/conversations/${destHash}/mark-as-read`);
+    it("tracks failed outbound state transitions exactly once", () => {
+        const peerHash = "c".repeat(32);
+        const conversations = [{ destination_hash: peerHash, failed_messages_count: 0 }];
+        const message = { destination_hash: peerHash, is_incoming: false, state: "failed" };
+
+        expect(applyOutboundMessageStateUpdated(conversations, message)).toBe(true);
+        expect(conversations[0].failed_messages_count).toBe(1);
+        expect(applyOutboundMessageStateUpdated(conversations, message)).toBe(true);
+        expect(conversations[0].failed_messages_count).toBe(1);
+    });
+
+    it("collects visible unread panes and clears counts optimistically", () => {
+        const hash = "d".repeat(32);
+        const conversation = { destination_hash: hash, is_unread: true };
+        const panes = [{ id: 1, peer: { destination_hash: hash } }];
+
+        expect(destinationsNeedingUnreadDismiss(panes, [conversation])).toEqual([hash]);
+        expect(applyOptimisticUnreadClear(conversation)).toBe(true);
         expect(conversation.is_unread).toBe(false);
-        expect(GlobalEmitter.emit).toHaveBeenCalledWith("notifications-changed");
-        expect(NotificationUtils.clearMessageNotifications).toHaveBeenCalledWith(destHash);
-        wrapper.unmount();
-    });
-
-    it("dismissUnreadForVisiblePanes skips already-read open panes unless force is set", async () => {
-        const destHash = "f".repeat(32);
-        const conversation = { destination_hash: destHash, display_name: "Peer", is_unread: false };
-        const wrapper = mountMessagesPage();
-        await flushPromises();
-
-        wrapper.vm.selectedPeer = { destination_hash: destHash, display_name: "Peer" };
-        wrapper.vm.conversations = [conversation];
-        axiosMock.post.mockClear();
-
-        wrapper.vm.dismissUnreadForVisiblePanes();
-        await flushPromises();
-        expect(axiosMock.post).not.toHaveBeenCalled();
-
-        wrapper.vm.dismissUnreadForVisiblePanes({ force: true });
-        await flushPromises();
-        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/lxmf/conversations/${destHash}/mark-as-read`);
-        wrapper.unmount();
-    });
-
-    it("getConversations dismisses unread for open panes after the list updates", async () => {
-        const destHash = "a1".repeat(16);
-        const conversation = {
-            destination_hash: destHash,
-            display_name: "Peer",
-            is_unread: true,
-            failed_messages_count: 0,
-            latest_message_created_at: "2026-01-01T00:00:00Z",
-            latest_message_preview: "hello",
-            updated_at: "2026-01-01T00:00:00Z",
-        };
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/config")
-                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
-            if (url === "/api/v1/lxmf/conversations") {
-                return Promise.resolve({ data: { conversations: [conversation] } });
-            }
-            if (url === "/api/v1/announces") return Promise.resolve({ data: { announces: [] } });
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountMessagesPage();
-        wrapper.vm.selectedPeer = { destination_hash: destHash, display_name: "Peer" };
-        const dismissSpy = vi.spyOn(wrapper.vm, "dismissUnreadForVisiblePanes");
-        await wrapper.vm.getConversations();
-        await flushPromises();
-
-        expect(dismissSpy).toHaveBeenCalled();
-        expect(wrapper.vm.conversations.some((c) => c.destination_hash === destHash && c.is_unread === false)).toBe(
-            true
-        );
-        wrapper.unmount();
-    });
-
-    it("composes the conversation when the route hash differs from the selected peer", async () => {
-        const selectedHash = "a".repeat(32);
-        const newHash = "b".repeat(32);
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.selectedPeer = { destination_hash: selectedHash, display_name: "Peer" };
-        await wrapper.vm.$nextTick();
-
-        const composeSpy = vi.spyOn(wrapper.vm, "onComposeNewMessage").mockResolvedValue(undefined);
-
-        await wrapper.setProps({ destinationHash: newHash });
-        await wrapper.vm.$nextTick();
-
-        expect(composeSpy).toHaveBeenCalledWith(newHash);
-    });
-
-    it("uses conversation display name instead of Unknown Peer when composing", async () => {
-        const destHash = "c".repeat(32);
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/config")
-                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
-            if (url === "/api/v1/lxmf/conversations")
-                return Promise.resolve({
-                    data: {
-                        conversations: [
-                            {
-                                destination_hash: destHash,
-                                display_name: "Existing Peer",
-                                custom_display_name: null,
-                            },
-                        ],
-                    },
-                });
-            if (url === "/api/v1/announces") return Promise.resolve({ data: { announces: [] } });
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountMessagesPage();
-        wrapper.vm.conversations = [
-            { destination_hash: destHash, display_name: "Existing Peer", custom_display_name: null },
-        ];
-        await wrapper.vm.$nextTick();
-
-        await wrapper.vm.onComposeNewMessage(destHash);
-        expect(wrapper.vm.selectedPeer.display_name).toBe("Existing Peer");
-    });
-
-    it("onBulkMarkAsRead emits notifications-changed after server confirms", async () => {
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-        axiosMock.post.mockResolvedValue({ data: {} });
-        axiosMock.get.mockResolvedValue({ data: { conversations: [] } });
-        GlobalEmitter.emit.mockClear();
-        NotificationUtils.clearMessageNotifications.mockClear();
-
-        await wrapper.vm.onBulkMarkAsRead(["peer-a", "peer-b"]);
-        await wrapper.vm.$nextTick();
-
-        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/lxmf/conversations/bulk-mark-as-read", {
-            destination_hashes: ["peer-a", "peer-b"],
-        });
-        expect(GlobalEmitter.emit).toHaveBeenCalledWith("notifications-changed");
-        expect(NotificationUtils.clearMessageNotifications).toHaveBeenCalledWith("peer-a");
-        expect(NotificationUtils.clearMessageNotifications).toHaveBeenCalledWith("peer-b");
-    });
-
-    it("onMarkAllAsRead posts mark_all and refreshes conversations", async () => {
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-        axiosMock.post.mockResolvedValue({ data: {} });
-        axiosMock.get.mockResolvedValue({ data: { conversations: [] } });
-        GlobalEmitter.emit.mockClear();
-        NotificationUtils.clearAllMessageNotifications.mockClear();
-        const getConversations = vi.spyOn(wrapper.vm, "getConversations").mockResolvedValue(undefined);
-
-        await wrapper.vm.onMarkAllAsRead();
-        await wrapper.vm.$nextTick();
-
-        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/lxmf/conversations/bulk-mark-as-read", {
-            mark_all: true,
-        });
-        expect(GlobalEmitter.emit).toHaveBeenCalledWith("notifications-changed");
-        expect(getConversations).toHaveBeenCalled();
-        expect(NotificationUtils.clearAllMessageNotifications).toHaveBeenCalled();
-    });
-
-    it("onBulkMarkAsRead does not notify bell when server rejects", async () => {
-        const wrapper = mountMessagesPage();
-        await wrapper.vm.$nextTick();
-        axiosMock.post.mockRejectedValue(new Error("fail"));
-        GlobalEmitter.emit.mockClear();
-        NotificationUtils.clearMessageNotifications.mockClear();
-
-        await wrapper.vm.onBulkMarkAsRead(["peer-a"]);
-        await wrapper.vm.$nextTick();
-
-        expect(GlobalEmitter.emit).not.toHaveBeenCalledWith("notifications-changed");
-        expect(NotificationUtils.clearMessageNotifications).not.toHaveBeenCalled();
+        expect(nextUnreadConversationsCount(3, true)).toBe(2);
     });
 });

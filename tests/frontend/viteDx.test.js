@@ -64,7 +64,7 @@ describe("vite-dx Vue DevTools gate", () => {
         const imports = [...vite.matchAll(/from\s+"(\.\/scripts\/[^"]+)"/g)].map((m) => m[1].replace(/^\.\//, ""));
         expect(imports.length).toBeGreaterThan(0);
         expect(imports).toContain("scripts/vite-dx.mjs");
-        for (const dockerfile of ["Dockerfile", "Dockerfile.hardened"]) {
+        for (const dockerfile of ["docker/Dockerfile", "docker/Dockerfile.hardened"]) {
             const body = readFileSync(resolve(ROOT, dockerfile), "utf8");
             const frontendStage = body.split(/^FROM /m)[1] || "";
             for (const rel of imports) {

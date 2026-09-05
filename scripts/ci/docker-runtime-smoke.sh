@@ -27,7 +27,7 @@ if [ -z "${MESHCHAT_DOCKER_SMOKE_CONFIG:-}" ]; then
 fi
 
 echo "Building Docker image ${IMAGE}..."
-docker build -f Dockerfile -t "$IMAGE" .
+docker build -f docker/Dockerfile -t "$IMAGE" .
 
 cleanup
 mkdir -p "$CONFIG_DIR"

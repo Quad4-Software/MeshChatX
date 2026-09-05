@@ -6,18 +6,29 @@
 
     /** @type {{ tool: Record<string, unknown> }} */
     let { tool } = $props();
+
+    const iconShellClass = $derived(
+        [
+            "w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0",
+            String(tool.iconBg || "")
+                .replace(/\btool-card__icon\b/g, "")
+                .trim(),
+        ]
+            .filter(Boolean)
+            .join(" ")
+    );
 </script>
 
-<div class={String(tool.iconBg || "")}>
+<div class={iconShellClass}>
     {#if tool.icon}
-        <MaterialDesignIcon iconName={String(tool.icon)} class="w-6 h-6" />
+        <MaterialDesignIcon iconName={String(tool.icon)} class="size-6" />
     {:else if tool.image}
         <img src={String(tool.image)} class={String(tool.imageClass || "")} alt={String(tool.imageAlt || "")} />
     {/if}
 </div>
 <div class="flex-1 min-w-0">
     <div class="flex items-center gap-2 flex-wrap">
-        <div class="tool-card__title">{String(tool.title || "")}</div>
+        <div class="text-base sm:text-lg font-semibold text-sem-fg">{String(tool.title || "")}</div>
         {#if tool.alpha}
             <span
                 class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded-sm border border-violet-200 dark:border-violet-800"
@@ -40,7 +51,9 @@
             </span>
         {/if}
     </div>
-    <div class="tool-card__description">{String(tool.description || "")}</div>
+    <div class="text-sm text-sem-fg-muted mt-0.5 line-clamp-2 sm:line-clamp-none">
+        {String(tool.description || "")}
+    </div>
 </div>
 {#if !tool.comingSoon}
     <div class="shrink-0 flex items-center gap-1">
@@ -55,50 +68,10 @@
                 >
                     <MaterialDesignIcon iconName={String(action.icon || "open-in-new")} class="size-5" />
                 </a>
-                <MaterialDesignIcon iconName="chevron-right" class="tool-card__chevron" />
+                <MaterialDesignIcon iconName="chevron-right" class="size-5 text-gray-400 shrink-0" />
             </div>
         {:else}
-            <MaterialDesignIcon iconName="chevron-right" class="tool-card__chevron" />
+            <MaterialDesignIcon iconName="chevron-right" class="size-5 text-gray-400 shrink-0" />
         {/if}
     </div>
 {/if}
-
-<style>
-    .tool-card__title {
-        font-size: 1rem;
-        line-height: 1.5rem;
-        font-weight: 600;
-        color: var(--mc-fg, inherit);
-    }
-    @media (min-width: 640px) {
-        .tool-card__title {
-            font-size: 1.125rem;
-            line-height: 1.75rem;
-        }
-    }
-    .tool-card__description {
-        font-size: 0.875rem;
-        line-height: 1.25rem;
-        color: var(--mc-fg-muted, #71717a);
-        margin-top: 0.125rem;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-    @media (min-width: 640px) {
-        .tool-card__description {
-            display: block;
-            -webkit-line-clamp: unset;
-            line-clamp: unset;
-            overflow: visible;
-        }
-    }
-    :global(.tool-card__chevron) {
-        width: 1.25rem;
-        height: 1.25rem;
-        color: #9ca3af;
-        flex-shrink: 0;
-    }
-</style>

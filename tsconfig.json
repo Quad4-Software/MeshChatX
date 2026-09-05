@@ -23,6 +23,7 @@
         "meshchatx/src/frontend/**/*.vue",
         "meshchatx/src/frontend/**/*.svelte",
         "meshchatx/src/frontend/**/*.js",
+        "meshchatx/src/frontend/**/*.ts",
         "electron/**/*.js",
         "vite.config.js",
         "svelte.config.js"

@@ -15,7 +15,8 @@ Native APK with embedded Python (meshchatx/) and a WebView UI.
 
 ## Launcher shortcuts, language
 
-- **App shortcuts** (long-press the launcher icon): open **Messages** (meshchatx://app/messages) and **Call** (meshchatx://app/call). The WebView handles these in App.vue via handleProtocolLink.
+- **App shortcuts** (long-press the launcher icon): open **Messages** (meshchatx://app/messages) and **Call** (meshchatx://app/call). The WebView handles these in App.vue via handleProtocolLink. Message notification taps can open a specific conversation with meshchatx://app/messages/<destination_hash>.
+- **Android Auto**: The APK declares the notification capability (`res/xml/automotive_app_desc.xml`). Inbound LXMF alerts use MessagingStyle with reply and mark-as-read actions handled by MessagingReplyService against the local (or configured remote) backend with CSRF. Password auth must already be signed in on the phone so the WebView session cookie is available. This is not a full car UI template app.
 - **Per-app language (Android 13+)**: android:localeConfig points to res/xml/locales_config.xml. Add translated values-xx/strings.xml for Android notification/shortcut strings; the in-app language still comes from MeshChatX server config.
 
 ## Build

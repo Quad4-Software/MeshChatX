@@ -1,129 +1,85 @@
-import { mount, flushPromises } from "@vue/test-utils";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import InViewAnimatedImg from "@/components/messages/InViewAnimatedImg.vue";
+// SPDX-License-Identifier: 0BSD
 
-describe("InViewAnimatedImg.vue", () => {
-    const origIo = globalThis.IntersectionObserver;
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/svelte";
+import { attachInView } from "@/js/inViewObserver.js";
+import InViewAnimatedImg from "@/features/messages/components/InViewAnimatedImg.svelte";
+
+vi.mock("@/js/inViewObserver.js", () => ({
+    attachInView: vi.fn(),
+}));
+
+describe("InViewAnimatedImg.svelte", () => {
+    let reveal;
+    let detach;
+
+    beforeEach(() => {
+        detach = vi.fn();
+        attachInView.mockImplementation((_element, callback) => {
+            reveal = callback;
+            return detach;
+        });
+    });
 
     afterEach(() => {
-        globalThis.IntersectionObserver = origIo;
-        vi.restoreAllMocks();
+        cleanup();
+        vi.clearAllMocks();
     });
 
-    it("shows img immediately when IntersectionObserver is unavailable (fallback)", async () => {
-        globalThis.IntersectionObserver = undefined;
-        const w = mount(InViewAnimatedImg, {
-            props: {
-                src: "https://example.invalid/a.gif",
-                imgClass: "w-full h-8",
-            },
+    it("shows a placeholder until the image intersects", async () => {
+        const view = render(InViewAnimatedImg, {
+            src: "https://example.invalid/a.gif",
+            imgClass: "test-img",
+            alt: "animation",
         });
-        await flushPromises();
-        expect(w.find("img").exists()).toBe(true);
-        expect(w.find("img").attributes("src")).toBe("https://example.invalid/a.gif");
-        expect(w.find("div[aria-hidden=true]").exists()).toBe(false);
-        w.unmount();
+
+        expect(view.container.querySelector("img")).toBeNull();
+        expect(view.container.querySelector('[aria-hidden="true"]')).toBeTruthy();
+
+        reveal({ isIntersecting: true });
+        const image = await screen.findByAltText("animation");
+        expect(image.getAttribute("src")).toBe("https://example.invalid/a.gif");
+        expect(image.classList.contains("test-img")).toBe(true);
     });
 
-    it("shows placeholder until intersecting when observer fires false then true", async () => {
-        let callback;
-        class MockIntersectionObserver {
-            constructor(cb) {
-                callback = cb;
-            }
-            observe = vi.fn();
-            disconnect = vi.fn();
-        }
-        globalThis.IntersectionObserver = MockIntersectionObserver;
+    it("keeps the image visible after leaving the viewport", async () => {
+        render(InViewAnimatedImg, { src: "https://example.invalid/b.gif", alt: "animation" });
+        reveal({ isIntersecting: true });
+        expect(await screen.findByAltText("animation")).toBeTruthy();
 
-        const w = mount(InViewAnimatedImg, {
-            props: {
-                src: "https://example.invalid/b.gif",
-                imgClass: "test-img",
-            },
-            attachTo: document.body,
-        });
-
-        await flushPromises();
-        expect(w.find("img").exists()).toBe(false);
-
-        const wrap = w.vm.$refs.wrap;
-        callback([{ isIntersecting: true, target: wrap }]);
-        await flushPromises();
-
-        expect(w.find("img").exists()).toBe(true);
-        expect(w.find("img").classes()).toContain("test-img");
-        w.unmount();
+        reveal({ isIntersecting: false });
+        expect(screen.getByAltText("animation")).toBeTruthy();
     });
 
-    it("keeps img visible after leaving viewport (one-way reveal)", async () => {
-        let callback;
-        class MockIntersectionObserver {
-            constructor(cb) {
-                callback = cb;
-            }
-            observe = vi.fn();
-            disconnect = vi.fn();
-        }
-        globalThis.IntersectionObserver = MockIntersectionObserver;
-
-        const w = mount(InViewAnimatedImg, {
-            props: { src: "https://example.invalid/c.gif", imgClass: "x" },
-            attachTo: document.body,
-        });
-        await flushPromises();
-
-        const wrap = w.vm.$refs.wrap;
-        callback([{ isIntersecting: true, target: wrap }]);
-        await flushPromises();
-        expect(w.find("img").exists()).toBe(true);
-
-        callback([{ isIntersecting: false, target: wrap }]);
-        await flushPromises();
-        expect(w.find("img").exists()).toBe(true);
-
-        w.unmount();
+    it("runs observer cleanup when unmounted", () => {
+        const view = render(InViewAnimatedImg, { src: "https://example.invalid/c.gif" });
+        view.unmount();
+        expect(detach).toHaveBeenCalledOnce();
     });
 
-    it("disconnects observer on unmount", async () => {
-        const disconnect = vi.fn();
-        class MockIntersectionObserver {
-            constructor() {
-                this.observe = vi.fn();
-                this.disconnect = disconnect;
-            }
-        }
-        globalThis.IntersectionObserver = MockIntersectionObserver;
-
-        const w = mount(InViewAnimatedImg, {
-            props: { src: "https://example.invalid/d.gif" },
+    it("calls the click callback from the revealed image button", async () => {
+        const onclick = vi.fn();
+        render(InViewAnimatedImg, {
+            src: "https://example.invalid/d.gif",
+            alt: "animation",
+            onclick,
         });
-        await flushPromises();
-        w.unmount();
-        expect(disconnect).toHaveBeenCalled();
+        reveal({ isIntersecting: true });
+
+        await fireEvent.click(await screen.findByRole("button"));
+        expect(onclick).toHaveBeenCalledOnce();
     });
 
-    it("emits click from img", async () => {
-        globalThis.IntersectionObserver = undefined;
-        const w = mount(InViewAnimatedImg, {
-            props: { src: "https://example.invalid/e.gif" },
+    it("uses fit-parent wrapper and placeholder classes", () => {
+        const view = render(InViewAnimatedImg, {
+            src: "https://example.invalid/e.gif",
+            fitParent: true,
         });
-        await flushPromises();
-        await w.find("img").trigger("click");
-        expect(w.emitted("click")).toBeTruthy();
-        w.unmount();
-    });
 
-    it("uses fit-parent placeholder classes", async () => {
-        globalThis.IntersectionObserver = undefined;
-        const w = mount(InViewAnimatedImg, {
-            props: {
-                src: "https://example.invalid/f.gif",
-                fitParent: true,
-            },
-        });
-        await flushPromises();
-        expect(w.vm.$el.className).toContain("absolute");
-        w.unmount();
+        expect(view.container.firstElementChild.className).toContain("absolute");
+        expect(view.container.firstElementChild.className).toContain("inset-0");
+        expect(view.container.firstElementChild.className).toContain("overflow-hidden");
+        expect(view.container.querySelector('[aria-hidden="true"]').className).toContain("absolute");
+        expect(view.container.querySelector('[aria-hidden="true"]').className).toContain("inset-0");
     });
 });

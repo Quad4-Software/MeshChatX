@@ -1,395 +1,69 @@
-import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import ConversationViewer from "@/components/messages/ConversationViewer.vue";
-import WebSocketConnection from "@/js/WebSocketConnection";
-import GlobalState from "@/js/GlobalState";
-import DialogUtils from "@/js/DialogUtils";
-import ToastUtils from "@/js/ToastUtils";
-import { resetHelptipPolicyForTests } from "@/js/helptipPolicy.js";
+// SPDX-License-Identifier: 0BSD
 
-describe("MessageSendingFailures.test.js", () => {
-    let axiosMock;
+import { describe, expect, it } from "vitest";
+import {
+    applyFailedCountFromStateUpdate,
+    applyOutboundMessageStateUpdated,
+    nextFailedMessagesCount,
+} from "@/features/messages/lib/conversationListApply.ts";
+import { optimisticMessage } from "@/features/messages/lib/conversationViewerSend.ts";
+import { peerPathNeedsRefresh } from "@/features/messages/lib/conversationViewerPath.ts";
 
-    beforeEach(() => {
-        resetHelptipPolicyForTests();
-        GlobalState.config.theme = "light";
-        GlobalState.config.message_outbound_bubble_color = "#4f46e5";
-        GlobalState.config.message_waiting_bubble_color = "#e5e7eb";
-        WebSocketConnection.connect();
-        axiosMock = {
-            get: vi.fn().mockImplementation((url) => {
-                if (url.includes("/path")) return Promise.resolve({ data: { path: [] } });
-                if (url.includes("/stamp-info")) return Promise.resolve({ data: { stamp_info: {} } });
-                if (url.includes("/delivery-diagnostics"))
-                    return Promise.resolve({
-                        data: {
-                            self: { auto_announce_enabled: false, seconds_since_last_announce: 100000 },
-                            peer_announce: { known: false, stamp_cost: 0 },
-                            path: { has_path: false, path_stale: true, path_unresponsive: false },
-                            recall: { identity_known: false },
-                            delivery_prefs: { propagation_fallback: false },
-                        },
-                    });
-                if (url.includes("/lxmf-messages/conversation/"))
-                    return Promise.resolve({ data: { lxmf_messages: [] } });
-                return Promise.resolve({ data: {} });
-            }),
-            post: vi.fn().mockImplementation((url) => {
-                if (typeof url === "string" && (url.includes("/request-path") || url.includes("/drop-path"))) {
-                    return Promise.resolve({ data: {} });
-                }
-                return Promise.resolve({ data: { lxmf_message: { hash: "mock" } } });
-            }),
-            delete: vi.fn().mockResolvedValue({ data: {} }),
-        };
-        window.api = axiosMock;
-
-        // Mock URL.createObjectURL
-        window.URL.createObjectURL = vi.fn(() => "mock-url");
-        vi.spyOn(window, "open").mockImplementation(() => null);
-
-        vi.spyOn(DialogUtils, "confirm").mockResolvedValue(true);
-        vi.spyOn(DialogUtils, "alert").mockImplementation(() => {});
-        vi.spyOn(ToastUtils, "error").mockImplementation(() => {});
-        vi.spyOn(ToastUtils, "helptips").mockImplementation(() => {});
-        GlobalState.config.delivery_helptips_enabled = true;
+describe("message sending failure contracts", () => {
+    it("increments and clears failed counts only on state transitions", () => {
+        expect(nextFailedMessagesCount(0, "sending", "failed")).toBe(1);
+        expect(nextFailedMessagesCount(1, "failed", "failed")).toBe(1);
+        expect(nextFailedMessagesCount(1, "failed", "delivered")).toBe(0);
     });
 
-    afterEach(() => {
-        delete window.api;
-        vi.unstubAllGlobals();
-        WebSocketConnection.destroy();
-        vi.restoreAllMocks();
-    });
+    it("applies failure state to the matching conversation", () => {
+        const peerHash = "aa".repeat(16);
+        const conversations = [{ destination_hash: peerHash, failed_messages_count: 0 }];
 
-    const mountConversationViewer = (props = {}) => {
-        return mount(ConversationViewer, {
-            props: {
-                selectedPeer: { destination_hash: "test-hash", display_name: "Test Peer" },
-                myLxmfAddressHash: "my-hash",
-                conversations: [],
-                ...props,
-            },
-            global: {
-                directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
-                mocks: {
-                    $t: (key) => key,
-                },
-                stubs: {
-                    MaterialDesignIcon: true,
-                    AddImageButton: true,
-                    AddAudioButton: true,
-                    SendMessageButton: true,
-                    ConversationDropDownMenu: true,
-                    PaperMessageModal: true,
-                    AudioWaveformPlayer: true,
-                    LxmfUserIcon: true,
-                },
-            },
-        });
-    };
-
-    it("handles API 503 failure when sending message", async () => {
-        axiosMock.post.mockImplementation((url) => {
-            if (typeof url === "string" && url.includes("/lxmf-messages/send")) {
-                return Promise.reject({
-                    response: {
-                        status: 503,
-                        data: { message: "Sending failed" },
-                    },
-                });
-            }
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountConversationViewer();
-        wrapper.vm.newMessageText = "Hello failure";
-
-        await wrapper.vm.sendMessage();
-        await vi.waitFor(
-            () => {
-                expect(DialogUtils.alert).toHaveBeenCalledWith("Sending failed");
-            },
-            { timeout: 5000 }
-        );
-
-        const pendingItems = wrapper.vm.chatItems.filter((item) => item.lxmf_message.hash.startsWith("pending-"));
-        expect(pendingItems).toHaveLength(1);
-        expect(pendingItems[0].lxmf_message.state).toBe("failed");
-        expect(pendingItems[0].lxmf_message._send_error).toBe("Sending failed");
-    });
-
-    it("shows helptip toast after pre-send 503 when helptips enabled", async () => {
-        axiosMock.post.mockImplementation((url) => {
-            if (typeof url === "string" && url.includes("/lxmf-messages/send")) {
-                return Promise.reject({
-                    response: {
-                        status: 503,
-                        data: {
-                            message: "No path to destination.",
-                            diagnostics: {
-                                self: { auto_announce_enabled: true, seconds_since_last_announce: 100 },
-                                peer_announce: { known: true, stamp_cost: 0 },
-                                path: { has_path: false, path_stale: true, path_unresponsive: false },
-                                recall: { identity_known: true },
-                                delivery_prefs: { propagation_fallback: false },
-                            },
-                        },
-                    },
-                });
-            }
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountConversationViewer({
-            config: { delivery_helptips_enabled: true },
-        });
-        wrapper.vm.newMessageText = "Hello failure";
-
-        await wrapper.vm.sendMessage();
-        await vi.waitFor(
-            () => {
-                expect(DialogUtils.alert).toHaveBeenCalledWith("No path to destination.");
-            },
-            { timeout: 5000 }
-        );
-        expect(ToastUtils.helptips).toHaveBeenCalled();
-    });
-
-    it("suppresses helptip toast when delivery_helptips_enabled is false", async () => {
-        ToastUtils.helptips.mockClear();
-        GlobalState.config.delivery_helptips_enabled = false;
-
-        axiosMock.post.mockImplementation((url) => {
-            if (typeof url === "string" && url.includes("/lxmf-messages/send")) {
-                return Promise.reject({
-                    response: {
-                        status: 503,
-                        data: { message: "Sending failed" },
-                    },
-                });
-            }
-            return Promise.resolve({ data: {} });
-        });
-
-        const wrapper = mountConversationViewer({
-            config: { delivery_helptips_enabled: false },
-        });
-        wrapper.vm.newMessageText = "Hello failure";
-
-        await wrapper.vm.sendMessage();
-        await vi.waitFor(
-            () => {
-                expect(DialogUtils.alert).toHaveBeenCalled();
-            },
-            { timeout: 5000 }
-        );
-        expect(ToastUtils.helptips).not.toHaveBeenCalled();
-    });
-
-    it("sends plain text when crypto.randomUUID is unavailable (non-secure context)", async () => {
-        DialogUtils.alert.mockClear();
-
-        const c = globalThis.crypto;
-        vi.stubGlobal("crypto", {
-            ...c,
-            getRandomValues: c.getRandomValues.bind(c),
-            randomUUID: undefined,
-        });
-
-        const wrapper = mountConversationViewer();
-        wrapper.vm.peerPathSnapshot = {
-            path: { hops: 1 },
-            path_stale: false,
-            path_unresponsive: false,
-        };
-        wrapper.vm.newMessageText = "http LAN host";
-
-        await wrapper.vm.sendMessage();
-        await vi.waitFor(() => {
-            const sendCalls = axiosMock.post.mock.calls.filter((c) => c[0] === "/api/v1/lxmf-messages/send");
-            expect(sendCalls.length).toBeGreaterThan(0);
-        });
-
-        expect(DialogUtils.alert).not.toHaveBeenCalled();
-        expect(axiosMock.post).toHaveBeenCalledWith(
-            "/api/v1/lxmf-messages/send",
-            expect.objectContaining({
-                lxmf_message: expect.objectContaining({
-                    content: "http LAN host",
-                    destination_hash: "test-hash",
-                }),
-            })
-        );
-        expect(wrapper.vm.chatItems.some((item) => item.lxmf_message.hash === "mock")).toBe(true);
-    });
-
-    it("warms path before direct send when peer path is missing", async () => {
-        const wrapper = mountConversationViewer();
-        wrapper.vm.peerPathSnapshot = { path: null, path_stale: true, path_unresponsive: false };
-        wrapper.vm.newMessageText = "need path";
-        wrapper.vm.newMessageDeliveryMethod = "direct";
-
-        await wrapper.vm.sendMessage();
-        await vi.waitFor(() => {
-            expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/destination/test-hash/request-path");
-            expect(axiosMock.post).toHaveBeenCalledWith(
-                "/api/v1/lxmf-messages/send",
-                expect.objectContaining({
-                    delivery_method: "direct",
-                })
-            );
-        });
-    });
-
-    it("skips path warm for propagated delivery", async () => {
-        const wrapper = mountConversationViewer();
-        wrapper.vm.peerPathSnapshot = { path: null, path_stale: true, path_unresponsive: false };
-        wrapper.vm.newMessageText = "via prop";
-        wrapper.vm.newMessageDeliveryMethod = "propagated";
-
-        await wrapper.vm.sendMessage();
-        await vi.waitFor(() => {
-            expect(axiosMock.post).toHaveBeenCalledWith(
-                "/api/v1/lxmf-messages/send",
-                expect.objectContaining({
-                    delivery_method: "propagated",
-                })
-            );
-        });
-
-        const pathWarmCalls = axiosMock.post.mock.calls.filter(
-            (c) => typeof c[0] === "string" && c[0].includes("/request-path")
-        );
-        expect(pathWarmCalls).toHaveLength(0);
-    });
-
-    it("updates UI when message state becomes failed via WebSocket", async () => {
-        const wrapper = mountConversationViewer();
-        const messageHash = "msg-123";
-
-        // Add a message that is currently "sending"
-        wrapper.vm.chatItems.push({
-            type: "lxmf_message",
-            is_outbound: true,
-            lxmf_message: {
-                hash: messageHash,
-                content: "Going to fail",
-                state: "sending",
-                progress: 50,
-                destination_hash: "test-hash",
-                source_hash: "my-hash",
-                fields: {},
-            },
-        });
-
-        // Simulate WebSocket update
-        wrapper.vm.onLxmfMessageUpdated({
-            hash: messageHash,
-            state: "failed",
-            progress: 50,
-        });
-
-        const updatedItem = wrapper.vm.chatItems.find((i) => i.lxmf_message.hash === messageHash);
-        expect(updatedItem.lxmf_message.state).toBe("failed");
-
-        await wrapper.vm.$nextTick();
-        // The retry button should be visible in the context menu if we were to open it
-        // (Testing the logic of onLxmfMessageUpdated is enough here as retry logic is tested elsewhere)
-    });
-
-    it("handles second image failure in multi-image send", async () => {
-        const wrapper = mountConversationViewer();
-        wrapper.vm.peerPathSnapshot = {
-            path: { hops: 1 },
-            path_stale: false,
-            path_unresponsive: false,
-        };
-        wrapper.vm.newMessageText = "Two images";
-
-        const image1 = new File([""], "image1.png", { type: "image/png" });
-        const image2 = new File([""], "image2.png", { type: "image/png" });
-        image1.arrayBuffer = vi.fn(() => Promise.resolve(new ArrayBuffer(8)));
-        image2.arrayBuffer = vi.fn(() => Promise.resolve(new ArrayBuffer(8)));
-
-        await wrapper.vm.onImageSelected(image1);
-        await wrapper.vm.onImageSelected(image2);
-
-        let sendCount = 0;
-        axiosMock.post.mockImplementation((url) => {
-            if (typeof url === "string" && (url.includes("/request-path") || url.includes("/drop-path"))) {
-                return Promise.resolve({ data: {} });
-            }
-            if (typeof url === "string" && url.includes("/lxmf-messages/send")) {
-                sendCount += 1;
-                if (sendCount === 1) {
-                    return Promise.resolve({
-                        data: { lxmf_message: { hash: "hash-1", content: "Two images", state: "outbound" } },
-                    });
-                }
-                return Promise.reject({ response: { data: { message: "Second image failed" } } });
-            }
-            return Promise.resolve({ data: {} });
-        });
-
-        const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
-        await wrapper.vm.sendMessage();
-        await vi.waitFor(() => {
-            expect(sendCount).toBe(2);
-        });
-
-        expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("Failed to send image 2"), expect.anything());
-        expect(ToastUtils.error).toHaveBeenCalled();
-
-        consoleSpy.mockRestore();
-    });
-
-    it("removes placeholder even if buildOutboundJobSnapshot fails", async () => {
-        const wrapper = mountConversationViewer();
-        wrapper.vm.newMessageText = "Fail early";
-
-        vi.spyOn(wrapper.vm, "buildOutboundJobSnapshot").mockRejectedValueOnce(new Error("Snapshot failed"));
-
-        await wrapper.vm.sendMessage();
-
-        expect(DialogUtils.alert).toHaveBeenCalledWith("Snapshot failed");
-        expect(wrapper.vm.chatItems).toHaveLength(0);
-    });
-
-    it("retrying a failed message sends it again", async () => {
-        const wrapper = mountConversationViewer();
-        const failedItem = {
-            type: "lxmf_message",
-            is_outbound: true,
-            lxmf_message: {
-                hash: "failed-hash",
+        expect(
+            applyOutboundMessageStateUpdated(conversations, {
+                destination_hash: peerHash,
+                is_incoming: false,
                 state: "failed",
-                content: "retry me",
-                destination_hash: "test-hash",
-                source_hash: "my-hash",
-                fields: {},
-            },
-        };
-        wrapper.vm.chatItems = [failedItem];
-
-        axiosMock.post.mockResolvedValue({ data: { lxmf_message: { hash: "new-hash", state: "outbound" } } });
-
-        await wrapper.vm.retrySendingMessage(failedItem);
-
-        expect(axiosMock.post).toHaveBeenCalledWith(
-            "/api/v1/lxmf-messages/send",
-            expect.objectContaining({
-                lxmf_message: expect.objectContaining({
-                    content: "retry me",
-                    destination_hash: "test-hash",
-                }),
             })
+        ).toBe(true);
+        expect(conversations[0].failed_messages_count).toBe(1);
+        expect(
+            applyFailedCountFromStateUpdate(conversations[0], {
+                destination_hash: peerHash,
+                state: "delivered",
+            })
+        ).toBe(true);
+        expect(conversations[0].failed_messages_count).toBe(0);
+    });
+
+    it("marks optimistic direct sends as waiting when a path is missing", () => {
+        const message = optimisticMessage(
+            {
+                destinationHash: "bb".repeat(16),
+                myLxmfAddressHash: "cc".repeat(16),
+                text: "hello",
+                fields: {},
+                images: [],
+                deliveryMethod: "direct",
+                replyToHash: null,
+                replyQuotedContent: null,
+                pendingHash: null,
+            },
+            true
         );
 
-        // Old item should be removed
-        expect(wrapper.vm.chatItems.find((i) => i.lxmf_message.hash === "failed-hash")).toBeUndefined();
-        // New item should be added
-        expect(wrapper.vm.chatItems.find((i) => i.lxmf_message.hash === "new-hash")).toBeDefined();
+        expect(message.destination_hash).toBe("bb".repeat(16));
+        expect(message.state).toBe("sending");
+        expect(message._pendingPathfinding).toBe(true);
+    });
+
+    it("requests path refresh for missing, stale, or unresponsive paths", () => {
+        expect(peerPathNeedsRefresh(null)).toBe(true);
+        expect(peerPathNeedsRefresh({ path: null, path_stale: false, path_unresponsive: false })).toBe(true);
+        expect(peerPathNeedsRefresh({ path: { hops: 1 }, path_stale: true, path_unresponsive: false })).toBe(true);
+        expect(peerPathNeedsRefresh({ path: { hops: 1 }, path_stale: false, path_unresponsive: false })).toBe(
+            false
+        );
     });
 });

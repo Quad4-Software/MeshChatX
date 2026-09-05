@@ -335,7 +335,6 @@ def mock_app(db, tmp_path, temp_db):
             app.rrc_manager.set_database(app.database)
         app.websocket_broadcast = MagicMock(side_effect=lambda data: None)
         app.demo_mode = False
-        app.altcha_enabled = False
         _stub_map_data_manager(app)
 
         yield app

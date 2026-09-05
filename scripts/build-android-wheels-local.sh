@@ -65,7 +65,6 @@ NUMPY_VERSION="1.26.2"
 LXST_VERSION="0.5.1"
 BLEAK_VERSION="3.0.2"
 HTTPX_VERSION="0.28.1"
-ALTCHA_VERSION="2.0.2"
 PYOPENSSL_VERSION="26.4.0"
 SERVICE_IDENTITY_VERSION="26.1.0"
 ATTRS_VERSION="26.1.0"
@@ -919,21 +918,6 @@ PY
             exit 1
         fi
     done
-
-    echo "Fetching altcha ${ALTCHA_VERSION} pure-python wheel"
-    ALTCHA_TMP_DIR="$(mktemp -d)"
-    "${VENV_DIR}/bin/pip" download \
-        --only-binary=:all: \
-        --no-deps \
-        "altcha==${ALTCHA_VERSION}" \
-        --dest "${ALTCHA_TMP_DIR}" \
-        --index-url https://pypi.org/simple
-    cp -f "${ALTCHA_TMP_DIR}"/altcha-"${ALTCHA_VERSION}"-py3-none-any.whl "${OUT_DIR}/"
-    rm -rf "${ALTCHA_TMP_DIR}"
-    if ! ls "${OUT_DIR}/altcha-${ALTCHA_VERSION}-py3-none-any.whl" >/dev/null 2>&1; then
-        echo "Expected altcha-${ALTCHA_VERSION}-py3-none-any.whl in ${OUT_DIR}" >&2
-        exit 1
-    fi
 
     vendor_aioquic_pure_python_deps
 fi

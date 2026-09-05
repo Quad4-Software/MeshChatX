@@ -62,13 +62,13 @@ Windows (x64 and arm64) and macOS (arm64 and universal) scripts are in package.j
 
 ## Container build (wheel, AppImage, deb, rpm)
 
-[Dockerfile.build](../../Dockerfile.build) runs the same shell steps CI uses (Poetry, pnpm, task, packaging APT deps). It is aimed at linux/amd64 (NodeSource amd64 tarball, Task amd64 binary).
+[Dockerfile.build](../../docker/Dockerfile.build) runs the same shell steps CI uses (Poetry, pnpm, task, packaging APT deps). It is aimed at linux/amd64 (NodeSource amd64 tarball, Task amd64 binary).
 
 MESHCHATX_BUILD_TARGETS defaults to all. Other values: wheel, or electron (AppImage + deb for x64 and arm64, best-effort RPM, no wheel).
 
 ```bash
-docker build -f Dockerfile.build -t meshchatx-build:local .
-docker build -f Dockerfile.build --build-arg MESHCHATX_BUILD_TARGETS=wheel -t meshchatx-build:wheel .
+docker build -f docker/Dockerfile.build -t meshchatx-build:local .
+docker build -f docker/Dockerfile.build --build-arg MESHCHATX_BUILD_TARGETS=wheel -t meshchatx-build:wheel .
 ```
 
 Copy artifacts off the image:
@@ -81,7 +81,7 @@ docker rm "${cid}"
 
 ## Container Windows build (optional, Wine)
 
-Tagged releases still build Windows on GitHub windows-latest. For a local cross-build without that runner, use [Dockerfile.electron-wine](../../Dockerfile.electron-wine) on top of electronuserland/builder:24-wine. It installs embeddable Windows Python under Wine for cx_Freeze (same role as task setup:wine), downloads win_amd64 wheels on the Linux side (Wine HTTPS to PyPI is flaky), then runs electron-builder for portable and NSIS.
+Tagged releases still build Windows on GitHub windows-latest. For a local cross-build without that runner, use [Dockerfile.electron-wine](../../docker/Dockerfile.electron-wine) on top of electronuserland/builder:24-wine. It installs embeddable Windows Python under Wine for cx_Freeze (same role as task setup:wine), downloads win_amd64 wheels on the Linux side (Wine HTTPS to PyPI is flaky), then runs electron-builder for portable and NSIS.
 
 ```bash
 task docker:dist:win:smoke
@@ -91,7 +91,7 @@ task docker:dist:win
 Or:
 
 ```bash
-docker build -f Dockerfile.electron-wine -t meshchatx-electron-wine:local .
+docker build -f docker/Dockerfile.electron-wine -t meshchatx-electron-wine:local .
 cid=$(docker create meshchatx-electron-wine:local)
 docker cp "${cid}:/artifacts/." ./meshchatx-artifacts-win
 docker rm "${cid}"

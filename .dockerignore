@@ -137,7 +137,7 @@ bench_results.txt
 tests/
 
 # CI and packaging trees not used in Docker image
-# electron/ and scripts/ci/ are required by Dockerfile.build (Electron packaging + build entry scripts)
+# electron/ and scripts/ci/ are required by docker/Dockerfile.build (Electron packaging + build entry scripts)
 .github/
 packaging/
 scripts/private/

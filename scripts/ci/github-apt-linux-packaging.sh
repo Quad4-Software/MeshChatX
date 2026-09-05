@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# APT packages needed for Linux Electron packaging (AppImage, deb, rpm, apk) on Debian/Ubuntu or in Dockerfile.build (root).
+# APT packages needed for Linux Electron packaging (AppImage, deb, rpm, apk) on Debian/Ubuntu or in docker/Dockerfile.build (root).
 set -euo pipefail
 
 # shellcheck source=priv.sh disable=SC1091

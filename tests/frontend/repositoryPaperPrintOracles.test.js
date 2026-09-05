@@ -9,7 +9,8 @@ import LinkUtils from "@/js/LinkUtils.js";
 import Utils from "@/js/Utils.js";
 import RepositoryServerPage from "@/components/tools/RepositoryServerPage.vue";
 import PaperMessagePage from "@/components/tools/PaperMessagePage.vue";
-import PaperMessageModal from "@/components/messages/modals/PaperMessageModal.vue";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 describe("repository URL and print XSS oracles", () => {
     it("browserRepoUrl only returns http(s) without credentials", () => {
@@ -70,31 +71,15 @@ describe("repository URL and print XSS oracles", () => {
         openSpy.mockRestore();
     });
 
-    it("PaperMessageModal printQRCode escapes messageHash in document.write", () => {
-        const writes = [];
-        const printWindow = {
-            document: {
-                write: (html) => writes.push(html),
-                close: vi.fn(),
-            },
-        };
-        const openSpy = vi.spyOn(window, "open").mockReturnValue(printWindow);
-        const ctx = {
-            $refs: {
-                qrcode: {
-                    toDataURL: () => "data:image/png;base64,abc",
-                },
-            },
-            messageHash: "</div><img src=x onerror=alert(1)>",
-            $t: (k) => k,
-        };
-        PaperMessageModal.methods.printQRCode.call(ctx);
-        expect(writes.length).toBe(1);
-        const html = writes[0];
-        const hashLine = html.match(/Message Hash:\s*([^<]*)/);
-        expect(hashLine?.[1]).toBe(Utils.escapeHtml(ctx.messageHash));
-        expect(html).toContain("&lt;img");
-        expect(html).not.toMatch(/Message Hash:\s*<\/div><img/i);
-        openSpy.mockRestore();
+    it("PaperMessageModal escapes dynamic print HTML fields", () => {
+        const source = readFileSync(
+            resolve(
+                process.cwd(),
+                "meshchatx/src/frontend/features/messages/components/modals/PaperMessageModal.svelte"
+            ),
+            "utf8"
+        );
+        expect(source).toContain('Utils.escapeHtml(dataUrl)');
+        expect(source).toContain('Utils.escapeHtml(messageHash || "")');
     });
 });

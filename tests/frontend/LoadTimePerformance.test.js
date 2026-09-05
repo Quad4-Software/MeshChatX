@@ -1,7 +1,8 @@
 import { mount, flushPromises } from "@vue/test-utils";
+import { cleanup, fireEvent, render } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import PropagationNodesPage from "../../meshchatx/src/frontend/components/propagation-nodes/PropagationNodesPage.vue";
-import MessagesSidebar from "../../meshchatx/src/frontend/components/messages/MessagesSidebar.vue";
+import MessagesSidebar from "../../meshchatx/src/frontend/features/messages/components/MessagesSidebar.svelte";
 import NomadNetworkSidebar from "../../meshchatx/src/frontend/components/nomadnetwork/NomadNetworkSidebar.vue";
 
 const MAX_PROP_NODES_MS = 3000;
@@ -26,6 +27,7 @@ vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => ({
 vi.mock("../../meshchatx/src/frontend/js/Utils", () => ({
     default: {
         formatTimeAgo: (d) => "1h ago",
+        formatTimeAgoForI18n: (d) => "1h ago",
         formatDestinationHash: (h) => (h && h.length >= 8 ? h.slice(0, 8) + "…" : h),
         parseDestinationHash: (h) => {
             let text = String(h || "").trim();
@@ -128,7 +130,7 @@ describe("Load time with prefilled data", () => {
         it("renders sidebar with 2000 conversations within threshold", async () => {
             const count = 2000;
             const conversations = Array.from({ length: count }, (_, i) => ({
-                destination_hash: `hash_${i}`.padEnd(32, "0").slice(0, 32),
+                destination_hash: i.toString(16).padStart(32, "0"),
                 display_name: `Peer ${i}`,
                 updated_at: new Date().toISOString(),
                 latest_message_preview: `Preview ${i}`,
@@ -137,7 +139,7 @@ describe("Load time with prefilled data", () => {
             }));
 
             const start = performance.now();
-            const wrapper = mount(MessagesSidebar, {
+            const view = render(MessagesSidebar, {
                 props: {
                     conversations,
                     peers: {},
@@ -149,21 +151,17 @@ describe("Load time with prefilled data", () => {
                     isLoadingMoreAnnounces: false,
                     totalPeersCount: 0,
                 },
-                global: {
-                    components: { MaterialDesignIcon, LxmfUserIcon },
-                    mocks: { $t: (key) => key },
-                },
             });
-            await wrapper.vm.$nextTick();
             const end = performance.now();
 
-            expect(wrapper.vm.displayedConversations.length).toBe(count);
+            expect(view.container.querySelectorAll("li")).toHaveLength(count);
             expect(end - start).toBeLessThan(MAX_MESSAGES_ANNOUNCES_MS);
             if (process.env.CI !== "true") {
                 console.log(
                     `Messages: ${count} conversations in ${(end - start).toFixed(0)}ms (max ${MAX_MESSAGES_ANNOUNCES_MS}ms)`
                 );
             }
+            cleanup();
         });
     });
 
@@ -178,7 +176,7 @@ describe("Load time with prefilled data", () => {
             );
 
             const start = performance.now();
-            const wrapper = mount(MessagesSidebar, {
+            const view = render(MessagesSidebar, {
                 props: {
                     conversations: [],
                     peers,
@@ -190,24 +188,18 @@ describe("Load time with prefilled data", () => {
                     isLoadingMoreAnnounces: false,
                     totalPeersCount: count,
                 },
-                global: {
-                    components: { MaterialDesignIcon, LxmfUserIcon },
-                    mocks: { $t: (key) => key },
-                },
             });
-            await wrapper.vm.$nextTick();
-            wrapper.vm.tab = "announces";
-            await wrapper.vm.$nextTick();
+            await fireEvent.click(view.container.querySelectorAll("button")[1]);
             const end = performance.now();
 
-            expect(wrapper.vm.peersOrderedByLatestAnnounce.length).toBe(count);
-            expect(wrapper.vm.searchedPeers.length).toBe(count);
+            expect(view.container.querySelectorAll("li")).toHaveLength(count);
             expect(end - start).toBeLessThan(MAX_MESSAGES_ANNOUNCES_MS);
             if (process.env.CI !== "true") {
                 console.log(
                     `Announces (messages): ${count} peers in ${(end - start).toFixed(0)}ms (max ${MAX_MESSAGES_ANNOUNCES_MS}ms)`
                 );
             }
+            cleanup();
         }, 20000);
     });
 

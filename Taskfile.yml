@@ -18,7 +18,9 @@ vars:
     DOCKER_COMPOSE_CMD:
         sh: echo "${DOCKER_COMPOSE_CMD:-docker compose}"
     DOCKER_COMPOSE_FILE:
-        sh: echo "${DOCKER_COMPOSE_FILE:-docker-compose.yml}"
+        sh: echo "${DOCKER_COMPOSE_FILE:-docker/docker-compose.yml}"
+    DOCKER_COMPOSE_DEV_FILE:
+        sh: echo "${DOCKER_COMPOSE_DEV_FILE:-docker/docker-compose.dev.yml}"
     DOCKER_IMAGE:
         sh: echo "${DOCKER_IMAGE:-reticulum-meshchatx:local}"
     DOCKER_BUILDER:
@@ -32,15 +34,15 @@ vars:
     DOCKER_CONTEXT:
         sh: echo "${DOCKER_CONTEXT:-.}"
     DOCKERFILE:
-        sh: echo "${DOCKERFILE:-Dockerfile}"
+        sh: echo "${DOCKERFILE:-docker/Dockerfile}"
     DOCKER_BUILD_IMAGE:
         sh: echo "${DOCKER_BUILD_IMAGE:-reticulum-meshchatx-build:local}"
     DOCKER_BUILD_FILE:
-        sh: echo "${DOCKER_BUILD_FILE:-Dockerfile.build}"
+        sh: echo "${DOCKER_BUILD_FILE:-docker/Dockerfile.build}"
     DOCKER_ELECTRON_WINE_IMAGE:
         sh: echo "${MESHCHATX_ELECTRON_WINE_IMAGE:-meshchatx-electron-wine:local}"
     DOCKER_ELECTRON_WINE_FILE:
-        sh: echo "${MESHCHATX_ELECTRON_WINE_DOCKERFILE:-Dockerfile.electron-wine}"
+        sh: echo "${MESHCHATX_ELECTRON_WINE_DOCKERFILE:-docker/Dockerfile.electron-wine}"
     DOCKER_ELECTRON_WINE_TARGETS:
         sh: echo "${MESHCHATX_ELECTRON_WINE_TARGETS:-win}"
     DOCKER_ELECTRON_WINE_OUT:
@@ -783,7 +785,7 @@ tasks:
     docker:run:dev:
         desc: Run Docker container (dev compose)
         cmds:
-            - 'MESHCHAT_IMAGE="{{.DOCKER_IMAGE}}" {{.DOCKER_COMPOSE_CMD}} -f docker-compose.dev.yml up --build --remove-orphans reticulum-meshchatx'
+            - 'MESHCHAT_IMAGE="{{.DOCKER_IMAGE}}" {{.DOCKER_COMPOSE_CMD}} -f {{.DOCKER_COMPOSE_DEV_FILE}} up --build --remove-orphans reticulum-meshchatx'
 
     docker:build:env:
         desc: Build containerized build environment

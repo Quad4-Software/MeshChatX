@@ -38,7 +38,7 @@ export function joinFeatureSources(repoRoot, relativeDirs) {
             chunks.push(readUtf8(abs));
             continue;
         }
-        for (const file of listFilesRecursive(abs, [".vue", ".js"])) {
+        for (const file of listFilesRecursive(abs, [".vue", ".js", ".ts", ".svelte"])) {
             chunks.push(readUtf8(file));
         }
     }
@@ -114,10 +114,10 @@ export function discoverMegaPageOwnership(repoRoot) {
                 "meshchatx/src/frontend/components/map/internal/MapSaveDrawingModal.vue",
                 "meshchatx/src/frontend/components/map/internal/MapLoadDrawingModal.vue",
                 "meshchatx/src/frontend/components/map/internal/MapMobileNoteModal.vue",
-                "meshchatx/src/frontend/components/map/internal/clusterUtils.js",
-                "meshchatx/src/frontend/components/map/internal/discoveredIcons.js",
-                "meshchatx/src/frontend/components/map/internal/mapDedupe.js",
-                "meshchatx/src/frontend/components/map/internal/markerStyles.js",
+                "meshchatx/src/frontend/components/map/internal/clusterUtils.ts",
+                "meshchatx/src/frontend/components/map/internal/discoveredIcons.ts",
+                "meshchatx/src/frontend/components/map/internal/mapDedupe.ts",
+                "meshchatx/src/frontend/components/map/internal/markerStyles.ts",
             ],
             required_shell_imports: [
                 "MapClusterPanel",
@@ -141,35 +141,35 @@ export function discoverMegaPageOwnership(repoRoot) {
         },
         {
             id: "messages",
-            shell: "meshchatx/src/frontend/components/messages/ConversationViewer.vue",
+            shell: "meshchatx/src/frontend/features/messages/components/ConversationViewer.svelte",
             allowed_child_dirs: [
-                "meshchatx/src/frontend/components/messages",
-                "meshchatx/src/frontend/components/messages/composer",
-                "meshchatx/src/frontend/components/messages/modals",
-                "meshchatx/src/frontend/components/messages/outbound",
-                "meshchatx/src/frontend/components/messages/lxmf",
-                "meshchatx/src/frontend/components/messages/telemetry",
+                "meshchatx/src/frontend/features/messages/components",
+                "meshchatx/src/frontend/features/messages/components/composer",
+                "meshchatx/src/frontend/features/messages/components/modals",
+                "meshchatx/src/frontend/features/messages/components/outbound",
+                "meshchatx/src/frontend/features/messages/components/telemetry",
+                "meshchatx/src/frontend/features/messages/lib",
             ],
             required_children: [
-                "meshchatx/src/frontend/components/messages/ConversationPeerHeader.vue",
-                "meshchatx/src/frontend/components/messages/ConversationMessageEntry.vue",
-                "meshchatx/src/frontend/components/messages/conversationMessageHelpers.js",
-                "meshchatx/src/frontend/components/messages/outbound/OutboundTransferProgressFooter.vue",
-                "meshchatx/src/frontend/components/messages/modals/ShareContactModal.vue",
-                "meshchatx/src/frontend/components/messages/modals/ConversationImageModal.vue",
-                "meshchatx/src/frontend/components/messages/composer/AddImageButton.vue",
-                "meshchatx/src/frontend/components/messages/lxmf/contactDisplay.js",
-                "meshchatx/src/frontend/components/messages/lxmf/normalize.js",
+                "meshchatx/src/frontend/features/messages/components/ConversationPeerHeader.svelte",
+                "meshchatx/src/frontend/features/messages/components/ConversationMessageEntry.svelte",
+                "meshchatx/src/frontend/features/messages/lib/conversationMessageHelpers.ts",
+                "meshchatx/src/frontend/features/messages/components/outbound/OutboundTransferProgressFooter.svelte",
+                "meshchatx/src/frontend/features/messages/components/modals/ShareContactModal.svelte",
+                "meshchatx/src/frontend/features/messages/components/modals/ConversationImageModal.svelte",
+                "meshchatx/src/frontend/features/messages/components/composer/AddImageButton.svelte",
+                "meshchatx/src/frontend/features/messages/lib/lxmf/contactDisplay.ts",
+                "meshchatx/src/frontend/features/messages/lib/lxmf/normalize.ts",
             ],
             required_shell_imports: [
                 "ConversationPeerHeader",
                 "ConversationMessageEntry",
-                "conversationMessageHelpers",
-                "ShareContactModal",
-                "ConversationImageModal",
-                "AddImageButton",
-                "contactDisplay",
-                "normalize",
+                "ConversationMessageListVirtual",
+                "ConversationMessageContextMenu",
+                "ConversationComposer",
+                "PaperMessageModal",
+                "buildDisplayGroupsNewestFirst",
+                "createConversationViewerActions",
             ],
         },
         {

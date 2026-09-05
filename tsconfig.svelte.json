@@ -6,6 +6,11 @@
         "verbatimModuleSyntax": true,
         "isolatedModules": true
     },
-    "include": ["meshchatx/src/frontend/**/*.svelte", "meshchatx/src/frontend/**/*.js", "svelte.config.js"],
+    "include": [
+        "meshchatx/src/frontend/**/*.svelte",
+        "meshchatx/src/frontend/**/*.js",
+        "meshchatx/src/frontend/**/*.ts",
+        "svelte.config.js"
+    ],
     "exclude": ["node_modules", "meshchatx/public", "meshchatx/src/frontend/public", "build", "dist", "tests"]
 }

@@ -2573,9 +2573,9 @@
         "col_license": "Lizenz"
     },
     "tools": {
-        "utilities": "Dienstprogramme",
-        "power_tools": "Dienstprogramme",
-        "diagnostics_description": "Mesh- und Reticulum-Werkzeuge an einem Ort: Erreichbarkeit, Pfade, Dateitransfer, Übersetzung, Dokumentation und Hardware-Hilfen. Öffnen Sie eine Zeile für die vollständige Ansicht.",
+        "utilities": "Werkzeuge",
+        "power_tools": "Werkzeuge",
+        "diagnostics_description": "Erreichbarkeit, Pfade, Dateitransfer, Übersetzung, Docs und Hardware-Hilfen.",
         "back_to_tools": "Zurück zu Werkzeugen",
         "beta_badge": "Beta",
         "alpha_badge": "Alpha",
@@ -3242,7 +3242,8 @@
         "rnx": {
             "title": "RNX",
             "description": "Fernausführung von Befehlen über Reticulum"
-        }
+        },
+        "search_placeholder": "{count} Werkzeuge durchsuchen"
     },
     "ping": {
         "title": "Mesh-Peers anpingen",
@@ -4619,7 +4620,6 @@
         "set_password": "Passwort festlegen",
         "login": "Anmelden",
         "passwords_mismatch": "Passwörter stimmen nicht überein",
-        "altcha_required": "Schließen Sie zuerst die Verifizierungsaufgabe ab",
         "status_check_failed": "Authentifizierungsstatus konnte nicht geprüft werden",
         "failed": "Authentifizierung fehlgeschlagen"
     },

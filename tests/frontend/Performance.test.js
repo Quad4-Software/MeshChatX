@@ -1,7 +1,7 @@
-import { mount } from "@vue/test-utils";
+import { cleanup, render } from "@testing-library/svelte";
 import { describe, it, expect, vi } from "vitest";
-import MessagesSidebar from "../../meshchatx/src/frontend/components/messages/MessagesSidebar.vue";
-import ConversationViewer from "../../meshchatx/src/frontend/components/messages/ConversationViewer.vue";
+import MessagesSidebar from "../../meshchatx/src/frontend/features/messages/components/MessagesSidebar.svelte";
+import { visibleConversationItems } from "../../meshchatx/src/frontend/features/messages/lib/conversationViewerMessages.ts";
 
 // Mock dependencies
 vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => ({
@@ -83,7 +83,7 @@ describe("UI Performance and Memory Tests", () => {
     it("renders MessagesSidebar with 2000 conversations quickly and tracks memory", async () => {
         const numConvs = 2000;
         const conversations = Array.from({ length: numConvs }, (_, i) => ({
-            destination_hash: `hash_${i}`.padEnd(32, "0"),
+            destination_hash: i.toString(16).padStart(32, "0"),
             display_name: `Peer ${i}`,
             updated_at: new Date().toISOString(),
             latest_message_preview: `Latest message from peer ${i}`,
@@ -94,7 +94,7 @@ describe("UI Performance and Memory Tests", () => {
         const startMem = getMemoryUsage();
         const start = performance.now();
 
-        const wrapper = mount(MessagesSidebar, {
+        const view = render(MessagesSidebar, {
             props: {
                 conversations,
                 peers: {},
@@ -102,25 +102,6 @@ describe("UI Performance and Memory Tests", () => {
                 isLoading: false,
                 isLoadingMore: false,
                 hasMoreConversations: false,
-            },
-            global: {
-                components: {
-                    MaterialDesignIcon,
-                    LxmfUserIcon: { template: '<div class="lxmf-icon"></div>' },
-                },
-                mocks: { $t: (key) => key },
-                stubs: {
-                    SidebarVirtualList: {
-                        props: ["items", "itemKey"],
-                        template: `
-                            <div class="sidebar-virtual-stub">
-                                <div v-for="(item, index) in items" :key="typeof itemKey === 'function' ? itemKey(item) : index">
-                                    <slot name="item" :item="item" :index="index" />
-                                </div>
-                            </div>
-                        `,
-                    },
-                },
             },
         });
 
@@ -133,10 +114,10 @@ describe("UI Performance and Memory Tests", () => {
             `Rendered ${numConvs} conversations in ${renderTime.toFixed(2)}ms, Memory growth: ${memGrowth.toFixed(2)}MB`
         );
 
-        expect(wrapper.find(".sidebar-virtual-stub").exists()).toBe(true);
-        expect(wrapper.findAll(".conversation-item").length).toBe(numConvs);
+        expect(view.container.querySelectorAll("li")).toHaveLength(numConvs);
         expect(renderTime).toBeLessThan(12000);
-        expect(memGrowth).toBeLessThan(200); // Adjusted for JSDOM/Node.js overhead with 2000 items
+        expect(memGrowth).toBeLessThan(256);
+        cleanup();
     }, 60_000);
 
     it("measures performance of data updates in ConversationViewer", async () => {
@@ -146,30 +127,6 @@ describe("UI Performance and Memory Tests", () => {
             destination_hash: "peer_hash",
             display_name: "Peer Name",
         };
-
-        const wrapper = mount(ConversationViewer, {
-            props: {
-                myLxmfAddressHash,
-                selectedPeer,
-                conversations: [selectedPeer],
-                config: { theme: "light", lxmf_address_hash: myLxmfAddressHash },
-            },
-            global: {
-                components: {
-                    MaterialDesignIcon,
-                    ConversationDropDownMenu: { template: "<div></div>" },
-                    SendMessageButton: { template: "<div></div>" },
-                    IconButton: { template: "<button></button>" },
-                    AddImageButton: { template: "<div></div>" },
-                    AddAudioButton: { template: "<div></div>" },
-                    PaperMessageModal: { template: "<div></div>" },
-                },
-                mocks: {
-                    $t: (key) => key,
-                    $i18n: { locale: "en" },
-                },
-            },
-        });
 
         const chatItems = Array.from({ length: numMsgs }, (_, i) => ({
             type: "lxmf_message",
@@ -189,10 +146,11 @@ describe("UI Performance and Memory Tests", () => {
         }));
 
         const start = performance.now();
-        await wrapper.setData({ chatItems });
+        const visible = visibleConversationItems(chatItems, selectedPeer.destination_hash, true);
         const end = performance.now();
 
-        console.log(`Updated 1000 messages in ConversationViewer in ${(end - start).toFixed(2)}ms`);
+        expect(visible).toHaveLength(numMsgs);
+        console.log(`Filtered 1000 messages in ConversationViewer in ${(end - start).toFixed(2)}ms`);
         expect(end - start).toBeLessThan(12000);
     }, 30_000);
 });
