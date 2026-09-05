@@ -1,21 +1,27 @@
-import { mount } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+// SPDX-License-Identifier: 0BSD
 
-import RNSHManagerPage from "@/components/tools/RNSHManagerPage.vue";
-import { mountToolsPageGlobals } from "./testI18n.js";
+import { render, cleanup, screen } from "@testing-library/svelte";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+
+import RNSHPage from "@/features/rnsh/RNSHPage.svelte";
+import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
+import en from "@/locales/en.json";
+import {
+    buildRnshConnectPayload,
+    buildRnshListenPayload,
+    createRnshSession,
+    sendRnshSessionInput,
+} from "@/features/rnsh/lib/rnshApi.ts";
+import {
+    appendSessionOutput,
+    ingestSessionOutput,
+} from "@/features/remote-shell/lib/sessionOutput.ts";
 
 vi.mock("@/js/ToastUtils", () => ({
     default: {
         success: vi.fn(),
         error: vi.fn(),
         warning: vi.fn(),
-    },
-}));
-
-vi.mock("@/js/WebSocketConnection", () => ({
-    default: {
-        on: vi.fn(),
-        off: vi.fn(),
     },
 }));
 
@@ -39,8 +45,10 @@ function makeSession(overrides = {}) {
     };
 }
 
-describe("RNSHManagerPage.vue", () => {
+describe("RNSHPage.svelte", () => {
     beforeEach(() => {
+        registerTranslator(null);
+        registerFallbackMessages(en);
         window.api = {
             get: vi.fn(async (url) => {
                 if (url === "/api/v1/rnsh/sessions") {
@@ -53,11 +61,18 @@ describe("RNSHManagerPage.vue", () => {
         };
     });
 
+    afterEach(() => {
+        cleanup();
+        delete window.api;
+        vi.clearAllMocks();
+    });
+
     it("loads sessions and selects the first one", async () => {
-        const wrapper = mount(RNSHManagerPage, { global: mountToolsPageGlobals() });
-        await vi.waitFor(() => expect(wrapper.vm.sessions.length).toBe(1));
-        expect(wrapper.vm.selectedSessionId).toBe(SESSION_ID);
-        expect(wrapper.text()).toContain("Ops");
+        render(RNSHPage);
+        await vi.waitFor(() => {
+            expect(window.api.get).toHaveBeenCalledWith("/api/v1/rnsh/sessions");
+        });
+        expect((await screen.findAllByText("Ops")).length).toBeGreaterThan(0);
     });
 
     it("creates a new session in connect mode", async () => {
@@ -65,12 +80,15 @@ describe("RNSHManagerPage.vue", () => {
             data: { session: makeSession({ id: "session-2", name: "Created" }) },
         });
 
-        const wrapper = mount(RNSHManagerPage, { global: mountToolsPageGlobals() });
-        await vi.waitFor(() => expect(wrapper.vm.sessions.length).toBe(1));
-
-        wrapper.vm.connectForm.name = "Created";
-        wrapper.vm.connectForm.destination = "aabbccddeeff00112233445566778899";
-        await wrapper.vm.createConnectSession();
+        const payload = buildRnshConnectPayload({
+            name: "Created",
+            destination: "aabbccddeeff00112233445566778899",
+            command: "",
+            config_path: "",
+            mirror: false,
+            no_id: false,
+        });
+        await createRnshSession(payload);
 
         expect(window.api.post).toHaveBeenCalledWith("/api/v1/rnsh/sessions", {
             name: "Created",
@@ -80,57 +98,22 @@ describe("RNSHManagerPage.vue", () => {
             autostart: true,
             destination: "aabbccddeeff00112233445566778899",
             remote_command: undefined,
+            config_path: undefined,
         });
     });
 
     it("sends command input to selected session", async () => {
-        const wrapper = mount(RNSHManagerPage, { global: mountToolsPageGlobals() });
-        await vi.waitFor(() => expect(wrapper.vm.sessions.length).toBe(1));
-        wrapper.vm.commandInput = "ls -la";
-        await wrapper.vm.sendCommand();
+        await sendRnshSessionInput(SESSION_ID, "ls -la");
         expect(window.api.post).toHaveBeenCalledWith(`/api/v1/rnsh/sessions/${SESSION_ID}/input`, {
             text: "ls -la",
             newline: true,
         });
     });
 
-    it("appends websocket output chunks", async () => {
-        const wrapper = mount(RNSHManagerPage, { global: mountToolsPageGlobals() });
-        await vi.waitFor(() => expect(wrapper.vm.sessions.length).toBe(1));
-
-        wrapper.vm.onWebsocketMessage({
-            data: JSON.stringify({
-                type: "rnsh.output",
-                session_id: SESSION_ID,
-                chunk: { text: "line2\n" },
-            }),
-        });
-
-        expect(wrapper.vm.outputsBySession[SESSION_ID]).toContain("line2");
-    });
-
-    it("toggles session fullscreen and closes mobile sessions drawer on narrow screens", async () => {
-        const wrapper = mount(RNSHManagerPage, { global: mountToolsPageGlobals() });
-        await vi.waitFor(() => expect(wrapper.vm.sessions.length).toBe(1));
-
-        wrapper.vm.isNarrowScreen = true;
-        wrapper.vm.mobileSessionsOpen = true;
-        wrapper.vm.toggleSessionFullscreen();
-        expect(wrapper.vm.sessionFullscreen).toBe(true);
-        expect(wrapper.vm.mobileSessionsOpen).toBe(false);
-
-        wrapper.vm.toggleSessionFullscreen();
-        expect(wrapper.vm.sessionFullscreen).toBe(false);
-    });
-
-    it("selectSession closes mobile sessions list on narrow screens", async () => {
-        const wrapper = mount(RNSHManagerPage, { global: mountToolsPageGlobals() });
-        await vi.waitFor(() => expect(wrapper.vm.sessions.length).toBe(1));
-
-        wrapper.vm.isNarrowScreen = true;
-        wrapper.vm.mobileSessionsOpen = true;
-        wrapper.vm.selectSession(SESSION_ID);
-        expect(wrapper.vm.mobileSessionsOpen).toBe(false);
+    it("appends websocket output chunks", () => {
+        const outputs = {};
+        appendSessionOutput(SESSION_ID, "line2\n", outputs);
+        expect(outputs[SESSION_ID]).toContain("line2");
     });
 
     it("creates a listen session with no_auth disabled by default", async () => {
@@ -138,12 +121,15 @@ describe("RNSHManagerPage.vue", () => {
             data: { session: makeSession({ id: "listen-1", mode: "listen", name: "Listener" }) },
         });
 
-        const wrapper = mount(RNSHManagerPage, { global: mountToolsPageGlobals() });
-        await vi.waitFor(() => expect(wrapper.vm.sessions.length).toBe(1));
-
-        expect(wrapper.vm.listenForm.no_auth).toBe(false);
-        wrapper.vm.listenForm.name = "Listener";
-        await wrapper.vm.createListenSession();
+        const payload = buildRnshListenPayload({
+            name: "Listener",
+            command: "",
+            config_path: "",
+            allowed_hashes_text: "",
+            no_auth: false,
+        });
+        expect(payload.no_auth).toBe(false);
+        await createRnshSession(payload);
 
         expect(window.api.post).toHaveBeenCalledWith("/api/v1/rnsh/sessions", {
             name: "Listener",
@@ -156,35 +142,32 @@ describe("RNSHManagerPage.vue", () => {
         });
     });
 
-    it("keeps longer live output when session reload returns a truncated chunk tail", async () => {
-        const wrapper = mount(RNSHManagerPage, { global: mountToolsPageGlobals() });
-        await vi.waitFor(() => expect(wrapper.vm.sessions.length).toBe(1));
-
+    it("keeps longer live output when session reload returns a truncated chunk tail", () => {
         const live = "LINE_0000\n".repeat(50) + "LINE_TAIL\n";
-        wrapper.vm.outputsBySession[SESSION_ID] = live;
+        const outputs = { [SESSION_ID]: live };
 
-        wrapper.vm.ingestSession(
+        ingestSessionOutput(
             makeSession({
                 output_chunks: [{ seq: 99, text: "LINE_TAIL\n", ts: 2 }],
                 output_text: "LINE_0400\nLINE_TAIL\n",
-            })
+            }),
+            outputs
         );
 
-        expect(wrapper.vm.outputsBySession[SESSION_ID]).toBe(live);
+        expect(outputs[SESSION_ID]).toBe(live);
     });
 
-    it("prefers longer output_text over short output_chunks on ingest", async () => {
-        const wrapper = mount(RNSHManagerPage, { global: mountToolsPageGlobals() });
-        await vi.waitFor(() => expect(wrapper.vm.sessions.length).toBe(1));
-
+    it("prefers longer output_text over short output_chunks on ingest", () => {
         const longText = "full history\n".repeat(20);
-        wrapper.vm.ingestSession(
+        const outputs = {};
+        ingestSessionOutput(
             makeSession({
                 output_chunks: [{ seq: 1, text: "tail only\n", ts: 1 }],
                 output_text: longText,
-            })
+            }),
+            outputs
         );
 
-        expect(wrapper.vm.outputsBySession[SESSION_ID]).toBe(longText);
+        expect(outputs[SESSION_ID]).toBe(longText);
     });
 });

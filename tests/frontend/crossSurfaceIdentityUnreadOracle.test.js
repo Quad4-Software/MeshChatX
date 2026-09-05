@@ -155,8 +155,8 @@ describe("identity-switch surface contracts", () => {
         expect(src).toMatch(/this\.hubs\s*=\s*\[\]/);
     });
 
-    it("RNSHManagerPage listens for identity-switched and clears session output cache", () => {
-        const src = readFrontend("components/tools/RNSHManagerPage.vue");
+    it("RNSHPage listens for identity-switched and clears session output cache", () => {
+        const src = readFrontend("features/rnsh/RNSHPage.svelte");
         expect(src).toContain('GlobalEmitter.on("identity-switched"');
         expect(src).toMatch(/outputsBySession\s*=\s*\{\}/);
     });

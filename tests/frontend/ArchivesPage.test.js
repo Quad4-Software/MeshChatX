@@ -1,11 +1,21 @@
 // SPDX-License-Identifier: 0BSD
 
-import { mount } from "@vue/test-utils";
+import { render, cleanup, screen } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import ArchivesPage from "@/components/archives/ArchivesPage.vue";
-import { createTestI18n } from "./testI18n.js";
+import ArchivesPage from "@/features/archives/ArchivesPage.svelte";
+import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
+import en from "@/locales/en.json";
+import {
+    downloadTextAsFile,
+    muExportFilename,
+    muExportFilenameDisambiguated,
+} from "@/features/archives/lib/archiveExport.ts";
+import {
+    cardPreviewHtml,
+    renderFullContent,
+} from "@/features/archives/lib/archiveRender.ts";
 
-describe("ArchivesPage.vue", () => {
+describe("ArchivesPage.svelte", () => {
     let createObjectURLSpy;
     let revokeObjectURLSpy;
     let api;
@@ -13,6 +23,8 @@ describe("ArchivesPage.vue", () => {
     beforeEach(() => {
         createObjectURLSpy = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:mock");
         revokeObjectURLSpy = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+        registerTranslator(null);
+        registerFallbackMessages(en);
         api = {
             get: vi.fn().mockResolvedValue({
                 data: {
@@ -27,42 +39,28 @@ describe("ArchivesPage.vue", () => {
     });
 
     afterEach(() => {
+        cleanup();
         createObjectURLSpy.mockRestore();
         revokeObjectURLSpy.mockRestore();
+        delete window.api;
     });
 
-    const mountPage = () =>
-        mount(ArchivesPage, {
-            global: {
-                plugins: [createTestI18n()],
-                mocks: {
-                    $route: { query: {} },
-                    $router: { push: vi.fn() },
-                },
-                stubs: {
-                    MaterialDesignIcon: true,
-                },
-            },
-        });
-
     it("renders translated archives title instead of raw key", async () => {
-        const wrapper = mountPage();
-        await wrapper.vm.$nextTick();
-        expect(wrapper.text()).toContain("Archives");
-        expect(wrapper.text()).not.toContain("nav.archives");
-        expect(wrapper.text()).not.toContain("archives.title");
+        render(ArchivesPage);
+        expect(screen.getByText("Archives")).toBeTruthy();
+        expect(screen.queryByText("nav.archives")).toBeNull();
+        expect(screen.queryByText("archives.title")).toBeNull();
     });
 
     it("muExportFilename uses .mu extension from page path", () => {
-        const wrapper = mountPage();
         expect(
-            wrapper.vm.muExportFilename({
+            muExportFilename({
                 page_path: "/node/page.mu",
                 hash: "abcdef",
             })
         ).toBe("page.mu");
         expect(
-            wrapper.vm.muExportFilename({
+            muExportFilename({
                 page_path: "/readme.txt",
                 hash: "abcdef",
             })
@@ -70,15 +68,14 @@ describe("ArchivesPage.vue", () => {
     });
 
     it("muExportFilenameDisambiguated appends hash prefix", () => {
-        const wrapper = mountPage();
         expect(
-            wrapper.vm.muExportFilenameDisambiguated({
+            muExportFilenameDisambiguated({
                 page_path: "/a.mu",
                 hash: "1234567890ab",
             })
         ).toBe("a_12345678.mu");
         expect(
-            wrapper.vm.muExportFilenameDisambiguated({
+            muExportFilenameDisambiguated({
                 page_path: "/notes.md",
                 hash: "1234567890ab",
             })
@@ -86,27 +83,47 @@ describe("ArchivesPage.vue", () => {
     });
 
     it("renderFullContent renders micron markup for .mu pages", () => {
-        const wrapper = mountPage();
-        const out = wrapper.vm.renderFullContent({
-            page_path: "/page/index.mu",
-            content: ">Hello micron",
-            destination_hash: "aa".repeat(16),
-            hash: "bb".repeat(16),
-            id: 1,
-        });
+        const out = renderFullContent(
+            {
+                page_path: "/page/index.mu",
+                content: ">Hello micron",
+                destination_hash: "aa".repeat(16),
+                hash: "bb".repeat(16),
+                id: 1,
+            },
+            {
+                renderMarkdown: true,
+                renderHtml: true,
+                renderPlaintext: true,
+                nomadDestinationHash: "aa".repeat(16),
+                nomad_micron_wasm_use: false,
+            },
+            false
+        );
         expect(out.toLowerCase()).not.toContain("<script");
         expect(out.length).toBeGreaterThan(0);
     });
 
     it("cardPreviewHtml uses preview content for micron cards", () => {
-        const wrapper = mountPage();
-        const html = wrapper.vm.cardPreviewHtml({
-            id: 9,
-            hash: "abcdef12",
-            page_path: "/page/index.mu",
-            preview: ">Card preview",
-            destination_hash: "aa".repeat(16),
-        });
+        const html = cardPreviewHtml(
+            {
+                id: 9,
+                hash: "abcdef12",
+                page_path: "/page/index.mu",
+                preview: ">Card preview",
+                destination_hash: "aa".repeat(16),
+            },
+            "",
+            {},
+            false,
+            {
+                renderMarkdown: true,
+                renderHtml: true,
+                renderPlaintext: true,
+                nomadDestinationHash: "aa".repeat(16),
+                nomad_micron_wasm_use: false,
+            }
+        );
         expect(html.length).toBeGreaterThan(0);
         expect(html.toLowerCase()).not.toContain("<script");
     });
@@ -114,9 +131,8 @@ describe("ArchivesPage.vue", () => {
     it("downloadTextAsFile creates a blob URL and revokes it after DownloadUtils delay", async () => {
         vi.useFakeTimers();
         try {
-            const wrapper = mountPage();
             const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
-            await wrapper.vm.downloadTextAsFile("hello", "test.mu");
+            await downloadTextAsFile("hello", "test.mu");
             expect(createObjectURLSpy).toHaveBeenCalled();
             expect(clickSpy).toHaveBeenCalled();
             vi.advanceTimersByTime(10000);

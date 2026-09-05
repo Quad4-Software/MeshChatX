@@ -1,0 +1,17 @@
+{
+    "description": "Raw byte budgets for Vite hashed chunks under meshchatx/public/assets. Prefix matches the chunk name before the content hash. Sizes are kilobytes with about 10 percent headroom from a local build baseline.",
+    "unit": "kib",
+    "chunks": [
+        { "prefix": "app-", "maxKiB": 383 },
+        { "prefix": "MessagesPage-", "maxKiB": 291 },
+        { "prefix": "SettingsPage-", "maxKiB": 314 },
+        { "prefix": "CallPage-", "maxKiB": 149 },
+        { "prefix": "shared-async-", "maxKiB": 861 },
+        { "prefix": "vendor-mdi-", "maxKiB": 3018 },
+        { "prefix": "vendor-vue-", "maxKiB": 100 },
+        { "prefix": "vendor-vue-router-", "maxKiB": 99 },
+        { "prefix": "vendor-svelte-", "maxKiB": 33 },
+        { "prefix": "vendor-other-", "maxKiB": 1022 },
+        { "prefix": "vendor-vis-", "maxKiB": 659 }
+    ]
+}
