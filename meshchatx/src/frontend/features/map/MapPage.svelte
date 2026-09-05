@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { onMount, onDestroy, tick } from "svelte";
     import Map from "ol/Map";
     import View from "ol/View";
     import { fromLonLat, toLonLat } from "ol/proj";
@@ -9,9 +9,19 @@
     import VectorSource from "ol/source/Vector";
     import TileLayer from "ol/layer/Tile";
     import { Draw, Modify, Snap } from "ol/interaction";
+    import DragBox from "ol/interaction/DragBox";
     import GeoJSON from "ol/format/GeoJSON";
+    import LineString from "ol/geom/LineString";
+    import Feature from "ol/Feature";
 
     import MapHeaderBar from "./components/MapHeaderBar.svelte";
+    import MapToolbarControls from "./components/MapToolbarControls.svelte";
+    import MapPortal from "./components/MapPortal.svelte";
+    import MapTileBanner from "./components/MapTileBanner.svelte";
+    import MapOnboardingTooltip from "./components/MapOnboardingTooltip.svelte";
+    import MapExportInstructions from "./components/MapExportInstructions.svelte";
+    import MapExportConfigPanel from "./components/MapExportConfigPanel.svelte";
+    import MapExportProgressPanel from "./components/MapExportProgressPanel.svelte";
     import MapDrawingToolbar from "./components/MapDrawingToolbar.svelte";
     import MapBearingInstructions from "./components/MapBearingInstructions.svelte";
     import MapSearchBar from "./components/MapSearchBar.svelte";
@@ -33,6 +43,7 @@
     import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
     import { mapViewStateKey } from "../../js/mapStateKeys.js";
     import { formatCoordinate, ensureGeoCoordsReady, parseCoordinateQuery } from "../../js/mapGeoCoords.js";
+    import { computeSegmentMetrics, buildBearingLiveTooltipHtml } from "../../js/mapGeodesy.js";
 
     import {
         createDrawingStyle,
@@ -41,6 +52,18 @@
         createOfflineMBTilesSource,
     } from "./lib/mapOpenLayers.js";
     import { resolveMyLocationWgs84, calculateAzimuth } from "./lib/mapActions.js";
+    import { MapMeasureTooltipManager } from "./lib/mapMeasureTooltips.js";
+    import {
+        exportDrawFeaturesGeoJson,
+        exportDrawFeaturesKml,
+        exportDrawFeaturesKmz,
+        exportDrawFeaturesGpx,
+        downloadTextFile,
+        downloadBlobFile,
+        exportFilename,
+    } from "./lib/mapVectorExchange.js";
+    import { MAX_EXPORT_TILES, EXPORT_REGION_PRESETS } from "./lib/constants.js";
+    import { lonToTile, latToTile } from "./lib/mapTileUtils.js";
     import {
         fetchTelemetryMarkers,
         fetchPeers,
@@ -54,8 +77,10 @@
         saveDrawing,
         deleteDrawing,
         startExport,
+        cancelExport,
         getExportStatus,
         sendMapPing,
+        uploadMbtilesFile,
     } from "./lib/mapService.js";
     import {
         createPeerFeatures,
@@ -87,7 +112,7 @@
     let map = $state<Map | null>(null);
     let isMapLoaded = $state(false);
 
-    let offlineEnabled = $state(false);
+    let offlineEnabled = $state(true);
     let cachingEnabled = $state(true);
     let discoveredVisible = $state(false);
     let clusterMarkersEnabled = $state(false);
@@ -116,14 +141,33 @@
     let isMeasuring = $state(false);
     let isBearingMode = $state(false);
     let bearingFromGps = $state(false);
+    let bearingGpsMapCoord = $state<number[] | null>(null);
     let bearingFirstMapCoord = $state<number[] | null>(null);
+    let bearingPreviewFeature = $state<any>(null);
     let isExportMode = $state(false);
+    let isExporting = $state(false);
+    let isUploading = $state(false);
     let exportMinZoom = $state(0);
     let exportMaxZoom = $state(15);
     let exportBbox = $state<number[] | null>(null);
     let exportStatus = $state<MapExportStatus | null>(null);
     let activeExportId = $state<string | number | null>(null);
     let exportPollTimer: ReturnType<typeof setInterval> | null = null;
+    let tileConnectivityBannerTimer: ReturnType<typeof setTimeout> | null = null;
+    let tileErrorCount = $state(0);
+    let showTileConnectivityBanner = $state(false);
+    let showOnboardingTooltip = $state(false);
+    let onboardingTooltipStyle = $state("");
+    let onboardingArrowPath = $state<string | null>(null);
+    let tabToolbarHostReady = $state(false);
+    let isWideViewport = $state(false);
+    let mbtilesFileInput = $state<HTMLInputElement | null>(null);
+
+    let dragBox = $state<DragBox | null>(null);
+    let measureTooltipManager: MapMeasureTooltipManager | null = null;
+    let measureSketch = $state<any>(null);
+    let tabToolbarMq: MediaQueryList | null = null;
+    let tabToolbarMqListener: ((event: MediaQueryListEvent) => void) | null = null;
 
     let searchQuery = $state("");
     let searchResults = $state<SearchResult[]>([]);
@@ -178,6 +222,21 @@
     let hasVectorDrawFeatures = $derived(Boolean(drawSource && drawSource.getFeatures().length > 0));
     let trackedPeersList = $derived(trackedHashes.map((h) => ({ destination_hash: h })));
     let contextMenuCoordRows = $derived(getContextMenuCoordRows(contextMenuMapCoord));
+    let useTabToolbar = $derived(embedded && _isActiveTab && tabToolbarHostReady && isWideViewport);
+    let estimatedTiles = $derived.by(() => {
+        if (!exportBbox) return 0;
+        const [minLon, minLat, maxLon, maxLat] = exportBbox;
+        let total = 0;
+        for (let z = exportMinZoom; z <= exportMaxZoom; z++) {
+            const x1 = lonToTile(minLon, z);
+            const x2 = lonToTile(maxLon, z);
+            const y1 = latToTile(maxLat, z);
+            const y2 = latToTile(minLat, z);
+            total += (Math.abs(x2 - x1) + 1) * (Math.abs(y2 - y1) + 1);
+        }
+        return total;
+    });
+    let exportTileLimitExceeded = $derived(estimatedTiles > MAX_EXPORT_TILES);
 
     function getStorageKey(): string {
         const idHash = (GlobalState.config as any)?.identity_hash || null;
@@ -241,7 +300,7 @@
         tileLayer = new TileLayer({
             source: offlineEnabled
                 ? createOfflineMBTilesSource()
-                : createOnlineTileSource(tileServerUrl, cachingEnabled),
+                : createOnlineTileSource(tileServerUrl, cachingEnabled, onOnlineTileLoadFailure),
             zIndex: 1,
         });
 
@@ -283,6 +342,21 @@
         map.addInteraction(snapInteraction);
 
         isMapLoaded = true;
+        measureTooltipManager = new MapMeasureTooltipManager(map);
+
+        dragBox = new DragBox({
+            condition: () => isExportMode,
+        });
+        dragBox.on("boxend", () => {
+            if (!dragBox || !map) return;
+            const extent = dragBox.getGeometry().getExtent();
+            const min = toLonLat([extent[0], extent[1]]);
+            const max = toLonLat([extent[2], extent[3]]);
+            exportBbox = [min[0], min[1], max[0], max[1]];
+            exportMinZoom = Math.floor(map.getView().getZoom() || 0);
+            exportMaxZoom = Math.min(exportMinZoom + 3, 18);
+        });
+        map.addInteraction(dragBox);
     }
 
     function handleMapClick(evt: any) {
@@ -338,19 +412,29 @@
     }
 
     function startDraw(type: string) {
-        if (!map || !drawSource) return;
+        if (!map || !drawSource || !measureTooltipManager) return;
         stopDrawing();
+        stopMeasuring();
         drawType = type;
         const olType = type === "Text" ? "Point" : type;
         drawInteraction = new Draw({
             source: drawSource,
             type: olType as any,
         });
+        drawInteraction.on("drawstart", (evt: any) => {
+            measureSketch = evt.feature;
+            if (type === "LineString" || type === "Polygon" || type === "Circle") {
+                measureTooltipManager?.attachDrawMeasureListener(evt.feature);
+            }
+        });
         drawInteraction.on("drawend", (e: any) => {
             if (type === "Text") {
                 const text = prompt(t("map.text_prompt")) || "";
                 e.feature.set("text", text);
             }
+            measureTooltipManager?.cleanupDrawListener();
+            measureTooltipManager?.cleanupMeasureTooltip();
+            measureSketch = null;
             stopDrawing();
         });
         map.addInteraction(drawInteraction);
@@ -361,46 +445,133 @@
             map.removeInteraction(drawInteraction);
             drawInteraction = null;
         }
+        measureTooltipManager?.cleanupDrawListener();
+        measureSketch = null;
         drawType = null;
     }
 
+    function stopMeasuring() {
+        isMeasuring = false;
+        measureSource?.clear();
+        measureTooltipManager?.disablePointerHelp();
+        measureTooltipManager?.cleanupDrawListener();
+        measureTooltipManager?.cleanupMeasureTooltip();
+        if (drawInteraction && map) {
+            map.removeInteraction(drawInteraction);
+            drawInteraction = null;
+        }
+        measureSketch = null;
+    }
+
     function toggleMeasure() {
-        if (!map || !measureSource) return;
+        if (!map || !measureSource || !measureTooltipManager) return;
         if (isMeasuring) {
-            isMeasuring = false;
-            measureSource.clear();
-            stopDrawing();
+            stopMeasuring();
             return;
         }
-        isMeasuring = true;
         stopDrawing();
+        isMeasuring = true;
+        measureTooltipManager.createMeasureTooltip();
+        measureTooltipManager.createHelpTooltip();
+        measureTooltipManager.enablePointerHelp(() => Boolean(measureSketch));
         drawInteraction = new Draw({
             source: measureSource,
             type: "LineString",
             style: createMeasureStyle(),
         });
+        drawInteraction.on("drawstart", (evt: any) => {
+            measureSketch = evt.feature;
+            measureTooltipManager?.attachDrawMeasureListener(evt.feature);
+        });
+        drawInteraction.on("drawend", () => {
+            measureTooltipManager?.finalizeStaticTooltip();
+            measureSketch = null;
+        });
         map.addInteraction(drawInteraction);
     }
 
     function handleBearingClick(coord: number[]) {
+        if (bearingFromGps && bearingGpsMapCoord) {
+            finishBearingSegment(bearingGpsMapCoord, coord);
+            return;
+        }
         if (!bearingFirstMapCoord) {
             bearingFirstMapCoord = coord;
             ToastUtils.info(t("map.bearing_second_click_prompt"));
-        } else {
-            const lonLat1 = toLonLat(bearingFirstMapCoord);
-            const lonLat2 = toLonLat(coord);
-            const az = calculateAzimuth(lonLat1[0], lonLat1[1], lonLat2[0], lonLat2[1]);
-            ToastUtils.success(`Bearing: ${az.deg}° (${az.cardinal})`);
-            bearingFirstMapCoord = null;
-            isBearingMode = false;
+            return;
         }
+        finishBearingSegment(bearingFirstMapCoord, coord);
+    }
+
+    function finishBearingSegment(startMapCoord: number[], endMapCoord: number[]) {
+        if (!map || !drawSource) return;
+        const lonLat1 = toLonLat(startMapCoord);
+        const lonLat2 = toLonLat(endMapCoord);
+        const az = calculateAzimuth(lonLat1[0], lonLat1[1], lonLat2[0], lonLat2[1]);
+        ToastUtils.success(`Bearing: ${az.deg}° (${az.cardinal})`);
+        removeBearingPreview();
+        stopBearingMode();
+    }
+
+    function removeBearingPreview() {
+        if (bearingPreviewFeature && drawSource) {
+            drawSource.removeFeature(bearingPreviewFeature);
+        }
+        bearingPreviewFeature = null;
+    }
+
+    function stopBearingMode() {
+        isBearingMode = false;
+        bearingFromGps = false;
+        bearingGpsMapCoord = null;
+        bearingFirstMapCoord = null;
+        removeBearingPreview();
+        measureTooltipManager?.cleanupDrawListener();
+        measureTooltipManager?.cleanupMeasureTooltip();
+        measureTooltipManager?.disablePointerHelp();
+    }
+
+    async function startBearingFromMyLocation() {
+        if (!map) return;
+        const loc = await resolveMyLocationWgs84({ config: GlobalState.config as any, telemetryList });
+        if (!loc) {
+            ToastUtils.warning(t("map.location_not_determined"));
+            return;
+        }
+        stopDrawing();
+        stopMeasuring();
+        bearingFirstMapCoord = null;
+        removeBearingPreview();
+        isBearingMode = true;
+        bearingFromGps = true;
+        bearingGpsMapCoord = fromLonLat([loc.lon, loc.lat]) as number[];
+        measureTooltipManager?.createHelpTooltip();
+        measureTooltipManager?.createMeasureTooltip();
+        map.getView().animate({ center: bearingGpsMapCoord, zoom: Math.max(currentZoom, 12), duration: 600 });
+    }
+
+    function toggleBearingMode() {
+        if (isBearingMode) {
+            stopBearingMode();
+            return;
+        }
+        stopDrawing();
+        stopMeasuring();
+        bearingFromGps = false;
+        bearingGpsMapCoord = null;
+        bearingFirstMapCoord = null;
+        isBearingMode = true;
+        measureTooltipManager?.createHelpTooltip();
+        measureTooltipManager?.createMeasureTooltip();
     }
 
     async function toggleOffline(enabled: boolean) {
         offlineEnabled = enabled;
         if (tileLayer) {
             tileLayer.setSource(
-                enabled ? createOfflineMBTilesSource() : createOnlineTileSource(tileServerUrl, cachingEnabled)
+                enabled
+                    ? createOfflineMBTilesSource()
+                    : createOnlineTileSource(tileServerUrl, cachingEnabled, onOnlineTileLoadFailure)
             );
         }
         saveState();
@@ -409,7 +580,7 @@
     async function toggleCaching(enabled: boolean) {
         cachingEnabled = enabled;
         if (tileLayer && !offlineEnabled) {
-            tileLayer.setSource(createOnlineTileSource(tileServerUrl, cachingEnabled));
+            tileLayer.setSource(createOnlineTileSource(tileServerUrl, cachingEnabled, onOnlineTileLoadFailure));
         }
         saveState();
     }
@@ -427,12 +598,26 @@
     }
 
     async function toggleDiscovered() {
-        discoveredVisible = !discoveredVisible;
+        if (discoveredVisible) {
+            discoveredVisible = false;
+            discoveredSource?.clear();
+            return;
+        }
         if (!discoveredSource) return;
-        discoveredSource.clear();
-        if (!discoveredVisible) return;
-        const nodes = await fetchDiscoveredNodes();
-        discoveredSource.addFeatures(createDiscoveredFeatures(nodes));
+        try {
+            const nodes = await fetchDiscoveredNodes();
+            const withLoc = nodes.filter((n) => n.latitude != null && n.longitude != null);
+            if (withLoc.length === 0) {
+                ToastUtils.info(t("map.no_nodes_location"));
+                return;
+            }
+            discoveredSource.clear();
+            discoveredSource.addFeatures(createDiscoveredFeatures(withLoc));
+            discoveredVisible = true;
+            ToastUtils.success(`Mapped ${withLoc.length} discovered nodes`);
+        } catch {
+            ToastUtils.error(t("map.failed_fetch_nodes"));
+        }
     }
 
     async function goToMyLocation() {
@@ -499,21 +684,241 @@
         (onupdatetitle || onUpdateTitle)?.(res.display_name?.split(",")?.[0] || "");
     }
 
-    function handleStartExport() {
-        if (!map || !exportBbox) return;
-        startExport({
-            min_zoom: exportMinZoom,
-            max_zoom: exportMaxZoom,
-            bbox: exportBbox,
-        })
-            .then((res: any) => {
-                activeExportId = res?.export_id || res?.data?.export_id;
-                isExportMode = false;
-                if (activeExportId) pollExport();
-            })
-            .catch(() => {
-                ToastUtils.error(t("map.export_failed"));
+    function toggleExportMode() {
+        isExportMode = !isExportMode;
+        if (isExportMode) {
+            stopBearingMode();
+        } else {
+            exportBbox = null;
+        }
+    }
+
+    function cancelExportSelection() {
+        exportBbox = null;
+        isExportMode = false;
+    }
+
+    function applyExportRegionPreset(preset: (typeof EXPORT_REGION_PRESETS)[number]) {
+        exportBbox = preset.bbox.slice();
+        exportMinZoom = preset.minZoom;
+        exportMaxZoom = preset.maxZoom;
+    }
+
+    async function handleStartExport() {
+        if (!map || !exportBbox || exportTileLimitExceeded) return;
+        isExporting = true;
+        try {
+            const res: any = await startExport({
+                min_zoom: exportMinZoom,
+                max_zoom: exportMaxZoom,
+                bbox: exportBbox,
+                name: `Map Export ${new Date().toLocaleString()}`,
             });
+            activeExportId = res?.export_id || res?.data?.export_id;
+            isExportMode = false;
+            exportBbox = null;
+            if (activeExportId) pollExport();
+        } catch (e: any) {
+            ToastUtils.error(e?.response?.data?.error || t("map.export_failed"));
+        } finally {
+            isExporting = false;
+        }
+    }
+
+    async function cancelActiveExport() {
+        if (!activeExportId) {
+            exportStatus = null;
+            return;
+        }
+        try {
+            await cancelExport(activeExportId);
+            exportStatus = null;
+            activeExportId = null;
+            ToastUtils.success(t("map.export_cancelled"));
+        } catch {
+            ToastUtils.error(t("map.failed_cancel_export"));
+        }
+    }
+
+    function onVectorExchangeImport({ features, merge }: { features: any[]; merge: boolean }) {
+        if (!drawSource || !features?.length) {
+            ToastUtils.warning(t("map.vector_import_empty"));
+            return;
+        }
+        if (!merge) {
+            drawSource.clear();
+            selectedFeature = null;
+            drawFeatureInfoPayload = null;
+        }
+        for (const f of features) {
+            if (f.get("type") == null || f.get("type") === "") {
+                f.set("type", "draw");
+            }
+        }
+        drawSource.addFeatures(features);
+        ToastUtils.success(t("map.vector_import_ok", { count: features.length }));
+    }
+
+    function onVectorExchangeImportError() {
+        ToastUtils.error(t("map.vector_import_failed"));
+    }
+
+    function exportVectorGeoJson() {
+        if (!drawSource || !hasVectorDrawFeatures) return;
+        downloadTextFile(exportFilename("geojson"), exportDrawFeaturesGeoJson(drawSource.getFeatures()), "application/geo+json");
+        ToastUtils.success(t("map.vector_export_ok"));
+    }
+
+    function exportVectorKml() {
+        if (!drawSource || !hasVectorDrawFeatures) return;
+        downloadTextFile(exportFilename("kml"), exportDrawFeaturesKml(drawSource.getFeatures()), "application/vnd.google-earth.kml+xml");
+        ToastUtils.success(t("map.vector_export_ok"));
+    }
+
+    async function exportVectorKmz() {
+        if (!drawSource || !hasVectorDrawFeatures) return;
+        try {
+            const blob = await exportDrawFeaturesKmz(drawSource.getFeatures());
+            downloadBlobFile(exportFilename("kmz"), blob, "application/vnd.google-earth.kmz");
+            ToastUtils.success(t("map.vector_export_ok"));
+        } catch {
+            ToastUtils.error(t("map.vector_import_failed"));
+        }
+    }
+
+    function exportVectorGpx() {
+        if (!drawSource || !hasVectorDrawFeatures) return;
+        downloadTextFile(exportFilename("gpx"), exportDrawFeaturesGpx(drawSource.getFeatures()), "application/gpx+xml");
+        ToastUtils.success(t("map.vector_export_ok"));
+    }
+
+    function triggerMbtilesUpload() {
+        mbtilesFileInput?.click();
+    }
+
+    async function onMbtilesFileSelected(event: Event) {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        input.value = "";
+        if (!file) return;
+        if (!file.name.toLowerCase().endsWith(".mbtiles")) {
+            ToastUtils.error(t("map.select_mbtiles_error"));
+            return;
+        }
+        isUploading = true;
+        try {
+            const response: any = await uploadMbtilesFile(file);
+            const metadata = response?.metadata || response?.data?.metadata;
+            hasOfflineMap = true;
+            offlineEnabled = true;
+            await loadMBTiles();
+            if (tileLayer) {
+                tileLayer.setSource(createOfflineMBTilesSource());
+            }
+            ToastUtils.success(t("map.upload_success"));
+            if (metadata?.bounds && map) {
+                const bounds = String(metadata.bounds).split(",").map(parseFloat);
+                if (bounds.length === 4) {
+                    const extent = [...fromLonLat([bounds[0], bounds[1]]), ...fromLonLat([bounds[2], bounds[3]])];
+                    map.getView().fit(extent, { padding: [20, 20, 20, 20] });
+                }
+            }
+        } catch (e: any) {
+            ToastUtils.error(`${t("map.upload_failed")}: ${e?.response?.data?.error || e?.message || ""}`);
+        } finally {
+            isUploading = false;
+        }
+    }
+
+    function dismissTileConnectivityBanner() {
+        showTileConnectivityBanner = false;
+        if (tileConnectivityBannerTimer) {
+            clearTimeout(tileConnectivityBannerTimer);
+            tileConnectivityBannerTimer = null;
+        }
+    }
+
+    function onOnlineTileLoadFailure() {
+        if (offlineEnabled) return;
+        tileErrorCount++;
+        if (tileErrorCount > 10) {
+            tileErrorCount = 0;
+            if (hasOfflineMap) {
+                void toggleOffline(true);
+                ToastUtils.info(t("map.tile_failover_offline"));
+                return;
+            }
+            showTileConnectivityBanner = true;
+            if (tileConnectivityBannerTimer) clearTimeout(tileConnectivityBannerTimer);
+            tileConnectivityBannerTimer = setTimeout(() => {
+                showTileConnectivityBanner = false;
+                tileConnectivityBannerTimer = null;
+            }, 45000);
+        }
+    }
+
+    function retryMapTiles() {
+        tileErrorCount = 0;
+        dismissTileConnectivityBanner();
+        tileLayer?.getSource()?.refresh?.();
+    }
+
+    function checkOnboardingTooltip() {
+        try {
+            const hasSeen = localStorage.getItem("map_onboarding_seen");
+            if (!hasSeen && !offlineEnabled) {
+                showOnboardingTooltip = true;
+            }
+        } catch {
+            // ignore storage errors
+        }
+    }
+
+    function dismissOnboardingTooltip() {
+        showOnboardingTooltip = false;
+        try {
+            localStorage.setItem("map_onboarding_seen", "true");
+        } catch {
+            // ignore storage errors
+        }
+    }
+
+    function refreshTabToolbarHost() {
+        tabToolbarHostReady = Boolean(
+            typeof document !== "undefined" && document.getElementById("map-browser-toolbar-host")
+        );
+    }
+
+    function setupTabToolbarHostWatcher() {
+        if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+            isWideViewport = false;
+            return;
+        }
+        tabToolbarMq = window.matchMedia("(min-width: 768px)");
+        isWideViewport = tabToolbarMq.matches;
+        tabToolbarMqListener = () => {
+            isWideViewport = tabToolbarMq?.matches ?? false;
+            refreshTabToolbarHost();
+        };
+        if (typeof tabToolbarMq.addEventListener === "function") {
+            tabToolbarMq.addEventListener("change", tabToolbarMqListener);
+        } else if (typeof (tabToolbarMq as any).addListener === "function") {
+            (tabToolbarMq as any).addListener(tabToolbarMqListener);
+        }
+        refreshTabToolbarHost();
+    }
+
+    function teardownTabToolbarHostWatcher() {
+        if (tabToolbarMq && tabToolbarMqListener) {
+            if (typeof tabToolbarMq.removeEventListener === "function") {
+                tabToolbarMq.removeEventListener("change", tabToolbarMqListener);
+            } else if (typeof (tabToolbarMq as any).removeListener === "function") {
+                (tabToolbarMq as any).removeListener(tabToolbarMqListener);
+            }
+        }
+        tabToolbarMq = null;
+        tabToolbarMqListener = null;
+        tabToolbarHostReady = false;
     }
 
     function pollExport() {
@@ -535,21 +940,52 @@
     }
 
     onMount(async () => {
+        setupTabToolbarHostWatcher();
         initOpenLayers();
         void ensureGeoCoordsReady();
         await loadSavedState();
         await reloadTelemetry();
         await loadMBTiles();
+        checkOnboardingTooltip();
+        await tick();
+        refreshTabToolbarHost();
+        setTimeout(refreshTabToolbarHost, 100);
 
         telemetryPollTimer = setInterval(() => reloadTelemetry(), 10000);
         onWsEvent("telemetry", reloadTelemetry);
         onWsEvent("announce", reloadTelemetry);
+
+        if (map) {
+            map.on("pointermove", (evt: any) => {
+                if (!isBearingMode || evt.dragging) return;
+                const origin = bearingFromGps ? bearingGpsMapCoord : bearingFirstMapCoord;
+                if (!origin || !drawSource) return;
+                if (!bearingPreviewFeature) {
+                    const f = new Feature({
+                        geometry: new LineString([origin, evt.coordinate]),
+                        type: "draw",
+                        bearingPreview: true,
+                    });
+                    drawSource.addFeature(f);
+                    bearingPreviewFeature = f;
+                } else {
+                    (bearingPreviewFeature.getGeometry() as LineString).setCoordinates([origin, evt.coordinate]);
+                }
+                const ll0 = toLonLat(origin);
+                const ll1 = toLonLat(evt.coordinate);
+                const metrics = computeSegmentMetrics(ll0[0], ll0[1], ll1[0], ll1[1]);
+                measureTooltipManager?.setMeasureHtml(buildBearingLiveTooltipHtml(metrics, (key) => t(key)), evt.coordinate);
+            });
+        }
     });
 
     onDestroy(() => {
+        teardownTabToolbarHostWatcher();
         if (exportPollTimer) clearInterval(exportPollTimer);
         if (telemetryPollTimer) clearInterval(telemetryPollTimer);
         if (saveStateTimer) clearTimeout(saveStateTimer);
+        if (tileConnectivityBannerTimer) clearTimeout(tileConnectivityBannerTimer);
+        measureTooltipManager?.destroy();
         offWsEvent("telemetry", reloadTelemetry);
         offWsEvent("announce", reloadTelemetry);
         if (map) {
@@ -560,16 +996,32 @@
 </script>
 
 <div class="flex flex-col h-full w-full bg-sem-surface overflow-hidden">
-    <MapHeaderBar
-        {embedded}
-        {tabTitle}
-        {discoveredVisible}
-        {offlineEnabled}
-        ontogglediscovered={toggleDiscovered}
-        ontoggleoffline={toggleOffline}
-        ontogglemotools={() => (isMapToolsOpen = !isMapToolsOpen)}
-        ontogglesettings={() => (isSettingsOpen = !isSettingsOpen)}
-    />
+    {#if useTabToolbar}
+        <MapPortal targetId="map-browser-toolbar-host" enabled={useTabToolbar}>
+            <MapToolbarControls
+                {discoveredVisible}
+                {offlineEnabled}
+                compact={true}
+                ontogglediscovered={toggleDiscovered}
+                ontoggleoffline={toggleOffline}
+                ontogglemotools={() => (isMapToolsOpen = !isMapToolsOpen)}
+                ontogglesettings={() => (isSettingsOpen = !isSettingsOpen)}
+            />
+        </MapPortal>
+    {:else}
+        <MapHeaderBar
+            {embedded}
+            {tabTitle}
+            {discoveredVisible}
+            {offlineEnabled}
+            ontogglediscovered={toggleDiscovered}
+            ontoggleoffline={toggleOffline}
+            ontogglemotools={() => (isMapToolsOpen = !isMapToolsOpen)}
+            ontogglesettings={() => (isSettingsOpen = !isSettingsOpen)}
+        />
+    {/if}
+
+    <input bind:this={mbtilesFileInput} type="file" accept=".mbtiles" class="hidden" onchange={onMbtilesFileSelected} />
 
     <div class="relative flex-1 min-h-0 h-full">
         <MapDrawingToolbar
@@ -582,7 +1034,7 @@
             {selectedFeature}
             ontoggledraw={(type) => (drawType === type ? stopDrawing() : startDraw(type))}
             ontogglemeasure={toggleMeasure}
-            ontogglebearing={() => (isBearingMode = !isBearingMode)}
+            ontogglebearing={toggleBearingMode}
             onclear={() => drawSource?.clear()}
             onlocate={goToMyLocation}
             onsave={() => (showSaveDrawingModal = true)}
@@ -593,9 +1045,54 @@
             <MapBearingInstructions
                 fromGpsActive={bearingFromGps}
                 awaitingSecondTap={Boolean(bearingFirstMapCoord)}
-                onusemylocation={goToMyLocation}
+                onusemylocation={startBearingFromMyLocation}
             />
         {/if}
+
+        {#if isExportMode && !exportBbox}
+            <MapExportInstructions presets={EXPORT_REGION_PRESETS} onselectpreset={applyExportRegionPreset} />
+        {/if}
+
+        {#if isExportMode && exportBbox}
+            <MapExportConfigPanel
+                minZoom={exportMinZoom}
+                maxZoom={exportMaxZoom}
+                estimatedTiles={estimatedTiles}
+                exporting={isExporting}
+                tileLimitExceeded={exportTileLimitExceeded}
+                onCancel={cancelExportSelection}
+                onStart={handleStartExport}
+                onUpdateMinZoom={(val) => (exportMinZoom = val)}
+                onUpdateMaxZoom={(val) => (exportMaxZoom = val)}
+            />
+        {/if}
+
+        {#if exportStatus}
+            <MapExportProgressPanel
+                status={exportStatus}
+                exportId={activeExportId}
+                onDismiss={() => (exportStatus = null)}
+                onCancel={cancelActiveExport}
+                onShowOfflineMaps={() => (isMapToolsOpen = true)}
+            />
+        {/if}
+
+        <MapTileBanner
+            show={!offlineEnabled && showTileConnectivityBanner}
+            {hasOfflineMap}
+            onretry={retryMapTiles}
+            onswitchoffline={() => toggleOffline(true)}
+            ondismiss={dismissTileConnectivityBanner}
+            onopensettings={() => (isSettingsOpen = true)}
+        />
+
+        <MapOnboardingTooltip
+            show={showOnboardingTooltip}
+            style={onboardingTooltipStyle}
+            arrowPath={onboardingArrowPath}
+            {isMobileScreen}
+            ondismiss={dismissOnboardingTooltip}
+        />
 
         <div
             class="absolute left-4 right-4 top-[calc(0.5rem+2.75rem+0.5rem)] z-30 sm:top-2 sm:left-auto sm:right-4 sm:w-80 md:max-lg:w-72 lg:w-80"
@@ -615,7 +1112,7 @@
             />
         </div>
 
-        <div bind:this={mapContainer} class="absolute inset-0"></div>
+        <div bind:this={mapContainer} class="absolute inset-0 {isExportMode ? 'cursor-crosshair' : ''}"></div>
 
         {#if selectedMarker}
             <MapMarkerPanel
@@ -675,9 +1172,16 @@
             ondeletembtiles={(name) => deleteMBTiles(name).then(loadMBTiles)}
             onsavembtilesdir={(dir) => saveMBTilesDir(dir)}
             onclearcache={() => TileCache.clear()}
-            onexportregion={() => (isExportMode = true)}
+            onexportregion={toggleExportMode}
             onstartexport={handleStartExport}
             onrestorestarter={() => restoreStarterTiles().then(loadMBTiles)}
+            onuploadmbtiles={triggerMbtilesUpload}
+            onimportfeatures={onVectorExchangeImport}
+            onimporterror={onVectorExchangeImportError}
+            onexportgeojson={exportVectorGeoJson}
+            onexportkml={exportVectorKml}
+            onexportkmz={exportVectorKmz}
+            onexportgpx={exportVectorGpx}
             onclose={() => (isMapToolsOpen = false)}
         />
 
@@ -765,5 +1269,56 @@
         {#if exportStatus && exportStatus.status === "running"}
             <MapLoadingOverlay message={exportStatus.message || t("map.exporting")} />
         {/if}
+
+        {#if isUploading}
+            <MapLoadingOverlay message={t("map.uploading")} />
+        {/if}
     </div>
 </div>
+
+<style>
+    :global(.cursor-crosshair) {
+        cursor: crosshair !important;
+    }
+
+    :global(.ol-tooltip) {
+        position: relative;
+        background: rgba(0, 0, 0, 0.7);
+        border-radius: 4px;
+        color: white;
+        padding: 4px 8px;
+        opacity: 0.7;
+        font-size: 12px;
+        cursor: default;
+        user-select: none;
+        text-align: center;
+        line-height: 1.2;
+    }
+
+    :global(.ol-tooltip-measure) {
+        opacity: 1;
+        font-weight: bold;
+    }
+
+    :global(.ol-tooltip-static) {
+        background-color: #3b82f6;
+        color: white;
+        border: 1px solid white;
+    }
+
+    :global(.ol-tooltip-measure:before),
+    :global(.ol-tooltip-static:before) {
+        border-top: 6px solid rgba(0, 0, 0, 0.7);
+        border-right: 6px solid transparent;
+        border-left: 6px solid transparent;
+        content: "";
+        position: absolute;
+        bottom: -6px;
+        margin-left: -7px;
+        left: 50%;
+    }
+
+    :global(.ol-tooltip-static:before) {
+        border-top-color: #3b82f6;
+    }
+</style>

@@ -5,7 +5,9 @@
 
     interface Preset {
         id: string;
-        [key: string]: unknown;
+        bbox: number[];
+        minZoom: number;
+        maxZoom: number;
     }
 
     interface Props {

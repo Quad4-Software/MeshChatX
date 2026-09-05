@@ -71,7 +71,7 @@
             data-testid="sidebar-account-chip"
             onclick={onAccountChipClick}
         >
-            <div class="flex items-center gap-2 {isCollapsed ? 'justify-center p-2' : 'p-3 pb-1'}">
+            <div class="flex items-center gap-1 {isCollapsed ? 'justify-center p-2' : 'p-3 pb-1'}">
                 <a href="#/settings/profile-icon" class="shrink-0" onclick={(e) => e.stopPropagation()}>
                     <LxmfUserIcon
                         iconName={config.lxmf_user_icon_name}
@@ -81,15 +81,27 @@
                     />
                 </a>
                 {#if !isCollapsed}
+                    <button
+                        type="button"
+                        class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-accent focus-ring-sem transition-colors shrink-0"
+                        title={t("app.show_qr")}
+                        aria-label={t("app.show_qr")}
+                        onclick={(e) => {
+                            e.stopPropagation();
+                            onopenlxmfqr?.();
+                        }}
+                    >
+                        <MaterialDesignIcon iconName="qrcode" class="size-5" />
+                    </button>
                     <div class="min-w-0 flex-1">
                         <div class="truncate text-sm font-semibold text-sem-fg" title={identityLabel}>
                             {identityLabel}
                         </div>
                     </div>
-                    <div class="flex shrink-0 items-center gap-1">
+                    <div class="flex shrink-0 items-center gap-0.5">
                         <button
                             type="button"
-                            class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-accent focus-ring-sem transition-colors"
+                            class="inline-flex size-8 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-accent focus-ring-sem transition-colors"
                             title={t("app.announce_now")}
                             aria-label={t("app.announce_now")}
                             data-testid="sidebar-announce-radio"
@@ -99,18 +111,6 @@
                             }}
                         >
                             <MaterialDesignIcon iconName="radio" class="size-5" />
-                        </button>
-                        <button
-                            type="button"
-                            class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-accent focus-ring-sem transition-colors"
-                            title={t("app.show_qr")}
-                            aria-label={t("app.show_qr")}
-                            onclick={(e) => {
-                                e.stopPropagation();
-                                onopenlxmfqr?.();
-                            }}
-                        >
-                            <MaterialDesignIcon iconName="qrcode" class="size-5" />
                         </button>
                         <MaterialDesignIcon
                             iconName={isExpanded ? "chevron-up" : "chevron-down"}

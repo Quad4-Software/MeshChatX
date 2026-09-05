@@ -26,6 +26,7 @@ export interface RrcHub {
     is_operator?: boolean;
     is_founder?: boolean;
     connected_at?: number;
+    motd?: string | null;
     [key: string]: unknown;
 }
 

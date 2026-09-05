@@ -5,8 +5,22 @@
 </template>
 
 <script>
-import { mount, unmount } from "svelte";
 import AndroidStorageChoicePromptSvelte from "../features/app-shell/components/AndroidStorageChoicePrompt.svelte";
+import { createThinSvelteHost } from "../js/svelteVueHost";
+
+const svelteHost = createThinSvelteHost({
+    component: AndroidStorageChoicePromptSvelte,
+    buildProps(vm) {
+        return {
+            variant: vm.variant,
+            oncompleted: (payload) => vm.$emit("completed", payload),
+            ondismissed: () => {
+                vm.visible = false;
+                vm.$emit("dismissed");
+            },
+        };
+    },
+});
 
 /**
  * Thin Vue host for the Svelte AndroidStorageChoicePrompt
@@ -26,38 +40,9 @@ export default {
             visible: false,
         };
     },
-    mounted() {
-        this.remount();
-    },
-    updated() {
-        this.remount();
-    },
-    beforeUnmount() {
-        this.teardown();
-    },
+    ...svelteHost,
     methods: {
-        teardown() {
-            if (this._svelte) {
-                unmount(this._svelte);
-                this._svelte = null;
-            }
-        },
-        remount() {
-            this.teardown();
-            const root = this.$refs.root;
-            if (!root) return;
-            this._svelte = mount(AndroidStorageChoicePromptSvelte, {
-                target: root,
-                props: {
-                    variant: this.variant,
-                    oncompleted: (payload) => this.$emit("completed", payload),
-                    ondismissed: () => {
-                        this.visible = false;
-                        this.$emit("dismissed");
-                    },
-                },
-            });
-        },
+        ...svelteHost.methods,
         refreshStatus() {
             return this._svelte?.refreshStatus();
         },

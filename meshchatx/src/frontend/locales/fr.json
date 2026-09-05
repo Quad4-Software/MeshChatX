@@ -1468,6 +1468,7 @@
         "fixed_mtu_hint": "Facultatif. Si défini, au moins {min} octets (MTU minimale Reticulum).",
         "fixed_mtu_min": "La MTU fixe doit être d'au moins {min} octets (minimum Reticulum).",
         "restart_required": "Redémarrage nécessaire",
+        "reticulum_offline": "Reticulum Offline",
         "restart_description": "Reticulum MeshChatX doit être redémarré pour que toute modification d'interface prenne effet.",
         "restart_now": "Redémarrer maintenant",
         "failed_enable": "Impossible d'activer l'interface",

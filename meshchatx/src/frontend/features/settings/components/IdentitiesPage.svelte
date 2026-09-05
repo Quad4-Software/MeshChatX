@@ -7,6 +7,7 @@
     import ToastUtils from "../../../js/ToastUtils.js";
     import DialogUtils from "../../../js/DialogUtils.js";
     import GlobalEmitter from "../../../js/GlobalEmitter.js";
+    import GlobalState from "../../../js/GlobalState.js";
     import { t } from "../../../js/i18n.js";
 
     import {
@@ -36,6 +37,11 @@
 
     const currentIdentity = $derived(identities.find((i) => i.is_current) || null);
     const otherIdentities = $derived(identities.filter((i) => !i.is_current));
+    const identityIconStyle = $derived.by(() => {
+        const cfg = GlobalState.config as { message_icon_size?: number } | null | undefined;
+        const size = Number(cfg?.message_icon_size) || 28;
+        return { width: `${size}px`, height: `${size}px` };
+    });
 
     function onIdentitySwitchAborted() {
         isCreating = false;
@@ -305,12 +311,13 @@
                         {t("identities.active_identity")}
                     </div>
                     <div class="flex items-center gap-3 sm:gap-4">
-                        <div class="size-10 sm:size-12 shrink-0">
+                        <div class="shrink-0" style="width: {identityIconStyle.width}; height: {identityIconStyle.height}">
                             <LxmfUserIcon
                                 iconName={currentIdentity.icon_name}
                                 iconForegroundColour={currentIdentity.icon_foreground_colour}
                                 iconBackgroundColour={currentIdentity.icon_background_colour}
                                 iconClass="w-full h-full"
+                                iconStyle={identityIconStyle}
                             />
                         </div>
                         <div class="min-w-0 flex-1">
@@ -403,12 +410,13 @@
                                 class="identity-row group py-3 px-1 transition-colors hover:bg-gray-50/80 dark:hover:bg-zinc-900/70"
                             >
                                 <div class="flex items-center gap-3">
-                                    <div class="size-10 sm:size-12 shrink-0">
+                                    <div class="shrink-0" style="width: {identityIconStyle.width}; height: {identityIconStyle.height}">
                                         <LxmfUserIcon
                                             iconName={identity.icon_name}
                                             iconForegroundColour={identity.icon_foreground_colour}
                                             iconBackgroundColour={identity.icon_background_colour}
                                             iconClass="w-full h-full"
+                                            iconStyle={identityIconStyle}
                                         />
                                     </div>
                                     <div class="min-w-0 flex-1">

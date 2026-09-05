@@ -5,8 +5,27 @@
 </template>
 
 <script>
-import { mount, unmount } from "svelte";
 import AppSidebarClassicFooterSvelte from "../../features/app-shell/components/AppSidebarClassicFooter.svelte";
+import { createThinSvelteHost } from "../../js/svelteVueHost";
+
+const svelteHost = createThinSvelteHost({
+    component: AppSidebarClassicFooterSvelte,
+    buildProps(vm) {
+        return {
+            config: vm.config,
+            displayName: vm.displayName,
+            identityLabel: vm.identityLabel,
+            lastAnnouncedLabel: vm.lastAnnouncedLabel,
+            isCollapsed: vm.isCollapsed,
+            onupdatedisplayname: (val) => vm.$emit("update:displayName", val),
+            onsaveidentity: () => vm.$emit("save-identity"),
+            onsendannounce: () => vm.$emit("send-announce"),
+            onannounceintervalchange: (val) => vm.$emit("announce-interval-change", val),
+            oncopyvalue: (val, label) => vm.$emit("copy-value", val, label),
+            onopenlxmfqr: () => vm.$emit("open-lxmf-qr"),
+        };
+    },
+});
 
 /**
  * Thin Vue host for the Svelte AppSidebarClassicFooter
@@ -43,43 +62,6 @@ export default {
         "copy-value",
         "open-lxmf-qr",
     ],
-    mounted() {
-        this.remount();
-    },
-    updated() {
-        this.remount();
-    },
-    beforeUnmount() {
-        this.teardown();
-    },
-    methods: {
-        teardown() {
-            if (this._svelte) {
-                unmount(this._svelte);
-                this._svelte = null;
-            }
-        },
-        remount() {
-            this.teardown();
-            const root = this.$refs.root;
-            if (!root) return;
-            this._svelte = mount(AppSidebarClassicFooterSvelte, {
-                target: root,
-                props: {
-                    config: this.config,
-                    displayName: this.displayName,
-                    identityLabel: this.identityLabel,
-                    lastAnnouncedLabel: this.lastAnnouncedLabel,
-                    isCollapsed: this.isCollapsed,
-                    onupdatedisplayname: (val) => this.$emit("update:displayName", val),
-                    onsaveidentity: () => this.$emit("save-identity"),
-                    onsendannounce: () => this.$emit("send-announce"),
-                    onannounceintervalchange: (val) => this.$emit("announce-interval-change", val),
-                    oncopyvalue: (val, label) => this.$emit("copy-value", val, label),
-                    onopenlxmfqr: () => this.$emit("open-lxmf-qr"),
-                },
-            });
-        },
-    },
+    ...svelteHost,
 };
 </script>

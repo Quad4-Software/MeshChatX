@@ -140,8 +140,8 @@ export function filterRelayMembers(members, query) {
         return members || [];
     }
     return members.filter((m) => {
-        const name = (m?.name || "").toLowerCase();
-        const hash = (m?.hash || "").toLowerCase();
+        const name = String(m?.name || m?.nickname || "").toLowerCase();
+        const hash = String(m?.hash || m?.identity_hash || "").toLowerCase();
         return name.includes(q) || hash.includes(q);
     });
 }

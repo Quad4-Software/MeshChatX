@@ -31,11 +31,17 @@ export async function fetchPeers(): Promise<Record<string, any>> {
 
 export async function fetchDiscoveredNodes(): Promise<any[]> {
     try {
-        const response: any = await window.api.get("/api/v1/interfaces/discovered");
-        return response?.discovered_interfaces || response?.data?.discovered_interfaces || [];
+        const response: any = await window.api.get("/api/v1/reticulum/discovered-interfaces");
+        return response?.interfaces || response?.data?.interfaces || [];
     } catch {
         return [];
     }
+}
+
+export async function uploadMbtilesFile(file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append("file", file, file.name);
+    return window.api.post("/api/v1/map/offline", formData);
 }
 
 export async function loadMBTilesList(): Promise<MBTilesEntry[]> {

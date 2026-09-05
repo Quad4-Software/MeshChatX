@@ -80,6 +80,7 @@
     import { getEffectiveMicronWasmReleaseLabel } from "../../../js/micronWasmVersion.js";
     import { setLocale } from "../../../js/localeLoader.js";
 
+    import { copyToClipboard } from "../lib/identityService.js";
     import {
         createDefaultConfig,
         createDefaultReticulumInstance,
@@ -185,7 +186,7 @@
 
     async function loadServerSecurity() {
         try {
-            const response = await window.api.get("/api/v1/server/security-info");
+            const response = await window.api.get("/api/v1/server/security");
             serverSecurity = { ...serverSecurity, ...response.data };
         } catch (e) {
             console.error("Failed to load server security info", e);
@@ -423,6 +424,18 @@
     }
 
     let searchInputEl: HTMLInputElement | undefined = $state();
+    let displayNameSaveTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    function onDisplayNameInput() {
+        if (displayNameSaveTimeout) clearTimeout(displayNameSaveTimeout);
+        displayNameSaveTimeout = setTimeout(() => {
+            void updateConfigField("display_name", config.display_name);
+        }, 600);
+    }
+
+    async function copyConfigValue(value?: string) {
+        await copyToClipboard(value);
+    }
 
     function onKeydown(e: KeyboardEvent) {
         if (
@@ -456,6 +469,7 @@
             window.removeEventListener("keydown", onKeydown);
             GlobalEmitter.off("identity-switched", loadConfig);
             GlobalEmitter.off("identity-switched-apply", loadConfig);
+            if (displayNameSaveTimeout) clearTimeout(displayNameSaveTimeout);
         };
     });
 </script>
@@ -465,6 +479,78 @@
         class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
     >
         <div class="space-y-6 w-full max-w-5xl mx-auto min-w-0">
+            <div class="settings-section settings-section--hero border-b border-sem-border pb-6">
+                <div class="flex flex-col lg:flex-row lg:items-center gap-4">
+                    <div class="flex-1 space-y-1">
+                        <div class="text-xs uppercase tracking-wide text-sem-fg-muted">
+                            {t("app.profile")}
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                            <div class="flex-1 min-w-0">
+                                <input
+                                    bind:value={config.display_name}
+                                    type="text"
+                                    placeholder={t("app.display_name_placeholder")}
+                                    class="w-full rounded-xl border border-sem-border bg-sem-surface px-3 py-2 text-base font-semibold text-sem-fg focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border outline-hidden transition"
+                                    oninput={onDisplayNameInput}
+                                />
+                            </div>
+                            <div class="text-sm text-sem-fg-muted whitespace-nowrap">
+                                {t("app.manage_identity")}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mt-4 text-sm text-sem-fg-muted">
+                    <div class="border border-sem-border py-3 px-3 sm:rounded-xl sm:bg-sem-surface-muted/40">
+                        <div class="text-xs uppercase tracking-wide">{t("app.theme")}</div>
+                        <div class="font-semibold text-sem-fg capitalize">
+                            {t("app.theme_mode", { mode: config.theme })}
+                        </div>
+                    </div>
+                    <div class="border border-sem-border py-3 px-3 sm:rounded-xl sm:bg-sem-surface-muted/40">
+                        <div class="text-xs uppercase tracking-wide">{t("app.transport")}</div>
+                        <div class="font-semibold text-sem-fg">
+                            {config.is_transport_enabled ? t("app.enabled") : t("app.disabled")}
+                        </div>
+                    </div>
+                    <div class="border border-sem-border py-3 px-3 sm:rounded-xl sm:bg-sem-surface-muted/40">
+                        <div class="text-xs uppercase tracking-wide">{t("app.propagation")}</div>
+                        <div class="font-semibold text-sem-fg">
+                            {config.lxmf_local_propagation_node_enabled
+                                ? t("app.local_node_running")
+                                : t("app.client_only")}
+                        </div>
+                    </div>
+                </div>
+                <div class="grid gap-3 mt-4 text-sm text-sem-fg sm:grid-cols-2">
+                    <div class="address-card">
+                        <div class="address-card__label">{t("app.identity_hash")}</div>
+                        <div class="address-card__value monospace-field">{config.identity_hash}</div>
+                        <button
+                            type="button"
+                            class="address-card__action cursor-pointer"
+                            onclick={() => copyConfigValue(config.identity_hash)}
+                        >
+                            <MaterialDesignIcon iconName="content-copy" class="w-4 h-4" />
+                            {t("app.copy")}
+                        </button>
+                    </div>
+                    <div class="address-card">
+                        <div class="address-card__label">{t("app.lxmf_address")}</div>
+                        <div class="address-card__value monospace-field">{config.lxmf_address_hash}</div>
+                        <button
+                            type="button"
+                            class="address-card__action cursor-pointer"
+                            onclick={() => copyConfigValue(config.lxmf_address_hash)}
+                        >
+                            <MaterialDesignIcon iconName="content-copy" class="w-4 h-4" />
+                            {t("app.copy")}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Header & Search -->
             <div
                 class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sem-border pb-4"
@@ -805,5 +891,63 @@
     }
     .settings-panel__content :global(.settings-section:last-child) {
         border-bottom-width: 0;
+    }
+    :global(.setting-toggle) {
+        position: relative;
+        display: flex;
+        flex-direction: row-reverse;
+        align-items: flex-start;
+        gap: 0.75rem;
+        border-radius: 1rem;
+        border: 1px solid var(--mc-border);
+        background-color: var(--mc-surface);
+        padding: 0.75rem;
+    }
+    :global(.setting-toggle > label) {
+        flex-shrink: 0;
+        align-self: center;
+    }
+    :global(.setting-toggle .sr-only) {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        white-space: nowrap;
+        border-width: 0;
+    }
+    :global(.setting-toggle__label) {
+        flex: 1 1 0%;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+    }
+    :global(.setting-toggle__title) {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        font-weight: 600;
+        color: var(--mc-text);
+        overflow-wrap: anywhere;
+        line-height: 1.375;
+    }
+    :global(.setting-toggle__description) {
+        font-size: 0.75rem;
+        line-height: 1.25rem;
+        color: var(--mc-text-muted);
+        overflow-wrap: anywhere;
+        line-height: 1.375;
+    }
+    @media (min-width: 640px) {
+        :global(.setting-toggle__description) {
+            font-size: 0.875rem;
+        }
+    }
+    :global(.setting-toggle__hint) {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: var(--mc-text-muted);
+        overflow-wrap: anywhere;
     }
 </style>

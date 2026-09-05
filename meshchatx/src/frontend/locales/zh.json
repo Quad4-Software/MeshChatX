@@ -1468,6 +1468,7 @@
         "fixed_mtu_hint": "可选。若设置，至少 {min} 字节（Reticulum 最小 MTU）。",
         "fixed_mtu_min": "固定 MTU 至少为 {min} 字节（Reticulum 最小值）。",
         "restart_required": "需要重新启动",
+        "reticulum_offline": "Reticulum Offline",
         "restart_description": "必须重新启动 Reticulum MeshChatX 才能使任何接口更改生效。",
         "restart_now": "立即重新启动",
         "failed_enable": "无法启用接口",
