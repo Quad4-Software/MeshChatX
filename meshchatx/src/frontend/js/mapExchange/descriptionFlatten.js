@@ -85,9 +85,7 @@ function dropScriptAndStyle(html) {
         }
         return doc.body ? doc.body.innerHTML : s;
     }
-    return s
-        .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "")
-        .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, "");
+    return s.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "").replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, "");
 }
 
 /**

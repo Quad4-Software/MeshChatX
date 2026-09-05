@@ -15,11 +15,7 @@
                     <MaterialDesignIcon icon-name="magnify" class="size-5 text-sem-fg-muted" />
                 </div>
             </div>
-            <button
-                type="button"
-                class="primary-chip rounded-lg! focus-ring-sem"
-                @click="$emit('add')"
-            >
+            <button type="button" class="primary-chip rounded-lg! focus-ring-sem" @click="$emit('add')">
                 <MaterialDesignIcon icon-name="plus" class="size-5" />
                 {{ $t("common.add") }}
             </button>
