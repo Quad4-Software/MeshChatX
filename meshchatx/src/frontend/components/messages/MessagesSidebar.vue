@@ -262,7 +262,7 @@
                 <!-- search + filters -->
                 <div
                     v-if="conversations.length > 0 || isFilterActive"
-                    class="p-1 border-b border-gray-300 dark:border-zinc-700 space-y-1.5"
+                    class="p-1 border-b border-sem-border space-y-1.5"
                 >
                     <div class="flex gap-2">
                         <input
@@ -372,7 +372,16 @@
 
                 <!-- conversations -->
                 <div class="flex h-full min-h-0">
-                    <LoadingState v-if="isLoading" class="w-full" :message="$t('messages.loading_conversations')" />
+                    <div v-if="isLoading" class="w-full p-3 space-y-3">
+                        <div v-for="n in 6" :key="'conv-skel-' + n" class="flex items-center gap-3">
+                            <Skeleton variant="avatar" />
+                            <div class="flex-1 space-y-2 min-w-0">
+                                <Skeleton variant="line" root-class="w-2/3" />
+                                <Skeleton variant="line" root-class="w-1/2 h-2" />
+                            </div>
+                        </div>
+                        <LoadingState :message="$t('messages.loading_conversations')" root-class="py-4" />
+                    </div>
                     <div v-else-if="displayedConversations.length > 0" class="w-full h-full min-h-0">
                         <SidebarVirtualList
                             v-if="displayedConversations.length >= MIN_VIRTUAL_SIDEBAR_ITEMS"
@@ -984,6 +993,7 @@ import Utils from "../../js/Utils";
 import DialogUtils from "../../js/DialogUtils";
 import EmptyState from "../EmptyState.vue";
 import LoadingState from "../LoadingState.vue";
+import Skeleton from "../Skeleton.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
@@ -1004,6 +1014,7 @@ export default {
     components: {
         EmptyState,
         LoadingState,
+        Skeleton,
         MaterialDesignIcon,
         LxmfUserIcon,
         SidebarVirtualList,
@@ -1637,9 +1648,9 @@ export default {
         filterChipClasses(isActive) {
             const base = "px-2 py-0.5 rounded-full text-xs font-medium transition-colors";
             if (isActive) {
-                return `${base} bg-blue-600 text-white dark:bg-blue-500`;
+                return `${base} bg-sem-action-primary text-white`;
             }
-            return `${base} bg-gray-100 text-gray-700 dark:bg-zinc-800 text-sem-fg`;
+            return `${base} bg-sem-surface-muted text-sem-fg`;
         },
         async copyConversationHash(hash) {
             if (!hash) {

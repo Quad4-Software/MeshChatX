@@ -9,8 +9,8 @@
                 class="inline-flex items-center justify-center rounded-xl p-2.5 min-h-[44px] min-w-[44px] text-white transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 touch-manipulation select-none"
                 :class="[
                     canSendMessage || canOpenSendMenu
-                        ? 'bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus-visible:outline-blue-500'
-                        : 'bg-gray-400 dark:bg-zinc-500 focus-visible:outline-gray-500 cursor-not-allowed',
+                        ? 'bg-sem-action-primary hover:bg-sem-action-primary-hover focus-visible:outline-sem-focus press-feedback'
+                        : 'bg-sem-fg-muted/40 focus-visible:outline-sem-fg-muted cursor-not-allowed',
                 ]"
                 :title="compactTitle"
                 @pointerdown="onCompactPointerDown"
@@ -43,8 +43,8 @@
                 class="inline-flex items-center gap-2 rounded-l-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2"
                 :class="[
                     canSendMessage
-                        ? 'bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus-visible:outline-blue-500'
-                        : 'bg-gray-400 dark:bg-zinc-500 focus-visible:outline-gray-500 cursor-not-allowed',
+                        ? 'bg-sem-action-primary hover:bg-sem-action-primary-hover focus-visible:outline-sem-focus press-feedback'
+                        : 'bg-sem-fg-muted/40 focus-visible:outline-sem-fg-muted cursor-not-allowed',
                 ]"
                 :title="isSendingMessage ? sendingTooltip : ''"
                 @click="send"
@@ -78,8 +78,8 @@
                     class="border-l relative inline-flex items-center justify-center rounded-r-xl px-2.5 h-full text-white transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2"
                     :class="[
                         canSendMessage || canOpenSendMenu
-                            ? 'bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus-visible:outline-blue-500 border-blue-700 dark:border-blue-800'
-                            : 'bg-gray-400 dark:bg-zinc-500 focus-visible:outline-gray-500 border-gray-500 dark:border-zinc-600 cursor-not-allowed',
+                            ? 'bg-sem-action-primary hover:bg-sem-action-primary-hover focus-visible:outline-sem-focus border-sem-action-primary-hover press-feedback'
+                            : 'bg-sem-fg-muted/40 focus-visible:outline-sem-fg-muted border-sem-border cursor-not-allowed',
                     ]"
                     @click="showMenu"
                 >

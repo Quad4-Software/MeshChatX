@@ -77,6 +77,37 @@
   opacity: 0;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .route-view-fade-enter-active,
+  .route-view-fade-leave-active {
+    transition: none;
+  }
+
+  .list-item-fade-enter-active,
+  .list-item-fade-leave-active {
+    transition: none;
+  }
+}
+
+.list-item-fade-enter-active,
+.list-item-fade-leave-active {
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.list-item-fade-enter-from,
+.list-item-fade-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.focus-ring-sem {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sem-focus focus-visible:ring-offset-2 focus-visible:ring-offset-sem-canvas;
+}
+
+.press-feedback {
+  @apply active:scale-95 motion-reduce:transform-none;
+}
+
 * {
     scrollbar-width: thin;
     scrollbar-color: var(--mc-scrollbar-thumb) var(--mc-scrollbar-track);
@@ -158,6 +189,19 @@ select option {
 }
 .primary-chip:active {
     @apply scale-95! translate-y-0!;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .primary-chip:hover,
+    .secondary-chip:hover,
+    .danger-chip:hover {
+        transform: none !important;
+    }
+    .primary-chip:active,
+    .secondary-chip:active,
+    .danger-chip:active {
+        transform: none !important;
+    }
 }
 
 .secondary-chip {

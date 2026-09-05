@@ -2,8 +2,11 @@
 
 <template>
     <div class="flex flex-col items-center justify-center px-4 py-10 text-center" :class="rootClass">
-        <MaterialDesignIcon icon-name="loading" class="size-8 animate-spin text-blue-500 dark:text-blue-400" />
-        <p v-if="message" class="mt-3 text-sm text-gray-600 dark:text-gray-400">{{ message }}</p>
+        <MaterialDesignIcon
+            icon-name="loading"
+            class="size-8 animate-spin text-sem-accent motion-reduce:animate-none"
+        />
+        <p v-if="message" class="mt-3 text-sm text-sem-fg-muted">{{ message }}</p>
     </div>
 </template>
 

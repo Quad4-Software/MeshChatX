@@ -98,7 +98,7 @@
                             spellcheck="false"
                             :aria-label="$t('settings.search_label')"
                             :class="[
-                                'w-full bg-sem-surface border border-sem-border rounded-2xl py-3 pl-12 text-sm focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-hidden transition-all shadow-xs',
+                                'w-full bg-sem-surface border border-sem-border rounded-2xl py-3 pl-12 text-sm focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border outline-hidden transition-all shadow-xs',
                                 settingsSearchActive ? 'pr-12' : 'pr-4',
                             ]"
                             :placeholder="$t('app.search_settings')"
@@ -126,27 +126,23 @@
                 </div>
 
                 <!-- no results -->
-                <div
+                <EmptyState
                     v-if="settingsSearchActive && !hasSearchResults"
-                    class="flex flex-col items-center justify-center py-12 text-center"
+                    icon="magnify-close"
+                    :title="$t('settings.search_no_results')"
+                    :description="$t('settings.search_no_match', { query: settingsSearchDisplay })"
+                    root-class="py-12"
                 >
-                    <div class="p-4 bg-sem-surface-muted/50 rounded-full mb-4 border border-sem-border">
-                        <MaterialDesignIcon icon-name="magnify-close" class="size-8 text-sem-fg-muted" />
-                    </div>
-                    <h3 class="text-lg font-semibold text-sem-fg">
-                        {{ $t("settings.search_no_results") }}
-                    </h3>
-                    <p class="text-sem-fg-muted">
-                        {{ $t("settings.search_no_match", { query: settingsSearchDisplay }) }}
-                    </p>
-                    <button
-                        type="button"
-                        class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition font-semibold text-sm"
-                        @click="clearSettingsSearch"
-                    >
-                        {{ $t("settings.search_clear") }}
-                    </button>
-                </div>
+                    <template #action>
+                        <button
+                            type="button"
+                            class="primary-chip focus-ring-sem"
+                            @click="clearSettingsSearch"
+                        >
+                            {{ $t("settings.search_clear") }}
+                        </button>
+                    </template>
+                </EmptyState>
 
                 <!-- settings panel -->
                 <div v-show="hasSearchResults" class="settings-panel">
@@ -2960,6 +2956,7 @@ import { importMessagesFromFile } from "../../js/messageImport";
 import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import EmptyState from "../EmptyState.vue";
 import Toggle from "../forms/Toggle.vue";
 import ManagementIdentityPicker from "../tools/ManagementIdentityPicker.vue";
 import ShortcutRecorder from "./ShortcutRecorder.vue";
@@ -3042,6 +3039,7 @@ export default {
     name: "SettingsPage",
     components: {
         MaterialDesignIcon,
+        EmptyState,
         Toggle,
         ManagementIdentityPicker,
         ShortcutRecorder,
