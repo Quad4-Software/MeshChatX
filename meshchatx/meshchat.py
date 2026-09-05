@@ -240,7 +240,9 @@ from meshchatx.src.backend.nomadnet_downloader import (
     NomadnetFileDownloader,
     NomadnetPageDownloader,
     clear_all_nomadnet_cached_links,
+    drop_cached_link,
     get_cached_active_link,
+    nomad_link_identity_kwargs,
 )
 from meshchatx.src.backend.nomadnet_utils import (
     convert_nomadnet_field_data_to_map,
@@ -585,6 +587,8 @@ _HTTP_LIVE_NAME_ANCHORS = (
     import_messages_export_bundle,
     NomadnetFileDownloader,
     get_cached_active_link,
+    drop_cached_link,
+    nomad_link_identity_kwargs,
     convert_nomadnet_field_data_to_map,
     convert_nomadnet_string_data_to_map,
     PluginSecurityError,
@@ -3966,6 +3970,11 @@ class ReticulumMeshChat:
             on_progress_update=on_progress,
             timeout=120,
             reticulum=getattr(self, "reticulum", None),
+            **nomad_link_identity_kwargs(
+                self,
+                bytes.fromhex(destination_hash),
+                private=False,
+            ),
         )
 
         try:

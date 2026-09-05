@@ -91,6 +91,7 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
     normalize_identity_storage_hash,
     normalize_lxmf_sieve_filters,
     normalize_message_blocklist,
+    nomad_link_identity_kwargs,
     os,
     parse_bool_query_param,
     parse_import_document,
@@ -675,6 +676,7 @@ async def handle_nomadnet_file_download(app, client, data):
         reticulum=getattr(app, "reticulum", None),
         max_bytes=WS_NOMAD_FILE_MAX_BYTES,
         private=private,
+        **nomad_link_identity_kwargs(app, destination_hash, private=private),
     )
     downloader.start_time = time.time()
     app.active_downloads[download_id] = downloader
@@ -901,6 +903,7 @@ async def handle_nomadnet_page_download(app, client, data):
         on_phase=on_page_download_phase,
         reticulum=getattr(app, "reticulum", None),
         private=private,
+        **nomad_link_identity_kwargs(app, destination_hash, private=private),
     )
     app.active_downloads[download_id] = downloader
 

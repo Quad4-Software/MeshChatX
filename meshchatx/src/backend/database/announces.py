@@ -247,32 +247,51 @@ class AnnounceDAO:
         )
 
     # Favourites
-    def upsert_favourite(self, destination_hash, display_name, aspect):
+    def upsert_favourite(
+        self,
+        destination_hash,
+        display_name,
+        aspect,
+        identify_on_connect=None,
+    ):
         from meshchatx.src.backend.favourite_display_names import (
             is_unknown_favourite_display_name,
         )
 
         now = datetime.now(UTC)
         preserve_unknown = is_unknown_favourite_display_name(display_name)
+        identify_val = None
+        if identify_on_connect is not None:
+            identify_val = 1 if identify_on_connect else 0
         self.provider.execute(
             """
-            INSERT INTO favourite_destinations (destination_hash, display_name, aspect, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO favourite_destinations (
+                destination_hash, display_name, aspect, identify_on_connect,
+                created_at, updated_at
+            )
+            VALUES (?, ?, ?, COALESCE(?, 0), ?, ?)
             ON CONFLICT(destination_hash) DO UPDATE SET
                 display_name = CASE
                     WHEN ? THEN favourite_destinations.display_name
                     ELSE EXCLUDED.display_name
                 END,
                 aspect = EXCLUDED.aspect,
+                identify_on_connect = CASE
+                    WHEN ? IS NULL THEN favourite_destinations.identify_on_connect
+                    ELSE ?
+                END,
                 updated_at = EXCLUDED.updated_at
         """,
             (
                 destination_hash,
                 display_name,
                 aspect,
+                identify_val,
                 now,
                 now,
                 1 if preserve_unknown else 0,
+                identify_val,
+                identify_val,
             ),
         )
 
@@ -281,6 +300,15 @@ class AnnounceDAO:
             "SELECT * FROM favourite_destinations WHERE destination_hash = ?",
             (destination_hash,),
         )
+
+    def should_identify_on_connect(self, destination_hash) -> bool:
+        row = self.get_favourite_by_destination_hash(destination_hash)
+        if row is None:
+            return False
+        try:
+            return bool(row["identify_on_connect"])
+        except (KeyError, IndexError, TypeError):
+            return False
 
     def get_favourites(self, aspect=None):
         if aspect:
