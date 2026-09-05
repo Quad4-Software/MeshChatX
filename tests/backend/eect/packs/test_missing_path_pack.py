@@ -61,12 +61,15 @@ async def test_eect_direct_blocks_when_path_unavailable(send_app):
 
 
 @pytest.mark.asyncio
-async def test_eect_propagated_skips_path_await(send_app):
-    with eect_scenario("path.propagated.skips_await") as (_s, _seed, _rng):
+async def test_eect_propagated_awaits_prop_node_path(send_app):
+    with eect_scenario("path.propagated.awaits_prop_node") as (_s, _seed, _rng):
         destination_hash = "aa" * 16
+        prop_node = b"\xbb" * 16
         send_app.recall_identity = MagicMock(return_value=MagicMock())
+        send_app.message_router.get_outbound_propagation_node.return_value = prop_node
+        send_app.message_router.propagation_destination = MagicMock(hash=b"\xcc" * 16)
         send_app._await_transport_path = AsyncMock(
-            return_value=OutboundPathOutcome(False, "new_path_requested", True),
+            return_value=OutboundPathOutcome(True, "reused_valid_path", False),
         )
         send_app.config.auto_send_failed_messages_to_propagation_node.get.return_value = False
         send_app.config.include_display_name_with_message.get.return_value = False
@@ -94,4 +97,29 @@ async def test_eect_propagated_skips_path_await(send_app):
             )
         assert result is mock_msg
         send_app.message_router.handle_outbound.assert_called_once()
-        send_app._await_transport_path.assert_not_called()
+        send_app._await_transport_path.assert_called_once_with(prop_node)
+
+
+@pytest.mark.asyncio
+async def test_eect_propagated_blocks_when_prop_node_path_unavailable(send_app):
+    with eect_scenario("path.propagated.blocks_when_prop_unavailable") as (
+        _s,
+        _seed,
+        _rng,
+    ):
+        destination_hash = "aa" * 16
+        prop_node = b"\xbb" * 16
+        send_app.recall_identity = MagicMock(return_value=MagicMock())
+        send_app.message_router.get_outbound_propagation_node.return_value = prop_node
+        send_app.message_router.propagation_destination = MagicMock(hash=b"\xcc" * 16)
+        send_app._await_transport_path = AsyncMock(
+            return_value=OutboundPathOutcome(False, "new_path_requested", True),
+        )
+        with pytest.raises(TimeoutError) as caught:
+            await send_app.send_message(
+                destination_hash=destination_hash,
+                content="hi",
+                delivery_method="propagated",
+            )
+        assert_recoverable_missing_path(caught.value)
+        send_app.message_router.handle_outbound.assert_not_called()

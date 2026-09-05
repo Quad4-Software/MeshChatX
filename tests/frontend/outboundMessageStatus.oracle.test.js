@@ -4,7 +4,7 @@
  *
  * Guarantee: UI status glyphs and title keys follow the API state/method
  * strings that backend convert_lxmf_* emits from LXMF.LXMessage. Propagation
- * is method-only. Opportunistic+failed is deferred wait, not a hard fail badge.
+ * is method-only. Failed outbound always uses the hard-fail badge (not amber deferred).
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -58,7 +58,9 @@ function oracleTitleKey({ state, method }) {
 }
 
 function oracleDeferred({ state, method }) {
-    return method === "opportunistic" && state === "failed";
+    void state;
+    void method;
+    return false;
 }
 
 describe("outboundMessageStatus LXMF oracle", () => {

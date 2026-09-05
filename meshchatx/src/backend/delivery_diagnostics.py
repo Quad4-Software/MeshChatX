@@ -177,6 +177,44 @@ def build_delivery_diagnostics(
         ):
             outbound_ticket_expiry = None
 
+    prop_configured = False
+    prop_hash_hex = None
+    prop_has_path = False
+    prop_hops = None
+    prop_path_meta = {"path_stale": True, "path_unresponsive": False}
+    prop_is_local = False
+    if message_router is not None:
+        prop_bytes = None
+        with contextlib.suppress(Exception):
+            prop_bytes = message_router.get_outbound_propagation_node()
+        if isinstance(prop_bytes, (bytes, bytearray)) and prop_bytes:
+            prop_configured = True
+            prop_hash_hex = bytes(prop_bytes).hex()
+            local_propagation_destination = getattr(
+                message_router,
+                "propagation_destination",
+                None,
+            )
+            local_hash = getattr(local_propagation_destination, "hash", None)
+            if isinstance(local_hash, (bytes, bytearray)) and bytes(
+                local_hash
+            ) == bytes(
+                prop_bytes,
+            ):
+                prop_is_local = True
+                prop_has_path = True
+                prop_path_meta = {"path_stale": False, "path_unresponsive": False}
+            else:
+                with contextlib.suppress(Exception):
+                    prop_has_path = bool(RNS.Transport.has_path(bytes(prop_bytes)))
+                if prop_has_path:
+                    with contextlib.suppress(Exception):
+                        prop_hops = RNS.Transport.hops_to(bytes(prop_bytes))
+                        if not isinstance(prop_hops, int):
+                            prop_hops = None
+                with contextlib.suppress(Exception):
+                    prop_path_meta = rp.path_metadata_for_api(bytes(prop_bytes))
+
     return {
         "peer": {
             "input_hash": input_hash,
@@ -202,6 +240,15 @@ def build_delivery_diagnostics(
             "hops": hops,
             "path_stale": bool(path_meta.get("path_stale", True)),
             "path_unresponsive": bool(path_meta.get("path_unresponsive", False)),
+        },
+        "propagation_node": {
+            "configured": prop_configured,
+            "destination_hash": prop_hash_hex,
+            "is_local": prop_is_local,
+            "has_path": prop_has_path,
+            "hops": prop_hops,
+            "path_stale": bool(prop_path_meta.get("path_stale", True)),
+            "path_unresponsive": bool(prop_path_meta.get("path_unresponsive", False)),
         },
         "recall": {
             "identity_known": identity_known,
