@@ -6,6 +6,7 @@ import DOMPurify from "dompurify";
 import "./style.css";
 import { injectMeshchatThemeVariables } from "./theme/designTokens.js";
 import { registerUiI18n } from "./js/localeLoader.js";
+import { registerTranslator, registerFallbackMessages } from "./js/i18n.js";
 
 injectMeshchatThemeVariables();
 
@@ -15,7 +16,9 @@ import { startCodec2ScriptsBackgroundLoad } from "./js/Codec2Loader";
 import { createApiClient } from "./js/apiClient.js";
 import { fetchCsrfToken } from "./js/csrfToken.js";
 import { registerCoreContributions } from "./js/registries/registerCoreContributions.js";
+import { registerAllFeatures } from "./features/registerAllFeatures.js";
 import { installWsEventBridge } from "./js/registries/wsEventBridge.js";
+import { buildRouterRoutesFromRegistry } from "./shell/buildRouterRoutes.js";
 import { pluginHost } from "./js/plugins/PluginHost.js";
 import GlobalState from "./js/GlobalState.js";
 import { recoveryLocationForNetworkError } from "./js/networkRecovery.js";
@@ -30,6 +33,7 @@ import {
 import "./js/HeapMonitor.js";
 
 registerCoreContributions();
+registerAllFeatures();
 installWsEventBridge();
 
 import App from "./components/App.vue";
@@ -46,6 +50,8 @@ const i18n = createI18n({
     },
 });
 registerUiI18n(i18n);
+registerFallbackMessages(enMessages);
+registerTranslator((key, values) => i18n.global.t(key, values));
 
 if (!window.location.hash || window.location.hash === "#") {
     history.replaceState(null, "", "#/messages");
@@ -54,6 +60,7 @@ if (!window.location.hash || window.location.hash === "#") {
 const router = createRouter({
     history: createWebHashHistory(),
     routes: [
+        ...buildRouterRoutesFromRegistry(),
         {
             name: "auth",
             path: "/auth",
@@ -252,11 +259,6 @@ const router = createRouter({
             name: "identities",
             path: "/identities",
             component: () => import("./components/settings/IdentitiesPage.vue"),
-        },
-        {
-            name: "blocked",
-            path: "/blocked",
-            component: () => import("./components/blocked/BlockedPage.vue"),
         },
         {
             name: "tools",

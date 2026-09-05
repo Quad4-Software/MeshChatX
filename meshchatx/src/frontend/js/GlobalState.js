@@ -1,4 +1,5 @@
 import { reactive } from "vue";
+import { notifyAppStateListeners } from "./appState.js";
 
 // global state
 const globalState = reactive({
@@ -59,6 +60,7 @@ export function mergeGlobalConfig(next) {
     }
     const prev = globalState.config && typeof globalState.config === "object" ? globalState.config : {};
     globalState.config = { ...prev, ...next };
+    notifyAppStateListeners(globalState);
 }
 
 export default globalState;

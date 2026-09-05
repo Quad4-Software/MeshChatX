@@ -77,6 +77,16 @@ describe("MapBrowser.vue", () => {
         expect(wrapper.vm.tabs.find((t) => t.id === id).storageId).toBeTruthy();
     });
 
+    it("caps the number of map tabs", async () => {
+        const wrapper = await mountBrowser();
+        while (wrapper.vm.canAddTab) {
+            wrapper.vm.addTab();
+        }
+        expect(wrapper.vm.tabs.length).toBe(8);
+        expect(wrapper.vm.addTab()).toBeNull();
+        expect(wrapper.vm.tabs).toHaveLength(8);
+    });
+
     it("tabTitle uses the saved title and falls back to the new map label", async () => {
         const wrapper = await mountBrowser();
         expect(wrapper.vm.tabTitle({ title: "Field AO" })).toBe("Field AO");

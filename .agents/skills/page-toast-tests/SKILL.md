@@ -34,8 +34,9 @@ Before editing files, decide:
 
 For a new top-level page, verify all relevant items:
 
-- Add route in `meshchatx/src/frontend/main.js` with `defineAsyncComponent`.
-- Add sidebar/tools entry in `meshchatx/src/frontend/components/App.vue` when the page must be user-discoverable.
+- Prefer `features/<id>/` + `registerFeature` (see svelte-feature-modules skill). Wire via `features/registerAllFeatures.js`. Do not grow the hardcoded route table in `main.js`.
+- Greenfield UI: Svelte 5 under `features/<id>/` or `ui/svelte/`.
+- Add sidebar/tools entry through nav/tools registries when the page must be user-discoverable.
 - Add translation keys in `meshchatx/src/frontend/locales/en.json` and other maintained locale files when touched by task scope.
 - Use `ToastUtils` in page actions that save, submit, refresh, copy, or fail.
 - Add or update tests in `tests/frontend/*.test.js`.

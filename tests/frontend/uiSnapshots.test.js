@@ -63,9 +63,12 @@ describe("UI snapshot regression", () => {
     describe("ConfirmDialog.vue", () => {
         it("visible confirm dialog", async () => {
             const wrapper = mountSnapshot(ConfirmDialog);
+            await Promise.resolve();
+            await Promise.resolve();
             const showFn = vi.mocked(GlobalEmitter.on).mock.calls.find((c) => c[0] === "confirm")?.[1];
             showFn?.({ message: "Delete this item?", resolve: vi.fn() });
-            await wrapper.vm.$nextTick();
+            await Promise.resolve();
+            await Promise.resolve();
             expectHtmlSnapshot(wrapper);
             wrapper.unmount();
         });

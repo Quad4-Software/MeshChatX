@@ -245,10 +245,11 @@ tasks:
 
     lint:frontend:
         aliases: [lint:fe]
-        desc: Lint frontend code (ESLint, vue-tsc, knip, format-token and git-dep pin checks)
+        desc: Lint frontend code (ESLint, vue-tsc, svelte-check, knip, format-token and git-dep pin checks)
         cmds:
             - "{{.NPM}} run lint"
             - "{{.NPM}} run typecheck"
+            - "{{.NPM}} run svelte-check"
             - "{{.NPM}} exec vue-tsc --noEmit -p tsconfig.libs.json"
             - "{{.NPM}} exec knip"
             - task: check:format-tokens

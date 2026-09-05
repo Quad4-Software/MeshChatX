@@ -1,27 +1,47 @@
-import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import BlockedPage from "@/components/blocked/BlockedPage.vue";
-import GlobalState from "@/js/GlobalState";
+import { render, cleanup, fireEvent, waitFor } from "@testing-library/svelte";
+import BlockedPage from "@/features/blocked/BlockedPage.svelte";
+import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
 
-describe("BlockedPage.vue (Banished UI)", () => {
+describe("BlockedPage.svelte (Banished UI)", () => {
     let axiosMock;
 
     beforeEach(() => {
+        registerTranslator(null);
+        registerFallbackMessages({
+            banishment: {
+                title: "Banished",
+                description: "Manage Banished users and nodes",
+                lift_banishment: "Lift Banishment",
+                user: "User",
+                node: "Node",
+                banished_at: "Banished at",
+                no_items: "None",
+                search_placeholder: "Search",
+                filter_all_types: "All",
+                filter_rns: "RNS",
+                sort_newest: "Newest",
+                sort_oldest: "Oldest",
+                sort_name: "Name",
+                result_count: "{count}",
+                blocked_destinations: "Dests",
+                lift_banishment_confirm: "Confirm {name}",
+                banishment_lifted: "Lifted",
+                failed_lift_banishment: "Fail",
+                failed_load_banished: "Fail load",
+            },
+            common: { select: "Select", cancel: "Cancel", refresh: "Refresh" },
+            archives: { select_all: "All" },
+            nomadnet: { no_announces_yet: "empty", no_search_results_peers: "none" },
+            call: { unknown: "Unknown" },
+        });
+
         axiosMock = {
             get: vi.fn(),
             post: vi.fn(),
             delete: vi.fn(),
         };
         window.api = axiosMock;
-
-        // Mock localization
-        const t = (key) => {
-            const translations = {
-                "common.save": "Save",
-                "common.cancel": "Cancel",
-            };
-            return translations[key] || key;
-        };
 
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/blocked-destinations") {
@@ -54,76 +74,39 @@ describe("BlockedPage.vue (Banished UI)", () => {
     });
 
     afterEach(() => {
+        cleanup();
         delete window.api;
     });
 
-    const mountBlockedPage = () => {
-        return mount(BlockedPage, {
-            global: {
-                mocks: {
-                    $t: (key) => {
-                        const translations = {
-                            "banishment.title": "Banished",
-                            "banishment.description": "Manage Banished users and nodes",
-                            "banishment.lift_banishment": "Lift Banishment",
-                            "banishment.user": "User",
-                            "banishment.node": "Node",
-                            "banishment.banished_at": "Banished at",
-                        };
-                        return translations[key] || key;
-                    },
-                },
-                stubs: {
-                    MaterialDesignIcon: {
-                        template: '<div class="mdi-stub" :data-icon-name="iconName"></div>',
-                        props: ["iconName"],
-                    },
-                },
-            },
+    it("displays Banished title and subtext", async () => {
+        const { getByText } = render(BlockedPage);
+        await waitFor(() => {
+            expect(getByText("Banished")).toBeTruthy();
+            expect(getByText("Manage Banished users and nodes")).toBeTruthy();
         });
-    };
-
-    it("displays 'Banished' title and subtext", async () => {
-        const wrapper = mountBlockedPage();
-        // Wait for isLoading to become false
-        await vi.waitFor(() => expect(wrapper.vm.isLoading).toBe(false));
-
-        expect(wrapper.text()).toContain("Banished");
-        expect(wrapper.text()).toContain("Manage Banished users and nodes");
     });
 
     it("combines local blocked and RNS blackholed items", async () => {
-        const wrapper = mountBlockedPage();
-        await vi.waitFor(() => expect(wrapper.vm.isLoading).toBe(false));
-
-        expect(wrapper.vm.allBlockedIdentities.length).toBe(2);
-
-        const rnsItem = wrapper.vm.allBlockedIdentities.find((i) => i.is_rns_blackholed);
-        expect(rnsItem).toBeDefined();
-        expect(rnsItem.identity_hash).toBe("b".repeat(32));
-        expect(rnsItem.rns_reason).toBe("Spam");
+        const { getByText, container } = render(BlockedPage);
+        await waitFor(() => expect(getByText("RNS Blackhole")).toBeTruthy());
+        expect(container.textContent).toContain("a".repeat(32));
+        expect(container.textContent).toContain("b".repeat(32));
+        expect(container.textContent).toContain("Spam");
     });
 
     it("displays RNS Blackhole badge for blackholed items", async () => {
-        const wrapper = mountBlockedPage();
-        await vi.waitFor(() => expect(wrapper.vm.isLoading).toBe(false));
-
-        expect(wrapper.text()).toContain("RNS Blackhole");
+        const { getByText } = render(BlockedPage);
+        await waitFor(() => expect(getByText("RNS Blackhole")).toBeTruthy());
     });
 
     it("calls delete API when lifting banishment", async () => {
-        // Mock DialogUtils.confirm
         const DialogUtils = await import("@/js/DialogUtils");
         vi.spyOn(DialogUtils.default, "confirm").mockResolvedValue(true);
 
-        const wrapper = mountBlockedPage();
-        await vi.waitFor(() => expect(wrapper.vm.isLoading).toBe(false));
-
-        const unblockButtons = wrapper.findAll("button").filter((b) => b.text().includes("Lift Banishment"));
+        const { findAllByText } = render(BlockedPage);
+        const unblockButtons = await findAllByText("Lift Banishment");
         expect(unblockButtons.length).toBeGreaterThan(0);
-
-        await unblockButtons[0].trigger("click");
-
-        expect(axiosMock.delete).toHaveBeenCalled();
+        await fireEvent.click(unblockButtons[0]);
+        await waitFor(() => expect(axiosMock.delete).toHaveBeenCalled());
     });
 });

@@ -1,17 +1,45 @@
 # Frontend conventions
 
-Applies when editing `meshchatx/src/frontend/**/*.{vue,js}`.
+Applies when editing `meshchatx/src/frontend/**/*.{vue,js,svelte}`.
 
-- Vue 3 Options API is the dominant pattern. Match the file you edit.
+- Vue 3 Options API remains the pattern for existing `.vue` files. Match the file you edit.
+- New greenfield pages and shared UI go Svelte 5 (runes only) under `ui/svelte/` or `features/<id>/`.
+- New routes use `registerFeature` / `routeRegistry`. Do not add one-off routes to the hardcoded table in `main.js`.
 - API calls go through `window.api` (not ad-hoc axios imports in pages).
 - Toasts: `ToastUtils.success|error|warning|info|loading|dismiss`.
-- New top-level pages need: route in `main.js`, nav entry when discoverable, `en.json` keys, frontend tests.
+- New top-level pages need: feature registration (or legacy route until absorbed), nav entry when discoverable, `en.json` keys, frontend tests.
 - When adding user-visible strings, update `en.json` and the other maintained locale files under `meshchatx/src/frontend/locales/` with real translations (not English copies).
 - Sidebar unread pills live on nav entries in `coreNavEntries.js` and counters in `GlobalState`. Do not bring back a header notification bell for that job.
 - Do not use `_`-prefixed keys in Vue `data()` (`vue/no-reserved-keys`).
 - File inputs: prefer broad `accept` for identity keys (`.bin,.key,.identity,application/octet-stream,*/*`). Database restore stays `.zip`.
 - Prefer existing MaterialDesignIcon / layout patterns over new design systems.
 - No backticks in code comments. Prefer plain words or quoted identifiers.
+
+## Layers
+
+| Layer    | Location                                           | May import                          |
+| -------- | -------------------------------------------------- | ----------------------------------- |
+| Kernel   | `js/` (api, registries, toast, theme, state, i18n) | other kernel only                   |
+| UI       | `ui/svelte/`, shared Vue primitives                | kernel                              |
+| Features | `features/<id>/`                                   | kernel, ui, own files               |
+| Shell    | `App.vue`, boot (`main.js`)                        | kernel, registries, page mount host |
+
+Cross-feature UI imports are forbidden. Share through kernel events, registries, or `ui/`.
+
+## Conveyor (Vue to Svelte)
+
+1. Absorb a quiet leaf into `features/<id>/` with `registerFeature` (Vue mount first is fine).
+2. Extract pure helpers under `features/<id>/lib/`.
+3. Rewrite the page to Svelte, set `mount: "svelte"`.
+4. Keep a thin Vue wrapper only while tests or imports still need it.
+5. Update `FEATURE_MODULE_OWNERS` in `tests/frontend/featureModuleOwnership.test.js`.
+6. Host flip (`App.vue` to Svelte shell) waits until registry routes no longer need `mount: "vue"` and legacy hardcoded routes are gone. See `tests/frontend/hostFlipReadiness.test.js`.
+
+## Svelte
+
+- `pnpm run svelte-check` in lint. Runes mode only.
+- Dual mount: route meta `mount: "vue" | "svelte"` with a lazy `load`.
+- Skill: `.agents/skills/svelte-feature-modules/SKILL.md`.
 
 ## Shared UI primitives
 
@@ -26,7 +54,7 @@ Prefer these over ad-hoc gray/blue utilities on new or touched surfaces:
 
 ## Mega-page extracts
 
-When splitting large page shells, follow `.agents/skills/vue-mega-page-split/SKILL.md`
+When splitting large Vue page shells, follow `.agents/skills/vue-mega-page-split/SKILL.md`
 and the Frontend mega-pages table in `.agents/module-ownership.md`.
 
 - Mechanical extract only. Move or behaviour change, never both in the same change.

@@ -313,44 +313,49 @@ describe("Theme Switching", () => {
 });
 
 describe("Visibility Checks", () => {
-    it("ConfirmDialog shows when pendingConfirm is set", async () => {
+    it("ConfirmDialog shows when confirm event fires", async () => {
+        const GlobalEmitter = (await import("../../meshchatx/src/frontend/js/GlobalEmitter")).default;
+        const onSpy = vi.spyOn(GlobalEmitter, "on");
+        const offSpy = vi.spyOn(GlobalEmitter, "off");
+
         const wrapper = mountTracked(ConfirmDialog, {
+            attachTo: document.body,
             global: {
-                stubs: {
-                    MaterialDesignIcon: { template: "<div></div>" },
-                },
                 mocks: {
                     $t: (key) => key,
                 },
             },
         });
 
-        wrapper.vm.pendingConfirm = { message: "Test message" };
-        await wrapper.vm.$nextTick();
+        await flushPromises();
+        const showFn = onSpy.mock.calls.find((c) => c[0] === "confirm")?.[1];
+        expect(showFn).toBeDefined();
+        showFn({ message: "Test message", resolve: vi.fn() });
+        await flushPromises();
+        await Promise.resolve();
 
-        const dialogElement = wrapper.find(".fixed");
-        expect(dialogElement.exists()).toBe(true);
-        expect(wrapper.text()).toContain("common.confirm_action");
-        expect(wrapper.text()).toContain("common.confirm");
+        expect(document.body.textContent).toContain("common.confirm_action");
+        expect(document.body.textContent).toContain("Test message");
+        expect(document.querySelector(".confirm-dialog-root")).toBeTruthy();
+
+        offSpy.mockRestore();
+        onSpy.mockRestore();
+        wrapper.unmount();
     });
 
-    it("ConfirmDialog hides when pendingConfirm is null", async () => {
+    it("ConfirmDialog hides when closed", async () => {
         const wrapper = mountTracked(ConfirmDialog, {
+            attachTo: document.body,
             global: {
-                stubs: {
-                    MaterialDesignIcon: { template: "<div></div>" },
-                },
                 mocks: {
                     $t: (key) => key,
                 },
             },
         });
 
-        wrapper.vm.pendingConfirm = null;
-        await wrapper.vm.$nextTick();
-
-        const dialogElement = wrapper.find(".fixed");
-        expect(dialogElement.exists()).toBe(false);
+        await flushPromises();
+        expect(document.querySelector(".confirm-dialog-root")).toBeNull();
+        wrapper.unmount();
     });
 
     it("ChangelogModal component renders correctly", () => {

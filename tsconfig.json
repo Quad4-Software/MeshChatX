@@ -21,9 +21,11 @@
     },
     "include": [
         "meshchatx/src/frontend/**/*.vue",
+        "meshchatx/src/frontend/**/*.svelte",
         "meshchatx/src/frontend/**/*.js",
         "electron/**/*.js",
-        "vite.config.js"
+        "vite.config.js",
+        "svelte.config.js"
     ],
     "exclude": [
         "node_modules",

@@ -95,7 +95,8 @@ describe("mapExchange KML", () => {
         const f = features[0];
         expect(f.getGeometry().getType()).toBe("Point");
         expect(String(f.get("name") || f.get("Name") || "")).toContain("P");
-        const st = f.getStyle();
+        const stRaw = f.getStyle();
+        const st = typeof stRaw === "function" ? stRaw(f, 1) : stRaw;
         expect(st && typeof st.getImage === "function" && st.getImage()).toBeTruthy();
     });
 

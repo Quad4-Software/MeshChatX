@@ -6,6 +6,7 @@ import { meshchatxServiceWorkerPlugin } from "./scripts/build/generate_service_w
 import { detectLaunchEditor, isVueDevToolsEnabled } from "./scripts/vite-dx.mjs";
 import tailwindcss from "@tailwindcss/vite";
 import vue from "@vitejs/plugin-vue";
+import { svelte } from "@sveltejs/vite-plugin-svelte";
 import vueDevTools from "vite-plugin-vue-devtools";
 const vendorChunkGroups = [
     { test: /[/\\]node_modules[/\\](vis-network|vis-data)/, name: "vendor-vis", priority: 95 },
@@ -16,6 +17,7 @@ const vendorChunkGroups = [
     { test: /[/\\]node_modules[/\\]micron-parser/, name: "vendor-micron", priority: 55 },
     { test: /MicronParser\.js/, name: "vendor-micron", priority: 55 },
     { test: /[/\\]node_modules[/\\]electron-prompt/, name: "vendor-electron-prompt", priority: 50 },
+    { test: /[/\\]node_modules[/\\]svelte/, name: "vendor-svelte", priority: 48 },
     { test: /[/\\]node_modules[/\\].*vue/, name: "vendor-vue", priority: 45 },
     { test: /[/\\]node_modules[/\\]/, name: "vendor-other", priority: 10 },
 ];
@@ -299,6 +301,7 @@ export default defineConfig(({ command }) => {
                     },
                 },
             }),
+            svelte(),
             meshchatxServiceWorkerPlugin({ buildId: appBuildTimeIso }),
         ],
 
@@ -424,11 +427,11 @@ export default defineConfig(({ command }) => {
         },
 
         optimizeDeps: {
-            include: ["vue", "emoji-picker-element"],
+            include: ["vue", "svelte", "emoji-picker-element"],
         },
 
         resolve: {
-            dedupe: ["vue"],
+            dedupe: ["vue", "svelte"],
             tsconfigPaths: true,
             // Git-hosted micron-parser has no upstream package.json. Alias the entry so
             // Vite/Rolldown resolve it in Docker and CI without relying on metadata alone.

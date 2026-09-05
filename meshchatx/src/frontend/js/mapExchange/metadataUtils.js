@@ -121,7 +121,8 @@ export function getFeatureAnchorCoordinate(feature) {
 }
 
 function looksLikeHtml(s) {
-    return /<\/?[a-z][\s\S]*>/i.test(s);
+    const cleaned = String(s || "").replace(/<\/?null>/gi, "");
+    return /<\/?[a-z][\s\S]*>/i.test(cleaned);
 }
 
 /**
