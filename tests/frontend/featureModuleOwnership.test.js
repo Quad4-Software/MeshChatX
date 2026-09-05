@@ -6,6 +6,7 @@ import { join } from "path";
 import { clearRoutes, listRoutes } from "../../meshchatx/src/frontend/js/registries/routeRegistry.js";
 import { clearFeatureIds, listFeatureIds } from "../../meshchatx/src/frontend/js/registries/featureRegistry.js";
 import { registerBlockedFeature } from "../../meshchatx/src/frontend/features/blocked/index.js";
+import { registerForwarderFeature } from "../../meshchatx/src/frontend/features/forwarder/index.js";
 import { filterBlockedIdentities } from "../../meshchatx/src/frontend/features/blocked/lib/blockedList.js";
 
 const repoRoot = process.cwd();
@@ -24,6 +25,17 @@ const FEATURE_MODULE_OWNERS = [
             "meshchatx/src/frontend/features/blocked/lib/blockedList.js",
         ],
         route_name: "blocked",
+        mount: "svelte",
+    },
+    {
+        id: "forwarder",
+        register: registerForwarderFeature,
+        required_paths: [
+            "meshchatx/src/frontend/features/forwarder/index.js",
+            "meshchatx/src/frontend/features/forwarder/ForwarderPage.svelte",
+            "meshchatx/src/frontend/features/forwarder/lib/forwarderHash.js",
+        ],
+        route_name: "forwarder",
         mount: "svelte",
     },
 ];

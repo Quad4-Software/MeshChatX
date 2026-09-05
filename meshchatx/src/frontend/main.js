@@ -221,11 +221,6 @@ const router = createRouter({
             component: () => import("./components/tools/BotsPage.vue"),
         },
         {
-            name: "forwarder",
-            path: "/forwarder",
-            component: () => import("./components/forwarder/ForwarderPage.vue"),
-        },
-        {
             name: "micron-editor",
             path: "/micron-editor",
             component: () => import("./components/micron-editor/MicronEditorPage.vue"),

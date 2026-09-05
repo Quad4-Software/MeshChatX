@@ -1,9 +1,12 @@
-import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import ForwarderPage from "@/components/forwarder/ForwarderPage.vue";
+import { render, cleanup, fireEvent, waitFor } from "@testing-library/svelte";
+import ForwarderPage from "@/features/forwarder/ForwarderPage.svelte";
 import WebSocketConnection from "@/js/WebSocketConnection";
 import ToastUtils from "@/js/ToastUtils";
 import DialogUtils from "@/js/DialogUtils";
+import { dispatchWsEvent } from "@/js/registries/wsEventRegistry.js";
+import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
+import { isValidForwarderDestinationHash } from "@/features/forwarder/lib/forwarderHash.js";
 
 vi.mock("@/js/WebSocketConnection", () => ({
     default: {
@@ -27,56 +30,84 @@ vi.mock("@/js/DialogUtils", () => ({
     },
 }));
 
-describe("ForwarderPage.vue", () => {
+describe("forwarderHash", () => {
+    it("accepts 32 hex chars", () => {
+        expect(isValidForwarderDestinationHash("a".repeat(32))).toBe(true);
+        expect(isValidForwarderDestinationHash("not-a-hash")).toBe(false);
+    });
+});
+
+describe("ForwarderPage.svelte", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         WebSocketConnection.send.mockReturnValue(true);
-    });
-
-    const mountForwarderPage = () => {
-        return mount(ForwarderPage, {
-            global: {
-                mocks: {
-                    $t: (key, params) => key + (params ? JSON.stringify(params) : ""),
-                },
-                stubs: {
-                    MaterialDesignIcon: {
-                        template: '<div class="mdi-stub" :data-icon-name="iconName"></div>',
-                        props: ["iconName"],
-                    },
+        registerTranslator(null);
+        registerFallbackMessages({
+            app: { tools: "Tools" },
+            tools: {
+                back_to_tools: "Back",
+                forwarder: {
+                    title: "forwarder.title",
+                    description: "desc",
                 },
             },
+            forwarder: {
+                add_rule: "forwarder.add_rule",
+                name: "Name",
+                name_placeholder: "Name",
+                forward_to_hash: "Hash",
+                destination_placeholder: "dest",
+                source_filter: "Source",
+                source_filter_placeholder: "src",
+                add_button: "Add",
+                active_rules: "Rules",
+                no_rules: "None",
+                active: "forwarder.active",
+                disabled: "forwarder.disabled",
+                forwarding_to: "to {hash}",
+                source_filter_display: "from {hash}",
+                invalid_hash: "bad",
+                send_failed: "fail",
+                rule_added: "added",
+                delete_confirm: "delete?",
+                rule_deleted: "deleted",
+            },
+            common: { delete: "Delete" },
         });
-    };
-
-    it("renders the forwarder page", () => {
-        const wrapper = mountForwarderPage();
-        expect(wrapper.text()).toContain("forwarder.title");
-        expect(wrapper.text()).toContain("forwarder.add_rule");
     });
 
-    it("fetches rules on mount", () => {
-        mountForwarderPage();
-        expect(WebSocketConnection.send).toHaveBeenCalledWith(
-            JSON.stringify({
-                type: "lxmf.forwarding.rules.get",
-            })
-        );
+    afterEach(() => {
+        cleanup();
+    });
+
+    it("renders the forwarder page", async () => {
+        const { getByText } = render(ForwarderPage);
+        await waitFor(() => {
+            expect(getByText("forwarder.title")).toBeTruthy();
+            expect(getByText("forwarder.add_rule")).toBeTruthy();
+        });
+    });
+
+    it("fetches rules on mount", async () => {
+        render(ForwarderPage);
+        await waitFor(() => {
+            expect(WebSocketConnection.send).toHaveBeenCalledWith(
+                JSON.stringify({
+                    type: "lxmf.forwarding.rules.get",
+                })
+            );
+        });
     });
 
     it("adds a new rule", async () => {
-        const wrapper = mountForwarderPage();
-        await wrapper.setData({
-            newRule: {
-                name: "Test Rule",
-                forward_to_hash: "a".repeat(32),
-                source_filter_hash: "",
-                is_active: true,
-            },
-        });
+        const { container, getByText } = render(ForwarderPage);
+        await waitFor(() => expect(getByText("forwarder.add_rule")).toBeTruthy());
 
-        const addButton = wrapper.find("button[class*='bg-blue-600']");
-        await addButton.trigger("click");
+        const inputs = container.querySelectorAll('input[type="text"]');
+        await fireEvent.input(inputs[0], { target: { value: "Test Rule" } });
+        await fireEvent.input(inputs[1], { target: { value: "a".repeat(32) } });
+
+        await fireEvent.click(container.querySelector("button.bg-blue-600"));
 
         expect(WebSocketConnection.send).toHaveBeenCalledWith(
             JSON.stringify({
@@ -92,24 +123,23 @@ describe("ForwarderPage.vue", () => {
     });
 
     it("handles incoming rules from websocket", async () => {
-        const wrapper = mountForwarderPage();
-        await wrapper.vm.onForwardingRules({
+        const { getByText } = render(ForwarderPage);
+        await waitFor(() => expect(WebSocketConnection.send).toHaveBeenCalled());
+        await dispatchWsEvent("lxmf.forwarding.rules", {
             type: "lxmf.forwarding.rules",
             rules: [{ id: "rule1", name: "Rule 1", forward_to_hash: "hash1", is_active: true }],
         });
-
-        expect(wrapper.vm.rules.length).toBe(1);
-        expect(wrapper.text()).toContain("Rule 1");
+        await waitFor(() => expect(getByText("Rule 1")).toBeTruthy());
     });
 
     it("toggles a rule", async () => {
-        const wrapper = mountForwarderPage();
-        await wrapper.setData({
+        const { getByTitle } = render(ForwarderPage);
+        await waitFor(() => expect(WebSocketConnection.send).toHaveBeenCalled());
+        await dispatchWsEvent("lxmf.forwarding.rules", {
             rules: [{ id: "rule1", name: "Rule 1", forward_to_hash: "hash1", is_active: true }],
         });
-
-        const toggleButton = wrapper.find("button[title='forwarder.disabled']");
-        await toggleButton.trigger("click");
+        await waitFor(() => expect(getByTitle("forwarder.disabled")).toBeTruthy());
+        await fireEvent.click(getByTitle("forwarder.disabled"));
 
         expect(WebSocketConnection.send).toHaveBeenCalledWith(
             JSON.stringify({
@@ -120,16 +150,12 @@ describe("ForwarderPage.vue", () => {
     });
 
     it("rejects a non-hex destination hash", async () => {
-        const wrapper = mountForwarderPage();
-        await wrapper.setData({
-            newRule: {
-                name: "bad",
-                forward_to_hash: "not-a-hash",
-                source_filter_hash: "",
-                is_active: true,
-            },
-        });
-        await wrapper.find("button[class*='bg-blue-600']").trigger("click");
+        const { container, getByText } = render(ForwarderPage);
+        await waitFor(() => expect(getByText("forwarder.add_rule")).toBeTruthy());
+        const inputs = container.querySelectorAll('input[type="text"]');
+        await fireEvent.input(inputs[0], { target: { value: "bad" } });
+        await fireEvent.input(inputs[1], { target: { value: "not-a-hash" } });
+        await fireEvent.click(container.querySelector("button.bg-blue-600"));
         expect(ToastUtils.warning).toHaveBeenCalled();
         const addCalls = WebSocketConnection.send.mock.calls.filter((call) =>
             String(call[0]).includes("lxmf.forwarding.rule.add")
@@ -138,12 +164,14 @@ describe("ForwarderPage.vue", () => {
     });
 
     it("deletes a rule after confirm", async () => {
-        const wrapper = mountForwarderPage();
-        await wrapper.setData({
+        const { getByTitle } = render(ForwarderPage);
+        await waitFor(() => expect(WebSocketConnection.send).toHaveBeenCalled());
+        await dispatchWsEvent("lxmf.forwarding.rules", {
             rules: [{ id: "rule1", name: "Rule 1", forward_to_hash: "a".repeat(32), is_active: true }],
         });
-        await wrapper.vm.deleteRule("rule1");
-        expect(DialogUtils.confirm).toHaveBeenCalled();
+        await waitFor(() => expect(getByTitle("Delete")).toBeTruthy());
+        await fireEvent.click(getByTitle("Delete"));
+        await waitFor(() => expect(DialogUtils.confirm).toHaveBeenCalled());
         expect(WebSocketConnection.send).toHaveBeenCalledWith(
             JSON.stringify({
                 type: "lxmf.forwarding.rule.delete",
