@@ -12,6 +12,7 @@ Progressive load: root `AGENTS.md`, then one skill and one surface convention. F
 - No emdashes or semicolons in comments or docs you write.
 - Prefer fenced code blocks over inline backticks for commands, paths, and snippets. Short names can stay plain words or quoted identifiers.
 - No backticks in code comments. Prefer plain words or quoted identifiers.
+- CHANGELOG.md entries: plain sentences with a bold lead label, no backticks or code spans, no emdashes. Keep it simple and user-facing.
 - Do not commit/push unless asked.
 - User-visible UI strings: i18n keys. Action feedback: ToastUtils.
 - Do not invent install/run flows when Taskfile already covers them.
