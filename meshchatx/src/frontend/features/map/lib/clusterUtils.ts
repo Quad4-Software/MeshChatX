@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: 0BSD
 
+import type { DiscoveredMapNode, MapPeer, TelemetryPeer } from "./types.js";
+
 interface FeatureLike {
-    get(key: string): any;
+    get(key: string): unknown;
     getGeometry?(): {
         getCoordinates?(): number[];
     } | null;
@@ -11,6 +13,18 @@ interface ClusterCandidate {
     coord: number[];
     clusterable?: boolean;
     [key: string]: unknown;
+}
+
+export interface ClusterItemSummary {
+    feature: FeatureLike;
+    kind: string;
+    label: string;
+    identifier: string;
+    iconKey: DiscoveredMapNode | null;
+    coord: number[] | null;
+    telemetry: TelemetryPeer | null;
+    peer: MapPeer | null;
+    discovered: DiscoveredMapNode | null;
 }
 
 export function extentDiagonal(extent: number[] | null | undefined): number {
@@ -25,46 +39,26 @@ export function extentDiagonal(extent: number[] | null | undefined): number {
 export function getFeatureCoord(feature: FeatureLike | null | undefined): number[] | null {
     if (!feature || typeof feature.get !== "function") return null;
     const original = feature.get("originalCoord");
-    if (original) return original;
+    if (Array.isArray(original)) return original as number[];
     if (typeof feature.getGeometry !== "function") return null;
     const geom = feature.getGeometry();
     return geom && typeof geom.getCoordinates === "function" ? geom.getCoordinates() : null;
 }
 
-export function buildClusterItems(feature: FeatureLike | null): Array<{
-    feature: FeatureLike;
-    kind: string;
-    label: string;
-    identifier: string;
-    iconKey: Record<string, any> | null;
-    coord: number[] | null;
-    telemetry: Record<string, any> | null;
-    peer: Record<string, any> | null;
-    discovered: Record<string, any> | null;
-}> {
+export function buildClusterItems(feature: FeatureLike | null): ClusterItemSummary[] {
     if (!feature) return [];
     const rawItems = (feature.get("clusterItems") || []) as FeatureLike[];
-    const summary: Array<{
-        feature: FeatureLike;
-        kind: string;
-        label: string;
-        identifier: string;
-        iconKey: Record<string, any> | null;
-        coord: number[] | null;
-        telemetry: Record<string, any> | null;
-        peer: Record<string, any> | null;
-        discovered: Record<string, any> | null;
-    }> = [];
+    const summary: ClusterItemSummary[] = [];
     for (const item of rawItems) {
         if (!item) continue;
         const coord = getFeatureCoord(item);
-        const telemetry = item.get("telemetry") as Record<string, any> | null;
-        const peer = item.get("peer") as Record<string, any> | null;
-        const discovered = item.get("discovered") as Record<string, any> | null;
+        const telemetry = (item.get("telemetry") as TelemetryPeer | null) || null;
+        const peer = (item.get("peer") as MapPeer | null) || null;
+        const discovered = (item.get("discovered") as DiscoveredMapNode | null) || null;
         let kind = "unknown";
         let label = "Unknown";
         let identifier = "";
-        let iconKey: Record<string, any> | null = null;
+        let iconKey: DiscoveredMapNode | null = null;
         if (telemetry) {
             kind = "telemetry";
             label = peer?.display_name || (telemetry.destination_hash || "").substring(0, 8) || "Peer";
@@ -72,7 +66,7 @@ export function buildClusterItems(feature: FeatureLike | null): Array<{
         } else if (discovered) {
             kind = "discovered";
             label = discovered.name || "Discovered Interface";
-            identifier = discovered.interface || discovered.via || "";
+            identifier = String(discovered.interface || discovered.via || "");
             iconKey = discovered;
         }
         summary.push({ feature: item, kind, label, identifier, iconKey, coord, telemetry, peer, discovered });

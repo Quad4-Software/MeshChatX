@@ -2,12 +2,13 @@
 
 import { fromCircle } from "ol/geom/Polygon";
 import Circle from "ol/geom/Circle";
+import type Feature from "ol/Feature.js";
 import { writeFeaturesToGeoJson } from "../../../js/mapExchange/geoJsonCodec.js";
 import { writeFeaturesToKml } from "../../../js/mapExchange/kmlCodec.js";
 import { writeFeaturesToKmzBlob } from "../../../js/mapExchange/kmzCodec.js";
 import { writeFeaturesToGpx } from "../../../js/mapExchange/gpxCodec.js";
 
-export function serializeDrawFeatures(features: any[]): any[] {
+export function serializeDrawFeatures(features: Feature[]): Feature[] {
     return features
         .filter((f) => !f.get("bearingPreview"))
         .map((f) => {
@@ -51,19 +52,19 @@ export function downloadBlobFile(filename: string, blob: Blob, mime: string): vo
     URL.revokeObjectURL(url);
 }
 
-export function exportDrawFeaturesGeoJson(features: any[]): string {
+export function exportDrawFeaturesGeoJson(features: Feature[]): string {
     return writeFeaturesToGeoJson(serializeDrawFeatures(features), "EPSG:3857");
 }
 
-export function exportDrawFeaturesKml(features: any[]): string {
+export function exportDrawFeaturesKml(features: Feature[]): string {
     return writeFeaturesToKml(serializeDrawFeatures(features), "EPSG:3857");
 }
 
-export async function exportDrawFeaturesKmz(features: any[]): Promise<Blob> {
+export async function exportDrawFeaturesKmz(features: Feature[]): Promise<Blob> {
     return writeFeaturesToKmzBlob(serializeDrawFeatures(features), "EPSG:3857");
 }
 
-export function exportDrawFeaturesGpx(features: any[]): string {
+export function exportDrawFeaturesGpx(features: Feature[]): string {
     return writeFeaturesToGpx(serializeDrawFeatures(features), "EPSG:3857");
 }
 

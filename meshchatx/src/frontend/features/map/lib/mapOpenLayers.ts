@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: 0BSD
 
 import { Style, Fill, Stroke, Circle as CircleStyle, Text } from "ol/style";
+import type Feature from "ol/Feature";
+import type { StyleFunction } from "ol/style/Style";
 import XYZ from "ol/source/XYZ";
 import TileGrid from "ol/tilegrid/TileGrid";
+import type ImageTile from "ol/ImageTile";
 import { resolveRasterTileUrl } from "./mapTileUtils.js";
 import TileCache from "../../../js/TileCache.js";
 
-export function createDrawingStyle(): (feature: any) => Style {
-    return (feature: any) => {
+export function createDrawingStyle(): StyleFunction {
+    return ((feature: Feature) => {
         const geom = feature.getGeometry();
         const type = geom ? geom.getType() : "";
         const textVal = feature.get("text") || "";
@@ -17,7 +20,7 @@ export function createDrawingStyle(): (feature: any) => Style {
             if (textVal) {
                 return new Style({
                     text: new Text({
-                        text: textVal,
+                        text: String(textVal),
                         font: "bold 13px sans-serif",
                         fill: new Fill({ color: "#1e293b" }),
                         stroke: new Stroke({ color: "#ffffff", width: 3 }),
@@ -76,7 +79,7 @@ export function createDrawingStyle(): (feature: any) => Style {
                 color: "rgba(59, 130, 246, 0.1)",
             }),
         });
-    };
+    }) as StyleFunction;
 }
 
 export function createMeasureStyle(): Style {
@@ -101,6 +104,10 @@ export function createMeasureStyle(): Style {
     });
 }
 
+function tileImageElement(tile: ImageTile): HTMLImageElement {
+    return tile.getImage() as HTMLImageElement;
+}
+
 export function createOnlineTileSource(
     tileServerUrl?: string | null,
     cachingEnabled: boolean = true,
@@ -111,8 +118,8 @@ export function createOnlineTileSource(
         url,
         crossOrigin: "anonymous",
         maxZoom: 19,
-        tileLoadFunction: (tile: any, src: string) => {
-            const img = tile.getImage();
+        tileLoadFunction: (tile, src: string) => {
+            const img = tileImageElement(tile as ImageTile);
             if (onTileError) {
                 img.onerror = () => onTileError();
             }
@@ -160,8 +167,8 @@ export function createOfflineMBTilesSource(): XYZ {
             const y = Math.max(0, -tileCoord[2] - 1);
             return `/api/v1/map/tile/${z}/${x}/${y}.png`;
         },
-        tileLoadFunction: (tile: any, src: string) => {
-            const img = tile.getImage();
+        tileLoadFunction: (tile, src: string) => {
+            const img = tileImageElement(tile as ImageTile);
             TileCache.getTile(src)
                 .then((blob) => {
                     if (blob) {

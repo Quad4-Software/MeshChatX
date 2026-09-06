@@ -12,6 +12,7 @@
         ontoggleoffline?: (enabled: boolean) => void;
         ontogglemotools?: () => void;
         ontogglesettings?: () => void;
+        onshare?: () => void;
     }
 
     let {
@@ -22,6 +23,7 @@
         ontoggleoffline,
         ontogglemotools,
         ontogglesettings,
+        onshare,
     }: Props = $props();
 </script>
 
@@ -61,6 +63,14 @@
         </button>
     </div>
 
+    <button
+        type="button"
+        class="p-2 text-sem-fg-muted hover:bg-sem-surface-muted rounded-full transition-colors shrink-0 cursor-pointer"
+        title={t("map.share_view")}
+        onclick={onshare}
+    >
+        <MaterialDesignIcon iconName="share-variant" class="size-[18px] sm:size-5" />
+    </button>
     <button
         type="button"
         class="p-2 text-sem-fg-muted hover:bg-sem-surface-muted rounded-full transition-colors shrink-0 cursor-pointer"

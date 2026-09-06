@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: 0BSD
 
 import { getLength, getArea } from "ol/sphere";
+import type Geometry from "ol/geom/Geometry.js";
+import type OlMap from "ol/Map.js";
+import type { RemoteOverlayEntry, TelemetryPeer } from "./types.js";
+import type { RemoteOverlayLayerEntry } from "./mapRemoteOverlays.js";
 
 export async function resolveMyLocationWgs84(ctx: {
     config?: {
@@ -8,7 +12,7 @@ export async function resolveMyLocationWgs84(ctx: {
         lxmf_address_hash?: string;
         identity_hash?: string;
     };
-    telemetryList?: any[];
+    telemetryList?: TelemetryPeer[];
 }): Promise<{ lon: number; lat: number } | null> {
     const cfg = ctx.config || {};
     const lx = cfg.lxmf_address_hash;
@@ -16,7 +20,7 @@ export async function resolveMyLocationWgs84(ctx: {
     const list = ctx.telemetryList || [];
 
     if (lx) {
-        const match = list.find((t: any) => t.destination_hash === lx);
+        const match = list.find((t) => t.destination_hash === lx);
         const loc = match?.telemetry?.location;
         if (loc && typeof loc.longitude === "number" && typeof loc.latitude === "number") {
             return { lon: loc.longitude, lat: loc.latitude };
@@ -24,7 +28,7 @@ export async function resolveMyLocationWgs84(ctx: {
     }
 
     if (id) {
-        const match = list.find((t: any) => t.destination_hash === id);
+        const match = list.find((t) => t.destination_hash === id);
         const loc = match?.telemetry?.location;
         if (loc && typeof loc.longitude === "number" && typeof loc.latitude === "number") {
             return { lon: loc.longitude, lat: loc.latitude };
@@ -47,34 +51,51 @@ export async function resolveMyLocationWgs84(ctx: {
 
 export async function handleRemoteOverlaysChanged(
     ctx: {
-        map?: any;
+        map?: OlMap | null;
         remoteOverlayLoadGeneration: number;
-        remoteOverlayLayers: Record<string, any>;
+        remoteOverlayLayers: Record<string, RemoteOverlayLayerEntry>;
         removeRemoteOverlayLayer: (id: string) => void;
-        ensureRemoteOverlayLayer: (overlay: any) => Promise<void>;
+        ensureRemoteOverlayLayer: (overlay: RemoteOverlayEntry) => Promise<void>;
     },
-    overlays: any[]
+    overlays: RemoteOverlayEntry[]
 ): Promise<void> {
-    const list = overlays || [];
+    if (!ctx.map) return;
+    const list = Array.isArray(overlays) ? overlays : [];
     const loadGen = ++ctx.remoteOverlayLoadGeneration;
-    const wantedIds = new Set(list.filter((o) => o.visible).map((o) => String(o.id)));
+    const keep = new Set(list.map((o) => String(o.id)));
 
     for (const existingId of Object.keys(ctx.remoteOverlayLayers)) {
-        if (!wantedIds.has(existingId)) {
+        if (!keep.has(existingId)) {
             ctx.removeRemoteOverlayLayer(existingId);
         }
     }
 
     for (const overlay of list) {
-        if (!overlay.visible) continue;
+        if (ctx.remoteOverlayLoadGeneration !== loadGen) {
+            return;
+        }
+        const id = String(overlay.id);
+        const visible = Boolean(overlay.visible);
+        if (overlay.status !== "ready" || !overlay.format) {
+            const existing = ctx.remoteOverlayLayers[id];
+            if (existing?.layer) {
+                existing.layer.setVisible(false);
+            }
+            continue;
+        }
         await ctx.ensureRemoteOverlayLayer(overlay);
         if (ctx.remoteOverlayLoadGeneration !== loadGen) {
-            ctx.removeRemoteOverlayLayer(String(overlay.id));
+            ctx.removeRemoteOverlayLayer(id);
+            return;
+        }
+        const entry = ctx.remoteOverlayLayers[id];
+        if (entry?.layer) {
+            entry.layer.setVisible(visible);
         }
     }
 }
 
-export function formatLength(line: any): string {
+export function formatLength(line: Geometry): string {
     const length = getLength(line);
     let output: string;
     let imperialOutput: string;
@@ -96,7 +117,7 @@ export function formatLength(line: any): string {
     return `${output}<br/><span class="text-[10px] opacity-80">${imperialOutput}</span>`;
 }
 
-export function formatArea(polygon: any): string {
+export function formatArea(polygon: Geometry): string {
     const area = getArea(polygon);
     let output: string;
     let imperialOutput: string;

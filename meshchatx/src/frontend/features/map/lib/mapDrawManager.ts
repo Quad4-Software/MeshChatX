@@ -2,17 +2,21 @@
 
 import type OlMap from "ol/Map.js";
 import type VectorSource from "ol/source/Vector.js";
+import type Feature from "ol/Feature.js";
 import Draw, { createBox } from "ol/interaction/Draw.js";
+import type { GeometryFunction } from "ol/interaction/Draw.js";
 import Modify from "ol/interaction/Modify.js";
-import Select from "ol/interaction/Select.js";
+
+type DrawGeometryType = "Point" | "LineString" | "Polygon" | "Circle" | "Square";
+import Select, { SelectEvent } from "ol/interaction/Select.js";
 import Snap from "ol/interaction/Snap.js";
 import Translate from "ol/interaction/Translate.js";
 
 export interface DrawManagerConfig {
     map: OlMap;
     drawSource: VectorSource;
-    onDrawEnd?: (feature: any) => void;
-    onSelectFeature?: (feature: any) => void;
+    onDrawEnd?: (feature: Feature) => void;
+    onSelectFeature?: (feature: Feature | null) => void;
 }
 
 export class MapDrawManager {
@@ -23,8 +27,8 @@ export class MapDrawManager {
     private select: Select | null = null;
     private snap: Snap | null = null;
     private translate: Translate | null = null;
-    private onDrawEndCallback?: (feature: any) => void;
-    private onSelectFeatureCallback?: (feature: any) => void;
+    private onDrawEndCallback?: (feature: Feature) => void;
+    private onSelectFeatureCallback?: (feature: Feature | null) => void;
 
     constructor(config: DrawManagerConfig) {
         this.map = config.map;
@@ -39,7 +43,7 @@ export class MapDrawManager {
         this.select = new Select({
             layers: (layer) => layer.getZIndex() === 10,
         });
-        this.select.on("select", (e: any) => {
+        this.select.on("select", (e: SelectEvent) => {
             const selected = e.selected && e.selected[0];
             this.onSelectFeatureCallback?.(selected || null);
         });
@@ -79,8 +83,8 @@ export class MapDrawManager {
         this.modify?.setActive(false);
         this.translate?.setActive(false);
 
-        let drawType: any = "Point";
-        let geometryFunction: any = undefined;
+        let drawType: DrawGeometryType = "Point";
+        let geometryFunction: GeometryFunction | undefined = undefined;
 
         if (mode === "point" || mode === "note") {
             drawType = "Point";
@@ -101,7 +105,7 @@ export class MapDrawManager {
             geometryFunction,
         });
 
-        this.currentDraw.on("drawend", (e: any) => {
+        this.currentDraw.on("drawend", (e) => {
             if (mode === "note") {
                 e.feature.set("isNote", true);
             }
@@ -115,7 +119,7 @@ export class MapDrawManager {
         this.select?.getFeatures().clear();
     }
 
-    public getSelectedFeatures(): any[] {
+    public getSelectedFeatures(): Feature[] {
         return this.select?.getFeatures().getArray() || [];
     }
 

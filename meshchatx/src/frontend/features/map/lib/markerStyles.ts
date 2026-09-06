@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 import { Style, Text, Fill, Stroke, Circle as CircleStyle, Icon } from "ol/style";
+import type { PeerMarkerStyleSource } from "./types.js";
 
 export const DEFAULT_PEER_FACE = "#3730a3";
 export const DEFAULT_PEER_GLYPH = "#ffffff";
@@ -301,7 +302,7 @@ export function getCachedPeerBadgeStyle(cache: Record<string, Style>, opts: Peer
     return style;
 }
 
-export function getPeerMarkerStyle(item: any, showLabel = false): Style {
+export function getPeerMarkerStyle(item: PeerMarkerStyleSource | null | undefined, showLabel = false): Style {
     return peerBadgeStyle({
         face: item?.custom_background_colour || item?.background_colour || DEFAULT_PEER_FACE,
         glyph: item?.custom_foreground_colour || item?.foreground_colour || DEFAULT_PEER_GLYPH,

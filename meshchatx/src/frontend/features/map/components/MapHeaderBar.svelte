@@ -15,6 +15,7 @@
         ontoggleoffline?: (enabled: boolean) => void;
         ontogglemotools?: () => void;
         ontogglesettings?: () => void;
+        onshare?: () => void;
     }
 
     let {
@@ -27,6 +28,7 @@
         ontoggleoffline,
         ontogglemotools,
         ontogglesettings,
+        onshare,
     }: Props = $props();
 </script>
 
@@ -49,5 +51,6 @@
         {ontoggleoffline}
         {ontogglemotools}
         {ontogglesettings}
+        {onshare}
     />
 {/if}

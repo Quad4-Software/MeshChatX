@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
+import type Feature from "ol/Feature.js";
+
 export interface MapMetadata {
     name?: string;
     attribution?: string;
@@ -12,6 +14,7 @@ export interface SearchResult {
     lon?: string | number;
     boundingbox?: [string, string, string, string];
     type?: string;
+    place_id?: string | number;
     [key: string]: unknown;
 }
 
@@ -25,7 +28,7 @@ export interface DrawingTool {
 export interface DrawingEntry {
     id: string | number;
     name: string;
-    features?: any[];
+    features?: unknown[];
     updated_at: string | number;
     [key: string]: unknown;
 }
@@ -37,6 +40,7 @@ export interface MBTilesEntry {
     [key: string]: unknown;
 }
 
+/** Remote overlay row from the map overlays API. */
 export interface RemoteOverlayEntry {
     id: string | number;
     name?: string;
@@ -46,26 +50,93 @@ export interface RemoteOverlayEntry {
     visible?: boolean;
     format?: string;
     last_error?: string;
-    features?: any[];
+    content_sha256?: string;
+    features?: unknown[];
     [key: string]: unknown;
 }
 
+export interface TelemetryLocation {
+    latitude: number;
+    longitude: number;
+    altitude?: number;
+    speed?: number;
+    heading?: number;
+}
+
 export interface TelemetryPeer {
-    destination_hash: string;
+    destination_hash?: string;
     display_name?: string;
+    is_stale?: boolean;
+    is_tracking?: boolean;
+    updated_at?: string;
+    timestamp?: number;
     telemetry?: {
-        location?: {
-            latitude: number;
-            longitude: number;
-            altitude?: number;
-            speed?: number;
-            heading?: number;
-        };
+        location?: TelemetryLocation;
         note?: string;
         timestamp?: number;
         [key: string]: unknown;
     };
     [key: string]: unknown;
+}
+
+export interface MapPeerIcon {
+    background_colour?: string;
+    foreground_colour?: string;
+    [key: string]: unknown;
+}
+
+/** LXMF conversation peer fields used for map marker styling. */
+export interface MapPeer {
+    destination_hash?: string;
+    display_name?: string;
+    lxmf_user_icon?: MapPeerIcon;
+    [key: string]: unknown;
+}
+
+export interface DiscoveredMapNode {
+    latitude?: number;
+    longitude?: number;
+    name?: string;
+    last_heard?: number;
+    interface?: string;
+    via?: string;
+    [key: string]: unknown;
+}
+
+export interface PeerMarkerStyleSource {
+    display_name?: string;
+    custom_display_name?: string;
+    background_colour?: string;
+    custom_background_colour?: string;
+    foreground_colour?: string;
+    custom_foreground_colour?: string;
+    is_stale?: boolean;
+}
+
+export interface MapMarkerItem {
+    latitude?: number;
+    longitude?: number;
+    lat?: number;
+    lon?: number;
+    destination_hash?: string;
+    dest_hash?: string;
+    display_name?: string;
+    custom_display_name?: string;
+    name?: string;
+    [key: string]: unknown;
+}
+
+export interface MarkerPanelPayload {
+    telemetry?: TelemetryPeer | null;
+    peer?: MapPeer | null;
+    discovered?: DiscoveredMapNode | null;
+}
+
+export interface DrawFeatureEditPayload {
+    name: string;
+    description: string;
+    descriptionIsHtml: boolean;
+    extended: Array<{ key: string; value: string }>;
 }
 
 export interface MapExportStatus {
@@ -117,5 +188,12 @@ export interface MapDrawFeatureInfo {
     iconSrc?: string | null;
     extended?: Array<{ key: string; value: string }>;
     rawProperties?: Record<string, unknown>;
-    feature?: unknown;
+    feature?: Feature | null;
 }
+
+export interface MapExportStartPayload {
+    [key: string]: unknown;
+}
+
+/** Loose API body that may be top-level or nested under data. */
+export type ApiDataEnvelope<T extends object> = T & { data?: T };

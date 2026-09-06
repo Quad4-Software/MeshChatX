@@ -4,6 +4,8 @@ import TileLayer from "ol/layer/Tile.js";
 import VectorLayer from "ol/layer/Vector.js";
 import XYZ from "ol/source/XYZ.js";
 import VectorSource from "ol/source/Vector.js";
+import type ImageTile from "ol/ImageTile.js";
+import type { LoadFunction } from "ol/Tile.js";
 import TileCache from "../../../js/TileCache.js";
 import { TILE_PROVIDER_URLS, DEFAULT_TILE_SERVER_URL } from "../../../js/mapTileProviders.js";
 
@@ -54,11 +56,11 @@ export function createTileSource(offlineEnabled: boolean, providerId = "osm"): X
     });
 
     const originalLoader = source.getTileLoadFunction();
-    source.setTileLoadFunction(async (imageTile: any, src: string) => {
+    const cachedLoader: LoadFunction = async (imageTile, src) => {
         try {
             const cached = await TileCache.getTile(src);
             if (cached) {
-                const img = imageTile.getImage() as HTMLImageElement;
+                const img = (imageTile as ImageTile).getImage() as HTMLImageElement;
                 img.src = cached;
                 return;
             }
@@ -66,7 +68,8 @@ export function createTileSource(offlineEnabled: boolean, providerId = "osm"): X
             // cache read error fallback
         }
         originalLoader(imageTile, src);
-    });
+    };
+    source.setTileLoadFunction(cachedLoader);
 
     return source;
 }
