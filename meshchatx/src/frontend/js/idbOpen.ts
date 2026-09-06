@@ -7,40 +7,38 @@
  * from becoming an uncaught rejection when a shared chunk evaluates.
  */
 
-/**
- * @param {unknown} err
- * @returns {boolean}
- */
-export function isIndexedDbAccessError(err) {
+type IndexedDbGlobal = typeof globalThis & {
+    indexedDB?: IDBFactory;
+    mozIndexedDB?: IDBFactory;
+    webkitIndexedDB?: IDBFactory;
+    msIndexedDB?: IDBFactory;
+};
+
+export type OpenIndexedDbOptions = {
+    onUpgrade?: (db: IDBDatabase, event: IDBVersionChangeEvent) => void;
+};
+
+export function isIndexedDbAccessError(err: unknown): boolean {
     if (!err || typeof err !== "object") {
         return false;
     }
-    const name = /** @type {{ name?: string }} */ err.name;
+    const name = (err as { name?: string }).name;
     return name === "SecurityError" || name === "InvalidStateError";
 }
 
-/**
- * @returns {IDBFactory | null}
- */
-export function getIndexedDbFactory() {
-    const g = globalThis;
+export function getIndexedDbFactory(): IDBFactory | null {
+    const g = globalThis as IndexedDbGlobal;
     return g.indexedDB || g.mozIndexedDB || g.webkitIndexedDB || g.msIndexedDB || null;
 }
 
-/**
- * @param {string} name
- * @param {number} version
- * @param {{ onUpgrade?: (db: IDBDatabase, event: IDBVersionChangeEvent) => void }} [opts]
- * @returns {Promise<IDBDatabase>}
- */
-export function openIndexedDb(name, version, opts: any = {}) {
-    return new Promise<any>((resolve, reject) => {
+export function openIndexedDb(name: string, version: number, opts: OpenIndexedDbOptions = {}): Promise<IDBDatabase> {
+    return new Promise((resolve, reject) => {
         const idb = getIndexedDbFactory();
         if (!idb) {
             reject(new Error("IndexedDB unavailable"));
             return;
         }
-        let request;
+        let request: IDBOpenDBRequest;
         try {
             request = idb.open(name, version);
         } catch (err) {

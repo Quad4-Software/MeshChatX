@@ -15,7 +15,7 @@
         toolRowClass,
         translateTools,
     } from "./lib/toolsList.js";
-    import type { ToolRecord, ToolGroup } from "./lib/toolsList.js";
+    import type { ToolGroup } from "./lib/toolsList.js";
 
     let searchQuery = $state("");
     let collapsedSections = $state<Record<string, boolean>>(loadCollapsedSections());

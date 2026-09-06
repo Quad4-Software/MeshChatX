@@ -6,40 +6,26 @@ export const SHELL_CACHE_PREFIX = "meshchatx-shell-";
 /** Default navigation network-first timeout in milliseconds. */
 export const NAV_NETWORK_TIMEOUT_MS = 2000;
 
-/**
- * @param {string} buildId
- * @returns {string}
- */
-export function cacheNameForBuild(buildId) {
+export type ShellRequestKind = "bypass" | "asset" | "navigation" | "shell-helper" | "network-only";
+
+export function cacheNameForBuild(buildId: string): string {
     const id = String(buildId || "dev").replace(/[^a-zA-Z0-9._-]/g, "_");
     return `${SHELL_CACHE_PREFIX}v${id}`;
 }
 
-/**
- * @param {string} pathname
- * @returns {boolean}
- */
-export function isApiPath(pathname) {
+export function isApiPath(pathname: string): boolean {
     const path = String(pathname || "");
     return path === "/api" || path.startsWith("/api/");
 }
 
-/**
- * Vite content-hashed build assets under /assets/.
- * @param {string} pathname
- * @returns {boolean}
- */
-export function isHashedAssetPath(pathname) {
+/** Vite content-hashed build assets under /assets/. */
+export function isHashedAssetPath(pathname: string): boolean {
     const path = String(pathname || "");
     return path === "/assets" || path.startsWith("/assets/");
 }
 
-/**
- * Static shell helpers that may use stale-while-revalidate.
- * @param {string} pathname
- * @returns {boolean}
- */
-export function isShellHelperPath(pathname) {
+/** Static shell helpers that may use stale-while-revalidate. */
+export function isShellHelperPath(pathname: string): boolean {
     const path = String(pathname || "");
     if (path === "/boot-theme.js" || path === "/manifest.json") {
         return true;
@@ -53,11 +39,7 @@ export function isShellHelperPath(pathname) {
     return false;
 }
 
-/**
- * @param {Request} request
- * @returns {boolean}
- */
-export function isNavigationRequest(request) {
+export function isNavigationRequest(request: Request): boolean {
     if (!request || typeof request !== "object") {
         return false;
     }
@@ -72,13 +54,8 @@ export function isNavigationRequest(request) {
     return typeof accept === "string" && accept.includes("text/html");
 }
 
-/**
- * True when the service worker must not use Cache Storage for this request.
- * @param {Request} request
- * @param {URL} [url]
- * @returns {boolean}
- */
-export function shouldBypassCache(request, url) {
+/** True when the service worker must not use Cache Storage for this request. */
+export function shouldBypassCache(request: Request, url?: URL): boolean {
     if (!request || (request.method !== "GET" && request.method !== "HEAD")) {
         return true;
     }
@@ -104,13 +81,8 @@ export function shouldBypassCache(request, url) {
     return false;
 }
 
-/**
- * Classify a same-origin GET for shell caching strategy selection.
- * @param {Request} request
- * @param {URL} url
- * @returns {"bypass"|"asset"|"navigation"|"shell-helper"|"network-only"}
- */
-export function classifyShellRequest(request, url) {
+/** Classify a same-origin GET for shell caching strategy selection. */
+export function classifyShellRequest(request: Request, url: URL): ShellRequestKind {
     if (shouldBypassCache(request, url)) {
         return "bypass";
     }

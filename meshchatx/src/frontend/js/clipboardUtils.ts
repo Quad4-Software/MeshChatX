@@ -3,22 +3,16 @@
  * where navigator.clipboard may be missing or reject.
  */
 
-/**
- * Browsers set `false` on http://0.0.0.0 and similar. `undefined` in some test envs is treated as allowed.
- * @returns {boolean}
- */
-export function isWindowSecureContext() {
+/** Browsers set false on http://0.0.0.0 and similar. undefined in some test envs is treated as allowed. */
+export function isWindowSecureContext(): boolean {
     if (typeof window === "undefined") {
         return false;
     }
     return window.isSecureContext !== false;
 }
 
-/**
- * Whether async clipboard read is expected to work (secure context + API present).
- * @returns {boolean}
- */
-export function canUseAsyncClipboardRead() {
+/** Whether async clipboard read is expected to work (secure context + API present). */
+export function canUseAsyncClipboardRead(): boolean {
     return (
         typeof navigator !== "undefined" &&
         !!navigator.clipboard &&
@@ -27,11 +21,8 @@ export function canUseAsyncClipboardRead() {
     );
 }
 
-/**
- * Whether async clipboard image write is expected to work.
- * @returns {boolean}
- */
-export function canUseAsyncClipboardImageWrite() {
+/** Whether async clipboard image write is expected to work. */
+export function canUseAsyncClipboardImageWrite(): boolean {
     return (
         typeof navigator !== "undefined" &&
         !!navigator.clipboard &&
@@ -41,11 +32,7 @@ export function canUseAsyncClipboardImageWrite() {
     );
 }
 
-/**
- * @param {string} text
- * @returns {Promise<boolean>}
- */
-export async function copyTextToClipboard(text) {
+export async function copyTextToClipboard(text: unknown): Promise<boolean> {
     if (text == null || text === "") {
         return false;
     }
@@ -77,12 +64,8 @@ export async function copyTextToClipboard(text) {
     }
 }
 
-/**
- * Copy an image Blob to the system clipboard (PNG preferred when conversion works).
- * @param {Blob} blob
- * @returns {Promise<boolean>}
- */
-export async function copyImageBlobToClipboard(blob) {
+/** Copy an image Blob to the system clipboard (PNG preferred when conversion works). */
+export async function copyImageBlobToClipboard(blob: Blob): Promise<boolean> {
     if (!(blob instanceof Blob) || blob.size <= 0) {
         return false;
     }
@@ -111,11 +94,7 @@ export async function copyImageBlobToClipboard(blob) {
     }
 }
 
-/**
- * @param {Blob} blob
- * @returns {Promise<Blob | null>}
- */
-async function convertImageBlobToPng(blob) {
+async function convertImageBlobToPng(blob: Blob): Promise<Blob | null> {
     if (typeof createImageBitmap === "function") {
         try {
             const bitmap = await createImageBitmap(blob);
@@ -129,7 +108,7 @@ async function convertImageBlobToPng(blob) {
             }
             ctx.drawImage(bitmap, 0, 0);
             bitmap.close?.();
-            return await new Promise<any>((resolve) => {
+            return await new Promise<Blob | null>((resolve) => {
                 canvas.toBlob((out) => resolve(out), "image/png");
             });
         } catch {
@@ -141,7 +120,7 @@ async function convertImageBlobToPng(blob) {
     }
     const objectUrl = URL.createObjectURL(blob);
     try {
-        const img = await new Promise<any>((resolve, reject) => {
+        const img = await new Promise<HTMLImageElement>((resolve, reject) => {
             const el = new Image();
             el.onload = () => resolve(el);
             el.onerror = () => reject(new Error("image_load_failed"));
@@ -155,7 +134,7 @@ async function convertImageBlobToPng(blob) {
             return null;
         }
         ctx.drawImage(img, 0, 0);
-        return await new Promise<any>((resolve) => {
+        return await new Promise<Blob | null>((resolve) => {
             canvas.toBlob((out) => resolve(out), "image/png");
         });
     } catch {
@@ -165,10 +144,9 @@ async function convertImageBlobToPng(blob) {
     }
 }
 
-/**
- * @returns {Promise<{ ok: true, text: string } | { ok: false, code: string }>}
- */
-export async function readTextFromClipboard() {
+export type ClipboardReadResult = { ok: true; text: string } | { ok: false; code: string };
+
+export async function readTextFromClipboard(): Promise<ClipboardReadResult> {
     if (typeof navigator === "undefined" || !navigator.clipboard?.readText) {
         return { ok: false, code: "unavailable" };
     }

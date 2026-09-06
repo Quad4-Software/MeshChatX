@@ -8,6 +8,97 @@
 
 import { EDGE_STRIDE, NODE_STRIDE } from "./networkVisualiserWebGL.js";
 
+export type VisualiserViewMode = "flat" | "planet";
+export type Vec3 = { x: number; y: number; z: number };
+export type ClipPoint = { x: number; y: number; z: number; w: number };
+export type ClipLine = { x1: number; y1: number; w1: number; x2: number; y2: number; w2: number };
+export type OrbitState = { yaw: number; pitch: number; dist: number };
+export type CameraBasis = { forward: Vec3; right: Vec3; up: Vec3 };
+export type SphereLayoutPoint = { x: number; y: number; z: number; theta: number; phi: number };
+export type ScreenPoint = { x: number; y: number; ok: boolean };
+export type GlobeGridLine = { x1: number; y1: number; z1: number; x2: number; y2: number; z2: number };
+export type Ray = { origin: Vec3; dir: Vec3 };
+export type RayHit = { x: number; y: number; z: number; t: number };
+export type PlanetCenter = { cx: number; cy: number; cz: number };
+export type PlanetBody = {
+    cx: number;
+    cy: number;
+    cz: number;
+    radius: number;
+    originX: number;
+    originY: number;
+    layoutScale: number;
+    ifaceIndex: number;
+    id: string;
+    fill: number[];
+    offline?: boolean;
+};
+export type PlanetHomesResult = {
+    ifaceIndices: number[];
+    home: Int16Array;
+    fallback: boolean;
+    homeById: Record<string, string>;
+};
+export type PlanetPickEntry = { id: string; sx: number; sy: number; size: number };
+export type PlanetProjectedNode = {
+    sx: number;
+    sy: number;
+    size: number;
+    facing: number;
+    front: boolean;
+    kind: number;
+};
+export type ProjectPlanetSceneOpts = {
+    nodes: Float32Array;
+    edges?: Float32Array | null;
+    width: number;
+    height: number;
+    yaw: number;
+    pitch: number;
+    dist: number;
+    dark: boolean;
+    idByIndex?: Array<string | null | undefined>;
+    kindByIndex?: Array<number | null | undefined>;
+    prevPlanets?: Array<{ id?: string; layoutScale?: number } | null | undefined>;
+    prevHomeById?: Record<string, string> | null;
+};
+export type ProjectPlanetSceneResult = {
+    nodes: Float32Array;
+    edges: Float32Array;
+    pick: PlanetPickEntry[];
+    projected: Array<PlanetProjectedNode | undefined>;
+    planets: PlanetBody[];
+    layoutScale: number;
+    homeById: Record<string, string>;
+    orbit: OrbitState;
+    camera: { x: number; y: number; zoom: number };
+};
+export type WorldScratch = {
+    x: number;
+    y: number;
+    z: number;
+    nx: number;
+    ny: number;
+    nz: number;
+    planet: number;
+};
+export type SpriteScratch = {
+    x: number;
+    y: number;
+    z: number;
+    size: number;
+    r: number;
+    g: number;
+    b: number;
+    a: number;
+    useTex: number;
+    u: number;
+    v: number;
+    sx: number;
+    sy: number;
+    ok: boolean;
+};
+
 export const PLANET_VIEW = "planet";
 export const FLAT_VIEW = "flat";
 
@@ -54,51 +145,42 @@ const PLANET_PALETTE = [
     [0.55, 0.52, 0.2],
 ];
 
-/** @type {Map<string, {x1:number,y1:number,z1:number,x2:number,y2:number,z2:number}[]>} */
-const globeGridCache = new Map();
+const globeGridCache: Map<string, { x1: number; y1: number; z1: number; x2: number; y2: number; z2: number }[]> =
+    new Map();
 
 let nodeScratch = new Float32Array(0);
 let edgeScratch = new Float32Array(0);
-const clipA: any = { x: 0, y: 0, z: 0, w: 0 };
-const clipB: any = { x: 0, y: 0, z: 0, w: 0 };
-let spriteScratch: any[] = [];
-let worldScratch: any[] = [];
+const clipA: ClipPoint = { x: 0, y: 0, z: 0, w: 0 };
+const clipB: ClipPoint = { x: 0, y: 0, z: 0, w: 0 };
+let spriteScratch: SpriteScratch[] = [];
+let worldScratch: WorldScratch[] = [];
 
-/**
- * @param {unknown} raw
- * @returns {"flat"|"planet"}
- */
-export function normalizeVisualiserViewMode(raw) {
+export function normalizeVisualiserViewMode(raw: unknown): VisualiserViewMode {
     return raw === PLANET_VIEW ? PLANET_VIEW : FLAT_VIEW;
 }
 
-/**
- * @param {number} kind
- */
-export function isPlanetInterfaceKind(kind) {
+export function isPlanetInterfaceKind(kind: number): boolean {
     return kind === PLANET_KIND_IFACE_ON || kind === PLANET_KIND_IFACE_OFF || kind === PLANET_KIND_DISCOVERED;
 }
 
-/**
- * @param {number} planetCount
- * @param {number} [maxPlanetRadius]
- */
-export function orbitDistFloor(planetCount, maxPlanetRadius) {
+export function orbitDistFloor(planetCount: number, maxPlanetRadius?: number): number {
     const hub = hubRadiusForPlanetCount(planetCount, maxPlanetRadius);
-    const r = maxPlanetRadius > 0 ? maxPlanetRadius : PLANET_RADIUS_MIN;
+    const r = maxPlanetRadius != null && maxPlanetRadius > 0 ? maxPlanetRadius : PLANET_RADIUS_MIN;
     return Math.max(PLANET_DIST_MIN, hub + r + 1.15);
 }
 
-/**
- * @param {number} planetCount
- * @param {number} [maxPlanetRadius]
- */
-export function orbitDistCeiling(planetCount, maxPlanetRadius) {
+export function orbitDistCeiling(planetCount: number, maxPlanetRadius?: number): number {
     const floor = orbitDistFloor(planetCount, maxPlanetRadius);
     return Math.max(PLANET_DIST_MAX, floor + 8);
 }
 
-export function clampOrbit(yaw, pitch, dist, planetCount, maxPlanetRadius) {
+export function clampOrbit(
+    yaw: number,
+    pitch: number,
+    dist: number,
+    planetCount?: number | null,
+    maxPlanetRadius?: number
+): { yaw: number; pitch: number; dist: number } {
     let y = Number.isFinite(yaw) ? yaw : DEFAULT_ORBIT_YAW;
     let p = Number.isFinite(pitch) ? pitch : DEFAULT_ORBIT_PITCH;
     if (p < -PLANET_PITCH_LIMIT) p = -PLANET_PITCH_LIMIT;
@@ -113,12 +195,11 @@ export function clampOrbit(yaw, pitch, dist, planetCount, maxPlanetRadius) {
 
 /**
  * Max layout radius used to wrap a cluster onto a sphere.
- * @param {Float32Array|number[]|null|undefined} nodes
- * @param {number} stride
  */
-export function computeLayoutScale(nodes, stride = NODE_STRIDE) {
+export function computeLayoutScale(nodes: ArrayLike<number> | null | undefined, stride = NODE_STRIDE): number {
     const step = stride > 0 ? stride : NODE_STRIDE;
-    const n = nodes && nodes.length ? Math.floor(nodes.length / step) : 0;
+    if (!nodes || !nodes.length) return LAYOUT_SCALE_FLOOR;
+    const n = Math.floor(nodes.length / step);
     let maxR = 0;
     for (let i = 0; i < n; i++) {
         const o = i * step;
@@ -128,13 +209,11 @@ export function computeLayoutScale(nodes, stride = NODE_STRIDE) {
     return Math.max(maxR * LAYOUT_SCALE_FIT, LAYOUT_SCALE_FLOOR);
 }
 
-/**
- * @param {number} x
- * @param {number} y
- * @param {number} layoutScale
- * @returns {{x:number,y:number,z:number,theta:number,phi:number}}
- */
-export function layoutToSphere(x, y, layoutScale) {
+export function layoutToSphere(
+    x: number,
+    y: number,
+    layoutScale: number
+): { x: number; y: number; z: number; theta: number; phi: number } {
     const scale = layoutScale > 1e-6 ? layoutScale : LAYOUT_SCALE_FLOOR;
     const lx = Number.isFinite(x) ? x : 0;
     const ly = Number.isFinite(y) ? y : 0;
@@ -154,7 +233,7 @@ export function layoutToSphere(x, y, layoutScale) {
 /**
  * Inverse of layoutToSphere. Point should lie on the unit sphere.
  */
-export function sphereToLayout(x, y, z, layoutScale) {
+export function sphereToLayout(x: number, y: number, z: number, layoutScale: number): { x: number; y: number } {
     const scale = layoutScale > 1e-6 ? layoutScale : LAYOUT_SCALE_FLOOR;
     const len = Math.hypot(x, y, z);
     if (len < 1e-8) return { x: 0, y: 0 };
@@ -167,7 +246,7 @@ export function sphereToLayout(x, y, z, layoutScale) {
     return { x: r * Math.cos(theta), y: r * Math.sin(theta) };
 }
 
-export function orbitEye(yaw, pitch, dist) {
+export function orbitEye(yaw: number, pitch: number, dist: number): Vec3 {
     const cp = Math.cos(pitch);
     return {
         x: dist * cp * Math.sin(yaw),
@@ -176,9 +255,9 @@ export function orbitEye(yaw, pitch, dist) {
     };
 }
 
-export function cameraBasis(eye) {
+export function cameraBasis(eye: Vec3): CameraBasis {
     const fl = Math.hypot(eye.x, eye.y, eye.z) || 1;
-    const forward: any = { x: -eye.x / fl, y: -eye.y / fl, z: -eye.z / fl };
+    const forward: Vec3 = { x: -eye.x / fl, y: -eye.y / fl, z: -eye.z / fl };
     let cx = forward.y * 0 - forward.z * 1;
     let cy = forward.z * 0 - forward.x * 0;
     let cz = forward.x * 1 - forward.y * 0;
@@ -189,8 +268,8 @@ export function cameraBasis(eye) {
         cz = 0;
         rl = 1;
     }
-    const right: any = { x: cx / rl, y: cy / rl, z: cz / rl };
-    const up: any = {
+    const right: Vec3 = { x: cx / rl, y: cy / rl, z: cz / rl };
+    const up: Vec3 = {
         x: right.y * forward.z - right.z * forward.y,
         y: right.z * forward.x - right.x * forward.z,
         z: right.x * forward.y - right.y * forward.x,
@@ -198,7 +277,7 @@ export function cameraBasis(eye) {
     return { forward, right, up };
 }
 
-export function lookAtOrigin(eye) {
+export function lookAtOrigin(eye: Vec3): Float32Array {
     const { forward, right, up } = cameraBasis(eye);
     const out = new Float32Array(16);
     out[0] = right.x;
@@ -220,7 +299,7 @@ export function lookAtOrigin(eye) {
     return out;
 }
 
-export function perspective(fovY, aspect, near, far) {
+export function perspective(fovY: number, aspect: number, near: number, far: number): Float32Array {
     const out = new Float32Array(16);
     const f = 1 / Math.tan(fovY * 0.5);
     const a = aspect > 1e-6 ? aspect : 1;
@@ -233,7 +312,7 @@ export function perspective(fovY, aspect, near, far) {
     return out;
 }
 
-export function mat4Multiply(a, b) {
+export function mat4Multiply(a: ArrayLike<number>, b: ArrayLike<number>): Float32Array {
     const out = new Float32Array(16);
     for (let col = 0; col < 4; col++) {
         const b0 = b[col * 4];
@@ -248,7 +327,13 @@ export function mat4Multiply(a, b) {
     return out;
 }
 
-export function transformPoint(m, x, y, z, out) {
+export function transformPoint(
+    m: ArrayLike<number>,
+    x: number,
+    y: number,
+    z: number,
+    out?: ClipPoint | null
+): ClipPoint {
     const dest = out || { x: 0, y: 0, z: 0, w: 0 };
     dest.x = m[0] * x + m[4] * y + m[8] * z + m[12];
     dest.y = m[1] * x + m[5] * y + m[9] * z + m[13];
@@ -260,19 +345,28 @@ export function transformPoint(m, x, y, z, out) {
 /**
  * Front of a unit sphere at the origin when dot(p, eye) > 1.
  */
-export function sphereFacing(px, py, pz, eye) {
+export function sphereFacing(px: number, py: number, pz: number, eye: Vec3): number {
     return px * eye.x + py * eye.y + pz * eye.z - 1;
 }
 
 /**
  * Front of a sphere at C with radius R. n is the unit local point.
  */
-export function sphereFacingAt(nx, ny, nz, eye, cx, cy, cz, radius) {
+export function sphereFacingAt(
+    nx: number,
+    ny: number,
+    nz: number,
+    eye: Vec3,
+    cx: number,
+    cy: number,
+    cz: number,
+    radius: number
+): number {
     const r = radius > 1e-6 ? radius : 1;
     return nx * (eye.x - cx) + ny * (eye.y - cy) + nz * (eye.z - cz) - r;
 }
 
-export function clipToScreen(clipX, clipY, clipW, width, height) {
+export function clipToScreen(clipX: number, clipY: number, clipW: number, width: number, height: number): ScreenPoint {
     if (!(Math.abs(clipW) > 1e-8)) {
         return { x: width * 0.5, y: height * 0.5, ok: false };
     }
@@ -289,7 +383,11 @@ export function clipToScreen(clipX, clipY, clipW, width, height) {
  * Clip a clip-space segment so both ends have w >= wMin.
  * Drops segments entirely behind the camera.
  */
-export function clipLineToPositiveW(c1, c2, wMin = CLIP_W_MIN) {
+export function clipLineToPositiveW(
+    c1: ClipPoint | null | undefined,
+    c2: ClipPoint | null | undefined,
+    wMin = CLIP_W_MIN
+): ClipLine | null {
     if (!c1 || !c2) return null;
     const minW = wMin > 0 ? wMin : CLIP_W_MIN;
     const aIn = c1.w >= minW;
@@ -310,19 +408,19 @@ export function clipLineToPositiveW(c1, c2, wMin = CLIP_W_MIN) {
     return { x1: c1.x, y1: c1.y, w1: c1.w, x2: mx, y2: my, w2: minW };
 }
 
-export function stabilizeLayoutScale(computed, prev) {
+export function stabilizeLayoutScale(computed: number, prev?: number | null): number {
     const next = computed > 1e-6 ? computed : PLANET_CLUSTER_SCALE_FLOOR;
-    if (!(prev > 1e-6)) return next;
+    if (prev == null || !(prev > 1e-6)) return next;
     const ratio = next / prev;
     if (ratio >= SCALE_HOLD_LO && ratio <= SCALE_HOLD_HI) return prev;
     return prev * 0.55 + next * 0.45;
 }
 
-export function screenToDrawWorld(sx, sy, width, height) {
+export function screenToDrawWorld(sx: number, sy: number, width: number, height: number): { x: number; y: number } {
     return { x: sx - width * 0.5, y: sy - height * 0.5 };
 }
 
-export function projectedSphereRadiusPx(dist, fovY, height) {
+export function projectedSphereRadiusPx(dist: number, fovY: number, height: number): number {
     const d = Math.max(dist, 1.001);
     const ang = Math.asin(Math.min(0.999, 1 / d));
     const half = Math.tan(fovY * 0.5);
@@ -330,27 +428,27 @@ export function projectedSphereRadiusPx(dist, fovY, height) {
     return (Math.tan(ang) / half) * (height * 0.5);
 }
 
-export function planetLodZoom(dist) {
+export function planetLodZoom(dist: number): number {
     const d = dist > 0.2 ? dist : DEFAULT_ORBIT_DIST;
     return DEFAULT_ORBIT_DIST / d;
 }
 
-function sph(lon, lat) {
+function sph(lon: number, lat: number): Vec3 {
     const cl = Math.cos(lat);
     return { x: cl * Math.cos(lon), y: Math.sin(lat), z: cl * Math.sin(lon) };
 }
 
-export function buildGlobeGrid(meridianCount = 12, parallelCount = 5, segs = 12) {
+export function buildGlobeGrid(meridianCount = 12, parallelCount = 5, segs = 12): GlobeGridLine[] {
     const m = Math.max(4, meridianCount | 0);
     const p = Math.max(2, parallelCount | 0);
     const g = Math.max(6, segs | 0);
     const key = `${m}:${p}:${g}`;
     const cached = globeGridCache.get(key);
     if (cached) return cached;
-    const lines: any[] = [];
+    const lines: GlobeGridLine[] = [];
     for (let i = 0; i < m; i++) {
         const lon = (i / m) * Math.PI * 2;
-        let prev: any = null;
+        let prev: Vec3 | null = null;
         for (let s = 0; s <= g; s++) {
             const lat = Math.PI / 2 - (s / g) * Math.PI;
             const pt = sph(lon, lat);
@@ -362,7 +460,7 @@ export function buildGlobeGrid(meridianCount = 12, parallelCount = 5, segs = 12)
     }
     for (let j = 1; j <= p; j++) {
         const lat = Math.PI / 2 - (j / (p + 1)) * Math.PI;
-        let prev: any = null;
+        let prev: Vec3 | null = null;
         const first = sph(0, lat);
         for (let s = 1; s <= g; s++) {
             const lon = (s / g) * Math.PI * 2;
@@ -377,7 +475,7 @@ export function buildGlobeGrid(meridianCount = 12, parallelCount = 5, segs = 12)
     return lines;
 }
 
-export function screenRay(cssX, cssY, width, height, eye) {
+export function screenRay(cssX: number, cssY: number, width: number, height: number, eye: Vec3): Ray {
     const { forward, right, up } = cameraBasis(eye);
     const aspect = height > 0 ? width / height : 1;
     const tanHalf = Math.tan(PLANET_FOV_Y * 0.5);
@@ -393,7 +491,7 @@ export function screenRay(cssX, cssY, width, height, eye) {
     };
 }
 
-export function raySphere(origin, dir, radius = 1) {
+export function raySphere(origin: Vec3, dir: Vec3, radius = 1): RayHit | null {
     const r2 = radius * radius;
     const ox = origin.x;
     const oy = origin.y;
@@ -416,22 +514,29 @@ export function raySphere(origin, dir, radius = 1) {
 /**
  * Ray vs sphere at C with radius R.
  */
-export function raySphereAt(origin, dir, cx, cy, cz, radius) {
+export function raySphereAt(
+    origin: Vec3,
+    dir: Vec3,
+    cx: number,
+    cy: number,
+    cz: number,
+    radius: number
+): RayHit | null {
     const hit = raySphere({ x: origin.x - cx, y: origin.y - cy, z: origin.z - cz }, dir, radius);
     if (!hit) return null;
     return { x: hit.x + cx, y: hit.y + cy, z: hit.z + cz, t: hit.t };
 }
 
-export function hubRadiusForPlanetCount(n, maxPlanetRadius) {
+export function hubRadiusForPlanetCount(n: number, maxPlanetRadius?: number): number {
     const c = Math.max(1, n | 0);
-    const r = maxPlanetRadius > 0 ? maxPlanetRadius : PLANET_RADIUS_MIN;
+    const r = maxPlanetRadius != null && maxPlanetRadius > 0 ? maxPlanetRadius : PLANET_RADIUS_MIN;
     if (c <= 1) return 1.35 + r;
     const minCenterDist = 2 * r + PLANET_HUB_GAP;
     const ring = minCenterDist / (2 * Math.sin(Math.PI / c));
     return Math.max(1.35 + r, ring);
 }
 
-export function planetRadiusForPeers(n) {
+export function planetRadiusForPeers(n: number): number {
     const c = Math.max(0, n | 0);
     return Math.min(PLANET_RADIUS_MAX, PLANET_RADIUS_MIN + 0.11 * Math.sqrt(c));
 }
@@ -440,10 +545,10 @@ export function planetRadiusForPeers(n) {
  * Centers for n interface planets on a ring around the origin.
  * First planet sits on +X so the local node stays visible on camera +Z.
  */
-export function placePlanetCenters(count, maxPlanetRadius) {
+export function placePlanetCenters(count: number, maxPlanetRadius?: number): PlanetCenter[] {
     const n = Math.max(0, count | 0);
     const R = hubRadiusForPlanetCount(n, maxPlanetRadius);
-    const out: any[] = [];
+    const out: PlanetCenter[] = [];
     for (let i = 0; i < n; i++) {
         const ang = n === 1 ? 0 : (i / n) * Math.PI * 2;
         out.push({
@@ -455,7 +560,7 @@ export function placePlanetCenters(count, maxPlanetRadius) {
     return out;
 }
 
-function tangentBasis(nx, ny, nz) {
+function tangentBasis(nx: number, ny: number, nz: number) {
     let rx = 0;
     let ry = 1;
     let rz = 0;
@@ -480,7 +585,7 @@ function tangentBasis(nx, ny, nz) {
     };
 }
 
-function setUnit(p, x, y, z) {
+function setUnit(p: Vec3, x: number, y: number, z: number): void {
     const len = Math.hypot(x, y, z) || 1;
     p.x = x / len;
     p.y = y / len;
@@ -489,9 +594,8 @@ function setUnit(p, x, y, z) {
 
 /**
  * Minimum angular gap for n points on a unit sphere.
- * @param {number} n
  */
-export function planetMinAngle(n) {
+export function planetMinAngle(n: number): number {
     const c = Math.max(1, n | 0);
     return Math.min(0.52, 1.38 / Math.sqrt(c));
 }
@@ -500,14 +604,12 @@ export function planetMinAngle(n) {
  * Unstick stacked unit-sphere points and push near neighbors apart.
  * Deterministic. Uses a golden-angle cap for coincident groups.
  *
- * @param {{x:number,y:number,z:number}[]} points
- * @param {number} minAngle
  */
-export function spreadSphereLocals(points, minAngle) {
+export function spreadSphereLocals(points: Vec3[], minAngle: number): Vec3[] | undefined {
     const n = points && points.length ? points.length : 0;
     if (n < 2 || !(minAngle > 1e-4)) return points;
     const quant = 2500;
-    const groups = new Map();
+    const groups = new Map<string, number[]>();
     for (let i = 0; i < n; i++) {
         const p = points[i];
         const key = `${Math.round(p.x * quant)}:${Math.round(p.y * quant)}:${Math.round(p.z * quant)}`;
@@ -546,7 +648,7 @@ export function spreadSphereLocals(points, minAngle) {
     const iters = n > 220 ? 2 : 3;
     const push = 0.32;
     for (let iter = 0; iter < iters; iter++) {
-        const buckets = new Map();
+        const buckets = new Map<number, number[]>();
         for (let i = 0; i < n; i++) {
             const p = points[i];
             const theta = Math.atan2(p.y, p.x);
@@ -595,9 +697,14 @@ export function spreadSphereLocals(points, minAngle) {
     return points;
 }
 
-function kindOf(i, kindByIndex, idByIndex) {
-    if (kindByIndex && kindByIndex[i] != null && kindByIndex[i] !== "") {
-        return kindByIndex[i] | 0;
+function kindOf(
+    i: number,
+    kindByIndex: Array<number | null | undefined> | null | undefined,
+    idByIndex: Array<string | null | undefined> | null | undefined
+): number {
+    const kindVal = kindByIndex?.[i];
+    if (kindVal != null) {
+        return Number(kindVal) | 0;
     }
     const id = idByIndex && idByIndex[i] != null ? String(idByIndex[i]) : "";
     if (id === "me") return PLANET_KIND_ME;
@@ -608,13 +715,14 @@ function kindOf(i, kindByIndex, idByIndex) {
  * Map each node to an interface planet. Me is the hub (home -1).
  * With no interfaces, leftover peers share one fallback planet.
  *
- * @returns {{
- *   ifaceIndices: number[],
- *   home: Int16Array,
- *   fallback: boolean,
- * }}
  */
-export function assignPlanetHomes(srcCount, kindByIndex, idByIndex, nodes, prevHomeById) {
+export function assignPlanetHomes(
+    srcCount: number,
+    kindByIndex: Array<number | null | undefined> | null | undefined,
+    idByIndex: Array<string | null | undefined> | null | undefined,
+    nodes: Float32Array | number[] | null | undefined,
+    prevHomeById?: Record<string, string> | null
+): PlanetHomesResult {
     const home = new Int16Array(srcCount);
     const ifaceIndices: number[] = [];
     for (let i = 0; i < srcCount; i++) {
@@ -625,7 +733,9 @@ export function assignPlanetHomes(srcCount, kindByIndex, idByIndex, nodes, prevH
             ifaceIndices.push(i);
         }
     }
-    const homeById = Object.create(null);
+    const homeById: Record<string, string> = Object.create(null);
+    const ids = idByIndex || [];
+    const pts = nodes || [];
     if (ifaceIndices.length === 0) {
         for (let i = 0; i < srcCount; i++) {
             const k = kindOf(i, kindByIndex, idByIndex);
@@ -633,33 +743,33 @@ export function assignPlanetHomes(srcCount, kindByIndex, idByIndex, nodes, prevH
         }
         return { ifaceIndices, home, fallback: true, homeById };
     }
-    const ifaceIdOf = (planetIndex) => {
+    const ifaceIdOf = (planetIndex: number): string => {
         const ii = ifaceIndices[planetIndex];
-        return ii == null || idByIndex[ii] == null ? "" : String(idByIndex[ii]);
+        return ii == null || ids[ii] == null ? "" : String(ids[ii]);
     };
     for (let i = 0; i < srcCount; i++) {
         const k = kindOf(i, kindByIndex, idByIndex);
         if (k === PLANET_KIND_ME || isPlanetInterfaceKind(k)) continue;
         const o = i * NODE_STRIDE;
-        const x = nodes[o] || 0;
-        const y = nodes[o + 1] || 0;
+        const x = pts[o] || 0;
+        const y = pts[o + 1] || 0;
         let best = 0;
         let bestD = Infinity;
         for (let p = 0; p < ifaceIndices.length; p++) {
             const io = ifaceIndices[p] * NODE_STRIDE;
-            const d = Math.hypot(x - (nodes[io] || 0), y - (nodes[io + 1] || 0));
+            const d = Math.hypot(x - (pts[io] || 0), y - (pts[io + 1] || 0));
             if (d < bestD) {
                 bestD = d;
                 best = p;
             }
         }
-        const id = idByIndex[i] != null ? String(idByIndex[i]) : "";
+        const id = ids[i] != null ? String(ids[i]) : "";
         const prevIfaceId = id && prevHomeById ? prevHomeById[id] : "";
         if (prevIfaceId) {
             for (let p = 0; p < ifaceIndices.length; p++) {
                 if (ifaceIdOf(p) !== String(prevIfaceId)) continue;
                 const io = ifaceIndices[p] * NODE_STRIDE;
-                const prevD = Math.hypot(x - (nodes[io] || 0), y - (nodes[io + 1] || 0));
+                const prevD = Math.hypot(x - (pts[io] || 0), y - (pts[io + 1] || 0));
                 if (prevD <= bestD + PLANET_HOME_STICKY) {
                     best = p;
                 }
@@ -671,13 +781,13 @@ export function assignPlanetHomes(srcCount, kindByIndex, idByIndex, nodes, prevH
     }
     for (let p = 0; p < ifaceIndices.length; p++) {
         const ii = ifaceIndices[p];
-        const id = idByIndex[ii] != null ? String(idByIndex[ii]) : "";
+        const id = ids[ii] != null ? String(ids[ii]) : "";
         if (id) homeById[id] = id;
     }
     return { ifaceIndices, home, fallback: false, homeById };
 }
 
-function paletteForId(id, offline, dark) {
+function paletteForId(id: string | null | undefined, offline: boolean, dark: boolean): number[] {
     const s = String(id || "");
     let h = 0;
     for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
@@ -689,12 +799,18 @@ function paletteForId(id, offline, dark) {
 
 /**
  * Nearest planet hit, or null.
- * @param {{cx:number,cy:number,cz:number,radius:number}[]} planets
  */
-export function raycastPlanets(cssX, cssY, width, height, eye, planets) {
+export function raycastPlanets(
+    cssX: number,
+    cssY: number,
+    width: number,
+    height: number,
+    eye: { x: number; y: number; z: number },
+    planets: { cx: number; cy: number; cz: number; radius: number }[]
+): { x: number; y: number; z: number; t: number; planetIndex: number } | null {
     if (!Array.isArray(planets) || !planets.length) return null;
     const ray = screenRay(cssX, cssY, width, height, eye);
-    let best: any = null;
+    let best: (RayHit & { planetIndex: number }) | null = null;
     for (let i = 0; i < planets.length; i++) {
         const p = planets[i];
         const hit = raySphereAt(ray.origin, ray.dir, p.cx, p.cy, p.cz, p.radius);
@@ -710,11 +826,21 @@ export function raycastPlanets(cssX, cssY, width, height, eye, planets) {
  * 2D layout under a planet-mode pointer, or null if the ray misses.
  * With planets, the hit maps onto that interface cluster.
  */
-export function pointerToLayout(cssX, cssY, width, height, eye, layoutScale, planets) {
+export function pointerToLayout(
+    cssX: number,
+    cssY: number,
+    width: number,
+    height: number,
+    eye: Vec3,
+    layoutScale: number,
+    planets?: Array<PlanetBody | null | undefined> | null
+): { x: number; y: number; planetIndex?: number } | null {
     if (Array.isArray(planets) && planets.length) {
-        const hit = raycastPlanets(cssX, cssY, width, height, eye, planets);
+        const bodies = planets.filter((p): p is PlanetBody => !!p);
+        const hit = raycastPlanets(cssX, cssY, width, height, eye, bodies);
         if (!hit) return null;
-        const p = planets[hit.planetIndex];
+        const p = bodies[hit.planetIndex];
+        if (!p) return null;
         const r = p.radius > 1e-6 ? p.radius : 1;
         const off = sphereToLayout((hit.x - p.cx) / r, (hit.y - p.cy) / r, (hit.z - p.cz) / r, p.layoutScale);
         return { x: (p.originX || 0) + off.x, y: (p.originY || 0) + off.y, planetIndex: hit.planetIndex };
@@ -725,33 +851,48 @@ export function pointerToLayout(cssX, cssY, width, height, eye, layoutScale, pla
     return sphereToLayout(hit.x, hit.y, hit.z, layoutScale);
 }
 
-export function layoutToWasmScreen(lx: number, ly: number, width: number, height: number, cam: any = null) {
-    const zoom = cam?.zoom > 0 ? cam.zoom : 1;
+export function layoutToWasmScreen(
+    lx: number,
+    ly: number,
+    width: number,
+    height: number,
+    cam: { x?: number; y?: number; zoom?: number } | null = null
+): { x: number; y: number } {
+    const zoomRaw = cam?.zoom;
+    const zoom = zoomRaw != null && zoomRaw > 0 ? zoomRaw : 1;
     return {
         x: (lx - (cam?.x || 0)) * zoom + width * 0.5,
         y: (ly - (cam?.y || 0)) * zoom + height * 0.5,
     };
 }
 
-function localScaleForPlanet(nodes, srcCount, home, planetIndex, ifaceIndex, fallback) {
+function localScaleForPlanet(
+    nodes: Float32Array | number[] | null | undefined,
+    srcCount: number,
+    home: Int16Array,
+    planetIndex: number,
+    ifaceIndex: number,
+    fallback: boolean
+): number {
     let maxR = 0;
-    const ox = fallback || ifaceIndex < 0 ? 0 : nodes[ifaceIndex * NODE_STRIDE] || 0;
-    const oy = fallback || ifaceIndex < 0 ? 0 : nodes[ifaceIndex * NODE_STRIDE + 1] || 0;
+    const pts = nodes || [];
+    const ox = fallback || ifaceIndex < 0 ? 0 : pts[ifaceIndex * NODE_STRIDE] || 0;
+    const oy = fallback || ifaceIndex < 0 ? 0 : pts[ifaceIndex * NODE_STRIDE + 1] || 0;
     for (let i = 0; i < srcCount; i++) {
         if (home[i] !== planetIndex) continue;
         const kOff = i * NODE_STRIDE;
-        const r = Math.hypot((nodes[kOff] || 0) - ox, (nodes[kOff + 1] || 0) - oy);
+        const r = Math.hypot((pts[kOff] || 0) - ox, (pts[kOff + 1] || 0) - oy);
         if (r > maxR) maxR = r;
     }
     return Math.max(maxR * LAYOUT_SCALE_FIT, PLANET_CLUSTER_SCALE_FLOOR);
 }
 
-function posKey(x, y) {
+function posKey(x: number, y: number): number {
     return (Math.round(x * 2) + 500000) * 1000003 + (Math.round(y * 2) + 500000);
 }
 
-function buildNodePosIndex(nodes, count) {
-    const map = new Map();
+function buildNodePosIndex(nodes: Float32Array | number[], count: number): Map<number, number[]> {
+    const map = new Map<number, number[]>();
     for (let n = 0; n < count; n++) {
         const o = n * NODE_STRIDE;
         const key = posKey(nodes[o] || 0, nodes[o + 1] || 0);
@@ -765,14 +906,20 @@ function buildNodePosIndex(nodes, count) {
     return map;
 }
 
-function nearestNodeAt(map, x, y, nodes, maxD) {
+function nearestNodeAt(
+    map: Map<number, number[]> | null,
+    x: number,
+    y: number,
+    nodes: Float32Array | number[],
+    maxD: number
+): number {
     const kx = Math.round(x * 2);
     const ky = Math.round(y * 2);
     let best = -1;
     let bestD = maxD;
     for (let dx = -1; dx <= 1; dx++) {
         for (let dy = -1; dy <= 1; dy++) {
-            const list = map.get((kx + dx + 500000) * 1000003 + (ky + dy + 500000));
+            const list = map?.get((kx + dx + 500000) * 1000003 + (ky + dy + 500000));
             if (!list) continue;
             for (let li = 0; li < list.length; li++) {
                 const n = list[li];
@@ -788,7 +935,7 @@ function nearestNodeAt(map, x, y, nodes, maxD) {
     return best;
 }
 
-function takeWorld(i) {
+function takeWorld(i: number): WorldScratch {
     let w = worldScratch[i];
     if (!w) {
         w = { x: 0, y: 0, z: 0, nx: 0, ny: 0, nz: 1, planet: -1 };
@@ -797,7 +944,16 @@ function takeWorld(i) {
     return w;
 }
 
-function setWorld(i, x, y, z, nx, ny, nz, planet) {
+function setWorld(
+    i: number,
+    x: number,
+    y: number,
+    z: number,
+    nx: number,
+    ny: number,
+    nz: number,
+    planet: number
+): WorldScratch {
     const w = takeWorld(i);
     w.x = x;
     w.y = y;
@@ -809,7 +965,7 @@ function setWorld(i, x, y, z, nx, ny, nz, planet) {
     return w;
 }
 
-function takeSprite(i) {
+function takeSprite(i: number): SpriteScratch {
     let s = spriteScratch[i];
     if (!s) {
         s = {
@@ -836,39 +992,25 @@ function takeSprite(i) {
 /**
  * Project the 2D graph onto per-interface globes.
  *
- * @param {{
- *   nodes: Float32Array,
- *   edges: Float32Array|null|undefined,
- *   width: number,
- *   height: number,
- *   yaw: number,
- *   pitch: number,
- *   dist: number,
- *   dark: boolean,
- *   idByIndex?: (string|null|undefined)[],
- *   kindByIndex?: (number|null|undefined)[],
- *   prevPlanets?: {id?:string,layoutScale?:number}[],
- *   prevHomeById?: Record<string, string>,
- * }} opts
  */
-export function projectPlanetScene(opts) {
-    const width = Math.max(1, opts?.width || 1);
-    const height = Math.max(1, opts?.height || 1);
-    const srcNodes = opts?.nodes;
+export function projectPlanetScene(opts: ProjectPlanetSceneOpts): ProjectPlanetSceneResult {
+    const width = Math.max(1, opts.width || 1);
+    const height = Math.max(1, opts.height || 1);
+    const srcNodes = opts.nodes;
     const srcCount = srcNodes && srcNodes.length ? Math.floor(srcNodes.length / NODE_STRIDE) : 0;
-    const idByIndex = opts?.idByIndex || [];
-    const kindByIndex = opts?.kindByIndex || [];
-    const dark = opts?.dark === true;
-    const srcEdges = opts?.edges;
+    const idByIndex = opts.idByIndex || [];
+    const kindByIndex = opts.kindByIndex || [];
+    const dark = opts.dark === true;
+    const srcEdges = opts.edges || null;
     const srcEdgeCount = srcEdges && srcEdges.length ? Math.floor(srcEdges.length / EDGE_STRIDE) : 0;
-    const prevPlanets = Array.isArray(opts?.prevPlanets) ? opts.prevPlanets : [];
-    const prevScaleById = Object.create(null);
+    const prevPlanets = Array.isArray(opts.prevPlanets) ? opts.prevPlanets : [];
+    const prevScaleById: Record<string, number | undefined> = Object.create(null);
     for (let i = 0; i < prevPlanets.length; i++) {
         const pl = prevPlanets[i];
         if (pl?.id) prevScaleById[String(pl.id)] = pl.layoutScale;
     }
 
-    const assigned = assignPlanetHomes(srcCount, kindByIndex, idByIndex, srcNodes, opts?.prevHomeById);
+    const assigned = assignPlanetHomes(srcCount, kindByIndex, idByIndex, srcNodes, opts.prevHomeById);
     const planetCount = assigned.fallback ? (srcCount > 1 ? 1 : 0) : assigned.ifaceIndices.length;
     const memberCounts = new Array(Math.max(planetCount, 1)).fill(0);
     for (let i = 0; i < srcCount; i++) {
@@ -882,9 +1024,9 @@ export function projectPlanetScene(opts) {
         if (radii[p] > maxPlanetR) maxPlanetR = radii[p];
     }
     const orbit = clampOrbit(
-        opts?.yaw ?? DEFAULT_ORBIT_YAW,
-        opts?.pitch ?? DEFAULT_ORBIT_PITCH,
-        opts?.dist ?? DEFAULT_ORBIT_DIST,
+        opts.yaw ?? DEFAULT_ORBIT_YAW,
+        opts.pitch ?? DEFAULT_ORBIT_PITCH,
+        opts.dist ?? DEFAULT_ORBIT_DIST,
         planetCount,
         maxPlanetR
     );
@@ -896,7 +1038,7 @@ export function projectPlanetScene(opts) {
     const viewProj = mat4Multiply(proj, view);
     const centers = placePlanetCenters(planetCount, maxPlanetR);
 
-    const planets: any[] = [];
+    const planets: PlanetBody[] = [];
     for (let p = 0; p < planetCount; p++) {
         const ifaceIndex = assigned.fallback ? -1 : assigned.ifaceIndices[p];
         const c = centers[p] || { cx: 1.7, cy: 0.1, cz: 0 };
@@ -955,7 +1097,7 @@ export function projectPlanetScene(opts) {
 
     for (let p = 0; p < planetCount; p++) {
         const idxs: number[] = [];
-        const locals: any[] = [];
+        const locals: Vec3[] = [];
         const pl = planets[p];
         for (let i = 0; i < srcCount; i++) {
             if (assigned.home[i] !== p) continue;
@@ -983,7 +1125,19 @@ export function projectPlanetScene(opts) {
     }
 
     let spriteCount = 0;
-    const addSprite = (wx, wy, wz, size, r, g, b, a, useTex, u, v) => {
+    const addSprite = (
+        wx: number,
+        wy: number,
+        wz: number,
+        size: number,
+        r: number,
+        g: number,
+        b: number,
+        a: number,
+        useTex: number,
+        u: number,
+        v: number
+    ): SpriteScratch | null => {
         const clip = transformPoint(viewProj, wx, wy, wz, clipA);
         const screen = clipToScreen(clip.x, clip.y, clip.w, width, height);
         if (!screen.ok && clip.w <= 0) return null;
@@ -1032,8 +1186,8 @@ export function projectPlanetScene(opts) {
 
     addSprite(0, 0, 0, 22, dark ? 0.95 : 0.9, dark ? 0.78 : 0.62, dark ? 0.28 : 0.16, 0.22, 0, 0, 0);
 
-    const projected = new Array(srcCount);
-    const pick: any[] = [];
+    const projected: Array<PlanetProjectedNode | undefined> = new Array(srcCount);
+    const pick: PlanetPickEntry[] = [];
     for (let i = 0; i < srcCount; i++) {
         const w = worldScratch[i];
         const o = i * NODE_STRIDE;
@@ -1067,7 +1221,7 @@ export function projectPlanetScene(opts) {
             srcNodes[o + 8],
             srcNodes[o + 9]
         );
-        const rec: any = {
+        const rec: PlanetProjectedNode = {
             sx: spr ? spr.sx : 0,
             sy: spr ? spr.sy : 0,
             size,
@@ -1111,7 +1265,23 @@ export function projectPlanetScene(opts) {
     }
     let w = 0;
     const maxSeg = 1.5 * Math.hypot(width, height);
-    const writeWorldSeg = (x1, y1, z1, x2, y2, z2, r, g, b, a, requireFront, cx, cy, cz, radius) => {
+    const writeWorldSeg = (
+        x1: number,
+        y1: number,
+        z1: number,
+        x2: number,
+        y2: number,
+        z2: number,
+        r: number,
+        g: number,
+        b: number,
+        a: number,
+        requireFront: boolean,
+        cx: number,
+        cy: number,
+        cz: number,
+        radius: number
+    ): void => {
         if (requireFront) {
             const n1x = radius > 1e-6 ? (x1 - cx) / radius : x1;
             const n1y = radius > 1e-6 ? (y1 - cy) / radius : y1;
@@ -1150,10 +1320,10 @@ export function projectPlanetScene(opts) {
 
     const ringR = hub;
     const ringCol = dark ? [0.28, 0.4, 0.55, 0.22] : [0.45, 0.55, 0.7, 0.28];
-    let prevRing: any = null;
+    let prevRing: Vec3 | null = null;
     for (let s = 0; s <= ringSegs; s++) {
         const ang = (s / ringSegs) * Math.PI * 2;
-        const pt: any = { x: ringR * Math.cos(ang), y: 0, z: ringR * Math.sin(ang) };
+        const pt: Vec3 = { x: ringR * Math.cos(ang), y: 0, z: ringR * Math.sin(ang) };
         if (prevRing) {
             writeWorldSeg(
                 prevRing.x,
@@ -1221,6 +1391,7 @@ export function projectPlanetScene(opts) {
     const EDGE_MATCH = 0.75;
     const nodeIndex = srcEdgeCount > 0 ? buildNodePosIndex(srcNodes, srcCount) : null;
     for (let i = 0; i < srcEdgeCount; i++) {
+        if (!srcEdges) break;
         const o = i * EDGE_STRIDE;
         const x1 = srcEdges[o];
         const y1 = srcEdges[o + 1];
@@ -1255,7 +1426,7 @@ export function projectPlanetScene(opts) {
         );
     }
 
-    const layoutScale = planets[0] ? planets[0].layoutScale : LAYOUT_SCALE_FLOOR;
+    const layoutScale = planets[0]?.layoutScale ?? LAYOUT_SCALE_FLOOR;
     return {
         nodes: nodeScratch.subarray(0, Math.max(nodeNeed, 0)),
         edges: edgeScratch.subarray(0, w * EDGE_STRIDE),
@@ -1269,12 +1440,18 @@ export function projectPlanetScene(opts) {
     };
 }
 
-export function pickPlanetNode(pick, cssX, cssY, pad = 10) {
+export function pickPlanetNode(
+    pick: Array<PlanetPickEntry | null | undefined> | null | undefined,
+    cssX: number,
+    cssY: number,
+    pad = 10
+): string | null {
     if (!Array.isArray(pick) || !pick.length) return null;
-    let best: any = null;
+    let best: string | null = null;
     let bestD = Infinity;
     for (let i = 0; i < pick.length; i++) {
         const n = pick[i];
+        if (!n) continue;
         const d = Math.hypot((n.sx || 0) - cssX, (n.sy || 0) - cssY);
         const hit = Math.max(n.size || 10, pad);
         if (d <= hit && d < bestD) {

@@ -52,8 +52,8 @@ export async function flashNrf52Op(
     const transport = await SerialTransport.request();
     try {
         const flasher = new Nrf52DfuFlasher(transport.port);
-        await flasher.flash(firmwareFile, (percentage: number, message: string) => {
-            onProgress(percentage, message || t("tools.rnode_flasher.flashing", { percentage }));
+        await flasher.flash(firmwareFile, (percentage: number) => {
+            onProgress(percentage, t("tools.rnode_flasher.flashing", { percentage }));
         });
     } finally {
         if (transport) await transport.close().catch(() => {});

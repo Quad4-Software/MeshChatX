@@ -84,7 +84,7 @@
     });
 </script>
 
-<div class="space-y-2">
+<div class="space-y-2 {className}">
     <div class="flex flex-wrap items-end gap-2">
         <label class="block min-w-0 flex-1 space-y-1">
             <span class="text-xs font-medium text-sem-fg-muted">{t("remote_mgmt.management_identity")}</span>

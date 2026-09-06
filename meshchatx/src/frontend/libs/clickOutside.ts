@@ -10,7 +10,7 @@
  *   { handler, middleware, events, isActive, detectIframe, capture }
  */
 
-const HANDLERS_PROPERTY = "__meshchatx_click_outside";
+export const HANDLERS_PROPERTY = "__meshchatx_click_outside";
 
 const HAS_WINDOW = typeof window !== "undefined";
 const HAS_NAVIGATOR = typeof navigator !== "undefined";
@@ -18,18 +18,54 @@ const HAS_NAVIGATOR = typeof navigator !== "undefined";
 const IS_TOUCH =
     HAS_WINDOW && ("ontouchstart" in window || (HAS_NAVIGATOR && Number(navigator.maxTouchPoints || 0) > 0));
 
-const DEFAULT_EVENTS = IS_TOUCH ? ["touchstart"] : ["click"];
+export const DEFAULT_EVENTS: readonly string[] = IS_TOUCH ? ["touchstart"] : ["click"];
 
-/**
- * @param {unknown} bindingValue
- */
-export function processDirectiveArguments(bindingValue) {
+export type ClickOutsideHandler = (event: Event) => void;
+export type ClickOutsideMiddleware = (event: Event) => unknown;
+
+export interface ClickOutsideBindingObject {
+    handler?: ClickOutsideHandler;
+    middleware?: ClickOutsideMiddleware;
+    events?: string[];
+    isActive?: boolean;
+    detectIframe?: boolean;
+    capture?: boolean;
+}
+
+export type ClickOutsideBindingValue = ClickOutsideHandler | ClickOutsideBindingObject;
+
+export interface ProcessedClickOutsideArgs {
+    handler: ClickOutsideHandler;
+    middleware: ClickOutsideMiddleware;
+    events: readonly string[];
+    isActive: boolean;
+    detectIframe: boolean;
+    capture: boolean;
+}
+
+export interface ClickOutsideListenerEntry {
+    event: string;
+    srcTarget: EventTarget;
+    handler: EventListener;
+    capture: boolean;
+}
+
+export type ClickOutsideHostElement = Element & {
+    [HANDLERS_PROPERTY]?: ClickOutsideListenerEntry[];
+};
+
+export interface ClickOutsideDirectiveBinding {
+    value: ClickOutsideBindingValue;
+    oldValue?: ClickOutsideBindingValue;
+}
+
+export function processDirectiveArguments(bindingValue: unknown): ProcessedClickOutsideArgs {
     const isFunction = typeof bindingValue === "function";
     if (!isFunction && (bindingValue == null || typeof bindingValue !== "object")) {
         throw new Error("v-click-outside: Binding value must be a function or an object");
     }
-    const value = /** @type {Record<string, unknown>} */ isFunction ? {} : bindingValue;
-    const handler = isFunction ? bindingValue : value.handler;
+    const value = (isFunction ? {} : bindingValue) as ClickOutsideBindingObject;
+    const handler = isFunction ? (bindingValue as ClickOutsideHandler) : value.handler;
     if (typeof handler !== "function") {
         throw new Error("v-click-outside: handler must be a function");
     }
@@ -45,12 +81,8 @@ export function processDirectiveArguments(bindingValue) {
 
 /**
  * Compare bindings without JSON.stringify so function identity is preserved.
- *
- * @param {unknown} a
- * @param {unknown} b
- * @returns {boolean}
  */
-export function bindingsEqual(a, b) {
+export function bindingsEqual(a: unknown, b: unknown): boolean {
     if (a === b) {
         return true;
     }
@@ -60,8 +92,8 @@ export function bindingsEqual(a, b) {
     if (!a || !b || typeof a !== "object" || typeof b !== "object") {
         return false;
     }
-    const left = /** @type {Record<string, unknown>} */ a;
-    const right = /** @type {Record<string, unknown>} */ b;
+    const left = a as ClickOutsideBindingObject;
+    const right = b as ClickOutsideBindingObject;
     return (
         left.handler === right.handler &&
         left.middleware === right.middleware &&
@@ -72,25 +104,26 @@ export function bindingsEqual(a, b) {
     );
 }
 
-/**
- * @param {{ event: Event, handler: Function, middleware: Function }} args
- */
-export function execHandler({ event, handler, middleware }) {
+export function execHandler({
+    event,
+    handler,
+    middleware,
+}: {
+    event: Event;
+    handler: ClickOutsideHandler;
+    middleware: ClickOutsideMiddleware;
+}): void {
     if (middleware(event)) {
         handler(event);
     }
 }
 
-/**
- * @param {{ el: Element, event: Event }} args
- * @returns {boolean}
- */
-export function isClickOutsideElement({ el, event }) {
+export function isClickOutsideElement({ el, event }: { el: Element; event: Event }): boolean {
     const path =
         typeof event.composedPath === "function"
             ? event.composedPath()
-            : "path" in event && Array.isArray(event.path)
-              ? event.path
+            : "path" in event && Array.isArray((event as Event & { path?: EventTarget[] }).path)
+              ? (event as Event & { path: EventTarget[] }).path
               : null;
     if (path) {
         return path.indexOf(el) < 0;
@@ -102,10 +135,17 @@ export function isClickOutsideElement({ el, event }) {
     return !el.contains(target);
 }
 
-/**
- * @param {{ el: Element, event: Event, handler: Function, middleware: Function }} args
- */
-export function onFauxIframeClick({ el, event, handler, middleware }) {
+export function onFauxIframeClick({
+    el,
+    event,
+    handler,
+    middleware,
+}: {
+    el: Element;
+    event: Event;
+    handler: ClickOutsideHandler;
+    middleware: ClickOutsideMiddleware;
+}): void {
     setTimeout(() => {
         const { activeElement } = document;
         if (activeElement && activeElement.tagName === "IFRAME" && !el.contains(activeElement)) {
@@ -114,21 +154,24 @@ export function onFauxIframeClick({ el, event, handler, middleware }) {
     }, 0);
 }
 
-/**
- * @param {{ el: Element, event: Event, handler: Function, middleware: Function }} args
- */
-export function onOutsideEvent({ el, event, handler, middleware }) {
+export function onOutsideEvent({
+    el,
+    event,
+    handler,
+    middleware,
+}: {
+    el: Element;
+    event: Event;
+    handler: ClickOutsideHandler;
+    middleware: ClickOutsideMiddleware;
+}): void {
     if (!isClickOutsideElement({ el, event })) {
         return;
     }
     execHandler({ event, handler, middleware });
 }
 
-/**
- * @param {Element} el
- * @param {{ value: unknown }} binding
- */
-export function beforeMount(el, { value }) {
+export function beforeMount(el: ClickOutsideHostElement, { value }: { value: unknown }): void {
     const { events, handler, middleware, isActive, detectIframe, capture } = processDirectiveArguments(value);
     if (!isActive) {
         return;
@@ -137,7 +180,7 @@ export function beforeMount(el, { value }) {
     el[HANDLERS_PROPERTY] = events.map((eventName) => ({
         event: eventName,
         srcTarget: document.documentElement,
-        handler: (event) => onOutsideEvent({ el, event, handler, middleware }),
+        handler: ((event: Event) => onOutsideEvent({ el, event, handler, middleware })) as EventListener,
         capture,
     }));
 
@@ -145,7 +188,7 @@ export function beforeMount(el, { value }) {
         el[HANDLERS_PROPERTY].push({
             event: "blur",
             srcTarget: window,
-            handler: (event) => onFauxIframeClick({ el, event, handler, middleware }),
+            handler: ((event: Event) => onFauxIframeClick({ el, event, handler, middleware })) as EventListener,
             capture,
         });
     }
@@ -160,10 +203,7 @@ export function beforeMount(el, { value }) {
     }
 }
 
-/**
- * @param {Element} el
- */
-export function unmounted(el) {
+export function unmounted(el: ClickOutsideHostElement): void {
     const handlers = el[HANDLERS_PROPERTY] || [];
     for (const entry of handlers) {
         entry.srcTarget.removeEventListener(entry.event, entry.handler, entry.capture);
@@ -171,11 +211,7 @@ export function unmounted(el) {
     delete el[HANDLERS_PROPERTY];
 }
 
-/**
- * @param {Element} el
- * @param {{ value: unknown, oldValue: unknown }} binding
- */
-export function updated(el, { value, oldValue }) {
+export function updated(el: ClickOutsideHostElement, { value, oldValue }: { value: unknown; oldValue: unknown }): void {
     if (bindingsEqual(value, oldValue)) {
         return;
     }
@@ -191,12 +227,15 @@ export const clickOutsideDirective = HAS_WINDOW
       }
     : {};
 
-const plugin: any = {
-    install(app) {
+interface ClickOutsideAppLike {
+    directive(name: string, directive: typeof clickOutsideDirective): void;
+}
+
+const plugin = {
+    install(app: ClickOutsideAppLike) {
         app.directive("click-outside", clickOutsideDirective);
     },
     directive: clickOutsideDirective,
 };
 
-export { HANDLERS_PROPERTY, DEFAULT_EVENTS };
 export default plugin;

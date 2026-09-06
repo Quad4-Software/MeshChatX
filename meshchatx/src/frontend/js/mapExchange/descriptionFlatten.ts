@@ -14,11 +14,17 @@ const MASHED_NULL_KEY_RE = /((?:&lt;Null&gt;|<Null>|null|&lt;null&gt;))\s*(?=[A-
 const FONT_FIELD_RE =
     /<(?:font|b|strong|span)\b[^>]*>\s*([^<:]{1,64}?)\s*:?\s*<\/(?:font|b|strong|span)>\s*:?\s*([^<]{0,200}?)(?=<|$)/gi;
 
-/**
- * @param {string} value
- * @returns {boolean}
- */
-export function isNullishMapValue(value) {
+export type KeyValuePair = {
+    key: string;
+    value: string;
+};
+
+export type ExtractedKeyedLines = {
+    leftover: string;
+    pairs: KeyValuePair[];
+};
+
+export function isNullishMapValue(value: unknown): boolean {
     const t = String(value ?? "")
         .trim()
         .replace(/\u00a0/g, " ");
@@ -28,11 +34,7 @@ export function isNullishMapValue(value) {
     return NULLISH_RE.test(t);
 }
 
-/**
- * @param {string} html
- * @returns {string}
- */
-function decodeBasicEntities(html) {
+function decodeBasicEntities(html: string): string {
     return String(html).replace(ENTITY_RE, (full, name) => {
         const n = String(name).toLowerCase();
         if (n === "amp") {
@@ -69,10 +71,8 @@ function decodeBasicEntities(html) {
  * Drop script and style nodes before flattening to plain text.
  * Uses the DOM when available so nested or malformed tags are not left behind
  * by a single-pass regex replace.
- * @param {string} html
- * @returns {string}
  */
-function dropScriptAndStyle(html) {
+function dropScriptAndStyle(html: string): string {
     const s = String(html || "");
     if (!s) {
         return s;
@@ -87,20 +87,12 @@ function dropScriptAndStyle(html) {
     return s.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "").replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, "");
 }
 
-/**
- * @param {string} cellHtml
- * @returns {string}
- */
-function cellPlain(cellHtml) {
+function cellPlain(cellHtml: string): string {
     return decodeBasicEntities(String(cellHtml).replace(TAG_RE, " ").replace(WS_RE, " ").trim());
 }
 
-/**
- * Pull ArcGIS FONT/BR balloon fields when no table rows are present.
- * @param {string} html
- * @returns {string[]}
- */
-function extractFontFields(html) {
+/** Pull ArcGIS FONT/BR balloon fields when no table rows are present. */
+function extractFontFields(html: string): string[] {
     const rows: string[] = [];
     String(html).replace(FONT_FIELD_RE, (_full, keyRaw, valRaw) => {
         const key = cellPlain(keyRaw);
@@ -116,10 +108,8 @@ function extractFontFields(html) {
 /**
  * Insert newlines between mashed Key:&lt;Null&gt;Key:value runs (common after tag strip).
  * Only splits after nullish placeholders so CamelCase keys like AttackType stay intact.
- * @param {string} text
- * @returns {string}
  */
-export function unmashKeyedDescription(text) {
+export function unmashKeyedDescription(text: string | null | undefined): string {
     const s = String(text || "");
     if (!s) {
         return "";
@@ -127,12 +117,8 @@ export function unmashKeyedDescription(text) {
     return s.replace(MASHED_NULL_KEY_RE, "$1\n");
 }
 
-/**
- * Drop leftover balloon script text that survived as plain text.
- * @param {string} text
- * @returns {string}
- */
-function dropScriptLikePlainText(text) {
+/** Drop leftover balloon script text that survived as plain text. */
+function dropScriptLikePlainText(text: string): string {
     let s = String(text || "");
     if (!s) {
         return "";
@@ -159,10 +145,8 @@ function dropScriptLikePlainText(text) {
  * Turn ArcGIS / balloon HTML descriptions into readable plain text.
  * Drops script and style blocks. Prefer table rows as "Key: Value" lines.
  * Output is plain text (callers XML-escape when writing markup).
- * @param {string} html
- * @returns {string}
  */
-export function flattenHtmlDescription(html) {
+export function flattenHtmlDescription(html: string | null | undefined): string {
     let s = String(html || "");
     if (!s.trim()) {
         return "";
@@ -209,12 +193,8 @@ export function flattenHtmlDescription(html) {
     return s;
 }
 
-/**
- * True when description still looks like balloon HTML or mashed entity soup.
- * @param {string} text
- * @returns {boolean}
- */
-export function descriptionNeedsFlatten(text) {
+/** True when description still looks like balloon HTML or mashed entity soup. */
+export function descriptionNeedsFlatten(text: string | null | undefined): boolean {
     const s = String(text || "");
     if (!s.trim()) {
         return false;
@@ -237,11 +217,9 @@ export function descriptionNeedsFlatten(text) {
 /**
  * Split "Key: Value" lines out of a flattened description.
  * Rejects URL-like keys so "See https://host:port/path" stays as description text.
- * @param {string} description
- * @returns {{ leftover: string, pairs: { key: string, value: string }[] }}
  */
-export function extractKeyedDescriptionLines(description) {
-    const pairs: { key: string; value: string }[] = [];
+export function extractKeyedDescriptionLines(description: string | null | undefined): ExtractedKeyedLines {
+    const pairs: KeyValuePair[] = [];
     const leftover: string[] = [];
     const normalized = unmashKeyedDescription(String(description || ""));
     for (const rawLine of normalized.split(/\n+/)) {
@@ -268,12 +246,7 @@ export function extractKeyedDescriptionLines(description) {
     return { leftover: leftover.join("\n"), pairs };
 }
 
-/**
- * @param {string} key
- * @param {string} value
- * @returns {boolean}
- */
-function isPlausiblePropertyKey(key, value) {
+function isPlausiblePropertyKey(key: string, value: string): boolean {
     const k = String(key || "").trim();
     if (!k || k.length > 64) {
         return false;

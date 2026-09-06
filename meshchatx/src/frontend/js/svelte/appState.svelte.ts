@@ -6,28 +6,21 @@
  */
 
 import globalState from "../GlobalState.js";
-import { subscribeAppState, getAppState, patchAppState, patchAppConfig } from "../appState.js";
+import { subscribeAppState, getAppState, patchAppState, patchAppConfig, type AppStateSnapshot } from "../appState.js";
 
-/** @type {object} */
-export const appState = $state({ ...getAppState(globalState) });
+export const appState: AppStateSnapshot = $state({ ...getAppState(globalState as AppStateSnapshot) });
 
-subscribeAppState(globalState, (snapshot) => {
+subscribeAppState(globalState as AppStateSnapshot, (snapshot) => {
     Object.assign(appState, snapshot);
     if (snapshot.config && typeof snapshot.config === "object") {
         appState.config = { ...snapshot.config };
     }
 });
 
-/**
- * @param {Record<string, unknown>} patch
- */
-export function patchState(patch) {
-    patchAppState(globalState, patch);
+export function patchState(patch: Record<string, unknown>): void {
+    patchAppState(globalState as AppStateSnapshot, patch);
 }
 
-/**
- * @param {Record<string, unknown>} next
- */
-export function patchConfig(next) {
-    patchAppConfig(globalState, next);
+export function patchConfig(next: Record<string, unknown>): void {
+    patchAppConfig(globalState as AppStateSnapshot, next);
 }

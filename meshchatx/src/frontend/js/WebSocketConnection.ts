@@ -1,5 +1,5 @@
-import { createEmitter } from "../libs/emitter.js";
-import { reconnectDelayWithJitterMs } from "./wsConnectionSupport";
+import { createEmitter, type Emitter, type EmitterHandler } from "../libs/emitter.js";
+import { reconnectDelayWithJitterMs } from "./wsConnectionSupport.js";
 
 const PING_INTERVAL_MS = 25000;
 const PONG_TIMEOUT_MS = 12000;
@@ -12,23 +12,36 @@ const FOREGROUND_FORCE_RECONNECT_IDLE_MS = 90000;
 const OUTBOUND_QUEUE_MAX = 32;
 const OUTBOUND_QUEUE_TTL_MS = 30000;
 
+export type LiveSendBridge = {
+    send: (message: string) => boolean;
+    sendQueued?: (message: string) => boolean;
+    isOpen?: () => boolean;
+};
+
+type OutboundQueueItem = {
+    message: string;
+    requestId: unknown;
+    expiresAt: number;
+};
+
 class WebSocketConnection {
-    declare _hadSuccessfulOpen: boolean;
-    declare _hasEventListeners: boolean;
-    declare _heartbeatInterval: any;
-    declare _isForcedReconnect: boolean;
-    declare _lastReceivedTime: any;
-    declare _liveSendBridge: any;
-    declare _outboundQueue: any[];
-    declare _pendingReconnectUi: boolean;
-    declare _pongTimeout: any;
-    declare _reconnectAttempt: number;
-    declare _reconnectTimeout: any;
-    declare _sessionReady: boolean;
-    declare destroyed: boolean;
-    declare emitter: any;
-    declare initialized: boolean;
-    declare ws: any;
+    emitter: Emitter;
+    ws: WebSocket | null;
+    _heartbeatInterval: ReturnType<typeof setInterval> | null;
+    _pongTimeout: ReturnType<typeof setTimeout> | null;
+    _reconnectTimeout: ReturnType<typeof setTimeout> | null;
+    _reconnectAttempt: number;
+    initialized: boolean;
+    destroyed: boolean;
+    _hadSuccessfulOpen: boolean;
+    _pendingReconnectUi: boolean;
+    _sessionReady: boolean;
+    _lastReceivedTime: number;
+    _hasEventListeners: boolean;
+    _isForcedReconnect: boolean;
+    _outboundQueue: OutboundQueueItem[];
+    _liveSendBridge: LiveSendBridge | null;
+
     constructor() {
         this.emitter = createEmitter();
         this.ws = null;
@@ -50,14 +63,11 @@ class WebSocketConnection {
         this._liveSendBridge = null;
     }
 
-    /**
-     * @param {{ send: (message: string) => boolean, sendQueued?: (message: string) => boolean, isOpen?: () => boolean } | null} bridge
-     */
-    setLiveSendBridge(bridge) {
+    setLiveSendBridge(bridge: LiveSendBridge | null): void {
         this._liveSendBridge = bridge;
     }
 
-    async connect() {
+    async connect(): Promise<void> {
         this.destroyed = false;
 
         if (typeof window === "undefined" || !window.api) {
@@ -87,38 +97,38 @@ class WebSocketConnection {
         this.reconnect();
     }
 
-    on(event, handler) {
+    on(event: string | symbol, handler: EmitterHandler): void {
         this.emitter.on(event, handler);
     }
 
-    off(event, handler) {
+    off(event: string | symbol, handler?: EmitterHandler): void {
         this.emitter.off(event, handler);
     }
 
-    emit(type, event?) {
+    emit(type: string | symbol, event?: unknown): void {
         this.emitter.emit(type, event);
     }
 
-    _clearHeartbeat() {
+    _clearHeartbeat(): void {
         if (this._heartbeatInterval != null) {
             clearInterval(this._heartbeatInterval);
             this._heartbeatInterval = null;
         }
     }
 
-    _clearPongTimeout() {
+    _clearPongTimeout(): void {
         if (this._pongTimeout != null) {
             clearTimeout(this._pongTimeout);
             this._pongTimeout = null;
         }
     }
 
-    _stopHeartbeat() {
+    _stopHeartbeat(): void {
         this._clearHeartbeat();
         this._clearPongTimeout();
     }
 
-    _sendAppPing() {
+    _sendAppPing(): void {
         if (this.destroyed || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
             return;
         }
@@ -141,7 +151,7 @@ class WebSocketConnection {
         }, PONG_TIMEOUT_MS);
     }
 
-    _startHeartbeat() {
+    _startHeartbeat(): void {
         this._stopHeartbeat();
         this._heartbeatInterval = setInterval(() => {
             this._sendAppPing();
@@ -149,7 +159,7 @@ class WebSocketConnection {
         this._sendAppPing();
     }
 
-    reconnect() {
+    reconnect(): void {
         if (!this.initialized || this.destroyed || typeof window === "undefined" || !window.location) {
             return;
         }
@@ -279,7 +289,7 @@ class WebSocketConnection {
         };
     }
 
-    handleForegroundOrNetworkChange() {
+    handleForegroundOrNetworkChange(): void {
         if (!this.initialized || this.destroyed) {
             return;
         }
@@ -304,7 +314,7 @@ class WebSocketConnection {
         }
     }
 
-    forceReconnect() {
+    forceReconnect(): void {
         if (!this.initialized || this.destroyed) {
             return;
         }
@@ -326,7 +336,7 @@ class WebSocketConnection {
         this.reconnect();
     }
 
-    destroy() {
+    destroy(): void {
         this.destroyed = true;
         this.initialized = false;
         this._hadSuccessfulOpen = false;
@@ -348,14 +358,14 @@ class WebSocketConnection {
         }
     }
 
-    isOpen() {
+    isOpen(): boolean {
         if (this._liveSendBridge && typeof this._liveSendBridge.isOpen === "function") {
             return this._liveSendBridge.isOpen();
         }
         return this.ws != null && this.ws.readyState === WebSocket.OPEN;
     }
 
-    _flushOutboundQueue() {
+    _flushOutboundQueue(): void {
         if (this._liveSendBridge) {
             return;
         }
@@ -371,7 +381,7 @@ class WebSocketConnection {
                 continue;
             }
             try {
-                this.ws.send(item.message);
+                this.ws?.send(item.message);
             } catch {
                 // drop
             }
@@ -381,10 +391,9 @@ class WebSocketConnection {
     /**
      * Queue a mutator JSON string until the socket is ready.
      * Only messages that include request_id are queued (idempotent matching).
-     * @param {string} message
-     * @returns {boolean} true if sent or queued
+     * Returns true if sent or queued.
      */
-    sendQueued(message) {
+    sendQueued(message: string): boolean {
         if (typeof message !== "string") {
             return false;
         }
@@ -396,13 +405,13 @@ class WebSocketConnection {
         }
         if (this.isOpen() && this._sessionReady) {
             try {
-                this.ws.send(message);
+                this.ws?.send(message);
                 return true;
             } catch {
                 return false;
             }
         }
-        let requestId = null;
+        let requestId: unknown = null;
         try {
             const parsed = JSON.parse(message);
             if (parsed && parsed.request_id != null) {
@@ -425,18 +434,19 @@ class WebSocketConnection {
         return true;
     }
 
-    send(message) {
+    send(message: string | Record<string, unknown>): boolean {
+        const payload = typeof message === "string" ? message : JSON.stringify(message);
         if (this._liveSendBridge) {
-            return this._liveSendBridge.send(message);
+            return this._liveSendBridge.send(payload);
         }
         if (this.isOpen()) {
-            this.ws.send(message);
+            this.ws?.send(payload);
             return true;
         }
         return false;
     }
 
-    ping() {
+    ping(): void {
         try {
             this.send(
                 JSON.stringify({

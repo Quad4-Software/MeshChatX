@@ -68,11 +68,10 @@ export default class WifiTransport extends Transport {
     declare opened: boolean;
     declare scheme: any;
     declare timeoutMs: any;
-    /**
-     * @param {string} ipAddressOrHost
-     * @param {{ timeoutMs?: number, env?: object, scheme?: string }} [options]
-     */
-    constructor(ipAddressOrHost, options: any = {}) {
+    constructor(
+        ipAddressOrHost: string,
+        options: { timeoutMs?: number; env?: Record<string, any>; scheme?: string } = {}
+    ) {
         super("wifi");
         if (!WifiTransport.isValidHost(ipAddressOrHost)) {
             const err = new Error("invalid_host");
@@ -85,7 +84,7 @@ export default class WifiTransport extends Transport {
         this.scheme = options.scheme || "http";
     }
 
-    static isValidHost(value) {
+    static isValidHost(value: unknown): boolean {
         if (typeof value !== "string") {
             return false;
         }
@@ -105,13 +104,8 @@ export default class WifiTransport extends Transport {
         this.opened = false;
     }
 
-    /**
-     * Upload a firmware blob to /update on the configured device.
-     *
-     * @param {Blob} blob raw firmware payload
-     * @param {(percentage: number) => void} [onProgress]
-     */
-    async upload(blob, onProgress) {
+    /** Upload a firmware blob to /update on the configured device. */
+    async upload(blob: Blob, onProgress?: (percentage: number) => void): Promise<unknown> {
         if (!blob) {
             const err = new Error("no_payload");
             (err as Error & { code?: string; status?: number; body?: unknown }).code = "NO_PAYLOAD";

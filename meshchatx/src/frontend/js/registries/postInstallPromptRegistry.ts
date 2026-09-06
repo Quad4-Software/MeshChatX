@@ -19,10 +19,7 @@ export interface PostInstallPromptEntry {
 
 export const postInstallPromptRegistry = createRegistry<PostInstallPromptEntry>("postInstallPromptRegistry");
 
-/**
- * @param {PostInstallPromptEntry} entry
- */
-export function registerPostInstallPrompt(entry) {
+export function registerPostInstallPrompt(entry: PostInstallPromptEntry): void {
     if (!entry?.id) {
         throw new Error("postInstallPromptRegistry: entry requires an id");
     }
@@ -42,25 +39,16 @@ export function registerPostInstallPrompt(entry) {
     });
 }
 
-/**
- * @param {string} id
- */
-export function unregisterPostInstallPrompt(id) {
+export function unregisterPostInstallPrompt(id: string): void {
     postInstallPromptRegistry.unregister(id);
 }
 
-/**
- * @returns {PostInstallPromptEntry[]}
- */
-export function listPostInstallPrompts() {
+export function listPostInstallPrompts(): PostInstallPromptEntry[] {
     return postInstallPromptRegistry.list();
 }
 
-/**
- * Highest priority first, then id for stability.
- * @returns {PostInstallPromptEntry[]}
- */
-export function listPostInstallPromptsByPriority() {
+/** Highest priority first, then id for stability. */
+export function listPostInstallPromptsByPriority(): PostInstallPromptEntry[] {
     return listPostInstallPrompts()
         .slice()
         .sort((a, b) => {

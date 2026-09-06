@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: 0BSD
 
-class NotificationUtils {
-    /** @type {Map<string, { close: () => void }[]>} */
-    static _webMessageNotifications = new Map();
+type ClosableNotification = { close: () => void };
 
-    static _isAndroid() {
+class NotificationUtils {
+    static _webMessageNotifications = new Map<string, ClosableNotification[]>();
+
+    static _isAndroid(): boolean {
         return Boolean(
             typeof window !== "undefined" &&
             window.MeshChatXAndroid &&
@@ -13,27 +14,24 @@ class NotificationUtils {
         );
     }
 
-    /**
-     * Android OS message notifs are owned by the Python push bridge.
-     * @returns {boolean}
-     */
-    static ownsOsMessageNotifications() {
+    /** Android OS message notifs are owned by the Python push bridge. */
+    static ownsOsMessageNotifications(): boolean {
         return !NotificationUtils._isAndroid();
     }
 
-    static _normalizeHash(destinationHash) {
+    static _normalizeHash(destinationHash: unknown): string {
         if (destinationHash == null) {
             return "";
         }
         return String(destinationHash).trim().toLowerCase();
     }
 
-    static _messageTag(destinationHash) {
+    static _messageTag(destinationHash: unknown): string {
         const h = NotificationUtils._normalizeHash(destinationHash);
         return h ? `lxmf-${h}` : "new_message";
     }
 
-    static _trackWebNotification(destinationHash, notification) {
+    static _trackWebNotification(destinationHash: string, notification: ClosableNotification): void {
         const key = NotificationUtils._normalizeHash(destinationHash) || "__untagged__";
         let list = NotificationUtils._webMessageNotifications.get(key);
         if (!list) {
@@ -43,7 +41,7 @@ class NotificationUtils {
         list.push(notification);
     }
 
-    static showIncomingCallNotification(callerName) {
+    static showIncomingCallNotification(callerName?: unknown): void {
         if (window.electron) {
             window.electron.showNotification(
                 "Incoming Call",
@@ -65,7 +63,7 @@ class NotificationUtils {
         });
     }
 
-    static showMissedCallNotification(from) {
+    static showMissedCallNotification(from: unknown): void {
         if (window.electron) {
             window.electron.showNotification("Missed Call", `You missed a call from ${from}.`);
             return;
@@ -84,7 +82,7 @@ class NotificationUtils {
         });
     }
 
-    static showNewVoicemailNotification(from) {
+    static showNewVoicemailNotification(from: unknown): void {
         if (window.electron) {
             window.electron.showNotification("New Voicemail", `You have a new voicemail from ${from}.`);
             return;
@@ -103,18 +101,12 @@ class NotificationUtils {
         });
     }
 
-    /**
-     * @param {string} from
-     * @param {string} content
-     * @param {boolean} [silent]
-     * @param {string|null} [destinationHash]
-     */
     static showNewMessageNotification(
         from: unknown,
         content: unknown,
         silent = false,
         destinationHash: string | null = null
-    ) {
+    ): void {
         if (!NotificationUtils.ownsOsMessageNotifications()) {
             return;
         }
@@ -155,11 +147,8 @@ class NotificationUtils {
         });
     }
 
-    /**
-     * Clear OS message notifications for a peer, or all when hash is empty.
-     * @param {string|null|undefined} [destinationHash]
-     */
-    static clearMessageNotifications(destinationHash) {
+    /** Clear OS message notifications for a peer, or all when hash is empty. */
+    static clearMessageNotifications(destinationHash?: string | null): void {
         const hash = NotificationUtils._normalizeHash(destinationHash);
 
         if (window.electron && typeof window.electron.closeMessageNotifications === "function") {
@@ -199,16 +188,12 @@ class NotificationUtils {
         NotificationUtils._webMessageNotifications.clear();
     }
 
-    static clearAllMessageNotifications() {
+    static clearAllMessageNotifications(): void {
         NotificationUtils.clearMessageNotifications(null);
     }
 
-    /**
-     * Sync open peers + DND into the Android Python push bridge via Java.
-     * @param {string[]} hashes
-     * @param {boolean} [dndEnabled]
-     */
-    static syncAndroidNotificationContext(hashes, dndEnabled = false) {
+    /** Sync open peers + DND into the Android Python push bridge via Java. */
+    static syncAndroidNotificationContext(hashes: string[] | null | undefined, dndEnabled = false): void {
         if (!NotificationUtils._isAndroid()) {
             return;
         }
@@ -228,7 +213,7 @@ class NotificationUtils {
         }
     }
 
-    static cancelIncomingCallNotification() {
+    static cancelIncomingCallNotification(): void {
         if (NotificationUtils._isAndroid()) {
             window.MeshChatXAndroid.cancelIncomingCallNotification();
         }

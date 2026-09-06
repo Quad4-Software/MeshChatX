@@ -36,19 +36,11 @@ const DATABASE_RECOVERY_HINTS = [
     "integrity failure",
 ];
 
-/**
- * @param {unknown} error
- * @returns {string}
- */
-export function networkErrorText(error) {
+export function networkErrorText(error: unknown): string {
     return String(error || "").trim();
 }
 
-/**
- * @param {unknown} error
- * @returns {boolean}
- */
-export function isLikelyInterfaceRecoveryError(error) {
+export function isLikelyInterfaceRecoveryError(error: unknown): boolean {
     const text = networkErrorText(error).toLowerCase();
     if (!text) {
         return false;
@@ -59,11 +51,7 @@ export function isLikelyInterfaceRecoveryError(error) {
     return INTERFACE_HINTS.some((hint) => text.includes(hint));
 }
 
-/**
- * @param {unknown} error
- * @returns {boolean}
- */
-export function isDatabaseRecoveryError(error) {
+export function isDatabaseRecoveryError(error: unknown): boolean {
     const text = networkErrorText(error).toLowerCase();
     if (!text) {
         return false;
@@ -74,22 +62,21 @@ export function isDatabaseRecoveryError(error) {
 /**
  * Route name to open after degraded startup, or null to leave the user on the
  * current page (banner actions still apply).
- * @param {unknown} error
- * @returns {"interfaces" | null}
  */
-export function recoveryRouteForNetworkError(error) {
+export function recoveryRouteForNetworkError(error: unknown): "interfaces" | null {
     if (isLikelyInterfaceRecoveryError(error)) {
         return "interfaces";
     }
     return null;
 }
 
-/**
- * Full route location for degraded startup when the UI should jump to recovery.
- * @param {unknown} error
- * @returns {{ name: string, hash?: string } | null}
- */
-export function recoveryLocationForNetworkError(error) {
+export type RecoveryLocation = {
+    name: string;
+    hash?: string;
+};
+
+/** Full route location for degraded startup when the UI should jump to recovery. */
+export function recoveryLocationForNetworkError(error: unknown): RecoveryLocation | null {
     if (isDatabaseRecoveryError(error)) {
         return { name: "about", hash: "#about-database-backups" };
     }

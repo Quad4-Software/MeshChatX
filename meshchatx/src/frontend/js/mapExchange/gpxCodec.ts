@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: 0BSD
 
+import type Feature from "ol/Feature";
+import type { ProjectionLike } from "ol/proj";
 import GPX from "ol/format/GPX";
 import { normalizeFeatureMetadataProps } from "./metadataUtils.js";
 import { styleFromMcxProperties } from "./styleFromProperties.js";
 
-/**
- * Mirror GPX desc onto description (and the reverse before write).
- * @param {import("ol/Feature").default} feature
- * @param {"read"|"write"} direction
- */
-function syncGpxDescriptionProps(feature, direction) {
+type GpxSyncDirection = "read" | "write";
+
+/** Mirror GPX desc onto description (and the reverse before write). */
+function syncGpxDescriptionProps(feature: Feature | null | undefined, direction: GpxSyncDirection): void {
     if (!feature) {
         return;
     }
@@ -26,12 +26,7 @@ function syncGpxDescriptionProps(feature, direction) {
     }
 }
 
-/**
- * @param {string} text
- * @param {import("ol/proj").ProjectionLike} featureProjection
- * @returns {import("ol/Feature").default[]}
- */
-export function readGpxToFeatures(text, featureProjection) {
+export function readGpxToFeatures(text: string, featureProjection: ProjectionLike): Feature[] {
     const format = new GPX();
     const features = format.readFeatures(text, {
         dataProjection: "EPSG:4326",
@@ -50,12 +45,7 @@ export function readGpxToFeatures(text, featureProjection) {
     return features;
 }
 
-/**
- * @param {import("ol/Feature").default[]} features
- * @param {import("ol/proj").ProjectionLike} featureProjection
- * @returns {string}
- */
-export function writeFeaturesToGpx(features, featureProjection) {
+export function writeFeaturesToGpx(features: Feature[], featureProjection: ProjectionLike): string {
     const format = new GPX();
     for (const f of features) {
         syncGpxDescriptionProps(f, "write");

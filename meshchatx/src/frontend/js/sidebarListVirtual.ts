@@ -6,9 +6,6 @@ export const MIN_VIRTUAL_SIDEBAR_ITEMS = 32;
 /** Default row height before measureElement runs. */
 export const SIDEBAR_ROW_ESTIMATE_PX = 72;
 
-/**
- * @returns {number}
- */
-export function estimateSidebarRowHeight() {
+export function estimateSidebarRowHeight(): number {
     return SIDEBAR_ROW_ESTIMATE_PX;
 }

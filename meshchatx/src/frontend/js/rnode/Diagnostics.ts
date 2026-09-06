@@ -4,7 +4,7 @@ import RNodeUtils from "./RNodeUtils.js";
  * Smart diagnostics for connected RNode devices.
  *
  * Given an open RNode handle, inspect()/inspectQuiet() will try to read the
- * essential identification & state from the device and return a structured
+ * essential identification and state from the device and return a structured
  * report including i18n suggestion keys for any issues detected.
  *
  * The suggestion keys map directly to entries under
@@ -30,27 +30,69 @@ const ALL_ISSUE_KEYS = new Set([
     ISSUE_READ_TIMEOUT,
 ]);
 
-function suggestionKeysFor(issue) {
+export type DiagnoseOptions = {
+    expectedProductId?: number;
+    expectedModelId?: number;
+    timeoutMs?: number;
+};
+
+export type DiagnoseResult = {
+    firmwareVersion: string | null;
+    platform: number | null;
+    board: number | null;
+    mcu: number | null;
+    eepromBytes: number[] | null;
+    romDetails: Record<string, any> | null;
+    firmwareHash: number[] | null;
+    targetFirmwareHash: number[] | null;
+    isProvisioned: boolean;
+    issues: string[];
+    suggestionKeys: string[];
+    summary: Record<string, unknown>;
+};
+
+export type ProductMatchExpected = {
+    productId?: number;
+    modelId?: number;
+};
+
+export type ProductMatchResult = {
+    matches: boolean;
+    reason: string | null;
+};
+
+type RNodeHandle = {
+    getFirmwareVersion?: () => Promise<string> | string;
+    getPlatform?: () => Promise<number> | number;
+    getBoard?: () => Promise<number> | number;
+    getMcu?: () => Promise<number> | number;
+    getRomAsObject?: () => Promise<any> | any;
+    getFirmwareHash?: () => Promise<number[]> | number[];
+    getTargetFirmwareHash?: () => Promise<number[]> | number[];
+    [key: string]: unknown;
+};
+
+function suggestionKeysFor(issue: string): string[] {
     return [`tools.rnode_flasher.diagnostics.suggestions.${issue}`];
 }
 
-function withTimeout(promise, ms, code) {
-    let timer: any = null;
-    const timeoutPromise = new Promise<any>((_, reject) => {
+function withTimeout<T>(promise: Promise<T> | T, ms: number, code: string): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const timeoutPromise = new Promise<T>((_, reject) => {
         timer = setTimeout(() => {
             const err: any = new Error(code || "timeout");
-            (err as Error & { code?: string; status?: number; body?: unknown }).code = code || "TIMEOUT";
+            (err as Error & { code?: string }).code = code || "TIMEOUT";
             reject(err);
         }, ms);
     });
-    return Promise.race([promise, timeoutPromise]).finally(() => {
+    return Promise.race([Promise.resolve(promise), timeoutPromise]).finally(() => {
         if (timer) {
             clearTimeout(timer);
         }
     });
 }
 
-function safeArrayEqual(a, b) {
+function safeArrayEqual(a: unknown, b: unknown): boolean {
     if (!Array.isArray(a) || !Array.isArray(b)) {
         return false;
     }
@@ -65,29 +107,13 @@ function safeArrayEqual(a, b) {
     return true;
 }
 
-/**
- * Run a diagnostics sweep against a connected RNode.
- *
- * @param {object} rnode RNode instance (already detected/open)
- * @param {{ expectedProductId?: number, expectedModelId?: number, timeoutMs?: number }} [options]
- * @returns {Promise<{
- *   firmwareVersion: string|null,
- *   platform: number|null,
- *   board: number|null,
- *   mcu: number|null,
- *   eepromBytes: number[]|null,
- *   romDetails: object|null,
- *   firmwareHash: number[]|null,
- *   targetFirmwareHash: number[]|null,
- *   isProvisioned: boolean,
- *   issues: string[],
- *   suggestionKeys: string[],
- *   summary: object,
- * }>}
- */
-export async function diagnose(rnode, options: any = {}) {
+/** Run a diagnostics sweep against a connected RNode. */
+export async function diagnose(
+    rnode: RNodeHandle | null | undefined,
+    options: DiagnoseOptions = {}
+): Promise<DiagnoseResult> {
     const timeoutMs = options.timeoutMs || 4000;
-    const result: any = {
+    const result: DiagnoseResult = {
         firmwareVersion: null,
         platform: null,
         board: null,
@@ -102,7 +128,7 @@ export async function diagnose(rnode, options: any = {}) {
         summary: {},
     };
 
-    const addIssue = (issue) => {
+    const addIssue = (issue: string) => {
         if (!ALL_ISSUE_KEYS.has(issue)) {
             return;
         }
@@ -122,9 +148,9 @@ export async function diagnose(rnode, options: any = {}) {
     }
 
     try {
-        result.firmwareVersion = await withTimeout(rnode.getFirmwareVersion(), timeoutMs, "READ_TIMEOUT");
+        result.firmwareVersion = (await withTimeout(rnode.getFirmwareVersion(), timeoutMs, "READ_TIMEOUT")) as string;
     } catch (err) {
-        if ((err as Error & { code?: string; status?: number; body?: unknown })?.code === "READ_TIMEOUT") {
+        if ((err as Error & { code?: string })?.code === "READ_TIMEOUT") {
             addIssue(ISSUE_READ_TIMEOUT);
         } else {
             addIssue(ISSUE_NO_FIRMWARE_VERSION);
@@ -133,27 +159,27 @@ export async function diagnose(rnode, options: any = {}) {
 
     if (typeof rnode.getPlatform === "function") {
         try {
-            result.platform = await withTimeout(rnode.getPlatform(), timeoutMs, "READ_TIMEOUT");
+            result.platform = (await withTimeout(rnode.getPlatform(), timeoutMs, "READ_TIMEOUT")) as number;
         } catch {
             // platform isn't critical for diagnostics
         }
     }
     if (typeof rnode.getBoard === "function") {
         try {
-            result.board = await withTimeout(rnode.getBoard(), timeoutMs, "READ_TIMEOUT");
+            result.board = (await withTimeout(rnode.getBoard(), timeoutMs, "READ_TIMEOUT")) as number;
         } catch {
             // ignore
         }
     }
     if (typeof rnode.getMcu === "function") {
         try {
-            result.mcu = await withTimeout(rnode.getMcu(), timeoutMs, "READ_TIMEOUT");
+            result.mcu = (await withTimeout(rnode.getMcu(), timeoutMs, "READ_TIMEOUT")) as number;
         } catch {
             // ignore
         }
     }
 
-    let romDetails: any = null;
+    let romDetails: Record<string, any> | null = null;
     if (typeof rnode.getRomAsObject === "function") {
         try {
             const rom = await withTimeout(rnode.getRomAsObject(), timeoutMs, "READ_TIMEOUT");
@@ -185,14 +211,18 @@ export async function diagnose(rnode, options: any = {}) {
 
     if (typeof rnode.getFirmwareHash === "function") {
         try {
-            result.firmwareHash = await withTimeout(rnode.getFirmwareHash(), timeoutMs, "READ_TIMEOUT");
+            result.firmwareHash = (await withTimeout(rnode.getFirmwareHash(), timeoutMs, "READ_TIMEOUT")) as number[];
         } catch {
             // ignore: hash retrieval can fail on un-provisioned units
         }
     }
     if (typeof rnode.getTargetFirmwareHash === "function") {
         try {
-            result.targetFirmwareHash = await withTimeout(rnode.getTargetFirmwareHash(), timeoutMs, "READ_TIMEOUT");
+            result.targetFirmwareHash = (await withTimeout(
+                rnode.getTargetFirmwareHash(),
+                timeoutMs,
+                "READ_TIMEOUT"
+            )) as number[];
         } catch {
             // ignore
         }
@@ -236,7 +266,10 @@ export async function diagnose(rnode, options: any = {}) {
  * selected product/model in the UI matches the device the user just plugged
  * in. Useful as a guardrail before flashing.
  */
-export function evaluateProductMatch(romDetails, expected) {
+export function evaluateProductMatch(
+    romDetails: Record<string, any> | null | undefined,
+    expected: ProductMatchExpected | null | undefined
+): ProductMatchResult {
     if (!romDetails || !expected) {
         return { matches: false, reason: "missing_data" };
     }

@@ -6,13 +6,15 @@
  * and convert_lxmf_method_to_string. Propagation is a method, never a state.
  */
 
+export type OutboundLxmfStatusFields = {
+    state?: string;
+    method?: string;
+};
+
 const SENT_LIKE_STATES = new Set(["sent", "propagated", "unknown"]);
 
-/**
- * @param {{ state?: string, method?: string } | null | undefined} lxmfMessage
- * @returns {string} MDI kebab icon name
- */
-export function outboundBubbleStatusIconName(lxmfMessage) {
+/** MDI kebab icon name for an outbound bubble status. */
+export function outboundBubbleStatusIconName(lxmfMessage: OutboundLxmfStatusFields | null | undefined): string {
     if (!lxmfMessage) {
         return "check";
     }
@@ -27,7 +29,7 @@ export function outboundBubbleStatusIconName(lxmfMessage) {
         }
         return "check-all";
     }
-    if (SENT_LIKE_STATES.has(state)) {
+    if (state != null && SENT_LIKE_STATES.has(state)) {
         if (method === "propagated") {
             return "email-outline";
         }
@@ -39,11 +41,8 @@ export function outboundBubbleStatusIconName(lxmfMessage) {
     return "check";
 }
 
-/**
- * @param {{ state?: string, method?: string } | null | undefined} lxmfMessage
- * @returns {string | null} i18n key under messages.*, or null when no title
- */
-export function outboundBubbleStatusTitleKey(lxmfMessage) {
+/** i18n key under messages.*, or null when no title. */
+export function outboundBubbleStatusTitleKey(lxmfMessage: OutboundLxmfStatusFields | null | undefined): string | null {
     if (!lxmfMessage) {
         return null;
     }
@@ -68,8 +67,7 @@ export function outboundBubbleStatusTitleKey(lxmfMessage) {
 /**
  * Failed outbound bubbles always use the hard-fail badge (red + waiting for announce).
  * Kept as a named helper so ConversationMessageEntry call sites stay stable.
- * @param {{ state?: string, method?: string } | null | undefined} [_lxmfMessage]
  */
-export function isOpportunisticDeferredDelivery() {
+export function isOpportunisticDeferredDelivery(_lxmfMessage?: OutboundLxmfStatusFields | null): boolean {
     return false;
 }

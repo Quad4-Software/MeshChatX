@@ -8,11 +8,39 @@ export const RELAY_MESSAGES_INITIAL_PAGE_SIZE = 150;
 /** Older history page size when scrolling up. */
 export const RELAY_MESSAGES_PREVIOUS_PAGE_SIZE = 100;
 
-/**
- * @param {object} msg
- * @returns {string}
- */
-export function relayMessageKey(msg) {
+export type RelayTimelineMessage = {
+    seq?: number | string | null;
+    src?: unknown;
+    text?: unknown;
+    kind?: unknown;
+    ts?: number | string | null;
+    [key: string]: unknown;
+};
+
+export type RelayPresenceEventKind = "joined" | "left" | "connection";
+
+export type RelayTimelineDateDivider = {
+    type: "dateDivider";
+    dayKey: string;
+};
+
+export type RelayTimelineMessageRow = {
+    type: "message";
+    msg: RelayTimelineMessage;
+};
+
+export type RelayTimelinePresenceGroup = {
+    type: "presenceGroup";
+    id: string;
+    messages: RelayTimelineMessage[];
+    joinedCount: number;
+    leftCount: number;
+    connectionCount: number;
+};
+
+export type RelayTimelineItem = RelayTimelineDateDivider | RelayTimelineMessageRow | RelayTimelinePresenceGroup;
+
+export function relayMessageKey(msg: RelayTimelineMessage | null | undefined): string {
     if (!msg) {
         return "";
     }
@@ -29,11 +57,8 @@ export function relayMessageKey(msg) {
 /**
  * True when an incoming relay message is already present in the list.
  * Prefers seq; falls back to kind/ts/src/text for older payloads without seq.
- * @param {object[]} messages
- * @param {object} incoming
- * @returns {boolean}
  */
-export function relayMessageAlreadyPresent(messages, incoming) {
+export function relayMessageAlreadyPresent(messages: RelayTimelineMessage[], incoming: RelayTimelineMessage): boolean {
     if (!Array.isArray(messages) || !incoming) {
         return false;
     }
@@ -48,13 +73,11 @@ export function relayMessageAlreadyPresent(messages, incoming) {
     return messages.some((m) => relayMessageKey(m) === key);
 }
 
-/**
- * Append extras that are not already represented in base (by seq / fallback key).
- * @param {object[]} base
- * @param {object[]} extras
- * @returns {object[]}
- */
-export function mergeRelayMessages(base, extras) {
+/** Append extras that are not already represented in base (by seq / fallback key). */
+export function mergeRelayMessages(
+    base: RelayTimelineMessage[],
+    extras: RelayTimelineMessage[]
+): RelayTimelineMessage[] {
     const out = Array.isArray(base) ? [...base] : [];
     if (!Array.isArray(extras) || extras.length === 0) {
         return out;
@@ -69,12 +92,8 @@ export function mergeRelayMessages(base, extras) {
 
 const CONNECTION_EVENT_TEXTS = new Set(["Connection lost", "Disconnected from hub", "Reconnected to hub"]);
 
-/**
- * Join/leave/connection system lines produced by the RRC client.
- * @param {object} msg
- * @returns {boolean}
- */
-export function isRelayPresenceSystemMessage(msg) {
+/** Join/leave/connection system lines produced by the RRC client. */
+export function isRelayPresenceSystemMessage(msg: RelayTimelineMessage | null | undefined): boolean {
     if (!msg || msg.kind !== "system") {
         return false;
     }
@@ -91,11 +110,7 @@ export function isRelayPresenceSystemMessage(msg) {
     return /^You (?:re)?joined #/i.test(text);
 }
 
-/**
- * @param {object} msg
- * @returns {"joined"|"left"|"connection"}
- */
-export function relayPresenceEventKind(msg) {
+export function relayPresenceEventKind(msg: RelayTimelineMessage | null | undefined): RelayPresenceEventKind {
     const text = typeof msg?.text === "string" ? msg.text.trim() : "";
     if (CONNECTION_EVENT_TEXTS.has(text)) {
         return "connection";
@@ -106,11 +121,7 @@ export function relayPresenceEventKind(msg) {
     return "joined";
 }
 
-/**
- * @param {object[]} presenceMessages
- * @returns {{ type: string, id: string, messages: object[], joinedCount: number, leftCount: number, connectionCount: number }}
- */
-function buildPresenceGroup(presenceMessages) {
+function buildPresenceGroup(presenceMessages: RelayTimelineMessage[]): RelayTimelinePresenceGroup {
     let joinedCount = 0;
     let leftCount = 0;
     let connectionCount = 0;
@@ -135,17 +146,13 @@ function buildPresenceGroup(presenceMessages) {
     };
 }
 
-/**
- * @param {object[]} messages
- * @returns {{ type: string, dayKey?: string, msg?: object, id?: string, messages?: object[], joinedCount?: number, leftCount?: number, connectionCount?: number }[]}
- */
-export function buildRelayMessageTimeline(messages) {
+export function buildRelayMessageTimeline(messages: RelayTimelineMessage[]): RelayTimelineItem[] {
     if (!Array.isArray(messages) || messages.length === 0) {
         return [];
     }
-    const out: any[] = [];
+    const out: RelayTimelineItem[] = [];
     let prevDayKey: string | null = null;
-    let presenceBuffer: any[] = [];
+    let presenceBuffer: RelayTimelineMessage[] = [];
 
     const flushPresence = () => {
         if (presenceBuffer.length === 0) {
@@ -184,16 +191,12 @@ export function buildRelayMessageTimeline(messages) {
     return out;
 }
 
-/**
- * @param {object[]} messages
- * @returns {string}
- */
-export function relayMessageTimelineSignature(messages) {
+export function relayMessageTimelineSignature(messages: RelayTimelineMessage[]): string {
     if (!Array.isArray(messages) || messages.length === 0) {
         return "";
     }
-    let minSeq = null;
-    let maxSeq = null;
+    let minSeq: number | null = null;
+    let maxSeq: number | null = null;
     for (const msg of messages) {
         if (typeof msg?.seq !== "number") {
             continue;
@@ -210,16 +213,15 @@ export function relayMessageTimelineSignature(messages) {
 
 /**
  * Keep only older rows not already present. Uses seq Set for O(n) dedupe.
- *
- * @param {object[]} older
- * @param {object[]} existingMessages
- * @returns {object[]}
  */
-export function filterUniqueOlderRelayMessages(older, existingMessages) {
+export function filterUniqueOlderRelayMessages(
+    older: RelayTimelineMessage[],
+    existingMessages: RelayTimelineMessage[]
+): RelayTimelineMessage[] {
     if (!Array.isArray(older) || older.length === 0) {
         return [];
     }
-    const existingSeqs = new Set();
+    const existingSeqs = new Set<number | string>();
     if (Array.isArray(existingMessages)) {
         for (const msg of existingMessages) {
             if (msg && msg.seq != null) {
@@ -227,7 +229,7 @@ export function filterUniqueOlderRelayMessages(older, existingMessages) {
             }
         }
     }
-    const out: any[] = [];
+    const out: RelayTimelineMessage[] = [];
     for (const msg of older) {
         if (!msg) {
             continue;
@@ -249,12 +251,11 @@ export function filterUniqueOlderRelayMessages(older, existingMessages) {
 
 /**
  * Extend a cached timeline after prepending older messages (oldest-first).
- *
- * @param {object[]} existingTimeline
- * @param {object[]} prependedMessagesOldestFirst
- * @returns {object[]}
  */
-export function prependRelayMessageTimeline(existingTimeline, prependedMessagesOldestFirst) {
+export function prependRelayMessageTimeline(
+    existingTimeline: RelayTimelineItem[],
+    prependedMessagesOldestFirst: RelayTimelineMessage[]
+): RelayTimelineItem[] {
     const prepended = prependedMessagesOldestFirst || [];
     const existing = existingTimeline || [];
     if (prepended.length === 0) {
@@ -267,8 +268,8 @@ export function prependRelayMessageTimeline(existingTimeline, prependedMessagesO
     if (prefixTimeline.length === 0) {
         return existing;
     }
-    const lastPrefix = prefixTimeline[prefixTimeline.length - 1] as any;
-    const firstExisting = existing[0] as any;
+    const lastPrefix = prefixTimeline[prefixTimeline.length - 1];
+    const firstExisting = existing[0];
     if (
         lastPrefix?.type === "dateDivider" &&
         firstExisting?.type === "dateDivider" &&

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-/** @param {File|null|undefined} file */
-export function isWasmUploadFile(file) {
+export function isWasmUploadFile(file: File | null | undefined): boolean {
     if (!file) {
         return false;
     }
@@ -13,8 +12,7 @@ export function isWasmUploadFile(file) {
     return type === "application/wasm" || type === "application/octet-stream";
 }
 
-/** @param {DataTransfer|null|undefined} dataTransfer */
-export function pickWasmFileFromDataTransfer(dataTransfer) {
+export function pickWasmFileFromDataTransfer(dataTransfer: DataTransfer | null | undefined): File | null {
     if (!dataTransfer) {
         return null;
     }
@@ -40,19 +38,20 @@ export function pickWasmFileFromDataTransfer(dataTransfer) {
     return null;
 }
 
-/** @param {ClipboardEvent|{ clipboardData?: DataTransfer|null }} event */
-export function pickWasmFileFromClipboardEvent(event) {
+export function pickWasmFileFromClipboardEvent(
+    event: ClipboardEvent | { clipboardData?: DataTransfer | null }
+): File | null {
     const dataTransfer = event?.clipboardData;
     return pickWasmFileFromDataTransfer(dataTransfer);
 }
 
-/** @param {FileList|File[]|null|undefined} files */
-export function pickWasmFileFromFileList(files) {
+export function pickWasmFileFromFileList(files: FileList | File[] | null | undefined): File | null {
     if (!files || !files.length) {
         return null;
     }
     for (let i = 0; i < files.length; i++) {
-        const file = typeof files.item === "function" ? files.item(i) : files[i];
+        const file =
+            typeof (files as FileList).item === "function" ? (files as FileList).item(i) : (files as File[])[i];
         if (isWasmUploadFile(file)) {
             return file;
         }

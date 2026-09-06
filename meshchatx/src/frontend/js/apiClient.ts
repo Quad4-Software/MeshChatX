@@ -40,12 +40,18 @@ export type CreateApiClientOptions = {
     onAuthError?: (err: Error & { response?: { status: number; data: unknown } }) => void;
 };
 
+export type DemoConfigPatchResponse = {
+    data: { config: Record<string, unknown> };
+    status: number;
+    headers: Headers;
+};
+
 export function isCancel(error: unknown): boolean {
     if (!error) return false;
     return (error as { name?: string }).name === "AbortError" || (error as { name?: string }).name === "CanceledError";
 }
 
-function buildUrl(path, params) {
+function buildUrl(path: string, params?: Record<string, unknown>): string {
     if (!params || typeof params !== "object" || Object.keys(params).length === 0) {
         return path;
     }
@@ -63,7 +69,7 @@ function buildUrl(path, params) {
     return `${u.pathname}${u.search}${u.hash}`;
 }
 
-function apiPathname(path) {
+function apiPathname(path: string): string {
     try {
         return new URL(path, window.location.origin).pathname;
     } catch {
@@ -71,7 +77,7 @@ function apiPathname(path) {
     }
 }
 
-async function parseErrorBody(response) {
+async function parseErrorBody(response: Response): Promise<unknown> {
     const ct = response.headers.get("content-type") || "";
     try {
         if (ct.includes("application/json")) {
@@ -90,7 +96,7 @@ async function parseErrorBody(response) {
     }
 }
 
-async function readSuccessBody(response, responseType) {
+async function readSuccessBody(response: Response, responseType?: ApiRequestConfig["responseType"]): Promise<unknown> {
     if (response.status === 204 || response.status === 205) {
         return null;
     }
@@ -108,46 +114,36 @@ async function readSuccessBody(response, responseType) {
     return response.text();
 }
 
-/**
- * True when a 403 is a CSRF rejection (not a missing login session).
- * @param {number} status
- * @param {unknown} errData
- * @returns {boolean}
- */
-export function isCsrfRejection(status, errData) {
+/** True when a 403 is a CSRF rejection (not a missing login session). */
+export function isCsrfRejection(status: number, errData: unknown): boolean {
     if (status !== 403) {
         return false;
     }
     const text =
-        (errData && typeof errData === "object" && (errData.error || errData.message)) ||
+        (errData &&
+            typeof errData === "object" &&
+            ((errData as { error?: unknown; message?: unknown }).error ||
+                (errData as { message?: unknown }).message)) ||
         (typeof errData === "string" ? errData : "");
     return typeof text === "string" && /csrf/i.test(text);
 }
 
-/**
- * @param {unknown} dataOut
- * @returns {unknown}
- */
-function applyDemoConfigGetOverlay(dataOut) {
+function applyDemoConfigGetOverlay(dataOut: unknown): unknown {
     if (!GlobalState.demoMode || !dataOut || typeof dataOut !== "object") {
         return dataOut;
     }
-    const config = dataOut.config;
+    const config = (dataOut as { config?: unknown }).config;
     if (!config || typeof config !== "object") {
         return dataOut;
     }
     return {
         ...dataOut,
-        config: mergeConfigWithDemoUiPrefs(config),
+        config: mergeConfigWithDemoUiPrefs(config as Record<string, unknown>),
     };
 }
 
-/**
- * Serve UI-only config writes from localStorage in demo mode.
- * @param {unknown} data
- * @returns {{ data: { config: Record<string, unknown> }, status: number, headers: Headers } | null}
- */
-function tryDemoConfigPatch(data) {
+/** Serve UI-only config writes from localStorage in demo mode. */
+function tryDemoConfigPatch(data: unknown): DemoConfigPatchResponse | null {
     if (!GlobalState.demoMode) {
         return null;
     }
@@ -163,10 +159,6 @@ function tryDemoConfigPatch(data) {
     };
 }
 
-/**
- * @param {CreateApiClientOptions} [options]
- * @returns {ApiClient}
- */
 export function createApiClient(options: CreateApiClientOptions = {}): ApiClient {
     const { onAuthError } = options;
 

@@ -34,11 +34,7 @@ export default class BluetoothTransport extends Transport {
     declare txCharacteristic: any;
     declare writable: any;
     declare writeChunkSize: any;
-    /**
-     * @param {BluetoothDevice} device
-     * @param {{ writeChunkSize?: number, env?: object }} [options]
-     */
-    constructor(device, options: any = {}) {
+    constructor(device: any, options: { writeChunkSize?: number; env?: Record<string, any> } = {}) {
         super("bluetooth");
         if (!device) {
             throw new Error("BluetoothTransport requires a BluetoothDevice");

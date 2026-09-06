@@ -1,15 +1,18 @@
-export function isAnimatedRasterType(imageType) {
+export function isAnimatedRasterType(imageType: unknown): boolean {
     const s = String(imageType || "").toLowerCase();
     return s === "gif" || s === "webp";
 }
 
-/**
- * @param {Element} el
- * @param {(entry: IntersectionObserverEntry) => void} callback
- * @param {IntersectionObserverInit} [options]
- * @returns {() => void} disconnect
- */
-export function attachInView(el, callback, options: any = {}) {
+export type InViewCallback = (
+    entry: IntersectionObserverEntry | { isIntersecting: true; target: Element } | any
+) => void;
+
+/** Attach an IntersectionObserver and return a disconnect function. */
+export function attachInView(
+    el: Element | null | undefined,
+    callback: InViewCallback,
+    options: IntersectionObserverInit = {}
+): () => void {
     if (!el) {
         return () => {};
     }

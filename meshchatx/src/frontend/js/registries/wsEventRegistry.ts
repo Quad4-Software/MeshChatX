@@ -1,43 +1,30 @@
 // SPDX-License-Identifier: 0BSD
 
-import { createEmitter } from "../../libs/emitter.js";
+import { createEmitter, type EmitterHandler } from "../../libs/emitter.js";
 
-/** @type {ReturnType<typeof createEmitter>} */
+/** Loose payload so feature handlers can narrow locally. */
+export type WsEventHandler = (payload: any) => void | Promise<void>;
+
 const emitter = createEmitter();
 
-/**
- * @param {string} type
- * @param {(payload: Record<string, unknown>) => void | Promise<void>} handler
- */
-export function onWsEvent(type, handler) {
-    emitter.on(type, handler);
+export function onWsEvent(type: string, handler: WsEventHandler): void {
+    emitter.on(type, handler as EmitterHandler);
 }
 
-/**
- * @param {string} type
- * @param {(payload: Record<string, unknown>) => void | Promise<void>} handler
- */
-export function offWsEvent(type, handler) {
-    emitter.off(type, handler);
+export function offWsEvent(type: string, handler: WsEventHandler): void {
+    emitter.off(type, handler as EmitterHandler);
 }
 
-/**
- * @param {string} type
- * @param {Record<string, unknown>} payload
- */
-export async function dispatchWsEvent(type, payload) {
+export async function dispatchWsEvent(type: string, payload: Record<string, unknown>): Promise<void> {
     const handlers = emitter.all.get(type);
     if (!handlers || handlers.length === 0) {
         return;
     }
     for (const handler of handlers) {
-        await handler(payload);
+        await (handler as WsEventHandler)(payload);
     }
 }
 
-/**
- * @returns {string[]}
- */
-export function listRegisteredWsEventTypes() {
-    return Array.from(emitter.all.keys());
+export function listRegisteredWsEventTypes(): string[] {
+    return Array.from(emitter.all.keys()).map(String);
 }

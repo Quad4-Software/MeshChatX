@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-export const STARTUP_STAGE_LABELS: any = {
+export const STARTUP_STAGE_LABELS: Record<string, string> = {
     http: "Getting things ready…",
     starting: "Getting RNS ready…",
     rns: "Starting RNS…",
@@ -9,23 +9,31 @@ export const STARTUP_STAGE_LABELS: any = {
     failed: "Startup failed",
 };
 
+export type StartupStatusKind = "ready" | "ui" | "degraded" | "failed" | "starting" | "invalid";
+
+export type InterpretedStartupStatus = {
+    kind: StartupStatusKind;
+    stage?: string;
+    error?: string;
+    label?: string;
+};
+
 /**
  * Interpret a /api/v1/status JSON body for boot gating.
  * Only own properties are trusted so prototype pollution cannot spoof readiness.
- * @param {unknown} data
- * @returns {{ kind: "ready" | "ui" | "degraded" | "failed" | "starting" | "invalid", stage?: string, error?: string, label?: string }}
  */
-export function interpretStartupStatus(data) {
+export function interpretStartupStatus(data: unknown): InterpretedStartupStatus {
     if (!data || typeof data !== "object" || Array.isArray(data)) {
         return { kind: "invalid" };
     }
-    const own = (key) => Object.prototype.hasOwnProperty.call(data, key);
-    const status = own("status") ? data.status : undefined;
-    const stage = own("stage") && typeof data.stage === "string" ? data.stage : undefined;
-    const networkReady = own("network_ready") && data.network_ready === true;
-    const uiReady = own("ui_ready") && data.ui_ready === true;
-    const networkDegraded = own("network_degraded") && data.network_degraded === true;
-    const error = own("error") && typeof data.error === "string" ? data.error : undefined;
+    const record = data as Record<string, unknown>;
+    const own = (key: string) => Object.prototype.hasOwnProperty.call(record, key);
+    const status = own("status") ? record.status : undefined;
+    const stage = own("stage") && typeof record.stage === "string" ? record.stage : undefined;
+    const networkReady = own("network_ready") && record.network_ready === true;
+    const uiReady = own("ui_ready") && record.ui_ready === true;
+    const networkDegraded = own("network_degraded") && record.network_degraded === true;
+    const error = own("error") && typeof record.error === "string" ? record.error : undefined;
 
     if (status === "failed") {
         // HTTP is up and the backend marked UI as usable: mount the app in
@@ -66,25 +74,26 @@ export function interpretStartupStatus(data) {
     return { kind: "invalid", stage };
 }
 
-/**
- * Poll /api/v1/status until the UI may mount (ui_ready), mesh is ready, or degraded.
- * @param {{
- *   fetchImpl?: typeof fetch,
- *   now?: () => number,
- *   sleep?: (ms: number) => Promise<void>,
- *   timeoutMs?: number,
- *   onLine?: (text: string) => void,
- *   onErrorState?: () => void,
- *   onDegraded?: (error?: string) => void,
- *   statusUrl?: string,
- *   mountOnUiReady?: boolean,
- * }} [options]
- * @returns {Promise<"ready" | "ui" | "degraded" | false>}
- */
-export async function waitForNetworkReady(options: any = {}) {
+export type NetworkStartupWaitOptions = {
+    fetchImpl?: typeof fetch;
+    now?: () => number;
+    sleep?: (ms: number) => Promise<void>;
+    timeoutMs?: number;
+    onLine?: (text: string) => void;
+    onErrorState?: () => void;
+    onDegraded?: (error?: string) => void;
+    statusUrl?: string;
+    mountOnUiReady?: boolean;
+};
+
+export type NetworkReadyResult = "ready" | "ui" | "degraded" | false;
+export type MeshReadyResult = "ready" | "degraded" | false;
+
+/** Poll /api/v1/status until the UI may mount (ui_ready), mesh is ready, or degraded. */
+export async function waitForNetworkReady(options: NetworkStartupWaitOptions = {}): Promise<NetworkReadyResult> {
     const fetchImpl = options.fetchImpl || fetch;
     const now = options.now || Date.now;
-    const sleep = options.sleep || ((ms) => new Promise<any>((resolve) => setTimeout(resolve, ms)));
+    const sleep = options.sleep || ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
     const timeoutMs = options.timeoutMs ?? 120000;
     const onLine = options.onLine || (() => {});
     const onErrorState = options.onErrorState || (() => {});
@@ -135,21 +144,12 @@ export async function waitForNetworkReady(options: any = {}) {
 /**
  * Continue polling until mesh network_ready or degraded/failed.
  * Used after an early UI mount on ui_ready.
- * @param {{
- *   fetchImpl?: typeof fetch,
- *   now?: () => number,
- *   sleep?: (ms: number) => Promise<void>,
- *   timeoutMs?: number,
- *   onLine?: (text: string) => void,
- *   onErrorState?: () => void,
- *   onDegraded?: (error?: string) => void,
- *   statusUrl?: string,
- * }} [options]
- * @returns {Promise<"ready" | "degraded" | false>}
  */
-export async function waitForMeshReady(options: any = {}) {
+export async function waitForMeshReady(
+    options: Omit<NetworkStartupWaitOptions, "mountOnUiReady"> = {}
+): Promise<MeshReadyResult> {
     return waitForNetworkReady({
         ...options,
         mountOnUiReady: false,
-    });
+    }) as Promise<MeshReadyResult>;
 }

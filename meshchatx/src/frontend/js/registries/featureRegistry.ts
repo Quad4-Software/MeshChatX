@@ -19,14 +19,10 @@ export interface FeatureDefinition {
     settingsSections?: SettingsSectionEntry[];
 }
 
-/** @type {import('./registryCore.js').Registry<{ id: string }>} */
 const featureRegistry = createRegistry<{ id: string }>("featureRegistry");
 
-/**
- * Register a feature module: routes plus optional contribution lists.
- * @param {FeatureDefinition} feature
- */
-export function registerFeature(feature: FeatureDefinition) {
+/** Register a feature module: routes plus optional contribution lists. */
+export function registerFeature(feature: FeatureDefinition): void {
     if (!feature?.id) {
         throw new Error("featureRegistry: feature requires an id");
     }
@@ -49,16 +45,11 @@ export function registerFeature(feature: FeatureDefinition) {
     }
 }
 
-/**
- * @returns {string[]}
- */
 export function listFeatureIds(): string[] {
     return featureRegistry.list().map((entry) => entry.id);
 }
 
-/**
- * Clear feature ids only (tests). Does not clear nested registries.
- */
-export function clearFeatureIds() {
+/** Clear feature ids only (tests). Does not clear nested registries. */
+export function clearFeatureIds(): void {
     featureRegistry.clear();
 }

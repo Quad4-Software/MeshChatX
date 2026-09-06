@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: 0BSD
+
 /**
  * WASM scene + WebGL2 engine for the network visualiser.
  * Falls back is handled by the caller (vis-network path).
@@ -28,8 +30,117 @@ import {
     projectPlanetScene,
     screenToDrawWorld,
 } from "./networkVisualiserPlanet.js";
+import type { NodeTexMeta, VisualiserCamera, VisualiserLabel } from "./networkVisualiserWebGL.js";
+import type { PlanetBody, PlanetPickEntry, PlanetProjectedNode } from "./networkVisualiserPlanet.js";
+import type { VizGraphEdge, VizGraphNode } from "./networkVisualiserPerf.js";
 
 export { isVisualiserWebGLSceneReady };
+
+export type CssPoint = { x: number; y: number };
+
+export type WebGLLabelOpts = {
+    zoom?: number;
+    sceneCount?: number;
+    nodes: Float32Array | number[] | null | undefined;
+    labelByIndex: Array<string | null | undefined>;
+    idByIndex: Array<string | null | undefined>;
+    hoverId?: string | null;
+};
+
+export type WebGLLabel = {
+    x: number;
+    y: number;
+    size: number;
+    text: string;
+    fontSize: number;
+};
+
+export type Rgb01 = { r: number; g: number; b: number };
+export type Rgba01 = { r: number; g: number; b: number; a: number };
+
+export type SceneView = {
+    width: number;
+    height: number;
+    camX?: number;
+    camY?: number;
+    zoom?: number;
+};
+
+export type SceneNodePayload = {
+    id: string;
+    x: number;
+    y: number;
+    mass: number;
+    fixed: boolean;
+    kind: number;
+    size: number;
+    r: number;
+    g: number;
+    b: number;
+    a: number;
+};
+
+export type SceneEdgePayload = {
+    from: string;
+    to: string;
+    width: number;
+    r: number;
+    g: number;
+    b: number;
+    a: number;
+};
+
+export type SceneSetRequest = {
+    nodes: SceneNodePayload[];
+    edges: SceneEdgePayload[];
+    width: number;
+    height: number;
+    cam_x: number;
+    cam_y: number;
+    zoom: number;
+};
+
+export type NodeMeta = {
+    id: string;
+    label: string;
+    title: string;
+    group: string;
+    announce: unknown;
+};
+
+export type VisualiserWebGLEngineHooks = {
+    getLiveLayout: () => boolean;
+    isDark: () => boolean;
+    onNodeActivate?: (id: string, meta: NodeMeta | null) => void;
+    onHover?: (id: string | null, meta: NodeMeta | null, cssX: number, cssY: number) => void;
+};
+
+export type GraphViewOpts = {
+    preserveCamera?: boolean;
+    camX?: number;
+    camY?: number;
+    zoom?: number;
+};
+
+export type NodeImageUpdate = {
+    id: string;
+    image: string;
+};
+
+export type VisualiserWebGLEngine = {
+    setGraph: (
+        graphNodes: Array<VizGraphNode | null | undefined> | null | undefined,
+        graphEdges: Array<VizGraphEdge | null | undefined> | null | undefined,
+        viewOpts?: GraphViewOpts
+    ) => void;
+    updateNodeImages: (updates: NodeImageUpdate[] | null | undefined) => void;
+    getPositions: () => Record<string, { x?: number; y?: number }>;
+    getCounts: () => { nodes: number; edges: number };
+    setLiveLayout: () => void;
+    setViewMode: (mode: unknown) => void;
+    destroy: () => void;
+    requestRedraw: () => void;
+};
 
 export const KIND_ME = 0;
 export const KIND_IFACE_ON = 1;
@@ -42,11 +153,8 @@ export const WEBGL_LABEL_MAX_CHARS = 28;
 
 /**
  * Truncate a node label for the WebGL overlay.
- * @param {string|null|undefined} text
- * @param {number} [maxChars]
- * @returns {string|null}
  */
-export function truncateWebGLLabel(text, maxChars = WEBGL_LABEL_MAX_CHARS) {
+export function truncateWebGLLabel(text: string | null | undefined, maxChars = WEBGL_LABEL_MAX_CHARS): string | null {
     if (typeof text !== "string" || !text) return null;
     const limit = Number.isFinite(maxChars) && maxChars > 1 ? Math.floor(maxChars) : WEBGL_LABEL_MAX_CHARS;
     if (text.length <= limit) return text;
@@ -56,28 +164,26 @@ export function truncateWebGLLabel(text, maxChars = WEBGL_LABEL_MAX_CHARS) {
 /**
  * Build overlay labels using the same LOD bands as the vis-network canvas path.
  * low: none, medium: me + hover only, high: all in-scene labels.
- *
- * @param {{
- *   zoom: number,
- *   sceneCount: number,
- *   nodes: Float32Array|number[]|null|undefined,
- *   labelByIndex: (string|null|undefined)[],
- *   idByIndex: (string|null|undefined)[],
- *   hoverId?: string|null,
- * }} opts
- * @returns {{x:number,y:number,size:number,text:string,fontSize:number}[]}
  */
-export function collectWebGLLabels(opts) {
-    const zoom = opts?.zoom > 0 ? opts.zoom : 1;
+export function collectWebGLLabels(opts: {
+    zoom?: number;
+    sceneCount?: number;
+    nodes?: Float32Array | number[] | null;
+    labelByIndex?: (string | null | undefined)[];
+    idByIndex?: (string | null | undefined)[];
+    hoverId?: string | null;
+}): { x: number; y: number; size: number; text: string; fontSize: number }[] {
+    const zoomRaw = opts?.zoom;
+    const zoom = zoomRaw != null && zoomRaw > 0 ? zoomRaw : 1;
     const lod = lodLevelFromScale(zoom);
     if (lod === "low") return [];
 
-    const sceneCount = Math.max(0, opts?.sceneCount | 0);
+    const sceneCount = Math.max(0, (opts?.sceneCount ?? 0) | 0);
     const nodes = opts?.nodes;
     const labelByIndex = opts?.labelByIndex || [];
     const idByIndex = opts?.idByIndex || [];
     const hoverId = opts?.hoverId ? String(opts.hoverId) : null;
-    const out: any[] = [];
+    const out: WebGLLabel[] = [];
 
     for (let i = 0; i < sceneCount; i++) {
         const id = idByIndex[i] != null ? String(idByIndex[i]) : null;
@@ -101,7 +207,7 @@ export function collectWebGLLabels(opts) {
     return out;
 }
 
-const DEFAULT_ICON_BY_KIND: any = {
+const DEFAULT_ICON_BY_KIND: Record<number, string> = {
     [KIND_ME]: "/assets/images/reticulum_logo_512.png",
     [KIND_IFACE_ON]: "/assets/images/network-visualiser/interface_connected.png",
     [KIND_IFACE_OFF]: "/assets/images/network-visualiser/interface_disconnected.png",
@@ -111,10 +217,8 @@ const DEFAULT_ICON_BY_KIND: any = {
 
 /**
  * Distance between two CSS points.
- * @param {{x:number,y:number}} a
- * @param {{x:number,y:number}} b
  */
-export function pointerDistance(a, b) {
+export function pointerDistance(a: CssPoint, b: CssPoint): number {
     const dx = a.x - b.x;
     const dy = a.y - b.y;
     return Math.hypot(dx, dy);
@@ -122,17 +226,12 @@ export function pointerDistance(a, b) {
 
 /**
  * Midpoint of two CSS points.
- * @param {{x:number,y:number}} a
- * @param {{x:number,y:number}} b
  */
-export function pointerMidpoint(a, b) {
+export function pointerMidpoint(a: CssPoint, b: CssPoint): CssPoint {
     return { x: (a.x + b.x) * 0.5, y: (a.y + b.y) * 0.5 };
 }
 
-/**
- * @param {HTMLCanvasElement} [_canvas] optional host (capability is global)
- */
-export function canUseVisualiserWebGL() {
+export function canUseVisualiserWebGL(_canvas?: HTMLCanvasElement): boolean {
     if (!isVisualiserWebGLSceneReady()) return false;
     if (typeof WebGL2RenderingContext === "undefined") return false;
     if (typeof document === "undefined") return false;
@@ -140,7 +239,7 @@ export function canUseVisualiserWebGL() {
     return !!tryCreateWebGL2Context(probe);
 }
 
-function hexToRgb01(hex) {
+function hexToRgb01(hex: unknown): Rgb01 | null {
     if (typeof hex !== "string") return null;
     let h = hex.trim();
     if (h.startsWith("#")) h = h.slice(1);
@@ -157,7 +256,7 @@ function hexToRgb01(hex) {
     };
 }
 
-function colorFromNode(node) {
+function colorFromNode(node: VizGraphNode | null | undefined): Rgb01 | null {
     const c = node?.color;
     if (typeof c === "string") {
         const rgb = hexToRgb01(c);
@@ -172,7 +271,7 @@ function colorFromNode(node) {
     return null;
 }
 
-function colorFromEdge(edge) {
+function colorFromEdge(edge: VizGraphEdge | null | undefined): Rgba01 {
     const c = edge?.color;
     if (typeof c === "string") {
         const rgb = hexToRgb01(c);
@@ -186,21 +285,22 @@ function colorFromEdge(edge) {
     return { r: 0.45, g: 0.45, b: 0.55, a: 0.45 };
 }
 
-function kindForNode(node) {
+function kindForNode(node: VizGraphNode | null | undefined): number {
     const g = node?.group;
     if (g === "me" || node?.id === "me") return KIND_ME;
     if (g === "discovered") return KIND_DISCOVERED;
     if (g === "interface") {
         const img = String(node?.image || "");
         if (img.includes("disconnected")) return KIND_IFACE_OFF;
-        const border = node?.color?.border || "";
+        const colorObj = node?.color && typeof node.color === "object" ? node.color : null;
+        const border = colorObj?.border || "";
         if (border === "#ef4444" || border === "#f87171") return KIND_IFACE_OFF;
         return KIND_IFACE_ON;
     }
     return KIND_PEER;
 }
 
-function sizeForNode(node, kind) {
+function sizeForNode(node: VizGraphNode | null | undefined, kind: number): number {
     const s = Number(node?.size);
     if (Number.isFinite(s) && s > 0) {
         // Keep WebGL radii close to vis-network so glyphs stay readable.
@@ -213,11 +313,11 @@ function sizeForNode(node, kind) {
 }
 
 /** Exported for unit tests. */
-export function webglNodeSizeFor(node, kind) {
+export function webglNodeSizeFor(node: VizGraphNode | null | undefined, kind?: number | null): number {
     return sizeForNode(node, kind == null ? kindForNode(node) : kind);
 }
 
-function imageForNode(node, kind) {
+function imageForNode(node: VizGraphNode | null | undefined, kind: number): string | null {
     if (typeof node?.image === "string" && node.image) {
         return node.image;
     }
@@ -226,20 +326,21 @@ function imageForNode(node, kind) {
 
 /**
  * Convert vis-style graph nodes/edges into WASM scene SetRequest payload.
- * @param {object[]} graphNodes
- * @param {object[]} graphEdges
- * @param {{width:number,height:number,camX?:number,camY?:number,zoom?:number}} view
  */
-export function graphToSceneRequest(graphNodes, graphEdges, view) {
-    const nodes: any[] = [];
+export function graphToSceneRequest(
+    graphNodes: Array<VizGraphNode | null | undefined> | null | undefined,
+    graphEdges: Array<VizGraphEdge | null | undefined> | null | undefined,
+    view: SceneView | null | undefined
+): SceneSetRequest {
+    const nodes: SceneNodePayload[] = [];
     for (const n of graphNodes || []) {
         if (!n?.id) continue;
         const kind = kindForNode(n);
         const rgb = colorFromNode(n) || { r: 0.85, g: 0.85, b: 0.9 };
         nodes.push({
             id: String(n.id),
-            x: Number.isFinite(n.x) ? n.x : 0,
-            y: Number.isFinite(n.y) ? n.y : 0,
+            x: Number.isFinite(n.x) ? (n.x as number) : 0,
+            y: Number.isFinite(n.y) ? (n.y as number) : 0,
             mass: n.id === "me" ? 4 : n.group === "interface" ? 2.5 : 1,
             fixed: n.id === "me",
             kind,
@@ -250,7 +351,7 @@ export function graphToSceneRequest(graphNodes, graphEdges, view) {
             a: 1,
         });
     }
-    const edges: any[] = [];
+    const edges: SceneEdgePayload[] = [];
     for (const e of graphEdges || []) {
         if (!e?.from || !e?.to) continue;
         const rgb = colorFromEdge(e);
@@ -276,16 +377,10 @@ export function graphToSceneRequest(graphNodes, graphEdges, view) {
     };
 }
 
-/**
- * @param {HTMLCanvasElement} canvas
- * @param {{
- *   getLiveLayout: () => boolean,
- *   isDark: () => boolean,
- *   onNodeActivate?: (id: string, meta: object|null) => void,
- *   onHover?: (id: string|null, meta: object|null, cssX: number, cssY: number) => void,
- * }} hooks
- */
-export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
+export function createVisualiserWebGLEngine(
+    canvas: HTMLCanvasElement,
+    hooks: Partial<VisualiserWebGLEngineHooks> = {}
+): VisualiserWebGLEngine {
     const gl = tryCreateWebGL2Context(canvas);
     if (!gl) {
         throw new Error("WebGL2 unavailable");
@@ -295,14 +390,14 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
     }
 
     const renderer = createNetworkVisualiserWebGL(canvas, gl);
-    const metaById = new Map();
-    const indexById = new Map();
+    const metaById = new Map<string, NodeMeta>();
+    const indexById = new Map<string, number>();
     let imageByIndex: (string | null)[] = [];
     let labelByIndex: (string | null)[] = [];
     let idByIndex: (string | null)[] = [];
-    let texMeta: { useTex: number; u: number; v: number }[] = [];
+    let texMeta: NodeTexMeta[] = [];
     let drawNodeScratch = new Float32Array(0);
-    let rafId: any = null;
+    let rafId: number | null = null;
     let running = true;
     let dirty = true;
     let pointerMode: "drag" | "pan" | "pinch" | null = null;
@@ -310,9 +405,7 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
     let lastY = 0;
     let nodeCount = 0;
     let edgeCount = 0;
-    /** @type {string|null} */
     let hoverId: string | null = null;
-    /** @type {Map<number,{x:number,y:number}>} */
     const pointers = new Map<number, { x: number; y: number }>();
     let pinchLastDist = 0;
     let iconLoadGen = 0;
@@ -321,13 +414,13 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
     let orbitPitch = DEFAULT_ORBIT_PITCH;
     let orbitDist = DEFAULT_ORBIT_DIST;
     let planetLayoutScale = 400;
-    let planetPick: any[] = [];
-    let planetProjected: any[] = [];
-    let lastPlanets: any[] = [];
+    let planetPick: PlanetPickEntry[] = [];
+    let planetProjected: Array<PlanetProjectedNode | undefined> = [];
+    let lastPlanets: PlanetBody[] = [];
     let planetHomeById: Record<string, string> = Object.create(null);
     let kindByIndexScratch: number[] = [];
 
-    function cssPoint(ev) {
+    function cssPoint(ev: PointerEvent | MouseEvent): CssPoint {
         const rect = canvas.getBoundingClientRect();
         return {
             x: ev.clientX - rect.left,
@@ -335,18 +428,18 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
         };
     }
 
-    function callScene(name, ...args) {
-        const fn = globalThis[name];
+    function callScene(name: string, ...args: unknown[]): unknown {
+        const fn = (globalThis as Record<string, unknown>)[name];
         if (typeof fn !== "function") return null;
         try {
-            return fn(...args);
+            return (fn as (...a: unknown[]) => unknown)(...args);
         } catch (e) {
             console.warn("Visualiser scene call failed:", name, e);
             return null;
         }
     }
 
-    function rebuildTexMeta() {
+    function rebuildTexMeta(): void {
         texMeta = imageByIndex.map((url) => {
             if (!url) return { useTex: 0, u: 0, v: 0 };
             const slot = renderer.getIconSlot(url);
@@ -356,8 +449,8 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
         });
     }
 
-    async function loadIconsForCurrentGraph(generation) {
-        const urls = [...new Set(imageByIndex.filter(Boolean))];
+    async function loadIconsForCurrentGraph(generation: number): Promise<void> {
+        const urls = [...new Set(imageByIndex.filter((u): u is string => !!u))];
         await Promise.all(
             urls.map(async (url) => {
                 await renderer.ensureIcon(url);
@@ -368,7 +461,11 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
         dirty = true;
     }
 
-    function setGraph(graphNodes, graphEdges, viewOpts: any = {}) {
+    function setGraph(
+        graphNodes: Array<VizGraphNode | null | undefined> | null | undefined,
+        graphEdges: Array<VizGraphEdge | null | undefined> | null | undefined,
+        viewOpts: GraphViewOpts = {}
+    ): void {
         metaById.clear();
         indexById.clear();
         imageByIndex = [];
@@ -397,12 +494,17 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
         const preserveCamera = viewOpts.preserveCamera !== false && nodeCount > 0;
         let prevCam: { x: number; y: number; zoom: number } | null = null;
         if (preserveCamera) {
-            const buf = callScene("meshchatxVisualiserSceneGetDrawBuffers");
+            const buf = callScene("meshchatxVisualiserSceneGetDrawBuffers") as {
+                ok?: boolean;
+                camX?: number;
+                camY?: number;
+                zoom?: number;
+            } | null;
             if (buf && buf.ok !== false) {
                 prevCam = {
                     x: buf.camX || 0,
                     y: buf.camY || 0,
-                    zoom: buf.zoom > 0 ? buf.zoom : 1,
+                    zoom: (buf.zoom ?? 0) > 0 ? (buf.zoom as number) : 1,
                 };
             }
         }
@@ -412,9 +514,17 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
             camX: viewOpts.camX ?? 0,
             camY: viewOpts.camY ?? 0,
             // 0 = Scene.Set keeps the current pan/zoom (auto-refresh must not reset).
-            zoom: preserveCamera ? 0 : viewOpts.zoom > 0 ? viewOpts.zoom : 1,
+            zoom: preserveCamera ? 0 : viewOpts.zoom != null && viewOpts.zoom > 0 ? viewOpts.zoom : 1,
         });
-        const got = callVisualiserWasmJson("meshchatxVisualiserSceneSet", JSON.stringify(req));
+        const got = callVisualiserWasmJson("meshchatxVisualiserSceneSet", JSON.stringify(req)) as
+            | {
+                  ok?: boolean;
+                  error?: string;
+                  nodes?: number;
+                  edges?: number;
+              }
+            | null
+            | undefined;
         if (!got || got.ok === false) {
             throw new Error(got?.error || "SceneSet failed");
         }
@@ -431,9 +541,8 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
 
     /**
      * Apply deferred LXMF / custom icon URLs after paint.
-     * @param {{id:string,image:string}[]} updates
      */
-    function updateNodeImages(updates) {
+    function updateNodeImages(updates: NodeImageUpdate[] | null | undefined): void {
         let changed = false;
         for (const u of updates || []) {
             if (!u?.id || !u?.image) continue;
@@ -448,20 +557,21 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
         void loadIconsForCurrentGraph(iconLoadGen);
     }
 
-    function getPositions() {
-        const got = callVisualiserWasmJson("meshchatxVisualiserSceneGetPositions");
+    function getPositions(): Record<string, { x?: number; y?: number }> {
+        const got = callVisualiserWasmJson("meshchatxVisualiserSceneGetPositions") as
+            { positions?: Record<string, { x?: number; y?: number }> } | null | undefined;
         return got?.positions && typeof got.positions === "object" ? got.positions : {};
     }
 
-    function getCounts() {
+    function getCounts(): { nodes: number; edges: number } {
         return { nodes: nodeCount, edges: edgeCount };
     }
 
-    function setLiveLayout() {
+    function setLiveLayout(): void {
         dirty = true;
     }
 
-    function setViewMode(mode) {
+    function setViewMode(mode: unknown): void {
         const next = normalizeVisualiserViewMode(mode);
         if (next === viewMode) {
             dirty = true;
@@ -471,18 +581,18 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
         dirty = true;
     }
 
-    function isPlanet() {
+    function isPlanet(): boolean {
         return viewMode === PLANET_VIEW;
     }
 
-    function pickNodeAt(cssX, cssY, pad) {
+    function pickNodeAt(cssX: number, cssY: number, pad?: number): string | null {
         if (isPlanet()) {
             return pickPlanetNode(planetPick, cssX, cssY, pad || 14);
         }
-        return callScene("meshchatxVisualiserScenePick", cssX, cssY, pad || 16) || null;
+        return (callScene("meshchatxVisualiserScenePick", cssX, cssY, pad || 16) as string | null | undefined) || null;
     }
 
-    function applyPlanetOrbit(nextYaw, nextPitch, nextDist) {
+    function applyPlanetOrbit(nextYaw: number, nextPitch: number, nextDist: number): void {
         let maxR = 0;
         for (let i = 0; i < lastPlanets.length; i++) {
             const r = lastPlanets[i].radius;
@@ -495,7 +605,7 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
         dirty = true;
     }
 
-    function frame() {
+    function frame(): void {
         if (!running) return;
         rafId = requestAnimationFrame(frame);
         const live = typeof hooks.getLiveLayout === "function" ? hooks.getLiveLayout() : false;
@@ -507,7 +617,16 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
         }
         if (!dirty) return;
         const dark = typeof hooks.isDark === "function" ? hooks.isDark() : false;
-        const buf = callScene("meshchatxVisualiserSceneGetDrawBuffers");
+        const buf = callScene("meshchatxVisualiserSceneGetDrawBuffers") as {
+            ok?: boolean;
+            nodes?: Float32Array;
+            edges?: Float32Array;
+            camX?: number;
+            camY?: number;
+            zoom?: number;
+            nodeCount?: number;
+            edgeCount?: number;
+        } | null;
         if (!buf || buf.ok === false) {
             renderer.clearBackground(dark);
             return;
@@ -518,18 +637,19 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
             drawNodeScratch = new Float32Array(need);
         }
         const drawNodes = mergeSceneNodesWithTextures(buf.nodes, texMeta, drawNodeScratch);
-        let camera: any = {
+        let camera: VisualiserCamera = {
             x: buf.camX || 0,
             y: buf.camY || 0,
-            zoom: buf.zoom > 0 ? buf.zoom : 1,
+            zoom: buf.zoom != null && buf.zoom > 0 ? buf.zoom : 1,
         };
         let drawEdges = buf.edges;
         let paintNodes = drawNodes;
         const css = renderer.getCssSize();
         if (isPlanet()) {
             if (kindByIndexScratch.length < sceneCount) kindByIndexScratch.length = sceneCount;
+            const sceneNodes = buf.nodes || new Float32Array(0);
             for (let i = 0; i < sceneCount; i++) {
-                kindByIndexScratch[i] = buf.nodes[i * SCENE_NODE_STRIDE + 7] | 0;
+                kindByIndexScratch[i] = sceneNodes[i * SCENE_NODE_STRIDE + 7] | 0;
             }
             const planet = projectPlanetScene({
                 nodes: drawNodes,
@@ -564,7 +684,7 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
             lastPlanets = [];
         }
         const labelZoom = isPlanet() ? planetLodZoom(orbitDist) : camera.zoom;
-        let paintLabels: any[];
+        let paintLabels: VisualiserLabel[];
         if (isPlanet()) {
             paintLabels = [];
             const lod = lodLevelFromScale(labelZoom);
@@ -607,13 +727,13 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
         dirty = false;
     }
 
-    function activePointerPair() {
+    function activePointerPair(): { a: CssPoint; b: CssPoint } | null {
         if (pointers.size < 2) return null;
         const pts = [...pointers.values()];
         return { a: pts[0], b: pts[1] };
     }
 
-    function onPointerDown(ev) {
+    function onPointerDown(ev: PointerEvent): void {
         if (ev.pointerType === "mouse" && ev.button !== 0) return;
         canvas.setPointerCapture?.(ev.pointerId);
         const p = cssPoint(ev);
@@ -640,7 +760,7 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
         dirty = true;
     }
 
-    function onPointerMove(ev) {
+    function onPointerMove(ev: PointerEvent): void {
         const p = cssPoint(ev);
         if (pointers.has(ev.pointerId)) {
             pointers.set(ev.pointerId, p);
@@ -669,11 +789,15 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
                 const eye = orbitEye(orbitYaw, orbitPitch, orbitDist);
                 const layout = pointerToLayout(p.x, p.y, css.width, css.height, eye, planetLayoutScale, lastPlanets);
                 if (layout) {
-                    const zoomBuf = callScene("meshchatxVisualiserSceneGetDrawBuffers");
+                    const zoomBuf = callScene("meshchatxVisualiserSceneGetDrawBuffers") as {
+                        camX?: number;
+                        camY?: number;
+                        zoom?: number;
+                    } | null;
                     const screen = layoutToWasmScreen(layout.x, layout.y, css.width, css.height, {
                         x: zoomBuf?.camX || 0,
                         y: zoomBuf?.camY || 0,
-                        zoom: zoomBuf?.zoom > 0 ? zoomBuf.zoom : 1,
+                        zoom: (zoomBuf?.zoom ?? 0) > 0 ? (zoomBuf!.zoom as number) : 1,
                     });
                     callScene("meshchatxVisualiserSceneDragTo", screen.x, screen.y);
                     dirty = true;
@@ -688,8 +812,8 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
                 lastX = p.x;
                 lastY = p.y;
             } else {
-                const zoomBuf = callScene("meshchatxVisualiserSceneGetDrawBuffers");
-                const zoom = zoomBuf?.zoom > 0 ? zoomBuf.zoom : 1;
+                const zoomBuf = callScene("meshchatxVisualiserSceneGetDrawBuffers") as { zoom?: number } | null;
+                const zoom = (zoomBuf?.zoom ?? 0) > 0 ? (zoomBuf!.zoom as number) : 1;
                 const dx = (lastX - p.x) / zoom;
                 const dy = (lastY - p.y) / zoom;
                 callScene("meshchatxVisualiserScenePanBy", dx, dy);
@@ -709,7 +833,7 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
         }
     }
 
-    function onPointerUp(ev) {
+    function onPointerUp(ev: PointerEvent): void {
         pointers.delete(ev.pointerId);
         try {
             canvas.releasePointerCapture?.(ev.pointerId);
@@ -740,7 +864,7 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
         dirty = true;
     }
 
-    function onDblClick(ev) {
+    function onDblClick(ev: MouseEvent): void {
         const p = cssPoint(ev);
         const id = pickNodeAt(p.x, p.y, 16);
         if (!id) return;
@@ -749,7 +873,7 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
         }
     }
 
-    function onWheel(ev) {
+    function onWheel(ev: WheelEvent): void {
         ev.preventDefault();
         const factor = ev.deltaY < 0 ? 1.12 : 1 / 1.12;
         if (isPlanet()) {
@@ -761,7 +885,7 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
         dirty = true;
     }
 
-    function onResize() {
+    function onResize(): void {
         const size = renderer.resize();
         callScene("meshchatxVisualiserSceneResize", size.width, size.height);
         dirty = true;
@@ -778,7 +902,7 @@ export function createVisualiserWebGLEngine(canvas, hooks: any = {}) {
 
     rafId = requestAnimationFrame(frame);
 
-    function destroy() {
+    function destroy(): void {
         running = false;
         iconLoadGen += 1;
         if (rafId != null) cancelAnimationFrame(rafId);

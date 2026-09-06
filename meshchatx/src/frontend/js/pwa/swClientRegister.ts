@@ -4,12 +4,18 @@
  * Client-side service worker registration helpers (browser only, not Electron).
  */
 
-/**
- * Reload only when replacing an existing controller, and only once per page life.
- * @param {{ hadController: boolean, refreshing: boolean }} state
- * @returns {{ shouldReload: boolean, nextRefreshing: boolean }}
- */
-export function decideControllerChangeReload(state) {
+export type ControllerChangeReloadState = {
+    hadController: boolean;
+    refreshing: boolean;
+};
+
+export type ControllerChangeReloadDecision = {
+    shouldReload: boolean;
+    nextRefreshing: boolean;
+};
+
+/** Reload only when replacing an existing controller, and only once per page life. */
+export function decideControllerChangeReload(state: ControllerChangeReloadState): ControllerChangeReloadDecision {
     const hadController = Boolean(state?.hadController);
     const refreshing = Boolean(state?.refreshing);
     if (!hadController || refreshing) {
@@ -18,11 +24,7 @@ export function decideControllerChangeReload(state) {
     return { shouldReload: true, nextRefreshing: true };
 }
 
-/**
- * @param {unknown} error
- * @returns {boolean}
- */
-export function isIgnorableServiceWorkerRegistrationError(error) {
+export function isIgnorableServiceWorkerRegistrationError(error: unknown): boolean {
     const errorMessage = error && typeof error === "object" && "message" in error ? String(error.message || "") : "";
     const errorName = error && typeof error === "object" && "name" in error ? String(error.name || "") : "";
     return (
@@ -32,32 +34,31 @@ export function isIgnorableServiceWorkerRegistrationError(error) {
     );
 }
 
-/**
- * Registration options that keep SW script discovery fresh.
- * @returns {{ updateViaCache: "none" }}
- */
-export function serviceWorkerRegisterOptions() {
+/** Registration options that keep SW script discovery fresh. */
+export function serviceWorkerRegisterOptions(): { updateViaCache: "none" } {
     return { updateViaCache: "none" };
 }
 
 /**
  * Vite HMR breaks if a leftover PWA worker intercepts modules.
  * Register only for production-like browser loads (not Electron, not Vite DEV).
- *
- * @param {{ isDev?: boolean, isElectron?: boolean }} state
- * @returns {boolean}
  */
-export function shouldRegisterServiceWorker(state) {
+export function shouldRegisterServiceWorker(state: { isDev?: boolean; isElectron?: boolean }): boolean {
     return !state?.isDev && !state?.isElectron;
 }
 
+type UnregisterableRegistration = {
+    unregister?: () => Promise<boolean>;
+};
+
+type ServiceWorkerLike = {
+    getRegistrations?: () => Promise<readonly UnregisterableRegistration[] | UnregisterableRegistration[]>;
+};
+
 /**
  * Drop existing registrations so a previous task run session cannot cache Vite.
- *
- * @param {{ getRegistrations?: () => Promise<Array<{ unregister?: () => Promise<boolean> }>> }} [serviceWorker]
- * @returns {Promise<boolean[]>}
  */
-export async function unregisterServiceWorkersIfPresent(serviceWorker) {
+export async function unregisterServiceWorkersIfPresent(serviceWorker?: ServiceWorkerLike): Promise<boolean[]> {
     if (!serviceWorker || typeof serviceWorker.getRegistrations !== "function") {
         return [];
     }
@@ -65,7 +66,7 @@ export async function unregisterServiceWorkersIfPresent(serviceWorker) {
     if (!Array.isArray(registrations) || registrations.length === 0) {
         return [];
     }
-    const results = [];
+    const results: boolean[] = [];
     for (const registration of registrations) {
         if (registration && typeof registration.unregister === "function") {
             results.push(Boolean(await registration.unregister()));

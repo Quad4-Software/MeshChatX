@@ -4,28 +4,18 @@
 
 export const HOST_WIDGET_NAMES = Object.freeze(["IssueStackView", "HashBadge"]);
 
-/**
- * @param {string} name
- * @returns {boolean}
- */
-export function isKnownHostWidget(name) {
-    return HOST_WIDGET_NAMES.includes(name);
+export function isKnownHostWidget(name: string): boolean {
+    return (HOST_WIDGET_NAMES as readonly string[]).includes(name);
 }
 
 /**
  * Host widgets are rendered by PluginSlotNode.svelte.
  * Kept as a name allowlist only.
- * @param {string} name
- * @returns {string | null}
  */
-export function resolveHostWidget(name) {
+export function resolveHostWidget(name: string): string | null {
     return isKnownHostWidget(name) ? name : null;
 }
 
-/**
- * @param {string} name
- * @returns {Promise<string | null>}
- */
-export function resolveHostWidgetAsync(name) {
+export function resolveHostWidgetAsync(name: string): Promise<string | null> {
     return Promise.resolve(resolveHostWidget(name));
 }

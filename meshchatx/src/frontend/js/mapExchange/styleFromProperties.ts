@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: 0BSD
 
+import type Feature from "ol/Feature";
+import type { Color } from "ol/color";
+import type CircleGeom from "ol/geom/Circle";
 import { Circle as CircleStyle, Fill, Icon, Stroke, Style } from "ol/style";
+import type { StyleFunction } from "ol/style/Style";
 import LineString from "ol/geom/LineString";
 import {
     MCX_FILL_COLOR,
@@ -31,12 +35,12 @@ const CHEAP_POINT_STYLE = new Style({
     }),
 });
 
-function num(v, fallback) {
-    const n = typeof v === "number" ? v : parseFloat(v);
+function num(v: unknown, fallback: number): number {
+    const n = typeof v === "number" ? v : parseFloat(String(v));
     return Number.isFinite(n) ? n : fallback;
 }
 
-function hexToRgba(hex, alpha = 1) {
+function hexToRgba(hex: unknown, alpha = 1): string {
     if (!hex || typeof hex !== "string") {
         return `rgba(59,130,246,${alpha})`;
     }
@@ -59,7 +63,7 @@ function hexToRgba(hex, alpha = 1) {
     return `rgba(${r},${g},${b},${alpha})`;
 }
 
-function circleRadiusFromSimpleSize(markerSize) {
+function circleRadiusFromSimpleSize(markerSize: unknown): number {
     const s = String(markerSize || "medium").toLowerCase();
     if (s === "small") {
         return 5;
@@ -71,17 +75,10 @@ function circleRadiusFromSimpleSize(markerSize) {
 }
 
 /**
- * Build an OpenLayers Style from MeshChatX / simplestyle-ish feature properties.
- * Used when the feature has no per-feature style (e.g. GeoJSON import).
- * @param {import("ol/Feature").default} feature
- * @returns {import("ol/style/Style").default|null}
- */
-/**
  * Replace OL KML icon styles with a capped MCX icon style when metadata is present.
  * Avoids full-resolution bitmaps when scale was captured before the image finished loading.
- * @param {import("ol/Feature").default} feature
  */
-export function applyCappedMcxIconStyleIfNeeded(feature) {
+export function applyCappedMcxIconStyleIfNeeded(feature: Feature): void {
     const g = feature.getGeometry();
     if (!g) {
         return;
@@ -106,7 +103,11 @@ export function applyCappedMcxIconStyleIfNeeded(feature) {
     });
 }
 
-export function styleFromMcxProperties(feature, resolution?) {
+/**
+ * Build an OpenLayers Style from MeshChatX / simplestyle-ish feature properties.
+ * Used when the feature has no per-feature style (e.g. GeoJSON import).
+ */
+export function styleFromMcxProperties(feature: Feature, resolution?: number | null): Style | null {
     const geom = feature.getGeometry();
     if (!geom) {
         return null;
@@ -154,7 +155,7 @@ export function styleFromMcxProperties(feature, resolution?) {
     const fillOpacity = num(p[MCX_FILL_OPACITY] ?? p["fill-opacity"], fillRaw ? 0.35 : 0);
 
     const stroke = new Stroke({
-        color: /** @type {import("ol/color").Color|string} */ strokeRaw,
+        color: strokeRaw as Color | string,
         width: strokeWidth,
     });
 
@@ -163,14 +164,14 @@ export function styleFromMcxProperties(feature, resolution?) {
     }
 
     if (type === "Polygon" || type === "MultiPolygon") {
-        let fill;
+        let fill: Fill;
         if (fillRaw) {
             fill =
                 typeof fillRaw === "string"
                     ? new Fill({
                           color: hexToRgba(fillRaw, fillOpacity > 0 ? fillOpacity : 0.35),
                       })
-                    : new Fill({ color: /** @type {import("ol/color").Color} */ fillRaw });
+                    : new Fill({ color: fillRaw as Color });
         } else {
             fill = new Fill({ color: "rgba(59, 130, 246, 0.2)" });
         }
@@ -178,7 +179,7 @@ export function styleFromMcxProperties(feature, resolution?) {
     }
 
     if (type === "Circle") {
-        const g = /** @type {import("ol/geom/Circle").default} */ geom;
+        const g = geom as CircleGeom;
         const center = g.getCenter();
         const edge = [center[0] + g.getRadius(), center[1]];
         const line = new LineString([center, edge]);
@@ -191,12 +192,11 @@ export function styleFromMcxProperties(feature, resolution?) {
     return null;
 }
 
-/**
- * Copy icon/stroke metadata from an OpenLayers Style into feature properties for GeoJSON export.
- * @param {import("ol/style/Style").default} style
- * @param {import("ol/Feature").default} feature
- */
-export function copyStyleMetadataToProperties(style, feature) {
+/** Copy icon/stroke metadata from an OpenLayers Style into feature properties for GeoJSON export. */
+export function copyStyleMetadataToProperties(
+    style: Style | Style[] | null | undefined,
+    feature: Feature | null | undefined
+): void {
     if (!style || !feature) {
         return;
     }
@@ -205,7 +205,7 @@ export function copyStyleMetadataToProperties(style, feature) {
         if (!st || typeof st.getImage !== "function") {
             continue;
         }
-        const img = st.getImage();
+        const img = st.getImage() as Icon | null;
         if (img && typeof img.getSrc === "function") {
             const src = img.getSrc();
             if (src) {
@@ -218,7 +218,7 @@ export function copyStyleMetadataToProperties(style, feature) {
                 if (sc != null) {
                     feature.set(MCX_ICON_SCALE, sc);
                 }
-                const anchor = img.getAnchor && img.getAnchor();
+                const anchor = typeof img.getAnchor === "function" ? img.getAnchor() : null;
                 if (anchor && anchor.length >= 2) {
                     feature.set(MCX_ICON_ANCHOR_X, anchor[0]);
                     feature.set(MCX_ICON_ANCHOR_Y, anchor[1]);
@@ -241,15 +241,12 @@ export function copyStyleMetadataToProperties(style, feature) {
     }
 }
 
-/**
- * After KML import, mirror style into mcx_* props so GeoJSON export keeps icons.
- * @param {import("ol/Feature").default[]} features
- */
-export function normalizeKmlImportedFeatures(features) {
+/** After KML import, mirror style into mcx_* props so GeoJSON export keeps icons. */
+export function normalizeKmlImportedFeatures(features: Feature[]): void {
     for (const f of features) {
-        let st = f.getStyle();
+        let st: Style | Style[] | StyleFunction | null | undefined = f.getStyle();
         if (typeof st === "function") {
-            st = st(f);
+            st = st(f, 0) as Style | Style[] | null | undefined;
         }
         const list = st == null ? [] : Array.isArray(st) ? st : [st];
         for (const s of list) {
@@ -262,13 +259,12 @@ export function normalizeKmlImportedFeatures(features) {
 /**
  * Ensure each feature has an OL style for KML export when only properties were set.
  * Mutates features (sets style).
- * @param {import("ol/Feature").default[]} features
  */
-export function ensureOlStylesForKmlExport(features) {
+export function ensureOlStylesForKmlExport(features: Feature[]): void {
     for (const f of features) {
-        let st = f.getStyle();
+        let st: Style | Style[] | StyleFunction | null | undefined = f.getStyle();
         if (typeof st === "function") {
-            st = null;
+            st = undefined;
         }
         if (st != null) {
             continue;

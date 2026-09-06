@@ -13,11 +13,8 @@ const TAB_WIDTH = 8;
 /**
  * Strip ANSI escape and control sequences, preserving newline, carriage
  * return, tab and backspace which are handled by the cursor simulation.
- *
- * @param {string} input
- * @returns {string}
  */
-function stripAnsi(input) {
+function stripAnsi(input: string): string {
     return input
         .replace(OSC_SEQUENCE, "")
         .replace(STRING_SEQUENCE, "")
@@ -32,11 +29,8 @@ function stripAnsi(input) {
  * ANSI colour and cursor-control sequences are removed, while carriage
  * returns, backspaces and tabs are applied so that progress redraws and
  * line edits collapse into their final visible form.
- *
- * @param {string} raw
- * @returns {string}
  */
-export function renderTerminalOutput(raw) {
+export function renderTerminalOutput(raw: string): string {
     if (typeof raw !== "string" || raw.length === 0) {
         return "";
     }

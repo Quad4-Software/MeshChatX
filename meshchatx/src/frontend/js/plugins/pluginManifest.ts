@@ -4,29 +4,63 @@ import { declaredPermissionIds, manifestPermissionSummary as summarizePermission
 
 const SUPPORTED_API_VERSION = 1;
 
-/**
- * @typedef {Object} PluginManifest
- * @property {string} id
- * @property {string} version
- * @property {string | number} apiVersion
- * @property {string} [name]
- * @property {string} [description]
- * @property {{ entry: string, type: 'js' | 'wasm' }} [frontend]
- * @property {{ entry: string, type: 'wasm' | 'python' }} [backend]
- * @property {Object} [contributes]
- * @property {Object} [permissions]
- * @property {{ endpoints?: string[] }} [network]
- */
+export type PluginFrontend = {
+    entry: string;
+    type: "js" | "wasm";
+};
 
-/**
- * @param {unknown} manifest
- * @returns {PluginManifest}
- */
-export function validatePluginManifest(manifest) {
+export type PluginBackend = {
+    entry: string;
+    type: "wasm" | "python";
+};
+
+export type PluginUiConfig = {
+    widgets?: string[];
+};
+
+export type PluginI18nConfig = {
+    directory?: string;
+    defaultLocale?: string;
+};
+
+export type PluginPermissions = {
+    hooks?: string[];
+    managers?: string[];
+    storage?: string;
+    network?: unknown;
+    ui?: "sandboxed-html" | "none" | Array<"sandboxed-html" | "none">;
+    [key: string]: unknown;
+};
+
+export type PluginContributes = {
+    navItems?: Array<Record<string, unknown>>;
+    toolsPageEntries?: Array<Record<string, unknown>>;
+    [key: string]: unknown;
+};
+
+export type PluginManifest = {
+    id: string;
+    version: string;
+    apiVersion: string | number;
+    name?: string;
+    description?: string;
+    frontend?: PluginFrontend;
+    backend?: PluginBackend;
+    ui?: PluginUiConfig;
+    i18n?: PluginI18nConfig;
+    contributes?: PluginContributes;
+    permissions?: PluginPermissions;
+    network?: { endpoints?: string[] };
+    declared_permissions?: string[];
+};
+
+export type ManifestTranslateFn = (key: string, values?: Record<string, unknown>) => string;
+
+export function validatePluginManifest(manifest: unknown): PluginManifest {
     if (!manifest || typeof manifest !== "object") {
         throw new Error("Plugin manifest must be an object");
     }
-    const record = /** @type {Record<string, unknown>} */ manifest;
+    const record = manifest as Record<string, unknown>;
     if (typeof record.id !== "string" || !record.id.trim()) {
         throw new Error("Plugin manifest requires a non-empty id");
     }
@@ -38,7 +72,7 @@ export function validatePluginManifest(manifest) {
         throw new Error(`Plugin apiVersion must be ${SUPPORTED_API_VERSION}`);
     }
     if (record.frontend != null) {
-        const frontend = /** @type {Record<string, unknown>} */ record.frontend;
+        const frontend = record.frontend as Record<string, unknown>;
         if (typeof frontend.entry !== "string" || !frontend.entry.trim()) {
             throw new Error("Plugin frontend.entry is required when frontend is set");
         }
@@ -50,7 +84,7 @@ export function validatePluginManifest(manifest) {
         }
     }
     if (record.backend != null) {
-        const backend = /** @type {Record<string, unknown>} */ record.backend;
+        const backend = record.backend as Record<string, unknown>;
         if (typeof backend.entry !== "string" || !backend.entry.trim()) {
             throw new Error("Plugin backend.entry is required when backend is set");
         }
@@ -59,7 +93,7 @@ export function validatePluginManifest(manifest) {
         }
     }
     if (record.ui != null) {
-        const ui = /** @type {Record<string, unknown>} */ record.ui;
+        const ui = record.ui as Record<string, unknown>;
         if (ui.widgets != null) {
             if (!Array.isArray(ui.widgets)) {
                 throw new Error("Plugin ui.widgets must be an array");
@@ -76,7 +110,7 @@ export function validatePluginManifest(manifest) {
         throw new Error("Plugin permissions must be an object");
     }
     if (permissions && typeof permissions === "object") {
-        const uiPerm = /** @type {Record<string, unknown>} */ permissions.ui;
+        const uiPerm = (permissions as Record<string, unknown>).ui;
         if (uiPerm != null && uiPerm !== "sandboxed-html" && uiPerm !== "none") {
             if (!Array.isArray(uiPerm) || uiPerm.some((v) => v !== "sandboxed-html")) {
                 throw new Error("Plugin permissions.ui must be none, sandboxed-html, or an array of those values");
@@ -86,16 +120,11 @@ export function validatePluginManifest(manifest) {
     if (record.network != null && typeof record.network !== "object") {
         throw new Error("Plugin network must be an object");
     }
-    return /** @type {PluginManifest} */ manifest;
+    return manifest as PluginManifest;
 }
 
-/**
- * @param {PluginManifest} manifest
- * @param {(key: string, values?: Record<string, unknown>) => string} [t]
- * @returns {string[]}
- */
-export function manifestPermissionSummary(manifest, t) {
-    const translate = t || ((key) => key);
+export function manifestPermissionSummary(manifest: PluginManifest, t?: ManifestTranslateFn): string[] {
+    const translate = t || ((key: string) => key);
     return summarizePermissions(manifest, translate);
 }
 

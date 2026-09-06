@@ -1,36 +1,42 @@
+// SPDX-License-Identifier: 0BSD
+
 /**
  * Maintenance, stickers, folders, and RNS reload API calls used from settings.
  */
 
-/**
- * @param {{ delete: (path: string, config?: object) => Promise<unknown> }} api
- */
-export async function clearMessages(api) {
+import type { ApiClient } from "../apiClient.js";
+
+export type MessageAgeFilterMode = "days" | "date";
+
+export type MessageAgeFilterOpts = {
+    mode: MessageAgeFilterMode;
+    days?: number;
+    beforeDate?: string;
+};
+
+export type MessageAgeFilterParams = {
+    older_than_days?: number;
+    before?: string;
+};
+
+export async function clearMessages(api: Pick<ApiClient, "delete">): Promise<void> {
     await api.delete("/api/v1/maintenance/messages");
 }
 
-/**
- * @param {{ get: (path: string) => Promise<{ data?: { count?: number } }> }} api
- */
-export async function previewDuplicateMessages(api) {
-    const response = await api.get("/api/v1/maintenance/messages/duplicates");
+export async function previewDuplicateMessages(api: Pick<ApiClient, "get">): Promise<{ count: number }> {
+    const response = await api.get<{ count?: number }>("/api/v1/maintenance/messages/duplicates");
     return { count: Number(response?.data?.count) || 0 };
 }
 
-/**
- * @param {{ delete: (path: string) => Promise<{ data?: { deleted?: number } }> }} api
- */
-export async function clearDuplicateMessages(api) {
-    const response = await api.delete("/api/v1/maintenance/messages/duplicates");
+export async function clearDuplicateMessages(api: Pick<ApiClient, "delete">): Promise<{ deleted: number }> {
+    const response = await api.delete<{ deleted?: number }>("/api/v1/maintenance/messages/duplicates");
     return { deleted: Number(response?.data?.deleted) || 0 };
 }
 
-/**
- * Build query params for age-based message purge/export.
- * @param {{ mode: "days"|"date", days?: number, beforeDate?: string }} opts
- * @returns {{ older_than_days?: number, before?: string }|null}
- */
-export function buildMessageAgeFilterParams(opts) {
+/** Build query params for age-based message purge/export. */
+export function buildMessageAgeFilterParams(
+    opts: MessageAgeFilterOpts | null | undefined
+): MessageAgeFilterParams | null {
     if (!opts || typeof opts !== "object") return null;
     if (opts.mode === "date") {
         const before = typeof opts.beforeDate === "string" ? opts.beforeDate.trim() : "";
@@ -42,112 +48,82 @@ export function buildMessageAgeFilterParams(opts) {
     return { older_than_days: Math.floor(days) };
 }
 
-/**
- * @param {{ get: (path: string, config?: object) => Promise<{ data?: { count?: number, cutoff?: number } }> }} api
- * @param {{ older_than_days?: number, before?: string }} params
- */
-export async function previewMessageAgePurge(api, params) {
-    const response = await api.get("/api/v1/maintenance/messages/purge-preview", { params });
+export async function previewMessageAgePurge(
+    api: Pick<ApiClient, "get">,
+    params: MessageAgeFilterParams
+): Promise<{ count: number; cutoff: number | undefined }> {
+    const response = await api.get<{ count?: number; cutoff?: number }>("/api/v1/maintenance/messages/purge-preview", {
+        params,
+    });
     return {
         count: Number(response?.data?.count) || 0,
         cutoff: response?.data?.cutoff,
     };
 }
 
-/**
- * @param {{ delete: (path: string, config?: object) => Promise<{ data?: { deleted?: number } }> }} api
- * @param {{ older_than_days?: number, before?: string }} params
- */
-export async function purgeMessagesByAge(api, params) {
-    const response = await api.delete("/api/v1/maintenance/messages", { params });
+export async function purgeMessagesByAge(
+    api: Pick<ApiClient, "delete">,
+    params: MessageAgeFilterParams
+): Promise<{ deleted: number; cutoff: unknown }> {
+    const response = await api.delete<{ deleted?: number; cutoff?: unknown }>("/api/v1/maintenance/messages", {
+        params,
+    });
     return {
         deleted: Number(response?.data?.deleted) || 0,
         cutoff: response?.data?.cutoff,
     };
 }
 
-/**
- * @param {{ post: (path: string, data?: object, config?: object) => Promise<{ data?: object }> }} api
- * @param {{ older_than_days?: number, before?: string }|null|undefined} [params]
- */
-export async function exportMessagesBundle(api, params) {
+export async function exportMessagesBundle(
+    api: Pick<ApiClient, "post">,
+    params?: MessageAgeFilterParams | null
+): Promise<unknown> {
     const body = params && typeof params === "object" ? { ...params } : {};
     const response = await api.post("/api/v1/maintenance/messages/export", body);
     return response?.data;
 }
 
-/**
- * @param {{ delete: (path: string) => Promise<unknown> }} api
- */
-export async function clearAnnounces(api) {
+export async function clearAnnounces(api: Pick<ApiClient, "delete">): Promise<void> {
     await api.delete("/api/v1/maintenance/announces");
 }
 
-/**
- * @param {{ delete: (path: string, config?: object) => Promise<unknown> }} api
- */
-export async function clearNomadnetFavorites(api) {
+export async function clearNomadnetFavorites(api: Pick<ApiClient, "delete">): Promise<void> {
     await api.delete("/api/v1/maintenance/favourites", {
         params: { aspect: "nomadnetwork.node" },
     });
 }
 
-/**
- * @param {{ delete: (path: string) => Promise<unknown> }} api
- */
-export async function clearLxmfIcons(api) {
+export async function clearLxmfIcons(api: Pick<ApiClient, "delete">): Promise<void> {
     await api.delete("/api/v1/maintenance/lxmf-icons");
 }
 
-/**
- * @param {{ delete: (path: string) => Promise<unknown> }} api
- */
-export async function clearStickers(api) {
+export async function clearStickers(api: Pick<ApiClient, "delete">): Promise<void> {
     await api.delete("/api/v1/maintenance/stickers");
 }
 
-/**
- * @param {{ delete: (path: string) => Promise<unknown> }} api
- */
-export async function clearGifs(api) {
+export async function clearGifs(api: Pick<ApiClient, "delete">): Promise<void> {
     await api.delete("/api/v1/maintenance/gifs");
 }
 
-/**
- * @param {{ delete: (path: string) => Promise<unknown> }} api
- */
-export async function clearArchives(api) {
+export async function clearArchives(api: Pick<ApiClient, "delete">): Promise<void> {
     await api.delete("/api/v1/maintenance/archives");
 }
 
-/**
- * @param {{ delete: (path: string) => Promise<unknown> }} api
- */
-export async function clearReticulumDocs(api) {
+export async function clearReticulumDocs(api: Pick<ApiClient, "delete">): Promise<void> {
     await api.delete("/api/v1/maintenance/docs/reticulum");
 }
 
-/**
- * @param {{ delete: (path: string) => Promise<{ data?: { dropped?: number } }> }} api
- */
-export async function clearPathTable(api) {
+export async function clearPathTable(api: Pick<ApiClient, "delete">): Promise<unknown> {
     return api.delete("/api/v1/maintenance/path-table");
 }
 
-/**
- * @param {{ post: (path: string) => Promise<unknown> }} api
- */
-export async function reloadReticulum(api) {
+export async function reloadReticulum(api: Pick<ApiClient, "post">): Promise<unknown> {
     return api.post("/api/v1/reticulum/reload");
 }
 
-/**
- * @param {{ get: (path: string) => Promise<{ data?: { stickers?: unknown[] } }> }} api
- * @returns {Promise<number>}
- */
-export async function fetchStickerCount(api) {
+export async function fetchStickerCount(api: Pick<ApiClient, "get">): Promise<number> {
     try {
-        const response = await api.get("/api/v1/stickers");
+        const response = await api.get<{ stickers?: unknown[] }>("/api/v1/stickers");
         const list = response.data?.stickers;
         return Array.isArray(list) ? list.length : 0;
     } catch {
@@ -155,13 +131,9 @@ export async function fetchStickerCount(api) {
     }
 }
 
-/**
- * @param {{ get: (path: string) => Promise<{ data?: { gifs?: unknown[] } }> }} api
- * @returns {Promise<number>}
- */
-export async function fetchGifCount(api) {
+export async function fetchGifCount(api: Pick<ApiClient, "get">): Promise<number> {
     try {
-        const response = await api.get("/api/v1/gifs");
+        const response = await api.get<{ gifs?: unknown[] }>("/api/v1/gifs");
         const list = response.data?.gifs;
         return Array.isArray(list) ? list.length : 0;
     } catch {

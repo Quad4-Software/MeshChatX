@@ -18,72 +18,81 @@ let dismissedThisEpisode = false;
 let toastVisible = false;
 let consecutiveHighHeap = 0;
 
-export function resetMemoryWarningStateForTests() {
+export function resetMemoryWarningStateForTests(): void {
     dismissedThisEpisode = false;
     toastVisible = false;
     consecutiveHighHeap = 0;
 }
 
-function warningDataFromPayload(payload) {
+type WarningPayloadLike = {
+    data?: Record<string, unknown>;
+    kind?: unknown;
+};
+
+function warningDataFromPayload(payload: unknown): Record<string, unknown> | null {
     if (!payload || typeof payload !== "object") {
         return null;
     }
-    if (payload.data && typeof payload.data === "object") {
-        return payload.data;
+    const record = payload as WarningPayloadLike;
+    if (record.data && typeof record.data === "object") {
+        return record.data as Record<string, unknown>;
     }
-    return payload;
+    return record as Record<string, unknown>;
 }
 
-/**
- * @param {unknown} payload
- * @returns {boolean}
- */
-export function isMemoryHealthWarningPayload(payload) {
+export function isMemoryHealthWarningPayload(payload: unknown): boolean {
     const data = warningDataFromPayload(payload);
     return Boolean(data && data.kind === "memory_low");
 }
 
-/**
- * @param {unknown} payload
- * @returns {boolean}
- */
-export function isMemoryRecoveredPayload(payload) {
+export function isMemoryRecoveredPayload(payload: unknown): boolean {
     const data = warningDataFromPayload(payload);
     return Boolean(data && data.kind === "memory_recovered");
 }
 
-/**
- * @param {{ fromHealthWs?: boolean, fromClientHeap?: boolean }} options
- * @returns {boolean}
- */
-export function shouldShowMemoryWarningToast(options: any = {}) {
+export type MemoryWarningSourceOptions = {
+    fromHealthWs?: boolean;
+    fromClientHeap?: boolean;
+};
+
+export function shouldShowMemoryWarningToast(options: MemoryWarningSourceOptions = {}): boolean {
     if (dismissedThisEpisode || toastVisible) {
         return false;
     }
     return Boolean(options.fromHealthWs || options.fromClientHeap);
 }
 
-export function markMemoryWarningShown() {
+export function markMemoryWarningShown(): void {
     toastVisible = true;
 }
 
-export function markMemoryWarningDismissed() {
+export function markMemoryWarningDismissed(): void {
     toastVisible = false;
     dismissedThisEpisode = true;
     consecutiveHighHeap = 0;
 }
 
-export function markMemoryWarningRecovered() {
+export function markMemoryWarningRecovered(): void {
     dismissedThisEpisode = false;
     toastVisible = false;
     consecutiveHighHeap = 0;
 }
 
-/**
- * @param {{ jsHeapSizeLimit?: number, usedJSHeapSize?: number } | null | undefined} memoryInfo
- * @returns {{ shouldWarn: boolean, reason: string, ratio?: number, consecutive?: number }}
- */
-export function evaluateClientHeapSample(memoryInfo) {
+export type MemoryInfoLike = {
+    jsHeapSizeLimit?: number;
+    usedJSHeapSize?: number;
+};
+
+export type ClientHeapSampleResult = {
+    shouldWarn: boolean;
+    reason: string;
+    ratio?: number;
+    consecutive?: number;
+};
+
+export function evaluateClientHeapSample(
+    memoryInfo: MemoryInfoLike | Record<string, unknown> | null | undefined
+): ClientHeapSampleResult {
     if (!memoryInfo || typeof memoryInfo.jsHeapSizeLimit !== "number" || memoryInfo.jsHeapSizeLimit <= 0) {
         consecutiveHighHeap = 0;
         return { shouldWarn: false, reason: "unavailable" };
@@ -115,12 +124,15 @@ export function evaluateClientHeapSample(memoryInfo) {
     };
 }
 
-/**
- * @param {{ warning: (message: string, duration?: number, key?: string | null) => void }} toastUtils
- * @param {{ fromHealthWs?: boolean, fromClientHeap?: boolean }} options
- * @returns {boolean} true when a toast was shown
- */
-export function showMemoryWarningToastIfNeeded(toastUtils, options: any = {}) {
+export type ToastWarningUtils = {
+    warning: (message: string, duration?: number, key?: string | null) => void;
+};
+
+/** Returns true when a toast was shown. */
+export function showMemoryWarningToastIfNeeded(
+    toastUtils: ToastWarningUtils | null | undefined,
+    options: MemoryWarningSourceOptions = {}
+): boolean {
     if (!shouldShowMemoryWarningToast(options)) {
         return false;
     }
@@ -132,12 +144,12 @@ export function showMemoryWarningToastIfNeeded(toastUtils, options: any = {}) {
     return true;
 }
 
-/**
- * @param {unknown} payload
- * @param {{ warning: (message: string, duration?: number, key?: string | null) => void }} toastUtils
- * @returns {"shown" | "recovered" | "ignored"}
- */
-export function handleHealthWarningPayload(payload, toastUtils) {
+export type HealthWarningHandleResult = "shown" | "recovered" | "ignored";
+
+export function handleHealthWarningPayload(
+    payload: unknown,
+    toastUtils: ToastWarningUtils | null | undefined
+): HealthWarningHandleResult {
     if (isMemoryRecoveredPayload(payload)) {
         markMemoryWarningRecovered();
         return "recovered";

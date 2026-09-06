@@ -2,25 +2,36 @@
  * Retry helpers when the backend reports temporary unavailability.
  */
 
-/**
- * @param {unknown} error
- * @returns {boolean}
- */
-export function isRetryableHttpError(error) {
+export type RetryableHttpError = {
+    name?: string;
+    message?: string;
+    response?: { status?: number };
+};
+
+export type WithRetryableHttpOptions = {
+    maxAttempts?: number;
+    baseDelayMs?: number;
+    signal?: AbortSignal | null;
+    isAborted?: () => boolean;
+    sleep?: (ms: number) => Promise<void>;
+};
+
+export function isRetryableHttpError(error: unknown): boolean {
     if (!error || typeof error !== "object") {
         return false;
     }
-    const name = error.name;
+    const err = error as RetryableHttpError;
+    const name = err.name;
     if (name === "AbortError" || name === "CanceledError") {
         return false;
     }
-    const status = error.response?.status;
+    const status = err.response?.status;
     if (status === 503) {
         return true;
     }
     // No HTTP response: transient backend restart / connection drop.
-    if (!error.response && (name === "TypeError" || name === "HttpError" || name === "Error")) {
-        const message = typeof error.message === "string" ? error.message.toLowerCase() : "";
+    if (!err.response && (name === "TypeError" || name === "HttpError" || name === "Error")) {
+        const message = typeof err.message === "string" ? err.message.toLowerCase() : "";
         if (
             message.includes("failed to fetch") ||
             message.includes("networkerror") ||
@@ -35,26 +46,18 @@ export function isRetryableHttpError(error) {
     return false;
 }
 
-/**
- * @param {() => Promise<any>} requestFn
- * @param {{
- *   maxAttempts?: number,
- *   baseDelayMs?: number,
- *   signal?: AbortSignal | null,
- *   isAborted?: () => boolean,
- *   sleep?: (ms: number) => Promise<void>,
- * }} [options]
- * @returns {Promise<any>}
- */
-export async function withRetryableHttp(requestFn, options: any = {}) {
+export async function withRetryableHttp<T>(
+    requestFn: () => Promise<T>,
+    options: WithRetryableHttpOptions = {}
+): Promise<T> {
     // Long enough to cover identity switch and modest DB migrate windows.
     // Pages that mount on early ui_ready should still gate on identity ready.
     const maxAttempts = options.maxAttempts ?? 12;
     const baseDelayMs = options.baseDelayMs ?? 400;
     const sleep =
         options.sleep ??
-        ((ms) =>
-            new Promise<any>((resolve) => {
+        ((ms: number) =>
+            new Promise<void>((resolve) => {
                 setTimeout(resolve, ms);
             }));
 

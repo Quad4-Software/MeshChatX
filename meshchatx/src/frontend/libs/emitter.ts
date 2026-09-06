@@ -7,23 +7,19 @@
  * Emit uses a snapshot so handlers may safely on/off during emit.
  */
 
-/**
- * @typedef {(event: unknown) => void} EmitterHandler
- * @typedef {(type: string | symbol, event: unknown) => void} WildcardHandler
- * @typedef {Map<string | symbol, Array<EmitterHandler | WildcardHandler>>} HandlerMap
- *
- * @typedef {object} Emitter
- * @property {HandlerMap} all
- * @property {(type: string | symbol, handler: EmitterHandler | WildcardHandler) => void} on
- * @property {(type: string | symbol, handler?: EmitterHandler | WildcardHandler) => void} off
- * @property {(type: string | symbol, event?: unknown) => void} emit
- */
+/** Payload is untyped so typed listeners stay assignable (bivariant in practice). */
+export type EmitterHandler = (event?: any) => void;
+export type WildcardHandler = (type: string | symbol, event: unknown) => void;
+export type HandlerMap = Map<string | symbol, Array<EmitterHandler | WildcardHandler>>;
 
-/**
- * @param {HandlerMap} [all]
- * @returns {Emitter}
- */
-export function createEmitter(all = new Map()) {
+export type Emitter = {
+    all: HandlerMap;
+    on: (type: string | symbol, handler: EmitterHandler | WildcardHandler) => void;
+    off: (type: string | symbol, handler?: EmitterHandler | WildcardHandler) => void;
+    emit: (type: string | symbol, event?: unknown) => void;
+};
+
+export function createEmitter(all: HandlerMap = new Map()): Emitter {
     return {
         all,
         on(type, handler) {
@@ -55,23 +51,19 @@ export function createEmitter(all = new Map()) {
             const list = all.get(type);
             if (list) {
                 for (const handler of list.slice()) {
-                    /** @type {EmitterHandler} */ handler(event);
+                    (handler as EmitterHandler)(event);
                 }
             }
             const wild = all.get("*");
             if (wild) {
                 for (const handler of wild.slice()) {
-                    handler(type, event);
+                    (handler as WildcardHandler)(type, event);
                 }
             }
         },
     };
 }
 
-/**
- * @param {HandlerMap} [all]
- * @returns {Emitter}
- */
-export default function emitter(all) {
+export default function emitter(all?: HandlerMap): Emitter {
     return createEmitter(all);
 }

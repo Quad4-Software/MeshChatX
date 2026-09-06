@@ -8,10 +8,9 @@
 
 export const POST_INSTALL_PROMPTS_STORAGE_KEY = "meshchatx.post_install_prompts_seen";
 
-/**
- * @returns {Record<string, number>}
- */
-export function readSeenMap() {
+export type PostInstallSeenMap = Record<string, number>;
+
+export function readSeenMap(): PostInstallSeenMap {
     if (typeof window === "undefined" || !window.localStorage) {
         return {};
     }
@@ -20,13 +19,12 @@ export function readSeenMap() {
         if (!raw) {
             return {};
         }
-        const parsed = JSON.parse(raw);
+        const parsed: unknown = JSON.parse(raw);
         if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
             return {};
         }
-        /** @type {Record<string, number>} */
-        const out: any = {};
-        for (const [id, revision] of Object.entries(parsed)) {
+        const out: PostInstallSeenMap = {};
+        for (const [id, revision] of Object.entries(parsed as Record<string, unknown>)) {
             const n = Number(revision);
             if (Number.isFinite(n) && n >= 0) {
                 out[id] = Math.floor(n);
@@ -38,21 +36,14 @@ export function readSeenMap() {
     }
 }
 
-/**
- * @param {Record<string, number>} map
- */
-export function writeSeenMap(map) {
+export function writeSeenMap(map: PostInstallSeenMap): void {
     if (typeof window === "undefined" || !window.localStorage) {
         return;
     }
     window.localStorage.setItem(POST_INSTALL_PROMPTS_STORAGE_KEY, JSON.stringify(map || {}));
 }
 
-/**
- * @param {string} id
- * @returns {number}
- */
-export function getSeenRevision(id) {
+export function getSeenRevision(id: string): number {
     if (!id) {
         return 0;
     }
@@ -61,11 +52,7 @@ export function getSeenRevision(id) {
     return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
 }
 
-/**
- * @param {string} id
- * @param {number} revision
- */
-export function markPromptSeen(id, revision) {
+export function markPromptSeen(id: string, revision: number): void {
     if (!id) {
         return;
     }
@@ -79,12 +66,7 @@ export function markPromptSeen(id, revision) {
     writeSeenMap(map);
 }
 
-/**
- * @param {string} id
- * @param {number} revision
- * @returns {boolean}
- */
-export function shouldShowPrompt(id, revision) {
+export function shouldShowPrompt(id: string, revision: number): boolean {
     const target = Math.max(0, Math.floor(Number(revision) || 0));
     if (!id || target <= 0) {
         return false;
@@ -92,10 +74,8 @@ export function shouldShowPrompt(id, revision) {
     return getSeenRevision(id) < target;
 }
 
-/**
- * Test helper.
- */
-export function clearPromptSeenState() {
+/** Test helper. */
+export function clearPromptSeenState(): void {
     if (typeof window === "undefined" || !window.localStorage) {
         return;
     }

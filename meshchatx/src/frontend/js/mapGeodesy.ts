@@ -2,14 +2,29 @@
 
 import { DEFAULT_RADIUS, getDistance } from "ol/sphere";
 
-/**
- * @param {number} lon1
- * @param {number} lat1
- * @param {number} lon2
- * @param {number} lat2
- * @returns {number} Initial (forward) azimuth in degrees [0, 360), spherical model.
- */
-export function sphericalInitialBearingDeg(lon1, lat1, lon2, lat2) {
+export type RhumbLineMetrics = {
+    distanceMeters: number;
+    bearingDeg: number;
+};
+
+export type SegmentMetrics = {
+    geodesicMeters: number;
+    forwardAzimuthDeg: number;
+    backAzimuthDeg: number;
+    rhumbMeters: number;
+    rhumbBearingDeg: number;
+    rhumbBackBearingDeg: number;
+};
+
+export type LengthPair = {
+    metric: string;
+    imperial: string;
+};
+
+export type MapTranslateFn = (key: string) => string;
+
+/** Initial (forward) azimuth in degrees [0, 360), spherical model. */
+export function sphericalInitialBearingDeg(lon1: number, lat1: number, lon2: number, lat2: number): number {
     const φ1 = (lat1 * Math.PI) / 180;
     const φ2 = (lat2 * Math.PI) / 180;
     const Δλ = ((lon2 - lon1) * Math.PI) / 180;
@@ -19,16 +34,14 @@ export function sphericalInitialBearingDeg(lon1, lat1, lon2, lat2) {
     return ((((θ * 180) / Math.PI) % 360) + 360) % 360;
 }
 
-/**
- * Rhumb-line distance and constant bearing on the sphere (mean Earth radius).
- * @param {number} lon1
- * @param {number} lat1
- * @param {number} lon2
- * @param {number} lat2
- * @param {number} [radius]
- * @returns {{ distanceMeters: number, bearingDeg: number }}
- */
-export function rhumbLineMetrics(lon1, lat1, lon2, lat2, radius = DEFAULT_RADIUS) {
+/** Rhumb-line distance and constant bearing on the sphere (mean Earth radius). */
+export function rhumbLineMetrics(
+    lon1: number,
+    lat1: number,
+    lon2: number,
+    lat2: number,
+    radius: number = DEFAULT_RADIUS
+): RhumbLineMetrics {
     const R = radius;
     const φ1 = (lat1 * Math.PI) / 180;
     const φ2 = (lat2 * Math.PI) / 180;
@@ -48,23 +61,10 @@ export function rhumbLineMetrics(lon1, lat1, lon2, lat2, radius = DEFAULT_RADIUS
 }
 
 /**
- * Great-circle (geodesic on sphere) distance matches OpenLayers {@link import("ol/sphere").getLength}
+ * Great-circle (geodesic on sphere) distance matches OpenLayers getLength
  * for a two-point line in WGS84.
- *
- * @param {number} lon1
- * @param {number} lat1
- * @param {number} lon2
- * @param {number} lat2
- * @returns {{
- *   geodesicMeters: number,
- *   forwardAzimuthDeg: number,
- *   backAzimuthDeg: number,
- *   rhumbMeters: number,
- *   rhumbBearingDeg: number,
- *   rhumbBackBearingDeg: number,
- * }}
  */
-export function computeSegmentMetrics(lon1, lat1, lon2, lat2) {
+export function computeSegmentMetrics(lon1: number, lat1: number, lon2: number, lat2: number): SegmentMetrics {
     const a = [lon1, lat1];
     const b = [lon2, lat2];
     const geodesicMeters = getDistance(a, b);
@@ -82,13 +82,9 @@ export function computeSegmentMetrics(lon1, lat1, lon2, lat2) {
     };
 }
 
-/**
- * @param {number} meters
- * @returns {{ metric: string, imperial: string }}
- */
-export function formatLengthPairMeters(meters) {
-    let metric;
-    let imperial;
+export function formatLengthPairMeters(meters: number): LengthPair {
+    let metric: string;
+    let imperial: string;
     if (meters > 100) {
         metric = `${Math.round((meters / 1000) * 100) / 100} km`;
     } else {
@@ -103,12 +99,7 @@ export function formatLengthPairMeters(meters) {
     return { metric, imperial };
 }
 
-/**
- * @param {ReturnType<typeof computeSegmentMetrics>} metrics
- * @param {(key: string) => string} t i18n
- * @returns {string}
- */
-export function buildBearingOverlayHtml(metrics, t) {
+export function buildBearingOverlayHtml(metrics: SegmentMetrics, t: MapTranslateFn): string {
     const geo = formatLengthPairMeters(metrics.geodesicMeters);
     const rh = formatLengthPairMeters(metrics.rhumbMeters);
     const fd = metrics.forwardAzimuthDeg.toFixed(1);
@@ -128,12 +119,7 @@ export function buildBearingOverlayHtml(metrics, t) {
     );
 }
 
-/**
- * @param {ReturnType<typeof computeSegmentMetrics>} metrics
- * @param {(key: string) => string} t
- * @returns {string}
- */
-export function buildBearingLiveTooltipHtml(metrics, t) {
+export function buildBearingLiveTooltipHtml(metrics: SegmentMetrics, t: MapTranslateFn): string {
     const geo = formatLengthPairMeters(metrics.geodesicMeters);
     const fd = metrics.forwardAzimuthDeg.toFixed(1);
     const rd = metrics.rhumbBearingDeg.toFixed(1);
@@ -145,6 +131,6 @@ export function buildBearingLiveTooltipHtml(metrics, t) {
     );
 }
 
-function escapeHtml(s) {
+function escapeHtml(s: string): string {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }

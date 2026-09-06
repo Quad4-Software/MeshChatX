@@ -6,20 +6,50 @@
 
 const STORAGE_PREFIX = "meshchatx_ws_last_seq:";
 
-/**
- * @param {string} [origin]
- * @returns {string}
- */
-export function seqStorageKey(origin?: string) {
+export type LiveTransportChoice = "webtransport" | "websocket";
+
+export type ChooseLiveTransportInput = {
+    mode: string;
+    clientSupportsWebTransport: boolean;
+    serverAvailable: boolean;
+    webTransportConnectOk: boolean | null;
+};
+
+export type SyncSubscribeReply = {
+    status?: string;
+    resync?: boolean;
+    current_seq?: number;
+    type?: string;
+    [key: string]: unknown;
+};
+
+export type WsLiveSyncConnection = {
+    on: (event: string, handler: (...args: any[]) => void) => void;
+    off: (event: string, handler: (...args: any[]) => void) => void;
+    send?: (message: string) => unknown;
+    sendQueued?: (message: string) => unknown;
+};
+
+export type InstallWsLiveSyncOptions = {
+    connection: WsLiveSyncConnection;
+    onMessagePayload?: (payload: Record<string, unknown>) => void;
+    onNeedsResync: () => Promise<void>;
+    getStorageKey?: () => string;
+};
+
+export type WsLiveSyncHandle = {
+    getLastSeq: () => number;
+    clearCursor: () => void;
+    requestSyncSubscribe: () => Promise<void>;
+    dispose: () => void;
+};
+
+export function seqStorageKey(origin?: string): string {
     const o = origin || (typeof window !== "undefined" ? window.location.origin : "");
     return `${STORAGE_PREFIX}${o || "default"}`;
 }
 
-/**
- * @param {string} key
- * @returns {number}
- */
-export function loadLastSeq(key) {
+export function loadLastSeq(key: string): number {
     try {
         if (typeof sessionStorage === "undefined") {
             return 0;
@@ -32,11 +62,7 @@ export function loadLastSeq(key) {
     }
 }
 
-/**
- * @param {string} key
- * @param {number} seq
- */
-export function saveLastSeq(key, seq) {
+export function saveLastSeq(key: string, seq: number): void {
     try {
         if (typeof sessionStorage === "undefined") {
             return;
@@ -47,10 +73,7 @@ export function saveLastSeq(key, seq) {
     }
 }
 
-/**
- * @param {string} key
- */
-export function clearLastSeq(key) {
+export function clearLastSeq(key: string): void {
     try {
         if (typeof sessionStorage === "undefined") {
             return;
@@ -61,27 +84,18 @@ export function clearLastSeq(key) {
     }
 }
 
-/**
- * @param {unknown} payload
- * @param {number} lastSeq
- * @returns {number}
- */
-export function nextLastSeqFromPayload(payload, lastSeq) {
+export function nextLastSeqFromPayload(payload: unknown, lastSeq: number): number {
     if (!payload || typeof payload !== "object") {
         return lastSeq;
     }
-    const seq = /** @type {{ seq?: unknown }} */ payload.seq;
+    const seq = (payload as { seq?: unknown }).seq;
     if (typeof seq !== "number" || !Number.isFinite(seq) || seq < 0) {
         return lastSeq;
     }
     return Math.max(lastSeq, Math.floor(seq));
 }
 
-/**
- * @param {{ status?: string, resync?: boolean }} reply
- * @returns {boolean}
- */
-export function syncSubscribeRequiresResync(reply) {
+export function syncSubscribeRequiresResync(reply: SyncSubscribeReply | null | undefined): boolean {
     if (!reply || typeof reply !== "object") {
         return false;
     }
@@ -91,17 +105,8 @@ export function syncSubscribeRequiresResync(reply) {
     return reply.status === "gap";
 }
 
-/**
- * Pure oracle for transport mode selection.
- * @param {{
- *   mode: string,
- *   clientSupportsWebTransport: boolean,
- *   serverAvailable: boolean,
- *   webTransportConnectOk: boolean | null,
- * }} input
- * @returns {"webtransport" | "websocket"}
- */
-export function chooseLiveTransport(input) {
+/** Pure oracle for transport mode selection. */
+export function chooseLiveTransport(input: ChooseLiveTransportInput): LiveTransportChoice {
     const mode = input.mode || "auto";
     if (mode === "websocket") {
         return "websocket";
@@ -122,14 +127,7 @@ export function chooseLiveTransport(input) {
     return "webtransport";
 }
 
-/**
- * @param {object} options
- * @param {() => object} options.connection Emitter with on/off/send/sendQueued
- * @param {(payload: object) => void} [options.onMessagePayload]
- * @param {() => Promise<void>} options.onNeedsResync
- * @param {() => string} [options.getStorageKey]
- */
-export function installWsLiveSync(options) {
+export function installWsLiveSync(options: InstallWsLiveSyncOptions): WsLiveSyncHandle {
     const connection = options.connection;
     const onNeedsResync = options.onNeedsResync;
     const getStorageKey = options.getStorageKey || (() => seqStorageKey());
@@ -141,7 +139,7 @@ export function installWsLiveSync(options) {
         saveLastSeq(getStorageKey(), lastSeq);
     }
 
-    function notePayload(payload) {
+    function notePayload(payload: Record<string, unknown>) {
         if (!payload || typeof payload !== "object") {
             return;
         }
@@ -174,7 +172,7 @@ export function installWsLiveSync(options) {
         }
     }
 
-    async function handleSyncReply(payload) {
+    async function handleSyncReply(payload: SyncSubscribeReply) {
         if (!syncSubscribeRequiresResync(payload)) {
             if (typeof payload?.current_seq === "number") {
                 lastSeq = Math.max(lastSeq, Math.floor(payload.current_seq));
@@ -189,15 +187,20 @@ export function installWsLiveSync(options) {
         }
     }
 
-    function onMessage(message) {
+    function onMessage(message: unknown) {
         try {
-            const data = typeof message?.data === "string" ? JSON.parse(message.data) : message;
+            const raw = message as { data?: unknown } | string | Record<string, unknown>;
+            const data =
+                typeof (raw as { data?: unknown })?.data === "string"
+                    ? JSON.parse((raw as { data: string }).data)
+                    : raw;
             if (!data || typeof data !== "object") {
                 return;
             }
-            notePayload(data);
-            if (data.type === "sync.subscribe") {
-                void handleSyncReply(data);
+            const payload = data as SyncSubscribeReply;
+            notePayload(payload);
+            if (payload.type === "sync.subscribe") {
+                void handleSyncReply(payload);
             }
         } catch {
             // ignore

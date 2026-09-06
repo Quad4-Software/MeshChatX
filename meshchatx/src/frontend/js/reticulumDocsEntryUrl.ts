@@ -14,11 +14,8 @@ export const RETICULUM_MANUAL_INTERFACES_OVERVIEW_REL = "manual/interfaces.html"
  */
 const BUNDLED_RETICULUM_SITE_INDEX_LOCALES = new Set(["de", "es", "jp", "nl", "pl", "pt-br", "tr", "uk", "zh-cn"]);
 
-/**
- * @param {string | undefined} locale
- * @returns {string} path relative to /reticulum-docs/ (no leading slash)
- */
-export function bundledReticulumDocsEntryPath(locale) {
+/** Path relative to /reticulum-docs/ (no leading slash). */
+export function bundledReticulumDocsEntryPath(locale?: string): string {
     const lang = (locale || "en").toLowerCase();
     if (lang === "en") {
         return "manual/index.html";
@@ -29,10 +26,7 @@ export function bundledReticulumDocsEntryPath(locale) {
     return "manual/index.html";
 }
 
-/**
- * @param {string | undefined} locale
- * @returns {string} absolute app path for the default bundled Reticulum docs view
- */
-export function bundledReticulumDocsUrl(locale) {
+/** Absolute app path for the default bundled Reticulum docs view. */
+export function bundledReticulumDocsUrl(locale?: string): string {
     return `/reticulum-docs/${bundledReticulumDocsEntryPath(locale)}`;
 }

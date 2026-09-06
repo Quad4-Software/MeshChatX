@@ -1,16 +1,15 @@
+// SPDX-License-Identifier: 0BSD
+
 /**
  * Pure helpers and HTTP-backed config load/patch for settings UI.
  */
 
+import type { ApiClient } from "../apiClient.js";
 import { mergeGlobalConfig } from "../GlobalState.js";
 import GlobalEmitter from "../GlobalEmitter.js";
 import { sanitizeThemeConfigFields } from "../../theme/themeEngine.js";
 
-/**
- * @param {unknown} v
- * @returns {number|null}
- */
-export function numOrNull(v) {
+export function numOrNull(v: unknown): number | null {
     if (v === null || v === undefined || v === "") {
         return null;
     }
@@ -18,15 +17,11 @@ export function numOrNull(v) {
     return Number.isFinite(n) ? n : null;
 }
 
-/**
- * Normalizes hex color fields on a config object in place.
- *
- * @param {Record<string, unknown>} config
- */
-export function sanitizeColorConfigFields(config) {
+/** Normalizes hex color fields on a config object in place. */
+export function sanitizeColorConfigFields(config: Record<string, unknown> | null | undefined): void {
     if (!config) return;
-    sanitizeThemeConfigFields(config);
-    const hex6 = (value, fallback) => {
+    sanitizeThemeConfigFields(config as Parameters<typeof sanitizeThemeConfigFields>[0]);
+    const hex6 = (value: unknown, fallback: string): string => {
         if (value == null || value === "") {
             return fallback;
         }
@@ -49,34 +44,27 @@ export function sanitizeColorConfigFields(config) {
     }
 }
 
-/**
- * @param {{ get: (path: string) => Promise<{ data?: { config?: object } }> }} api
- * @returns {Promise<object|null>}
- */
-export async function fetchMergedConfig(api, baseConfig) {
-    const response = await api.get("/api/v1/config");
+export async function fetchMergedConfig(
+    api: Pick<ApiClient, "get">,
+    baseConfig: Record<string, unknown>
+): Promise<Record<string, unknown> | null> {
+    const response = await api.get<{ config?: Record<string, unknown> }>("/api/v1/config");
     if (response?.data?.config) {
         return { ...baseConfig, ...response.data.config };
     }
     return null;
 }
 
-/**
- * @param {object} partial
- * @param {{ patch: (path: string, data: object) => Promise<{ data: { config: object } }> }} api
- * @returns {Promise<object>}
- */
-export async function patchServerConfig(partial, api) {
-    const response = await api.patch("/api/v1/config", partial);
+export async function patchServerConfig(
+    partial: Record<string, unknown>,
+    api: Pick<ApiClient, "patch">
+): Promise<Record<string, unknown>> {
+    const response = await api.patch<{ config: Record<string, unknown> }>("/api/v1/config", partial);
     return response.data.config;
 }
 
-/**
- * Merge a server config snapshot into global state and notify the app shell.
- *
- * @param {object | null | undefined} newConfig
- */
-export function publishPatchedConfig(newConfig) {
+/** Merge a server config snapshot into global state and notify the app shell. */
+export function publishPatchedConfig(newConfig: Record<string, unknown> | null | undefined): void {
     if (!newConfig || typeof newConfig !== "object") {
         return;
     }

@@ -1,16 +1,23 @@
 // SPDX-License-Identifier: 0BSD
 
-/**
- * Clamp top-left coordinates for a fixed-position panel so it stays on-screen.
- *
- * @param {number} preferredLeft
- * @param {number} preferredTop
- * @param {number} width
- * @param {number} height
- * @param {{ margin?: number }} [options]
- * @returns {{ left: number, top: number, maxHeight: number | null }}
- */
-export function clampFloatingToViewport(preferredLeft, preferredTop, width, height, options: any = {}) {
+export type ClampFloatingOptions = {
+    margin?: number;
+};
+
+export type ClampFloatingResult = {
+    left: number;
+    top: number;
+    maxHeight: number | null;
+};
+
+/** Clamp top-left coordinates for a fixed-position panel so it stays on-screen. */
+export function clampFloatingToViewport(
+    preferredLeft: number,
+    preferredTop: number,
+    width: number,
+    height: number,
+    options: ClampFloatingOptions = {}
+): ClampFloatingResult {
     const margin = options.margin ?? 8;
     const vw = window.innerWidth;
     const vh = window.innerHeight;

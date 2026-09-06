@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: 0BSD
 
-export function permissionLabel(
-    permissionId: string,
-    t: (key: string, values?: Record<string, unknown>) => string
-): string {
+import type { ManifestTranslateFn, PluginManifest } from "./pluginManifest.js";
+
+export function permissionLabel(permissionId: string, t: ManifestTranslateFn): string {
     const key = `plugins.permissions.${String(permissionId).replaceAll(":", ".")}`;
     const translated = t(key);
     if (translated && translated !== key) {
@@ -12,7 +11,7 @@ export function permissionLabel(
     return permissionId;
 }
 
-export function declaredPermissionIds(manifest: Record<string, any> | null | undefined): string[] {
+export function declaredPermissionIds(manifest: PluginManifest | Record<string, any> | null | undefined): string[] {
     const permissions = manifest?.permissions || {};
     const ids: string[] = [];
     if (Array.isArray(permissions.hooks)) {
@@ -44,8 +43,8 @@ export function declaredPermissionIds(manifest: Record<string, any> | null | und
 }
 
 export function manifestPermissionSummary(
-    manifest: Record<string, any> | null | undefined,
-    t: (key: string, values?: Record<string, unknown>) => string = (key) => key
+    manifest: PluginManifest | Record<string, any> | null | undefined,
+    t: ManifestTranslateFn = (key) => key
 ): string[] {
     const ids =
         Array.isArray(manifest?.declared_permissions) && manifest.declared_permissions.length

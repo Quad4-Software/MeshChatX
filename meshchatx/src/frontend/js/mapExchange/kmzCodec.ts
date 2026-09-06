@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: 0BSD
 
+import type Feature from "ol/Feature";
+import type { ProjectionLike } from "ol/proj";
+import type JSZipType from "jszip";
 import JSZip from "jszip";
 import { readKmlToFeatures, writeFeaturesToKml } from "./kmlCodec.js";
 import {
@@ -10,25 +13,17 @@ import {
     sanitizeKmlText,
 } from "./kmlSanitize.js";
 
-/**
- * @param {Uint8Array} u8
- * @returns {string}
- */
-function uint8ToBase64(u8) {
+function uint8ToBase64(u8: Uint8Array): string {
     const CHUNK = 0x8000;
     let binary = "";
     for (let i = 0; i < u8.length; i += CHUNK) {
-        binary += String.fromCharCode.apply(null, u8.subarray(i, i + CHUNK));
+        binary += String.fromCharCode.apply(null, u8.subarray(i, i + CHUNK) as unknown as number[]);
     }
     return btoa(binary);
 }
 
-/**
- * @param {string} pathInZip
- * @returns {string}
- */
-function guessMimeFromPath(pathInZip) {
-    const ext = pathInZip.split(".").pop().toLowerCase();
+function guessMimeFromPath(pathInZip: string): string {
+    const ext = pathInZip.split(".").pop()?.toLowerCase() || "";
     if (ext === "png") {
         return "image/png";
     }
@@ -44,11 +39,7 @@ function guessMimeFromPath(pathInZip) {
     return "application/octet-stream";
 }
 
-/**
- * @param {string} mime
- * @returns {string}
- */
-function extFromMime(mime) {
+function extFromMime(mime: string): string {
     const m = String(mime || "").toLowerCase();
     if (m.includes("png")) {
         return "png";
@@ -65,12 +56,7 @@ function extFromMime(mime) {
     return "bin";
 }
 
-/**
- * @param {string} kmlPathInZip forward slashes, e.g. "folder/doc.kml"
- * @param {string} href
- * @returns {string|null} resolved path inside zip or null if external / invalid
- */
-function isRemoteOrUnsafeHref(raw) {
+function isRemoteOrUnsafeHref(raw: string): boolean {
     const h = String(raw || "").trim();
     if (!h) {
         return true;
@@ -81,7 +67,8 @@ function isRemoteOrUnsafeHref(raw) {
     return isRemoteHref(h) || h.toLowerCase().startsWith("data:");
 }
 
-export function resolveHrefToZipPath(kmlPathInZip, href) {
+/** Resolve href relative to kmlPathInZip. Returns zip path or null if external / invalid. */
+export function resolveHrefToZipPath(kmlPathInZip: string, href: string): string | null {
     const h = String(href).trim();
     if (!h || isRemoteHref(h) || h.toLowerCase().startsWith("data:")) {
         return null;
@@ -103,11 +90,7 @@ export function resolveHrefToZipPath(kmlPathInZip, href) {
     return out.join("/");
 }
 
-/**
- * @param {import("jszip").default} zip
- * @returns {string|null}
- */
-function findKmlEntryName(zip) {
+function findKmlEntryName(zip: JSZipType): string | null {
     const names = Object.keys(zip.files).filter((n) => !zip.files[n].dir);
     const doc = names.find((n) => n.replace(/\\/g, "/").toLowerCase() === "doc.kml");
     if (doc) {
@@ -121,12 +104,7 @@ function findKmlEntryName(zip) {
     return kmls[0];
 }
 
-/**
- * @param {import("jszip").default} zip
- * @param {string} zipPath
- * @returns {import("jszip").JSZipObject|null}
- */
-function zipFileInsensitive(zip, zipPath) {
+function zipFileInsensitive(zip: JSZipType, zipPath: string): JSZipType.JSZipObject | null {
     const norm = zipPath.replace(/\\/g, "/");
     let f = zip.file(norm);
     if (f) {
@@ -138,17 +116,11 @@ function zipFileInsensitive(zip, zipPath) {
     return hit ? zip.file(hit) : null;
 }
 
-/**
- * Embed zip-local icon paths as data: URIs so blob: URLs are not required (merge-safe).
- * @param {import("jszip").default} zip
- * @param {string} kmlText
- * @param {string} kmlEntryName
- * @returns {Promise<string>}
- */
-async function rewriteKmlLocalHrefsToDataUrls(zip, kmlText, kmlEntryName) {
+/** Embed zip-local icon paths as data: URIs so blob: URLs are not required (merge-safe). */
+async function rewriteKmlLocalHrefsToDataUrls(zip: JSZipType, kmlText: string, kmlEntryName: string): Promise<string> {
     const hrefRe = /<href>\s*([^<]+?)\s*<\/href>/gi;
     const matches = [...kmlText.matchAll(hrefRe)];
-    const rawToData = new Map();
+    const rawToData = new Map<string, string>();
     for (const m of matches) {
         const raw = m[1].trim();
         if (rawToData.has(raw)) {
@@ -176,8 +148,8 @@ async function rewriteKmlLocalHrefsToDataUrls(zip, kmlText, kmlEntryName) {
         const b64 = uint8ToBase64(new Uint8Array(ab));
         rawToData.set(raw, `data:${mime};base64,${b64}`);
     }
-    return kmlText.replace(hrefRe, (full, inner) => {
-        const raw = inner.trim();
+    return kmlText.replace(hrefRe, (_full, inner) => {
+        const raw = String(inner).trim();
         if (isAllowedDataImageHref(raw)) {
             return `<href>${raw}</href>`;
         }
@@ -186,12 +158,10 @@ async function rewriteKmlLocalHrefsToDataUrls(zip, kmlText, kmlEntryName) {
     });
 }
 
-/**
- * @param {ArrayBuffer} arrayBuffer
- * @param {import("ol/proj").ProjectionLike} featureProjection
- * @returns {Promise<import("ol/Feature").default[]>}
- */
-export async function readKmzToFeatures(arrayBuffer, featureProjection) {
+export async function readKmzToFeatures(
+    arrayBuffer: ArrayBuffer,
+    featureProjection: ProjectionLike
+): Promise<Feature[]> {
     const zip = await JSZip.loadAsync(arrayBuffer);
     const names = Object.keys(zip.files).filter((n) => !zip.files[n].dir);
     for (const n of names) {
@@ -218,12 +188,7 @@ export async function readKmzToFeatures(arrayBuffer, featureProjection) {
     return readKmlToFeatures(kmlText, featureProjection);
 }
 
-/**
- * @param {import("ol/Feature").default[]} features
- * @param {import("ol/proj").ProjectionLike} featureProjection
- * @returns {Promise<Blob>}
- */
-export async function writeFeaturesToKmzBlob(features, featureProjection) {
+export async function writeFeaturesToKmzBlob(features: Feature[], featureProjection: ProjectionLike): Promise<Blob> {
     let kml = writeFeaturesToKml(features, featureProjection);
     const zip = new JSZip();
     let n = 0;
@@ -234,7 +199,7 @@ export async function writeFeaturesToKmzBlob(features, featureProjection) {
             return "";
         }
         const path = `files/mcx-embedded-${n++}.${ext}`;
-        let bin;
+        let bin: Uint8Array;
         try {
             const binary = atob(String(b64).trim());
             bin = new Uint8Array(binary.length);

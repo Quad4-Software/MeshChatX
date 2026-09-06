@@ -1,27 +1,15 @@
 // SPDX-License-Identifier: 0BSD
 
-/** @type {Map<string, Record<string, string>>} */
-const labelsByPlugin = new Map();
+const labelsByPlugin = new Map<string, Record<string, string>>();
 
-/**
- * @param {string} pluginId
- * @param {Record<string, string>} labels
- */
-export function setPluginUiLabels(pluginId, labels) {
+export function setPluginUiLabels(pluginId: string, labels: Record<string, string>): void {
     labelsByPlugin.set(pluginId, labels);
 }
 
-/**
- * @param {string} pluginId
- */
-export function clearPluginUiLabels(pluginId) {
+export function clearPluginUiLabels(pluginId: string): void {
     labelsByPlugin.delete(pluginId);
 }
 
-/**
- * @param {string} pluginId
- * @returns {Record<string, string>}
- */
-export function getPluginUiLabels(pluginId) {
+export function getPluginUiLabels(pluginId: string): Record<string, string> {
     return labelsByPlugin.get(pluginId) || {};
 }

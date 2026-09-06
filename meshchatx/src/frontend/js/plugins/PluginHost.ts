@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: 0BSD
 
+import type { ApiClient } from "../apiClient.js";
+import type { PluginManifest } from "./pluginManifest.js";
 import { validatePluginManifest } from "./pluginManifest.js";
 import { loadPluginLabelMap, resolvePluginUiString } from "./pluginLabels.js";
 import { setPluginUiLabels, clearPluginUiLabels } from "./pluginUiRegistry.js";
 import { validateUiDescriptor } from "./pluginUiDescriptor.js";
 import { isKnownHostWidget } from "./pluginHostWidgets.js";
+import type { NavEntry } from "../registries/coreNavEntries.js";
+import type { ToolEntry } from "../registries/coreToolsEntries.js";
 import { registerNavItem, unregisterNavItem } from "../registries/navRegistry.js";
 import { registerTool, unregisterTool } from "../registries/toolsRegistry.js";
 import { onWsEvent, offWsEvent } from "../registries/wsEventRegistry.js";
@@ -12,79 +16,96 @@ import ToastUtils from "../ToastUtils.js";
 import { getThemeSnapshot } from "../../theme/themeEngine.js";
 import GlobalState from "../GlobalState.js";
 
-/** @typedef {import('./pluginManifest.js').PluginManifest} PluginManifest */
+/** Minimal router surface used by PluginHost (hashRouter facade). */
+export type MeshHashRouter = {
+    push: (target: unknown) => Promise<unknown> | unknown;
+    replace?: (target: unknown) => Promise<unknown> | unknown;
+    currentRoute?: { value: unknown };
+    hasRoute: (name: string) => boolean;
+    addRoute: (record: any) => void;
+    removeRoute: (name: string) => void;
+};
 
-/**
- * Minimal router surface used by PluginHost (hashRouter facade).
- * @typedef {{
- *   push: (target: unknown) => Promise<unknown> | unknown,
- *   replace?: (target: unknown) => Promise<unknown> | unknown,
- *   currentRoute?: { value: unknown },
- *   hasRoute?: (name: string) => boolean,
- *   addRoute?: (record: object) => void,
- *   removeRoute?: (name: string) => void,
- * }} MeshHashRouter
- */
+export type PluginListEntry = {
+    id: string;
+    enabled?: boolean;
+    manifest: unknown;
+};
+
+export type PluginHostInstance = {
+    worker: Worker;
+    cleanup: Array<() => void>;
+    manifest: PluginManifest;
+    lastDescriptor: Record<string, unknown> | null;
+    lastUiError: string;
+    apiClient: ApiClient | null;
+    allowHtmlFrame: boolean;
+    allowedWidgets: string[];
+    routeName: string | null;
+};
+
+type WorkerOutboundMessage = {
+    type?: string;
+    descriptor?: unknown;
+    message?: string;
+    toastType?: string;
+    duration?: number;
+    data?: BlobPart;
+    filename?: string;
+    requestId?: string;
+    kind?: string;
+    payload?: Record<string, unknown>;
+};
+
+type WorkerRequestMessage = {
+    type: "request";
+    requestId: string;
+    kind?: string;
+    payload?: Record<string, unknown>;
+};
 
 const FAILURE_REPORT_INTERVAL_MS = 5000;
-/** @type {Map<string, number>} */
-const lastFailureReportAt = new Map();
+const lastFailureReportAt = new Map<string, number>();
 
-/**
- * @param {string} pluginId
- * @returns {string}
- */
-export function pluginRouteName(pluginId) {
+export function pluginRouteName(pluginId: string): string {
     return `plugin-${String(pluginId).replace(/[^a-zA-Z0-9_-]/g, "-")}`;
 }
 
-/**
- * @param {string} pluginId
- * @returns {string}
- */
-export function pluginRoutePath(pluginId) {
+export function pluginRoutePath(pluginId: string): string {
     return `/plugins/${encodeURIComponent(pluginId)}`;
 }
 
 export class PluginHost {
-    declare _themeListener: any;
-    declare instances: Map<any, any>;
-    declare router: any;
+    instances: Map<string, PluginHostInstance>;
+    router: MeshHashRouter | null;
+    _themeListener: ((event: CustomEvent) => void) | null;
+
     constructor() {
-        /** @type {Map<string, { worker: Worker, cleanup: Array<() => void>, manifest: PluginManifest, lastDescriptor: object | null, lastUiError: string, apiClient: ReturnType<import('../apiClient.js').createApiClient> | null, allowHtmlFrame: boolean, allowedWidgets: string[], routeName: string | null }>} */
         this.instances = new Map();
-        /** @type {MeshHashRouter | null} */
         this.router = null;
         this._themeListener = null;
     }
 
-    /**
-     * @param {MeshHashRouter} router
-     */
-    attachRouter(router) {
+    attachRouter(router: MeshHashRouter): void {
         this.router = router;
     }
 
-    ensureThemeBridge() {
+    ensureThemeBridge(): void {
         if (this._themeListener || typeof window === "undefined") {
             return;
         }
-        this._themeListener = (event) => {
+        this._themeListener = (event: CustomEvent) => {
             const snapshot = event.detail || getThemeSnapshot(GlobalState.config);
             for (const instance of this.instances.values()) {
                 instance.worker.postMessage({ type: "theme", theme: snapshot });
             }
         };
-        window.addEventListener("meshchatx-theme-changed", this._themeListener);
+        window.addEventListener("meshchatx-theme-changed", this._themeListener as EventListener);
     }
 
-    /**
-     * @param {ReturnType<import('../apiClient.js').createApiClient>} apiClient
-     * @param {string} [locale]
-     */
-    async loadEnabledPlugins(apiClient, locale = "en") {
+    async loadEnabledPlugins(apiClient: ApiClient, locale = "en"): Promise<void> {
         this.ensureThemeBridge();
-        const response = await apiClient.get("/api/v1/plugins");
+        const response = await apiClient.get<{ plugins?: PluginListEntry[] }>("/api/v1/plugins");
         const plugins = response.data?.plugins || [];
         for (const plugin of plugins) {
             if (!plugin.enabled) {
@@ -94,12 +115,7 @@ export class PluginHost {
         }
     }
 
-    /**
-     * @param {Record<string, unknown>} plugin
-     * @param {ReturnType<import('../apiClient.js').createApiClient>} apiClient
-     * @param {string} [locale]
-     */
-    async loadPlugin(plugin, apiClient, locale = "en") {
+    async loadPlugin(plugin: PluginListEntry, apiClient: ApiClient, locale = "en"): Promise<void> {
         const pluginId = plugin.id;
         if (this.instances.has(pluginId)) {
             return;
@@ -128,10 +144,10 @@ export class PluginHost {
             manifest.permissions?.["ui:sandboxed-html"] === true
         );
 
-        worker.onmessage = (event) => {
+        worker.onmessage = (event: MessageEvent) => {
             this.handleWorkerMessage(pluginId, event.data, apiClient);
         };
-        worker.onerror = (event) => {
+        worker.onerror = (event: ErrorEvent) => {
             void this.reportPluginFailure(
                 pluginId,
                 event.message || "Plugin worker crashed",
@@ -161,7 +177,7 @@ export class PluginHost {
         }
 
         if ((manifest.permissions?.hooks || []).length > 0) {
-            const eventHandler = (payload) => {
+            const eventHandler = (payload: { plugin_id?: string; event?: string; payload?: unknown }) => {
                 if (payload?.plugin_id !== pluginId) {
                     return;
                 }
@@ -175,24 +191,24 @@ export class PluginHost {
             cleanup.push(() => offWsEvent("plugin.event", eventHandler));
         }
 
-        const requestHandler = async (message: any) => {
+        const requestHandler = async (message: WorkerRequestMessage | WorkerOutboundMessage) => {
             if (!message || message.type !== "request") {
                 return;
             }
             try {
-                let result;
+                let result: unknown;
                 if (message.kind === "invoke") {
                     const response = await apiClient.post(`/api/v1/plugins/${encodeURIComponent(pluginId)}/invoke`, {
                         method: message.payload?.method,
                         args: message.payload?.args,
                     });
-                    result = response.data?.result;
+                    result = (response.data as { result?: unknown })?.result;
                 } else if (message.kind === "manager") {
                     const response = await apiClient.post(`/api/v1/plugins/${encodeURIComponent(pluginId)}/invoke`, {
                         method: "callManager",
                         args: message.payload,
                     });
-                    result = response.data?.result;
+                    result = (response.data as { result?: unknown })?.result;
                 } else if (message.kind === "clipboard") {
                     const text = String(message.payload?.text || "");
                     if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
@@ -205,14 +221,15 @@ export class PluginHost {
                     result = getThemeSnapshot(GlobalState.config);
                 }
                 worker.postMessage({ requestId: message.requestId, result });
-            } catch (error: any) {
+            } catch (error: unknown) {
+                const err = error as { message?: string };
                 worker.postMessage({
                     requestId: message.requestId,
-                    error: error?.message || String(error),
+                    error: err?.message || String(error),
                 });
             }
         };
-        worker.addEventListener("message", (event) => {
+        worker.addEventListener("message", (event: MessageEvent) => {
             void requestHandler(event.data);
         });
 
@@ -229,11 +246,7 @@ export class PluginHost {
         });
     }
 
-    /**
-     * @param {string} pluginId
-     * @returns {string | null}
-     */
-    ensurePluginRoute(pluginId) {
+    ensurePluginRoute(pluginId: string): string | null {
         if (!this.router) {
             return null;
         }
@@ -252,11 +265,7 @@ export class PluginHost {
         return name;
     }
 
-    /**
-     * @param {string} pluginId
-     * @param {string} routeName
-     */
-    removePluginRoute(pluginId, routeName) {
+    removePluginRoute(pluginId: string, routeName: string): void {
         if (!this.router) {
             return;
         }
@@ -272,13 +281,12 @@ export class PluginHost {
         }
     }
 
-    /**
-     * @param {string} pluginId
-     * @param {string} reason
-     * @param {ReturnType<import('../apiClient.js').createApiClient>} apiClient
-     * @param {string} [source]
-     */
-    async reportPluginFailure(pluginId, reason, apiClient, source = "frontend") {
+    async reportPluginFailure(
+        pluginId: string,
+        reason: string,
+        apiClient: ApiClient,
+        source = "frontend"
+    ): Promise<void> {
         const now = Date.now();
         const last = lastFailureReportAt.get(pluginId) || 0;
         if (now - last < FAILURE_REPORT_INTERVAL_MS) {
@@ -295,15 +303,15 @@ export class PluginHost {
         }
     }
 
-    getLastDescriptor(pluginId) {
+    getLastDescriptor(pluginId: string): Record<string, unknown> | null {
         return this.instances.get(pluginId)?.lastDescriptor ?? null;
     }
 
-    getLastUiError(pluginId) {
+    getLastUiError(pluginId: string): string {
         return this.instances.get(pluginId)?.lastUiError || "";
     }
 
-    getPluginUiCaps(pluginId) {
+    getPluginUiCaps(pluginId: string): { allowedWidgets: string[]; allowHtmlFrame: boolean } {
         const instance = this.instances.get(pluginId);
         return {
             allowedWidgets: instance?.allowedWidgets || [],
@@ -311,7 +319,7 @@ export class PluginHost {
         };
     }
 
-    requestUiRefresh(pluginId) {
+    requestUiRefresh(pluginId: string): void {
         const instance = this.instances.get(pluginId);
         if (!instance) {
             return;
@@ -319,51 +327,46 @@ export class PluginHost {
         instance.worker.postMessage({ type: "refresh-ui" });
     }
 
-    /**
-     * @param {string} pluginId
-     * @param {PluginManifest} manifest
-     * @param {Record<string, string>} labels
-     */
-    registerContributions(pluginId, manifest, labels) {
+    registerContributions(
+        pluginId: string,
+        manifest: PluginManifest,
+        labels: Record<string, string>
+    ): Array<() => void> {
         const cleanup: (() => void)[] = [];
         const contributes = manifest.contributes || {};
         for (const item of contributes.navItems || []) {
             registerNavItem({
-                ...item,
+                ...(item as unknown as NavEntry),
                 pluginId,
-                label: resolvePluginUiString(labels, item.labelKey, manifest),
+                label: resolvePluginUiString(labels, String(item.labelKey ?? ""), manifest),
             });
-            cleanup.push(() => unregisterNavItem(item.id));
+            cleanup.push(() => unregisterNavItem(String(item.id)));
         }
         for (const item of contributes.toolsPageEntries || []) {
             registerTool({
-                ...item,
+                ...(item as unknown as ToolEntry),
                 pluginId,
-                title: resolvePluginUiString(labels, item.titleKey, manifest),
-                description: resolvePluginUiString(labels, item.descriptionKey, manifest),
+                title: resolvePluginUiString(labels, String(item.titleKey ?? ""), manifest),
+                description: resolvePluginUiString(labels, String(item.descriptionKey ?? ""), manifest),
             });
-            cleanup.push(() => unregisterTool(item.name));
+            cleanup.push(() => unregisterTool(String(item.name)));
         }
         return cleanup;
     }
 
-    /**
-     * @param {string} pluginId
-     * @param {unknown} message
-     * @param {ReturnType<import('../apiClient.js').createApiClient>} [apiClient]
-     */
-    handleWorkerMessage(pluginId, message, apiClient) {
+    handleWorkerMessage(pluginId: string, message: unknown, apiClient?: ApiClient): void {
         if (!message || typeof message !== "object") {
             return;
         }
-        if (message.type === "ui") {
+        const msg = message as WorkerOutboundMessage;
+        if (msg.type === "ui") {
             const instance = this.instances.get(pluginId);
-            const validated = validateUiDescriptor(message.descriptor, {
+            const validated = validateUiDescriptor(msg.descriptor, {
                 pluginId,
                 allowHtmlFrame: Boolean(instance?.allowHtmlFrame),
                 allowedWidgets: instance?.allowedWidgets || [],
             });
-            if (!validated.ok) {
+            if (validated.ok === false) {
                 if (instance) {
                     instance.lastUiError = validated.error;
                 }
@@ -393,30 +396,30 @@ export class PluginHost {
                 })
             );
         }
-        if (message.type === "error") {
+        if (msg.type === "error") {
             const client = apiClient || this.instances.get(pluginId)?.apiClient;
             if (client) {
-                void this.reportPluginFailure(pluginId, message.message || "Plugin activation failed", client);
+                void this.reportPluginFailure(pluginId, msg.message || "Plugin activation failed", client);
             }
             window.dispatchEvent(
                 new CustomEvent("meshchatx-plugin-error", {
-                    detail: { pluginId, message: message.message },
+                    detail: { pluginId, message: msg.message },
                 })
             );
             this.unloadPlugin(pluginId);
         }
-        if (message.type === "toast") {
-            ToastUtils.show(message.message || "", message.toastType || "info", message.duration ?? 5000);
+        if (msg.type === "toast") {
+            ToastUtils.show(msg.message || "", msg.toastType || "info", msg.duration ?? 5000);
         }
-        if (message.type === "download") {
+        if (msg.type === "download") {
             try {
-                const blob = new Blob([message.data || ""], {
+                const blob = new Blob([msg.data || ""], {
                     type: "application/json",
                 });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
-                a.download = message.filename || "download.json";
+                a.download = msg.filename || "download.json";
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -427,7 +430,7 @@ export class PluginHost {
         }
     }
 
-    unloadPlugin(pluginId) {
+    unloadPlugin(pluginId: string): void {
         const instance = this.instances.get(pluginId);
         if (!instance) {
             return;
@@ -440,7 +443,7 @@ export class PluginHost {
         lastFailureReportAt.delete(pluginId);
     }
 
-    postAction(pluginId, actionId) {
+    postAction(pluginId: string, actionId: string): void {
         const instance = this.instances.get(pluginId);
         if (!instance) {
             return;
@@ -448,7 +451,7 @@ export class PluginHost {
         instance.worker.postMessage({ type: "action", actionId });
     }
 
-    postInput(pluginId, id, value) {
+    postInput(pluginId: string, id: string, value: unknown): void {
         const instance = this.instances.get(pluginId);
         if (!instance) {
             return;

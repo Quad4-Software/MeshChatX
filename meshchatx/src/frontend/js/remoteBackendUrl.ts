@@ -5,11 +5,8 @@
 
 const LOCAL_BACKEND_URL = "https://127.0.0.1:8000";
 
-/**
- * @param {string | null | undefined} raw
- * @returns {string | null} normalized origin without trailing slash, or null for local
- */
-export function normalizeRemoteBackendUrl(raw) {
+/** Normalized origin without trailing slash, or null for local. */
+export function normalizeRemoteBackendUrl(raw: string | null | undefined): string | null {
     if (raw == null) {
         return null;
     }
@@ -17,7 +14,7 @@ export function normalizeRemoteBackendUrl(raw) {
     if (!trimmed) {
         return null;
     }
-    let url;
+    let url: URL;
     try {
         url = new URL(trimmed);
     } catch {
@@ -47,11 +44,7 @@ export function normalizeRemoteBackendUrl(raw) {
     return out;
 }
 
-/**
- * @param {string | null | undefined} raw
- * @returns {boolean}
- */
-export function isValidRemoteBackendUrl(raw) {
+export function isValidRemoteBackendUrl(raw: string | null | undefined): boolean {
     if (raw == null) {
         return true;
     }
@@ -62,11 +55,7 @@ export function isValidRemoteBackendUrl(raw) {
     return normalizeRemoteBackendUrl(trimmed) != null;
 }
 
-/**
- * @param {string | null | undefined} storedRemote
- * @returns {string}
- */
-export function resolveEffectiveBackendUrl(storedRemote) {
+export function resolveEffectiveBackendUrl(storedRemote: string | null | undefined): string {
     return normalizeRemoteBackendUrl(storedRemote) || LOCAL_BACKEND_URL;
 }
 

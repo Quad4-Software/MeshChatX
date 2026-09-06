@@ -32,13 +32,21 @@ export function highlightMatch(snippet: string, searchQuery: string): string {
     if (!q || q.length < 2) {
         return safe;
     }
-    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    try {
-        const re = new RegExp(`(${escaped})`, "ig");
-        return safe.replace(re, '<mark class="bg-sem-accent/30 text-inherit rounded-sm px-0.5">$1</mark>');
-    } catch {
-        return safe;
+    const lowerSafe = safe.toLowerCase();
+    const lowerQ = q.toLowerCase();
+    let out = "";
+    let cursor = 0;
+    while (cursor < safe.length) {
+        const found = lowerSafe.indexOf(lowerQ, cursor);
+        if (found === -1) {
+            out += safe.slice(cursor);
+            break;
+        }
+        out += safe.slice(cursor, found);
+        out += `<mark class="bg-sem-accent/30 text-inherit rounded-sm px-0.5">${safe.slice(found, found + q.length)}</mark>`;
+        cursor = found + q.length;
     }
+    return out;
 }
 
 /** Compute CSS classes for rendering Nomad content by page extension */

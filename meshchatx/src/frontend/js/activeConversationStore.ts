@@ -10,7 +10,7 @@ const openHashes = new Set<string>();
 
 const listeners = new Set<(hashes: string[]) => void>();
 
-function notifyListeners() {
+function notifyListeners(): void {
     const snapshot = listOpenDestinationHashes();
     for (const listener of listeners) {
         try {
@@ -21,11 +21,8 @@ function notifyListeners() {
     }
 }
 
-/**
- * Replace the full set of open conversation destination hashes.
- * @param {Iterable<string>|string[]|null|undefined} hashes
- */
-export function setOpenDestinationHashes(hashes: Iterable<string> | null | undefined) {
+/** Replace the full set of open conversation destination hashes. */
+export function setOpenDestinationHashes(hashes: Iterable<string> | null | undefined): void {
     const next = new Set<string>();
     if (hashes) {
         for (const h of hashes) {
@@ -54,10 +51,7 @@ export function setOpenDestinationHashes(hashes: Iterable<string> | null | undef
     notifyListeners();
 }
 
-/**
- * @param {string} hash
- */
-export function addOpenDestinationHash(hash) {
+export function addOpenDestinationHash(hash: string): void {
     const n = normalizeDestinationHash(hash);
     if (!n || openHashes.has(n)) {
         return;
@@ -66,10 +60,7 @@ export function addOpenDestinationHash(hash) {
     notifyListeners();
 }
 
-/**
- * @param {string} hash
- */
-export function removeOpenDestinationHash(hash) {
+export function removeOpenDestinationHash(hash: string): void {
     const n = normalizeDestinationHash(hash);
     if (!n || !openHashes.has(n)) {
         return;
@@ -78,27 +69,16 @@ export function removeOpenDestinationHash(hash) {
     notifyListeners();
 }
 
-/**
- * @returns {string[]}
- */
-export function listOpenDestinationHashes() {
+export function listOpenDestinationHashes(): string[] {
     return Array.from(openHashes);
 }
 
-/**
- * @param {string|null|undefined} hash
- * @returns {boolean}
- */
-export function hasOpenDestinationHash(hash) {
+export function hasOpenDestinationHash(hash: string | null | undefined): boolean {
     const n = normalizeDestinationHash(hash);
     return Boolean(n && openHashes.has(n));
 }
 
-/**
- * @param {(hashes: string[]) => void} listener
- * @returns {() => void} unsubscribe
- */
-export function subscribeOpenDestinationHashes(listener) {
+export function subscribeOpenDestinationHashes(listener: (hashes: string[]) => void): () => void {
     if (typeof listener !== "function") {
         return () => {};
     }
@@ -109,7 +89,7 @@ export function subscribeOpenDestinationHashes(listener) {
 }
 
 /** Test helper. */
-export function clearOpenDestinationHashesForTests() {
+export function clearOpenDestinationHashesForTests(): void {
     openHashes.clear();
     listeners.clear();
 }
