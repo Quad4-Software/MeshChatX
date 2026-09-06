@@ -16,7 +16,7 @@ Grounded in the [Zen of Reticulum](https://reticulum.network/manual/zen.html) an
 - Bug-report / telemetry / logging paths that might leak identity material
 - "Quick" integrations that want HTTP, DNS, Firebase, or a central API "just for sync"
 
-Also read: `.agents/conventions/reticulum-zen.md`, `.agents/skills/reticulum-stack/SKILL.md`, `.agents/overview.md`, `docs/en/architecture.md`.
+Also read: .agents/conventions/reticulum-zen.md, .agents/skills/reticulum-stack/SKILL.md, .agents/overview.md, docs/en/architecture.md.
 
 ## Gate 0: Intent
 
@@ -42,7 +42,7 @@ Allowed:
 - Peers are destination hashes (and related identity hashes), not IPs or hostnames.
 - UI may show local display names. Those names are labels, not network addresses.
 - Do not invent a new addressing scheme when RNS destinations + aspects already fit.
-- Custom apps get their own aspect (example `mcx-bugs-v1`). Do not overload `lxmf.delivery` for non-LXMF traffic.
+- Custom apps get their own aspect (example mcx-bugs-v1). Do not overload lxmf.delivery for non-LXMF traffic.
 
 ## Gate 3: Hostile medium
 
@@ -55,7 +55,7 @@ Allowed:
 
 - Prefer event/handler and store-and-forward over blocking request/response UIs.
 - Missing path: request path, allow propagate, surface recoverable error. Do not spin forever.
-- Path and first-hop link waits use `path_utils.path_response_window` and `link.establishment_timeout`. Do not pin 15s (or any flat timer) for Nomad pages, RNCP, FileSync, LXST, or map fetches.
+- Path and first-hop link waits use path_utils.path_response_window and link.establishment_timeout. Do not pin 15s (or any flat timer) for Nomad pages, RNCP, FileSync, LXST, or map fetches.
 - Keep list APIs and announces slim. Do not ship multi-MB blobs in conversation lists.
 - Large files use RNCP / attachments / explicit transfer tools, not chat text fields.
 
@@ -67,22 +67,22 @@ Allowed:
 
 ## Gate 6: MeshChatX architecture fit
 
-- Business rules in `meshchatx/src/backend/` managers, not dumped into `meshchat.py` routes.
-- Identity-scoped state under `IdentityContext`. Switch must tear down cleanly.
-- HTTP `/api/v1/*` for local UI. Mesh peers do not become REST clients of MeshChatX.
-- New pages: route, nav/tools registry, i18n, toasts, tests (see `page-toast-tests`).
-- New plugin managers/hooks: update `KNOWN_MANAGERS` / `KNOWN_HOOKS` and permission locale strings.
+- Business rules in meshchatx/src/backend/ managers, not dumped into meshchat.py routes.
+- Identity-scoped state under IdentityContext. Switch must tear down cleanly.
+- HTTP /api/v1/* for local UI. Mesh peers do not become REST clients of MeshChatX.
+- New pages: route, nav/tools registry, i18n, toasts, tests (see page-toast-tests).
+- New plugin managers/hooks: update KNOWN_MANAGERS / KNOWN_HOOKS and permission locale strings.
 
 ## Anti-patterns (do not ship)
 
 | Anti-pattern                                         | Do this instead                                            |
 | ---------------------------------------------------- | ---------------------------------------------------------- |
-| `fetch('https://api...')` required to send a message | LXMF send via local router                                 |
-| Store peer as `host:port`                            | Store destination hash + aspect                            |
+| fetch('https://api...') required to send a message | LXMF send via local router                                 |
+| Store peer as host:port                            | Store destination hash + aspect                            |
 | Spinner until ACK or fail hard                       | Outbound state machine + propagation                       |
 | JSON status blob every second on LoRa                | Announce sparingly, encode intent densely                  |
 | Global singleton cache of all identities' inboxes    | Per-identity DB and managers                               |
-| New mesh app on `lxmf.delivery`                      | Dedicated aspect + link/request or LXMF only if it is mail |
+| New mesh app on lxmf.delivery                      | Dedicated aspect + link/request or LXMF only if it is mail |
 | Debug dump with private key paths and full hashes    | Redacted export with user toggles                          |
 
 ## Review checklist (paste into PR / finish notes)
@@ -94,15 +94,15 @@ Allowed:
 - [ ] No new unauthenticated mutating HTTP/WS surface
 - [ ] No cross-identity leakage
 - [ ] Tests cover success and recoverable failure
-- [ ] Mesh/identity/auth changes cite matching EECT scenario ids under `tests/backend/eect/`
+- [ ] Mesh/identity/auth changes cite matching EECT scenario ids under tests/backend/eect/
 
 ## Key references
 
 - https://reticulum.network/manual/zen.html
-- `.agents/conventions/reticulum-zen.md`
-- `.agents/skills/reticulum-stack/SKILL.md`
-- `.agents/overview.md`
-- `docs/en/architecture.md`
-- `docs/en/messaging.md`
-- `docs/en/rns-link-api.md`
-- `docs/en/identity-and-security.md`
+- .agents/conventions/reticulum-zen.md
+- .agents/skills/reticulum-stack/SKILL.md
+- .agents/overview.md
+- docs/en/architecture.md
+- docs/en/messaging.md
+- docs/en/rns-link-api.md
+- docs/en/identity-and-security.md

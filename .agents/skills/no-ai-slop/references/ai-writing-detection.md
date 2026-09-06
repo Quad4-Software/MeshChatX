@@ -262,11 +262,11 @@ When AI generates wikitext, it sometimes hallucinates citation markup from its t
 
 | Artifact            | Origin                              |
 | ------------------- | ----------------------------------- |
-| `oaicite`           | OpenAI ChatGPT citation placeholder |
-| `contentReference`  | OpenAI internal reference tag       |
-| `grok_card`         | xAI Grok citation tag               |
-| `attributableIndex` | AI attribution tracking artifact    |
-| `turn0search0`      | ChatGPT search result placeholder   |
+| oaicite           | OpenAI ChatGPT citation placeholder |
+| contentReference  | OpenAI internal reference tag       |
+| grok_card         | xAI Grok citation tag               |
+| attributableIndex | AI attribution tracking artifact    |
+| turn0search0      | ChatGPT search result placeholder   |
 
 Any occurrence of these strings in wikitext means the text was pasted from an AI tool without editing. Zero tolerance.
 
@@ -384,7 +384,7 @@ Different AI model families produce distinct stylistic fingerprints based on the
 
 Lexical scans must NOT flag text inside:
 
-- Direct quotes (`"..."`) from cited sources
+- Direct quotes ("...") from cited sources
 - Titles, names, and other verbatim values taken from a source
 - Code, configuration, or markup that is being shown as an example
 
@@ -419,5 +419,5 @@ These words require bigram context checking. Only flag metaphorical uses:
 6. Verify each intensifier adds genuine meaning
 7. Count hedging markers per paragraph. More than 3 in a single paragraph is a red flag.
 8. Check paragraph word counts within each section. If they are all similar, vary them.
-9. Search for hallucinated markup: `oaicite`, `contentReference`, `turn0search0`, `grok_card`
+9. Search for hallucinated markup: oaicite, contentReference, turn0search0, grok_card
 10. Check if your introduction, body, and conclusion have different pacing and sentence complexity

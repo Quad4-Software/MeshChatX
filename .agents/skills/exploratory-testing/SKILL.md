@@ -54,8 +54,8 @@ When reporting to the user:
 
 ## Related
 
-- `.agents/skills/test-oracles/SKILL.md`
-- `.agents/skills/rrc-relay-chat/SKILL.md`
-- `.agents/skills/reticulum-design-gates/SKILL.md`
-- `.agents/skills/url-origin-allowlists/SKILL.md`
-- `.agents/conventions/tests.md`
+- .agents/skills/test-oracles/SKILL.md
+- .agents/skills/rrc-relay-chat/SKILL.md
+- .agents/skills/reticulum-design-gates/SKILL.md
+- .agents/skills/url-origin-allowlists/SKILL.md
+- .agents/conventions/tests.md

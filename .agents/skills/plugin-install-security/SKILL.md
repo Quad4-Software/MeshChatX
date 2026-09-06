@@ -29,29 +29,29 @@ Plugins are powerful. Treat install and enable as security-sensitive.
 1. Preview install (permissions, endpoints, signature status)
 2. User consent on declared permissions / network endpoints
 3. Enable only after grants are stored
-4. Runtime enforces declared + granted hooks / managers / storage / `network:fetch`
-5. Integrity hashing after install. Tampered trees disable, they do not silently run. `invoke` and `dispatch_hook` re-hash before backend execution.
-6. Python backends purge `__pycache__` next to the entry file on load so excluded bytecode cannot replace hashed source.
+4. Runtime enforces declared + granted hooks / managers / storage / network:fetch
+5. Integrity hashing after install. Tampered trees disable, they do not silently run. invoke and dispatch_hook re-hash before backend execution.
+6. Python backends purge __pycache__ next to the entry file on load so excluded bytecode cannot replace hashed source.
 
 ## Hard rules
 
 - Invalid RSG signatures **hard-block** install. Do not add bypass paths.
-- ZIP extract must use zip-slip safe extraction. WASM must pass `validate_wasm_file`.
-- New hooks go in `KNOWN_HOOKS`. New managers go in `KNOWN_MANAGERS` in `plugin_permissions.py`.
-- Network endpoint scanning parses the URL host. A remote URL is not local because the string contains `127.0.0.1` or `localhost`.
-- Plugin i18n lives in the plugin bundle (`locales/{locale}.json`), not core `en.json`.
-- Disable everything with `--disable-plugins` / `MESHCHAT_DISABLE_PLUGINS=true` when diagnosing.
+- ZIP extract must use zip-slip safe extraction. WASM must pass validate_wasm_file.
+- New hooks go in KNOWN_HOOKS. New managers go in KNOWN_MANAGERS in plugin_permissions.py.
+- Network endpoint scanning parses the URL host. A remote URL is not local because the string contains 127.0.0.1 or localhost.
+- Plugin i18n lives in the plugin bundle (locales/{locale}.json), not core en.json.
+- Disable everything with --disable-plugins / MESHCHAT_DISABLE_PLUGINS=true when diagnosing.
 
 ## Key files
 
-- `meshchatx/src/backend/plugin_manager.py`
-- `meshchatx/src/backend/plugin_guard.py`
-- `meshchatx/src/backend/plugin_permissions.py`
-- `meshchatx/src/backend/plugin_signature.py`
-- `meshchatx/src/backend/plugin_integrity.py`
-- `meshchatx/src/backend/plugin_python_runtime.py`
-- `meshchatx/src/frontend/js/plugins/pluginWorker.js`
-- `meshchatx/src/backend/data/plugins/mcx-bugs/` (reference plugin)
+- meshchatx/src/backend/plugin_manager.py
+- meshchatx/src/backend/plugin_guard.py
+- meshchatx/src/backend/plugin_permissions.py
+- meshchatx/src/backend/plugin_signature.py
+- meshchatx/src/backend/plugin_integrity.py
+- meshchatx/src/backend/plugin_python_runtime.py
+- meshchatx/src/frontend/js/plugins/pluginWorker.js
+- meshchatx/src/backend/data/plugins/mcx-bugs/ (reference plugin)
 
 ## Verification
 

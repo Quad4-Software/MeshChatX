@@ -10,7 +10,7 @@ Change LXST telephony or call audio without treating MeshChatX as a cloud PBX or
 ## When to use
 
 - TelephoneManager, call setup/teardown, ringing, voicemail
-- `/ws/telephone/audio` or related audio bridges
+- /ws/telephone/audio or related audio bridges
 - Adversarial or security tests for telephony
 - UI call screens and permissions
 
@@ -22,10 +22,10 @@ LXST runs over Reticulum Links. Address callees by identity/destination hash. No
 
 | Area               | Path                                                              |
 | ------------------ | ----------------------------------------------------------------- |
-| Telephony managers | `meshchatx/src/backend/` telephone / ringtone / voicemail modules |
-| Identity wiring    | `meshchatx/src/backend/identity_context.py`                       |
-| Adversarial tests  | `tests/backend/test_lxst_hostless_audio.py`                       |
-| Frontend call UI   | telephone-related Vue components under `meshchatx/src/frontend/`  |
+| Telephony managers | meshchatx/src/backend/ telephone / ringtone / voicemail modules |
+| Identity wiring    | meshchatx/src/backend/identity_context.py                       |
+| Adversarial tests  | tests/backend/test_lxst_hostless_audio.py                       |
+| Frontend call UI   | telephone-related Vue components under meshchatx/src/frontend/  |
 
 ## Gates
 
@@ -41,13 +41,13 @@ LXST runs over Reticulum Links. Address callees by identity/destination hash. No
 uv run pytest tests/backend/test_lxst_hostless_audio.py tests/backend/test_telephone_duplex_ptt.py -q --tb=short
 ```
 
-Also: `reticulum-design-gates`, `auth-csrf-ws-security`, `identity-switch-teardown`.
+Also: reticulum-design-gates, auth-csrf-ws-security, identity-switch-teardown.
 
 ## LXST 0.5 duplex / PTT
 
 | Control            | LXST API                                   | MeshChatX surface                                    |
 | ------------------ | ------------------------------------------ | ---------------------------------------------------- |
-| Full / half duplex | `Telephone.switch_mode`, `Profiles.MODE_*` | `POST /api/v1/telephone/switch-call-mode/{mode_id}`  |
-| PTT (half duplex)  | `squelch_transmit` / `unsquelch_transmit`  | `POST /api/v1/telephone/ptt` with `{"active": bool}` |
-| Mute mic / speaker | `mute_transmit` / `mute_receive`           | existing mute endpoints                              |
-| Live stats         | RNS Link counters on `active_call`         | `/api/v1/telephone/status` `tx_*` / `rx_*` / `*_bps` |
+| Full / half duplex | Telephone.switch_mode, Profiles.MODE_* | POST /api/v1/telephone/switch-call-mode/{mode_id}  |
+| PTT (half duplex)  | squelch_transmit / unsquelch_transmit  | POST /api/v1/telephone/ptt with {"active": bool} |
+| Mute mic / speaker | mute_transmit / mute_receive           | existing mute endpoints                              |
+| Live stats         | RNS Link counters on active_call         | /api/v1/telephone/status tx_* / rx_* / *_bps |

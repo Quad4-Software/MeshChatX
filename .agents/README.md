@@ -1,7 +1,7 @@
 # .agents index
 
-Agent guidance only. End-user docs: `docs/en/`.
-Entry: root `AGENTS.md`. Always-on rules: `.cursor/rules/`.
+Agent guidance only. End-user docs: docs/en/.
+Entry: root AGENTS.md. Always-on rules: .agents/conventions/core.md and .agents/conventions/reticulum-zen.md.
 
 ## Open by need
 
@@ -18,7 +18,7 @@ Entry: root `AGENTS.md`. Always-on rules: `.cursor/rules/`.
 | Tests / oracles / contracts           | [conventions/tests.md](conventions/tests.md)                 |
 | Commit messages                       | [conventions/commits.md](conventions/commits.md)             |
 
-Skills: one file each at `skills/<name>/SKILL.md`. Open the matching skill before coding that surface.
+Skills: one file each at skills/<name>/SKILL.md. Open the matching skill before coding that surface.
 
 ## Skills (trigger to path)
 
