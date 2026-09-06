@@ -3219,7 +3219,22 @@
             "publish_failed_create": "Mesh-Server konnte nicht erstellt werden",
             "publish_failed_start": "Mesh-Server konnte nicht gestartet werden",
             "publish_open_in_nomadnet": "{page} in NomadNet öffnen",
-            "publish_open_nomadnet_confirm": "„{page}“ wurde auf {server} veröffentlicht. Jetzt in NomadNet öffnen?"
+            "publish_open_nomadnet_confirm": "„{page}“ wurde auf {server} veröffentlicht. Jetzt in NomadNet öffnen?",
+            "publish_site": "Publish site...",
+            "publish_site_title": "Publish site",
+            "publish_site_hint": "Publish several tabs as pages in one go. Drag or use the arrows to set the page order.",
+            "publish_site_server": "Mesh server",
+            "publish_site_new_server": "Create a new mesh server",
+            "publish_site_new_server_name": "New server name",
+            "publish_site_pages": "Pages",
+            "publish_site_include": "Include this page",
+            "publish_site_move_up": "Move page up",
+            "publish_site_move_down": "Move page down",
+            "publish_site_index": "Write index.mu with links to all pages",
+            "publish_site_index_hint": "Overwrites index.mu on the server with a link list to the selected pages.",
+            "publish_site_publish": "Publish {count} pages",
+            "publish_site_done": "Published {published}/{total} pages to {server}",
+            "publish_site_no_server": "Select a mesh server or enter a name for a new one."
         },
         "reticulum_config_editor": {
             "title": "Reticulum Konfigurations-Editor",
