@@ -9,6 +9,7 @@ import {
     loadCachedVisualiserGraph,
 } from "./visualiserDataService.js";
 import { collectVisualiserPositions, buildVisualiserGraph } from "./visualiserGraphBuilder.js";
+import { attachAnnounceMetaToNodes } from "./visualiserNavigation.js";
 import { syncVisNetworkDataFast, updateVisNetworkDataInChunks } from "./visNetworkAdapter.js";
 import type {
     PathTableEntry,
@@ -185,6 +186,8 @@ export async function renderVisualiserGraph(options: RenderGraphOptions): Promis
         currentLOD,
         batterySaverPrefs,
     });
+
+    attachAnnounceMetaToNodes(graph.nodes || [], announces);
 
     if (!isCurrentRun()) return;
 

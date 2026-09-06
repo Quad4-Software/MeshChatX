@@ -56,7 +56,7 @@ export async function fetchBasicVisualiserData(signal?: AbortSignal): Promise<Ba
     try {
         const [cfgRes, ifaceRes, convRes, discRes] = await Promise.all([
             window.api.get("/api/v1/config", { signal }).catch(() => null),
-            window.api.get("/api/v1/interfaces", { signal }).catch(() => null),
+            window.api.get("/api/v1/reticulum/interfaces", { signal }).catch(() => null),
             window.api.get("/api/v1/lxmf/conversations", { signal, params: { limit: 2000 } }).catch(() => null),
             window.api.get("/api/v1/reticulum/discovered-interfaces", { signal }).catch(() => null),
         ]);
@@ -286,24 +286,20 @@ export async function fetchVisualiserData(): Promise<Omit<VisualiserDataState, "
         };
     }
 
-    const [interfacesRes, discoveredRes, discoveredActiveRes, announcesRes, pathTableRes, conversationsRes, configRes] =
-        await Promise.all([
-            window.api.get("/api/v1/interfaces").catch(() => null),
-            window.api.get("/api/v1/reticulum/discovered-interfaces").catch(() => null),
-            window.api.get("/api/v1/reticulum/discovered-active").catch(() => null),
-            window.api.get("/api/v1/announces", { params: { limit: 500 } }).catch(() => null),
-            window.api.get("/api/v1/path-table").catch(() => null),
-            window.api.get("/api/v1/lxmf/conversations").catch(() => null),
-            window.api.get("/api/v1/config").catch(() => null),
-        ]);
+    const [interfacesRes, discoveredRes, announcesRes, pathTableRes, conversationsRes, configRes] = await Promise.all([
+        window.api.get("/api/v1/reticulum/interfaces").catch(() => null),
+        window.api.get("/api/v1/reticulum/discovered-interfaces").catch(() => null),
+        window.api.get("/api/v1/announces", { params: { limit: 500 } }).catch(() => null),
+        window.api.get("/api/v1/path-table").catch(() => null),
+        window.api.get("/api/v1/lxmf/conversations").catch(() => null),
+        window.api.get("/api/v1/config").catch(() => null),
+    ]);
 
     const interfaces: InterfaceEntry[] =
         (interfacesRes as { data?: { interfaces?: InterfaceEntry[] } } | null)?.data?.interfaces || [];
     const discoveredInterfaces: DiscoveredInterfaceEntry[] =
         (discoveredRes as { data?: { interfaces?: DiscoveredInterfaceEntry[] } } | null)?.data?.interfaces || [];
-    const discoveredActive: DiscoveredActiveEntry[] =
-        (discoveredActiveRes as { data?: { discovered_active?: DiscoveredActiveEntry[] } } | null)?.data
-            ?.discovered_active || [];
+    const discoveredActive: DiscoveredActiveEntry[] = [];
     const announces: AnnounceEntry[] =
         (announcesRes as { data?: { announces?: AnnounceEntry[] } } | null)?.data?.announces || [];
     const paths: PathTableEntry[] =
