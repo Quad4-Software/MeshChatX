@@ -36,8 +36,8 @@ describe("frontend stack migration oracle", () => {
         expect(allDeps["@mdi/js"]).toBeTruthy();
     });
 
-    it("vite.config.js uses Vite 8 features and excludes Vuetify bundling", () => {
-        const vite = readRepo("vite.config.js");
+    it("vite.config.mjs uses Vite 8 features and excludes Vuetify bundling", () => {
+        const vite = readRepo("vite.config.mjs");
         expect(vite).toContain("rolldownOptions");
         expect(vite).toContain("chunkImportMap: false");
         expect(vite).toContain("tsconfigPaths: true");

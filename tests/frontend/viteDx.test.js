@@ -40,8 +40,8 @@ describe("vite-dx Vue DevTools gate", () => {
         expect(detectLaunchEditor({})).toBe("code");
     });
 
-    it("vite.config.js wires the plugin, production DevTools flag, and localhost server", () => {
-        const vite = readFileSync(resolve(ROOT, "vite.config.js"), "utf8");
+    it("vite.config.mjs wires the plugin, production DevTools flag, and localhost server", () => {
+        const vite = readFileSync(resolve(ROOT, "vite.config.mjs"), "utf8");
         expect(vite).toContain('from "vite-plugin-vue-devtools"');
         expect(vite).toContain("isVueDevToolsEnabled({ command })");
         expect(vite).toContain('__VUE_PROD_DEVTOOLS__: "false"');
@@ -59,8 +59,8 @@ describe("vite-dx Vue DevTools gate", () => {
         expect(vite).toContain("bundledDev: true");
     });
 
-    it("Docker frontend stages copy every vite.config.js scripts/ import", () => {
-        const vite = readFileSync(resolve(ROOT, "vite.config.js"), "utf8");
+    it("Docker frontend stages copy every vite.config.mjs scripts/ import", () => {
+        const vite = readFileSync(resolve(ROOT, "vite.config.mjs"), "utf8");
         const imports = [...vite.matchAll(/from\s+"(\.\/scripts\/[^"]+)"/g)].map((m) => m[1].replace(/^\.\//, ""));
         expect(imports.length).toBeGreaterThan(0);
         expect(imports).toContain("scripts/vite-dx.mjs");
@@ -79,7 +79,7 @@ describe("vite-dx Vue DevTools gate", () => {
     });
 
     it("Vite proxy forwards Host and task stacks trust loopback for WS Origin", () => {
-        const vite = readFileSync(resolve(ROOT, "vite.config.js"), "utf8");
+        const vite = readFileSync(resolve(ROOT, "vite.config.mjs"), "utf8");
         expect(vite).toContain("X-Forwarded-Host");
         expect(vite).toContain("setForwardedHost");
         expect(vite).toContain("xfwd: true");
@@ -92,7 +92,7 @@ describe("vite-dx Vue DevTools gate", () => {
     });
 
     it("Vite CORS allows opaque null Origin for the Nomad crash-tab sandbox", () => {
-        const vite = readFileSync(resolve(ROOT, "vite.config.js"), "utf8");
+        const vite = readFileSync(resolve(ROOT, "vite.config.mjs"), "utf8");
         expect(vite).toContain('origin === "null"');
         expect(vite).toContain("skipVueDevToolsInCrashTab");
         expect(vite).toContain("nomad-crash-tab");

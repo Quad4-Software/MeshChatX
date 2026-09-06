@@ -14,7 +14,7 @@ ARG OCI_LICENSES="MIT AND 0BSD"
 FROM --platform=linux/amd64 ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 WORKDIR /src
 RUN apk add --no-cache git python3 go
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml vite.config.js ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml vite.config.mjs ./
 COPY patches ./patches
 COPY scripts/fetch-micron-wasm.mjs scripts/fetch-micron-wasm.mjs
 COPY scripts/micron-wasm-resolve-bundled.mjs scripts/micron-wasm-resolve-bundled.mjs
