@@ -97,7 +97,7 @@ def test_db_performance():
     num_announces = 5000
     print(f"Inserting {num_announces} announces...")
     start_time = time.time()
-    for i in range(num_announces):
+    for _i in range(num_announces):
         ann = {
             "destination_hash": generate_hash(),
             "aspect": "lxmf.delivery",

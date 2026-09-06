@@ -79,7 +79,7 @@ def parse_backend_ownership_table(doc_path: Path) -> list[dict]:
     for line in table_lines[2:]:
         cells = _split_row(line)
         row = {}
-        for key, cell in zip(keys, cells):
+        for key, cell in zip(keys, cells, strict=False):
             row[key] = cell if key == "domain" else _code_spans(cell)
         rows.append(row)
     return rows

@@ -95,7 +95,7 @@ class TestConversationMessagesOracle(unittest.TestCase):
             _message(
                 peer,
                 0,
-                fields='{"image":{"image_type":"png","image_bytes":"%s"}}' % big,
+                fields=f'{{"image":{{"image_type":"png","image_bytes":"{big}"}}}}',
             ),
         )
         rows = self.handler.get_conversation_messages("local", peer, limit=5)

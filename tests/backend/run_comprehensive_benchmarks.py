@@ -161,7 +161,7 @@ class BackendBenchmarker:
         def run_ann_flood():
             for b in range(0, total, batch):
                 with self.db.provider:
-                    for i in range(batch):
+                    for _i in range(batch):
                         data = {
                             "destination_hash": secrets.token_hex(16),
                             "aspect": random.choice(
@@ -308,7 +308,7 @@ class BackendBenchmarker:
         @benchmark("Announce Upsert (Batch of 100)", iterations=10)
         def upsert_announces():
             with self.db.provider:
-                for i in range(100):
+                for _i in range(100):
                     data = {
                         "destination_hash": secrets.token_hex(16),
                         "aspect": "lxmf.delivery",
