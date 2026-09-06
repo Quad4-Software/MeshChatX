@@ -18,7 +18,7 @@ function isMicronWasmBundledResolved(repoRoot) {
     }
 }
 
-const micronWasmBundled = isMicronWasmBundledResolved(__dirname);
+const micronWasmBundled = isMicronWasmBundledResolved(import.meta.dirname);
 
 function loadMicronWasmIntegrity(repoRoot) {
     if (!micronWasmBundled) return null;
@@ -40,7 +40,7 @@ function loadMicronWasmIntegrity(repoRoot) {
     }
 }
 
-const micronWasmIntegrity = loadMicronWasmIntegrity(__dirname);
+const micronWasmIntegrity = loadMicronWasmIntegrity(import.meta.dirname);
 const appBuildTimeIso = new Date().toISOString();
 
 export default defineConfig({
@@ -64,7 +64,7 @@ export default defineConfig({
         execArgv: [
             "--no-experimental-webstorage",
             "--require",
-            path.resolve(__dirname, "tests/frontend/patch-console.cjs"),
+            path.resolve(import.meta.dirname, "tests/frontend/patch-console.cjs"),
         ],
         globals: true,
         environment: "jsdom",
@@ -88,7 +88,7 @@ export default defineConfig({
     resolve: {
         tsconfigPaths: true,
         alias: {
-            "@": path.resolve(__dirname, "meshchatx", "src", "frontend"),
+            "@": path.resolve(import.meta.dirname, "meshchatx", "src", "frontend"),
         },
     },
 });

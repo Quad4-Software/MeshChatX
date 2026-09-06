@@ -23,7 +23,7 @@
         "meshchatx/src/frontend/**/*.vue",
         "meshchatx/src/frontend/**/*.js",
         "electron/**/*.js",
-        "vite.config.js"
+        "vite.config.mjs"
     ],
     "exclude": [
         "node_modules",
