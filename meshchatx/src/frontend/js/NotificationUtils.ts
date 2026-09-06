@@ -109,7 +109,12 @@ class NotificationUtils {
      * @param {boolean} [silent]
      * @param {string|null} [destinationHash]
      */
-    static showNewMessageNotification(from, content, silent = false, destinationHash = null) {
+    static showNewMessageNotification(
+        from: unknown,
+        content: unknown,
+        silent = false,
+        destinationHash: string | null = null
+    ) {
         if (!NotificationUtils.ownsOsMessageNotifications()) {
             return;
         }

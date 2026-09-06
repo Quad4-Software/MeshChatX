@@ -349,7 +349,7 @@ export function stopClientHeapMemoryWatch(state: AppShellState): void {
 }
 
 export function sampleClientHeapMemory(state: AppShellState): void {
-    let memoryInfo = null;
+    let memoryInfo: unknown = null;
     try {
         memoryInfo = (performance as unknown as { memory?: unknown })?.memory ?? null;
     } catch {

@@ -60,7 +60,7 @@ export interface CallOverlayProps {
     callDuration?: string | null;
     isMinimized?: boolean;
     router?: RouterLike;
-    route?: RouteLike;
+    route?: RouteLike | null;
     onanswer?: () => void | Promise<void>;
     onhangup?: () => void | Promise<void>;
     onmute?: (muted: boolean) => void | Promise<void>;
@@ -201,7 +201,7 @@ export function getStatusColorClass(params: {
 
 export async function executeAnswerCall(params: {
     router?: RouterLike;
-    route?: RouteLike;
+    route?: RouteLike | null;
     onanswer?: () => void | Promise<void>;
     ongotophone?: () => void;
 }): Promise<void> {

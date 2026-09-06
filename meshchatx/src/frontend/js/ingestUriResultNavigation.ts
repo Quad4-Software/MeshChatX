@@ -1,24 +1,39 @@
 // SPDX-License-Identifier: 0BSD
 
+export type IngestUriToast = {
+    info?: (msg: unknown) => void;
+    error?: (msg: unknown) => void;
+};
+
+export type IngestUriRouter = {
+    push: (location: { name?: string; query?: Record<string, unknown> } | string) => Promise<unknown> | unknown;
+};
+
 /**
- * @param {Record<string, unknown>} json
- * @param {{ push: (location: object) => Promise<unknown> }} router
- * @param {{ info?: (msg: string) => void, error?: (msg: string) => void } | null} [toast]
- * @returns {Promise<boolean>} true when navigation was handled
+ * @returns true when navigation was handled
  */
-export async function handleLxmIngestUriResult(json, { router, toast = null }) {
+export async function handleLxmIngestUriResult(
+    json: Record<string, unknown>,
+    {
+        router,
+        toast = null,
+    }: {
+        router: IngestUriRouter;
+        toast?: IngestUriToast | null;
+    }
+): Promise<boolean> {
     if (json.ingest_type === "map_view" && json.map_query) {
-        const mq = json.map_query;
-        const query: any = {
+        const mq = json.map_query as Record<string, unknown>;
+        const query: Record<string, string> = {
             lat: String(mq.lat),
             lon: String(mq.lon),
             zoom: String(mq.zoom),
         };
         if (mq.layers) {
-            query.layers = mq.layers;
+            query.layers = String(mq.layers);
         }
         if (mq.label) {
-            query.label = mq.label;
+            query.label = String(mq.label);
         }
         await router.push({ name: "map", query });
         if (json.status === "error") {
@@ -30,7 +45,7 @@ export async function handleLxmIngestUriResult(json, { router, toast = null }) {
     }
 
     if (json.ingest_type === "docs_view") {
-        const dq = json.docs_query;
+        const dq = json.docs_query as Record<string, unknown> | null | undefined;
         const rel = dq && typeof dq.reticulum === "string" ? dq.reticulum.trim() : "";
         if (rel) {
             await router.push({

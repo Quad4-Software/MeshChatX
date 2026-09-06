@@ -30,7 +30,7 @@ export function fingerprintDatabaseHealthIssues(issues) {
     if (!Array.isArray(issues) || issues.length === 0) {
         return "";
     }
-    const parts = [];
+    const parts: string[] = [];
     for (const item of issues) {
         if (typeof item !== "string") {
             continue;

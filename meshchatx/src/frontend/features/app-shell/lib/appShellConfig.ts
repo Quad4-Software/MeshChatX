@@ -128,7 +128,7 @@ export function maybeShowChannelPrompt(state: AppShellState): boolean {
         return false;
     }
     const modal = state.hosts.channelPrompt;
-    if (!modal || typeof modal.show !== "function") {
+    if (!modal || typeof modal.show !== "function" || !state.appInfo) {
         return false;
     }
     return modal.show(state.appInfo) === true;

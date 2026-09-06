@@ -37,7 +37,7 @@ export interface ShellAppInfo {
 export interface ShellHosts {
     changelog?: { show: () => void | Promise<void> } | null;
     tutorial?: { show: () => void; hide?: () => void; isOpen?: () => boolean } | null;
-    channelPrompt?: { show: (info: unknown) => boolean } | null;
+    channelPrompt?: { show: (info: ShellAppInfo) => boolean } | null;
     androidStorage?: { showUpgrade: () => boolean } | null;
     postInstall?: { showNext: () => Promise<boolean> } | null;
     commandPalette?: { open: () => void | Promise<void> } | null;
