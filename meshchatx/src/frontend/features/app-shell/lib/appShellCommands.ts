@@ -5,7 +5,7 @@
  */
 
 import GlobalEmitter from "../../../js/GlobalEmitter.js";
-import { navigate, router, subscribe as subscribeRoute } from "../../../shell/hashRouter.js";
+import { navigate, router } from "../../../shell/hashRouter.js";
 import { handleProtocolLink } from "./appShellLinks.js";
 import { getBlockedDestinations, maybeShowChannelPrompt } from "./appShellConfig.js";
 import { toggleSidebarCollapsed } from "./appShellNav.js";
@@ -43,7 +43,7 @@ export function onChangelogClosedShell(state: AppShellState): void {
     maybeShowChannelPrompt(state);
 }
 
-export async function composeNewMessage(state: AppShellState): Promise<void> {
+export async function composeNewMessage(_state: AppShellState): Promise<void> {
     await navigate({ name: "messages" });
     GlobalEmitter.emit("compose-new-message");
 }

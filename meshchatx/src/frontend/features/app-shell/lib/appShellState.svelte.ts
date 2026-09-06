@@ -1,42 +1,16 @@
 // SPDX-License-Identifier: 0BSD
 
-import GlobalState, { mergeGlobalConfig } from "../../../js/GlobalState.js";
-import {
-    channelBadgeClass,
-    channelLabelKey,
-    normalizeReleaseChannel,
-    shouldShowChannelPrompt,
-} from "../../../js/releaseChannel.js";
+import { channelBadgeClass, normalizeReleaseChannel } from "../../../js/releaseChannel.js";
 import ElectronUtils from "../../../js/ElectronUtils.js";
-import {
-    shouldShowLanBindNoAuthBanner,
-    dismissLanBindNoAuthBanner,
-    isLanBindNoAuthBannerDismissed,
-} from "../../../js/lanBindWarning.js";
+import { shouldShowLanBindNoAuthBanner, isLanBindNoAuthBannerDismissed } from "../../../js/lanBindWarning.js";
 import { isMeshChatXAndroid } from "../../../js/webAudioMicPermission.js";
 import ToneGenerator from "../../../js/ToneGenerator.js";
 import { listNavItems } from "../../../js/registries/navRegistry.js";
-import { isDatabaseRecoveryError, recoveryLocationForNetworkError } from "../../../js/networkRecovery.js";
+import { isDatabaseRecoveryError } from "../../../js/networkRecovery.js";
 import type { FatalErrorRecord } from "../../../js/fatalErrorState.js";
-import {
-    applyNavLayout,
-    captureNavLayout,
-    cloneNavLayout,
-    loadAppSidebarNavLayout,
-    moveNavGroup,
-    moveNavGroupByOffset,
-    moveNavItem,
-    moveNavItemByOffset,
-    orderItemsByLayout,
-    saveAppSidebarNavLayout,
-} from "../../../js/appSidebarNavLayout.js";
+import { applyNavLayout } from "../../../js/appSidebarNavLayout.js";
 import type { NavLayout } from "../../../js/appSidebarNavLayout.js";
-import {
-    applyAppearanceTheme,
-    resolveEffectiveTheme,
-    shellCanvasBackgroundStyle,
-    systemPrefersDark,
-} from "../../../theme/themeEngine.js";
+import { resolveEffectiveTheme, systemPrefersDark } from "../../../theme/themeEngine.js";
 import type { ActiveRoute } from "../../../shell/hashRouter.js";
 import type { NavGroup, NavItem } from "./navTypes.js";
 import { electronBridge } from "./appShellShared.js";

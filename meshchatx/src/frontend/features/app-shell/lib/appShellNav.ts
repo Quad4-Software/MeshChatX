@@ -5,31 +5,25 @@
  * and the unread counters shown on nav items.
  */
 
-import GlobalState, { mergeGlobalConfig } from "../../../js/GlobalState.js";
+import GlobalState from "../../../js/GlobalState.js";
 import { countRelayMentions } from "../../../js/relayMentionCount.js";
 import { isRetryableHttpError } from "../../../js/httpRetry.js";
 import ToastUtils from "../../../js/ToastUtils.js";
 import { t } from "../../../js/i18n.js";
 import { shouldShowMultiSessionToast } from "../../../js/activeSessions.js";
-import {
-    loadFeatureSidebarCollapsed,
-    saveFeatureSidebarCollapsed,
-    clearMessagePanes,
-} from "../../../js/browserLayoutStore.js";
+import { saveFeatureSidebarCollapsed } from "../../../js/browserLayoutStore.js";
 import {
     applyNavLayout,
     captureNavLayout,
     cloneNavLayout,
-    loadAppSidebarNavLayout,
     moveNavGroup,
     moveNavGroupByOffset,
     moveNavItem,
     moveNavItemByOffset,
-    orderItemsByLayout,
     saveAppSidebarNavLayout,
 } from "../../../js/appSidebarNavLayout.js";
-import { navigate, router, subscribe as subscribeRoute } from "../../../shell/hashRouter.js";
-import type { NavGroup, NavItem } from "./navTypes.js";
+import { navigate } from "../../../shell/hashRouter.js";
+import type { NavItem } from "./navTypes.js";
 import { apiClient } from "./appShellShared.js";
 import type { AppShellState } from "./appShellState.svelte.js";
 

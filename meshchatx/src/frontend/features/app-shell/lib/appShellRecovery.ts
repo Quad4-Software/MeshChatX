@@ -8,19 +8,15 @@
 import DialogUtils from "../../../js/DialogUtils.js";
 import { formatDisconnectedDuration, WS_DISCONNECT_BANNER_GRACE_MS } from "../../../js/wsConnectionSupport.js";
 import { applyAuthStatusToGlobalState, fetchAuthStatus } from "../../../js/authSessionSync.js";
-import GlobalState, { mergeGlobalConfig } from "../../../js/GlobalState.js";
+import GlobalState from "../../../js/GlobalState.js";
 import GlobalEmitter from "../../../js/GlobalEmitter.js";
 import ToastUtils from "../../../js/ToastUtils.js";
 import { t } from "../../../js/i18n.js";
-import {
-    shouldShowLanBindNoAuthBanner,
-    dismissLanBindNoAuthBanner,
-    isLanBindNoAuthBannerDismissed,
-} from "../../../js/lanBindWarning.js";
+import { dismissLanBindNoAuthBanner } from "../../../js/lanBindWarning.js";
 import { fetchCsrfToken } from "../../../js/csrfToken.js";
 import { onWsEvent, offWsEvent } from "../../../js/registries/wsEventRegistry.js";
-import { isDatabaseRecoveryError, recoveryLocationForNetworkError } from "../../../js/networkRecovery.js";
-import { navigate, router, subscribe as subscribeRoute } from "../../../shell/hashRouter.js";
+import { recoveryLocationForNetworkError } from "../../../js/networkRecovery.js";
+import { navigate } from "../../../shell/hashRouter.js";
 import { createShellWsHandlers } from "./appShellWsHandlers.js";
 import { apiClient, electronBridge } from "./appShellShared.js";
 import { startShellPollIntervals } from "./appShellLifecycle.js";
@@ -189,7 +185,7 @@ export async function onRestartBackend(state: AppShellState): Promise<void> {
     }
 }
 
-export async function onViewBackendCrashReport(state: AppShellState): Promise<void> {
+export async function onViewBackendCrashReport(_state: AppShellState): Promise<void> {
     const electron = electronBridge();
     if (!electron?.openBackendCrashReport) {
         return;
@@ -204,11 +200,11 @@ export async function onViewBackendCrashReport(state: AppShellState): Promise<vo
     }
 }
 
-export function onOpenInterfacesForRecovery(state: AppShellState): void {
+export function onOpenInterfacesForRecovery(_state: AppShellState): void {
     void navigate({ name: "interfaces" });
 }
 
-export function onOpenSettingsForRecovery(state: AppShellState): void {
+export function onOpenSettingsForRecovery(_state: AppShellState): void {
     void navigate({ name: "settings" });
 }
 
@@ -217,7 +213,7 @@ export function onDismissLanBindNoAuthBanner(state: AppShellState): void {
     state.lanBindNoAuthBannerDismissed = true;
 }
 
-export function onOpenBackupsForRecovery(state: AppShellState): void {
+export function onOpenBackupsForRecovery(_state: AppShellState): void {
     void navigate({ name: "about", hash: "#about-database-backups" });
 }
 

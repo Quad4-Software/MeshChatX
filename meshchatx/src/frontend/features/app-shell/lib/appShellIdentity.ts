@@ -6,22 +6,15 @@
  */
 
 import QRCode from "qrcode";
-import GlobalState, { mergeGlobalConfig } from "../../../js/GlobalState.js";
+import GlobalState from "../../../js/GlobalState.js";
 import GlobalEmitter from "../../../js/GlobalEmitter.js";
 import ToastUtils from "../../../js/ToastUtils.js";
-import {
-    showDatabaseHealthIssuesToastIfNeeded,
-    resetDatabaseHealthWarningState,
-} from "../../../js/databaseHealthWarning.js";
+import { resetDatabaseHealthWarningState } from "../../../js/databaseHealthWarning.js";
 import { t } from "../../../js/i18n.js";
 import { fetchCsrfToken } from "../../../js/csrfToken.js";
-import {
-    loadFeatureSidebarCollapsed,
-    saveFeatureSidebarCollapsed,
-    clearMessagePanes,
-} from "../../../js/browserLayoutStore.js";
+import { clearMessagePanes } from "../../../js/browserLayoutStore.js";
 import { micronStorage } from "../../../js/MicronStorage.js";
-import { navigate, router, subscribe as subscribeRoute } from "../../../shell/hashRouter.js";
+import { navigate } from "../../../shell/hashRouter.js";
 import { IDENTITY_SAVE_DEBOUNCE_MS, apiClient } from "./appShellShared.js";
 import { getAppInfo, getBlockedDestinations, getConfig, updateConfig } from "./appShellConfig.js";
 import { updateRelayChatUnreadCount, updateUnreadConversationsCount } from "./appShellNav.js";
