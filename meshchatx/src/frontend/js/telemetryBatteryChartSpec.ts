@@ -4,9 +4,26 @@
  * without leaving a short square plot.
  */
 
-export const BATTERY_CHART_VIEWBOX: any = { w: 100, h: 46 };
+export type BatteryChartPoint = {
+    x: number;
+    y: number;
+};
 
-export const BATTERY_CHART_BOUNDS: any = {
+export type BatteryChartViewBox = {
+    w: number;
+    h: number;
+};
+
+export type BatteryChartBounds = {
+    PL: number;
+    PR: number;
+    PT: number;
+    PB: number;
+};
+
+export const BATTERY_CHART_VIEWBOX: BatteryChartViewBox = { w: 100, h: 46 };
+
+export const BATTERY_CHART_BOUNDS: BatteryChartBounds = {
     PL: 10,
     PR: 99,
     PT: 5,
@@ -16,21 +33,13 @@ export const BATTERY_CHART_BOUNDS: any = {
 const { PL, PR, PT, PB } = BATTERY_CHART_BOUNDS;
 const VB = BATTERY_CHART_VIEWBOX;
 
-/**
- * @param {number} v
- * @returns {number}
- */
-export function clampBatteryPercent(v) {
+export function clampBatteryPercent(v: number): number {
     const n = Number(v);
     if (Number.isNaN(n)) return 0;
     return Math.min(100, Math.max(0, n));
 }
 
-/**
- * @param {{ x: number; y: number }[]} history ascending by x
- * @returns {{ x: number; y: number }[]}
- */
-function plotPoints(history) {
+function plotPoints(history: BatteryChartPoint[]): BatteryChartPoint[] {
     if (history.length === 0) return [];
     const minX = history[0].x;
     const maxX = history[history.length - 1].x;
@@ -41,12 +50,8 @@ function plotPoints(history) {
     }));
 }
 
-/**
- * Smooth cubic path through points (Catmull-Rom style control points).
- * @param {{ x: number; y: number }[]} pts
- * @returns {string}
- */
-function smoothLinePath(pts) {
+/** Smooth cubic path through points (Catmull-Rom style control points). */
+function smoothLinePath(pts: BatteryChartPoint[]): string {
     if (pts.length === 0) return "";
     if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`;
     let d = `M ${pts[0].x} ${pts[0].y}`;
@@ -64,23 +69,37 @@ function smoothLinePath(pts) {
     return d;
 }
 
-/**
- * @param {{ x: number; y: number }[]} history
- * @param {string} idSuffix alphanumeric fragment for SVG defs ids
- * @returns {null | {
- *   linePath: string;
- *   areaPath: string;
- *   gridLines: { y1: number; y2: number; label: string }[];
- *   first: { x: number; y: number };
- *   last: { x: number; y: number };
- *   plotBottom: number;
- *   gradientId: string;
- *   strokeGradientId: string;
- *   layout: { PL: number; PR: number; PT: number; PB: number; plotBottom: number; minX: number; maxX: number };
- *   viewBox: string;
- * }}
- */
-export function buildTelemetryBatteryChartSpec(history, idSuffix = "chart") {
+export type BatteryChartGridLine = {
+    y1: number;
+    y2: number;
+    label: string;
+};
+
+export type TelemetryBatteryChartSpec = {
+    linePath: string;
+    areaPath: string;
+    gridLines: BatteryChartGridLine[];
+    first: BatteryChartPoint;
+    last: BatteryChartPoint;
+    plotBottom: number;
+    gradientId: string;
+    strokeGradientId: string;
+    layout: {
+        PL: number;
+        PR: number;
+        PT: number;
+        PB: number;
+        plotBottom: number;
+        minX: number;
+        maxX: number;
+    };
+    viewBox: string;
+};
+
+export function buildTelemetryBatteryChartSpec(
+    history: BatteryChartPoint[],
+    idSuffix = "chart"
+): TelemetryBatteryChartSpec | null {
     const safe = String(idSuffix).replace(/[^a-zA-Z0-9_-]/g, "") || "chart";
     if (history.length < 2) return null;
 
@@ -113,13 +132,8 @@ export function buildTelemetryBatteryChartSpec(history, idSuffix = "chart") {
     };
 }
 
-/**
- * Linear interpolation of charge_percent between samples (by timestamp).
- * @param {{ x: number; y: number }[]} history ascending by x
- * @param {number} ts unix seconds
- * @returns {{ y: number; x: number }}
- */
-export function interpolateBatteryByTime(history, ts) {
+/** Linear interpolation of charge_percent between samples (by timestamp). */
+export function interpolateBatteryByTime(history: BatteryChartPoint[], ts: number): BatteryChartPoint {
     if (!history.length) return { y: 0, x: ts };
     if (history.length === 1) return { y: clampBatteryPercent(history[0].y), x: history[0].x };
     if (ts <= history[0].x) return { y: clampBatteryPercent(history[0].y), x: history[0].x };
@@ -140,16 +154,31 @@ export function interpolateBatteryByTime(history, ts) {
     return { y: clampBatteryPercent(a.y + u * (b.y - a.y)), x: ts };
 }
 
-/**
- * @param {object[]} telemetryChatItems lxmf chat items (telemetry-only ok)
- * @returns {{ x: number; y: number }[]}
- */
-export function batteryHistoryFromTelemetryItems(telemetryChatItems) {
+export type TelemetryChatItemLike = {
+    lxmf_message?: {
+        timestamp?: number | null;
+        fields?: Record<string, unknown> | null;
+        [key: string]: unknown;
+    } | null;
+    [key: string]: unknown;
+};
+
+/** Build battery history from lxmf chat items (telemetry-only ok). */
+export function batteryHistoryFromTelemetryItems(telemetryChatItems: TelemetryChatItemLike[]): BatteryChartPoint[] {
     return telemetryChatItems
-        .filter((item) => item.lxmf_message?.fields?.telemetry?.battery)
-        .map((item) => ({
-            x: item.lxmf_message.timestamp,
-            y: item.lxmf_message.fields.telemetry.battery.charge_percent,
-        }))
+        .filter((item) => {
+            const fields = item.lxmf_message?.fields as
+                { telemetry?: { battery?: { charge_percent?: number | null } | null } | null } | null | undefined;
+            return !!fields?.telemetry?.battery;
+        })
+        .map((item) => {
+            const fields = item.lxmf_message?.fields as {
+                telemetry?: { battery?: { charge_percent?: number | null } | null } | null;
+            };
+            return {
+                x: Number(item.lxmf_message?.timestamp) || 0,
+                y: Number(fields?.telemetry?.battery?.charge_percent) || 0,
+            };
+        })
         .sort((a, b) => a.x - b.x);
 }

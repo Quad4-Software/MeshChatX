@@ -5,32 +5,63 @@
 
 import { callGeoWasmJson, isGeoWasmReady, preloadGeoWasm } from "./GeoWasmLoader.js";
 
-export const COORD_FORMATS = Object.freeze(["wgs84", "utm", "mgrs", "olc"]);
+export const COORD_FORMATS = Object.freeze(["wgs84", "utm", "mgrs", "olc"] as const);
+
+export type CoordFormat = (typeof COORD_FORMATS)[number];
+
+export type GeoRefOptions = {
+    hasRef?: boolean;
+    refLat?: number;
+    refLon?: number;
+    codeLen?: number;
+};
+
+export type FormatCoordinateResult = {
+    text: string;
+    format: string;
+    ok: boolean;
+    error?: string;
+    full?: string;
+    compact?: string;
+    lat?: number;
+    lon?: number;
+    fallback?: boolean;
+};
+
+export type ParseCoordinateResult = {
+    ok: boolean;
+    lat?: number;
+    lon?: number;
+    kind?: string;
+    error?: string;
+};
 
 let fallbackToastShown = false;
 
 /** Normalize a config/UI format string to a known value. */
-export function normalizeCoordinateFormat(format) {
+export function normalizeCoordinateFormat(format: string | null | undefined): CoordFormat {
     const f = String(format || "wgs84")
         .toLowerCase()
         .trim();
-    return COORD_FORMATS.includes(f) ? f : "wgs84";
+    return (COORD_FORMATS as readonly string[]).includes(f) ? (f as CoordFormat) : "wgs84";
 }
 
-function normalizeFormat(format) {
+function normalizeFormat(format: string | null | undefined): CoordFormat {
     return normalizeCoordinateFormat(format);
 }
 
 /** Ensure WASM is loaded when the map needs advanced formats. */
-export async function ensureGeoCoordsReady() {
+export async function ensureGeoCoordsReady(): Promise<boolean> {
     return preloadGeoWasm();
 }
 
-/**
- * Format a WGS84 point for display/copy.
- * @returns {{ text: string, format: string, ok: boolean, error?: string, full?: string, compact?: string }}
- */
-export function formatCoordinate(lon, lat, format, options: any = {}) {
+/** Format a WGS84 point for display/copy. */
+export function formatCoordinate(
+    lon: number,
+    lat: number,
+    format: string | null | undefined,
+    options: GeoRefOptions = {}
+): FormatCoordinateResult {
     const fmt = normalizeFormat(format);
     const latN = Number(lat);
     const lonN = Number(lon);
@@ -57,7 +88,7 @@ export function formatCoordinate(lon, lat, format, options: any = {}) {
             lon: lonN,
         };
     }
-    const payload: any = {
+    const payload = {
         lat: latN,
         lon: lonN,
         format: fmt,
@@ -66,7 +97,7 @@ export function formatCoordinate(lon, lat, format, options: any = {}) {
         refLon: Number(options.refLon) || 0,
         codeLen: options.codeLen || 10,
     };
-    const res = callGeoWasmJson("meshchatxGeoFormat", payload);
+    const res = callGeoWasmJson("meshchatxGeoFormat", payload) as FormatCoordinateResult | null | undefined;
     if (!res || res.ok === false) {
         return {
             ok: false,
@@ -81,11 +112,11 @@ export function formatCoordinate(lon, lat, format, options: any = {}) {
     return res;
 }
 
-/**
- * Parse pasted coordinate text into WGS84.
- * @returns {{ ok: boolean, lat?: number, lon?: number, kind?: string, error?: string }}
- */
-export function parseCoordinateQuery(text, options: any = {}) {
+/** Parse pasted coordinate text into WGS84. */
+export function parseCoordinateQuery(
+    text: string | null | undefined,
+    options: GeoRefOptions = {}
+): ParseCoordinateResult {
     const raw = String(text || "").trim();
     if (!raw) {
         return { ok: false, error: "empty" };
@@ -107,14 +138,14 @@ export function parseCoordinateQuery(text, options: any = {}) {
         hasRef: Boolean(options.hasRef),
         refLat: Number(options.refLat) || 0,
         refLon: Number(options.refLon) || 0,
-    });
+    }) as (ParseCoordinateResult & { error?: string }) | null | undefined;
     if (!res || res.ok === false) {
         return { ok: false, error: res?.error || "parse_failed" };
     }
     return { ok: true, lat: res.lat, lon: res.lon, kind: res.kind };
 }
 
-function tryParseWGS84Local(raw) {
+function tryParseWGS84Local(raw: string): { lat: number; lon: number } | null {
     const cleaned = raw.replace(/,/g, " ");
     const parts = cleaned.trim().split(/\s+/);
     if (parts.length !== 2) return null;
@@ -126,7 +157,7 @@ function tryParseWGS84Local(raw) {
 }
 
 /** Heuristic: text looks like UTM/MGRS/Plus Code rather than a place name. */
-export function looksLikeAdvancedCoordinate(text) {
+export function looksLikeAdvancedCoordinate(text: string | null | undefined): boolean {
     const raw = String(text || "").trim();
     if (!raw) return false;
     const compact = raw.replace(/\s+/g, "");
@@ -144,7 +175,7 @@ export function looksLikeAdvancedCoordinate(text) {
 }
 
 /** One-shot toast helper for callers when advanced formats need WASM. */
-export function shouldWarnGeoWasmFallback() {
+export function shouldWarnGeoWasmFallback(): boolean {
     if (fallbackToastShown || isGeoWasmReady()) {
         return false;
     }
@@ -153,6 +184,6 @@ export function shouldWarnGeoWasmFallback() {
 }
 
 /** Reset toast gate (tests). */
-export function resetGeoCoordsToastGate() {
+export function resetGeoCoordsToastGate(): void {
     fallbackToastShown = false;
 }

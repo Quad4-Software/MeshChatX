@@ -1,14 +1,25 @@
 // SPDX-License-Identifier: 0BSD
 
+import type { ApiClient } from "../apiClient.js";
 import { buildBitrateApplyPayload, loadBatterySaverPrefs, saveBatterySaverPrefs } from "./batterySaverPrefs.js";
 
-/**
- * Apply configured battery-saver bitrate caps and optionally reload RNS.
- * @param {{ api?: { get: Function, post: Function }, reload?: boolean }} [opts]
- * @returns {Promise<{ updated: string[], reloaded: boolean }>}
- */
-export async function applyBatterySaverBitrateLimits(opts: any = {}) {
-    const api = opts.api || (typeof window !== "undefined" ? window.api : null);
+export type BatterySaverBitrateOpts = {
+    api?: Pick<ApiClient, "get" | "post">;
+    reload?: boolean;
+};
+
+export type BatterySaverBitrateResult = {
+    updated: string[];
+    reloaded: boolean;
+};
+
+/** Apply configured battery-saver bitrate caps and optionally reload RNS. */
+export async function applyBatterySaverBitrateLimits(
+    opts: BatterySaverBitrateOpts = {}
+): Promise<BatterySaverBitrateResult> {
+    const api =
+        opts.api ||
+        (typeof window !== "undefined" ? (window as unknown as { api?: Pick<ApiClient, "get" | "post"> }).api : null);
     if (!api) {
         throw new Error("API client unavailable");
     }
@@ -22,7 +33,7 @@ export async function applyBatterySaverBitrateLimits(opts: any = {}) {
     }
 
     const listResp = await api.get("/api/v1/reticulum/interfaces");
-    const interfaces = listResp?.data?.interfaces || {};
+    const interfaces = (listResp?.data as { interfaces?: Record<string, unknown> })?.interfaces || {};
     const { bitrates, previous } = buildBitrateApplyPayload(interfaces, limits);
     if (Object.keys(bitrates).length === 0) {
         return { updated: [], reloaded: false };
@@ -40,17 +51,18 @@ export async function applyBatterySaverBitrateLimits(opts: any = {}) {
         },
     });
     return {
-        updated: resp?.data?.updated || Object.keys(bitrates),
-        reloaded: Boolean(resp?.data?.reloaded),
+        updated: (resp?.data as { updated?: string[] })?.updated || Object.keys(bitrates),
+        reloaded: Boolean((resp?.data as { reloaded?: boolean })?.reloaded),
     };
 }
 
-/**
- * Restore bitrates saved before the last apply, then reload RNS.
- * @param {{ api?: { post: Function }, reload?: boolean }} [opts]
- */
-export async function restoreBatterySaverBitrateLimits(opts: any = {}) {
-    const api = opts.api || (typeof window !== "undefined" ? window.api : null);
+/** Restore bitrates saved before the last apply, then reload RNS. */
+export async function restoreBatterySaverBitrateLimits(
+    opts: BatterySaverBitrateOpts = {}
+): Promise<BatterySaverBitrateResult> {
+    const api =
+        opts.api ||
+        (typeof window !== "undefined" ? (window as unknown as { api?: Pick<ApiClient, "get" | "post"> }).api : null);
     if (!api) {
         throw new Error("API client unavailable");
     }
@@ -66,7 +78,7 @@ export async function restoreBatterySaverBitrateLimits(opts: any = {}) {
     });
     saveBatterySaverPrefs({ interfaceBitratePrevious: {} });
     return {
-        updated: resp?.data?.updated || Object.keys(previous),
-        reloaded: Boolean(resp?.data?.reloaded),
+        updated: (resp?.data as { updated?: string[] })?.updated || Object.keys(previous),
+        reloaded: Boolean((resp?.data as { reloaded?: boolean })?.reloaded),
     };
 }

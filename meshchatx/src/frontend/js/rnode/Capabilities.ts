@@ -13,23 +13,55 @@ export const TRANSPORT_SERIAL = "serial";
 export const TRANSPORT_BLUETOOTH = "bluetooth";
 export const TRANSPORT_WIFI = "wifi";
 
+export type RNodeTransportName = typeof TRANSPORT_SERIAL | typeof TRANSPORT_BLUETOOTH | typeof TRANSPORT_WIFI;
+
+export type CapabilityPlatform = {
+    isAndroid: boolean;
+    isElectron: boolean;
+    hasMeshChatXAndroid: boolean;
+    isBrave: boolean;
+    isSecureContext: boolean;
+    userAgent: string;
+};
+
+export type TransportCapability = {
+    available: boolean;
+    kind: string;
+    polyfilled?: boolean;
+    reason: string | null;
+};
+
+export type CapabilitiesSnapshot = {
+    platform: CapabilityPlatform;
+    transports: {
+        serial: TransportCapability;
+        bluetooth: TransportCapability;
+        wifi: TransportCapability;
+    };
+    anyAvailable: boolean;
+};
+
+export type DetectCapabilitiesOverrides = {
+    env?: Record<string, any>;
+};
+
 const ANDROID_RE = /android/i;
 const ELECTRON_RE = /electron/i;
 
-function pickGlobal(provided) {
+function pickGlobal(provided?: Record<string, any> | null): Record<string, any> {
     if (provided) {
         return provided;
     }
     if (typeof window !== "undefined") {
-        return window;
+        return window as unknown as Record<string, any>;
     }
     if (typeof globalThis !== "undefined") {
-        return globalThis;
+        return globalThis as unknown as Record<string, any>;
     }
     return {};
 }
 
-function detectPlatform(env) {
+function detectPlatform(env: Record<string, any>): CapabilityPlatform {
     const ua = env.navigator?.userAgent ?? "";
     const isAndroid = ANDROID_RE.test(ua);
     const isElectron = ELECTRON_RE.test(ua) || Boolean(env.electron);
@@ -45,7 +77,7 @@ function detectPlatform(env) {
     };
 }
 
-function detectSerial(env, platform) {
+function detectSerial(env: Record<string, any>, platform: CapabilityPlatform): TransportCapability {
     const hasNative = Boolean(env.navigator?.serial);
     const hasUsbPolyfillTarget = Boolean(env.navigator?.usb);
     const hasPolyfillModule = Boolean(env.serial);
@@ -102,7 +134,7 @@ function detectSerial(env, platform) {
     };
 }
 
-function detectBluetooth(env, platform) {
+function detectBluetooth(env: Record<string, any>, platform: CapabilityPlatform): TransportCapability {
     const hasNative = Boolean(env.navigator?.bluetooth);
     if (hasNative) {
         return {
@@ -147,7 +179,7 @@ function detectBluetooth(env, platform) {
     };
 }
 
-function detectWifi() {
+function detectWifi(): TransportCapability {
     return {
         available: true,
         kind: "http",
@@ -155,21 +187,11 @@ function detectWifi() {
     };
 }
 
-/**
- * Inspect the environment and return a capabilities snapshot.
- *
- * @param {object} [overrides]
- * @param {object} [overrides.env] alternative global object (window-like) for tests
- * @returns {{
- *   platform: object,
- *   transports: { serial: object, bluetooth: object, wifi: object },
- *   anyAvailable: boolean,
- * }}
- */
-export function detectCapabilities(overrides: any = {}) {
+/** Inspect the environment and return a capabilities snapshot. */
+export function detectCapabilities(overrides: DetectCapabilitiesOverrides = {}): CapabilitiesSnapshot {
     const env = pickGlobal(overrides.env);
     const platform = detectPlatform(env);
-    const transports: any = {
+    const transports = {
         [TRANSPORT_SERIAL]: detectSerial(env, platform),
         [TRANSPORT_BLUETOOTH]: detectBluetooth(env, platform),
         [TRANSPORT_WIFI]: detectWifi(),
@@ -186,8 +208,8 @@ export function detectCapabilities(overrides: any = {}) {
  *
  * Order of preference: native serial, polyfill serial, web bluetooth, wifi.
  */
-export function pickDefaultTransport(capabilities) {
-    const t = capabilities?.transports ?? {};
+export function pickDefaultTransport(capabilities: CapabilitiesSnapshot | null | undefined): RNodeTransportName {
+    const t = capabilities?.transports ?? ({} as CapabilitiesSnapshot["transports"]);
     if (t[TRANSPORT_SERIAL]?.available) {
         return TRANSPORT_SERIAL;
     }
@@ -201,12 +223,15 @@ export function pickDefaultTransport(capabilities) {
  * Return a list of human-readable, translation-aware suggestions for a
  * transport that is unavailable. The caller maps these keys to i18n strings.
  */
-export function transportSuggestionKeys(capabilities, transportName) {
-    const transport = capabilities?.transports?.[transportName];
+export function transportSuggestionKeys(
+    capabilities: CapabilitiesSnapshot | null | undefined,
+    transportName: string
+): string[] {
+    const transport = capabilities?.transports?.[transportName as RNodeTransportName];
     if (!transport || transport.available) {
         return [];
     }
-    const platform = capabilities.platform ?? {};
+    const platform = capabilities?.platform ?? ({} as CapabilityPlatform);
     const reason = transport.reason ?? "unknown";
     const suggestions = [`tools.rnode_flasher.support.${transportName}.${reason}`];
     if (transportName === TRANSPORT_SERIAL && platform.isAndroid) {

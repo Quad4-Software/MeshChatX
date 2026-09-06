@@ -30,7 +30,7 @@ export function lonLatToTileXY(lon, lat, zoom) {
 
 export function neighborTileCoords(lon, lat, zoom, ring = 1) {
     const { z, x, y, n } = lonLatToTileXY(lon, lat, zoom);
-    const out = [];
+    const out: Array<{ z: number; x: number; y: number }> = [];
     const r = Math.max(0, Math.floor(ring));
     for (let dx = -r; dx <= r; dx++) {
         for (let dy = -r; dy <= r; dy++) {

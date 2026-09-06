@@ -4,12 +4,11 @@
  * Resolve integrity.json key for an RNode flasher script URL.
  * Tries longest suffix first so both flat files (zip.min.js) and nested
  * packages (crypto-js@x/core.js, web-serial-polyfill@x/dist/serial.js) match.
- *
- * @param {string} src
- * @param {Record<string, string>|null|undefined} integrity
- * @returns {string}
  */
-export function rnodeIntegrityKeyForSrc(src, integrity) {
+export function rnodeIntegrityKeyForSrc(
+    src: string | null | undefined,
+    integrity: Record<string, string> | null | undefined
+): string {
     const parts = String(src || "")
         .split("/")
         .filter(Boolean);

@@ -2,8 +2,7 @@
 
 import { getMicronWasmRuntimeOverride } from "./MicronWasmRuntimeOverride.js";
 
-/** @param {string|undefined|null} raw */
-export function normalizeMicronWasmReleaseTag(raw) {
+export function normalizeMicronWasmReleaseTag(raw: string | undefined | null): string | null {
     if (raw == null) {
         return null;
     }
@@ -28,7 +27,7 @@ export function normalizeMicronWasmReleaseTag(raw) {
     return null;
 }
 
-export function bundledMicronWasmReleaseTag() {
+export function bundledMicronWasmReleaseTag(): string | null {
     const fromEnv = import.meta.env.VITE_MICRON_PARSER_GO_RELEASE;
     if (typeof fromEnv === "string" && fromEnv.trim() !== "") {
         return normalizeMicronWasmReleaseTag(fromEnv.trim()) || fromEnv.trim();
@@ -36,11 +35,11 @@ export function bundledMicronWasmReleaseTag() {
     return null;
 }
 
-/**
- * @param {{ overrideReleaseTag?: string|null }} [opts]
- * @returns {string|null}
- */
-export function resolveMicronWasmReleaseLabel(opts: any = {}) {
+export type ResolveMicronWasmReleaseLabelOpts = {
+    overrideReleaseTag?: string | null;
+};
+
+export function resolveMicronWasmReleaseLabel(opts: ResolveMicronWasmReleaseLabelOpts = {}): string | null {
     const overrideLabel = normalizeMicronWasmReleaseTag(opts.overrideReleaseTag);
     if (overrideLabel) {
         return overrideLabel;
@@ -48,8 +47,7 @@ export function resolveMicronWasmReleaseLabel(opts: any = {}) {
     return bundledMicronWasmReleaseTag();
 }
 
-/** @returns {Promise<string|null>} */
-export async function getEffectiveMicronWasmReleaseLabel() {
+export async function getEffectiveMicronWasmReleaseLabel(): Promise<string | null> {
     try {
         const override = await getMicronWasmRuntimeOverride();
         return resolveMicronWasmReleaseLabel({ overrideReleaseTag: override?.releaseTag ?? null });

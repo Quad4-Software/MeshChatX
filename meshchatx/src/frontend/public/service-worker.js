@@ -10,40 +10,26 @@ const SHELL_CACHE_PREFIX = "meshchatx-shell-";
 /** Default navigation network-first timeout in milliseconds. */
 const NAV_NETWORK_TIMEOUT_MS = 2000;
 
-/**
- * @param {string} buildId
- * @returns {string}
- */
-function cacheNameForBuild(buildId) {
+export type ShellRequestKind = "bypass" | "asset" | "navigation" | "shell-helper" | "network-only";
+
+function cacheNameForBuild(buildId: string): string {
     const id = String(buildId || "dev").replace(/[^a-zA-Z0-9._-]/g, "_");
     return `${SHELL_CACHE_PREFIX}v${id}`;
 }
 
-/**
- * @param {string} pathname
- * @returns {boolean}
- */
-function isApiPath(pathname) {
+function isApiPath(pathname: string): boolean {
     const path = String(pathname || "");
     return path === "/api" || path.startsWith("/api/");
 }
 
-/**
- * Vite content-hashed build assets under /assets/.
- * @param {string} pathname
- * @returns {boolean}
- */
-function isHashedAssetPath(pathname) {
+/** Vite content-hashed build assets under /assets/. */
+function isHashedAssetPath(pathname: string): boolean {
     const path = String(pathname || "");
     return path === "/assets" || path.startsWith("/assets/");
 }
 
-/**
- * Static shell helpers that may use stale-while-revalidate.
- * @param {string} pathname
- * @returns {boolean}
- */
-function isShellHelperPath(pathname) {
+/** Static shell helpers that may use stale-while-revalidate. */
+function isShellHelperPath(pathname: string): boolean {
     const path = String(pathname || "");
     if (path === "/boot-theme.js" || path === "/manifest.json") {
         return true;
@@ -57,11 +43,7 @@ function isShellHelperPath(pathname) {
     return false;
 }
 
-/**
- * @param {Request} request
- * @returns {boolean}
- */
-function isNavigationRequest(request) {
+function isNavigationRequest(request: Request): boolean {
     if (!request || typeof request !== "object") {
         return false;
     }
@@ -76,13 +58,8 @@ function isNavigationRequest(request) {
     return typeof accept === "string" && accept.includes("text/html");
 }
 
-/**
- * True when the service worker must not use Cache Storage for this request.
- * @param {Request} request
- * @param {URL} [url]
- * @returns {boolean}
- */
-function shouldBypassCache(request, url) {
+/** True when the service worker must not use Cache Storage for this request. */
+function shouldBypassCache(request: Request, url?: URL): boolean {
     if (!request || (request.method !== "GET" && request.method !== "HEAD")) {
         return true;
     }
@@ -108,13 +85,8 @@ function shouldBypassCache(request, url) {
     return false;
 }
 
-/**
- * Classify a same-origin GET for shell caching strategy selection.
- * @param {Request} request
- * @param {URL} url
- * @returns {"bypass"|"asset"|"navigation"|"shell-helper"|"network-only"}
- */
-function classifyShellRequest(request, url) {
+/** Classify a same-origin GET for shell caching strategy selection. */
+function classifyShellRequest(request: Request, url: URL): ShellRequestKind {
     if (shouldBypassCache(request, url)) {
         return "bypass";
     }
@@ -134,13 +106,19 @@ function classifyShellRequest(request, url) {
 const SHELL_FALLBACK_URL = "/";
 const UPDATE_MESSAGE_TYPE = "meshchatx-sw-updated";
 
+export type OracleStrategyInput = {
+    method?: string;
+    pathname?: string;
+    mode?: string;
+    destination?: string;
+    accept?: string;
+};
+
 /**
  * Independent accept/reject oracle for shell caching.
  * Predicts strategy from raw inputs without calling classifyShellRequest.
- * @param {{ method?: string, pathname?: string, mode?: string, destination?: string, accept?: string }} input
- * @returns {"bypass"|"asset"|"navigation"|"shell-helper"|"network-only"}
  */
-function oracleExpectedStrategy(input) {
+function oracleExpectedStrategy(input: OracleStrategyInput): ShellRequestKind {
     const method = input.method || "GET";
     const pathname = String(input.pathname || "/");
     if (method !== "GET" && method !== "HEAD") {
@@ -179,23 +157,13 @@ function oracleExpectedStrategy(input) {
     return "network-only";
 }
 
-/**
- * @param {string[]} cacheKeys
- * @param {string} prefix
- * @param {string} currentName
- * @returns {string[]}
- */
-function selectCachesToDelete(cacheKeys, prefix, currentName) {
+function selectCachesToDelete(cacheKeys: string[], prefix: string, currentName: string): string[] {
     const keys = Array.isArray(cacheKeys) ? cacheKeys : [];
     return keys.filter((key) => typeof key === "string" && key.startsWith(prefix) && key !== currentName);
 }
 
-/**
- * @param {Iterable<string>} urls
- * @returns {string[]}
- */
-function findForbiddenCachedUrls(urls) {
-    const leaked = [];
+function findForbiddenCachedUrls(urls: Iterable<string>): string[] {
+    const leaked: string[] = [];
     for (const raw of urls || []) {
         let pathname = String(raw || "");
         try {
@@ -212,20 +180,38 @@ function findForbiddenCachedUrls(urls) {
     return leaked;
 }
 
-/**
- * Create injectable shell cache strategies for the service worker (and tests).
- * @param {{
- *   caches: CacheStorage,
- *   fetch: typeof fetch,
- *   cacheName: string,
- *   origin: string,
- *   shellFallbackUrl?: string,
- *   navTimeoutMs?: number,
- *   setTimeout?: typeof setTimeout,
- *   clearTimeout?: typeof clearTimeout,
- * }} options
- */
-function createShellRuntime(options) {
+export type ShellRuntimeOptions = {
+    caches: CacheStorage;
+    fetch: typeof fetch;
+    cacheName: string;
+    origin: string;
+    shellFallbackUrl?: string;
+    navTimeoutMs?: number;
+    setTimeout?: typeof setTimeout;
+    clearTimeout?: typeof clearTimeout;
+};
+
+export type FetchEventExtras = {
+    preloadResponse?: Promise<Response | null>;
+};
+
+export type ShellRuntime = {
+    cacheFirst: (request: Request) => Promise<Response>;
+    staleWhileRevalidate: (request: Request) => Promise<Response>;
+    networkFirstNavigation: (eventLike: {
+        request: Request;
+        preloadResponse?: Promise<Response | null>;
+    }) => Promise<Response>;
+    pruneOldShellCaches: () => Promise<string[]>;
+    putInCache: (request: Request, response: Response) => Promise<void>;
+    cacheShellSnapshot: (response: Response) => Promise<void>;
+    resolveFetch: (request: Request, extras?: FetchEventExtras) => Promise<Response> | null;
+    cacheName: string;
+    shellFallbackUrl: string;
+};
+
+/** Create injectable shell cache strategies for the service worker (and tests). */
+function createShellRuntime(options: ShellRuntimeOptions): ShellRuntime {
     const cachesApi = options.caches;
     const fetchFn = options.fetch;
     const cacheName = options.cacheName;
@@ -235,7 +221,7 @@ function createShellRuntime(options) {
     const setTimeoutFn = options.setTimeout || setTimeout;
     const clearTimeoutFn = options.clearTimeout || clearTimeout;
 
-    async function putInCache(request, response) {
+    async function putInCache(request: Request, response: Response): Promise<void> {
         if (!response || !response.ok) {
             return;
         }
@@ -243,7 +229,7 @@ function createShellRuntime(options) {
         await cache.put(request, response);
     }
 
-    async function cacheShellSnapshot(response) {
+    async function cacheShellSnapshot(response: Response): Promise<void> {
         if (!response || !response.ok) {
             return;
         }
@@ -251,7 +237,7 @@ function createShellRuntime(options) {
         await cache.put(shellFallbackUrl, response.clone());
     }
 
-    async function networkWithTimeout(request, timeoutMs) {
+    async function networkWithTimeout(request: Request, timeoutMs: number): Promise<Response> {
         const controller = new AbortController();
         const timer = setTimeoutFn(() => controller.abort(), timeoutMs);
         try {
@@ -261,7 +247,7 @@ function createShellRuntime(options) {
         }
     }
 
-    async function cacheFirst(request) {
+    async function cacheFirst(request: Request): Promise<Response> {
         const cached = await cachesApi.match(request);
         if (cached) {
             return cached;
@@ -273,7 +259,7 @@ function createShellRuntime(options) {
         return response;
     }
 
-    async function staleWhileRevalidate(request) {
+    async function staleWhileRevalidate(request: Request): Promise<Response> {
         const cache = await cachesApi.open(cacheName);
         const cached = await cache.match(request);
         const networkPromise = fetchFn(request)
@@ -295,7 +281,10 @@ function createShellRuntime(options) {
         throw new Error("shell helper unavailable");
     }
 
-    async function networkFirstNavigation(eventLike) {
+    async function networkFirstNavigation(eventLike: {
+        request: Request;
+        preloadResponse?: Promise<Response | null>;
+    }): Promise<Response> {
         const request = eventLike.request;
         try {
             let response = await settlePreloadResponse(eventLike.preloadResponse);
@@ -316,20 +305,16 @@ function createShellRuntime(options) {
         return fetchFn(request);
     }
 
-    async function pruneOldShellCaches() {
+    async function pruneOldShellCaches(): Promise<string[]> {
         const keys = await cachesApi.keys();
         const doomed = selectCachesToDelete(keys, SHELL_CACHE_PREFIX, cacheName);
         await Promise.all(doomed.map((key) => cachesApi.delete(key)));
         return doomed;
     }
 
-    /**
-     * @param {Request} request
-     * @param {{ preloadResponse?: Promise<Response|null> }} [eventExtras]
-     * @returns {Promise<Response>|null} null means network bypass (do not respondWith)
-     */
-    function resolveFetch(request, eventExtras: any = {}) {
-        let url;
+    /** null means network bypass (do not respondWith) */
+    function resolveFetch(request: Request, eventExtras: FetchEventExtras = {}): Promise<Response> | null {
+        let url: URL;
         try {
             url = new URL(request.url);
         } catch {
@@ -367,12 +352,10 @@ function createShellRuntime(options) {
     };
 }
 
-/**
- * Await navigation preload without throwing when Chrome cancels it.
- * @param {Promise<Response|null>|null|undefined} preloadResponse
- * @returns {Promise<Response|null>}
- */
-async function settlePreloadResponse(preloadResponse) {
+/** Await navigation preload without throwing when Chrome cancels it. */
+async function settlePreloadResponse(
+    preloadResponse: Promise<Response | null> | null | undefined
+): Promise<Response | null> {
     if (preloadResponse == null) {
         return null;
     }
@@ -386,15 +369,12 @@ async function settlePreloadResponse(preloadResponse) {
 /**
  * True only for same-origin navigations that resolveFetch will handle.
  * Accessing event.preloadResponse without respondWith throws NetworkError on cancel.
- * @param {Request} request
- * @param {string} origin
- * @returns {boolean}
  */
-function shouldAttachNavigationPreload(request, origin) {
+function shouldAttachNavigationPreload(request: Request, origin: string): boolean {
     if (!request || typeof request.url !== "string") {
         return false;
     }
-    let url;
+    let url: URL;
     try {
         url = new URL(request.url);
     } catch {
@@ -406,15 +386,22 @@ function shouldAttachNavigationPreload(request, origin) {
     return classifyShellRequest(request, url) === "navigation";
 }
 
+export type FetchEventLike = {
+    request: Request;
+    preloadResponse?: Promise<Response | null>;
+    respondWith: (p: Promise<Response>) => void;
+};
+
 /**
  * Fetch listener: touch preloadResponse only when this event will respondWith a navigation.
- * @param {{ request: Request, preloadResponse?: Promise<Response|null>, respondWith: (p: Promise<Response>) => void }} event
- * @param {{ resolveFetch: (request: Request, extras?: object) => Promise<Response>|null }} runtime
- * @param {string} origin
- * @returns {boolean} true when respondWith was called
+ * Returns true when respondWith was called.
  */
-function handleFetchEvent(event, runtime, origin) {
-    const extras: any = {};
+function handleFetchEvent(
+    event: FetchEventLike,
+    runtime: Pick<ShellRuntime, "resolveFetch">,
+    origin: string
+): boolean {
+    const extras: FetchEventExtras = {};
     if (shouldAttachNavigationPreload(event.request, origin)) {
         extras.preloadResponse = event.preloadResponse;
     }

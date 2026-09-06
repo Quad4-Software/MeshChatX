@@ -5,21 +5,24 @@
  * Svelte and plain JS subscribe here. GlobalState itself notifies via Proxy.
  */
 
-const listeners = new Set<(snapshot: object) => void>();
+export type AppStateSnapshot = {
+    config?: Record<string, unknown> | null;
+    [key: string]: unknown;
+};
 
-/**
- * @returns {object}
- */
-function readSnapshot(globalState) {
+export type AppStateListener = (snapshot: AppStateSnapshot) => void;
+
+const listeners = new Set<AppStateListener>();
+
+function readSnapshot(globalState: AppStateSnapshot): AppStateSnapshot {
     return globalState;
 }
 
 /**
  * Notify subscribers after an external mutation of GlobalState.
  * Call from code that patches state when the Proxy setter did not already notify.
- * @param {object} globalState
  */
-export function notifyAppStateListeners(globalState) {
+export function notifyAppStateListeners(globalState: AppStateSnapshot): void {
     const snapshot = readSnapshot(globalState);
     for (const listener of listeners) {
         try {
@@ -30,12 +33,7 @@ export function notifyAppStateListeners(globalState) {
     }
 }
 
-/**
- * @param {object} globalState
- * @param {(snapshot: object) => void} listener
- * @returns {() => void} unsubscribe
- */
-export function subscribeAppState(globalState, listener) {
+export function subscribeAppState(globalState: AppStateSnapshot, listener: AppStateListener): () => void {
     if (typeof listener !== "function") {
         throw new Error("subscribeAppState: listener must be a function");
     }
@@ -46,20 +44,12 @@ export function subscribeAppState(globalState, listener) {
     };
 }
 
-/**
- * @param {object} globalState
- * @returns {object}
- */
-export function getAppState(globalState) {
+export function getAppState(globalState: AppStateSnapshot): AppStateSnapshot {
     return readSnapshot(globalState);
 }
 
-/**
- * Shallow-assign keys onto GlobalState and notify listeners.
- * @param {object} globalState
- * @param {Record<string, unknown>} patch
- */
-export function patchAppState(globalState, patch) {
+/** Shallow-assign keys onto GlobalState and notify listeners. */
+export function patchAppState(globalState: AppStateSnapshot, patch: Record<string, unknown>): void {
     if (!patch || typeof patch !== "object") {
         return;
     }
@@ -67,12 +57,8 @@ export function patchAppState(globalState, patch) {
     notifyAppStateListeners(globalState);
 }
 
-/**
- * Merge into globalState.config and notify.
- * @param {object} globalState
- * @param {Record<string, unknown>} next
- */
-export function patchAppConfig(globalState, next) {
+/** Merge into globalState.config and notify. */
+export function patchAppConfig(globalState: AppStateSnapshot, next: Record<string, unknown>): void {
     if (!next || typeof next !== "object") {
         return;
     }

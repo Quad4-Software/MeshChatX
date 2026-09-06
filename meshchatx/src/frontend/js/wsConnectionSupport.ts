@@ -1,21 +1,14 @@
 /** Wait this long after a disconnect before showing the banner. Brief reconnects that get a backend frame stay quiet. */
 export const WS_DISCONNECT_BANNER_GRACE_MS = 2500;
 
-/**
- * @param {number} attemptIndex 0 = first retry after disconnect
- * @param {number} baseMs
- * @param {number} maxMs
- */
-export function getNextReconnectDelayMs(attemptIndex, baseMs, maxMs) {
+/** attemptIndex 0 = first retry after disconnect */
+export function getNextReconnectDelayMs(attemptIndex: number, baseMs: number, maxMs: number): number {
     const raw = baseMs * 2 ** Math.max(0, attemptIndex);
     return Math.min(maxMs, Math.floor(raw));
 }
 
-/**
- * Human-readable duration for disconnected banner (count-up).
- * @param {number} elapsedMs
- */
-export function formatDisconnectedDuration(elapsedMs) {
+/** Human-readable duration for disconnected banner (count-up). */
+export function formatDisconnectedDuration(elapsedMs: number): string {
     let t = Math.max(0, Math.floor(elapsedMs));
     const s = Math.floor(t / 1000);
     if (s < 60) {
@@ -36,7 +29,12 @@ export function formatDisconnectedDuration(elapsedMs) {
     return hrRem > 0 ? `${d}d ${hrRem}h` : `${d}d`;
 }
 
-export function reconnectDelayWithJitterMs(attemptIndex, baseMs, maxMs, jitterMaxMs) {
+export function reconnectDelayWithJitterMs(
+    attemptIndex: number,
+    baseMs: number,
+    maxMs: number,
+    jitterMaxMs: number
+): number {
     const base = getNextReconnectDelayMs(attemptIndex, baseMs, maxMs);
     const jitter = jitterMaxMs > 0 ? Math.floor(Math.random() * jitterMaxMs) : 0;
     return base + jitter;

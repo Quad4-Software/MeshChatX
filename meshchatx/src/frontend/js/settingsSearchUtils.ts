@@ -2,11 +2,14 @@
 
 const ZW_RE = /[\u200B-\u200D\uFEFF]/g;
 
-/**
- * @param {unknown} raw
- * @returns {string}
- */
-export function normalizeSearchString(raw) {
+export type SettingsTranslateFn = (key: string) => string;
+
+export type SettingsSearchHaystack = {
+    haystack: string;
+    compactHaystack: string;
+};
+
+export function normalizeSearchString(raw: unknown): string {
     if (raw == null) return "";
     const s = String(raw).replace(ZW_RE, "");
     return s.trim();
@@ -14,10 +17,8 @@ export function normalizeSearchString(raw) {
 
 /**
  * Lowercase, strip combining marks for loose matching, normalize sharp s for German keyboards.
- * @param {string} str
- * @returns {string}
  */
-export function foldForSearch(str) {
+export function foldForSearch(str: string): string {
     if (!str) return "";
     let out = String(str).toLowerCase();
     try {
@@ -28,12 +29,8 @@ export function foldForSearch(str) {
     return out.replace(/\u00df/g, "ss");
 }
 
-/**
- * Split a camelCase or PascalCase id into lowercase words.
- * @param {string} sectionKey
- * @returns {string}
- */
-export function camelCaseToSearchWords(sectionKey) {
+/** Split a camelCase or PascalCase id into lowercase words. */
+export function camelCaseToSearchWords(sectionKey: string): string {
     return String(sectionKey || "")
         .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
         .replace(/_/g, " ")
@@ -41,11 +38,7 @@ export function camelCaseToSearchWords(sectionKey) {
         .trim();
 }
 
-/**
- * @param {string} folded
- * @returns {string}
- */
-function replaceNonAlnumWithSpace(folded) {
+function replaceNonAlnumWithSpace(folded: string): string {
     try {
         return folded.replace(/[^\p{L}\p{N}]+/gu, " ");
     } catch {
@@ -53,11 +46,7 @@ function replaceNonAlnumWithSpace(folded) {
     }
 }
 
-/**
- * @param {string} normalizedTrimmed
- * @returns {string[]}
- */
-export function tokenizeSettingsQuery(normalizedTrimmed) {
+export function tokenizeSettingsQuery(normalizedTrimmed: string): string[] {
     if (!normalizedTrimmed) return [];
     return replaceNonAlnumWithSpace(foldForSearch(normalizedTrimmed))
         .split(/\s+/)
@@ -68,13 +57,8 @@ export function tokenizeSettingsQuery(normalizedTrimmed) {
  * Short tokens (1-2 chars) must be whole words so "me" does not hit "theme".
  * Longer tokens match as substrings, including a spaceless compact haystack
  * so "darkmode" hits "dark mode".
- *
- * @param {string} tok
- * @param {string} haystack
- * @param {string} compactHaystack
- * @returns {boolean}
  */
-export function tokenMatchesHaystack(tok, haystack, compactHaystack) {
+export function tokenMatchesHaystack(tok: string, haystack: string, compactHaystack: string): boolean {
     if (!tok) return true;
     if (tok.length <= 2) {
         return ` ${haystack} `.includes(` ${tok} `);
@@ -82,12 +66,7 @@ export function tokenMatchesHaystack(tok, haystack, compactHaystack) {
     return haystack.includes(tok) || compactHaystack.includes(tok);
 }
 
-/**
- * @param {string} text
- * @param {(key: string) => string} translateFn
- * @returns {string}
- */
-function resolveSnippet(text, translateFn) {
+function resolveSnippet(text: string, translateFn: SettingsTranslateFn): string {
     if (!text) return "";
     const s = String(text);
     if (s.startsWith("=")) {
@@ -97,12 +76,7 @@ function resolveSnippet(text, translateFn) {
     return foldForSearch(content);
 }
 
-/**
- * @param {string[]} texts
- * @param {(key: string) => string} translateFn
- * @returns {{ haystack: string, compactHaystack: string }}
- */
-export function buildSettingsSearchHaystack(texts, translateFn) {
+export function buildSettingsSearchHaystack(texts: string[], translateFn: SettingsTranslateFn): SettingsSearchHaystack {
     const folded = texts
         .map((t) => resolveSnippet(t, translateFn))
         .filter(Boolean)
@@ -118,13 +92,9 @@ export function buildSettingsSearchHaystack(texts, translateFn) {
  * Settings section search: empty query shows all. Otherwise every token from
  * the query (split on whitespace and punctuation) must appear in the combined
  * translated keyword haystack.
- *
- * @param {string[]} texts raw strings or i18n keys (keys contain a dot)
- * @param {(key: string) => string} translateFn
- * @param {string} rawQuery
- * @returns {boolean}
+ * texts may be raw strings or i18n keys (keys contain a dot).
  */
-export function matchesSettingSearch(texts, translateFn, rawQuery) {
+export function matchesSettingSearch(texts: string[], translateFn: SettingsTranslateFn, rawQuery: string): boolean {
     const normalized = normalizeSearchString(rawQuery);
     if (!normalized) return true;
     const tokens = tokenizeSettingsQuery(normalized);

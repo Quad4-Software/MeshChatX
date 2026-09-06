@@ -6,28 +6,25 @@
 
 export const WT_MAX_FRAME_CHARS = 1024 * 1024;
 
-/**
- * @param {object} obj
- * @returns {string}
- */
-export function encodeWtJsonLine(obj) {
+export type WtJsonFeedResult = {
+    objects: object[];
+    buffer: string;
+    errors: string[];
+};
+
+export function encodeWtJsonLine(obj: unknown): string {
     return `${JSON.stringify(obj)}\n`;
 }
 
-/**
- * Feed chunks into a line buffer. Returns parsed objects and leftover text.
- * @param {string} buffer
- * @param {string} chunk
- * @returns {{ objects: object[], buffer: string, errors: string[] }}
- */
-export function feedWtJsonLines(buffer: string, chunk: string) {
+/** Feed chunks into a line buffer. Returns parsed objects and leftover text. */
+export function feedWtJsonLines(buffer: string, chunk: string): WtJsonFeedResult {
     const errors: string[] = [];
     let buf = (buffer || "") + (chunk || "");
     if (buf.length > WT_MAX_FRAME_CHARS * 2) {
-        return { objects: [] as object[], buffer: "", errors: ["frame_overflow"] };
+        return { objects: [], buffer: "", errors: ["frame_overflow"] };
     }
     const objects: object[] = [];
-    let idx;
+    let idx: number;
     while ((idx = buf.indexOf("\n")) >= 0) {
         const line = buf.slice(0, idx);
         buf = buf.slice(idx + 1);
@@ -43,7 +40,7 @@ export function feedWtJsonLines(buffer: string, chunk: string) {
             continue;
         }
         try {
-            const parsed = JSON.parse(line);
+            const parsed: unknown = JSON.parse(line);
             if (parsed && typeof parsed === "object") {
                 objects.push(parsed);
             } else {
@@ -56,9 +53,6 @@ export function feedWtJsonLines(buffer: string, chunk: string) {
     return { objects, buffer: buf, errors };
 }
 
-/**
- * @returns {boolean}
- */
-export function clientSupportsWebTransport() {
+export function clientSupportsWebTransport(): boolean {
     return typeof WebTransport === "function";
 }

@@ -28,30 +28,22 @@ export default class Nrf52DfuFlasher {
     // The DFU packet max size
     DFU_PACKET_MAX_SIZE = 512;
 
-    constructor(serialPort) {
+    constructor(serialPort: any) {
         this.serialPort = serialPort;
         this.sequenceNumber = 0;
         this.sd_size = 0;
         this.total_size = 0;
     }
 
-    /**
-     * Waits for the provided milliseconds, and then resolves.
-     * @param millis
-     * @returns {Promise<void>}
-     */
-    async sleepMillis(millis) {
-        await new Promise<any>((resolve) => {
+    /** Waits for the provided milliseconds, and then resolves. */
+    async sleepMillis(millis: number): Promise<void> {
+        await new Promise<void>((resolve) => {
             setTimeout(resolve, millis);
         });
     }
 
-    /**
-     * Writes the provided data to the Serial Port.
-     * @param data
-     * @returns {Promise<void>}
-     */
-    async sendPacket(data) {
+    /** Writes the provided data to the Serial Port. */
+    async sendPacket(data: ArrayLike<number>): Promise<void> {
         const writer = this.serialPort.writable.getWriter();
         try {
             await writer.write(new Uint8Array(data));
@@ -60,11 +52,8 @@ export default class Nrf52DfuFlasher {
         }
     }
 
-    /**
-     * Puts an nRF52 board into DFU mode by quickly opening and closing a serial port.
-     * @returns {Promise<void>}
-     */
-    async enterDfuMode() {
+    /** Puts an nRF52 board into DFU mode by quickly opening and closing a serial port. */
+    async enterDfuMode(): Promise<void> {
         await this.serialPort.open({
             baudRate: this.DFU_TOUCH_BAUD,
         });
@@ -74,13 +63,8 @@ export default class Nrf52DfuFlasher {
         await this.sleepMillis(this.TOUCH_RESET_WAIT_TIME * 1000);
     }
 
-    /**
-     * Flashes the provided firmware zip.
-     * @param firmwareZipBlob
-     * @param progressCallback
-     * @returns {Promise<void>}
-     */
-    async flash(firmwareZipBlob, progressCallback) {
+    /** Flashes the provided firmware zip. */
+    async flash(firmwareZipBlob: Blob, progressCallback?: (percentage: number) => void): Promise<void> {
         const blobReader = new window.zip.BlobReader(firmwareZipBlob);
         const zipReader = new window.zip.ZipReader(blobReader);
         const zipEntries = await zipReader.getEntries();
@@ -99,15 +83,13 @@ export default class Nrf52DfuFlasher {
         }
     }
 
-    /**
-     * Sends the firmware image to the device in DFU mode.
-     * @param programMode
-     * @param zipEntries
-     * @param firmwareManifest
-     * @param progressCallback
-     * @returns {Promise<void>}
-     */
-    async dfuSendImage(programMode, zipEntries, firmwareManifest, progressCallback) {
+    /** Sends the firmware image to the device in DFU mode. */
+    async dfuSendImage(
+        programMode: number,
+        zipEntries: any[],
+        firmwareManifest: { bin_file: string; dat_file: string },
+        progressCallback?: (percentage: number) => void
+    ): Promise<void> {
         await this.serialPort.open({
             baudRate: this.FLASH_BAUD,
         });

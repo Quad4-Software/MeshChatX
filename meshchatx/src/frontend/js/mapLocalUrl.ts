@@ -5,17 +5,10 @@
  */
 
 /**
- * True when hostname is loopback, .local, or RFC1918 private.
- * @param {string} hostname
- * @returns {boolean}
- */
-/**
  * True when host is a dotted-quad IPv4 in loopback or RFC1918 space.
  * Hostname prefixes such as 10.evil.com are not private.
- * @param {string} host
- * @returns {boolean}
  */
-function isPrivateOrLoopbackIPv4(host) {
+function isPrivateOrLoopbackIPv4(host: string): boolean {
     const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
     if (!m) {
         return false;
@@ -42,7 +35,8 @@ function isPrivateOrLoopbackIPv4(host) {
     return false;
 }
 
-export function isPrivateOrLocalHostname(hostname) {
+/** True when hostname is loopback, .local, or RFC1918 private. */
+export function isPrivateOrLocalHostname(hostname: string | null | undefined): boolean {
     const host = String(hostname || "")
         .trim()
         .toLowerCase()
@@ -59,13 +53,11 @@ export function isPrivateOrLocalHostname(hostname) {
     return isPrivateOrLoopbackIPv4(host);
 }
 
-/**
- * True when a tile/nominatim URL should be treated as local / offline-reachable.
- * @param {string} url
- * @param {string} [origin]
- * @returns {boolean}
- */
-export function isLocalMapServiceUrl(url, origin = typeof window !== "undefined" ? window.location.origin : "") {
+/** True when a tile/nominatim URL should be treated as local / offline-reachable. */
+export function isLocalMapServiceUrl(
+    url: string | null | undefined,
+    origin: string = typeof window !== "undefined" ? window.location.origin : ""
+): boolean {
     if (!url) {
         return false;
     }

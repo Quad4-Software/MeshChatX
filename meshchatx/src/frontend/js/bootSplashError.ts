@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: 0BSD
 
 import { copyTextToClipboard } from "./clipboardUtils.js";
-import { formatFatalErrorReport, reportBootFailure } from "./fatalErrorState.js";
+import { formatFatalErrorReport, reportBootFailure, type FatalErrorRecord } from "./fatalErrorState.js";
 
-/**
- * @param {Partial<import("./fatalErrorState.js").FatalErrorRecord> & { kind: "frontend" | "backend", message: string }} payload
- */
-export function showBootSplashFatalError(payload) {
+export type BootSplashFatalPayload = Partial<FatalErrorRecord> & {
+    kind: "frontend" | "backend";
+    message: string;
+};
+
+export function showBootSplashFatalError(payload: BootSplashFatalPayload): FatalErrorRecord {
     const record = reportBootFailure({
         ...payload,
         timestamp: payload.timestamp || Date.now(),
@@ -49,12 +51,8 @@ export function showBootSplashFatalError(payload) {
     return record;
 }
 
-/**
- * @param {HTMLElement} splash
- * @param {import("./fatalErrorState.js").FatalErrorRecord} record
- */
-function wireBootSplashActions(splash, record) {
-    const reloadBtn = splash.querySelector("[data-boot-reload]");
+function wireBootSplashActions(splash: HTMLElement, record: FatalErrorRecord): void {
+    const reloadBtn = splash.querySelector<HTMLElement>("[data-boot-reload]");
     if (reloadBtn && !reloadBtn.dataset.wired) {
         reloadBtn.dataset.wired = "1";
         reloadBtn.addEventListener("click", () => {
@@ -62,7 +60,7 @@ function wireBootSplashActions(splash, record) {
         });
     }
 
-    const copyBtn = splash.querySelector("[data-boot-copy]");
+    const copyBtn = splash.querySelector<HTMLElement>("[data-boot-copy]");
     if (copyBtn && !copyBtn.dataset.wired) {
         copyBtn.dataset.wired = "1";
         copyBtn.addEventListener("click", async () => {

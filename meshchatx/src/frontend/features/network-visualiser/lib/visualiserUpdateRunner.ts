@@ -189,13 +189,9 @@ export async function renderVisualiserGraph(options: RenderGraphOptions): Promis
     if (!isCurrentRun()) return;
 
     if (webglEngine) {
-        webglEngine.setData({
-            nodes: graph.webglNodes,
-            links: graph.webglLinks,
-            positions: posById,
-        });
+        webglEngine.setGraph(graph.nodes, graph.edges);
         const fps = typeof webglEngine.getFps === "function" ? webglEngine.getFps() : 0;
-        onDisplayCounts?.(graph.webglNodes.length, graph.webglLinks.length, fps);
+        onDisplayCounts?.(graph.nodes.length, graph.edges.length, fps);
         return;
     }
 
@@ -216,7 +212,7 @@ export async function renderVisualiserGraph(options: RenderGraphOptions): Promis
     if (!isCurrentRun()) return;
     onDisplayCounts?.(nodes.length, edges.length, 0);
 
-    if (graph.iconQueue && graph.iconQueue.length > 0) {
-        onIconQueue?.(graph.iconQueue);
+    if (graph.icon_queue && graph.icon_queue.length > 0) {
+        onIconQueue?.(graph.icon_queue);
     }
 }

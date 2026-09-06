@@ -1,18 +1,37 @@
-const destinationPath = (hash) => `/api/v1/destination/${hash}/path`;
+export type PeerPathSnapshot = {
+    path: object | null;
+    path_stale: boolean;
+    path_unresponsive: boolean;
+};
 
-/**
- * @typedef {{ path: object | null, path_stale: boolean, path_unresponsive: boolean }} PeerPathSnapshot
- */
+export type PathFinderMode = "quick" | "force" | "drop_then_request";
 
-/**
- * @param {unknown} data
- * @returns {PeerPathSnapshot}
- */
-export function normalizePathSnapshot(data) {
+export type PathfindingApi = {
+    get: (path: string, config?: { params?: Record<string, unknown> }) => Promise<{ data?: unknown }>;
+    post: (path: string, data?: unknown, config?: { params?: Record<string, unknown> }) => Promise<{ data?: any }>;
+};
+
+export type PathFinderOptions = {
+    forceTimeout?: number;
+    onDropPathError?: (e: unknown) => void;
+};
+
+export type PathFinderResult = {
+    ok: true;
+    path: object | null;
+};
+
+const destinationPath = (hash: string): string => `/api/v1/destination/${hash}/path`;
+
+export function normalizePathSnapshot(data: unknown): PeerPathSnapshot {
     if (!data || typeof data !== "object") {
         return { path: null, path_stale: true, path_unresponsive: false };
     }
-    const row = /** @type {{ path?: object | null, path_stale?: boolean, path_unresponsive?: boolean }} */ data;
+    const row = data as {
+        path?: object | null;
+        path_stale?: boolean;
+        path_unresponsive?: boolean;
+    };
     const path = row.path ?? null;
     return {
         path,
@@ -21,10 +40,7 @@ export function normalizePathSnapshot(data) {
     };
 }
 
-/**
- * @param {PeerPathSnapshot | null | undefined} snapshot
- */
-export function pathNeedsRefresh(snapshot) {
+export function pathNeedsRefresh(snapshot: PeerPathSnapshot | null | undefined): boolean {
     if (!snapshot) {
         return true;
     }
@@ -40,32 +56,21 @@ export function pathNeedsRefresh(snapshot) {
     return false;
 }
 
-/**
- * @param {PeerPathSnapshot | null | undefined} snapshot
- */
-export function pathIsReady(snapshot) {
+export function pathIsReady(snapshot: PeerPathSnapshot | null | undefined): boolean {
     return Boolean(snapshot?.path && !snapshot.path_stale && !snapshot.path_unresponsive);
 }
 
-/**
- * @param {import("axios").AxiosInstance} api
- * @param {string} hash
- * @returns {Promise<PeerPathSnapshot>}
- */
-export async function fetchPeerPathSnapshot(api, hash) {
+export async function fetchPeerPathSnapshot(api: PathfindingApi, hash: string): Promise<PeerPathSnapshot> {
     const res = await getDestinationPath(api, hash, {});
     return normalizePathSnapshot(res.data);
 }
 
-/**
- * Request a mesh path refresh only when the current snapshot is missing or stale.
- *
- * @param {import("axios").AxiosInstance} api
- * @param {string} hash
- * @param {PeerPathSnapshot | null | undefined} snapshot
- * @returns {Promise<{ requested: boolean }>}
- */
-export async function warmPathIfNeeded(api, hash, snapshot) {
+/** Request a mesh path refresh only when the current snapshot is missing or stale. */
+export async function warmPathIfNeeded(
+    api: PathfindingApi,
+    hash: string,
+    snapshot: PeerPathSnapshot | null | undefined
+): Promise<{ requested: boolean }> {
     if (!pathNeedsRefresh(snapshot)) {
         return { requested: false };
     }
@@ -73,49 +78,37 @@ export async function warmPathIfNeeded(api, hash, snapshot) {
     return { requested: true };
 }
 
-/**
- * Snapshot-only. Waiting for a path uses postDestinationPath.
- *
- * @param {import("axios").AxiosInstance} api
- * @param {string} hash
- * @param {Record<string, string | number | boolean | undefined>} [params]
- */
-export function getDestinationPath(api, hash, params) {
-    const q: any = { ...params };
+/** Snapshot-only. Waiting for a path uses postDestinationPath. */
+export function getDestinationPath(
+    api: PathfindingApi,
+    hash: string,
+    params?: Record<string, string | number | boolean | undefined>
+) {
+    const q: Record<string, string | number | boolean | undefined> = { ...params };
     delete q.request;
     return api.get(destinationPath(hash), { params: q });
 }
 
-/**
- * @param {import("axios").AxiosInstance} api
- * @param {string} hash
- * @param {{ timeout?: number }} [options]
- */
-export function postDestinationPath(api, hash, options) {
+export function postDestinationPath(api: PathfindingApi, hash: string, options?: { timeout?: number }) {
     const timeout = options?.timeout;
     const params = timeout == null ? {} : { timeout };
     return api.post(destinationPath(hash), {}, { params });
 }
 
-export function postRequestPath(api, hash) {
+export function postRequestPath(api: PathfindingApi, hash: string) {
     return api.post(`/api/v1/destination/${hash}/request-path`);
 }
 
-export function postDropPath(api, hash) {
+export function postDropPath(api: PathfindingApi, hash: string) {
     return api.post(`/api/v1/destination/${hash}/drop-path`);
 }
 
-/**
- * @typedef {"quick" | "force" | "drop_then_request"} PathFinderMode
- */
-
-/**
- * @param {import("axios").AxiosInstance} api
- * @param {string} hash
- * @param {PathFinderMode} mode
- * @param {{ forceTimeout?: number, onDropPathError?: (e: unknown) => void }} [options]
- */
-export async function runDestinationPathFinder(api, hash, mode, options) {
+export async function runDestinationPathFinder(
+    api: PathfindingApi,
+    hash: string,
+    mode: PathFinderMode | string,
+    options?: PathFinderOptions
+): Promise<PathFinderResult> {
     const forceTimeout = options?.forceTimeout ?? 15;
     if (mode === "quick") {
         await postRequestPath(api, hash);

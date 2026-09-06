@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: 0BSD
 
+import type { ApiClient } from "../apiClient.js";
+import type { PluginManifest } from "./pluginManifest.js";
+
 /**
  * Flatten nested locale objects into dotted keys for plugin worker translation.
- *
- * @param {Record<string, unknown>} messages
- * @param {string} [prefix]
- * @returns {Record<string, string>}
  */
-export function flattenLocaleMessages(messages, prefix = "") {
-    /** @type {Record<string, string>} */
-    const flat: any = {};
+export function flattenLocaleMessages(messages: Record<string, unknown>, prefix = ""): Record<string, string> {
+    const flat: Record<string, string> = {};
     if (!messages || typeof messages !== "object") {
         return flat;
     }
@@ -21,21 +19,19 @@ export function flattenLocaleMessages(messages, prefix = "") {
         if (typeof value === "string") {
             flat[path] = value;
         } else if (value && typeof value === "object" && !Array.isArray(value)) {
-            Object.assign(flat, flattenLocaleMessages(value, path));
+            Object.assign(flat, flattenLocaleMessages(value as Record<string, unknown>, path));
         }
     }
     return flat;
 }
 
-/**
- * @param {ReturnType<import('../apiClient.js').createApiClient>} apiClient
- * @param {string} pluginId
- * @param {string} locale
- * @param {Record<string, unknown>} [manifest]
- * @returns {Promise<Record<string, string>>}
- */
-export async function loadPluginLabelMap(apiClient, pluginId, locale, manifest: any = {}) {
-    const i18n = manifest.i18n || {};
+export async function loadPluginLabelMap(
+    apiClient: ApiClient,
+    pluginId: string,
+    locale: string,
+    manifest: Partial<PluginManifest> | Record<string, unknown> = {}
+): Promise<Record<string, string>> {
+    const i18n = (manifest as PluginManifest).i18n || {};
     const directory = i18n.directory || "locales";
     const defaultLocale = i18n.defaultLocale || "en";
     const candidates: string[] = [];
@@ -47,7 +43,7 @@ export async function loadPluginLabelMap(apiClient, pluginId, locale, manifest: 
     for (const code of candidates) {
         try {
             const assetPath = `${directory}/${code}.json`;
-            const version = manifest.version || "1";
+            const version = (manifest as PluginManifest).version || "1";
             const response = await apiClient.get(
                 `/api/v1/plugins/${encodeURIComponent(pluginId)}/asset/${assetPath}?v=${encodeURIComponent(version)}`,
                 {
@@ -55,7 +51,7 @@ export async function loadPluginLabelMap(apiClient, pluginId, locale, manifest: 
                 }
             );
             if (response.data && typeof response.data === "object") {
-                return flattenLocaleMessages(response.data);
+                return flattenLocaleMessages(response.data as Record<string, unknown>);
             }
         } catch {
             // try next locale candidate
@@ -64,24 +60,23 @@ export async function loadPluginLabelMap(apiClient, pluginId, locale, manifest: 
     return {};
 }
 
-/**
- * @param {Record<string, string>} labels
- * @param {string} key
- * @param {Record<string, unknown>} [manifest]
- * @returns {string}
- */
-export function resolvePluginUiString(labels, key, manifest: any = {}) {
+export function resolvePluginUiString(
+    labels: Record<string, string>,
+    key: string,
+    manifest: Partial<PluginManifest> | Record<string, unknown> = {}
+): string {
     if (labels[key]) {
         return labels[key];
     }
+    const record = manifest as Partial<PluginManifest>;
     if (key === "title") {
-        return typeof manifest.name === "string" ? manifest.name : key;
+        return typeof record.name === "string" ? record.name : key;
     }
     if (key === "description") {
-        return typeof manifest.description === "string" ? manifest.description : key;
+        return typeof record.description === "string" ? record.description : key;
     }
     if (key === "nav") {
-        return typeof manifest.name === "string" ? manifest.name : key;
+        return typeof record.name === "string" ? record.name : key;
     }
     return key;
 }

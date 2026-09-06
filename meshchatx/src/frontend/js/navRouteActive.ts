@@ -3,11 +3,8 @@
 /**
  * True when a sidebar link named linkName should highlight for currentName.
  * Child route names use a dotted prefix (interfaces.add under interfaces).
- * @param {unknown} linkName
- * @param {unknown} currentName
- * @returns {boolean}
  */
-export function navRouteIsActive(linkName, currentName) {
+export function navRouteIsActive(linkName: unknown, currentName: unknown): boolean {
     if (typeof linkName !== "string" || !linkName || typeof currentName !== "string" || !currentName) {
         return false;
     }

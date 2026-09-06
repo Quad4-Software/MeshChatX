@@ -2,9 +2,11 @@
 export const DEFAULT_TILE_SERVER_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
 /** Raster basemap providers tried in order when tiles fail to load. */
-export const RASTER_TILE_PROVIDER_ORDER = ["osm", "openfreemap"];
+export const RASTER_TILE_PROVIDER_ORDER = ["osm", "openfreemap"] as const;
 
-export const TILE_PROVIDER_URLS: any = {
+export type RasterTileProviderId = string;
+
+export const TILE_PROVIDER_URLS: Record<string, string> = {
     osm: DEFAULT_TILE_SERVER_URL,
     openfreemap: "https://tiles.openfreemap.org/styles/bright",
     "carto-dark": "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
@@ -12,13 +14,16 @@ export const TILE_PROVIDER_URLS: any = {
     "carto-light": "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
 };
 
+type TileUrlParts = {
+    host: string;
+    path: string;
+};
+
 /**
  * Parse tile template URLs for hostname and pathname.
  * Leaflet placeholders like {z} are replaced so URL() accepts the string.
- * @param {string} tileServerUrl
- * @returns {{ host: string, path: string }}
  */
-function tileUrlParts(tileServerUrl) {
+function tileUrlParts(tileServerUrl: string | null | undefined): TileUrlParts {
     const raw = String(tileServerUrl || "").trim();
     if (!raw) {
         return { host: "", path: "" };
@@ -35,7 +40,7 @@ function tileUrlParts(tileServerUrl) {
     }
 }
 
-export function detectRasterTileProviderId(tileServerUrl) {
+export function detectRasterTileProviderId(tileServerUrl: string | null | undefined): string | null {
     const { host, path } = tileUrlParts(tileServerUrl);
     if (!host) {
         return null;
@@ -60,9 +65,12 @@ export function detectRasterTileProviderId(tileServerUrl) {
     return null;
 }
 
-export function nextRasterTileProviderId(currentId, attemptedIds: any[] = []) {
+export function nextRasterTileProviderId(
+    currentId: string | null | undefined,
+    attemptedIds: string[] = []
+): string | null {
     const order = RASTER_TILE_PROVIDER_ORDER;
-    const start = currentId ? order.indexOf(currentId) : -1;
+    const start = currentId ? order.indexOf(currentId as (typeof order)[number]) : -1;
     for (let i = 1; i <= order.length; i++) {
         const idx = (start + i) % order.length;
         const id = order[idx];

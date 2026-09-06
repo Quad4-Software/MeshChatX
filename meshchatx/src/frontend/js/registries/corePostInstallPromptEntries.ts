@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: 0BSD
 
 import ElectronUtils from "../ElectronUtils.js";
+import type { PostInstallPromptEntry } from "./postInstallPromptRegistry.js";
 
 /**
  * Core post-install / existing-user prompts.
  *
- * To re-prompt users who already dismissed a prompt, bump `revision`.
+ * To re-prompt users who already dismissed a prompt, bump revision.
  * Add entries here and register them via registerCoreContributions.
- *
- * @type {import('./postInstallPromptRegistry.js').PostInstallPromptEntry[]}
  */
-export const CORE_POST_INSTALL_PROMPT_ENTRIES = [
+export const CORE_POST_INSTALL_PROMPT_ENTRIES: PostInstallPromptEntry[] = [
     {
         id: "windows_screen_security",
         revision: 1,

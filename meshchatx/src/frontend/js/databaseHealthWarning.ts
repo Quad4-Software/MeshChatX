@@ -14,19 +14,15 @@ export const DATABASE_HEALTH_FALLBACK_MESSAGE = "Database issue detected. Check 
 
 let lastFingerprint = "";
 
-export function resetDatabaseHealthWarningState() {
+export function resetDatabaseHealthWarningState(): void {
     lastFingerprint = "";
 }
 
-export function resetDatabaseHealthWarningStateForTests() {
+export function resetDatabaseHealthWarningStateForTests(): void {
     lastFingerprint = "";
 }
 
-/**
- * @param {unknown} issues
- * @returns {string}
- */
-export function fingerprintDatabaseHealthIssues(issues) {
+export function fingerprintDatabaseHealthIssues(issues: unknown): string {
     if (!Array.isArray(issues) || issues.length === 0) {
         return "";
     }
@@ -43,12 +39,15 @@ export function fingerprintDatabaseHealthIssues(issues) {
     return parts.join("\n");
 }
 
-/**
- * @param {unknown} issues
- * @param {{ warning: (message: string, duration?: number, key?: string | null) => void }} toastUtils
- * @returns {boolean} true when a toast was shown
- */
-export function showDatabaseHealthIssuesToastIfNeeded(issues, toastUtils) {
+export type ToastWarningUtils = {
+    warning: (message: string, duration?: number, key?: string | null) => void;
+};
+
+/** Returns true when a toast was shown. */
+export function showDatabaseHealthIssuesToastIfNeeded(
+    issues: unknown,
+    toastUtils: ToastWarningUtils | null | undefined
+): boolean {
     const fingerprint = fingerprintDatabaseHealthIssues(issues);
     if (!fingerprint) {
         lastFingerprint = "";

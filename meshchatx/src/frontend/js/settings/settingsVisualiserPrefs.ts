@@ -11,18 +11,26 @@ const KEY_VIEW_MODE = "meshchatx.visualiser.viewMode";
 
 export const VISUALISER_DISPLAY_PREFS_CHANGED = "visualiser-display-prefs-changed";
 
-/** @typedef {"auto" | "webgl" | "vis"} VisualiserRendererPref */
-/** @typedef {"flat" | "planet"} VisualiserViewModePref */
+export type VisualiserRendererPref = "auto" | "webgl" | "vis";
+export type VisualiserViewModePref = "flat" | "planet";
 
-export const VISUALISER_RENDERER_OPTIONS = ["auto", "webgl", "vis"];
-export const VISUALISER_VIEW_MODE_OPTIONS = ["flat", "planet"];
+export type VisualiserDisplayPrefs = {
+    showDisabledInterfaces: boolean;
+    showDiscoveredInterfaces: boolean;
+    enablePhysics: boolean;
+    autoReload: boolean;
+    renderer: VisualiserRendererPref;
+    viewMode: VisualiserViewModePref;
+};
 
-/**
- * @param {string} key
- * @param {boolean} defaultValue
- * @returns {boolean}
- */
-function readBool(key, defaultValue) {
+export type PersistEmitOpts = {
+    emit?: boolean;
+};
+
+export const VISUALISER_RENDERER_OPTIONS: VisualiserRendererPref[] = ["auto", "webgl", "vis"];
+export const VISUALISER_VIEW_MODE_OPTIONS: VisualiserViewModePref[] = ["flat", "planet"];
+
+function readBool(key: string, defaultValue: boolean): boolean {
     try {
         if (typeof localStorage === "undefined") {
             return defaultValue;
@@ -36,11 +44,7 @@ function readBool(key, defaultValue) {
     return defaultValue;
 }
 
-/**
- * @param {string} key
- * @param {boolean} val
- */
-function writeBool(key, val) {
+function writeBool(key: string, val: boolean): void {
     try {
         if (typeof localStorage !== "undefined") {
             localStorage.setItem(key, val ? "true" : "false");
@@ -50,29 +54,18 @@ function writeBool(key, val) {
     }
 }
 
-/**
- * @param {unknown} raw
- * @returns {VisualiserRendererPref}
- */
-export function normalizeVisualiserRenderer(raw) {
+export function normalizeVisualiserRenderer(raw: unknown): VisualiserRendererPref {
     if (raw === "webgl" || raw === "vis" || raw === "auto") {
         return raw;
     }
     return "auto";
 }
 
-/**
- * @param {unknown} raw
- * @returns {VisualiserViewModePref}
- */
-export function normalizeVisualiserViewMode(raw) {
+export function normalizeVisualiserViewMode(raw: unknown): VisualiserViewModePref {
     return raw === "planet" ? "planet" : "flat";
 }
 
-/**
- * @returns {VisualiserViewModePref}
- */
-function readViewMode() {
+function readViewMode(): VisualiserViewModePref {
     try {
         if (typeof localStorage === "undefined") {
             return "flat";
@@ -83,10 +76,7 @@ function readViewMode() {
     }
 }
 
-/**
- * @returns {VisualiserRendererPref}
- */
-function readRenderer() {
+function readRenderer(): VisualiserRendererPref {
     try {
         if (typeof localStorage === "undefined") {
             return "auto";
@@ -97,17 +87,7 @@ function readRenderer() {
     }
 }
 
-/**
- * @returns {{
- *   showDisabledInterfaces: boolean,
- *   showDiscoveredInterfaces: boolean,
- *   enablePhysics: boolean,
- *   autoReload: boolean,
- *   renderer: VisualiserRendererPref,
- *   viewMode: VisualiserViewModePref,
- * }}
- */
-export function loadVisualiserDisplayPrefs() {
+export function loadVisualiserDisplayPrefs(): VisualiserDisplayPrefs {
     return {
         showDisabledInterfaces: readBool(KEY_DISABLED, false),
         showDiscoveredInterfaces: readBool(KEY_DISCOVERED, false),
@@ -119,49 +99,31 @@ export function loadVisualiserDisplayPrefs() {
     };
 }
 
-/**
- * @param {boolean} val
- */
-export function persistVisualiserShowDisabled(val) {
+export function persistVisualiserShowDisabled(val: boolean): void {
     writeBool(KEY_DISABLED, val === true);
     GlobalEmitter.emit(VISUALISER_DISPLAY_PREFS_CHANGED);
 }
 
-/**
- * @param {boolean} val
- */
-export function persistVisualiserShowDiscovered(val) {
+export function persistVisualiserShowDiscovered(val: boolean): void {
     writeBool(KEY_DISCOVERED, val === true);
     GlobalEmitter.emit(VISUALISER_DISPLAY_PREFS_CHANGED);
 }
 
-/**
- * @param {boolean} val
- * @param {{ emit?: boolean }} [opts]
- */
-export function persistVisualiserLiveLayout(val, opts: any = {}) {
+export function persistVisualiserLiveLayout(val: boolean, opts: PersistEmitOpts = {}): void {
     writeBool(KEY_LIVE_LAYOUT, val === true);
     if (opts.emit !== false) {
         GlobalEmitter.emit(VISUALISER_DISPLAY_PREFS_CHANGED);
     }
 }
 
-/**
- * @param {boolean} val
- * @param {{ emit?: boolean }} [opts]
- */
-export function persistVisualiserAutoReload(val, opts: any = {}) {
+export function persistVisualiserAutoReload(val: boolean, opts: PersistEmitOpts = {}): void {
     writeBool(KEY_AUTO_RELOAD, val === true);
     if (opts.emit !== false) {
         GlobalEmitter.emit(VISUALISER_DISPLAY_PREFS_CHANGED);
     }
 }
 
-/**
- * @param {unknown} val
- * @param {{ emit?: boolean }} [opts]
- */
-export function persistVisualiserRenderer(val, opts: any = {}) {
+export function persistVisualiserRenderer(val: unknown, opts: PersistEmitOpts = {}): void {
     const next = normalizeVisualiserRenderer(val);
     try {
         if (typeof localStorage !== "undefined") {
@@ -175,11 +137,7 @@ export function persistVisualiserRenderer(val, opts: any = {}) {
     }
 }
 
-/**
- * @param {unknown} val
- * @param {{ emit?: boolean }} [opts]
- */
-export function persistVisualiserViewMode(val, opts: any = {}) {
+export function persistVisualiserViewMode(val: unknown, opts: PersistEmitOpts = {}): void {
     const next = normalizeVisualiserViewMode(val);
     try {
         if (typeof localStorage !== "undefined") {

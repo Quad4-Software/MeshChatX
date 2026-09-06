@@ -7,24 +7,24 @@ const codec2ScriptPaths = [
     "/assets/js/codec2-emscripten/codec2-microphone-recorder.js",
 ];
 
-let loadPromise = null;
+let loadPromise: Promise<void> | null = null;
 let resolvedOk = false;
-let integrityHashes = null;
+let integrityHashes: Record<string, string> | null = null;
 
 /** Computes SHA-384 hash of ArrayBuffer for SRI verification. */
-async function computeSriHash(buf) {
+async function computeSriHash(buf: ArrayBuffer): Promise<string> {
     const hash = await crypto.subtle.digest("SHA-384", buf);
     const base64 = btoa(String.fromCharCode(...new Uint8Array(hash)));
     return `sha384-${base64}`;
 }
 
 /** Loads integrity.json. Returns null if not available. */
-async function loadIntegrityHashes() {
+async function loadIntegrityHashes(): Promise<Record<string, string> | null> {
     if (integrityHashes !== null) return integrityHashes;
     try {
         const res = await fetch("/assets/js/codec2-emscripten/integrity.json");
         if (!res.ok) return null;
-        const data = await res.json();
+        const data = (await res.json()) as { files?: Record<string, string> };
         integrityHashes = data.files || {};
         return integrityHashes;
     } catch {
@@ -33,7 +33,7 @@ async function loadIntegrityHashes() {
 }
 
 /** Verifies SRI hash. Throws if mismatch or missing when required. */
-async function verifySri(buf, expectedHash, name) {
+async function verifySri(buf: ArrayBuffer, expectedHash: string | undefined, name: string | undefined): Promise<void> {
     if (!expectedHash) {
         throw new Error(`Codec2: SRI hash missing for ${name}. Refusing to load untrusted code.`);
     }
@@ -43,7 +43,7 @@ async function verifySri(buf, expectedHash, name) {
     }
 }
 
-async function injectScript(src) {
+async function injectScript(src: string): Promise<void> {
     if (typeof document === "undefined") {
         return Promise.resolve();
     }
@@ -65,7 +65,7 @@ async function injectScript(src) {
     // Fetch, verify SRI, then inject as blob
     const integrity = await loadIntegrityHashes();
     const filename = src.split("/").pop();
-    const expectedHash = integrity?.[filename];
+    const expectedHash = filename ? integrity?.[filename] : undefined;
 
     const res = await fetch(src);
     if (!res.ok) {
@@ -97,21 +97,24 @@ async function injectScript(src) {
     });
 }
 
-function loadChain() {
+function loadChain(): Promise<void> {
     return codec2ScriptPaths.reduce((chain, src) => chain.then(() => injectScript(src)), Promise.resolve());
 }
 
+export type Codec2RetryOptions = {
+    maxAttempts?: number;
+    baseDelayMs?: number;
+    maxDelayMs?: number;
+};
+
 /**
  * Run fn until it succeeds or maxAttempts is reached. Waits between failures with capped exponential backoff.
- *
- * @param {() => Promise<void>} fn
- * @param {{ maxAttempts?: number, baseDelayMs?: number, maxDelayMs?: number }} options
  */
-export async function withRetries(fn, options: any = {}) {
+export async function withRetries(fn: () => Promise<void>, options: Codec2RetryOptions = {}): Promise<void> {
     const maxAttempts = options.maxAttempts ?? 12;
     let delayMs = options.baseDelayMs ?? 400;
     const maxDelayMs = options.maxDelayMs ?? 8000;
-    let lastErr;
+    let lastErr: unknown;
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         try {
             await fn();
@@ -121,7 +124,7 @@ export async function withRetries(fn, options: any = {}) {
             if (attempt === maxAttempts - 1) {
                 break;
             }
-            await new Promise<any>((r) => setTimeout(r, delayMs));
+            await new Promise<void>((r) => setTimeout(r, delayMs));
             delayMs = Math.min(maxDelayMs, Math.floor(delayMs * 1.5));
         }
     }
@@ -132,7 +135,7 @@ export async function withRetries(fn, options: any = {}) {
  * Resolves when all Codec2 helper scripts are present. Rejects if any script fails to load.
  * Call from features that require Codec2; use {@link startCodec2ScriptsBackgroundLoad} for startup.
  */
-export function ensureCodec2ScriptsLoaded() {
+export function ensureCodec2ScriptsLoaded(): Promise<void> {
     if (typeof window === "undefined") {
         return Promise.resolve();
     }
@@ -155,10 +158,8 @@ export function ensureCodec2ScriptsLoaded() {
 /**
  * Loads Codec2 scripts in the background with retries (embedded server may not be ready on first paint).
  * Swallows final failure after logging; the rest of the app stays usable without voice-codec scripts.
- *
- * @param {{ maxAttempts?: number, baseDelayMs?: number, maxDelayMs?: number }} options
  */
-export async function startCodec2ScriptsBackgroundLoad(options: any = {}) {
+export async function startCodec2ScriptsBackgroundLoad(options: Codec2RetryOptions = {}): Promise<void> {
     if (typeof window === "undefined") {
         return;
     }
@@ -174,7 +175,7 @@ export async function startCodec2ScriptsBackgroundLoad(options: any = {}) {
 }
 
 /** Clears loader state (for unit tests only). */
-export function resetCodec2LoaderState() {
+export function resetCodec2LoaderState(): void {
     resolvedOk = false;
     loadPromise = null;
 }

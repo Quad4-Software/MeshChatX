@@ -1,28 +1,17 @@
 // SPDX-License-Identifier: 0BSD
 
 const THROTTLE_MS = 5 * 60 * 1000;
-const lastShownAt = new Map();
+const lastShownAt = new Map<string, number>();
 
-/**
- * @param {object | null | undefined} config
- */
-export function shouldShowDeliveryHelptips(config) {
+export function shouldShowDeliveryHelptips(config: Record<string, unknown> | null | undefined): boolean {
     return config?.delivery_helptips_enabled !== false;
 }
 
-/**
- * @param {string} peerHash
- * @param {string} tipId
- */
-export function helptipDedupeKey(peerHash, tipId) {
+export function helptipDedupeKey(peerHash: string, tipId: string): string {
     return `${(peerHash || "").toLowerCase()}:${tipId}`;
 }
 
-/**
- * @param {string} peerHash
- * @param {string} tipId
- */
-export function shouldShowHelptip(peerHash, tipId) {
+export function shouldShowHelptip(peerHash: string, tipId: string): boolean {
     const key = helptipDedupeKey(peerHash, tipId);
     const now = Date.now();
     const last = lastShownAt.get(key);
@@ -33,13 +22,10 @@ export function shouldShowHelptip(peerHash, tipId) {
     return true;
 }
 
-/**
- * @param {string} peerHash
- */
-export function deliveryHelptipToastKey(peerHash) {
+export function deliveryHelptipToastKey(peerHash: string): string {
     return `delivery-helptip:${(peerHash || "").toLowerCase()}`;
 }
 
-export function resetHelptipPolicyForTests() {
+export function resetHelptipPolicyForTests(): void {
     lastShownAt.clear();
 }

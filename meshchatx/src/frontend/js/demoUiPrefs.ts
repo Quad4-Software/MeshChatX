@@ -33,52 +33,41 @@ export const DEMO_UI_PREF_KEYS = Object.freeze([
     "nomad_render_markdown_enabled",
     "nomad_render_html_enabled",
     "nomad_render_plaintext_enabled",
-]);
+] as const);
 
-const DEMO_UI_PREF_KEY_SET = new Set(DEMO_UI_PREF_KEYS);
+export type DemoUiPrefKey = (typeof DEMO_UI_PREF_KEYS)[number];
+export type DemoUiPrefs = Partial<Record<DemoUiPrefKey, unknown>>;
 
-/**
- * @param {unknown} value
- * @returns {Record<string, unknown>}
- */
-export function sanitizeDemoUiPrefs(value) {
+const DEMO_UI_PREF_KEY_SET = new Set<string>(DEMO_UI_PREF_KEYS);
+
+export function sanitizeDemoUiPrefs(value: unknown): DemoUiPrefs {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
         return {};
     }
-    /** @type {Record<string, unknown>} */
-    const out: any = {};
+    const source = value as Record<string, unknown>;
+    const out: DemoUiPrefs = {};
     for (const key of DEMO_UI_PREF_KEYS) {
-        if (Object.prototype.hasOwnProperty.call(value, key)) {
-            out[key] = value[key];
+        if (Object.prototype.hasOwnProperty.call(source, key)) {
+            out[key] = source[key];
         }
     }
     return out;
 }
 
-/**
- * @param {unknown} partial
- * @returns {Record<string, unknown>}
- */
-export function pickDemoUiPrefs(partial) {
+export function pickDemoUiPrefs(partial: unknown): DemoUiPrefs {
     return sanitizeDemoUiPrefs(partial);
 }
 
-/**
- * @param {unknown} partial
- * @returns {boolean}
- */
-export function partialHasDemoUiPrefs(partial) {
+export function partialHasDemoUiPrefs(partial: unknown): boolean {
     if (!partial || typeof partial !== "object") {
         return false;
     }
-    return Object.keys(partial).some((key) => DEMO_UI_PREF_KEY_SET.has(key));
+    return Object.keys(partial as Record<string, unknown>).some((key) => DEMO_UI_PREF_KEY_SET.has(key));
 }
 
-/**
- * @param {Storage | null | undefined} storage
- * @returns {Record<string, unknown>}
- */
-export function loadDemoUiPrefs(storage = typeof localStorage !== "undefined" ? localStorage : null) {
+export function loadDemoUiPrefs(
+    storage: Storage | null | undefined = typeof localStorage !== "undefined" ? localStorage : null
+): DemoUiPrefs {
     if (!storage) {
         return {};
     }
@@ -93,11 +82,10 @@ export function loadDemoUiPrefs(storage = typeof localStorage !== "undefined" ? 
     }
 }
 
-/**
- * @param {Record<string, unknown>} prefs
- * @param {Storage | null | undefined} storage
- */
-export function saveDemoUiPrefs(prefs, storage = typeof localStorage !== "undefined" ? localStorage : null) {
+export function saveDemoUiPrefs(
+    prefs: DemoUiPrefs,
+    storage: Storage | null | undefined = typeof localStorage !== "undefined" ? localStorage : null
+): void {
     if (!storage) {
         return;
     }
@@ -115,14 +103,12 @@ export function saveDemoUiPrefs(prefs, storage = typeof localStorage !== "undefi
     }
 }
 
-/**
- * Merge a patch into stored demo prefs and persist.
- * @param {unknown} partial
- * @param {Storage | null | undefined} storage
- * @returns {Record<string, unknown>}
- */
-export function mergeAndSaveDemoUiPrefs(partial, storage = typeof localStorage !== "undefined" ? localStorage : null) {
-    const merged: any = {
+/** Merge a patch into stored demo prefs and persist. */
+export function mergeAndSaveDemoUiPrefs(
+    partial: unknown,
+    storage: Storage | null | undefined = typeof localStorage !== "undefined" ? localStorage : null
+): DemoUiPrefs {
+    const merged: DemoUiPrefs = {
         ...loadDemoUiPrefs(storage),
         ...pickDemoUiPrefs(partial),
     };
@@ -130,27 +116,18 @@ export function mergeAndSaveDemoUiPrefs(partial, storage = typeof localStorage !
     return merged;
 }
 
-/**
- * Overlay stored demo prefs onto a server config object.
- * @param {Record<string, unknown> | null | undefined} config
- * @param {Storage | null | undefined} storage
- * @returns {Record<string, unknown>}
- */
+/** Overlay stored demo prefs onto a server config object. */
 export function mergeConfigWithDemoUiPrefs(
-    config,
-    storage = typeof localStorage !== "undefined" ? localStorage : null
-) {
+    config: Record<string, unknown> | null | undefined,
+    storage: Storage | null | undefined = typeof localStorage !== "undefined" ? localStorage : null
+): Record<string, unknown> {
     const base = config && typeof config === "object" ? { ...config } : {};
     return { ...base, ...loadDemoUiPrefs(storage) };
 }
 
-/**
- * @param {unknown} errData
- * @returns {boolean}
- */
-export function isDemoReadonlyRejection(errData) {
+export function isDemoReadonlyRejection(errData: unknown): boolean {
     if (!errData || typeof errData !== "object") {
         return false;
     }
-    return errData.code === "demo_readonly";
+    return (errData as { code?: unknown }).code === "demo_readonly";
 }

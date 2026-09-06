@@ -1,5 +1,13 @@
 // SPDX-License-Identifier: 0BSD
 
+import type Feature from "ol/Feature";
+import type { Coordinate } from "ol/coordinate";
+import type LineString from "ol/geom/LineString";
+import type MultiLineString from "ol/geom/MultiLineString";
+import type MultiPoint from "ol/geom/MultiPoint";
+import type MultiPolygon from "ol/geom/MultiPolygon";
+import type Point from "ol/geom/Point";
+import type Polygon from "ol/geom/Polygon";
 import { getCenter } from "ol/extent";
 import {
     MCX_FILL_COLOR,
@@ -53,11 +61,28 @@ const SKIP_EXTENDED = new Set([
 
 const URL_RE = /\bhttps?:\/\/[^\s<>"'`]+/gi;
 
-/**
- * Normalize KML-style Name/Description onto lowercase keys for export.
- * @param {import("ol/Feature").default} feature
- */
-export function normalizeFeatureMetadataProps(feature) {
+export type TextLinkPart = { kind: "text"; text: string } | { kind: "link"; text: string; href: string };
+
+export type FeatureMetadataExtended = {
+    key: string;
+    value: string;
+};
+
+export type DrawFeatureMetadataPayload = {
+    name: string;
+    description: string;
+    descriptionIsHtml: boolean;
+    iconSrc: string | null;
+    extended: FeatureMetadataExtended[];
+};
+
+export type FeatureMetadataEditFields = {
+    name?: string;
+    description?: string;
+};
+
+/** Normalize KML-style Name/Description onto lowercase keys for export. */
+export function normalizeFeatureMetadataProps(feature: Feature | null | undefined): void {
     if (!feature) {
         return;
     }
@@ -78,38 +103,34 @@ export function normalizeFeatureMetadataProps(feature) {
     }
 }
 
-/**
- * @param {import("ol/Feature").default} feature
- * @returns {import("ol/coordinate").Coordinate|null}
- */
-export function getFeatureAnchorCoordinate(feature) {
+export function getFeatureAnchorCoordinate(feature: Feature): Coordinate | null {
     const g = feature.getGeometry();
     if (!g) {
         return null;
     }
     const t = g.getType();
     if (t === "Point") {
-        return /** @type {import("ol/geom/Point").default} */ g.getCoordinates();
+        return (g as Point).getCoordinates();
     }
     if (t === "MultiPoint") {
-        return /** @type {import("ol/geom/MultiPoint").default} */ g.getPoint(0).getCoordinates();
+        return (g as MultiPoint).getPoint(0).getCoordinates();
     }
     if (t === "Polygon") {
-        return /** @type {import("ol/geom/Polygon").default} */ g.getInteriorPoint().getCoordinates();
+        return (g as Polygon).getInteriorPoint().getCoordinates();
     }
     if (t === "MultiPolygon") {
-        const mp = /** @type {import("ol/geom/MultiPolygon").default} */ g;
+        const mp = g as MultiPolygon;
         return mp.getPolygon(0).getInteriorPoint().getCoordinates();
     }
     if (t === "LineString") {
-        const c = /** @type {import("ol/geom/LineString").default} */ g.getCoordinates();
+        const c = (g as LineString).getCoordinates();
         if (!c.length) {
             return null;
         }
         return c[Math.floor(c.length / 2)];
     }
     if (t === "MultiLineString") {
-        const ml = /** @type {import("ol/geom/MultiLineString").default} */ g;
+        const ml = g as MultiLineString;
         const line = ml.getLineString(0);
         const c = line.getCoordinates();
         if (!c.length) {
@@ -120,17 +141,13 @@ export function getFeatureAnchorCoordinate(feature) {
     return getCenter(g.getExtent());
 }
 
-function looksLikeHtml(s) {
+function looksLikeHtml(s: unknown): boolean {
     const cleaned = String(s || "").replace(/<\/?null>/gi, "");
     return /<\/?[a-z][\s\S]*>/i.test(cleaned);
 }
 
-/**
- * Only data-URI raster icons are safe in the local UI img tag.
- * @param {unknown} src
- * @returns {string|null}
- */
-export function safeFeatureIconSrc(src) {
+/** Only data-URI raster icons are safe in the local UI img tag. */
+export function safeFeatureIconSrc(src: unknown): string | null {
     if (src == null || src === "") {
         return null;
     }
@@ -147,11 +164,7 @@ export function safeFeatureIconSrc(src) {
     return null;
 }
 
-/**
- * @param {unknown} v
- * @returns {string}
- */
-function stringifyPropValue(v) {
+function stringifyPropValue(v: unknown): string {
     if (v == null) {
         return "";
     }
@@ -165,19 +178,15 @@ function stringifyPropValue(v) {
     return String(v);
 }
 
-/**
- * @param {string} text
- * @returns {{ kind: "text"|"link", text: string, href?: string }[]}
- */
-export function splitTextWithLinks(text) {
+export function splitTextWithLinks(text: unknown): TextLinkPart[] {
     const raw = String(text || "");
     if (!raw) {
         return [];
     }
-    const parts: any[] = [];
+    const parts: TextLinkPart[] = [];
     let last = 0;
     URL_RE.lastIndex = 0;
-    let m;
+    let m: RegExpExecArray | null;
     while ((m = URL_RE.exec(raw)) !== null) {
         if (m.index > last) {
             parts.push({ kind: "text", text: raw.slice(last, m.index) });
@@ -196,11 +205,7 @@ export function splitTextWithLinks(text) {
     return parts.length ? parts : [{ kind: "text", text: raw }];
 }
 
-/**
- * @param {import("ol/Feature").default} feature
- * @returns {{ name: string, description: string, descriptionIsHtml: boolean, iconSrc: string|null, extended: { key: string, value: string }[] }|null}
- */
-export function getDrawFeatureMetadataPayload(feature) {
+export function getDrawFeatureMetadataPayload(feature: Feature | null | undefined): DrawFeatureMetadataPayload | null {
     if (!feature) {
         return null;
     }
@@ -216,8 +221,8 @@ export function getDrawFeatureMetadataPayload(feature) {
         description = flattenHtmlDescription(description);
     }
     const iconSrc = safeFeatureIconSrc(props[MCX_ICON_DATA_URL] || props[MCX_ICON_HREF] || null);
-    const extended: { key: string; value: string }[] = [];
-    const seenKeys = new Set();
+    const extended: FeatureMetadataExtended[] = [];
+    const seenKeys = new Set<string>();
     for (const [k, v] of Object.entries(props)) {
         if (k === "geometry" || k.startsWith("_")) {
             continue;
@@ -273,12 +278,11 @@ export function getDrawFeatureMetadataPayload(feature) {
     };
 }
 
-/**
- * Apply edited name and description onto a draw feature.
- * @param {import("ol/Feature").default} feature
- * @param {{ name?: string, description?: string }} fields
- */
-export function applyFeatureMetadataEdits(feature, fields) {
+/** Apply edited name and description onto a draw feature. */
+export function applyFeatureMetadataEdits(
+    feature: Feature | null | undefined,
+    fields: FeatureMetadataEditFields | null | undefined
+): void {
     if (!feature || !fields) {
         return;
     }

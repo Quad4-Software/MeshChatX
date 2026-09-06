@@ -7,17 +7,42 @@
  * OS toasts fire whenever the window is backgrounded (minimized or unfocused).
  */
 
+export type OsMessageNotificationOpts = {
+    isIncoming?: boolean;
+    sieveSuppress?: boolean;
+    dnd?: boolean;
+    hasFocus?: boolean;
+    userFacing?: boolean;
+};
+
+export type MessageSoundOpts = {
+    isIncoming?: boolean;
+    sieveSuppress?: boolean;
+    dnd?: boolean;
+    hasFocus?: boolean;
+    openDestinationHashes?: Iterable<string> | null;
+    sourceHash?: string | null;
+    userFacing?: boolean;
+};
+
+export type LxmfMessageLike = {
+    is_reaction?: boolean;
+    title?: unknown;
+    content?: unknown;
+    fields?: Record<string, unknown> | null;
+    source_hash?: unknown;
+    [key: string]: unknown;
+};
+
+export type LxmfDeliveryJson = {
+    lxmf_message?: LxmfMessageLike | null;
+    remote_identity_hash?: unknown;
+    [key: string]: unknown;
+};
+
 /**
  * Show a desktop/OS toast for incoming mail when the window is not in the
  * foreground. When minimized or blurred, toast for every eligible message.
- *
- * @param {object} opts
- * @param {boolean} [opts.isIncoming]
- * @param {boolean} [opts.sieveSuppress]
- * @param {boolean} [opts.dnd]
- * @param {boolean} [opts.hasFocus]
- * @param {boolean} [opts.userFacing]
- * @returns {boolean}
  */
 export function shouldShowOsMessageNotification({
     isIncoming = false,
@@ -25,7 +50,7 @@ export function shouldShowOsMessageNotification({
     dnd = false,
     hasFocus = true,
     userFacing = true,
-}: any = {}) {
+}: OsMessageNotificationOpts = {}): boolean {
     if (dnd || sieveSuppress) {
         return false;
     }
@@ -42,16 +67,6 @@ export function shouldShowOsMessageNotification({
  * Play in-app alert for incoming mail unless DND or the user is already
  * reading that peer with the window focused. Unfocused or minimized windows
  * still get sound so alerts are not tied to foreground-only autoplay.
- *
- * @param {object} opts
- * @param {boolean} [opts.isIncoming]
- * @param {boolean} [opts.sieveSuppress]
- * @param {boolean} [opts.dnd]
- * @param {boolean} [opts.hasFocus]
- * @param {Iterable<string>|string[]|Set<string>|null} [opts.openDestinationHashes]
- * @param {string|null|undefined} [opts.sourceHash]
- * @param {boolean} [opts.userFacing]
- * @returns {boolean}
  */
 export function shouldPlayMessageSound({
     isIncoming = false,
@@ -61,7 +76,7 @@ export function shouldPlayMessageSound({
     openDestinationHashes = null,
     sourceHash = null,
     userFacing = true,
-}: any = {}) {
+}: MessageSoundOpts = {}): boolean {
     if (dnd || sieveSuppress) {
         return false;
     }
@@ -75,12 +90,8 @@ export function shouldPlayMessageSound({
     return true;
 }
 
-/**
- * Lightweight frontend mirror of backend user-facing LXMF filter for delivery events.
- * @param {object|null|undefined} lxmfMessage
- * @returns {boolean}
- */
-export function isUserFacingLxmfDeliveryMessage(lxmfMessage) {
+/** Lightweight frontend mirror of backend user-facing LXMF filter for delivery events. */
+export function isUserFacingLxmfDeliveryMessage(lxmfMessage: LxmfMessageLike | null | undefined): boolean {
     if (!lxmfMessage || typeof lxmfMessage !== "object") {
         return false;
     }
@@ -90,7 +101,7 @@ export function isUserFacingLxmfDeliveryMessage(lxmfMessage) {
     const fields = lxmfMessage.fields;
     if (fields && typeof fields === "object") {
         const reaction = fields.reaction;
-        if (reaction && typeof reaction === "object" && reaction.reaction_to) {
+        if (reaction && typeof reaction === "object" && (reaction as { reaction_to?: unknown }).reaction_to) {
             return false;
         }
     }
@@ -114,12 +125,8 @@ export function isUserFacingLxmfDeliveryMessage(lxmfMessage) {
     return false;
 }
 
-/**
- * Peer hash for an incoming LXMF delivery payload (conversation key).
- * @param {object|null|undefined} json
- * @returns {string}
- */
-export function deliverySourceHash(json) {
+/** Peer hash for an incoming LXMF delivery payload (conversation key). */
+export function deliverySourceHash(json: LxmfDeliveryJson | null | undefined): string {
     if (!json || typeof json !== "object") {
         return "";
     }
@@ -133,23 +140,17 @@ export function deliverySourceHash(json) {
     return normalizeDestinationHash(json.remote_identity_hash);
 }
 
-/**
- * @param {string|null|undefined} hash
- * @returns {string}
- */
-export function normalizeDestinationHash(hash) {
+export function normalizeDestinationHash(hash: unknown): string {
     if (hash === undefined || hash === null) {
         return "";
     }
     return String(hash).trim().toLowerCase();
 }
 
-/**
- * @param {string} sourceHash
- * @param {Iterable<string>|string[]|Set<string>|null|undefined} openDestinationHashes
- * @returns {boolean}
- */
-export function isOpenDestination(sourceHash, openDestinationHashes) {
+export function isOpenDestination(
+    sourceHash: string,
+    openDestinationHashes: Iterable<string> | null | undefined
+): boolean {
     const src = normalizeDestinationHash(sourceHash);
     if (!src || !openDestinationHashes) {
         return false;

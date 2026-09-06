@@ -1,14 +1,30 @@
 // SPDX-License-Identifier: 0BSD
 
+export type ResourceBreakdownRow = {
+    name: string;
+    rss: number | null;
+    cpu_percent: number | null;
+};
+
+export type ResourceBreakdownInputRow = {
+    name?: string;
+    rss?: number | null;
+    cpu_percent?: number | null;
+};
+
+export type ElectronMemoryInfo = {
+    private?: number;
+    residentSet?: number;
+};
+
 /**
  * Merge backend resource_breakdown with optional Electron private memory.
  * Electron processMemoryInfo values are kilobytes.
- *
- * @param {Array<{name?: string, rss?: number|null, cpu_percent?: number|null}>|null|undefined} breakdown
- * @param {{ private?: number, residentSet?: number }|null|undefined} electronMemory
- * @returns {Array<{name: string, rss: number|null, cpu_percent: number|null}>}
  */
-export function mergeResourceBreakdown(breakdown, electronMemory) {
+export function mergeResourceBreakdown(
+    breakdown: ResourceBreakdownInputRow[] | null | undefined,
+    electronMemory: ElectronMemoryInfo | Record<string, unknown> | null | undefined | unknown
+): ResourceBreakdownRow[] {
     const rows = Array.isArray(breakdown)
         ? breakdown
               .filter((row) => row && typeof row === "object")
@@ -20,7 +36,8 @@ export function mergeResourceBreakdown(breakdown, electronMemory) {
         : [];
 
     if (electronMemory && typeof electronMemory === "object") {
-        const kb = Number(electronMemory.private ?? electronMemory.residentSet);
+        const mem = electronMemory as ElectronMemoryInfo;
+        const kb = Number(mem.private ?? mem.residentSet);
         if (Number.isFinite(kb) && kb > 0) {
             rows.push({
                 name: "electron",
@@ -32,24 +49,16 @@ export function mergeResourceBreakdown(breakdown, electronMemory) {
     return rows;
 }
 
-/**
- * @param {Array<{name: string, rss: number|null, cpu_percent: number|null}>} rows
- * @returns {{name: string, rss: number|null, cpu_percent: number|null}|null}
- */
-export function topResourceByRss(rows) {
+export function topResourceByRss(rows: ResourceBreakdownRow[]): ResourceBreakdownRow | null {
     if (!Array.isArray(rows) || rows.length === 0) return null;
     const scored = rows.filter((r) => r.rss != null && Number.isFinite(r.rss));
     if (!scored.length) return null;
-    return scored.reduce((best, row) => (row.rss > best.rss ? row : best));
+    return scored.reduce((best, row) => ((row.rss as number) > (best.rss as number) ? row : best));
 }
 
-/**
- * @param {Array<{name: string, rss: number|null, cpu_percent: number|null}>} rows
- * @returns {{name: string, rss: number|null, cpu_percent: number|null}|null}
- */
-export function topResourceByCpu(rows) {
+export function topResourceByCpu(rows: ResourceBreakdownRow[]): ResourceBreakdownRow | null {
     if (!Array.isArray(rows) || rows.length === 0) return null;
     const scored = rows.filter((r) => r.cpu_percent != null && Number.isFinite(r.cpu_percent));
     if (!scored.length) return null;
-    return scored.reduce((best, row) => (row.cpu_percent > best.cpu_percent ? row : best));
+    return scored.reduce((best, row) => ((row.cpu_percent as number) > (best.cpu_percent as number) ? row : best));
 }

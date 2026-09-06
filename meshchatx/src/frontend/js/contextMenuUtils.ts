@@ -1,14 +1,16 @@
 /* SPDX-License-Identifier: 0BSD */
 
+export type OpenAppContextMenuOptions = {
+    stopPropagation?: boolean;
+};
+
 /**
  * True when a contextmenu should not open an app menu so the platform
  * text-selection UI can offer Copy (Android WebView long-press, form fields).
- *
- * @param {Event | null | undefined} event
- * @returns {boolean}
  */
-export function preferNativeTextSelectionMenu(event) {
-    const target = event?.target;
+export function preferNativeTextSelectionMenu(event: Event | null | undefined): boolean {
+    const target = event?.target as
+        (EventTarget & { closest?: (selector: string) => Element | null }) | null | undefined;
     if (target && typeof target.closest === "function") {
         if (target.closest("input, textarea, select, [contenteditable='true'], [contenteditable='']")) {
             return true;
@@ -35,7 +37,7 @@ export function preferNativeTextSelectionMenu(event) {
 
     try {
         const range = selection.getRangeAt(0);
-        if (typeof range.intersectsNode === "function") {
+        if (typeof range.intersectsNode === "function" && target instanceof Node) {
             return range.intersectsNode(target);
         }
     } catch {
@@ -48,13 +50,12 @@ export function preferNativeTextSelectionMenu(event) {
 /**
  * Call preventDefault (and optional stopPropagation) then run openFn when an
  * app context menu should win. Returns false when native selection/copy wins.
- *
- * @param {Event} event
- * @param {(event: Event) => void} openFn
- * @param {{ stopPropagation?: boolean }} [options]
- * @returns {boolean}
  */
-export function openAppContextMenuUnlessTextSelection(event, openFn, options: any = {}) {
+export function openAppContextMenuUnlessTextSelection(
+    event: Event,
+    openFn: (event: Event) => void,
+    options: OpenAppContextMenuOptions = {}
+): boolean {
     if (preferNativeTextSelectionMenu(event)) {
         return false;
     }

@@ -19,6 +19,8 @@ export interface AuthValidationResult {
  */
 export function validateAuthForm(isSetup: boolean, password: string, confirmPassword: string): AuthValidationResult {
     if (isSetup) {
+        // Client form confirm-field equality, not secret verify
+        // eslint-disable-next-line security/detect-possible-timing-attacks
         if (password !== confirmPassword) {
             return { valid: false, errorKey: "auth.passwords_mismatch" };
         }

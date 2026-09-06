@@ -9,12 +9,10 @@ export const MAX_CODEC2_WAV_BYTES = MAX_CODEC2_DECODED_RAW_BYTES + 44;
 /** Opus attachments are stored compressed; still bound blob URL creation. */
 export const MAX_OPUS_ATTACHMENT_BYTES = 2 * 1024 * 1024;
 
-/**
- * @param {ArrayBuffer | Uint8Array | null | undefined} data
- * @param {number} maxBytes
- * @returns {Uint8Array}
- */
-export function assertByteLengthAtMost(data, maxBytes) {
+export function assertByteLengthAtMost(
+    data: ArrayBuffer | Uint8Array | null | undefined,
+    maxBytes: number
+): Uint8Array {
     if (data == null) {
         throw new Error("Missing audio data");
     }

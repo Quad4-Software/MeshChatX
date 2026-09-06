@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: 0BSD
+
 /**
  * WebGL2 canvas renderer for MeshChatX network visualiser.
  * Draws instanced circular sprites (textured when available) and line edges.
@@ -8,6 +10,30 @@ export const SCENE_NODE_STRIDE = 8;
 /** Draw instance: x y size r g b a useTex u v */
 export const NODE_STRIDE = 10;
 export const EDGE_STRIDE = 8;
+
+export type NodeTexMeta = { useTex: number; u: number; v: number };
+export type AtlasUv = { u: number; v: number };
+export type IconPixelMode = "opaque" | "glyph";
+export type IconPixelStats = { painted: number; glyphPixels: number };
+export type VisualiserCamera = { x: number; y: number; zoom: number };
+export type VisualiserLabel = { x: number; y: number; size: number; text: string; fontSize?: number };
+export type VisualiserCssSize = { width: number; height: number };
+export type NetworkVisualiserWebGL = {
+    draw: (
+        nodes: Float32Array | null | undefined,
+        edges: Float32Array | null | undefined,
+        camera: VisualiserCamera | null | undefined,
+        dark: boolean,
+        labels?: VisualiserLabel[] | null
+    ) => VisualiserCssSize;
+    resize: () => VisualiserCssSize;
+    destroy: () => void;
+    clearBackground: (dark: boolean) => void;
+    ensureIcon: (url: string) => Promise<number | null>;
+    iconUv: (slot: number) => AtlasUv;
+    getIconSlot: (url: string) => number | null;
+    getCssSize: () => VisualiserCssSize;
+};
 
 const ATLAS_CELL = 128;
 const ATLAS_COLS = 16;
@@ -108,8 +134,9 @@ void main() {
 }
 `;
 
-function compile(gl, type, src) {
+function compile(gl: WebGL2RenderingContext, type: number, src: string): WebGLShader {
     const sh = gl.createShader(type);
+    if (!sh) throw new Error("WebGL shader create failed");
     gl.shaderSource(sh, src);
     gl.compileShader(sh);
     if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
@@ -120,10 +147,11 @@ function compile(gl, type, src) {
     return sh;
 }
 
-function link(gl, vsSrc, fsSrc) {
+function link(gl: WebGL2RenderingContext, vsSrc: string, fsSrc: string): WebGLProgram {
     const vs = compile(gl, gl.VERTEX_SHADER, vsSrc);
     const fs = compile(gl, gl.FRAGMENT_SHADER, fsSrc);
     const prog = gl.createProgram();
+    if (!prog) throw new Error("WebGL program create failed");
     gl.attachShader(prog, vs);
     gl.attachShader(prog, fs);
     gl.linkProgram(prog);
@@ -139,13 +167,16 @@ function link(gl, vsSrc, fsSrc) {
 
 /**
  * Merge WASM scene node packs with atlas UVs into draw instances.
- * @param {Float32Array|null} sceneNodes SCENE_NODE_STRIDE
- * @param {{useTex:number,u:number,v:number}[]} texMeta per-node
- * @param {Float32Array} [dst] scratch with length >= count * NODE_STRIDE
- * @returns {Float32Array} view of length count * NODE_STRIDE
  */
-export function mergeSceneNodesWithTextures(sceneNodes, texMeta, dst) {
-    const count = sceneNodes && sceneNodes.length ? Math.floor(sceneNodes.length / SCENE_NODE_STRIDE) : 0;
+export function mergeSceneNodesWithTextures(
+    sceneNodes: Float32Array | null | undefined,
+    texMeta: NodeTexMeta[] | null | undefined,
+    dst?: Float32Array | null
+): Float32Array {
+    if (!sceneNodes?.length) {
+        return new Float32Array(0);
+    }
+    const count = Math.floor(sceneNodes.length / SCENE_NODE_STRIDE);
     const need = count * NODE_STRIDE;
     const out = dst && dst.length >= need ? dst : new Float32Array(need);
     for (let i = 0; i < count; i++) {
@@ -168,10 +199,8 @@ export function mergeSceneNodesWithTextures(sceneNodes, texMeta, dst) {
 
 /**
  * Atlas UV origin for a slot index.
- * @param {number} slot
- * @returns {{u:number,v:number}}
  */
-export function atlasUvForSlot(slot) {
+export function atlasUvForSlot(slot: number): AtlasUv {
     const col = slot % ATLAS_COLS;
     const row = Math.floor(slot / ATLAS_COLS);
     return {
@@ -180,11 +209,7 @@ export function atlasUvForSlot(slot) {
     };
 }
 
-/**
- * @param {HTMLCanvasElement} canvas
- * @returns {WebGL2RenderingContext|null}
- */
-export function tryCreateWebGL2Context(canvas) {
+export function tryCreateWebGL2Context(canvas: HTMLCanvasElement | null | undefined): WebGL2RenderingContext | null {
     if (!canvas || typeof canvas.getContext !== "function") return null;
     try {
         return canvas.getContext("webgl2", {
@@ -200,15 +225,10 @@ export function tryCreateWebGL2Context(canvas) {
 }
 
 /**
- * @param {WebGL2RenderingContext} gl
- */
-/**
  * Resolve a same-origin asset path against the Vite/app base URL.
  * Absolute http(s)/blob/data URLs are returned unchanged.
- * @param {string} url
- * @returns {string}
  */
-export function resolveVisualiserAssetUrl(url) {
+export function resolveVisualiserAssetUrl(url: string | null | undefined): string {
     if (!url || typeof url !== "string") return "";
     const trimmed = url.trim();
     if (!trimmed) return "";
@@ -229,9 +249,8 @@ export function resolveVisualiserAssetUrl(url) {
 /**
  * True when the asset is a solid-fill network-visualiser badge (colored disc + light glyph).
  * Those should be converted to white-on-transparent glyphs so the shader can paint node color.
- * @param {string} url
  */
-export function isGlyphStyleVisualiserIcon(url) {
+export function isGlyphStyleVisualiserIcon(url: string | null | undefined): boolean {
     if (!url || typeof url !== "string") return false;
     return /\/network-visualiser\//i.test(url);
 }
@@ -242,11 +261,11 @@ export function isGlyphStyleVisualiserIcon(url) {
  * - opaque: keep soft alpha (logo AA). Only promote RGB-with-a=0 PNG quirks.
  * - glyph: keep bright glyph coverage as soft alpha (preserves AA), clear fill
  *
- * @param {Uint8ClampedArray|Uint8Array} data RGBA buffer (mutated)
- * @param {"opaque"|"glyph"} mode
- * @returns {{painted:number,glyphPixels:number}}
  */
-export function prepareVisualiserIconPixels(data, mode = "opaque") {
+export function prepareVisualiserIconPixels(
+    data: Uint8ClampedArray | Uint8Array,
+    mode: IconPixelMode = "opaque"
+): IconPixelStats {
     let painted = 0;
     let glyphPixels = 0;
     if (!data || data.length < 4) return { painted: 0, glyphPixels: 0 };
@@ -300,16 +319,17 @@ export function prepareVisualiserIconPixels(data, mode = "opaque") {
 /**
  * Downscale large bitmaps in steps before the final atlas blit.
  * A single 512→116 drawImage looks soft/jagged on HiDPI discs.
- * @param {CanvasRenderingContext2D} ctx
- * @param {CanvasImageSource} source
- * @param {number} sw
- * @param {number} sh
- * @param {number} dx
- * @param {number} dy
- * @param {number} dw
- * @param {number} dh
  */
-export function drawImageToAtlasCell(ctx, source, sw, sh, dx, dy, dw, dh) {
+export function drawImageToAtlasCell(
+    ctx: CanvasRenderingContext2D | null | undefined,
+    source: CanvasImageSource | null | undefined,
+    sw: number,
+    sh: number,
+    dx: number,
+    dy: number,
+    dw: number,
+    dh: number
+): void {
     if (!ctx || !source || !(dw > 0 && dh > 0 && sw > 0 && sh > 0)) return;
     ctx.imageSmoothingEnabled = true;
     if ("imageSmoothingQuality" in ctx) {
@@ -349,7 +369,7 @@ export function drawImageToAtlasCell(ctx, source, sw, sh, dx, dy, dw, dh) {
     }
 }
 
-function createIconAtlas(gl) {
+function createIconAtlas(gl: WebGL2RenderingContext) {
     const width = ATLAS_COLS * ATLAS_CELL;
     const height = ATLAS_ROWS * ATLAS_CELL;
     const texture = gl.createTexture();
@@ -364,8 +384,8 @@ function createIconAtlas(gl) {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     gl.generateMipmap(gl.TEXTURE_2D);
 
-    const urlToSlot = new Map();
-    const pending = new Map();
+    const urlToSlot = new Map<string, number>();
+    const pending = new Map<string, Promise<number | null>>();
     const freeSlots: number[] = [];
     let nextSlot = 0;
     const scratch = typeof document !== "undefined" ? document.createElement("canvas") : null;
@@ -381,13 +401,26 @@ function createIconAtlas(gl) {
         }
     }
 
-    function allocSlot() {
-        if (freeSlots.length > 0) return freeSlots.pop();
+    function allocSlot(): number | null {
+        if (freeSlots.length > 0) {
+            const slot = freeSlots.pop();
+            return slot == null ? null : slot;
+        }
         if (nextSlot >= ATLAS_CAPACITY) return null;
         return nextSlot++;
     }
 
-    function paintSlot(slot, source, url) {
+    function paintSlot(
+        slot: number,
+        source: CanvasImageSource & {
+            width?: number;
+            height?: number;
+            videoWidth?: number;
+            videoHeight?: number;
+            close?: () => void;
+        },
+        url: string
+    ): boolean {
         if (!scratchCtx || !scratch) return false;
         scratchCtx.save();
         scratchCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -445,7 +478,7 @@ function createIconAtlas(gl) {
         return true;
     }
 
-    async function loadImageSource(url) {
+    async function loadImageSource(url: string): Promise<CanvasImageSource> {
         const resolved = resolveVisualiserAssetUrl(url);
         if (typeof createImageBitmap === "function") {
             try {
@@ -457,7 +490,7 @@ function createIconAtlas(gl) {
                 // Fall through to HTMLImageElement.
             }
         }
-        const img = await new Promise<any>((resolve, reject) => {
+        const img = await new Promise<HTMLImageElement>((resolve, reject) => {
             const el = new Image();
             el.decoding = "sync";
             el.onload = () => resolve(el);
@@ -474,22 +507,22 @@ function createIconAtlas(gl) {
         return img;
     }
 
-    /**
-     * @param {string} url
-     * @returns {Promise<number|null>} slot index or null
-     */
-    async function ensure(url) {
+    async function ensure(url: string): Promise<number | null> {
         if (!url || typeof url !== "string") return null;
-        if (urlToSlot.has(url)) return urlToSlot.get(url);
-        if (pending.has(url)) return pending.get(url);
+        if (urlToSlot.has(url)) return urlToSlot.get(url) ?? null;
+        if (pending.has(url)) return (await pending.get(url)) ?? null;
         const slot = allocSlot();
         if (slot == null) return null;
         const work = loadImageSource(url)
             .then((img) => {
-                const ok = paintSlot(slot, img, url);
-                if (typeof img.close === "function") {
+                const ok = paintSlot(
+                    slot,
+                    img as CanvasImageSource & { width?: number; height?: number; close?: () => void },
+                    url
+                );
+                if (img && typeof (img as { close?: () => void }).close === "function") {
                     try {
-                        img.close();
+                        (img as { close: () => void }).close();
                     } catch {
                         /* ignore */
                     }
@@ -524,15 +557,14 @@ function createIconAtlas(gl) {
         uvForSlot: atlasUvForSlot,
         cellUv: { x: 1 / ATLAS_COLS, y: 1 / ATLAS_ROWS },
         destroy,
-        getSlot: (url) => urlToSlot.get(url) ?? null,
+        getSlot: (url: string): number | null => urlToSlot.get(url) ?? null,
     };
 }
 
-/**
- * @param {HTMLCanvasElement} canvas
- * @param {WebGL2RenderingContext} gl
- */
-export function createNetworkVisualiserWebGL(canvas, gl) {
+export function createNetworkVisualiserWebGL(
+    canvas: HTMLCanvasElement,
+    gl: WebGL2RenderingContext
+): NetworkVisualiserWebGL {
     const nodeProg = link(gl, NODE_VS, NODE_FS);
     const edgeProg = link(gl, EDGE_VS, EDGE_FS);
     const atlas = createIconAtlas(gl);
@@ -609,7 +641,7 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
         }
     }
 
-    function resize() {
+    function resize(): VisualiserCssSize {
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const rect = canvas.getBoundingClientRect();
         cssW = Math.max(1, rect.width || canvas.clientWidth || 1);
@@ -628,7 +660,7 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
         return { width: cssW, height: cssH };
     }
 
-    function clearBackground(dark) {
+    function clearBackground(dark: boolean): void {
         resize();
         if (dark) {
             gl.clearColor(0.035, 0.035, 0.04, 1);
@@ -641,18 +673,18 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
         }
     }
 
-    /**
-     * @param {Float32Array} nodes packed NODE_STRIDE
-     * @param {Float32Array} edges packed EDGE_STRIDE
-     * @param {{x:number,y:number,zoom:number}} camera
-     * @param {boolean} dark
-     * @param {{x:number,y:number,size:number,text:string,fontSize?:number}[]} [labels]
-     */
-    function draw(nodes, edges, camera, dark, labels) {
+    function draw(
+        nodes: Float32Array | null | undefined,
+        edges: Float32Array | null | undefined,
+        camera: VisualiserCamera | null | undefined,
+        dark: boolean,
+        labels?: VisualiserLabel[] | null
+    ): VisualiserCssSize {
         const size = resize();
         const camX = camera?.x ?? 0;
         const camY = camera?.y ?? 0;
-        const zoom = camera?.zoom > 0 ? camera.zoom : 1;
+        const zoomRaw = camera?.zoom;
+        const zoom = zoomRaw != null && zoomRaw > 0 ? zoomRaw : 1;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
         if (dark) {
@@ -665,7 +697,8 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
         nodeCount = nodes && nodes.length ? Math.floor(nodes.length / NODE_STRIDE) : 0;
-        const edgeCount = edges && edges.length ? Math.floor(edges.length / EDGE_STRIDE) : 0;
+        const edgeData = edges && edges.length ? edges : null;
+        const edgeCount = edgeData ? Math.floor(edgeData.length / EDGE_STRIDE) : 0;
 
         const need = edgeCount * 12;
         if (edgeScratch.length < need) {
@@ -674,14 +707,14 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
         for (let i = 0; i < edgeCount; i++) {
             const o = i * EDGE_STRIDE;
             const d = i * 12;
-            const x1 = edges[o];
-            const y1 = edges[o + 1];
-            const x2 = edges[o + 2];
-            const y2 = edges[o + 3];
-            const r = edges[o + 4];
-            const g = edges[o + 5];
-            const b = edges[o + 6];
-            const a = edges[o + 7];
+            const x1 = edgeData![o];
+            const y1 = edgeData![o + 1];
+            const x2 = edgeData![o + 2];
+            const y2 = edgeData![o + 3];
+            const r = edgeData![o + 4];
+            const g = edgeData![o + 5];
+            const b = edgeData![o + 6];
+            const a = edgeData![o + 7];
             edgeScratch[d] = x1;
             edgeScratch[d + 1] = y1;
             edgeScratch[d + 2] = r;
@@ -721,7 +754,9 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
             gl.bindTexture(gl.TEXTURE_2D, atlas.texture);
             gl.bindVertexArray(nodeVao);
             gl.bindBuffer(gl.ARRAY_BUFFER, nodeInstanceBuf);
-            gl.bufferData(gl.ARRAY_BUFFER, nodes, gl.DYNAMIC_DRAW);
+            if (nodes) {
+                gl.bufferData(gl.ARRAY_BUFFER, nodes, gl.DYNAMIC_DRAW);
+            }
             gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, nodeCount);
             gl.bindVertexArray(null);
         }
@@ -788,10 +823,10 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
         resize,
         destroy,
         clearBackground,
-        ensureIcon: (url) => atlas.ensure(url),
-        iconUv: (slot) => atlas.uvForSlot(slot),
-        getIconSlot: (url) => atlas.getSlot(url),
-        getCssSize: () => ({ width: cssW, height: cssH }),
+        ensureIcon: (url: string) => atlas.ensure(url),
+        iconUv: (slot: number) => atlas.uvForSlot(slot),
+        getIconSlot: (url: string) => atlas.getSlot(url),
+        getCssSize: (): VisualiserCssSize => ({ width: cssW, height: cssH }),
     };
 }
 

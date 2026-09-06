@@ -2,19 +2,19 @@ import LinkUtils from "./LinkUtils.js";
 
 const HEX32 = /^[a-fA-F0-9]{32}$/;
 
-export function openExternalHttpUrl(url, opener = window.open.bind(window)) {
+export function openExternalHttpUrl(url: string, opener: typeof window.open = window.open.bind(window)): void {
     if (!url) {
         return;
     }
     opener(url, "_blank", "noopener,noreferrer");
 }
 
-function stopEvent(event) {
+function stopEvent(event: MouseEvent): void {
     event.preventDefault?.();
     event.stopPropagation?.();
 }
 
-function escapeCssIdent(id) {
+function escapeCssIdent(id: string): string {
     if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
         return CSS.escape(id);
     }
@@ -22,7 +22,7 @@ function escapeCssIdent(id) {
     return String(id).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-function scrollToElementId(id, scrollRoot) {
+function scrollToElementId(id: string, scrollRoot: Element | null): void {
     const escapedId = escapeCssIdent(id);
     const el = scrollRoot ? scrollRoot.querySelector(`#${escapedId}`) : document.getElementById(id);
     if (el) {
@@ -30,21 +30,21 @@ function scrollToElementId(id, scrollRoot) {
     }
 }
 
+export type RichHtmlLinkClickOptions = {
+    scrollRoot?: Element | null;
+    onNomadUrl?: (url: string) => void;
+    onLxmfAddress?: (address: string) => void;
+    onOpenNode?: (destination: string, fields: string | null) => void;
+    openExternalHttp?: (url: string) => void | Promise<void>;
+    blockUnhandledAnchors?: boolean;
+};
+
 /**
- * Intercepts clicks inside rich HTML (v-html) containers so nomad/mesh links stay
+ * Intercepts clicks inside rich HTML containers so nomad/mesh links stay
  * in-app, http(s) links open externally, and other navigation does not trap the shell.
- *
- * @param {MouseEvent} event
- * @param {object} [options]
- * @param {Element|null} [options.scrollRoot] - scope fragment anchor scrolling
- * @param {(url: string) => void} [options.onNomadUrl] - data-nomadnet-url handler
- * @param {(address: string) => void} [options.onLxmfAddress] - data-lxmf-address handler
- * @param {(destination: string, fields: string|null) => void} [options.onOpenNode]
- * @param {(url: string) => void|Promise<void>} [options.openExternalHttp]
- * @param {boolean} [options.blockUnhandledAnchors=true]
- * @returns {boolean} true when the click was handled
+ * Returns true when the click was handled.
  */
-export function handleRichHtmlLinkClick(event, options: any = {}) {
+export function handleRichHtmlLinkClick(event: MouseEvent, options: RichHtmlLinkClickOptions = {}): boolean {
     const {
         scrollRoot = null,
         onNomadUrl,
@@ -54,7 +54,12 @@ export function handleRichHtmlLinkClick(event, options: any = {}) {
         blockUnhandledAnchors = true,
     } = options;
 
-    const nomadLink = event.target.closest("a.nomadnet-link[data-nomadnet-url]");
+    const target = event.target as Element | null;
+    if (!target || typeof target.closest !== "function") {
+        return false;
+    }
+
+    const nomadLink = target.closest("a.nomadnet-link[data-nomadnet-url]");
     if (nomadLink && onNomadUrl) {
         stopEvent(event);
         const url = nomadLink.getAttribute("data-nomadnet-url");
@@ -64,7 +69,7 @@ export function handleRichHtmlLinkClick(event, options: any = {}) {
         return true;
     }
 
-    const lxmfLink = event.target.closest("a.lxmf-link[data-lxmf-address]");
+    const lxmfLink = target.closest("a.lxmf-link[data-lxmf-address]");
     if (lxmfLink && onLxmfAddress) {
         stopEvent(event);
         const address = lxmfLink.getAttribute("data-lxmf-address");
@@ -74,7 +79,7 @@ export function handleRichHtmlLinkClick(event, options: any = {}) {
         return true;
     }
 
-    const externalAnchor = event.target.closest("a[href], a[data-http-url]");
+    const externalAnchor = target.closest("a[href], a[data-http-url]");
     if (externalAnchor && !externalAnchor.classList.contains("nomadnet-link")) {
         const dataHttp = externalAnchor.getAttribute("data-http-url");
         const href = externalAnchor.getAttribute("href");
@@ -90,21 +95,22 @@ export function handleRichHtmlLinkClick(event, options: any = {}) {
         }
     }
 
-    const fragAnchor = event.target.closest("a[href]");
+    const fragAnchor = target.closest("a[href]");
+    const fragHref = fragAnchor?.getAttribute("href");
     if (
         fragAnchor &&
-        fragAnchor.getAttribute("href") &&
-        fragAnchor.getAttribute("href") !== "#" &&
-        fragAnchor.getAttribute("href").startsWith("#") &&
+        fragHref &&
+        fragHref !== "#" &&
+        fragHref.startsWith("#") &&
         !fragAnchor.getAttribute("data-nomadnet-url")
     ) {
         stopEvent(event);
-        const raw = fragAnchor.getAttribute("href").slice(1);
+        const raw = fragHref.slice(1);
         scrollToElementId(decodeURIComponent(raw), scrollRoot);
         return true;
     }
 
-    const nodeLink = event.target.closest('[data-action="openNode"]');
+    const nodeLink = target.closest('[data-action="openNode"]');
     if (nodeLink && onOpenNode) {
         stopEvent(event);
         const destination = nodeLink.getAttribute("data-destination");
@@ -115,7 +121,7 @@ export function handleRichHtmlLinkClick(event, options: any = {}) {
     }
 
     if (blockUnhandledAnchors) {
-        const anchor = event.target.closest("a[href]");
+        const anchor = target.closest("a[href]");
         if (anchor) {
             const href = (anchor.getAttribute("href") || "").trim();
             if (href && href !== "#" && !href.startsWith("#")) {

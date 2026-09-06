@@ -131,7 +131,7 @@ if (networkReady) {
 
     setNavigationGuard(async (to) => {
         const decision = await resolveAuthNavigation(to, apiClient);
-        if (decision.allow) {
+        if ("allow" in decision) {
             return { allow: true };
         }
         return { allow: false, redirect: decision.redirect };

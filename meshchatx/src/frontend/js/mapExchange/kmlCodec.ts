@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: 0BSD
 
+import type Feature from "ol/Feature";
+import type { ProjectionLike } from "ol/proj";
 import KML from "ol/format/KML";
 import { normalizeFeatureMetadataProps } from "./metadataUtils.js";
 import { normalizeKmlImportedFeatures, ensureOlStylesForKmlExport } from "./styleFromProperties.js";
 import { sanitizeKmlText } from "./kmlSanitize.js";
 
-/**
- * @param {string} text
- * @param {import("ol/proj").ProjectionLike} featureProjection
- * @returns {import("ol/Feature").default[]}
- */
-export function readKmlToFeatures(text, featureProjection) {
+export function readKmlToFeatures(text: string, featureProjection: ProjectionLike): Feature[] {
     const sanitized = sanitizeKmlText(text, { zipLocalOk: false });
     const format = new KML({
         extractStyles: true,
@@ -28,12 +25,7 @@ export function readKmlToFeatures(text, featureProjection) {
     return features;
 }
 
-/**
- * @param {import("ol/Feature").default[]} features
- * @param {import("ol/proj").ProjectionLike} featureProjection
- * @returns {string}
- */
-export function writeFeaturesToKml(features, featureProjection) {
+export function writeFeaturesToKml(features: Feature[], featureProjection: ProjectionLike): string {
     const format = new KML();
     ensureOlStylesForKmlExport(features);
     return format.writeFeatures(features, {

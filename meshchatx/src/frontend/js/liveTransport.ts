@@ -1,26 +1,46 @@
 // SPDX-License-Identifier: 0BSD
 
-import { createEmitter } from "../libs/emitter.js";
-import WebSocketConnection from "./WebSocketConnection.js";
+import { createEmitter, type Emitter, type EmitterHandler } from "../libs/emitter.js";
+import WebSocketConnection, { type LiveSendBridge } from "./WebSocketConnection.js";
 import { chooseLiveTransport } from "./wsLiveSync.js";
 import { clientSupportsWebTransport, encodeWtJsonLine, feedWtJsonLines } from "./wtJsonFraming.js";
 
 const WT_CONNECT_BUDGET_MS = 4000;
 
-/**
- * @param {{ send: (message: string) => boolean, sendQueued?: (message: string) => boolean, isOpen?: () => boolean } | null} bridge
- */
-function setWsLiveSendBridge(bridge) {
+export type LiveTransportMode = string;
+
+export type WebTransportServerInfo = {
+    server_available?: boolean;
+    url?: string;
+    cert_sha256_b64?: string;
+    [key: string]: unknown;
+};
+
+export type LiveTransportConfigureOptions = {
+    mode?: LiveTransportMode;
+    webtransport?: WebTransportServerInfo;
+};
+
+export type LiveTransportConnectResult = {
+    transport: "webtransport" | "websocket";
+    fellBack: boolean;
+};
+
+type LiveTransportSource = {
+    on: (event: string | symbol, handler: EmitterHandler) => void;
+    off: (event: string | symbol, handler?: EmitterHandler) => void;
+    send: (message: string) => boolean;
+    sendQueued?: (message: string) => boolean;
+    isOpen: () => boolean;
+};
+
+function setWsLiveSendBridge(bridge: LiveSendBridge | null): void {
     if (typeof WebSocketConnection.setLiveSendBridge === "function") {
         WebSocketConnection.setLiveSendBridge(bridge);
     }
 }
 
-/**
- * @param {string} b64
- * @returns {Uint8Array | null}
- */
-function b64ToBytes(b64) {
+function b64ToBytes(b64: string): Uint8Array | null {
     try {
         const bin = atob(b64);
         const out = new Uint8Array(bin.length);
@@ -33,17 +53,16 @@ function b64ToBytes(b64) {
     }
 }
 
-/**
- * Experimental WebTransport live session (newline JSON on one bidi stream).
- */
+/** Experimental WebTransport live session (newline JSON on one bidi stream). */
 class WebTransportLiveSession {
-    declare _buffer: string;
-    declare _reader: any;
-    declare _sessionReady: boolean;
-    declare _transport: any;
-    declare _writer: any;
-    declare destroyed: boolean;
-    declare emitter: any;
+    emitter: Emitter;
+    _transport: WebTransport | null;
+    _writer: WritableStreamDefaultWriter<Uint8Array> | null;
+    _reader: ReadableStreamDefaultReader<Uint8Array> | null;
+    _buffer: string;
+    _sessionReady: boolean;
+    destroyed: boolean;
+
     constructor() {
         this.emitter = createEmitter();
         this._transport = null;
@@ -54,22 +73,19 @@ class WebTransportLiveSession {
         this.destroyed = false;
     }
 
-    on(event, handler) {
+    on(event: string | symbol, handler: EmitterHandler): void {
         this.emitter.on(event, handler);
     }
 
-    off(event, handler) {
+    off(event: string | symbol, handler?: EmitterHandler): void {
         this.emitter.off(event, handler);
     }
 
-    emit(type, event?) {
+    emit(type: string | symbol, event?: unknown): void {
         this.emitter.emit(type, event);
     }
 
-    /**
-     * @param {{ url: string, certSha256B64?: string }} opts
-     */
-    async connect(opts) {
+    async connect(opts: { url: string; certSha256B64?: string }): Promise<void> {
         if (this.destroyed) {
             throw new Error("destroyed");
         }
@@ -80,18 +96,17 @@ class WebTransportLiveSession {
         if (!url) {
             throw new Error("missing_url");
         }
-        /** @type {Record<string, unknown>} */
-        const wtOpts: any = {};
+        const wtOpts: WebTransportOptions = {};
         if (opts.certSha256B64) {
             const value = b64ToBytes(opts.certSha256B64);
             if (value) {
-                wtOpts.serverCertificateHashes = [{ algorithm: "sha-256", value }];
+                wtOpts.serverCertificateHashes = [{ algorithm: "sha-256", value: value as BufferSource }];
             }
         }
         const transport = new WebTransport(url, wtOpts);
         const readyRace = Promise.race([
             transport.ready,
-            new Promise<any>((_, reject) => {
+            new Promise<never>((_, reject) => {
                 setTimeout(() => reject(new Error("webtransport_timeout")), WT_CONNECT_BUDGET_MS);
             }),
         ]);
@@ -106,7 +121,7 @@ class WebTransportLiveSession {
         void this._readLoop();
     }
 
-    async _readLoop() {
+    async _readLoop(): Promise<void> {
         const decoder = new TextDecoder();
         try {
             while (this._reader && !this.destroyed) {
@@ -132,15 +147,15 @@ class WebTransportLiveSession {
         this.emit("disconnected");
     }
 
-    isOpen() {
+    isOpen(): boolean {
         return this._transport != null && this._sessionReady;
     }
 
-    send(message) {
+    send(message: string | object): boolean {
         if (!this.isOpen() || !this._writer) {
             return false;
         }
-        let line;
+        let line: string;
         if (typeof message === "string") {
             try {
                 const obj = JSON.parse(message);
@@ -156,11 +171,11 @@ class WebTransportLiveSession {
         return true;
     }
 
-    sendQueued(message) {
+    sendQueued(message: string | object): boolean {
         return this.send(message);
     }
 
-    destroy() {
+    destroy(): void {
         this.destroyed = true;
         this._sessionReady = false;
         try {
@@ -174,19 +189,18 @@ class WebTransportLiveSession {
     }
 }
 
-/**
- * Facade: try experimental WebTransport then fall back to WebSocketConnection.
- */
+/** Facade: try experimental WebTransport then fall back to WebSocketConnection. */
 class LiveTransport {
-    declare _active: any;
-    declare _boundWs: boolean;
-    declare _fallbackNotified: boolean;
-    declare _forwardCleanups: any[];
-    declare _mode: string;
-    declare _serverInfo: any;
-    declare _usingWt: boolean;
-    declare _wt: any;
-    declare emitter: any;
+    emitter: Emitter;
+    _active: LiveTransportSource;
+    _wt: WebTransportLiveSession | null;
+    _mode: LiveTransportMode;
+    _serverInfo: WebTransportServerInfo;
+    _usingWt: boolean;
+    _fallbackNotified: boolean;
+    _forwardCleanups: Array<() => void>;
+    _boundWs: boolean;
+
     constructor() {
         this.emitter = createEmitter();
         this._active = WebSocketConnection;
@@ -199,22 +213,19 @@ class LiveTransport {
         this._boundWs = false;
     }
 
-    on(event, handler) {
+    on(event: string | symbol, handler: EmitterHandler): void {
         this.emitter.on(event, handler);
     }
 
-    off(event, handler) {
+    off(event: string | symbol, handler?: EmitterHandler): void {
         this.emitter.off(event, handler);
     }
 
-    emit(type, event?) {
+    emit(type: string | symbol, event?: unknown): void {
         this.emitter.emit(type, event);
     }
 
-    /**
-     * @param {{ mode?: string, webtransport?: object }} opts
-     */
-    configure(opts: any = {}) {
+    configure(opts: LiveTransportConfigureOptions = {}): void {
         if (opts.mode) {
             this._mode = opts.mode;
         }
@@ -223,24 +234,24 @@ class LiveTransport {
         }
     }
 
-    _clearForwards() {
+    _clearForwards(): void {
         for (const fn of this._forwardCleanups) {
             fn();
         }
         this._forwardCleanups = [];
     }
 
-    _forwardFrom(source) {
+    _forwardFrom(source: LiveTransportSource): void {
         this._clearForwards();
-        const events = ["message", "connected", "ready", "disconnected", "queue_expired"];
+        const events = ["message", "connected", "ready", "disconnected", "queue_expired"] as const;
         for (const ev of events) {
-            const handler = (payload) => this.emit(ev, payload);
+            const handler: EmitterHandler = (payload) => this.emit(ev, payload);
             source.on(ev, handler);
             this._forwardCleanups.push(() => source.off(ev, handler));
         }
     }
 
-    async connect() {
+    async connect(): Promise<LiveTransportConnectResult> {
         if (!this._boundWs) {
             this._forwardFrom(WebSocketConnection);
             this._boundWs = true;
@@ -265,9 +276,9 @@ class LiveTransport {
                 this._usingWt = true;
                 this._active = this._wt;
                 setWsLiveSendBridge({
-                    send: (message) => this._wt.send(message),
-                    sendQueued: (message) => this._wt.send(message),
-                    isOpen: () => this._wt.isOpen(),
+                    send: (message) => this._wt!.send(message),
+                    sendQueued: (message) => this._wt!.send(message),
+                    isOpen: () => this._wt!.isOpen(),
                 });
                 return { transport: "webtransport", fellBack: false };
             } catch {
@@ -285,7 +296,7 @@ class LiveTransport {
         }
 
         setWsLiveSendBridge(null);
-        if (typeof WebSocketConnection.connect === "function") {
+        if (typeof (WebSocketConnection as { connect?: () => Promise<void> }).connect === "function") {
             await WebSocketConnection.connect();
         } else {
             WebSocketConnection.reconnect();
@@ -295,22 +306,22 @@ class LiveTransport {
         return { transport: "websocket", fellBack: this._fallbackNotified };
     }
 
-    send(message) {
+    send(message: string): boolean {
         return this._active.send(message);
     }
 
-    sendQueued(message) {
+    sendQueued(message: string): boolean {
         if (typeof this._active.sendQueued === "function") {
             return this._active.sendQueued(message);
         }
         return this._active.send(message);
     }
 
-    isOpen() {
+    isOpen(): boolean {
         return this._active.isOpen();
     }
 
-    reconnect() {
+    reconnect(): void {
         if (this._usingWt) {
             this._wt?.destroy();
             this._wt = null;
@@ -322,7 +333,7 @@ class LiveTransport {
         WebSocketConnection.reconnect();
     }
 
-    forceReconnect() {
+    forceReconnect(): void {
         if (typeof WebSocketConnection.forceReconnect === "function") {
             WebSocketConnection.forceReconnect();
         } else {
@@ -330,7 +341,7 @@ class LiveTransport {
         }
     }
 
-    destroy() {
+    destroy(): void {
         this._wt?.destroy();
         this._wt = null;
         setWsLiveSendBridge(null);
@@ -338,11 +349,11 @@ class LiveTransport {
         WebSocketConnection.destroy();
     }
 
-    get activeTransport() {
+    get activeTransport(): "webtransport" | "websocket" {
         return this._usingWt ? "webtransport" : "websocket";
     }
 
-    get fellBackThisSession() {
+    get fellBackThisSession(): boolean {
         return this._fallbackNotified;
     }
 }

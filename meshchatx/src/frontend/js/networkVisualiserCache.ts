@@ -16,9 +16,26 @@ const STORE_NAME = "snapshots";
 const CACHE_VERSION = 2;
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
+export type VisualiserCacheSnapshot = {
+    identityHash: string;
+    savedAt: number;
+    pathTable: unknown[];
+    announces: Record<string, unknown>;
+    positions: Record<string, unknown>;
+};
+
+export type VisualiserCacheSaveInput = {
+    identityHash: string;
+    pathTable: unknown[];
+    announces: Record<string, unknown>;
+    positions: Record<string, unknown>;
+    pathSoftCap?: number;
+    announceSoftCap?: number;
+};
+
 let dbPromise: Promise<IDBDatabase> | null = null;
 
-function openDb() {
+function openDb(): Promise<IDBDatabase> {
     if (dbPromise) {
         return dbPromise;
     }
@@ -35,24 +52,22 @@ function openDb() {
     return dbPromise;
 }
 
-function clonePlain(value) {
+function clonePlain<T>(value: T): T {
     return JSON.parse(JSON.stringify(value));
 }
 
-/**
- * @param {string} identityHash
- * @returns {Promise<{ identityHash: string, savedAt: number, pathTable: object[], announces: object, positions: object }|null>}
- */
-export async function loadVisualiserCache(identityHash) {
+export async function loadVisualiserCache(
+    identityHash: string | null | undefined
+): Promise<VisualiserCacheSnapshot | null> {
     if (!identityHash || typeof identityHash !== "string") {
         return null;
     }
     try {
         const db = await openDb();
-        const row = await new Promise<any>((resolve, reject) => {
+        const row = await new Promise<Record<string, unknown> | null>((resolve, reject) => {
             const tx = db.transaction(STORE_NAME, "readonly");
             const req = tx.objectStore(STORE_NAME).get(identityHash);
-            req.onsuccess = () => resolve(req.result || null);
+            req.onsuccess = () => resolve((req.result as Record<string, unknown>) || null);
             req.onerror = () => reject(req.error);
         });
         if (!row || row.version !== CACHE_VERSION) {
@@ -65,21 +80,20 @@ export async function loadVisualiserCache(identityHash) {
             return null;
         }
         return {
-            identityHash: row.identityHash,
+            identityHash: String(row.identityHash),
             savedAt: row.savedAt,
             pathTable: row.pathTable,
-            announces: row.announces && typeof row.announces === "object" ? row.announces : {},
-            positions: row.positions && typeof row.positions === "object" ? row.positions : {},
+            announces:
+                row.announces && typeof row.announces === "object" ? (row.announces as Record<string, unknown>) : {},
+            positions:
+                row.positions && typeof row.positions === "object" ? (row.positions as Record<string, unknown>) : {},
         };
     } catch {
         return null;
     }
 }
 
-/**
- * @param {{ identityHash: string, pathTable: object[], announces: object, positions: object, pathSoftCap?: number, announceSoftCap?: number }} snapshot
- */
-export async function saveVisualiserCache(snapshot) {
+export async function saveVisualiserCache(snapshot: VisualiserCacheSaveInput | null | undefined): Promise<boolean> {
     const identityHash = snapshot?.identityHash;
     if (!identityHash || typeof identityHash !== "string") {
         return false;
@@ -93,7 +107,7 @@ export async function saveVisualiserCache(snapshot) {
         }
         const announcesIn = snapshot.announces && typeof snapshot.announces === "object" ? snapshot.announces : {};
         const announceKeys = Object.keys(announcesIn);
-        let announces = announcesIn;
+        let announces: Record<string, unknown> = announcesIn;
         if (announceKeys.length > announceSoftCap) {
             announces = {};
             for (const key of announceKeys.slice(0, announceSoftCap)) {
@@ -102,7 +116,7 @@ export async function saveVisualiserCache(snapshot) {
         }
         const positions = snapshot.positions && typeof snapshot.positions === "object" ? snapshot.positions : {};
 
-        const row: any = {
+        const row = {
             identityHash,
             version: CACHE_VERSION,
             savedAt: Date.now(),
@@ -124,10 +138,7 @@ export async function saveVisualiserCache(snapshot) {
     }
 }
 
-/**
- * @param {string} identityHash
- */
-export async function clearVisualiserCache(identityHash) {
+export async function clearVisualiserCache(identityHash: string | null | undefined): Promise<boolean> {
     if (!identityHash) {
         return false;
     }
@@ -146,6 +157,6 @@ export async function clearVisualiserCache(identityHash) {
 }
 
 /** Test helper to reset the open handle between tests. */
-export function resetVisualiserCacheDbHandle() {
+export function resetVisualiserCacheDbHandle(): void {
     dbPromise = null;
 }

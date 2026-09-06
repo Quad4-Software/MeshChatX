@@ -16,11 +16,7 @@ export default class SerialTransport extends Transport {
     declare port: any;
     declare readable: any;
     declare writable: any;
-    /**
-     * @param {SerialPort} port wrapped serial port
-     * @param {{ polyfilled?: boolean, env?: object }} [options]
-     */
-    constructor(port, options: any = {}) {
+    constructor(port: any, options: { polyfilled?: boolean; env?: Record<string, any> } = {}) {
         super("serial");
         if (!port) {
             throw new Error("SerialTransport requires a SerialPort instance");
@@ -34,10 +30,8 @@ export default class SerialTransport extends Transport {
     /**
      * Request a port from the user via navigator.serial.requestPort. Returns
      * a SerialTransport wrapper or throws a descriptive error.
-     *
-     * @param {{ filters?: Array, env?: object }} [options]
      */
-    static async request(options: any = {}) {
+    static async request(options: { filters?: unknown[]; env?: Record<string, any> } = {}): Promise<SerialTransport> {
         const env = options.env || (typeof window !== "undefined" ? window : globalThis);
         if (!env.navigator?.serial) {
             const err = new Error("web_serial_unavailable");
@@ -62,7 +56,7 @@ export default class SerialTransport extends Transport {
             err.cause = cause;
             throw err;
         }
-        const polyfilled = Boolean(env.serial && env.navigator.serial === env.serial);
+        const polyfilled = Boolean((env as any).serial && env.navigator.serial === (env as any).serial);
         return new SerialTransport(port, { polyfilled, env });
     }
 

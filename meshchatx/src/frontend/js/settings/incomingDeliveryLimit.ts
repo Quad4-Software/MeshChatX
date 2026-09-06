@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: 0BSD
+
 /** Max incoming direct LXMF delivery size (matches server clamp). */
 export const INCOMING_DELIVERY_MAX_BYTES = 1_000_000_000;
 
@@ -9,7 +11,16 @@ export const INCOMING_DELIVERY_PRESET_BYTES = Object.freeze({
     "1gb": 1_000_000_000,
 });
 
-export function clampIncomingDeliveryBytes(bytes) {
+export type IncomingDeliveryPresetKey = keyof typeof INCOMING_DELIVERY_PRESET_BYTES;
+export type IncomingDeliveryUnit = "mb" | "gb";
+
+export type IncomingDeliveryFields = {
+    preset: string;
+    customAmount: number;
+    customUnit: IncomingDeliveryUnit;
+};
+
+export function clampIncomingDeliveryBytes(bytes: unknown): number {
     const n = Number(bytes);
     if (!Number.isFinite(n)) {
         return 10_000_000;
@@ -17,7 +28,10 @@ export function clampIncomingDeliveryBytes(bytes) {
     return Math.min(INCOMING_DELIVERY_MAX_BYTES, Math.max(1000, Math.round(n)));
 }
 
-function incomingDeliveryCustomFieldsFromBytes(bytes) {
+function incomingDeliveryCustomFieldsFromBytes(bytes: number): {
+    amount: number;
+    unit: IncomingDeliveryUnit;
+} {
     const b = clampIncomingDeliveryBytes(bytes);
     if (b >= 1_000_000_000 && b % 1_000_000_000 === 0) {
         return { amount: b / 1_000_000_000, unit: "gb" };
@@ -25,7 +39,7 @@ function incomingDeliveryCustomFieldsFromBytes(bytes) {
     return { amount: Math.round((b / 1_000_000) * 1_000_000) / 1_000_000, unit: "mb" };
 }
 
-export function syncIncomingDeliveryFieldsFromBytes(bytes) {
+export function syncIncomingDeliveryFieldsFromBytes(bytes: unknown): IncomingDeliveryFields {
     const b = clampIncomingDeliveryBytes(bytes);
     for (const [key, v] of Object.entries(INCOMING_DELIVERY_PRESET_BYTES)) {
         if (v === b) {
@@ -37,16 +51,16 @@ export function syncIncomingDeliveryFieldsFromBytes(bytes) {
     return { preset: "custom", customAmount: cf.amount, customUnit: cf.unit };
 }
 
-export function incomingDeliveryBytesFromCustom(amount, unit) {
+export function incomingDeliveryBytesFromCustom(amount: unknown, unit: unknown): number {
     const a = Number(amount);
     if (!Number.isFinite(a) || a <= 0) {
         return 10_000_000;
     }
-    const u = unit === "gb" ? "gb" : "mb";
+    const u: IncomingDeliveryUnit = unit === "gb" ? "gb" : "mb";
     const raw = u === "gb" ? a * 1_000_000_000 : a * 1_000_000;
     return clampIncomingDeliveryBytes(raw);
 }
 
-export function incomingDeliveryBytesFromPresetKey(presetKey) {
-    return INCOMING_DELIVERY_PRESET_BYTES[presetKey] ?? null;
+export function incomingDeliveryBytesFromPresetKey(presetKey: string): number | null {
+    return INCOMING_DELIVERY_PRESET_BYTES[presetKey as IncomingDeliveryPresetKey] ?? null;
 }

@@ -9,9 +9,7 @@ export type IngestUriRouter = {
     push: (location: { name?: string; query?: Record<string, unknown> } | string) => Promise<unknown> | unknown;
 };
 
-/**
- * @returns true when navigation was handled
- */
+/** Returns true when navigation was handled. */
 export async function handleLxmIngestUriResult(
     json: Record<string, unknown>,
     {

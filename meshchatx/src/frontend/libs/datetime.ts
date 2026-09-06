@@ -37,13 +37,29 @@ export const SUPPORTED_FORMAT_TOKENS = Object.freeze([
     "a",
 ]);
 
+export type FormatToken = (typeof SUPPORTED_FORMAT_TOKENS)[number];
+
 const TOKEN_RE = /YYYY|MMM|MM|M|DD|D|HH|H|hh|h|mm|A|a/g;
+
+export type FromNowFixedThreshold = Readonly<{
+    limitSec: number;
+    past: string;
+    future: string;
+}>;
+
+export type FromNowUnitThreshold = Readonly<{
+    limitSec: number;
+    unitSec: number;
+    unit: string;
+}>;
+
+export type FromNowThreshold = FromNowFixedThreshold | FromNowUnitThreshold;
 
 /**
  * Frozen relative-time thresholds. Do not change without updating golden tests.
  * limitSec is inclusive upper bound for the absolute second delta.
  */
-export const FROM_NOW_THRESHOLDS = Object.freeze([
+export const FROM_NOW_THRESHOLDS: readonly FromNowThreshold[] = Object.freeze([
     Object.freeze({ limitSec: 44, past: "a few seconds ago", future: "in a few seconds" }),
     Object.freeze({ limitSec: 89, past: "a minute ago", future: "in a minute" }),
     Object.freeze({ limitSec: 44 * 60, unitSec: 60, unit: "minute" }),
@@ -57,42 +73,39 @@ export const FROM_NOW_THRESHOLDS = Object.freeze([
     Object.freeze({ limitSec: Number.POSITIVE_INFINITY, unitSec: 365 * 86400, unit: "year" }),
 ]);
 
+export type FromNowGoldenEntry = readonly [deltaSec: number, expectedPast: string, expectedFuture: string];
+
 /**
  * Golden samples for fromNow. Kept next to the implementation so drift is obvious.
  * Each entry: [deltaSec, expectedPast, expectedFuture]
  */
-export const FROM_NOW_GOLDEN = Object.freeze([
-    Object.freeze([0, "a few seconds ago", "a few seconds ago"]),
-    Object.freeze([1, "a few seconds ago", "in a few seconds"]),
-    Object.freeze([44, "a few seconds ago", "in a few seconds"]),
-    Object.freeze([45, "a minute ago", "in a minute"]),
-    Object.freeze([89, "a minute ago", "in a minute"]),
-    Object.freeze([90, "2 minutes ago", "in 2 minutes"]),
-    Object.freeze([120, "2 minutes ago", "in 2 minutes"]),
-    Object.freeze([44 * 60, "44 minutes ago", "in 44 minutes"]),
-    Object.freeze([45 * 60, "an hour ago", "in an hour"]),
-    Object.freeze([89 * 60, "an hour ago", "in an hour"]),
-    Object.freeze([90 * 60, "2 hours ago", "in 2 hours"]),
-    Object.freeze([21 * 3600, "21 hours ago", "in 21 hours"]),
-    Object.freeze([22 * 3600, "a day ago", "in a day"]),
-    Object.freeze([35 * 3600, "a day ago", "in a day"]),
-    Object.freeze([36 * 3600, "2 days ago", "in 2 days"]),
-    Object.freeze([2 * 86400, "2 days ago", "in 2 days"]),
-    Object.freeze([25 * 86400, "25 days ago", "in 25 days"]),
-    Object.freeze([26 * 86400, "a month ago", "in a month"]),
-    Object.freeze([45 * 86400, "a month ago", "in a month"]),
-    Object.freeze([46 * 86400, "2 months ago", "in 2 months"]),
-    Object.freeze([10 * 30 * 86400, "10 months ago", "in 10 months"]),
-    Object.freeze([11 * 30 * 86400, "a year ago", "in a year"]),
-    Object.freeze([17 * 365 * 86400, "a year ago", "in a year"]),
-    Object.freeze([18 * 365 * 86400, "18 years ago", "in 18 years"]),
+export const FROM_NOW_GOLDEN: readonly FromNowGoldenEntry[] = Object.freeze([
+    Object.freeze([0, "a few seconds ago", "a few seconds ago"] as const),
+    Object.freeze([1, "a few seconds ago", "in a few seconds"] as const),
+    Object.freeze([44, "a few seconds ago", "in a few seconds"] as const),
+    Object.freeze([45, "a minute ago", "in a minute"] as const),
+    Object.freeze([89, "a minute ago", "in a minute"] as const),
+    Object.freeze([90, "2 minutes ago", "in 2 minutes"] as const),
+    Object.freeze([120, "2 minutes ago", "in 2 minutes"] as const),
+    Object.freeze([44 * 60, "44 minutes ago", "in 44 minutes"] as const),
+    Object.freeze([45 * 60, "an hour ago", "in an hour"] as const),
+    Object.freeze([89 * 60, "an hour ago", "in an hour"] as const),
+    Object.freeze([90 * 60, "2 hours ago", "in 2 hours"] as const),
+    Object.freeze([21 * 3600, "21 hours ago", "in 21 hours"] as const),
+    Object.freeze([22 * 3600, "a day ago", "in a day"] as const),
+    Object.freeze([35 * 3600, "a day ago", "in a day"] as const),
+    Object.freeze([36 * 3600, "2 days ago", "in 2 days"] as const),
+    Object.freeze([2 * 86400, "2 days ago", "in 2 days"] as const),
+    Object.freeze([25 * 86400, "25 days ago", "in 25 days"] as const),
+    Object.freeze([26 * 86400, "a month ago", "in a month"] as const),
+    Object.freeze([45 * 86400, "a month ago", "in a month"] as const),
+    Object.freeze([46 * 86400, "2 months ago", "in 2 months"] as const),
+    Object.freeze([10 * 30 * 86400, "10 months ago", "in 10 months"] as const),
+    Object.freeze([11 * 30 * 86400, "a year ago", "in a year"] as const),
+    Object.freeze([17 * 365 * 86400, "a year ago", "in a year"] as const),
+    Object.freeze([18 * 365 * 86400, "18 years ago", "in 18 years"] as const),
 ]);
-
-/**
- * @param {unknown} input
- * @returns {Date | null}
- */
-export function toDate(input) {
+export function toDate(input: unknown): Date | null {
     if (input == null || input === "") {
         return null;
     }
@@ -114,12 +127,7 @@ export function toDate(input) {
     return null;
 }
 
-/**
- * @param {Date} date
- * @param {string} token
- * @returns {string}
- */
-function formatToken(date, token) {
+function formatToken(date: Date, token: string): string {
     const month = date.getMonth();
     const day = date.getDate();
     const hours24 = date.getHours();
@@ -132,7 +140,7 @@ function formatToken(date, token) {
         case "YYYY":
             return String(year).padStart(4, "0");
         case "MMM":
-            return MONTHS_SHORT[month];
+            return MONTHS_SHORT[month] ?? token;
         case "MM":
             return String(month + 1).padStart(2, "0");
         case "M":
@@ -163,11 +171,8 @@ function formatToken(date, token) {
 /**
  * True when every format token in pattern is in SUPPORTED_FORMAT_TOKENS.
  * Literals and punctuation are ignored.
- *
- * @param {unknown} pattern
- * @returns {boolean}
  */
-export function isSupportedFormatPattern(pattern) {
+export function isSupportedFormatPattern(pattern: unknown): boolean {
     if (typeof pattern !== "string" || pattern.length === 0) {
         return false;
     }
@@ -175,18 +180,15 @@ export function isSupportedFormatPattern(pattern) {
     if (!matches) {
         return true;
     }
-    return matches.every((token) => SUPPORTED_FORMAT_TOKENS.includes(token));
+    const supported: readonly string[] = SUPPORTED_FORMAT_TOKENS;
+    return matches.every((token) => supported.includes(token));
 }
 
 /**
  * Format a date with the frozen token subset.
  * Supported: YYYY MMM MM M DD D HH H hh h mm A a
- *
- * @param {unknown} input
- * @param {string} pattern
- * @returns {string}
  */
-export function formatDate(input, pattern) {
+export function formatDate(input: unknown, pattern: unknown): string {
     const date = toDate(input);
     if (!date || typeof pattern !== "string" || pattern.length === 0) {
         return "";
@@ -194,25 +196,15 @@ export function formatDate(input, pattern) {
     return pattern.replace(TOKEN_RE, (token) => formatToken(date, token));
 }
 
-/**
- * @param {string} unit
- * @param {number} n
- * @param {boolean} isFuture
- * @returns {string}
- */
-function pluralUnitLabel(unit, n, isFuture) {
+function pluralUnitLabel(unit: string, n: number, isFuture: boolean): string {
     const word = n === 1 ? unit : `${unit}s`;
     return isFuture ? `in ${n} ${word}` : `${n} ${word} ago`;
 }
 
 /**
  * Pure relative label from absolute seconds and polarity.
- *
- * @param {number} absSec
- * @param {boolean} isFuture
- * @returns {string}
  */
-export function relativeLabel(absSec, isFuture) {
+export function relativeLabel(absSec: number, isFuture: boolean): string {
     const sec = Math.max(0, Math.round(Number(absSec) || 0));
     for (const row of FROM_NOW_THRESHOLDS) {
         if (sec > row.limitSec) {
@@ -232,13 +224,9 @@ export function relativeLabel(absSec, isFuture) {
 }
 
 /**
- * Relative time string from `input` toward `now` (default Date.now()).
- *
- * @param {unknown} input
- * @param {unknown} [nowInput]
- * @returns {string}
+ * Relative time string from input toward now (default Date.now()).
  */
-export function fromNow(input, nowInput = Date.now()) {
+export function fromNow(input: unknown, nowInput: unknown = Date.now()): string {
     const date = toDate(input);
     const now = toDate(nowInput);
     if (!date || !now) {
@@ -250,12 +238,16 @@ export function fromNow(input, nowInput = Date.now()) {
     return relativeLabel(absSec, isFuture);
 }
 
+export interface MeshDateHelper {
+    format(pattern: unknown): string;
+    fromNow(nowInput?: unknown): string;
+    toDate(): Date | null;
+}
+
 /**
  * dayjs-like helper for call sites that previously did dayjs(x).format / .fromNow.
- *
- * @param {unknown} input
  */
-export function meshDate(input) {
+export function meshDate(input: unknown): MeshDateHelper {
     return {
         format(pattern) {
             return formatDate(input, pattern);

@@ -12,17 +12,26 @@ const ALLOWED_DATA_PREFIXES = [
 
 const ALLOWED_KMZ_EXT = /\.(kml|png|jpe?g|gif|webp)$/i;
 
+export type KmlSanitizeOptions = {
+    zipLocalOk?: boolean;
+};
+
+export type KmlSanitizeResult = {
+    text: string;
+    stripped: string[];
+};
+
 export class KmlSanitizeError extends Error {
-    declare code: any;
+    declare code: string;
     declare name: string;
-    constructor(code, message?) {
+    constructor(code: string, message?: string) {
         super(message || code);
         this.name = "KmlSanitizeError";
         this.code = code;
     }
 }
 
-export function isRemoteHref(href) {
+export function isRemoteHref(href: unknown): boolean {
     const h = String(href || "").trim();
     if (!h) {
         return false;
@@ -34,7 +43,7 @@ export function isRemoteHref(href) {
     return /^(https?:|file:|ftp:|javascript:|vbscript:)/i.test(h);
 }
 
-export function isAllowedDataImageHref(href) {
+export function isAllowedDataImageHref(href: unknown): boolean {
     const h = String(href || "")
         .trim()
         .toLowerCase();
@@ -44,14 +53,14 @@ export function isAllowedDataImageHref(href) {
     return ALLOWED_DATA_PREFIXES.some((p) => h.startsWith(p));
 }
 
-function looksLikeDtd(text) {
+function looksLikeDtd(text: unknown): boolean {
     const head = String(text || "")
         .slice(0, 4096)
         .toUpperCase();
     return head.includes("<!DOCTYPE") || head.includes("<!ENTITY");
 }
 
-function dropTagBlocks(text, blockRe, emptyRe) {
+function dropTagBlocks(text: string, blockRe: RegExp, emptyRe: RegExp): { text: string; count: number } {
     let out = String(text);
     let n = 0;
     out = out.replace(blockRe, () => {
@@ -65,7 +74,7 @@ function dropTagBlocks(text, blockRe, emptyRe) {
     return { text: out, count: n };
 }
 
-function rewriteHrefs(text, { zipLocalOk }) {
+function rewriteHrefs(text: string, { zipLocalOk }: { zipLocalOk: boolean }): KmlSanitizeResult {
     const stripped: string[] = [];
     const out = String(text).replace(/<href>\s*([^<]+?)\s*<\/href>/gi, (full, inner) => {
         const raw = String(inner).trim();
@@ -85,7 +94,7 @@ function rewriteHrefs(text, { zipLocalOk }) {
     return { text: out, stripped };
 }
 
-function rewriteHrefAttrs(text, { zipLocalOk }) {
+function rewriteHrefAttrs(text: string, { zipLocalOk }: { zipLocalOk: boolean }): KmlSanitizeResult {
     const stripped: string[] = [];
     const out = String(text).replace(/(\s(?:xlink:)?href\s*=\s*)(["'])([^"']+)\2/gi, (full, _prefix, _quote, inner) => {
         const raw = String(inner).trim();
@@ -101,7 +110,7 @@ function rewriteHrefAttrs(text, { zipLocalOk }) {
     return { text: out, stripped };
 }
 
-function unwrapDescriptionInner(inner) {
+function unwrapDescriptionInner(inner: string): string {
     const trimmed = String(inner).trim();
     const cdata = trimmed.match(/^<!\[CDATA\[([\s\S]*?)\]\]>$/);
     if (cdata) {
@@ -110,15 +119,15 @@ function unwrapDescriptionInner(inner) {
     return String(inner);
 }
 
-function escapeXmlText(value) {
+function escapeXmlText(value: string): string {
     return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function looksLikeHtml(value) {
+function looksLikeHtml(value: string): boolean {
     return /<[a-z][\s\S]*>/i.test(value);
 }
 
-function stripDescriptionHtml(text) {
+function stripDescriptionHtml(text: string): KmlSanitizeResult {
     const stripped: string[] = [];
     const out = String(text).replace(/<description\b[^>]*>([\s\S]*?)<\/description>/gi, (full, inner) => {
         const content = unwrapDescriptionInner(inner);
@@ -132,12 +141,7 @@ function stripDescriptionHtml(text) {
     return { text: out, stripped };
 }
 
-/**
- * @param {string} text
- * @param {{ zipLocalOk?: boolean }} [opts]
- * @returns {{ text: string, stripped: string[] }}
- */
-export function sanitizeKmlText(text, opts: any = {}) {
+export function sanitizeKmlText(text: string, opts: KmlSanitizeOptions = {}): KmlSanitizeResult {
     const zipLocalOk = Boolean(opts.zipLocalOk);
     if (looksLikeDtd(text)) {
         throw new KmlSanitizeError("dtd_forbidden");
@@ -193,7 +197,7 @@ export function sanitizeKmlText(text, opts: any = {}) {
     return { text: out, stripped };
 }
 
-export function kmzEntryAllowed(name) {
+export function kmzEntryAllowed(name: string | null | undefined): boolean {
     const n = String(name || "").replace(/\\/g, "/");
     if (n.split("/").includes("..")) {
         return false;

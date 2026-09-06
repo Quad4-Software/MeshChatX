@@ -5,14 +5,32 @@ import { calendarDayKeyFromDate } from "./messageTimestampGrouping.js";
 const OR_SPLIT_RE = /\s+OR\s+/i;
 const DATE_TOKEN_RE = /\bDATE:("([^"]+)"|(\S+))/gi;
 
-/**
- * @param {string} raw
- * @returns {string[]}
- */
-export function tokenizeSearchTerms(raw) {
+export type RelaySearchClause = {
+    dateKey: string | null;
+    terms: string[];
+};
+
+export type RelaySearchMessage = {
+    ts?: number | string | null;
+    text?: unknown;
+    nick?: unknown;
+    [key: string]: unknown;
+};
+
+export type RelaySearchMember = {
+    name?: unknown;
+    nickname?: unknown;
+    hash?: unknown;
+    identity_hash?: unknown;
+    [key: string]: unknown;
+};
+
+export type RelayDisplayNameFn = (msg?: any) => string;
+
+export function tokenizeSearchTerms(raw: string): string[] {
     const out: string[] = [];
     const re = /[^\s"]+|"([^"]*)"/g;
-    let m;
+    let m: RegExpExecArray | null;
     while ((m = re.exec(raw)) !== null) {
         const term = (m[1] !== undefined ? m[1] : m[0]).trim();
         if (term) {
@@ -22,11 +40,8 @@ export function tokenizeSearchTerms(raw) {
     return out;
 }
 
-/**
- * @param {string} token
- * @returns {string | null} YYYY-MM-DD day key
- */
-export function parseDateSearchToken(token) {
+/** Parse DATE:today|yesterday|YYYY-MM-DD into a YYYY-MM-DD day key. */
+export function parseDateSearchToken(token: string): string | null {
     if (!token || typeof token !== "string") {
         return null;
     }
@@ -50,14 +65,10 @@ export function parseDateSearchToken(token) {
     return null;
 }
 
-/**
- * @param {string} clauseText
- * @returns {{ dateKey: string | null, terms: string[] }}
- */
-export function parseSearchClause(clauseText) {
+export function parseSearchClause(clauseText: string): RelaySearchClause {
     let text = clauseText.trim();
     let dateKey: string | null = null;
-    text = text.replace(DATE_TOKEN_RE, (_, _q, quoted, bare) => {
+    text = text.replace(DATE_TOKEN_RE, (_match, _q, quoted, bare) => {
         const parsed = parseDateSearchToken(quoted !== undefined ? quoted : bare);
         if (parsed) {
             dateKey = parsed;
@@ -67,11 +78,7 @@ export function parseSearchClause(clauseText) {
     return { dateKey, terms: tokenizeSearchTerms(text.trim()) };
 }
 
-/**
- * @param {string} query
- * @returns {{ dateKey: string | null, terms: string[] }[]}
- */
-export function parseRelaySearchQuery(query) {
+export function parseRelaySearchQuery(query: string): RelaySearchClause[] {
     const trimmed = (query || "").trim();
     if (!trimmed) {
         return [];
@@ -83,13 +90,11 @@ export function parseRelaySearchQuery(query) {
     return parts.map(parseSearchClause);
 }
 
-/**
- * @param {object} msg
- * @param {{ dateKey: string | null, terms: string[] }} clause
- * @param {(msg: object) => string} displayNameFn
- * @returns {boolean}
- */
-export function messageMatchesSearchClause(msg, clause, displayNameFn) {
+export function messageMatchesSearchClause(
+    msg: RelaySearchMessage,
+    clause: RelaySearchClause,
+    displayNameFn: RelayDisplayNameFn
+): boolean {
     if (clause.dateKey) {
         const ts = msg?.ts;
         if (ts == null) {
@@ -111,13 +116,11 @@ export function messageMatchesSearchClause(msg, clause, displayNameFn) {
     return clause.terms.every((term) => hay.includes(term.toLowerCase()));
 }
 
-/**
- * @param {object[]} messages
- * @param {string} query
- * @param {(msg: object) => string} displayNameFn
- * @returns {object[]}
- */
-export function filterRelayMessages(messages, query, displayNameFn) {
+export function filterRelayMessages<T extends RelaySearchMessage>(
+    messages: T[],
+    query: string,
+    displayNameFn: RelayDisplayNameFn
+): T[] {
     const trimmed = (query || "").trim();
     if (!trimmed || !Array.isArray(messages)) {
         return [];
@@ -129,12 +132,7 @@ export function filterRelayMessages(messages, query, displayNameFn) {
     return messages.filter((msg) => clauses.some((clause) => messageMatchesSearchClause(msg, clause, displayNameFn)));
 }
 
-/**
- * @param {object[]} members
- * @param {string} query
- * @returns {object[]}
- */
-export function filterRelayMembers(members, query) {
+export function filterRelayMembers<T extends RelaySearchMember>(members: T[], query: string): T[] {
     const q = (query || "").trim().toLowerCase();
     if (!q || !Array.isArray(members)) {
         return members || [];

@@ -230,7 +230,7 @@
         displayEdgeCount = 0;
         if (webglEngine) {
             try {
-                webglEngine.setData({ nodes: [], links: [], positions: {} });
+                webglEngine.setGraph([], []);
             } catch {
                 /* ignore */
             }

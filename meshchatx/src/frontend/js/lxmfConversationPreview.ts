@@ -8,7 +8,27 @@
 
 import { reactionEmojiFromLxmfMessageFields } from "./lxmfReactions.js";
 
-function sidebarActorName(msg, { myLxmfAddressHash, peerDisplayName, t }) {
+export type LxmfPreviewTranslate = (k: string, v?: Record<string, unknown>) => string;
+
+export type LxmfPreviewContext = {
+    myLxmfAddressHash: string;
+    peerDisplayName: string;
+    t?: LxmfPreviewTranslate;
+};
+
+export type LxmfPreviewMessage = {
+    content?: unknown;
+    is_incoming?: boolean;
+    source_hash?: string;
+    fields?: Record<string, unknown> | null;
+    is_reaction?: boolean;
+    reaction_emoji?: string;
+};
+
+function sidebarActorName(
+    msg: LxmfPreviewMessage,
+    { myLxmfAddressHash, peerDisplayName, t }: LxmfPreviewContext
+): string {
     const incoming = Boolean(msg?.is_incoming);
     const src = String(msg?.source_hash || "").toLowerCase();
     const me = String(myLxmfAddressHash || "").toLowerCase();
@@ -22,21 +42,28 @@ function sidebarActorName(msg, { myLxmfAddressHash, peerDisplayName, t }) {
     return peerDisplayName || "Anonymous Peer";
 }
 
-function fieldsHaveSidebandLocationRequest(fields) {
-    if (!fields?.commands || !Array.isArray(fields.commands)) {
+function fieldsHaveSidebandLocationRequest(fields: Record<string, unknown> | null | undefined): boolean {
+    const commands = fields?.commands;
+    if (!commands || !Array.isArray(commands)) {
         return false;
     }
-    return fields.commands.some(
-        (c) => c && (c["0x01"] !== undefined || c["1"] !== undefined || c["0x1"] !== undefined)
+    return commands.some(
+        (c) =>
+            c &&
+            typeof c === "object" &&
+            (("0x01" in c && (c as Record<string, unknown>)["0x01"] !== undefined) ||
+                ("1" in c && (c as Record<string, unknown>)["1"] !== undefined) ||
+                ("0x1" in c && (c as Record<string, unknown>)["0x1"] !== undefined))
     );
 }
 
-function fieldsHaveTelemetryLocation(fields) {
-    const loc = fields?.telemetry?.location;
+function fieldsHaveTelemetryLocation(fields: Record<string, unknown> | null | undefined): boolean {
+    const telemetry = fields?.telemetry as Record<string, unknown> | undefined;
+    const loc = telemetry?.location;
     return loc != null && typeof loc === "object";
 }
 
-function isOutboundFromSelf(msg, myLxmfAddressHash) {
+function isOutboundFromSelf(msg: LxmfPreviewMessage, myLxmfAddressHash: string): boolean {
     if (msg?.is_incoming) {
         return false;
     }
@@ -45,16 +72,14 @@ function isOutboundFromSelf(msg, myLxmfAddressHash) {
     return Boolean(me && src === me);
 }
 
-/**
- * @param {object} msg
- * @param {{ myLxmfAddressHash: string, peerDisplayName: string, t?: (k: string, v?: object) => string }} ctx
- * @returns {string}
- */
-export function lxmfConversationListPreview(msg, { myLxmfAddressHash, peerDisplayName, t }) {
+export function lxmfConversationListPreview(
+    msg: LxmfPreviewMessage,
+    { myLxmfAddressHash, peerDisplayName, t }: LxmfPreviewContext
+): string {
     const raw = msg?.content;
     const content = typeof raw === "string" ? raw.trim() : "";
     if (content) {
-        return raw;
+        return raw as string;
     }
 
     const fields = msg?.fields;
@@ -80,14 +105,16 @@ export function lxmfConversationListPreview(msg, { myLxmfAddressHash, peerDispla
         return fromSelf ? "You shared your location" : `${name} shared their location`;
     }
 
-    if (fields?.telemetry_stream?.length) {
+    const telemetryStream = fields?.telemetry_stream;
+    if (Array.isArray(telemetryStream) && telemetryStream.length) {
         if (typeof t === "function") {
             return t("messages.conversation_telemetry_stream_preview", { name });
         }
         return `${name} sent a telemetry stream`;
     }
 
-    if (fields?.telemetry && typeof fields.telemetry === "object" && Object.keys(fields.telemetry).length > 0) {
+    const telemetry = fields?.telemetry;
+    if (telemetry && typeof telemetry === "object" && Object.keys(telemetry as object).length > 0) {
         if (typeof t === "function") {
             return t("messages.conversation_telemetry_preview", { name });
         }
@@ -104,7 +131,7 @@ export function lxmfConversationListPreview(msg, { myLxmfAddressHash, peerDispla
     }
 
     const imageField = fields?.image;
-    if (imageField && typeof imageField === "object" && Object.keys(imageField).length > 0) {
+    if (imageField && typeof imageField === "object" && Object.keys(imageField as object).length > 0) {
         const fromSelf = isOutboundFromSelf(msg, myLxmfAddressHash);
         if (typeof t === "function") {
             return fromSelf ? t("messages.conversation_image_you") : t("messages.conversation_image_other", { name });
@@ -113,7 +140,7 @@ export function lxmfConversationListPreview(msg, { myLxmfAddressHash, peerDispla
     }
 
     const audioField = fields?.audio;
-    if (audioField && typeof audioField === "object" && Object.keys(audioField).length > 0) {
+    if (audioField && typeof audioField === "object" && Object.keys(audioField as object).length > 0) {
         const fromSelf = isOutboundFromSelf(msg, myLxmfAddressHash);
         if (typeof t === "function") {
             return fromSelf ? t("messages.conversation_voice_you") : t("messages.conversation_voice_other", { name });
@@ -139,5 +166,5 @@ export function lxmfConversationListPreview(msg, { myLxmfAddressHash, peerDispla
         return fromSelf ? `You sent ${n} files` : `${name} sent ${n} files`;
     }
 
-    return raw ?? "";
+    return (raw as string) ?? "";
 }

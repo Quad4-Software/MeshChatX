@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: 0BSD
 
+import type Feature from "ol/Feature";
+import type { ProjectionLike } from "ol/proj";
+import type Style from "ol/style/Style";
 import GeoJSON from "ol/format/GeoJSON";
 import { normalizeFeatureMetadataProps } from "./metadataUtils.js";
 import { copyStyleMetadataToProperties, styleFromMcxProperties } from "./styleFromProperties.js";
@@ -8,11 +11,8 @@ import { MCX_ICON_DATA_URL, MCX_ICON_HREF } from "./constants.js";
 
 const ICON_URL_KEYS = new Set(["href", "url", "icon", "image", "iconurl", MCX_ICON_HREF, "marker-symbol"]);
 
-/**
- * Strip remote / unsafe icon URLs from a feature (mirrors backend geojson sanitizer).
- * @param {import("ol/Feature").default} feature
- */
-export function stripRemoteIconProperties(feature) {
+/** Strip remote / unsafe icon URLs from a feature (mirrors backend geojson sanitizer). */
+export function stripRemoteIconProperties(feature: Feature | null | undefined): void {
     if (!feature) {
         return;
     }
@@ -35,12 +35,7 @@ export function stripRemoteIconProperties(feature) {
     }
 }
 
-/**
- * @param {string} text
- * @param {import("ol/proj").ProjectionLike} featureProjection
- * @returns {import("ol/Feature").default[]}
- */
-export function readGeoJsonToFeatures(text, featureProjection) {
+export function readGeoJsonToFeatures(text: string, featureProjection: ProjectionLike): Feature[] {
     const format = new GeoJSON();
     const features = format.readFeatures(text, {
         dataProjection: "EPSG:4326",
@@ -59,20 +54,15 @@ export function readGeoJsonToFeatures(text, featureProjection) {
     return features;
 }
 
-/**
- * @param {import("ol/Feature").default[]} features
- * @param {import("ol/proj").ProjectionLike} featureProjection
- * @returns {string}
- */
-export function writeFeaturesToGeoJson(features, featureProjection) {
+export function writeFeaturesToGeoJson(features: Feature[], featureProjection: ProjectionLike): string {
     const format = new GeoJSON();
     for (const f of features) {
-        let st = f.getStyle();
+        let st: ReturnType<Feature["getStyle"]> = f.getStyle();
         if (typeof st === "function") {
-            st = null;
+            st = undefined;
         }
         if (st) {
-            copyStyleMetadataToProperties(st, f);
+            copyStyleMetadataToProperties(st as Style | Style[], f);
         } else {
             const built = styleFromMcxProperties(f);
             if (built) {

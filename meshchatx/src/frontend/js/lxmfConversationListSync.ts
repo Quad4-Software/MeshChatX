@@ -1,13 +1,20 @@
 // SPDX-License-Identifier: 0BSD
 
+export type ConversationListRow = {
+    destination_hash?: string;
+    updated_at?: string | null;
+    is_unread?: boolean;
+    failed_messages_count?: number;
+    latest_message_created_at?: number | string | null;
+    latest_message_preview?: string | null;
+    [key: string]: unknown;
+};
+
 /**
  * Build a compact signature for a conversation list page.
  * Used to skip redundant sidebar refreshes when polling returns unchanged data.
- *
- * @param {Array<{ destination_hash?: string, updated_at?: string, is_unread?: boolean, failed_messages_count?: number, latest_message_created_at?: number | string | null }>} conversations
- * @returns {string}
  */
-export function conversationListSignature(conversations) {
+export function conversationListSignature(conversations: ConversationListRow[]): string {
     if (!Array.isArray(conversations) || conversations.length === 0) {
         return "";
     }
@@ -24,13 +31,8 @@ export function conversationListSignature(conversations) {
         .join("\u241e");
 }
 
-/**
- * Count unread conversations in a list.
- *
- * @param {Array<{ is_unread?: boolean }>} conversations
- * @returns {number}
- */
-export function countUnreadConversations(conversations) {
+/** Count unread conversations in a list. */
+export function countUnreadConversations(conversations: ConversationListRow[]): number {
     if (!Array.isArray(conversations)) {
         return 0;
     }
@@ -43,14 +45,11 @@ export function countUnreadConversations(conversations) {
     return count;
 }
 
-/**
- * Pin selected conversations to the top while keeping relative recency order.
- *
- * @param {Array<{ destination_hash?: string }>} conversations
- * @param {Set<string>} pinnedHashes
- * @returns {Array<object>}
- */
-export function sortConversationsPinnedFirst(conversations, pinnedHashes) {
+/** Pin selected conversations to the top while keeping relative recency order. */
+export function sortConversationsPinnedFirst(
+    conversations: ConversationListRow[],
+    pinnedHashes: Set<string>
+): ConversationListRow[] {
     if (!Array.isArray(conversations) || conversations.length === 0) {
         return conversations || [];
     }
@@ -59,8 +58,8 @@ export function sortConversationsPinnedFirst(conversations, pinnedHashes) {
     }
     const idx = new Map(conversations.map((conversation, index) => [conversation.destination_hash, index]));
     return [...conversations].sort((a, b) => {
-        const ap = pinnedHashes.has(a.destination_hash);
-        const bp = pinnedHashes.has(b.destination_hash);
+        const ap = pinnedHashes.has(a.destination_hash as string);
+        const bp = pinnedHashes.has(b.destination_hash as string);
         if (ap !== bp) {
             return ap ? -1 : 1;
         }
@@ -70,12 +69,9 @@ export function sortConversationsPinnedFirst(conversations, pinnedHashes) {
 
 /**
  * Apply a refreshed conversation page in place, preserving row object identity when possible.
- *
- * @param {Array<object>} existing
- * @param {Array<object>} incoming
- * @returns {boolean} true when any visible list state changed
+ * Returns true when any visible list state changed.
  */
-export function syncConversationListInPlace(existing, incoming) {
+export function syncConversationListInPlace(existing: ConversationListRow[], incoming: ConversationListRow[]): boolean {
     if (!Array.isArray(existing) || !Array.isArray(incoming)) {
         return false;
     }
@@ -92,7 +88,7 @@ export function syncConversationListInPlace(existing, incoming) {
     }
 
     const existingByHash = new Map(existing.map((conversation) => [conversation.destination_hash, conversation]));
-    const nextRows: any[] = [];
+    const nextRows: ConversationListRow[] = [];
     for (const conversation of incoming) {
         const hash = conversation?.destination_hash;
         if (!hash) {

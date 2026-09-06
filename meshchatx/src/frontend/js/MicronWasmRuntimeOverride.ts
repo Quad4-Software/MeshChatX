@@ -10,7 +10,13 @@ const DB_VERSION = 1;
 const STORE = "kv";
 const KEY = "runtime_override";
 
-/** @typedef {{ source: "upload", releaseTag: string, wasmSri: string, wasmBytes: ArrayBuffer, expectedSha256Hex: string|null }} MicronWasmRuntimeOverrideRecord */
+export type MicronWasmRuntimeOverrideRecord = {
+    source: "upload";
+    releaseTag: string;
+    wasmSri: string;
+    wasmBytes: ArrayBuffer;
+    expectedSha256Hex: string | null;
+};
 
 export const WASM_FILENAME = "micron-parser-go.wasm";
 
@@ -26,8 +32,7 @@ function openDb() {
     });
 }
 
-/** @param {ArrayBuffer} buf */
-export async function sha256HexOfBuffer(buf) {
+export async function sha256HexOfBuffer(buf: ArrayBuffer): Promise<string> {
     const d = await crypto.subtle.digest("SHA-256", buf);
     const bytes = new Uint8Array(d);
     let hex = "";
@@ -37,23 +42,19 @@ export async function sha256HexOfBuffer(buf) {
     return hex;
 }
 
-/** @param {ArrayBuffer} buf */
-export async function computeWasmSriSha384(buf) {
+export async function computeWasmSriSha384(buf: ArrayBuffer): Promise<string> {
     const hash = await crypto.subtle.digest("SHA-384", buf);
     const base64 = btoa(String.fromCharCode(...new Uint8Array(hash)));
     return `sha384-${base64}`;
 }
 
-function assertSri(wasmSri) {
+function assertSri(wasmSri: unknown): asserts wasmSri is string {
     if (typeof wasmSri !== "string" || !/^sha384-[A-Za-z0-9+/=]+$/.test(wasmSri)) {
         throw new Error("Micron WASM update: invalid SRI format");
     }
 }
 
-/**
- * @param {MicronWasmRuntimeOverrideRecord} record
- */
-export async function setMicronWasmRuntimeOverride(record) {
+export async function setMicronWasmRuntimeOverride(record: MicronWasmRuntimeOverrideRecord): Promise<void> {
     if (!record || !record.wasmBytes) {
         throw new Error("Micron WASM update: missing WASM data");
     }
@@ -91,15 +92,14 @@ export async function setMicronWasmRuntimeOverride(record) {
     }
 }
 
-/** @returns {Promise<MicronWasmRuntimeOverrideRecord|null>} */
-export async function getMicronWasmRuntimeOverride() {
+export async function getMicronWasmRuntimeOverride(): Promise<MicronWasmRuntimeOverrideRecord | null> {
     const db = await openDb();
     try {
         const tx = db.transaction(STORE, "readonly");
         const st = tx.objectStore(STORE);
-        const raw = await new Promise<any>((resolve, reject) => {
+        const raw = await new Promise<MicronWasmRuntimeOverrideRecord | null>((resolve, reject) => {
             const r = st.get(KEY);
-            r.onsuccess = () => resolve(r.result || null);
+            r.onsuccess = () => resolve((r.result as MicronWasmRuntimeOverrideRecord | undefined) || null);
             r.onerror = () => reject(r.error || new Error("IndexedDB read failed"));
         });
         if (!raw || !raw.wasmBytes || !raw.wasmSri) {
@@ -117,7 +117,7 @@ export async function getMicronWasmRuntimeOverride() {
     }
 }
 
-export async function clearMicronWasmRuntimeOverride() {
+export async function clearMicronWasmRuntimeOverride(): Promise<void> {
     const db = await openDb();
     try {
         const tx = db.transaction(STORE, "readwrite");

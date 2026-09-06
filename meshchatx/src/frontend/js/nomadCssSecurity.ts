@@ -5,13 +5,8 @@
  * used in CSS exfiltration research (image-set, cross-fade, @import).
  */
 
-/**
- * Neutralise network and script-like CSS from a style sheet body.
- *
- * @param {string} css
- * @returns {string}
- */
-export function scrubNetworkCss(css) {
+/** Neutralise network and script-like CSS from a style sheet body. */
+export function scrubNetworkCss(css: string): string {
     if (!css) {
         return "";
     }
@@ -29,13 +24,8 @@ export function scrubNetworkCss(css) {
     return s;
 }
 
-/**
- * True when an inline style declaration is a clearnet or scripted network paint.
- *
- * @param {string} decl
- * @returns {boolean}
- */
-export function inlineStyleHasNetworkPaint(decl) {
+/** True when an inline style declaration is a clearnet or scripted network paint. */
+export function inlineStyleHasNetworkPaint(decl: string): boolean {
     const d = String(decl);
     if (/url\s*\(\s*["']?(?:https?:|\/\/)/i.test(d)) {
         return true;

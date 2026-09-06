@@ -3,13 +3,11 @@
  * Release channel helpers for About/sidebar badges and Testing/Beta prompts.
  */
 
-export const PRODUCT_CHANNELS = Object.freeze(["testing", "beta", "stable", "local"]);
+export const PRODUCT_CHANNELS = Object.freeze(["testing", "beta", "stable", "local"] as const);
 
-/**
- * @param {unknown} raw
- * @returns {"testing"|"beta"|"stable"|"local"|string}
- */
-export function normalizeReleaseChannel(raw) {
+export type ProductChannel = (typeof PRODUCT_CHANNELS)[number];
+
+export function normalizeReleaseChannel(raw: unknown): ProductChannel | string {
     const c = String(raw || "")
         .trim()
         .toLowerCase();
@@ -31,11 +29,7 @@ export function normalizeReleaseChannel(raw) {
     return c;
 }
 
-/**
- * @param {unknown} channel
- * @returns {string}
- */
-export function channelLabelKey(channel) {
+export function channelLabelKey(channel: unknown): string {
     const c = normalizeReleaseChannel(channel);
     if (c === "testing") {
         return "about.channel_testing";
@@ -52,12 +46,8 @@ export function channelLabelKey(channel) {
     return "about.channel_local";
 }
 
-/**
- * Tailwind classes for channel pill.
- * @param {unknown} channel
- * @returns {string}
- */
-export function channelBadgeClass(channel) {
+/** Tailwind classes for channel pill. */
+export function channelBadgeClass(channel: unknown): string {
     const c = normalizeReleaseChannel(channel);
     if (c === "testing") {
         return "bg-amber-600 text-white";
@@ -71,11 +61,16 @@ export function channelBadgeClass(channel) {
     return "bg-zinc-600 text-white";
 }
 
-/**
- * @param {{ build_channel?: string, version?: string, display_version?: string, git_commit_short?: string, git_commit?: string }} appInfo
- * @returns {string}
- */
-export function channelPromptSeenKey(appInfo) {
+export type ChannelPromptAppInfo = {
+    build_channel?: string;
+    version?: string;
+    display_version?: string;
+    git_commit_short?: string;
+    git_commit?: string;
+    channel_prompt_seen?: string;
+};
+
+export function channelPromptSeenKey(appInfo: ChannelPromptAppInfo | null | undefined): string {
     const info = appInfo || {};
     const channel = normalizeReleaseChannel(info.build_channel);
     const version = String(info.display_version || info.version || "unknown").trim() || "unknown";
@@ -86,11 +81,7 @@ export function channelPromptSeenKey(appInfo) {
     return `${channel}:${version}:${short}`;
 }
 
-/**
- * @param {{ build_channel?: string, channel_prompt_seen?: string } & object} appInfo
- * @returns {boolean}
- */
-export function shouldShowChannelPrompt(appInfo) {
+export function shouldShowChannelPrompt(appInfo: ChannelPromptAppInfo | null | undefined): boolean {
     const info = appInfo || {};
     const channel = normalizeReleaseChannel(info.build_channel);
     if (channel !== "testing" && channel !== "beta") {
@@ -101,12 +92,21 @@ export function shouldShowChannelPrompt(appInfo) {
     return seen !== key;
 }
 
-/**
- * Prefer LXMF report destination. Optional http(s) URL is secondary.
- * @param {{ bug_report_lxmf?: string, bug_report_url?: string }} prompt
- * @returns {{ kind: "lxmf"|"url"|"", value: string }}
- */
-export function channelBugReportTarget(prompt) {
+export type BugReportPrompt = {
+    bug_report_lxmf?: string;
+    bug_report_url?: string;
+    [key: string]: unknown;
+};
+
+export type BugReportTarget = {
+    kind: "lxmf" | "url" | "";
+    value: string;
+};
+
+/** Prefer LXMF report destination. Optional http(s) URL is secondary. */
+export function channelBugReportTarget(
+    prompt: BugReportPrompt | Record<string, unknown> | null | undefined
+): BugReportTarget {
     const p = prompt && typeof prompt === "object" ? prompt : {};
     const lxmf = typeof p.bug_report_lxmf === "string" ? p.bug_report_lxmf.trim() : "";
     if (lxmf) {
