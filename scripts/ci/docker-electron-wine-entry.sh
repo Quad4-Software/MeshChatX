@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run inside Dockerfile.electron-wine (electronuserland/builder + Wine Python).
+# Run inside docker/Dockerfile.electron-wine (electronuserland/builder + Wine Python).
 # Builds Windows Electron portable/NSIS via electron-builder under Wine.
 #
 # Env:

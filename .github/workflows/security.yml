@@ -80,7 +80,7 @@ jobs:
             - name: Trivy Dockerfile misconfiguration
               run: |
                   set -euo pipefail
-                  for f in Dockerfile Dockerfile.hardened; do
+                  for f in docker/Dockerfile docker/Dockerfile.hardened; do
                     trivy config --exit-code 1 "$f"
                   done
 

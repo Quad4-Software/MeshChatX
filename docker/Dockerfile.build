@@ -3,10 +3,10 @@
 # Pick specific Linux package formats with --build-arg MESHCHATX_LINUX_FORMATS=appimage,deb,rpm,apk (default: all)
 #
 # Build (all formats):
-#   docker build -f Dockerfile.build -t meshchatx-build:local .
+#   docker build -f docker/Dockerfile.build -t meshchatx-build:local .
 #
 # Build only an AppImage and deb:
-#   docker build -f Dockerfile.build \
+#   docker build -f docker/Dockerfile.build \
 #       --build-arg MESHCHATX_BUILD_TARGETS=electron \
 #       --build-arg MESHCHATX_LINUX_FORMATS=appimage,deb \
 #       -t meshchatx-build:local .

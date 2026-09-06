@@ -37,9 +37,9 @@ on:
         # Branch pushes rebuild only when image inputs change. Tag pushes still
         # run (GitHub does not apply path filters to tag pushes the same way).
         paths:
-            - "Dockerfile"
-            - "Dockerfile.hardened"
-            - "Dockerfile.build"
+            - "docker/Dockerfile"
+            - "docker/Dockerfile.hardened"
+            - "docker/Dockerfile.build"
             - "meshchatx/**"
             - "package.json"
             - "pnpm-lock.yaml"
@@ -76,19 +76,19 @@ jobs:
             matrix:
                 include:
                     - variant: standard
-                      dockerfile: ./Dockerfile
+                      dockerfile: ./docker/Dockerfile
                       tag_suffix: ""
                       build_variant: standard
                       oci_description: "MeshChatX is an all-in-one Reticulum client."
                       oci_licenses: "MIT AND 0BSD"
                     - variant: hardened
-                      dockerfile: ./Dockerfile.hardened
+                      dockerfile: ./docker/Dockerfile.hardened
                       tag_suffix: "-hardened"
                       build_variant: standard
                       oci_description: "MeshChatX is an all-in-one Reticulum client."
                       oci_licenses: "MIT AND 0BSD"
                     - variant: extra
-                      dockerfile: ./Dockerfile
+                      dockerfile: ./docker/Dockerfile
                       tag_suffix: "-extra"
                       build_variant: extra
                       oci_description: "MeshChatX all-in-one Reticulum client with i2pd and yggdrasil."

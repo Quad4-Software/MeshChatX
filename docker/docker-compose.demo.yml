@@ -1,7 +1,6 @@
-# Coolify public demo stack (read-only mesh showcase, ALTCHA, session auth).
+# Coolify public demo stack (read-only mesh showcase, session auth).
 # https://coolify.io/docs/knowledge-base/docker/compose
 #
-# Set MESHCHAT_ALTCHA_HMAC_KEY in Coolify before deploy (required below).
 # Showcase login password defaults to demo (override MESHCHAT_DEMO_AUTH_PASSWORD).
 # Offline map defaults on; starter low-zoom MBTiles are seeded into storage on first run.
 #
@@ -32,8 +31,6 @@ services:
             - MESHCHAT_DEMO_MODE=${MESHCHAT_DEMO_MODE:-1}
             - MESHCHAT_AUTH=${MESHCHAT_AUTH:-1}
             - MESHCHAT_AUTH_BYPASS=${MESHCHAT_AUTH_BYPASS:-0}
-            - MESHCHAT_ALTCHA_ENABLED=${MESHCHAT_ALTCHA_ENABLED:-1}
-            - MESHCHAT_ALTCHA_HMAC_KEY=${MESHCHAT_ALTCHA_HMAC_KEY:?}
             - MESHCHAT_DEMO_AUTH_PASSWORD=${MESHCHAT_DEMO_AUTH_PASSWORD:-demo}
             - "MESHCHAT_AUTH_PAGE_HINT=${MESHCHAT_AUTH_PAGE_HINT:-Username: demo, Password: demo}"
             - MESHCHAT_DISABLE_PLUGINS=${MESHCHAT_DISABLE_PLUGINS:-1}
