@@ -3463,16 +3463,12 @@
             "publish_prompt_name": "index.mu bestaat al op \"{server}\". Voer een paginanaam in (zonder .mu):",
             "publish_published": "\"{page}\" gepubliceerd op {server}",
             "publish_failed": "Pagina publiceren mislukt",
-            "publish_all_prompt_server": "Servernaam om alle tabbladen te publiceren:\n\nBeschikbaar: {servers}",
-            "publish_server_not_found": "Server niet gevonden: {server}",
-            "publish_all_done": "{published}/{total} tabbladen gepubliceerd op {server}",
             "publish": "Publiceren",
             "publish_to_mesh_server": "Publiceren naar Mesh-server",
             "publish_no_servers": "Nog geen mesh-servers.",
             "publish_create_and_publish": "Mesh-server aanmaken en publiceren...",
             "publish_manage_servers": "Mesh-servers beheren",
             "publish_will_start": "wordt gestart",
-            "publish_all_tabs": "Alle tabbladen naar server publiceren...",
             "publish_create_prompt_name": "Naam voor de nieuwe mesh-server:",
             "publish_failed_create": "Aanmaken van mesh-server mislukt",
             "publish_failed_start": "Starten van mesh-server mislukt",
@@ -4890,8 +4886,7 @@
         "login": "Inloggen",
         "passwords_mismatch": "Wachtwoorden komen niet overeen",
         "status_check_failed": "Authenticatiestatus kon niet worden gecontroleerd",
-        "failed": "Authenticatie mislukt",
-        "altcha_required": "Complete the verification challenge first"
+        "failed": "Authenticatie mislukt"
     },
     "post_install": {
         "windows_screen_security_title": "Windows-schermbeveiliging inschakelen?",

@@ -3471,7 +3471,6 @@
             "publish_create_and_publish": "메시 서버를 만들어 게시...",
             "publish_manage_servers": "메시 서버 관리",
             "publish_will_start": "이(가) 시작됩니다",
-            "publish_all_tabs": "모든 탭을 서버에 게시...",
             "publish_create_prompt_name": "새 메시 서버의 이름:",
             "publish_failed_create": "메시 서버 생성에 실패했습니다",
             "publish_failed_start": "메시 서버 시작에 실패했습니다",
@@ -3479,10 +3478,7 @@
             "publish_open_nomadnet_confirm": "\"{page}\"을(를) {server}에 게시했습니다. 지금 NomadNet에서 여시겠습니까?",
             "publish_prompt_name": "\"{server}\"에 index.mu가 이미 있습니다. 페이지 이름을 입력하세요 (.mu 제외):",
             "publish_published": "\"{page}\"을(를) {server}에 게시했습니다",
-            "publish_failed": "페이지 게시에 실패했습니다",
-            "publish_all_prompt_server": "모든 탭을 게시할 서버 이름을 입력하세요:\n\n사용 가능: {servers}",
-            "publish_server_not_found": "서버를 찾을 수 없음: {server}",
-            "publish_all_done": "{server}에 탭 {published}/{total}개를 게시했습니다"
+            "publish_failed": "페이지 게시에 실패했습니다"
         },
         "reticulum_config_editor": {
             "title": "Reticulum 설정 편집기",
@@ -4990,8 +4986,7 @@
         "login": "로그인",
         "passwords_mismatch": "비밀번호가 일치하지 않습니다",
         "status_check_failed": "인증 상태를 확인하지 못했습니다",
-        "failed": "인증에 실패했습니다",
-        "altcha_required": "Complete the verification challenge first"
+        "failed": "인증에 실패했습니다"
     },
     "post_install": {
         "windows_screen_security_title": "Windows 화면 보호를 활성화하시겠습니까?",

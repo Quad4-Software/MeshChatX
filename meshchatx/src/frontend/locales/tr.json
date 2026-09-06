@@ -3471,7 +3471,6 @@
             "publish_create_and_publish": "Mesh sunucusu oluştur ve yayınla...",
             "publish_manage_servers": "Mesh sunucularını yönet",
             "publish_will_start": "başlatılacak",
-            "publish_all_tabs": "Tüm sekmeleri sunucuya yayınla...",
             "publish_create_prompt_name": "Yeni mesh sunucusu için ad:",
             "publish_failed_create": "Mesh sunucusu oluşturulamadı",
             "publish_failed_start": "Mesh sunucusu başlatılamadı",
@@ -3479,10 +3478,7 @@
             "publish_open_nomadnet_confirm": "\"{page}\" sayfası {server} sunucusuna yayınlandı. Şimdi NomadNet'te açılsın mı?",
             "publish_prompt_name": "\"{server}\" sunucusunda index.mu zaten var. Bir sayfa adı girin (.mu olmadan):",
             "publish_published": "\"{page}\" sayfası {server} sunucusuna yayınlandı",
-            "publish_failed": "Sayfa yayınlanamadı",
-            "publish_all_prompt_server": "Tüm sekmeleri yayınlamak için sunucu adını girin:\n\nMevcut: {servers}",
-            "publish_server_not_found": "Sunucu bulunamadı: {server}",
-            "publish_all_done": "{server} sunucusuna {published}/{total} sekme yayınlandı"
+            "publish_failed": "Sayfa yayınlanamadı"
         },
         "reticulum_config_editor": {
             "title": "Reticulum Yapılandırma Düzenleyici",
@@ -4990,8 +4986,7 @@
         "login": "Giriş Yap",
         "passwords_mismatch": "Parolalar eşleşmiyor",
         "status_check_failed": "Kimlik doğrulama durumu kontrol edilemedi",
-        "failed": "Kimlik doğrulama başarısız oldu",
-        "altcha_required": "Complete the verification challenge first"
+        "failed": "Kimlik doğrulama başarısız oldu"
     },
     "post_install": {
         "windows_screen_security_title": "Windows ekran güvenliği etkinleştirilsin mi?",

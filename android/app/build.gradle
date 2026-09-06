@@ -402,7 +402,6 @@ chaquopy {
             // Pure-python; wheels are vendored by scripts/build-android-wheels-local.sh
             // for offline/find-links installs (HTTPInterface / RNS-over-HTTP).
             install "httpx[http2]==0.28.1"
-            install "altcha==2.0.2"
             // Native QUIC/WebTransport stack (experimental live channel).
             install "pylsqpack==0.3.24"
             install "aioquic==1.3.0"

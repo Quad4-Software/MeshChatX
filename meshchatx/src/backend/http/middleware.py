@@ -200,7 +200,6 @@ def create_auth_middleware(app):
         if path in (
             "/api/v1/auth/csrf",
             "/api/v1/auth/status",
-            "/api/v1/auth/altcha/challenge",
         ):
             return await handler(request)
 
@@ -256,7 +255,6 @@ def create_auth_middleware(app):
             "/api/v1/auth/login",
             "/api/v1/auth/status",
             "/api/v1/auth/logout",
-            "/api/v1/auth/altcha/challenge",
             "/manifest.json",
             "/service-worker.js",
         ]

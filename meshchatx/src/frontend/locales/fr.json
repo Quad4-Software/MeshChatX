@@ -3463,16 +3463,12 @@
             "publish_prompt_name": "index.mu existe déjà sur « {server} ». Entrez un nom de page (sans .mu) :",
             "publish_published": "« {page} » publié sur {server}",
             "publish_failed": "Échec de la publication de la page",
-            "publish_all_prompt_server": "Nom du serveur pour publier tous les onglets :\n\nDisponibles : {servers}",
-            "publish_server_not_found": "Serveur introuvable : {server}",
-            "publish_all_done": "{published}/{total} onglets publiés sur {server}",
             "publish": "Publier",
             "publish_to_mesh_server": "Publier vers un Mesh Server",
             "publish_no_servers": "Aucun serveur Mesh pour l’instant.",
             "publish_create_and_publish": "Créer un serveur Mesh et publier...",
             "publish_manage_servers": "Gérer les serveurs Mesh",
             "publish_will_start": "démarrera",
-            "publish_all_tabs": "Publier tous les onglets vers le serveur...",
             "publish_create_prompt_name": "Nom du nouveau serveur Mesh :",
             "publish_failed_create": "Échec de la création du serveur Mesh",
             "publish_failed_start": "Échec du démarrage du serveur Mesh",
@@ -4890,8 +4886,7 @@
         "login": "Connexion",
         "passwords_mismatch": "Les mots de passe ne correspondent pas",
         "status_check_failed": "Impossible de vérifier l'état d'authentification",
-        "failed": "Échec de l'authentification",
-        "altcha_required": "Complete the verification challenge first"
+        "failed": "Échec de l'authentification"
     },
     "post_install": {
         "windows_screen_security_title": "Activer la sécurité d’écran Windows ?",

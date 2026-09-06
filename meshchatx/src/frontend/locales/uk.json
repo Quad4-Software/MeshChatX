@@ -3471,7 +3471,6 @@
             "publish_create_and_publish": "Створити mesh-сервер і опублікувати...",
             "publish_manage_servers": "Керувати mesh-серверами",
             "publish_will_start": "буде запущено",
-            "publish_all_tabs": "Опублікувати всі вкладки на сервер...",
             "publish_create_prompt_name": "Назва нового mesh-сервера:",
             "publish_failed_create": "Не вдалося створити mesh-сервер",
             "publish_failed_start": "Не вдалося запустити mesh-сервер",
@@ -3479,10 +3478,7 @@
             "publish_open_nomadnet_confirm": "«{page}» опубліковано на {server}. Відкрити його в NomadNet зараз?",
             "publish_prompt_name": "index.mu уже існує на «{server}». Введіть назву сторінки (без .mu):",
             "publish_published": "«{page}» опубліковано на {server}",
-            "publish_failed": "Не вдалося опублікувати сторінку",
-            "publish_all_prompt_server": "Введіть назву сервера, щоб опублікувати всі вкладки:\n\nДоступні: {servers}",
-            "publish_server_not_found": "Сервер не знайдено: {server}",
-            "publish_all_done": "Опубліковано {published}/{total} вкладок на {server}"
+            "publish_failed": "Не вдалося опублікувати сторінку"
         },
         "reticulum_config_editor": {
             "title": "Редактор конфігурації Reticulum",
@@ -4990,8 +4986,7 @@
         "login": "Увійти",
         "passwords_mismatch": "Паролі не збігаються",
         "status_check_failed": "Не вдалося перевірити статус автентифікації",
-        "failed": "Автентифікація не вдалася",
-        "altcha_required": "Complete the verification challenge first"
+        "failed": "Автентифікація не вдалася"
     },
     "post_install": {
         "windows_screen_security_title": "Увімкнути захист екрана Windows?",

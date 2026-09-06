@@ -3463,16 +3463,12 @@
             "publish_prompt_name": "index.mu on jo olemassa palvelimella \"{server}\". Anna sivun nimi (ilman .mu):",
             "publish_published": "Julkaistu \"{page}\" palvelimelle {server}",
             "publish_failed": "Sivun julkaisu epäonnistui",
-            "publish_all_prompt_server": "Anna palvelimen nimi, jolle kaikki välilehdet julkaistaan:\n\nSaatavilla: {servers}",
-            "publish_server_not_found": "Palvelinta ei löydy: {server}",
-            "publish_all_done": "Julkaistu {published}/{total} välilehteä palvelimelle {server}",
             "publish": "Julkaise",
             "publish_to_mesh_server": "Julkaise Mesh-palvelimella",
             "publish_no_servers": "Ei vielä mesh-palvelimia.",
             "publish_create_and_publish": "Luo mesh-palvelin ja julkaise...",
             "publish_manage_servers": "Hallitse mesh-palvelimia",
             "publish_will_start": "alkaa",
-            "publish_all_tabs": "Julkaise kaikki välilehdet palvelimelle...",
             "publish_create_prompt_name": "Uuden mesh-palvelimen nimi:",
             "publish_failed_create": "Mesh-palvelimen luominen epäonnistui",
             "publish_failed_start": "Mesh-palvelimen käynnistys epäonnistui",
@@ -4890,8 +4886,7 @@
         "login": "Kirjaudu",
         "passwords_mismatch": "Salasanat eivät täsmää",
         "status_check_failed": "Tunnistautumistilan tarkistus epäonnistui",
-        "failed": "Tunnistautuminen epäonnistui",
-        "altcha_required": "Complete the verification challenge first"
+        "failed": "Tunnistautuminen epäonnistui"
     },
     "post_install": {
         "windows_screen_security_title": "Otetaanko Windowsin näytön suojaus käyttöön?",

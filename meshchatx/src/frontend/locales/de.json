@@ -3209,16 +3209,12 @@
             "publish_prompt_name": "index.mu existiert bereits auf \"{server}\". Seitenname eingeben (ohne .mu):",
             "publish_published": "\"{page}\" auf {server} veröffentlicht",
             "publish_failed": "Seite konnte nicht veröffentlicht werden",
-            "publish_all_prompt_server": "Servername zum Veröffentlichen aller Tabs:\n\nVerfügbar: {servers}",
-            "publish_server_not_found": "Server nicht gefunden: {server}",
-            "publish_all_done": "{published}/{total} Tabs auf {server} veröffentlicht",
             "publish": "Veröffentlichen",
             "publish_to_mesh_server": "Auf Mesh-Server veröffentlichen",
             "publish_no_servers": "Noch keine Mesh-Server.",
             "publish_create_and_publish": "Mesh-Server erstellen und veröffentlichen...",
             "publish_manage_servers": "Mesh-Server verwalten",
             "publish_will_start": "wird starten",
-            "publish_all_tabs": "Alle Tabs auf Server veröffentlichen...",
             "publish_create_prompt_name": "Name für den neuen Mesh-Server:",
             "publish_failed_create": "Mesh-Server konnte nicht erstellt werden",
             "publish_failed_start": "Mesh-Server konnte nicht gestartet werden",
@@ -4890,8 +4886,7 @@
         "login": "Anmelden",
         "passwords_mismatch": "Passwörter stimmen nicht überein",
         "status_check_failed": "Authentifizierungsstatus konnte nicht geprüft werden",
-        "failed": "Authentifizierung fehlgeschlagen",
-        "altcha_required": "Complete the verification challenge first"
+        "failed": "Authentifizierung fehlgeschlagen"
     },
     "post_install": {
         "windows_screen_security_title": "Windows-Bildschirmsicherheit aktivieren?",
