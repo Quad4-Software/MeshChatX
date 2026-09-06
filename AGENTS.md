@@ -16,8 +16,8 @@ Zen gates: .agents/conventions/reticulum-zen.md.
 
 ## Do not confuse
 
-| Topic                          | Open                                            |
-| ------------------------------ | ----------------------------------------------- |
+| Topic                          | Open                                          |
+| ------------------------------ | --------------------------------------------- |
 | Identity key vs zip restore    | .agents/skills/identity-restore/SKILL.md      |
 | Landlock + SQLite + subprocess | .agents/skills/landlock-sqlite/SKILL.md       |
 | CSRF / WS mutators             | .agents/skills/auth-csrf-ws-security/SKILL.md |
