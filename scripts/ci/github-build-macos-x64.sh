@@ -27,10 +27,6 @@ else
     echo "Reusing prebuilt frontend assets in meshchatx/public/."
 fi
 
-bash scripts/ci/github-install-macos-x64-port-deps.sh
-
-# The deps script sets PYTHON_CMD_X64 in GITHUB_ENV for later steps, but this
-# single script needs it now.
 export UV_PROJECT_ENVIRONMENT="${ROOT}/.venv-x64"
 export PYTHON_CMD_X64="${UV_PROJECT_ENVIRONMENT}/bin/python"
 
@@ -40,7 +36,7 @@ bash scripts/ci/github-verify-frozen-codec2.sh "$ROOT/build/exe/darwin-x64"
 bash scripts/ci/github-verify-frozen-umsgpack.sh "$ROOT/build/exe/darwin-x64"
 bash scripts/ci/github-verify-frozen-runtime.sh "$ROOT/build/exe/darwin-x64"
 
-pnpm exec electron-builder --mac --x64 --publish=never
+pnpm exec electron-builder --mac --x64 --config scripts/ci/electron-builder-mac-x64.yml --publish=never
 
 bash scripts/ci/github-prune-electron-dist-staging.sh
 bash scripts/ci/github-verify-electron-dist.sh mac

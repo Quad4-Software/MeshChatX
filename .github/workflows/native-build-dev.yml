@@ -108,6 +108,10 @@ jobs:
               if: matrix.label != 'macos-x64'
               run: bash scripts/ci/github-install-deps.sh
 
+            - name: Install x64 macOS native dependencies
+              if: matrix.label == 'macos-x64'
+              run: bash scripts/ci/github-install-macos-x64-port-deps.sh
+
             - name: Fetch frontend artifact
               uses: ./.github/actions/fetch-frontend-artifact
               with:
