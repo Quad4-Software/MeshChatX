@@ -24,7 +24,7 @@
             >
                 <button
                     type="button"
-                    class="absolute top-1 right-1 z-10 p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-white/20"
+                    class="absolute top-1 right-1 z-10 p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-sem-surface/20"
                     :title="$t('messages.message_actions')"
                     @click.stop="cv.onMessageContextMenu($event, entry.items[0])"
                 >
@@ -32,7 +32,7 @@
                 </button>
                 <div
                     v-if="cv.imageGroupSortedChron(entry.items).length === 2"
-                    class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-white/5"
+                    class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-sem-surface/5"
                 >
                     <div
                         v-for="imgItem in cv.imageGroupSortedChron(entry.items)"
@@ -59,7 +59,7 @@
                     >
                         <button
                             type="button"
-                            class="absolute top-1 left-1 z-10 p-1 rounded-lg opacity-0 group-hover/img:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-white/20"
+                            class="absolute top-1 left-1 z-10 p-1 rounded-lg opacity-0 group-hover/img:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-sem-surface/20"
                             :title="$t('messages.save_image_to_device')"
                             @click.stop="cv.downloadMessageImage(imgItem)"
                         >
@@ -83,7 +83,7 @@
                 </div>
                 <div
                     v-else-if="cv.imageGroupSortedChron(entry.items).length === 3"
-                    class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-white/5"
+                    class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-sem-surface/5"
                 >
                     <div
                         v-for="imgItem in cv.imageGroupSortedChron(entry.items).slice(0, 2)"
@@ -110,7 +110,7 @@
                     >
                         <button
                             type="button"
-                            class="absolute top-1 left-1 z-10 p-1 rounded-lg opacity-0 group-hover/img:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-white/20"
+                            class="absolute top-1 left-1 z-10 p-1 rounded-lg opacity-0 group-hover/img:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-sem-surface/20"
                             :title="$t('messages.save_image_to_device')"
                             @click.stop="cv.downloadMessageImage(imgItem)"
                         >
@@ -154,7 +154,7 @@
                     >
                         <button
                             type="button"
-                            class="absolute top-1 left-1 z-10 p-1 rounded-lg opacity-0 group-hover/img:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-white/20"
+                            class="absolute top-1 left-1 z-10 p-1 rounded-lg opacity-0 group-hover/img:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-sem-surface/20"
                             :title="$t('messages.save_image_to_device')"
                             @click.stop="cv.downloadMessageImage(cv.imageGroupSortedChron(entry.items)[2])"
                         >
@@ -180,7 +180,7 @@
                         />
                     </div>
                 </div>
-                <div v-else class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-white/5">
+                <div v-else class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-sem-surface/5">
                     <div
                         v-for="(cell, idx) in cv.imageGroupSortedChron(entry.items).slice(0, 4)"
                         :id="`message-${cell.lxmf_message.hash}`"
@@ -206,7 +206,7 @@
                     >
                         <button
                             type="button"
-                            class="absolute top-1 left-1 z-10 p-1 rounded-lg opacity-0 group-hover/img:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-white/20"
+                            class="absolute top-1 left-1 z-10 p-1 rounded-lg opacity-0 group-hover/img:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-sem-surface/20"
                             :title="$t('messages.save_image_to_device')"
                             @click.stop="cv.downloadMessageImage(cell)"
                         >
@@ -256,7 +256,7 @@
                 ['cancelled', 'failed'].includes(entry.items[0].lxmf_message.state)
                     ? 'shadow-xs'
                     : entry.items[0].lxmf_message.is_spam
-                      ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100 border border-yellow-300 dark:border-yellow-700 shadow-xs'
+                      ? 'bg-sem-warning/10 text-sem-warning border border-sem-warning shadow-xs'
                       : cv.isOutboundWaitingBubble(entry.items[0])
                         ? 'shadow-xs'
                         : entry.items[0].is_outbound
@@ -282,11 +282,7 @@
                     <span
                         v-if="cv.isOpportunisticDeferredDelivery(entry.items[0].lxmf_message)"
                         class="text-[9px] font-bold uppercase tracking-wider"
-                        :class="
-                            cv.isThemeOutboundBubble(entry.items[0])
-                                ? 'text-amber-800 dark:text-amber-300'
-                                : 'text-amber-200'
-                        "
+                        :class="cv.isThemeOutboundBubble(entry.items[0]) ? 'text-sem-warning' : 'text-amber-200'"
                     >
                         {{ $t("messages.opportunistic_deferred_label") }}
                     </span>
@@ -299,7 +295,7 @@
                     <button
                         v-if="['failed', 'cancelled'].includes(entry.items[0].lxmf_message.state)"
                         type="button"
-                        class="ml-0.5 p-0.5 rounded-sm hover:bg-white/20 transition-colors"
+                        class="ml-0.5 p-0.5 rounded-sm hover:bg-sem-surface/20 transition-colors"
                         :title="$t('messages.retry')"
                         @click.stop="cv.retrySendingMessage(entry.items[0])"
                     >
@@ -354,7 +350,7 @@
                     />
                     <div
                         v-else-if="cv.isOpportunisticDeferredDelivery(entry.items[0].lxmf_message)"
-                        class="relative flex size-3.5 shrink-0 items-center justify-center rounded-full border border-dashed border-amber-200/85"
+                        class="relative flex size-3.5 shrink-0 items-center justify-center rounded-full border border-dashed border-sem-warning/20"
                         :title="$t('messages.opportunistic_deferred_tooltip')"
                     >
                         <MaterialDesignIcon icon-name="clock-outline" class="size-2.5 text-amber-200/95" />
@@ -377,28 +373,28 @@
                 <button
                     v-if="cv.canCancelOutboundSend(entry.items[0])"
                     type="button"
-                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-600 transition-colors"
+                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-warning/50 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-600 transition-colors"
                     @click.stop="cv.cancelSendingMessage(entry.items[0])"
                 >
                     {{ $t("messages.cancel_send") }}
                 </button>
                 <button
                     type="button"
-                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-accent px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-600 transition-colors"
+                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-accent px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-sem-action-primary-hover transition-colors"
                     @click.stop="cv.replyToMessage(entry.items[0])"
                 >
                     {{ $t("messages.reply") }}
                 </button>
                 <button
                     type="button"
-                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-red-600 transition-colors"
+                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-danger px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-sem-danger transition-colors"
                     @click.stop="cv.deleteChatItem(entry.items[0])"
                 >
                     Delete
                 </button>
                 <button
                     type="button"
-                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-gray-700 transition-colors"
+                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-fg-muted px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-sem-fg transition-colors"
                     @click.stop="cv.showRawMessage(entry.items[0])"
                 >
                     Raw LXM
@@ -425,13 +421,13 @@
         role="separator"
         :aria-label="cv.formatDateDividerLabel(entry.dayKey)"
     >
-        <span class="h-px w-10 shrink-0 bg-gray-300/85 sm:w-14 dark:bg-zinc-600/70" aria-hidden="true" />
+        <span class="h-px w-10 shrink-0 bg-sem-surface-raised/85 sm:w-14 dark:bg-zinc-600/70" aria-hidden="true" />
         <span
             class="max-w-[min(100%,18rem)] text-center text-[11px] font-medium leading-snug tracking-wide text-sem-fg-muted/95 text-sem-fg-muted/95"
         >
             {{ cv.formatDateDividerLabel(entry.dayKey) }}
         </span>
-        <span class="h-px w-10 shrink-0 bg-gray-300/85 sm:w-14 dark:bg-zinc-600/70" aria-hidden="true" />
+        <span class="h-px w-10 shrink-0 bg-sem-surface-raised/85 sm:w-14 dark:bg-zinc-600/70" aria-hidden="true" />
     </div>
     <div
         v-for="chatItem in [entry.chatItem]"
@@ -464,13 +460,13 @@
                     <StickerView
                         :src="cv.pendingOutboundImageSrc(chatItem)"
                         :image-type="(chatItem.lxmf_message.fields.image.image_type || '').toLowerCase()"
-                        class="max-h-[min(320px,55vh)] w-full bg-black/5 dark:bg-white/5"
+                        class="max-h-[min(320px,55vh)] w-full bg-black/5 dark:bg-sem-surface/5"
                     />
                 </template>
                 <template v-else>
                     <button
                         type="button"
-                        class="absolute top-1 left-1 z-10 p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-white/20"
+                        class="absolute top-1 left-1 z-10 p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-sem-surface/20"
                         :title="$t('messages.save_image_to_device')"
                         @click.stop="cv.downloadMessageImage(chatItem)"
                     >
@@ -479,7 +475,7 @@
                     <InViewAnimatedImg
                         v-if="isAnimatedRasterType(chatItem.lxmf_message.fields?.image?.image_type)"
                         :src="cv.pendingOutboundImageSrc(chatItem)"
-                        img-class="max-h-[min(320px,55vh)] w-full cursor-pointer object-contain object-center bg-black/5 dark:bg-white/5 transition-transform hover:scale-[1.01]"
+                        img-class="max-h-[min(320px,55vh)] w-full cursor-pointer object-contain object-center bg-black/5 dark:bg-sem-surface/5 transition-transform hover:scale-[1.01]"
                         @click.stop="cv.onOutboundImageClick(chatItem)"
                     />
                     <img
@@ -487,7 +483,7 @@
                         :src="cv.pendingOutboundImageSrc(chatItem)"
                         loading="lazy"
                         decoding="async"
-                        class="max-h-[min(320px,55vh)] min-h-[120px] w-full cursor-pointer object-contain object-center bg-black/5 dark:bg-white/5 transition-transform hover:scale-[1.01]"
+                        class="max-h-[min(320px,55vh)] min-h-[120px] w-full cursor-pointer object-contain object-center bg-black/5 dark:bg-sem-surface/5 transition-transform hover:scale-[1.01]"
                         alt=""
                         @click.stop="cv.onOutboundImageClick(chatItem)"
                     />
@@ -524,7 +520,7 @@
             <div class="flex items-center gap-2">
                 <button
                     type="button"
-                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-600 transition-colors"
+                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-warning/50 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-600 transition-colors"
                     @click.stop="cv.cancelSendingMessage(chatItem)"
                 >
                     {{ $t("messages.cancel_send") }}
@@ -555,7 +551,7 @@
                 />
                 <span
                     v-else-if="['failed', 'cancelled', 'rejected'].includes(chatItem.lxmf_message.state)"
-                    class="text-[9px] font-bold uppercase tracking-wider text-red-500"
+                    class="text-[9px] font-bold uppercase tracking-wider text-sem-danger"
                 >
                     {{ chatItem.lxmf_message.state === "rejected" ? "Rejected" : "Failed" }}
                 </span>
@@ -576,7 +572,7 @@
                     ['cancelled', 'failed'].includes(chatItem.lxmf_message.state)
                         ? 'shadow-xs'
                         : chatItem.lxmf_message.is_spam
-                          ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100 border border-yellow-300 dark:border-yellow-700 shadow-xs'
+                          ? 'bg-sem-warning/10 text-sem-warning border border-sem-warning shadow-xs'
                           : cv.isOutboundWaitingBubble(chatItem)
                             ? 'shadow-xs'
                             : chatItem.is_outbound
@@ -603,7 +599,7 @@
                     <!-- reply snippet -->
                     <div
                         v-if="chatItem.lxmf_message.reply_to_hash"
-                        class="mb-2 p-2 rounded-lg bg-black/5 dark:bg-white/5 border-l-2 border-sem-accent/50 cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                        class="mb-2 p-2 rounded-lg bg-black/5 dark:bg-sem-surface/5 border-l-2 border-sem-accent/50 cursor-pointer hover:bg-black/10 dark:hover:bg-sem-canvas/10 transition-colors"
                         @click.stop="cv.scrollToMessage(chatItem.lxmf_message.reply_to_hash)"
                     >
                         <div
@@ -650,14 +646,14 @@
                             !cv.shouldHideAutoImageCaption(chatItem) &&
                             cv.isMessageBodyTooLargeForDisplay(chatItem)
                         "
-                        class="rounded-lg border border-amber-200/90 dark:border-amber-800/50 bg-amber-50/90 dark:bg-amber-950/25 px-3 py-2.5 space-y-2 min-w-0"
+                        class="rounded-lg border border-sem-warning/20 bg-sem-warning/5 px-3 py-2.5 space-y-2 min-w-0"
                     >
                         <div class="flex items-start gap-2">
                             <MaterialDesignIcon
                                 icon-name="text-box-outline"
-                                class="size-5 shrink-0 text-amber-800 dark:text-amber-300/90 mt-0.5"
+                                class="size-5 shrink-0 text-sem-warning/90 mt-0.5"
                             />
-                            <p class="text-xs text-amber-950 dark:text-amber-100/90 leading-relaxed min-w-0">
+                            <p class="text-xs text-sem-warning leading-relaxed min-w-0">
                                 {{
                                     $t("messages.oversized_body_notice", {
                                         count: cv.messageBodyCharCount(chatItem),
@@ -667,7 +663,7 @@
                         </div>
                         <button
                             type="button"
-                            class="inline-flex items-center gap-2 rounded-lg bg-amber-700 hover:bg-amber-800 dark:bg-amber-700 dark:hover:bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition-colors"
+                            class="inline-flex items-center gap-2 rounded-lg bg-sem-warning hover:bg-sem-warning/80 dark:bg-amber-700 dark:hover:bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition-colors"
                             @click.stop="cv.copyOversizedMessageBody(chatItem)"
                         >
                             <MaterialDesignIcon icon-name="content-copy" class="size-4 shrink-0" />
@@ -687,7 +683,7 @@
                     >
                         <div
                             v-if="cv.bubbleViewModel(chatItem).kind === 'loading'"
-                            class="text-sm text-indigo-600/90 dark:text-indigo-300 py-0.5"
+                            class="text-sm text-sem-info/90 dark:text-indigo-300 py-0.5"
                         >
                             {{ $t("messages.translating_message") }}
                         </div>
@@ -723,7 +719,7 @@
                                     }}</span>
                                     <button
                                         type="button"
-                                        class="ml-1.5 text-indigo-600 dark:text-indigo-400 hover:underline"
+                                        class="ml-1.5 text-sem-info hover:underline"
                                         @click.stop="
                                             cv.setBubbleMessageShowOriginal(
                                                 cv.bubbleViewModel(chatItem).messageHash,
@@ -737,7 +733,7 @@
                                 <div v-else-if="cv.bubbleViewModel(chatItem).showTranslationLink">
                                     <button
                                         type="button"
-                                        class="text-indigo-600 dark:text-indigo-400 hover:underline"
+                                        class="text-sem-info hover:underline"
                                         @click.stop="
                                             cv.setBubbleMessageShowOriginal(
                                                 cv.bubbleViewModel(chatItem).messageHash,
@@ -756,7 +752,7 @@
                     <!-- telemetry placeholder for empty content messages -->
                     <div
                         v-if="!chatItem.lxmf_message.content && chatItem.lxmf_message.fields?.telemetry"
-                        class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
+                        class="flex items-center gap-2 mb-2 pb-2 border-b border-sem-border/20"
                     >
                         <MaterialDesignIcon icon-name="satellite-variant" class="size-4 opacity-60" />
                         <span class="text-[10px] font-bold uppercase tracking-wider opacity-60">
@@ -766,7 +762,7 @@
 
                     <div
                         v-if="!chatItem.lxmf_message.content && chatItem.lxmf_message.fields?.telemetry_stream"
-                        class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
+                        class="flex items-center gap-2 mb-2 pb-2 border-b border-sem-border/20"
                     >
                         <MaterialDesignIcon icon-name="database-sync" class="size-4 opacity-60" />
                         <span class="text-[10px] font-bold uppercase tracking-wider opacity-60"
@@ -782,7 +778,7 @@
                             !chatItem.lxmf_message.content &&
                             chatItem.lxmf_message.fields?.commands?.some((c) => c['0x01'] || c['1'] || c['0x1'])
                         "
-                        class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
+                        class="flex items-center gap-2 mb-2 pb-2 border-b border-sem-border/20"
                     >
                         <MaterialDesignIcon icon-name="crosshairs-question" class="size-4 opacity-60" />
                         <span class="text-[10px] font-bold uppercase tracking-wider opacity-60">
@@ -799,9 +795,9 @@
                             :class="
                                 chatItem.is_outbound
                                     ? cv.isThemeOutboundBubble(chatItem)
-                                        ? 'bg-white/10 border-white/20'
+                                        ? 'bg-sem-surface/10 border-white/20'
                                         : 'bg-black/5 border-black/10'
-                                    : 'bg-sem-surface-muted border-blue-100 dark:border-blue-800/30'
+                                    : 'bg-sem-surface-muted border-sem-info/20'
                             "
                         >
                             <div
@@ -811,7 +807,7 @@
                                         ? cv.isThemeOutboundBubble(chatItem)
                                             ? 'text-white'
                                             : 'text-sem-fg'
-                                        : 'text-blue-700 dark:text-blue-300'
+                                        : 'text-sem-info'
                                 "
                             >
                                 <MaterialDesignIcon icon-name="account-plus-outline" class="size-5" />
@@ -895,11 +891,11 @@
                             :class="
                                 chatItem.is_outbound
                                     ? cv.isThemeOutboundBubble(chatItem)
-                                        ? 'bg-white/10 border-white/20'
+                                        ? 'bg-sem-surface/10 border-white/20'
                                         : 'bg-black/5 border-black/10'
                                     : cv.isPaperMessageIngested(chatItem)
-                                      ? 'bg-emerald-50/80 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40'
-                                      : 'bg-emerald-50 dark:bg-black/60 border-emerald-100 dark:border-zinc-700/50'
+                                      ? 'bg-sem-success/5 border-sem-success/20'
+                                      : 'bg-sem-success/5 border-sem-success/10 /50'
                             "
                         >
                             <div
@@ -909,7 +905,7 @@
                                         ? cv.isThemeOutboundBubble(chatItem)
                                             ? 'text-white'
                                             : 'text-sem-fg'
-                                        : 'text-emerald-700 dark:text-emerald-400'
+                                        : 'text-sem-success'
                                 "
                             >
                                 <MaterialDesignIcon
@@ -924,7 +920,7 @@
                                 <MaterialDesignIcon
                                     v-if="cv.isPaperMessageIngested(chatItem)"
                                     icon-name="check-circle"
-                                    class="size-4 text-emerald-600 dark:text-emerald-400"
+                                    class="size-4 text-sem-success"
                                 />
                             </div>
                             <p
@@ -934,7 +930,7 @@
                                         ? cv.isThemeOutboundBubble(chatItem)
                                             ? 'text-white/80'
                                             : 'text-sem-fg-muted'
-                                        : 'text-emerald-600/80 text-sem-fg-muted'
+                                        : 'text-sem-success/80 text-sem-fg-muted'
                                 "
                             >
                                 {{
@@ -946,7 +942,7 @@
                             <button
                                 v-if="!chatItem.is_outbound && !cv.isPaperMessageIngested(chatItem)"
                                 type="button"
-                                class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
+                                class="w-full py-2 bg-sem-success hover:bg-sem-success/80 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
                                 @click="
                                     cv.ingestPaperMessage(
                                         cv.getParsedItems(chatItem).paperMessage,
@@ -960,9 +956,9 @@
 
                         <div
                             v-if="cv.getParsedItems(chatItem).mapLink"
-                            class="flex flex-col gap-2 p-3 rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/50"
+                            class="flex flex-col gap-2 p-3 rounded-xl bg-sem-info/5 border border-sem-info/20"
                         >
-                            <div class="flex items-center gap-2 text-sky-800 dark:text-sky-300">
+                            <div class="flex items-center gap-2 text-sem-info">
                                 <MaterialDesignIcon icon-name="map-marker-radius" class="size-5" />
                                 <span class="text-sm font-bold">{{
                                     cv.getParsedItems(chatItem).mapLink.kind === "ping"
@@ -970,21 +966,21 @@
                                         : $t("messages.map_link_share_title")
                                 }}</span>
                             </div>
-                            <div class="text-[10px] font-mono text-sky-900/80 dark:text-sky-200/90 break-all">
+                            <div class="text-[10px] font-mono text-sem-info break-all">
                                 {{ cv.getParsedItems(chatItem).mapLink.parsed.lat.toFixed(5) }},
                                 {{ cv.getParsedItems(chatItem).mapLink.parsed.lon.toFixed(5) }}
                                 (z{{ cv.getParsedItems(chatItem).mapLink.parsed.zoom }})
                             </div>
                             <button
                                 type="button"
-                                class="w-full py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
+                                class="w-full py-2 bg-sem-info hover:bg-sem-info/80 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
                                 @click="cv.openMapShareFromParsed(cv.getParsedItems(chatItem).mapLink.parsed)"
                             >
                                 {{ $t("messages.map_link_open") }}
                             </button>
                             <button
                                 type="button"
-                                class="w-full py-2 bg-sem-surface border border-sky-200 dark:border-sky-800 text-sky-800 dark:text-sky-200 rounded-lg text-xs font-bold"
+                                class="w-full py-2 bg-sem-surface border border-sem-info/20 dark:border-sky-800 text-sem-info dark:text-sky-200 rounded-lg text-xs font-bold"
                                 @click="cv.copyMapShareUri(cv.getParsedItems(chatItem).mapLink.uri)"
                             >
                                 {{ $t("messages.map_link_copy_uri") }}
@@ -1047,7 +1043,7 @@
                         <!-- audio is not yet loaded -->
                         <div
                             v-else
-                            class="flex items-center justify-center p-2 rounded-xl bg-sem-surface-muted/50 dark:bg-zinc-800/50 border border-sem-border min-h-[54px]"
+                            class="flex items-center justify-center p-2 rounded-xl bg-sem-surface-muted/50 dark:bg-sem-surface-muted/50 border border-sem-border min-h-[54px]"
                         >
                             <div class="flex items-center gap-2">
                                 <div
@@ -1078,7 +1074,7 @@
                             :class="
                                 chatItem.is_outbound
                                     ? cv.outboundEmbeddedCardClass(chatItem)
-                                    : 'bg-sem-surface-muted/50 text-sem-fg-muted border-sem-border/60 dark:border-zinc-700 hover:bg-sem-surface-muted'
+                                    : 'bg-sem-surface-muted/50 text-sem-fg-muted border-sem-border/60  hover:bg-sem-surface-muted'
                             "
                             @click.stop="cv.downloadLxmfFileAttachment(chatItem, index)"
                         >
@@ -1111,7 +1107,7 @@
                         <div v-for="(command, index) in chatItem.lxmf_message.fields.commands" :key="index">
                             <div
                                 v-if="command['0x01'] || command['1'] || command['0x1']"
-                                class="flex items-center gap-2 border border-sem-border/60 dark:border-zinc-700 hover:bg-sem-surface-muted rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                class="flex items-center gap-2 border border-sem-border/60 hover:bg-sem-surface-muted rounded-lg px-3 py-2 text-sm font-medium transition-colors"
                                 :class="
                                     chatItem.is_outbound
                                         ? cv.outboundEmbeddedCardClass(chatItem)
@@ -1137,7 +1133,7 @@
                             <button
                                 v-if="chatItem.lxmf_message.fields.telemetry.location"
                                 type="button"
-                                class="flex items-center gap-2 border border-sem-border/60 dark:border-zinc-700 hover:bg-sem-surface-muted rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                class="flex items-center gap-2 border border-sem-border/60 hover:bg-sem-surface-muted rounded-lg px-3 py-2 text-sm font-medium transition-colors"
                                 :class="
                                     chatItem.is_outbound
                                         ? cv.outboundEmbeddedCardClass(chatItem)
@@ -1161,7 +1157,7 @@
                             <button
                                 v-if="!chatItem.is_outbound"
                                 type="button"
-                                class="flex items-center gap-2 border border-sem-border/60 dark:border-zinc-700 hover:bg-sem-surface-muted rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                class="flex items-center gap-2 border border-sem-border/60 hover:bg-sem-surface-muted rounded-lg px-3 py-2 text-sm font-medium transition-colors"
                                 :class="[
                                     cv.selectedPeer?.is_tracking
                                         ? 'bg-sem-accent/20 text-sem-accent border-sem-accent/30 shadow-inner'
@@ -1242,11 +1238,7 @@
                             <span
                                 v-if="cv.isOpportunisticDeferredDelivery(chatItem.lxmf_message)"
                                 class="text-[9px] font-bold uppercase tracking-wider"
-                                :class="
-                                    cv.isThemeOutboundBubble(chatItem)
-                                        ? 'text-amber-800 dark:text-amber-300'
-                                        : 'text-amber-200'
-                                "
+                                :class="cv.isThemeOutboundBubble(chatItem) ? 'text-sem-warning' : 'text-amber-200'"
                             >
                                 {{ $t("messages.opportunistic_deferred_label") }}
                             </span>
@@ -1263,7 +1255,7 @@
                             <button
                                 v-if="['failed', 'cancelled'].includes(chatItem.lxmf_message.state)"
                                 type="button"
-                                class="ml-0.5 p-0.5 rounded-sm hover:bg-white/20 transition-colors"
+                                class="ml-0.5 p-0.5 rounded-sm hover:bg-sem-surface/20 transition-colors"
                                 :title="$t('messages.retry')"
                                 @click.stop="cv.retrySendingMessage(chatItem)"
                             >
@@ -1321,7 +1313,7 @@
                             />
                             <div
                                 v-else-if="cv.isOpportunisticDeferredDelivery(chatItem.lxmf_message)"
-                                class="relative flex size-3.5 shrink-0 items-center justify-center rounded-full border border-dashed border-amber-200/85"
+                                class="relative flex size-3.5 shrink-0 items-center justify-center rounded-full border border-dashed border-sem-warning/20"
                                 :title="$t('messages.opportunistic_deferred_tooltip')"
                             >
                                 <MaterialDesignIcon icon-name="clock-outline" class="size-2.5 text-amber-200/95" />
@@ -1355,28 +1347,28 @@
                         <button
                             v-if="cv.canCancelOutboundSend(chatItem)"
                             type="button"
-                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-600 transition-colors"
+                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-warning/50 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-600 transition-colors"
                             @click.stop="cv.cancelSendingMessage(chatItem)"
                         >
                             {{ $t("messages.cancel_send") }}
                         </button>
                         <button
                             type="button"
-                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-accent px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-600 transition-colors"
+                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-accent px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-sem-action-primary-hover transition-colors"
                             @click.stop="cv.replyToMessage(chatItem)"
                         >
                             {{ $t("messages.reply") }}
                         </button>
                         <button
                             type="button"
-                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-red-600 transition-colors"
+                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-danger px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-sem-danger transition-colors"
                             @click.stop="cv.deleteChatItem(chatItem)"
                         >
                             Delete
                         </button>
                         <button
                             type="button"
-                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-gray-700 transition-colors"
+                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-fg-muted px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-sem-fg transition-colors"
                             @click.stop="cv.showRawMessage(chatItem)"
                         >
                             Raw LXM
