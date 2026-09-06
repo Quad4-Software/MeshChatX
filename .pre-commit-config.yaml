@@ -45,6 +45,11 @@ repos:
 
     - repo: local
       hooks:
+          - id: oxlint
+            name: oxlint (staged js/ts)
+            entry: scripts/ci/pre-commit-oxlint.sh
+            language: script
+            files: \.(js|mjs|cjs|ts)$
           - id: eslint
             name: eslint (staged)
             entry: scripts/ci/pre-commit-eslint.sh

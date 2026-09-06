@@ -1,0 +1,35 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "plugins": ["eslint"],
+    "categories": {
+        "correctness": "error"
+    },
+    "ignorePatterns": [
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/dist/**",
+        "**/build/**",
+        "**/out/**",
+        "**/android/**",
+        "**/meshchatx/public/**",
+        "**/meshchatx/src/frontend/public/**",
+        "**/electron/assets/**",
+        "**/storage/**",
+        "**/.venv/**",
+        "**/*.min.js",
+        "**/linux-unpacked/**",
+        "**/win-unpacked/**",
+        "**/mac-unpacked/**",
+        "**/*.asar",
+        "**/*.wasm",
+        "**/temp-tests/**",
+        "**/.pnpm-store/**",
+        "**/packaging/**",
+        "**/tests/**",
+        "**/*.svelte"
+    ],
+    "rules": {
+        "no-unused-vars": "warn",
+        "no-console": "off"
+    }
+}

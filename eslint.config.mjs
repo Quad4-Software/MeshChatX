@@ -2,6 +2,7 @@ import js from "@eslint/js";
 import pluginSvelte from "eslint-plugin-svelte";
 import pluginPrettier from "eslint-plugin-prettier/recommended";
 import pluginSecurity from "eslint-plugin-security";
+import oxlint from "eslint-plugin-oxlint";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 import svelteConfig from "./svelte.config.mjs";
@@ -156,4 +157,7 @@ export default [
             ],
         },
     },
+    // Oxlint owns overlapping core JS/TS rules. Keep ESLint for Svelte templates,
+    // security plugin, prettier, and restricted-imports.
+    ...oxlint.buildFromOxlintConfigFile("./.oxlintrc.json"),
 ];
