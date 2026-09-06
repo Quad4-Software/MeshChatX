@@ -1,5 +1,5 @@
 #!/bin/sh
-# ESLint --fix on staged JS/TS/Vue files. Requires pnpm install.
+# ESLint --fix on staged JS/TS/Svelte files. Requires pnpm install.
 # SPDX-License-Identifier: 0BSD
 set -eu
 
