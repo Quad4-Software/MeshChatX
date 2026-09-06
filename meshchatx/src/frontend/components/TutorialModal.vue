@@ -831,6 +831,7 @@
                                         <a
                                             href="/meshchatx-docs/index.html"
                                             target="_blank"
+                                            rel="noopener noreferrer"
                                             class="px-3 py-1 text-[10px] rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-xs transition-all inline-block"
                                         >
                                             {{ $t("tutorial.meshchatx_docs") }}
@@ -838,6 +839,7 @@
                                         <a
                                             :href="reticulumBundledDocsUrl"
                                             target="_blank"
+                                            rel="noopener noreferrer"
                                             class="px-3 py-1 text-[10px] rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sem-fg-muted font-semibold shadow-xs transition-all hover:bg-gray-50 hover:bg-sem-surface-muted hover:border-blue-400 dark:hover:border-blue-500 inline-block"
                                         >
                                             {{ $t("tutorial.reticulum_docs") }}
@@ -1953,6 +1955,7 @@
                                                 <a
                                                     href="/meshchatx-docs/index.html"
                                                     target="_blank"
+                                                    rel="noopener noreferrer"
                                                     class="flex min-h-12 items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-base font-semibold text-white shadow-xs transition-all hover:bg-blue-500"
                                                 >
                                                     {{ $t("tutorial.read_meshchatx_docs") }}
@@ -1960,6 +1963,7 @@
                                                 <a
                                                     :href="reticulumBundledDocsUrl"
                                                     target="_blank"
+                                                    rel="noopener noreferrer"
                                                     class="flex min-h-12 items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-3 text-base font-semibold text-gray-700 shadow-xs transition-all hover:border-blue-400 hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-800 text-sem-fg-muted dark:hover:border-blue-500 hover:bg-sem-surface-muted"
                                                 >
                                                     {{ $t("tutorial.reticulum_manual") }}

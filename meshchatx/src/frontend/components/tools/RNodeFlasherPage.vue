@@ -133,12 +133,14 @@
                 <div class="flex items-center gap-4">
                     <a
                         target="_blank"
+                        rel="noopener noreferrer"
                         href="https://github.com/liamcottle/rnode-flasher"
                         class="text-blue-500 hover:underline text-sm font-bold"
                         >RNode Flasher</a
                     >
                     <a
                         target="_blank"
+                        rel="noopener noreferrer"
                         href="https://github.com/markqvist/RNode_Firmware"
                         class="text-blue-500 hover:underline text-sm font-bold"
                         >RNode Firmware</a

@@ -154,6 +154,7 @@
                             <a
                                 href="https://reticulum.network"
                                 target="_blank"
+                                rel="noopener noreferrer"
                                 class="text-blue-500 font-black hover:underline decoration-2 underline-offset-4"
                                 >{{ $t("about.tagline_link") }}</a
                             >{{ $t("about.tagline_after") }}

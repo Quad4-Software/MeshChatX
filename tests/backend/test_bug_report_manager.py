@@ -306,7 +306,7 @@ def test_delete_report_deletes_persisted_file(tmp_path):
 
 def test_inbound_redaction_and_fingerprint_merge(tmp_path):
     manager = BugReportManager(_fake_app(tmp_path))
-    secret = "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
+    secret = "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"  # nosec: test fixture
     payload = {
         "v": 2,
         "title": "Boom",

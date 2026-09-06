@@ -930,7 +930,7 @@ class DocsManager:
         if not os.path.isdir(path):
             return
         try:
-            os.chmod(path, 0o755)
+            os.chmod(path, 0o750)
         except OSError:
             pass
 
