@@ -3,126 +3,123 @@
     "domains": [
         {
             "domain": "Identity",
-            "manager_modules": ["identity_context/", "identity_manager.py"],
-            "http_route_module": ["identities/"],
-            "ws_module": ["http/ws/dispatch.py"],
-            "primary_tests": ["test_identity_*"],
-            "frontend_page": ["features/settings/components/IdentitiesPage.svelte"]
+            "manager_modules": [],
+            "http_route_module": [],
+            "ws_module": [],
+            "primary_tests": [],
+            "frontend_page": []
         },
         {
             "domain": "Status / startup",
-            "manager_modules": ["lifecycle/deferred_network.py", "rns_startup_recovery.py"],
-            "http_route_module": ["status/"],
+            "manager_modules": [],
+            "http_route_module": [],
             "ws_module": [],
-            "primary_tests": ["test_deferred_network_startup.py", "test_api_json_contracts.py"],
+            "primary_tests": [],
             "frontend_page": []
         },
         {
             "domain": "Auth / CSRF",
-            "manager_modules": ["csrf.py", "app_security_settings.py", "ip_allowlist.py"],
-            "http_route_module": ["auth/"],
-            "ws_module": ["http/ws/dispatch.py"],
-            "primary_tests": ["test_csrf*", "test_access_attempts_*"],
-            "frontend_page": ["features/app-shell/App.svelte"]
+            "manager_modules": [],
+            "http_route_module": [],
+            "ws_module": [],
+            "primary_tests": [],
+            "frontend_page": []
         },
         {
             "domain": "Messages / LXMF",
-            "manager_modules": ["message_handler.py", "lxmf_utils/", "database/messages/"],
-            "http_route_module": ["messages/", "lxmf/"],
-            "ws_module": ["http/ws/dispatch.py"],
+            "manager_modules": [],
+            "http_route_module": [],
+            "ws_module": [],
             "primary_tests": [],
-            "frontend_page": [
-                "features/messages/MessagesPage.svelte",
-                "features/messages/components/ConversationViewer.svelte"
-            ]
+            "frontend_page": []
         },
         {
             "domain": "Telephone / LXST",
-            "manager_modules": ["telephone_manager/", "database/telephone.py"],
-            "http_route_module": ["telephone/", "contacts/"],
-            "ws_module": ["http/ws/dispatch.py"],
+            "manager_modules": [],
+            "http_route_module": [],
+            "ws_module": [],
             "primary_tests": [],
-            "frontend_page": ["features/call/CallPage.svelte"]
+            "frontend_page": []
         },
         {
             "domain": "RRC",
-            "manager_modules": ["rrc/manager/", "rrc/server/"],
-            "http_route_module": ["rrc/"],
-            "ws_module": ["http/ws/dispatch.py"],
+            "manager_modules": [],
+            "http_route_module": [],
+            "ws_module": [],
             "primary_tests": [],
-            "frontend_page": ["features/relay-chat/components/RelayChatPage.svelte"]
+            "frontend_page": []
         },
         {
             "domain": "Map",
-            "manager_modules": ["map_manager.py", "map_overlay_manager/", "map_data_manager/"],
-            "http_route_module": ["map/"],
+            "manager_modules": [],
+            "http_route_module": [],
             "ws_module": [],
             "primary_tests": [],
-            "frontend_page": ["features/map/MapPage.svelte"]
+            "frontend_page": []
         },
         {
             "domain": "Plugins",
-            "manager_modules": ["plugin_manager/", "plugin_permissions.py"],
-            "http_route_module": ["plugins/", "sideband/"],
-            "ws_module": ["http/ws/dispatch.py"],
+            "manager_modules": [],
+            "http_route_module": [],
+            "ws_module": [],
             "primary_tests": [],
-            "frontend_page": ["features/settings/components/sections/PluginsSettingsSection.svelte"]
+            "frontend_page": []
         },
         {
             "domain": "FileSync",
-            "manager_modules": ["rns_filesync_handler/"],
-            "http_route_module": ["filesync/"],
+            "manager_modules": [],
+            "http_route_module": [],
             "ws_module": [],
             "primary_tests": [],
-            "frontend_page": ["features/filesync/"]
+            "frontend_page": []
         },
         {
             "domain": "Interfaces",
-            "manager_modules": ["interface_editor.py", "interface_config_parser.py"],
-            "http_route_module": ["interfaces/"],
+            "manager_modules": [],
+            "http_route_module": [],
             "ws_module": [],
             "primary_tests": [],
-            "frontend_page": ["features/interfaces/InterfacesPage.svelte"]
+            "frontend_page": []
         },
         {
             "domain": "Database / backup",
-            "manager_modules": ["database/*", "recovery/*"],
-            "http_route_module": ["database/", "maintenance/"],
+            "manager_modules": [],
+            "http_route_module": [],
             "ws_module": [],
             "primary_tests": [],
             "frontend_page": []
         },
         {
             "domain": "Docs",
-            "manager_modules": ["docs_manager/"],
-            "http_route_module": ["docs/"],
+            "manager_modules": [],
+            "http_route_module": [],
             "ws_module": [],
             "primary_tests": [],
-            "frontend_page": ["features/docs/DocsPage.svelte"]
+            "frontend_page": []
         },
         {
             "domain": "Sandbox",
-            "manager_modules": ["landlock_sandbox.py", "seccomp_sandbox.py", "appcontainer_sandbox/"],
-            "http_route_module": ["status/"],
+            "manager_modules": [],
+            "http_route_module": [],
             "ws_module": [],
-            "primary_tests": ["test_landlock_sandbox.py", "test_landlock_integration_surfaces.py"],
+            "primary_tests": [],
             "frontend_page": []
         },
         {
             "domain": "RNS Link API",
-            "manager_modules": ["rns_link_manager.py"],
+            "manager_modules": [],
             "http_route_module": [],
-            "ws_module": ["http/ws/dispatch.py"],
-            "primary_tests": ["test_rns_link_*"],
+            "ws_module": [],
+            "primary_tests": [],
             "frontend_page": []
         },
         {
             "domain": "Config",
-            "manager_modules": ["config_manager/"],
-            "http_route_module": ["config/"],
-            "ws_module": ["http/ws/dispatch.py"],
+            "manager_modules": [],
+            "http_route_module": [],
+            "ws_module": [],
             "primary_tests": [],
-            "frontend_page": ["features/settings/components/SettingsPage.svelte"]
+            "frontend_page": []
         }
     ]
 }
