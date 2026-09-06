@@ -66,12 +66,10 @@ export function outboundBubbleStatusTitleKey(lxmfMessage) {
 }
 
 /**
- * Opportunistic FAILED is deferred wait in the UI, not a hard failure badge.
- * @param {{ state?: string, method?: string } | null | undefined} lxmfMessage
+ * Failed outbound bubbles always use the hard-fail badge (red + waiting for announce).
+ * Kept as a named helper so ConversationMessageEntry call sites stay stable.
+ * @param {{ state?: string, method?: string } | null | undefined} [_lxmfMessage]
  */
-export function isOpportunisticDeferredDelivery(lxmfMessage) {
-    if (!lxmfMessage) {
-        return false;
-    }
-    return lxmfMessage.method === "opportunistic" && lxmfMessage.state === "failed";
+export function isOpportunisticDeferredDelivery() {
+    return false;
 }

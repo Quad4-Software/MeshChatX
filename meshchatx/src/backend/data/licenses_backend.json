@@ -18,16 +18,16 @@
         "license": "Apache 2"
     },
     {
+        "name": "aioquic",
+        "version": "1.3.0",
+        "author": "Jeremy Lainé <jeremy.laine@m4x.org>",
+        "license": "BSD-3-Clause"
+    },
+    {
         "name": "aiosignal",
         "version": "1.4.0",
         "author": "aiohttp team <team@aiohttp.org>",
         "license": "Apache 2.0"
-    },
-    {
-        "name": "altcha",
-        "version": "2.1.0",
-        "author": "Daniel Regeci",
-        "license": "OSI Approved :: MIT License"
     },
     {
         "name": "anyio",
@@ -186,6 +186,18 @@
         "license": "BSD-3-Clause"
     },
     {
+        "name": "pylsqpack",
+        "version": "0.3.24",
+        "author": "Jeremy Lainé <jeremy.laine@m4x.org>",
+        "license": "BSD-3-Clause"
+    },
+    {
+        "name": "pyOpenSSL",
+        "version": "26.4.0",
+        "author": "The pyOpenSSL developers",
+        "license": "Apache License, Version 2.0"
+    },
+    {
         "name": "pyserial",
         "version": "3.5",
         "author": "Chris Liechti",
@@ -208,6 +220,12 @@
         "version": "1.0.0",
         "author": "-",
         "license": "BSD-2-Clause"
+    },
+    {
+        "name": "service-identity",
+        "version": "26.1.0",
+        "author": "Hynek Schlawack <hs@ox.cx>",
+        "license": "MIT"
     },
     {
         "name": "wasmtime",

@@ -115,7 +115,7 @@ def test_docs_manager_readonly_public_dir_handling(tmp_path):
     public_dir = tmp_path / "readonly_public"
     public_dir.mkdir()
 
-    os.chmod(public_dir, 0o555)
+    os.chmod(public_dir, 0o550)
 
     config = MagicMock()
     from unittest.mock import patch

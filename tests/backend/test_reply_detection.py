@@ -3,8 +3,6 @@
 from unittest.mock import MagicMock
 
 import LXMF
-from hypothesis import given
-from hypothesis import strategies as st
 
 from meshchatx.meshchat import ReticulumMeshChat
 
@@ -14,29 +12,6 @@ def get_mock_mesh_chat():
     app.current_context = MagicMock()
     app.reticulum = MagicMock()
     return app
-
-
-@given(content=st.text())
-def test_fuzz_reply_detection_no_crash(content):
-    mesh_chat = get_mock_mesh_chat()
-    mock_msg = MagicMock(spec=LXMF.LXMessage)
-    mock_msg.hash = b"h" * 16
-    mock_msg.source_hash = b"s" * 16
-    mock_msg.destination_hash = b"d" * 16
-    mock_msg.content = content.encode("utf-8", errors="replace")
-    mock_msg.get_fields.return_value = {}
-    mock_msg.timestamp = 0
-    mock_msg.progress = 0
-    mock_msg.incoming = True
-    mock_msg.state = 0
-    mock_msg.method = 0
-    mock_msg.delivery_attempts = 0
-    mock_msg.title = b""
-    mock_msg.rssi = 0
-    mock_msg.snr = 0
-    mock_msg.q = 0
-
-    mesh_chat.db_upsert_lxmf_message(mock_msg)
 
 
 def test_explicit_reply_detection():

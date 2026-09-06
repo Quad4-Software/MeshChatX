@@ -50,7 +50,7 @@
                 </div>
                 <div
                     v-else
-                    class="size-7 rounded-full flex items-center justify-center border-2 border-gray-400 bg-gray-50 text-gray-500 shrink-0"
+                    class="size-7 rounded-full flex items-center justify-center border-2 border-gray-400 bg-sem-surface-muted text-sem-fg-muted shrink-0"
                 >
                     <MaterialDesignIcon icon-name="help" class="size-3.5" />
                 </div>

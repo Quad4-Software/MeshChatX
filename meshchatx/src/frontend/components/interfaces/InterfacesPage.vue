@@ -1,9 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div
-        class="flex flex-col flex-1 overflow-hidden min-w-0 bg-linear-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
-    >
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas text-sem-fg">
         <div class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 md:px-5 lg:px-8 py-3 sm:py-4">
             <div class="space-y-0 w-full min-w-0 max-w-6xl xl:max-w-7xl 2xl:max-w-360 mx-auto flex-1">
                 <div
@@ -997,6 +995,11 @@ export default {
             GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
         }
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
+        if (typeof this._liveTransportReadyWatch === "function") {
+            this._liveTransportReadyWatch();
+            this._liveTransportReadyWatch = null;
+        }
     },
     mounted() {
         try {
@@ -1021,10 +1024,23 @@ export default {
         };
         GlobalEmitter.on(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
+        this._liveTransportReadyWatch = this.$watch(
+            () => GlobalState.liveTransportReady,
+            () => {
+                this.startInterfacePollIntervals();
+            }
+        );
         this.startInterfacePollIntervals();
     },
     methods: {
         onIdentitySwitched() {
+            this.loadInterfaces();
+            this.updateInterfaceStats();
+            this.loadDiscoveryConfig();
+            this.loadDiscoveredInterfaces();
+        },
+        onWebsocketReconnected() {
             this.loadInterfaces();
             this.updateInterfaceStats();
             this.loadDiscoveryConfig();
@@ -1036,10 +1052,15 @@ export default {
             this.reloadInterval = null;
             this.discoveryInterval = null;
             const prefs = loadBatterySaverPrefs();
-            const statsMs =
+            const liveReady = GlobalState.liveTransportReady === true;
+            let statsMs =
                 prefs.enabled && prefs.reduceInterfacesDiscovery ? prefs.interfacesStatsPollSeconds * 1000 : 1000;
-            const discoveryMs =
+            let discoveryMs =
                 prefs.enabled && prefs.reduceInterfacesDiscovery ? prefs.interfacesDiscoveryPollSeconds * 1000 : 5000;
+            if (liveReady) {
+                statsMs = Math.max(statsMs, 15000);
+                discoveryMs = Math.max(discoveryMs, 30000);
+            }
             this.reloadInterval = setInterval(() => {
                 this.updateInterfaceStats();
             }, statsMs);

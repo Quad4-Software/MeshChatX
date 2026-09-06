@@ -60,6 +60,35 @@ def is_opaque_frame_cors_resource(path: str) -> bool:
     return False
 
 
+# Tokens we deliberately omit from Permissions-Policy (defaults keep them working
+# on same-origin top-level documents):
+# - bluetooth, serial, usb, hid: default allowlist is self (MDN / Web Bluetooth,
+#   Web Serial, WebUSB). Listing them triggers Brave "Unrecognized feature"
+#   warnings when the API is disabled or behind a flag (brave-web-bluetooth-api,
+#   no Web Serial). Firefox does not implement bluetooth/usb policy tokens.
+# - speaker-selection: default allowlist is self. Chromium only recognizes the
+#   token when the SpeakerSelection runtime flag is on; Brave and some Chrome
+#   builds log "Unrecognized feature: speaker-selection" otherwise. CallPage
+#   setSinkId still works under the default.
+# Never send the legacy Feature-Policy header alongside Permissions-Policy.
+_PERMISSIONS_POLICY_CORE = (
+    "microphone=(self)",
+    "camera=(self)",
+    "autoplay=(self)",
+)
+
+
+def build_permissions_policy() -> str:
+    """Permissions-Policy for Chrome, Edge, Brave, Firefox, and Safari.
+
+    Only declare tokens that major engines parse without console noise.
+    microphone/camera: Chrome, Firefox FeaturePolicyUtils, Brave, Safari prompts.
+    autoplay: Chromium family. Firefox treats autoplay as experimental and
+    ignores unknown tokens quietly in practice; default autoplay is also self.
+    """
+    return ", ".join(_PERMISSIONS_POLICY_CORE)
+
+
 def build_nomad_crash_tab_csp() -> str:
     """CSP for /nomad-crash-tab.html only.
 
@@ -171,7 +200,6 @@ def create_auth_middleware(app):
         if path in (
             "/api/v1/auth/csrf",
             "/api/v1/auth/status",
-            "/api/v1/auth/altcha/challenge",
         ):
             return await handler(request)
 
@@ -227,7 +255,6 @@ def create_auth_middleware(app):
             "/api/v1/auth/login",
             "/api/v1/auth/status",
             "/api/v1/auth/logout",
-            "/api/v1/auth/altcha/challenge",
             "/manifest.json",
             "/service-worker.js",
         ]
@@ -362,16 +389,7 @@ def create_security_middleware(app):
 
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        # Explicitly allow mic/camera, autoplay, speaker routing, and hardware
-        # transports for this origin. Listing only mic/camera without bluetooth
-        # /serial/usb has caused some Chromium and Brave builds to treat
-        # hardware APIs as unavailable. Do not also send the legacy feature
-        # policy header. Chromium ignores unrecognized tokens there and warns
-        # when the same features appear on both headers.
-        response.headers["Permissions-Policy"] = (
-            "microphone=(self), camera=(self), autoplay=(self), speaker-selection=(self), "
-            "bluetooth=(self), serial=(self), usb=(self)"
-        )
+        response.headers["Permissions-Policy"] = build_permissions_policy()
 
         # CSP base configuration
         privacy_mode = privacy_mode_enabled(app.config)

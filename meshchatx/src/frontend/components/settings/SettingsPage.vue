@@ -1,10 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div
-        v-if="config"
-        class="flex flex-col flex-1 overflow-hidden min-w-0 bg-linear-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
-    >
+    <div v-if="config" class="flex flex-col flex-1 overflow-hidden min-w-0 bg-sem-canvas text-sem-fg">
         <div
             class="flex-1 overflow-y-auto overflow-x-hidden w-full min-w-0 px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         >
@@ -21,7 +18,7 @@
                                         v-model="config.display_name"
                                         type="text"
                                         :placeholder="$t('app.display_name_placeholder')"
-                                        class="w-full rounded-xl border border-sem-border bg-white dark:bg-zinc-800 px-3 py-2 text-base font-semibold text-sem-fg focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500 outline-hidden transition"
+                                        class="w-full rounded-xl border border-sem-border bg-sem-surface px-3 py-2 text-base font-semibold text-sem-fg focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border outline-hidden transition"
                                         @input="onDisplayNameChange"
                                     />
                                 </div>
@@ -32,25 +29,19 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mt-4 text-sm text-sem-fg-muted">
-                        <div
-                            class="border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/2 dark:sm:bg-white/2"
-                        >
+                        <div class="border border-sem-border py-3 px-3 sm:rounded-xl sm:bg-sem-surface-muted/40">
                             <div class="text-xs uppercase tracking-wide">{{ $t("app.theme") }}</div>
                             <div class="font-semibold text-sem-fg capitalize">
                                 {{ $t("app.theme_mode", { mode: config.theme }) }}
                             </div>
                         </div>
-                        <div
-                            class="border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/2 dark:sm:bg-white/2"
-                        >
+                        <div class="border border-sem-border py-3 px-3 sm:rounded-xl sm:bg-sem-surface-muted/40">
                             <div class="text-xs uppercase tracking-wide">{{ $t("app.transport") }}</div>
                             <div class="font-semibold text-sem-fg">
                                 {{ config.is_transport_enabled ? $t("app.enabled") : $t("app.disabled") }}
                             </div>
                         </div>
-                        <div
-                            class="border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/2 dark:sm:bg-white/2"
-                        >
+                        <div class="border border-sem-border py-3 px-3 sm:rounded-xl sm:bg-sem-surface-muted/40">
                             <div class="text-xs uppercase tracking-wide">{{ $t("app.propagation") }}</div>
                             <div class="font-semibold text-sem-fg">
                                 {{
@@ -61,7 +52,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="grid gap-3 mt-4 text-sm text-gray-700 dark:text-gray-200 sm:grid-cols-2">
+                    <div class="grid gap-3 mt-4 text-sm text-sem-fg sm:grid-cols-2">
                         <div class="address-card">
                             <div class="address-card__label">{{ $t("app.identity_hash") }}</div>
                             <div class="address-card__value monospace-field">{{ config.identity_hash }}</div>
@@ -90,12 +81,10 @@
                 </div>
 
                 <!-- search bar -->
-                <div
-                    class="sticky top-0 z-10 py-3 sm:py-4 mb-2 border-b border-gray-200/50 dark:border-zinc-800/50 bg-transparent min-w-0"
-                >
+                <div class="sticky top-0 z-10 py-3 sm:py-4 mb-2 border-b border-sem-border bg-transparent min-w-0">
                     <div class="relative w-full max-w-6xl xl:max-w-7xl 2xl:max-w-360 mx-auto min-w-0 px-0">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
+                            <MaterialDesignIcon icon-name="magnify" class="size-5 text-sem-fg-muted" />
                         </div>
                         <input
                             ref="settingsSearchInput"
@@ -109,7 +98,7 @@
                             spellcheck="false"
                             :aria-label="$t('settings.search_label')"
                             :class="[
-                                'w-full bg-sem-surface border border-sem-border rounded-2xl py-3 pl-12 text-sm focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-hidden transition-all shadow-xs',
+                                'w-full bg-sem-surface border border-sem-border rounded-2xl py-3 pl-12 text-sm focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border outline-hidden transition-all shadow-xs',
                                 settingsSearchActive ? 'pr-12' : 'pr-4',
                             ]"
                             :placeholder="$t('app.search_settings')"
@@ -137,27 +126,19 @@
                 </div>
 
                 <!-- no results -->
-                <div
+                <EmptyState
                     v-if="settingsSearchActive && !hasSearchResults"
-                    class="flex flex-col items-center justify-center py-12 text-center"
+                    icon="magnify-close"
+                    :title="$t('settings.search_no_results')"
+                    :description="$t('settings.search_no_match', { query: settingsSearchDisplay })"
+                    root-class="py-12"
                 >
-                    <div class="p-4 bg-white/50 dark:bg-zinc-800/50 rounded-full mb-4 border border-sem-border">
-                        <MaterialDesignIcon icon-name="magnify-close" class="size-8 text-gray-400" />
-                    </div>
-                    <h3 class="text-lg font-semibold text-sem-fg">
-                        {{ $t("settings.search_no_results") }}
-                    </h3>
-                    <p class="text-sem-fg-muted">
-                        {{ $t("settings.search_no_match", { query: settingsSearchDisplay }) }}
-                    </p>
-                    <button
-                        type="button"
-                        class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition font-semibold text-sm"
-                        @click="clearSettingsSearch"
-                    >
-                        {{ $t("settings.search_clear") }}
-                    </button>
-                </div>
+                    <template #action>
+                        <button type="button" class="primary-chip focus-ring-sem" @click="clearSettingsSearch">
+                            {{ $t("settings.search_clear") }}
+                        </button>
+                    </template>
+                </EmptyState>
 
                 <!-- settings panel -->
                 <div v-show="hasSearchResults" class="settings-panel">
@@ -214,7 +195,7 @@
                                     class="rounded-2xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/60 dark:bg-amber-950/20 p-4 space-y-3"
                                 >
                                     <div>
-                                        <div class="text-sm font-bold text-gray-900 dark:text-gray-100">
+                                        <div class="text-sm font-bold text-sem-fg">
                                             {{ $t("maintenance.purge_old_title") }}
                                         </div>
                                         <div class="text-xs text-sem-fg-muted mt-1">
@@ -292,7 +273,7 @@
                                     <div class="flex flex-wrap gap-2">
                                         <button
                                             type="button"
-                                            class="px-3 py-2 rounded-xl text-sm font-semibold border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 hover:bg-gray-50 hover:bg-sem-surface-muted disabled:opacity-60"
+                                            class="px-3 py-2 rounded-xl text-sm font-semibold border border-sem-border bg-sem-surface hover:bg-sem-surface-muted disabled:opacity-60"
                                             :disabled="messageAgePurgeBusy"
                                             @click="refreshMessageAgePurgePreview"
                                         >
@@ -320,7 +301,7 @@
                                 <div class="grid grid-cols-1 gap-3">
                                     <button
                                         type="button"
-                                        class="btn-maintenance border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20"
+                                        class="btn-maintenance border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/10 hover:bg-sem-danger/10 dark:hover:bg-red-900/20"
                                         @click="clearMessages"
                                     >
                                         <div class="flex flex-col items-start text-left">
@@ -480,9 +461,7 @@
                                 </div>
 
                                 <div class="space-y-2 pt-2 border-t border-sem-border">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        Automatic Backup Limit
-                                    </div>
+                                    <div class="text-sm font-medium text-sem-fg">Automatic Backup Limit</div>
                                     <input
                                         v-model.number="config.backup_max_count"
                                         type="number"
@@ -491,20 +470,18 @@
                                         class="input-field"
                                         @input="onBackupConfigChange"
                                     />
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
-                                        Number of automatic backups to keep.
-                                    </div>
+                                    <div class="text-xs text-sem-fg-muted">Number of automatic backups to keep.</div>
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-3 mt-4">
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-blue-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-blue-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-blue-200 bg-sem-surface-muted/50 hover:border-sem-accent transition group"
                                         @click="exportMessages"
                                     >
                                         <MaterialDesignIcon
                                             icon-name="export"
-                                            class="size-6 text-blue-500 group-hover:scale-110 transition"
+                                            class="size-6 text-sem-accent group-hover:scale-110 transition"
                                         />
                                         <div class="text-sm font-bold">{{ $t("maintenance.export_messages") }}</div>
                                         <div class="text-xs opacity-70 text-center px-1">
@@ -514,7 +491,7 @@
 
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-emerald-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-emerald-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-emerald-200 bg-sem-surface-muted/50 hover:border-emerald-500 transition group"
                                         @click="triggerImport"
                                     >
                                         <MaterialDesignIcon
@@ -538,7 +515,7 @@
                                 <div class="grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-sem-border">
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-purple-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-purple-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-purple-200 bg-sem-surface-muted/50 hover:border-purple-500 transition group"
                                         @click="exportFolders"
                                     >
                                         <MaterialDesignIcon
@@ -550,7 +527,7 @@
 
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-indigo-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-indigo-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-indigo-200 bg-sem-surface-muted/50 hover:border-indigo-500 transition group"
                                         @click="triggerFolderImport"
                                     >
                                         <MaterialDesignIcon
@@ -571,7 +548,7 @@
                                 <div class="grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-sem-border">
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-teal-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-teal-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-teal-200 bg-sem-surface-muted/50 hover:border-teal-500 transition group"
                                         @click="exportNomadnetFavouritesLayout"
                                     >
                                         <MaterialDesignIcon
@@ -585,7 +562,7 @@
 
                                     <button
                                         type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-cyan-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-cyan-500 transition group"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-cyan-200 bg-sem-surface-muted/50 hover:border-cyan-500 transition group"
                                         @click="triggerNomadnetFavouritesImport"
                                     >
                                         <MaterialDesignIcon
@@ -619,7 +596,7 @@
                                 <div class="flex items-center gap-3">
                                     <button
                                         type="button"
-                                        class="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition flex items-center gap-2"
+                                        class="px-4 py-2 text-sm font-semibold text-white bg-sem-action-primary hover:bg-sem-action-primary-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition flex items-center gap-2"
                                         :disabled="selfTestRunning"
                                         @click="runSelfTest"
                                     >
@@ -659,7 +636,7 @@
                                                 <button
                                                     v-if="!check.passed && check.reason"
                                                     type="button"
-                                                    class="inline-flex items-center justify-center rounded-lg p-1 text-red-600 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950/40"
+                                                    class="inline-flex items-center justify-center rounded-lg p-1 text-sem-danger hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950/40"
                                                     :aria-expanded="isSelfTestReasonExpanded(check.key)"
                                                     :aria-label="
                                                         isSelfTestReasonExpanded(check.key)
@@ -696,7 +673,7 @@
                                         </div>
                                         <div
                                             v-if="!check.passed && check.reason && isSelfTestReasonExpanded(check.key)"
-                                            class="text-xs text-red-600 dark:text-red-400 mt-2 pl-6 whitespace-pre-wrap wrap-break-word"
+                                            class="text-xs text-sem-danger dark:text-red-400 mt-2 pl-6 whitespace-pre-wrap wrap-break-word"
                                         >
                                             <span class="font-semibold">{{ $t("selftest.reason_label") }}:</span>
                                             {{ check.reason }}
@@ -837,7 +814,7 @@
                                         <span class="setting-toggle__description">
                                             {{ $t("settings.nomad_micron_wasm_desc_before_link") }}
                                             <a
-                                                class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2"
+                                                class="text-sem-accent hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2"
                                                 href="https://github.com/Quad4-Software/micron-parser-go"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
@@ -848,12 +825,12 @@
                                 </label>
                                 <div
                                     v-if="micronWasmBundledInBuild && config.nomad_micron_wasm_enabled"
-                                    class="space-y-2 rounded-lg border border-gray-200 bg-gray-50/80 p-3 dark:border-zinc-700 dark:bg-zinc-900/50"
+                                    class="space-y-2 rounded-lg border border-sem-border bg-sem-surface-muted/80 p-3 dark:bg-zinc-900/50"
                                 >
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("settings.nomad_micron_default_engine_title") }}
                                     </div>
-                                    <p class="text-xs text-gray-600 dark:text-gray-400">
+                                    <p class="text-xs text-sem-fg-muted">
                                         {{ $t("settings.nomad_micron_default_engine_desc") }}
                                     </p>
                                     <select
@@ -874,10 +851,7 @@
                                             }}
                                         </option>
                                     </select>
-                                    <div
-                                        v-if="micronWasmReleaseLabel"
-                                        class="text-xs text-gray-600 dark:text-gray-400 font-mono"
-                                    >
+                                    <div v-if="micronWasmReleaseLabel" class="text-xs text-sem-fg-muted font-mono">
                                         {{
                                             $t("settings.micron_wasm_installed_version", {
                                                 version: micronWasmReleaseLabel,
@@ -902,9 +876,7 @@
                                     </button>
                                 </div>
                                 <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        Default page path (no URL path)
-                                    </div>
+                                    <div class="text-sm font-medium text-sem-fg">Default page path (no URL path)</div>
                                     <select
                                         v-model="config.nomad_default_page_path"
                                         class="input-field max-w-xl"
@@ -915,7 +887,7 @@
                                         <option value="/page/index.md">/page/index.md (Markdown)</option>
                                         <option value="/page/index.txt">/page/index.txt (plain text)</option>
                                     </select>
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         Used when opening a Nomad node without a path, for hash-only links, and for the
                                         Smart Crawler homepage fetch.
                                     </div>
@@ -957,7 +929,7 @@
 
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Max hops</div>
+                                        <div class="text-sm font-medium text-sem-fg">Max hops</div>
                                         <input
                                             v-model.number="config.crawler_max_hops"
                                             type="number"
@@ -966,14 +938,12 @@
                                             class="input-field"
                                             @input="onCrawlerConfigChange"
                                         />
-                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        <div class="text-xs text-sem-fg-muted">
                                             Skip nodes farther than this path length (default 4).
                                         </div>
                                     </div>
                                     <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            Max link RTT (ms)
-                                        </div>
+                                        <div class="text-sm font-medium text-sem-fg">Max link RTT (ms)</div>
                                         <input
                                             v-model.number="config.crawler_max_rtt_ms"
                                             type="number"
@@ -982,14 +952,12 @@
                                             class="input-field"
                                             @input="onCrawlerConfigChange"
                                         />
-                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        <div class="text-xs text-sem-fg-muted">
                                             Do not index nodes whose link RTT is above this (default 2500).
                                         </div>
                                     </div>
                                     <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            Max depth
-                                        </div>
+                                        <div class="text-sm font-medium text-sem-fg">Max depth</div>
                                         <input
                                             v-model.number="config.crawler_max_depth"
                                             type="number"
@@ -998,14 +966,12 @@
                                             class="input-field"
                                             @input="onCrawlerConfigChange"
                                         />
-                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        <div class="text-xs text-sem-fg-muted">
                                             0 is front page only. 2 is front page plus two levels down.
                                         </div>
                                     </div>
                                     <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            Max pages per node
-                                        </div>
+                                        <div class="text-sm font-medium text-sem-fg">Max pages per node</div>
                                         <input
                                             v-model.number="config.crawler_max_pages_per_node"
                                             type="number"
@@ -1014,14 +980,12 @@
                                             class="input-field"
                                             @input="onCrawlerConfigChange"
                                         />
-                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        <div class="text-xs text-sem-fg-muted">
                                             Hard cap on indexed paths per destination (default 20).
                                         </div>
                                     </div>
                                     <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            Requests per day per node
-                                        </div>
+                                        <div class="text-sm font-medium text-sem-fg">Requests per day per node</div>
                                         <input
                                             v-model.number="config.crawler_requests_per_day_per_node"
                                             type="number"
@@ -1030,14 +994,12 @@
                                             class="input-field"
                                             @input="onCrawlerConfigChange"
                                         />
-                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        <div class="text-xs text-sem-fg-muted">
                                             Default 1. Keeps scrape load trivial on constrained links.
                                         </div>
                                     </div>
                                     <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            Homepage refresh (days)
-                                        </div>
+                                        <div class="text-sm font-medium text-sem-fg">Homepage refresh (days)</div>
                                         <input
                                             v-model.number="config.crawler_refresh_days"
                                             type="number"
@@ -1046,14 +1008,12 @@
                                             class="input-field"
                                             @input="onCrawlerConfigChange"
                                         />
-                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        <div class="text-xs text-sem-fg-muted">
                                             Re-queue a completed homepage after this many days (default 30).
                                         </div>
                                     </div>
                                     <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            Max Retries
-                                        </div>
+                                        <div class="text-sm font-medium text-sem-fg">Max Retries</div>
                                         <input
                                             v-model.number="config.crawler_max_retries"
                                             type="number"
@@ -1062,14 +1022,10 @@
                                             class="input-field"
                                             @input="onCrawlerConfigChange"
                                         />
-                                        <div class="text-xs text-gray-600 dark:text-gray-400">
-                                            Attempts before giving up.
-                                        </div>
+                                        <div class="text-xs text-sem-fg-muted">Attempts before giving up.</div>
                                     </div>
                                     <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            Retry Delay (seconds)
-                                        </div>
+                                        <div class="text-sm font-medium text-sem-fg">Retry Delay (seconds)</div>
                                         <input
                                             v-model.number="config.crawler_retry_delay_seconds"
                                             type="number"
@@ -1077,16 +1033,12 @@
                                             class="input-field"
                                             @input="onCrawlerConfigChange"
                                         />
-                                        <div class="text-xs text-gray-600 dark:text-gray-400">
-                                            Wait time between attempts.
-                                        </div>
+                                        <div class="text-xs text-sem-fg-muted">Wait time between attempts.</div>
                                     </div>
                                 </div>
 
                                 <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        Max Concurrent Crawls
-                                    </div>
+                                    <div class="text-sm font-medium text-sem-fg">Max Concurrent Crawls</div>
                                     <input
                                         v-model.number="config.crawler_max_concurrent"
                                         type="number"
@@ -1095,7 +1047,7 @@
                                         class="input-field"
                                         @input="onCrawlerConfigChange"
                                     />
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         Capped at 2. Prefer 1 on LoRa-class links.
                                     </div>
                                 </div>
@@ -1149,6 +1101,14 @@
                             @restore-bitrates="restoreBatteryBitrateLimitsNow"
                         />
 
+                        <ExperimentalLiveSettingsSection
+                            :visible="showSection('experimentalLive')"
+                            :live-transport-mode="config.live_transport_mode || 'auto'"
+                            :sidecar-enabled="config.webtransport_sidecar_enabled === true"
+                            @mode-change="onLiveTransportModeChange"
+                            @sidecar-change="onWebtransportSidecarChange"
+                        />
+
                         <VisualiserSettingsSection
                             :visible="showSection('visualiser')"
                             :renderer="visualiserRenderer"
@@ -1182,7 +1142,7 @@
                             </header>
                             <div class="settings-section__body space-y-4">
                                 <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("app.location_source") }}
                                     </div>
                                     <select
@@ -1196,22 +1156,13 @@
                                         <option value="browser">{{ $t("app.location_source_browser") }}</option>
                                         <option value="manual">{{ $t("app.location_source_manual") }}</option>
                                     </select>
-                                    <div
-                                        v-if="config.location_source === 'disabled'"
-                                        class="text-xs text-gray-600 dark:text-gray-400"
-                                    >
+                                    <div v-if="config.location_source === 'disabled'" class="text-xs text-sem-fg-muted">
                                         {{ $t("app.location_source_disabled_desc") }}
                                     </div>
-                                    <div
-                                        v-if="config.location_source === 'browser'"
-                                        class="text-xs text-gray-600 dark:text-gray-400"
-                                    >
+                                    <div v-if="config.location_source === 'browser'" class="text-xs text-sem-fg-muted">
                                         {{ $t("app.location_source_browser_desc") }}
                                     </div>
-                                    <div
-                                        v-if="config.location_source === 'manual'"
-                                        class="text-xs text-gray-600 dark:text-gray-400"
-                                    >
+                                    <div v-if="config.location_source === 'manual'" class="text-xs text-sem-fg-muted">
                                         {{ $t("app.location_source_manual_desc") }}
                                     </div>
                                 </div>
@@ -1221,7 +1172,7 @@
                                     class="grid grid-cols-1 sm:grid-cols-3 gap-4"
                                 >
                                     <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        <div class="text-sm font-medium text-sem-fg">
                                             {{ $t("app.location_manual_lat") }}
                                         </div>
                                         <input
@@ -1238,7 +1189,7 @@
                                         />
                                     </div>
                                     <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        <div class="text-sm font-medium text-sem-fg">
                                             {{ $t("app.location_manual_lon") }}
                                         </div>
                                         <input
@@ -1255,7 +1206,7 @@
                                         />
                                     </div>
                                     <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        <div class="text-sm font-medium text-sem-fg">
                                             {{ $t("app.location_manual_alt") }}
                                         </div>
                                         <input
@@ -1274,12 +1225,12 @@
                                 </div>
 
                                 <div class="space-y-2 border-t border-sem-border pt-4">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("app.map_defaults_heading") }}
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         <div class="space-y-2">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            <div class="text-sm font-medium text-sem-fg">
                                                 {{ $t("app.map_default_lat") }}
                                             </div>
                                             <input
@@ -1295,7 +1246,7 @@
                                             />
                                         </div>
                                         <div class="space-y-2">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            <div class="text-sm font-medium text-sem-fg">
                                                 {{ $t("app.map_default_lon") }}
                                             </div>
                                             <input
@@ -1311,7 +1262,7 @@
                                             />
                                         </div>
                                         <div class="space-y-2">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            <div class="text-sm font-medium text-sem-fg">
                                                 {{ $t("app.map_default_zoom") }}
                                             </div>
                                             <input
@@ -1330,11 +1281,11 @@
                                 </div>
 
                                 <div class="space-y-2 border-t border-sem-border pt-4">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("app.map_tiles_heading") }}
                                     </div>
                                     <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        <div class="text-sm font-medium text-sem-fg">
                                             {{ $t("app.map_tile_server_url") }}
                                         </div>
                                         <input
@@ -1350,7 +1301,7 @@
                                         />
                                     </div>
                                     <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        <div class="text-sm font-medium text-sem-fg">
                                             {{ $t("app.map_nominatim_api_url") }}
                                         </div>
                                         <input
@@ -1419,16 +1370,16 @@
 
                                 <div class="space-y-3 border-t border-sem-border pt-4">
                                     <div>
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        <div class="text-sm font-medium text-sem-fg">
                                             {{ $t("app.map_overlay_limits_heading") }}
                                         </div>
-                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        <div class="text-xs text-sem-fg-muted">
                                             {{ $t("app.map_overlay_limits_desc") }}
                                         </div>
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div v-for="field in mapOverlayLimitFields" :key="field.key" class="space-y-2">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            <div class="text-sm font-medium text-sem-fg">
                                                 {{ $t(field.labelKey) }}
                                             </div>
                                             <input
@@ -1439,7 +1390,7 @@
                                                 :max="field.max"
                                                 @change="onMapOverlayLimitChange(field.key)"
                                             />
-                                            <div class="text-[10px] text-gray-500">
+                                            <div class="text-[10px] text-sem-fg-muted">
                                                 {{ field.min }} .. {{ field.max }}
                                             </div>
                                         </div>
@@ -1470,7 +1421,7 @@
                                         <div class="setting-toggle__title">
                                             {{ $t("app.blackhole_integration_enabled") }}
                                         </div>
-                                        <div class="setting-toggle__description text-xs text-gray-500">
+                                        <div class="setting-toggle__description text-xs text-sem-fg-muted">
                                             {{ $t("app.blackhole_integration_description") }}
                                         </div>
                                     </div>
@@ -1487,16 +1438,16 @@
                                     />
                                 </div>
                                 <div class="space-y-4">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("app.announce_limits") }}
                                     </div>
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         {{ $t("app.announce_limits_description") }}
                                     </div>
-                                    <div class="text-xs font-medium text-gray-800 dark:text-gray-200">
+                                    <div class="text-xs font-medium text-sem-fg">
                                         {{ $t("app.announce_store_heading") }}
                                     </div>
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         {{ $t("app.announce_store_description") }}
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1783,7 +1734,7 @@
 
                                 <div
                                     v-if="reticulumInstance.enable_remote_management"
-                                    class="space-y-2 rounded-xl border border-sem-border bg-black/2 dark:bg-white/2 p-3"
+                                    class="space-y-2 rounded-xl border border-sem-border bg-sem-surface-muted/40 p-3"
                                 >
                                     <label class="block space-y-1">
                                         <span class="text-sm font-medium text-sem-fg">{{
@@ -1792,7 +1743,7 @@
                                         <textarea
                                             v-model="remoteManagementAllowedText"
                                             rows="3"
-                                            class="w-full rounded-xl border border-sem-border bg-white dark:bg-zinc-800 px-3 py-2 font-mono text-xs text-sem-fg"
+                                            class="w-full rounded-xl border border-sem-border bg-sem-surface px-3 py-2 font-mono text-xs text-sem-fg"
                                             :disabled="reticulumInstanceSaving"
                                             :placeholder="$t('app.remote_management_allowed_placeholder')"
                                         ></textarea>
@@ -1829,7 +1780,7 @@
                                         }}</span>
                                         <select
                                             v-model="reticulumInstance.shared_instance_type"
-                                            class="w-full rounded-xl border border-sem-border bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-sem-fg"
+                                            class="w-full rounded-xl border border-sem-border bg-sem-surface px-3 py-2 text-sm text-sem-fg"
                                             :disabled="reticulumInstanceSaving"
                                             @change="onSharedInstanceTypeChange"
                                         >
@@ -1849,7 +1800,7 @@
                                             v-model="reticulumInstance.instance_name"
                                             type="text"
                                             maxlength="64"
-                                            class="w-full rounded-xl border border-sem-border bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-sem-fg"
+                                            class="w-full rounded-xl border border-sem-border bg-sem-surface px-3 py-2 text-sm text-sem-fg"
                                             :disabled="reticulumInstanceSaving"
                                             @change="onInstanceNameChange"
                                         />
@@ -1859,9 +1810,7 @@
                                     </label>
                                 </div>
 
-                                <div
-                                    class="rounded-xl border border-sem-border bg-black/2 dark:bg-white/2 p-3 space-y-2"
-                                >
+                                <div class="rounded-xl border border-sem-border bg-sem-surface-muted/40 p-3 space-y-2">
                                     <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("app.rpc_config") }}
                                     </div>
@@ -1875,7 +1824,7 @@
                                         {{ $t("app.connected_to_shared_instance") }}
                                     </p>
                                     <div
-                                        class="relative rounded-lg border border-gray-200/70 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60"
+                                        class="relative rounded-lg border border-sem-border/70 bg-white/60 dark:bg-zinc-900/60"
                                     >
                                         <pre
                                             class="text-xs font-mono whitespace-pre-wrap break-all text-sem-fg p-2 pr-12"
@@ -1883,7 +1832,7 @@
                                         <button
                                             v-if="reticulumInstance.rpc_config_snippet"
                                             type="button"
-                                            class="absolute top-1.5 right-1.5 inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 text-sem-fg-muted dark:hover:text-zinc-100 dark:hover:bg-zinc-800"
+                                            class="absolute top-1.5 right-1.5 inline-flex items-center justify-center rounded-lg p-1.5 text-sem-fg-muted hover:text-sem-fg hover:bg-sem-surface-muted"
                                             :aria-label="
                                                 rpcKeyVisible ? $t('app.rpc_key_hide') : $t('app.rpc_key_show')
                                             "
@@ -1898,7 +1847,7 @@
                                     </div>
                                     <button
                                         type="button"
-                                        class="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-3 py-2"
+                                        class="inline-flex items-center gap-2 rounded-xl bg-sem-action-primary hover:bg-sem-action-primary-hover disabled:opacity-50 text-white text-sm font-semibold px-3 py-2"
                                         :disabled="!reticulumInstance.rpc_config_snippet"
                                         @click="copyRpcConfigSnippet"
                                     >
@@ -1970,7 +1919,7 @@
                                     class="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-0 sm:pl-1"
                                 >
                                     <div class="space-y-1">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        <div class="text-sm font-medium text-sem-fg">
                                             {{ $t("app.local_message_auto_delete_age") }}
                                         </div>
                                         <div class="flex flex-wrap items-center gap-2">
@@ -1997,7 +1946,7 @@
                                                 </option>
                                             </select>
                                         </div>
-                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        <div class="text-xs text-sem-fg-muted">
                                             {{ $t("app.local_message_auto_delete_month_note") }}
                                         </div>
                                     </div>
@@ -2106,21 +2055,24 @@
                                     </span>
                                 </label>
                                 <div v-if="config.telemetry_enabled" class="space-y-4">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("app.telemetry_trusted_peers") }}
                                     </div>
-                                    <div v-if="trustedTelemetryPeers.length === 0" class="text-xs text-gray-500 italic">
+                                    <div
+                                        v-if="trustedTelemetryPeers.length === 0"
+                                        class="text-xs text-sem-fg-muted italic"
+                                    >
                                         {{ $t("app.telemetry_no_trusted_peers") }}
                                     </div>
                                     <div v-else class="space-y-2">
                                         <div
                                             v-for="peer in trustedTelemetryPeers"
                                             :key="peer.id"
-                                            class="flex items-center justify-between p-2 rounded-xl bg-gray-50 dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700"
+                                            class="flex items-center justify-between p-2 rounded-xl bg-sem-surface-muted border border-sem-border"
                                         >
                                             <div class="flex items-center gap-3">
                                                 <div
-                                                    class="size-8 rounded-full bg-sem-surface-muted text-blue-500 flex items-center justify-center"
+                                                    class="size-8 rounded-full bg-sem-surface-muted text-sem-accent flex items-center justify-center"
                                                 >
                                                     <MaterialDesignIcon icon-name="account" class="size-5" />
                                                 </div>
@@ -2128,13 +2080,13 @@
                                                     <div class="text-sm font-bold text-sem-fg truncate">
                                                         {{ peer.name }}
                                                     </div>
-                                                    <div class="text-[10px] text-gray-500 font-mono truncate">
+                                                    <div class="text-[10px] text-sem-fg-muted font-mono truncate">
                                                         {{ peer.remote_identity_hash }}
                                                     </div>
                                                 </div>
                                             </div>
                                             <button
-                                                class="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                                                class="p-2 text-sem-fg-muted hover:text-sem-danger transition-colors"
                                                 :title="$t('app.telemetry_revoke_trust')"
                                                 @click="revokeTelemetryTrust(peer)"
                                             >
@@ -2192,7 +2144,7 @@
                                         <div class="text-sem-fg-muted">
                                             {{ $t("app.web_listen_address") }}
                                         </div>
-                                        <div class="font-mono text-gray-900 dark:text-gray-100">
+                                        <div class="font-mono text-sem-fg">
                                             {{ serverSecurity.listen_host || "-" }}:{{
                                                 serverSecurity.listen_port ?? "-"
                                             }}
@@ -2202,14 +2154,14 @@
                                         <div class="text-sem-fg-muted">
                                             {{ $t("app.web_listen_https") }}
                                         </div>
-                                        <div class="text-gray-900 dark:text-gray-100">
+                                        <div class="text-sem-fg">
                                             {{ serverSecurity.https_enabled ? $t("app.enabled") : $t("app.disabled") }}
                                         </div>
                                     </div>
                                 </div>
                                 <div
                                     v-if="serverSecurity.landlock_requested !== undefined"
-                                    class="text-xs text-gray-600 dark:text-gray-400"
+                                    class="text-xs text-sem-fg-muted"
                                 >
                                     {{ $t("app.landlock_status") }}:
                                     {{
@@ -2226,7 +2178,7 @@
                                 </div>
                                 <div
                                     v-if="serverSecurity.appcontainer_requested !== undefined"
-                                    class="text-xs text-gray-600 dark:text-gray-400"
+                                    class="text-xs text-sem-fg-muted"
                                 >
                                     {{ $t("app.appcontainer_status") }}:
                                     {{
@@ -2243,7 +2195,7 @@
                                 </div>
                                 <div
                                     v-if="serverSecurity.seccomp_requested !== undefined"
-                                    class="text-xs text-gray-600 dark:text-gray-400"
+                                    class="text-xs text-sem-fg-muted"
                                 >
                                     {{ $t("app.seccomp_status") }}:
                                     {{
@@ -2310,7 +2262,7 @@
                                     </ul>
                                 </div>
                                 <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("app.web_ui_ip_allowlist") }}
                                     </div>
                                     <input
@@ -2320,7 +2272,7 @@
                                         :placeholder="$t('app.web_ui_ip_allowlist_placeholder')"
                                         @input="onWebUiAllowlistChange"
                                     />
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         {{ $t("app.web_ui_ip_allowlist_description") }}
                                     </div>
                                 </div>
@@ -2338,9 +2290,7 @@
                             </header>
                             <div class="settings-section__body space-y-4">
                                 <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        Gitea Base URL
-                                    </div>
+                                    <div class="text-sm font-medium text-sem-fg">Gitea Base URL</div>
                                     <input
                                         v-model="config.gitea_base_url"
                                         type="text"
@@ -2348,7 +2298,7 @@
                                         class="input-field"
                                         @input="onGiteaConfigChange"
                                     />
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         The base URL for your preferred Gitea instance.
                                     </div>
                                 </div>
@@ -2366,7 +2316,7 @@
                             </header>
                             <div class="settings-section__body space-y-4">
                                 <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("app.csp_extra_connect_src") }}
                                     </div>
                                     <input
@@ -2376,13 +2326,13 @@
                                         placeholder="https://api.example.com, wss://socket.example.com"
                                         @input="onCspConfigChange"
                                     />
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         {{ $t("app.csp_extra_connect_src_description") }}
                                     </div>
                                 </div>
 
                                 <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("app.csp_extra_img_src") }}
                                     </div>
                                     <input
@@ -2392,13 +2342,13 @@
                                         placeholder="https://tiles.example.com, https://cdn.example.com"
                                         @input="onCspConfigChange"
                                     />
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         {{ $t("app.csp_extra_img_src_description") }}
                                     </div>
                                 </div>
 
                                 <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("app.csp_extra_frame_src") }}
                                     </div>
                                     <input
@@ -2408,13 +2358,13 @@
                                         placeholder="https://video.example.com"
                                         @input="onCspConfigChange"
                                     />
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         {{ $t("app.csp_extra_frame_src_description") }}
                                     </div>
                                 </div>
 
                                 <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("app.csp_extra_script_src") }}
                                     </div>
                                     <input
@@ -2424,13 +2374,13 @@
                                         placeholder="https://scripts.example.com"
                                         @input="onCspConfigChange"
                                     />
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         {{ $t("app.csp_extra_script_src_description") }}
                                     </div>
                                 </div>
 
                                 <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("app.csp_extra_style_src") }}
                                     </div>
                                     <input
@@ -2440,7 +2390,7 @@
                                         placeholder="https://fonts.example.com"
                                         @input="onCspConfigChange"
                                     />
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         {{ $t("app.csp_extra_style_src_description") }}
                                     </div>
                                 </div>
@@ -2540,7 +2490,7 @@
                                     </span>
                                 </label>
                                 <div v-show="inboundStampsEnabled" class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("app.inbound_stamp_cost") }}
                                     </div>
                                     <input
@@ -2552,16 +2502,16 @@
                                         class="input-field"
                                         @input="onLxmfInboundStampCostChange"
                                     />
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         {{ $t("app.inbound_stamp_description") }}
                                     </div>
                                 </div>
-                                <hr class="border-gray-200 dark:border-gray-700" />
+                                <hr class="border-sem-border dark:border-gray-700" />
                                 <div>
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                                    <div class="text-sm font-medium text-sem-fg mb-1">
                                         {{ $t("app.flood_protection") }}
                                     </div>
-                                    <div class="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                                    <div class="text-xs text-sem-fg-muted mb-3">
                                         {{ $t("app.flood_protection_description") }}
                                     </div>
                                     <label class="setting-toggle">
@@ -2578,7 +2528,7 @@
                                     </label>
                                     <div v-show="config.lxmf_flood_protection_enabled" class="space-y-3 mt-2">
                                         <div class="space-y-2">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            <div class="text-sm font-medium text-sem-fg">
                                                 {{ $t("app.flood_threshold") }}
                                             </div>
                                             <input
@@ -2592,7 +2542,7 @@
                                             />
                                         </div>
                                         <div class="space-y-2">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            <div class="text-sm font-medium text-sem-fg">
                                                 {{ $t("app.flood_max_stamp_cost") }}
                                             </div>
                                             <input
@@ -2606,7 +2556,7 @@
                                             />
                                         </div>
                                         <div class="space-y-2">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            <div class="text-sm font-medium text-sem-fg">
                                                 {{ $t("app.flood_cooldown") }}
                                             </div>
                                             <input
@@ -2673,7 +2623,7 @@
                                         }}</span>
                                         <span
                                             v-if="config.lxmf_preferred_propagation_node_auto_select"
-                                            class="setting-toggle__hint block mt-1 text-xs text-gray-600 dark:text-gray-400"
+                                            class="setting-toggle__hint block mt-1 text-xs text-sem-fg-muted"
                                         >
                                             <template v-if="config.lxmf_preferred_propagation_node_destination_hash">
                                                 <span class="block">{{ $t("app.auto_select_using_label") }}</span>
@@ -2688,7 +2638,7 @@
                                     </span>
                                 </label>
                                 <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("app.preferred_propagation_node") }}
                                     </div>
                                     <div class="flex flex-col sm:flex-row gap-2">
@@ -2726,15 +2676,15 @@
                                             {{ $t("tools.propagation_nodes.clear_preferred") }}
                                         </button>
                                     </div>
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         {{ $t("app.fallback_node_description") }}
                                     </div>
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         {{ $t("tools.propagation_nodes.manual_hint") }}
                                     </div>
                                 </div>
                                 <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("app.auto_sync_interval") }}
                                     </div>
                                     <select
@@ -2751,7 +2701,7 @@
                                         <option value="43200">Every 12 Hours</option>
                                         <option value="86400">Every 24 Hours</option>
                                     </select>
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         <span v-if="config.lxmf_preferred_propagation_node_last_synced_at">{{
                                             $t("app.last_synced", {
                                                 time: formatSecondsAgoForI18n(
@@ -2763,10 +2713,10 @@
                                     </div>
                                 </div>
                                 <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("app.incoming_message_size") }}
                                     </div>
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         {{ $t("app.incoming_message_size_description") }}
                                     </div>
                                     <select
@@ -2802,14 +2752,12 @@
                                             <option value="gb">{{ $t("app.incoming_message_size_unit_gb") }}</option>
                                         </select>
                                     </div>
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         {{ formatByteSize(config.lxmf_delivery_transfer_limit_in_bytes) }}
                                     </div>
                                 </div>
                                 <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        Propagation transfer limit (MB)
-                                    </div>
+                                    <div class="text-sm font-medium text-sem-fg">Propagation transfer limit (MB)</div>
                                     <input
                                         v-model.number="lxmfPropagationTransferLimitInputMb"
                                         type="number"
@@ -2818,14 +2766,12 @@
                                         class="input-field"
                                         @input="onLxmfPropagationTransferLimitChange"
                                     />
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         {{ formatByteSize(config.lxmf_propagation_transfer_limit_in_bytes) }}
                                     </div>
                                 </div>
                                 <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        Propagation sync limit (MB)
-                                    </div>
+                                    <div class="text-sm font-medium text-sem-fg">Propagation sync limit (MB)</div>
                                     <input
                                         v-model.number="lxmfPropagationSyncLimitInputMb"
                                         type="number"
@@ -2834,12 +2780,12 @@
                                         class="input-field"
                                         @input="onLxmfPropagationSyncLimitChange"
                                     />
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         {{ formatByteSize(config.lxmf_propagation_sync_limit_in_bytes) }}
                                     </div>
                                 </div>
                                 <div v-if="config.lxmf_local_propagation_node_enabled" class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("app.propagation_stamp_cost") }}
                                     </div>
                                     <input
@@ -2851,7 +2797,7 @@
                                         class="input-field"
                                         @input="onLxmfPropagationNodeStampCostChange"
                                     />
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         {{ $t("app.propagation_stamp_description") }}
                                     </div>
                                 </div>
@@ -2886,7 +2832,7 @@
                                     </span>
                                 </label>
                                 <div v-if="config.lxmf_local_propagation_node_enabled" class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <div class="text-sm font-medium text-sem-fg">
                                         {{ $t("app.propagation_max_inbound_syncs") }}
                                     </div>
                                     <input
@@ -2898,7 +2844,7 @@
                                         class="input-field"
                                         @input="onLxmfPropagationMaxInboundSyncsChange"
                                     />
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    <div class="text-xs text-sem-fg-muted">
                                         {{ $t("app.propagation_max_inbound_syncs_description") }}
                                     </div>
                                 </div>
@@ -2969,7 +2915,7 @@
                                         <div
                                             v-for="shortcut in KeyboardShortcuts.getDefaultShortcuts()"
                                             :key="shortcut.action"
-                                            class="bg-gray-50/50 dark:bg-zinc-800/30 rounded-2xl p-4 sm:p-5 border border-sem-border"
+                                            class="bg-sem-surface-muted/50 dark:bg-sem-surface-raised/30 rounded-2xl p-4 sm:p-5 border border-sem-border"
                                         >
                                             <div class="flex items-center justify-between mb-3">
                                                 <span class="text-sm font-bold text-sem-fg uppercase tracking-wide">
@@ -3006,6 +2952,7 @@ import { importMessagesFromFile } from "../../js/messageImport";
 import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import EmptyState from "../EmptyState.vue";
 import Toggle from "../forms/Toggle.vue";
 import ManagementIdentityPicker from "../tools/ManagementIdentityPicker.vue";
 import ShortcutRecorder from "./ShortcutRecorder.vue";
@@ -3019,6 +2966,7 @@ import GifsSettingsSection from "./sections/GifsSettingsSection.vue";
 import TelephonySettingsSection from "./sections/TelephonySettingsSection.vue";
 import AppearanceSettingsSection from "./sections/AppearanceSettingsSection.vue";
 import BatterySettingsSection from "./sections/BatterySettingsSection.vue";
+import ExperimentalLiveSettingsSection from "./sections/ExperimentalLiveSettingsSection.vue";
 import VisualiserSettingsSection from "./sections/VisualiserSettingsSection.vue";
 import BlockedSettingsSection from "./sections/BlockedSettingsSection.vue";
 import AndroidSettingsSection from "./sections/AndroidSettingsSection.vue";
@@ -3087,6 +3035,7 @@ export default {
     name: "SettingsPage",
     components: {
         MaterialDesignIcon,
+        EmptyState,
         Toggle,
         ManagementIdentityPicker,
         ShortcutRecorder,
@@ -3102,6 +3051,7 @@ export default {
         TelephonySettingsSection,
         AppearanceSettingsSection,
         BatterySettingsSection,
+        ExperimentalLiveSettingsSection,
         VisualiserSettingsSection,
         BlockedSettingsSection,
         AndroidSettingsSection,
@@ -3173,6 +3123,8 @@ export default {
                 message_icon_size: 28,
                 ui_transparency: 0,
                 ui_glass_enabled: true,
+                live_transport_mode: "auto",
+                webtransport_sidecar_enabled: false,
                 message_outbound_bubble_color: "#4f46e5",
                 message_inbound_bubble_color: null,
                 message_failed_bubble_color: "#ef4444",
@@ -3625,6 +3577,16 @@ export default {
             } else if (!enabled && Object.keys(this.batterySaver.interfaceBitratePrevious || {}).length > 0) {
                 this.restoreBatteryBitrateLimitsNow();
             }
+        },
+        onLiveTransportModeChange(value) {
+            const mode = ["auto", "websocket", "webtransport"].includes(value) ? value : "auto";
+            this.config.live_transport_mode = mode;
+            this.updateConfig({ live_transport_mode: mode }, "live_transport_mode");
+        },
+        onWebtransportSidecarChange(value) {
+            const enabled = value === true;
+            this.config.webtransport_sidecar_enabled = enabled;
+            this.updateConfig({ webtransport_sidecar_enabled: enabled }, "webtransport_sidecar_enabled");
         },
         onBatteryBitrateLimitChange(name) {
             const limits = { ...(this.batterySaver.interfaceBitrateLimits || {}) };
@@ -5740,34 +5702,34 @@ export default {
  * :deep is required so scoped styles still reach their markup.
  */
 :deep(.settings-section) {
-    @apply w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-6 sm:py-8 flex flex-col break-inside-avoid;
+    @apply w-full border-b border-sem-border py-6 sm:py-8 flex flex-col break-inside-avoid;
 }
 :deep(.settings-section--hero) {
-    @apply border-b border-gray-200/60 dark:border-zinc-800/60 py-6 sm:py-8;
+    @apply border-b border-sem-border py-6 sm:py-8;
 }
 :deep(.settings-section__header) {
-    @apply flex items-center justify-between gap-3 pb-4 border-b border-gray-100/60 dark:border-zinc-800/60;
+    @apply flex items-center justify-between gap-3 pb-4 border-b border-sem-border;
 }
 :deep(.settings-section__header h2) {
     @apply text-lg font-semibold text-sem-fg;
 }
 :deep(.settings-section__header p) {
-    @apply text-sm text-gray-600 dark:text-gray-400;
+    @apply text-sm text-sem-fg-muted;
 }
 :deep(.settings-section__eyebrow) {
     @apply text-xs uppercase tracking-wide text-sem-fg-muted;
 }
 :deep(.settings-section__body) {
-    @apply pt-4 text-gray-900 dark:text-gray-100;
+    @apply pt-4 text-sem-fg;
 }
 :deep(.input-field) {
-    @apply bg-gray-50/90 dark:bg-zinc-800/80 border border-sem-border text-sm rounded-2xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-500 dark:focus:border-blue-500 block w-full p-2.5 text-gray-900 dark:text-gray-100 transition;
+    @apply bg-sem-surface-muted border border-sem-border text-sm rounded-2xl focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border block w-full p-2.5 text-sem-fg transition;
 }
 :deep(.btn-maintenance) {
     @apply w-full px-4 py-3 rounded-2xl border transition flex items-center justify-between;
 }
 :deep(.setting-toggle) {
-    @apply relative flex flex-row-reverse items-start gap-3 rounded-2xl border border-sem-border bg-white/70 dark:bg-zinc-900/70 px-3 py-3;
+    @apply relative flex flex-row-reverse items-start gap-3 rounded-2xl border border-sem-border bg-sem-surface px-3 py-3;
 }
 :deep(.setting-toggle > label) {
     @apply shrink-0 self-center;
@@ -5794,7 +5756,7 @@ export default {
     font-family: "Roboto Mono", monospace;
 }
 :deep(.address-card) {
-    @apply relative border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/2 dark:sm:bg-white/2 space-y-2;
+    @apply relative border border-sem-border py-3 px-3 sm:rounded-xl sm:bg-sem-surface-muted/40 space-y-2;
 }
 :deep(.address-card__label) {
     @apply text-xs uppercase tracking-wide text-sem-fg-muted;
@@ -5803,7 +5765,7 @@ export default {
     @apply text-sm text-sem-fg wrap-break-word pr-16;
 }
 :deep(.address-card__action) {
-    @apply absolute top-3 right-3 inline-flex items-center gap-1 rounded-full border border-sem-border px-3 py-1 text-xs font-semibold text-gray-700 dark:text-gray-100 bg-white/70 dark:bg-zinc-900/60 hover:border-blue-400 dark:hover:border-blue-500 transition;
+    @apply absolute top-3 right-3 inline-flex items-center gap-1 rounded-full border border-sem-border px-3 py-1 text-xs font-semibold text-sem-fg bg-sem-surface hover:border-sem-accent transition;
 }
 .fade-enter-active,
 .fade-leave-active {
@@ -5820,7 +5782,7 @@ export default {
     @apply flex-1 min-w-0 flex flex-col;
 }
 .settings-panel__content :deep(.settings-section) {
-    @apply border-b border-gray-200/60 dark:border-zinc-800/60 py-6 sm:py-8 first:pt-0;
+    @apply border-b border-sem-border py-6 sm:py-8 first:pt-0;
 }
 .settings-panel__content :deep(.settings-section:last-child) {
     @apply border-b-0;

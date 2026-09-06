@@ -187,9 +187,6 @@ export function createWindowApi(serverConfigRef) {
             if (String(url).includes("/api/v1/maintenance/messages/purge-preview")) {
                 return Promise.resolve({ data: { count: 0, cutoff: 1 } });
             }
-            if (String(url).includes("/api/v1/maintenance/messages/export")) {
-                return Promise.resolve({ data: { messages: [] } });
-            }
             if (String(url).includes("/api/v1/lxmf/folders/export")) {
                 return Promise.resolve({ data: { folders: [] } });
             }
@@ -199,7 +196,12 @@ export function createWindowApi(serverConfigRef) {
             serverConfigRef.current = { ...serverConfigRef.current, ...body };
             return Promise.resolve({ data: { config: { ...serverConfigRef.current } } });
         }),
-        post: vi.fn().mockResolvedValue({ data: { message: "ok" } }),
+        post: vi.fn().mockImplementation((url) => {
+            if (String(url).includes("/api/v1/maintenance/messages/export")) {
+                return Promise.resolve({ data: { messages: [] } });
+            }
+            return Promise.resolve({ data: { message: "ok" } });
+        }),
         delete: vi.fn().mockResolvedValue({ data: {} }),
     };
 }

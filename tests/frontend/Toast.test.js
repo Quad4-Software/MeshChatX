@@ -101,8 +101,8 @@ describe("Toast.vue", () => {
         await wrapper.vm.$nextTick();
 
         const toasts = wrapper.findAll(".pointer-events-auto");
-        expect(toasts[0].classes()).toContain("border-green-500/30");
-        expect(toasts[1].classes()).toContain("border-red-500/30");
+        expect(toasts[0].classes()).toContain("border-sem-success/30");
+        expect(toasts[1].classes()).toContain("border-sem-danger/30");
     });
 
     it("shows no toasts initially", () => {

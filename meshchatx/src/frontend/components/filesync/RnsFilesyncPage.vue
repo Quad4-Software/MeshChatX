@@ -395,6 +395,7 @@ import FilesyncFileManager from "./FilesyncFileManager.vue";
 import ElectronUtils from "../../js/ElectronUtils";
 import Utils from "../../js/Utils";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import GlobalEmitter from "../../js/GlobalEmitter";
 
 export default {
     name: "RnsFilesyncPage",
@@ -505,15 +506,20 @@ export default {
     },
     async mounted() {
         this.bindWs();
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
         await this.refreshAll();
     },
     beforeUnmount() {
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
         for (const [type, handler] of this.wsHandlers) {
             offWsEvent(type, handler);
         }
         this.wsHandlers = [];
     },
     methods: {
+        onWebsocketReconnected() {
+            void this.refreshAll();
+        },
         bindWs() {
             const bind = (type, handler) => {
                 onWsEvent(type, handler);

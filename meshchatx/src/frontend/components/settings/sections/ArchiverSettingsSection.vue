@@ -25,7 +25,7 @@
             </label>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="space-y-2">
-                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Max Versions per Page</div>
+                    <div class="text-sm font-medium text-sem-fg">Max Versions per Page</div>
                     <input
                         :value="config.page_archiver_max_versions"
                         type="number"
@@ -38,10 +38,10 @@
                             })
                         "
                     />
-                    <div class="text-xs text-gray-600 dark:text-gray-400">How many versions of each page to keep.</div>
+                    <div class="text-xs text-sem-fg-muted">How many versions of each page to keep.</div>
                 </div>
                 <div class="space-y-2">
-                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Max Total Storage (GB)</div>
+                    <div class="text-sm font-medium text-sem-fg">Max Total Storage (GB)</div>
                     <input
                         :value="config.archives_max_storage_gb"
                         type="number"
@@ -53,7 +53,7 @@
                             })
                         "
                     />
-                    <div class="text-xs text-gray-600 dark:text-gray-400">Total storage for all archived pages.</div>
+                    <div class="text-xs text-sem-fg-muted">Total storage for all archived pages.</div>
                 </div>
             </div>
             <button

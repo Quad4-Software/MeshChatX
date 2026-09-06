@@ -1,19 +1,19 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div
-        v-if="isShowing"
-        class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity flex items-center justify-center"
-    >
+    <div v-if="isShowing" class="fixed inset-0 bg-black/50 transition-opacity flex items-center justify-center">
         <div class="flex w-full h-full p-4 overflow-y-auto">
-            <div v-click-outside="dismiss" class="my-auto mx-auto w-full bg-sem-surface rounded-lg shadow-xl max-w-2xl">
+            <div
+                v-click-outside="dismiss"
+                class="my-auto mx-auto w-full bg-sem-surface rounded-lg shadow-xl max-w-2xl text-sem-fg"
+            >
                 <!-- title -->
-                <div class="p-4 border-b dark:border-zinc-700">
-                    <h3 class="text-lg font-semibold dark:text-white">Import Interfaces</h3>
+                <div class="p-4 border-b border-sem-border">
+                    <h3 class="text-lg font-semibold text-sem-fg">Import Interfaces</h3>
                 </div>
 
                 <!-- content -->
-                <div class="divide-y dark:divide-zinc-700">
+                <div class="divide-y divide-sem-border">
                     <!-- file input -->
                     <div class="p-2">
                         <div>
@@ -35,29 +35,29 @@
                     </div>
 
                     <!-- select interfaces -->
-                    <div v-if="importableInterfaces.length > 0" class="divide-y dark:divide-zinc-700">
+                    <div v-if="importableInterfaces.length > 0" class="divide-y divide-sem-border">
                         <div class="flex p-2">
                             <div class="my-auto mr-auto text-sm font-medium text-sem-fg-secondary">
                                 Select Interfaces to Import
                             </div>
                             <div class="my-auto space-x-2">
-                                <button class="text-sm text-blue-500 hover:underline" @click="selectAllInterfaces">
+                                <button class="text-sm text-sem-accent hover:underline" @click="selectAllInterfaces">
                                     Select All
                                 </button>
-                                <button class="text-sm text-blue-500 hover:underline" @click="deselectAllInterfaces">
+                                <button class="text-sm text-sem-accent hover:underline" @click="deselectAllInterfaces">
                                     Deselect All
                                 </button>
                             </div>
                         </div>
-                        <div class="bg-gray-200 p-2 space-y-2 max-h-80 overflow-y-auto dark:bg-zinc-800">
+                        <div class="bg-sem-surface-muted p-2 space-y-2 max-h-80 overflow-y-auto">
                             <div
                                 v-for="iface in importableInterfaces"
                                 :key="iface.name"
-                                class="bg-white cursor-pointer flex items-center p-2 border rounded-sm shadow-sm dark:bg-zinc-900 dark:border-zinc-700"
+                                class="bg-sem-surface cursor-pointer flex items-center p-2 border border-sem-border rounded-sm shadow-sm"
                             >
                                 <div class="mr-auto text-sm flex-1" @click="toggleSelectedInterface(iface.name)">
-                                    <div class="font-semibold text-gray-700 text-sem-fg">{{ iface.name }}</div>
-                                    <div class="text-sm text-gray-500 text-sem-fg">
+                                    <div class="font-semibold text-sem-fg">{{ iface.name }}</div>
+                                    <div class="text-sm text-sem-fg-muted">
                                         <!-- auto interface -->
                                         <div v-if="iface.type === 'AutoInterface'">
                                             <div>{{ iface.type }}</div>
@@ -118,15 +118,15 @@
                 </div>
 
                 <!-- actions -->
-                <div class="p-4 border-t dark:border-zinc-700 flex justify-end space-x-2">
+                <div class="p-4 border-t border-sem-border flex justify-end space-x-2">
                     <button
-                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-zinc-800 text-sem-fg dark:border-zinc-600 hover:bg-sem-surface-muted"
+                        class="px-4 py-2 text-sm font-medium text-sem-fg bg-sem-surface border border-sem-border rounded-md hover:bg-sem-surface-muted"
                         @click="dismiss"
                     >
                         Cancel
                     </button>
                     <button
-                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
+                        class="px-4 py-2 text-sm font-medium text-white bg-sem-accent rounded-md hover:opacity-90"
                         @click="importSelectedInterfaces"
                     >
                         Import Selected

@@ -1,6 +1,6 @@
 {
-    "latest_version": "57",
-    "v55": "schema_v55.db",
+    "latest_version": "58",
     "v56": "schema_v56.db",
-    "v57": "schema_v57.db"
+    "v57": "schema_v57.db",
+    "v58": "schema_v58.db"
 }

@@ -699,6 +699,10 @@ def register_lxmf_routes(routes, app):
             failure_hint = None
             if "could not recall" in lower:
                 failure_hint = "recall"
+            elif "preferred propagation node configured" in lower:
+                failure_hint = "no_propagation_node"
+            elif "path to preferred propagation" in lower:
+                failure_hint = "no_path_propagation_node"
             elif "no path" in lower:
                 failure_hint = "no_path"
             elif "invalid destination" in lower:

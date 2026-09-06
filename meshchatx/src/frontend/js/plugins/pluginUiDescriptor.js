@@ -118,10 +118,13 @@ export function validateUiDescriptor(descriptor, options = {}) {
                 return `Widget "${name || "?"}" is not allowed for this plugin`;
             }
         }
-        if (type === "image" && options.pluginId) {
+        if ((type === "image" || type === "html-frame") && options.pluginId) {
             const src = sanitizePluginAssetSrc(options.pluginId, node.src);
             if (node.src && !src) {
-                return "image src must be a plugin asset URL";
+                return `${type} src must be a plugin asset URL`;
+            }
+            if (type === "html-frame") {
+                node.src = src || "";
             }
         }
 

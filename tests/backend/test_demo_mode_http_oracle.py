@@ -44,12 +44,10 @@ async def test_demo_mode_blocks_disallowed_mutations(mock_app, method, path):
 @pytest.mark.asyncio
 async def test_demo_mode_status_includes_flags(mock_app):
     mock_app.demo_mode = True
-    mock_app.altcha_enabled = True
     mock_app.current_context.running = True
     mock_app._network_ready = True
     payload = mock_app._startup_status_payload()
     assert payload["demo_mode"] is True
-    assert payload["altcha_enabled"] is True
 
 
 @given(

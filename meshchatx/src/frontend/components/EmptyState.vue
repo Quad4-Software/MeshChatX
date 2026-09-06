@@ -4,17 +4,19 @@
     <div
         class="text-center"
         :class="[
-            plain ? 'px-2 py-3' : 'rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 px-4 py-12',
+            plain
+                ? 'px-2 py-3'
+                : 'rounded-lg border border-dashed border-sem-border px-4 py-12 bg-sem-surface-muted/40',
             rootClass,
         ]"
     >
         <MaterialDesignIcon
             v-if="icon"
             :icon-name="icon"
-            :class="plain ? 'w-8 h-8 mx-auto mb-2 text-gray-400' : 'w-12 h-12 mx-auto mb-4 text-gray-400'"
+            :class="plain ? 'w-8 h-8 mx-auto mb-2 text-sem-fg-muted' : 'w-12 h-12 mx-auto mb-4 text-sem-fg-muted'"
         />
         <div v-if="title" class="text-base font-semibold text-sem-fg">{{ title }}</div>
-        <p v-if="description" class="mt-2 text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+        <p v-if="description" class="mt-2 text-sm text-sem-fg-muted max-w-md mx-auto">
             {{ description }}
         </p>
         <div v-if="$slots.action" class="flex justify-center" :class="plain ? 'mt-3' : 'mt-4'">

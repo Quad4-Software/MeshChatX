@@ -733,7 +733,11 @@ class BugReportManager:
                     level=level,
                     module=module,
                 )
-                return {"logs": logs, "total": total, "limit": limit}
+                return {
+                    "logs": self._redact_log_entries(logs),
+                    "total": total,
+                    "limit": limit,
+                }
             return {"logs": [], "total": 0, "limit": limit}
         logs = handler.get_logs(
             limit=limit,
@@ -746,7 +750,25 @@ class BugReportManager:
             level=level,
             module=module,
         )
-        return {"logs": logs, "total": total, "limit": limit}
+        return {
+            "logs": self._redact_log_entries(logs),
+            "total": total,
+            "limit": limit,
+        }
+
+    @staticmethod
+    def _redact_log_entries(logs: list[Any]) -> list[Any]:
+        redacted: list[Any] = []
+        for entry in logs or []:
+            if not isinstance(entry, dict):
+                redacted.append(entry)
+                continue
+            copy = dict(entry)
+            message = copy.get("message")
+            if isinstance(message, str):
+                copy["message"] = redact_diagnostic_text(message)
+            redacted.append(copy)
+        return redacted
 
     def preview_report(self, args: dict[str, Any]) -> dict[str, Any]:
         limit = int(args.get("limit") or 200)

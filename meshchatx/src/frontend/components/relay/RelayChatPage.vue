@@ -1708,6 +1708,7 @@ export default {
         onWsEvent("rrc.server.change", this.onRrcServerChange);
         onWsEvent("announce", this.onAnnounceEvent);
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
         this.smMq = window.matchMedia("(min-width: 640px)");
         this.smUp = this.smMq.matches;
         this.smMq.addEventListener("change", this.onSmMqChange);
@@ -1733,6 +1734,7 @@ export default {
         offWsEvent("rrc.server.change", this.onRrcServerChange);
         offWsEvent("announce", this.onAnnounceEvent);
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
         if (this.discoverySearchTimer) {
             clearTimeout(this.discoverySearchTimer);
         }
@@ -1784,6 +1786,47 @@ export default {
             this.fetchServers();
             if (!this.isPopoutMode) {
                 this.fetchDiscovered();
+            }
+        },
+        async onWebsocketReconnected() {
+            await this.fetchHubs();
+            await this.fetchServers();
+            if (!this.isPopoutMode) {
+                await this.fetchDiscovered();
+            }
+            if (this.selectedHubHash && this.selectedRoom) {
+                await this.softResyncOpenRoom();
+            }
+        },
+        async softResyncOpenRoom() {
+            const hubHash = this.selectedHubHash;
+            const room = this.selectedRoom;
+            if (!hubHash || !room) {
+                return;
+            }
+            const seq = this.roomSelectSequence;
+            try {
+                const response = await window.api.get(
+                    `/api/v1/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(room)}/messages`,
+                    { params: { limit: RELAY_MESSAGES_INITIAL_PAGE_SIZE } }
+                );
+                if (seq !== this.roomSelectSequence || hubHash !== this.selectedHubHash || room !== this.selectedRoom) {
+                    return;
+                }
+                const loaded = response.data?.messages || [];
+                this.messages = mergeRelayMessages(loaded, this.messages);
+                this._rebuildMessageTimelineCache();
+                if (Array.isArray(response.data?.members)) {
+                    this.members = response.data.members;
+                } else {
+                    await this.refreshMembers();
+                }
+                if (typeof response.data?.has_more === "boolean") {
+                    this.hasMorePrevious = Boolean(response.data.has_more);
+                }
+                this.scrollToBottom();
+            } catch {
+                // best-effort REST catch-up after live gap
             }
         },
         selectView(view) {

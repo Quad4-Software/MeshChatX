@@ -132,7 +132,6 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 
 
 def register_database_routes(routes, app):
-
     # ── Database ─────────────────────────────────────────────────────
 
     @routes.post("/api/v1/database/snapshot")
@@ -308,7 +307,7 @@ def register_database_routes(routes, app):
                 status=500,
             )
 
-    @routes.get("/api/v1/database/backups/{filename}/download")
+    @routes.post("/api/v1/database/backups/{filename}/download")
     async def download_db_backup(request):
         try:
             filename = request.match_info.get("filename")
@@ -335,7 +334,7 @@ def register_database_routes(routes, app):
                 status=500,
             )
 
-    @routes.get("/api/v1/database/snapshots/{filename}/download")
+    @routes.post("/api/v1/database/snapshots/{filename}/download")
     async def download_db_snapshot(request):
         try:
             filename = request.match_info.get("filename")
@@ -465,8 +464,9 @@ def register_database_routes(routes, app):
                 status=500,
             )
 
-    @routes.get("/api/v1/database/backup/download")
+    @routes.post("/api/v1/database/backup/download")
     async def database_backup_download(request):
+        # POST so CSRF middleware applies. Creating a zip is state-changing.
         try:
             backup_info = app.database.backup_database(app.storage_path)
             file_path = backup_info["path"]

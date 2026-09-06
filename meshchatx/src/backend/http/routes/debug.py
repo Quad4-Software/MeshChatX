@@ -157,9 +157,22 @@ def register_debug_routes(routes, app):
             is_anomaly=is_anomaly,
         )
 
+        from meshchatx.src.backend.log_redaction import redact_diagnostic_text
+
+        redacted_logs = []
+        for entry in logs or []:
+            if not isinstance(entry, dict):
+                redacted_logs.append(entry)
+                continue
+            entry_copy = dict(entry)
+            message = entry_copy.get("message")
+            if isinstance(message, str):
+                entry_copy["message"] = redact_diagnostic_text(message)
+            redacted_logs.append(entry_copy)
+
         return web.json_response(
             {
-                "logs": logs,
+                "logs": redacted_logs,
                 "total": total,
                 "limit": limit,
                 "offset": offset,
@@ -181,6 +194,9 @@ def register_debug_routes(routes, app):
         snap["max_msg_size"] = int(
             getattr(app, "websocket_max_msg_size", 0) or 0,
         )
+        wt = getattr(app, "webtransport_state", None)
+        if wt is not None:
+            snap["webtransport"] = wt.status_dict()
         return web.json_response({"websocket": snap})
 
     @routes.get("/api/v1/debug/access-attempts")

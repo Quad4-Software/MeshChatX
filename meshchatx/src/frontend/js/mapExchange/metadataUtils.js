@@ -12,7 +12,12 @@ import {
     MCX_STROKE_COLOR,
     MCX_STROKE_WIDTH,
 } from "./constants.js";
-import { extractKeyedDescriptionLines, isNullishMapValue } from "./descriptionFlatten.js";
+import {
+    descriptionNeedsFlatten,
+    extractKeyedDescriptionLines,
+    flattenHtmlDescription,
+    isNullishMapValue,
+} from "./descriptionFlatten.js";
 import { isAllowedDataImageHref, isRemoteHref } from "./kmlSanitize.js";
 
 const SKIP_EXTENDED = new Set([
@@ -65,6 +70,10 @@ export function normalizeFeatureMetadataProps(feature) {
     const D = feature.get("Description");
     if ((d == null || d === "") && D != null && D !== "") {
         feature.set("description", D);
+    }
+    const rawDesc = feature.get("description");
+    if (rawDesc != null && descriptionNeedsFlatten(rawDesc)) {
+        feature.set("description", flattenHtmlDescription(rawDesc));
     }
     const t = feature.get("title");
     const nameAfterKml = feature.get("name");
@@ -206,6 +215,9 @@ export function getDrawFeatureMetadataPayload(feature) {
     const name = String(props.name ?? "").trim();
     const rawDesc = props.description;
     let description = rawDesc == null ? "" : typeof rawDesc === "string" ? rawDesc : String(rawDesc);
+    if (description.trim() && descriptionNeedsFlatten(description)) {
+        description = flattenHtmlDescription(description);
+    }
     const iconSrc = safeFeatureIconSrc(props[MCX_ICON_DATA_URL] || props[MCX_ICON_HREF] || null);
     const extended = [];
     const seenKeys = new Set();

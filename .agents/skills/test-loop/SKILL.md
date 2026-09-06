@@ -24,7 +24,7 @@ uv run pytest tests/backend/test_<name>.py -q --tb=short
 # Frontend focused
 pnpm exec vitest run tests/frontend/<Name>.test.js
 
-# Quick regression
+# Quick regression (full FE units + focused BE)
 task test:quick
 
 # Extended Edge Case Tester / Live Validation

@@ -26,11 +26,11 @@
                                 v-model="searchQuery"
                                 type="text"
                                 :placeholder="$t('common.search')"
-                                class="w-full pl-10 pr-10 py-3 bg-sem-surface-muted border border-sem-border rounded-lg focus:outline-hidden focus:ring-2 focus:ring-sem-focus/40 focus:border-sem-focus-border text-sem-fg placeholder:text-sem-fg-muted text-sm"
+                                class="input-field w-full pl-10 pr-10 py-3!"
                             />
                             <button
                                 v-if="searchQuery"
-                                class="absolute inset-y-0 right-0 pr-3 flex items-center text-sem-fg-muted hover:text-sem-fg"
+                                class="absolute inset-y-0 right-0 pr-3 flex items-center text-sem-fg-muted hover:text-sem-fg focus-ring-sem rounded-lg"
                                 type="button"
                                 @click="searchQuery = ''"
                             >
@@ -54,7 +54,7 @@
                             {{ $t(`tools.group.${section.id}`) }}
                         </div>
                         <div
-                            class="grid grid-cols-1 lg:grid-cols-2 divide-y divide-gray-200 dark:divide-zinc-800 divide-x-0 lg:divide-x lg:divide-y"
+                            class="grid grid-cols-1 lg:grid-cols-2 divide-y divide-sem-border divide-x-0 lg:divide-x lg:divide-y"
                         >
                             <RouterLink
                                 v-for="tool in section.tools"
@@ -74,7 +74,7 @@
                     class="rounded-lg overflow-hidden border border-sem-border bg-sem-surface"
                 >
                     <div
-                        class="grid grid-cols-1 lg:grid-cols-2 divide-y divide-gray-200 dark:divide-zinc-800 divide-x-0 lg:divide-x lg:divide-y"
+                        class="grid grid-cols-1 lg:grid-cols-2 divide-y divide-sem-border divide-x-0 lg:divide-x lg:divide-y"
                     >
                         <RouterLink
                             v-for="tool in filteredTools"
@@ -178,6 +178,6 @@ export default {
 @reference "../../style.css";
 .tool-row {
     @apply flex items-start sm:items-center gap-3 sm:gap-4 px-4 py-3.5 min-h-17 transition-colors;
-    @apply hover:bg-gray-50 dark:hover:bg-zinc-900/80 active:bg-gray-100 dark:active:bg-zinc-800/80;
+    @apply hover:bg-sem-surface-muted active:bg-sem-surface-muted;
 }
 </style>

@@ -1694,9 +1694,9 @@ class PluginManager:
     def _normalize_install_tree_permissions(self, root: str) -> None:
         """Make installed trees deletable on Android/AssetFinder upgrades."""
         for dirpath, dirnames, filenames in os.walk(root):
-            self._chmod_path(dirpath, 0o755)
+            self._chmod_path(dirpath, 0o750)
             for name in dirnames:
-                self._chmod_path(os.path.join(dirpath, name), 0o755)
+                self._chmod_path(os.path.join(dirpath, name), 0o750)
             for name in filenames:
                 self._chmod_path(os.path.join(dirpath, name), 0o644)
 

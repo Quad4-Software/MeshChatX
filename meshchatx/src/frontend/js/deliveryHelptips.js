@@ -15,6 +15,14 @@ export function mapSendFailureKind(status, message) {
     if (text.includes("could not recall")) {
         return "recall";
     }
+    if (text.includes("preferred propagation node configured")) {
+        return "no_propagation_node";
+    }
+    if (text.includes("path to preferred propagation") || text.includes("propagation node")) {
+        if (text.includes("no path")) {
+            return "no_path_propagation_node";
+        }
+    }
     if (text.includes("no path")) {
         return "no_path";
     }
@@ -77,7 +85,23 @@ export function buildDeliveryHelptips({ diagnostics, failureKind, message }) {
         });
     }
 
-    if (path.has_path === false) {
+    if (hint === "no_propagation_node") {
+        tips.push({
+            id: "no_propagation_node",
+            severity: "warning",
+            messageKey: "helptips.no_propagation_node",
+        });
+    }
+
+    if (hint === "no_path_propagation_node") {
+        tips.push({
+            id: "no_path_propagation_node",
+            severity: "warning",
+            messageKey: "helptips.no_path_propagation_node",
+        });
+    }
+
+    if (path.has_path === false && hint !== "no_path_propagation_node" && hint !== "no_propagation_node") {
         tips.push({
             id: "no_path",
             severity: "warning",

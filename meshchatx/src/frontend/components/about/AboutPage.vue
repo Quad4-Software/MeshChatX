@@ -20,7 +20,7 @@
                                 >
                                     <div class="flex flex-wrap items-center gap-2">
                                         <div
-                                            class="text-sm font-black uppercase tracking-[0.2em] text-blue-500 opacity-80"
+                                            class="text-sm font-black uppercase tracking-[0.2em] text-sem-accent opacity-80"
                                         >
                                             {{ $t("about.version", { version: aboutDisplayVersion }) }}
                                         </div>
@@ -154,12 +154,13 @@
                             <a
                                 href="https://reticulum.network"
                                 target="_blank"
-                                class="text-blue-500 font-black hover:underline decoration-2 underline-offset-4"
+                                rel="noopener noreferrer"
+                                class="text-sem-accent font-black hover:underline decoration-2 underline-offset-4"
                                 >{{ $t("about.tagline_link") }}</a
                             >{{ $t("about.tagline_after") }}
                         </div>
 
-                        <div class="mt-6 pt-6 border-t border-gray-200/70 dark:border-zinc-800/80">
+                        <div class="mt-6 pt-6 border-t border-sem-border/70">
                             <button
                                 type="button"
                                 class="about-action-btn secondary-chip w-full justify-between text-left"
@@ -181,7 +182,7 @@
                                 </div>
                                 <MaterialDesignIcon
                                     :icon-name="showContactSupport ? 'chevron-up' : 'chevron-down'"
-                                    class="size-[22px] shrink-0 text-sem-fg-muted group-hover:text-gray-700 dark:group-hover:text-zinc-200 transition-colors"
+                                    class="size-[22px] shrink-0 text-sem-fg-muted group-hover:text-sem-fg dark:group-hover:text-zinc-200 transition-colors"
                                 />
                             </button>
 
@@ -203,14 +204,14 @@
                                                         name: 'messages',
                                                         params: { destinationHash: developerLxmfPrimary },
                                                     }"
-                                                    class="flex-1 min-w-0 text-sm font-mono text-sem-fg-muted hover:text-blue-600 dark:hover:text-blue-400 break-all leading-snug text-left"
+                                                    class="flex-1 min-w-0 text-sm font-mono text-sem-fg-muted hover:text-sem-accent dark:hover:text-blue-400 break-all leading-snug text-left"
                                                     :title="$t('about.contact_open_messages')"
                                                 >
                                                     {{ developerLxmfPrimary }}
                                                 </router-link>
                                                 <button
                                                     type="button"
-                                                    class="shrink-0 rounded-lg p-1.5 text-gray-500 hover:text-blue-600 text-sem-fg-muted dark:hover:text-blue-400 hover:bg-sem-surface-muted transition-colors"
+                                                    class="shrink-0 rounded-lg p-1.5 text-sem-fg-muted hover:text-sem-accent text-sem-fg-muted dark:hover:text-blue-400 hover:bg-sem-surface-muted transition-colors"
                                                     :aria-label="$t('about.contact_copy_address')"
                                                     @click="
                                                         copyValue(developerLxmfPrimary, 'about.contact_lxmf_address')
@@ -227,14 +228,14 @@
                                                         name: 'messages',
                                                         params: { destinationHash: developerLxmfAlternate },
                                                     }"
-                                                    class="flex-1 min-w-0 text-sm font-mono text-sem-fg-muted hover:text-blue-600 dark:hover:text-blue-400 break-all leading-snug text-left"
+                                                    class="flex-1 min-w-0 text-sm font-mono text-sem-fg-muted hover:text-sem-accent dark:hover:text-blue-400 break-all leading-snug text-left"
                                                     :title="$t('about.contact_open_messages')"
                                                 >
                                                     {{ developerLxmfAlternate }}
                                                 </router-link>
                                                 <button
                                                     type="button"
-                                                    class="shrink-0 rounded-lg p-1.5 text-gray-500 hover:text-blue-600 text-sem-fg-muted dark:hover:text-blue-400 hover:bg-sem-surface-muted transition-colors"
+                                                    class="shrink-0 rounded-lg p-1.5 text-sem-fg-muted hover:text-sem-accent text-sem-fg-muted dark:hover:text-blue-400 hover:bg-sem-surface-muted transition-colors"
                                                     :aria-label="$t('about.contact_copy_address')"
                                                     @click="
                                                         copyValue(developerLxmfAlternate, 'about.contact_alternate')
@@ -279,7 +280,7 @@
                                                 >
                                                 <button
                                                     type="button"
-                                                    class="shrink-0 rounded-lg p-1.5 text-gray-500 hover:text-blue-600 text-sem-fg-muted dark:hover:text-blue-400 hover:bg-sem-surface-muted transition-colors"
+                                                    class="shrink-0 rounded-lg p-1.5 text-sem-fg-muted hover:text-sem-accent text-sem-fg-muted dark:hover:text-blue-400 hover:bg-sem-surface-muted transition-colors"
                                                     :aria-label="$t('about.donate_copy_monero')"
                                                     @click="copyValue(moneroDonateAddress, 'about.donate_monero_label')"
                                                 >
@@ -344,13 +345,13 @@
                     <!-- Security & Integrity -->
                     <div v-if="appInfo" class="about-section hidden sm:block">
                         <div
-                            class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2 mb-6"
+                            class="text-xs font-black text-sem-accent uppercase tracking-[0.2em] flex items-center gap-2 mb-6"
                         >
                             <MaterialDesignIcon icon-name="shield-search" class="size-3.5" />
                             {{ $t("about.security_integrity") }}
                         </div>
 
-                        <div class="mb-6 pb-6 border-b border-gray-200/60 dark:border-zinc-800/80 space-y-4">
+                        <div class="mb-6 pb-6 border-b border-sem-border/60 space-y-4">
                             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
                                     <div class="text-[10px] font-black text-sem-fg uppercase tracking-[0.2em] mb-2">
@@ -422,7 +423,7 @@
                             </div>
                             <div
                                 v-else
-                                class="text-sm text-gray-700 dark:text-emerald-200 flex items-center gap-3 bg-emerald-500/10 dark:bg-emerald-900/30 p-4 rounded-xl border border-emerald-500/20 dark:border-emerald-500/30"
+                                class="text-sm text-sem-fg dark:text-emerald-200 flex items-center gap-3 bg-emerald-500/10 dark:bg-emerald-900/30 p-4 rounded-xl border border-emerald-500/20 dark:border-emerald-500/30"
                             >
                                 <MaterialDesignIcon
                                     icon-name="check-decagram"
@@ -499,7 +500,7 @@
                     <div class="about-section">
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                             <div
-                                class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2"
+                                class="text-xs font-black text-sem-accent uppercase tracking-[0.2em] flex items-center gap-2"
                             >
                                 <MaterialDesignIcon icon-name="monitor-multiple" class="size-3.5" />
                                 {{ $t("about.active_sessions") }}
@@ -518,7 +519,7 @@
                             <li
                                 v-for="session in activeSessions"
                                 :key="session.id"
-                                class="rounded-xl border border-sem-border bg-gray-50/70 dark:bg-zinc-900/40 p-3 min-w-0"
+                                class="rounded-xl border border-sem-border bg-sem-surface-muted/70 dark:bg-zinc-900/40 p-3 min-w-0"
                             >
                                 <div class="grid gap-2 text-[11px] sm:grid-cols-2">
                                     <div class="min-w-0">
@@ -559,7 +560,7 @@
                     <!-- Advanced Tech Info -->
                     <div v-if="appInfo" class="about-section">
                         <div
-                            class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2"
+                            class="text-xs font-black text-sem-accent uppercase tracking-[0.2em] mb-6 flex items-center gap-2"
                         >
                             <MaterialDesignIcon icon-name="server" class="size-3.5" />
                             {{ $t("about.environment_information") }}
@@ -570,7 +571,7 @@
                                     {{ $t("about.reticulum_config") }}
                                 </div>
                                 <div
-                                    class="monospace-field bg-zinc-50! dark:bg-zinc-950! break-all text-[11px] p-3! rounded-xl border border-zinc-100 dark:border-zinc-800"
+                                    class="monospace-field bg-zinc-50! dark:bg-zinc-950! break-all text-[11px] p-3! rounded-xl border border-zinc-100"
                                 >
                                     {{ appInfo.reticulum_config_path || $t("about.path_unknown") }}
                                 </div>
@@ -589,7 +590,7 @@
                                     {{ $t("about.database_path") }}
                                 </div>
                                 <div
-                                    class="monospace-field bg-zinc-50! dark:bg-zinc-950! break-all text-[11px] p-3! rounded-xl border border-zinc-100 dark:border-zinc-800"
+                                    class="monospace-field bg-zinc-50! dark:bg-zinc-950! break-all text-[11px] p-3! rounded-xl border border-zinc-100"
                                 >
                                     {{ appInfo.database_path || $t("about.path_unknown") }}
                                 </div>
@@ -621,7 +622,7 @@
                             {{ $t("about.usage_insights") }}
                         </div>
                         <div
-                            class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm min-w-0 rounded-xl border border-gray-200/60 dark:border-zinc-800/80 p-4 sm:bg-black/2 dark:sm:bg-white/2"
+                            class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm min-w-0 rounded-xl border border-sem-border/60 p-4 sm:bg-black/2 dark:sm:bg-white/2"
                         >
                             <div class="flex items-center justify-between gap-3 sm:col-span-2 lg:col-span-3">
                                 <span class="text-[10px] font-semibold uppercase tracking-wider opacity-70">{{
@@ -777,7 +778,7 @@
                     <!-- Dependency Chain -->
                     <div v-if="appInfo" class="about-section">
                         <div
-                            class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] mb-8 flex items-center gap-2"
+                            class="text-xs font-black text-sem-accent uppercase tracking-[0.2em] mb-8 flex items-center gap-2"
                         >
                             <MaterialDesignIcon icon-name="link-variant" class="size-3.5" />
                             {{ $t("about.dependency_chain") }}
@@ -786,7 +787,7 @@
                             <div class="flex flex-col space-y-8 min-w-0">
                                 <div class="flex items-center gap-5">
                                     <div
-                                        class="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-xs"
+                                        class="w-12 h-12 rounded-2xl bg-sem-accent/10 flex items-center justify-center border border-sem-accent/20 shadow-xs"
                                     >
                                         <img :src="logoUrl" class="w-7 h-7 object-contain" />
                                     </div>
@@ -794,14 +795,12 @@
                                         <div class="text-sm font-black text-sem-fg">
                                             {{ $t("about.app_name") }}
                                         </div>
-                                        <div class="text-xs font-mono font-bold text-gray-400">
+                                        <div class="text-xs font-mono font-bold text-sem-fg-muted">
                                             v{{ aboutDisplayVersion }}
                                         </div>
                                     </div>
                                 </div>
-                                <div
-                                    class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 dark:border-zinc-800 ml-6 relative"
-                                >
+                                <div class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 ml-6 relative">
                                     <div
                                         class="absolute left-[-2px] top-0 bottom-0 w-[2px] bg-linear-to-b from-blue-500 to-emerald-500"
                                     ></div>
@@ -812,14 +811,12 @@
                                     </div>
                                     <div>
                                         <div class="text-sm font-black text-sem-fg leading-tight">LXMFy</div>
-                                        <div class="text-xs font-mono font-bold text-gray-400 mt-1">
+                                        <div class="text-xs font-mono font-bold text-sem-fg-muted mt-1">
                                             v{{ (appInfo.dependencies && appInfo.dependencies.lxmfy) || "unknown" }}
                                         </div>
                                     </div>
                                 </div>
-                                <div
-                                    class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 dark:border-zinc-800 ml-6 relative"
-                                >
+                                <div class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 ml-6 relative">
                                     <div
                                         class="absolute left-[-2px] top-0 bottom-0 w-[2px] bg-linear-to-b from-emerald-500 to-purple-500"
                                     ></div>
@@ -830,14 +827,14 @@
                                     </div>
                                     <div>
                                         <div class="text-sm font-black text-sem-fg leading-tight">LXMF</div>
-                                        <div class="text-xs font-mono font-bold text-gray-400 mt-1">
+                                        <div class="text-xs font-mono font-bold text-sem-fg-muted mt-1">
                                             v{{ appInfo.lxmf_version }}
                                         </div>
                                     </div>
                                 </div>
                                 <div
                                     v-if="appInfo.lxst_version"
-                                    class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 dark:border-zinc-800 ml-6 relative"
+                                    class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 ml-6 relative"
                                 >
                                     <div
                                         class="absolute left-[-2px] top-0 bottom-0 w-[2px] bg-linear-to-b from-purple-500 to-rose-500"
@@ -849,14 +846,12 @@
                                     </div>
                                     <div>
                                         <div class="text-sm font-black text-sem-fg leading-tight">LXST</div>
-                                        <div class="text-xs font-mono font-bold text-gray-400 mt-1">
+                                        <div class="text-xs font-mono font-bold text-sem-fg-muted mt-1">
                                             v{{ appInfo.lxst_version }}
                                         </div>
                                     </div>
                                 </div>
-                                <div
-                                    class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 dark:border-zinc-800 ml-6 relative"
-                                >
+                                <div class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 ml-6 relative">
                                     <div
                                         class="absolute left-[-2px] top-0 bottom-0 w-[2px] bg-linear-to-b from-rose-500 to-indigo-500"
                                     ></div>
@@ -868,13 +863,13 @@
                                     <div>
                                         <div class="text-sm font-black text-sem-fg leading-tight">RNS</div>
                                         <div class="flex flex-wrap items-center gap-2 mt-1 min-w-0">
-                                            <div class="text-xs font-mono font-bold text-gray-400 shrink-0">
+                                            <div class="text-xs font-mono font-bold text-sem-fg-muted shrink-0">
                                                 v{{ appInfo.rns_version }}
                                             </div>
                                             <div
                                                 :class="[
                                                     appInfo.is_connected_to_shared_instance
-                                                        ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                                        ? 'bg-sem-accent/10 text-sem-accent border-sem-accent/20'
                                                         : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
                                                 ]"
                                                 class="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-sm border max-w-full wrap-break-word"
@@ -897,7 +892,7 @@
                             <div class="space-y-8 min-w-0">
                                 <div
                                     v-if="electronVersion || chromeVersion || nodeVersion"
-                                    class="py-4 sm:p-5 border-t border-gray-200/60 dark:border-zinc-800/80 sm:border sm:rounded-2xl sm:bg-black/2 dark:sm:bg-white/2 min-w-0"
+                                    class="py-4 sm:p-5 border-t border-sem-border/60 sm:border sm:rounded-2xl sm:bg-black/2 dark:sm:bg-white/2 min-w-0"
                                 >
                                     <div
                                         class="text-[10px] font-black text-black dark:text-white uppercase tracking-[0.2em] mb-4"
@@ -969,7 +964,7 @@
                     <div class="about-section">
                         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-8">
                             <div
-                                class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2"
+                                class="text-xs font-black text-sem-accent uppercase tracking-[0.2em] flex items-center gap-2"
                             >
                                 <MaterialDesignIcon icon-name="database-cog" class="size-3.5" />
                                 {{ $t("about.database_health_maintenance") }}
@@ -1016,11 +1011,9 @@
                         </div>
 
                         <div v-if="databaseHealth" class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 lg:gap-8 mb-8">
-                            <div
-                                class="py-3 px-2 sm:p-4 border-b border-gray-200/60 dark:border-zinc-800/60 md:border md:rounded-xl"
-                            >
+                            <div class="py-3 px-2 sm:p-4 border-b border-sem-border/60 md:border md:rounded-xl">
                                 <div
-                                    class="text-[9px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
+                                    class="text-[9px] font-black text-sem-fg-muted dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
                                 >
                                     {{ $t("about.integrity") }}
                                 </div>
@@ -1031,23 +1024,19 @@
                                     {{ databaseHealth.quick_check }}
                                 </div>
                             </div>
-                            <div
-                                class="py-3 px-2 sm:p-4 border-b border-gray-200/60 dark:border-zinc-800/60 md:border md:rounded-xl"
-                            >
+                            <div class="py-3 px-2 sm:p-4 border-b border-sem-border/60 md:border md:rounded-xl">
                                 <div
-                                    class="text-[9px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
+                                    class="text-[9px] font-black text-sem-fg-muted dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
                                 >
                                     {{ $t("about.journal_short") }}
                                 </div>
-                                <div class="text-lg font-black uppercase text-blue-500 tracking-tight">
+                                <div class="text-lg font-black uppercase text-sem-accent tracking-tight">
                                     {{ databaseHealth.journal_mode }}
                                 </div>
                             </div>
-                            <div
-                                class="py-3 px-2 sm:p-4 border-b border-gray-200/60 dark:border-zinc-800/60 md:border md:rounded-xl"
-                            >
+                            <div class="py-3 px-2 sm:p-4 border-b border-sem-border/60 md:border md:rounded-xl">
                                 <div
-                                    class="text-[9px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
+                                    class="text-[9px] font-black text-sem-fg-muted dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
                                 >
                                     {{ $t("about.page_count_label") }}
                                 </div>
@@ -1055,11 +1044,9 @@
                                     {{ databaseHealth.page_count }}
                                 </div>
                             </div>
-                            <div
-                                class="py-3 px-2 sm:p-4 border-b border-gray-200/60 dark:border-zinc-800/60 md:border md:rounded-xl"
-                            >
+                            <div class="py-3 px-2 sm:p-4 border-b border-sem-border/60 md:border md:rounded-xl">
                                 <div
-                                    class="text-[9px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
+                                    class="text-[9px] font-black text-sem-fg-muted dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
                                 >
                                     {{ $t("about.free_space") }}
                                 </div>
@@ -1069,18 +1056,18 @@
                             </div>
                         </div>
 
-                        <div
-                            id="about-database-backups"
-                            class="border-t border-zinc-100 dark:border-zinc-800 pt-8 space-y-8"
-                        >
+                        <div id="about-database-backups" class="border-t border-zinc-100 pt-8 space-y-8">
                             <!-- Backups -->
                             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                                 <div class="space-y-1">
                                     <div class="font-black text-sem-fg text-sm tracking-tight flex items-center gap-2">
-                                        <MaterialDesignIcon icon-name="content-save-all" class="size-4 text-blue-500" />
+                                        <MaterialDesignIcon
+                                            icon-name="content-save-all"
+                                            class="size-4 text-sem-accent"
+                                        />
                                         {{ $t("about.database_backups_title") }}
                                     </div>
-                                    <div class="text-xs text-gray-500">
+                                    <div class="text-xs text-sem-fg-muted">
                                         {{ $t("about.database_backups_desc") }}
                                     </div>
                                 </div>
@@ -1125,7 +1112,7 @@
                                             <MaterialDesignIcon icon-name="camera" class="size-4 text-purple-500" />
                                             {{ $t("about.local_snapshots_title") }}
                                         </div>
-                                        <div class="text-xs text-gray-500">
+                                        <div class="text-xs text-sem-fg-muted">
                                             {{ $t("about.local_snapshots_desc") }}
                                         </div>
                                     </div>
@@ -1134,7 +1121,7 @@
                                             v-model="snapshotName"
                                             type="text"
                                             :placeholder="$t('about.snapshot_placeholder')"
-                                            class="bg-zinc-50 dark:bg-zinc-900 px-4 py-2 rounded-xl text-sm border border-zinc-100 dark:border-zinc-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 flex-1 md:min-w-[200px]"
+                                            class="bg-zinc-50 dark:bg-zinc-900 px-4 py-2 rounded-xl text-sm border border-zinc-100 focus:outline-hidden focus:ring-2 focus:ring-sem-focus/20 flex-1 md:min-w-[200px]"
                                         />
                                         <button
                                             type="button"
@@ -1153,13 +1140,13 @@
                                         <div
                                             v-for="snapshot in snapshots"
                                             :key="snapshot.path"
-                                            class="flex items-center justify-between gap-2 py-3 sm:p-4 border-b border-gray-200/60 dark:border-zinc-800/80 last:border-0 sm:border sm:rounded-lg sm:bg-black/2 dark:sm:bg-white/2 transition-colors"
+                                            class="flex items-center justify-between gap-2 py-3 sm:p-4 border-b border-sem-border/60 last:border-0 sm:border sm:rounded-lg sm:bg-black/2 dark:sm:bg-white/2 transition-colors"
                                         >
                                             <div class="flex flex-col min-w-0">
                                                 <span class="font-black text-sem-fg text-xs truncate">{{
                                                     snapshot.name
                                                 }}</span>
-                                                <span class="text-[10px] font-bold text-gray-400 mt-1 tabular-nums"
+                                                <span class="text-[10px] font-bold text-sem-fg-muted mt-1 tabular-nums"
                                                     >{{ formatBytes(snapshot.size) }} •
                                                     {{ Utils.formatTimeAgo(snapshot.created_at) }}</span
                                                 >
@@ -1196,7 +1183,7 @@
                                         v-if="snapshotsTotal > snapshotsLimit"
                                         class="flex items-center justify-between px-2"
                                     >
-                                        <div class="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                        <div class="text-[10px] font-black text-sem-fg-muted uppercase tracking-widest">
                                             {{
                                                 $t("about.pagination_page_of", {
                                                     current: Math.floor(snapshotsOffset / snapshotsLimit) + 1,
@@ -1231,10 +1218,10 @@
                                         <div
                                             class="font-black text-sem-fg text-sm tracking-tight flex items-center gap-2"
                                         >
-                                            <MaterialDesignIcon icon-name="history" class="size-4 text-blue-500" />
+                                            <MaterialDesignIcon icon-name="history" class="size-4 text-sem-accent" />
                                             {{ $t("about.automatic_backups_title") }}
                                         </div>
-                                        <div class="text-xs text-gray-500">
+                                        <div class="text-xs text-sem-fg-muted">
                                             {{ $t("about.automatic_backups_desc") }}
                                         </div>
                                     </div>
@@ -1245,13 +1232,13 @@
                                         <div
                                             v-for="backup in autoBackups"
                                             :key="backup.path"
-                                            class="flex items-center justify-between gap-2 py-3 sm:p-4 border-b border-gray-200/60 dark:border-zinc-800/80 last:border-0 sm:border sm:rounded-lg sm:bg-black/2 dark:sm:bg-white/2 transition-colors"
+                                            class="flex items-center justify-between gap-2 py-3 sm:p-4 border-b border-sem-border/60 last:border-0 sm:border sm:rounded-lg sm:bg-black/2 dark:sm:bg-white/2 transition-colors"
                                         >
                                             <div class="flex flex-col min-w-0">
                                                 <span class="font-black text-sem-fg text-xs truncate">{{
                                                     backup.name
                                                 }}</span>
-                                                <span class="text-[10px] font-bold text-gray-400 mt-1 tabular-nums"
+                                                <span class="text-[10px] font-bold text-sem-fg-muted mt-1 tabular-nums"
                                                     >{{ formatBytes(backup.size) }} •
                                                     {{ Utils.formatTimeAgo(backup.created_at) }}</span
                                                 >
@@ -1302,7 +1289,7 @@
                                         v-if="autoBackupsTotal > autoBackupsLimit"
                                         class="flex items-center justify-between px-2"
                                     >
-                                        <div class="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                        <div class="text-[10px] font-black text-sem-fg-muted uppercase tracking-widest">
                                             {{
                                                 $t("about.pagination_page_of", {
                                                     current: Math.floor(autoBackupsOffset / autoBackupsLimit) + 1,
@@ -1330,7 +1317,7 @@
                                 </div>
                                 <div
                                     v-else
-                                    class="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700 px-4 py-6 text-center text-xs text-gray-500"
+                                    class="rounded-xl border border-dashed border-zinc-200 px-4 py-6 text-center text-xs text-sem-fg-muted"
                                 >
                                     {{ $t("about.automatic_backups_empty") }}
                                 </div>
@@ -1602,7 +1589,7 @@ export default {
             }
             const level = this.batteryStatus.level;
             if (level != null && level <= 15) {
-                return "text-red-600 dark:text-red-400";
+                return "text-sem-danger dark:text-red-400";
             }
             if (level != null && level <= 30) {
                 return "text-amber-600 dark:text-amber-400";
@@ -1629,6 +1616,7 @@ export default {
         };
         GlobalEmitter.on(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
         GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
         this.sessionsWsHandler = (payload) => {
             this.applyActiveSessionsPayload(payload);
         };
@@ -1649,6 +1637,7 @@ export default {
             GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
         }
         GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
         if (this.sessionsWsHandler) {
             offWsEvent("app.sessions.updated", this.sessionsWsHandler);
             this.sessionsWsHandler = null;
@@ -1663,6 +1652,10 @@ export default {
             this.autoBackupsOffset = 0;
             this.listSnapshots();
             this.listAutoBackups();
+        },
+        onWebsocketReconnected() {
+            this.getAppInfo();
+            this.getActiveSessions();
         },
         scrollToDatabaseBackupsIfNeeded() {
             const hash = typeof this.$route?.hash === "string" ? this.$route.hash : "";
@@ -1727,7 +1720,7 @@ export default {
         async downloadSnapshot(filename) {
             try {
                 const downloadName = filename.endsWith(".zip") ? filename : `${filename}.zip`;
-                const response = await window.api.get(`/api/v1/database/snapshots/${filename}/download`, {
+                const response = await window.api.post(`/api/v1/database/snapshots/${filename}/download`, null, {
                     responseType: "arraybuffer",
                 });
                 await DownloadUtils.downloadFromApiResponse(response, downloadName);
@@ -1738,7 +1731,7 @@ export default {
         },
         async downloadBackupFile(filename) {
             try {
-                const response = await window.api.get(`/api/v1/database/backups/${filename}/download`, {
+                const response = await window.api.post(`/api/v1/database/backups/${filename}/download`, null, {
                     responseType: "arraybuffer",
                 });
                 await DownloadUtils.downloadFromApiResponse(response, filename);
@@ -1948,7 +1941,7 @@ export default {
             this.backupMessage = "";
             this.backupError = "";
             try {
-                const response = await window.api.get("/api/v1/database/backup/download", {
+                const response = await window.api.post("/api/v1/database/backup/download", null, {
                     responseType: "arraybuffer",
                 });
                 const filename =
@@ -2219,28 +2212,28 @@ export default {
             if (card.warn) {
                 return "border-amber-500/35 bg-amber-500/5 dark:bg-amber-950/20";
             }
-            return "border-gray-200/60 dark:border-zinc-800/80";
+            return "border-sem-border/60";
         },
         sandboxIconClass(card) {
             if (card.active) {
                 return "text-emerald-600 dark:text-emerald-400 border-emerald-500/35 bg-emerald-500/10";
             }
             if (card.unavailable) {
-                return "text-sem-fg-muted border-gray-200/60 dark:border-zinc-800/80 bg-gray-50/70 dark:bg-zinc-900/40";
+                return "text-sem-fg-muted border-sem-border/60 bg-sem-surface-muted/70 dark:bg-zinc-900/40";
             }
-            return "text-sem-fg-muted border-gray-200/60 dark:border-zinc-800/80";
+            return "text-sem-fg-muted border-sem-border/60";
         },
         sandboxBadgeClass(card) {
             if (card.active) {
                 return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300";
             }
             if (card.unavailable) {
-                return "bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-gray-300";
+                return "bg-sem-surface-muted text-sem-fg-muted dark:bg-sem-surface-raised dark:text-gray-300";
             }
             if (card.warn) {
                 return "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300";
             }
-            return "bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-gray-300";
+            return "bg-sem-surface-muted text-sem-fg-muted dark:bg-sem-surface-raised dark:text-gray-300";
         },
     },
 };
@@ -2249,7 +2242,7 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .about-section {
-    @apply w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-6 sm:py-8 last:border-0;
+    @apply w-full border-b border-sem-border/60 py-6 sm:py-8 last:border-0;
 }
 :deep(.about-btn:focus-visible) {
     outline: 2px solid rgba(59, 130, 246, 0.35);

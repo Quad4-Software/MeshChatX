@@ -19,6 +19,8 @@ from unittest.mock import MagicMock
 import LXMF
 import pytest
 import RNS.vendor.umsgpack as msgpack
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend.lxmf_utils import (
@@ -160,6 +162,16 @@ def test_stamp_cost_rejects_non_finite_and_oob(monkeypatch):
     assert parse_lxmf_stamp_cost(b"\x91\x00") is None
     monkeypatch.setattr(LXMF, "stamp_cost_from_app_data", lambda _b: 12)
     assert parse_lxmf_stamp_cost(b"\x91\x00") == 12
+
+
+@settings(max_examples=100, deadline=None)
+@given(
+    app_data_base64=st.text(min_size=0, max_size=10000),
+)
+def test_parse_lxmf_stamp_cost_oracle(app_data_base64):
+    """Stamp cost parse returns None or a non-negative number and never raises."""
+    cost = parse_lxmf_stamp_cost(app_data_base64)
+    assert cost is None or (isinstance(cost, (int, float)) and cost >= 0)
 
 
 @pytest.mark.parametrize(

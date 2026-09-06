@@ -18,7 +18,7 @@ vars:
     DOCKER_COMPOSE_CMD:
         sh: echo "${DOCKER_COMPOSE_CMD:-docker compose}"
     DOCKER_COMPOSE_FILE:
-        sh: echo "${DOCKER_COMPOSE_FILE:-docker-compose.yml}"
+        sh: echo "${DOCKER_COMPOSE_FILE:-docker/docker-compose.yml}"
     DOCKER_IMAGE:
         sh: echo "${DOCKER_IMAGE:-reticulum-meshchatx:local}"
     DOCKER_BUILDER:
@@ -32,15 +32,15 @@ vars:
     DOCKER_CONTEXT:
         sh: echo "${DOCKER_CONTEXT:-.}"
     DOCKERFILE:
-        sh: echo "${DOCKERFILE:-Dockerfile}"
+        sh: echo "${DOCKERFILE:-docker/Dockerfile}"
     DOCKER_BUILD_IMAGE:
         sh: echo "${DOCKER_BUILD_IMAGE:-reticulum-meshchatx-build:local}"
     DOCKER_BUILD_FILE:
-        sh: echo "${DOCKER_BUILD_FILE:-Dockerfile.build}"
+        sh: echo "${DOCKER_BUILD_FILE:-docker/Dockerfile.build}"
     DOCKER_ELECTRON_WINE_IMAGE:
         sh: echo "${MESHCHATX_ELECTRON_WINE_IMAGE:-meshchatx-electron-wine:local}"
     DOCKER_ELECTRON_WINE_FILE:
-        sh: echo "${MESHCHATX_ELECTRON_WINE_DOCKERFILE:-Dockerfile.electron-wine}"
+        sh: echo "${MESHCHATX_ELECTRON_WINE_DOCKERFILE:-docker/Dockerfile.electron-wine}"
     DOCKER_ELECTRON_WINE_TARGETS:
         sh: echo "${MESHCHATX_ELECTRON_WINE_TARGETS:-win}"
     DOCKER_ELECTRON_WINE_OUT:
@@ -301,7 +301,7 @@ tasks:
             - "{{.NPM}} run test:ui:lighthouse:ci"
 
     test:quick:
-        desc: Fast dev loop - regression subset (set E2E=1 to include Playwright smoke)
+        desc: Fast dev loop - focused backend subset + full frontend unit suite (set E2E=1 for Playwright smoke)
         cmds:
             - task: test:quick:be
             - task: test:quick:fe
@@ -311,7 +311,7 @@ tasks:
                 fi
 
     test:quick:be:
-        desc: Backend regression subset (interface-stats, CSRF, LXMF send, nomad downloads, RNS link, EECT packs)
+        desc: Backend regression subset (auth/CSRF, LXMF/nomad/RNS link, filesync, EECT packs, privacy oracles)
         cmds:
             - >-
                 uv run pytest
@@ -323,7 +323,12 @@ tasks:
                 tests/backend/test_rns_link_fuzzing.py
                 tests/backend/test_rns_link_plugin.py
                 tests/backend/test_rns_filesync_security.py
-                -q
+                tests/backend/test_sensitive_export_csrf_methods.py
+                tests/backend/test_management_identities.py
+                tests/backend/test_telemetry_integration.py
+                tests/backend/test_websocket_config_guard.py
+                tests/backend/test_log_redaction.py
+                -q --tb=short
             - task: test:eect
 
     test:eect:
@@ -365,23 +370,12 @@ tasks:
             - uv run pytest tests/backend/eect/live/test_lv_ladder.py -m live_validation -k "l0" -q --tb=short
 
     test:quick:fe:
-        desc: Frontend regression subset (links, micron preview, stranger banner, interface stats, ownership contracts)
+        desc: Full frontend unit suite without coverage (excludes LoadTimePerformance and i18n, see test:lang)
         cmds:
             - >-
                 {{.NPM}} exec vitest run
-                tests/frontend/NomadRichHtmlLinks.test.js
-                tests/frontend/InterfacesPage.stats.test.js
-            - >-
-                {{.NPM}} exec vitest run
-                tests/frontend/MicronEditorPage.test.js
-                -t "onPreviewClick opens http"
-            - >-
-                {{.NPM}} exec vitest run
-                tests/frontend/ConversationViewer.test.js
-                -t "addStrangerAsContact"
-            - >-
-                {{.NPM}} exec vitest run
-                tests/frontend/frontendOwnershipContract.test.js
+                --exclude tests/frontend/LoadTimePerformance.test.js
+                --exclude tests/frontend/i18n.test.js
 
     test:backend:
         aliases: [test:be, test:be:full]
@@ -440,7 +434,6 @@ tasks:
                 {{.NPM}} exec vitest run
                 tests/frontend/libs.core.test.js
                 tests/frontend/libs.oracle.test.js
-                tests/frontend/libs.index.test.js
                 --coverage
                 --coverage.include=meshchatx/src/frontend/libs/**
             - node scripts/check-format-tokens.mjs
@@ -450,7 +443,7 @@ tasks:
         desc: Run frontend + Electron shell unit tests (vitest with coverage, excludes i18n, see test:lang, excludes LoadTimePerformance, use test:fe:loadtime locally)
         cmds:
             - "{{.NPM}} exec vitest run --coverage --exclude tests/frontend/LoadTimePerformance.test.js --exclude tests/frontend/i18n.test.js"
-            - "{{.NPM}} exec vitest run --config vitest.electron.config.js --coverage"
+            - "{{.NPM}} exec vitest run --config vitest.electron.config.mjs --coverage"
 
     test:fe:ui:
         desc: Vitest UI runner for frontend unit tests
@@ -783,7 +776,7 @@ tasks:
     docker:run:dev:
         desc: Run Docker container (dev compose)
         cmds:
-            - 'MESHCHAT_IMAGE="{{.DOCKER_IMAGE}}" {{.DOCKER_COMPOSE_CMD}} -f docker-compose.dev.yml up --build --remove-orphans reticulum-meshchatx'
+            - 'MESHCHAT_IMAGE="{{.DOCKER_IMAGE}}" {{.DOCKER_COMPOSE_CMD}} -f docker/docker-compose.dev.yml up --build --remove-orphans reticulum-meshchatx'
 
     docker:build:env:
         desc: Build containerized build environment

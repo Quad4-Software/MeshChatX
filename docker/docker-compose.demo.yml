@@ -1,0 +1,70 @@
+# Coolify public demo stack (read-only mesh showcase, session auth).
+# https://coolify.io/docs/knowledge-base/docker/compose
+#
+# Showcase login password defaults to demo (override MESHCHAT_DEMO_AUTH_PASSWORD).
+# Offline map defaults on; starter low-zoom MBTiles are seeded into storage on first run.
+#
+# Assign a domain in Coolify with container port 8000, for example:
+#   https://meshchatx.example.com:8000
+# The :8000 suffix is the container port for the proxy, not the public URL port.
+#
+# Coolify terminates TLS at the proxy. Plain HTTP inside the container
+# (MESHCHAT_NO_HTTPS=1) avoids a self-signed HTTPS backend. Do not add host
+# ports unless you intend to bypass the proxy.
+
+services:
+    meshchatx:
+        image: ${MESHCHAT_IMAGE:-quad4io/meshchatx:latest}
+        restart: unless-stopped
+        init: true
+        user: "1000:1000"
+        security_opt:
+            - no-new-privileges:true
+        cap_drop:
+            - ALL
+        read_only: true
+        tmpfs:
+            - /tmp:noexec,nosuid,size=256m
+            - /home/meshchat:nosuid,size=64m
+        environment:
+            - SERVICE_URL_MESHCHATX_8000
+            - MESHCHAT_DEMO_MODE=${MESHCHAT_DEMO_MODE:-1}
+            - MESHCHAT_AUTH=${MESHCHAT_AUTH:-1}
+            - MESHCHAT_AUTH_BYPASS=${MESHCHAT_AUTH_BYPASS:-0}
+            - MESHCHAT_DEMO_AUTH_PASSWORD=${MESHCHAT_DEMO_AUTH_PASSWORD:-demo}
+            - "MESHCHAT_AUTH_PAGE_HINT=${MESHCHAT_AUTH_PAGE_HINT:-Username: demo, Password: demo}"
+            - MESHCHAT_DISABLE_PLUGINS=${MESHCHAT_DISABLE_PLUGINS:-1}
+            - MESHCHAT_HOST=${MESHCHAT_HOST:-0.0.0.0}
+            - MESHCHAT_PORT=${MESHCHAT_PORT:-8000}
+            - MESHCHAT_NO_HTTPS=${MESHCHAT_NO_HTTPS:-1}
+            - MESHCHAT_HEADLESS=${MESHCHAT_HEADLESS:-1}
+        volumes:
+            - meshchatx-config:/config
+        ulimits:
+            nofile:
+                soft: 65536
+                hard: 65536
+        logging:
+            driver: json-file
+            options:
+                max-size: "10m"
+                max-file: "5"
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/status')",
+                ]
+            interval: 30s
+            timeout: 5s
+            retries: 3
+            start_period: 90s
+        cpus: 2.0
+        mem_limit: 1g
+        mem_reservation: 256m
+        pids_limit: 512
+
+volumes:
+    meshchatx-config:

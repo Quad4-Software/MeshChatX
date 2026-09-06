@@ -13,6 +13,17 @@ Applies when editing `meshchatx/src/frontend/**/*.{vue,js}`.
 - Prefer existing MaterialDesignIcon / layout patterns over new design systems.
 - No backticks in code comments. Prefer plain words or quoted identifiers.
 
+## Shared UI primitives
+
+Prefer these over ad-hoc gray/blue utilities on new or touched surfaces:
+
+- `EmptyState`, `LoadingState`, `Skeleton` for empty / loading / placeholder rows
+- `IconButton` for icon-only controls (includes `focus-ring-sem` and 44px touch target)
+- CSS helpers in `style.css`: `input-field`, `primary-chip` / `secondary-chip` / `danger-chip`, `focus-ring-sem`, `press-feedback`, `page-canvas`
+- Focus rings: `focus-ring-sem` or `focus:ring-sem-focus`, not `focus:ring-blue-500`
+- Primary actions: `primary-chip` or `bg-sem-action-primary`, not raw `bg-blue-600`
+- Honor `prefers-reduced-motion` on new animation (route fade and chip press already do)
+
 ## Mega-page extracts
 
 When splitting large page shells, follow `.agents/skills/vue-mega-page-split/SKILL.md`

@@ -142,6 +142,7 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
+import GlobalEmitter from "../../js/GlobalEmitter";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
@@ -166,12 +167,17 @@ export default {
     },
     mounted() {
         onWsEvent("lxmf.forwarding.rules", this.onForwardingRules);
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
         this.fetchRules();
     },
     beforeUnmount() {
         offWsEvent("lxmf.forwarding.rules", this.onForwardingRules);
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
     },
     methods: {
+        onWebsocketReconnected() {
+            this.fetchRules();
+        },
         fetchRules() {
             WebSocketConnection.send(
                 JSON.stringify({

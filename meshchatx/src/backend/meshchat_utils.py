@@ -235,11 +235,17 @@ def convert_db_favourite_to_dict(favourite):
     if updated_at and "+" not in updated_at and "Z" not in updated_at:
         updated_at += "Z"
 
+    try:
+        identify_on_connect = bool(favourite["identify_on_connect"])
+    except (KeyError, IndexError, TypeError):
+        identify_on_connect = False
+
     return {
         "id": favourite["id"],
         "destination_hash": favourite["destination_hash"],
         "display_name": favourite["display_name"],
         "aspect": favourite["aspect"],
+        "identify_on_connect": identify_on_connect,
         "created_at": created_at,
         "updated_at": updated_at,
     }

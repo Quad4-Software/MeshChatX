@@ -54,7 +54,7 @@ Package and recover the desktop shell correctly: frozen subprocess re-entry, loa
 
 ```bash
 uv run pytest tests/backend/test_meshchatx_run_module.py -q --tb=short
-pnpm exec vitest run --config vitest.electron.config.js tests/electron/mainHelpers.test.js tests/electron/safeExternalUrl.test.js
+pnpm exec vitest run --config vitest.electron.config.mjs tests/electron/mainHelpers.test.js tests/electron/safeExternalUrl.test.js
 ```
 
 Prefer focused Electron unit tests under `tests/electron/` when present for the touched module.

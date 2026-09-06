@@ -59,7 +59,7 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .setting-toggle {
-    @apply relative flex flex-row-reverse items-start gap-3 rounded-2xl border border-sem-border bg-white/70 dark:bg-zinc-900/70 px-3 py-3;
+    @apply relative flex flex-row-reverse items-start gap-3 rounded-2xl border border-sem-border bg-sem-surface px-3 py-3;
 }
 .setting-toggle > :deep(label) {
     @apply shrink-0 self-center;

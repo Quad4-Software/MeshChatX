@@ -28,6 +28,29 @@ describe("deliveryHelptips.test.js", () => {
     it("maps recall send failures", () => {
         expect(mapSendFailureKind(400, "Could not recall destination identity.")).toBe("recall");
         expect(mapSendFailureKind(503, "No path to destination.")).toBe("no_path");
+        expect(mapSendFailureKind(503, "No path to preferred propagation node. Open Propagation Nodes.")).toBe(
+            "no_path_propagation_node"
+        );
+        expect(mapSendFailureKind(400, "No preferred propagation node configured. Set one in Settings.")).toBe(
+            "no_propagation_node"
+        );
+    });
+
+    it("surfaces propagation-node path tips without peer no_path when hinted", () => {
+        const tips = buildDeliveryHelptips({
+            diagnostics: {
+                self: { auto_announce_enabled: true, seconds_since_last_announce: 10 },
+                peer_announce: { known: true, age_seconds: 60 },
+                path: { has_path: false, path_stale: true, path_unresponsive: false },
+                recall: { identity_known: true },
+                delivery_prefs: { propagation_fallback: true },
+                failure_hint: "no_path_propagation_node",
+            },
+            failureKind: "no_path_propagation_node",
+        });
+        const ids = tips.map((tip) => tip.id);
+        expect(ids).toContain("no_path_propagation_node");
+        expect(ids).not.toContain("no_path");
     });
 
     it("respects delivery helptips config toggle", () => {

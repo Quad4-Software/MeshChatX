@@ -21,6 +21,7 @@ const globalState = reactive({
     networkDegradedError: null,
     networkStarting: false,
     networkReady: true,
+    liveTransportReady: false,
     demoMode: false,
     config: {
         show_unknown_contact_banner: true,
@@ -47,6 +48,8 @@ const globalState = reactive({
         nomad_tabs_enabled: true,
         rrc_enabled: true,
         rrc_unread_badges_enabled: true,
+        live_transport_mode: "auto",
+        webtransport_sidecar_enabled: false,
     },
 });
 

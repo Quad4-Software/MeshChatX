@@ -218,9 +218,9 @@ class TestPluginManagerInstall:
         install_path = record.install_path
 
         for dirpath, dirnames, filenames in os.walk(install_path):
-            os.chmod(dirpath, 0o555)
+            os.chmod(dirpath, 0o550)
             for name in dirnames:
-                os.chmod(os.path.join(dirpath, name), 0o555)
+                os.chmod(os.path.join(dirpath, name), 0o550)
             for name in filenames:
                 os.chmod(os.path.join(dirpath, name), 0o444)
 

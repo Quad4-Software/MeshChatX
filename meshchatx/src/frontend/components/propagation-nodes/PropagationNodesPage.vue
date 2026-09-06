@@ -527,6 +527,7 @@ import { postDestinationPath } from "../../js/reticulumPathfinding.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
+import GlobalEmitter from "../../js/GlobalEmitter";
 import {
     incomingDeliveryBytesFromCustom,
     incomingDeliveryBytesFromPresetKey,
@@ -679,6 +680,7 @@ export default {
     },
     beforeUnmount() {
         offWsEvent("config", this.onConfigEvent);
+        GlobalEmitter.off("websocket-reconnected", this.onWebsocketReconnected);
         for (const timeoutKey of Object.keys(this.saveTimeouts)) {
             if (this.saveTimeouts[timeoutKey]) {
                 clearTimeout(this.saveTimeouts[timeoutKey]);
@@ -687,6 +689,7 @@ export default {
     },
     mounted() {
         onWsEvent("config", this.onConfigEvent);
+        GlobalEmitter.on("websocket-reconnected", this.onWebsocketReconnected);
 
         if (window.matchMedia && window.matchMedia("(max-width: 640px)").matches) {
             this.isLocalManagerCollapsed = true;
@@ -695,6 +698,9 @@ export default {
         this.loadPropagationNodes();
     },
     methods: {
+        onWebsocketReconnected() {
+            void Promise.all([this.getConfig(), this.loadPropagationNodes()]);
+        },
         onConfigEvent(json) {
             this.config = json.config;
             this.syncManagerInputsFromConfig();

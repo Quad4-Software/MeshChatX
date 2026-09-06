@@ -47,7 +47,7 @@ Do not ship tests that only do:
 ## MeshChatX examples
 
 - Protocol: `tests/backend/test_rrc_protocol_fuzz.py`
-- ACL/membership: `tests/backend/test_rrc_oracle_bugs.py`
+- ACL/membership: `tests/backend/test_rrc_membership_acls.py`
 - Room keys: `tests/backend/test_rrc_room_keys.py`
 - EECT shared asserts: `tests/backend/eect/asserts.py`
 - URL origin allowlists: `tests/electron/mainHelpers.test.js`, `android/app/src/test/java/com/meshchatx/RemoteBackendUrlTest.java`
@@ -57,7 +57,7 @@ Do not ship tests that only do:
 ## Commands
 
 ```bash
-uv run pytest tests/backend/test_rrc_oracle_bugs.py tests/backend/test_rrc_protocol_fuzz.py -q --tb=short
+uv run pytest tests/backend/test_rrc_membership_acls.py tests/backend/test_rrc_protocol_fuzz.py -q --tb=short
 pnpm exec vitest run tests/frontend/sanitizerXssOracle.test.js
 task test:eect
 ```

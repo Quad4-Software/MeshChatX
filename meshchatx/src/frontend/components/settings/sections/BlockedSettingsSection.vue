@@ -11,7 +11,7 @@
             <RouterLink :to="{ name: 'blocked' }" class="primary-chip"> Manage Banished </RouterLink>
         </header>
         <div class="settings-section__body">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-sem-fg-muted">
                 Banished users and nodes will not be able to send you messages, and their announces will be ignored.
             </p>
         </div>

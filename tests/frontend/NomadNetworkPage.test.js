@@ -14,37 +14,74 @@ vi.mock("@/js/ToastUtils", () => ({
     },
 }));
 
+vi.mock("@/js/DialogUtils", () => ({
+    default: {
+        confirm: vi.fn(async () => true),
+        prompt: vi.fn(async () => null),
+        alert: vi.fn(),
+    },
+}));
+
 const wsMessageHandlers = [];
 const wsEventHandlers = {};
+
+function registerWsEventHandler(event, handler) {
+    if (event === "message") {
+        wsMessageHandlers.push(handler);
+        return;
+    }
+    if (!wsEventHandlers[event]) {
+        wsEventHandlers[event] = [];
+    }
+    wsEventHandlers[event].push(handler);
+}
+
+function unregisterWsEventHandler(event, handler) {
+    if (event === "message") {
+        const index = wsMessageHandlers.indexOf(handler);
+        if (index >= 0) {
+            wsMessageHandlers.splice(index, 1);
+        }
+        return;
+    }
+    const list = wsEventHandlers[event] || [];
+    const index = list.indexOf(handler);
+    if (index >= 0) {
+        list.splice(index, 1);
+    }
+}
 
 vi.mock("@/js/WebSocketConnection", () => ({
     default: {
         send: vi.fn(() => true),
         isOpen: vi.fn(() => true),
         on: vi.fn((event, handler) => {
-            if (event === "message") {
-                wsMessageHandlers.push(handler);
-                return;
-            }
-            if (!wsEventHandlers[event]) {
-                wsEventHandlers[event] = [];
-            }
-            wsEventHandlers[event].push(handler);
+            registerWsEventHandler(event, handler);
         }),
         off: vi.fn((event, handler) => {
-            if (event === "message") {
-                const index = wsMessageHandlers.indexOf(handler);
-                if (index >= 0) {
-                    wsMessageHandlers.splice(index, 1);
-                }
-                return;
-            }
-            const list = wsEventHandlers[event] || [];
-            const index = list.indexOf(handler);
-            if (index >= 0) {
-                list.splice(index, 1);
-            }
+            unregisterWsEventHandler(event, handler);
         }),
+        setLiveSendBridge: vi.fn(),
+        reconnect: vi.fn(),
+        connect: vi.fn(),
+        destroy: vi.fn(),
+    },
+}));
+
+vi.mock("@/js/liveTransport.js", () => ({
+    default: {
+        send: vi.fn(() => true),
+        isOpen: vi.fn(() => true),
+        on: vi.fn((event, handler) => {
+            registerWsEventHandler(event, handler);
+        }),
+        off: vi.fn((event, handler) => {
+            unregisterWsEventHandler(event, handler);
+        }),
+        connect: vi.fn(async () => ({ transport: "websocket", fellBack: false })),
+        destroy: vi.fn(),
+        configure: vi.fn(),
+        reconnect: vi.fn(),
     },
 }));
 
@@ -1264,9 +1301,11 @@ describe("NomadNetworkPage.vue", () => {
     describe("websocket send race", () => {
         it("queues primary download until websocket connects instead of hanging on Loading page", async () => {
             const WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
+            const LiveTransport = (await import("@/js/liveTransport.js")).default;
             WebSocketConnection.send.mockReset();
             WebSocketConnection.send.mockImplementationOnce(() => false).mockImplementation(() => true);
             WebSocketConnection.isOpen.mockReturnValue(false);
+            LiveTransport.isOpen.mockReturnValue(false);
 
             const wrapper = mountNomadNetworkPage({
                 destinationHash: "",
@@ -1290,6 +1329,7 @@ describe("NomadNetworkPage.vue", () => {
             expect(wsEventHandlers.connected?.length || 0).toBeGreaterThan(0);
 
             WebSocketConnection.isOpen.mockReturnValue(true);
+            LiveTransport.isOpen.mockReturnValue(true);
             for (const handler of [...(wsEventHandlers.connected || [])]) {
                 handler();
             }
@@ -1369,7 +1409,10 @@ describe("NomadNetworkPage.vue", () => {
             wrapper.vm.nodePageContent = "# hi";
 
             await wrapper.vm.identify("a".repeat(32));
-            expect(axiosMock.post).not.toHaveBeenCalledWith(expect.stringContaining("/identify"), expect.anything());
+            expect(axiosMock.post).not.toHaveBeenCalledWith(
+                expect.stringContaining("/identify-on-connect"),
+                expect.anything()
+            );
             expect(ToastUtils.info).toHaveBeenCalledWith("nomadnet.private_browsing_hint");
 
             WebSocketConnection.send.mockClear();
@@ -1391,8 +1434,51 @@ describe("NomadNetworkPage.vue", () => {
             wrapper.vm.selectedNode = { destination_hash: "a".repeat(32), display_name: "Node" };
             wrapper.vm.nodePageContent = "# hi";
             wrapper.vm.nodePagePath = `${"a".repeat(32)}:/page/index.mu`;
-            expect(wrapper.find('[title="nomadnet.identify"]').exists()).toBe(false);
+            expect(wrapper.find('[title="nomadnet.identify_on_connect_on"]').exists()).toBe(false);
+            expect(wrapper.find('[title="nomadnet.identify_on_connect_off"]').exists()).toBe(false);
             expect(wrapper.find('[title="app.archives"]').exists()).toBe(false);
+            wrapper.unmount();
+        });
+
+        it("toggles sticky identify-on-connect via favourites API", async () => {
+            const DialogUtils = (await import("@/js/DialogUtils")).default;
+            DialogUtils.confirm.mockResolvedValueOnce(true);
+            const hash = "a".repeat(32);
+            const wrapper = mountNomadNetworkPage({ destinationHash: hash });
+            wrapper.vm.selectedNode = { destination_hash: hash, display_name: "Node" };
+            wrapper.vm.favourites = [];
+            wrapper.vm.reloadNodePage = vi.fn();
+            const favouritesAfter = [
+                {
+                    destination_hash: hash,
+                    display_name: "Node",
+                    aspect: "nomadnetwork.node",
+                    identify_on_connect: true,
+                },
+            ];
+            axiosMock.post.mockResolvedValueOnce({
+                data: {
+                    identify_on_connect: true,
+                    favourite: favouritesAfter[0],
+                },
+            });
+            const prevGet = axiosMock.get.getMockImplementation();
+            axiosMock.get.mockImplementation((url) => {
+                if (url === "/api/v1/favourites") {
+                    return Promise.resolve({ data: { favourites: favouritesAfter } });
+                }
+                return prevGet ? prevGet(url) : Promise.resolve({ data: {} });
+            });
+
+            await wrapper.vm.toggleIdentifyOnConnect(hash);
+
+            expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/favourites/${hash}/identify-on-connect`, {
+                enabled: true,
+                display_name: "Node",
+                aspect: "nomadnetwork.node",
+            });
+            expect(wrapper.vm.reloadNodePage).toHaveBeenCalled();
+            expect(wrapper.vm.selectedNodeIdentifiesOnConnect).toBe(true);
             wrapper.unmount();
         });
     });

@@ -37,6 +37,8 @@ describe("App websocket reconnect shell resync", () => {
             wsDisconnectTickTimer: null,
             wsReconnectedBanner: false,
             wsReconnectedHideTimer: null,
+            liveTransportReady: false,
+            startShellPollIntervals: vi.fn(),
             getAppInfo: vi.fn(async () => {}),
             getConfig: vi.fn(async () => {}),
             getBlockedDestinations: vi.fn(async () => {}),

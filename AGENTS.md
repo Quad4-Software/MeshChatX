@@ -11,9 +11,6 @@ Load only what the task needs. Do not dump the whole tree into context.
 5. Where code lives: `.agents/module-ownership.md`.
 6. Prose: `.agents/skills/no-ai-slop/SKILL.md`.
 
-Hard rules and skill triggers also live in `.cursor/rules/meshchatx-core.mdc` (always on).
-Zen gates: `.cursor/rules/reticulum-zen-gates.mdc`.
-
 ## Do not confuse
 
 | Topic                          | Open                                            |

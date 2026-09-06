@@ -4,7 +4,7 @@
     <div class="inline-flex">
         <button
             type="button"
-            class="my-auto inline-flex items-center gap-x-1 rounded-lg px-2 py-1.5 text-xs font-medium text-sem-fg-muted hover:bg-sem-surface-muted hover:text-gray-900 dark:hover:text-white transition-colors"
+            class="my-auto inline-flex items-center gap-x-1 rounded-lg px-2 py-1.5 text-xs font-medium text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-fg dark:hover:text-white transition-colors"
             @click="showMenu"
         >
             <MaterialDesignIcon icon-name="image-plus" class="w-4 h-4" />

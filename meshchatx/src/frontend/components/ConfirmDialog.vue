@@ -22,7 +22,7 @@
                 <div class="p-8">
                     <div class="flex items-start mb-6">
                         <div
-                            class="shrink-0 flex items-center justify-center w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 mr-4"
+                            class="shrink-0 flex items-center justify-center w-12 h-12 rounded-2xl bg-sem-danger/15 text-sem-danger mr-4"
                         >
                             <MaterialDesignIcon icon-name="alert-circle" class="w-6 h-6" />
                         </div>
@@ -41,17 +41,12 @@
                             ref="cancelButton"
                             type="button"
                             data-confirm-cancel
-                            class="px-6 py-3 text-sm font-bold text-sem-fg-muted bg-sem-surface-muted rounded-xl hover:bg-gray-200 hover:bg-sem-surface-muted transition-all active:scale-95"
+                            class="secondary-action"
                             @click="cancel"
                         >
                             {{ $t("common.cancel") }}
                         </button>
-                        <button
-                            ref="confirmButton"
-                            type="button"
-                            class="px-6 py-3 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-lg shadow-red-600/20 transition-all active:scale-95"
-                            @click="confirm"
-                        >
+                        <button ref="confirmButton" type="button" class="danger-action" @click="confirm">
                             {{ $t("common.confirm") }}
                         </button>
                     </div>

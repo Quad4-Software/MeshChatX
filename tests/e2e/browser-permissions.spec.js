@@ -206,16 +206,17 @@ test.describe("RNode flasher Web Bluetooth chooser path", () => {
         });
     });
 
-    test("Permissions-Policy from backend allows bluetooth for flasher origin", async ({ request }) => {
+    test("Permissions-Policy from backend is cross-browser quiet core", async ({ request }) => {
         const index = await request.get(`${E2E_BACKEND_ORIGIN}/`);
         expect(index.ok()).toBeTruthy();
         const policy = index.headers()["permissions-policy"] || "";
-        expect(policy).toContain("bluetooth=(self)");
         expect(policy).toContain("microphone=(self)");
+        expect(policy).toContain("camera=(self)");
         expect(policy).toContain("autoplay=(self)");
-        expect(policy).toContain("speaker-selection=(self)");
-        expect(policy).toContain("serial=(self)");
-        expect(policy).toContain("usb=(self)");
+        expect(policy).not.toContain("speaker-selection");
+        expect(policy).not.toContain("bluetooth");
+        expect(policy).not.toContain("serial");
+        expect(policy).not.toContain("usb");
         expect(index.headers()["feature-policy"] || "").toBe("");
     });
 });

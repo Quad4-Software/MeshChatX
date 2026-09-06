@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.8.6] - 2026-08-30 [unreleased]
+## [4.8.6] - 2026-09-06 [unreleased]
 
 ### Added
 
@@ -13,20 +13,40 @@ All notable changes to this project will be documented in this file.
 - **Archives**: Search shows short previews. Open Micron, Markdown, or HTML previews from a card. Recrawl a page from the viewer. Layout stacks on phones.
 - **Smart Crawler**: Crawls less aggressively (about one request per node per day). Sites can opt out with # nocrawl or Archives settings.
 - **Nomad private tabs**: Ctrl+Shift+P opens a purple private tab that is not archived, favourited, or saved in history.
-- **Micron publish**: Publish can create a mesh server, upload the page, and open it in NomadNet in one step.
+- **Micron publish**: Publish can create a mesh server, upload the page, and open it in NomadNet in one step. Publish site uploads several tabs as pages with editable filenames, drag or arrow reordering, and an optional index page linking them all. Editor tabs can be dragged to reorder.
+- **Nomad identify-on-connect** (schema 58): Sticky per-favourite Identify when connecting, matching NomadNet. Auto-identifies on link before page requests. Fingerprint toggle and favourites import/export carry the identify flag.
+
+### Security
+
+- **DeepSource security pass**: Fixed or suppressed the first three batches of DeepSource security findings, including front-end rel attributes, Android TLS validation, stricter file permissions, and Python binding and subprocess audit rules.
 
 ### Fixed
 
 - **Messages**: Coming back to an open chat marks it read and clears badges and desktop notifications.
+- **Messages (propagated)**: Propagated send waits for a path to the preferred propagation node. Missing node or path gets a clear error and delivery help tip. Failed pending bubbles stay visible with the error.
 - **NomadNet**: Opening a node while the app is still connecting no longer sticks on Loading. A stuck page no longer freezes the whole Nomad UI. Switching away and back no longer falsely claims the page renderer stopped.
 - **Desktop app**: Startup and crash screens respect dark mode instead of flashing white.
 - **Map**: Interface and telemetry markers update again.
 - **UI**: Dropdown menus match the theme.
+- **Permissions-Policy**: Only microphone, camera, and autoplay are listed. Hardware and speaker-selection tokens are left to browser defaults so Brave and Chrome stop logging unrecognized feature warnings.
+- **Header buttons**: Navbar icons, sync, and compose share one size and hover circle. The language menu icon matches the rest.
+- **Stranger banner**: The not-in-contacts warning is a slim single row instead of a large box.
+
+### Removed
+
+- **ALTCHA**: The proof-of-work login challenge is gone from login, setup, the demo stack, and all builds. Password and session auth still apply.
 
 ### Changed
 
+- **Theme consistency pass**: Shared primitives, conversation viewer, message entry, messages, about, settings, tutorial, call, and add-interface pages now use semantic color tokens instead of raw Tailwind classes. The audit script and fixtures track the remaining raw token inventory. The raw Tailwind color count in frontend components dropped from about 4990 to about 3758.
+- **Docker files**: Dockerfiles and compose files moved under docker/. Update commands to docker/Dockerfile and docker/docker-compose.yml.
+- **Dependencies**: Electron 44, jsdom 30, vis-network 10, vis-data 8, and assorted patch bumps. Dependency audit reports no known vulnerabilities.
+- **Vite and Vitest configs**: Renamed to .mjs so the ESM config warning is gone.
+- **Dev script**: task dev output is colored and single-prefixed.
 - **Smart Crawler**: Finished crawls stay finished until you refresh. Fewer crawls run at once.
 - **Reticulum**: RNS 1.5.2.
+- **WebTransport**: aioquic 1.3.0 is a normal dependency. Android builds ship aioquic and pylsqpack Chaquopy wheels.
+- **Micron**: Micron-Parser-Go WASM v1.1.0.
 - **Docs**: Short READMEs at the repo root. Full install and contributor guides under docs/en/.
 
 ## [4.8.5] - 2026-08-21 [released]

@@ -1,0 +1,1264 @@
+{
+  "generated": "2026-09-06T06:11:36.676Z",
+  "totals": {
+    "raw_color": 3758,
+    "focus_raw": 202,
+    "dark_raw": 1254,
+    "white_black": 582,
+    "accent_raw": 10
+  },
+  "perFile": {
+    "meshchatx/src/frontend/components/AndroidStorageChoicePrompt.vue": {
+      "raw_color": 6,
+      "focus_raw": 0,
+      "dark_raw": 2,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/App.vue": {
+      "raw_color": 17,
+      "focus_raw": 0,
+      "dark_raw": 4,
+      "white_black": 6,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/AppModal.vue": {
+      "raw_color": 0,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/ChangelogModal.vue": {
+      "raw_color": 23,
+      "focus_raw": 2,
+      "dark_raw": 3,
+      "white_black": 5,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/ColourPickerDropdown.vue": {
+      "raw_color": 7,
+      "focus_raw": 0,
+      "dark_raw": 4,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/CommandPalette.vue": {
+      "raw_color": 14,
+      "focus_raw": 1,
+      "dark_raw": 6,
+      "white_black": 3,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/ConfirmDialog.vue": {
+      "raw_color": 0,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/IntegrityWarningModal.vue": {
+      "raw_color": 4,
+      "focus_raw": 1,
+      "dark_raw": 0,
+      "white_black": 7,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/MdiIconPickerModal.vue": {
+      "raw_color": 0,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/PromptDialog.vue": {
+      "raw_color": 0,
+      "focus_raw": 1,
+      "dark_raw": 0,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/TutorialModal.vue": {
+      "raw_color": 197,
+      "focus_raw": 2,
+      "dark_raw": 67,
+      "white_black": 15,
+      "accent_raw": 2
+    },
+    "meshchatx/src/frontend/components/TutorialPrivacyStep.vue": {
+      "raw_color": 9,
+      "focus_raw": 0,
+      "dark_raw": 5,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/about/AboutPage.vue": {
+      "raw_color": 119,
+      "focus_raw": 1,
+      "dark_raw": 51,
+      "white_black": 28,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/archives/ArchivesPage.vue": {
+      "raw_color": 4,
+      "focus_raw": 1,
+      "dark_raw": 0,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/auth/AuthPage.vue": {
+      "raw_color": 17,
+      "focus_raw": 6,
+      "dark_raw": 8,
+      "white_black": 5,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/blocked/BlockedPage.vue": {
+      "raw_color": 1,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/call/CallOverlay.vue": {
+      "raw_color": 48,
+      "focus_raw": 0,
+      "dark_raw": 7,
+      "white_black": 6,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/call/CallPage.vue": {
+      "raw_color": 44,
+      "focus_raw": 3,
+      "dark_raw": 20,
+      "white_black": 24,
+      "accent_raw": 2
+    },
+    "meshchatx/src/frontend/components/call/audio/RingtoneEditor.vue": {
+      "raw_color": 34,
+      "focus_raw": 5,
+      "dark_raw": 7,
+      "white_black": 6,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/call/tabs/CallContactsTab.vue": {
+      "raw_color": 19,
+      "focus_raw": 0,
+      "dark_raw": 5,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/call/tabs/CallPhonebookTab.vue": {
+      "raw_color": 22,
+      "focus_raw": 3,
+      "dark_raw": 6,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/call/tabs/CallTabBar.vue": {
+      "raw_color": 4,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/call/tabs/CallVoicemailTab.vue": {
+      "raw_color": 79,
+      "focus_raw": 24,
+      "dark_raw": 28,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/contacts/ContactsPage.vue": {
+      "raw_color": 62,
+      "focus_raw": 5,
+      "dark_raw": 10,
+      "white_black": 9,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/debug/DebugLogsPage.vue": {
+      "raw_color": 66,
+      "focus_raw": 10,
+      "dark_raw": 18,
+      "white_black": 4,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/docs/DocsPage.vue": {
+      "raw_color": 136,
+      "focus_raw": 6,
+      "dark_raw": 43,
+      "white_black": 13,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/filesync/FilesyncDirectoryBrowserModal.vue": {
+      "raw_color": 2,
+      "focus_raw": 0,
+      "dark_raw": 1,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/filesync/FilesyncFileManager.vue": {
+      "raw_color": 6,
+      "focus_raw": 0,
+      "dark_raw": 2,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/filesync/RnsFilesyncPage.vue": {
+      "raw_color": 22,
+      "focus_raw": 0,
+      "dark_raw": 9,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/forms/Toggle.vue": {
+      "raw_color": 0,
+      "focus_raw": 1,
+      "dark_raw": 0,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/forwarder/ForwarderPage.vue": {
+      "raw_color": 19,
+      "focus_raw": 6,
+      "dark_raw": 3,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/interfaces/AddInterfacePage.vue": {
+      "raw_color": 116,
+      "focus_raw": 6,
+      "dark_raw": 49,
+      "white_black": 6,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/interfaces/ExpandingSection.vue": {
+      "raw_color": 1,
+      "focus_raw": 0,
+      "dark_raw": 3,
+      "white_black": 3,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/interfaces/ImportInterfacesModal.vue": {
+      "raw_color": 0,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/interfaces/Interface.vue": {
+      "raw_color": 46,
+      "focus_raw": 0,
+      "dark_raw": 18,
+      "white_black": 5,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/interfaces/InterfacesPage.vue": {
+      "raw_color": 102,
+      "focus_raw": 5,
+      "dark_raw": 37,
+      "white_black": 6,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/interfaces/internal/AddInterfaceDiscoveryPanel.vue": {
+      "raw_color": 1,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/layout/AppIdentitySwitchOverlay.vue": {
+      "raw_color": 12,
+      "focus_raw": 0,
+      "dark_raw": 7,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/layout/AppShellBanners.vue": {
+      "raw_color": 0,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 25,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/layout/AppSidebarAccountFooter.vue": {
+      "raw_color": 17,
+      "focus_raw": 4,
+      "dark_raw": 3,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/layout/AppSidebarClassicFooter.vue": {
+      "raw_color": 26,
+      "focus_raw": 4,
+      "dark_raw": 10,
+      "white_black": 4,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/layout/AppSidebarClassicNav.vue": {
+      "raw_color": 6,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/layout/AppSidebarNav.vue": {
+      "raw_color": 18,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/licenses/LicensesPage.vue": {
+      "raw_color": 25,
+      "focus_raw": 1,
+      "dark_raw": 9,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/MapPage.vue": {
+      "raw_color": 105,
+      "focus_raw": 7,
+      "dark_raw": 34,
+      "white_black": 23,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/MiniChat.vue": {
+      "raw_color": 13,
+      "focus_raw": 2,
+      "dark_raw": 2,
+      "white_black": 4,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/internal/MapBearingInstructions.vue": {
+      "raw_color": 3,
+      "focus_raw": 0,
+      "dark_raw": 1,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/internal/MapClusterPanel.vue": {
+      "raw_color": 14,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/internal/MapDiscoverPanel.vue": {
+      "raw_color": 10,
+      "focus_raw": 0,
+      "dark_raw": 2,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/internal/MapDrawingToolbar.vue": {
+      "raw_color": 31,
+      "focus_raw": 0,
+      "dark_raw": 7,
+      "white_black": 3,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/internal/MapExportConfigPanel.vue": {
+      "raw_color": 25,
+      "focus_raw": 0,
+      "dark_raw": 6,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/internal/MapExportInstructions.vue": {
+      "raw_color": 2,
+      "focus_raw": 0,
+      "dark_raw": 1,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/internal/MapExportProgressPanel.vue": {
+      "raw_color": 12,
+      "focus_raw": 0,
+      "dark_raw": 1,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/internal/MapLayersPanel.vue": {
+      "raw_color": 6,
+      "focus_raw": 0,
+      "dark_raw": 3,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/internal/MapLoadDrawingModal.vue": {
+      "raw_color": 16,
+      "focus_raw": 0,
+      "dark_raw": 2,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/internal/MapMarkerPanel.vue": {
+      "raw_color": 24,
+      "focus_raw": 0,
+      "dark_raw": 1,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/internal/MapMobileNoteModal.vue": {
+      "raw_color": 13,
+      "focus_raw": 3,
+      "dark_raw": 2,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/internal/MapOfflinePanel.vue": {
+      "raw_color": 12,
+      "focus_raw": 0,
+      "dark_raw": 2,
+      "white_black": 3,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/internal/MapPublishPanel.vue": {
+      "raw_color": 6,
+      "focus_raw": 0,
+      "dark_raw": 1,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/internal/MapRemoteOverlayPanel.vue": {
+      "raw_color": 10,
+      "focus_raw": 0,
+      "dark_raw": 3,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/internal/MapSaveDrawingModal.vue": {
+      "raw_color": 9,
+      "focus_raw": 2,
+      "dark_raw": 3,
+      "white_black": 3,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/internal/MapSearchBar.vue": {
+      "raw_color": 7,
+      "focus_raw": 1,
+      "dark_raw": 1,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/internal/MapSidePanel.vue": {
+      "raw_color": 2,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/map/internal/MapVectorExchangePanel.vue": {
+      "raw_color": 12,
+      "focus_raw": 0,
+      "dark_raw": 2,
+      "white_black": 4,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/messages/AudioWaveformPlayer.vue": {
+      "raw_color": 5,
+      "focus_raw": 0,
+      "dark_raw": 1,
+      "white_black": 6,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/messages/ConversationDropDownMenu.vue": {
+      "raw_color": 14,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/messages/ConversationMessageEntry.vue": {
+      "raw_color": 37,
+      "focus_raw": 8,
+      "dark_raw": 19,
+      "white_black": 61,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/messages/ConversationPeerHeader.vue": {
+      "raw_color": 15,
+      "focus_raw": 0,
+      "dark_raw": 7,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/messages/ConversationViewer.vue": {
+      "raw_color": 46,
+      "focus_raw": 7,
+      "dark_raw": 25,
+      "white_black": 42,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/messages/InViewAnimatedImg.vue": {
+      "raw_color": 3,
+      "focus_raw": 0,
+      "dark_raw": 2,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/messages/MessageReactionsOverlay.vue": {
+      "raw_color": 9,
+      "focus_raw": 0,
+      "dark_raw": 6,
+      "white_black": 4,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/messages/MessagesPage.vue": {
+      "raw_color": 0,
+      "focus_raw": 1,
+      "dark_raw": 0,
+      "white_black": 6,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/messages/MessagesSidebar.vue": {
+      "raw_color": 30,
+      "focus_raw": 1,
+      "dark_raw": 12,
+      "white_black": 6,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/messages/composer/AddAudioButton.vue": {
+      "raw_color": 11,
+      "focus_raw": 0,
+      "dark_raw": 4,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/messages/composer/AddImageButton.vue": {
+      "raw_color": 2,
+      "focus_raw": 0,
+      "dark_raw": 1,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/messages/composer/SendMessageButton.vue": {
+      "raw_color": 2,
+      "focus_raw": 0,
+      "dark_raw": 1,
+      "white_black": 3,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/messages/modals/ConversationImageModal.vue": {
+      "raw_color": 4,
+      "focus_raw": 0,
+      "dark_raw": 3,
+      "white_black": 16,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/messages/modals/PaperMessageModal.vue": {
+      "raw_color": 16,
+      "focus_raw": 0,
+      "dark_raw": 4,
+      "white_black": 8,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/messages/modals/ShareContactModal.vue": {
+      "raw_color": 5,
+      "focus_raw": 3,
+      "dark_raw": 2,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/messages/outbound/OutboundTransferProgressFooter.vue": {
+      "raw_color": 1,
+      "focus_raw": 0,
+      "dark_raw": 3,
+      "white_black": 9,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/messages/telemetry/TelemetryBatteryChart.vue": {
+      "raw_color": 15,
+      "focus_raw": 0,
+      "dark_raw": 8,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/messages/telemetry/TelemetryHistoryListItem.vue": {
+      "raw_color": 3,
+      "focus_raw": 0,
+      "dark_raw": 2,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/messages/telemetry/TelemetryHistoryModal.vue": {
+      "raw_color": 3,
+      "focus_raw": 0,
+      "dark_raw": 1,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/micron-editor/MicronEditorPage.vue": {
+      "raw_color": 14,
+      "focus_raw": 1,
+      "dark_raw": 4,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/micron-editor/PublishSiteModal.vue": {
+      "raw_color": 0,
+      "focus_raw": 3,
+      "dark_raw": 0,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/network-visualiser/NetworkVisualiser.vue": {
+      "raw_color": 4,
+      "focus_raw": 0,
+      "dark_raw": 1,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/network-visualiser/internal/NetworkVisualiserLegend.vue": {
+      "raw_color": 13,
+      "focus_raw": 0,
+      "dark_raw": 4,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/network-visualiser/internal/NetworkVisualiserLoadingOverlay.vue": {
+      "raw_color": 7,
+      "focus_raw": 0,
+      "dark_raw": 2,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/network-visualiser/internal/NetworkVisualiserToolbar.vue": {
+      "raw_color": 76,
+      "focus_raw": 8,
+      "dark_raw": 31,
+      "white_black": 7,
+      "accent_raw": 2
+    },
+    "meshchatx/src/frontend/components/nomadnetwork/NomadBrowserContextMenu.vue": {
+      "raw_color": 1,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/nomadnetwork/NomadCrashTab.vue": {
+      "raw_color": 8,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 6,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/nomadnetwork/NomadNetworkBrowser.vue": {
+      "raw_color": 10,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/nomadnetwork/NomadNetworkPage.vue": {
+      "raw_color": 66,
+      "focus_raw": 3,
+      "dark_raw": 17,
+      "white_black": 17,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/nomadnetwork/NomadNetworkSidebar.vue": {
+      "raw_color": 137,
+      "focus_raw": 9,
+      "dark_raw": 35,
+      "white_black": 8,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/page-nodes/PageNodesPage.vue": {
+      "raw_color": 48,
+      "focus_raw": 2,
+      "dark_raw": 16,
+      "white_black": 4,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/ping/PingPage.vue": {
+      "raw_color": 25,
+      "focus_raw": 0,
+      "dark_raw": 11,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/plugins/PluginSlotNode.vue": {
+      "raw_color": 0,
+      "focus_raw": 1,
+      "dark_raw": 0,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/profile/ProfileIconPage.vue": {
+      "raw_color": 45,
+      "focus_raw": 9,
+      "dark_raw": 17,
+      "white_black": 6,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/propagation-nodes/PropagationNodesPage.vue": {
+      "raw_color": 25,
+      "focus_raw": 0,
+      "dark_raw": 10,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/relay/RelayChatPage.vue": {
+      "raw_color": 3,
+      "focus_raw": 4,
+      "dark_raw": 0,
+      "white_black": 8,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/relay/RelayHostModerationPage.vue": {
+      "raw_color": 0,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/rncp/RNCPPage.vue": {
+      "raw_color": 91,
+      "focus_raw": 0,
+      "dark_raw": 43,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/rnode/RNodeAdvancedTools.vue": {
+      "raw_color": 11,
+      "focus_raw": 0,
+      "dark_raw": 4,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/rnode/RNodeBluetoothPanel.vue": {
+      "raw_color": 4,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/rnode/RNodeCapabilitiesBanner.vue": {
+      "raw_color": 17,
+      "focus_raw": 0,
+      "dark_raw": 8,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/rnode/RNodeDeviceDisplay.vue": {
+      "raw_color": 4,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/rnode/RNodeDeviceSelector.vue": {
+      "raw_color": 20,
+      "focus_raw": 3,
+      "dark_raw": 7,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/rnode/RNodeDiagnosticsPanel.vue": {
+      "raw_color": 15,
+      "focus_raw": 0,
+      "dark_raw": 7,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/rnode/RNodeFirmwareSelector.vue": {
+      "raw_color": 20,
+      "focus_raw": 0,
+      "dark_raw": 7,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/rnode/RNodeFlashAction.vue": {
+      "raw_color": 14,
+      "focus_raw": 0,
+      "dark_raw": 5,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/rnode/RNodeProvisionPanel.vue": {
+      "raw_color": 18,
+      "focus_raw": 0,
+      "dark_raw": 4,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/rnode/RNodeTncPanel.vue": {
+      "raw_color": 9,
+      "focus_raw": 3,
+      "dark_raw": 1,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/rnprobe/RNProbePage.vue": {
+      "raw_color": 17,
+      "focus_raw": 0,
+      "dark_raw": 3,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/rnstatus/RNStatusPage.vue": {
+      "raw_color": 44,
+      "focus_raw": 0,
+      "dark_raw": 21,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/settings/IdentitiesPage.vue": {
+      "raw_color": 27,
+      "focus_raw": 0,
+      "dark_raw": 9,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/settings/MicronWasmUpdateModal.vue": {
+      "raw_color": 21,
+      "focus_raw": 0,
+      "dark_raw": 10,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/settings/NotificationSoundSettings.vue": {
+      "raw_color": 9,
+      "focus_raw": 0,
+      "dark_raw": 1,
+      "white_black": 0,
+      "accent_raw": 1
+    },
+    "meshchatx/src/frontend/components/settings/PluginInstallDialog.vue": {
+      "raw_color": 11,
+      "focus_raw": 0,
+      "dark_raw": 5,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/settings/PluginsSettingsSection.vue": {
+      "raw_color": 56,
+      "focus_raw": 0,
+      "dark_raw": 23,
+      "white_black": 4,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/settings/SettingsPage.vue": {
+      "raw_color": 183,
+      "focus_raw": 3,
+      "dark_raw": 67,
+      "white_black": 4,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/settings/ShortcutRecorder.vue": {
+      "raw_color": 8,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/settings/ThemePresetPicker.vue": {
+      "raw_color": 0,
+      "focus_raw": 1,
+      "dark_raw": 0,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/settings/sections/AndroidSettingsSection.vue": {
+      "raw_color": 29,
+      "focus_raw": 0,
+      "dark_raw": 12,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/settings/sections/AppearanceSettingsSection.vue": {
+      "raw_color": 57,
+      "focus_raw": 0,
+      "dark_raw": 23,
+      "white_black": 1,
+      "accent_raw": 3
+    },
+    "meshchatx/src/frontend/components/settings/sections/ArchiverSettingsSection.vue": {
+      "raw_color": 8,
+      "focus_raw": 0,
+      "dark_raw": 3,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/settings/sections/DesktopSettingsSection.vue": {
+      "raw_color": 1,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/settings/sections/GifsSettingsSection.vue": {
+      "raw_color": 14,
+      "focus_raw": 0,
+      "dark_raw": 6,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/settings/sections/StickersSettingsSection.vue": {
+      "raw_color": 14,
+      "focus_raw": 0,
+      "dark_raw": 6,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/settings/sections/VisualiserSettingsSection.vue": {
+      "raw_color": 8,
+      "focus_raw": 0,
+      "dark_raw": 4,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/stickers/StickerPacksManager.vue": {
+      "raw_color": 26,
+      "focus_raw": 0,
+      "dark_raw": 11,
+      "white_black": 8,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/stickers/StickerView.vue": {
+      "raw_color": 2,
+      "focus_raw": 0,
+      "dark_raw": 1,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/tools/BotsPage.vue": {
+      "raw_color": 129,
+      "focus_raw": 0,
+      "dark_raw": 20,
+      "white_black": 12,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/tools/MessageBlocklistPage.vue": {
+      "raw_color": 41,
+      "focus_raw": 0,
+      "dark_raw": 12,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/tools/PaperMessagePage.vue": {
+      "raw_color": 47,
+      "focus_raw": 5,
+      "dark_raw": 13,
+      "white_black": 8,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/tools/RNPathPage.vue": {
+      "raw_color": 82,
+      "focus_raw": 6,
+      "dark_raw": 24,
+      "white_black": 3,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/tools/RNPathTracePage.vue": {
+      "raw_color": 50,
+      "focus_raw": 3,
+      "dark_raw": 15,
+      "white_black": 6,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/tools/RNSHManagerPage.vue": {
+      "raw_color": 18,
+      "focus_raw": 0,
+      "dark_raw": 8,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/tools/RNSHSessionTerminal.vue": {
+      "raw_color": 15,
+      "focus_raw": 0,
+      "dark_raw": 7,
+      "white_black": 1,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/tools/RNXManagerPage.vue": {
+      "raw_color": 22,
+      "focus_raw": 0,
+      "dark_raw": 10,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/tools/RNodeFlasherPage.vue": {
+      "raw_color": 15,
+      "focus_raw": 0,
+      "dark_raw": 5,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/tools/RepositoryServerPage.vue": {
+      "raw_color": 33,
+      "focus_raw": 0,
+      "dark_raw": 12,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/tools/ReticulumConfigEditorPage.vue": {
+      "raw_color": 8,
+      "focus_raw": 0,
+      "dark_raw": 1,
+      "white_black": 3,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/tools/SieveFiltersPage.vue": {
+      "raw_color": 29,
+      "focus_raw": 0,
+      "dark_raw": 8,
+      "white_black": 2,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/tools/ToolListRow.vue": {
+      "raw_color": 15,
+      "focus_raw": 0,
+      "dark_raw": 6,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/tools/ToolsPage.vue": {
+      "raw_color": 1,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/tools/ToolsPageHeader.vue": {
+      "raw_color": 45,
+      "focus_raw": 0,
+      "dark_raw": 22,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/tools/internal/BotLxmfConfigFields.vue": {
+      "raw_color": 2,
+      "focus_raw": 0,
+      "dark_raw": 1,
+      "white_black": 0,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/components/translator/TranslatorPage.vue": {
+      "raw_color": 60,
+      "focus_raw": 0,
+      "dark_raw": 28,
+      "white_black": 7,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/css/nomad-page-chrome.css": {
+      "raw_color": 0,
+      "focus_raw": 0,
+      "dark_raw": 0,
+      "white_black": 3,
+      "accent_raw": 0
+    },
+    "meshchatx/src/frontend/style.css": {
+      "raw_color": 2,
+      "focus_raw": 5,
+      "dark_raw": 3,
+      "white_black": 8,
+      "accent_raw": 0
+    }
+  },
+  "topFiles": [
+    {
+      "path": "meshchatx/src/frontend/components/TutorialModal.vue",
+      "total": 283
+    },
+    {
+      "path": "meshchatx/src/frontend/components/settings/SettingsPage.vue",
+      "total": 257
+    },
+    {
+      "path": "meshchatx/src/frontend/components/about/AboutPage.vue",
+      "total": 199
+    },
+    {
+      "path": "meshchatx/src/frontend/components/docs/DocsPage.vue",
+      "total": 198
+    },
+    {
+      "path": "meshchatx/src/frontend/components/nomadnetwork/NomadNetworkSidebar.vue",
+      "total": 189
+    },
+    {
+      "path": "meshchatx/src/frontend/components/interfaces/AddInterfacePage.vue",
+      "total": 177
+    },
+    {
+      "path": "meshchatx/src/frontend/components/map/MapPage.vue",
+      "total": 169
+    },
+    {
+      "path": "meshchatx/src/frontend/components/tools/BotsPage.vue",
+      "total": 161
+    },
+    {
+      "path": "meshchatx/src/frontend/components/interfaces/InterfacesPage.vue",
+      "total": 150
+    },
+    {
+      "path": "meshchatx/src/frontend/components/rncp/RNCPPage.vue",
+      "total": 134
+    },
+    {
+      "path": "meshchatx/src/frontend/components/call/tabs/CallVoicemailTab.vue",
+      "total": 133
+    },
+    {
+      "path": "meshchatx/src/frontend/components/messages/ConversationMessageEntry.vue",
+      "total": 125
+    },
+    {
+      "path": "meshchatx/src/frontend/components/network-visualiser/internal/NetworkVisualiserToolbar.vue",
+      "total": 124
+    },
+    {
+      "path": "meshchatx/src/frontend/components/messages/ConversationViewer.vue",
+      "total": 120
+    },
+    {
+      "path": "meshchatx/src/frontend/components/tools/RNPathPage.vue",
+      "total": 115
+    },
+    {
+      "path": "meshchatx/src/frontend/components/nomadnetwork/NomadNetworkPage.vue",
+      "total": 103
+    },
+    {
+      "path": "meshchatx/src/frontend/components/debug/DebugLogsPage.vue",
+      "total": 98
+    },
+    {
+      "path": "meshchatx/src/frontend/components/translator/TranslatorPage.vue",
+      "total": 95
+    },
+    {
+      "path": "meshchatx/src/frontend/components/call/CallPage.vue",
+      "total": 93
+    },
+    {
+      "path": "meshchatx/src/frontend/components/contacts/ContactsPage.vue",
+      "total": 86
+    },
+    {
+      "path": "meshchatx/src/frontend/components/settings/sections/AppearanceSettingsSection.vue",
+      "total": 84
+    },
+    {
+      "path": "meshchatx/src/frontend/components/settings/PluginsSettingsSection.vue",
+      "total": 83
+    },
+    {
+      "path": "meshchatx/src/frontend/components/profile/ProfileIconPage.vue",
+      "total": 77
+    },
+    {
+      "path": "meshchatx/src/frontend/components/tools/RNPathTracePage.vue",
+      "total": 74
+    },
+    {
+      "path": "meshchatx/src/frontend/components/tools/PaperMessagePage.vue",
+      "total": 73
+    },
+    {
+      "path": "meshchatx/src/frontend/components/page-nodes/PageNodesPage.vue",
+      "total": 70
+    },
+    {
+      "path": "meshchatx/src/frontend/components/interfaces/Interface.vue",
+      "total": 69
+    },
+    {
+      "path": "meshchatx/src/frontend/components/rnstatus/RNStatusPage.vue",
+      "total": 67
+    },
+    {
+      "path": "meshchatx/src/frontend/components/tools/ToolsPageHeader.vue",
+      "total": 67
+    },
+    {
+      "path": "meshchatx/src/frontend/components/call/CallOverlay.vue",
+      "total": 61
+    },
+    {
+      "path": "meshchatx/src/frontend/components/tools/MessageBlocklistPage.vue",
+      "total": 55
+    },
+    {
+      "path": "meshchatx/src/frontend/components/call/audio/RingtoneEditor.vue",
+      "total": 52
+    },
+    {
+      "path": "meshchatx/src/frontend/components/messages/MessagesSidebar.vue",
+      "total": 49
+    },
+    {
+      "path": "meshchatx/src/frontend/components/tools/RepositoryServerPage.vue",
+      "total": 47
+    },
+    {
+      "path": "meshchatx/src/frontend/components/stickers/StickerPacksManager.vue",
+      "total": 45
+    },
+    {
+      "path": "meshchatx/src/frontend/components/layout/AppSidebarClassicFooter.vue",
+      "total": 44
+    },
+    {
+      "path": "meshchatx/src/frontend/components/settings/sections/AndroidSettingsSection.vue",
+      "total": 42
+    },
+    {
+      "path": "meshchatx/src/frontend/components/map/internal/MapDrawingToolbar.vue",
+      "total": 41
+    },
+    {
+      "path": "meshchatx/src/frontend/components/tools/SieveFiltersPage.vue",
+      "total": 39
+    },
+    {
+      "path": "meshchatx/src/frontend/components/settings/IdentitiesPage.vue",
+      "total": 38
+    },
+    {
+      "path": "meshchatx/src/frontend/components/licenses/LicensesPage.vue",
+      "total": 37
+    },
+    {
+      "path": "meshchatx/src/frontend/components/ping/PingPage.vue",
+      "total": 37
+    },
+    {
+      "path": "meshchatx/src/frontend/components/auth/AuthPage.vue",
+      "total": 36
+    },
+    {
+      "path": "meshchatx/src/frontend/components/propagation-nodes/PropagationNodesPage.vue",
+      "total": 35
+    },
+    {
+      "path": "meshchatx/src/frontend/components/ChangelogModal.vue",
+      "total": 33
+    },
+    {
+      "path": "meshchatx/src/frontend/components/map/internal/MapExportConfigPanel.vue",
+      "total": 32
+    },
+    {
+      "path": "meshchatx/src/frontend/components/tools/RNXManagerPage.vue",
+      "total": 32
+    },
+    {
+      "path": "meshchatx/src/frontend/components/call/tabs/CallPhonebookTab.vue",
+      "total": 31
+    },
+    {
+      "path": "meshchatx/src/frontend/components/filesync/RnsFilesyncPage.vue",
+      "total": 31
+    },
+    {
+      "path": "meshchatx/src/frontend/components/rnode/RNodeDeviceSelector.vue",
+      "total": 31
+    }
+  ]
+}

@@ -146,7 +146,13 @@ async def handle_ping(app, client, data):
 
 
 async def handle_config_set(app, client, data):
+    from meshchatx.src.backend.websocket_runtime import send_ws_error
+
     config = sanitize_websocket_config_update(data.get("config"))
+    request_id = data.get("request_id")
+    rid = {}
+    if request_id is not None:
+        rid["request_id"] = request_id
 
     try:
         await app.update_config(config)
@@ -154,10 +160,23 @@ async def handle_config_set(app, client, data):
             AsyncUtils.run_async(app.send_config_to_websocket_clients())
         except Exception as e:
             print(f"Failed to broadcast config update: {e}")
+        await client.send_str(
+            json.dumps(
+                {
+                    "type": "config.set",
+                    "status": "success",
+                    **rid,
+                },
+            ),
+        )
     except Exception:
-        import traceback
-
         print("config.set failed:\n" + traceback.format_exc())
+        await send_ws_error(
+            client,
+            message="Config update failed",
+            code="config_set_failed",
+            request_id=request_id,
+        )
 
     # handle canceling a download
 
