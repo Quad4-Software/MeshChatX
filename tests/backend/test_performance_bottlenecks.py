@@ -99,7 +99,7 @@ class TestPerformanceBottlenecks(unittest.TestCase):
         """Simulate a flood of incoming announces and measure processing time."""
         num_announces = 500
         identities = [MagicMock() for _ in range(num_announces)]
-        for i, ident in enumerate(identities):
+        for _i, ident in enumerate(identities):
             ident.hash = MagicMock()
             ident.hash.hex.return_value = secrets.token_hex(16)
             ident.get_public_key.return_value = b"public_key"

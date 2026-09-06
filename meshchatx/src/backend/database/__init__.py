@@ -1105,7 +1105,7 @@ class Database:
                 dir=target_dir,
             )
             try:
-                for key, live_path in paths.items():
+                for _key, live_path in paths.items():
                     if os.path.exists(live_path):
                         shutil.move(
                             live_path,
@@ -1179,6 +1179,7 @@ class Database:
     ) -> None:
         skip = {main_name, f"{main_name}-wal", f"{main_name}-shm"}
         main_stem = os.path.splitext(main_name)[0]
+        abs_target = os.path.realpath(target_dir)
         extras_aside = tempfile.mkdtemp(
             prefix=".meshchatx-extras-aside-",
             dir=target_dir,
@@ -1195,7 +1196,22 @@ class Database:
                         continue
                     if os.path.islink(src):
                         continue
+                    rel_norm = rel.replace("\\", "/")
+                    if (
+                        not rel_norm
+                        or rel_norm.startswith("/")
+                        or any(part == ".." for part in rel_norm.split("/"))
+                    ):
+                        msg = f"Unsafe identity storage path: {rel}"
+                        raise DatabaseRestoreError(msg)
                     dest = os.path.join(target_dir, rel)
+                    # realpath resolves existing symlink prefixes under target_dir
+                    abs_dest = os.path.realpath(dest)
+                    if abs_dest != abs_target and not abs_dest.startswith(
+                        abs_target + os.sep,
+                    ):
+                        msg = f"Unsafe identity storage path: {rel}"
+                        raise DatabaseRestoreError(msg)
                     dest_dir = os.path.dirname(dest)
                     if dest_dir:
                         os.makedirs(dest_dir, exist_ok=True)

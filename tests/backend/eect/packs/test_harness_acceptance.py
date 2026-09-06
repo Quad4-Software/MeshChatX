@@ -30,7 +30,7 @@ def test_eect_scenario_rewrites_assertion(monkeypatch):
     assert resolve_seed() == 7
     with pytest.raises(AssertionError) as caught:
         with eect_scenario("path.direct.blocks_when_unavailable"):
-            assert False, "forced"
+            raise AssertionError("forced")
     msg = str(caught.value)
     assert "EECT FAILURE" in msg
     assert "path.direct.blocks_when_unavailable" in msg

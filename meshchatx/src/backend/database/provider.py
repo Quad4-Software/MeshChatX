@@ -79,7 +79,8 @@ class DatabaseProvider:
         if conn not in self._connection_meta:
             return False
         try:
-            conn.in_transaction
+            # Property access raises ProgrammingError when the connection is closed.
+            _ = conn.in_transaction
         except sqlite3.ProgrammingError:
             return False
         except Exception:

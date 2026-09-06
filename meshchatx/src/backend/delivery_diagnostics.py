@@ -6,7 +6,7 @@ from __future__ import annotations
 import contextlib
 import time
 from datetime import UTC, datetime
-from typing import Any, Optional
+from typing import Any
 
 import RNS
 
@@ -31,7 +31,7 @@ def _lxmf_delivery_hash_hex_for_path(app, destination_hash_hex: str) -> str:
     return _lxmf_delivery_hash_bytes_for_path(app, destination_hash_hex).hex()
 
 
-def _announce_age_seconds(updated_at) -> Optional[int]:
+def _announce_age_seconds(updated_at) -> int | None:
     if updated_at is None:
         return None
     try:
@@ -55,9 +55,7 @@ def _announce_age_seconds(updated_at) -> Optional[int]:
         return None
 
 
-def _identity_hash_hex(
-    app, input_hash_hex: str, delivery_hash_hex: str
-) -> Optional[str]:
+def _identity_hash_hex(app, input_hash_hex: str, delivery_hash_hex: str) -> str | None:
     identity = app.recall_identity(input_hash_hex)
     if identity is None and delivery_hash_hex != input_hash_hex:
         identity = app.recall_identity(delivery_hash_hex)
@@ -69,7 +67,7 @@ def _identity_hash_hex(
         return None
 
 
-def _peer_lxmf_announce(app, delivery_hash_hex: str, identity_hash_hex: Optional[str]):
+def _peer_lxmf_announce(app, delivery_hash_hex: str, identity_hash_hex: str | None):
     announce = None
     with contextlib.suppress(Exception):
         announce = app.database.announces.get_announce_by_hash(delivery_hash_hex)
@@ -90,7 +88,7 @@ def build_delivery_diagnostics(
     app,
     destination_hash_hex: str,
     *,
-    failure_hint: Optional[str] = None,
+    failure_hint: str | None = None,
 ) -> dict[str, Any]:
     """Return a stable JSON snapshot for delivery failure helptips."""
     input_hash = destination_hash_hex.strip().lower()

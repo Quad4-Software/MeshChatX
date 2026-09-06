@@ -117,7 +117,7 @@ class TestMemoryProfiling(unittest.TestCase):
     def test_announce_manager_leaks(self):
         """Test for memory leaks in AnnounceManager during repeated updates."""
         with MemoryTracker("Announce Stress (2k unique announces)") as tracker:
-            for i in range(2000):
+            for _i in range(2000):
                 data = {
                     "destination_hash": secrets.token_hex(16),
                     "aspect": "lxmf.delivery",

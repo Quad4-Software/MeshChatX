@@ -574,8 +574,8 @@ class RNSHSession:
         try:
             rows = max(1, int(rows))
             cols = max(1, int(cols))
-        except (TypeError, ValueError):
-            raise ValueError("rows and cols must be integers")
+        except (TypeError, ValueError) as err:
+            raise ValueError("rows and cols must be integers") from err
         with self._lock:
             self._rows = rows
             self._cols = cols

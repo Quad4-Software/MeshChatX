@@ -394,6 +394,44 @@ def test_safe_zip_extract_rejects_symlink_jail_escape(temp_dir):
     assert not os.path.exists(os.path.join(outside, "stolen_write.txt"))
 
 
+@pytest.mark.skipif(os.name == "nt", reason="symlink semantics differ on Windows")
+def test_copy_identity_storage_rejects_symlink_jail_escape(temp_dir):
+    """Staging extras must not write through target-dir symlinks outside the jail."""
+    staging = os.path.join(temp_dir, "staging")
+    target = os.path.join(temp_dir, "target")
+    outside = os.path.join(temp_dir, "OUTSIDE")
+    os.makedirs(os.path.join(staging, "plugins"))
+    os.makedirs(target)
+    os.makedirs(outside)
+    os.symlink(outside, os.path.join(target, "plugins"))
+    stolen = os.path.join(staging, "plugins", "stolen_write.txt")
+    with open(stolen, "wb") as handle:
+        handle.write(b"pwned")
+
+    with pytest.raises(DatabaseRestoreError, match="Unsafe identity storage path"):
+        Database._copy_identity_storage_from_staging(staging, target, "database.db")
+
+    assert not os.path.exists(os.path.join(outside, "stolen_write.txt"))
+
+
+def test_copy_identity_storage_copies_contained_extras(temp_dir):
+    staging = os.path.join(temp_dir, "staging")
+    target = os.path.join(temp_dir, "target")
+    os.makedirs(os.path.join(staging, "rrc_history"))
+    os.makedirs(target)
+    with open(os.path.join(staging, "rrc_history", "lobby.log"), "wb") as handle:
+        handle.write(b"ok")
+    with open(os.path.join(staging, "database.db"), "wb") as handle:
+        handle.write(b"skip-me")
+
+    Database._copy_identity_storage_from_staging(staging, target, "database.db")
+
+    dest = os.path.join(target, "rrc_history", "lobby.log")
+    with open(dest, "rb") as handle:
+        assert handle.read() == b"ok"
+    assert not os.path.exists(os.path.join(target, "database.db"))
+
+
 def test_looks_like_sqlite_header():
     path = tempfile.NamedTemporaryFile(delete=False).name
     try:
