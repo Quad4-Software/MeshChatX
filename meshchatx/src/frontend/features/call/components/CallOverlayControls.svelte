@@ -38,6 +38,10 @@
         onanswer,
         onsetptt,
     }: Props = $props();
+
+    const mutedBtn =
+        "toolbar-icon-btn-lg focus-ring-sem cursor-pointer transition-all duration-200 bg-sem-danger text-white shadow-lg shadow-sem-danger/30 hover:bg-sem-danger/90 hover:text-white";
+    const quietBtn = "toolbar-icon-btn-lg focus-ring-sem cursor-pointer transition-all duration-200";
 </script>
 
 {#if !isEnded && !wasDeclined}
@@ -46,7 +50,7 @@
             <button
                 type="button"
                 title={localHalfDuplex ? t("call.switch_to_full_duplex") : t("call.switch_to_half_duplex")}
-                class="p-2.5 rounded-full transition-all duration-200 bg-sem-surface-muted text-sem-fg-muted hover:bg-sem-surface-subtle focus-ring-sem cursor-pointer"
+                class={quietBtn}
                 onclick={() => ontoggleduplex?.()}
             >
                 <MaterialDesignIcon
@@ -58,9 +62,7 @@
         <button
             type="button"
             title={localMicMuted ? t("call.unmute_mic") : t("call.mute_mic")}
-            class="p-2.5 rounded-full transition-all duration-200 focus-ring-sem cursor-pointer {localMicMuted
-                ? 'bg-sem-danger text-white shadow-lg shadow-sem-danger/30'
-                : 'bg-sem-surface-muted text-sem-fg-muted hover:bg-sem-surface-subtle'}"
+            class={localMicMuted ? mutedBtn : quietBtn}
             onclick={() => ontogglemic?.()}
         >
             <MaterialDesignIcon iconName={localMicMuted ? "microphone-off" : "microphone"} class="size-5" />
@@ -68,9 +70,7 @@
         <button
             type="button"
             title={localSpeakerMuted ? t("call.unmute_speaker") : t("call.mute_speaker")}
-            class="p-2.5 rounded-full transition-all duration-200 focus-ring-sem cursor-pointer {localSpeakerMuted
-                ? 'bg-sem-danger text-white shadow-lg shadow-sem-danger/30'
-                : 'bg-sem-surface-muted text-sem-fg-muted hover:bg-sem-surface-subtle'}"
+            class={localSpeakerMuted ? mutedBtn : quietBtn}
             onclick={() => ontogglespeaker?.()}
         >
             <MaterialDesignIcon iconName={localSpeakerMuted ? "volume-off" : "volume-high"} class="size-5" />
@@ -78,7 +78,7 @@
         <button
             type="button"
             title={activeCall?.is_incoming && activeCall.status === 4 ? t("call.decline_call") : t("call.hangup_call")}
-            class="p-2.5 rounded-full bg-sem-danger text-white hover:bg-sem-danger/90 shadow-lg shadow-sem-danger/30 transition-all duration-200 focus-ring-sem cursor-pointer"
+            class="toolbar-icon-btn-lg bg-sem-danger text-white hover:bg-sem-danger/90 hover:text-white shadow-lg shadow-sem-danger/30 transition-all duration-200 focus-ring-sem cursor-pointer"
             onclick={() => onhangup?.()}
         >
             <MaterialDesignIcon iconName="phone-hangup" class="size-5 rotate-135" />
@@ -87,7 +87,7 @@
             <button
                 type="button"
                 title={t("call.send_to_voicemail")}
-                class="p-2.5 rounded-full bg-sem-accent text-white hover:bg-sem-accent/90 shadow-lg shadow-sem-accent/30 transition-all duration-200 focus-ring-sem cursor-pointer"
+                class="toolbar-icon-btn-lg bg-sem-accent text-white hover:bg-sem-accent/90 hover:text-white shadow-lg shadow-sem-accent/30 transition-all duration-200 focus-ring-sem cursor-pointer"
                 onclick={() => onsendtovoicemail?.()}
             >
                 <MaterialDesignIcon iconName="voicemail" class="size-5" />
@@ -95,7 +95,7 @@
             <button
                 type="button"
                 title={t("call.answer_call")}
-                class="p-2.5 rounded-full bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-600/30 focus-ring-sem cursor-pointer"
+                class="toolbar-icon-btn-lg bg-emerald-600 text-white hover:bg-emerald-500 hover:text-white shadow-lg shadow-emerald-600/30 focus-ring-sem cursor-pointer"
                 onclick={() => onanswer?.()}
             >
                 <MaterialDesignIcon iconName="phone" class="size-5" />
