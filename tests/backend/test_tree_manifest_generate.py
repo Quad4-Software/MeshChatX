@@ -7,7 +7,7 @@ REPO = Path(__file__).resolve().parents[2]
 
 
 def _slow_manifest() -> str:
-    proc = subprocess.run(
+    proc = subprocess.run(  # nosec: BAN-B607
         ["sh", "scripts/ci/tree-manifest.sh", "generate"],
         cwd=REPO,
         capture_output=True,
@@ -25,7 +25,7 @@ def _slow_manifest() -> str:
 
 
 def _fast_manifest() -> str:
-    proc = subprocess.run(
+    proc = subprocess.run(  # nosec: BAN-B607
         ["python3", "scripts/ci/tree_manifest_generate.py"],
         cwd=REPO,
         capture_output=True,
@@ -40,7 +40,7 @@ def _legacy_shell_manifest() -> str:
     header = "# meshchatx tree manifest v1"
     lines = [header]
     env = {"LC_ALL": "C"}
-    paths = subprocess.check_output(["git", "ls-files"], cwd=REPO, env=env, text=True)
+    paths = subprocess.check_output(["git", "ls-files"], cwd=REPO, env=env, text=True)  # nosec: BAN-B607
     for f in sorted(paths.splitlines(), key=lambda s: s):
         if not f:
             continue
@@ -50,21 +50,21 @@ def _legacy_shell_manifest() -> str:
             continue
         if "/vendor/" in f or f.endswith("/vendor"):
             continue
-        check = subprocess.run(
+        check = subprocess.run(  # nosec: BAN-B607
             ["git", "cat-file", "-e", f":{f}"],
             cwd=REPO,
             capture_output=True,
         )
         if check.returncode != 0:
             continue
-        mode = subprocess.check_output(
+        mode = subprocess.check_output(  # nosec: BAN-B607
             ["git", "ls-files", "-s", "--", f],
             cwd=REPO,
             text=True,
         ).split()[0]
         if mode not in ("100644", "100755"):
             continue
-        digest = subprocess.check_output(
+        digest = subprocess.check_output(  # nosec: BAN-B607
             ["sh", "-c", "git show \":$1\" | sha256sum | awk '{print $1}'", "_", f],
             cwd=REPO,
             text=True,

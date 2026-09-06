@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -85,8 +86,11 @@ def _feed_cat_file_stdin(stdin, oids: list[str]) -> None:
 def generate_manifest(root: Path) -> str:
     env = os.environ.copy()
     env["LC_ALL"] = "C"
+    git_path = shutil.which("git")
+    if not git_path:
+        raise RuntimeError("git executable not found")
     raw = subprocess.check_output(
-        ["git", "ls-files", "-s", "-z"],
+        [git_path, "ls-files", "-s", "-z"],
         cwd=root,
         env=env,
     )
@@ -104,7 +108,7 @@ def generate_manifest(root: Path) -> str:
         return "\n".join(lines) + "\n"
 
     proc = subprocess.Popen(
-        ["git", "cat-file", "--batch"],
+        [git_path, "cat-file", "--batch"],
         cwd=root,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,

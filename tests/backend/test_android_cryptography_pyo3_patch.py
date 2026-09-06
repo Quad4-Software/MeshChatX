@@ -71,7 +71,7 @@ def test_pyo3_no_interpreter_patch_applies_to_cryptography_50_0_0(
     assert META.read_text(encoding="utf-8").count('version: "50.0.0"') == 1
     cargo = tmp_path / "Cargo.toml"
     cargo.write_text(CARGO_TOML_50_0_0, encoding="utf-8")
-    result = subprocess.run(
+    result = subprocess.run(  # nosec: BAN-B607
         ["patch", "-p1", "-i", str(PATCH)],
         cwd=tmp_path,
         check=False,

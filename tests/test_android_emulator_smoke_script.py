@@ -18,11 +18,11 @@ def test_smoke_script_exists_and_is_executable():
 
 
 def test_smoke_script_bash_syntax():
-    subprocess.run(["bash", "-n", str(_SCRIPT)], check=True)
+    subprocess.run(["bash", "-n", str(_SCRIPT)], check=True)  # nosec: BAN-B607
 
 
 def test_smoke_script_requires_apk_arg():
-    proc = subprocess.run(
+    proc = subprocess.run(  # nosec: BAN-B607
         ["bash", str(_SCRIPT)],
         capture_output=True,
         text=True,
