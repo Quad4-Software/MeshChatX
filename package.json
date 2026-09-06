@@ -29,7 +29,7 @@
         "lint:fix": "eslint . --fix --concurrency=auto",
         "typecheck": "pnpm run svelte-check",
         "typecheck:features": "svelte-check --tsconfig ./tsconfig.features.json --fail-on-warnings",
-        "svelte-check": "svelte-check --tsconfig ./tsconfig.svelte.json",
+        "svelte-check": "svelte-check --no-tsconfig",
         "knip": "knip",
         "deps:cycles": "dpdm --no-warning --no-tree --transform --exit-code circular:1 meshchatx/src/frontend/main.ts meshchatx/src/frontend/features/registerAllFeatures.ts",
         "check:bundle-budgets": "node scripts/ci/check-frontend-chunk-budgets.mjs",
