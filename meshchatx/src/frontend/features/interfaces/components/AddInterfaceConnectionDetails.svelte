@@ -23,6 +23,9 @@
         installedModules: InterfaceModule[];
         modulesPath: string;
         customIsBusy: boolean;
+        transportEnabled?: boolean;
+        hasExistingI2P?: boolean;
+        isEditing?: boolean;
         onpatch: (patch: Record<string, any>) => void;
         onrefreshcomports: () => void;
         onuploadmodule: (file: File) => void;
@@ -39,6 +42,9 @@
         installedModules,
         modulesPath,
         customIsBusy,
+        transportEnabled = true,
+        hasExistingI2P = false,
+        isEditing = false,
         onpatch,
         onrefreshcomports,
         onuploadmodule,
@@ -137,6 +143,9 @@
             peers={form.i2pPeers}
             connectTimeout={form.connectTimeout}
             fixedMtu={form.fixedMtu}
+            {transportEnabled}
+            {hasExistingI2P}
+            {isEditing}
             onconnectablechange={(v) => onpatch({ i2pConnectable: v })}
             onpeerschange={(v) => onpatch({ i2pPeers: v })}
             onconnecttimeoutchange={(v) => onpatch({ connectTimeout: v })}
