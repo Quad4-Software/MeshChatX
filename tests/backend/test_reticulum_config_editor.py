@@ -190,3 +190,43 @@ async def test_endpoint_get_returns_404_if_config_missing(app_instance):
     handler = _find_handler(app_instance, "GET", "/api/v1/reticulum/config/raw")
     response = await handler(_make_request())
     assert response.status == 404
+
+
+def test_ensure_reticulum_config_preserves_existing_parseable_config(app_instance):
+    config_path = app_instance._reticulum_config_file_path()
+    os.makedirs(os.path.dirname(config_path), exist_ok=True)
+    user_config = (
+        "[interfaces]\n"
+        "  [[Default Interface]]\n"
+        "    type = BackboneInterface\n"
+        "    enabled = Yes\n"
+        "    remote = 127.0.0.1\n"
+        "    target_port = 4242\n"
+        "    transport_identity = testidentity\n"
+    )
+    with open(config_path, "w", encoding="utf-8") as f:
+        f.write(user_config)
+
+    app_instance._reticulum_instance_name_startup_repair_done = True
+    app_instance._ensure_reticulum_config()
+
+    with open(config_path, encoding="utf-8") as f:
+        content = f.read()
+    assert "type = BackboneInterface" in content
+    assert "type = AutoInterface" not in content
+    assert "[reticulum]" in content
+
+
+def test_ensure_reticulum_config_writes_default_when_missing(app_instance):
+    config_path = app_instance._reticulum_config_file_path()
+    if os.path.isfile(config_path):
+        os.remove(config_path)
+
+    app_instance._reticulum_instance_name_startup_repair_done = True
+    app_instance._ensure_reticulum_config()
+
+    with open(config_path, encoding="utf-8") as f:
+        content = f.read()
+    assert "[reticulum]" in content
+    assert "[interfaces]" in content
+    assert "AutoInterface" in content
