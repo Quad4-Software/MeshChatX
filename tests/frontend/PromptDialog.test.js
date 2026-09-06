@@ -65,7 +65,7 @@ describe("PromptDialog UI", () => {
         promptHandler()({ message: "Name?", defaultValue: "a", resolve });
         await wrapper.vm.$nextTick();
         wrapper.vm.inputValue = "reticulum-manual";
-        await wrapper.find("button.bg-blue-600").trigger("click");
+        await wrapper.find("button.primary-action").trigger("click");
         expect(resolve).toHaveBeenCalledWith("reticulum-manual");
         expect(wrapper.vm.pendingPrompt).toBeNull();
         wrapper.unmount();
