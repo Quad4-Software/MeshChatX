@@ -21,5 +21,15 @@ describe("app-shell sidebar identity label and announce control", () => {
         expect(panel).toContain("onAnnounceIntervalChange(shell, seconds)");
         expect(footer).toContain("onsendannounce");
         expect(footer).toContain("sidebar-auto-announce-interval");
+        expect(footer).toContain('href="#/profile/icon"');
+        expect(footer).not.toContain("#/settings/profile-icon");
+        expect(footer).toContain('href="#/identities"');
+        expect(footer).not.toContain("#/settings/identities");
+        expect(panel).toContain('onnavigatetoidentities={() => void navigate({ name: "identities" })}');
+        const classicFooter = src(
+            "meshchatx/src/frontend/features/app-shell/components/AppSidebarClassicFooter.svelte"
+        );
+        expect(classicFooter).toContain('href="#/profile/icon"');
+        expect(classicFooter).not.toContain("#/settings/profile-icon");
     });
 });

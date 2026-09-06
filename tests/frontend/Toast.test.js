@@ -93,12 +93,21 @@ describe("Toast.svelte", () => {
         expect(el.className).toContain("max-sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))]");
     });
 
-    it("close control has a 44px touch target", async () => {
+    it("renders non-string toast payloads without throwing", async () => {
         const { container } = render(Toast);
-        GlobalEmitter.emit("toast", { message: "Hi", duration: 0 });
+        GlobalEmitter.emit("toast", { message: 42, type: "info", duration: 0 });
         await tick();
-        const closeButton = container.querySelector("button");
-        expect(closeButton.className).toContain("min-h-[44px]");
-        expect(closeButton.className).toContain("min-w-[44px]");
+        expect(container.textContent).toContain("42");
+    });
+
+    it("translates dotted i18n keys and leaves plain sentences alone", async () => {
+        const { container } = render(Toast);
+        GlobalEmitter.emit("toast", { message: "Hello world.", type: "success", duration: 0 });
+        GlobalEmitter.emit("toast", { message: "app.announce_sent", type: "info", duration: 0 });
+        await tick();
+        expect(container.textContent).toContain("Hello world.");
+        // Key is looked up (fixture locale resolves announce_sent) rather than shown raw.
+        expect(container.textContent).not.toContain("app.announce_sent");
+        expect(container.textContent?.toLowerCase()).toMatch(/announce/);
     });
 });

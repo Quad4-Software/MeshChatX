@@ -14,5 +14,9 @@ describe("SidebarLink.svelte wiring", () => {
         expect(link).toContain("sidebar-nav-link");
         expect(link).toContain("rounded-r-full");
         expect(link).toContain("editMode");
+        expect(link).toContain("resolveTarget");
+        expect(link).toContain("return `#${resolveTarget(to)}`");
+        // Named-route fallback when resolveTarget throws (registry not ready).
+        expect(link).toContain("return `#/${to.name}`");
     });
 });

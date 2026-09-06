@@ -48,7 +48,7 @@
 </script>
 
 <div
-    class="h-dvh min-h-0 w-full flex flex-col transition-colors"
+    class="h-dvh min-h-0 w-full flex flex-col bg-sem-canvas"
     class:dark={shell.isDarkTheme}
     style={shell.shellCanvasStyle}
 >
@@ -97,18 +97,16 @@
     {#if shell.isAuthRoute}
         <PageOutlet />
     {:else if shell.showMainShell}
-        {#if shell.isPopoutMode}
-            <div class="flex flex-1 h-full w-full overflow-hidden transition-colors" style={shell.shellCanvasStyle}>
-                <PageOutlet />
-            </div>
-        {:else}
+        {#if !shell.isPopoutMode}
             <AppShellHeaderBar {shell} {middleEl} />
+        {/if}
 
-            <div
-                bind:this={middleEl}
-                class="relative flex flex-1 w-full overflow-hidden transition-colors"
-                style={shell.shellCanvasStyle}
-            >
+        <div
+            bind:this={middleEl}
+            class="relative flex flex-1 w-full min-h-0 overflow-hidden bg-sem-canvas"
+            style={shell.shellCanvasStyle}
+        >
+            {#if !shell.isPopoutMode}
                 {#if shell.isSidebarOpen}
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -119,12 +117,12 @@
                 {/if}
 
                 <AppShellSidebarPanel {shell} />
+            {/if}
 
-                <div class="flex flex-1 min-w-0 overflow-hidden">
-                    <PageOutlet />
-                </div>
+            <div class="flex flex-1 min-w-0 overflow-hidden bg-sem-canvas">
+                <PageOutlet />
             </div>
-        {/if}
+        </div>
     {/if}
 
     <AppShellOverlays {shell} />

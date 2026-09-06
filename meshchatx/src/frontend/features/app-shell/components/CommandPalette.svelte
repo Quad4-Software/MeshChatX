@@ -8,12 +8,14 @@
     import ToastUtils from "../../../js/ToastUtils.js";
     import { listCommands } from "../../../js/registries/commandRegistry.js";
     import type { CommandEntry } from "../../../js/registries/coreCommandEntries.js";
+    import { navigate } from "../../../shell/hashRouter.js";
+    import type { RouteTarget } from "../../../shell/hashRouter.js";
     import type { PeerAnnounce, Contact, ResultItem } from "../lib/commandPaletteTypes.js";
     import CommandPaletteResultRow from "./CommandPaletteResultRow.svelte";
 
     interface Props {
         isOpen?: boolean;
-        onnavigate?: (route: unknown) => void;
+        onnavigate?: (route: RouteTarget) => void | Promise<void>;
         onexecuteaction?: () => void;
     }
 
@@ -231,14 +233,18 @@
         if (result.type === "navigation") {
             if (onnavigate && result.route) {
                 onnavigate(result.route);
-            } else if (result.route?.name) {
-                window.location.hash = `#/${result.route.name === "home" ? "" : result.route.name}`;
+            } else if (result.route) {
+                void navigate(result.route);
             }
         } else if (result.type === "peer" && result.peer) {
+            const peerRoute: RouteTarget = {
+                name: "messages",
+                params: { destinationHash: result.peer.destination_hash },
+            };
             if (onnavigate) {
-                onnavigate({ name: "messages", params: { destinationHash: result.peer.destination_hash } });
+                onnavigate(peerRoute);
             } else {
-                window.location.hash = `#/messages/${result.peer.destination_hash}`;
+                void navigate(peerRoute);
             }
         } else if (result.type === "contact" && result.contact) {
             void dialContact(result.contact.remote_identity_hash);
@@ -247,9 +253,9 @@
                 GlobalEmitter.emit("sync-propagation-node");
             } else if (result.action === "compose") {
                 if (onnavigate) {
-                    onnavigate({ name: "messages" });
+                    await Promise.resolve(onnavigate({ name: "messages" }));
                 } else {
-                    window.location.hash = "#/messages";
+                    await navigate({ name: "messages" });
                 }
                 GlobalEmitter.emit("compose-new-message");
             } else if (result.action === "show-tutorial") {
@@ -269,7 +275,7 @@
             if (onnavigate) {
                 onnavigate({ name: "call" });
             } else {
-                window.location.hash = "#/call";
+                void navigate({ name: "call" });
             }
         } catch (e: any) {
             ToastUtils.error(e?.response?.data?.message || "Failed to initiate call");

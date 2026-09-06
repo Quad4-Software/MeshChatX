@@ -18,5 +18,7 @@ describe("CommandPalette.svelte wiring", () => {
         expect(palette).toContain("export function close");
         expect(palette).toContain("open-command-palette");
         expect(palette).toContain("isOpen = true");
+        expect(palette).toContain("navigate");
+        expect(palette).not.toContain("`#/${result.route.name");
     });
 });

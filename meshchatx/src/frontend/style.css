@@ -391,6 +391,26 @@ select option {
     @apply inline-flex items-center justify-center text-sem-fg-muted transition-colors hover:bg-sem-surface-muted hover:text-sem-fg;
 }
 
+/* Dense toolbar icon circle. Touch size-11, desktop size-8. Pair with size-5 icons. */
+.toolbar-icon-btn {
+    @apply inline-flex size-11 sm:size-8 shrink-0 items-center justify-center rounded-full bg-sem-surface-muted text-sem-fg-muted transition-colors hover:bg-sem-surface-raised hover:text-sem-fg;
+}
+
+/* Touch-first icon circle (call chrome). Pair with size-5 icons. */
+.toolbar-icon-btn-lg {
+    @apply inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-sem-surface-muted text-sem-fg-muted transition-colors hover:bg-sem-surface-raised hover:text-sem-fg;
+}
+
+/* Labeled chip beside toolbar-icon-btn. Pair with size-5 icons and text-sm font-medium leading-none. */
+.toolbar-label-chip {
+    @apply inline-flex min-h-8 items-center gap-1 rounded-full px-2.5 py-1 text-sm font-medium leading-none;
+}
+
+/* Compact IconButton override for Nomad chrome: keep touch 44px, denser from sm up. */
+.nomad-icon-btn {
+    @apply !p-0 sm:!size-8 sm:!min-h-8 sm:!min-w-8 sm:!w-8 sm:!h-8;
+}
+
 .dropdown-panel {
     @apply overflow-hidden rounded-lg border border-sem-border bg-sem-surface shadow-lg;
 }

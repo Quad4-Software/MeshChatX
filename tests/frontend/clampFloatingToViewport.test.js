@@ -88,6 +88,11 @@ describe("clampFloatingToViewport wiring", () => {
             "meshchatx/src/frontend/features/messages/components/ConversationMessageContextMenu.svelte",
             "clampFloatingToViewport(x, y",
         ],
+        [
+            "reactionPickerDrag.ts",
+            "meshchatx/src/frontend/features/messages/lib/reactionPickerDrag.ts",
+            "clampFloatingToViewport(nx, ny, pr.width, pr.height)",
+        ],
     ])("%s imports the helper and clamps floating UI", (_, relativePath, anchor) => {
         const src = readSource(relativePath);
         expect(src).toContain("clampFloatingToViewport");

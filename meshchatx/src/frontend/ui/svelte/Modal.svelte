@@ -180,7 +180,7 @@
                     {#if showClose}
                         <button
                             type="button"
-                            class="icon-btn-muted shrink-0 rounded-lg p-2 ml-auto"
+                            class="icon-btn-muted toolbar-icon-btn shrink-0 ml-auto"
                             aria-label={t("common.close")}
                             onclick={close}
                         >

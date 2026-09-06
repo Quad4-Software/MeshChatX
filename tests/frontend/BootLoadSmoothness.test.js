@@ -59,7 +59,20 @@ describe("boot and load smoothness", () => {
     it("App.svelte shell uses canvas background for route content", () => {
         const app = readFileSync(resolve(ROOT, "meshchatx/src/frontend/features/app-shell/App.svelte"), "utf8");
         const themeEngine = readFileSync(resolve(ROOT, "meshchatx/src/frontend/theme/themeEngine.ts"), "utf8");
+        const derived = readFileSync(
+            resolve(ROOT, "meshchatx/src/frontend/features/app-shell/lib/appShellDerived.ts"),
+            "utf8"
+        );
+        const outlet = readFileSync(resolve(ROOT, "meshchatx/src/frontend/shell/PageOutlet.svelte"), "utf8");
         expect(app).toContain("shellCanvasStyle");
+        expect(app).toContain("bg-sem-canvas");
+        expect(app).not.toContain("transition-colors");
+        expect(app.match(/<PageOutlet/g)?.length).toBe(2);
+        expect(derived).toContain("state.config || {}");
+        expect(outlet).toContain("pageOutletMountKey");
+        expect(outlet).toContain("visibility");
+        expect(outlet).toContain("untrack");
+        expect(outlet).toContain("effect_update_depth_exceeded");
         expect(
             readFileSync(
                 resolve(ROOT, "meshchatx/src/frontend/features/app-shell/components/AppShellHeaderBar.svelte"),

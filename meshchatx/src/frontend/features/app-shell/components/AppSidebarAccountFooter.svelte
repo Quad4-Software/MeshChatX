@@ -54,7 +54,7 @@
             if (onnavigatetoidentities) {
                 onnavigatetoidentities();
             } else {
-                window.location.hash = "#/settings/identities";
+                window.location.hash = "#/identities";
             }
             return;
         }
@@ -72,7 +72,7 @@
             onclick={onAccountChipClick}
         >
             <div class="flex items-center gap-1 {isCollapsed ? 'justify-center p-2' : 'p-3 pb-1'}">
-                <a href="#/settings/profile-icon" class="shrink-0" onclick={(e) => e.stopPropagation()}>
+                <a href="#/profile/icon" class="shrink-0" onclick={(e) => e.stopPropagation()}>
                     <LxmfUserIcon
                         iconName={config.lxmf_user_icon_name}
                         iconForegroundColour={config.lxmf_user_icon_foreground_colour}
@@ -198,7 +198,7 @@
 
                 <div class="p-2">
                     <a
-                        href="#/settings/identities"
+                        href="#/identities"
                         class="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                     >
                         {t("app.manage_identities")}

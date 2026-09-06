@@ -22,7 +22,7 @@
 
     interface ToastPayload {
         key?: string | number | null;
-        message: string;
+        message: unknown;
         details?: string[];
         type?: "success" | "error" | "warning" | "loading" | "info";
         duration?: number;
@@ -33,6 +33,7 @@
     const swipeThreshold = 100;
 
     function looksLikeI18nKey(message: string): boolean {
+        if (typeof message !== "string") return false;
         const parts = message.split(".");
         if (parts.length < 2) return false;
         for (let i = 0; i < parts.length; i += 1) {
@@ -66,16 +67,17 @@
         return true;
     }
 
-    function toastMessage(message: string): string {
-        if (!message) return "";
+    function toastMessage(message: unknown): string {
+        if (message == null || message === "") return "";
+        const text = typeof message === "string" ? message : String(message);
         // Callers often pass already-translated text. Only look up dotted i18n keys.
-        if (!looksLikeI18nKey(message)) {
-            return message;
+        if (!looksLikeI18nKey(text)) {
+            return text;
         }
         try {
-            return t(message);
+            return t(text);
         } catch {
-            return message;
+            return text;
         }
     }
 
@@ -101,7 +103,7 @@
                 if (existing.timer) {
                     clearTimeout(existing.timer);
                 }
-                existing.message = payload.message;
+                existing.message = payload.message == null ? "" : String(payload.message);
                 existing.type = payload.type || "info";
                 existing.duration = payload.duration !== undefined ? payload.duration : 5000;
                 existing.details = Array.isArray(payload.details) ? payload.details : [];
@@ -122,7 +124,7 @@
         const newToast: ToastItem = {
             id,
             key: payload.key,
-            message: payload.message,
+            message: payload.message == null ? "" : String(payload.message),
             details: Array.isArray(payload.details) ? payload.details : [],
             type: payload.type || "info",
             duration,
