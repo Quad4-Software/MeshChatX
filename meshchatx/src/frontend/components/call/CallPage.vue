@@ -2,7 +2,7 @@
 
 <template>
     <div class="flex min-w-0 h-full flex-1 flex-col">
-        <div class="flex h-full w-full flex-col bg-gray-100 dark:bg-zinc-950">
+        <div class="flex h-full w-full flex-col bg-sem-canvas">
             <div class="w-full h-full overflow-y-auto">
                 <div class="mx-auto w-full max-w-4xl p-4 md:p-6 flex-1 flex flex-col min-h-full">
                     <CallTabBar
@@ -22,12 +22,9 @@
                                 class="w-full max-w-md bg-sem-surface border border-sem-border rounded-2xl p-8 flex flex-col items-center text-center shadow-xl"
                             >
                                 <div
-                                    class="size-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4"
+                                    class="size-16 bg-sem-danger/10 rounded-full flex items-center justify-center mb-4"
                                 >
-                                    <MaterialDesignIcon
-                                        icon-name="phone-off"
-                                        class="size-8 text-red-600 dark:text-red-400"
-                                    />
+                                    <MaterialDesignIcon icon-name="phone-off" class="size-8 text-sem-danger" />
                                 </div>
                                 <h2 class="text-xl font-bold text-sem-fg mb-2">
                                     {{ $t("call.lxst_disabled_title") }}
@@ -52,9 +49,7 @@
                                 v-if="callMinimized && activeCall"
                                 class="w-full flex-shrink-0 border-b border-sem-border"
                             >
-                                <div
-                                    class="flex items-center gap-3 px-4 py-2 bg-blue-50/80 dark:bg-blue-900/20 backdrop-blur-sm"
-                                >
+                                <div class="flex items-center gap-3 px-4 py-2 bg-sem-info/10 backdrop-blur-sm">
                                     <div class="relative">
                                         <div
                                             class="size-8 rounded-full bg-sem-surface-muted flex items-center justify-center overflow-hidden"
@@ -68,7 +63,7 @@
                                             />
                                         </div>
                                         <div
-                                            class="absolute -bottom-0.5 -right-0.5 size-2.5 bg-green-500 rounded-full border-2 border-white dark:border-zinc-900"
+                                            class="absolute -bottom-0.5 -right-0.5 size-2.5 bg-sem-success rounded-full border-2 border-sem-canvas"
                                         ></div>
                                     </div>
                                     <div class="flex-1 min-w-0">
@@ -76,7 +71,7 @@
                                             {{ activeCall?.remote_identity_name || $t("call.unknown") }}
                                         </div>
                                         <div class="text-[10px] text-sem-fg-muted flex items-center gap-2">
-                                            <span class="size-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                                            <span class="size-1.5 bg-sem-success rounded-full animate-pulse"></span>
                                             <span>{{ $t("call.active") }}</span>
                                             <span v-if="elapsedTime" class="font-mono">· {{ elapsedTime }}</span>
                                         </div>
@@ -92,7 +87,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="size-8 flex items-center justify-center rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-600 dark:text-red-400"
+                                            class="size-8 flex items-center justify-center rounded-full hover:bg-sem-danger/10 dark:hover:bg-sem-danger/10 transition-colors text-sem-danger"
                                             title="Hangup"
                                             @click="hangupCall"
                                         >
@@ -113,19 +108,19 @@
                                     <!-- Recording indicator -->
                                     <div
                                         v-if="activeCall && activeCall.is_recording"
-                                        class="absolute top-4 right-4 z-20 flex items-center gap-1.5 px-2 py-1 bg-red-500/10 rounded-full border border-red-500/20"
+                                        class="absolute top-4 right-4 z-20 flex items-center gap-1.5 px-2 py-1 bg-sem-danger/10 rounded-full border border-red-500/20"
                                     >
-                                        <div class="size-2 bg-red-500 rounded-full animate-pulse"></div>
-                                        <span class="text-[10px] font-bold text-red-500 uppercase tracking-wider"
+                                        <div class="size-2 bg-sem-danger rounded-full animate-pulse"></div>
+                                        <span class="text-[10px] font-bold text-sem-danger uppercase tracking-wider"
                                             >Recording</span
                                         >
                                     </div>
 
                                     <div class="relative mb-8">
                                         <div
-                                            class="size-32 mx-auto bg-sem-surface-muted rounded-full flex items-center justify-center border-4 border-white dark:border-zinc-900 shadow-2xl relative z-10"
+                                            class="size-32 mx-auto bg-sem-surface-muted rounded-full flex items-center justify-center border-4 border-sem-canvas shadow-2xl relative z-10"
                                             :class="{
-                                                'ring-4 ring-blue-500/20 animate-pulse':
+                                                'ring-4 ring-sem-accent/20 animate-pulse':
                                                     activeCall && activeCall.status === 4,
                                             }"
                                         >
@@ -152,7 +147,7 @@
 
                                         <div
                                             v-if="activeCall && activeCall.status === 6"
-                                            class="absolute -bottom-2 -right-2 bg-green-500 text-white p-2 rounded-full shadow-lg border-4 border-white dark:border-zinc-900 z-20"
+                                            class="absolute -bottom-2 -right-2 bg-sem-success text-white p-2 rounded-full shadow-lg border-4 border-sem-canvas z-20"
                                         >
                                             <MaterialDesignIcon icon-name="phone-in-talk" class="size-5" />
                                         </div>
@@ -200,7 +195,7 @@
                                         </div>
                                         <div
                                             v-if="(activeCall || lastCall)?.is_contact || !!initiationTargetName"
-                                            class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-sem-accent text-[10px] font-bold rounded-full uppercase tracking-wider"
+                                            class="inline-flex items-center gap-1 px-2 py-0.5 bg-sem-info/10 text-sem-accent text-[10px] font-bold rounded-full uppercase tracking-wider"
                                         >
                                             <MaterialDesignIcon icon-name="check-decagram" class="size-3" />
                                             Contact
@@ -210,10 +205,10 @@
                                     <!-- call status -->
                                     <div class="relative z-10 mb-8">
                                         <div
-                                            class="px-4 py-2 bg-gray-50 dark:bg-zinc-800/50 rounded-2xl inline-block border border-sem-border"
+                                            class="px-4 py-2 bg-sem-surface-muted/50 rounded-2xl inline-block border border-sem-border"
                                         >
                                             <template v-if="wasDeclined">
-                                                <span class="text-red-500 font-bold text-sm">{{
+                                                <span class="text-sem-danger font-bold text-sm">{{
                                                     $t("call.call_declined")
                                                 }}</span>
                                             </template>
@@ -226,7 +221,7 @@
                                                 <div class="flex flex-col items-center">
                                                     <span
                                                         v-if="activeCall.is_voicemail"
-                                                        class="text-red-500 font-bold text-sm animate-pulse flex items-center gap-2"
+                                                        class="text-sem-danger font-bold text-sm animate-pulse flex items-center gap-2"
                                                     >
                                                         <MaterialDesignIcon icon-name="record" class="size-4" />
                                                         {{ $t("call.recording_voicemail") }}
@@ -249,7 +244,7 @@
                                                         >
                                                         <span
                                                             v-else-if="activeCall && activeCall.status === 1"
-                                                            class="text-red-500"
+                                                            class="text-sem-danger"
                                                             >Rejected</span
                                                         >
                                                         <span
@@ -270,10 +265,10 @@
                                                         }}</span>
                                                         <span
                                                             v-else-if="activeCall && activeCall.status === 6"
-                                                            class="text-green-500 flex items-center gap-2"
+                                                            class="text-sem-success flex items-center gap-2"
                                                         >
                                                             <span
-                                                                class="size-2 bg-green-500 rounded-full animate-ping"
+                                                                class="size-2 bg-sem-success rounded-full animate-ping"
                                                             ></span>
                                                             Connected
                                                         </span>
@@ -294,7 +289,7 @@
                                                         class="mt-3 grid grid-cols-2 gap-2 text-xs w-full max-w-xs"
                                                     >
                                                         <div
-                                                            class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
+                                                            class="rounded-xl bg-sem-surface-muted/70 border border-sem-border/70 px-2 py-1.5 text-left"
                                                         >
                                                             <div class="text-[10px] text-sem-fg-muted">
                                                                 {{ $t("call.tx_packets") }}
@@ -304,7 +299,7 @@
                                                             </div>
                                                         </div>
                                                         <div
-                                                            class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
+                                                            class="rounded-xl bg-sem-surface-muted/70 border border-sem-border/70 px-2 py-1.5 text-left"
                                                         >
                                                             <div class="text-[10px] text-sem-fg-muted">
                                                                 {{ $t("call.rx_packets") }}
@@ -314,7 +309,7 @@
                                                             </div>
                                                         </div>
                                                         <div
-                                                            class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
+                                                            class="rounded-xl bg-sem-surface-muted/70 border border-sem-border/70 px-2 py-1.5 text-left"
                                                         >
                                                             <div class="text-[10px] text-sem-fg-muted">
                                                                 {{ $t("call.tx_data") }}
@@ -324,7 +319,7 @@
                                                             </div>
                                                         </div>
                                                         <div
-                                                            class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
+                                                            class="rounded-xl bg-sem-surface-muted/70 border border-sem-border/70 px-2 py-1.5 text-left"
                                                         >
                                                             <div class="text-[10px] text-sem-fg-muted">
                                                                 {{ $t("call.rx_data") }}
@@ -334,7 +329,7 @@
                                                             </div>
                                                         </div>
                                                         <div
-                                                            class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
+                                                            class="rounded-xl bg-sem-surface-muted/70 border border-sem-border/70 px-2 py-1.5 text-left"
                                                         >
                                                             <div class="text-[10px] text-sem-fg-muted">
                                                                 {{ $t("call.tx_rate") }}
@@ -344,7 +339,7 @@
                                                             </div>
                                                         </div>
                                                         <div
-                                                            class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
+                                                            class="rounded-xl bg-sem-surface-muted/70 border border-sem-border/70 px-2 py-1.5 text-left"
                                                         >
                                                             <div class="text-[10px] text-sem-fg-muted">
                                                                 {{ $t("call.rx_rate") }}
@@ -393,7 +388,7 @@
                                         <div v-if="isCallEnded && wasVoicemail" class="mt-6 animate-fade-in">
                                             <button
                                                 type="button"
-                                                class="px-6 py-3 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold flex items-center gap-2 shadow-lg shadow-blue-500/30 transition-all hover:scale-105"
+                                                class="px-6 py-3 rounded-full bg-sem-info/50 hover:bg-sem-action-primary text-white font-bold flex items-center gap-2 shadow-lg shadow-sem-accent/30 transition-all hover:scale-105"
                                                 @click="playLatestVoicemail"
                                             >
                                                 <MaterialDesignIcon
@@ -443,8 +438,8 @@
                                                     :title="isMicMuted ? $t('call.unmute_mic') : $t('call.mute_mic')"
                                                     :class="[
                                                         isMicMuted
-                                                            ? 'bg-red-500 text-white shadow-red-500/20'
-                                                            : 'bg-sem-surface-muted text-sem-fg-secondary hover:bg-gray-200 hover:bg-sem-surface-muted shadow-gray-200/20 dark:shadow-black/20',
+                                                            ? 'bg-sem-danger text-white shadow-sem-danger/20'
+                                                            : 'bg-sem-surface-muted text-sem-fg-secondary hover:bg-sem-surface-muted hover:bg-sem-surface-muted shadow-sem-surface-muted/20 dark:shadow-sem-fg/20',
                                                     ]"
                                                     class="p-4 rounded-full shadow-lg transition-all duration-200"
                                                     @click="toggleMicrophone"
@@ -465,8 +460,8 @@
                                                     "
                                                     :class="[
                                                         isSpeakerMuted
-                                                            ? 'bg-red-500 text-white shadow-red-500/20'
-                                                            : 'bg-sem-surface-muted text-sem-fg-secondary hover:bg-gray-200 hover:bg-sem-surface-muted shadow-gray-200/20 dark:shadow-black/20',
+                                                            ? 'bg-sem-danger text-white shadow-sem-danger/20'
+                                                            : 'bg-sem-surface-muted text-sem-fg-secondary hover:bg-sem-surface-muted hover:bg-sem-surface-muted shadow-sem-surface-muted/20 dark:shadow-sem-fg/20',
                                                     ]"
                                                     class="p-4 rounded-full shadow-lg transition-all duration-200"
                                                     @click="toggleSpeaker"
@@ -484,8 +479,8 @@
                                                 class="w-full flex items-center justify-center gap-2 rounded-2xl py-5 text-base font-bold text-white shadow-xl transition-all duration-150 select-none touch-none"
                                                 :class="
                                                     localPttActive
-                                                        ? 'bg-amber-500 shadow-amber-500/30 scale-[1.02]'
-                                                        : 'bg-blue-600 shadow-blue-600/20 hover:bg-blue-500'
+                                                        ? 'bg-sem-warning shadow-sem-warning/30 scale-[1.02]'
+                                                        : 'bg-sem-action-primary shadow-sem-action-primary/20 hover:bg-sem-info/50'
                                                 "
                                                 :title="$t('call.ptt_hold_hint')"
                                                 @pointerdown.prevent="setPttActive(true)"
@@ -519,7 +514,7 @@
                                             <button
                                                 v-if="activeCall && activeCall.is_incoming && activeCall.status === 4"
                                                 type="button"
-                                                class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-green-600 py-4 text-sm font-bold text-white shadow-xl shadow-green-600/20 hover:bg-green-500 transition-all duration-200"
+                                                class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-sem-success py-4 text-sm font-bold text-white shadow-xl shadow-sem-success/20 hover:bg-sem-success transition-all duration-200"
                                                 @click="answerCall"
                                             >
                                                 <MaterialDesignIcon icon-name="phone" class="size-5" />
@@ -530,7 +525,7 @@
                                             <button
                                                 v-if="activeCall && activeCall.is_incoming && activeCall.status === 4"
                                                 type="button"
-                                                class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-xl shadow-blue-600/20 hover:bg-blue-500 transition-all duration-200"
+                                                class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-sem-action-primary py-4 text-sm font-bold text-white shadow-xl shadow-sem-action-primary/20 hover:bg-sem-info/50 transition-all duration-200"
                                                 @click="sendToVoicemail"
                                             >
                                                 <MaterialDesignIcon icon-name="voicemail" class="size-5" />
@@ -541,7 +536,7 @@
                                         <!-- minimize call -->
                                         <button
                                             type="button"
-                                            class="flex items-center justify-center gap-2 rounded-2xl bg-sem-surface-muted py-3 px-4 text-sm font-bold text-sem-fg-muted hover:bg-gray-200 hover:bg-sem-surface-muted transition-all duration-200"
+                                            class="flex items-center justify-center gap-2 rounded-2xl bg-sem-surface-muted py-3 px-4 text-sm font-bold text-sem-fg-muted hover:bg-sem-surface-muted hover:bg-sem-surface-muted transition-all duration-200"
                                             @click="callMinimized = true"
                                         >
                                             <MaterialDesignIcon icon-name="chevron-down" class="size-5" />
@@ -551,7 +546,7 @@
                                         <!-- hangup/decline call -->
                                         <button
                                             type="button"
-                                            class="w-full flex items-center justify-center gap-2 rounded-2xl bg-red-600 py-4 text-sm font-bold text-white shadow-xl shadow-red-600/20 hover:bg-red-500 transition-all duration-200"
+                                            class="w-full flex items-center justify-center gap-2 rounded-2xl bg-sem-danger py-4 text-sm font-bold text-white shadow-xl shadow-red-600/20 hover:bg-sem-danger transition-all duration-200"
                                             @click="hangupCall"
                                         >
                                             <MaterialDesignIcon icon-name="phone-hangup" class="size-5 rotate-135" />
@@ -571,7 +566,7 @@
                             >
                                 <div class="w-full border-b border-sem-border py-2">
                                     <div class="flex items-center gap-3 mb-6">
-                                        <div class="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-2xl">
+                                        <div class="bg-sem-info/10 p-2.5 rounded-2xl">
                                             <MaterialDesignIcon icon-name="phone-plus" class="size-6 text-sem-accent" />
                                         </div>
                                         <div>
@@ -606,7 +601,7 @@
                                                             class="px-4 py-2.5 flex items-center gap-3 cursor-pointer transition-colors"
                                                             :class="[
                                                                 index === selectedSuggestionIndex
-                                                                    ? 'bg-blue-50 dark:bg-blue-900/30 text-sem-accent'
+                                                                    ? 'bg-sem-info/10 text-sem-accent'
                                                                     : 'hover:bg-sem-surface-muted/50 text-sem-fg-muted',
                                                             ]"
                                                             @mousedown.prevent="selectSuggestion(suggestion)"
@@ -615,8 +610,8 @@
                                                                 class="shrink-0 size-8 rounded-full flex items-center justify-center text-xs"
                                                                 :class="
                                                                     suggestion.type === 'contact'
-                                                                        ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600'
-                                                                        : 'bg-sem-surface-muted text-gray-500'
+                                                                        ? 'bg-sem-info/10 dark:bg-blue-900/40 text-sem-info'
+                                                                        : 'bg-sem-surface-muted text-sem-fg-muted'
                                                                 "
                                                             >
                                                                 <MaterialDesignIcon
@@ -629,7 +624,7 @@
                                                                     {{ suggestion.name }}
                                                                 </div>
                                                                 <div
-                                                                    class="text-[10px] font-mono opacity-50 truncate hover:text-blue-500 transition-colors cursor-copy"
+                                                                    class="text-[10px] font-mono opacity-50 truncate hover:text-sem-accent transition-colors cursor-copy"
                                                                     :title="suggestion.hash"
                                                                     @mousedown.stop="copyHash(suggestion.hash)"
                                                                 >
@@ -647,7 +642,7 @@
                                                 </div>
                                                 <button
                                                     type="button"
-                                                    class="bg-blue-600 hover:bg-blue-500 text-white px-6 rounded-2xl font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2"
+                                                    class="bg-sem-action-primary hover:bg-sem-info/50 text-white px-6 rounded-2xl font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2"
                                                     @click="call(destinationHash)"
                                                 >
                                                     <MaterialDesignIcon icon-name="phone" class="size-5" />
@@ -719,14 +714,14 @@
                                         /> -->
                                                 <div class="flex flex-col gap-1">
                                                     <div
-                                                        class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1"
+                                                        class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest px-1"
                                                     >
                                                         {{ $t("call.default_quality") }}
                                                     </div>
                                                     <select
                                                         v-if="config"
                                                         v-model="config.telephone_audio_profile_id"
-                                                        class="input-field min-w-0 rounded-lg! border-gray-200! py-1! px-2! text-xs! dark:border-zinc-800! lg:min-w-[120px]"
+                                                        class="input-field min-w-0 rounded-lg! border-sem-border! py-1! px-2! text-xs! ! lg:min-w-[120px]"
                                                         @change="
                                                             updateConfig({
                                                                 telephone_audio_profile_id:
@@ -745,14 +740,14 @@
                                                 </div>
                                                 <div class="flex flex-col gap-1">
                                                     <div
-                                                        class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1"
+                                                        class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest px-1"
                                                     >
                                                         {{ $t("call.default_duplex") }}
                                                     </div>
                                                     <select
                                                         v-if="config"
                                                         v-model="config.telephone_call_mode_id"
-                                                        class="input-field min-w-0 rounded-lg! border-gray-200! py-1! px-2! text-xs! dark:border-zinc-800! lg:min-w-[120px]"
+                                                        class="input-field min-w-0 rounded-lg! border-sem-border! py-1! px-2! text-xs! ! lg:min-w-[120px]"
                                                         @change="
                                                             updateConfig({
                                                                 telephone_call_mode_id: config.telephone_call_mode_id,
@@ -773,13 +768,13 @@
                                                 <div v-if="showWebAudioDeviceSelector" class="flex flex-col gap-2 mt-2">
                                                     <div class="flex flex-col gap-1">
                                                         <div
-                                                            class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1"
+                                                            class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest px-1"
                                                         >
                                                             Microphone
                                                         </div>
                                                         <select
                                                             v-model="selectedAudioInputId"
-                                                            class="input-field py-1! px-2! text-[10px]! rounded-lg! border-gray-200! dark:border-zinc-800! min-w-[120px]"
+                                                            class="input-field py-1! px-2! text-[10px]! rounded-lg! border-sem-border! ! min-w-[120px]"
                                                             @change="restartWebAudio"
                                                         >
                                                             <option
@@ -793,13 +788,13 @@
                                                     </div>
                                                     <div class="flex flex-col gap-1">
                                                         <div
-                                                            class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1"
+                                                            class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest px-1"
                                                         >
                                                             Speaker
                                                         </div>
                                                         <select
                                                             v-model="selectedAudioOutputId"
-                                                            class="input-field py-1! px-2! text-[10px]! rounded-lg! border-gray-200! dark:border-zinc-800! min-w-[120px]"
+                                                            class="input-field py-1! px-2! text-[10px]! rounded-lg! border-sem-border! ! min-w-[120px]"
                                                             @change="restartWebAudio"
                                                         >
                                                             <option
@@ -812,7 +807,7 @@
                                                         </select>
                                                     </div>
                                                     <button
-                                                        class="text-[10px] bg-gray-100 text-gray-600 dark:bg-zinc-800 text-sem-fg-muted py-1 rounded-lg font-bold uppercase tracking-wider hover:bg-gray-200 hover:bg-sem-surface-muted transition-colors"
+                                                        class="text-[10px] bg-sem-surface-muted text-sem-fg-muted dark:bg-zinc-800 text-sem-fg-muted py-1 rounded-lg font-bold uppercase tracking-wider hover:bg-sem-surface-muted hover:bg-sem-surface-muted transition-colors"
                                                         type="button"
                                                         @click="onRefreshAudioDevices"
                                                     >
@@ -836,7 +831,7 @@
                                     >
                                         <div class="flex justify-between items-center">
                                             <div class="flex items-center gap-2">
-                                                <div class="p-1.5 bg-gray-200/50 dark:bg-zinc-800 rounded-lg">
+                                                <div class="p-1.5 bg-sem-surface-muted/50 dark:bg-zinc-800 rounded-lg">
                                                     <MaterialDesignIcon
                                                         icon-name="history"
                                                         class="size-4 text-sem-fg-muted"
@@ -850,7 +845,7 @@
                                             </div>
                                             <button
                                                 type="button"
-                                                class="text-[10px] text-gray-400 hover:text-red-500 font-bold uppercase tracking-wider transition-colors bg-sem-surface px-2 py-1 rounded-md border border-sem-border"
+                                                class="text-[10px] text-sem-fg-muted hover:text-sem-danger font-bold uppercase tracking-wider transition-colors bg-sem-surface px-2 py-1 rounded-md border border-sem-border"
                                                 @click="clearHistory"
                                             >
                                                 {{ $t("app.clear_history") }}
@@ -866,7 +861,7 @@
                                             />
                                             <MaterialDesignIcon
                                                 icon-name="magnify"
-                                                class="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-gray-400"
+                                                class="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-sem-fg-muted"
                                             />
                                         </div>
                                     </div>
@@ -874,7 +869,7 @@
                                         <li
                                             v-for="entry in callHistory"
                                             :key="entry.id"
-                                            class="px-5 py-4 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group"
+                                            class="px-5 py-4 hover:bg-sem-info/5/30 dark:hover:bg-blue-900/10 transition-colors group"
                                         >
                                             <div class="flex items-center space-x-4">
                                                 <div class="relative shrink-0">
@@ -902,7 +897,9 @@
                                                                 entry.is_incoming ? 'phone-incoming' : 'phone-outgoing'
                                                             "
                                                             :class="
-                                                                entry.is_incoming ? 'text-blue-500' : 'text-green-500'
+                                                                entry.is_incoming
+                                                                    ? 'text-sem-accent'
+                                                                    : 'text-sem-success'
                                                             "
                                                             class="size-3"
                                                         />
@@ -939,7 +936,7 @@
                                                                 }}</span>
                                                             </div>
                                                             <div
-                                                                class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 truncate mt-0.5 cursor-pointer hover:text-blue-500 transition-colors"
+                                                                class="text-[10px] font-mono text-sem-fg-muted dark:text-zinc-600 truncate mt-0.5 cursor-pointer hover:text-sem-accent transition-colors"
                                                                 :title="
                                                                     entry.remote_telephony_hash ||
                                                                     entry.remote_destination_hash ||
@@ -969,7 +966,7 @@
                                                             <button
                                                                 v-if="!entry.is_contact"
                                                                 type="button"
-                                                                class="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all shrink-0"
+                                                                class="p-1.5 rounded-lg text-sem-fg-muted hover:text-sem-accent hover:bg-sem-info/5 dark:hover:bg-blue-900/20 transition-all shrink-0"
                                                                 title="Add to contacts"
                                                                 @click="addContactFromHistory(entry)"
                                                             >
@@ -980,7 +977,7 @@
                                                             </button>
                                                             <button
                                                                 type="button"
-                                                                class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all shrink-0"
+                                                                class="p-1.5 rounded-lg text-sem-fg-muted hover:text-sem-danger hover:bg-red-50 dark:hover:bg-red-900/20 transition-all shrink-0"
                                                                 :title="$t('common.block')"
                                                                 @click="blockIdentity(entry.remote_identity_hash)"
                                                             >
@@ -991,7 +988,7 @@
                                                             </button>
                                                             <button
                                                                 type="button"
-                                                                class="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all shrink-0"
+                                                                class="p-1.5 rounded-lg text-sem-fg-muted hover:text-sem-accent hover:bg-sem-info/5 dark:hover:bg-blue-900/20 transition-all shrink-0"
                                                                 :title="$t('contacts.send_message')"
                                                                 @click="openMessageFromHistory(entry)"
                                                             >
@@ -1002,7 +999,7 @@
                                                             </button>
                                                             <button
                                                                 type="button"
-                                                                class="flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-500 transition-all shadow-md shadow-blue-500/10 shrink-0"
+                                                                class="flex items-center gap-1.5 px-3 py-1 bg-sem-action-primary text-white rounded-lg text-[10px] font-bold hover:bg-sem-info/50 transition-all shadow-md shadow-blue-500/10 shrink-0"
                                                                 @click="
                                                                     destinationHash =
                                                                         entry.remote_telephony_hash ||
@@ -1023,7 +1020,7 @@
                                     </ul>
                                     <div
                                         v-if="hasMoreCallHistory"
-                                        class="p-4 border-t border-sem-border text-center bg-gray-50/30 dark:bg-zinc-800/10"
+                                        class="p-4 border-t border-sem-border text-center bg-sem-surface-muted/30 dark:bg-zinc-800/10"
                                     >
                                         <button
                                             type="button"
@@ -1112,7 +1109,7 @@
                                 <h3
                                     class="text-sm font-bold text-sem-fg uppercase tracking-wider mb-6 flex items-center gap-2"
                                 >
-                                    <MaterialDesignIcon icon-name="music" class="size-5 text-blue-500" />
+                                    <MaterialDesignIcon icon-name="music" class="size-5 text-sem-accent" />
                                     {{ $t("call.ringtone_settings") }}
                                 </h3>
 
@@ -1128,8 +1125,8 @@
                                                     class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden"
                                                     :class="
                                                         config.custom_ringtone_enabled
-                                                            ? 'bg-blue-600'
-                                                            : 'bg-gray-200 dark:bg-zinc-700'
+                                                            ? 'bg-sem-action-primary'
+                                                            : 'bg-sem-surface-muted dark:bg-zinc-700'
                                                     "
                                                     @click="
                                                         config.custom_ringtone_enabled =
@@ -1161,7 +1158,7 @@
                                                 >
                                                     {{ $t("call.ringtone_volume") }}
                                                 </label>
-                                                <span class="text-xs font-mono text-gray-400"
+                                                <span class="text-xs font-mono text-sem-fg-muted"
                                                     >{{ config.ringtone_volume }}%</span
                                                 >
                                             </div>
@@ -1170,7 +1167,7 @@
                                                 type="range"
                                                 min="0"
                                                 max="100"
-                                                class="w-full h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                                class="w-full h-1.5 bg-sem-surface-muted dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
                                                 @change="updateConfig({ ringtone_volume: config.ringtone_volume })"
                                             />
                                         </div>
@@ -1187,8 +1184,8 @@
                                                     class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden"
                                                     :class="
                                                         config.telephone_tone_generator_enabled
-                                                            ? 'bg-blue-600'
-                                                            : 'bg-gray-200 dark:bg-zinc-700'
+                                                            ? 'bg-sem-action-primary'
+                                                            : 'bg-sem-surface-muted dark:bg-zinc-700'
                                                     "
                                                     @click="
                                                         config.telephone_tone_generator_enabled =
@@ -1221,7 +1218,7 @@
                                                 >
                                                     Tone Volume
                                                 </label>
-                                                <span class="text-xs font-mono text-gray-400"
+                                                <span class="text-xs font-mono text-sem-fg-muted"
                                                     >{{ config.telephone_tone_generator_volume }}%</span
                                                 >
                                             </div>
@@ -1230,7 +1227,7 @@
                                                 type="range"
                                                 min="0"
                                                 max="100"
-                                                class="w-full h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                                class="w-full h-1.5 bg-sem-surface-muted dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
                                                 @change="
                                                     updateConfig({
                                                         telephone_tone_generator_volume:
@@ -1243,7 +1240,7 @@
 
                                     <!-- Preferred Ringtone for Non-Contacts -->
                                     <div
-                                        class="p-4 rounded-xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100/50 dark:border-blue-900/30"
+                                        class="p-4 rounded-xl bg-sem-info/5/50 dark:bg-blue-900/10 border border-blue-100/50 dark:border-blue-900/30"
                                     >
                                         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                                             <div>
@@ -1256,7 +1253,7 @@
                                             </div>
                                             <select
                                                 v-model="config.ringtone_preferred_id"
-                                                class="input-field py-1.5! px-3! text-sm! rounded-xl! border-gray-200! dark:border-zinc-800! min-w-[200px]"
+                                                class="input-field py-1.5! px-3! text-sm! rounded-xl! border-sem-border! ! min-w-[200px]"
                                                 @change="
                                                     updateConfig({
                                                         ringtone_preferred_id: config.ringtone_preferred_id,
@@ -1301,9 +1298,9 @@
                                             <div
                                                 v-for="ringtone in ringtones"
                                                 :key="ringtone.id"
-                                                class="group p-4 rounded-xl border border-sem-border bg-gray-50/50 dark:bg-zinc-800/30 flex items-center gap-4 transition-all hover:shadow-md overflow-hidden"
+                                                class="group p-4 rounded-xl border border-sem-border bg-sem-surface-muted/50 dark:bg-zinc-800/30 flex items-center gap-4 transition-all hover:shadow-md overflow-hidden"
                                                 :class="{
-                                                    'ring-2 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-900/10':
+                                                    'ring-2 ring-blue-500/20 bg-sem-info/5/20 dark:bg-blue-900/10':
                                                         ringtone.is_primary,
                                                 }"
                                             >
@@ -1328,12 +1325,12 @@
                                                         </span>
                                                         <span
                                                             v-if="ringtone.is_primary"
-                                                            class="shrink-0 text-[10px] uppercase font-bold text-sem-accent bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded-sm"
+                                                            class="shrink-0 text-[10px] uppercase font-bold text-sem-accent bg-sem-info/10 dark:bg-blue-900/40 px-1.5 py-0.5 rounded-sm"
                                                         >
                                                             Primary
                                                         </span>
                                                         <button
-                                                            class="shrink-0 opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-blue-500 transition-opacity"
+                                                            class="shrink-0 opacity-0 group-hover:opacity-100 p-1 text-sem-fg-muted hover:text-sem-accent transition-opacity"
                                                             @click="startEditingRingtone(ringtone)"
                                                         >
                                                             <MaterialDesignIcon icon-name="pencil" class="size-3" />
@@ -1350,7 +1347,7 @@
                                                 <div class="flex items-center gap-1">
                                                     <a
                                                         :href="`/api/v1/telephone/ringtones/${ringtone.id}/audio?download=1`"
-                                                        class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-sem-fg-muted hover:text-blue-500 transition-colors"
+                                                        class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-sem-fg-muted hover:text-sem-accent transition-colors"
                                                         title="Download"
                                                     >
                                                         <MaterialDesignIcon icon-name="download" class="size-5" />
@@ -1374,7 +1371,7 @@
                                                         />
                                                     </button>
                                                     <button
-                                                        class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-sem-fg-muted hover:text-blue-500 transition-colors"
+                                                        class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-sem-fg-muted hover:text-sem-accent transition-colors"
                                                         title="Edit Audio"
                                                         @click="openRingtoneEditor(ringtone)"
                                                     >
@@ -1382,14 +1379,14 @@
                                                     </button>
                                                     <button
                                                         v-if="!ringtone.is_primary"
-                                                        class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-sem-fg-muted hover:text-blue-500 transition-colors"
+                                                        class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-sem-fg-muted hover:text-sem-accent transition-colors"
                                                         title="Set as Primary"
                                                         @click="setPrimaryRingtone(ringtone)"
                                                     >
                                                         <MaterialDesignIcon icon-name="star-outline" class="size-5" />
                                                     </button>
                                                     <button
-                                                        class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-sem-fg-muted hover:text-red-500 transition-colors"
+                                                        class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-sem-fg-muted hover:text-sem-danger transition-colors"
                                                         title="Delete"
                                                         @click="deleteRingtone(ringtone)"
                                                     >
@@ -1400,7 +1397,7 @@
                                         </div>
                                         <div
                                             v-else
-                                            class="flex flex-col items-center justify-center p-8 border-2 border-dashed border-sem-border rounded-2xl bg-gray-50/30 dark:bg-zinc-900/20"
+                                            class="flex flex-col items-center justify-center p-8 border-2 border-dashed border-sem-border rounded-2xl bg-sem-surface-muted/30 dark:bg-sem-surface/20"
                                         >
                                             <MaterialDesignIcon
                                                 icon-name="music-off"
@@ -1424,11 +1421,11 @@
                                     v-model="recordingSearch"
                                     type="text"
                                     :placeholder="$t('call.search_recordings')"
-                                    class="block w-full rounded-lg border-0 py-2 pl-10 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                                    class="block w-full rounded-lg border-0 py-2 pl-10 text-sem-fg shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-sem-fg-muted focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                                     @input="onRecordingSearchInput"
                                 />
                                 <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                    <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
+                                    <MaterialDesignIcon icon-name="magnify" class="size-5 text-sem-fg-muted" />
                                 </div>
                             </div>
                         </div>
@@ -1461,7 +1458,7 @@
                                                 />
                                                 <div
                                                     v-else
-                                                    class="size-10 rounded-full bg-sem-surface-muted flex items-center justify-center text-gray-400"
+                                                    class="size-10 rounded-full bg-sem-surface-muted flex items-center justify-center text-sem-fg-muted"
                                                 >
                                                     <MaterialDesignIcon icon-name="account" class="size-6" />
                                                 </div>
@@ -1492,7 +1489,7 @@
                                                     <!-- RX Play -->
                                                     <button
                                                         type="button"
-                                                        class="px-2 py-1 rounded-md bg-blue-500/10 hover:bg-blue-500/20 text-sem-accent text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1"
+                                                        class="px-2 py-1 rounded-md bg-sem-info/50/10 hover:bg-sem-info/50/20 text-sem-accent text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1"
                                                         @click="playRecording(recording, 'rx')"
                                                     >
                                                         <MaterialDesignIcon
@@ -1509,7 +1506,7 @@
                                                     <!-- TX Play -->
                                                     <button
                                                         type="button"
-                                                        class="px-2 py-1 rounded-md bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1"
+                                                        class="px-2 py-1 rounded-md bg-sem-success/10 hover:bg-sem-success/20 text-green-600 dark:text-green-400 text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1"
                                                         @click="playRecording(recording, 'tx')"
                                                     >
                                                         <MaterialDesignIcon
@@ -1528,7 +1525,7 @@
                                                     <a
                                                         :href="`/api/v1/telephone/recordings/${recording.id}/audio/rx`"
                                                         :download="`recording_${recording.id}_rx.opus`"
-                                                        class="p-1.5 text-gray-400 hover:text-blue-500 transition-colors"
+                                                        class="p-1.5 text-sem-fg-muted hover:text-sem-accent transition-colors"
                                                         :title="$t('call.download_rx')"
                                                     >
                                                         <MaterialDesignIcon icon-name="download" class="size-4" />
@@ -1537,14 +1534,14 @@
                                                     <a
                                                         :href="`/api/v1/telephone/recordings/${recording.id}/audio/tx`"
                                                         :download="`recording_${recording.id}_tx.opus`"
-                                                        class="p-1.5 text-gray-400 hover:text-green-500 transition-colors"
+                                                        class="p-1.5 text-sem-fg-muted hover:text-sem-success transition-colors"
                                                         :title="$t('call.download_tx')"
                                                     >
                                                         <MaterialDesignIcon icon-name="download" class="size-4" />
                                                     </a>
                                                     <button
                                                         type="button"
-                                                        class="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                                                        class="p-1.5 text-sem-fg-muted hover:text-sem-danger transition-colors"
                                                         @click="deleteRecording(recording.id)"
                                                     >
                                                         <MaterialDesignIcon icon-name="delete" class="size-4" />
@@ -1571,10 +1568,10 @@
                 class="w-full max-w-lg bg-sem-surface rounded-3xl shadow-2xl overflow-hidden transform transition-all scale-100"
             >
                 <div
-                    class="px-6 py-5 border-b border-sem-border flex items-center justify-between bg-gray-50/50 dark:bg-zinc-900/50"
+                    class="px-6 py-5 border-b border-sem-border flex items-center justify-between bg-sem-surface-muted/50 dark:bg-sem-surface/50"
                 >
                     <div class="flex items-center gap-3">
-                        <div class="p-2 bg-blue-100 dark:bg-blue-900/30 text-sem-accent rounded-xl">
+                        <div class="p-2 bg-sem-info/10 text-sem-accent rounded-xl">
                             <MaterialDesignIcon icon-name="account-plus" class="size-6" />
                         </div>
                         <h3 class="text-xl font-bold text-sem-fg tracking-tight">
@@ -1583,7 +1580,7 @@
                     </div>
                     <button
                         type="button"
-                        class="p-2 text-gray-400 hover:text-gray-600 hover:text-sem-fg hover:bg-sem-surface-muted rounded-full transition-all"
+                        class="p-2 text-sem-fg-muted hover:text-sem-fg-muted hover:text-sem-fg hover:bg-sem-surface-muted rounded-full transition-all"
                         @click="isContactModalOpen = false"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-6" />
@@ -1595,14 +1592,18 @@
                         <div class="flex flex-col items-center justify-center pb-4">
                             <div class="relative group">
                                 <div
-                                    class="size-24 rounded-full overflow-hidden bg-sem-surface-muted border-2 border-dashed border-gray-300 dark:border-zinc-700 flex items-center justify-center"
+                                    class="size-24 rounded-full overflow-hidden bg-sem-surface-muted border-2 border-dashed border-sem-border flex items-center justify-center"
                                 >
                                     <img
                                         v-if="contactForm.custom_image"
                                         :src="contactForm.custom_image"
                                         class="w-full h-full object-cover"
                                     />
-                                    <MaterialDesignIcon v-else icon-name="camera-plus" class="size-8 text-gray-400" />
+                                    <MaterialDesignIcon
+                                        v-else
+                                        icon-name="camera-plus"
+                                        class="size-8 text-sem-fg-muted"
+                                    />
                                 </div>
                                 <button
                                     type="button"
@@ -1616,7 +1617,7 @@
                                 <button
                                     v-if="contactForm.custom_image"
                                     type="button"
-                                    class="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
+                                    class="absolute -top-1 -right-1 p-1 bg-sem-danger text-white rounded-full shadow-lg hover:bg-sem-danger transition-colors"
                                     @click="contactForm.custom_image = null"
                                 >
                                     <MaterialDesignIcon icon-name="close" class="size-3" />
@@ -1629,7 +1630,7 @@
                                 accept="image/*"
                                 @change="onContactImageChange"
                             />
-                            <p class="text-[10px] text-gray-400 mt-2 uppercase font-bold tracking-widest">
+                            <p class="text-[10px] text-sem-fg-muted mt-2 uppercase font-bold tracking-widest">
                                 Profile Image
                             </p>
                         </div>
@@ -1708,14 +1709,14 @@
                     <div class="flex gap-3 mt-8">
                         <button
                             type="button"
-                            class="flex-1 px-6 py-3 rounded-2xl bg-sem-surface-muted text-sem-fg-muted font-bold hover:bg-gray-200 hover:bg-sem-surface-muted transition-all active:scale-95"
+                            class="flex-1 px-6 py-3 rounded-2xl bg-sem-surface-muted text-sem-fg-muted font-bold hover:bg-sem-surface-muted hover:bg-sem-surface-muted transition-all active:scale-95"
                             @click="isContactModalOpen = false"
                         >
                             {{ $t("common.cancel") }}
                         </button>
                         <button
                             type="button"
-                            class="flex-2 px-6 py-3 rounded-2xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-600/20 hover:bg-blue-500 transition-all active:scale-95"
+                            class="flex-2 px-6 py-3 rounded-2xl bg-sem-action-primary text-white font-bold shadow-lg shadow-sem-action-primary/20 hover:bg-sem-info/50 transition-all active:scale-95"
                             @click="saveContact(contactForm)"
                         >
                             {{ $t("call.save_contact") }}
