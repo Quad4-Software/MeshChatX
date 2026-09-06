@@ -32,10 +32,44 @@
     let counter = 0;
     const swipeThreshold = 100;
 
+    function looksLikeI18nKey(message: string): boolean {
+        const parts = message.split(".");
+        if (parts.length < 2) return false;
+        for (let i = 0; i < parts.length; i += 1) {
+            const part = parts[i];
+            if (!part) return false;
+            if (i === 0) {
+                const first = part.charCodeAt(0);
+                const isLetter = (first >= 65 && first <= 90) || (first >= 97 && first <= 122);
+                if (!isLetter) return false;
+                for (let j = 1; j < part.length; j += 1) {
+                    const code = part.charCodeAt(j);
+                    const ok =
+                        (code >= 48 && code <= 57) ||
+                        (code >= 65 && code <= 90) ||
+                        (code >= 97 && code <= 122) ||
+                        code === 95;
+                    if (!ok) return false;
+                }
+            } else {
+                for (let j = 0; j < part.length; j += 1) {
+                    const code = part.charCodeAt(j);
+                    const ok =
+                        (code >= 48 && code <= 57) ||
+                        (code >= 65 && code <= 90) ||
+                        (code >= 97 && code <= 122) ||
+                        code === 95;
+                    if (!ok) return false;
+                }
+            }
+        }
+        return true;
+    }
+
     function toastMessage(message: string): string {
         if (!message) return "";
         // Callers often pass already-translated text. Only look up dotted i18n keys.
-        if (!/^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/i.test(message)) {
+        if (!looksLikeI18nKey(message)) {
             return message;
         }
         try {
