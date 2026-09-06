@@ -3,7 +3,7 @@
 Applies when editing tests/**/*.{py,js}.
 
 - Backend: tests/backend/test_*.py with pytest + asyncio auto mode.
-- Frontend: tests/frontend/*.test.js with vitest + @vue/test-utils.
+- Frontend: tests/frontend/*.test.js with vitest.
 - Mock window.api for page tests. Assert toasts when outcomes are user-visible.
 - Prefer focused files over full suite unless the user asks for broad runs.
 - Landlock tests that apply the sandbox must run in a subprocess (one restrict per process).
@@ -28,7 +28,7 @@ Exploratory bug hunting: .agents/skills/exploratory-testing/SKILL.md.
 - Ownership inventory: tests/frontend/fixtures/frontend_mega_page_ownership.json
 - Symbol continuity: tests/frontend/fixtures/frontend_symbol_continuity/
 - Scanner tests: tests/frontend/frontendOwnershipContract.test.js
-- Extract workflow: .agents/skills/vue-mega-page-split/SKILL.md
+- Feature / page placement: .agents/skills/svelte-feature-modules/SKILL.md and .agents/module-ownership.md
 - Refresh ownership fixture only when inventory intentionally changes:
   UPDATE_FRONTEND_OWNERSHIP=1 pnpm exec vitest run tests/frontend/frontendOwnershipContract.test.js -t ownership_fixture
 

@@ -56,16 +56,16 @@ old import path. Follow .agents/skills/meshchat-orchestration-split/SKILL.md.
 
 ## Frontend mega-pages
 
-Placement for extracts. Follow .agents/skills/vue-mega-page-split/SKILL.md.
+Placement for extracts and feature modules. Follow .agents/skills/svelte-feature-modules/SKILL.md.
 Do not invent folders outside this table.
 
 | Kind                            | Put it here                                               | Example                                |
 | ------------------------------- | --------------------------------------------------------- | -------------------------------------- |
-| Page-private panel or UI        | components/<feature>/internal/*.vue                     | MapSearchBar                           |
+| Page-private panel or UI        | features/<id>/components/                               | MapSearchBar                           |
 | Settings chunk                  | features/settings/components/sections/*.svelte          | TelephonySettingsSection               |
-| Pure logic                      | colocated *.js or js/<feature>/                       | clusterUtils, settingsConfigService    |
-| Cross-feature primitive         | root components/ or components/forms/ or ui/svelte/ | ConfirmDialog, Toggle                  |
-| Feature module (new / migrated) | features/<id>/ (page + index.js register)             | features/blocked/                    |
+| Pure logic                      | colocated *.ts or js/<feature>/                       | clusterUtils, settingsConfigService    |
+| Cross-feature primitive         | ui/svelte/                                              | ConfirmDialog, Toggle                  |
+| Feature module (new / migrated) | features/<id>/ (page + index.ts register)             | features/blocked/                    |
 | Nav, tools, commands, routes    | js/registries/ only                                     | never grow App.svelte / main.ts tables |
 | Shell chrome / page host        | features/app-shell/, shell/                           | App.svelte, hashRouter, PageOutlet     |
 

@@ -36,7 +36,6 @@ meshchatx/src/frontend/
   features/app-shell/        live App.svelte shell
   js/registries/             routeRegistry, registerFeature, nav/tools/...
   shell/                     hashRouter, PageOutlet
-  components/                leftover Vue (do not grow)
 ```
 
 ## Register a feature

@@ -5,7 +5,7 @@ description: Nav, tools, commands, settings search, and WS events through regist
 
 # Skill: contribution-registries
 
-Wire nav, tools, commands, settings search, and WebSocket events through registries instead of hardcoding shell or App.vue dispatch.
+Wire nav, tools, commands, settings search, and WebSocket events through registries instead of hardcoding shell or App.svelte dispatch.
 
 ## When to use
 
@@ -25,11 +25,11 @@ Wire nav, tools, commands, settings search, and WebSocket events through registr
 | wsEventRegistry.js + wsEventBridge.js | Typed WS handlers                     |
 | postInstallPromptRegistry.js            | Existing-user / after-install prompts |
 | routeRegistry.js + featureRegistry.js | Feature routes (registerFeature)    |
-| features/registerAllFeatures.js         | Boot hook for feature modules         |
+| features/registerAllFeatures.ts         | Boot hook for feature modules         |
 
 Core boot registers once via registerCoreContributions.js and core*Entries.js siblings.
-Feature modules register via features/registerAllFeatures.js (see features/<id>/ and svelte-feature-modules skill).
-Shell builds registry routes with shell/buildRouterRoutes.js. Do not add new routes to the hardcoded table in main.js.
+Feature modules register via features/registerAllFeatures.ts (see features/<id>/ and svelte-feature-modules skill).
+Routes come from registerFeature into routeRegistry and are resolved by shell/hashRouter.ts. Do not add new routes to a hardcoded table in main.ts.
 
 ## Nav badges
 
@@ -43,7 +43,7 @@ Current sources:
 | relayChatUnreadCount     | RRC mention count (when relay chat enabled) | Mentions consumed on Relay chat page |
 | missedCallsCount         | Unviewed telephone_missed_call rows       | Call page opened or history cleared  |
 
-App.vue maps each source through GlobalState and getNavBadgeCount. Collapsed sidebar still shows pill badges on the icon. There is no header notification bell anymore. Message sounds stay under Settings.
+App sidebar nav maps each source through GlobalState and getNavBadgeCount. Collapsed sidebar still shows pill badges on the icon. There is no header notification bell anymore. Message sounds stay under Settings.
 
 For a new badge:
 
@@ -59,7 +59,7 @@ Use postInstallPromptRegistry + PostInstallPromptHost when you need to ask exist
 
 1. Add an entry to corePostInstallPromptEntries.js with a stable id, revision, and i18n titleKey (optional description and button keys).
 2. Register happens via registerCoreContributions.
-3. App.vue shows the next pending prompt after tutorial / Android storage upgrade and before changelog.
+3. App.svelte / appShellConfig shows the next pending prompt after tutorial / Android storage upgrade and before changelog.
 4. To show the same prompt again later, bump revision. Users who dismissed an older revision are prompted again.
 5. Optional shouldShow() gates platform or feature conditions. Optional onPrimary / onSecondary run actions before dismiss.
 
@@ -67,8 +67,8 @@ Seen revisions live in localStorage under meshchatx.post_install_prompts_seen vi
 
 ## Hard rules
 
-- New top-level pages still need a route in main.js (see page-toast-tests). Registries cover discoverability and dispatch, not routing alone.
-- Prefer onWsEvent / registry handlers over growing ad-hoc switch (json.type) blocks in App.vue.
+- New top-level pages still need registerFeature routes (see page-toast-tests and svelte-feature-modules). Registries cover discoverability and dispatch, not routing alone.
+- Prefer onWsEvent / registry handlers over growing ad-hoc switch (json.type) blocks in appShellWsHandlers.
 - Settings search keywords belong in the settings section registry, not scattered only inside SettingsPage.svelte.
 - Plugin UI uses the existing slot vocabulary (PluginSlotNode / related renderers). Extend that vocabulary in place. Do not invent a parallel slot system. Document new node types in docs/en/plugins.md and validate them in pluginUiDescriptor.js.
 
@@ -78,8 +78,9 @@ Seen revisions live in localStorage under meshchatx.post_install_prompts_seen vi
 - meshchatx/src/frontend/js/registries/registerCoreContributions.js
 - meshchatx/src/frontend/js/registries/coreNavEntries.js
 - meshchatx/src/frontend/js/GlobalState.js
-- meshchatx/src/frontend/components/plugins/PluginSlotNode.vue
-- meshchatx/src/frontend/main.js (routes)
+- meshchatx/src/frontend/features/plugins/components/PluginSlotNode.svelte
+- meshchatx/src/frontend/shell/hashRouter.ts
+- meshchatx/src/frontend/features/app-shell/App.svelte
 
 ## Verification
 

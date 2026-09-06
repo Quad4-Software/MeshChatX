@@ -11,7 +11,7 @@ Entry: root AGENTS.md. Always-on rules: .agents/conventions/core.md and .agents/
 | Domain to manager / HTTP / WS / tests | [module-ownership.md](module-ownership.md)                   |
 | Mesh Zen gates                        | [conventions/reticulum-zen.md](conventions/reticulum-zen.md) |
 | Always-on standards                   | [conventions/core.md](conventions/core.md)                   |
-| Vue UI / Svelte dual stack            | [conventions/frontend.md](conventions/frontend.md)           |
+| Frontend (Svelte 5)                   | [conventions/frontend.md](conventions/frontend.md)           |
 | Python / HTTP / SQLite                | [conventions/backend.md](conventions/backend.md)             |
 | Local FS jail                         | [conventions/path-jail.md](conventions/path-jail.md)         |
 | Android WebView                       | [conventions/android.md](conventions/android.md)             |
@@ -39,7 +39,6 @@ Skills: one file each at skills/<name>/SKILL.md. Open the matching skill before 
 | new page, toast, i18n                    | [page-toast-tests](skills/page-toast-tests/SKILL.md)                         |
 | nav, tools, commands, WS registry        | [contribution-registries](skills/contribution-registries/SKILL.md)           |
 | Svelte 5 / feature modules               | [svelte-feature-modules](skills/svelte-feature-modules/SKILL.md)             |
-| Vue mega-page extract                    | [vue-mega-page-split](skills/vue-mega-page-split/SKILL.md)                   |
 | HTTP/WS extract from meshchat.py         | [meshchat-orchestration-split](skills/meshchat-orchestration-split/SKILL.md) |
 | identity key vs zip restore              | [identity-restore](skills/identity-restore/SKILL.md)                         |
 | identity switch teardown                 | [identity-switch-teardown](skills/identity-switch-teardown/SKILL.md)         |

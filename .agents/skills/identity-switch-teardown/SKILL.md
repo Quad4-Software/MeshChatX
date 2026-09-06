@@ -11,7 +11,7 @@ Switch identities by tearing down the full IdentityContext and clearing frontend
 
 - Changing identity create / switch / delete / activate flows
 - Adding managers that hold RNS destinations, bots, timers, or DB handles
-- Caching peer lists, favourites, or conversation state in process globals or Vue stores
+- Caching peer lists, favourites, or conversation state in process globals or frontend caches
 
 ## Model
 
@@ -35,7 +35,7 @@ Identity **key** import vs database **zip** restore is covered by identity-resto
 - meshchatx/src/backend/identity_context.py
 - meshchatx/src/backend/identity_manager.py
 - meshchatx/meshchat.py (switch endpoints, identity_switched broadcast)
-- meshchatx/src/frontend/components/App.vue (identity_switched handler)
+- meshchatx/src/frontend/features/app-shell/lib/appShellWsHandlers.ts (identity_switched handler)
 - meshchatx/src/frontend/features/settings/components/IdentitiesPage.svelte
 
 ## Verification

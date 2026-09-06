@@ -37,7 +37,7 @@ Never imply identity-key import restores message history.
 
 ## Key files
 
-- meshchatx/src/frontend/components/TutorialModal.vue
+- meshchatx/src/frontend/features/tutorial/
 - meshchatx/src/frontend/features/settings/components/IdentitiesPage.svelte
 - meshchatx/src/frontend/features/about/AboutPage.svelte
 - meshchatx/src/backend/identity_manager.py
