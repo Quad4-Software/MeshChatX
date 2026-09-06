@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: 0BSD
 
-import { listRoutes } from "../../../js/registries/routeRegistry.js";
 import { listTools } from "../../../js/registries/toolsRegistry.js";
+import { resolveTarget } from "../../../shell/hashRouter.js";
 
 export const TOOL_GROUP_ORDER = ["diagnostics", "transfer", "messaging", "network", "other"] as const;
 
-/** Route names whose hashRouter path is under /tools/ */
+/** Route names whose hashRouter path is under /tools/ (fallback when registry empty). */
 const TOOLS_PREFIXED_ROUTE_NAMES = new Set([
     "paper-message",
     "sieve-filters",
@@ -36,6 +36,7 @@ export type ToolGroup = {
 
 /**
  * Build a hash href from a tool.route value ({ name }, { path }, or string).
+ * Named routes resolve through hashRouter so dotted names become path segments.
  */
 export function toolRouteHref(route: ToolRouteRef): string {
     if (!route) {
@@ -54,11 +55,7 @@ export function toolRouteHref(route: ToolRouteRef): string {
         return "";
     }
     try {
-        const registered = listRoutes().find((entry) => entry.name === name);
-        if (registered?.path) {
-            const path = registered.path.startsWith("/") ? registered.path : `/${registered.path}`;
-            return `#${path}`;
-        }
+        return `#${resolveTarget({ name })}`;
     } catch {
         // routeRegistry may be empty in isolated tests
     }

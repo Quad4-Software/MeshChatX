@@ -36,10 +36,13 @@
     let fetchResult = $state<{ success: boolean; message: string; savedPath?: string } | null>(null);
     let fetchTransferId = $state<string | null>(null);
 
-    let listenAllowedHashes = $state("");
-    let listenFetchJail = $state<string | null>(null);
-    let listenFetchAllowed = $state(false);
-    let listenAllowOverwrite = $state(false);
+    // Seed listen form from storage before the save effect runs. Empty defaults
+    // plus a save effect would wipe localStorage on first mount (Vue watchers did not).
+    const initialListenPrefs = loadRncpListenPrefs();
+    let listenAllowedHashes = $state(initialListenPrefs.listenAllowedHashes);
+    let listenFetchJail = $state<string | null>(initialListenPrefs.listenFetchJail);
+    let listenFetchAllowed = $state(initialListenPrefs.listenFetchAllowed);
+    let listenAllowOverwrite = $state(initialListenPrefs.listenAllowOverwrite);
     let listenActive = $state(false);
     let listenDestinationHash = $state<string | null>(null);
     let listenResult = $state<{ success: boolean; message: string } | null>(null);
@@ -338,11 +341,6 @@
     onMount(() => {
         onWsEvent("rncp.transfer.progress", onTransferProgress);
         onWsEvent("rncp.receive.completed", onReceiveCompleted);
-        const prefs = loadRncpListenPrefs();
-        listenAllowedHashes = prefs.listenAllowedHashes;
-        listenFetchJail = prefs.listenFetchJail;
-        listenFetchAllowed = prefs.listenFetchAllowed;
-        listenAllowOverwrite = prefs.listenAllowOverwrite;
         syncListenerStatusFromServer();
     });
 
