@@ -2818,7 +2818,7 @@ class ReticulumMeshChat:
                                                     # Match IP and port for IPv4
                                                     if conn.laddr.port == addr[1] and (
                                                         conn.laddr.ip == addr[0]
-                                                        or addr[0] == "0.0.0.0"
+                                                        or addr[0] == "0.0.0.0"  # nosec: BAN-B104
                                                     ):
                                                         match = True
                                                 elif family_str == "AF_UNIX":
