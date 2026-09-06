@@ -74,21 +74,51 @@ def path_matches_aiohttp_route(route: str, path: str) -> bool:
     return re.fullmatch(pattern, path) is not None
 
 
+def frontend_path_covered_by_backend(
+    frontend_path: str, backend_paths: list[str]
+) -> bool:
+    """True when frontend_path matches a route or is a param-base prefix of one.
+
+    Constants such as /api/v1/telephone/call are valid when callers append
+    /{identity_hash} and the backend declares that parameterized route.
+    """
+    fp = frontend_path.rstrip("/")
+    for br in backend_paths:
+        if path_matches_aiohttp_route(br, frontend_path):
+            return True
+        if br.startswith(fp + "/{") or br.startswith(fp + "{"):
+            return True
+    return False
+
+
+def _normalize_extracted_api_path(raw: str) -> str | None:
+    s = raw.split("?")[0]
+    s = re.sub(r"\$\{[^}]+\}", "a", s)
+    if "${" in s or "}" in s or "{" in s:
+        return None
+    if not s.startswith("/api/v1"):
+        return None
+    return s
+
+
 def extract_frontend_api_paths(frontend_root: Path) -> set[str]:
     out: set[str] = set()
-    for path in list(frontend_root.rglob("*.vue")) + list(frontend_root.rglob("*.js")):
-        if "node_modules" in path.parts:
+    patterns = ("*.vue", "*.js", "*.ts", "*.svelte", "*.mjs", "*.cjs")
+    paths: list[Path] = []
+    for pattern in patterns:
+        paths.extend(frontend_root.rglob(pattern))
+    for path in paths:
+        if "node_modules" in path.parts or "public" in path.parts:
             continue
         text = path.read_text(encoding="utf-8")
         for m in re.finditer(r"`(/api/v1[^`]+)`", text):
-            s = m.group(1).split("?")[0]
-            s = re.sub(r"\$\{[^}]+\}", "a", s)
-            out.add(s)
+            normalized = _normalize_extracted_api_path(m.group(1))
+            if normalized:
+                out.add(normalized)
         for m in re.finditer(r'["\'](/api/v1[^"\']+)["\']', text):
-            s = m.group(1).split("?")[0]
-            if "${" in s:
-                continue
-            out.add(s)
+            normalized = _normalize_extracted_api_path(m.group(1))
+            if normalized:
+                out.add(normalized)
     return out
 
 

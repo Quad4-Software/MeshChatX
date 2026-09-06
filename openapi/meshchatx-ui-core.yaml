@@ -1,0 +1,220 @@
+# SPDX-License-Identifier: 0BSD
+# Core MeshChatX local UI HTTP contract (OpenAPI 3.1).
+# Paths here must exist in tests/backend/fixtures/http_api_routes.json.
+# Expand gradually. Full GET JSON coverage still lives in
+# tests/backend/http_api_response_registry.py.
+
+openapi: 3.1.0
+info:
+    title: MeshChatX local UI API (core)
+    version: 1.0.0
+    description: >
+        High-risk local HTTPS UI endpoints for MeshChatX. Mesh peers are not
+        clients of this API. Auth and CSRF apply on mutating routes.
+servers:
+    - url: http://127.0.0.1:{port}
+      variables:
+          port:
+              default: "8000"
+paths:
+    /api/v1/status:
+        get:
+            operationId: getStatus
+            summary: Process and network readiness snapshot
+            responses:
+                "200":
+                    description: Status payload
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Status"
+    /api/v1/auth/status:
+        get:
+            operationId: getAuthStatus
+            summary: Auth enablement and session state
+            responses:
+                "200":
+                    description: Auth status
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/AuthStatus"
+    /api/v1/auth/csrf:
+        get:
+            operationId: getAuthCsrf
+            summary: CSRF token for mutating HTTP
+            responses:
+                "200":
+                    description: CSRF envelope
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/CsrfEnvelope"
+    /api/v1/auth/login:
+        post:
+            operationId: postAuthLogin
+            summary: Establish an authenticated UI session
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/LoginRequest"
+            responses:
+                "200":
+                    description: Login accepted
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/MessageEnvelope"
+                "400":
+                    description: Bad credentials or input
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ErrorEnvelope"
+                "403":
+                    description: CSRF or auth failure
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ErrorEnvelope"
+    /api/v1/auth/logout:
+        post:
+            operationId: postAuthLogout
+            summary: End the UI session
+            responses:
+                "200":
+                    description: Logged out
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/MessageEnvelope"
+    /api/v1/auth/setup:
+        post:
+            operationId: postAuthSetup
+            summary: Create initial password when unset
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/SetupRequest"
+            responses:
+                "200":
+                    description: Setup complete
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/MessageEnvelope"
+                "400":
+                    description: Invalid setup payload
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ErrorEnvelope"
+    /api/v1/config:
+        get:
+            operationId: getConfig
+            summary: Identity-scoped app config
+            responses:
+                "200":
+                    description: Config envelope
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ConfigEnvelope"
+        patch:
+            operationId: patchConfig
+            summary: Update identity-scoped app config
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            additionalProperties: true
+            responses:
+                "200":
+                    description: Updated config
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ConfigEnvelope"
+                "400":
+                    description: Invalid config
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ErrorEnvelope"
+components:
+    schemas:
+        Status:
+            type: object
+            additionalProperties: true
+        AuthStatus:
+            type: object
+            required: [auth_enabled, password_set, authenticated]
+            properties:
+                auth_enabled:
+                    type: boolean
+                password_set:
+                    type: boolean
+                authenticated:
+                    type: boolean
+                network_ready:
+                    type: boolean
+                status:
+                    type: string
+                    enum: [starting, ok, failed]
+                stage:
+                    type: string
+                    enum: [http, starting, rns, identity, ready, failed]
+                error:
+                    type: string
+            additionalProperties: false
+        CsrfEnvelope:
+            type: object
+            required: [csrf_token]
+            properties:
+                csrf_token:
+                    type: string
+            additionalProperties: false
+        ConfigEnvelope:
+            type: object
+            required: [config]
+            properties:
+                config:
+                    type: object
+                    additionalProperties: true
+            additionalProperties: false
+        LoginRequest:
+            type: object
+            required: [password]
+            properties:
+                password:
+                    type: string
+                    minLength: 1
+            additionalProperties: true
+        SetupRequest:
+            type: object
+            required: [password]
+            properties:
+                password:
+                    type: string
+                    minLength: 1
+            additionalProperties: true
+        MessageEnvelope:
+            type: object
+            required: [message]
+            properties:
+                message:
+                    type: string
+            additionalProperties: true
+        ErrorEnvelope:
+            type: object
+            required: [error]
+            properties:
+                error:
+                    type: string
+            additionalProperties: true
