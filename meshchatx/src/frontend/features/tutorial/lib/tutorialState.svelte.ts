@@ -3,10 +3,9 @@
 /**
  * Tutorial wizard state and side effects.
  *
- * Port of the TutorialModal.vue Options API component. One instance backs
- * either the /tutorial page or the shell modal, selected by the variant the
- * host passes in. Identity setup keeps the two-phase contract from the
- * identity-restore skill: import on Continue, activate on Finish.
+ * One instance backs either the /tutorial page or the shell modal, selected by
+ * the variant the host passes in. Identity setup keeps the two-phase contract
+ * from the identity-restore skill: import on Continue, activate on Finish.
  */
 
 import AndroidStorageBridge from "../../../js/AndroidStorageBridge.js";

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mount } from "@vue/test-utils";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import ToastSvelte from "@/ui/svelte/Toast.svelte";
@@ -12,12 +11,14 @@ const src = (rel) => readFileSync(resolve(__dirname, "../../meshchatx/src/fronte
 
 describe("layout UX oracle-light", () => {
     it("App shell drawer sits in middle pane without fake pt-16 header gap", () => {
-        const app = src("components/App.vue");
+        const app = src("features/app-shell/App.svelte");
+        const sidebar = src("features/app-shell/components/AppShellSidebarPanel.svelte");
+        const header = src("features/app-shell/components/AppShellHeaderBar.svelte");
         expect(app).toContain('class="relative flex flex-1 w-full overflow-hidden');
-        expect(app).toContain("absolute inset-y-0 left-0 z-70");
+        expect(sidebar).toContain("absolute inset-y-0 left-0 z-70");
         expect(app).toContain("absolute inset-0 z-65");
         expect(app).not.toContain("pt-16 sm:pt-0");
-        expect(app).toContain("pt-[env(safe-area-inset-top,0px)]");
+        expect(header).toContain("pt-[env(safe-area-inset-top,0px)]");
     });
 
     it("ConversationViewer message list uses overflow-y-auto and composer safe-area", () => {

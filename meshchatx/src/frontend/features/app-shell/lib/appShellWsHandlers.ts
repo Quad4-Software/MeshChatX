@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 /**
- * Shell-level WebSocket handlers, ported from App.vue getShellWsHandlers.
+ * Shell-level WebSocket handlers for getShellWsHandlers.
  * Kept out of the component so the map stays readable and testable.
  */
 

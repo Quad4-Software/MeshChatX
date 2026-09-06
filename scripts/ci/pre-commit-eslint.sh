@@ -9,7 +9,7 @@ cd "$ROOT"
 files=""
 for path in "$@"; do
 	case "$path" in
-	*.js | *.mjs | *.cjs | *.ts | *.vue) files="$files $path" ;;
+	*.js | *.mjs | *.cjs | *.ts | *.svelte) files="$files $path" ;;
 	esac
 done
 

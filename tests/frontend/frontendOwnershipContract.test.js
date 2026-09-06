@@ -59,7 +59,7 @@ describe("frontend mega-page ownership contracts", () => {
             "meshchatx/src/frontend/features/map",
             "meshchatx/src/frontend/features/messages",
             "meshchatx/src/frontend/features/call",
-            "meshchatx/src/frontend/components/layout",
+            "meshchatx/src/frontend/features/app-shell",
             "meshchatx/src/frontend/js",
         ];
         for (const page of fixture.pages) {

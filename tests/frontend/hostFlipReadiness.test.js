@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 import { describe, it, expect } from "vitest";
-import { existsSync } from "fs";
+import { existsSync, readdirSync, statSync } from "fs";
 import { join } from "path";
 import { listNavItems } from "../../meshchatx/src/frontend/js/registries/navRegistry.js";
 import { listRoutes } from "../../meshchatx/src/frontend/js/registries/routeRegistry.js";
@@ -35,4 +35,18 @@ describe("host flip readiness", () => {
         const nonSvelte = routes.filter((r) => r.mount !== "svelte");
         expect(nonSvelte).toEqual([]);
     }, 30000);
+
+    it("frontend tree has no remaining .vue sources", () => {
+        const root = join(repoRoot, "meshchatx/src/frontend");
+        const vueFiles = [];
+        function walk(dir) {
+            for (const name of readdirSync(dir)) {
+                const p = join(dir, name);
+                if (statSync(p).isDirectory()) walk(p);
+                else if (name.endsWith(".vue")) vueFiles.push(p);
+            }
+        }
+        walk(root);
+        expect(vueFiles).toEqual([]);
+    });
 });

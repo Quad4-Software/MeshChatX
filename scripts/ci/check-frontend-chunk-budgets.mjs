@@ -53,7 +53,7 @@ for (const entry of chunkBudgets) {
             if (!name.startsWith(prefix)) {
                 return false;
             }
-            // Prefer longer prefixes (vendor-vue-router- over vendor-vue-).
+            // Prefer longer prefixes (vendor-foo-bar- over vendor-foo-).
             const longerOwns = chunkBudgets.some(
                 (other) =>
                     other.prefix !== prefix &&

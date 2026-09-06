@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: 0BSD
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import App from "../../meshchatx/src/frontend/components/App.vue";
+import { handleActiveSessionsUpdated } from "../../meshchatx/src/frontend/features/app-shell/lib/appShellNav.js";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
+import { registerFallbackMessages, registerTranslator } from "../../meshchatx/src/frontend/js/i18n.js";
 
 vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     default: {
@@ -14,17 +15,10 @@ vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     },
 }));
 
-function makeContext(overrides = {}) {
+function makeState(overrides = {}) {
     return {
         config: { multi_session_warning_enabled: true },
         multiSessionWarningActive: false,
-        handleActiveSessionsUpdated: App.methods.handleActiveSessionsUpdated,
-        $t(key, params = {}) {
-            if (key === "app.multi_session_warning") {
-                return `multi ${params.count}`;
-            }
-            return key;
-        },
         ...overrides,
     };
 }
@@ -32,76 +26,82 @@ function makeContext(overrides = {}) {
 describe("App multi-session warning toast", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        registerTranslator(null);
+        registerFallbackMessages({
+            app: {
+                multi_session_warning: "multi {count}",
+            },
+        });
     });
 
     it("toasts when two sessions connect and setting is enabled", () => {
-        const ctx = makeContext();
-        ctx.handleActiveSessionsUpdated({
+        const state = makeState();
+        handleActiveSessionsUpdated(state, {
             count: 2,
             warning_enabled: true,
             sessions: [{ ip: "1.1.1.1" }, { ip: "2.2.2.2" }],
         });
         expect(ToastUtils.warning).toHaveBeenCalledWith("multi 2");
-        expect(ctx.multiSessionWarningActive).toBe(true);
+        expect(state.multiSessionWarningActive).toBe(true);
     });
 
     it("does not toast for localhost or lan-only sessions", () => {
-        const ctx = makeContext();
-        ctx.handleActiveSessionsUpdated({
+        const state = makeState();
+        handleActiveSessionsUpdated(state, {
             count: 2,
             warning_enabled: true,
             sessions: [{ ip: "127.0.0.1" }, { ip: "192.168.1.10" }],
         });
         expect(ToastUtils.warning).not.toHaveBeenCalled();
-        expect(ctx.multiSessionWarningActive).toBe(false);
+        expect(state.multiSessionWarningActive).toBe(false);
     });
 
     it("does not toast again while still above the threshold", () => {
-        const ctx = makeContext({ multiSessionWarningActive: true });
-        ctx.handleActiveSessionsUpdated({
+        const state = makeState({ multiSessionWarningActive: true });
+        handleActiveSessionsUpdated(state, {
             count: 3,
             warning_enabled: true,
             sessions: [{ ip: "1.1.1.1" }, { ip: "2.2.2.2" }, { ip: "3.3.3.3" }],
         });
         expect(ToastUtils.warning).not.toHaveBeenCalled();
-        expect(ctx.multiSessionWarningActive).toBe(true);
+        expect(state.multiSessionWarningActive).toBe(true);
     });
 
     it("does not toast when the setting is disabled", () => {
-        const ctx = makeContext({
+        const state = makeState({
             config: { multi_session_warning_enabled: false },
         });
-        ctx.handleActiveSessionsUpdated({
+        handleActiveSessionsUpdated(state, {
             count: 2,
             warning_enabled: false,
             sessions: [{ ip: "1.1.1.1" }, { ip: "2.2.2.2" }],
         });
         expect(ToastUtils.warning).not.toHaveBeenCalled();
-        expect(ctx.multiSessionWarningActive).toBe(false);
+        expect(state.multiSessionWarningActive).toBe(false);
     });
 
     it("resets and can toast again after dropping below two sessions", () => {
-        const ctx = makeContext({ multiSessionWarningActive: true });
-        ctx.handleActiveSessionsUpdated({
+        const state = makeState({ multiSessionWarningActive: true });
+        handleActiveSessionsUpdated(state, {
             count: 1,
             warning_enabled: true,
             sessions: [{ ip: "1.1.1.1" }],
         });
-        expect(ctx.multiSessionWarningActive).toBe(false);
-        ctx.handleActiveSessionsUpdated({
+        expect(state.multiSessionWarningActive).toBe(false);
+        handleActiveSessionsUpdated(state, {
             count: 2,
             warning_enabled: true,
             sessions: [{ ip: "1.1.1.1" }, { ip: "2.2.2.2" }],
         });
         expect(ToastUtils.warning).toHaveBeenCalledTimes(1);
-        expect(ctx.multiSessionWarningActive).toBe(true);
+        expect(state.multiSessionWarningActive).toBe(true);
     });
 
     it("uses config when warning_enabled is omitted from the payload", () => {
-        const ctx = makeContext({
+        const state = makeState({
             config: { multi_session_warning_enabled: false },
         });
-        ctx.handleActiveSessionsUpdated({
+        handleActiveSessionsUpdated(state, {
             count: 2,
             sessions: [{ ip: "1.1.1.1" }, { ip: "2.2.2.2" }],
         });

@@ -2,7 +2,6 @@ import "fake-indexeddb/auto";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { beforeEach, vi } from "vitest";
-import { config } from "@vue/test-utils";
 import createDOMPurify from "dompurify";
 import { injectMeshchatThemeVariables } from "../../meshchatx/src/frontend/theme/designTokens.js";
 import GlobalState from "../../meshchatx/src/frontend/js/GlobalState.js";
@@ -35,7 +34,7 @@ if (typeof window !== "undefined" && typeof window.PointerEvent === "undefined")
 
 if (typeof Element !== "undefined" && !Element.prototype.animate) {
     Element.prototype.animate = function () {
-        const anim = {
+        return {
             finished: Promise.resolve(),
             cancel: () => {},
             onfinish: null,
@@ -44,14 +43,6 @@ if (typeof Element !== "undefined" && !Element.prototype.animate) {
             reverse: () => {},
             finish: () => {},
         };
-        if (typeof setTimeout !== "undefined") {
-            setTimeout(() => {
-                if (typeof anim.onfinish === "function") {
-                    anim.onfinish();
-                }
-            }, 0);
-        }
-        return anim;
     };
 }
 
@@ -129,19 +120,6 @@ global.api = {
     isCancel: vi.fn().mockReturnValue(false),
 };
 window.api = global.api;
-
-config.global.stubs = {
-    MaterialDesignIcon: { template: '<div class="mdi-stub"><slot /></div>' },
-    RouterLink: { template: "<a><slot /></a>" },
-    RouterView: { template: "<div><slot /></div>" },
-    AppModal: {
-        template: '<div class="app-modal-stub"><slot /><slot name="header" /><slot name="actions" /></div>',
-        props: ["modelValue"],
-    },
-    ClickPopover: {
-        template: '<div class="click-popover-stub"><slot name="activator" /><slot /></div>',
-    },
-};
 
 // Mock window.matchMedia
 Object.defineProperty(window, "matchMedia", {

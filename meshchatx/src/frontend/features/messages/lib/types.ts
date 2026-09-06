@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 /**
- * Shared Messages page types. Fields stay optional and Record-friendly to match Vue usage.
+ * Shared Messages page types. Fields stay optional and Record-friendly for API rows.
  */
 
 export type LxmfUserIconInfo = {

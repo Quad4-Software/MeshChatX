@@ -20,13 +20,21 @@ describe("feature route registry", () => {
         clearFeatureIds();
     });
 
-    it("rejects routes without load or mount", () => {
-        expect(() => registerRoute({ name: "x", path: "/x", mount: "vue" })).toThrow(/load/);
+    it("rejects routes without load or invalid mount", () => {
+        expect(() => registerRoute({ name: "x", path: "/x", mount: "svelte" })).toThrow(/load/);
         expect(() =>
             registerRoute({
                 name: "y",
                 path: "/y",
                 mount: "wat",
+                load: () => Promise.resolve({}),
+            })
+        ).toThrow(/mount/);
+        expect(() =>
+            registerRoute({
+                name: "z",
+                path: "/z",
+                mount: "vue",
                 load: () => Promise.resolve({}),
             })
         ).toThrow(/mount/);
@@ -39,7 +47,7 @@ describe("feature route registry", () => {
                 {
                     name: "demo",
                     path: "/demo",
-                    mount: "vue",
+                    mount: "svelte",
                     load: () => Promise.resolve({ default: {} }),
                 },
             ],

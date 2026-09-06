@@ -70,12 +70,7 @@ describe("i18n Localization Tests", () => {
                     if (!skipDirs.has(file)) {
                         walkDir(fullPath);
                     }
-                } else if (
-                    file.endsWith(".vue") ||
-                    file.endsWith(".js") ||
-                    file.endsWith(".ts") ||
-                    file.endsWith(".svelte")
-                ) {
+                } else if (file.endsWith(".js") || file.endsWith(".ts") || file.endsWith(".svelte")) {
                     files.push(fullPath);
                 }
             });
@@ -84,7 +79,7 @@ describe("i18n Localization Tests", () => {
         walkDir(frontendDir);
 
         const foundKeys = new Set();
-        // Vue $t('key') and framework-free t('key') from js/i18n (Svelte / feature libs)
+        // Framework-free t('key') from js/i18n (Svelte / feature libs)
         const tRegex = /(?:\$t|\bt)\s*\(\s*['"`]([^'"`]+)['"`]/g;
 
         files.forEach((file) => {
@@ -112,6 +107,20 @@ describe("i18n Localization Tests", () => {
             console.warn("Keys used in code but missing in en.json:", nonDynamicMissing);
         }
         expect(nonDynamicMissing.length).toBe(0);
+    });
+
+    it("frontend tree has no remaining .vue sources", () => {
+        const frontendDir = path.resolve(__dirname, "../../meshchatx/src/frontend");
+        const vueFiles = [];
+        function walk(dir) {
+            for (const name of fs.readdirSync(dir)) {
+                const full = path.join(dir, name);
+                if (fs.statSync(full).isDirectory()) walk(full);
+                else if (name.endsWith(".vue")) vueFiles.push(full);
+            }
+        }
+        walk(frontendDir);
+        expect(vueFiles).toEqual([]);
     });
 
     it("keeps archives page keys present in every locale", () => {

@@ -1,8 +1,9 @@
 {
     "id": "app",
     "scan_dirs": [
-        "meshchatx/src/frontend/components/App.vue",
-        "meshchatx/src/frontend/components/layout",
+        "meshchatx/src/frontend/features/app-shell/App.svelte",
+        "meshchatx/src/frontend/features/app-shell/components",
+        "meshchatx/src/frontend/features/app-shell/lib",
         "meshchatx/src/frontend/main.ts",
         "meshchatx/src/frontend/js/registries"
     ],

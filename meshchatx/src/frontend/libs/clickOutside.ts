@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: 0BSD
 
 /**
- * Vue 3 click-outside directive and plugin.
- * Compatible with the previous click-outside-vue3 binding shapes:
- *   v-click-outside="handler"
- *   v-click-outside="{ handler, middleware, events, isActive, detectIframe, capture }"
+ * Click-outside helper (binding shapes from the old directive API).
+ * Used by unit tests and any caller that wants processDirectiveArguments /
+ * bind / unbind without a framework directive.
+ *
+ * Binding shapes:
+ *   handler function
+ *   { handler, middleware, events, isActive, detectIframe, capture }
  */
 
 const HANDLERS_PROPERTY = "__meshchatx_click_outside";

@@ -2,8 +2,8 @@
 
 /**
  * Protocol link handling for the app shell.
- * Ported from App.vue handleProtocolLink / openRelayShareLink so the Svelte
- * shell stays small and the URI rules stay testable without a component.
+ * handleProtocolLink / openRelayShareLink live here so the Svelte shell stays
+ * small and the URI rules stay testable without a component.
  */
 
 import LiveTransport from "../../../js/liveTransport.js";

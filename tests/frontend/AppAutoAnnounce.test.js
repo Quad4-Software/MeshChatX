@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import App from "../../meshchatx/src/frontend/components/App.vue";
+import {
+    sendAnnounce,
+    onAnnounceIntervalChange,
+} from "../../meshchatx/src/frontend/features/app-shell/lib/appShellIdentity.js";
+import { applyAnnouncedEvent } from "../../meshchatx/src/frontend/features/app-shell/lib/appShellConfig.js";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
-import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnection";
+import { registerFallbackMessages, registerTranslator } from "../../meshchatx/src/frontend/js/i18n.js";
 
 vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     default: {
@@ -10,24 +14,22 @@ vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     },
 }));
 
-vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
-    default: {
-        send: vi.fn(),
-        connect: vi.fn(),
-        on: vi.fn(),
-        off: vi.fn(),
-        destroy: vi.fn(),
-        setLiveSendBridge: vi.fn(),
-        isOpen: vi.fn(() => false),
-        reconnect: vi.fn(),
-    },
-}));
-
-describe("App.vue sidebar announce and auto-announce interval", () => {
-    const axiosMock = { get: vi.fn(), patch: vi.fn() };
+describe("app-shell sidebar announce and auto-announce interval", () => {
+    const axiosMock = { get: vi.fn(), patch: vi.fn(), post: vi.fn() };
 
     beforeEach(() => {
         vi.clearAllMocks();
+        registerTranslator(null);
+        registerFallbackMessages({
+            app: {
+                announce_sent: "announced",
+                failed_announce: "failed",
+            },
+            common: {
+                saved_setting: "saved {label}",
+                failed_save_setting: "failed {label}",
+            },
+        });
         axiosMock.patch.mockResolvedValue({
             data: { config: { auto_announce_interval_seconds: 3600 } },
         });
@@ -56,18 +58,16 @@ describe("App.vue sidebar announce and auto-announce interval", () => {
             return Promise.resolve({ data: {} });
         });
 
-        const ctx = {
+        const state = {
             config: { auto_announce_interval_seconds: 3600 },
-            getConfig: App.methods.getConfig,
-            $t: (k) => k,
         };
 
-        await App.methods.sendAnnounce.call(ctx);
+        await sendAnnounce(state);
 
         expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/announce");
         expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/config");
         expect(ToastUtils.success).toHaveBeenCalled();
-        expect(ctx.config.last_announced_at).toBeDefined();
+        expect(state.config.last_announced_at).toBeDefined();
     });
 
     it("sendAnnounce surfaces failure toast on announce error", async () => {
@@ -75,78 +75,75 @@ describe("App.vue sidebar announce and auto-announce interval", () => {
             if (url === "/api/v1/announce") {
                 return Promise.reject(new Error("network"));
             }
+            if (url === "/api/v1/config") {
+                return Promise.resolve({ data: { config: {} } });
+            }
             return Promise.resolve({ data: {} });
         });
 
-        const ctx = {
-            config: {},
-            getConfig: vi.fn(),
-            $t: (k) => k,
-        };
-
-        await App.methods.sendAnnounce.call(ctx);
+        const state = { config: {} };
+        await sendAnnounce(state);
 
         expect(ToastUtils.error).toHaveBeenCalled();
     });
 
-    it("onAnnounceIntervalSecondsChange PATCHes announce interval", async () => {
-        const ctx = {
-            config: { auto_announce_interval_seconds: 3600 },
-            updateConfig: App.methods.updateConfig,
-            $t: (k) => k,
+    it("onAnnounceIntervalChange PATCHes announce interval", async () => {
+        const state = {
+            config: { auto_announce_interval_seconds: 1800 },
         };
 
-        await App.methods.onAnnounceIntervalSecondsChange.call(ctx);
+        await onAnnounceIntervalChange(state, 3600);
 
         expect(axiosMock.patch).toHaveBeenCalledWith("/api/v1/config", {
             auto_announce_interval_seconds: 3600,
         });
+        expect(state.config.auto_announce_interval_seconds).toBe(3600);
     });
 
     it("applyAnnouncedEvent writes last_announced_at without waiting for config GET", () => {
-        const ctx = {
+        const state = {
             config: { identity_hash: "h1", last_announced_at: 100 },
-            getConfig: vi.fn(),
         };
 
-        App.methods.applyAnnouncedEvent.call(ctx, {
+        applyAnnouncedEvent(state, {
             type: "announced",
             identity_hash: "h1",
             last_announced_at: 1_700_000_000,
         });
 
-        expect(ctx.config.last_announced_at).toBe(1_700_000_000);
-        expect(ctx.getConfig).not.toHaveBeenCalled();
+        expect(state.config.last_announced_at).toBe(1_700_000_000);
+        expect(axiosMock.get).not.toHaveBeenCalled();
     });
 
     it("applyAnnouncedEvent ignores a stamp from another identity", () => {
-        const ctx = {
+        const state = {
             config: { identity_hash: "h1", last_announced_at: 100 },
-            getConfig: vi.fn(),
         };
 
-        App.methods.applyAnnouncedEvent.call(ctx, {
+        applyAnnouncedEvent(state, {
             type: "announced",
             identity_hash: "h2",
             last_announced_at: 1_700_000_000,
         });
 
-        expect(ctx.config.last_announced_at).toBe(100);
-        expect(ctx.getConfig).not.toHaveBeenCalled();
+        expect(state.config.last_announced_at).toBe(100);
+        expect(axiosMock.get).not.toHaveBeenCalled();
     });
 
-    it("applyAnnouncedEvent falls back to getConfig when stamp is missing", () => {
-        const ctx = {
+    it("applyAnnouncedEvent falls back to getConfig when stamp is missing", async () => {
+        axiosMock.get.mockResolvedValue({
+            data: { config: { identity_hash: "h1", last_announced_at: 100 } },
+        });
+        const state = {
             config: { identity_hash: "h1", last_announced_at: 100 },
-            getConfig: vi.fn(),
         };
 
-        App.methods.applyAnnouncedEvent.call(ctx, {
+        applyAnnouncedEvent(state, {
             type: "announced",
             identity_hash: "h1",
         });
 
-        expect(ctx.config.last_announced_at).toBe(100);
-        expect(ctx.getConfig).toHaveBeenCalledTimes(1);
+        await Promise.resolve();
+        expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/config");
     });
 });

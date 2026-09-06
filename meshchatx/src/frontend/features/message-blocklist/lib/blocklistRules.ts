@@ -12,7 +12,7 @@ import {
 import type { BlocklistConfig, BlocklistEntry, BlocklistMatchMode, BlocklistScope } from "./types.js";
 
 /**
- * Generate a random entry identifier matching Vue implementation
+ * Generate a random entry identifier for new blocklist rows.
  */
 export function newEntryId(): string {
     return Math.random().toString(ID_RANDOM_RADIX).slice(ID_SLICE_START, ID_SLICE_END);

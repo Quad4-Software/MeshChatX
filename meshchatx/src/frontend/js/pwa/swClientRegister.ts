@@ -41,7 +41,7 @@ export function serviceWorkerRegisterOptions() {
 }
 
 /**
- * Vite HMR and Vue DevTools break if a leftover PWA worker intercepts modules.
+ * Vite HMR breaks if a leftover PWA worker intercepts modules.
  * Register only for production-like browser loads (not Electron, not Vite DEV).
  *
  * @param {{ isDev?: boolean, isElectron?: boolean }} state

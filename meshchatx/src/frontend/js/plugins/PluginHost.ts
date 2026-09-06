@@ -14,6 +14,18 @@ import GlobalState from "../GlobalState.js";
 
 /** @typedef {import('./pluginManifest.js').PluginManifest} PluginManifest */
 
+/**
+ * Minimal router surface used by PluginHost (hashRouter facade).
+ * @typedef {{
+ *   push: (target: unknown) => Promise<unknown> | unknown,
+ *   replace?: (target: unknown) => Promise<unknown> | unknown,
+ *   currentRoute?: { value: unknown },
+ *   hasRoute?: (name: string) => boolean,
+ *   addRoute?: (record: object) => void,
+ *   removeRoute?: (name: string) => void,
+ * }} MeshHashRouter
+ */
+
 const FAILURE_REPORT_INTERVAL_MS = 5000;
 /** @type {Map<string, number>} */
 const lastFailureReportAt = new Map();
@@ -41,13 +53,13 @@ export class PluginHost {
     constructor() {
         /** @type {Map<string, { worker: Worker, cleanup: Array<() => void>, manifest: PluginManifest, lastDescriptor: object | null, lastUiError: string, apiClient: ReturnType<import('../apiClient.js').createApiClient> | null, allowHtmlFrame: boolean, allowedWidgets: string[], routeName: string | null }>} */
         this.instances = new Map();
-        /** @type {import('vue-router').Router | null} */
+        /** @type {MeshHashRouter | null} */
         this.router = null;
         this._themeListener = null;
     }
 
     /**
-     * @param {import('vue-router').Router} router
+     * @param {MeshHashRouter} router
      */
     attachRouter(router) {
         this.router = router;

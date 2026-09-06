@@ -2,7 +2,7 @@
 
 import { createRegistry } from "./registryCore.js";
 
-export type PageMountKind = "vue" | "svelte";
+export type PageMountKind = "svelte";
 
 export interface FeatureRouteEntry {
     name: string;
@@ -22,7 +22,7 @@ export function registerRoute(entry: FeatureRouteEntry) {
     if (!entry?.name || !entry?.path) {
         throw new Error("routeRegistry: entry requires name and path");
     }
-    if (entry.mount !== "vue" && entry.mount !== "svelte") {
+    if (entry.mount !== "svelte") {
         throw new Error(`routeRegistry: invalid mount "${entry.mount}"`);
     }
     if (typeof entry.load !== "function") {

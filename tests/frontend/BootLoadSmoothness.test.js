@@ -56,11 +56,12 @@ describe("boot and load smoothness", () => {
         expect(main).toContain("import.meta.env.DEV");
     });
 
-    it("App.vue fades non-keepAlive route swaps on canvas background", () => {
-        const app = readFileSync(resolve(ROOT, "meshchatx/src/frontend/components/App.vue"), "utf8");
+    it("App.svelte shell uses canvas background for route content", () => {
+        const app = readFileSync(resolve(ROOT, "meshchatx/src/frontend/features/app-shell/App.svelte"), "utf8");
         const themeEngine = readFileSync(resolve(ROOT, "meshchatx/src/frontend/theme/themeEngine.ts"), "utf8");
-        expect(app).toContain('name="route-view-fade"');
-        expect(app).toContain("bg-sem-canvas");
+        expect(app).toContain("shellCanvasStyle");
+        expect(readFileSync(resolve(ROOT, "meshchatx/src/frontend/features/app-shell/components/AppShellHeaderBar.svelte"), "utf8")).toContain("bg-sem-canvas");
+        expect(app).toContain("PageOutlet");
         expect(themeEngine).toContain("setUiTheme");
         expect(themeEngine).toContain("meshchatx_ui_theme");
     });

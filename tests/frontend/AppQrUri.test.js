@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import App from "../../meshchatx/src/frontend/components/App.vue";
+import {
+    getMyIdentityUri,
+    openLxmfQr,
+} from "../../meshchatx/src/frontend/features/app-shell/lib/appShellIdentity.js";
+import { handleProtocolLink } from "../../meshchatx/src/frontend/features/app-shell/lib/appShellLinks.js";
 
 vi.mock("qrcode", () => ({
     default: {
@@ -7,40 +11,36 @@ vi.mock("qrcode", () => ({
     },
 }));
 
-describe("App.vue QR and protocol URI handling", () => {
+describe("app-shell QR and protocol URI handling", () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
     it("generates lxma QR URI when public key is available", async () => {
-        const ctx = {
+        const state = {
             config: {
                 lxmf_address_hash: "a".repeat(32),
                 identity_public_key: "b".repeat(128),
             },
             lxmfQrDataUrl: null,
             showLxmfQr: false,
-            getMyIdentityUri: App.methods.getMyIdentityUri,
-            $t: (k) => k,
         };
 
-        await App.methods.openLxmfQr.call(ctx);
+        await openLxmfQr(state);
 
-        expect(ctx.showLxmfQr).toBe(true);
-        expect(ctx.lxmfQrDataUrl).toBe("data:image/png;base64,abc123");
+        expect(state.showLxmfQr).toBe(true);
+        expect(state.lxmfQrDataUrl).toBe("data:image/png;base64,abc123");
+        expect(getMyIdentityUri(state)).toBe(
+            `lxma://${"a".repeat(32)}:${"b".repeat(128)}`
+        );
     });
 
     it("parses lxma protocol links and routes by destination hash", () => {
         const push = vi.fn();
-        const ctx = {
-            $router: {
-                push,
-            },
-        };
         const destinationHash = "c".repeat(32);
         const publicKey = "d".repeat(128);
 
-        App.methods.handleProtocolLink.call(ctx, `lxma://${destinationHash}:${publicKey}`);
+        handleProtocolLink({ push }, `lxma://${destinationHash}:${publicKey}`);
 
         expect(push).toHaveBeenCalledWith({
             name: "messages",

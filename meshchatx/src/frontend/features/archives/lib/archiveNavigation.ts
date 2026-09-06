@@ -3,7 +3,7 @@
 import { handleRichHtmlLinkClick } from "../../../js/NomadRichHtmlLinks.js";
 import type { ArchiveItem } from "./types.js";
 
-/** Router abstraction allowing Vue router or hash location fallback */
+/** Router abstraction for hashRouter.push or a compatible facade */
 export interface RouterLike {
     push?: (location: { name: string; params?: Record<string, unknown>; query?: Record<string, unknown> }) => void;
 }

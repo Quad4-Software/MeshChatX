@@ -53,17 +53,17 @@ import { onAndroidIntentUri } from "./appShellCommands.js";
 import { onRingtoneUnlockGesture } from "./appShellTelephony.js";
 
 /**
- * App shell state, ported from components/App.vue.
+ * App shell state for features/app-shell/App.svelte.
  * Holds the reactive fields and computed values App.svelte reads. Behaviour
  * lives in the appShell* helper modules so no single file carries the whole
- * shell. GlobalState is still a Vue reactive object, so its fields are
- * mirrored into runes state through a Vue watcher.
+ * shell. GlobalState fields are mirrored into runes state through
+ * subscribeGlobalState.
  */
 
 export class AppShellState {
     hosts: ShellHosts = {};
 
-    /** Mirror of the Vue reactive GlobalState fields the shell reads. */
+    /** Mirror of GlobalState fields the shell reads. */
 
     global = $state({
         authSessionResolved: false,

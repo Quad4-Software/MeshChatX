@@ -3,29 +3,11 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { detectLaunchEditor, envFlagEnabled, isVueDevToolsEnabled } from "../../scripts/vite-dx.mjs";
+import { detectLaunchEditor, envFlagEnabled } from "../../scripts/vite-dx.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 
-describe("vite-dx Vue DevTools gate", () => {
-    it("oracle: only vite serve enables DevTools by default", () => {
-        const cases = [
-            { command: "serve", env: {}, expected: true },
-            { command: "build", env: {}, expected: false },
-            { command: "serve", env: { VITEST: "true" }, expected: false },
-            { command: "serve", env: { MESHCHAT_VUE_DEVTOOLS: "0" }, expected: false },
-            { command: "serve", env: { MESHCHAT_VUE_DEVTOOLS: "false" }, expected: false },
-            { command: "serve", env: { MESHCHAT_VUE_DEVTOOLS: "1" }, expected: true },
-            { command: "build", env: { MESHCHAT_VUE_DEVTOOLS: "1" }, expected: false },
-            { command: undefined, env: {}, expected: false },
-        ];
-        for (const input of cases) {
-            expect(isVueDevToolsEnabled({ command: input.command, env: input.env }), JSON.stringify(input)).toBe(
-                input.expected
-            );
-        }
-    });
-
+describe("vite-dx and Vite serve config", () => {
     it("envFlagEnabled accepts 1/true/yes only", () => {
         expect(envFlagEnabled("1")).toBe(true);
         expect(envFlagEnabled("true")).toBe(true);
@@ -40,21 +22,20 @@ describe("vite-dx Vue DevTools gate", () => {
         expect(detectLaunchEditor({})).toBe("code");
     });
 
-    it("vite.config.js wires the plugin, production DevTools flag, and localhost server", () => {
+    it("vite.config.js is Svelte-only with localhost serve defaults", () => {
         const vite = readFileSync(resolve(ROOT, "vite.config.js"), "utf8");
-        expect(vite).toContain('from "vite-plugin-vue-devtools"');
-        expect(vite).toContain("isVueDevToolsEnabled({ command })");
-        expect(vite).toContain('__VUE_PROD_DEVTOOLS__: "false"');
+        expect(vite).not.toContain("vite-plugin-vue-devtools");
+        expect(vite).not.toContain("@vitejs/plugin-vue");
+        expect(vite).not.toContain('from "vue"');
+        expect(vite).toContain("@sveltejs/vite-plugin-svelte");
         expect(vite).toContain("sourcemap: false");
         expect(vite).toContain("devSourcemap: true");
         expect(vite).toContain('host: "127.0.0.1"');
         expect(vite).toContain("strictPort: true");
         expect(vite).toContain("clearScreen: false");
         expect(vite).toContain('forwardConsole: command === "serve"');
-        expect(vite).toContain("chunkImportMap: false");
         expect(vite).toContain("tsconfigPaths: true");
         expect(vite).toContain('"micron-parser"');
-        expect(vite).toMatch(/node_modules["'],\s*["']micron-parser["'],\s*["']js["'],\s*["']micron-parser\.js["']/);
         expect(vite).toContain("MESHCHAT_VITE_BUNDLED_DEV");
         expect(vite).toContain("bundledDev: true");
     });
@@ -63,7 +44,7 @@ describe("vite-dx Vue DevTools gate", () => {
         const vite = readFileSync(resolve(ROOT, "vite.config.js"), "utf8");
         const imports = [...vite.matchAll(/from\s+"(\.\/scripts\/[^"]+)"/g)].map((m) => m[1].replace(/^\.\//, ""));
         expect(imports.length).toBeGreaterThan(0);
-        expect(imports).toContain("scripts/vite-dx.mjs");
+        expect(imports).not.toContain("scripts/vite-dx.mjs");
         for (const dockerfile of ["docker/Dockerfile", "docker/Dockerfile.hardened"]) {
             const body = readFileSync(resolve(ROOT, dockerfile), "utf8");
             const frontendStage = body.split(/^FROM /m)[1] || "";
@@ -71,11 +52,6 @@ describe("vite-dx Vue DevTools gate", () => {
                 expect(frontendStage, `${dockerfile} missing COPY ${rel}`).toContain(`COPY ${rel} ${rel}`);
             }
         }
-    });
-
-    it("e2e Vite stack disables Vue DevTools", () => {
-        const e2e = readFileSync(resolve(ROOT, "scripts/e2e/start-e2e-stack.sh"), "utf8");
-        expect(e2e).toContain("MESHCHAT_VUE_DEVTOOLS=0");
     });
 
     it("Vite proxy forwards Host and task stacks trust loopback for WS Origin", () => {
@@ -94,13 +70,19 @@ describe("vite-dx Vue DevTools gate", () => {
     it("Vite CORS allows opaque null Origin for the Nomad crash-tab sandbox", () => {
         const vite = readFileSync(resolve(ROOT, "vite.config.js"), "utf8");
         expect(vite).toContain('origin === "null"');
-        expect(vite).toContain("skipVueDevToolsInCrashTab");
         expect(vite).toContain("nomad-crash-tab");
+        expect(vite).not.toContain("skipVueDevToolsInCrashTab");
     });
 
-    it("package.json lists vite-plugin-vue-devtools as a devDependency", () => {
+    it("package.json does not list Vue packages", () => {
         const pkg = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8"));
-        expect(pkg.devDependencies["vite-plugin-vue-devtools"]).toBeTruthy();
+        expect(pkg.dependencies?.vue).toBeUndefined();
+        expect(pkg.dependencies?.["vue-router"]).toBeUndefined();
+        expect(pkg.dependencies?.["vue-i18n"]).toBeUndefined();
+        expect(pkg.devDependencies?.["vite-plugin-vue-devtools"]).toBeUndefined();
+        expect(pkg.devDependencies?.["@vitejs/plugin-vue"]).toBeUndefined();
+        expect(pkg.devDependencies?.["vue-tsc"]).toBeUndefined();
+        expect(pkg.devDependencies?.["@vue/test-utils"]).toBeUndefined();
     });
 
     it("debugpy in task debug binds 127.0.0.1 only", () => {
