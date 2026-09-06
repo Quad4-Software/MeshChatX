@@ -78,7 +78,7 @@
         >
             <div
                 v-show="composerImageDropActive"
-                class="pointer-events-none absolute inset-0 z-5 border-2 border-dashed border-blue-400/70 bg-blue-500/6 dark:bg-blue-400/8"
+                class="pointer-events-none absolute inset-0 z-5 border-2 border-dashed border-sem-accent/70 bg-sem-accent/5"
                 aria-hidden="true"
             />
 
@@ -211,7 +211,7 @@
                 >
                     <button
                         type="button"
-                        class="flex items-center justify-center size-10 min-h-[44px] min-w-[44px] rounded-full bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-sem-border shadow-sm text-sem-fg-muted hover:bg-gray-100 hover:bg-sem-surface-muted hover:text-gray-700 hover:text-sem-fg transition-colors"
+                        class="flex items-center justify-center size-10 min-h-[44px] min-w-[44px] rounded-full bg-sem-surface/90 backdrop-blur-sm border border-sem-border shadow-sm text-sem-fg-muted hover:bg-sem-surface-muted hover:bg-sem-surface-muted hover:text-sem-fg hover:text-sem-fg transition-colors"
                         title="Scroll to bottom"
                         @click="scrollMessagesToBottom()"
                     >
@@ -292,7 +292,7 @@
                                 <div v-if="newMessageImages.length === 1" class="relative group">
                                     <button
                                         type="button"
-                                        class="block w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                        class="block w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-sem-focus/60"
                                         @click.stop="openImage(newMessageImageUrls[0], newMessageImageUrls)"
                                     >
                                         <img
@@ -303,7 +303,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="absolute top-1.5 right-1.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-sem-surface border border-sem-border text-gray-600 dark:text-gray-200 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 shadow-md"
+                                        class="absolute top-1.5 right-1.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-sem-surface border border-sem-border text-sem-fg-muted dark:text-gray-200 hover:bg-sem-danger/10 hover:text-sem-danger shadow-md"
                                         @click.stop="removeImageAttachment(0)"
                                     >
                                         <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
@@ -313,7 +313,7 @@
                                     <div v-for="(image, index) in newMessageImages" :key="index" class="relative group">
                                         <button
                                             type="button"
-                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-sem-focus/60"
                                             @click.stop="openImage(newMessageImageUrls[index], newMessageImageUrls)"
                                         >
                                             <img
@@ -335,7 +335,7 @@
                                     <div v-for="index in [0, 1]" :key="index" class="relative group">
                                         <button
                                             type="button"
-                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-sem-focus/60"
                                             @click.stop="openImage(newMessageImageUrls[index], newMessageImageUrls)"
                                         >
                                             <img
@@ -355,7 +355,7 @@
                                     <div class="relative group col-span-2">
                                         <button
                                             type="button"
-                                            class="relative block aspect-2/1 max-h-44 w-full min-h-[72px] overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                            class="relative block aspect-2/1 max-h-44 w-full min-h-[72px] overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-sem-focus/60"
                                             @click.stop="openImage(newMessageImageUrls[2], newMessageImageUrls)"
                                         >
                                             <img
@@ -381,7 +381,7 @@
                                     >
                                         <button
                                             type="button"
-                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-sem-focus/60"
                                             @click.stop="openImage(newMessageImageUrls[slot - 1], newMessageImageUrls)"
                                         >
                                             <img
@@ -433,10 +433,7 @@
                                     class="attachment-chip"
                                 >
                                     <div class="flex items-center gap-2">
-                                        <MaterialDesignIcon
-                                            icon-name="paperclip"
-                                            class="w-4 h-4 text-gray-500 dark:text-gray-300"
-                                        />
+                                        <MaterialDesignIcon icon-name="paperclip" class="w-4 h-4 text-sem-fg-muted" />
                                         <div class="text-sm text-gray-800 dark:text-gray-200 truncate max-w-[160px]">
                                             {{ file.name }}
                                         </div>
@@ -499,7 +496,7 @@
                                     v-if="isStickerPickerOpen"
                                     class="absolute bottom-full right-0 mb-2 z-50 w-[min(320px,85vw)] max-h-[min(420px,70vh)] flex flex-col rounded-2xl border border-sem-border bg-sem-surface shadow-xl overflow-hidden"
                                     :class="{
-                                        'ring-2 ring-blue-500/50 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900':
+                                        'ring-2 ring-sem-focus/50 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900':
                                             (stickerDropActive && emojiStickerTab === 'stickers') ||
                                             (gifDropActive && emojiStickerTab === 'gifs'),
                                     }"
@@ -614,7 +611,7 @@
                                                 v-for="s in visibleStickers"
                                                 :key="s.id"
                                                 type="button"
-                                                class="aspect-square rounded-lg overflow-hidden border border-sem-border hover:ring-2 hover:ring-blue-500/50 bg-gray-50 dark:bg-zinc-800"
+                                                class="aspect-square rounded-lg overflow-hidden border border-sem-border hover:ring-2 hover:ring-sem-focus/50 bg-sem-surface-muted"
                                                 :title="s.name || s.emoji || 'Sticker'"
                                                 @click="addStickerFromLibrary(s)"
                                             >
@@ -629,17 +626,17 @@
                                         </div>
                                         <button
                                             type="button"
-                                            class="w-full rounded-xl border-2 border-dashed border-gray-300 dark:border-zinc-600 px-2 py-2 text-xs hover:border-blue-400"
+                                            class="w-full rounded-xl border-2 border-dashed border-sem-border px-2 py-2 text-xs hover:border-sem-accent"
                                             :class="
                                                 stickerDropActive
-                                                    ? 'border-blue-500 bg-blue-50/70 dark:bg-blue-950/40'
+                                                    ? 'border-sem-accent bg-blue-50/70 dark:bg-blue-950/40'
                                                     : ''
                                             "
                                             :disabled="isStickerUploading"
                                             @click="triggerStickerUploadInput"
                                         >
                                             <div class="flex items-center justify-center gap-1">
-                                                <MaterialDesignIcon icon-name="upload" class="size-4 text-blue-500" />
+                                                <MaterialDesignIcon icon-name="upload" class="size-4 text-sem-accent" />
                                                 {{ $t("stickers.upload_short") }}
                                             </div>
                                         </button>
@@ -665,14 +662,14 @@
                                                 v-for="g in userGifs"
                                                 :key="g.id"
                                                 type="button"
-                                                class="relative aspect-video rounded-lg overflow-hidden border border-sem-border hover:ring-2 hover:ring-blue-500/50 group"
+                                                class="relative aspect-video rounded-lg overflow-hidden border border-sem-border hover:ring-2 hover:ring-sem-focus/50 group"
                                                 :title="g.name || 'GIF'"
                                                 @click="addGifFromLibrary(g)"
                                             >
                                                 <InViewAnimatedImg
                                                     :src="gifImageUrl(g.id)"
                                                     fit-parent
-                                                    img-class="w-full h-full object-contain bg-gray-50 dark:bg-zinc-800"
+                                                    img-class="w-full h-full object-contain bg-sem-surface-muted"
                                                 />
                                                 <span
                                                     v-if="g.usage_count > 0"
@@ -690,9 +687,11 @@
                                         </div>
                                         <button
                                             type="button"
-                                            class="w-full rounded-xl border-2 border-dashed border-gray-300 dark:border-zinc-600 px-3 py-3 text-left transition-colors hover:border-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/30"
+                                            class="w-full rounded-xl border-2 border-dashed border-sem-border px-3 py-3 text-left transition-colors hover:border-sem-accent hover:hover:bg-sem-info/10"
                                             :class="
-                                                gifDropActive ? 'border-blue-500 bg-blue-50/70 dark:bg-blue-950/40' : ''
+                                                gifDropActive
+                                                    ? 'border-sem-accent bg-blue-50/70 dark:bg-blue-950/40'
+                                                    : ''
                                             "
                                             :disabled="isGifUploading"
                                             @click="triggerGifUploadInput"
@@ -700,7 +699,7 @@
                                             <div class="flex items-start gap-2">
                                                 <MaterialDesignIcon
                                                     icon-name="upload"
-                                                    class="size-5 shrink-0 text-blue-500 mt-0.5"
+                                                    class="size-5 shrink-0 text-sem-accent mt-0.5"
                                                 />
                                                 <div class="min-w-0">
                                                     <div class="text-xs font-medium text-sem-fg">
@@ -738,9 +737,9 @@
                         <!-- reply preview -->
                         <div
                             v-if="replyingTo"
-                            class="mt-2 p-2 rounded-xl bg-gray-50 dark:bg-zinc-800/50 border border-sem-border/50 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200"
+                            class="mt-2 p-2 rounded-xl bg-sem-surface-muted/50 border border-sem-border/50 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200"
                         >
-                            <div class="flex-1 min-w-0 border-l-2 border-blue-500 pl-3">
+                            <div class="flex-1 min-w-0 border-l-2 border-sem-accent pl-3">
                                 <div class="flex items-center gap-1 text-[11px] font-medium text-sem-accent mb-0.5">
                                     <MaterialDesignIcon icon-name="reply" class="size-3" />
                                     {{ $t("messages.replying_to") }}
@@ -751,7 +750,7 @@
                             </div>
                             <button
                                 type="button"
-                                class="p-1.5 hover:bg-gray-200 hover:bg-sem-surface-muted rounded-lg transition-colors text-gray-400 hover:text-gray-600 hover:text-sem-fg"
+                                class="p-1.5 hover:bg-sem-surface-muted hover:bg-sem-surface-muted rounded-lg transition-colors text-sem-fg-muted hover:text-sem-fg-muted hover:text-sem-fg"
                                 @click="cancelReply"
                             >
                                 <MaterialDesignIcon icon-name="close" class="w-4 h-4" />
@@ -773,7 +772,7 @@
                             >
                             <select
                                 v-model="translateTargetModalValue"
-                                class="flex-1 min-w-0 min-h-[2.25rem] sm:min-h-0 text-sm rounded-lg border border-gray-200/90 dark:border-zinc-600 bg-sem-surface px-2.5 py-1.5 text-sem-fg"
+                                class="flex-1 min-w-0 min-h-[2.25rem] sm:min-h-0 text-sm rounded-lg border border-sem-border/90 bg-sem-surface px-2.5 py-1.5 text-sem-fg"
                                 :aria-label="$t('messages.translate_select_target')"
                             >
                                 <option
@@ -832,7 +831,7 @@
                                 </button>
                                 <div
                                     v-if="showLocationActionMenu"
-                                    class="absolute left-0 bottom-full mb-2 z-50 min-w-[220px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+                                    class="absolute left-0 bottom-full mb-2 z-50 min-w-[220px] overflow-hidden rounded-xl border border-sem-border bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
                                 >
                                     <button
                                         type="button"
@@ -917,7 +916,7 @@
                             v-for="(emo, emi) in lxmfReactionEmojis"
                             :key="emi"
                             type="button"
-                            class="text-lg leading-none px-1.5 py-0.5 rounded-lg hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors"
+                            class="text-lg leading-none px-1.5 py-0.5 rounded-lg hover:bg-sem-surface-muted hover:bg-sem-surface-muted transition-colors"
                             :title="emo"
                             @click="sendReactionEmojiFromMenu(messageContextMenu.chatItem, emo)"
                         >
@@ -925,7 +924,7 @@
                         </button>
                         <button
                             type="button"
-                            class="text-lg leading-none px-1.5 py-0.5 rounded-lg hover:bg-gray-100 hover:bg-sem-surface-muted transition-colors text-sem-fg-muted"
+                            class="text-lg leading-none px-1.5 py-0.5 rounded-lg hover:bg-sem-surface-muted hover:bg-sem-surface-muted transition-colors text-sem-fg-muted"
                             :title="$t('messages.react')"
                             @click="
                                 openReactionPicker(messageContextMenu.chatItem);
@@ -942,21 +941,21 @@
                         messageContextMenu.show = false;
                     "
                 >
-                    <MaterialDesignIcon icon-name="code-json" class="size-4 text-gray-400" />
+                    <MaterialDesignIcon icon-name="code-json" class="size-4 text-sem-fg-muted" />
                     {{ $t("messages.view_raw_lxm") }}
                 </ContextMenuItem>
                 <ContextMenuItem
                     v-if="messageContextMenu.chatItem?.lxmf_message?.fields?.image"
                     @click="downloadMessageImage(messageContextMenu.chatItem)"
                 >
-                    <MaterialDesignIcon icon-name="download" class="size-4 text-blue-500" />
+                    <MaterialDesignIcon icon-name="download" class="size-4 text-sem-accent" />
                     {{ $t("messages.save_image_to_device") }}
                 </ContextMenuItem>
                 <ContextMenuItem
                     v-if="messageContextMenu.chatItem?.lxmf_message?.fields?.image"
                     @click="copyMessageImageToClipboard(messageContextMenu.chatItem)"
                 >
-                    <MaterialDesignIcon icon-name="content-copy" class="size-4 text-blue-500" />
+                    <MaterialDesignIcon icon-name="content-copy" class="size-4 text-sem-accent" />
                     {{ $t("messages.copy_image_to_clipboard") }}
                 </ContextMenuItem>
                 <ContextMenuItem
@@ -1005,7 +1004,7 @@
                 </ContextMenuItem>
                 <ContextMenuDivider />
                 <ContextMenuItem
-                    item-class="text-red-600 dark:text-red-400"
+                    item-class="text-sem-danger dark:text-red-400"
                     @click="
                         deleteChatItem(messageContextMenu.chatItem);
                         messageContextMenu.show = false;
@@ -1019,7 +1018,7 @@
     </div>
 
     <!-- no peer selected -->
-    <div v-else class="flex flex-col h-full overflow-y-auto bg-gray-50/50 dark:bg-zinc-950/50">
+    <div v-else class="flex flex-col h-full overflow-y-auto bg-sem-canvas/50">
         <div class="max-w-2xl mx-auto w-full px-4 py-8 sm:py-10 flex flex-col items-center">
             <div class="text-center mb-8">
                 <div
@@ -1038,7 +1037,7 @@
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mb-8">
                 <button
                     type="button"
-                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-blue-400/60 hover:bg-sem-surface-muted transition-colors"
+                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-sem-accent/60 hover:bg-sem-surface-muted transition-colors"
                     @click="focusComposeInput"
                 >
                     <MaterialDesignIcon icon-name="plus" class="size-5 text-sem-accent" />
@@ -1047,7 +1046,7 @@
 
                 <button
                     type="button"
-                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-blue-400/60 hover:bg-sem-surface-muted transition-colors"
+                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-sem-accent/60 hover:bg-sem-surface-muted transition-colors"
                     @click="syncPropagationNode"
                 >
                     <MaterialDesignIcon
@@ -1063,7 +1062,7 @@
 
                 <button
                     type="button"
-                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-blue-400/60 hover:bg-sem-surface-muted transition-colors"
+                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-sem-accent/60 hover:bg-sem-surface-muted transition-colors"
                     @click="copyMyAddress"
                 >
                     <MaterialDesignIcon icon-name="content-copy" class="size-5 text-sem-accent" />
@@ -1072,7 +1071,7 @@
 
                 <button
                     type="button"
-                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-blue-400/60 hover:bg-sem-surface-muted transition-colors"
+                    class="flex flex-col items-center gap-2 p-3 rounded-xl bg-sem-surface border border-sem-border hover:border-sem-accent/60 hover:bg-sem-surface-muted transition-colors"
                     @click="$router.push({ name: 'identities' })"
                 >
                     <MaterialDesignIcon icon-name="account-multiple" class="size-5 text-sem-accent" />
@@ -1088,7 +1087,7 @@
                     <div
                         v-for="chat in latestConversations"
                         :key="chat.destination_hash"
-                        class="group cursor-pointer p-3 bg-sem-surface border border-sem-border rounded-xl hover:border-blue-400/60 hover:bg-sem-surface-muted transition-colors flex items-center gap-3"
+                        class="group cursor-pointer p-3 bg-sem-surface border border-sem-border rounded-xl hover:border-sem-accent/60 hover:bg-sem-surface-muted transition-colors flex items-center gap-3"
                         @click="$emit('update:selectedPeer', chat)"
                     >
                         <div class="shrink-0">
@@ -1134,7 +1133,7 @@
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <MaterialDesignIcon
                             icon-name="at"
-                            class="size-5 text-gray-400 group-focus-within:text-sem-accent transition-colors"
+                            class="size-5 text-sem-fg-muted group-focus-within:text-sem-accent transition-colors"
                         />
                     </div>
                     <input
@@ -1143,7 +1142,7 @@
                         v-model="composeAddress"
                         :readonly="isTranslatingMessage"
                         type="text"
-                        class="w-full bg-sem-surface border border-sem-border text-sem-fg text-sm rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 pl-10 pr-4 py-2.5 transition-colors placeholder:text-gray-400 dark:placeholder:text-zinc-500"
+                        class="w-full bg-sem-surface border border-sem-border text-sem-fg text-sm rounded-xl focus:ring-2 focus:ring-sem-focus/30 focus:border-sem-focus pl-10 pr-4 py-2.5 transition-colors placeholder:text-sem-fg-muted dark:placeholder:text-zinc-500"
                         :placeholder="$t('messages.compose_address_placeholder')"
                         @keydown.enter.exact.prevent="onComposeEnterPressed"
                         @keydown.up.prevent="handleComposeInputUp"
@@ -1163,7 +1162,7 @@
                                 class="px-3 py-2 flex items-center gap-3 cursor-pointer rounded-lg transition-colors"
                                 :class="[
                                     index === selectedComposeSuggestionIndex
-                                        ? 'bg-blue-600 text-white'
+                                        ? 'bg-sem-action-primary text-white'
                                         : 'hover:bg-sem-surface-muted/50 text-sem-fg-muted',
                                 ]"
                                 @mousedown.prevent="selectComposeSuggestion(suggestion)"
@@ -1174,8 +1173,8 @@
                                         index === selectedComposeSuggestionIndex
                                             ? 'bg-white/20'
                                             : suggestion.type === 'contact'
-                                              ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600'
-                                              : 'bg-sem-surface-muted text-gray-500',
+                                              ? 'bg-sem-info/15 text-sem-accent'
+                                              : 'bg-sem-surface-muted text-sem-fg-muted',
                                     ]"
                                 >
                                     <MaterialDesignIcon :icon-name="suggestion.icon" class="size-4" />
@@ -1228,11 +1227,11 @@
             panel-class="z-200"
         >
             <ContextMenuItem @click="downloadImageModalCurrent">
-                <MaterialDesignIcon icon-name="download" class="size-4 text-blue-500" />
+                <MaterialDesignIcon icon-name="download" class="size-4 text-sem-accent" />
                 {{ $t("messages.save_image_to_device") }}
             </ContextMenuItem>
             <ContextMenuItem @click="copyImageModalCurrentToClipboard">
-                <MaterialDesignIcon icon-name="content-copy" class="size-4 text-blue-500" />
+                <MaterialDesignIcon icon-name="content-copy" class="size-4 text-sem-accent" />
                 {{ $t("messages.copy_image_to_clipboard") }}
             </ContextMenuItem>
         </ContextMenuPanel>
@@ -1284,7 +1283,7 @@
                     <div class="flex flex-wrap sm:flex-nowrap items-stretch gap-2">
                         <select
                             v-model="translateTargetModalValue"
-                            class="flex-1 min-w-0 min-h-[2.5rem] text-sm rounded-lg border border-gray-200/90 dark:border-zinc-600 bg-sem-surface/90 px-2.5 py-1.5 text-sem-fg"
+                            class="flex-1 min-w-0 min-h-[2.5rem] text-sm rounded-lg border border-sem-border/90 bg-sem-surface/90 px-2.5 py-1.5 text-sem-fg"
                             :aria-label="$t('messages.translate_select_target')"
                         >
                             <option
@@ -1351,13 +1350,13 @@
                     <h3 class="text-lg font-bold text-sem-fg">Raw LXMF Message</h3>
                     <button
                         type="button"
-                        class="text-gray-400 hover:text-gray-500 dark:hover:text-zinc-300 transition-colors"
+                        class="text-sem-fg-muted hover:text-sem-fg-muted dark:hover:text-zinc-300 transition-colors"
                         @click="isRawMessageModalOpen = false"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-6" />
                     </button>
                 </div>
-                <div class="p-0 overflow-y-auto bg-gray-50 dark:bg-zinc-950 grow">
+                <div class="p-0 overflow-y-auto bg-sem-surface-muted dark:bg-zinc-950 grow">
                     <div class="p-6 space-y-6">
                         <!-- header / status info -->
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -1365,7 +1364,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >Message ID</label
                                 >
-                                <div class="text-sm font-mono text-gray-900 text-sem-fg">
+                                <div class="text-sm font-mono text-sem-fg">
                                     {{ rawMessageData.id }}
                                 </div>
                             </div>
@@ -1384,10 +1383,10 @@
                                     >
                                         {{ rawMessageData.state }}
                                     </span>
-                                    <span v-if="rawMessageData.is_incoming" class="text-[10px] text-gray-400"
+                                    <span v-if="rawMessageData.is_incoming" class="text-[10px] text-sem-fg-muted"
                                         >Incoming</span
                                     >
-                                    <span v-else class="text-[10px] text-gray-400">Outbound</span>
+                                    <span v-else class="text-[10px] text-sem-fg-muted">Outbound</span>
                                 </div>
                             </div>
                         </div>
@@ -1397,7 +1396,7 @@
                                 >Message Hash</label
                             >
                             <div
-                                class="text-sm font-mono break-all text-gray-900 text-sem-fg bg-sem-surface p-2 rounded-sm border border-sem-border"
+                                class="text-sm font-mono break-all text-sem-fg bg-sem-surface p-2 rounded-sm border border-sem-border"
                             >
                                 {{ rawMessageData.hash }}
                             </div>
@@ -1408,7 +1407,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >Source Hash</label
                                 >
-                                <div class="text-xs font-mono break-all text-gray-900 text-sem-fg">
+                                <div class="text-xs font-mono break-all text-sem-fg">
                                     {{ rawMessageData.source_hash }}
                                 </div>
                             </div>
@@ -1416,7 +1415,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >Destination Hash</label
                                 >
-                                <div class="text-xs font-mono break-all text-gray-900 text-sem-fg">
+                                <div class="text-xs font-mono break-all text-sem-fg">
                                     {{ rawMessageData.destination_hash }}
                                 </div>
                             </div>
@@ -1427,7 +1426,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted">{{
                                     $t("messages.raw_path_interface_at_send")
                                 }}</label>
-                                <div class="text-sm text-gray-900 text-sem-fg wrap-break-word">
+                                <div class="text-sm text-sem-fg wrap-break-word">
                                     {{
                                         rawMessageData.path_interface_at_send != null &&
                                         rawMessageData.path_interface_at_send !== ""
@@ -1440,7 +1439,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted">{{
                                     $t("messages.raw_path_hops_at_send")
                                 }}</label>
-                                <div class="text-sm text-gray-900 text-sem-fg">
+                                <div class="text-sm text-sem-fg">
                                     {{
                                         rawMessageData.path_hops_at_send != null
                                             ? rawMessageData.path_hops_at_send
@@ -1458,7 +1457,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted">{{
                                     $t("messages.raw_path_finding_measure")
                                 }}</label>
-                                <div class="text-sm font-mono text-gray-900 text-sem-fg wrap-break-word">
+                                <div class="text-sm font-mono text-sem-fg wrap-break-word">
                                     {{ rawMessageData.path_finding_measure || $t("messages.raw_path_value_unknown") }}
                                 </div>
                             </div>
@@ -1467,7 +1466,7 @@
                                     $t("messages.raw_path_row_hash_rnpath")
                                 }}</label>
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <div class="text-xs font-mono break-all text-gray-900 text-sem-fg">
+                                    <div class="text-xs font-mono break-all text-sem-fg">
                                         {{ rawMessageData.path_row_hash_hex || $t("messages.raw_path_value_unknown") }}
                                     </div>
                                     <button
@@ -1490,7 +1489,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >Method</label
                                 >
-                                <div class="text-sm text-gray-900 text-sem-fg capitalize">
+                                <div class="text-sm text-sem-fg capitalize">
                                     {{ rawMessageData.method }}
                                 </div>
                             </div>
@@ -1498,7 +1497,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >RSSI</label
                                 >
-                                <div class="text-sm text-gray-900 text-sem-fg">
+                                <div class="text-sm text-sem-fg">
                                     {{ rawMessageData.rssi || "N/A" }}
                                 </div>
                             </div>
@@ -1506,7 +1505,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >SNR</label
                                 >
-                                <div class="text-sm text-gray-900 text-sem-fg">
+                                <div class="text-sm text-sem-fg">
                                     {{ rawMessageData.snr || "N/A" }}
                                 </div>
                             </div>
@@ -1514,7 +1513,7 @@
                                 <label class="text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted"
                                     >Attempts</label
                                 >
-                                <div class="text-sm text-gray-900 text-sem-fg">
+                                <div class="text-sm text-sem-fg">
                                     {{ rawMessageData.delivery_attempts }}
                                 </div>
                             </div>
@@ -1566,7 +1565,7 @@
                         <!-- JSON fallback for full detail -->
                         <details class="group">
                             <summary
-                                class="flex items-center gap-2 cursor-pointer text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted hover:text-gray-600 dark:hover:text-zinc-300 transition-colors"
+                                class="flex items-center gap-2 cursor-pointer text-[10px] font-bold uppercase tracking-wider text-sem-fg-muted hover:text-sem-fg-muted dark:hover:text-zinc-300 transition-colors"
                             >
                                 <MaterialDesignIcon
                                     icon-name="chevron-right"
@@ -1585,7 +1584,7 @@
                 <div class="px-6 py-4 border-t border-sem-border flex justify-end shrink-0">
                     <button
                         type="button"
-                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors"
+                        class="px-4 py-2 bg-sem-action-primary hover:bg-sem-action-primary-hover text-white rounded-lg text-sm font-bold transition-colors"
                         @click="isRawMessageModalOpen = false"
                     >
                         Close
@@ -4273,9 +4272,9 @@ export default {
             const el = document.getElementById(`message-${hash}`);
             if (el) {
                 el.scrollIntoView({ behavior: "smooth", block: "center" });
-                el.classList.add("ring-2", "ring-blue-500", "ring-offset-2");
+                el.classList.add("ring-2", "ring-sem-focus", "ring-offset-2");
                 setTimeout(() => {
-                    el.classList.remove("ring-2", "ring-blue-500", "ring-offset-2");
+                    el.classList.remove("ring-2", "ring-sem-focus", "ring-offset-2");
                 }, 2000);
                 return;
             }
@@ -4285,9 +4284,9 @@ export default {
                     requestAnimationFrame(() => {
                         const el2 = document.getElementById(`message-${hash}`);
                         if (el2) {
-                            el2.classList.add("ring-2", "ring-blue-500", "ring-offset-2");
+                            el2.classList.add("ring-2", "ring-sem-focus", "ring-offset-2");
                             setTimeout(() => {
-                                el2.classList.remove("ring-2", "ring-blue-500", "ring-offset-2");
+                                el2.classList.remove("ring-2", "ring-sem-focus", "ring-offset-2");
                             }, 2000);
                         }
                     });
@@ -5236,7 +5235,7 @@ export default {
                 return "text-indigo-500/80";
             }
             if (this.isOutboundWaitingBubble(chatItem)) {
-                return "text-gray-700 dark:text-gray-300";
+                return "text-sem-fg";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
                 return "text-sky-800 dark:text-sky-200";
@@ -5311,7 +5310,7 @@ export default {
         },
         outboundMessageMenuButtonHoverClass(chatItem) {
             if (!chatItem?.is_outbound) {
-                return "hover:bg-gray-200 hover:bg-sem-surface-muted";
+                return "hover:bg-sem-surface-muted hover:bg-sem-surface-muted";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
                 return "hover:bg-sky-900/10 dark:hover:bg-white/10";
@@ -7517,7 +7516,7 @@ export default {
     @apply text-xs text-sem-fg-muted;
 }
 .attachment-card__remove {
-    @apply absolute top-2 right-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-gray-200 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40;
+    @apply absolute top-2 right-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-sem-surface-muted dark:bg-zinc-800 text-sem-fg-muted dark:text-gray-200 hover:bg-sem-danger/10 hover:text-sem-danger;
 }
 .attachment-chip {
     @apply flex items-center justify-between gap-2 border border-sem-border rounded-full px-3 py-1 text-xs shadow-sm;
@@ -7527,7 +7526,7 @@ export default {
     background-color: rgb(24 24 27);
 }
 .attachment-chip__remove {
-    @apply inline-flex items-center justify-center text-gray-500 dark:text-gray-300 hover:text-red-500;
+    @apply inline-flex items-center justify-center text-sem-fg-muted hover:text-red-500;
 }
 .attachment-action-button {
     @apply inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-sem-fg-muted hover:bg-sem-surface-muted transition-colors;

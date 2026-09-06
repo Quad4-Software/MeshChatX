@@ -61,7 +61,7 @@
                 <DropDownMenuItem @click="onToggleTelemetryTrust">
                     <MaterialDesignIcon
                         :icon-name="contact?.is_telemetry_trusted ? 'shield-check' : 'shield-outline'"
-                        :class="contact?.is_telemetry_trusted ? 'text-blue-500' : 'text-gray-500'"
+                        :class="contact?.is_telemetry_trusted ? 'text-sem-accent' : 'text-sem-fg-muted'"
                         class="size-5"
                     />
                     <span>{{
@@ -136,7 +136,7 @@
                 <DropDownMenuItem v-if="GlobalState?.config?.telemetry_enabled" @click="onToggleTelemetryTrust">
                     <MaterialDesignIcon
                         :icon-name="contact?.is_telemetry_trusted ? 'shield-check' : 'shield-outline'"
-                        :class="contact?.is_telemetry_trusted ? 'text-blue-500' : 'text-gray-500'"
+                        :class="contact?.is_telemetry_trusted ? 'text-sem-accent' : 'text-sem-fg-muted'"
                         class="size-5"
                     />
                     <span>{{

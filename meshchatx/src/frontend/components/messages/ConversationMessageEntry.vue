@@ -384,7 +384,7 @@
                 </button>
                 <button
                     type="button"
-                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-600 transition-colors"
+                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-accent px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-600 transition-colors"
                     @click.stop="cv.replyToMessage(entry.items[0])"
                 >
                     {{ $t("messages.reply") }}
@@ -427,7 +427,7 @@
     >
         <span class="h-px w-10 shrink-0 bg-gray-300/85 sm:w-14 dark:bg-zinc-600/70" aria-hidden="true" />
         <span
-            class="max-w-[min(100%,18rem)] text-center text-[11px] font-medium leading-snug tracking-wide text-gray-500/95 text-sem-fg-muted/95"
+            class="max-w-[min(100%,18rem)] text-center text-[11px] font-medium leading-snug tracking-wide text-sem-fg-muted/95 text-sem-fg-muted/95"
         >
             {{ cv.formatDateDividerLabel(entry.dayKey) }}
         </span>
@@ -603,7 +603,7 @@
                     <!-- reply snippet -->
                     <div
                         v-if="chatItem.lxmf_message.reply_to_hash"
-                        class="mb-2 p-2 rounded-lg bg-black/5 dark:bg-white/5 border-l-2 border-blue-500/50 cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                        class="mb-2 p-2 rounded-lg bg-black/5 dark:bg-white/5 border-l-2 border-sem-accent/50 cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
                         @click.stop="cv.scrollToMessage(chatItem.lxmf_message.reply_to_hash)"
                     >
                         <div
@@ -874,7 +874,7 @@
                             <button
                                 v-if="!chatItem.is_outbound"
                                 type="button"
-                                class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
+                                class="w-full py-2 bg-sem-action-primary hover:bg-sem-action-primary-hover text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
                                 @click="
                                     cv.addContact(
                                         cv.getParsedItems(chatItem).contact.name,
@@ -1047,13 +1047,13 @@
                         <!-- audio is not yet loaded -->
                         <div
                             v-else
-                            class="flex items-center justify-center p-2 rounded-xl bg-gray-50/50 dark:bg-zinc-800/50 border border-sem-border min-h-[54px]"
+                            class="flex items-center justify-center p-2 rounded-xl bg-sem-surface-muted/50 dark:bg-zinc-800/50 border border-sem-border min-h-[54px]"
                         >
                             <div class="flex items-center gap-2">
                                 <div
-                                    class="size-4 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"
+                                    class="size-4 border-2 border-sem-accent/20 border-t-blue-500 rounded-full animate-spin"
                                 ></div>
-                                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{{
+                                <span class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-wider">{{
                                     $t("messages.downloading")
                                 }}</span>
                             </div>
@@ -1078,7 +1078,7 @@
                             :class="
                                 chatItem.is_outbound
                                     ? cv.outboundEmbeddedCardClass(chatItem)
-                                    : 'bg-gray-50 dark:bg-zinc-800/50 text-sem-fg-muted border-gray-200/60 dark:border-zinc-700 hover:bg-sem-surface-muted'
+                                    : 'bg-sem-surface-muted/50 text-sem-fg-muted border-sem-border/60 dark:border-zinc-700 hover:bg-sem-surface-muted'
                             "
                             @click.stop="cv.downloadLxmfFileAttachment(chatItem, index)"
                         >
@@ -1111,11 +1111,11 @@
                         <div v-for="(command, index) in chatItem.lxmf_message.fields.commands" :key="index">
                             <div
                                 v-if="command['0x01'] || command['1'] || command['0x1']"
-                                class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-sem-surface-muted rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                class="flex items-center gap-2 border border-sem-border/60 dark:border-zinc-700 hover:bg-sem-surface-muted rounded-lg px-3 py-2 text-sm font-medium transition-colors"
                                 :class="
                                     chatItem.is_outbound
                                         ? cv.outboundEmbeddedCardClass(chatItem)
-                                        : 'bg-gray-50 dark:bg-zinc-800/50 text-sem-fg-muted'
+                                        : 'bg-sem-surface-muted/50 text-sem-fg-muted'
                                 "
                             >
                                 <MaterialDesignIcon icon-name="crosshairs-question" class="size-5" />
@@ -1137,11 +1137,11 @@
                             <button
                                 v-if="chatItem.lxmf_message.fields.telemetry.location"
                                 type="button"
-                                class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-sem-surface-muted rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                class="flex items-center gap-2 border border-sem-border/60 dark:border-zinc-700 hover:bg-sem-surface-muted rounded-lg px-3 py-2 text-sm font-medium transition-colors"
                                 :class="
                                     chatItem.is_outbound
                                         ? cv.outboundEmbeddedCardClass(chatItem)
-                                        : 'bg-gray-50 dark:bg-zinc-800/50 text-sem-fg-muted'
+                                        : 'bg-sem-surface-muted/50 text-sem-fg-muted'
                                 "
                                 @click="cv.viewLocationOnMap(chatItem.lxmf_message.fields.telemetry.location)"
                             >
@@ -1161,11 +1161,11 @@
                             <button
                                 v-if="!chatItem.is_outbound"
                                 type="button"
-                                class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-sem-surface-muted rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                class="flex items-center gap-2 border border-sem-border/60 dark:border-zinc-700 hover:bg-sem-surface-muted rounded-lg px-3 py-2 text-sm font-medium transition-colors"
                                 :class="[
                                     cv.selectedPeer?.is_tracking
-                                        ? 'bg-blue-500/20 text-sem-accent border-blue-500/30 shadow-inner'
-                                        : 'bg-gray-50 dark:bg-zinc-800/50 text-sem-fg-muted',
+                                        ? 'bg-sem-accent/20 text-sem-accent border-sem-accent/30 shadow-inner'
+                                        : 'bg-sem-surface-muted/50 text-sem-fg-muted',
                                 ]"
                                 @click="cv.toggleTracking()"
                             >
@@ -1173,7 +1173,7 @@
                                     :icon-name="cv.selectedPeer?.is_tracking ? 'radar' : 'crosshairs'"
                                     class="size-5"
                                     :class="{
-                                        'animate-pulse text-blue-500': cv.selectedPeer?.is_tracking,
+                                        'animate-pulse text-sem-accent': cv.selectedPeer?.is_tracking,
                                     }"
                                 />
                                 <div class="text-left">
@@ -1362,7 +1362,7 @@
                         </button>
                         <button
                             type="button"
-                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-600 transition-colors"
+                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-sem-accent px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-600 transition-colors"
                             @click.stop="cv.replyToMessage(chatItem)"
                         >
                             {{ $t("messages.reply") }}
