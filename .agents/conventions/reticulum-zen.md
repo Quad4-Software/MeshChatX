@@ -37,13 +37,13 @@ Always-on: this file and .agents/conventions/core.md.
 
 ## MeshChatX mapping
 
-| Zen idea            | MeshChatX reality                                      |
-| ------------------- | ------------------------------------------------------ |
-| Portable identity   | storage/identities/<hash>/, identity switch teardown |
-| Announce presence   | announce handlers, favourites, path table              |
-| Store and forward   | LXMF propagation, outbound delivery states             |
-| Transport agnostic  | Reticulum interfaces config, not app-level sockets     |
-| Scarcity            | slim conversation queries, stamps, attachment discipline |
+| Zen idea            | MeshChatX reality                                             |
+| ------------------- | ------------------------------------------------------------- |
+| Portable identity   | storage/identities/<hash>/, identity switch teardown          |
+| Announce presence   | announce handlers, favourites, path table                     |
+| Store and forward   | LXMF propagation, outbound delivery states                    |
+| Transport agnostic  | Reticulum interfaces config, not app-level sockets            |
+| Scarcity            | slim conversation queries, stamps, attachment discipline      |
 | Cryptographic trust | destination recall, proofs. Local HTTPS UI is not mesh crypto |
 
 ## Before shipping mesh-facing code

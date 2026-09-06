@@ -24,8 +24,8 @@ Implement or harden Reticulum Relay Chat (RRC) hubs and clients without breaking
 
 ## Key paths
 
-| Area              | Path                                              |
-| ----------------- | ------------------------------------------------- |
+| Area              | Path                                            |
+| ----------------- | ----------------------------------------------- |
 | Protocol          | meshchatx/src/backend/rrc/protocol.py           |
 | Client hubs       | meshchatx/src/backend/rrc/manager.py            |
 | Hosted hub        | meshchatx/src/backend/rrc/server.py             |

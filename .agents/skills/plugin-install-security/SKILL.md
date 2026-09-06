@@ -31,7 +31,7 @@ Plugins are powerful. Treat install and enable as security-sensitive.
 3. Enable only after grants are stored
 4. Runtime enforces declared + granted hooks / managers / storage / network:fetch
 5. Integrity hashing after install. Tampered trees disable, they do not silently run. invoke and dispatch_hook re-hash before backend execution.
-6. Python backends purge __pycache__ next to the entry file on load so excluded bytecode cannot replace hashed source.
+6. Python backends purge **pycache** next to the entry file on load so excluded bytecode cannot replace hashed source.
 
 ## Hard rules
 

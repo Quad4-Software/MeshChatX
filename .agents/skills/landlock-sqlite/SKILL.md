@@ -104,7 +104,7 @@ For live stress, run Landlock in a **subprocess** (sandbox applies once per proc
 ## Key files
 
 - meshchatx/src/backend/database/provider.py
-- meshchatx/src/backend/database/__init__.py
+- meshchatx/src/backend/database/**init**.py
 - meshchatx/src/backend/memory_pressure.py
 - meshchatx/src/backend/landlock_sandbox.py
 - meshchatx/src/backend/serial_comports.py
@@ -137,6 +137,7 @@ Reference: https://docs.kernel.org/userspace-api/seccomp_filter.html
 AppContainer is a Windows process isolation mechanism. It creates a unique package identity SID and grants capability SIDs for resources the process may use. By default an AppContainer cannot touch the filesystem, registry, network, devices, or other processes. MeshChatX enables it through appcontainer_sandbox.py and the appcontainer_launcher.py wrapper. The launcher must be used when Electron win32 spawns the backend with MESHCHAT_APPCONTAINER=1. Because AppContainer capabilities must be declared upfront, any new external-tool integration needs its capability path added to the sandbox profile.
 
 References:
+
 - https://learn.microsoft.com/en-us/windows/win32/secauthz/appcontainer-isolation
 - https://learn.microsoft.com/en-us/windows/win32/secauthz/implementing-an-appcontainer
 

@@ -20,14 +20,14 @@ LXMF is store-and-forward mail on Reticulum. Do not require clearnet, DNS, or a 
 
 ## Key paths
 
-| Area                     | Path                                                                                               |
-| ------------------------ | -------------------------------------------------------------------------------------------------- |
-| Identity / router wiring | meshchatx/src/backend/identity_context.py                                                        |
-| Message handler          | meshchatx/src/backend/message_handler.py (and related)                                           |
-| HTTP/WS surface          | meshchatx/meshchat.py                                                                            |
+| Area                     | Path                                                                                         |
+| ------------------------ | -------------------------------------------------------------------------------------------- |
+| Identity / router wiring | meshchatx/src/backend/identity_context.py                                                    |
+| Message handler          | meshchatx/src/backend/message_handler.py (and related)                                       |
+| HTTP/WS surface          | meshchatx/meshchat.py                                                                        |
 | Inbound cancel helpers   | meshchatx/src/backend/meshchat_utils.py (list_inbound_deliveries, cancel_inbound_deliveries) |
-| Frontend conversations   | meshchatx/src/frontend/features/messages/                                      |
-| Config                   | config managers / settings UI for LXMF options                                                     |
+| Frontend conversations   | meshchatx/src/frontend/features/messages/                                                    |
+| Config                   | config managers / settings UI for LXMF options                                               |
 
 ## LXMF 1.1 / RNS 1.4 inbound cancel
 

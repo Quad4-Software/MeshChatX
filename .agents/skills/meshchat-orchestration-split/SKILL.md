@@ -38,7 +38,7 @@ Also read:
    or residual shared helpers. Do not re-extract routes from meshchat.py.
 9. One-shot extract scripts that rewrote meshchat.py were removed. Do not revive them.
 10. When converting routes/<domain>.py to a package, delete the old .py file in the same
-    change and keep register_<domain>_routes on the package __init__.py.
+    change and keep register_<domain>_routes on the package **init**.py.
 11. Do not slim meshchat_names imports in the same change as a structural split.
     Prefer a shared _names.py inside the package that re-exports the previous import block.
 
@@ -64,7 +64,7 @@ meshchatx/src/backend/http/
   ws/handlers_*.py
 ```
 
-Pattern (single file or package __init__.py):
+Pattern (single file or package **init**.py):
 
 ```python
 def register_status_routes(routes, app):

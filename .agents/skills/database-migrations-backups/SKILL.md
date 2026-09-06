@@ -58,7 +58,7 @@ Details for pickers and tutorial copy: identity-restore.
 ## Key files
 
 - meshchatx/src/backend/database/schema.py
-- meshchatx/src/backend/database/__init__.py
+- meshchatx/src/backend/database/**init**.py
 - meshchatx/meshchat.py (backup / restore routes, prepare_for_database_restore)
 - electron/offlineRecovery.js
 - scripts/ci/check_schema_migrations.py

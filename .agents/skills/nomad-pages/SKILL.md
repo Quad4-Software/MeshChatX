@@ -35,9 +35,9 @@ Executable pages are a per-node opt-in. POSIX uses chmod +x. Windows stores name
 
 | Extension | Role                                                  |
 | --------- | ----------------------------------------------------- |
-| .mu     | Micron markup (NomadNet default)                      |
-| .md     | Markdown                                              |
-| .txt    | Plain text                                            |
+| .mu       | Micron markup (NomadNet default)                      |
+| .md       | Markdown                                              |
+| .txt      | Plain text                                            |
 | HTML      | Sanitised. Do not widen the sanitiser to run scripts. |
 
 Announce display names parse through parse_nomadnetwork_node_display_name. Store toggles: announce_store_nomadnetwork_node in announce_manager.py.

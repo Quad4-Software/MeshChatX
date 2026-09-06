@@ -260,8 +260,8 @@ These words often add nothing to meaning. Remove them or find specific alternati
 
 When AI generates wikitext, it sometimes hallucinates citation markup from its training data. These are 100% confidence indicators of unedited AI output:
 
-| Artifact            | Origin                              |
-| ------------------- | ----------------------------------- |
+| Artifact          | Origin                              |
+| ----------------- | ----------------------------------- |
 | oaicite           | OpenAI ChatGPT citation placeholder |
 | contentReference  | OpenAI internal reference tag       |
 | grok_card         | xAI Grok citation tag               |

@@ -40,8 +40,8 @@ Skip locally when you must: SKIP=commitlint git commit or SKIP_COMMITLINT=1.
 
 ## Related commands
 
-| Command              | Purpose                                           |
-| -------------------- | ------------------------------------------------- |
+| Command            | Purpose                                           |
+| ------------------ | ------------------------------------------------- |
 | task hooks:install | Enable tracked hooks and download pre-commit envs |
 | task format        | Format the full tree (Prettier, ESLint fix, Ruff) |
 | task lint          | Full lint gate (same as CI lint job)              |

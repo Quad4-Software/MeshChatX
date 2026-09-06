@@ -22,12 +22,12 @@ task build
 
 Makefile targets call the same Taskfile commands:
 
-| Command      | Delegates to | Description                                                          |
-| ------------ | ------------ | -------------------------------------------------------------------- |
-| make install | task install | Install pnpm and UV dependencies                                     |
-| make run     | task run     | Run MeshChatX via UV                                                 |
-| make build   | task build   | Build frontend and backend artifacts                                 |
-| make format  | task format  | Format frontend and backend                                          |
+| Command      | Delegates to | Description                                                 |
+| ------------ | ------------ | ----------------------------------------------------------- |
+| make install | task install | Install pnpm and UV dependencies                            |
+| make run     | task run     | Run MeshChatX via UV                                        |
+| make build   | task build   | Build frontend and backend artifacts                        |
+| make format  | task format  | Format frontend and backend                                 |
 | make lint    | task lint    | ESLint, svelte-check, knip, dpdm cycles, Ruff, basedpyright |
 
 `task lint:frontend` also runs `typecheck:features` (strict Svelte/features), full Prettier `format:check`, and circular-dep analysis via dpdm. After `pnpm run build-frontend`, run `task check:frontend-bundle` (or `pnpm run check:bundle-budgets`) to enforce Vite chunk size budgets.
