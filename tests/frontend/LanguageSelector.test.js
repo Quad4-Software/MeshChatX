@@ -9,6 +9,7 @@ vi.mock("@/js/localeLoader.js", async () => {
         ...actual,
         setLocale: vi.fn(async () => true),
         ensureLocaleMessages: vi.fn(async () => {}),
+        getCurrentUiLocale: vi.fn(() => "en"),
     };
 });
 
@@ -74,7 +75,6 @@ describe("LanguageSelector.svelte", () => {
     });
 
     it("does not emit language-change when the current language is selected", async () => {
-        localStorage.setItem("meshchatx_locale", "en");
         const onlanguagechange = vi.fn();
         const { container } = render(LanguageSelector, { onlanguagechange });
         await fireEvent.click(screen.getByRole("button", { name: /language/i }));

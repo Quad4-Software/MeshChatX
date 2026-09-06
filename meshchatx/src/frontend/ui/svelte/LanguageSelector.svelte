@@ -4,7 +4,7 @@
     import { onMount, tick } from "svelte";
     import { t } from "../../js/i18n.js";
     import { clampFloatingToViewport } from "../../js/clampFloatingToViewport.js";
-    import { ensureLocaleMessages, listLocaleCodes, setLocale } from "../../js/localeLoader.js";
+    import { ensureLocaleMessages, getCurrentUiLocale, listLocaleCodes, setLocale } from "../../js/localeLoader.js";
     import MaterialDesignIcon from "./MaterialDesignIcon.svelte";
 
     interface Props {
@@ -21,8 +21,14 @@
         fi: "Suomi",
         fr: "Français",
         it: "Italiano",
+        ja: "日本語",
+        ko: "한국어",
         nl: "Nederlands",
+        pl: "Polski",
+        "pt-br": "Português (Brasil)",
         ru: "Русский",
+        tr: "Türkçe",
+        uk: "Українська",
         zh: "中文",
     };
 
@@ -34,7 +40,7 @@
     let isDropdownOpen = $state(false);
     let dropdownPosition = $state({ top: 0, left: 0 });
     let dropdownMaxHeight = $state<number | null>(null);
-    let currentLanguage = $state(localStorage.getItem("meshchatx_locale") || "en");
+    let currentLanguage = $state(getCurrentUiLocale() || "en");
     let dropdownPanel: HTMLElement | undefined = $state();
     let triggerButton: HTMLButtonElement | undefined = $state();
 
