@@ -52,7 +52,7 @@
                     </div>
 
                     <div v-if="recipientHash" class="w-full space-y-3">
-                        <div class="bg-sem-surface-muted/50 rounded-2xl p-3 border border-sem-border /50">
+                        <div class="bg-sem-surface-muted/50 rounded-2xl p-3 border border-sem-border/50">
                             <label
                                 class="block text-[9px] font-bold text-sem-fg-muted uppercase tracking-widest mb-1.5"
                             >
@@ -104,7 +104,7 @@
                         </div>
                     </div>
                     <div v-else class="w-full space-y-3">
-                        <div class="bg-sem-surface-muted/50 rounded-2xl p-3 border border-sem-border /50">
+                        <div class="bg-sem-surface-muted/50 rounded-2xl p-3 border border-sem-border/50">
                             <label
                                 class="block text-[9px] font-bold text-sem-fg-muted uppercase tracking-widest mb-1.5"
                             >

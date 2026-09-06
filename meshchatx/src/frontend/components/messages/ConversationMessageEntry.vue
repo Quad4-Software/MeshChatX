@@ -895,7 +895,7 @@
                                         : 'bg-black/5 border-black/10'
                                     : cv.isPaperMessageIngested(chatItem)
                                       ? 'bg-sem-success/5 border-sem-success/20'
-                                      : 'bg-sem-success/5 border-sem-success/10 /50'
+                                      : 'bg-sem-success/5 border-sem-success/10'
                             "
                         >
                             <div

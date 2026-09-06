@@ -827,7 +827,7 @@
                         <p class="mt-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
                             {{ $t("maintenance.import_messages") }}
                         </p>
-                        <p class="text-xs text-sem-accent/80 /80">
+                        <p class="text-xs text-sem-accent/80">
                             {{ $t("maintenance.import_messages_desc") }}
                         </p>
                     </div>
