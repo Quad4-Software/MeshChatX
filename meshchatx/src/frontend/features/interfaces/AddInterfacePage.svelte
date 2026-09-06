@@ -5,6 +5,7 @@
     import DialogUtils from "../../js/DialogUtils.js";
     import ToastUtils from "../../js/ToastUtils.js";
     import GlobalState from "../../js/GlobalState.js";
+    import { t } from "../../js/i18n.js";
     import { INTERFACES_ROUTE_NAME } from "./lib/constants.js";
     import type {
         DiscoveryFields,
@@ -210,6 +211,14 @@
     let communityFetchDone = $state(false);
     let showCommunityPresets = $state(true);
     let existingInterfaces = $state<Record<string, ConfiguredInterface>>({});
+
+    const hasExistingI2PInterface = $derived(
+        Object.values(existingInterfaces || {}).some((iface) => iface && iface.type === "I2PInterface")
+    );
+    const transportEnabled = $derived(Boolean((GlobalState as any).config?.is_transport_enabled));
+    const canAddI2PInterface = $derived(
+        (isEditingInterface && newInterfaceType === "I2PInterface") || (transportEnabled && !hasExistingI2PInterface)
+    );
 
     onMount(() => {
         loadInitialData();
@@ -498,6 +507,13 @@
             return;
         }
 
+        if (newInterfaceType === "I2PInterface" && !canAddI2PInterface) {
+            ToastUtils.error(
+                !transportEnabled ? t("interfaces.i2p_transport_required") : t("interfaces.i2p_already_exists")
+            );
+            return;
+        }
+
         if (newInterfaceType === "I2PInterface") {
             const validPeers = form.i2pPeers.map((p) => String(p).trim()).filter(Boolean);
             if (validPeers.length === 0) {
@@ -605,6 +621,9 @@
                                 {installedModules}
                                 {modulesPath}
                                 {customIsBusy}
+                                {transportEnabled}
+                                hasExistingI2P={hasExistingI2PInterface}
+                                isEditing={isEditingInterface}
                                 onpatch={(patch) => Object.assign(form, patch)}
                                 onrefreshcomports={refreshComports}
                                 onuploadmodule={handleUploadModule}

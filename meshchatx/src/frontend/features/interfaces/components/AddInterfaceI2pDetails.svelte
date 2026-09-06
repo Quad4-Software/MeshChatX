@@ -3,6 +3,7 @@
 <script lang="ts">
     import Toggle from "./Toggle.svelte";
     import MaterialDesignIcon from "../../../ui/svelte/MaterialDesignIcon.svelte";
+    import { t } from "../../../js/i18n.js";
     import { RETICULUM_MIN_FIXED_MTU } from "../lib/constants.js";
 
     interface Props {
@@ -10,6 +11,9 @@
         peers: string[];
         connectTimeout: number | string | null;
         fixedMtu: number | string | null;
+        transportEnabled?: boolean;
+        hasExistingI2P?: boolean;
+        isEditing?: boolean;
         onconnectablechange?: (val: boolean) => void;
         onpeerschange?: (peers: string[]) => void;
         onconnecttimeoutchange?: (val: string) => void;
@@ -21,6 +25,9 @@
         peers = [],
         connectTimeout = null,
         fixedMtu = null,
+        transportEnabled = true,
+        hasExistingI2P = false,
+        isEditing = false,
         onconnectablechange,
         onpeerschange,
         onconnecttimeoutchange,
@@ -46,9 +53,23 @@
     <div
         class="p-3 bg-purple-500/10 border border-purple-500/20 rounded-2xl text-xs text-purple-700 dark:text-purple-300"
     >
-        <div class="font-semibold">I2P SAM Bridge Interface</div>
-        <p class="mt-0.5 opacity-80">Creates an anonymous tunnel over the I2P network using the local I2P router.</p>
+        <div class="font-semibold">{t("interfaces.i2p_requirements_title")}</div>
+        <p class="mt-0.5 opacity-80">{t("interfaces.i2p_requirements_body")}</p>
     </div>
+
+    {#if !transportEnabled}
+        <div
+            class="bg-red-50/80 dark:bg-red-900/20 p-3 rounded-2xl border border-red-200 dark:border-red-800/40 text-xs text-red-800 dark:text-red-200"
+        >
+            {t("interfaces.i2p_transport_required")}
+        </div>
+    {:else if hasExistingI2P && !isEditing}
+        <div
+            class="bg-red-50/80 dark:bg-red-900/20 p-3 rounded-2xl border border-red-200 dark:border-red-800/40 text-xs text-red-800 dark:text-red-200"
+        >
+            {t("interfaces.i2p_already_exists")}
+        </div>
+    {/if}
 
     <div class="flex items-center gap-2">
         <Toggle id="i2p-connectable" checked={connectable} onchange={(val) => onconnectablechange?.(val)} />
