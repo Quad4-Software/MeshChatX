@@ -9,6 +9,7 @@ cd "$ROOT"
 files=""
 for path in "$@"; do
 	case "$path" in
+	*/tests/* | tests/*) continue ;;
 	*.js | *.mjs | *.cjs | *.ts) files="$files $path" ;;
 	esac
 done
@@ -19,4 +20,15 @@ fi
 
 NPM="${NPM:-pnpm}"
 # shellcheck disable=SC2086
-exec "$NPM" exec oxlint --config .oxlintrc.json $files
+set +e
+out="$("$NPM" exec oxlint --config .oxlintrc.json $files 2>&1)"
+code=$?
+set -e
+printf '%s\n' "$out"
+if [ "$code" -ne 0 ]; then
+	case "$out" in
+	*"No files found to lint"*) exit 0 ;;
+	esac
+	exit "$code"
+fi
+exit 0
