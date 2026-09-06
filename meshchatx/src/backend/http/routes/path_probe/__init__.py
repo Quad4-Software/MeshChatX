@@ -14,6 +14,10 @@ from meshchatx.src.backend.http.routes.path_probe.ping import (
 from meshchatx.src.backend.http.routes.path_probe.path_table import (
     register_path_probe_path_table_routes,
 )
+from meshchatx.src.backend.http.routes.path_probe._names import (
+    PATH_WAIT_REQUIRES_POST_MESSAGE as PATH_WAIT_REQUIRES_POST_MESSAGE,
+    lxmf_delivery_hash_bytes_for_path as lxmf_delivery_hash_bytes_for_path,
+)
 
 
 def register_path_probe_routes(routes: Any, app: Any) -> None:
