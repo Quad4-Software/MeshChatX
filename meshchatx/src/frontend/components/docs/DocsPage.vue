@@ -224,6 +224,7 @@
                             v-if="status.has_docs"
                             :href="localDocsUrl"
                             target="_blank"
+                            rel="noopener noreferrer"
                             class="inline-flex items-center px-2 py-1 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:opacity-90 transition-opacity font-bold text-[10px] shadow-xs"
                         >
                             <MaterialDesignIcon icon-name="open-in-new" class="w-3 h-3 mr-1" />
