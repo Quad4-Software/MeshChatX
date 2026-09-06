@@ -346,6 +346,8 @@ describe("behavior contracts: plugin install permissions", () => {
         expect(section).toContain(".wasm");
         expect(section).toContain("trustPublisher");
         expect(section).toContain("sideband");
+        expect(section).toContain('window.api.post("/api/v1/sideband-plugins/config"');
+        expect(section).not.toContain('window.api.patch("/api/v1/sideband-plugins/config"');
         const dialog = readSource("meshchatx/src/frontend/features/settings/components/PluginInstallDialog.svelte");
         expect(dialog).toContain("network_endpoints");
         expect(dialog).toContain("grantedMap");

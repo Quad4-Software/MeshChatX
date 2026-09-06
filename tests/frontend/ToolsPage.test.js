@@ -9,6 +9,7 @@ import {
     toolRouteHref,
 } from "@/features/tools/lib/toolsList.ts";
 import { registerCoreContributions } from "@/js/registries/registerCoreContributions.js";
+import { clearRoutes, registerRoute } from "@/js/registries/routeRegistry.js";
 import { registerFallbackMessages, registerTranslator } from "@/js/i18n.js";
 
 registerCoreContributions();
@@ -17,7 +18,34 @@ describe("toolsList helpers", () => {
     it("builds hash hrefs", () => {
         expect(toolRouteHref({ name: "ping" })).toBe("#/ping");
         expect(toolRouteHref({ name: "paper-message" })).toBe("#/tools/paper-message");
+        expect(toolRouteHref({ name: "rnode-flasher" })).toBe("#/tools/rnode-flasher");
         expect(toolRouteHref({ path: "/rncp" })).toBe("#/rncp");
+    });
+
+    it("resolves rnode-flasher via registered path not dotted name", () => {
+        clearRoutes();
+        registerRoute({
+            name: "rnode-flasher",
+            path: "/tools/rnode-flasher",
+            mount: "svelte",
+            load: () => Promise.resolve({ default: {} }),
+        });
+        expect(toolRouteHref({ name: "rnode-flasher" })).toBe("#/tools/rnode-flasher");
+        expect(toolRouteHref({ name: "rnode-flasher" })).not.toBe("#/rnode-flasher");
+        clearRoutes();
+    });
+
+    it("resolves dotted route names via hashRouter path not name-as-path", () => {
+        clearRoutes();
+        registerRoute({
+            name: "interfaces.add",
+            path: "/interfaces/add",
+            mount: "svelte",
+            load: () => Promise.resolve({ default: {} }),
+        });
+        expect(toolRouteHref({ name: "interfaces.add" })).toBe("#/interfaces/add");
+        expect(toolRouteHref({ name: "interfaces.add" })).not.toBe("#/interfaces.add");
+        clearRoutes();
     });
 
     it("filters and groups tools", () => {

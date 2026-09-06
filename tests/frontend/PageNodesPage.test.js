@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, cleanup, waitFor } from "@testing-library/svelte";
+import { render, cleanup, waitFor, screen } from "@testing-library/svelte";
 import PageNodesPage from "@/features/page-nodes/PageNodesPage.svelte";
 import { PAGE_NODES_API_BASE } from "@/features/page-nodes/lib/constants.ts";
 import { fetchPageNodes } from "@/features/page-nodes/lib/pageNodesApi.ts";
@@ -58,6 +58,26 @@ describe("PageNodesPage.svelte", () => {
         render(PageNodesPage);
         await waitFor(() => {
             expect(window.api.get).toHaveBeenCalledWith(PAGE_NODES_API_BASE);
+        });
+    });
+
+    it("shows empty state when no nodes are returned", async () => {
+        registerFallbackMessages({
+            common: { loading: "Loading" },
+            page_nodes: { title: "Page nodes" },
+            tools: {
+                mesh_server: {
+                    empty_title: "No mesh server nodes",
+                    empty_description: "Create one to host pages",
+                },
+                back_to_tools: "Back",
+            },
+            app: { tools: "Tools" },
+        });
+        render(PageNodesPage);
+        await waitFor(() => {
+            expect(screen.getByText("No mesh server nodes")).toBeTruthy();
+            expect(screen.getByText("Create one to host pages")).toBeTruthy();
         });
     });
 });
