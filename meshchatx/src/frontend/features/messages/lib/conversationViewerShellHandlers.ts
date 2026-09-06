@@ -74,14 +74,12 @@ export function showRawMessage(bag: ShellHandlerBag, item: MessageChatItem) {
 }
 
 export function openReactionPicker(bag: ShellHandlerBag, item: MessageChatItem) {
-    const hash = item.lxmf_message.hash;
-    const bubble = hash ? document.getElementById(`message-${hash}`) : null;
-    const bounds = bubble?.getBoundingClientRect();
-    const top = Math.max(8, (bounds?.top ?? window.innerHeight / 2) - 8);
-    const left = Math.max(8, (bounds?.left ?? window.innerWidth / 2) - 8);
+    if (!item?.lxmf_message?.hash) {
+        return;
+    }
     bag.setReactionPicker({
         open: true,
-        style: `top:${top}px;left:${left}px;`,
+        style: "bottom:0.5rem;left:50%;transform:translateX(-50%);",
         chatItem: item as ViewerChatItem,
     });
     bag.setContextMenu({ ...bag.contextMenu, show: false });

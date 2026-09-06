@@ -37,7 +37,13 @@
     import { buildDisplayGroupsNewestFirst } from "../lib/conversationDisplayGroups.js";
     import { isNearBottom, scrollContainerToBottom, shouldLoadPreviousMessages } from "../lib/conversationScroll.js";
     import { createConversationViewerActions } from "../lib/conversationViewerActions.js";
-    import { latestConversationCards, buildAudioAttachmentUrlMap } from "../lib/conversationViewerUi.js";
+    import { latestConversationCards } from "../lib/conversationViewerUi.js";
+    import {
+        clearAudioAttachmentCache,
+        downloadAndDecodeMessageAudio,
+        rememberAudioAttachment,
+    } from "../lib/conversationAudioDecode.js";
+    import { EMOJI_PICKER_DATA_URL, emojiPickerThemeClass, unicodeFromEmojiClickEvent } from "../lib/emojiPicker.js";
     import {
         openContextMenu as openContextMenuFn,
         toggleChatItemActions as toggleChatItemActionsFn,
@@ -184,12 +190,17 @@
     let openedPeerHash = "";
     let openedIdentityKey = "";
     let loadPreviousPromise: Promise<void> | null = null;
+    let audioAttachmentCache = $state.raw<Record<string, string>>({});
+    let audioAttachmentOrder: string[] = [];
+    let audioDownloadInFlight = new Set<string>();
 
     const selectedHash = $derived(String(selectedPeer?.destination_hash || ""));
     const identityKey = $derived(String(config?.identity_hash || myLxmfAddressHash || "_"));
     const selectedMessages = $derived(visibleConversationItems(chatItems, selectedHash, showTelemetryInChat));
     const filteredContacts = $derived(filterContactsList(contacts, contactsSearch));
     const selectedPeerTelemetryItems = $derived(filterSelectedPeerTelemetry(chatItems, selectedHash));
+    const emojiPickerDataUrl = EMOJI_PICKER_DATA_URL;
+    const emojiThemeClass = $derived(emojiPickerThemeClass());
     const actions = $derived(
         createConversationViewerActions({
             chatItems: selectedMessages as unknown as MessageChatItem[],
@@ -197,7 +208,7 @@
             conversations,
             myLxmfAddressHash,
             messageFontSize: Number(config?.message_font_size) || 14,
-            audioAttachmentUrls: buildAudioAttachmentUrlMap(selectedMessages),
+            audioAttachmentUrls: audioAttachmentCache,
             openImage,
             onMessageContextMenu: (event, item, suppressToggle) =>
                 openContextMenu(event, item as ViewerChatItem, suppressToggle),
@@ -273,6 +284,13 @@
         }
     });
 
+    $effect(() => {
+        const items = selectedMessages;
+        untrack(() => {
+            void autoLoadAudioAttachments(items);
+        });
+    });
+
     onMount(() => {
         onviewerReady?.(viewerApi);
         const wsHandlers: Array<[string, (payload: Record<string, unknown>) => void | Promise<void>]> = [
@@ -294,6 +312,10 @@
             GlobalEmitter.off("websocket-reconnected", softResync);
             GlobalEmitter.off("identity-switched", onIdentitySwitched);
             if (openedPeerHash) saveDraft(openedPeerHash, openedIdentityKey, newMessageText);
+            clearAudioAttachmentCache(audioAttachmentOrder, audioAttachmentCache);
+            audioAttachmentCache = {};
+            audioAttachmentOrder = [];
+            audioDownloadInFlight.clear();
         };
     });
 
@@ -304,6 +326,10 @@
         requestSequence += 1;
         loadPreviousPromise = null;
         isLoadingPrevious = false;
+        clearAudioAttachmentCache(audioAttachmentOrder, audioAttachmentCache);
+        audioAttachmentCache = {};
+        audioAttachmentOrder = [];
+        audioDownloadInFlight.clear();
         const seed = prepareOpenConversationState({
             peerHash,
             nextIdentity,
@@ -327,6 +353,30 @@
         await tick();
         scrollMessagesToBottom();
         messagesViewportReady = true;
+    }
+
+    async function autoLoadAudioAttachments(items: ViewerChatItem[]) {
+        for (const item of items) {
+            const hash = String(item.lxmf_message.hash || "");
+            const audioField = item.lxmf_message.fields?.audio as
+                { audio_mode?: number; audio_bytes?: string | ArrayBuffer | Uint8Array } | undefined;
+            if (!hash || !audioField) continue;
+            if (audioAttachmentCache[hash] || audioDownloadInFlight.has(hash)) continue;
+            audioDownloadInFlight.add(hash);
+            try {
+                const objectUrl = await downloadAndDecodeMessageAudio(window.api, hash, audioField);
+                if (!objectUrl) continue;
+                if (!sameHash(openedPeerHash, selectedHash)) {
+                    URL.revokeObjectURL(objectUrl);
+                    continue;
+                }
+                const next = rememberAudioAttachment(audioAttachmentOrder, audioAttachmentCache, hash, objectUrl);
+                audioAttachmentOrder = next.order;
+                audioAttachmentCache = next.cache;
+            } finally {
+                audioDownloadInFlight.delete(hash);
+            }
+        }
     }
 
     async function loadPrevious() {
@@ -482,6 +532,23 @@
         } finally {
             pingInFlight = false;
         }
+    }
+
+    async function startCallWithSelectedPeer() {
+        if (!selectedHash) return;
+        try {
+            await window.api.post(`/api/v1/telephone/call/${selectedHash}`);
+        } catch (e: any) {
+            const message = e?.response?.data?.message ?? t("call.failed_to_initiate_call");
+            void DialogUtils.alert(message);
+        }
+    }
+
+    function openConversationPopout() {
+        if (!selectedHash || isPopout) return;
+        const encodedHash = encodeURIComponent(selectedHash);
+        const url = `${window.location.origin}${window.location.pathname}#/popout/messages/${encodedHash}`;
+        window.open(url, "_blank", "width=960,height=720,noopener");
     }
 
     async function banishSelectedPeer() {
@@ -879,7 +946,7 @@
             onpathfinderforce={() => void runPathAction("force")}
             onpathfinderdrop={() => void runPathAction("drop_then_request")}
             onping={() => void pingSelectedPeer()}
-            onstartcall={() => GlobalEmitter.emit("start-call", selectedHash)}
+            onstartcall={() => void startCallWithSelectedPeer()}
             onsharecontact={() => void openShareContactModal()}
             onopentelemetryhistory={() => {
                 isTelemetryHistoryModalOpen = true;
@@ -888,6 +955,7 @@
             onunbanish={() => void unbanishSelectedPeer()}
             onconversationdeleted={() => void deleteMessageHistory()}
             onretryfailed={() => void retryAllFailedOrCancelledMessages()}
+            onpopout={() => openConversationPopout()}
             onclose={() => onclose?.()}
             onaddstranger={() => void addStrangerAsContact()}
             ondismissstranger={() => {
@@ -960,8 +1028,8 @@
     {filteredContacts}
     {conversations}
     {selectedPeerTelemetryItems}
-    emojiPickerDataUrl=""
-    emojiPickerThemeClass=""
+    {emojiPickerDataUrl}
+    emojiPickerThemeClass={emojiThemeClass}
     oncloselightbox={closeImageLightbox}
     onnavigatelightbox={navigateImageLightbox}
     ondownloadlightbox={downloadLightboxImage}
@@ -1006,10 +1074,7 @@
     onliftbanishment={() => void unbanishSelectedPeer()}
     ondelete={() => void deleteMessage()}
     onemojireaction={(event) => {
-        const char =
-            (event.detail as { unicode?: string })?.unicode ||
-            (event.detail as { emoji?: { unicode?: string } })?.emoji?.unicode ||
-            String(event.detail || "");
+        const char = unicodeFromEmojiClickEvent(event);
         if (char && reactionPicker.chatItem) void sendReaction(char, reactionPicker.chatItem);
         reactionPicker = { ...reactionPicker, open: false };
     }}

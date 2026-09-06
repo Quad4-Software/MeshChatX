@@ -105,7 +105,8 @@
     }
 
     function addImage(file: File) {
-        if (!file.type.startsWith("image/")) return;
+        const allowed = file.type.startsWith("image/") || file.type === "video/webm";
+        if (!allowed) return;
         images = images.concat(file);
         imageUrls = imageUrls.concat(URL.createObjectURL(file));
     }
@@ -226,6 +227,7 @@
         bind:text
         bind:deliveryMethod
         {imageUrls}
+        imageFiles={images}
         {files}
         {audio}
         {replyingTo}
