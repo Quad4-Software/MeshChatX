@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **DX tooling**: Oxlint runs before ESLint for JS/TS. Vitest browser-mode smoke for Toggle. Playwright Electron shell harness (`task test:e2e:electron`). Core OpenAPI at `openapi/meshchatx-ui-core.yaml` with contract tests and optional Schemathesis (`MESHCHAT_OPENAPI_LIVE=1`). Ruff enables B and UP. Frontend API path contract also scans `.ts` and `.svelte` and accepts param-base prefixes. Fix drifted UI paths (reticulum interfaces, maintenance message import/export, map tiles/export cancel, dead RRC discovery/members calls).
 - **Bug Reports Extension (off by default)**: Capture crashes and issues locally, group duplicates, and send a redacted report over the RNS when you choose. Crash screens can open or save into Bug Reports.
 - **Release channels**: Testing, Beta, and Stable. The sidebar shows which channel you are on. Testing and Beta ask once how to file useful bug reports.
 - **Install options**: Flatpak channels at https://cdn.meshchatx.com/flatpak/ (testing, beta, stable). Docker images with testing and beta tags.
