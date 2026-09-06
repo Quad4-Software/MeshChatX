@@ -251,9 +251,7 @@ describe("app-shell applyIdentitySwitched", () => {
 
     it("onIdentitySwitchedApplyShell schedules apply without throwing", () => {
         const state = makeState();
-        expect(() =>
-            onIdentitySwitchedApplyShell(state, { identity_hash: "x", display_name: "Y" })
-        ).not.toThrow();
+        expect(() => onIdentitySwitchedApplyShell(state, { identity_hash: "x", display_name: "Y" })).not.toThrow();
     });
 
     it("onIdentitySwitchingAbortShell clears overlay", () => {

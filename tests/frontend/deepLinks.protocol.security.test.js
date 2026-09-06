@@ -32,9 +32,7 @@ describe("app-shell deep link protocol handling (security-oriented)", () => {
 
     it("routes meshchatx://docs with reticulum query to documentation page", () => {
         const push = vi.fn();
-        handleProtocolLink({ push },
-            "meshchatx://docs?reticulum=" + encodeURIComponent("manual/interfaces.html#foo")
-        );
+        handleProtocolLink({ push }, "meshchatx://docs?reticulum=" + encodeURIComponent("manual/interfaces.html#foo"));
         expect(push).toHaveBeenCalledWith({
             name: "documentation",
             query: {

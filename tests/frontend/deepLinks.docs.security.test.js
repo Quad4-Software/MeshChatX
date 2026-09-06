@@ -37,9 +37,7 @@ describe("meshchatx://docs deep links (security / fuzz)", () => {
     it("passes XSS-shaped reticulum through encodeURIComponent only (opaque to router)", () => {
         const push = vi.fn();
         const malicious = "<script>alert(1)</script>";
-        handleProtocolLink({ push },
-            `meshchatx://docs?reticulum=${encodeURIComponent(malicious)}`
-        );
+        handleProtocolLink({ push }, `meshchatx://docs?reticulum=${encodeURIComponent(malicious)}`);
         expect(push).toHaveBeenCalledWith({
             name: "documentation",
             query: { reticulum: encodeURIComponent(malicious) },
@@ -56,9 +54,7 @@ describe("meshchatx://docs deep links (security / fuzz)", () => {
         const push = vi.fn();
         for (let i = 0; i < 40; i++) {
             const tail = `x=${encodeURIComponent(`${i}\u0000<script>`)}`;
-            expect(() =>
-                handleProtocolLink({ push }, `meshchatx://docs?${tail}`)
-            ).not.toThrow();
+            expect(() => handleProtocolLink({ push }, `meshchatx://docs?${tail}`)).not.toThrow();
         }
     });
 
