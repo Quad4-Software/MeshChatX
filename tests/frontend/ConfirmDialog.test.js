@@ -77,7 +77,7 @@ describe("ConfirmDialog UI", () => {
         const wrapper = mountDialog();
         confirmHandler()({ message: "Sure?", resolve });
         await wrapper.vm.$nextTick();
-        await wrapper.find("button.bg-red-600").trigger("click");
+        await wrapper.find("button.danger-action").trigger("click");
         expect(resolve).toHaveBeenCalledWith(true);
         expect(wrapper.vm.pendingConfirm).toBeNull();
         wrapper.unmount();
