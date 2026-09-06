@@ -16,6 +16,10 @@ All notable changes to this project will be documented in this file.
 - **Micron publish**: Publish can create a mesh server, upload the page, and open it in NomadNet in one step. Publish site uploads several tabs as pages with editable filenames, drag or arrow reordering, and an optional index page linking them all. Editor tabs can be dragged to reorder.
 - **Nomad identify-on-connect** (schema 58): Sticky per-favourite Identify when connecting, matching NomadNet. Auto-identifies on link before page requests. Fingerprint toggle and favourites import/export carry the identify flag.
 
+### Security
+
+- **DeepSource security pass**: Fixed or suppressed the first three batches of DeepSource security findings, including front-end rel attributes, Android TLS validation, stricter file permissions, and Python binding and subprocess audit rules.
+
 ### Fixed
 
 - **Messages**: Coming back to an open chat marks it read and clears badges and desktop notifications.
