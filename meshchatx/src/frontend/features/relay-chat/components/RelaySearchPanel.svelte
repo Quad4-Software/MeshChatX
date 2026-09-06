@@ -24,7 +24,9 @@
     });
 </script>
 
-<div class="flex flex-col w-72 sm:w-80 border-l border-sem-border bg-sem-surface h-full min-h-0 text-sem-fg">
+<div
+    class="absolute inset-y-0 right-0 z-40 flex w-80 max-w-[min(20rem,100%)] min-h-0 flex-col border-l border-sem-border bg-sem-canvas shadow-xl text-sem-fg md:static md:z-auto md:max-w-none md:w-80 md:shadow-none"
+>
     <div class="flex items-center justify-between px-3 py-2 border-b border-sem-border">
         <div class="flex items-center gap-1.5 font-semibold text-sm">
             <MaterialDesignIcon iconName="magnify" class="size-4 text-sem-fg-muted" />

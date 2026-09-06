@@ -46,7 +46,9 @@
     const hasSearch = $derived(Boolean(searchTerm.trim()));
 </script>
 
-<div class="flex flex-col w-56 sm:w-64 border-l border-sem-border bg-sem-surface h-full min-h-0 text-sem-fg">
+<div
+    class="absolute inset-y-0 right-0 z-40 flex w-72 max-w-[min(18rem,100%)] min-h-0 flex-col border-l border-sem-border bg-sem-canvas shadow-xl text-sem-fg md:static md:z-auto md:max-w-none md:w-72 md:shadow-none"
+>
     <div class="flex items-center justify-between px-3 py-2 border-b border-sem-border">
         <div class="flex items-center gap-1.5 font-semibold text-sm">
             <MaterialDesignIcon iconName="account-group" class="size-4 text-sem-fg-muted" />

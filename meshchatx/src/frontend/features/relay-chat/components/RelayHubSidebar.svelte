@@ -115,9 +115,9 @@
 </script>
 
 <div
-    class="flex flex-col shrink-0 border-r border-sem-border bg-sem-canvas {collapsed
-        ? 'w-16 min-w-16 max-w-16'
-        : 'w-full md:w-72'}"
+    class="flex flex-col shrink-0 border-r border-sem-border bg-sem-canvas {selectedRoomName
+        ? 'max-md:hidden'
+        : ''} {collapsed ? 'w-16 min-w-16 max-w-16' : 'w-full md:w-72'}"
 >
     <div
         class="flex h-10 shrink-0 items-center border-b border-sem-border px-2 {collapsed
