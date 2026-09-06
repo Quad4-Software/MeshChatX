@@ -36,7 +36,7 @@ bash scripts/ci/github-verify-frozen-codec2.sh "$ROOT/build/exe/darwin-x64"
 bash scripts/ci/github-verify-frozen-umsgpack.sh "$ROOT/build/exe/darwin-x64"
 bash scripts/ci/github-verify-frozen-runtime.sh "$ROOT/build/exe/darwin-x64"
 
-pnpm exec electron-builder --mac --x64 --config scripts/ci/electron-builder-mac-x64.yml --publish=never
+pnpm exec electron-builder --mac --x64 --config scripts/ci/electron-builder-mac.config.js --publish=never
 
 bash scripts/ci/github-prune-electron-dist-staging.sh
 bash scripts/ci/github-verify-electron-dist.sh mac
