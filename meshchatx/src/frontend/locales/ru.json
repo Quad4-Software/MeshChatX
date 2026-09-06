@@ -3209,16 +3209,12 @@
             "publish_prompt_name": "index.mu уже существует на «{server}». Введите имя страницы (без .mu):",
             "publish_published": "Опубликовано «{page}» на {server}",
             "publish_failed": "Не удалось опубликовать страницу",
-            "publish_all_prompt_server": "Имя сервера для публикации всех вкладок:\n\nДоступно: {servers}",
-            "publish_server_not_found": "Сервер не найден: {server}",
-            "publish_all_done": "Опубликовано {published}/{total} вкладок на {server}",
             "publish": "Опубликовать",
             "publish_to_mesh_server": "Опубликовать на Mesh-сервер",
             "publish_no_servers": "Mesh-серверов пока нет.",
             "publish_create_and_publish": "Создать mesh-сервер и опубликовать...",
             "publish_manage_servers": "Управление mesh-серверами",
             "publish_will_start": "запустится",
-            "publish_all_tabs": "Опубликовать все вкладки на сервер...",
             "publish_create_prompt_name": "Имя нового mesh-сервера:",
             "publish_failed_create": "Не удалось создать mesh-сервер",
             "publish_failed_start": "Не удалось запустить mesh-сервер",
@@ -4890,8 +4886,7 @@
         "login": "Войти",
         "passwords_mismatch": "Пароли не совпадают",
         "status_check_failed": "Не удалось проверить состояние аутентификации",
-        "failed": "Ошибка аутентификации",
-        "altcha_required": "Complete the verification challenge first"
+        "failed": "Ошибка аутентификации"
     },
     "post_install": {
         "windows_screen_security_title": "Включить защиту экрана Windows?",

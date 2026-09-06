@@ -3471,7 +3471,6 @@
             "publish_create_and_publish": "Utwórz serwer mesh i publikuj...",
             "publish_manage_servers": "Zarządzaj serwerami mesh",
             "publish_will_start": "zostanie uruchomiony",
-            "publish_all_tabs": "Publikuj wszystkie karty na serwerze...",
             "publish_create_prompt_name": "Nazwa nowego serwera mesh:",
             "publish_failed_create": "Nie udało się utworzyć serwera mesh",
             "publish_failed_start": "Nie udało się uruchomić serwera mesh",
@@ -3479,10 +3478,7 @@
             "publish_open_nomadnet_confirm": "Opublikowano \"{page}\" na {server}. Otworzyć go teraz w NomadNet?",
             "publish_prompt_name": "index.mu już istnieje na \"{server}\". Wpisz nazwę strony (bez .mu):",
             "publish_published": "Opublikowano \"{page}\" na {server}",
-            "publish_failed": "Nie udało się opublikować strony",
-            "publish_all_prompt_server": "Wpisz nazwę serwera, na który opublikować wszystkie karty:\n\nDostępne: {servers}",
-            "publish_server_not_found": "Nie znaleziono serwera: {server}",
-            "publish_all_done": "Opublikowano {published}/{total} kart na {server}"
+            "publish_failed": "Nie udało się opublikować strony"
         },
         "reticulum_config_editor": {
             "title": "Edytor konfiguracji Reticulum",
@@ -4990,8 +4986,7 @@
         "login": "Zaloguj się",
         "passwords_mismatch": "Hasła nie są identyczne",
         "status_check_failed": "Nie udało się sprawdzić stanu uwierzytelniania",
-        "failed": "Uwierzytelnianie nie powiodło się",
-        "altcha_required": "Complete the verification challenge first"
+        "failed": "Uwierzytelnianie nie powiodło się"
     },
     "post_install": {
         "windows_screen_security_title": "Włączyć ochronę ekranu systemu Windows?",

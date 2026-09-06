@@ -68,7 +68,6 @@ from meshchatx.src.backend.active_sessions import (
     ActiveSessionTracker,
     should_warn_multi_session,
 )
-from meshchatx.src.backend.altcha_auth import altcha_enabled_from_env
 from meshchatx.src.backend.announce_manager import (
     filter_announced_dicts_by_search_query,
 )
@@ -629,12 +628,10 @@ class ReticulumMeshChat:
         defer_network_setup: bool = False,
         headless: bool = False,
         demo_mode: bool = False,
-        altcha_enabled: bool = False,
     ):
         self.running = True
         self.plugins_enabled = plugins_enabled
         self.demo_mode = bool(demo_mode)
-        self.altcha_enabled = bool(altcha_enabled)
         self.auth_page_hint = auth_page_hint_from_env()
         self._memory_diag_enabled = memory_diag_enabled
         self._mem_diag = None
@@ -1837,7 +1834,6 @@ class ReticulumMeshChat:
     def _startup_status_payload(self) -> dict:
         demo_fields = {
             "demo_mode": self.demo_mode,
-            "altcha_enabled": self.altcha_enabled,
             "auth_page_hint": self.auth_page_hint,
         }
         if self._startup_stage == "failed" or self._startup_error:
@@ -11647,7 +11643,6 @@ def main():
         )
 
     demo_mode = bool(args.demo)
-    altcha_on = altcha_enabled_from_env()
 
     reticulum_meshchat = ReticulumMeshChat(
         identity,
@@ -11668,7 +11663,6 @@ def main():
         defer_network_setup=not needs_immediate_network,
         headless=bool(args.headless),
         demo_mode=demo_mode,
-        altcha_enabled=altcha_on,
     )
 
     # store recovery on app for wiring with identity context

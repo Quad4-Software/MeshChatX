@@ -3471,7 +3471,6 @@
             "publish_create_and_publish": "メッシュサーバーを作成して公開...",
             "publish_manage_servers": "メッシュサーバーを管理",
             "publish_will_start": "が起動します",
-            "publish_all_tabs": "すべてのタブをサーバーに公開...",
             "publish_create_prompt_name": "新しいメッシュサーバーの名前:",
             "publish_failed_create": "メッシュサーバーの作成に失敗しました",
             "publish_failed_start": "メッシュサーバーの起動に失敗しました",
@@ -3479,10 +3478,7 @@
             "publish_open_nomadnet_confirm": "「{page}」を {server} に公開しました。NomadNet で開きますか？",
             "publish_prompt_name": "「{server}」には index.mu がすでに存在します。ページ名（.mu 以外）を入力してください:",
             "publish_published": "「{page}」を {server} に公開しました",
-            "publish_failed": "ページの公開に失敗しました",
-            "publish_all_prompt_server": "すべてのタブを公開するサーバー名を入力してください:\n\n利用可能: {servers}",
-            "publish_server_not_found": "サーバーが見つかりません: {server}",
-            "publish_all_done": "{total} 個中 {published} 個のタブを {server} に公開しました"
+            "publish_failed": "ページの公開に失敗しました"
         },
         "reticulum_config_editor": {
             "title": "Reticulum 設定エディター",
@@ -4990,8 +4986,7 @@
         "login": "ログイン",
         "passwords_mismatch": "パスワードが一致しません",
         "status_check_failed": "認証状態の確認に失敗しました",
-        "failed": "認証に失敗しました",
-        "altcha_required": "Complete the verification challenge first"
+        "failed": "認証に失敗しました"
     },
     "post_install": {
         "windows_screen_security_title": "Windowsの画面セキュリティを有効化しますか？",

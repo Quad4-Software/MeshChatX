@@ -132,19 +132,6 @@ from meshchatx.src.backend.http.meshchat_names import (  # noqa: F401
 
 
 def register_auth_routes(routes, app):
-
-    @routes.get("/api/v1/auth/altcha/challenge")
-    async def auth_altcha_challenge(request):
-        if not app.altcha_enabled:
-            return web.json_response({"error": "ALTCHA is not enabled"}, status=404)
-        try:
-            from meshchatx.src.backend.altcha_auth import create_altcha_challenge_dict
-
-            challenge = create_altcha_challenge_dict()
-        except RuntimeError as exc:
-            return web.json_response({"error": str(exc)}, status=503)
-        return web.json_response(challenge)
-
     @routes.get("/api/v1/server/security")
     async def server_security_get(request):
         settings = load_app_security_settings(app.storage_dir)
@@ -220,7 +207,6 @@ def register_auth_routes(routes, app):
                     "status": "starting",
                     "stage": app._startup_stage,
                     "demo_mode": app.demo_mode,
-                    "altcha_enabled": app.altcha_enabled,
                     "auth_page_hint": app.auth_page_hint,
                 },
             )
@@ -241,7 +227,6 @@ def register_auth_routes(routes, app):
                     "authenticated": actually_authenticated,
                     "network_ready": True,
                     "demo_mode": app.demo_mode,
-                    "altcha_enabled": app.altcha_enabled,
                     "auth_page_hint": app.auth_page_hint,
                 },
             )
@@ -260,7 +245,6 @@ def register_auth_routes(routes, app):
                         app.current_context and app.current_context.running,
                     ),
                     "demo_mode": app.demo_mode,
-                    "altcha_enabled": app.altcha_enabled,
                     "auth_page_hint": app.auth_page_hint,
                     "error": str(e),
                 },
@@ -318,11 +302,6 @@ def register_auth_routes(routes, app):
                 {"error": "Invalid request body"},
                 status=400,
             )
-        from meshchatx.src.backend.altcha_auth import require_altcha_payload
-
-        altcha_blocked = await require_altcha_payload(request, data)
-        if altcha_blocked is not None:
-            return altcha_blocked
         password = data.get("password")
 
         if not password or len(password) < 8:
@@ -405,11 +384,6 @@ def register_auth_routes(routes, app):
                 {"error": "Invalid request body"},
                 status=400,
             )
-        from meshchatx.src.backend.altcha_auth import require_altcha_payload
-
-        altcha_blocked = await require_altcha_payload(request, data)
-        if altcha_blocked is not None:
-            return altcha_blocked
         password = data.get("password")
 
         password_hash = app.config.auth_password_hash.get()

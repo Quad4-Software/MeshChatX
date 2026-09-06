@@ -3471,7 +3471,6 @@
             "publish_create_and_publish": "Criar mesh server e publicar...",
             "publish_manage_servers": "Gerenciar mesh servers",
             "publish_will_start": "será iniciado",
-            "publish_all_tabs": "Publicar todas as abas no servidor...",
             "publish_create_prompt_name": "Nome para o novo mesh server:",
             "publish_failed_create": "Falha ao criar mesh server",
             "publish_failed_start": "Falha ao iniciar mesh server",
@@ -3479,10 +3478,7 @@
             "publish_open_nomadnet_confirm": "Publicado \"{page}\" em {server}. Abrir no NomadNet agora?",
             "publish_prompt_name": "index.mu já existe em \"{server}\". Digite um nome de página (sem .mu):",
             "publish_published": "Publicado \"{page}\" em {server}",
-            "publish_failed": "Falha ao publicar a página",
-            "publish_all_prompt_server": "Digite o nome do servidor para publicar todas as abas:\n\nDisponíveis: {servers}",
-            "publish_server_not_found": "Servidor não encontrado: {server}",
-            "publish_all_done": "Publicadas {published}/{total} abas em {server}"
+            "publish_failed": "Falha ao publicar a página"
         },
         "reticulum_config_editor": {
             "title": "Editor de Configuração da Reticulum",
@@ -4990,8 +4986,7 @@
         "login": "Entrar",
         "passwords_mismatch": "As senhas não coincidem",
         "status_check_failed": "Falha ao verificar o status de autenticação",
-        "failed": "Falha na autenticação",
-        "altcha_required": "Complete the verification challenge first"
+        "failed": "Falha na autenticação"
     },
     "post_install": {
         "windows_screen_security_title": "Ativar a segurança de tela do Windows?",

@@ -3463,16 +3463,12 @@
             "publish_prompt_name": "index.mu ya existe en \"{server}\". Introduzca un nombre de página (sin .mu):",
             "publish_published": "Publicado \"{page}\" en {server}",
             "publish_failed": "No se pudo publicar la página",
-            "publish_all_prompt_server": "Nombre del servidor para publicar todas las pestañas:\n\nDisponibles: {servers}",
-            "publish_server_not_found": "Servidor no encontrado: {server}",
-            "publish_all_done": "Publicadas {published}/{total} pestañas en {server}",
             "publish": "Publicar",
             "publish_to_mesh_server": "Publicar en el servidor Mesh",
             "publish_no_servers": "Aún no hay servidores Mesh.",
             "publish_create_and_publish": "Crear servidor Mesh y publicar...",
             "publish_manage_servers": "Gestionar servidores Mesh",
             "publish_will_start": "se iniciará",
-            "publish_all_tabs": "Publicar todas las pestañas en el servidor...",
             "publish_create_prompt_name": "Nombre para el nuevo servidor Mesh:",
             "publish_failed_create": "No se pudo crear el servidor Mesh",
             "publish_failed_start": "No se pudo iniciar el servidor Mesh",
@@ -4890,8 +4886,7 @@
         "login": "Iniciar sesión",
         "passwords_mismatch": "Las contraseñas no coinciden",
         "status_check_failed": "No se pudo comprobar el estado de autenticación",
-        "failed": "Error de autenticación",
-        "altcha_required": "Complete the verification challenge first"
+        "failed": "Error de autenticación"
     },
     "post_install": {
         "windows_screen_security_title": "¿Activar la seguridad de pantalla de Windows?",
